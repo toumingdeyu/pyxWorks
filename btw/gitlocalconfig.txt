@@ -1,0 +1,7 @@
+git config --global user.name "Peter Nemec"
+git config --global user.email peteneme@centrum.sk
+git remote add origin https://github.com/peteneme/pyxWorks.git
+git branch --set-upstream-to=origin/master master
+git push origin master --force
+git remote -v
+git config --list
