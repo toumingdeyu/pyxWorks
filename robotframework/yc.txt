@@ -1,0 +1,28 @@
+*** Settings ***
+Library    OperatingSystem
+Library    Selenium2Library
+
+
+Test Setup       BasicSetup
+Test Teardown    Close All Browsers
+
+*** Variables ***
+${YC_url}            https://www.onlinevideoconverter.com/youtube-converter
+
+
+*** Test Cases ***
+Open Url
+    Log to Console     Use syntax  pybot --variable url:'http://...' yc.txt  
+    Open Browser                          ${YC_url}     firefox
+    Wait Until Page Contains Element      id:texturl
+    Input Text                            id:texturl    ${url}
+    Click Element                         id:convert1
+    Wait Until Page Contains Element      id:downloadq
+    Click Element                         xpath=(//a[text()='Download'])[1]
+    Sleep                                 10
+
+*** Keywords ***
+BasicSetup
+    Set Selenium Speed      0.1
+    Set Selenium Timeout    30
+
