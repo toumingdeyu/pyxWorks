@@ -1,0 +1,1 @@
+﻿"# sk_ba_wheater - actual wheater in Bratislava Slovakia in text form."
