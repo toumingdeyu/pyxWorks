@@ -1,4 +1,5 @@
 ﻿import requests
+import json
 
 def dictionaryRecursivePrint(d,depth=0):
   if isinstance(d,dict):
@@ -22,7 +23,8 @@ print('-'*80)
 print(response.json())
 print('-'*80)
 dictionaryRecursivePrint(response.json())
-
+print('-'*80)
+print(json.dumps(response.json(), indent=8))
 
 
 
