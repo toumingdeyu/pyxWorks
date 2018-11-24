@@ -1,0 +1,1 @@
+﻿"# first pandas lessons from lesson from https://pandas.pydata.org/pandas-docs/stable/10min.html"

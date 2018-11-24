@@ -1,0 +1,1 @@
+﻿"# Some configs backup to prevent sclerosis, some python oriented small ideas..."
