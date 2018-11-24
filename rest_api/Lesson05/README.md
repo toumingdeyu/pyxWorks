@@ -1,0 +1,1 @@
+﻿"# GET/POST/PUT/DELETE simple rest SERVER+CLIENT with flask..."
