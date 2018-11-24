@@ -1,1 +1,1 @@
-﻿"# GET simple rest SERVER+CLIENT..."
+﻿"# GET simple rest SERVER+CLIENT with flask..."
