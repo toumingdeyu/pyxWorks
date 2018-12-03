@@ -11,4 +11,4 @@ for table in response.text.split('<table')[1:]:
       for j in ['<','>','/','strong','td','"','class','scope','title','=','row','precipitation','Precipitation:','Temperature:','Wind:','temperature','txt-left','plus']:
         column=column.replace(j,'')
       line.append(column.strip()) if column.strip() else None
-    print("{:<10} {:<7} {:<18} {:<10} {:<30} {:<15}".format(line[0].split()[0],line[0].split()[1], line[1].replace('.',''), line[3].replace('m.','m'), line[2].replace('.',''), line[4])) if len(line)>3 else None
+    print("{:<10} {:<7} {:<18} {:<10} {:<30} {:<15}".format(line[0].split()[0],line[0].split()[1], line[1].replace('.',''), line[3].replace('m.','m'), line[2].replace('.','').replace('minus','').strip(), line[4])) if len(line)>3 else None
