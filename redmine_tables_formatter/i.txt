@@ -1,0 +1,7 @@
+EndingReason	Percentage	Counts
+CAN_BE_IGNORED [code found: com.opsware.common.MessageSpec.WRITE_PERSISTENCE_ERROR]      	6.67%	1
+ResultType=Diagnosed      	26.67%	4
+ResultType=Diagnosed   WARNING - [Exitcode=-1]   	13.33%	2
+ResultType=Diagnosed   WARNING - Known error state in script has occured.   	6.67%	1
+ResultType=Resolved   WARNING - Known error state in script has occured.   	6.67%	1
+ResultType=Resolved   WARNING - WFAN_4KB_OVERFLOW   	40.00%	6

@@ -1,0 +1,1 @@
+﻿"# peteneme's tip how to get admin or system consoles from command line..."

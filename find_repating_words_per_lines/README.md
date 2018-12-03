@@ -1,0 +1,1 @@
+﻿"# Finder of repeting words per lines..."

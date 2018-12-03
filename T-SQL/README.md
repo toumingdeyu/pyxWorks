@@ -1,0 +1,1 @@
+﻿"# peteneme's example of t-sql analytics template..."

@@ -1,0 +1,1 @@
+﻿"# redmine tables formater, used input from SQL Server Management Studio tables by ctrl-c to file i.txt..."

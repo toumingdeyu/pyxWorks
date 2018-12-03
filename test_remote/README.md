@@ -1,0 +1,1 @@
+﻿"# peteneme's tip how to quick run tests on more unix machines from Windows command prompt, BAT file based on plink.exe..."
