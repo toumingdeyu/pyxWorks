@@ -1,0 +1,9 @@
+yaml_variable : 22
+yaml_list:
+  - 222
+  - 333
+  - ...
+yaml_dict:
+  one: 2222
+  two: 3333
+  three: 4444

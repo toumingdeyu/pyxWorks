@@ -1,0 +1,1 @@
+﻿"# some experiments, how to insert json into robotframework..."
