@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<invoice>
+    <order_number>456789</order_number>
+	<customer_id>789654</customer_id>
+	<address1>John Doe</address1>
+	<address2>123 Dickens Road</address2>
+	<address3>Johnston, IA 55555</address3>
+	<address4/>
+	<order_items>
+		<item>
+			<id>11123</id>
+			<name>Expo Dry Erase Pen</name>
+			<price>1.99</price>
+			<quantity>5</quantity>
+		</item>
+		<item>
+			<id>22245</id>
+			<name>Cisco IP Phone 7942</name>
+			<price>300</price>
+			<quantity>1</quantity>
+		</item>
+		<item>
+			<id>33378</id>
+			<name>Waste Basket</name>
+			<price>9.99</price>
+			<quantity>1</quantity>
+		</item>
+	</order_items>
+</invoice>
