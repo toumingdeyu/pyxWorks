@@ -1,0 +1,4 @@
+cd $HOME/ncs-run
+ncs
+pgrep ncs
+#exec /usr/bin/python3 -u ${main} $*

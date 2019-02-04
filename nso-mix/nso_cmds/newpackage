@@ -1,0 +1,10 @@
+#cd $HOME/ncs-run/ncs-run/packages
+#ncs-make-package --service-skeleton python-and-template $1
+
+if [ -z "$1" ]
+then
+      echo "Insert name of NSO package."
+else
+      cd $HOME/ncs-run/packages
+      ncs-make-package --service-skeleton python-and-template $1
+fi
