@@ -63,7 +63,7 @@ else
   do
     mkdir ${i}
     cd ${i}    
-    gitinit "$1" "$2" "${url}${i}${git}" "$3"
+    gitinit "$1" "$2" "${url}${i}${git}"
     cd ..
   done
 fi
