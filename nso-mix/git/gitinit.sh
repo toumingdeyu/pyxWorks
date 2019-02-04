@@ -5,7 +5,7 @@ then
   echo PARAMETERS:
   echo   1st parameter is \"Name Surname\"
   echo   2nd parameter is \"email\"
-  echo   3rd parameter is git inventory: \"https://gitlabname/groupname/projectname.git\" 
+  echo   3rd parameter is git inventory: \"https://username:password@gitlabname/groupname/projectname.git\" 
   echo                                                       or 
   echo                                   \"git@gitlabname:groupname/projectname.git\"
   echo FOR EXAMPLE: 
@@ -16,6 +16,7 @@ else
   git init
   sleep 2
   git config http.sslverify false
+  git config credential.helper cache
   git config user.name $1
   git config user.email $2
   git remote add origin $3
