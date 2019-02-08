@@ -1,0 +1,3 @@
+ncs_cli -C
+@ncs:
+license smart development enable

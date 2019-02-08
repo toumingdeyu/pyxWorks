@@ -25,9 +25,7 @@ source /etc/profile.d/ncs.sh
 #NCS_LOG_DIR="/var/log/ncs"
 
 # copy neds to packages
-sudo cp -r /opt/ncs/current/packages/neds/* /opt/ncs/current/packages
-
-
+sudo cp -r /opt/ncs/current/packages/neds/* /var/opt/ncs/packages
 
 sudo /etc/init.d/ncs start
 
