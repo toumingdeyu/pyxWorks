@@ -1,5 +1,5 @@
 sudo apt install -y terminator nedit krusader default-jdk kate ant build-essential ssh git python-pip python3-pip
-sudo apt install -y sshpass mc meld sysstat dos2unix members
+sudo apt install -y sshpass mc meld sysstat dos2unix members net-tools
 
 sudo pip install pyang robotframework xmltodict pyaml restinstance napalm paramiko netmiko 
 #json yaml

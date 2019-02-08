@@ -1,0 +1,11 @@
+#!/bin/bash
+# from https://technology.amis.nl/2017/01/29/network-access-to-ubuntu-virtual-box-vm-from-host-laptop/
+
+# enable a network adapter for the specific VM of type Virtual Box Host Only Ethernet Adapter, based on the adapter configured in the previous step
+
+
+# edit /etc/networks/interfaces
+sudo echo auto enp0s8 >> /etc/networks/interfaces
+sudo echo iface enp0s8 inet static >> /etc/networks/interfaces
+sudo echo address 192.168.56.101 >> /etc/networks/interfaces
+sudo echo netmask 255.255.255.0 >> /etc/networks/interfaces
