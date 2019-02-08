@@ -2,17 +2,17 @@
 
 # system packages
 sudo apt install -y terminator nedit krusader default-jdk kate ant build-essential ssh git python-pip python3-pip
-sudo apt install -y sshpass mc meld sysstat dos2unix xterm
+sudo apt install -y sshpass mc meld sysstat dos2unix xterm curl 
 
 # modules for python2
 sudo pip install pyang robotframework xmltodict pyaml restinstance napalm paramiko netmiko 
 sudo pip install pycodestyle
-#json yaml
+# ?? json yaml
 
 # modules for python3
 sudo pip3 install pyang robotframework xmltodict pyaml restinstance napalm paramiko netmiko 
 sudo sudo pip3 install pycodestyle
-#json yaml
+# ?? json yaml
 
 
   
