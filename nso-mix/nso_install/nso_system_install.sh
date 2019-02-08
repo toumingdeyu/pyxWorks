@@ -29,6 +29,9 @@ sudo cp -r /opt/ncs/current/packages/neds/* /var/opt/ncs/packages
 
 sudo /etc/init.d/ncs start
 
+echo license smart development enable
+echo license smart development enable | ncs_cli -C
+ncs_cli -C
 
 
 
