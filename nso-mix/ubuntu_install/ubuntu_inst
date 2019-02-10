@@ -8,5 +8,5 @@ sudo pip3 install pyang robotframework xmltodict pyaml restinstance napalm param
 #json yaml
 
 
-sudo pip install pycodestyle pynso
-sudo sudo pip3 install pycodestyle pynso
+sudo pip install pycodestyle pynso ncs
+sudo sudo pip3 install pycodestyle pynso ncs
