@@ -7,7 +7,9 @@
 #export MANPATH=/opt/ncs/current/man:/usr/share/man
  
 #export PATH=/opt/ncs/current/bin:$PATH
-
+#NCS_CONFIG_DIR="/etc/ncs"
+#NCS_RUN_DIR="/var/opt/ncs"
+#NCS_LOG_DIR="/var/log/ncs"
 
 ### netsim basic setup
 ssh-keygen

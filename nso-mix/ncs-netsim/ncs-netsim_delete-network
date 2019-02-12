@@ -1,0 +1,12 @@
+#!/bin/bash
+#NCS_CONFIG_DIR="/etc/ncs"
+#NCS_RUN_DIR="/var/opt/ncs"
+#NCS_LOG_DIR="/var/log/ncs"
+NCS_DIR=/opt/ncs/current
+PYTHONPATH=/opt/ncs/current/src/ncs/pyapi
+MANPATH=/opt/ncs/current/man:/usr/share/man
+PATH=/opt/ncs/current/bin:$PATH
+NETSIM_DIR=/netsim
+ncs-netsim delete-network
+ncs-netsim is-alive
+

@@ -1,0 +1,14 @@
+<device xmlns="http://tail-f.com/ns/ncs">
+  <name>ios1</name>
+  <address>127.0.0.1</address>
+  <port>10021</port>
+  <state>
+    <admin-state>unlocked</admin-state>
+  </state>
+  <authgroup>default</authgroup>
+  <device-type>
+    <cli>
+   <ned-id xmlns:ios-id="urn:ios-id">ios-id:cisco-ios</ned-id>
+    </cli>
+  </device-type>
+</device>
