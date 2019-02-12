@@ -2,6 +2,7 @@
 #NCS_CONFIG_DIR="/etc/ncs"
 #NCS_RUN_DIR="/var/opt/ncs"
 #NCS_LOG_DIR="/var/log/ncs"
+sudo chmod 777 /netsim
 sudo chmod 777 /netsim/.netsiminfo
 NCS_DIR=/opt/ncs/current
 PYTHONPATH=/opt/ncs/current/src/ncs/pyapi
