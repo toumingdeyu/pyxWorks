@@ -1,0 +1,11 @@
+
+
+#set devices authgroups group default default-map remote-name admin remote-password admin
+#ncs_cli -u admin -C
+ncs_cli -C
+config t
+devices authgroups group default default-map remote-name admin remote-password admin remote-secondary-password admin
+commit check
+commit
+end
+show running-config devices authgroups group default
