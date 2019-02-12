@@ -19,6 +19,7 @@ export NETSIM_DIR=/netsim
 sudo export NETSIM_DIR=/netsim
 sudo ssh-keygen -t rsa -f /opt/ncs/current/netsim/confd/etc/confd/ssh/ssh_host_rsa_key
 sudo chmod +r /opt/ncs/current/netsim/confd/etc/confd/ssh/ssh_host_rsa_key
+sudo chmod 777 /netsim/.netsiminfo
 ncs-netsim delete-network
 ncs-netsim create-network cisco-ios 3 ios
  
