@@ -8,7 +8,7 @@ nso_ipaddress='192.168.56.101'
 nso_port='8080'
 nso_user='localnso'
 nso_password='1234!'
-nso_device='ios1'
+nso_device='ios4'
 
 TheDevice = {
     "device": {
@@ -34,6 +34,7 @@ def main():
     restconf_oper_base_uri = nso_protocol + "://" + nso_ipaddress + ":" + nso_port + "/restconf/operations"
     rest_headers = {'Content-Type': 'application/vnd.yang.data+json'}
     restconf_headers = {'Content-Type': 'application/yang-data+json'}
+    restconf_get_headers = {'accept': 'application/yang-data+json'}
 
 #     uri=rest_base_uri + "/devices/device/" + nso_device + "/ssh/_operations/fetch-host-keys"
 #     response = requests.post(uri, auth=auth, headers=rest_headers)
@@ -89,7 +90,7 @@ def main():
 #     print(response.text)
 
     uri=restconf_data_base_uri + '/devices/device='+nso_device
-    response = requests.get(uri, auth=auth, headers=restconf_headers)
+    response = requests.get(uri, auth=auth, headers=restconf_get_headers)
     print('='*80)
     print(uri,response)
     print('-'*80)
