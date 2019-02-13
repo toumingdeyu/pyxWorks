@@ -8,7 +8,7 @@ nso_ipaddress='192.168.56.101'
 nso_port='8080'
 nso_user='localnso'
 nso_password='1234!'
-nso_device='ios4'
+nso_device='ios2'
 
 TheDevice = {
     "device": {
