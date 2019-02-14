@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import sys
 import json
 import requests
 import urllib3
@@ -11,7 +12,7 @@ nso_ipaddress='192.168.56.101'
 nso_port='8080'
 nso_user='localnso'
 nso_password='1234!'
-nso_device='ios2'
+nso_device='iosxr'
 
 TheDevice = {
     "device": {
@@ -29,6 +30,15 @@ TheDevice = {
         }
     }
 }
+
+def print_response_and_end_on_error(method,uri,response):
+    print('='*80)
+    print(method,uri,'  |',response.status_code,'|')
+    print('-'*80)
+    print(response.headers)
+    print('-'*80)
+    print(response.text)
+    if int(response.status_code)>=400: sys.exit(0)
 
 def main():
     auth = (nso_user, nso_password)
@@ -50,33 +60,21 @@ def main():
 
 
     ### FETCH HOST KEYS ========================================================
-    uri = restconf_operations_base_uri + "/devices/device=ios3/ssh/fetch-host-keys"
+    uri = restconf_operations_base_uri + "/devices/device=" + nso_device + "/ssh/fetch-host-keys"
     response = requests.post(uri, auth=auth, headers=restconf_headers)
-    print('='*80)
-    print('POST',uri,'  | ',response.status_code,'|')
-    print('-'*80)
-    print(response.headers)
-    print('-'*80)
-    print(response.text)
+    print_response_and_end_on_error('POST',uri,response)
 
     ### SYNC-FROM NSO ==========================================================
     uri = restconf_data_base_uri + "/devices/device=" + nso_device + "/sync-from"
     response = requests.post(uri, auth=auth, headers=restconf_headers)
-    print('='*80)
-    print('POST',uri,'  |',response.status_code,'|')
-    print('-'*80)
-    print(response.headers)
-    print('-'*80)
-    print(response.text)
+    print_response_and_end_on_error('POST',uri,response)
+
 
     ### DEVICE READ FROM NSO ===================================================
     uri = restconf_data_base_uri + '/devices/device=' + nso_device + '?content=config'
     response = requests.get(uri, auth=auth, headers=restconf_get_headers)
-    print('='*80)
-    print('GET',uri,'  |',response.status_code,'|')
-    print('-'*80)
-    print(response.headers)
-    print('-'*80)
+    print_response_and_end_on_error('GET',uri,response)
+
     print(response.text)
     ### COPY RECEIVED DATA =====================================================
     received_json=copy.deepcopy(response.text)
@@ -84,22 +82,12 @@ def main():
 #     ### DEVICE OPTIONS TO NSO ====================================================
 #     uri = restconf_operations_base_uri + '/devices/device=' + nso_device
 #     response = requests.options(uri, auth=auth, headers=restconf_headers)
-#     print('='*80)
-#     print('OPTIONS',uri,'  |',response.status_code,'|')
-#     print('-'*80)
-#     print(response.headers)
-#     print('-'*80)
-#     print(response.text)
+#     print_response_and_end_on_error(uri,response)
 #
 #     ### DEVICE WRITE TO NSO ====================================================
 #     uri = restconf_operations_base_uri + '/devices/device=' + nso_device + '/config/'
 #     response = requests.post(uri, auth=auth, headers=restconf_headers, data=json.dumps(TheDevice))
-#     print('='*80)
-#     print('POST',uri,'  |',response.status_code,'|')
-#     print('-'*80)
-#     print(response.headers)
-#     print('-'*80)
-#     print(response.text)
+#     print_response_and_end_on_error(uri,response)
 
 
     ### ENCAPSULATE DATA =======================================================
@@ -115,23 +103,13 @@ def main():
       s.verify = False
       uri = restconf_operations_base_uri + '/devices/device=' + nso_device
       response = s.post(uri, json=TheDevice)
-      print('='*80)
-      print('POST',uri,'  |',response.status_code,'|')
-      print('-'*80)
-      print(response.headers)
-      print('-'*80)
-      print(response.text)
+      print_response_and_end_on_error('POST',uri,response)
 
 
     ### SYNC-TO NSO ============================================================
     uri = restconf_operations_base_uri + "/devices/device=" + nso_device + "/sync-to"
     response = requests.post(uri, auth=auth, headers=restconf_headers)
-    print('='*80)
-    print('POST',uri,'  |',response.status_code,'|')
-    print('-'*80)
-    print(response.headers)
-    print('-'*80)
-    print(response.text)
+    print_response_and_end_on_error('POST',uri,response)
 
 if __name__ == "__main__":
     main()
