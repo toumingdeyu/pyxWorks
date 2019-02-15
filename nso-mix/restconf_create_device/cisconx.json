@@ -1,0 +1,16 @@
+{
+    "device": {
+        "name": "cisconx",
+        "address": "127.0.0.1",
+        "port": 10022,
+        "state": {
+            "admin-state": "unlocked"
+        },
+        "authgroup": "default",
+        "device-type": {
+            "cli": {
+                "ned-id": "tailf-ned-cisco-nx-id:cisco-nx"
+            }
+        }
+    }
+}
