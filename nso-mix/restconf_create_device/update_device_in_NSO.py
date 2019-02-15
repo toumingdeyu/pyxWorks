@@ -66,25 +66,28 @@ def main():
     restconf_data_base_uri = "%s/data"%(restconf_base_uri)
     restconf_operations_base_uri = "%s/operations"%(restconf_base_uri)
     restconf_headers = {'accept': 'application/yang-data+json', 'content-type': 'application/yang-data+json'}
-
-    ### DEVICE WRITE TO NSO ====================================================
-    uri = restconf_data_base_uri + '/devices/device=' + nso_device
-    response = requests.put(uri, auth=auth, headers=restconf_headers, data=json.dumps(json_device_data))
-    print_response_and_end_on_error('PUT',uri,response)
+    config_dict_encapsulation = { 'config' : {} }
+    all_dict_encapsulation = { 'all' : {} }
 
     ### FETCH HOST KEYS ========================================================
     uri = restconf_operations_base_uri + "/devices/device=" + nso_device + "/ssh/fetch-host-keys"
     response = requests.post(uri, auth=auth, headers=restconf_headers)
     print_response_and_end_on_error('POST',uri,response)
 
-    ### SYNC-FROM NSO ==========================================================
-    uri = restconf_data_base_uri + "/devices/device=" + nso_device + "/sync-from"
-    response = requests.post(uri, auth=auth, headers=restconf_headers)
-    print_response_and_end_on_error('POST',uri,response,ignorefail=True)
+#     ### DEVICE READ FROM NSO ===================================================
+#     uri = restconf_data_base_uri + '/devices/device=' + nso_device + '?content=config'
+#     response = requests.get(uri, auth=auth, headers=restconf_headers)
+#     print_response_and_end_on_error('GET',uri,response)
 
-    ### SYNC-TO NSO ============================================================
-    uri = restconf_data_base_uri + "/devices/device=" + nso_device + "/sync-to"
-    response = requests.post(uri, auth=auth, headers=restconf_headers)
-    print_response_and_end_on_error('POST',uri,response)
+    ### DEVICE WRITE TO NSO ====================================================
+    uri = restconf_data_base_uri + '/devices/device=' + nso_device
+    response = requests.put(uri, auth=auth, headers=restconf_headers, data=json.dumps(json_device_data))
+    print_response_and_end_on_error('PUT',uri,response)
 
-if __name__ == "__main__": main()
+#     ### DEVICE READ FROM NSO ===================================================
+#     uri = restconf_data_base_uri + '/devices/device=' + nso_device + '?content=config'
+#     response = requests.get(uri, auth=auth, headers=restconf_headers)
+#     print_response_and_end_on_error('GET',uri,response)
+
+if __name__ == "__main__":
+    main()

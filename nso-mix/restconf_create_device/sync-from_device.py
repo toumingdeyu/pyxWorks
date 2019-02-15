@@ -20,15 +20,15 @@ if not args or len(sys.argv) != 2:
 else:
   nso_device=args[0]
 
-### print response =============================================================
-def print_response_and_end_on_error(method,uri,response):
+### PRINT RESPONSE + ignorefail=True/False option ==============================
+def print_response_and_end_on_error(method,uri,response,ignorefail=False):
     print('='*80)
     print(method,uri,'  |',response.status_code,'|')
     print('-'*80)
     print(response.headers)
     print('-'*80)
     print(response.text)
-    if int(response.status_code)>=400: sys.exit(0)
+    if not ignorefail and int(response.status_code)>=400: sys.exit(0)
 
 ### main =======================================================================
 def main():
@@ -46,11 +46,6 @@ def main():
     uri = restconf_data_base_uri + "/devices/device=" + nso_device + "/sync-from"
     response = requests.post(uri, auth=auth, headers=restconf_headers)
     print_response_and_end_on_error('POST',uri,response)
-
-    ### DEVICE READ FROM NSO ===================================================
-    uri = restconf_data_base_uri + '/devices/device=' + nso_device + '?content=config'
-    response = requests.get(uri, auth=auth, headers=restconf_headers)
-    print_response_and_end_on_error('GET',uri,response)
 
 if __name__ == "__main__":
     main()

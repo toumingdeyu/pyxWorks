@@ -19,15 +19,15 @@ if not args or len(sys.argv) != 2:
 else:
   nso_device=args[0]
 
-### print response =============================================================
-def print_response_and_end_on_error(method,uri,response):
-  print('='*80)
-  print(method,uri,'  |',response.status_code,'|')
-  print('-'*80)
-  print(response.headers)
-  print('-'*80)
-  print(response.text)
-  if int(response.status_code)>=400: sys.exit(0)
+### PRINT RESPONSE + ignorefail=True/False option ==============================
+def print_response_and_end_on_error(method,uri,response,ignorefail=False):
+    print('='*80)
+    print(method,uri,'  |',response.status_code,'|')
+    print('-'*80)
+    print(response.headers)
+    print('-'*80)
+    print(response.text)
+    if not ignorefail and int(response.status_code)>=400: sys.exit(0)
 
 ### main =======================================================================
 def main():
