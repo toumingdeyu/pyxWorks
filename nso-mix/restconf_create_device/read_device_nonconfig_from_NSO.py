@@ -10,20 +10,17 @@ import urllib3
 import optparse
 import datetime
 
-devicemodes=['all','config','nonconfig']
-devicemode=devicemodes[1]
 
 ### commandline argumets handling ==============================================
 ScriptName=sys.argv[0]
 #print(ScriptName)
 parser=optparse.OptionParser(version="1.0.0", description="")
 (options, args) = parser.parse_args()
-if not args or len(sys.argv) < 2:
-  print("SYNTAX: python %s nameOfDevice all|config|nonconfig" % (ScriptName))
+if not args or len(sys.argv) != 2:
+  print("SYNTAX: python %s nameOfDevice" % (ScriptName))
   sys.exit(1)
 else:
   nso_device=args[0]
-  if len(sys.argv)==3 and args[1] in devicemodes: devicemode=args[1]
 
 ### PRINT RESPONSE + ignorefail=True/False option ==============================
 def print_response_and_end_on_error(method,uri,response,ignorefail=False):
@@ -48,14 +45,15 @@ def main():
     restconf_headers = {'accept': 'application/yang-data+json', 'content-type': 'application/yang-data+json'}
 
     ### DEVICE READ FROM NSO ===================================================
-    uri = restconf_data_base_uri + '/devices/device=' + nso_device + '?content='+devicemode
+    uri = restconf_data_base_uri + '/devices/device=' + nso_device + '?content=nonconfig'
     response = requests.get(uri, auth=auth, headers=restconf_headers)
     print_response_and_end_on_error('GET',uri,response)
 
     ### WRITE FILE WITH TIMESTAMP ==============================================
     now = datetime.datetime.now()
     timestring='%04d%02d%02d_%02d%02d%02d'%(now.year,now.month,now.day,now.hour,now.minute,now.second)
-    with open(nso_device+'_'+devicemode+'_'+timestring+'.json', 'w', encoding='utf8') as outfile:
+    with open(nso_device+'_nonconfig_'+timestring+'.json', 'w', encoding='utf8') as outfile:
+      #json.dump(response.text, outfile,  indent=4)
       outfile.write(response.text)
       outfile.close()
 

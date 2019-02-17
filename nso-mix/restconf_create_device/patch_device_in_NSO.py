@@ -10,15 +10,19 @@ import urllib3
 import copy
 import optparse
 
+devicemodes=['all','config','nonconfig']
+devicemode=devicemodes[1]
+
 ### COMMANDLINE ARGUMETS HANDLING ==============================================
 ScriptName=sys.argv[0]
 parser=optparse.OptionParser(version="1.0.0", description="")
 (options, args) = parser.parse_args()
-if not args or len(sys.argv) != 2:
-  print("SYNTAX: python %s nameOfInputFile.json" % (ScriptName))
+if not args or len(sys.argv) < 2:
+  print("SYNTAX: python %s nameOfInputFile.json all|config|nonconfig" % (ScriptName))
   sys.exit(1)
 else:
   fileName=args[0]
+  if len(sys.argv)==3 and args[1] in devicemodes: devicemode=args[1]
 
 ### PRINT RESPONSE + ignorefail=True/False option ==============================
 def print_response_and_end_on_error(method,uri,response,ignorefail=False):
@@ -80,6 +84,9 @@ def main():
     ### END OF DEVICE NAME PARSE-OUT -------------------------------------------
     else: sys.exit(0)
 
+    #json_device_data=json_device_data.get(list(json_device_data.keys())[0],'')
+    #print(json_device_data)
+
     ### RESTCONF definitions ---------------------------------------------------
     auth = (nso_auth_data.get('nso_user','admin'), nso_auth_data.get('nso_password','admin'))
     restconf_base_uri = "%s://%s:%s/restconf"%(nso_auth_data.get('nso_protocol',''),nso_auth_data.get('nso_ipaddress',''), nso_auth_data.get('nso_port',''))
@@ -87,24 +94,52 @@ def main():
     restconf_operations_base_uri = "%s/operations"%(restconf_base_uri)
     restconf_headers = {'accept': 'application/yang-data+json', 'content-type': 'application/yang-data+json'}
 
-    ### DEVICE WRITE TO NSO ====================================================
-    uri = restconf_data_base_uri + '/devices/device=' + nso_device
-    response = requests.put(uri, auth=auth, headers=restconf_headers, data=json.dumps(json_device_data))
-    print_response_and_end_on_error('PUT',uri,response)
+    nonconfig_dict_encapsulation = { 'nonconfig' : {} }
+    config_dict_encapsulation = { 'config' : {} }
+    all_dict_encapsulation = { 'all' : {} }
 
-    ### FETCH HOST KEYS ========================================================
-    uri = restconf_operations_base_uri + "/devices/device=" + nso_device + "/ssh/fetch-host-keys"
-    response = requests.post(uri, auth=auth, headers=restconf_headers)
-    print_response_and_end_on_error('POST',uri,response)
+    all_dict_encapsulation['all'].update(json_device_data)
+    config_dict_encapsulation['config'].update(json_device_data)
+    nonconfig_dict_encapsulation['nonconfig'].update(json_device_data)
 
-    ### SYNC-FROM NSO ==========================================================
-    uri = restconf_data_base_uri + "/devices/device=" + nso_device + "/sync-from"
-    response = requests.post(uri, auth=auth, headers=restconf_headers)
-    print_response_and_end_on_error('POST',uri,response,ignorefail=True)
 
-    ### SYNC-TO NSO ============================================================
-    uri = restconf_data_base_uri + "/devices/device=" + nso_device + "/sync-to"
-    response = requests.post(uri, auth=auth, headers=restconf_headers)
-    print_response_and_end_on_error('POST',uri,response)
+    #print(config_dict_encapsulation)
 
-if __name__ == "__main__": main()
+#     ### FETCH HOST KEYS ========================================================
+#     uri = restconf_operations_base_uri + "/devices/device=" + nso_device + "/ssh/fetch-host-keys"
+#     response = requests.post(uri, auth=auth, headers=restconf_headers)
+#     print_response_and_end_on_error('POST',uri,response)
+
+#     ### DEVICE READ FROM NSO ===================================================
+#     uri = restconf_data_base_uri + '/devices/device=' + nso_device + '?content=config'
+#     response = requests.get(uri, auth=auth, headers=restconf_headers)
+#     print_response_and_end_on_error('GET',uri,response)
+
+    if devicemode==devicemodes[0]:
+      print(all_dict_encapsulation)
+      ### DEVICE WRITE TO NSO ====================================================
+      uri = restconf_data_base_uri + '/devices/device=' + nso_device + '/all/'
+      response = requests.patch(uri, auth=auth, headers=restconf_headers, data=json.dumps(all_dict_encapsulation))
+      print_response_and_end_on_error('PATCH',uri,response)
+
+    if devicemode==devicemodes[1]:
+      print(config_dict_encapsulation)
+      ### DEVICE WRITE TO NSO ====================================================
+      uri = restconf_data_base_uri + '/devices/device=' + nso_device + '/config/'
+      response = requests.patch(uri, auth=auth, headers=restconf_headers, data=json.dumps(config_dict_encapsulation))
+      print_response_and_end_on_error('PATCH',uri,response)
+
+    if devicemode==devicemodes[2]:
+      print(nonconfig_dict_encapsulation)
+      ### DEVICE WRITE TO NSO ====================================================
+      uri = restconf_data_base_uri + '/devices/device=' + nso_device + '/nonconfig/'
+      response = requests.patch(uri, auth=auth, headers=restconf_headers, data=json.dumps(nonconfig_dict_encapsulation))
+      print_response_and_end_on_error('PATCH',uri,response)
+
+#     ### DEVICE READ FROM NSO ===================================================
+#     uri = restconf_data_base_uri + '/devices/device=' + nso_device + '?content=config'
+#     response = requests.get(uri, auth=auth, headers=restconf_headers)
+#     print_response_and_end_on_error('GET',uri,response)
+
+if __name__ == "__main__":
+    main()
