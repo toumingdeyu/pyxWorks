@@ -10,7 +10,7 @@ import urllib3
 import copy
 import optparse
 
-devicemodes=['all','config','nonconfig']
+devicemodes=['all','config','nonconfig','none']
 devicemode=devicemodes[1]
 
 ### COMMANDLINE ARGUMETS HANDLING ==============================================
@@ -30,6 +30,8 @@ def print_response_and_end_on_error(method,uri,response,ignorefail=False):
     print(method,uri,'  |',response.status_code,'|')
     print('-'*80)
     print(response.headers)
+    print('-'*80)
+    print(response.encoding)
     print('-'*80)
     print(response.text)
     if not ignorefail and int(response.status_code)>=400: sys.exit(0)
@@ -92,7 +94,8 @@ def main():
     restconf_base_uri = "%s://%s:%s/restconf"%(nso_auth_data.get('nso_protocol',''),nso_auth_data.get('nso_ipaddress',''), nso_auth_data.get('nso_port',''))
     restconf_data_base_uri = "%s/data"%(restconf_base_uri)
     restconf_operations_base_uri = "%s/operations"%(restconf_base_uri)
-    restconf_headers = {'accept': 'application/yang-data+json', 'content-type': 'application/yang-data+json'}
+    restconf_headers = {'accept': 'application/yang-data+json', 'content-type': 'application/yang-data+json'}        #, 'charset=utf-8'}
+    restconf_patch_headers = {'accept': 'application/yang-data+json', 'content-type': 'application/yang-patch+json'} #, 'charset=utf-8' }
 
     nonconfig_dict_encapsulation = { 'nonconfig' : {} }
     config_dict_encapsulation = { 'config' : {} }
@@ -119,21 +122,28 @@ def main():
       print(all_dict_encapsulation)
       ### DEVICE WRITE TO NSO ====================================================
       uri = restconf_data_base_uri + '/devices/device=' + nso_device + '/all/'
-      response = requests.patch(uri, auth=auth, headers=restconf_headers, data=json.dumps(all_dict_encapsulation))
+      response = requests.patch(uri, auth=auth, headers=restconf_patch_headers, data=json.dumps(all_dict_encapsulation))
       print_response_and_end_on_error('PATCH',uri,response)
 
     if devicemode==devicemodes[1]:
       print(config_dict_encapsulation)
       ### DEVICE WRITE TO NSO ====================================================
       uri = restconf_data_base_uri + '/devices/device=' + nso_device + '/config/'
-      response = requests.patch(uri, auth=auth, headers=restconf_headers, data=json.dumps(config_dict_encapsulation))
+      response = requests.patch(uri, auth=auth, headers=restconf_patch_headers, data=json.dumps(config_dict_encapsulation))
       print_response_and_end_on_error('PATCH',uri,response)
 
     if devicemode==devicemodes[2]:
       print(nonconfig_dict_encapsulation)
       ### DEVICE WRITE TO NSO ====================================================
       uri = restconf_data_base_uri + '/devices/device=' + nso_device + '/nonconfig/'
-      response = requests.patch(uri, auth=auth, headers=restconf_headers, data=json.dumps(nonconfig_dict_encapsulation))
+      response = requests.patch(uri, auth=auth, headers=restconf_patch_headers, data=json.dumps(nonconfig_dict_encapsulation))  #encoding = 'ISO-8859-1')
+      print_response_and_end_on_error('PATCH',uri,response)
+
+    if devicemode==devicemodes[3]:
+      print(json_device_data)
+      ### DEVICE WRITE TO NSO ====================================================
+      uri = restconf_data_base_uri + '/devices/device=' + nso_device
+      response = requests.patch(uri, auth=auth, headers=restconf_patch_headers, data=json.dumps(json_device_data))
       print_response_and_end_on_error('PATCH',uri,response)
 
 #     ### DEVICE READ FROM NSO ===================================================
