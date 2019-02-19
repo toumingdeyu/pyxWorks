@@ -25,8 +25,8 @@ else:
   fileName=args[0]
   if len(sys.argv)>=3: json_key=args[1]
   if len(sys.argv)>=4 and args[2]!='-': json_value=args[2]
-  if len(sys.argv)>=5 and args[4] in ['k','key']: get_value=False
-  if len(sys.argv)>=5 and args[4] in ['v','value']: get_value=True
+  if len(sys.argv)>=5 and args[3] in ['k','key']: get_value=False
+  if len(sys.argv)>=5 and args[3] in ['v','value']: get_value=True
 
 ### GET_JSON_ELEMENT ===========================================================
 def get_json_element(json_data,json_key=None,json_value=None,get_value=False):
@@ -89,8 +89,8 @@ def main():
   with io.open(fileName) as json_file: json_raw_data = json.load(json_file)
   if json_raw_data:
     sub_json=get_json_element(json_raw_data,json_key,json_value,get_value)
-
-    if sub_json:
+    if get_value: print('\nVALUE:',sub_json)
+    if sub_json and not get_value:
       ### WRITE FILE WITH TIMESTAMP ==============================================
       now = datetime.datetime.now()
       timestring='%04d%02d%02d_%02d%02d%02d'%(now.year,now.month,now.day,now.hour,now.minute,now.second)
