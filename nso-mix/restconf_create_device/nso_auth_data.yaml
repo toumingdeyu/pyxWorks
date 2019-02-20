@@ -1,7 +1,7 @@
-nso_user: localnso
+nso_user: nso
 nso_password: 1234!
 nso_protocol: http
-nso_ipaddress: 192.168.56.101
+nso_ipaddress: 192.168.56.102
 nso_port: 8080
 
 

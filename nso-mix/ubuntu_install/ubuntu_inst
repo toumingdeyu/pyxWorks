@@ -1,12 +1,8 @@
 sudo apt install -y terminator nedit krusader default-jdk kate ant build-essential ssh git python-pip python3-pip
-sudo apt install -y sshpass mc meld sysstat dos2unix members net-tools
+sudo apt install -y sshpass mc meld sysstat dos2unix members net-tools gftp-common gftp filezilla libxml2-utils
 
 sudo pip install pyang robotframework xmltodict pyaml restinstance napalm paramiko netmiko 
-#json yaml
+sudo pip3 install pyang robotframework xmltodict pyaml restinstance napalm paramiko netmiko
 
-sudo pip3 install pyang robotframework xmltodict pyaml restinstance napalm paramiko netmiko 
-#json yaml
-
-
-sudo pip install pycodestyle pynso ncs urllib requests
+sudo pip install pycodestyle pynso ncs requests urllib3
 sudo sudo pip3 install pycodestyle pynso ncs urllib3 requests
