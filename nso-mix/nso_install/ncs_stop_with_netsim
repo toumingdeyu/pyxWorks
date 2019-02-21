@@ -1,0 +1,2 @@
+ncs --stop
+ncs-netsim stop
