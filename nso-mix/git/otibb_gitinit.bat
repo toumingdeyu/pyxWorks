@@ -15,10 +15,12 @@ SET PRJ[4]=oti_role
 SET PRJ[5]=orange-oti-lde-workflows
 SET PRJ[6]=orange-oti-lde-project
 SET PRJ[7]=ncs-run-orange-lde
-SET PRJ[8]=orange-oti-bgp-customer
-SET PRJ[9]=oti_subinterface-availability
-SET PRJ[10]=oti_common
-SET PRJ[11]=win_lde
+SET PRJ[8]=oti_backbones
+SET PRJ[9]=oti_mgmt
+SET PRJ[10]=orange-oti-bgp-customer
+SET PRJ[11]=oti_subinterface-availability
+SET PRJ[12]=oti_common
+SET PRJ[13]=win_lde
 REM ----------------------------------------------------------------------------
 SET "x=0"
 :SymLoop
