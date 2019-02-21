@@ -1,0 +1,2858 @@
+{
+  "data": {
+    "tailf-ncs:devices": {
+      "device": [
+        {
+          "name": "OAKPE4",
+          "config": {
+            "tailf-ned-cisco-ios-xr:admin": {
+              "username": [
+                {
+                  "name": "admin",
+                  "group": [
+                    {
+                      "name": "root-system"
+                    }
+                  ],
+                  "secret": {
+                    "encryption": "5",
+                    "password": "$1$5H65$77Iyr/J6YUJOvu2M4bxyb/"
+                  }
+                },
+                {
+                  "name": "root",
+                  "group": [
+                    {
+                      "name": "cisco-support"
+                    },
+                    {
+                      "name": "root-system"
+                    }
+                  ],
+                  "secret": {
+                    "encryption": "5",
+                    "password": "$1$XzAC$Mu4TYGhI3yNIyJDKzFjPe/"
+                  }
+                }
+              ]
+            },
+            "tailf-ned-cisco-ios-xr:hostname": "OAKPE4",
+            "tailf-ned-cisco-ios-xr:clock": {
+              "summer-time": {
+                "zone": "MET",
+                "recurring": [null],
+                "start": "last",
+                "start-day": "sunday",
+                "start-month": "march",
+                "start-time": "02:00",
+                "end": "last",
+                "end-day": "sunday",
+                "end-month": "october",
+                "end-time": "03:00"
+              },
+              "timezone": {
+                "zone": "MET",
+                "hours-offset": 1
+              }
+            },
+            "tailf-ned-cisco-ios-xr:banner": {
+              "motd": {
+                "start-marker": "^",
+                "message": "\r\nThis is OAKPE4.opentransit.net,\r\nLocation : \r\n           Equant,\r\n           13775 McLearen Road,\r\n           Herndon VA 20171\r\n           2th Floor\r\n           Room: Transmission Room\r\n           United States of America \r\nFor operational problems contact :\r\nOINIS                          Phone (24/7):  +44 208 730 1381\r\n61 rue des Archive\r\n75003 PARIS (France)           email:  opentransit.noc@orange.com\r\n",
+                "end-marker": "^"
+              },
+              "login": {
+                "start-marker": "^",
+                "message": "\r\nWARNING:\r\nArticle 323-1 of the Criminal Code (French Law)\r\nThe act of accessing or remaining, fraudulently, in all or part of the\r\nautomated data processing system is punishable by two years of prison\r\nand a 30,000 euros fine (150,000 for legal persons).\r\nATTENTION :\r\nArticle 323-1 du code penal\r\nLe fait d'acceder ou de se maintenir, frauduleusement, dans tout ou\r\npartie d'un systeme de traitement automatise de donnees est puni de\r\ndeux ans d'emprisonnement et de 30000 euros d'amende (150000 euros pour les personnes morales).\r\nThis is OAKPE4.opentransit.net\r\n",
+                "end-marker": "^"
+              }
+            },
+            "tailf-ned-cisco-ios-xr:exception": {
+              "sparse": "off",
+              "coresize": 4095
+            },
+            "tailf-ned-cisco-ios-xr:vrf": {
+              "vrf-list": [
+                {
+                  "name": "monitor-vpn",
+                  "address-family": {
+                    "ipv4": {
+                      "unicast": {
+                        "import": {
+                          "route-target": {
+                            "address-list": [
+                              {
+                                "name": "2300:100"
+                              }
+                            ]
+                          }
+                        },
+                        "export": {
+                          "route-target": {
+                            "address-list": [
+                              {
+                                "name": "2300:100"
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "ipv6": {
+                      "unicast": {
+                        "import": {
+                          "route-target": {
+                            "address-list": [
+                              {
+                                "name": "2300:100"
+                              }
+                            ]
+                          }
+                        },
+                        "export": {
+                          "route-target": {
+                            "address-list": [
+                              {
+                                "name": "2300:100"
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "tailf-ned-cisco-ios-xr:logging": {
+              "trap": "debugging",
+              "events": {
+                "level": "informational"
+              },
+              "archive": {
+                "device": "harddisk",
+                "severity": "informational",
+                "file-size": 5,
+                "frequency": "daily",
+                "archive-size": 300,
+                "archive-length": 4
+              },
+              "monitor": "debugging",
+              "buffered": {
+                "size": 4096000,
+                "type": "debugging"
+              },
+              "facility": "local7",
+              "host": [
+                {
+                  "address": "10.108.223.1",
+                  "vrf": "default",
+                  "severity": "info"
+                },
+                {
+                  "address": "10.108.223.60",
+                  "vrf": "default",
+                  "severity": "info"
+                },
+                {
+                  "address": "10.108.223.97",
+                  "vrf": "default",
+                  "severity": "info"
+                },
+                {
+                  "address": "10.108.223.129",
+                  "vrf": "default",
+                  "severity": "info"
+                },
+                {
+                  "address": "10.108.223.188",
+                  "vrf": "default",
+                  "severity": "info"
+                },
+                {
+                  "address": "81.52.183.47",
+                  "vrf": "default",
+                  "severity": "info",
+                  "port": "default"
+                },
+                {
+                  "address": "193.251.246.3",
+                  "vrf": "default",
+                  "severity": "info",
+                  "port": "default"
+                }
+              ],
+              "localfilesize": 1000000,
+              "source-interface": {
+                "Loopback": 0
+              },
+              "console": "debugging",
+              "suppress": {
+                "rule": [
+                  {
+                    "name": "sup-Good-Authentication",
+                    "alarm": [
+                      {
+                        "msg-category": "SECURITY",
+                        "group-name": "login",
+                        "msg-code": "AUTHEN_SUCCESS"
+                      }
+                    ]
+                  }
+                ],
+                "apply": {
+                  "rule": [
+                    {
+                      "name": "sup-Good-Authentication",
+                      "all-of-router": [null]
+                    }
+                  ]
+                }
+              }
+            },
+            "tailf-ned-cisco-ios-xr:service": {
+              "timestamps": {
+                "debug": {
+                  "datetime": {
+                    "localtime": [null],
+                    "msec": [null],
+                    "show-timezone": [null]
+                  }
+                },
+                "log": {
+                  "datetime": {
+                    "localtime": [null],
+                    "msec": [null],
+                    "show-timezone": [null]
+                  }
+                }
+              }
+            },
+            "tailf-ned-cisco-ios-xr:event": {
+              "manager": {
+                "directory": {
+                  "user": {
+                    "policy": "disk0:/usr/fm_scripts"
+                  }
+                }
+              }
+            },
+            "tailf-ned-cisco-ios-xr:domain": {
+              "lookup": {
+                "source-interface": {
+                  "Loopback": 0
+                }
+              },
+              "name": "opentransit.net",
+              "name-server": [
+                {
+                  "address": "193.251.253.128"
+                },
+                {
+                  "address": "193.251.253.129"
+                }
+              ]
+            },
+            "tailf-ned-cisco-ios-xr:ntp": {
+              "server": {
+                "server-list": [
+                  {
+                    "name": "193.251.246.3"
+                  },
+                  {
+                    "name": "193.251.250.250"
+                  },
+                  {
+                    "name": "193.251.254.254"
+                  }
+                ]
+              },
+              "access-group": [
+                {
+                  "type": "peer",
+                  "name": "17",
+                  "version": "ipv4"
+                }
+              ],
+              "source": {
+                "Loopback": 0
+              },
+              "update-calendar": [null]
+            },
+            "tailf-ned-cisco-ios-xr:username": [
+              {
+                "name": "spocatpi",
+                "group": [
+                  {
+                    "name": "cisco-support"
+                  },
+                  {
+                    "name": "root-system"
+                  }
+                ],
+                "secret": {
+                  "encryption": "5",
+                  "password": "$1$WQ9W$tYIl/yNWwQmngf/foQ1cD0"
+                }
+              }
+            ],
+            "tailf-ned-cisco-ios-xr:tacacs-server": {
+              "host": [
+                {
+                  "name": "10.108.223.59",
+                  "port": 49,
+                  "key": {
+                    "encryption": "7",
+                    "key": "06131436197311532046160747"
+                  }
+                },
+                {
+                  "name": "10.108.223.183",
+                  "port": 49,
+                  "key": {
+                    "encryption": "7",
+                    "key": "06131436197311532046160747"
+                  }
+                }
+              ]
+            },
+            "tailf-ned-cisco-ios-xr:tacacs": {
+              "source-interface": {
+                "Loopback": 0,
+                "vrf": "default"
+              }
+            },
+            "tailf-ned-cisco-ios-xr:aaa": {
+              "authentication": {
+                "login": [
+                  {
+                    "name": "GRP_LOCAL",
+                    "methods": "local"
+                  },
+                  {
+                    "name": "GRP_TACACS",
+                    "methods": "group tacacs+ local"
+                  },
+                  {
+                    "name": "default",
+                    "methods": "group tacacs+ local"
+                  }
+                ]
+              },
+              "authorization": {
+                "commands": [
+                  {
+                    "name": "GRP_LOCAL",
+                    "methods": "none"
+                  },
+                  {
+                    "name": "GRP_TACACS",
+                    "methods": "group tacacs+ none"
+                  },
+                  {
+                    "name": "default",
+                    "methods": "group tacacs+ none"
+                  }
+                ],
+                "exec": [
+                  {
+                    "name": "GRP_LOCAL",
+                    "methods": "none"
+                  },
+                  {
+                    "name": "GRP_TACACS",
+                    "methods": "group tacacs+ local"
+                  },
+                  {
+                    "name": "default",
+                    "methods": "group tacacs+ local"
+                  }
+                ]
+              },
+              "accounting": {
+                "exec": [
+                  {
+                    "name": "GRP_LOCAL",
+                    "notice": "start-stop",
+                    "none": [null]
+                  },
+                  {
+                    "name": "default",
+                    "notice": "start-stop",
+                    "group": "tacacs+"
+                  }
+                ],
+                "commands": [
+                  {
+                    "name": "GRP_LOCAL",
+                    "notice": "start-stop",
+                    "none": [null]
+                  },
+                  {
+                    "name": "default",
+                    "notice": "start-stop",
+                    "group": "tacacs+"
+                  }
+                ]
+              }
+            },
+            "tailf-ned-cisco-ios-xr:cdp": {
+              "advertise": {
+                "v1": [null]
+              }
+            },
+            "tailf-ned-cisco-ios-xr:tcp": {
+              "window-size": 35565
+            },
+            "tailf-ned-cisco-ios-xr:line": {
+              "console": {
+                "parity": "none",
+                "databits": 8,
+                "stopbits": "1",
+                "accounting": {
+                  "commands": "GRP_LOCAL",
+                  "exec": "GRP_LOCAL"
+                },
+                "authorization": {
+                  "commands": "GRP_LOCAL",
+                  "exec": "GRP_LOCAL"
+                },
+                "exec-timeout": {
+                  "minutes": 15,
+                  "seconds": 0
+                },
+                "login": {
+                  "authentication": "GRP_LOCAL"
+                },
+                "escape-character": "0x3"
+              },
+              "default": {
+                "access-class": {
+                  "ingress": "IPV4-ADM-LINE-IN"
+                },
+                "transport": {
+                  "input": ["ssh"]
+                },
+                "exec-timeout": {
+                  "minutes": 15,
+                  "seconds": 0
+                },
+                "login": {
+                  "authentication": "GRP_TACACS"
+                },
+                "session-timeout": {
+                  "minutes": 1200
+                },
+                "escape-character": "0x3"
+              },
+              "template": [
+                {
+                  "name": "VTY",
+                  "access-class": {
+                    "ingress": "IPV4-ADM-LINE-IN"
+                  },
+                  "transport": {
+                    "input": ["ssh"]
+                  },
+                  "exec-timeout": {
+                    "minutes": 15,
+                    "seconds": 0
+                  },
+                  "login": {
+                    "authentication": "GRP_TACACS"
+                  },
+                  "session-timeout": {
+                    "minutes": 1200
+                  },
+                  "escape-character": "0x3"
+                }
+              ]
+            },
+            "tailf-ned-cisco-ios-xr:vty-pool": {
+              "pool-name-list": [
+                {
+                  "pool-name": "USERS",
+                  "first-vty": 5,
+                  "last-vty": 15,
+                  "line-template": "VTY"
+                }
+              ]
+            },
+            "tailf-ned-cisco-ios-xr:control-plane": {
+              "management-plane": {
+                "inband": {
+                  "interface": [
+                    {
+                      "name": "all",
+                      "allow-peer": {
+                        "allow": [
+                          {
+                            "proto": "SNMP",
+                            "peer": "peer",
+                            "address": {
+                              "ipv4": [
+                                {
+                                  "prefix": "81.52.183.17"
+                                },
+                                {
+                                  "prefix": "81.52.183.18"
+                                },
+                                {
+                                  "prefix": "81.52.183.19"
+                                },
+                                {
+                                  "prefix": "81.52.183.20"
+                                },
+                                {
+                                  "prefix": "81.52.183.21"
+                                },
+                                {
+                                  "prefix": "81.52.183.22"
+                                },
+                                {
+                                  "prefix": "81.52.183.23"
+                                },
+                                {
+                                  "prefix": "81.52.183.26"
+                                },
+                                {
+                                  "prefix": "81.52.183.27"
+                                },
+                                {
+                                  "prefix": "81.52.183.30"
+                                },
+                                {
+                                  "prefix": "81.52.183.45"
+                                },
+                                {
+                                  "prefix": "81.52.183.46"
+                                },
+                                {
+                                  "prefix": "81.52.183.51"
+                                },
+                                {
+                                  "prefix": "81.52.183.52"
+                                },
+                                {
+                                  "prefix": "81.52.183.71"
+                                },
+                                {
+                                  "prefix": "81.52.183.72"
+                                },
+                                {
+                                  "prefix": "172.25.66.22"
+                                },
+                                {
+                                  "prefix": "172.25.66.46"
+                                },
+                                {
+                                  "prefix": "193.251.128.62"
+                                },
+                                {
+                                  "prefix": "193.251.150.170"
+                                },
+                                {
+                                  "prefix": "193.251.150.230"
+                                },
+                                {
+                                  "prefix": "193.251.150.242"
+                                },
+                                {
+                                  "prefix": "193.251.151.12"
+                                },
+                                {
+                                  "prefix": "193.251.151.44"
+                                },
+                                {
+                                  "prefix": "193.251.151.83"
+                                },
+                                {
+                                  "prefix": "193.251.240.210"
+                                },
+                                {
+                                  "prefix": "193.251.241.62"
+                                },
+                                {
+                                  "prefix": "193.251.241.66"
+                                },
+                                {
+                                  "prefix": "193.251.241.70"
+                                },
+                                {
+                                  "prefix": "193.251.241.74"
+                                },
+                                {
+                                  "prefix": "193.251.241.90"
+                                },
+                                {
+                                  "prefix": "193.251.246.2"
+                                },
+                                {
+                                  "prefix": "193.251.246.3"
+                                },
+                                {
+                                  "prefix": "193.251.246.4"
+                                },
+                                {
+                                  "prefix": "193.251.252.26"
+                                },
+                                {
+                                  "prefix": "193.251.252.194"
+                                },
+                                {
+                                  "prefix": "193.251.255.174"
+                                },
+                                {
+                                  "prefix": "193.251.255.178"
+                                },
+                                {
+                                  "prefix": "10.108.223.0/24"
+                                },
+                                {
+                                  "prefix": "193.251.123.0/26"
+                                },
+                                {
+                                  "prefix": "193.251.253.0/26"
+                                },
+                                {
+                                  "prefix": "81.52.200.0/30"
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "proto": "SSH",
+                            "peer": "peer",
+                            "address": {
+                              "ipv4": [
+                                {
+                                  "prefix": "10.10.0.1"
+                                },
+                                {
+                                  "prefix": "10.50.162.4"
+                                },
+                                {
+                                  "prefix": "144.254.15.108"
+                                },
+                                {
+                                  "prefix": "193.251.128.106"
+                                },
+                                {
+                                  "prefix": "193.251.128.201"
+                                },
+                                {
+                                  "prefix": "193.251.129.101"
+                                },
+                                {
+                                  "prefix": "193.251.151.83"
+                                },
+                                {
+                                  "prefix": "193.251.240.30"
+                                },
+                                {
+                                  "prefix": "193.251.240.46"
+                                },
+                                {
+                                  "prefix": "193.251.240.50"
+                                },
+                                {
+                                  "prefix": "193.251.240.54"
+                                },
+                                {
+                                  "prefix": "193.251.240.90"
+                                },
+                                {
+                                  "prefix": "193.251.240.110"
+                                },
+                                {
+                                  "prefix": "193.251.240.118"
+                                },
+                                {
+                                  "prefix": "193.251.240.150"
+                                },
+                                {
+                                  "prefix": "193.251.240.186"
+                                },
+                                {
+                                  "prefix": "193.251.240.214"
+                                },
+                                {
+                                  "prefix": "193.251.240.222"
+                                },
+                                {
+                                  "prefix": "193.251.241.21"
+                                },
+                                {
+                                  "prefix": "193.251.241.165"
+                                },
+                                {
+                                  "prefix": "193.251.241.170"
+                                },
+                                {
+                                  "prefix": "193.251.241.186"
+                                },
+                                {
+                                  "prefix": "193.251.241.221"
+                                },
+                                {
+                                  "prefix": "193.251.241.225"
+                                },
+                                {
+                                  "prefix": "193.251.242.18"
+                                },
+                                {
+                                  "prefix": "193.251.242.38"
+                                },
+                                {
+                                  "prefix": "193.251.242.113"
+                                },
+                                {
+                                  "prefix": "193.251.243.113"
+                                },
+                                {
+                                  "prefix": "193.251.243.122"
+                                },
+                                {
+                                  "prefix": "193.251.243.150"
+                                },
+                                {
+                                  "prefix": "193.251.255.46"
+                                },
+                                {
+                                  "prefix": "10.108.223.0/24"
+                                },
+                                {
+                                  "prefix": "193.251.123.0/26"
+                                },
+                                {
+                                  "prefix": "193.251.151.0/26"
+                                },
+                                {
+                                  "prefix": "193.251.151.64/27"
+                                },
+                                {
+                                  "prefix": "193.251.246.0/27"
+                                },
+                                {
+                                  "prefix": "193.251.253.0/25"
+                                },
+                                {
+                                  "prefix": "193.251.253.224/27"
+                                },
+                                {
+                                  "prefix": "81.52.183.0/24"
+                                },
+                                {
+                                  "prefix": "81.52.200.0/30"
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "proto": "XML",
+                            "peer": "peer",
+                            "address": {
+                              "ipv4": [
+                                {
+                                  "prefix": "193.251.151.83"
+                                },
+                                {
+                                  "prefix": "193.251.246.2"
+                                },
+                                {
+                                  "prefix": "193.251.246.3"
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            "tailf-ned-cisco-ios-xr:ipv4": {
+              "access-list": {
+                "named-acl": [
+                  {
+                    "name": "17",
+                    "rule": [
+                      {
+                        "id": 10,
+                        "line": "permit ipv4 host 193.251.246.3 any"
+                      },
+                      {
+                        "id": 20,
+                        "line": "permit ipv4 host 193.251.254.254 any"
+                      },
+                      {
+                        "id": 30,
+                        "line": "permit ipv4 host 193.251.250.250 any"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "31",
+                    "rule": [
+                      {
+                        "id": 10,
+                        "line": "permit ipv4 host 193.251.246.4 any"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "32",
+                    "rule": [
+                      {
+                        "id": 10,
+                        "line": "permit ipv4 host 81.52.183.17 any"
+                      },
+                      {
+                        "id": 20,
+                        "line": "permit ipv4 host 81.52.183.18 any"
+                      },
+                      {
+                        "id": 30,
+                        "line": "permit ipv4 host 81.52.183.19 any"
+                      },
+                      {
+                        "id": 40,
+                        "line": "permit ipv4 host 81.52.183.20 any"
+                      },
+                      {
+                        "id": 50,
+                        "line": "permit ipv4 host 81.52.183.21 any"
+                      },
+                      {
+                        "id": 60,
+                        "line": "permit ipv4 host 81.52.183.22 any"
+                      },
+                      {
+                        "id": 70,
+                        "line": "permit ipv4 host 81.52.183.23 any"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "33",
+                    "rule": [
+                      {
+                        "id": 10,
+                        "line": "permit ipv4 host 193.251.150.102 any"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "34",
+                    "rule": [
+                      {
+                        "id": 10,
+                        "line": "permit ipv4 host 193.251.246.3 any"
+                      },
+                      {
+                        "id": 15,
+                        "line": "permit ipv4 host 193.251.246.2 any"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "35",
+                    "rule": [
+                      {
+                        "id": 10,
+                        "line": "permit ipv4 host 81.52.183.26 any"
+                      },
+                      {
+                        "id": 20,
+                        "line": "permit ipv4 host 81.52.183.27 any"
+                      },
+                      {
+                        "id": 30,
+                        "line": "permit ipv4 host 81.52.183.30 any"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "36",
+                    "rule": [
+                      {
+                        "id": 10,
+                        "line": "permit ipv4 host 193.251.151.12 any"
+                      },
+                      {
+                        "id": 15,
+                        "line": "permit ipv4 host 193.251.151.44 any"
+                      },
+                      {
+                        "id": 20,
+                        "line": "permit ipv4 193.251.253.0 0.0.0.63 any"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "37",
+                    "rule": [
+                      {
+                        "id": 10,
+                        "line": "permit ipv4 host 81.52.183.51 any"
+                      },
+                      {
+                        "id": 20,
+                        "line": "permit ipv4 host 81.52.183.52 any"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "39",
+                    "rule": [
+                      {
+                        "id": 10,
+                        "line": "permit ipv4 host 193.251.241.74 any"
+                      },
+                      {
+                        "id": 20,
+                        "line": "permit ipv4 host 193.251.241.90 any"
+                      },
+                      {
+                        "id": 30,
+                        "line": "permit ipv4 host 193.251.241.62 any"
+                      },
+                      {
+                        "id": 40,
+                        "line": "permit ipv4 host 193.251.240.210 any"
+                      },
+                      {
+                        "id": 50,
+                        "line": "permit ipv4 host 193.251.128.62 any"
+                      },
+                      {
+                        "id": 60,
+                        "line": "permit ipv4 host 193.251.241.66 any"
+                      },
+                      {
+                        "id": 70,
+                        "line": "permit ipv4 host 193.251.241.70 any"
+                      },
+                      {
+                        "id": 80,
+                        "line": "permit ipv4 host 193.251.255.178 any"
+                      },
+                      {
+                        "id": 90,
+                        "line": "permit ipv4 host 193.251.255.174 any"
+                      },
+                      {
+                        "id": 100,
+                        "line": "permit ipv4 host 193.251.252.194 any"
+                      },
+                      {
+                        "id": 110,
+                        "line": "permit ipv4 host 193.251.252.26 any"
+                      },
+                      {
+                        "id": 120,
+                        "line": "permit ipv4 host 193.251.150.170 any"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "41",
+                    "rule": [
+                      {
+                        "id": 10,
+                        "line": "remark VISION Traffic Planification Application"
+                      },
+                      {
+                        "id": 20,
+                        "line": "permit ipv4 host 193.251.246.3 any"
+                      },
+                      {
+                        "id": 30,
+                        "line": "permit ipv4 host 193.251.246.4 any"
+                      },
+                      {
+                        "id": 40,
+                        "line": "permit ipv4 81.52.200.0 0.0.0.3 any"
+                      },
+                      {
+                        "id": 50,
+                        "line": "deny ipv4 any any log-input"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "42",
+                    "rule": [
+                      {
+                        "id": 10,
+                        "line": "remark ACL for SOPRANE application"
+                      },
+                      {
+                        "id": 20,
+                        "line": "permit ipv4 host 81.52.183.17 any"
+                      },
+                      {
+                        "id": 30,
+                        "line": "permit ipv4 host 81.52.183.18 any"
+                      },
+                      {
+                        "id": 40,
+                        "line": "permit ipv4 host 81.52.183.19 any"
+                      },
+                      {
+                        "id": 50,
+                        "line": "permit ipv4 host 81.52.183.20 any"
+                      },
+                      {
+                        "id": 60,
+                        "line": "permit ipv4 host 81.52.183.21 any"
+                      },
+                      {
+                        "id": 70,
+                        "line": "permit ipv4 host 81.52.183.23 any"
+                      },
+                      {
+                        "id": 80,
+                        "line": "permit ipv4 host 81.52.183.71 any"
+                      },
+                      {
+                        "id": 90,
+                        "line": "permit ipv4 host 81.52.183.72 any"
+                      },
+                      {
+                        "id": 100,
+                        "line": "permit ipv4 host 193.251.123.3 any"
+                      },
+                      {
+                        "id": 110,
+                        "line": "permit ipv4 host 193.251.123.4 any"
+                      },
+                      {
+                        "id": 120,
+                        "line": "permit ipv4 host 193.251.123.5 any"
+                      },
+                      {
+                        "id": 130,
+                        "line": "permit ipv4 host 193.251.123.6 any"
+                      },
+                      {
+                        "id": 140,
+                        "line": "permit ipv4 host 193.251.123.7 any"
+                      },
+                      {
+                        "id": 150,
+                        "line": "permit ipv4 host 193.251.123.8 any"
+                      },
+                      {
+                        "id": 160,
+                        "line": "permit ipv4 host 193.251.123.9 any"
+                      },
+                      {
+                        "id": 170,
+                        "line": "permit ipv4 host 193.251.123.10 any"
+                      },
+                      {
+                        "id": 180,
+                        "line": "deny ipv4 any any log-input"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "44",
+                    "rule": [
+                      {
+                        "id": 10,
+                        "line": "remark VISION"
+                      },
+                      {
+                        "id": 20,
+                        "line": "permit ipv4 host 193.251.246.3 any"
+                      },
+                      {
+                        "id": 30,
+                        "line": "permit ipv4 host 193.251.246.4 any"
+                      },
+                      {
+                        "id": 40,
+                        "line": "permit ipv4 81.52.200.0 0.0.0.3 any"
+                      },
+                      {
+                        "id": 50,
+                        "line": "deny ipv4 any any log-input"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "45",
+                    "rule": [
+                      {
+                        "id": 5,
+                        "line": "remark ACL IP Audit application"
+                      },
+                      {
+                        "id": 10,
+                        "line": "permit ipv4 host 81.52.183.26 any"
+                      },
+                      {
+                        "id": 20,
+                        "line": "permit ipv4 host 81.52.183.27 any"
+                      },
+                      {
+                        "id": 30,
+                        "line": "permit ipv4 host 81.52.183.30 any"
+                      },
+                      {
+                        "id": 40,
+                        "line": "deny ipv4 any any log-input"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "46",
+                    "rule": [
+                      {
+                        "id": 10,
+                        "line": "remark IPTAC WORKSTATIONS"
+                      },
+                      {
+                        "id": 20,
+                        "line": "permit ipv4 host 10.108.223.1 any"
+                      },
+                      {
+                        "id": 30,
+                        "line": "permit ipv4 host 10.108.223.129 any"
+                      },
+                      {
+                        "id": 40,
+                        "line": "deny ipv4 any any log-input"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "47",
+                    "rule": [
+                      {
+                        "id": 10,
+                        "line": "remark HPOV MIB"
+                      },
+                      {
+                        "id": 20,
+                        "line": "permit ipv4 host 81.52.183.31 any"
+                      },
+                      {
+                        "id": 30,
+                        "line": "permit ipv4 host 81.52.183.32 any"
+                      },
+                      {
+                        "id": 40,
+                        "line": "permit ipv4 host 81.52.183.33 any"
+                      },
+                      {
+                        "id": 50,
+                        "line": "permit ipv4 host 81.52.183.51 any"
+                      },
+                      {
+                        "id": 60,
+                        "line": "permit ipv4 host 81.52.183.52 any"
+                      },
+                      {
+                        "id": 70,
+                        "line": "permit ipv4 host 193.251.123.1 any"
+                      },
+                      {
+                        "id": 80,
+                        "line": "permit ipv4 host 193.251.123.2 any"
+                      },
+                      {
+                        "id": 90,
+                        "line": "deny ipv4 any any log-input"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "48",
+                    "rule": [
+                      {
+                        "id": 5,
+                        "line": "remark ACL for SOPLI application"
+                      },
+                      {
+                        "id": 10,
+                        "line": "permit ipv4 host 81.52.183.46 any"
+                      },
+                      {
+                        "id": 20,
+                        "line": "permit ipv4 host 81.52.183.45 any"
+                      },
+                      {
+                        "id": 30,
+                        "line": "deny ipv4 any any log-input"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "49",
+                    "rule": [
+                      {
+                        "id": 5,
+                        "line": "remark ACL for ARBOR application"
+                      },
+                      {
+                        "id": 10,
+                        "line": "permit ipv4 host 172.25.3.174 any"
+                      },
+                      {
+                        "id": 20,
+                        "line": "permit ipv4 host 172.25.66.22 any"
+                      },
+                      {
+                        "id": 30,
+                        "line": "permit ipv4 host 172.25.66.26 any"
+                      },
+                      {
+                        "id": 40,
+                        "line": "permit ipv4 host 172.25.66.30 any"
+                      },
+                      {
+                        "id": 50,
+                        "line": "permit ipv4 host 172.25.66.46 any"
+                      },
+                      {
+                        "id": 60,
+                        "line": "deny ipv4 any any log-input"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "50",
+                    "rule": [
+                      {
+                        "id": 10,
+                        "line": "remark NNM"
+                      },
+                      {
+                        "id": 20,
+                        "line": "permit ipv4 host 10.108.223.2 any"
+                      },
+                      {
+                        "id": 30,
+                        "line": "permit ipv4 host 10.108.223.130 any"
+                      },
+                      {
+                        "id": 40,
+                        "line": "deny ipv4 any any log-input"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "51",
+                    "rule": [
+                      {
+                        "id": 10,
+                        "line": "remark IPCFM GINI"
+                      },
+                      {
+                        "id": 20,
+                        "line": "permit ipv4 host 10.108.223.197 any"
+                      },
+                      {
+                        "id": 40,
+                        "line": "deny ipv4 any any log-input"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "52",
+                    "rule": [
+                      {
+                        "id": 10,
+                        "line": "remark NETIX"
+                      },
+                      {
+                        "id": 20,
+                        "line": "permit ipv4 host 10.108.223.198 any"
+                      },
+                      {
+                        "id": 40,
+                        "line": "deny ipv4 any any log-input"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "66",
+                    "rule": [
+                      {
+                        "id": 10,
+                        "line": "deny ipv4 any any"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "76",
+                    "rule": [
+                      {
+                        "id": 10,
+                        "line": "deny ipv4 any any log"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "IPV4-ADM-LINE-IN",
+                    "rule": [
+                      {
+                        "id": 10,
+                        "line": "permit ipv4 host 10.108.223.1 any"
+                      },
+                      {
+                        "id": 20,
+                        "line": "permit ipv4 host 10.108.223.129 any"
+                      },
+                      {
+                        "id": 30,
+                        "line": "permit ipv4 host 10.108.223.197 any"
+                      },
+                      {
+                        "id": 40,
+                        "line": "permit ipv4 host 10.108.223.198 any"
+                      },
+                      {
+                        "id": 50,
+                        "line": "permit ipv4 host 81.52.183.3 any"
+                      },
+                      {
+                        "id": 60,
+                        "line": "permit ipv4 host 81.52.183.26 any"
+                      },
+                      {
+                        "id": 70,
+                        "line": "permit ipv4 host 81.52.183.27 any"
+                      },
+                      {
+                        "id": 80,
+                        "line": "permit ipv4 host 81.52.183.30 any"
+                      },
+                      {
+                        "id": 90,
+                        "line": "permit ipv4 host 81.52.183.39 any"
+                      },
+                      {
+                        "id": 100,
+                        "line": "permit ipv4 host 81.52.183.61 any"
+                      },
+                      {
+                        "id": 110,
+                        "line": "permit ipv4 host 81.52.183.62 any"
+                      },
+                      {
+                        "id": 120,
+                        "line": "permit ipv4 81.52.200.0 0.0.0.3 any"
+                      },
+                      {
+                        "id": 130,
+                        "line": "permit ipv4 host 81.52.200.38 any"
+                      },
+                      {
+                        "id": 140,
+                        "line": "permit ipv4 host 193.251.123.26 any"
+                      },
+                      {
+                        "id": 150,
+                        "line": "permit ipv4 host 193.251.123.27 any"
+                      },
+                      {
+                        "id": 160,
+                        "line": "permit ipv4 host 193.251.123.28 any"
+                      },
+                      {
+                        "id": 170,
+                        "line": "permit ipv4 host 193.251.246.3 any"
+                      },
+                      {
+                        "id": 180,
+                        "line": "permit ipv4 host 193.251.246.4 any"
+                      },
+                      {
+                        "id": 190,
+                        "line": "permit ipv4 host 10.108.223.134 any"
+                      },
+                      {
+                        "id": 200,
+                        "line": "permit ipv4 host 10.108.223.135 any"
+                      },
+                      {
+                        "id": 210,
+                        "line": "deny ipv4 any any log-input"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "TAG-ADVERTISE-FILTER",
+                    "rule": [
+                      {
+                        "id": 10,
+                        "line": "permit ipv4 172.25.0.0 0.0.0.255 any"
+                      },
+                      {
+                        "id": 20,
+                        "line": "permit ipv4 172.25.1.0 0.0.0.255 any"
+                      },
+                      {
+                        "id": 30,
+                        "line": "permit ipv4 172.25.3.0 0.0.0.255 any"
+                      },
+                      {
+                        "id": 40,
+                        "line": "permit ipv4 172.25.4.0 0.0.0.255 any"
+                      },
+                      {
+                        "id": 50,
+                        "line": "permit ipv4 193.251.245.208 0.0.0.15 any"
+                      },
+                      {
+                        "id": 60,
+                        "line": "permit ipv4 193.251.245.224 0.0.0.15 any"
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            "tailf-ned-cisco-ios-xr:ipv6": {
+              "access-list": {
+                "named-acl": [
+                  {
+                    "name": "10",
+                    "rule": [
+                      {
+                        "id": 10,
+                        "line": "deny ipv6 any any"
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            "tailf-ned-cisco-ios-xr:xxml": {
+              "tty-agent": {
+                "agent": {
+                  "tty": {
+                  }
+                }
+              }
+            },
+            "tailf-ned-cisco-ios-xr:key": {
+              "chain": [
+                {
+                  "name": "isiskey",
+                  "key": [
+                    {
+                      "id": 1,
+                      "accept-lifetime": {
+                        "start-time": "00:00:00",
+                        "start-month": "january",
+                        "start-day": 1,
+                        "start-year": 2017,
+                        "infinite": [null]
+                      },
+                      "key-string": {
+                        "type": "password",
+                        "password": "1427332225"
+                      },
+                      "send-lifetime": {
+                        "start-time": "00:00:00",
+                        "start-month": "january",
+                        "start-day": 1,
+                        "start-year": 2017,
+                        "infinite": [null]
+                      },
+                      "cryptographic-algorithm": "HMAC-MD5"
+                    }
+                  ]
+                },
+                {
+                  "name": "rtr",
+                  "key": [
+                    {
+                      "id": 1,
+                      "key-string": {
+                        "type": "password",
+                        "password": "12100B111D595D507B3D2D3B2734"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "tailf-ned-cisco-ios-xr:snmp-server": {
+              "ifmib": {
+                "ifalias": {
+                  "long": [null]
+                }
+              },
+              "ifindex": "persist",
+              "host": [
+                {
+                  "address": "10.108.223.188",
+                  "type": "traps",
+                  "community-string": "sB2qfdez2Yapt8",
+                  "version": "2c"
+                },
+                {
+                  "address": "10.108.223.60",
+                  "type": "traps",
+                  "community-string": "sB2qfdez2Yapt8",
+                  "version": "2c"
+                },
+                {
+                  "address": "193.251.246.2",
+                  "type": "traps",
+                  "community-string": "visiontrap",
+                  "version": "2c"
+                },
+                {
+                  "address": "193.251.246.3",
+                  "type": "traps",
+                  "community-string": "visiontrap",
+                  "version": "2c"
+                },
+                {
+                  "address": "81.52.183.51",
+                  "type": "traps",
+                  "community-string": "hpovtrap",
+                  "version": "2c"
+                },
+                {
+                  "address": "81.52.183.52",
+                  "type": "traps",
+                  "community-string": "hpovtrap",
+                  "version": "2c"
+                }
+              ],
+              "community": [
+                {
+                  "name": "5Duh4Jv2L5RO",
+                  "view": "FULL",
+                  "RO": [null],
+                  "access-list-type": "IPv4",
+                  "access-list": "51"
+                },
+                {
+                  "name": "E3JDq5iY54RO",
+                  "view": "FULL",
+                  "RO": [null],
+                  "access-list-type": "IPv4",
+                  "access-list": "50"
+                },
+                {
+                  "name": "arb0pKreM8RO",
+                  "view": "ARBOR",
+                  "RO": [null],
+                  "access-list-type": "IPv4",
+                  "access-list": "49"
+                },
+                {
+                  "name": "gaEb4Z43F8RO",
+                  "view": "FULL",
+                  "RO": [null],
+                  "access-list-type": "IPv4",
+                  "access-list": "52"
+                },
+                {
+                  "name": "ha1sKy0u22RO",
+                  "view": "FULL",
+                  "RO": [null],
+                  "access-list-type": "IPv4",
+                  "access-list": "41"
+                },
+                {
+                  "name": "iateL8MnD0RO",
+                  "view": "FULL",
+                  "RO": [null],
+                  "SystemOwner": [null],
+                  "access-list-type": "IPv4",
+                  "access-list": "45"
+                },
+                {
+                  "name": "ifMArqEt1yRW",
+                  "view": "infovistawrite",
+                  "RW": [null],
+                  "access-list-type": "IPv4",
+                  "access-list": "42"
+                },
+                {
+                  "name": "ifaskD8w0eRO",
+                  "view": "FULL",
+                  "RO": [null],
+                  "access-list-type": "IPv4",
+                  "access-list": "47"
+                },
+                {
+                  "name": "ifmArQet1yRO",
+                  "view": "FULL",
+                  "RO": [null],
+                  "access-list-type": "IPv4",
+                  "access-list": "42"
+                },
+                {
+                  "name": "ifs0PeE1TsRO",
+                  "view": "SOPLI",
+                  "RO": [null],
+                  "access-list-type": "IPv4",
+                  "access-list": "48"
+                },
+                {
+                  "name": "otauB9v1kYRO",
+                  "view": "FULL",
+                  "RO": [null],
+                  "access-list-type": "IPv4",
+                  "access-list": "46"
+                },
+                {
+                  "name": "tRap6n9Qe4VT",
+                  "RO": [null],
+                  "access-list-type": "IPv4",
+                  "access-list": "76"
+                },
+                {
+                  "name": "vsHno7trR4RW",
+                  "view": "visionwrite",
+                  "RW": [null],
+                  "access-list-type": "IPv4",
+                  "access-list": "44"
+                },
+                {
+                  "name": "vsn0osZauWRO",
+                  "view": "FULL",
+                  "RO": [null],
+                  "access-list-type": "IPv4",
+                  "access-list": "44"
+                }
+              ],
+              "queue-length": 1000,
+              "trap-source": {
+                "Loopback": 0
+              },
+              "trap": {
+                "link": "ietf"
+              },
+              "view": [
+                {
+                  "view-name": "ARBOR",
+                  "oid-list": [
+                    {
+                      "oid-tree": "1.3.6.1.2.1.1",
+                      "viewmode": "included"
+                    },
+                    {
+                      "oid-tree": "1.3.6.1.2.1.2.2.1",
+                      "viewmode": "included"
+                    },
+                    {
+                      "oid-tree": "1.3.6.1.2.1.31.1.1.1",
+                      "viewmode": "included"
+                    },
+                    {
+                      "oid-tree": "1.3.6.1.2.1.4.20.1.2",
+                      "viewmode": "included"
+                    },
+                    {
+                      "oid-tree": "1.3.6.1.4.1.9.2.1.58",
+                      "viewmode": "included"
+                    },
+                    {
+                      "oid-tree": "1.3.6.1.4.1.9.2.1.8",
+                      "viewmode": "included"
+                    },
+                    {
+                      "oid-tree": "1.3.6.1.4.1.9.3.6.6",
+                      "viewmode": "included"
+                    },
+                    {
+                      "oid-tree": "1.3.6.1.4.1.9.9.109.1.1.1.1.5",
+                      "viewmode": "included"
+                    },
+                    {
+                      "oid-tree": "1.3.6.1.4.1.9.9.109.1.1.1.1.8",
+                      "viewmode": "included"
+                    },
+                    {
+                      "oid-tree": "1.3.6.1.4.1.9.9.48.1.1.1.5",
+                      "viewmode": "included"
+                    },
+                    {
+                      "oid-tree": "1.3.6.1.4.1.9.9.48.1.1.1.6",
+                      "viewmode": "included"
+                    }
+                  ]
+                },
+                {
+                  "view-name": "FULL",
+                  "oid-list": [
+                    {
+                      "oid-tree": "1.3.6.1",
+                      "viewmode": "included"
+                    },
+                    {
+                      "oid-tree": "1.3.6.1.2.1.10.39.1.1",
+                      "viewmode": "excluded"
+                    },
+                    {
+                      "oid-tree": "1.3.6.1.6.3.16",
+                      "viewmode": "excluded"
+                    }
+                  ]
+                },
+                {
+                  "view-name": "SOPLI",
+                  "oid-list": [
+                    {
+                      "oid-tree": "1.3.6.1.2.1.31.1.1.1.10",
+                      "viewmode": "included"
+                    },
+                    {
+                      "oid-tree": "1.3.6.1.2.1.31.1.1.1.6",
+                      "viewmode": "included"
+                    }
+                  ]
+                },
+                {
+                  "view-name": "infovistawrite",
+                  "oid-list": [
+                    {
+                      "oid-tree": "1.3.6.1.2.1.1.3",
+                      "viewmode": "included"
+                    },
+                    {
+                      "oid-tree": "1.3.6.1.4.1.9.9.16",
+                      "viewmode": "included"
+                    },
+                    {
+                      "oid-tree": "1.3.6.1.4.1.9.9.42",
+                      "viewmode": "included"
+                    }
+                  ]
+                },
+                {
+                  "view-name": "visionwrite",
+                  "oid-list": [
+                    {
+                      "oid-tree": "1.3.6.1.4.1.9.9.96",
+                      "viewmode": "included"
+                    }
+                  ]
+                }
+              ],
+              "traps": {
+                "traps-list": [
+                  {
+                    "name": "bgp"
+                  },
+                  {
+                    "name": "bgp cbgp2"
+                  },
+                  {
+                    "name": "config"
+                  },
+                  {
+                    "name": "copy-complete"
+                  },
+                  {
+                    "name": "entity"
+                  },
+                  {
+                    "name": "fru-ctrl"
+                  },
+                  {
+                    "name": "mpls l3vpn all"
+                  },
+                  {
+                    "name": "mpls l3vpn max-threshold-cleared"
+                  },
+                  {
+                    "name": "mpls l3vpn max-threshold-exceeded"
+                  },
+                  {
+                    "name": "mpls l3vpn max-threshold-reissue-notif-time 1"
+                  },
+                  {
+                    "name": "mpls l3vpn mid-threshold-exceeded"
+                  },
+                  {
+                    "name": "mpls l3vpn vrf-down"
+                  },
+                  {
+                    "name": "mpls l3vpn vrf-up"
+                  },
+                  {
+                    "name": "mpls ldp down"
+                  },
+                  {
+                    "name": "mpls ldp threshold"
+                  },
+                  {
+                    "name": "mpls ldp up"
+                  },
+                  {
+                    "name": "mpls traffic-eng down"
+                  },
+                  {
+                    "name": "mpls traffic-eng reoptimize"
+                  },
+                  {
+                    "name": "mpls traffic-eng reroute"
+                  },
+                  {
+                    "name": "mpls traffic-eng up"
+                  },
+                  {
+                    "name": "ntp"
+                  },
+                  {
+                    "name": "pim interface-state-change"
+                  },
+                  {
+                    "name": "pim invalid-message-received"
+                  },
+                  {
+                    "name": "pim neighbor-change"
+                  },
+                  {
+                    "name": "pim rp-mapping-change"
+                  },
+                  {
+                    "name": "sensor"
+                  },
+                  {
+                    "name": "snmp"
+                  },
+                  {
+                    "name": "syslog"
+                  }
+                ]
+              }
+            },
+            "tailf-ned-cisco-ios-xr:ssh": {
+              "client": {
+                "source-interface": {
+                  "Loopback": 0
+                }
+              },
+              "server": {
+                "rate-limit": 40,
+                "session-limit": 100,
+                "v2": [null]
+              }
+            },
+            "tailf-ned-cisco-ios-xr:lpts": {
+              "pifib": {
+                "hardware": {
+                  "police": {
+                    "flow": [
+                      {
+                        "name": "bgp default",
+                        "rate": 0
+                      },
+                      {
+                        "name": "eigrp",
+                        "rate": 0
+                      },
+                      {
+                        "name": "fragment",
+                        "rate": 0
+                      },
+                      {
+                        "name": "http default",
+                        "rate": 0
+                      },
+                      {
+                        "name": "http known",
+                        "rate": 0
+                      },
+                      {
+                        "name": "icmp default",
+                        "rate": 100
+                      },
+                      {
+                        "name": "ipsec default",
+                        "rate": 0
+                      },
+                      {
+                        "name": "isis default",
+                        "rate": 0
+                      },
+                      {
+                        "name": "l2tpv3",
+                        "rate": 0
+                      },
+                      {
+                        "name": "ldp tcp default",
+                        "rate": 0
+                      },
+                      {
+                        "name": "lmp tcp configured",
+                        "rate": 0
+                      },
+                      {
+                        "name": "lmp tcp default",
+                        "rate": 0
+                      },
+                      {
+                        "name": "lmp tcp known",
+                        "rate": 0
+                      },
+                      {
+                        "name": "lmp udp",
+                        "rate": 0
+                      },
+                      {
+                        "name": "msdp default",
+                        "rate": 0
+                      },
+                      {
+                        "name": "multicast default",
+                        "rate": 0
+                      },
+                      {
+                        "name": "ospf multicast default",
+                        "rate": 0
+                      },
+                      {
+                        "name": "ospf multicast known",
+                        "rate": 0
+                      },
+                      {
+                        "name": "ospf unicast default",
+                        "rate": 0
+                      },
+                      {
+                        "name": "ospf unicast known",
+                        "rate": 0
+                      },
+                      {
+                        "name": "raw default",
+                        "rate": 200
+                      },
+                      {
+                        "name": "rip",
+                        "rate": 0
+                      },
+                      {
+                        "name": "rsh default",
+                        "rate": 0
+                      },
+                      {
+                        "name": "rsh known",
+                        "rate": 0
+                      },
+                      {
+                        "name": "shttp default",
+                        "rate": 0
+                      },
+                      {
+                        "name": "shttp known",
+                        "rate": 0
+                      },
+                      {
+                        "name": "ssh known",
+                        "rate": 10000
+                      },
+                      {
+                        "name": "tcp default",
+                        "rate": 500
+                      },
+                      {
+                        "name": "telnet default",
+                        "rate": 0
+                      },
+                      {
+                        "name": "telnet known",
+                        "rate": 0
+                      },
+                      {
+                        "name": "udp default",
+                        "rate": 250
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "tailf-ned-cisco-ios-xr:class-map": [
+              {
+                "name": "GOLD",
+                "prematch": "match-any",
+                "match": {
+                  "dscp": {
+                    "dscp-list": ["af31", "af41", "af42", "af43", "ef"]
+                  }
+                }
+              },
+              {
+                "name": "SILVER",
+                "prematch": "match-any",
+                "match": {
+                  "dscp": {
+                    "dscp-list": ["af11", "af12", "af13", "af21", "af22", "af23", "af32", "af33"]
+                  }
+                }
+              },
+              {
+                "name": "class-important",
+                "prematch": "match-any",
+                "match": {
+                  "dscp": {
+                    "ipv4": ["af31"]
+                  },
+                  "mpls": {
+                    "experimental": {
+                      "topmost": [3]
+                    }
+                  }
+                }
+              },
+              {
+                "name": "class-network-control",
+                "prematch": "match-any",
+                "match": {
+                  "dscp": {
+                    "ipv4": ["cs6", "cs7"]
+                  },
+                  "mpls": {
+                    "experimental": {
+                      "topmost": [6, 7]
+                    }
+                  }
+                }
+              },
+              {
+                "name": "class-priority",
+                "prematch": "match-any",
+                "match": {
+                  "dscp": {
+                    "ipv4": ["ef"]
+                  },
+                  "mpls": {
+                    "experimental": {
+                      "topmost": [5]
+                    }
+                  }
+                }
+              }
+            ],
+            "tailf-ned-cisco-ios-xr:policy-map": [
+              {
+                "name": "policy-backbone-default-out",
+                "class": {
+                  "class-ref": [
+                    {
+                      "map": "class-priority",
+                      "police-rate-unit": {
+                        "police": {
+                          "rate": {
+                            "percent": 50,
+                            "conform-action": {
+                              "transmit": [null]
+                            },
+                            "exceed-action": {
+                              "drop": [null]
+                            }
+                          }
+                        }
+                      },
+                      "priority": {
+                        "level": 1
+                      }
+                    },
+                    {
+                      "map": "class-important",
+                      "bandwidth": {
+                        "percent": 30
+                      }
+                    },
+                    {
+                      "map": "class-network-control",
+                      "bandwidth": {
+                        "percent": 5
+                      }
+                    }
+                  ],
+                  "class-default": [
+                    {
+                      "map": "class-default"
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "policy-backbone-default-out-P-PE",
+                "class": {
+                  "class-ref": [
+                    {
+                      "map": "class-priority",
+                      "police-rate-unit": {
+                        "police": {
+                          "rate": {
+                            "percent": 95,
+                            "conform-action": {
+                              "transmit": [null]
+                            },
+                            "exceed-action": {
+                              "drop": [null]
+                            }
+                          }
+                        }
+                      },
+                      "priority": {
+                        "level": 1
+                      }
+                    },
+                    {
+                      "map": "class-important",
+                      "bandwidth": {
+                        "remaining": {
+                          "percent": 5
+                        }
+                      }
+                    },
+                    {
+                      "map": "class-network-control",
+                      "bandwidth": {
+                        "remaining": {
+                          "percent": 90
+                        }
+                      }
+                    }
+                  ],
+                  "class-default": [
+                    {
+                      "map": "class-default",
+                      "bandwidth": {
+                        "remaining": {
+                          "percent": 5
+                        }
+                      },
+                      "queue-limit": {
+                        "queue-limit-value": 400,
+                        "queue-limit-unit": "ms"
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "tailf-ned-cisco-ios-xr:flow": {
+              "exporter-map": [
+                {
+                  "name": "ICX",
+                  "version": {
+                    "v9": {
+                      "template": {
+                        "data": {
+                          "timeout": 60
+                        }
+                      }
+                    }
+                  },
+                  "transport": {
+                    "udp": 4567
+                  },
+                  "source": {
+                    "Loopback": 0
+                  },
+                  "destination": {
+                    "address": "172.25.3.174"
+                  }
+                }
+              ],
+              "monitor-map": [
+                {
+                  "name": "ICX",
+                  "record": {
+                    "ipv4": {
+                    }
+                  },
+                  "exporter": ["ICX"],
+                  "cache": {
+                    "entries": 1000000,
+                    "timeout": {
+                      "active": 30,
+                      "inactive": 15,
+                      "rate-limit": 5000
+                    }
+                  }
+                },
+                {
+                  "name": "ICX-MPLS",
+                  "record": {
+                    "mpls": {
+                      "fields-fmt": "ipv4-fields"
+                    }
+                  },
+                  "exporter": ["ICX"],
+                  "cache": {
+                    "entries": 1000000,
+                    "timeout": {
+                      "active": 30,
+                      "inactive": 15
+                    }
+                  }
+                }
+              ]
+            },
+            "tailf-ned-cisco-ios-xr:sampler-map": [
+              {
+                "name": "ICX",
+                "random": {
+                  "number-of-packets": "1",
+                  "out-of": [null],
+                  "sampling-interval": 1000
+                }
+              }
+            ],
+            "tailf-ned-cisco-ios-xr:interface": {
+              "Loopback": [
+                {
+                  "id": 0,
+                  "description": "Loopback0 OAKPE4 for BGP - Loopback - Backbone",
+                  "ipv4": {
+                    "address": {
+                      "ip": "172.25.0.1",
+                      "mask": "255.255.255.255"
+                    }
+                  }
+                },
+                {
+                  "id": 100,
+                  "description": "OAKPE4 - loopback 100 - Backbone",
+                  "vrf": "monitor-vpn",
+                  "ipv4": {
+                    "address": {
+                      "ip": "172.25.5.29",
+                      "mask": "255.255.255.255"
+                    }
+                  },
+                  "ipv6": {
+                    "address": {
+                      "prefix-list": [
+                        {
+                          "prefix": "fc00::ac19:51d/128"
+                        }
+                      ]
+                    }
+                  }
+                }
+              ],
+              "MgmtEth": [
+                {
+                  "id": "0/RSP0/CPU0/0",
+                  "shutdown": [null]
+                },
+                {
+                  "id": "0/RSP0/CPU0/1",
+                  "shutdown": [null]
+                },
+                {
+                  "id": "0/RSP1/CPU0/0",
+                  "shutdown": [null]
+                },
+                {
+                  "id": "0/RSP1/CPU0/1",
+                  "shutdown": [null]
+                }
+              ],
+              "TenGigE": [
+                {
+                  "id": "0/0/0/16",
+                  "shutdown": [null]
+                },
+                {
+                  "id": "0/0/0/17",
+                  "shutdown": [null]
+                },
+                {
+                  "id": "0/0/0/18",
+                  "shutdown": [null]
+                },
+                {
+                  "id": "0/0/0/19",
+                  "shutdown": [null]
+                },
+                {
+                  "id": "0/1/0/16",
+                  "shutdown": [null]
+                },
+                {
+                  "id": "0/1/0/17",
+                  "shutdown": [null]
+                },
+                {
+                  "id": "0/1/0/18",
+                  "shutdown": [null]
+                },
+                {
+                  "id": "0/1/0/19",
+                  "shutdown": [null]
+                }
+              ],
+              "GigabitEthernet": [
+                {
+                  "id": "0/0/0/0",
+                  "description": "OAKCR1 from OAKPE4 @172.25.8.187 - FIB18444 - Backbone",
+                  "bandwidth": 1000000,
+                  "mtu": 4484,
+                  "negotiation": {
+                    "auto": {
+                    }
+                  },
+                  "service-policy": {
+                    "output": {
+                      "name": "policy-backbone-default-out-P-PE"
+                    }
+                  },
+                  "ipv4": {
+                    "address": {
+                      "ip": "172.25.8.186",
+                      "mask": "255.255.255.254"
+                    }
+                  },
+                  "load-interval": 30,
+                  "flow": [
+                    {
+                      "proto": "ipv4",
+                      "monitor": "ICX",
+                      "direction": "ingress",
+                      "sampler": "ICX"
+                    },
+                    {
+                      "proto": "mpls",
+                      "monitor": "ICX-MPLS",
+                      "direction": "ingress",
+                      "sampler": "ICX"
+                    }
+                  ],
+                  "dampening": {
+                  },
+                  "carrier-delay": {
+                    "up": 3,
+                    "down": 0
+                  }
+                },
+                {
+                  "id": "0/0/0/1",
+                  "shutdown": [null]
+                },
+                {
+                  "id": "0/0/0/10",
+                  "shutdown": [null]
+                },
+                {
+                  "id": "0/0/0/11",
+                  "shutdown": [null]
+                },
+                {
+                  "id": "0/0/0/12",
+                  "shutdown": [null]
+                },
+                {
+                  "id": "0/0/0/13",
+                  "shutdown": [null]
+                },
+                {
+                  "id": "0/0/0/14",
+                  "shutdown": [null]
+                },
+                {
+                  "id": "0/0/0/15",
+                  "shutdown": [null]
+                },
+                {
+                  "id": "0/0/0/2",
+                  "shutdown": [null]
+                },
+                {
+                  "id": "0/0/0/3",
+                  "shutdown": [null]
+                },
+                {
+                  "id": "0/0/0/4",
+                  "shutdown": [null]
+                },
+                {
+                  "id": "0/0/0/5",
+                  "shutdown": [null]
+                },
+                {
+                  "id": "0/0/0/6",
+                  "shutdown": [null]
+                },
+                {
+                  "id": "0/0/0/7",
+                  "shutdown": [null]
+                },
+                {
+                  "id": "0/0/0/8",
+                  "shutdown": [null]
+                },
+                {
+                  "id": "0/0/0/9",
+                  "shutdown": [null]
+                },
+                {
+                  "id": "0/1/0/0",
+                  "description": "OAKCR2 from OAKPE4 @172.25.8.223 - FIB18445 - Backbone",
+                  "bandwidth": 1000000,
+                  "mtu": 4484,
+                  "negotiation": {
+                    "auto": {
+                    }
+                  },
+                  "service-policy": {
+                    "output": {
+                      "name": "policy-backbone-default-out-P-PE"
+                    }
+                  },
+                  "ipv4": {
+                    "address": {
+                      "ip": "172.25.8.222",
+                      "mask": "255.255.255.254"
+                    }
+                  },
+                  "load-interval": 30,
+                  "flow": [
+                    {
+                      "proto": "ipv4",
+                      "monitor": "ICX",
+                      "direction": "ingress",
+                      "sampler": "ICX"
+                    },
+                    {
+                      "proto": "mpls",
+                      "monitor": "ICX-MPLS",
+                      "direction": "ingress",
+                      "sampler": "ICX"
+                    }
+                  ],
+                  "dampening": {
+                  },
+                  "carrier-delay": {
+                    "up": 3,
+                    "down": 0
+                  }
+                },
+                {
+                  "id": "0/1/0/1",
+                  "shutdown": [null]
+                },
+                {
+                  "id": "0/1/0/10",
+                  "shutdown": [null]
+                },
+                {
+                  "id": "0/1/0/11",
+                  "shutdown": [null]
+                },
+                {
+                  "id": "0/1/0/12",
+                  "shutdown": [null]
+                },
+                {
+                  "id": "0/1/0/13",
+                  "shutdown": [null]
+                },
+                {
+                  "id": "0/1/0/14",
+                  "shutdown": [null]
+                },
+                {
+                  "id": "0/1/0/15",
+                  "shutdown": [null]
+                },
+                {
+                  "id": "0/1/0/2",
+                  "shutdown": [null]
+                },
+                {
+                  "id": "0/1/0/3",
+                  "shutdown": [null]
+                },
+                {
+                  "id": "0/1/0/4",
+                  "shutdown": [null]
+                },
+                {
+                  "id": "0/1/0/5",
+                  "shutdown": [null]
+                },
+                {
+                  "id": "0/1/0/6",
+                  "shutdown": [null]
+                },
+                {
+                  "id": "0/1/0/7",
+                  "shutdown": [null]
+                },
+                {
+                  "id": "0/1/0/8",
+                  "shutdown": [null]
+                },
+                {
+                  "id": "0/1/0/9",
+                  "shutdown": [null]
+                }
+              ]
+            },
+            "tailf-ned-cisco-ios-xr:l2vpn": {
+              "load-balancing": {
+                "flow": "src-dst-ip"
+              },
+              "pw-class": [
+                {
+                  "name": "PORT_PW",
+                  "encapsulation": {
+                    "mpls": {
+                      "control-word": [null],
+                      "transport-mode": {
+                        "ethernet": [null]
+                      },
+                      "load-balancing": {
+                        "flow-label": {
+                          "both": {
+                          },
+                          "code": {
+                            "value": "17"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "VLAN_PW",
+                  "encapsulation": {
+                    "mpls": {
+                      "control-word": [null],
+                      "transport-mode": {
+                        "vlan": {
+                        }
+                      },
+                      "load-balancing": {
+                        "flow-label": {
+                          "both": {
+                          },
+                          "code": {
+                            "value": "17"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "tailf-ned-cisco-ios-xr:community-set": [
+              {
+                "name": "666",
+                "set": [
+                  {
+                    "value": "2300:666"
+                  }
+                ]
+              }
+            ],
+            "tailf-ned-cisco-ios-xr:route-policy": [
+              {
+                "name": "NO-EXPORT-INTERCO",
+                "value": "  set community (no-export)\r\n"
+              },
+              {
+                "name": "PASS-ALL",
+                "value": "  pass\r\n"
+              },
+              {
+                "name": "SET-PREFERENCE-IN",
+                "value": "  if community matches-any (2300:80) then\r\n    set local-preference 80\r\n  elseif community matches-any (2300:90) then\r\n    set local-preference 90\r\n  else\r\n    set local-preference 100\r\n  endif\r\n"
+              }
+            ],
+            "tailf-ned-cisco-ios-xr:router": {
+              "isis": {
+                "tag": [
+                  {
+                    "name": "PAII",
+                    "is-type": "level-2-only",
+                    "net": [
+                      {
+                        "id": "47.0023.0001.0000.0000.0003.0001.1720.2500.0001.00"
+                      }
+                    ],
+                    "nsf": {
+                      "cisco": [null]
+                    },
+                    "log": {
+                      "adjacency": {
+                        "changes": [null]
+                      }
+                    },
+                    "lsp-refresh-interval": 65000,
+                    "lsp-password": {
+                      "keychain": "isiskey",
+                      "level": 2
+                    },
+                    "max-lsp-lifetime": 65535,
+                    "address-family": {
+                      "ipv4": {
+                        "unicast": {
+                          "metric-style": "wide",
+                          "mpls": {
+                            "traffic-eng": {
+                              "level": "level-2-only",
+                              "router-id": {
+                                "Loopback": 0
+                              }
+                            }
+                          },
+                          "maximum-redistributed-prefixes": 10000,
+                          "maximum-paths": 32
+                        }
+                      },
+                      "ipv6": {
+                        "unicast": {
+                          "metric-style": "wide",
+                          "single-topology": [null],
+                          "adjacency-check": {
+                            "disable": [null]
+                          }
+                        }
+                      }
+                    },
+                    "interface": [
+                      {
+                        "name": "GigabitEthernet0/0/0/0",
+                        "point-to-point": [null],
+                        "hello-password": {
+                          "keychain": "isiskey"
+                        },
+                        "address-family": {
+                          "ipv4": {
+                            "unicast": {
+                              "metric-level": {
+                                "metric": [
+                                  {
+                                    "level": 2,
+                                    "value": 10000
+                                  }
+                                ]
+                              },
+                              "mpls": {
+                                "ldp": {
+                                  "sync": {
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "name": "GigabitEthernet0/1/0/0",
+                        "point-to-point": [null],
+                        "hello-password": {
+                          "keychain": "isiskey"
+                        },
+                        "address-family": {
+                          "ipv4": {
+                            "unicast": {
+                              "metric-level": {
+                                "metric": [
+                                  {
+                                    "level": 2,
+                                    "value": 10000
+                                  }
+                                ]
+                              },
+                              "mpls": {
+                                "ldp": {
+                                  "sync": {
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "name": "Loopback0",
+                        "interface-type": "passive",
+                        "address-family": {
+                          "ipv4": {
+                            "unicast": {
+                            }
+                          },
+                          "ipv6": {
+                            "unicast": {
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "bgp": {
+                "bgp-no-instance": [
+                  {
+                    "id": 2300,
+                    "nsr": {
+                    },
+                    "bgp": {
+                      "router-id": "172.25.0.1",
+                      "update-delay": {
+                        "update-delay-value": 480
+                      },
+                      "graceful-restart": {
+                      },
+                      "fast-external-fallover": {
+                        "disable": [null]
+                      }
+                    },
+                    "address-family": {
+                      "vpnv4": {
+                        "unicast": {
+                        }
+                      },
+                      "vpnv6": {
+                        "unicast": {
+                        }
+                      }
+                    },
+                    "neighbor-group": [
+                      {
+                        "name": "RR-SERVER-L0-VPNV4",
+                        "remote-as": 2300,
+                        "advertisement-interval": {
+                          "seconds": 1
+                        },
+                        "timers": {
+                          "keepalive": 10,
+                          "holdtime": 40
+                        },
+                        "update-source": {
+                          "Loopback": 0
+                        },
+                        "address-family": {
+                          "vpnv4": {
+                            "unicast": {
+                            }
+                          },
+                          "vpnv6": {
+                            "unicast": {
+                            }
+                          }
+                        }
+                      }
+                    ],
+                    "neighbor": [
+                      {
+                        "id": "172.25.0.9",
+                        "description": "RR-SERVER-L0-VPNV4_MIAPE6",
+                        "use": {
+                          "neighbor-group": "RR-SERVER-L0-VPNV4"
+                        }
+                      },
+                      {
+                        "id": "172.25.0.26",
+                        "description": "RR-SERVER-L0-VPNV4_NYKPE6",
+                        "use": {
+                          "neighbor-group": "RR-SERVER-L0-VPNV4"
+                        }
+                      }
+                    ],
+                    "vrf": [
+                      {
+                        "name": "monitor-vpn",
+                        "rd": "2300:100",
+                        "address-family": {
+                          "ipv4": {
+                            "unicast": {
+                              "redistribute": {
+                                "connected": {
+                                }
+                              }
+                            }
+                          },
+                          "ipv6": {
+                            "unicast": {
+                              "redistribute": {
+                                "connected": {
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            "tailf-ned-cisco-ios-xr:rsvp": {
+              "interface": [
+                {
+                  "name": "GigabitEthernet0/0/0/0"
+                },
+                {
+                  "name": "GigabitEthernet0/1/0/0"
+                }
+              ]
+            },
+            "tailf-ned-cisco-ios-xr:mpls": {
+              "traffic-eng": {
+                "interface": [
+                  {
+                    "name": "GigabitEthernet0/0/0/0"
+                  },
+                  {
+                    "name": "GigabitEthernet0/1/0/0"
+                  }
+                ]
+              },
+              "ldp": {
+                "log": {
+                  "neighbor": [null],
+                  "nsr": [null]
+                },
+                "address-family": {
+                  "ipv4": {
+                    "label": {
+                      "local": {
+                        "advertise": {
+                          "disable": [null],
+                          "for": [
+                            {
+                              "acl": "TAG-ADVERTISE-FILTER"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                },
+                "interface": [
+                  {
+                    "name": "GigabitEthernet0/0/0/0"
+                  },
+                  {
+                    "name": "GigabitEthernet0/1/0/0"
+                  }
+                ]
+              },
+              "oam": {
+              }
+            },
+            "tailf-ned-cisco-ios-xr:xyzroot": 0
+          }
+        }
+      ]
+    }
+  }
+}

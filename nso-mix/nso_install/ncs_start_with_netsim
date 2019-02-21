@@ -1,0 +1,10 @@
+ncs --stop
+ncs-netsim stop
+ncs-netsim delete-network
+ncs-netsim create-device cisco-iosxr iosxr
+ncs-netsim start
+sleep 1
+ncs-netsim is-alive
+sleep 2
+sudo /etc/init.d/ncs start
+pgrep ncs
