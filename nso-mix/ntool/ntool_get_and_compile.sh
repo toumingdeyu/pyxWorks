@@ -14,6 +14,9 @@ source /etc/profile.d/ncs.sh
 cd /var/opt/ncs
 make -C packages/tailf-ntool/src clean all
 
+###exit from root
+exit
+ 
 ### do packages reload
 echo packages reload force | ncs_cli -C
 
