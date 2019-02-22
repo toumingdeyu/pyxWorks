@@ -13,3 +13,7 @@ mv ntool-master tailf-ntool
 source /etc/profile.d/ncs.sh
 cd /var/opt/ncs
 make -C packages/tailf-ntool/src clean all
+
+### do packages reload
+echo packages reload force | ncs_cli -C
+
