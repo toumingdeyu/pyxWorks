@@ -51,7 +51,9 @@ def get_json_element(json_data,json_key=None,json_value=None,get_value=False):
     if type(json_data)==dict:
       for key in json_data.keys():
         #print('   D:',key,', SUB_TYPE:',type(json_data.get(key)))
-        if json_key and (json_key==key or ':'+str(json_key) in str(key)):
+        try: something_doubledot_key=str(key).split(':')[1]
+        except: something_doubledot_key='element_never_exists'
+        if json_key and (str(json_key)==str(key) or str(json_key)==str(something_doubledot_key)):
           if json_value and str(json_value)==str(json_data.get(key)):
             if get_value: json_reference=str(json_data.get(key));break
             else: dictionary={};dictionary[key]=json_data.get(key);json_reference=dictionary;break
