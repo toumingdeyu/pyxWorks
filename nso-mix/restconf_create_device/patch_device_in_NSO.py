@@ -46,8 +46,10 @@ def get_json_element(json_data,json_key=None,json_value=None,get_value=False):
     json_deeper_references=[]
     if type(json_data)==dict:
       for key in json_data.keys():
-        #print('   D:',key,', SUB_TYPE:',type(json_data.get(key)))
-        if json_key and (json_key==key or ':'+str(json_key) in str(key)):
+        print('   D:',key,', SUB_TYPE:',type(json_data.get(key)))
+        try: something_doubledot_key=str(key).split(':')[1]
+        except: something_doubledot_key='element_never_exists'
+        if json_key and (str(json_key)==str(key) or str(json_key)==str(something_doubledot_key)):
           if json_value and str(json_value)==str(json_data.get(key)):
             if get_value: json_reference=str(json_data.get(key));break
             else: dictionary={};dictionary[key]=json_data.get(key);json_reference=dictionary;break
@@ -63,7 +65,7 @@ def get_json_element(json_data,json_key=None,json_value=None,get_value=False):
   def get_json_element_reference_one_level_down(json_data,json_key=None,json_value=None):
     json_reference=None
     json_deeper_references=[]
-    #print('TYPE:',type(json_data))
+    print('TYPE:',type(json_data))
     if type(json_data)==list:
       for dict_data in json_data:
         print(' L:')
@@ -74,6 +76,7 @@ def get_json_element(json_data,json_key=None,json_value=None,get_value=False):
       if len(add_json_deeper_references)>0: json_deeper_references=json_deeper_references+add_json_deeper_references
     return json_reference,json_deeper_references
   ### FUNCTION -----------------------------------------------------------------
+  print('LOOKING_FOR:',json_key ,':', json_value, ', GET_VALUE:',get_value,'\n')
   json_reference_found=None
   references=[]
   references.append(json_data)
@@ -82,7 +85,6 @@ def get_json_element(json_data,json_key=None,json_value=None,get_value=False):
     references.remove(references[0])
     references=references+add_references
   del references
-  #print(50*'-','\nFOUND:',json_key ,':', json_value, '\nGET_VALUE:',get_value)
   return json_reference_found
   ### END OF GET_JSON_ELEMENT ==================================================
 
