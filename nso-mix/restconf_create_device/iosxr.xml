@@ -1,0 +1,15 @@
+
+<device xmlns="http://tail-f.com/ns/ncs"  xmlns:ncs="http://tail-f.com/ns/ncs">
+  <name>iosxr</name>
+  <address>127.0.0.1</address>
+  <port>10022</port>
+  <authgroup>default</authgroup>
+  <device-type>
+  <cli>
+    <ned-id xmlns:cisco-ios-xr-id="http://tail-f.com/ned/cisco-ios-xr-id">cisco-ios-xr-id:cisco-ios-xr</ned-id>
+  </cli>
+</device-type>
+<state>
+  <admin-state>unlocked</admin-state>
+</state>
+</device>

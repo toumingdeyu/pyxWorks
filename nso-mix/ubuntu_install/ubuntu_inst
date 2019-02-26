@@ -7,3 +7,5 @@ sudo pip3 install pyang robotframework xmltodict pyaml restinstance napalm param
 
 sudo pip install pycodestyle pynso ncs requests urllib3  ciscoconfparse
 sudo sudo pip3 install pycodestyle pynso ncs urllib3 requests ciscoconfparse
+
+sudo sudo pip3 bs4 mako

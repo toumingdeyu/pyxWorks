@@ -9,30 +9,26 @@ import requests
 import urllib3
 import copy
 import optparse
-import xmltodict
-from bs4 import BeautifulSoup
-from xml.dom.minidom import parseString
-from xml.etree import ElementTree
-
-urllib3.disable_warnings()
-
-auth=None
-restconf_headers_list=['application/yang-data+json','application/yang-data+xml']
-force_restconf_header=None
 
 ### COMMANDLINE ARGUMETS HANDLING ==============================================
 ScriptName=sys.argv[0]
 parser=optparse.OptionParser(version="1.0.0", description="")
 (options, args) = parser.parse_args()
-if not args or len(sys.argv) < 2:
-  print("SYNTAX: python %s nameOfInputFile.json json/xml" % (ScriptName))
+if not args or len(sys.argv) != 2:
+  print("SYNTAX: python %s nameOfInputFile.json" % (ScriptName))
   sys.exit(1)
 else:
   fileName=args[0]
-  if len(sys.argv)>=3:
-    for header in restconf_headers_list:
-      if args[1] in header: force_restconf_header=header
 
+### PRINT RESPONSE + ignorefail=True/False option ==============================
+def print_response_and_end_on_error(method,uri,response,ignorefail=False):
+    print('='*80)
+    print(method,uri,'  |',response.status_code,'|')
+    print('-'*80)
+    print(response.headers)
+    print('-'*80)
+    print(response.text)
+    if not ignorefail and int(response.status_code)>=400: sys.exit(0)
 
 ### GET_JSON_ELEMENT ===========================================================
 def get_json_element(json_data,json_key=None,json_value=None,get_value=False):
@@ -70,7 +66,7 @@ def get_json_element(json_data,json_key=None,json_value=None,get_value=False):
     #print('TYPE:',type(json_data))
     if type(json_data)==list:
       for dict_data in json_data:
-        #print(' L:')
+        print(' L:')
         json_reference,add_json_deeper_references=get_json_dictionary_reference(dict_data,json_key,json_value)
         if len(add_json_deeper_references)>0: json_deeper_references=json_deeper_references+add_json_deeper_references
     elif type(json_data)==dict:
@@ -90,98 +86,44 @@ def get_json_element(json_data,json_key=None,json_value=None,get_value=False):
   return json_reference_found
   ### END OF GET_JSON_ELEMENT ==================================================
 
-### ----------------------------------------------------------------------------
-def dict2xml(dictionary):
-  return xmltodict.unparse(dictionary)
-
-### handle_http_requests START =================================================
-def handle_requests(request_type,uri,datatosend=str(),debug=True,ignorefail=False):
-  ### PRINT RESPONSE + ignorefail=True/False option ============================
-  def print_response_and_end_on_error(method,uri,response,ignorefail=False):
-    print('='*80)
-    print(method,uri,'  |',response.status_code,'|')
-    print('RESPONSE_HEADERS:',print(response.headers))
-    print('RESPONSE:',)
-    print('-'*80,'\n')
-    print(response.text)
-    print('-'*80,'\n')
-    if not ignorefail and int(response.status_code)>=400: sys.exit(0)
-  ### function start -----------------------------------------------------------
-  if (restconf_headers and auth):
-    with requests.Session() as session:
-      session.auth = auth
-      session.headers.update(restconf_headers)
-      session.verify = False
-      if request_type.upper() in 'GET':
-        response = session.get(url=str(uri))
-      elif request_type.upper() in 'POST':
-        response = session.post(url=str(uri), data=str(datatosend))
-      elif request_type.upper() in 'PUT':
-        response = session.put(url=str(uri), data=str(datatosend))
-      elif request_type.upper() in 'PATCH':
-        response = session.patch(url=str(uri), data=str(datatosend))
-      elif request_type.upper() in 'DELETE':
-        response = session.delete(uri)
-      if debug: print_response_and_end_on_error(request_type.upper(),uri,response,ignorefail=ignorefail)
-      return response.text
-  else:
-    print('!!! restconf_headers and/or auth missing !!!')
-    return None
-  ### handle_http_requests END -------------------------------------------------
-
 ### MAIN =======================================================================
 def main():
-  global restconf_headers
-  global auth
   ### READ YAML NSO AUTH FILE --------------------------------------------------
   with open('./nso_auth_data.yaml', 'r') as stream: nso_auth_data = yaml.load(stream)
   if nso_auth_data:
     ### RESTCONF definitions ---------------------------------------------------
     auth = (nso_auth_data.get('nso_user','admin'), nso_auth_data.get('nso_password','admin'))
-    if force_restconf_header: restconf_headers = {'accept': force_restconf_header, 'content-type': force_restconf_header}
-    else: restconf_headers = {'accept': nso_auth_data.get('headers',''), 'content-type': nso_auth_data.get('headers','')}
     restconf_base_uri = "%s://%s:%s/restconf"%(nso_auth_data.get('nso_protocol',''),nso_auth_data.get('nso_ipaddress',''), nso_auth_data.get('nso_port',''))
     restconf_data_base_uri = "%s/data"%(restconf_base_uri)
     restconf_operations_base_uri = "%s/operations"%(restconf_base_uri)
+    restconf_headers = {'accept': 'application/yang-data+json', 'content-type': 'application/yang-data+json'}        #, 'charset=utf-8'}
+    restconf_patch_headers = {'accept': 'application/yang-data+json', 'content-type': 'application/yang-patch+json'} #, 'charset=utf-8' }
 
   ### READ JSON FILE -----------------------------------------------------------
-  if '.json' in fileName:
-    with io.open(fileName) as json_file: json_raw_data = json.load(json_file)
-    if json_raw_data:
-      nso_device=get_json_element(json_raw_data,'name',get_value=True)
-      print('DEVICE =',nso_device)
-      json_device_data=get_json_element(json_raw_data,'device')
-      if 'json' in restconf_headers.get('content-type'):
-        device_data=json.dumps(json_device_data)
-        print('HEADERS:',restconf_headers,'\nDATA:',device_data)
-      elif 'xml' in restconf_headers.get('content-type'):
-        device_data=dict2xml(json_device_data)
-        xml_root_element = ElementTree.fromstring(device_data)
-        #xml_root_element.set("xmlns", "http://tail-f.com/ned/cisco-ios-xr")
-        device_data=parseString(ElementTree.tostring(xml_root_element)).toxml()
-        device_data_pretty = BeautifulSoup(device_data, 'xml').prettify()
-        print('HEADERS:',restconf_headers,'\nDATA:',device_data_pretty)
-  if '.xml' in fileName:
-    with io.open(fileName) as xml_file: #json_raw_data = json.load(json_file)
-      device_data = xml_file.read()
-      nso_device='iosxr'
-
-
-  if nso_auth_data:
+  with io.open(fileName) as json_file: json_raw_data = json.load(json_file)
+  if nso_auth_data and json_raw_data:
+    nso_device=get_json_element(json_raw_data,'name',get_value=True)
+    print('DEVICE =',nso_device)
+    json_device_data=get_json_element(json_raw_data,'device')
 
     ### DEVICE WRITE TO NSO ====================================================
     uri = restconf_data_base_uri + '/devices/device=' + nso_device
-    handle_requests('PUT',uri,device_data)
+    response = requests.put(uri, auth=auth, headers=restconf_headers, data=json.dumps(json_device_data))
+    print_response_and_end_on_error('PUT',uri,response)
 
     ### FETCH HOST KEYS ========================================================
     uri = restconf_operations_base_uri + "/devices/device=" + nso_device + "/ssh/fetch-host-keys"
-    handle_requests('POST',uri)
+    response = requests.post(uri, auth=auth, headers=restconf_headers)
+    print_response_and_end_on_error('POST',uri,response)
 
     ### SYNC-FROM NSO ==========================================================
     uri = restconf_data_base_uri + "/devices/device=" + nso_device + "/sync-from"
-    handle_requests('POST',uri,ignorefail=True)
+    response = requests.post(uri, auth=auth, headers=restconf_headers)
+    print_response_and_end_on_error('POST',uri,response,ignorefail=True)
+
     ### SYNC-TO NSO ============================================================
     uri = restconf_data_base_uri + "/devices/device=" + nso_device + "/sync-to"
-    handle_requests('POST',uri)
+    response = requests.post(uri, auth=auth, headers=restconf_headers)
+    print_response_and_end_on_error('POST',uri,response)
 
 if __name__ == "__main__": main()
