@@ -13,6 +13,7 @@ import xmltodict
 from bs4 import BeautifulSoup
 from xml.dom.minidom import parseString
 from xml.etree import ElementTree
+import collections
 
 urllib3.disable_warnings()
 
@@ -50,7 +51,7 @@ def get_json_element(json_data,json_key=None,json_value=None,get_value=False):
     json_deeper_references=[]
     if type(json_data)==dict:
       for key in json_data.keys():
-        print('   D:',key,', SUB_TYPE:',type(json_data.get(key)))
+        #print('   D:',key,', SUB_TYPE:',type(json_data.get(key)))
         try: something_doubledot_key=str(key).split(':')[1]
         except: something_doubledot_key='element_never_exists'
         if json_key and (str(json_key)==str(key) or str(json_key)==str(something_doubledot_key)):
@@ -69,10 +70,10 @@ def get_json_element(json_data,json_key=None,json_value=None,get_value=False):
   def get_json_element_reference_one_level_down(json_data,json_key=None,json_value=None):
     json_reference=None
     json_deeper_references=[]
-    print('TYPE:',type(json_data))
+    #print('TYPE:',type(json_data))
     if type(json_data)==list:
       for dict_data in json_data:
-        print(' L:')
+        #print(' L:')
         json_reference,add_json_deeper_references=get_json_dictionary_reference(dict_data,json_key,json_value)
         if len(add_json_deeper_references)>0: json_deeper_references=json_deeper_references+add_json_deeper_references
     elif type(json_data)==dict:
@@ -80,7 +81,7 @@ def get_json_element(json_data,json_key=None,json_value=None,get_value=False):
       if len(add_json_deeper_references)>0: json_deeper_references=json_deeper_references+add_json_deeper_references
     return json_reference,json_deeper_references
   ### FUNCTION -----------------------------------------------------------------
-  print('LOOKING_FOR:',json_key ,':', json_value, ', GET_VALUE:',get_value,'\n')
+  #print('LOOKING_FOR:',json_key ,':', json_value, ', GET_VALUE:',get_value,'\n')
   json_reference_found=None
   references=[]
   references.append(json_data)
@@ -91,6 +92,65 @@ def get_json_element(json_data,json_key=None,json_value=None,get_value=False):
   del references
   return json_reference_found
   ### END OF GET_JSON_ELEMENT ==================================================
+
+### GET_XML_ELEMENT ===========================================================
+def get_xml_element(xml_data,xml_key=None,xml_value=None,get_value=False):
+  """
+  FUNCTION: get_xml_element_reference
+  parameters: xml_data  - xml data structure
+              xml_key   - optional wanted key
+              xml_value - optional wanted value
+              get_value  - optional , if True returns xml_value instead of reference
+  returns: xml_reference_found - None or xml reference when element was found
+  """
+  ### SUBFUNCTION --------------------------------------------------------------
+  def get_xml_dictionary_reference(xml_data,xml_key=None,xml_value=None):
+    xml_reference=None
+    xml_deeper_references=[]
+    if type(xml_data)==dict or type(xml_data)==collections.OrderedDict:
+      for key in xml_data.keys():
+        if not '@xmlns' in key:
+          #print('   D:',key,', SUB_TYPE:',type(xml_data.get(key)))
+          try: something_doubledot_key=str(key).split(':')[1]
+          except: something_doubledot_key='element_never_exists'
+          if xml_key and (str(xml_key)==str(key) or str(xml_key)==str(something_doubledot_key)):
+            if xml_value and str(xml_value)==str(xml_data.get(key)):
+              if get_value: xml_reference=str(xml_data.get(key));break
+              else: dictionary={};dictionary[key]=xml_data.get(key);xml_reference=dictionary;break
+            elif not xml_value:
+              if get_value: xml_reference=str(xml_data.get(key));break
+              else: dictionary={};dictionary[key]=xml_data.get(key);xml_reference=dictionary;break
+          if type(xml_data.get(key))==dict or type(xml_data)==collections.OrderedDict: xml_deeper_references.append(xml_data.get(key))
+          elif type(xml_data.get(key))==list:
+            for sub_xml in xml_data.get(key):
+              if type(sub_xml)==dict or type(xml_data)==collections.OrderedDict: xml_deeper_references.append(sub_xml)
+    return xml_reference,xml_deeper_references
+  ### SUBFUNCTION --------------------------------------------------------------
+  def get_xml_element_reference_one_level_down(xml_data,xml_key=None,xml_value=None):
+    xml_reference=None
+    xml_deeper_references=[]
+    #print('TYPE:',type(xml_data))
+    if type(xml_data)==list:
+      for dict_data in xml_data:
+        #print(' L:')
+        xml_reference,add_xml_deeper_references=get_xml_dictionary_reference(dict_data,xml_key,xml_value)
+        if len(add_xml_deeper_references)>0: xml_deeper_references=xml_deeper_references+add_xml_deeper_references
+    elif type(xml_data)==dict or type(xml_data)==collections.OrderedDict:
+      xml_reference,add_xml_deeper_references=get_xml_dictionary_reference(xml_data,xml_key,xml_value)
+      if len(add_xml_deeper_references)>0: xml_deeper_references=xml_deeper_references+add_xml_deeper_references
+    return xml_reference,xml_deeper_references
+  ### FUNCTION -----------------------------------------------------------------
+  #print('LOOKING_FOR:',xml_key ,':', xml_value, ', GET_VALUE:',get_value,'\n')
+  xml_reference_found=None
+  references=[]
+  references.append(xml_data)
+  while not xml_reference_found and len(references)>0:
+    xml_reference_found,add_references=get_xml_element_reference_one_level_down(references[0],xml_key,xml_value)
+    references.remove(references[0])
+    references=references+add_references
+  del references
+  return xml_reference_found
+  ### END OF GET_XML_ELEMENT ==================================================
 
 ### ----------------------------------------------------------------------------
 def dict2xml(dictionary):
@@ -163,11 +223,20 @@ def main():
         device_data=parseString(ElementTree.tostring(xml_root_element)).toxml()
         device_data_pretty = BeautifulSoup(device_data, 'xml').prettify()
         print('HEADERS:',restconf_headers,'\nDATA:',device_data_pretty)
-  if '.xml' in fileName:
-    with io.open(fileName) as xml_file: #json_raw_data = json.load(json_file)
-      device_data = xml_file.read()
-      nso_device='iosxr'
+  elif '.xml' in fileName:
+    with io.open(fileName) as xml_file: xml_raw_data = xmltodict.parse(xml_file.read())
+    if xml_raw_data:
+      nso_device=get_xml_element(xml_raw_data,'name',get_value=True)
+      print('DEVICE =',nso_device)
+      xml_device_data=get_xml_element(xml_raw_data,'device')
+      if 'xml' in restconf_headers.get('content-type'):
+        device_data=xmltodict.unparse(xml_device_data)
+        print('HEADERS:',restconf_headers,'\nDATA:',device_data)
+      elif 'json' in restconf_headers.get('content-type'):
+        device_data=json.dumps(xml_raw_data)
+        print('HEADERS:',restconf_headers,'\nDATA:',device_data)
 
+  #exit(0)
 
   if nso_auth_data:
 
