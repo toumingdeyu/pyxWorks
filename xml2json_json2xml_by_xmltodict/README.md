@@ -1,0 +1,1 @@
+﻿"# conversion from xml to json and to json to xml by xmltodict library, conversion from ordered dictionary to yaml does not work ok, because ordered dicts are interpreted as tuples/lists in yaml"

@@ -55,13 +55,17 @@ def read_XML_file():
     variables = xmltodict.parse(str)
   return variables
 
+### Write XML file
+def write_XML_file(variables):
+  with io.open(fileName+'.xml', 'w', encoding='utf8') as outfile:
+    outfile.write(xmltodict.unparse(variables))
 
 ### main -----------------------------------------------------------------------
 def main(argv):
   #print(read_JSON_file())
   #write_YAML_file(read_JSON_file())
-  print(read_XML_file())
-  write_JSON_file(read_XML_file())
+  print(read_JSON_file())
+  write_XML_file(read_JSON_file())
   ### conversion from ordered dictionary to yaml does not work ok, because ordered dicts are interpreted as tuples/lists in yaml
   #write_YAML_file(read_XML_file())
 
