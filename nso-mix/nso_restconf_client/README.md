@@ -8,7 +8,9 @@ CREATE DEVICE in NSO:
 
 SYNTAX: 
 
-python nso_restconf_client.py -a c -f iosxr.json 
+python nso_restconf_client.py -a c -f iosxr.json
+
+python nso_restconf_client.py -a c -f iosxr.xml 
 
 
 
@@ -20,6 +22,8 @@ SYNTAX:
 python nso_restconf_client.py -a p -f iosxr.json
 
 python nso_restconf_client.py -a p -f iosxr.json -p device
+
+python nso_restconf_client.py -a p -f iosxr.xml -p device
 
 
 

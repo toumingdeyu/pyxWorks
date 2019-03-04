@@ -259,10 +259,10 @@ def main():
         print('DEVICE NAME =',nso_device)
         xml_device_data=get_xml_element(xml_raw_data,'config') if aargs.predefined in ['c','config'] else get_xml_element(xml_raw_data,'device')
         if 'xml' in restconf_headers.get('content-type'):
-          device_data=xmltodict.unparse(xml_device_data)
+          if xml_device_data: device_data=xmltodict.unparse(xml_device_data)
           print('HEADERS:',restconf_headers,'\nDATA:',device_data)
         elif 'json' in restconf_headers.get('content-type'):
-          device_data=json.dumps(xml_raw_data)
+          if xml_raw_data: device_data=json.dumps(xml_raw_data)
           print('HEADERS:',restconf_headers,'\nDATA:',device_data)
 
   ### NSO COMMUNICATION ========================================================
