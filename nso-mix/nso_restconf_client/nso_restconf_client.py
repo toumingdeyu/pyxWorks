@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+ScriptAuthor='peter.nemec@orange.com'
+ScriptVersion='v1.00'
 
 import io
 import os
@@ -25,6 +27,7 @@ force_restconf_header=None
 
 ### ARGPARSE ###################################################################
 ScriptName=sys.argv[0]
+print('AppName:',ScriptName,', created by',ScriptAuthor,',',ScriptVersion,'\n')
 parser = argparse.ArgumentParser()
 parser.add_argument("-a", "--action", action="store",choices=['c','r','p','d','create', 'read', 'patch', 'delete'], default='read',
                     help="action [c(reate), r(ead)[=default], p(atch), d(elete)]")
@@ -32,7 +35,7 @@ parser.add_argument("-d", "--datastore", action="store",choices=['d','o','data',
 parser.add_argument("-r", "--rpath", action="store", default='',help="restconf path")
 parser.add_argument("-f", "--file", action="store", default='',help="input file .json or .xml")
 parser.add_argument("-s", "--sync", action="store", default='',choices=['f','t','b','from','to','both'],help="NSO sync [f(rom), t(o), (b)oth]")
-parser.add_argument("-t", "--type", action="store", default='json',choices=['j','x','json','xml'],help="force restconf communication type [j(son), x(ml)]")
+parser.add_argument("-t", "--type", action="store", default='',choices=['j','x','json','xml'],help="force restconf communication type [j(son), x(ml)]")
 parser.add_argument("-c", "--content", action="store", default='config',choices=['config','nonconfig','all'],help="..?content=XXX..")
 parser.add_argument("-n", "--name", action="store", default='', help="name of element to read")
 parser.add_argument("-p", "--predefined", action="store", default='device',choices=['d','device','c','config'],help="predefined path [d(device)[=default],[device] c(onfig)]")
@@ -44,7 +47,16 @@ restconf_subpath=aargs.rpath
 if aargs.type in ['j','json']: force_restconf_header=restconf_headers_list[0]
 elif aargs.type in ['x','xml']: force_restconf_header=restconf_headers_list[1]
 
+if aargs.verbose: print('force_restconf_header from aargs.type =', force_restconf_header)
 
+if not force_restconf_header and aargs.file:
+  if '.json' in aargs.file: force_restconf_header=restconf_headers_list[0]
+  elif '.xml' in aargs.file: force_restconf_header=restconf_headers_list[1]
+
+if not force_restconf_header: force_restconf_header=restconf_headers_list[0]
+if aargs.verbose: print('force_restconf_header by default =', force_restconf_header)
+
+if aargs.verbose: print('force_restconf_header from file extension =', force_restconf_header)
 ### GET_JSON_ELEMENT ===========================================================
 def get_json_element(json_data,json_key=None,json_value=None,get_value=False):
   """
@@ -211,7 +223,7 @@ def main():
     ### RESTCONF definitions ---------------------------------------------------
     auth = (nso_auth_data.get('nso_user','admin'), nso_auth_data.get('nso_password','admin'))
     if force_restconf_header: restconf_headers = {'accept': force_restconf_header, 'content-type': force_restconf_header}
-    else: restconf_headers = {'accept': nso_auth_data.get('headers',''), 'content-type': nso_auth_data.get('headers','')}
+    #else: restconf_headers = {'accept': nso_auth_data.get('headers',''), 'content-type': nso_auth_data.get('headers','')}
     restconf_base_uri = "%s://%s:%s/restconf"%(nso_auth_data.get('nso_protocol',''),nso_auth_data.get('nso_ipaddress',''), nso_auth_data.get('nso_port',''))
     restconf_data_base_uri = "%s/data"%(restconf_base_uri)
     restconf_operations_base_uri = "%s/operations"%(restconf_base_uri)
@@ -312,7 +324,7 @@ def main():
       now = datetime.datetime.now()
       timestring='%04d%02d%02d_%02d%02d%02d'%(now.year,now.month,now.day,now.hour,now.minute,now.second)
       filetype='xml' if 'xml' in force_restconf_header or 'xml' in aargs.file else 'json'
-      with open(aargs.name+'_'+aargs.type+'-'+aargs.content+'_'+timestring+'.'+filetype, 'w', encoding='utf8') as outfile:
+      with open(aargs.name+'_'+filetype+'-'+aargs.content+'_'+timestring+'.'+filetype, 'w', encoding='utf8') as outfile:
         outfile.write(response.text)
         outfile.close()
 
