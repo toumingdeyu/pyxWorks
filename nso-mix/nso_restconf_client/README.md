@@ -32,9 +32,9 @@ PATCH DEVICE CONFIG in NSO:
 
 SYNTAX: 
 
-python nso_restconf_client.py -a p -f iosxr.json
-
 python nso_restconf_client.py -a p -f iosxr.json -p config
+
+python nso_restconf_client.py -a p -f iosxr.xml -p config
 
 
 READ DEVICE JSON (all) from NSO:
@@ -46,7 +46,7 @@ python nso_restconf_client.py -c all -n iosxr
 
 
 
-READ DEVICE JSON (all) from NSO:
+READ DEVICE XML (all) from NSO:
 --------------------------------
 
 SYNTAX: 
