@@ -1,0 +1,31 @@
+#!/bin/bash
+### paths what should be set
+export NCS_DIR=/opt/ncs/current
+export PYTHONPATH=/opt/ncs/current/src/ncs/pyapi
+export MANPATH=/opt/ncs/current/man:/usr/share/man
+ 
+export PATH=/opt/ncs/current/bin:$PATH
+export NCS_CONFIG_DIR="/etc/ncs"
+export NCS_RUN_DIR="/var/opt/ncs"
+export NCS_LOG_DIR="/var/log/ncs"
+
+### netsim basic setup
+
+sudo mkdir /netsim
+sudo chmod 777 /netsim
+export NETSIM_DIR=/netsim
+sudo export NETSIM_DIR=/netsim
+sudo chmod +r /opt/ncs/current/netsim/confd/etc/confd/ssh/ssh_host_rsa_key
+sudo chmod 777 -R /netsim/
+
+ncs-netsim delete-network
+ncs-netsim create-device cisco-iosxr iosxr1 
+ncs-netsim create-device cisco-ios ios1
+ncs-netsim create-device juniper-junos junos1
+ncs-netsim create-device huawei-vrp huawei1
+
+sudo chmod 777 -R /netsim/
+
+cd $NETSIM_DIR
+ncs-netsim start
+ncs-netsim is-alive

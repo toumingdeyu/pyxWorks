@@ -1,8 +1,8 @@
 
 <device xmlns="http://tail-f.com/ns/ncs"  xmlns:ncs="http://tail-f.com/ns/ncs">
   <name>iosxr</name>
-  <address>127.0.0.1</address>
-  <port>10022</port>
+  <address>192.168.56.102</address>
+  <port>11022</port>
   <authgroup>default</authgroup>
   <device-type>
   <cli>
