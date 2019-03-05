@@ -20,6 +20,11 @@ import datetime
 import xml.dom.minidom
 from ncclient import manager
 
+from lxml import etree
+from xmldiff import formatting
+from xmldiff import main as xdmain
+
+
 usage_text='''
 BASIC EXAMPLE OF NETCONF CLIENT...
 
@@ -31,9 +36,11 @@ urllib3.disable_warnings()
 ScriptName=sys.argv[0]
 print('AppName:',ScriptName,', created by',ScriptAuthor,',',ScriptVersion,'\n')
 parser = argparse.ArgumentParser()
-parser.add_argument("-if", "--inputfile", action="store", default='',help="input xml file")
-parser.add_argument("-wrc", "--writerunningconfig",action="store_true", default=False, help="write file to device running-config ")
-parser.add_argument("-grc", "--getrunningconfig",action="store_true", default=False, help="get running-config to file")
+
+parser.add_argument("-cf", "--comparewithfile", action="store", default='',help="compare with xml file")
+#parser.add_argument("-if", "--inputfile", action="store", default='',help="input xml file")
+#parser.add_argument("-wrc", "--writerunningconfig",action="store_true", default=False, help="write file to device running-config ")
+parser.add_argument("-grc", "--getrunningconfig",action="store_true", default=True, help="get running-config to file")
 parser.add_argument("-dt", "--devicetype", action="store", default='',choices=['j','c','n','h','junos','csr','nexus','huavei'],help="force device type [(j)unos,(c)sr,(n)exus,(h)uavei]")
 parser.add_argument("-v", "--verbose",action="store_true", default=False, help="set verbose mode")
 aargs = parser.parse_args()
@@ -135,10 +142,16 @@ def main():
           with open(file_name, 'w', encoding='utf8') as outfile:
             outfile.write(xml.dom.minidom.parseString(str(running_config)).toprettyxml())
             print('Writing running-config to file:',file_name)
-          exit(0)
+          #exit(0)
+          if aargs.comparewithfile:
+            diff = xdmain.diff_files(aargs.comparewithfile, file_name, formatter=formatting.XMLFormatter())
+            print(diff)
 
-        ### WRITE RUNNING CONFIG TO DEVICE =====================================
-        if aargs.writerunningconfig and aargs.inputfile:
+
+
+
+#         ### WRITE RUNNING CONFIG TO DEVICE =====================================
+#         if aargs.writerunningconfig and aargs.inputfile:
 #           assert(":url" in m.server_capabilities)
 #           with m.locked("running"):
 #             now = datetime.datetime.now()
@@ -147,13 +160,10 @@ def main():
 #             m.copy_config(source="running", target="file:///"+'bckp_'+file_name)
 #             m.copy_config(source="file:///"+aargs.inputfile , target="running")
 #             print('Writing running-config(%s) to device(%s).'%(file_name,netconf_auth_data.get('netconf_ipaddress')))
-          exit(0)
+#           exit(0)
 
 #         # MAKE DICTIONARY from config
 #         conf_json = xmltodict.parse(str(running_config))
 #         print('DEVICE:',conf_json['rpc-reply']["data"]["devices"]['device'])
-
-
-
 
 if __name__ == "__main__": main()

@@ -1,0 +1,29 @@
+c:\_pyxWorks\nso-mix\netconf_ssh_examples>python netconf_client_02.py -cf running_config.xml
+AppName: netconf_client_02.py , created by peter.nemec@orange.com , v1.00
+
+Writing running-config to file: running_config_20190305_180017.xml
+Traceback (most recent call last):
+  File "netconf_client_02.py", line 169, in <module>
+    if __name__ == "__main__": main()
+  File "netconf_client_02.py", line 147, in main
+    diff = xdmain.diff_files(aargs.comparewithfile, file_name, formatter=formatting.XMLFormatter())
+  File "c:\Python37\lib\site-packages\xmldiff\main.py", line 51, in diff_files
+    diff_options=diff_options, formatter=formatter)
+  File "c:\Python37\lib\site-packages\xmldiff\main.py", line 39, in _diff
+    formatter=formatter)
+  File "c:\Python37\lib\site-packages\xmldiff\main.py", line 30, in diff_trees
+    return formatter.format(diffs, left)
+  File "c:\Python37\lib\site-packages\xmldiff\formatting.py", line 343, in format
+    self.handle_action(action, root)
+  File "c:\Python37\lib\site-packages\xmldiff\formatting.py", line 356, in handle_action
+    method(action, result)
+  File "c:\Python37\lib\site-packages\xmldiff\formatting.py", line 610, in _handle_UpdateTextIn
+    node = self._xpath(tree, action.node)
+  File "c:\Python37\lib\site-packages\xmldiff\formatting.py", line 398, in _xpath
+    for match in node.xpath(path, namespaces=node.nsmap):
+  File "src\lxml\etree.pyx", line 1572, in lxml.etree._Element.xpath
+  File "src\lxml\xpath.pxi", line 261, in lxml.etree.XPathElementEvaluator.__init__
+  File "src\lxml\xpath.pxi", line 133, in lxml.etree._XPathEvaluatorBase.__init__
+  File "src\lxml\xpath.pxi", line 57, in lxml.etree._XPathContext.__init__
+  File "src\lxml\extensions.pxi", line 81, in lxml.etree._BaseContext.__init__
+TypeError: empty namespace prefix is not supported in XPath
