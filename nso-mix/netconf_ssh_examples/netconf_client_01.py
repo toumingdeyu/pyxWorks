@@ -110,7 +110,8 @@ def main():
     m = manager.connect(host=netconf_auth_data.get('netconf_ipaddress'),
                         port=netconf_auth_data.get('netconf_ssh_port'),
                         username=netconf_auth_data.get('netconf_user'),
-                        password=netconf_auth_data.get('netconf_password'))
+                        password=netconf_auth_data.get('netconf_password'),
+                        hostkey_verify=False )
 
     if aargs.verbose: print('CONNECTED:',m.connected)
 
