@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 ScriptAuthor='peter.nemec@orange.com'
-ScriptVersion='v1.00'
+ScriptVersion='v1.01'
 
 import io
 import os
@@ -18,6 +18,41 @@ from xml.dom.minidom import parseString
 from xml.etree import ElementTree
 import collections
 import datetime
+
+usage_text='''
+DEVICE NAME = iosxr
+
+CREATE DEVICE in NSO:
+python nso_restconf_client.py -a c -f iosxr.json
+python nso_restconf_client.py -a c -f iosxr.xml
+
+PATCH DEVICE in NSO:
+python nso_restconf_client.py -a p -f iosxr.json
+python nso_restconf_client.py -a p -f iosxr.json -p device
+python nso_restconf_client.py -a p -f iosxr.xml -p device
+
+PATCH DEVICE CONFIG in NSO:
+python nso_restconf_client.py -a p -f iosxr.json
+python nso_restconf_client.py -a p -f iosxr.json -p config
+
+READ DEVICE JSON (all) from NSO:
+python nso_restconf_client.py -c all -n iosxr
+
+READ DEVICE JSON (all) from NSO:
+python nso_restconf_client.py -c all -n iosxr -t xml
+
+READ JSON DEVICE CONFIG from NSO:
+python nso_restconf_client.py -n iosxr
+python nso_restconf_client.py -c config -n iosxr
+
+READ XML DEVICE CONFIG from NSO:
+python nso_restconf_client.py -n iosxr -t x
+python nso_restconf_client.py -n iosxr -t xml
+python nso_restconf_client.py -c config -n iosxr -t xml
+
+DELETE DEVICE in NSO:
+python nso_restconf_client.py -a d -n iosxr
+'''
 
 urllib3.disable_warnings()
 
@@ -41,7 +76,7 @@ parser.add_argument("-n", "--name", action="store", default='', help="name of el
 parser.add_argument("-p", "--predefined", action="store", default='device',choices=['d','device','c','config'],help="predefined path [d(device)[=default],[device] c(onfig)]")
 parser.add_argument("-v", "--verbose",action="store_true", default=False, help="set verbose mode")
 aargs = parser.parse_args()
-if aargs.verbose: print('INPUT_PARAMS:',parser.parse_args())
+if aargs.verbose or len(sys.argv)<2: print('USAGE:',usage_text,'\nINPUT_PARAMS:',parser.parse_args())
 restconf_subpath=aargs.rpath
 
 if aargs.type in ['j','json']: force_restconf_header=restconf_headers_list[0]
