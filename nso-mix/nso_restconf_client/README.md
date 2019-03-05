@@ -85,6 +85,13 @@ SYNTAX:
 python nso_restconf_client.py -a d -n iosxr
 
 
+GET CAPABILITIES of NSO:
+------------------------
+
+SYNTAX:
+
+python nso_restconf_client.py -p ca
+
 
 NOTE:
 -----

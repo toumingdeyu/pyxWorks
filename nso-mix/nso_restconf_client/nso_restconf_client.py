@@ -52,6 +52,9 @@ python nso_restconf_client.py -c config -n iosxr -t xml
 
 DELETE DEVICE in NSO:
 python nso_restconf_client.py -a d -n iosxr
+
+GET CAPABILITIES of NSO:
+python nso_restconf_client.py -p ca
 '''
 
 urllib3.disable_warnings()
@@ -73,7 +76,7 @@ parser.add_argument("-s", "--sync", action="store", default='',choices=['f','t',
 parser.add_argument("-t", "--type", action="store", default='',choices=['j','x','json','xml'],help="force restconf communication type [j(son), x(ml)]")
 parser.add_argument("-c", "--content", action="store", default='config',choices=['config','nonconfig','all'],help="..?content=XXX..")
 parser.add_argument("-n", "--name", action="store", default='', help="name of element to read")
-parser.add_argument("-p", "--predefined", action="store", default='device',choices=['d','device','c','config'],help="predefined path [d(device)[=default],[device] c(onfig)]")
+parser.add_argument("-p", "--predefined", action="store", default='device',choices=['d','device','c','config','ca','capabilities'],help="predefined path [d(device)[=default],[device] c(onfig),(ca)pabilities]")
 parser.add_argument("-v", "--verbose",action="store_true", default=False, help="set verbose mode")
 aargs = parser.parse_args()
 if aargs.verbose or len(sys.argv)<2: print('USAGE:',usage_text,'\nINPUT_PARAMS:',parser.parse_args())
@@ -267,6 +270,7 @@ def main():
   xml_device_data=str()
   json_device_data=str()
   device_data=str()
+  restconf_subpath=str()
   if aargs.action in ['c','create','p','patch'] and '.json' in aargs.file:
     with io.open(aargs.file) as json_file: json_raw_data = json.load(json_file)
     if json_raw_data:
@@ -351,7 +355,11 @@ def main():
         handle_requests('POST',uri,ignorefail=True)
 
       ### DEVICE READ FROM NSO ===================================================
-      uri = restconf_uri + restconf_subpath + '?content=' + aargs.content
+      if aargs.predefined in ['ca','capabilities']:
+        restconf_subpath='/netconf-state/capabilities'
+        uri = restconf_uri + restconf_subpath
+      else:
+        uri = restconf_uri + restconf_subpath + '?content=' + aargs.content
       response = requests.get(uri, auth=auth, headers=restconf_headers)
       handle_requests('GET',uri,ignorefail=True)
 
