@@ -32,8 +32,8 @@ python nso_restconf_client.py -a p -f iosxr.json -p device
 python nso_restconf_client.py -a p -f iosxr.xml -p device
 
 PATCH DEVICE CONFIG in NSO:
-python nso_restconf_client.py -a p -f iosxr.json
 python nso_restconf_client.py -a p -f iosxr.json -p config
+python nso_restconf_client.py -a p -f iosxr.xml -p config
 
 READ DEVICE JSON (all) from NSO:
 python nso_restconf_client.py -c all -n iosxr
