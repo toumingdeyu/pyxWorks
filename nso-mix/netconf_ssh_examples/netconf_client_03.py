@@ -51,9 +51,10 @@ parser.add_argument("-cwf", "--comparewithfile", action="store", default='',help
 #parser.add_argument("-if", "--inputfile", action="store", default='',help="input xml file")
 #parser.add_argument("-wrc", "--writerunningconfig",action="store_true", default=False, help="write file to device running-config ")
 parser.add_argument("-cwr", "--comparewithrollback", action="store", default='',help="compare config with number of rollbacks")
+parser.add_argument("-x", "--xpathexpression", action="store", default='/',help="xpath expression")
 parser.add_argument("-gca", "--getcapabilities",action="store_true", default=False, help="get capabilities to file")
 parser.add_argument("-grc", "--getrunningconfig",action="store_true", default=False, help="get running-config to file")
-parser.add_argument("-ga", "--getall",action="store_true", default=False, help="get all to file")
+parser.add_argument("-gall", "--getall",action="store_true", default=False, help="get all to file")
 parser.add_argument("-dt", "--devicetype", action="store", default='',choices=['j','c','n','h','junos','csr','nexus','huavei'],help="force device type [(j)unos,(c)sr,(n)exus,(h)uavei]")
 parser.add_argument("-v", "--verbose",action="store_true", default=False, help="set verbose mode")
 aargs = parser.parse_args()
@@ -164,7 +165,7 @@ def main():
         if aargs.comparewithrollback:
           compare_config = m.compare_configuration(rollback=int(aargs.comparewithrollback))
           print(compare_config.tostring)
-        exit(0)
+
 
         ### GET RUNNING CONFIG =================================================
         if aargs.getrunningconfig or aargs.comparewithfile:
@@ -185,22 +186,25 @@ def main():
 
 #https://programtalk.com/python-examples/ncclient.manager.connect/
 
-#         ### GET ALL ============================================================
-#         if aargs.getall:
-#           #reply = connection.get(filter='<nc:filter type="xpath" xmlns:nc="urn:ietf:params:xml:ns:netconf:base:1.0" xmlns:tm="http://example.net/turing-machine" select="/tm:turing-machine/transition-function/delta" />')
-#           #filter=('subtree', "<interfaces-state/>")
-#           #https://ncclient.readthedocs.io/en/latest/manager.html#filter-params
-#           data = m.get()
-#           if aargs.verbose: print('\nRUNNING_CONFIG:\n',xml.dom.minidom.parseString(str(data)).toprettyxml())
-#           file_name='all_'+timestring+'.xml'
-#           if '\n' in running_config:
-#             with open(file_name, 'w', encoding='utf8') as outfile:
-#               outfile.write(str(data))
-#               print('Writing all to file:',file_name)
-#           else:
-#             with open(file_name, 'w', encoding='utf8') as outfile:
-#               outfile.write(xml.dom.minidom.parseString(str(data)).toprettyxml())
-#               print('Writing all to file:',file_name)
+        ### GET ALL ============================================================
+        if aargs.getall:
+          #reply = connection.get(filter='<nc:filter type="xpath" xmlns:nc="urn:ietf:params:xml:ns:netconf:base:1.0" xmlns:tm="http://example.net/turing-machine" select="/tm:turing-machine/transition-function/delta" />')
+          #filter=('subtree', "<interfaces-state/>")
+          #https://ncclient.readthedocs.io/en/latest/manager.html#filter-params
+
+          data = m.get(filter=('xpath', aargs.xpathexpression))
+          #data = m.get(filter='<nc:filter type="xpath" xmlns:nc="urn:ietf:params:xml:ns:netconf:base:1.0" xmlns:tm="http://example.net/turing-machine" select="/tm:turing-machine/transition-function/delta" />')
+
+          if aargs.verbose: print('\nXPATH:\n',xml.dom.minidom.parseString(str(data)).toprettyxml())
+          file_name='all_'+timestring+'.xml'
+          if '\n' in running_config:
+            with open(file_name, 'w', encoding='utf8') as outfile:
+              outfile.write(str(data))
+              print('Writing all to file:',file_name)
+          else:
+            with open(file_name, 'w', encoding='utf8') as outfile:
+              outfile.write(xml.dom.minidom.parseString(str(data)).toprettyxml())
+              print('Writing all to file:',file_name)
 
 
 
