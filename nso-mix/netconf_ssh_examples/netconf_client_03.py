@@ -25,13 +25,14 @@ from ncclient import manager
 from lxml import etree
 from xmldiff import formatting
 from xmldiff import main as xdmain
+import difflib
 
 
 netconf_auth_data_yaml='''
 netconf_user: pnemec
-netconf_password: ----
+netconf_password:
 netconf_ipaddress: 127.0.0.1
-netconf_ssh_port: 22224
+netconf_ssh_port: 22222
 '''
 
 usage_text='''
@@ -46,10 +47,12 @@ ScriptName=sys.argv[0]
 print('AppName:',ScriptName,', created by',ScriptAuthor,',',ScriptVersion,'\n')
 parser = argparse.ArgumentParser()
 
-parser.add_argument("-cf", "--comparewithfile", action="store", default='',help="compare with xml file")
+parser.add_argument("-cwf", "--comparewithfile", action="store", default='',help="compare with xml file")
 #parser.add_argument("-if", "--inputfile", action="store", default='',help="input xml file")
 #parser.add_argument("-wrc", "--writerunningconfig",action="store_true", default=False, help="write file to device running-config ")
+parser.add_argument("-gca", "--getcapabilities",action="store_true", default=False, help="get capabilities to file")
 parser.add_argument("-grc", "--getrunningconfig",action="store_true", default=True, help="get running-config to file")
+parser.add_argument("-ga", "--getall",action="store_true", default=False, help="get all to file")
 parser.add_argument("-dt", "--devicetype", action="store", default='',choices=['j','c','n','h','junos','csr','nexus','huavei'],help="force device type [(j)unos,(c)sr,(n)exus,(h)uavei]")
 parser.add_argument("-v", "--verbose",action="store_true", default=False, help="set verbose mode")
 aargs = parser.parse_args()
@@ -121,6 +124,8 @@ def dict2xml(dictionary):
 
 ### MAIN =======================================================================
 def main():
+  now = datetime.datetime.now()
+  timestring='%04d%02d%02d_%02d%02d%02d'%(now.year,now.month,now.day,now.hour,now.minute,now.second)
   device_params=None
   netconf_auth_data=None
   if aargs.devicetype in ['j','c','n','h','junos','csr','nexus','huawei']:
@@ -139,30 +144,47 @@ def main():
                              password=netconf_auth_data.get('netconf_password'),
                              device_params=device_params,
                              hostkey_verify=False ) as m:
-        if aargs.verbose:
-          print('CONNECTED:',m.connected,'\nCAPABILITIES:')
+        if aargs.verbose: print('CONNECTED:',m.connected,'\nCAPABILITIES:')
+        if aargs.getcapabilities:
+          file_name='capabilities_'+timestring+'.xml'
           for c in m.server_capabilities: print(c)
+          with open(file_name, 'w', encoding='utf8') as outfile:
+            for c in m.server_capabilities: outfile.write(str(c)+'\n')
+            print('Writing capabilities to file:',file_name)
+
 
         ### GET RUNNING CONFIG =================================================
         if aargs.getrunningconfig:
           running_config = m.get_config('running').data_xml
           if aargs.verbose: print('\nRUNNING_CONFIG:\n',xml.dom.minidom.parseString(str(running_config)).toprettyxml())
-          now = datetime.datetime.now()
-          timestring='%04d%02d%02d_%02d%02d%02d'%(now.year,now.month,now.day,now.hour,now.minute,now.second)
           file_name='running_config_'+timestring+'.xml'
-          if '\n' in running_config:
-            with open('raw_'+file_name, 'w', encoding='utf8') as outfile:
-              outfile.write(str(running_config))
-              print('Writing running-config to file:','raw_'+file_name)
-          else:
-            with open(file_name, 'w', encoding='utf8') as outfile:
-              outfile.write(xml.dom.minidom.parseString(str(running_config)).toprettyxml())
-              outfile.write(str(running_config))
-              print('Writing running-config to file:',file_name)
-          exit(0)
-#           if aargs.comparewithfile:
-#             diff = xdmain.diff_files(aargs.comparewithfile, file_name, formatter=formatting.XMLFormatter())
-#             print(diff)
+          with open(file_name, 'w', encoding='utf8') as outfile:
+            if '\n' in running_config: outfile.write(str(running_config))
+            else: outfile.write(xml.dom.minidom.parseString(str(running_config)).toprettyxml())
+            print('Writing running-config to file:',file_name)
+          ### DO FILE DIFF -----------------------------------------------------
+          if aargs.comparewithfile:
+            with open(aargs.comparewithfile, 'r') as pre:
+              with open(file_name, 'r') as post:
+                diff = difflib.unified_diff(pre.readlines(),post.readlines(),fromfile='PRE',tofile='POST',n=0)
+                for line in diff: print(line.replace('\n',''))
+
+
+#         ### GET ALL ============================================================
+#         if aargs.getall:
+#           data = m.get().data_xml
+#           if aargs.verbose: print('\nRUNNING_CONFIG:\n',xml.dom.minidom.parseString(str(data)).toprettyxml())
+#           file_name='all_'+timestring+'.xml'
+#           if '\n' in running_config:
+#             with open(file_name, 'w', encoding='utf8') as outfile:
+#               outfile.write(str(data))
+#               print('Writing all to file:',file_name)
+#           else:
+#             with open(file_name, 'w', encoding='utf8') as outfile:
+#               outfile.write(xml.dom.minidom.parseString(str(data)).toprettyxml())
+#               print('Writing all to file:',file_name)
+
+
 
 
 
