@@ -50,8 +50,9 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-cwf", "--comparewithfile", action="store", default='',help="compare with xml file")
 #parser.add_argument("-if", "--inputfile", action="store", default='',help="input xml file")
 #parser.add_argument("-wrc", "--writerunningconfig",action="store_true", default=False, help="write file to device running-config ")
+parser.add_argument("-cwr", "--comparewithrollback", action="store", default='',help="compare config with number of rollbacks")
 parser.add_argument("-gca", "--getcapabilities",action="store_true", default=False, help="get capabilities to file")
-parser.add_argument("-grc", "--getrunningconfig",action="store_true", default=True, help="get running-config to file")
+parser.add_argument("-grc", "--getrunningconfig",action="store_true", default=False, help="get running-config to file")
 parser.add_argument("-ga", "--getall",action="store_true", default=False, help="get all to file")
 parser.add_argument("-dt", "--devicetype", action="store", default='',choices=['j','c','n','h','junos','csr','nexus','huavei'],help="force device type [(j)unos,(c)sr,(n)exus,(h)uavei]")
 parser.add_argument("-v", "--verbose",action="store_true", default=False, help="set verbose mode")
@@ -134,6 +135,7 @@ def main():
     device_params={'name':'csr'} if not device_params and aargs.devicetype=='c' else None
     device_params={'name':'nexus'} if not device_params and aargs.devicetype=='n' else None
     device_params={'name':'huawei'} if not device_params and aargs.devicetype=='h' else None
+    device_params={'name': 'default'} if not device_params else {'name': 'default'}
   ### READ YAML NETCONF AUTH FILE ----------------------------------------------
   #with open('./netconf_auth_data.yaml', 'r') as stream: netconf_auth_data = yaml.load(stream)
   if not netconf_auth_data: netconf_auth_data = yaml.load(netconf_auth_data_yaml)
@@ -143,18 +145,29 @@ def main():
                              username=netconf_auth_data.get('netconf_user'),
                              password=netconf_auth_data.get('netconf_password'),
                              device_params=device_params,
+                             timeout=10,
+                             allow_agent=False, look_for_keys=False,
                              hostkey_verify=False ) as m:
-        if aargs.verbose: print('CONNECTED:',m.connected,'\nCAPABILITIES:')
+        print('CONNECTED:',m.connected)
+        if aargs.verbose:
+          print('CAPABILITIES:')
+          for c in m.server_capabilities: print(c)
+        ### WRITE CAPABILITIES TO FILE -----------------------------------------
         if aargs.getcapabilities:
           file_name='capabilities_'+timestring+'.xml'
-          for c in m.server_capabilities: print(c)
           with open(file_name, 'w', encoding='utf8') as outfile:
             for c in m.server_capabilities: outfile.write(str(c)+'\n')
             print('Writing capabilities to file:',file_name)
 
+        ### COMPARE CONFIG WITH ROLLBACK =======================================
+        #https://programtalk.com/vs2/?source=python/9054/ncclient/examples/juniper/command-jnpr.py
+        if aargs.comparewithrollback:
+          compare_config = m.compare_configuration(rollback=int(aargs.comparewithrollback))
+          print(compare_config.tostring)
+        exit(0)
 
         ### GET RUNNING CONFIG =================================================
-        if aargs.getrunningconfig:
+        if aargs.getrunningconfig or aargs.comparewithfile:
           running_config = m.get_config('running').data_xml
           if aargs.verbose: print('\nRUNNING_CONFIG:\n',xml.dom.minidom.parseString(str(running_config)).toprettyxml())
           file_name='running_config_'+timestring+'.xml'
@@ -170,9 +183,14 @@ def main():
                 for line in diff: print(line.replace('\n',''))
 
 
+#https://programtalk.com/python-examples/ncclient.manager.connect/
+
 #         ### GET ALL ============================================================
 #         if aargs.getall:
-#           data = m.get().data_xml
+#           #reply = connection.get(filter='<nc:filter type="xpath" xmlns:nc="urn:ietf:params:xml:ns:netconf:base:1.0" xmlns:tm="http://example.net/turing-machine" select="/tm:turing-machine/transition-function/delta" />')
+#           #filter=('subtree', "<interfaces-state/>")
+#           #https://ncclient.readthedocs.io/en/latest/manager.html#filter-params
+#           data = m.get()
 #           if aargs.verbose: print('\nRUNNING_CONFIG:\n',xml.dom.minidom.parseString(str(data)).toprettyxml())
 #           file_name='all_'+timestring+'.xml'
 #           if '\n' in running_config:
