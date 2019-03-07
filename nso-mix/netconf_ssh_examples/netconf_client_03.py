@@ -191,10 +191,11 @@ def main():
           #reply = connection.get(filter='<nc:filter type="xpath" xmlns:nc="urn:ietf:params:xml:ns:netconf:base:1.0" xmlns:tm="http://example.net/turing-machine" select="/tm:turing-machine/transition-function/delta" />')
           #filter=('subtree', "<interfaces-state/>")
           #https://ncclient.readthedocs.io/en/latest/manager.html#filter-params
-
-          data = m.get(filter=('xpath', aargs.xpathexpression))
+          #rpc_reply = m.get(filter=('subtree', "<interfaces-state/>"))
+          #data = m.get(filter=('xpath', aargs.xpathexpression))
           #data = m.get(filter='<nc:filter type="xpath" xmlns:nc="urn:ietf:params:xml:ns:netconf:base:1.0" xmlns:tm="http://example.net/turing-machine" select="/tm:turing-machine/transition-function/delta" />')
 
+          data = m.get(filter=('subtree', "<interfaces-state/>"))
           if aargs.verbose: print('\nXPATH:\n',xml.dom.minidom.parseString(str(data)).toprettyxml())
           file_name='all_'+timestring+'.xml'
           if '\n' in running_config:
