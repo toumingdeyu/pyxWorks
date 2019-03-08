@@ -202,8 +202,8 @@ def main():
 #           print(compare_config.tostring)
 
         ### GET RUNNING CONFIG =================================================
-        if aargs.getrunningconfig or aargs.comparewithfile or aargs.getcandidateconfig:
-          if aargs.xpathexpression: rx_config = m.get_config(source='candidate' if aargs.getcandidateconfig else 'running',filter=('xpath','"'+aargs.xpathexpression+'"')).data_xml
+        if (aargs.getrunningconfig or aargs.getcandidateconfig) and aargs.comparewithfile:
+          if aargs.xpathexpression: rx_config = m.get_config(source='candidate' if aargs.getcandidateconfig else 'running',filter=('xpath',aargs.xpathexpression)).data_xml
           else: rx_config=m.get_config(source='candidate' if aargs.getcandidateconfig else 'running').data_xml
           if aargs.verbose: print('\n%s_CONFIG:\n'%(('candidate' if aargs.getcandidateconfig else 'running').upper() ),
                                   str(rx_config) if '\n' in rx_config else xml.dom.minidom.parseString(str(rx_config)).toprettyxml())
@@ -226,13 +226,88 @@ def main():
         #https://programtalk.com/python-examples/ncclient.manager.connect/
         ### GET DATA ===========================================================
         if aargs.getdata:
-          rx_data = m.get() if not aargs.xpathexpression else m.get(filter=('xpath','"'+aargs.xpathexpression+'"'))
+          rx_data = m.get() if not aargs.xpathexpression else m.get(filter=('xpath',aargs.xpathexpression))
           if aargs.verbose: print('\nRECIEVED_DATA%s:\n'%(('(XPATH='+aargs.xpathexpression+')' if aargs.xpathexpression else '').upper() ),
                                   str(rx_config) if '\n' in rx_config else xml.dom.minidom.parseString(str(rx_config)).toprettyxml())
           file_name='data'+aargs.xpathexpression.replace('/','_')+'_get_'+timestring+'.xml'
           with open(file_name, 'w', encoding='utf8') as outfile:
             outfile.write(str(rx_data)) #if '\n' in rx_data else outfile.write(xml.dom.minidom.parseString(str(rx_data)).toprettyxml())
             print('Writing data %s to file:'%('(XPATH='+aargs.xpathexpression+')' if aargs.xpathexpression else ''),file_name)
+
+        ### COMMAND LISTS ------------------------------------------------------
+        CMD_IOS_XE_CMDS = [
+                "show version",
+                "show running-config",
+                "show isis neighbors",
+                "show mpls ldp neighbor",
+                "show ip interface brief",
+                "show ip route summary",
+                "show crypto isakmp sa",
+                "show crypto ipsec sa count",
+                "show crypto eli"
+                ]
+
+        CMD_IOS_XR_CMDS = [
+                "show system verify report",
+                "show version",
+                "show running-config",
+                "admin show running-config",
+                "show processes cpu | utility head count 3",
+                "show isis interface brief",
+                "show isis neighbors | utility cut -d " " -f -27",
+                "show mpls ldp neighbor brief",
+                "show interface brief",
+                "show bgp sessions",
+                "show route summary",
+                "show l2vpn xconnect group group1",
+                "admin show platform",
+                "show inventory"
+                ]
+
+        JUNOS_CMDS = [
+                "show version",
+      			"show system software",
+      			"show configuration",
+      			"show interfaces terse",
+      			"show isis adjacency",
+      			"show ldp session brief",
+      			"show ldp neighbor",
+      			"show bgp summary",
+      			"show rsvp neighbor",
+      			"show pim neighbors",
+      			"show l2vpn connections summary",
+      			"show chassis routing-engine",
+      			"show chassis fpc",
+      			"show chassis fpc pic-status",
+      			"show chassis power",
+      			"show system alarms",
+                "show system users",
+        		]
+
+        ### JUNOS TEXT-DIFFERENCE ==============================================
+        file_name=recognised_dev_type+'_all_'+timestring+'.txt'
+        if recognised_dev_type=='junos': CMDS=JUNOS_CMDS
+        elif recognised_dev_type=='csr': CMDS=CMD_IOS_XR_CMDS
+        else: CMDS=CMD_IOS_XE_CMDS
+        ### --------------------------------------------------------------------
+        if CMDS:
+          with open(file_name, 'w', encoding='utf8') as outfile:
+            for command in CMDS:
+              result=m.command(command=command, format='text')
+              print('COMMAND: '+command)
+              if aargs.verbose: print(str(result)+'\n')
+              outfile.write('\nCOMMAND: '+command+'\n'+str(result)+'\n')
+          ### DO FILE DIFF -----------------------------------------------------
+          if aargs.comparewithfile:
+            with open(aargs.comparewithfile, 'r') as pre:
+              with open(file_name, 'r') as post:
+                with open('file-diff_'+timestring+'.txt', 'w', encoding='utf8') as outfile:
+                  print_string='\nPRE='+aargs.comparewithfile+', POST='+file_name+' FILE-DIFF:'+'\n'+80*('-')+'\n'
+                  print(print_string);outfile.write(print_string)
+                  diff = difflib.unified_diff(pre.readlines(),post.readlines(),fromfile='PRE',tofile='POST',n=0)
+                  for line in diff: print(line.replace('\n',''));outfile.write(line)
+                  print_string='\n'+80*('-')+'\n';print(print_string);outfile.write(print_string)
+        ### END OF JUNOS TEXT-DIFFERENCE =======================================
 
 
 
