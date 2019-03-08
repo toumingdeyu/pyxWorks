@@ -285,7 +285,7 @@ def main():
         		]
 
         ### JUNOS TEXT-DIFFERENCE ==============================================
-        file_name=recognised_dev_type+'_all_'+timestring+'.txt'
+        file_name=str(recognised_dev_type)+'_all_'+timestring+'.txt'
         if recognised_dev_type=='junos': CMDS=JUNOS_CMDS
         elif recognised_dev_type=='csr': CMDS=CMD_IOS_XR_CMDS
         else: CMDS=CMD_IOS_XE_CMDS
