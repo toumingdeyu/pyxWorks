@@ -10,4 +10,4 @@ sudo pip3 install pycodestyle pynso ncs urllib3 requests ciscoconfparse
 
 sudo pip3 bs4 mako
 
-sudo pip3 install ncclient pyang pyangbind xmltodict xmldiff
+sudo pip3 install ncclient pyang pyangbind xmltodict xmldiff readline
