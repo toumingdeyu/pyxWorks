@@ -54,6 +54,7 @@ parser.add_argument("-nusr", "--netconfusername", action="store", default='',hel
 parser.add_argument("-npwd", "--netconfpassword", action="store", default='',help="override/insert netconf password")
 parser.add_argument("-naddr", "--netconfaddress", action="store", default='',help="override/insert netconf url/ip address")
 parser.add_argument("-nport", "--netconfport", action="store", default='',help="override/insert netconf port")
+parser.add_argument("-dt", "--devicetype", action="store", default='',choices=['j','c','n','h','junos','csr','nexus','huawei'],help="force device type [(j)unos,(c)sr,(n)exus,(h)uawei]")
 parser.add_argument("-gc", "--getcapabilities",action="store_true", default=False, help="get capabilities to file")
 parser.add_argument("-grc", "--getrunningconfig",action="store_true", default=False, help="get running-config to file")
 parser.add_argument("-gcc", "--getcandidateconfig",action="store_true", default=False, help="get candidate-config to file")
@@ -61,7 +62,6 @@ parser.add_argument("-cwf", "--comparewithfile", action="store", default='',help
 parser.add_argument("-cwr", "--comparewithrollback", action="store", default='',help="compare config with number of rollbacks")
 parser.add_argument("-x", "--xpathexpression", action="store", default='/',help="xpath expression")
 parser.add_argument("-g", "--getdata",action="store_true", default=False, help="get data to file")
-parser.add_argument("-dt", "--devicetype", action="store", default='',choices=['j','c','n','h','junos','csr','nexus','huavei'],help="force device type [(j)unos,(c)sr,(n)exus,(h)uavei]")
 parser.add_argument("-v", "--verbose",action="store_true", default=False, help="set verbose mode")
 aargs = parser.parse_args()
 if aargs.verbose or len(sys.argv)<2: print('USAGE:',usage_text,'\nINPUT_PARAMS:',parser.parse_args())
@@ -157,7 +157,7 @@ def main():
   if aargs.netconfaddress: nhost=aargs.netconfaddress
   if aargs.netconfport: nport=aargs.netconfport
   ### NETCONF CONNECT ----------------------------------------------------------
-  print('HOST:',nhost,'PORT:',nport,'USER:',nusername,'PASSWORD:', 'XXX' if npassword else '-')
+  print('HOST:',nhost,'PORT:',nport,'USER:',nusername,'PASSWORD:', 'YES' if npassword else '-')
   if nhost and nport and nusername and npassword:
     with manager.connect_ssh(host=nhost,port=nport,username=nusername,password=npassword,
                              device_params=device_params,timeout=10,allow_agent=False,
