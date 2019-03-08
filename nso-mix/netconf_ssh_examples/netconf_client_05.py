@@ -181,8 +181,8 @@ def main():
   ### NETCONF CONNECT ----------------------------------------------------------
   print('HOST:',nhost,'PORT:',nport,'USER:',nusername,'PASSWORD:', 'YES' if npassword else '-')
   if nhost and nport and nusername and npassword:
-    get_device_type(nhost,nport,nusername,npassword)
-    exit(0)
+    recognised_dev_type=get_device_type(nhost,nport,nusername,npassword)
+    if not aargs.devicetype and recognised_dev_type: device_params={'name':recognised_dev_type}
     with manager.connect_ssh(host=nhost,port=nport,username=nusername,password=npassword,
                              device_params=device_params,timeout=10,allow_agent=False,
                              look_for_keys=False,hostkey_verify=False ) as m:
