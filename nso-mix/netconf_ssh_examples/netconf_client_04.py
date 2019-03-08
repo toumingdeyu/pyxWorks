@@ -7,6 +7,7 @@ ScriptVersion='v1.00'
 import io
 import os
 import sys
+import warnings
 import json
 import yaml
 import requests
@@ -14,26 +15,31 @@ import urllib3
 import copy
 import argparse
 import xmltodict
-#from bs4 import BeautifulSoup
-#from xml.dom.minidom import parseString
-#from xml.etree import ElementTree
 import collections
 import datetime
 import xml.dom.minidom
 from ncclient import manager
-
 from lxml import etree
 from xmldiff import formatting
 from xmldiff import main as xdmain
 import difflib
 
+warnings.simplefilter("ignore", DeprecationWarning)
 
 netconf_auth_data_yaml='''
 netconf_user: pnemec
 netconf_password:
 netconf_ipaddress: 127.0.0.1
-netconf_ssh_port: 22222
+netconf_ssh_port: 22224
 '''
+
+# NSO     2022  V_NSO   22221
+# IOS-XR  22    OAKPE3  22222
+# IOS-XE  22    NYKPE5  22223
+# JUNOS   22    SINCR5  22224
+# IOS-XE  830   NYKPE5  22225
+# IOS-XE  22    ABIGW1  22226
+# IOS-XE  830   ABIGW1  22227
 
 usage_text='''
 BASIC EXAMPLE OF NETCONF CLIENT...
@@ -53,14 +59,14 @@ parser.add_argument("-y", "--yamlauthfile", action="store", default='',help="yam
 parser.add_argument("-nusr", "--netconfusername", action="store", default='',help="override/insert netconf username")
 parser.add_argument("-npwd", "--netconfpassword", action="store", default='',help="override/insert netconf password")
 parser.add_argument("-naddr", "--netconfaddress", action="store", default='',help="override/insert netconf url/ip address")
-parser.add_argument("-nport", "--netconfport", action="store", default='',help="override/insert netconf port")
+parser.add_argument("-p", "--netconfport", action="store", default='',help="override/insert netconf port")
 parser.add_argument("-dt", "--devicetype", action="store", default='',choices=['j','c','n','h','junos','csr','nexus','huawei'],help="force device type [(j)unos,(c)sr,(n)exus,(h)uawei]")
-parser.add_argument("-gc", "--getcapabilities",action="store_true", default=False, help="get capabilities to file")
+parser.add_argument("-gca", "--getcapabilities",action="store_true", default=False, help="get capabilities to file")
 parser.add_argument("-grc", "--getrunningconfig",action="store_true", default=False, help="get running-config to file")
 parser.add_argument("-gcc", "--getcandidateconfig",action="store_true", default=False, help="get candidate-config to file")
 parser.add_argument("-cwf", "--comparewithfile", action="store", default='',help="compare with xml file")
-parser.add_argument("-cwr", "--comparewithrollback", action="store", default='',help="compare config with number of rollbacks")
-parser.add_argument("-x", "--xpathexpression", action="store", default='/',help="xpath expression")
+#parser.add_argument("-cwr", "--comparewithrollback", action="store", default='',help="compare config with number of rollbacks")
+parser.add_argument("-x", "--xpathexpression", action="store", default=str(),help="xpath expression")
 parser.add_argument("-g", "--getdata",action="store_true", default=False, help="get data to file")
 parser.add_argument("-v", "--verbose",action="store_true", default=False, help="set verbose mode")
 aargs = parser.parse_args()
@@ -173,22 +179,23 @@ def main():
             for c in m.server_capabilities: outfile.write(str(c)+'\n')
             print('Writing capabilities to file:',file_name)
 
-        ### COMPARE CONFIG WITH ROLLBACK =======================================
-        #https://programtalk.com/vs2/?source=python/9054/ncclient/examples/juniper/command-jnpr.py
-        if aargs.comparewithrollback:
-          compare_config = m.compare_configuration(rollback=int(aargs.comparewithrollback))
-          print(compare_config.tostring)
-
+#         ### COMPARE CONFIG WITH ROLLBACK =======================================
+#         #https://programtalk.com/vs2/?source=python/9054/ncclient/examples/juniper/command-jnpr.py
+#         if aargs.comparewithrollback:
+#           compare_config = m.compare_configuration(rollback=aargs.comparewithrollback)
+#           print(compare_config.tostring)
 
         ### GET RUNNING CONFIG =================================================
         if aargs.getrunningconfig or aargs.comparewithfile or aargs.getcandidateconfig:
-          rx_config = m.get_config('candidate' if aargs.getcandidateconfig else 'running').data_xml
+          if aargs.xpathexpression: rx_config = m.get_config('candidate' if aargs.getcandidateconfig else 'running',filter=('xpath','"'+aargs.xpathexpression+'"')).data_xml
+          else: rx_config=m.get_config('candidate' if aargs.getcandidateconfig else 'running').data_xml
+          #rx_config = m.get_config('candidate' if aargs.getcandidateconfig else 'running').data_xml
           if aargs.verbose: print('\n%s_CONFIG:\n'%(('candidate' if aargs.getcandidateconfig else 'running').upper() ),
                             str(rx_config) if '\n' in rx_config else xml.dom.minidom.parseString(str(rx_config)).toprettyxml())
           file_name=('candidate' if aargs.getcandidateconfig else 'running')+'_config_'+timestring+'.xml'
           with open(file_name, 'w', encoding='utf8') as outfile:
             outfile.write(str(rx_config)) if '\n' in rx_config else outfile.write(xml.dom.minidom.parseString(str(rx_config)).toprettyxml())
-            print('Writing %s-config to file:'%('candidate' if aargs.getcandidateconfig else 'running'),file_name)
+            print('Writing %s-config %s to file:'%('candidate' if aargs.getcandidateconfig else 'running','XPATH='+aargs.xpathexpression if aargs.xpathexpression else ''),file_name)
           ### DO FILE DIFF -----------------------------------------------------
           if aargs.comparewithfile:
             with open(aargs.comparewithfile, 'r') as pre:
