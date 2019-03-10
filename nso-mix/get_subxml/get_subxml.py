@@ -61,10 +61,10 @@ def get_xml_element(xml_data,xml_key=None,xml_value=None,get_value=False):
             elif not xml_value:
               if get_value: xml_reference=str(xml_data.get(key));break
               else: dictionary={};dictionary[key]=xml_data.get(key);xml_reference=dictionary;break
-          if type(xml_data.get(key))==dict or type(xml_data)==collections.OrderedDict: xml_deeper_references.append(xml_data.get(key))
+          if type(xml_data.get(key))==dict or type(xml_data.get(key))==collections.OrderedDict: xml_deeper_references.append(xml_data.get(key))
           elif type(xml_data.get(key))==list:
             for sub_xml in xml_data.get(key):
-              if type(sub_xml)==dict or type(xml_data)==collections.OrderedDict: xml_deeper_references.append(sub_xml)
+              if type(sub_xml)==dict or type(sub_xml)==collections.OrderedDict: xml_deeper_references.append(sub_xml)
     return xml_reference,xml_deeper_references
   ### SUBFUNCTION --------------------------------------------------------------
   def get_xml_element_reference_one_level_down(xml_data,xml_key=None,xml_value=None):
