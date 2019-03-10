@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<project>
+ <title>The Xpath project</title>
+ <participants>
+  <participant>
+    <FirstName>Daniel</FirstName>
+    <qualification>8</qualification>
+    <description>Daniel will be the tutor</description>
+    <FoodPref picture="dolores_001.jpg">Sea Food</FoodPref>
+  </participant>
+  <participant>
+    <FirstName>Jonathan</FirstName>
+    <qualification>5</qualification>
+    <FoodPref picture="dolores_002.jpg">Asian</FoodPref>
+  </participant>
+  <participant>
+   <FirstName>Bernadette</FirstName>
+   <qualification>8</qualification>
+    <description>Bernadette is an arts major</description>
+  </participant>
+  <participant>
+   <FirstName>Nathalie</FirstName>
+   <qualification>2</qualification>
+  </participant>
+ </participants>
+ <problems>
+  <problem>
+    <title>Initial problem</title>
+    <description>We have to learn something about Location Path</description>
+    <difficulty level="5">This problem should not be too hard</difficulty>
+  </problem>
+  <solutions>
+   <item val="low">Buy a XSLT book</item>
+   <item val="low">Find an XSLT website</item>
+   <item val="high">Register for a XSLT course and do exercices</item>
+  </solutions>
+   <problem>
+    <title>Next problem</title>
+    <description>We have to learn something about predicates</description>
+    <difficulty level="6">This problem is a bit more difficult</difficulty>
+  </problem>
+  <solutions>
+   <item val="low">Buy a XSLT book</item>
+   <item val="medium">Read the specification and do some exercises</item>
+   <item val="high">Register for a XPath course and do exercices</item>
+  </solutions>
+ </problems>
+</project>
