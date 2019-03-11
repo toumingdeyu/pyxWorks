@@ -320,11 +320,13 @@ def main():
         ### --------------------------------------------------------------------
         if CMDS:
           with open(file_name, 'w', encoding='utf8') as outfile:
+            outfile.write('<xmlfile name="'+file_name+'">\n')
             for command in CMDS:
               result=m.command(command=command, format='xml')
               print('COMMAND: '+command)
               if aargs.verbose: print(str(result)+'\n')
-              outfile.write('\n<!-- COMMAND: '+command+' -->\n'+str(result)+'\n')
+              outfile.write('\n<command cmd="'+command+'">\n'+str(result)+'</command>\n')
+            outfile.write('</xmlfile>\n')
           ### ------------------------------------------------------------------
           with io.open(file_name) as xml_file:
             aaa=xml_file.read()
@@ -336,15 +338,16 @@ def main():
                 with open(file_name+'.xpaths', 'w', encoding='utf8') as outfile:
                   outfile.write('\n'.join(xml_xpaths))
           ### ------------------------------------------------------------------
-          with io.open(aargs.comparewithfile) as xml_file:
-            aaa=xml_file.read()
-            xml_raw_data = xmltodict.parse(aaa)
-            if xml_raw_data:
-              xml_xpaths=get_xml_xpaths(xml_raw_data)
-              if aargs.verbose: print('\n'.join(xml_xpaths))
-              if xml_xpaths:
-                with open(aargs.comparewithfile+'.xpaths', 'w', encoding='utf8') as outfile:
-                  outfile.write('\n'.join(xml_xpaths))
+          if aargs.comparewithfile:
+            with io.open(aargs.comparewithfile) as xml_file:
+              aaa=xml_file.read()
+              xml_raw_data = xmltodict.parse(aaa)
+              if xml_raw_data:
+                xml_xpaths=get_xml_xpaths(xml_raw_data)
+                if aargs.verbose: print('\n'.join(xml_xpaths))
+                if xml_xpaths:
+                  with open(aargs.comparewithfile+'.xpaths', 'w', encoding='utf8') as outfile:
+                    outfile.write('\n'.join(xml_xpaths))
           ### DO TEXT FILE DIFF ------------------------------------------------
           if aargs.comparewithfile:
             with open(aargs.comparewithfile+'.xpaths', 'r') as pre:
