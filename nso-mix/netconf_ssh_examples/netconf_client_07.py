@@ -353,11 +353,11 @@ def main():
             with open(aargs.comparewithfile+'.xpaths', 'r') as pre:
               with open(file_name+'.xpaths', 'r') as post:
                 with open('file-diff_'+timestring+'.txt', 'w', encoding='utf8') as outfile:
-                  print_string='\nPRE='+aargs.comparewithfile+', POST='+file_name+' FILE-DIFF:'+'\n'+80*('-')+'\n'
+                  print_string='\nPRE='+aargs.comparewithfile+', POST='+file_name+' FILE-DIFF:'+'\n'+80*('=')+'\n'
                   print(print_string);outfile.write(print_string)
                   diff = difflib.unified_diff(pre.readlines(),post.readlines(),fromfile='PRE',tofile='POST',n=0)
                   for line in diff: print(line.replace('\n',''));outfile.write(line)
-                  print_string='\n'+80*('-')+'\n';print(print_string);outfile.write(print_string)
+                  print_string='\n'+80*('=')+'\n';print(print_string);outfile.write(print_string)
         ### END OF JUNOS TEXT-DIFFERENCE =======================================
 
 if __name__ == "__main__": main()
