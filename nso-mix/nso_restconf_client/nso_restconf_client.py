@@ -153,7 +153,7 @@ def get_json_element(json_data,json_key=None,json_value=None,get_value=False):
   return json_reference_found
   ### END OF GET_JSON_ELEMENT ==================================================
 
-### GET_XML_ELEMENT ===========================================================
+### GET_xml_ELEMENT ===========================================================
 def get_xml_element(xml_data,xml_key=None,xml_value=None,get_value=False):
   """
   FUNCTION: get_xml_element_reference
@@ -170,29 +170,30 @@ def get_xml_element(xml_data,xml_key=None,xml_value=None,get_value=False):
     if type(xml_data)==dict or type(xml_data)==collections.OrderedDict:
       for key in xml_data.keys():
         if not '@xmlns' in key:
-          #print('   D:',key,', SUB_TYPE:',type(xml_data.get(key)))
+          key_content=xml_data.get(key)
+          print('   D:',key,', SUB_TYPE:',type(key_content))
           try: something_doubledot_key=str(key).split(':')[1]
           except: something_doubledot_key='element_never_exists'
           if xml_key and (str(xml_key)==str(key) or str(xml_key)==str(something_doubledot_key)):
-            if xml_value and str(xml_value)==str(xml_data.get(key)):
-              if get_value: xml_reference=str(xml_data.get(key));break
-              else: dictionary={};dictionary[key]=xml_data.get(key);xml_reference=dictionary;break
+            if xml_value and str(xml_value)==str(key_content):
+              if get_value: xml_reference=str(key_content);break
+              else: dictionary={};dictionary[key]=key_content;xml_reference=dictionary;break
             elif not xml_value:
-              if get_value: xml_reference=str(xml_data.get(key));break
-              else: dictionary={};dictionary[key]=xml_data.get(key);xml_reference=dictionary;break
-          if type(xml_data.get(key))==dict or type(xml_data)==collections.OrderedDict: xml_deeper_references.append(xml_data.get(key))
-          elif type(xml_data.get(key))==list:
-            for sub_xml in xml_data.get(key):
-              if type(sub_xml)==dict or type(xml_data)==collections.OrderedDict: xml_deeper_references.append(sub_xml)
+              if get_value: xml_reference=str(key_content);break
+              else: dictionary={};dictionary[key]=key_content;xml_reference=dictionary;break
+          if type(key_content)==dict or type(key_content)==collections.OrderedDict: xml_deeper_references.append(key_content)
+          elif type(key_content)==list:
+            for sub_xml in key_content:
+              if type(sub_xml)==dict or type(sub_xml)==collections.OrderedDict: xml_deeper_references.append(sub_xml)
     return xml_reference,xml_deeper_references
   ### SUBFUNCTION --------------------------------------------------------------
   def get_xml_element_reference_one_level_down(xml_data,xml_key=None,xml_value=None):
     xml_reference=None
     xml_deeper_references=[]
-    #print('TYPE:',type(xml_data))
+    print('TYPE:',type(xml_data))
     if type(xml_data)==list:
       for dict_data in xml_data:
-        #print(' L:')
+        print(' L:')
         xml_reference,add_xml_deeper_references=get_xml_dictionary_reference(dict_data,xml_key,xml_value)
         if len(add_xml_deeper_references)>0: xml_deeper_references=xml_deeper_references+add_xml_deeper_references
     elif type(xml_data)==dict or type(xml_data)==collections.OrderedDict:
@@ -200,7 +201,7 @@ def get_xml_element(xml_data,xml_key=None,xml_value=None,get_value=False):
       if len(add_xml_deeper_references)>0: xml_deeper_references=xml_deeper_references+add_xml_deeper_references
     return xml_reference,xml_deeper_references
   ### FUNCTION -----------------------------------------------------------------
-  #print('LOOKING_FOR:',xml_key ,':', xml_value, ', GET_VALUE:',get_value,'\n')
+  print('LOOKING_FOR:',xml_key ,':', xml_value, ', GET_VALUE:',get_value,'\n')
   xml_reference_found=None
   references=[]
   references.append(xml_data)
@@ -210,7 +211,8 @@ def get_xml_element(xml_data,xml_key=None,xml_value=None,get_value=False):
     references=references+add_references
   del references
   return xml_reference_found
-  ### END OF GET_XML_ELEMENT ==================================================
+  ### END OF GET_xml_ELEMENT ==================================================
+
 
 ### ----------------------------------------------------------------------------
 def dict2xml(dictionary):
