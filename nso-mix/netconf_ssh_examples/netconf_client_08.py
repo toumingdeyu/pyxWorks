@@ -240,10 +240,23 @@ def main():
             outfile.write(str(rx_config)) if '\n' in rx_config else outfile.write(xml.dom.minidom.parseString(str(rx_config)).toprettyxml())
             print('Writing %s-config %s to file:'%('candidate' if aargs.getcandidateconfig else 'running','XPATH='+aargs.xpathexpression if aargs.xpathexpression else ''),file_name)
 
+        ### GET FILTERS --------------------------------------------------------
+        if recognised_dev_type:
+          filter_tag=aargs.xpathexpression if aargs.xpathexpression else 'schemas'
+          get_filter='''
+<filter type="subtree">
+  <netconf-state xmlns="{}">
+   <{}/>
+  </netconf-state>
+</filter>
+'''.format('urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring',filter_tag)
+        else: get_filter=None  #ios-xe returns text encapsulated by xml
+
         #https://programtalk.com/python-examples/ncclient.manager.connect/
         ### GET DATA ===========================================================
         if aargs.getdata:
-          rx_data = m.get() if not aargs.xpathexpression else m.get(filter=('xpath',aargs.xpathexpression))
+          rx_data = m.get(filter=get_filter) if not aargs.xpathexpression else m.get(filter=get_filter)
+          #rx_data = m.get() if not aargs.xpathexpression else m.get(filter=('xpath',aargs.xpathexpression))
           if aargs.verbose: print('\nRECIEVED_DATA%s:\n'%(('(XPATH='+aargs.xpathexpression+')' if aargs.xpathexpression else '').upper() ),
                                   str(rx_config) if '\n' in rx_config else xml.dom.minidom.parseString(str(rx_config)).toprettyxml())
           file_name=str(recognised_dev_type)+'_data'+aargs.xpathexpression.replace('/','_')+'_get_'+timestring+'.xml'
@@ -321,10 +334,10 @@ def main():
 
 
         ### XML to XPATHS - CREATED NOW ----------------------------------------
-        if file_name:
+        if file_name and not 'capabilities' in file_name:
           with io.open(file_name) as xml_file:
-            aaa=xml_file.read()
-            xml_raw_data = xmltodict.parse(aaa)
+            try: xml_raw_data = xmltodict.parse(xml_file.read())
+            except: xml_raw_data=None;print('Problem to parse file {} to XML.'.format(file_name))
             if xml_raw_data:
               xml_xpaths=get_xml_xpaths(xml_raw_data)
               if aargs.verbose: print('\n'.join(xml_xpaths))
@@ -334,8 +347,8 @@ def main():
         ### XML to XPATHS - CWF ------------------------------------------------
         if aargs.comparewithfile:
           with io.open(aargs.comparewithfile) as xml_file:
-            aaa=xml_file.read()
-            xml_raw_data = xmltodict.parse(aaa)
+            try: xml_raw_data = xmltodict.parse(xml_file.read())
+            except: xml_raw_data=None;print('Problem to parse file {} to XML.'.format(aargs.comparewithfile))
             if xml_raw_data:
               xml_xpaths=get_xml_xpaths(xml_raw_data)
               if aargs.verbose: print('\n'.join(xml_xpaths))
