@@ -210,8 +210,8 @@ def main():
   ### OVERDIDE/INSERT INPUT PARAMETERS -----------------------------------------
   if aargs.netconfusername: nusername=aargs.netconfusername
   if aargs.netconfpassword: npassword=aargs.netconfpassword
-  if aargs.netconfaddress: nhost=aargs.netconfaddress
-  if aargs.netconfport: nport=aargs.netconfport
+  if aargs.netconfaddress:  nhost=aargs.netconfaddress
+  if aargs.netconfport:     nport=aargs.netconfport
   ### NETCONF CONNECT ----------------------------------------------------------
   print('HOST:',nhost,'PORT:',nport,'USER:',nusername,'PASSWORD:', 'YES' if npassword else '-')
   if nhost and nport and nusername and npassword:
@@ -224,7 +224,7 @@ def main():
         if aargs.verbose: print('CAPABILITIES:',list(m.server_capabilities))
         ### WRITE CAPABILITIES TO FILE -----------------------------------------
         if aargs.getcapabilities:
-          file_name=str(recognised_dev_type)+'_capabilities_'+timestring+'.txt'
+          file_name=str(recognised_dev_type)+'_capabilities_'+timestring+'.cap'
           with open(file_name, 'w', encoding='utf8') as outfile:
             for c in m.server_capabilities: outfile.write(str(c)+'\n')
             print('Writing capabilities to file:',file_name)
@@ -242,6 +242,8 @@ def main():
 
         ### GET FILTERS --------------------------------------------------------
         if recognised_dev_type:
+          IETF_XMLNS_BASE = 'urn:ietf:params:xml:ns:netconf:base:1.0'
+          IETF_XMLNS_NM = 'urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring'
           filter_tag=aargs.xpathexpression if aargs.xpathexpression else 'schemas'
           get_filter='''
 <filter type="subtree">
@@ -249,7 +251,7 @@ def main():
    <{}/>
   </netconf-state>
 </filter>
-'''.format('urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring',filter_tag)
+'''.format(IETF_XMLNS_NM,filter_tag)
         else: get_filter=None  #ios-xe returns text encapsulated by xml
 
         #https://programtalk.com/python-examples/ncclient.manager.connect/
@@ -359,7 +361,7 @@ def main():
         if aargs.comparewithfile and file_name:
           with open(aargs.comparewithfile+'.xpaths', 'r') as pre:
             with open(file_name+'.xpaths', 'r') as post:
-              with open('file-diff_'+timestring+'.txt', 'w', encoding='utf8') as outfile:
+              with open('file-diff_'+timestring+'.diff', 'w', encoding='utf8') as outfile:
                 print_string='\nPRE='+aargs.comparewithfile+', POST='+file_name+' FILE-DIFF:'+'\n'+80*('=')+'\n'
                 print(print_string);outfile.write(print_string)
                 diff = difflib.unified_diff(pre.readlines(),post.readlines(),fromfile='PRE',tofile='POST',n=0)
