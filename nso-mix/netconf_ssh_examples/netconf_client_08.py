@@ -377,6 +377,8 @@ def nccclient_rpc(m,recognised_dev_type):
   #rpc_filter = """<get-chassis-inventory><detail/></get-chassis-inventory>"""
   #rpc_filter='''<get-interface-information><detail/></get-interface-information>'''
   #'get-system-inventory'
+
+  # OMG: https://www.juniper.net/documentation/en_US/junos12.3/information-products/topic-collections/junos-xml-ref-oper/index.html
   tag_list = ['get-interface-information','get-chassis-inventory']
   file_name=str(recognised_dev_type)+'_rpc_'+timestring+'.xml'
   with open(file_name, 'w', encoding='utf8') as outfile:
