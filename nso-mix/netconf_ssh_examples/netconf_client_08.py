@@ -59,8 +59,10 @@ parser.add_argument("-gca", "--getcapabilities",action="store_true", default=Fal
 parser.add_argument("-grc", "--getrunningconfig",action="store_true", default=False, help="get running-config to file")
 parser.add_argument("-gcc", "--getcandidateconfig",action="store_true", default=False, help="get candidate-config to file")
 parser.add_argument("-gcm", "--getcommands",action="store_true", default=False, help="get commands to file")
+parser.add_argument("-rpc", "--getrpc",action="store_true", default=False, help="get rpc")
 parser.add_argument("-cwf", "--comparewithfile", action="store", default='',help="compare with xml file")
 parser.add_argument("-x", "--xpathexpression", action="store", default=str(),help="xpath expression")
+parser.add_argument("-s", "--subtreeexpression", action="store", default=str(),help="subtree expression")
 parser.add_argument("-g", "--getdata",action="store_true", default=False, help="get data to file")
 parser.add_argument("-v", "--verbose",action="store_true", default=False, help="set verbose mode")
 aargs = parser.parse_args()
@@ -241,32 +243,55 @@ def main():
             print('Writing %s-config %s to file:'%('candidate' if aargs.getcandidateconfig else 'running','XPATH='+aargs.xpathexpression if aargs.xpathexpression else ''),file_name)
 
         ### GET FILTERS --------------------------------------------------------
-        if recognised_dev_type:
-          IETF_XMLNS_BASE = 'urn:ietf:params:xml:ns:netconf:base:1.0'
-          IETF_XMLNS_NM = 'urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring'
-          filter_tag=aargs.xpathexpression if aargs.xpathexpression else 'schemas'
-          get_filter='''
-<filter type="subtree">
-  <netconf-state xmlns="{}">
-   <{}/>
-  </netconf-state>
-</filter>
-'''.format(IETF_XMLNS_NM,filter_tag)
-        else: get_filter=None  #ios-xe returns text encapsulated by xml
+        get_filter=None  #ios-xe returns text encapsulated by xml
 
-        #https://programtalk.com/python-examples/ncclient.manager.connect/
+        IETF_XMLNS_BASE = 'urn:ietf:params:xml:ns:netconf:base:1.0'
+        IETF_XMLNS_NM = 'urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring'
+        IETF_XMLNS_IF="urn:ietf:params:xml:ns:yang:ietf-interfaces"
+
+        filter_root_tag='netconf-state'
+        filter_arguments='xmlns="{}"'.format(IETF_XMLNS_NM)
+        filter_tag='schemas'
+
+        get_configurable_filter='''<filter type="subtree">\n<{} {}>\n<{}/>\n</{}>\n</filter>'''.format(filter_root_tag,filter_arguments,filter_tag,filter_root_tag)
+
+        get_schemas_filter='''<filter type="subtree">
+<netconf-state xmlns="urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring">
+<schemas/>
+</netconf-state>
+</filter>'''
+
+        get_interfaces_filter='''<filter type="subtree">
+<interfaces xmlns="urn:ietf:params:xml:ns:yang:ietf-interfaces">
+</interfaces>
+</filter>'''
+
+        get_netconf_state_filter='''<filter type="subtree">
+<netconf-state xmlns="urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring">
+</netconf-state>
+</filter>'''
+
         ### GET DATA ===========================================================
+        ### https://programtalk.com/python-examples/ncclient.manager.connect/
         if aargs.getdata:
-          rx_data = m.get(filter=get_filter) if not aargs.xpathexpression else m.get(filter=get_filter)
-          #rx_data = m.get() if not aargs.xpathexpression else m.get(filter=('xpath',aargs.xpathexpression))
-          if aargs.verbose: print('\nRECIEVED_DATA%s:\n'%(('(XPATH='+aargs.xpathexpression+')' if aargs.xpathexpression else '').upper() ),
+          ### ios-xe needs filter None and then returns text encapsulated by xml
+          get_filter=get_configurable_filter if recognised_dev_type else None
+          if(aargs.xpathexpression):
+            get_filter=('xpath',aargs.xpathexpression)
+            rx_data = m.get() if not aargs.xpathexpression else m.get(filter=get_filter)
+          elif(aargs.subtreeexpression):
+            rx_data = m.get(filter=get_filter) if not aargs.xpathexpression else m.get(filter=get_filter)
+          else: rx_data = m.get(filter=get_filter)
+          if aargs.verbose: print('GET_FILTER:',str(get_filter),'\nRECIEVED_DATA%s:\n'%(('(XPATH='+aargs.xpathexpression+')' if aargs.xpathexpression else '').upper() ),
                                   str(rx_config) if '\n' in rx_config else xml.dom.minidom.parseString(str(rx_config)).toprettyxml())
           file_name=str(recognised_dev_type)+'_data'+aargs.xpathexpression.replace('/','_')+'_get_'+timestring+'.xml'
           with open(file_name, 'w', encoding='utf8') as outfile:
             outfile.write(str(rx_data)) #if '\n' in rx_data else outfile.write(xml.dom.minidom.parseString(str(rx_data)).toprettyxml())
             print('Writing data %s to file:'%('(XPATH='+aargs.xpathexpression+')' if aargs.xpathexpression else ''),file_name)
+        ### --------------------------------------------------------------------
 
-        ### COMMAND LISTS ------------------------------------------------------
+
+        ### CLI COMMAND LISTS --------------------------------------------------
         CMD_IOS_XE_CMDS = [
                 "show version",
                 "show running-config",
@@ -333,6 +358,18 @@ def main():
                 outfile.write('\n<command cmd="'+command+'">\n'+str(result)+'</command>\n')
               outfile.write('</xmlfile>\n')
         ### END OF JUNOS TEXT-DIFFERENCE =======================================
+
+
+        ### RPC XML FILTER -----------------------------------------------------
+        rpc_filter = """<get-chassis-inventory><detail/></get-chassis-inventory>"""
+
+        ### RPC REQUEST --------------------------------------------------------
+        if aargs.getrpc:
+          result = m.rpc(rpc_filter)
+          print(result)
+        ### --------------------------------------------------------------------
+
+
 
 
         ### XML to XPATHS - CREATED NOW ----------------------------------------
