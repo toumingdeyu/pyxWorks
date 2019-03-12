@@ -60,8 +60,8 @@ parser.add_argument("-dt", "--devicetype", action="store", default='',choices=['
 parser.add_argument("-gca", "--getcapabilities",action="store_true", default=False, help="get capabilities to file")
 parser.add_argument("-grc", "--getrunningconfig",action="store_true", default=False, help="get running-config to file")
 parser.add_argument("-gcc", "--getcandidateconfig",action="store_true", default=False, help="get candidate-config to file")
-parser.add_argument("-gcm", "--getcommands",action="store_true", default=False, help="get commands to file (working only on junos)")
-parser.add_argument("-rpc", "--getrpc",action="store_true", default=False, help="get rpc")
+parser.add_argument("-gcm", "--getcommands",action="store_true", default=False, help="get commands to xml file (working only on junos)")
+parser.add_argument("-rpc", "--getrpc",action="store_true", default=False, help="get rpc answer to xml file (working only on junos)")
 parser.add_argument("-cwf", "--comparewithfile", action="store", default='',help="compare with xml file")
 parser.add_argument("-x", "--xpathexpression", action="store", default=str(),help="xpath filter expression")
 parser.add_argument("-s", "--subtreeexpression", action="store", default=str(),help="subtree filter expression")
@@ -352,6 +352,23 @@ def nccclient_get(m,recognised_dev_type):
 <netconf-state xmlns="urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring">
 </netconf-state>
 </filter>'''
+
+
+
+  get_configurable_filter='''
+  <filter type="subtree">
+      <isis xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-clns-isis-oper">
+        <instances>
+          <instance>
+            <instance-name>PAII</instance-name>
+              <neighbors/>
+          </instance>
+        </instances>
+      </isis>
+  </filter>
+'''
+
+
 
   if aargs.getdata:
     ### ios-xe needs filter None and then returns text encapsulated by xml
