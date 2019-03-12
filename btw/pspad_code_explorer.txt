@@ -1,0 +1,1 @@
+tools / code explorer window (Shift + Ctrl + E) 
