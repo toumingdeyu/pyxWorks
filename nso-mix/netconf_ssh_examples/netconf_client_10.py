@@ -55,7 +55,7 @@ parser.add_argument("-gcc", "--getcandidateconfig",action="store_true", default=
 parser.add_argument("-gcm", "--getcommands",action="store_true", default=False, help="get commands to xml file (working only on junos)")
 parser.add_argument("-rpc", "--getrpc",action="store_true", default=False, help="get rpc answer to xml file (working only on junos)")
 parser.add_argument("-g", "--getdata",action="store_true", default=False, help="get xml data to file (needed -x xpath)")
-parser.add_argument("-x", "--xpathexpression", action="store", default=str(),help="xpath filter expression i.e.( -x /netconf-state[@xmlns='urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring']/schemas)")
+parser.add_argument("-x", "--xpathexpression", action="store", default=str(),help="xpath filter expression i.e.( -x /netconf-state[@xmlns='urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring']/schemas) (please use ' instead of \")")
 parser.add_argument("-cwf", "--comparewithfile", action="store", default='',help="compare with xml file")
 parser.add_argument("-v", "--verbose",action="store_true", default=False, help="set verbose mode")
 aargs = parser.parse_args()
@@ -195,13 +195,16 @@ def get_junos_productmodel_and_osversion(m,recognised_dev_type):
 def get_xmlstring_from_xpath(xpathexpression_original):
   ### trick1 = [cc=value] --> /cc=value , trick2 argument parsing= '[@' --> ' @@@@' and </ .split(' @@@@')[0]> ,trick3 @@@@ to ignore 1..2x@ in http/email
   ### ! xpath lists[nr] are not supported for now !
+  if aargs.verbose: print('XPATH_ORIGINAL:',xpathexpression_original)
   xml_string=str()
-  xpathexpression=xpathexpression_original.replace('[@',' @@@@').replace('[','/').replace(']','')
+  xpath_argument=' '+xpathexpression_original.split('[@')[1].split(']')[0] if '[@' in xpathexpression_original else str()
+  xpathexpression=str(xpathexpression_original.split('[@')[0])+str(xpathexpression_original.split('[@')[1].split(']')[1]) if '[@' in xpathexpression_original else str(xpathexpression_original)
   if aargs.xpathexpression:
     xpath_list=str(xpathexpression).split('/')[1:] if '/' in str(xpathexpression) else [str(xpathexpression)]
+    if aargs.verbose: print('XPATH_TAG_LIST:',xpath_list)
     last_xml_element='<%s>%s</%s>'%(xpath_list[-1].split('=')[0],xpath_list[-1].split('=')[1].replace('"','').replace("'",''),xpath_list[-1].split('=')[0]) if '=' in xpath_list[-1] else '<%s/>'%(xpath_list[-1])
     xml_string=last_xml_element
-    for element in (xpath_list[::-1])[1:]: xml_string='<'+element.replace(' @@@@',' ').replace("'",'"')+'>\n'+xml_string+'\n</'+element.split(' @@@@')[0]+'>'
+    for element in (xpath_list[::-1])[1:]: xml_string='<'+element.replace("'",'"')+xpath_argument+'>\n'+xml_string+'\n</'+element+'>'
   return str(xml_string)
 ### ----------------------------------------------------------------------------
 
@@ -468,12 +471,5 @@ def main():
 
         compare_xml_xpath_files(file_name)
   ### --------------------------------------------------------------------------
-
-
-  #print(get_xmlstring_from_xpath(aargs.xpathexpression))
-
-
-
-
-
+  if aargs.verbose: print('DEBUG XPATH:',get_xmlstring_from_xpath(aargs.xpathexpression))
 if __name__ == "__main__": main()
