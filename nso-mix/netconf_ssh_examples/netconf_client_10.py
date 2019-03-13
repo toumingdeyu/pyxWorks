@@ -192,19 +192,30 @@ def get_junos_productmodel_and_osversion(m,recognised_dev_type):
 
 
 ### GET_XMLSTRING_FROM_XPATH ===================================================
-def get_xmlstring_from_xpath(xpathexpression_original):
+def get_xmlstring_from_xpath(xpathexpression):
   ### trick1 = [cc=value] --> /cc=value , trick2 argument parsing= '[@' --> ' @@@@' and </ .split(' @@@@')[0]> ,trick3 @@@@ to ignore 1..2x@ in http/email
-  ### ! xpath lists[nr] are not supported for now !
-  if aargs.verbose: print('XPATH_ORIGINAL:',xpathexpression_original)
+  if aargs.verbose: print('XPATH_ORIGINAL:',xpathexpression)
   xml_string=str()
-  xpath_argument=' '+xpathexpression_original.split('[@')[1].split(']')[0] if '[@' in xpathexpression_original else str()
-  xpathexpression=str(xpathexpression_original.split('[@')[0])+str(xpathexpression_original.split('[@')[1].split(']')[1]) if '[@' in xpathexpression_original else str(xpathexpression_original)
+  if aargs.verbose: print(xpathexpression)
   if aargs.xpathexpression:
     xpath_list=str(xpathexpression).split('/')[1:] if '/' in str(xpathexpression) else [str(xpathexpression)]
     if aargs.verbose: print('XPATH_TAG_LIST:',xpath_list)
-    last_xml_element='<%s>%s</%s>'%(xpath_list[-1].split('=')[0],xpath_list[-1].split('=')[1].replace('"','').replace("'",''),xpath_list[-1].split('=')[0]) if '=' in xpath_list[-1] else '<%s/>'%(xpath_list[-1])
+    last_xml_element='<%s>\n<%s>%s</%s>\n<%s>'%(xpath_list[-1].split('[')[0],xpath_list[-1].split('[')[1].split('=')[0],xpath_list[-1].split('=')[1].replace('"','').replace("'",'').replace(']',''),xpath_list[-1].split('[')[1].split('=')[0],xpath_list[-1].split('[')[0]) if '=' in xpath_list[-1] else '<%s/>'%(xpath_list[-1])
     xml_string=last_xml_element
-    for element in (xpath_list[::-1])[1:]: xml_string='<'+element.replace("'",'"')+xpath_argument+'>\n'+xml_string+'\n</'+element+'>'
+    if aargs.verbose: print('LAST_ELEMENT:',last_xml_element)
+    for element in xpath_list[::-1][1:]:
+      if '[@' in element:
+        xpath_tag=element.split('[@')[0]
+        xpath_argument=' '+element.split('[@')[1].split(']')[0] if '[@' in element else str()
+        xml_string='<'+xpath_tag+xpath_argument.replace("'",'"')+'>\n'+xml_string+'\n</'+xpath_tag+'>'
+      elif '=' in element:   pass
+        #xml_string='<%s>%s</%s>'%(element.split('[')[1].split('=')[0],element.split('=')[1].replace('"','').replace("'",''),element.split('[')[1].split('=')[0])
+        #xml_string='<'+element.replace("'",'"')+'>\n'+xml_string+'\n</'+element+'>'
+      elif '[' in element:
+        position=int(element.split('[')[1].split(']')[0])
+        xml_string='<'+element.split('[')[0]+'>\n'+xml_string+'\n</'+element.split('[')[0]+'>'
+        if position>0:
+          for i in range(position): xml_string='<'+element.split('[')[0]+'>\n'+'</'+element.split('[')[0]+'>\n'+xml_string
   return str(xml_string)
 ### ----------------------------------------------------------------------------
 
@@ -471,5 +482,5 @@ def main():
 
         compare_xml_xpath_files(file_name)
   ### --------------------------------------------------------------------------
-  if aargs.verbose: print('DEBUG XPATH:',get_xmlstring_from_xpath(aargs.xpathexpression))
+  if aargs.verbose: print('DEBUG XPATH:\n'+get_xmlstring_from_xpath(aargs.xpathexpression))
 if __name__ == "__main__": main()
