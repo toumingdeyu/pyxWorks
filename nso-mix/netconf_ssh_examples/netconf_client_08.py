@@ -19,8 +19,9 @@ import collections
 import datetime
 import xml.dom.minidom
 from ncclient import manager
-from lxml import etree
+#from lxml import etree
 import difflib
+from xml.etree import ElementTree
 
 warnings.simplefilter("ignore", DeprecationWarning)
 
@@ -199,6 +200,19 @@ def get_junos_productmodel_and_osversion(m,recognised_dev_type):
   return product_model,os_version
 
 
+### GET_XMLSTRING_FROM_XPATH ===================================================
+def get_xmlstring_from_xpath(xpathexpression_original):
+  ### trick1 = [cc=value] --> /cc=value , trick2 argument parsing= '[@' --> ' @@@@' and </ .split(' @@@@')[0]> ,trick3 @@@@ to ignore 1@ in http/email
+  xpathexpression=xpathexpression_original.replace('[@',' @@@@').replace('[','/').replace(']','')
+  if aargs.xpathexpression:
+    xpath_list=str(xpathexpression).split('/')[1:] if '/' in str(xpathexpression) else [str(xpathexpression)]
+    last_xml_element='<%s>%s</%s>'%(xpath_list[-1].split('=')[0],xpath_list[-1].split('=')[1].replace('"','').replace("'",''),xpath_list[-1].split('=')[0]) if '=' in xpath_list[-1] else '<%s/>'%(xpath_list[-1])
+    xml_string=last_xml_element+'\n'
+    for element in (xpath_list[::-1])[1:]: xml_string='<'+element.replace(' @@@@',' ').replace("'",'"')+'>\n'+xml_string+'</'+element.split(' @@@@')[0]+'>\n'
+    return xml_string
+### ----------------------------------------------------------------------------
+
+
 ### COMPARE_XML_XPATH_FILES ====================================================
 def compare_xml_xpath_files(file_name):
   ### XML to XPATHS - CREATED NOW ----------------------------------------------
@@ -331,45 +345,57 @@ def nccclient_get(m,recognised_dev_type):
   IETF_XMLNS_NM = 'urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring'
   IETF_XMLNS_IF="urn:ietf:params:xml:ns:yang:ietf-interfaces"
 
-  filter_root_tag='netconf-state'
-  filter_arguments='xmlns="{}"'.format(IETF_XMLNS_NM)
-  filter_tag='schemas'
-
-  get_configurable_filter='''<filter type="subtree">\n<{} {}>\n<{}/>\n</{}>\n</filter>'''.format(filter_root_tag,filter_arguments,filter_tag,filter_root_tag)
-
-  get_schemas_filter='''<filter type="subtree">
-<netconf-state xmlns="urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring">
-<schemas/>
-</netconf-state>
-</filter>'''
-
-  get_interfaces_filter='''<filter type="subtree">
-<interfaces xmlns="urn:ietf:params:xml:ns:yang:ietf-interfaces">
-</interfaces>
-</filter>'''
-
-  get_netconf_state_filter='''<filter type="subtree">
-<netconf-state xmlns="urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring">
-</netconf-state>
-</filter>'''
-
-
-
-  get_configurable_filter='''
-  <filter type="subtree">
-      <isis xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-clns-isis-oper">
-        <instances>
-          <instance>
-            <instance-name>PAII</instance-name>
-              <neighbors/>
-          </instance>
-        </instances>
-      </isis>
-  </filter>
-'''
+#   filter_root_tag='netconf-state'
+#   filter_arguments='xmlns="{}"'.format(IETF_XMLNS_NM)
+#   filter_tag='schemas'
+#
+#   get_configurable_filter='''<filter type="subtree">\n<{} {}>\n<{}/>\n</{}>\n</filter>'''.format(filter_root_tag,filter_arguments,filter_tag,filter_root_tag)
+#
+#   get_schemas_filter='''<filter type="subtree">
+# <netconf-state xmlns="urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring">
+# <schemas/>
+# </netconf-state>
+# </filter>'''
+#
+#   get_interfaces_filter='''<filter type="subtree">
+# <interfaces xmlns="urn:ietf:params:xml:ns:yang:ietf-interfaces">
+# </interfaces>
+# </filter>'''
+#
+#
+#   get_configurable_filter='''
+#   <filter type="subtree">
+#       <isis xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-clns-isis-oper">
+#         <instances>
+#           <instance>
+#             <instance-name>PAII</instance-name>
+#               <neighbors/>
+#           </instance>
+#         </instances>
+#       </isis>
+#   </filter>
+# '''
+#
 
 
 
+  if aargs.xpathexpression:
+    ### -x /netconf-state[xmlns="urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring"/schemas
+    subfilter=get_xmlstring_from_xpath(aargs.xpathexpression)
+    print(str(subfilter))
+    filter_xmlns_argument=subfilter.split('xmlns=')[1].split('>')[0].replace(' ','').replace('"','') if 'xmlns=' in subfilter else str()
+    get_configurable_filter=('subtree',str(subfilter).encode(encoding='UTF-8',errors='strict'))
+  else:
+    filter_root_tag='netconf-state'
+    filter_xmlns_argument='urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring'
+    filter_tag='schemas'
+    subfilter='''<{} xmlns="{}">\n<{}/>\n</{}>'''.format(filter_root_tag,filter_xmlns_argument,filter_tag,filter_root_tag)
+    get_configurable_filter=('subtree',subfilter)
+
+  ###---------------------------------------------------------------------------
+  None if filter_xmlns_argument in str(list(m.server_capabilities)) else print('WARNING: xmlns="',filter_xmlns_argument,'" not FOUND in DEVICE CAPABILITIES!')
+  print('GET_FILTER:\n'+subfilter)
+  ###---------------------------------------------------------------------------
   if aargs.getdata:
     ### ios-xe needs filter None and then returns text encapsulated by xml
     get_filter=get_configurable_filter if recognised_dev_type else None
@@ -381,10 +407,10 @@ def nccclient_get(m,recognised_dev_type):
     else: rx_data = m.get(filter=get_filter)
     if aargs.verbose: print('GET_FILTER:',str(get_filter),'\nRECIEVED_DATA%s:\n'%(('(XPATH='+aargs.xpathexpression+')' if aargs.xpathexpression else '').upper() ),
                             str(rx_config) if '\n' in rx_config else xml.dom.minidom.parseString(str(rx_config)).toprettyxml())
-    file_name=str(recognised_dev_type)+'_data'+aargs.xpathexpression.replace('/','_')+'_get_'+timestring+'.xml'
+    file_name=str(recognised_dev_type)+'_data_get_'+timestring+'.xml'
     with open(file_name, 'w', encoding='utf8') as outfile:
       outfile.write(str(rx_data)) #if '\n' in rx_data else outfile.write(xml.dom.minidom.parseString(str(rx_data)).toprettyxml())
-      print('Writing data %s to file:'%('(XPATH='+aargs.xpathexpression+')' if aargs.xpathexpression else ''),file_name)
+      print('Writing get data to file:',file_name)
 ### END OF NCCLIENT_GET --------------------------------------------------------
 
 
@@ -408,6 +434,8 @@ def nccclient_rpc(m,recognised_dev_type):
       outfile.write('\n<rpc rpc_tag="'+tag+'">\n'+str(result)+'</command>\n')
     outfile.write('</xmlfile>\n')
 ### END OF NCCCLIENT_RPC -------------------------------------------------------
+
+
 
 
 ### MAIN =======================================================================
@@ -452,5 +480,13 @@ def main():
         if aargs.getcommands: ncclient_commands(m,recognised_dev_type)
 
         compare_xml_xpath_files(file_name)
+  ### --------------------------------------------------------------------------
+
+
+  #print(get_xmlstring_from_xpath(aargs.xpathexpression))
+
+
+
+
 
 if __name__ == "__main__": main()
