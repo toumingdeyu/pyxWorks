@@ -386,6 +386,30 @@ def nccclient_get(m,recognised_dev_type):
 # '''
 #
 
+# <get>
+#   <filter type="subtree">
+#       <isis xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-clns-isis-oper">
+#         <instances>
+#           <instance>
+#             <instance-name>PAII</instance-name>
+#               <neighbors/>
+#           </instance>
+#         </instances>
+#       </isis>
+#   </filter>
+# </get>
+
+  xr='''<isis xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-clns-isis-oper">
+<instances>
+  <instance>
+    <instance-name>PAII</instance-name>
+      <neighbors/>
+  </instance>
+</instances>
+</isis>
+'''
+  #get_filter=('subtree',str(xr))
+
   if aargs.xpathexpression:
     ### -x /netconf-state[@xmlns='urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring']/schemas
     subfilter=get_xmlstring_from_xpath(aargs.xpathexpression)
@@ -396,21 +420,20 @@ def nccclient_get(m,recognised_dev_type):
     filter_xmlns_argument='urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring'
     filter_tag='schemas'
     subfilter='''<{} xmlns="{}">\n<{}/>\n</{}>'''.format(filter_root_tag,filter_xmlns_argument,filter_tag,filter_root_tag)
-    get_configurable_filter=('subtree',subfilter)
-
+    get_configurable_filter=('subtree',str(subfilter))
   ###---------------------------------------------------------------------------
   None if filter_xmlns_argument in str(list(m.server_capabilities)) else print('WARNING: xmlns="',filter_xmlns_argument,'" not FOUND in DEVICE CAPABILITIES!')
   ###---------------------------------------------------------------------------
   if aargs.getdata:
     ### ios-xe needs filter None and then returns text encapsulated by xml
-    get_filter=get_configurable_filter if recognised_dev_type else None
+    if not get_filter:
+      get_filter=get_configurable_filter if recognised_dev_type else None
     print('GET_FILTER:',str(get_filter))
     rx_data = m.get(filter=get_filter) if not aargs.xpathexpression else m.get(filter=get_filter)
-    if aargs.verbose: print('GET_FILTER:',str(get_filter),'\nRECIEVED_DATA%s:\n'%(('(XPATH='+aargs.xpathexpression+')' if aargs.xpathexpression else '').upper() ),
-                            str(rx_config) if '\n' in rx_config else xml.dom.minidom.parseString(str(rx_config)).toprettyxml())
+    if aargs.verbose: print('GET_FILTER:',str(get_filter),'\nRECIEVED_DATA:\n',str(rx_data))
     file_name=str(recognised_dev_type)+'_data_get_'+timestring+'.xml'
     with open(file_name, 'w', encoding='utf8') as outfile:
-      outfile.write(str(rx_data)) #if '\n' in rx_data else outfile.write(xml.dom.minidom.parseString(str(rx_data)).toprettyxml())
+      outfile.write(str(rx_data))
       print('Writing get data to file:',file_name)
 ### END OF NCCLIENT_GET --------------------------------------------------------
 
@@ -479,8 +502,8 @@ def main():
         if aargs.getdata: nccclient_get(m,recognised_dev_type)
         if aargs.getrunningconfig or aargs.getcandidateconfig: ncclient_getconfig(m,recognised_dev_type)
         if aargs.getcommands: ncclient_commands(m,recognised_dev_type)
-
         compare_xml_xpath_files(file_name)
   ### --------------------------------------------------------------------------
-  if aargs.verbose: print('DEBUG XPATH:\n'+get_xmlstring_from_xpath(aargs.xpathexpression))
+  if aargs.verbose and aargs.xpathexpression: print('DEBUG_XPATH:\n'+get_xmlstring_from_xpath(aargs.xpathexpression))
+  ### --------------------------------------------------------------------------
 if __name__ == "__main__": main()
