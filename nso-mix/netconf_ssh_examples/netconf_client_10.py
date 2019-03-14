@@ -194,10 +194,9 @@ def get_junos_productmodel_and_osversion(m,recognised_dev_type):
 ### GET_XMLSTRING_FROM_XPATH ===================================================
 def get_xmlstring_from_xpath(xpathexpression):
   ### trick1 = [cc=value] --> /cc=value , trick2 argument parsing= '[@' --> ' @@@@' and </ .split(' @@@@')[0]> ,trick3 @@@@ to ignore 1..2x@ in http/email
-  if aargs.verbose: print('XPATH_ORIGINAL:',xpathexpression)
   xml_string=str()
-  if aargs.verbose: print(xpathexpression)
-  if aargs.xpathexpression:
+  if xpathexpression:
+    if aargs.verbose : print('XPATH_ORIGINAL:',xpathexpression)
     xpath_list=str(xpathexpression).split('/')[1:] if '/' in str(xpathexpression) else [str(xpathexpression)]
     if aargs.verbose: print('XPATH_TAG_LIST:',xpath_list)
     last_xml_element='<%s>\n<%s>%s</%s>\n<%s>'%(xpath_list[-1].split('[')[0],xpath_list[-1].split('[')[1].split('=')[0],xpath_list[-1].split('=')[1].replace('"','').replace("'",'').replace(']',''),xpath_list[-1].split('[')[1].split('=')[0],xpath_list[-1].split('[')[0]) if '=' in xpath_list[-1] else '<%s/>'%(xpath_list[-1])
