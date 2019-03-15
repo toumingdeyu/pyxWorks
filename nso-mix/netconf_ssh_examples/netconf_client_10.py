@@ -196,7 +196,7 @@ def get_xmlstring_from_xpath(xpathexpression):
   ### trick1 = [cc=value] --> /cc=value , trick2 argument parsing= '[@' --> ' @@@@' and </ .split(' @@@@')[0]> ,trick3 @@@@ to ignore 1..2x@ in http/email
   xml_string=str()
   if xpathexpression:
-    if aargs.verbose : print('XPATH_ORIGINAL:',xpathexpression)
+    if aargs.verbose: print('XPATH_ORIGINAL:',xpathexpression)
     xpath_list=str(xpathexpression).split('/')[1:] if '/' in str(xpathexpression) else [str(xpathexpression)]
     if aargs.verbose: print('XPATH_TAG_LIST:',xpath_list)
     last_xml_element='<%s>\n<%s>%s</%s>\n<%s>'%(xpath_list[-1].split('[')[0],xpath_list[-1].split('[')[1].split('=')[0],xpath_list[-1].split('=')[1].replace('"','').replace("'",'').replace(']',''),xpath_list[-1].split('[')[1].split('=')[0],xpath_list[-1].split('[')[0]) if '=' in xpath_list[-1] else '<%s/>'%(xpath_list[-1])
@@ -220,7 +220,7 @@ def get_xmlstring_from_xpath(xpathexpression):
 
 
 ### COMPARE_XML_XPATH_FILES ====================================================
-def compare_xml_xpath_files(file_name):
+def compare_xml_xpath_files(file_name,comparewithfile=None):
   ### XML to XPATHS - CREATED NOW ----------------------------------------------
   if file_name and not 'capabilities' in file_name:
     with io.open(file_name) as xml_file:
@@ -232,23 +232,25 @@ def compare_xml_xpath_files(file_name):
         if xml_xpaths:
           with open(file_name+'.xpaths', 'w', encoding='utf8') as outfile:
             outfile.write('\n'.join(xml_xpaths))
+            print('Creating '+file_name+' file.')
   ### XML to XPATHS - CWF ------------------------------------------------------
-  if aargs.comparewithfile:
-    with io.open(aargs.comparewithfile) as xml_file:
+  if comparewithfile:
+    with io.open(comparewithfile) as xml_file:
       try: xml_raw_data = xmltodict.parse(xml_file.read())
       except: xml_raw_data=None;print('Problem to parse file {} to XML.'.format(aargs.comparewithfile))
       if xml_raw_data:
         xml_xpaths=get_xml_xpaths(xml_raw_data)
         if aargs.verbose: print('\n'.join(xml_xpaths))
         if xml_xpaths:
-          with open(aargs.comparewithfile+'.xpaths', 'w', encoding='utf8') as outfile:
+          with open(comparewithfile+'.xpaths', 'w', encoding='utf8') as outfile:
             outfile.write('\n'.join(xml_xpaths))
+            print('Creating '+comparewithfile+' file.')
   ### DO TEXT FILE DIFF --------------------------------------------------------
-  if aargs.comparewithfile and file_name:
-    with open(aargs.comparewithfile+'.xpaths', 'r') as pre:
+  if comparewithfile and file_name:
+    with open(comparewithfile+'.xpaths', 'r') as pre:
       with open(file_name+'.xpaths', 'r') as post:
         with open('file-diff_'+timestring+'.diff', 'w', encoding='utf8') as outfile:
-          print_string='\nPRE='+aargs.comparewithfile+', POST='+file_name+' FILE-DIFF:'+'\n'+80*('=')+'\n'
+          print_string='\nPRE='+comparewithfile+', POST='+file_name+' FILE-DIFF:'+'\n'+80*('=')+'\n'
           print(print_string);outfile.write(print_string)
           diff = difflib.unified_diff(pre.readlines(),post.readlines(),fromfile='PRE',tofile='POST',n=0)
           for line in diff: print(line.replace('\n',''));outfile.write(line)
@@ -265,6 +267,8 @@ def ncclient_capabilities(m,recognised_dev_type):
     with open(file_name, 'w', encoding='utf8') as outfile:
       for c in m.server_capabilities: outfile.write(str(c)+'\n')
       print('Writing capabilities to file:',file_name)
+      return file_name
+  return str()
 ### END OF NCCLIENT_CAPABILITIES -----------------------------------------------
 
 
@@ -328,6 +332,8 @@ def ncclient_commands(m,recognised_dev_type):
           if aargs.verbose: print(str(result)+'\n')
           outfile.write('\n<command cmd="'+command+'">\n'+str(result)+'</command>\n')
         outfile.write('</xmlfile>\n')
+        return file_name
+  return str()
 ### END OF NCCLIENT_COMMANDS ---------------------------------------------------
 
 
@@ -342,6 +348,8 @@ def ncclient_getconfig(m,recognised_dev_type):
     with open(file_name, 'w', encoding='utf8') as outfile:
       outfile.write(str(rx_config)) if '\n' in rx_config else outfile.write(xml.dom.minidom.parseString(str(rx_config)).toprettyxml())
       print('Writing %s-config %s to file:'%('candidate' if aargs.getcandidateconfig else 'running','XPATH='+aargs.xpathexpression if aargs.xpathexpression else ''),file_name)
+      return file_name
+  return str()
 ### END OF NCCLIENT_GETCONFIG --------------------------------------------------
 
 
@@ -434,6 +442,8 @@ def nccclient_get(m,recognised_dev_type):
     with open(file_name, 'w', encoding='utf8') as outfile:
       outfile.write(str(rx_data))
       print('Writing get data to file:',file_name)
+      return file_name
+  return str()
 ### END OF NCCLIENT_GET --------------------------------------------------------
 
 
@@ -456,6 +466,8 @@ def nccclient_rpc(m,recognised_dev_type):
       if aargs.verbose: print(str(result)+'\n')
       outfile.write('\n<rpc rpc_tag="'+tag+'">\n'+str(result)+'</command>\n')
     outfile.write('</xmlfile>\n')
+    return file_name
+  return str()
 ### END OF NCCCLIENT_RPC -------------------------------------------------------
 
 
@@ -496,12 +508,12 @@ def main():
                              look_for_keys=False,hostkey_verify=False ) as m:
         print('CONNECTED  :',m.connected)
         get_junos_productmodel_and_osversion(m,recognised_dev_type)
-        if aargs.getcapabilities: ncclient_capabilities(m,recognised_dev_type)
-        if aargs.getrpc: nccclient_rpc(m,recognised_dev_type)
-        if aargs.getdata: nccclient_get(m,recognised_dev_type)
-        if aargs.getrunningconfig or aargs.getcandidateconfig: ncclient_getconfig(m,recognised_dev_type)
+        if aargs.getcapabilities: file_name=ncclient_capabilities(m,recognised_dev_type)
+        if aargs.getrpc: file_name=nccclient_rpc(m,recognised_dev_type)
+        if aargs.getdata: file_name=nccclient_get(m,recognised_dev_type)
+        if aargs.getrunningconfig or aargs.getcandidateconfig: file_name=ncclient_getconfig(m,recognised_dev_type)
         if aargs.getcommands: ncclient_commands(m,recognised_dev_type)
-        compare_xml_xpath_files(file_name)
+        compare_xml_xpath_files(file_name,aargs.comparewithfile)
   ### --------------------------------------------------------------------------
   if aargs.verbose and aargs.xpathexpression: print('DEBUG_XPATH:\n'+get_xmlstring_from_xpath(aargs.xpathexpression))
   ### --------------------------------------------------------------------------
