@@ -33,7 +33,13 @@ netconf_ssh_port: 22224
 
 usage_text='''NETCONF CLIENT {}, created by {}, {}
 for more info please type: python netconf_client_07.py -h
-'''.format(sys.argv[0],ScriptAuthor,ScriptVersion)
+
+MAKING OF PRECHECK FILE:
+python {}
+
+MAKING OF POST CHECK:
+python {} -cwf file.xml
+'''.format(sys.argv[0],ScriptAuthor,ScriptVersion,sys.argv[0],sys.argv[0])
 
 urllib3.disable_warnings()
 now = datetime.datetime.now()
@@ -60,7 +66,7 @@ parser.add_argument("-cwf", "--comparewithfile", action="store", default='',help
 parser.add_argument("-v", "--verbose",action="store_true", default=False, help="set verbose mode")
 aargs = parser.parse_args()
 if aargs.verbose: print('\nINPUT_PARAMS:',parser.parse_args())
-if len(sys.argv)<2: print(usage_text);exit(0)
+if len(sys.argv)<2: print(usage_text)
 
 
 ### GET_XML_ELEMENT ===========================================================
