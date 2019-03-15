@@ -470,8 +470,33 @@ def nccclient_rpc(m,recognised_dev_type):
   return str()
 ### END OF NCCCLIENT_RPC -------------------------------------------------------
 
+### NCCLIENT_READ_ALL ==========================================================
+def ncclient_read_all(m,recognised_dev_type):
+  rx_config=m.get_config('running').data_xml
+  if aargs.verbose: print('\nRUNNING_CONFIG:\n'),str(rx_config) if '\n' in rx_config else xml.dom.minidom.parseString(str(rx_config)).toprettyxml())
+
+  if recognised_dev_type=='junos':
+    tag_list = ['get-isis-adjacency-information']
+    file_name=str(recognised_dev_type)+'_rpc_'+timestring+'.xml'
+    with open(file_name, 'w', encoding='utf8') as outfile:
+      outfile.write('<xmlfile name="'+file_name+'">\n')
+      for tag in tag_list:
+        rpc_filter='''<{}><detail/></{}>'''.format(tag,tag)
+        result = m.rpc(rpc_filter)
+        print('RPC: '+tag)
+        if aargs.verbose: print(str(result)+'\n')
+        outfile.write('\n<rpc rpc_tag="'+tag+'">\n'+str(result)+'</command>\n')
+      outfile.write('</xmlfile>\n')
 
 
+
+#   file_name=str(recognised_dev_type)+'_all_'+timestring+'.xml'
+#   with open(file_name, 'w', encoding='utf8') as outfile:
+#     outfile.write(str(rx_config)) if '\n' in rx_config else outfile.write(xml.dom.minidom.parseString(str(rx_config)).toprettyxml())
+#     print('Writing %s-config %s to file:'%('candidate' if aargs.getcandidateconfig else 'running','XPATH='+aargs.xpathexpression if aargs.xpathexpression else ''),file_name)
+    return file_name
+  return str()
+###-----------------------------------------------------------------------------
 
 ### MAIN =======================================================================
 def main():
@@ -508,11 +533,12 @@ def main():
                              look_for_keys=False,hostkey_verify=False ) as m:
         print('CONNECTED  :',m.connected)
         get_junos_productmodel_and_osversion(m,recognised_dev_type)
-        if aargs.getcapabilities: file_name=ncclient_capabilities(m,recognised_dev_type)
+        if aargs.getcapabilities: ncclient_capabilities(m,recognised_dev_type)
         if aargs.getrpc: file_name=nccclient_rpc(m,recognised_dev_type)
         if aargs.getdata: file_name=nccclient_get(m,recognised_dev_type)
         if aargs.getrunningconfig or aargs.getcandidateconfig: file_name=ncclient_getconfig(m,recognised_dev_type)
-        if aargs.getcommands: ncclient_commands(m,recognised_dev_type)
+        if aargs.getcommands: file_name=ncclient_commands(m,recognised_dev_type)
+        if not file_name: file_name=ncclient_read_all(m,recognised_dev_type)
         compare_xml_xpath_files(file_name,aargs.comparewithfile)
   ### --------------------------------------------------------------------------
   if aargs.verbose and aargs.xpathexpression: print('DEBUG_XPATH:\n'+get_xmlstring_from_xpath(aargs.xpathexpression))
