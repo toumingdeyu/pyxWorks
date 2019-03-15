@@ -123,10 +123,10 @@ def get_xml_element(xml_data,xml_key=None,xml_value=None,get_value=False):
   ### END OF GET_XML_ELEMENT ==================================================
 
 
-### GET_XML_XPATHS =============================================================
-def get_xml_xpaths(xml_data):
+### get_xpath_from_xmlstring =============================================================
+def get_xpath_from_xmlstring(xml_data):
   """
-  FUNCTION: get_xml_xpaths()
+  FUNCTION: get_xpath_from_xmlstring()
   parameters: xml_data   - xml data structure
   returns:    xpath_list - lists of all xpaths found in xml_data
   """
@@ -145,7 +145,8 @@ def get_xml_xpaths(xml_data):
               if type(sub_xml) in [dict,collections.OrderedDict]: xml_deeper_references.append((parrent_xpath+'/'+key+'['+str(ii)+']',sub_xml))
           elif isinstance(key_content,str):
             if '#text' in key: xml_deeper_references.append((parrent_xpath+'="'+key_content+'"',key_content))
-            else: xml_deeper_references.append((parrent_xpath+'/'+key+'="'+key_content+'"',key_content))
+            elif str(key)[0]=='@': xml_deeper_references.append((parrent_xpath+'['+key+'="'+key_content+'"]',key_content))
+            else: xml_deeper_references.append((parrent_xpath+'['+key+'="'+key_content+'"]',key_content))
     return xml_deeper_references
   ### FUNCTION -----------------------------------------------------------------
   references=[]
@@ -158,37 +159,7 @@ def get_xml_xpaths(xml_data):
     references=references+add_references
   del references
   return xpath_list
-  ### END OF GET_XML_XPATHS ====================================================
-
-
-### RECOGNISE DEVICE TYPE ======================================================
-def get_device_type(nhost,nport,nusername,npassword):
-  device_type=None
-  with manager.connect_ssh(host=nhost,port=nport,username=nusername,password=npassword,
-                           device_params=None,timeout=10,allow_agent=False,
-                           look_for_keys=False,hostkey_verify=False ) as m:
-    if aargs.verbose: print('CAPABILITIES:',list(m.server_capabilities))
-    for c in m.server_capabilities:
-      #if 'TAILF-NCS' in c.upper(): device_type='nso'; break;
-      if 'JUNIPER' in c.upper(): device_type='junos'; break;
-      if 'NX-OS' in c.upper(): device_type='nexus'; break;
-      if 'Cisco-IOS-XR' in c: device_type='csr'; break;
-      if 'HUAWEI' in c.upper(): device_type='huawei'; break;
-    print('DEVICE_TYPE:',device_type)
-    return device_type
-
-
-### GET_JUNOS_PRODUCTMODEL_AND_OSVERSION =======================================
-def get_junos_productmodel_and_osversion(m,recognised_dev_type):
-  product_model=str()
-  os_version=str()
-  if recognised_dev_type=='junos':
-    result=m.command(command='show version', format='xml')
-    ddata=xmltodict.parse(str(result))
-    product_model=ddata['rpc-reply']['software-information']['product-model']
-    os_version=ddata['rpc-reply']['software-information']['junos-version']
-    print('MODEL:',product_model,', OS_VERSION:',os_version)
-  return product_model,os_version
+### ----------------------------------------------------------------------------
 
 
 ### GET_XMLSTRING_FROM_XPATH ===================================================
@@ -219,6 +190,76 @@ def get_xmlstring_from_xpath(xpathexpression):
 ### ----------------------------------------------------------------------------
 
 
+### get_xmlpath_from_xmlstring =============================================================
+def get_xmlpath_from_xmlstring(xml_data):
+  """
+  FUNCTION: get_xmlpath_from_xmlstring()
+  parameters: xml_data   - xml data structure
+  returns:    xmlpath_list - lists of all xpaths found in xml_data
+  """
+  ### SUBFUNCTION --------------------------------------------------------------
+  def get_xml_dictionary_subreferences(tuple_data):
+    xml_deeper_references=[]
+    parrent_xpath=tuple_data[0]
+    xml_data=tuple_data[1]
+    if type(xml_data)==dict or type(xml_data)==collections.OrderedDict:
+      for key in xml_data.keys():
+        #if not (str(key)[0]=='@' or str(key)[0]=='#'):   ###ARGUMENTS
+          key_content=xml_data.get(key)
+          if type(key_content) in [dict,collections.OrderedDict]: xml_deeper_references.append((parrent_xpath+'<'+key+'>',key_content))
+          elif type(key_content)==list:
+            for ii,sub_xml in enumerate(key_content,start=0):
+              if type(sub_xml) in [dict,collections.OrderedDict]: xml_deeper_references.append((parrent_xpath+'<'+key+'['+str(ii)+']>',sub_xml))
+          elif isinstance(key_content,str):
+            if '#text' in key: xml_deeper_references.append((parrent_xpath+key_content+'</'+parrent_xpath.split('<')[-1],key_content))
+            elif str(key)[0]=='@': xml_deeper_references.append((str(parrent_xpath[:-1])+' '+str(key[1:])+'="'+key_content+'">',key_content))
+            else: xml_deeper_references.append((parrent_xpath+'<'+key+'>'+key_content+'</'+key+'>',key_content))
+    return xml_deeper_references
+  ### FUNCTION -----------------------------------------------------------------
+  references=[]
+  xpath_list=[]
+  references.append(('',xml_data))
+  while len(references)>0:
+    add_references=get_xml_dictionary_subreferences(references[0])
+    xpath_list.append(references[0][0])
+    references.remove(references[0])
+    references=references+add_references
+  del references
+  return xpath_list
+### ----------------------------------------------------------------------------
+
+
+### RECOGNISE DEVICE TYPE ======================================================
+def get_device_type(nhost,nport,nusername,npassword):
+  device_type=None
+  with manager.connect_ssh(host=nhost,port=nport,username=nusername,password=npassword,
+                           device_params=None,timeout=10,allow_agent=False,
+                           look_for_keys=False,hostkey_verify=False ) as m:
+    if aargs.verbose: print('CAPABILITIES:',list(m.server_capabilities))
+    for c in m.server_capabilities:
+      #if 'TAILF-NCS' in c.upper(): device_type='nso'; break;
+      if 'JUNIPER' in c.upper(): device_type='junos'; break;
+      if 'NX-OS' in c.upper(): device_type='nexus'; break;
+      if 'Cisco-IOS-XR' in c: device_type='csr'; break;
+      if 'HUAWEI' in c.upper(): device_type='huawei'; break;
+    print('DEVICE_TYPE:',device_type)
+    return device_type
+
+
+### GET_JUNOS_PRODUCTMODEL_AND_OSVERSION =======================================
+def get_junos_productmodel_and_osversion(m,recognised_dev_type):
+  product_model=str()
+  os_version=str()
+  if recognised_dev_type=='junos':
+    result=m.command(command='show version', format='xml')
+    ddata=xmltodict.parse(str(result))
+    product_model=ddata['rpc-reply']['software-information']['product-model']
+    os_version=ddata['rpc-reply']['software-information']['junos-version']
+    print('MODEL:',product_model,', OS_VERSION:',os_version)
+  return product_model,os_version
+###-----------------------------------------------------------------------------
+
+
 ### COMPARE_XML_XPATH_FILES ====================================================
 def compare_xml_xpath_files(file_name,comparewithfile=None):
   ### XML to XPATHS - CREATED NOW ----------------------------------------------
@@ -227,7 +268,7 @@ def compare_xml_xpath_files(file_name,comparewithfile=None):
       try: xml_raw_data = xmltodict.parse(xml_file.read())
       except: xml_raw_data=None;print('Problem to parse file {} to XML.'.format(file_name))
       if xml_raw_data:
-        xml_xpaths=get_xml_xpaths(xml_raw_data)
+        xml_xpaths=get_xmlpath_from_xmlstring(xml_raw_data)
         if aargs.verbose: print('\n'.join(xml_xpaths))
         if xml_xpaths:
           with open(file_name+'.xpaths', 'w', encoding='utf8') as outfile:
@@ -239,7 +280,7 @@ def compare_xml_xpath_files(file_name,comparewithfile=None):
       try: xml_raw_data = xmltodict.parse(xml_file.read())
       except: xml_raw_data=None;print('Problem to parse file {} to XML.'.format(aargs.comparewithfile))
       if xml_raw_data:
-        xml_xpaths=get_xml_xpaths(xml_raw_data)
+        xml_xpaths=get_xmlpath_from_xmlstring(xml_raw_data)
         if aargs.verbose: print('\n'.join(xml_xpaths))
         if xml_xpaths:
           with open(comparewithfile+'.xpaths', 'w', encoding='utf8') as outfile:
@@ -471,6 +512,7 @@ def nccclient_rpc(m,recognised_dev_type):
   return str()
 ### END OF NCCCLIENT_RPC -------------------------------------------------------
 
+
 ### NCCLIENT_READ_ALL ==========================================================
 def ncclient_read_all(m,recognised_dev_type):
   isis_data=str()
@@ -483,14 +525,14 @@ def ncclient_read_all(m,recognised_dev_type):
     print('RPC: '+tag+'\n'+str(isis_data)+'\n') if aargs.verbose else print('RPC: '+tag)
   elif recognised_dev_type=='csr':
     isis_filter='''<filter type="subtree">
-    <isis xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-clns-isis-oper">
-      <instances>
-        <instance>
-          <instance-name>{}</instance-name>
-            <neighbors/>
-        </instance>
-      </instances>
-    </isis>
+  <isis xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-clns-isis-oper">
+    <instances>
+      <instance>
+        <instance-name>{}</instance-name>
+        <neighbors/>
+      </instance>
+    </instances>
+  </isis>
 </filter>'''.format('PAII')
     isis_data = m.get(filter=isis_filter)
     print('GET_FILTER:\n'+str(isis_data)) if aargs.verbose else print('GET_FILTER.')
@@ -505,6 +547,7 @@ def ncclient_read_all(m,recognised_dev_type):
     return file_name
   return str()
 ###-----------------------------------------------------------------------------
+
 
 ### MAIN =======================================================================
 def main():
