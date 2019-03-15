@@ -262,6 +262,7 @@ def get_junos_productmodel_and_osversion(m,recognised_dev_type):
 
 ### COMPARE_XML_XPATH_FILES ====================================================
 def compare_xml_xpath_files(file_name,comparewithfile=None):
+  file_suffix='.xmp'
   ### XML to XPATHS - CREATED NOW ----------------------------------------------
   if file_name and not 'capabilities' in file_name:
     with io.open(file_name) as xml_file:
@@ -271,9 +272,9 @@ def compare_xml_xpath_files(file_name,comparewithfile=None):
         xml_xpaths=get_xmlpath_from_xmlstring(xml_raw_data)
         if aargs.verbose: print('\n'.join(xml_xpaths))
         if xml_xpaths:
-          with open(file_name+'.xpaths', 'w', encoding='utf8') as outfile:
+          with open(file_name+file_suffix, 'w', encoding='utf8') as outfile:
             outfile.write('\n'.join(xml_xpaths))
-            print('Creating '+file_name+'.xpaths file.')
+            print('Creating '+file_name+file_suffix+' file.')
   ### XML to XPATHS - CWF ------------------------------------------------------
   if comparewithfile:
     with io.open(comparewithfile) as xml_file:
@@ -283,17 +284,17 @@ def compare_xml_xpath_files(file_name,comparewithfile=None):
         xml_xpaths=get_xmlpath_from_xmlstring(xml_raw_data)
         if aargs.verbose: print('\n'.join(xml_xpaths))
         if xml_xpaths:
-          with open(comparewithfile+'.xpaths', 'w', encoding='utf8') as outfile:
+          with open(comparewithfile+file_suffix, 'w', encoding='utf8') as outfile:
             outfile.write('\n'.join(xml_xpaths))
-            print('Creating '+comparewithfile+'.xpaths file.')
+            print('Creating '+comparewithfile+file_suffix+' file.')
   ### DO TEXT FILE DIFF --------------------------------------------------------
   if comparewithfile and file_name:
-    with open(comparewithfile+'.xpaths', 'r') as pre:
-      with open(file_name+'.xpaths', 'r') as post:
+    with open(comparewithfile+file_suffix, 'r') as pre:
+      with open(file_name+file_suffix, 'r') as post:
         with open('file-diff_'+timestring+'.diff', 'w', encoding='utf8') as outfile:
           print('Creating file-diff_'+timestring+'.diff file.')
-          print_string='\nPRE='+comparewithfile+', POST='+file_name+' FILE-DIFF:'+'\n'+80*('=')+'\n'
-          print(print_string);outfile.write(print_string)
+          print_string='\nPRE='+comparewithfile+file_suffix+', POST='+file_name+file_suffix+' FILE-DIFF:'+'\n'+80*('=')+'\n'
+          print(print_string); outfile.write(print_string)
           diff = difflib.unified_diff(pre.readlines(),post.readlines(),fromfile='PRE',tofile='POST',n=0)
           for line in diff: print(line.replace('\n',''));outfile.write(line)
           print_string='\n'+80*('=')+'\n';print(print_string);outfile.write(print_string)
