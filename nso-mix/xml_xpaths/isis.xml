@@ -1,0 +1,8 @@
+<isis xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-clns-isis-oper">
+<instances>
+  <instance>
+    <instance-name>PAII</instance-name>
+    <neighbors/>
+  </instance>
+</instances>
+</isis>
