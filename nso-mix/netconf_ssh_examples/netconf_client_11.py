@@ -171,28 +171,21 @@ def get_xpath_from_xmlstring(xml_data):
 
 ### GET_XMLSTRING_FROM_XPATH ===================================================
 def get_xmlstring_from_xpath(xpathexpression):
-  ### trick1 = [cc=value] --> /cc=value , trick2 argument parsing= '[@' --> ' @@@@' and </ .split(' @@@@')[0]> ,trick3 @@@@ to ignore 1..2x@ in http/email
   xml_string=str()
   if xpathexpression:
     if aargs.verbose: print('XPATH_ORIGINAL:',xpathexpression)
-    xpath_list=str(xpathexpression).split('/')[1:] if '/' in str(xpathexpression) else [str(xpathexpression)]
+    xpath_list=str(xpathexpression).replace(']','').split('/')[1:] if '/' in str(xpathexpression) else [str(xpathexpression)]
     if aargs.verbose: print('XPATH_TAG_LIST:',xpath_list)
-    last_xml_element='<%s>\n<%s>%s</%s>\n<%s>'%(xpath_list[-1].split('[')[0],xpath_list[-1].split('[')[1].split('=')[0],xpath_list[-1].split('=')[1].replace('"','').replace("'",'').replace(']',''),xpath_list[-1].split('[')[1].split('=')[0],xpath_list[-1].split('[')[0]) if '=' in xpath_list[-1] else '<%s/>'%(xpath_list[-1])
-    xml_string=last_xml_element
-    if aargs.verbose: print('LAST_ELEMENT:',last_xml_element)
-    for element in xpath_list[::-1][1:]:
+    xml_string=str()
+    if aargs.verbose: print('REVERSED_LIST:',xpath_list[::-1])
+    for element in xpath_list[::-1]:
       if '[@' in element:
         xpath_tag=element.split('[@')[0]
-        xpath_argument=' '+element.split('[@')[1].split(']')[0] if '[@' in element else str()
-        xml_string='<'+xpath_tag+xpath_argument.replace("'",'"')+'>\n'+xml_string+'\n</'+xpath_tag+'>'
-      elif '=' in element:   pass
-        #xml_string='<%s>%s</%s>'%(element.split('[')[1].split('=')[0],element.split('=')[1].replace('"','').replace("'",''),element.split('[')[1].split('=')[0])
-        #xml_string='<'+element.replace("'",'"')+'>\n'+xml_string+'\n</'+element+'>'
-      elif '[' in element:
-        position=int(element.split('[')[1].split(']')[0])
-        xml_string='<'+element.split('[')[0]+'>\n'+xml_string+'\n</'+element.split('[')[0]+'>'
-        if position>0:
-          for i in range(position): xml_string='<'+element.split('[')[0]+'>\n'+'</'+element.split('[')[0]+'>\n'+xml_string
+        xpath_argument=' '+element.split('[@')[1] if '[@' in element else str()
+        xml_string='<{}{}>\n{}\n</{}>'.format(xpath_tag, xpath_argument.replace("'",'"'),xml_string , xpath_tag)
+      elif '=' in element:
+        xml_string='<{}>{}</{}>{}'.format(element.split('=')[0], element.replace("'",'').replace('"','').split('=')[1], element.split('=')[0], '\n'+xml_string if xml_string else str())
+      else: xml_string='<{}>\n{}\n</{}>'.format(element,xml_string,element) if xml_string else '<{}/>'.format(element)
   return str(xml_string)
 ### ----------------------------------------------------------------------------
 
@@ -601,6 +594,6 @@ def main():
         if not file_name: file_name=ncclient_read_all(m,recognised_dev_type)
         if aargs.comparewithfile: compare_xml_xpath_files(file_name,aargs.comparewithfile)
   ### --------------------------------------------------------------------------
-  if aargs.verbose and aargs.xpathexpression: print('DEBUG_XPATH:\n'+get_xmlstring_from_xpath(aargs.xpathexpression))
+  if aargs.verbose and aargs.xpathexpression: print('\nDEBUG_XPATH to XML:\n'+get_xmlstring_from_xpath(aargs.xpathexpression))
   ### --------------------------------------------------------------------------
 if __name__ == "__main__": main()
