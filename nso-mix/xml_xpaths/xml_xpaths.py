@@ -8,25 +8,22 @@ import yaml
 import requests
 import urllib3
 import copy
-import optparse
+import argparse
 import datetime
 import xmltodict
 import collections
 
 ### COMMANDLINE ARGUMETS HANDLING ==============================================
+now = datetime.datetime.now()
+timestring='%04d%02d%02d_%02d%02d%02d'%(now.year,now.month,now.day,now.hour,now.minute,now.second)
 ScriptName=sys.argv[0]
-parser=optparse.OptionParser(version="1.0.0", description="")
-(options, args) = parser.parse_args()
-if not args or len(sys.argv) < 2:
-  print("SYNTAX: python %s nameOfInputFile.xml" % (ScriptName))
-  sys.exit(1)
-else:
-  xml_value=str()
-  get_value=False
-  xml_key=str()
-  fileName=args[0]
-  if len(sys.argv)>=3: xml_key=args[1]
-
+parser = argparse.ArgumentParser()
+parser.add_argument("-x", "--xpathexpression", action="store", default=str(),help="xpath filter expression i.e.( -x /netconf-state[@xmlns='urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring']/schemas) (please use ' instead of \")")
+parser.add_argument("-f", "--xmlfile", action="store", default='',help="input xml file")
+parser.add_argument("-v", "--verbose",action="store_true", default=False, help="set verbose mode")
+aargs = parser.parse_args()
+if aargs.verbose: print('\nINPUT_PARAMS:',parser.parse_args())
+if len(sys.argv)==1: print('HELP: python %s -h'%(sys.argv[0]))
 
 ### GET_XPATH_FROM_XMLSTRING ===================================================
 def get_xpath_from_xmlstring(xml_data):
@@ -69,28 +66,21 @@ def get_xpath_from_xmlstring(xml_data):
 
 ### GET_XMLSTRING_FROM_XPATH ===================================================
 def get_xmlstring_from_xpath(xpathexpression):
-  ### trick1 = [cc=value] --> /cc=value , trick2 argument parsing= '[@' --> ' @@@@' and </ .split(' @@@@')[0]> ,trick3 @@@@ to ignore 1..2x@ in http/email
   xml_string=str()
   if xpathexpression:
     if aargs.verbose: print('XPATH_ORIGINAL:',xpathexpression)
-    xpath_list=str(xpathexpression).split('/')[1:] if '/' in str(xpathexpression) else [str(xpathexpression)]
+    xpath_list=str(xpathexpression).replace(']','').split('/')[1:] if '/' in str(xpathexpression) else [str(xpathexpression)]
     if aargs.verbose: print('XPATH_TAG_LIST:',xpath_list)
-    last_xml_element='<%s>\n<%s>%s</%s>\n<%s>'%(xpath_list[-1].split('[')[0],xpath_list[-1].split('[')[1].split('=')[0],xpath_list[-1].split('=')[1].replace('"','').replace("'",'').replace(']',''),xpath_list[-1].split('[')[1].split('=')[0],xpath_list[-1].split('[')[0]) if '=' in xpath_list[-1] else '<%s/>'%(xpath_list[-1])
-    xml_string=last_xml_element
-    if aargs.verbose: print('LAST_ELEMENT:',last_xml_element)
-    for element in xpath_list[::-1][1:]:
+    xml_string=str()
+    if aargs.verbose: print('REVERSED_LIST:',xpath_list[::-1])
+    for element in xpath_list[::-1]:
       if '[@' in element:
         xpath_tag=element.split('[@')[0]
-        xpath_argument=' '+element.split('[@')[1].split(']')[0] if '[@' in element else str()
-        xml_string='<'+xpath_tag+xpath_argument.replace("'",'"')+'>\n'+xml_string+'\n</'+xpath_tag+'>'
-      elif '=' in element:   pass
-        #xml_string='<%s>%s</%s>'%(element.split('[')[1].split('=')[0],element.split('=')[1].replace('"','').replace("'",''),element.split('[')[1].split('=')[0])
-        #xml_string='<'+element.replace("'",'"')+'>\n'+xml_string+'\n</'+element+'>'
-      elif '[' in element:
-        position=int(element.split('[')[1].split(']')[0])
-        xml_string='<'+element.split('[')[0]+'>\n'+xml_string+'\n</'+element.split('[')[0]+'>'
-        if position>0:
-          for i in range(position): xml_string='<'+element.split('[')[0]+'>\n'+'</'+element.split('[')[0]+'>\n'+xml_string
+        xpath_argument=' '+element.split('[@')[1] if '[@' in element else str()
+        xml_string='<{}{}>\n{}\n</{}>'.format(xpath_tag, xpath_argument.replace("'",'"'),xml_string , xpath_tag)
+      elif '=' in element:
+        xml_string='<{}>{}</{}>{}'.format(element.split('=')[0], element.replace("'",'').replace('"','').split('=')[1], element.split('=')[0], '\n'+xml_string if xml_string else str())
+      else: xml_string='<{}>\n{}\n</{}>'.format(element,xml_string,element) if xml_string else '<{}/>'.format(element)
   return str(xml_string)
 ### ----------------------------------------------------------------------------
 
@@ -99,15 +89,16 @@ def get_xmlstring_from_xpath(xpathexpression):
 
 ### MAIN =======================================================================
 def main():
-  with io.open(fileName) as xml_file: aaa=xml_file.read();xml_raw_data = xmltodict.parse(aaa) #,process_namespaces=True)  #item_depth=2, item_callback=handle_artist
-  if xml_raw_data:
-    xml_xpaths=get_xpath_from_xmlstring(xml_raw_data)
-    print('\n'.join(xml_xpaths))
-    if xml_xpaths:
-      now = datetime.datetime.now()
-      timestring='%04d%02d%02d_%02d%02d%02d'%(now.year,now.month,now.day,now.hour,now.minute,now.second)
-      with open(fileName+'_'+timestring+'.xpaths', 'w', encoding='utf8') as outfile:
-        outfile.write('\n'.join(xml_xpaths))
-
+  if aargs.xmlfile:
+    with io.opena(aargs.xmlfile) as xml_file: aaa=xml_file.read();xml_raw_data = xmltodict.parse(aaa) #,process_namespaces=True)  #item_depth=2, item_callback=handle_artist
+    if xml_raw_data:
+      xml_xpaths=get_xpath_from_xmlstring(xml_raw_data)
+      print('\n'.join(xml_xpaths))
+      if xml_xpaths:
+        with open(fileName+'_'+timestring+'.xpaths', 'w', encoding='utf8') as outfile:
+          outfile.write('\n'.join(xml_xpaths))
+  ### --------------------------------------------------------------------------
+  if aargs.xpathexpression: print('DEBUG_XPATH:\n'+get_xmlstring_from_xpath(aargs.xpathexpression))
+  ### --------------------------------------------------------------------------
 if __name__ == "__main__":
     main()
