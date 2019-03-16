@@ -129,7 +129,7 @@ def get_xml_element(xml_data,xml_key=None,xml_value=None,get_value=False):
   ### END OF GET_XML_ELEMENT ==================================================
 
 
-### get_xpath_from_xmlstring =============================================================
+### GET_XPATH_FROM_XMLSTRING ===================================================
 def get_xpath_from_xmlstring(xml_data):
   """
   FUNCTION: get_xpath_from_xmlstring()
@@ -143,16 +143,16 @@ def get_xpath_from_xmlstring(xml_data):
     xml_data=tuple_data[1]
     if type(xml_data)==dict or type(xml_data)==collections.OrderedDict:
       for key in xml_data.keys():
-        #if not (str(key)[0]=='@' or str(key)[0]=='#'):   ###ARGUMENTS
-          key_content=xml_data.get(key)
-          if type(key_content) in [dict,collections.OrderedDict]: xml_deeper_references.append((parrent_xpath+'/'+key,key_content))
-          elif type(key_content)==list:
-            for ii,sub_xml in enumerate(key_content,start=0):
-              if type(sub_xml) in [dict,collections.OrderedDict]: xml_deeper_references.append((parrent_xpath+'/'+key+'['+str(ii)+']',sub_xml))
-          elif isinstance(key_content,str):
-            if '#text' in key: xml_deeper_references.append((parrent_xpath+'="'+key_content+'"',key_content))
-            elif str(key)[0]=='@': xml_deeper_references.append((parrent_xpath+'['+key+'="'+key_content+'"]',key_content))
-            else: xml_deeper_references.append((parrent_xpath+'['+key+'="'+key_content+'"]',key_content))
+        key_content=xml_data.get(key)
+        if type(key_content) in [dict,collections.OrderedDict]: xml_deeper_references.append((parrent_xpath+'/'+key,key_content))
+        elif type(key_content)==list:
+          for ii,sub_xml in enumerate(key_content,start=0):
+            if type(sub_xml) in [dict,collections.OrderedDict]: xml_deeper_references.append((parrent_xpath+'/'+key+'['+str(ii)+']',sub_xml))
+        elif isinstance(key_content,str):
+          if '#text' in key: xml_deeper_references.append((parrent_xpath+'="'+key_content+'"',key_content))
+          elif str(key)[0]=='@': xml_deeper_references.append((parrent_xpath+'['+key+'="'+key_content+'"]',key_content))
+          else: xml_deeper_references.append((parrent_xpath+'/'+key+'="'+key_content+'"',key_content))
+        elif key_content==None: xml_deeper_references.append((parrent_xpath+'/'+key,None))
     return xml_deeper_references
   ### FUNCTION -----------------------------------------------------------------
   references=[]
@@ -196,7 +196,7 @@ def get_xmlstring_from_xpath(xpathexpression):
 ### ----------------------------------------------------------------------------
 
 
-### get_xmlpath_from_xmlstring =============================================================
+### GET_XMLPATH_FROM_XMLSTRING =============================================================
 def get_xmlpath_from_xmlstring(xml_data):
   """
   FUNCTION: get_xmlpath_from_xmlstring()
@@ -220,6 +220,7 @@ def get_xmlpath_from_xmlstring(xml_data):
             if '#text' in key: xml_deeper_references.append((parrent_xpath+key_content+'</'+parrent_xpath.split('<')[-1],key_content))
             elif str(key)[0]=='@': xml_deeper_references.append((str(parrent_xpath[:-1])+' '+str(key[1:])+'="'+key_content+'">',key_content))
             else: xml_deeper_references.append((parrent_xpath+'<'+key+'>'+key_content+'</'+key+'>',key_content))
+          elif key_content==None: xml_deeper_references.append((parrent_xpath+'<'+key+'/>',None))
     return xml_deeper_references
   ### FUNCTION -----------------------------------------------------------------
   references=[]
