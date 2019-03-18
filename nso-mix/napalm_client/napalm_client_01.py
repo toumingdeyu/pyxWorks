@@ -22,6 +22,7 @@ from ncclient import manager
 import difflib
 from xml.etree import ElementTree
 import napalm
+import pysnmp.hlapi as ph
 
 warnings.simplefilter("ignore", DeprecationWarning)
 
@@ -49,6 +50,8 @@ timestring='%04d%02d%02d_%02d%02d%02d'%(now.year,now.month,now.day,now.hour,now.
 
 ### ARGPARSE ###################################################################
 supported_device_list = ["base", "eos", "ios", "iosxr", "junos", "nxos", "nxos_ssh"]
+getconfig_retrieve_list=[u'all',u'running',u'candidate',u'startup']
+
 ScriptName=sys.argv[0]
 parser = argparse.ArgumentParser()
 
@@ -58,7 +61,7 @@ parser.add_argument("-usr", "--username", action="store", default='',help="overr
 parser.add_argument("-pwd", "--password", action="store", default='',help="override/insert napalm password")
 parser.add_argument("-url", "--address", action="store", default='',help="override/insert napalm url/ip address")
 parser.add_argument("-p", "--port", action="store", default='',help="override/insert napalm port")
-parser.add_argument("-dt", "--devicetype", action="store", default='base',choices=supported_device_list,help="FORCE device type [%s], by default is auto-detected."%','.join(supported_device_list))
+parser.add_argument("-dt", "--devicetype", action="store", default='',choices=supported_device_list,help="FORCE device type [%s], by default is auto-detected."%','.join(supported_device_list))
 parser.add_argument("-v", "--verbose",action="store_true", default=False, help="set verbose mode")
 aargs = parser.parse_args()
 if aargs.verbose: print('\nINPUT_PARAMS:',parser.parse_args())
@@ -66,22 +69,39 @@ if len(sys.argv)<2: print(usage_text)
 
 
 ### RECOGNISE DEVICE TYPE ======================================================
-# def get_device_type(nhost,nport,nusername,npassword):
-#   device_type=None
-#   with manager.connect_ssh(host=nhost,port=nport,username=nusername,password=npassword,
-#                            device_params=None,timeout=10,allow_agent=False,
-#                            look_for_keys=False,hostkey_verify=False ) as m:
-#     if aargs.verbose: print('CAPABILITIES:',list(m.server_capabilities))
-#     for c in m.server_capabilities:
-#       #if 'TAILF-NCS' in c.upper(): device_type='nso'; break;
-#       if 'JUNIPER' in c.upper(): device_type='junos'; break;
-#       if 'NX-OS' in c.upper(): device_type='nexus'; break;
-#       if 'Cisco-IOS-XR' in c: device_type='csr'; break;
-#       if 'HUAWEI' in c.upper(): device_type='huawei'; break;
-#     print('DEVICE_TYPE:',device_type)
-#     return device_type
+
+# Find OS running on a router with a snmp request
+def find_router_type(host,port):
+  oid='.1.3.6.1.2.1.1.1.0'
+  #import pysnmp.hlapi as ph
+  g = ph.getCmd(ph.SnmpEngine(),
+             ph.CommunityData('otauB9v1kYRO'),
+             ph.UdpTransportTarget((host, port)),
+             ph.ContextData(),
+             ph.ObjectType(ph.ObjectIdentity('SNMPv2-MIB', 'sysDescr', 0)))
+  nextg=next(g)
+  print(nextg)
 
 
+
+#      snmpget -v1 -c otauB9v1kYRO -t 5 OAKPE3 sysDescr.0
+# 	snmp_req = "snmpget -v1 -c " + SNMP_COMMUNITY + " -t 5 " + host + " sysDescr.0"
+#     	return_stream = os.popen(snmp_req)
+#     	retvalue = return_stream.readline()
+#     	if len(retvalue)== 0:
+#         	print("\nCannot connect to %s (unknow host)") % (host)
+#         	sys.exit()
+#     	else:
+#         	if PLATFORM_DESCR_XR in retvalue:
+#             		router_os = 'iosxr'
+#         	elif PLATFORM_DESCR_IOS in retvalue:
+#             		router_os = 'ios'
+#     		elif PLATFORM_DESCR_JUNOS in retvalue:
+# 	    		router_os = 'junos'
+#         	else:
+#             		print "\nCannot find recognizable OS in %s" % (retvalue)
+#             		sys.exit()
+#     	return router_os
 
 
 CMD_IOS_XE_CMDS = [
@@ -110,7 +130,7 @@ CMD_IOS_XR_CMDS = [
         "admin show platform",
         "show inventory" ]
 JUNOS_CMDS = [
-          "show version",
+        "show version",
 		"show system software",
 		"show configuration | display xml",
 		"show interfaces terse",
@@ -150,16 +170,36 @@ def main():
   if aargs.port:     nport=aargs.port
   ### NAPALM CONNECT ----------------------------------------------------------
   print('DEVICE_TYPE:',aargs.devicetype,' , HOST:',naddress,', PORT:',nport,', USER:',nusername,', PASSWORD:', 'YES' if npassword else '-')
-  if naddress and nport and nusername and npassword:
-    driver = napalm.get_network_driver(aargs.devicetype)
-    device = driver(hostname=naddress, username=nusername,password=npassword,timeout=30,optional_args={'port': nport})
-    device.open()
-    retrieve_list=[u'all',u'running',u'candidate',u'startup']
-    #print(device.get_facts())
-    print(device.get_config(retrieve=u'running'))
-    #print(device.cli(u'show version and haiku'))
-    device.close()
 
+#   find_router_type(naddress,22161)
+#   exit(0)
+
+  if naddress and nport and nusername and npassword:
+    if not aargs.devicetype:
+      for device_type in supported_device_list:
+        print('---------DEVICETYPE: ',device_type)
+        driver = napalm.get_network_driver(device_type)
+        device = driver(hostname=naddress, username=nusername,password=npassword,timeout=10,optional_args={'port': nport})
+        print('=========',device)
+        try: device.open()
+        except:
+          try: device.close();continue
+          except: continue
+        print('+++++++++',device)
+        try: device_facts=device.get_facts()
+        except: device_facts=None
+        if device_facts: print(device_facts);device.close();break
+        try: device.close()
+        except: pass
+    ### ------------------------------------------------------------------------
+    elif aargs.devicetype:
+      driver = napalm.get_network_driver(aargs.devicetype)
+      device = driver(hostname=naddress, username=nusername,password=npassword,timeout=30,optional_args={'port': nport})
+      device.open()
+      print(device.is_alive())
+      device_facts=device.get_facts()
+      device.close()
+    print(device_facts)
 
 #   ### --------------------------------------------------------------------------
 if __name__ == "__main__": main()
