@@ -205,17 +205,16 @@ def get_xmlpath_from_xmlstring(xml_data):
     xml_data=tuple_data[1]
     if type(xml_data)==dict or type(xml_data)==collections.OrderedDict:
       for key in xml_data.keys():
-        #if not (str(key)[0]=='@' or str(key)[0]=='#'):   ###ARGUMENTS
-          key_content=xml_data.get(key)
-          if type(key_content) in [dict,collections.OrderedDict]: xml_deeper_references.append((parrent_xpath+'<'+key+'>',key_content))
-          elif type(key_content)==list:
-            for ii,sub_xml in enumerate(key_content,start=0):
-              if type(sub_xml) in [dict,collections.OrderedDict]: xml_deeper_references.append((parrent_xpath+'<'+key+'['+str(ii)+']>',sub_xml))
-          elif isinstance(key_content,str):
-            if '#text' in key: xml_deeper_references.append((parrent_xpath+key_content+'</'+parrent_xpath.split('<')[-1],key_content))
-            elif str(key)[0]=='@': xml_deeper_references.append((str(parrent_xpath[:-1])+' '+str(key[1:])+'="'+key_content+'">',key_content))
-            else: xml_deeper_references.append((parrent_xpath+'<'+key+'>'+key_content+'</'+key+'>',key_content))
-          elif key_content==None: xml_deeper_references.append((parrent_xpath+'<'+key+'/>',None))
+        key_content=xml_data.get(key)
+        if type(key_content) in [dict,collections.OrderedDict]: xml_deeper_references.append((parrent_xpath+'<'+key+'>',key_content))
+        elif type(key_content)==list:
+          for ii,sub_xml in enumerate(key_content,start=0):
+            if type(sub_xml) in [dict,collections.OrderedDict]: xml_deeper_references.append((parrent_xpath+'<'+key+'['+str(ii)+']>',sub_xml))
+        elif isinstance(key_content,str):
+          if '#text' in key: xml_deeper_references.append((parrent_xpath+key_content+'</'+parrent_xpath.split('<')[-1],key_content))
+          elif str(key)[0]=='@': xml_deeper_references.append((str(parrent_xpath[:-1])+' '+str(key[1:])+'="'+key_content+'">',key_content))
+          else: xml_deeper_references.append((parrent_xpath+'<'+key+'>'+key_content+'</'+key+'>',key_content))
+        elif key_content==None: xml_deeper_references.append((parrent_xpath+'<'+key+'/>',None))
     return xml_deeper_references
   ### FUNCTION -----------------------------------------------------------------
   references=[]
@@ -263,7 +262,7 @@ def get_junos_productmodel_and_osversion(m,recognised_dev_type):
 
 
 ### COMPARE_XML_XPATH_FILES ====================================================
-def compare_xml_xpath_files(file_name,comparewithfile=None):
+def compare_xml_xpath_files(file_name,comparewithfile=None,recognised_dev_type=None):
   file_suffix='.xpt' if aargs.xpathoutputcomparison else '.xmp'
   ### XML to XPATHS - CREATED NOW ----------------------------------------------
   if file_name and not 'capabilities' in file_name:
@@ -300,6 +299,18 @@ def compare_xml_xpath_files(file_name,comparewithfile=None):
           diff = difflib.unified_diff(pre.readlines(),post.readlines(),fromfile='PRE',tofile='POST',n=0)
           for line in diff: print(line.replace('\n',''));outfile.write(line)
           print_string='\n'+80*('=')+'\n';print(print_string);outfile.write(print_string)
+  ### SHOW UP/DOWN ISIS STATES -------------------------------------------------
+  with io.open(file_name) as xml_file:
+    try: xml_raw_data = xmltodict.parse(xml_file.read())
+    except: xml_raw_data=None;print('Problem to parse file {} to XML.'.format(file_name))
+  if recognised_dev_type=='junos':
+    print('ACTUAL ISIS ADJACENCY STATE:')
+    for adjacency in xml_raw_data['xmlfile']['rpc-reply'][1]['isis-adjacency-information']['isis-adjacency']:
+      print(adjacency['system-name'],adjacency['interface-name'],adjacency['level'],adjacency['adjacency-state'])
+  elif recognised_dev_type=='csr':
+    print('ACTUAL ISIS ADJACENCY STATE:')
+    for adjacency in xml_raw_data['xmlfile']['rpc-reply']['data']['isis']['instances']['instance']['neighbors']['neighbor']:
+      print(adjacency['system-id'],adjacency['interface-name'],adjacency['neighbor-circuit-type'],adjacency['neighbor-state'])
   ### --------------------------------------------------------------------------
 
 
@@ -603,7 +614,7 @@ def main():
         if aargs.getrunningconfig or aargs.getcandidateconfig: file_name=ncclient_getconfig(m,recognised_dev_type)
         if aargs.getcommands: file_name=ncclient_commands(m,recognised_dev_type)
         if not file_name: file_name=ncclient_read_all(m,recognised_dev_type)
-        if aargs.comparewithfile: compare_xml_xpath_files(file_name,aargs.comparewithfile)
+        if aargs.comparewithfile: compare_xml_xpath_files(file_name,aargs.comparewithfile,recognised_dev_type)
   ### --------------------------------------------------------------------------
   if aargs.verbose and aargs.xpathexpression: print('\nDEBUG_XPATH to XML:\n'+get_xmlstring_from_xpath(aargs.xpathexpression))
   ### --------------------------------------------------------------------------
