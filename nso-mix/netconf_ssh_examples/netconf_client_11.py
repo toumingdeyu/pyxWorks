@@ -24,6 +24,7 @@ from xml.etree import ElementTree
 
 warnings.simplefilter("ignore", DeprecationWarning)
 
+### Highest AUTH priority have cmdline parameters, then external yaml file, last internal netconf_auth_data_yaml
 netconf_auth_data_yaml='''
 netconf_user: pnemec
 netconf_password:
@@ -62,7 +63,7 @@ parser.add_argument("-gcm", "--getcommands",action="store_true", default=False, 
 parser.add_argument("-rpc", "--getrpc",action="store_true", default=False, help="get rpc answer to xml file (working only on junos)")
 parser.add_argument("-g", "--getdata",action="store_true", default=False, help="get xml data to file (needed -x xpath)")
 parser.add_argument("-x", "--xpathexpression", action="store", default=str(),help="xpath filter expression i.e.( -x /netconf-state[@xmlns='urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring']/schemas) (please use ' instead of \")")
-parser.add_argument("-xo", "--xpathoutputcomparison",action="store_true", default=False, help="xpath output format for difference comparison")
+parser.add_argument("-xo", "--xpathoutputcomparison",action="store_true", default=False, help="xpath output format for difference comparison (default is xmlpath format)")
 parser.add_argument("-cwf", "--comparewithfile", action="store", default='',help="compare with xml file")
 parser.add_argument("-v", "--verbose",action="store_true", default=False, help="set verbose mode")
 aargs = parser.parse_args()
@@ -525,6 +526,11 @@ def ncclient_read_all(m,recognised_dev_type):
     rpc_filter='''<{}><detail/></{}>'''.format(tag,tag)
     isis_data = m.rpc(rpc_filter)
     print('RPC: '+tag+'\n'+str(isis_data)+'\n') if aargs.verbose else print('RPC: '+tag)
+    ### SHOW UP/DOWN STATES ----------------------------------------------------
+    dict_isis_data=xmltodict.parse(str(isis_data))
+    for adjacency in dict_isis_data['rpc-reply']['isis-adjacency-information']['isis-adjacency']:
+      print(adjacency['system-name'],adjacency['interface-name'],adjacency['level'],adjacency['adjacency-state'])
+    ###-------------------------------------------------------------------------
   elif recognised_dev_type=='csr':
     isis_filter='''<filter type="subtree">
   <isis xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-clns-isis-oper">
@@ -538,6 +544,11 @@ def ncclient_read_all(m,recognised_dev_type):
 </filter>'''.format('PAII')
     isis_data = m.get(filter=isis_filter)
     print('GET_FILTER:\n'+str(isis_data)) if aargs.verbose else print('GET_FILTER.')
+    ### SHOW UP/DOWN STATES ----------------------------------------------------
+    dict_isis_data=xmltodict.parse(str(isis_data))
+    for adjacency in dict_isis_data['rpc-reply']['data']['isis']['instances']['instance']['neighbors']['neighbor']:
+      print(adjacency['system-id'],adjacency['interface-name'],adjacency['neighbor-circuit-type'],adjacency['neighbor-state'])
+    ###-------------------------------------------------------------------------
   ### make xml headers and write filtered data to file -------------------------
   rx_config_filtered=str(rx_config).split('?>')[1] if '?>' in str(rx_config) else str(rx_config)
   isis_data_filtered=str(isis_data).split('?>')[1] if '?>' in str(isis_data) else str(isis_data)
@@ -545,7 +556,7 @@ def ncclient_read_all(m,recognised_dev_type):
   with open(file_name, 'w', encoding='utf8') as outfile:
     outfile.write('<?xml version="1.0" encoding="UTF-8"?>\n<xmlfile xmlfilename="'+file_name+'">\n')
     outfile.write(str(rx_config_filtered)+'\n'+str(isis_data_filtered)+'\n</xmlfile>')
-    print('Creating '+file_name+' file.')
+    print('\nCreating '+file_name+' file.')
     return file_name
   return str()
 ###-----------------------------------------------------------------------------
