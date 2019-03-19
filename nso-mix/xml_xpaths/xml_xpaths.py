@@ -58,7 +58,7 @@ def get_xpath_from_xmlstring(xml_data):
     add_references=get_xml_dictionary_subreferences(references[0])
     xpath_list.append(references[0][0])
     references.remove(references[0])
-    references=references+add_references
+    references=add_references+references
   del references
   return xpath_list
 ### ----------------------------------------------------------------------------
@@ -90,12 +90,12 @@ def get_xmlstring_from_xpath(xpathexpression):
 ### MAIN =======================================================================
 def main():
   if aargs.xmlfile:
-    with io.opena(aargs.xmlfile) as xml_file: aaa=xml_file.read();xml_raw_data = xmltodict.parse(aaa) #,process_namespaces=True)  #item_depth=2, item_callback=handle_artist
+    with io.open(aargs.xmlfile) as xml_file: aaa=xml_file.read();xml_raw_data = xmltodict.parse(aaa)
     if xml_raw_data:
       xml_xpaths=get_xpath_from_xmlstring(xml_raw_data)
-      print('\n'.join(xml_xpaths))
+      if aargs.verbose: print('\n'.join(xml_xpaths))
       if xml_xpaths:
-        with open(fileName+'_'+timestring+'.xpaths', 'w', encoding='utf8') as outfile:
+        with open(aargs.xmlfile+'_'+timestring+'.xpaths', 'w', encoding='utf8') as outfile:
           outfile.write('\n'.join(xml_xpaths))
   ### --------------------------------------------------------------------------
   if aargs.xpathexpression: print('DEBUG_XPATH:\n'+get_xmlstring_from_xpath(aargs.xpathexpression))
