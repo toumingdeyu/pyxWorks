@@ -164,7 +164,7 @@ def get_xpath_from_xmlstring(xml_data):
     add_references=get_xml_dictionary_subreferences(references[0])
     xpath_list.append(references[0][0])
     references.remove(references[0])
-    references=references+add_references
+     references=add_references+references
   del references
   return xpath_list
 ### ----------------------------------------------------------------------------
@@ -224,7 +224,7 @@ def get_xmlpath_from_xmlstring(xml_data):
     add_references=get_xml_dictionary_subreferences(references[0])
     xpath_list.append(references[0][0])
     references.remove(references[0])
-    references=references+add_references
+    references=add_references+references
   del references
   return xpath_list
 ### ----------------------------------------------------------------------------
