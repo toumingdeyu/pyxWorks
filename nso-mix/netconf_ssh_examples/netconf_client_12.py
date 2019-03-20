@@ -305,12 +305,12 @@ def compare_xml_xpath_files(file_name,comparewithfile=None,recognised_dev_type=N
     except: xml_raw_data=None;print('Problem to parse file {} to XML.'.format(file_name))
   if recognised_dev_type=='junos':
     print('ACTUAL ISIS ADJACENCY STATE:')
-    for adjacency in xml_raw_data['xmlfile']['rpc-reply'][1]['isis-adjacency-information']['isis-adjacency']:
-      print(adjacency['system-name'],adjacency['interface-name'],adjacency['level'],adjacency['adjacency-state'])
+    for adjacency in xml_raw_data['xmlfile']['get_isis_adjacency']['rpc-reply']['isis-adjacency-information']['isis-adjacency']:
+      print(adjacency['system-name']+'  '+adjacency['interface-name']+'  '+adjacency['adjacency-state'])
   elif recognised_dev_type=='csr':
     print('ACTUAL ISIS ADJACENCY STATE:')
-    for adjacency in xml_raw_data['xmlfile']['rpc-reply']['data']['isis']['instances']['instance']['neighbors']['neighbor']:
-      print(adjacency['system-id'],adjacency['interface-name'],adjacency['neighbor-circuit-type'],adjacency['neighbor-state'])
+    for adjacency in xml_raw_data['xmlfile']['get_isis_adjacency']['rpc-reply']['data']['isis']['instances']['instance']['neighbors']['neighbor']:
+      print(adjacency['system-id']+'  '+adjacency['interface-name']+'  '+adjacency['neighbor-state'])
   ### --------------------------------------------------------------------------
 
 
@@ -540,7 +540,7 @@ def ncclient_read_all(m,recognised_dev_type):
     ### SHOW UP/DOWN STATES ----------------------------------------------------
     dict_isis_data=xmltodict.parse(str(isis_data))
     for adjacency in dict_isis_data['rpc-reply']['isis-adjacency-information']['isis-adjacency']:
-      print(adjacency['system-name'],adjacency['interface-name'],adjacency['level'],adjacency['adjacency-state'])
+      print(adjacency['system-name']+'  '+adjacency['interface-name']+'  '+adjacency['adjacency-state'])
     ###-------------------------------------------------------------------------
   elif recognised_dev_type=='csr':
     isis_filter='''<filter type="subtree">
@@ -558,15 +558,15 @@ def ncclient_read_all(m,recognised_dev_type):
     ### SHOW UP/DOWN STATES ----------------------------------------------------
     dict_isis_data=xmltodict.parse(str(isis_data))
     for adjacency in dict_isis_data['rpc-reply']['data']['isis']['instances']['instance']['neighbors']['neighbor']:
-      print(adjacency['system-id'],adjacency['interface-name'],adjacency['neighbor-circuit-type'],adjacency['neighbor-state'])
+      print(adjacency['system-id']+'  '+adjacency['interface-name']+'  '+adjacency['neighbor-state'])
     ###-------------------------------------------------------------------------
   ### make xml headers and write filtered data to file -------------------------
   rx_config_filtered=str(rx_config).split('?>')[1] if '?>' in str(rx_config) else str(rx_config)
   isis_data_filtered=str(isis_data).split('?>')[1] if '?>' in str(isis_data) else str(isis_data)
   file_name=str(recognised_dev_type)+'_all_'+timestring+'.xml'
   with open(file_name, 'w', encoding='utf8') as outfile:
-    outfile.write('<?xml version="1.0" encoding="UTF-8"?>\n<xmlfile xmlfilename="'+file_name+'">\n')
-    outfile.write(str(rx_config_filtered)+'\n'+str(isis_data_filtered)+'\n</xmlfile>')
+    outfile.write('<?xml version="1.0" encoding="UTF-8"?>\n<xmlfile xmlfilename="'+file_name+'">\n<get_config>\n')
+    outfile.write(str(rx_config_filtered)+'\n</get_config>\n<get_isis_adjacency>\n'+str(isis_data_filtered)+'\n</get_isis_adjacency>\n</xmlfile>')
     print('\nCreating '+file_name+' file.')
     return file_name
   return str()
