@@ -260,6 +260,68 @@ def get_junos_productmodel_and_osversion(m,recognised_dev_type):
   return product_model,os_version
 ###-----------------------------------------------------------------------------
 
+###-----------------------------------------------------------------------------
+def string_file_difference(old_isis_list,new_isis_list):
+  '''
+  The head of line is
+  '-' for missing line,
+  '+' for added line and
+  '!' for line that is different.
+  RED for something going Down or something missing.
+  ORANGE for something going Up or something new (not present in pre-check)
+  '''
+  class bcolors:
+    HEADER='\033[95m'
+    OKBLUE='\033[94m'
+    OKGREEN='\033[92m'
+    GREEN='\033[92m'
+    WARNING='\033[93m'
+    RED='\033[91m'
+    FAIL='\033[91m'
+    ENDC='\033[0m'
+    BOLD='\033[1m'
+    UNDERLINE='\033[4m'
+
+  if old_isis_list and new_isis_list:
+    new_isis_address_list=[isis_address for isis_address,dummy1,dummy2 in new_isis_list]
+    old_isis_address_list=[isis_address for isis_address,dummy1,dummy2 in old_isis_list]
+    lost_isis_items=[item for item in old_isis_address_list if item not in new_isis_address_list]
+    new_isis_items=[item for item in new_isis_address_list if item not in old_isis_address_list]
+    print('ADJACENCY STATE:')
+    for old_isis_address,old_isis_interface,old_isis_state in old_isis_list:
+      if old_isis_address in lost_isis_items:
+        print('%s  -  %s  %s  %s'%(bcolors.RED,old_isis_address,old_isis_interface,old_isis_state))
+    for new_isis_address,new_isis_interface,new_isis_state in new_isis_list:
+      ### new addressess
+      if new_isis_address in new_isis_items:
+        if 'DOWN' in new_isis_state.upper(): print('%s  +  %s  %s  %s'%(bcolors.RED,new_isis_address,new_isis_interface,new_isis_state))
+        else: print('%s  +  %s  %s  %s'%(bcolors.WARNING,new_isis_address,new_isis_interface,new_isis_state))
+      ### isis are the same
+      elif (new_isis_address,new_isis_interface,new_isis_state) in old_isis_list:
+        if 'DOWN' in new_isis_state.upper(): print('%s     %s  %s  %s'%(bcolors.RED,new_isis_address,new_isis_interface,new_isis_state))
+        else: print('%s     %s  %s  %s'%(bcolors.GREEN,new_isis_address,new_isis_interface,new_isis_state))
+      ### different isis
+      else:
+        if 'DOWN' in new_isis_state.upper(): print('%s  !  %s  %s  %s'%(bcolors.RED,new_isis_address,new_isis_interface,new_isis_state))
+        else: print('%s  !  %s  %s  %s'%(bcolors.WARNING,new_isis_address,new_isis_interface,new_isis_state))
+###-----------------------------------------------------------------------------
+
+###-----------------------------------------------------------------------------
+def decode_isis_adjacency(filename,recognised_dev_type):
+  out_tuple_list=[]
+  ### SHOW UP/DOWN ISIS STATES -------------------------------------------------
+  with io.open(filename) as xml_file:
+    try: xml_raw_data = xmltodict.parse(xml_file.read())
+    except: xml_raw_data=None;print('Problem to parse file {} to XML.'.format(file_name))
+  if recognised_dev_type=='junos':
+    for adjacency in xml_raw_data['xmlfile']['get_isis_adjacency']['rpc-reply']['isis-adjacency-information']['isis-adjacency']:
+      out_tuple_list.append((adjacency['system-name'],adjacency['interface-name'],adjacency['adjacency-state']))
+  elif recognised_dev_type=='csr':
+    for adjacency in xml_raw_data['xmlfile']['get_isis_adjacency']['rpc-reply']['data']['isis']['instances']['instance']['neighbors']['neighbor']:
+      out_tuple_list.append((adjacency['system-id'],adjacency['interface-name'],adjacency['neighbor-state']))
+  return out_tuple_list
+###-----------------------------------------------------------------------------
+
 
 ### COMPARE_XML_XPATH_FILES ====================================================
 def compare_xml_xpath_files(file_name,comparewithfile=None,recognised_dev_type=None):
@@ -294,23 +356,15 @@ def compare_xml_xpath_files(file_name,comparewithfile=None,recognised_dev_type=N
       with open(file_name+file_suffix, 'r') as post:
         with open('file-diff_'+timestring+'.diff', 'w', encoding='utf8') as outfile:
           print('Creating file-diff_'+timestring+'.diff file.')
-          print_string='\nPRE='+comparewithfile+file_suffix+', POST='+file_name+file_suffix+' FILE-DIFF:'+'\n'+80*('=')+'\n'
+          print_string='\nPRE='+comparewithfile+file_suffix+'\nPOST='+file_name+file_suffix+'\nRAW-FILE-DIFF:'+'\n'+80*('=')+'\n'
           print(print_string); outfile.write(print_string)
           diff = difflib.unified_diff(pre.readlines(),post.readlines(),fromfile='PRE',tofile='POST',n=0)
           for line in diff: print(line.replace('\n',''));outfile.write(line)
           print_string='\n'+80*('=')+'\n';print(print_string);outfile.write(print_string)
   ### SHOW UP/DOWN ISIS STATES -------------------------------------------------
-  with io.open(file_name) as xml_file:
-    try: xml_raw_data = xmltodict.parse(xml_file.read())
-    except: xml_raw_data=None;print('Problem to parse file {} to XML.'.format(file_name))
-  if recognised_dev_type=='junos':
-    print('ACTUAL ISIS ADJACENCY STATE:')
-    for adjacency in xml_raw_data['xmlfile']['get_isis_adjacency']['rpc-reply']['isis-adjacency-information']['isis-adjacency']:
-      print(adjacency['system-name']+'  '+adjacency['interface-name']+'  '+adjacency['adjacency-state'])
-  elif recognised_dev_type=='csr':
-    print('ACTUAL ISIS ADJACENCY STATE:')
-    for adjacency in xml_raw_data['xmlfile']['get_isis_adjacency']['rpc-reply']['data']['isis']['instances']['instance']['neighbors']['neighbor']:
-      print(adjacency['system-id']+'  '+adjacency['interface-name']+'  '+adjacency['neighbor-state'])
+  old_isis_state=decode_isis_adjacency(comparewithfile,recognised_dev_type)
+  new_isis_state=decode_isis_adjacency(file_name,recognised_dev_type)
+  print(string_file_difference(old_isis_state,new_isis_state)  )
   ### --------------------------------------------------------------------------
 
 
@@ -330,31 +384,6 @@ def ncclient_capabilities(m,recognised_dev_type):
 
 ### NCCLIENT_COMMANDS ==========================================================
 def ncclient_commands(m,recognised_dev_type):
-#   CMD_IOS_XE_CMDS = [
-#           "show version",
-#           "show running-config",
-#           "show isis neighbors",
-#           "show mpls ldp neighbor",
-#           "show ip interface brief",
-#           "show ip route summary",
-#           "show crypto isakmp sa",
-#           "show crypto ipsec sa count",
-#           "show crypto eli" ]
-#   CMD_IOS_XR_CMDS = [
-#           "show system verify report",
-#           "show version",
-#           "show running-config",
-#           "admin show running-config",
-#           "show processes cpu | utility head count 3",
-#           "show isis interface brief",
-#           "show isis neighbors | utility cut -d " " -f -27",
-#           "show mpls ldp neighbor brief",
-#           "show interface brief",
-#           "show bgp sessions",
-#           "show route summary",
-#           "show l2vpn xconnect group group1",
-#           "admin show platform",
-#           "show inventory" ]
   JUNOS_CMDS = [
             "show version",
 			"show system software",
@@ -422,45 +451,6 @@ def nccclient_get(m,recognised_dev_type):
 #   filter_tag='schemas'
 #
 #   get_configurable_filter='''<filter type="subtree">\n<{} {}>\n<{}/>\n</{}>\n</filter>'''.format(filter_root_tag,filter_arguments,filter_tag,filter_root_tag)
-#
-#   get_schemas_filter='''<filter type="subtree">
-# <netconf-state xmlns="urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring">
-# <schemas/>
-# </netconf-state>
-# </filter>'''
-#
-#   get_interfaces_filter='''<filter type="subtree">
-# <interfaces xmlns="urn:ietf:params:xml:ns:yang:ietf-interfaces">
-# </interfaces>
-# </filter>'''
-#
-#
-#   get_configurable_filter='''
-#   <filter type="subtree">
-#       <isis xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-clns-isis-oper">
-#         <instances>
-#           <instance>
-#             <instance-name>PAII</instance-name>
-#               <neighbors/>
-#           </instance>
-#         </instances>
-#       </isis>
-#   </filter>
-# '''
-#
-
-# <get>
-#   <filter type="subtree">
-#       <isis xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-clns-isis-oper">
-#         <instances>
-#           <instance>
-#             <instance-name>PAII</instance-name>
-#               <neighbors/>
-#           </instance>
-#         </instances>
-#       </isis>
-#   </filter>
-# </get>
 
   xr='''<isis xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-clns-isis-oper">
 <instances>
@@ -537,10 +527,6 @@ def ncclient_read_all(m,recognised_dev_type):
     rpc_filter='''<{}><detail/></{}>'''.format(tag,tag)
     isis_data = m.rpc(rpc_filter)
     print('RPC: '+tag+'\n'+str(isis_data)+'\n') if aargs.verbose else print('RPC: '+tag)
-    ### SHOW UP/DOWN STATES ----------------------------------------------------
-    dict_isis_data=xmltodict.parse(str(isis_data))
-    for adjacency in dict_isis_data['rpc-reply']['isis-adjacency-information']['isis-adjacency']:
-      print(adjacency['system-name']+'  '+adjacency['interface-name']+'  '+adjacency['adjacency-state'])
     ###-------------------------------------------------------------------------
   elif recognised_dev_type=='csr':
     isis_filter='''<filter type="subtree">
@@ -555,10 +541,6 @@ def ncclient_read_all(m,recognised_dev_type):
 </filter>'''.format('PAII')
     isis_data = m.get(filter=isis_filter)
     print('GET_FILTER:\n'+str(isis_data)) if aargs.verbose else print('GET_FILTER.')
-    ### SHOW UP/DOWN STATES ----------------------------------------------------
-    dict_isis_data=xmltodict.parse(str(isis_data))
-    for adjacency in dict_isis_data['rpc-reply']['data']['isis']['instances']['instance']['neighbors']['neighbor']:
-      print(adjacency['system-id']+'  '+adjacency['interface-name']+'  '+adjacency['neighbor-state'])
     ###-------------------------------------------------------------------------
   ### make xml headers and write filtered data to file -------------------------
   rx_config_filtered=str(rx_config).split('?>')[1] if '?>' in str(rx_config) else str(rx_config)
@@ -567,7 +549,9 @@ def ncclient_read_all(m,recognised_dev_type):
   with open(file_name, 'w', encoding='utf8') as outfile:
     outfile.write('<?xml version="1.0" encoding="UTF-8"?>\n<xmlfile xmlfilename="'+file_name+'">\n<get_config>\n')
     outfile.write(str(rx_config_filtered)+'\n</get_config>\n<get_isis_adjacency>\n'+str(isis_data_filtered)+'\n</get_isis_adjacency>\n</xmlfile>')
-    print('\nCreating '+file_name+' file.')
+    print('\nCreating '+file_name+' file.\n')
+    print('ISIS ADJACENCY STATE:')
+    print(decode_isis_adjacency(file_name,recognised_dev_type))
     return file_name
   return str()
 ###-----------------------------------------------------------------------------
@@ -575,6 +559,12 @@ def ncclient_read_all(m,recognised_dev_type):
 
 ### MAIN =======================================================================
 def main():
+
+#   l1=[('SINPE55', 'ge-1/0/2.0', 'Up'), ('PASCR6', 'so-0/0/0.1', 'Up'), ('LONCR1', 'so-0/2/0.0', 'Up'), ('PASCR7', 'xe-1/2/1.0', 'Up'), ('SINCR4', 'xe-1/2/3.0', 'Up'), ('PASCR7', 'xe-1/2/4.0', 'Up'), ('SINCR4', 'xe-2/2/2.0', 'Up'), ('SINPE4', 'xe-2/2/3.0', 'Up'), ('PASCR7', 'xe-2/2/4.0', 'Up'), ('SINCR4', 'xe-2/2/5.0', 'Up')]
+#   l2=[('SINPE5', 'ge-1/0/2.0', 'Up'), ('PASCR6', 'so-0/0/0.0', 'Up'), ('LONCR1', 'so-0/2/0.0', 'Up'), ('PASCR7', 'xe-1/2/1.0', 'Down'), ('SINCR4', 'xe-1/2/3.0', 'Up'), ('PASCR7', 'xe-1/2/4.0', 'Up'), ('SINCR4', 'xe-2/2/2.0', 'Up'), ('SINPE4', 'xe-2/2/3.0', 'Up'), ('PASCR7', 'xe-2/2/4.0', 'Up'), ('SINCR4', 'xe-2/2/5.0', 'Up')]
+#   string_file_difference(l1,l2)
+#   exit(0)
+
   file_name=str()
   device_params=None
   netconf_auth_data=None
