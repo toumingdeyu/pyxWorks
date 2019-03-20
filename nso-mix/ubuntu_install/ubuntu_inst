@@ -5,8 +5,8 @@ sudo apt install -y default-jre
 sudo pip install pyang robotframework xmltodict pyaml restinstance napalm paramiko netmiko 
 sudo pip3 install pyang robotframework xmltodict pyaml restinstance napalm paramiko netmiko
 
-sudo pip install pycodestyle pynso ncs requests urllib3  ciscoconfparse
-sudo pip3 install pycodestyle pynso ncs urllib3 requests ciscoconfparse
+sudo pip install pycodestyle pynso ncs requests urllib3  ciscoconfparse pysnmp
+sudo pip3 install pycodestyle pynso ncs urllib3 requests ciscoconfparse pysnmp
 
 sudo pip3 bs4 mako
 
