@@ -71,6 +71,153 @@ if aargs.verbose: print('\nINPUT_PARAMS:',parser.parse_args())
 if len(sys.argv)<2: print(usage_text)
 
 
+### NCCLIENT_CAPABILITIES_TO_FILE ==============================================
+def ncclient_capabilities_to_file(m,recognised_dev_type):
+  if aargs.verbose: print('CAPABILITIES:',list(m.server_capabilities))
+  ### WRITE CAPABILITIES TO FILE -----------------------------------------
+  if aargs.getcapabilities:
+    file_name=str(recognised_dev_type)+'_capabilities_'+timestring+'.cap'
+    with open(file_name, 'w', encoding='utf8') as outfile:
+      for c in m.server_capabilities: outfile.write(str(c)+'\n')
+      print('Writing capabilities to file:',file_name)
+      return file_name
+  return str()
+### ----------------------------------------------------------------------------
+
+
+### NCCLIENT_COMMANDS_TO_FILE ==================================================
+def ncclient_commands_to_file(m,recognised_dev_type):
+  JUNOS_CMDS = [
+            "show version",
+			"show system software",
+			"show configuration | display xml",
+			"show interfaces terse",
+			"show isis adjacency",
+			"show ldp session brief",
+			"show ldp neighbor",
+			"show bgp summary",
+			"show rsvp neighbor",
+			"show pim neighbors",
+			"show l2vpn connections summary",
+			"show chassis routing-engine",
+			"show chassis fpc",
+			"show chassis fpc pic-status",
+			"show chassis power",
+			"show system alarms",
+            "show system users" ]
+  ### GET (JUNOS) COMMANDS -----------------------------------------------------
+  if aargs.getcommands:
+    file_name=str(recognised_dev_type)+'_commands_'+timestring+'.xml'
+    if recognised_dev_type=='junos': CMDS=JUNOS_CMDS
+#     elif recognised_dev_type=='csr': CMDS=CMD_IOS_XR_CMDS
+#     else: CMDS=CMD_IOS_XE_CMDS
+    if CMDS:
+      with open(file_name, 'w', encoding='utf8') as outfile:
+        outfile.write('<xmlfile name="'+file_name+'">\n')
+        for command in CMDS:
+          result=m.command(command=command, format='xml')
+          print('COMMAND: '+command)
+          if aargs.verbose: print(str(result)+'\n')
+          outfile.write('\n<command cmd="'+command+'">\n'+str(result)+'</command>\n')
+        outfile.write('</xmlfile>\n')
+        return file_name
+  return str()
+### ----------------------------------------------------------------------------
+
+
+### NCCLIENT_GETCONFIG_TO_FILE =================================================
+def ncclient_getconfig_to_file(m,recognised_dev_type):
+  if (aargs.getrunningconfig or aargs.getcandidateconfig):
+    if aargs.xpathexpression: rx_config = m.get_config(source='candidate' if aargs.getcandidateconfig else 'running',filter=('xpath',aargs.xpathexpression)).data_xml
+    else: rx_config=m.get_config(source='candidate' if aargs.getcandidateconfig else 'running').data_xml
+    if aargs.verbose: print('\n%s_CONFIG:\n'%(('candidate' if aargs.getcandidateconfig else 'running').upper() ),
+                            str(rx_config) if '\n' in rx_config else xml.dom.minidom.parseString(str(rx_config)).toprettyxml())
+    file_name=str(recognised_dev_type)+('_candidate' if aargs.getcandidateconfig else '_running')+'_config_'+timestring+'.xml'
+    with open(file_name, 'w', encoding='utf8') as outfile:
+      outfile.write(str(rx_config)) if '\n' in rx_config else outfile.write(xml.dom.minidom.parseString(str(rx_config)).toprettyxml())
+      print('Writing %s-config %s to file:'%('candidate' if aargs.getcandidateconfig else 'running','XPATH='+aargs.xpathexpression if aargs.xpathexpression else ''),file_name)
+      return file_name
+  return str()
+### ----------------------------------------------------------------------------
+
+
+### NCCLIENT_GET_TO_FILE =======================================================
+def ncclient_get_to_file(m,recognised_dev_type):
+  get_filter=None  #ios-xe returns text encapsulated by xml
+
+  IETF_XMLNS_BASE = 'urn:ietf:params:xml:ns:netconf:base:1.0'
+  IETF_XMLNS_NM = 'urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring'
+  IETF_XMLNS_IF="urn:ietf:params:xml:ns:yang:ietf-interfaces"
+
+#   filter_root_tag='netconf-state'
+#   filter_arguments='xmlns="{}"'.format(IETF_XMLNS_NM)
+#   filter_tag='schemas'
+#
+#   get_configurable_filter='''<filter type="subtree">\n<{} {}>\n<{}/>\n</{}>\n</filter>'''.format(filter_root_tag,filter_arguments,filter_tag,filter_root_tag)
+
+  xr='''<isis xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-clns-isis-oper">
+<instances>
+  <instance>
+    <instance-name>PAII</instance-name>
+      <neighbors/>
+  </instance>
+</instances>
+</isis>
+'''
+  #get_filter=('subtree',str(xr))
+
+  if aargs.xpathexpression:
+    ### -x /netconf-state[@xmlns='urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring']/schemas
+    subfilter=get_xmlstring_from_xpath(aargs.xpathexpression)
+    filter_xmlns_argument=subfilter.split('xmlns=')[1].split('>')[0].replace(' ','').replace('"','') if 'xmlns=' in subfilter else str()
+    get_configurable_filter=('subtree',str(subfilter))  #.encode(encoding='UTF-8',errors='strict'))
+  else:
+    filter_root_tag='netconf-state'
+    filter_xmlns_argument='urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring'
+    filter_tag='schemas'
+    subfilter='''<{} xmlns="{}">\n<{}/>\n</{}>'''.format(filter_root_tag,filter_xmlns_argument,filter_tag,filter_root_tag)
+    get_configurable_filter=('subtree',str(subfilter))
+  ###---------------------------------------------------------------------------
+  None if filter_xmlns_argument in str(list(m.server_capabilities)) else print('WARNING: xmlns="',filter_xmlns_argument,'" not FOUND in DEVICE CAPABILITIES!')
+  ###---------------------------------------------------------------------------
+  if aargs.getdata:
+    ### ios-xe needs filter None and then returns text encapsulated by xml
+    if not get_filter:
+      get_filter=get_configurable_filter if recognised_dev_type else None
+    print('GET_FILTER:',str(get_filter))
+    rx_data = m.get(filter=get_filter) if not aargs.xpathexpression else m.get(filter=get_filter)
+    if aargs.verbose: print('GET_FILTER:',str(get_filter),'\nRECIEVED_DATA:\n',str(rx_data))
+    file_name=str(recognised_dev_type)+'_data_get_'+timestring+'.xml'
+    with open(file_name, 'w', encoding='utf8') as outfile:
+      outfile.write(str(rx_data))
+      print('Writing get data to file:',file_name)
+      return file_name
+  return str()
+### END OF NCCLIENT_GET --------------------------------------------------------
+
+
+### NCCLIENT_RPC_TO_FILE =======================================================
+def ncclient_rpc_to_file(m,recognised_dev_type):
+  ### RPC XML FILTER -----------------------------------------------------
+  #rpc_filter = """<get-chassis-inventory><detail/></get-chassis-inventory>"""
+  #rpc_filter='''<get-interface-information><detail/></get-interface-information>'''
+  #'get-system-inventory'
+  tag_list = ['get-interface-information','get-chassis-inventory']
+  file_name=str(recognised_dev_type)+'_rpc_'+timestring+'.xml'
+  with open(file_name, 'w', encoding='utf8') as outfile:
+    outfile.write('<xmlfile name="'+file_name+'">\n')
+    for tag in tag_list:
+      rpc_filter='''<{}><detail/></{}>'''.format(tag,tag)
+      result = m.rpc(rpc_filter)
+      print('RPC: '+tag)
+      if aargs.verbose: print(str(result)+'\n')
+      outfile.write('\n<rpc rpc_tag="'+tag+'">\n'+str(result)+'</command>\n')
+    outfile.write('</xmlfile>\n')
+    return file_name
+  return str()
+### ----------------------------------------------------------------------------
+
+
 ### GET_XML_ELEMENT ===========================================================
 def get_xml_element(xml_data,xml_key=None,xml_value=None,get_value=False):
   """
@@ -191,7 +338,7 @@ def get_xmlstring_from_xpath(xpathexpression):
 ### ----------------------------------------------------------------------------
 
 
-### GET_XMLPATH_FROM_XMLSTRING =============================================================
+### GET_XMLPATH_FROM_XMLSTRING =================================================
 def get_xmlpath_from_xmlstring(xml_data):
   """
   FUNCTION: get_xmlpath_from_xmlstring()
@@ -245,6 +392,7 @@ def get_device_type(nhost,nport,nusername,npassword):
       if 'HUAWEI' in c.upper(): device_type='huawei'; break;
     print('DEVICE_TYPE:',device_type)
     return device_type
+###-----------------------------------------------------------------------------
 
 
 ### GET_JUNOS_PRODUCTMODEL_AND_OSVERSION =======================================
@@ -260,8 +408,9 @@ def get_junos_productmodel_and_osversion(m,recognised_dev_type):
   return product_model,os_version
 ###-----------------------------------------------------------------------------
 
-###-----------------------------------------------------------------------------
-def string_file_difference(old_isis_list,new_isis_list):
+
+### GET_STRING_FILE_DIFFERENCE_STRING ==========================================
+def get_string_file_difference_string(old_isis_list,new_isis_list):
   '''
   The head of line is
   '-' for missing line,
@@ -307,8 +456,9 @@ def string_file_difference(old_isis_list,new_isis_list):
   return print_string
 ###-----------------------------------------------------------------------------
 
-###-----------------------------------------------------------------------------
-def decode_isis_adjacency(filename,recognised_dev_type):
+
+### get_isis_adjacency_datalist_from_xmlfile ===================================
+def get_isis_adjacency_datalist_from_xmlfile(filename,recognised_dev_type):
   out_tuple_list=[]
   ### SHOW UP/DOWN ISIS STATES -------------------------------------------------
   with io.open(filename) as xml_file:
@@ -324,11 +474,11 @@ def decode_isis_adjacency(filename,recognised_dev_type):
 ###-----------------------------------------------------------------------------
 
 
-### COMPARE_XML_XPATH_FILES ====================================================
-def compare_xml_xpath_files(file_name,comparewithfile=None,recognised_dev_type=None):
+### COMPARE_XML_FILES_AND_DO_DIFF_FILE =========================================
+def compare_xml_files_and_do_diff_file(file_name,comparewithfile=None,recognised_dev_type=None):
   file_suffix='.xpt' if aargs.xpathoutputcomparison else '.xmp'
   ### XML to XPATHS - CREATED NOW ----------------------------------------------
-  if file_name and not 'capabilities' in file_name:
+  if file_name and 'XML' in file_name.upper():
     with io.open(file_name) as xml_file:
       try: xml_raw_data = xmltodict.parse(xml_file.read())
       except: xml_raw_data=None;print('Problem to parse file {} to XML.'.format(file_name))
@@ -340,7 +490,7 @@ def compare_xml_xpath_files(file_name,comparewithfile=None,recognised_dev_type=N
             outfile.write('\n'.join(xml_xpaths))
             print('Creating '+file_name+file_suffix+' file.')
   ### XML to XPATHS - CWF ------------------------------------------------------
-  if comparewithfile:
+  if comparewithfile and 'XML' in comparewithfile.upper():
     with io.open(comparewithfile) as xml_file:
       try: xml_raw_data = xmltodict.parse(xml_file.read())
       except: xml_raw_data=None;print('Problem to parse file {} to XML.'.format(aargs.comparewithfile))
@@ -352,10 +502,12 @@ def compare_xml_xpath_files(file_name,comparewithfile=None,recognised_dev_type=N
             outfile.write('\n'.join(xml_xpaths))
             print('Creating '+comparewithfile+file_suffix+' file.')
   ### DO TEXT FILE DIFF --------------------------------------------------------
+  files_compared=None
   if comparewithfile and file_name:
     with open(comparewithfile+file_suffix, 'r') as pre:
       with open(file_name+file_suffix, 'r') as post:
         with open('file-diff_'+timestring+'.diff', 'w', encoding='utf8') as outfile:
+          files_compared=True
           print('Creating file-diff_'+timestring+'.diff file.')
           print_string='RAW-FILE-DIFF:\n(PRE='+comparewithfile+file_suffix+', POST='+file_name+file_suffix+')\n'+80*('=')+'\n'
           print('\n'+print_string); outfile.write(print_string)
@@ -363,159 +515,39 @@ def compare_xml_xpath_files(file_name,comparewithfile=None,recognised_dev_type=N
           for line in diff: print(line.replace('\n',''));outfile.write(line)
           print_string='\n'+80*('=')+'\n';print(print_string);outfile.write(print_string)
           ### SHOW UP/DOWN ISIS STATES -------------------------------------------------
-          old_isis_state=decode_isis_adjacency(comparewithfile,recognised_dev_type)
-          new_isis_state=decode_isis_adjacency(file_name,recognised_dev_type)
-          print_string=string_file_difference(old_isis_state,new_isis_state);print(print_string);outfile.write('\n'+print_string)
-  ### --------------------------------------------------------------------------
+          try:
+            old_isis_state=get_isis_adjacency_datalist_from_xmlfile(comparewithfile,recognised_dev_type)
+            new_isis_state=get_isis_adjacency_datalist_from_xmlfile(file_name,recognised_dev_type)
+            print_string=get_string_file_difference_string(old_isis_state,new_isis_state);print(print_string);outfile.write('\n'+print_string)
+          except: pass
+    ### ------------------------------------------------------------------------
+    if not files_compared:
+      with open(comparewithfile, 'r') as pre:
+        with open(file_name, 'r') as post:
+          with open('file-diff_'+timestring+'.diff', 'w', encoding='utf8') as outfile:
+            print('Creating file-diff_'+timestring+'.diff file.')
+            print_string='RAW-FILE-DIFF:\n(PRE='+comparewithfile+file_suffix+', POST='+file_name+file_suffix+')\n'+80*('=')+'\n'
+            print('\n'+print_string); outfile.write(print_string)
+            diff = difflib.unified_diff(pre.readlines(),post.readlines(),fromfile='PRE',tofile='POST',n=0)
+            for line in diff: print(line.replace('\n',''));outfile.write(line)
+            print_string='\n'+80*('=')+'\n';print(print_string);outfile.write(print_string)
+### ----------------------------------------------------------------------------
 
 
-### NCCLIENT_CAPABILITIES ======================================================
-def ncclient_capabilities(m,recognised_dev_type):
-  if aargs.verbose: print('CAPABILITIES:',list(m.server_capabilities))
-  ### WRITE CAPABILITIES TO FILE -----------------------------------------
-  if aargs.getcapabilities:
-    file_name=str(recognised_dev_type)+'_capabilities_'+timestring+'.cap'
-    with open(file_name, 'w', encoding='utf8') as outfile:
-      for c in m.server_capabilities: outfile.write(str(c)+'\n')
-      print('Writing capabilities to file:',file_name)
-      return file_name
-  return str()
-### END OF NCCLIENT_CAPABILITIES -----------------------------------------------
-
-
-### NCCLIENT_COMMANDS ==========================================================
-def ncclient_commands(m,recognised_dev_type):
-  JUNOS_CMDS = [
-            "show version",
-			"show system software",
-			"show configuration | display xml",
-			"show interfaces terse",
-			"show isis adjacency",
-			"show ldp session brief",
-			"show ldp neighbor",
-			"show bgp summary",
-			"show rsvp neighbor",
-			"show pim neighbors",
-			"show l2vpn connections summary",
-			"show chassis routing-engine",
-			"show chassis fpc",
-			"show chassis fpc pic-status",
-			"show chassis power",
-			"show system alarms",
-            "show system users" ]
-  ### GET (JUNOS) COMMANDS -----------------------------------------------------
-  if aargs.getcommands:
-    file_name=str(recognised_dev_type)+'_commands_'+timestring+'.xml'
-    if recognised_dev_type=='junos': CMDS=JUNOS_CMDS
-#     elif recognised_dev_type=='csr': CMDS=CMD_IOS_XR_CMDS
-#     else: CMDS=CMD_IOS_XE_CMDS
-    if CMDS:
-      with open(file_name, 'w', encoding='utf8') as outfile:
-        outfile.write('<xmlfile name="'+file_name+'">\n')
-        for command in CMDS:
-          result=m.command(command=command, format='xml')
-          print('COMMAND: '+command)
-          if aargs.verbose: print(str(result)+'\n')
-          outfile.write('\n<command cmd="'+command+'">\n'+str(result)+'</command>\n')
-        outfile.write('</xmlfile>\n')
-        return file_name
-  return str()
-### END OF NCCLIENT_COMMANDS ---------------------------------------------------
-
-
-### NCCLIENT_GETCONFIG =========================================================
-def ncclient_getconfig(m,recognised_dev_type):
-  if (aargs.getrunningconfig or aargs.getcandidateconfig):
-    if aargs.xpathexpression: rx_config = m.get_config(source='candidate' if aargs.getcandidateconfig else 'running',filter=('xpath',aargs.xpathexpression)).data_xml
-    else: rx_config=m.get_config(source='candidate' if aargs.getcandidateconfig else 'running').data_xml
-    if aargs.verbose: print('\n%s_CONFIG:\n'%(('candidate' if aargs.getcandidateconfig else 'running').upper() ),
-                            str(rx_config) if '\n' in rx_config else xml.dom.minidom.parseString(str(rx_config)).toprettyxml())
-    file_name=str(recognised_dev_type)+('_candidate' if aargs.getcandidateconfig else '_running')+'_config_'+timestring+'.xml'
-    with open(file_name, 'w', encoding='utf8') as outfile:
-      outfile.write(str(rx_config)) if '\n' in rx_config else outfile.write(xml.dom.minidom.parseString(str(rx_config)).toprettyxml())
-      print('Writing %s-config %s to file:'%('candidate' if aargs.getcandidateconfig else 'running','XPATH='+aargs.xpathexpression if aargs.xpathexpression else ''),file_name)
-      return file_name
-  return str()
-### END OF NCCLIENT_GETCONFIG --------------------------------------------------
-
-
-### NCCLIENT_GET ===============================================================
-def nccclient_get(m,recognised_dev_type):
-  get_filter=None  #ios-xe returns text encapsulated by xml
-
-  IETF_XMLNS_BASE = 'urn:ietf:params:xml:ns:netconf:base:1.0'
-  IETF_XMLNS_NM = 'urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring'
-  IETF_XMLNS_IF="urn:ietf:params:xml:ns:yang:ietf-interfaces"
-
-#   filter_root_tag='netconf-state'
-#   filter_arguments='xmlns="{}"'.format(IETF_XMLNS_NM)
-#   filter_tag='schemas'
-#
-#   get_configurable_filter='''<filter type="subtree">\n<{} {}>\n<{}/>\n</{}>\n</filter>'''.format(filter_root_tag,filter_arguments,filter_tag,filter_root_tag)
-
-  xr='''<isis xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-clns-isis-oper">
-<instances>
-  <instance>
-    <instance-name>PAII</instance-name>
-      <neighbors/>
-  </instance>
-</instances>
-</isis>
-'''
-  #get_filter=('subtree',str(xr))
-
-  if aargs.xpathexpression:
-    ### -x /netconf-state[@xmlns='urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring']/schemas
-    subfilter=get_xmlstring_from_xpath(aargs.xpathexpression)
-    filter_xmlns_argument=subfilter.split('xmlns=')[1].split('>')[0].replace(' ','').replace('"','') if 'xmlns=' in subfilter else str()
-    get_configurable_filter=('subtree',str(subfilter))  #.encode(encoding='UTF-8',errors='strict'))
-  else:
-    filter_root_tag='netconf-state'
-    filter_xmlns_argument='urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring'
-    filter_tag='schemas'
-    subfilter='''<{} xmlns="{}">\n<{}/>\n</{}>'''.format(filter_root_tag,filter_xmlns_argument,filter_tag,filter_root_tag)
-    get_configurable_filter=('subtree',str(subfilter))
-  ###---------------------------------------------------------------------------
-  None if filter_xmlns_argument in str(list(m.server_capabilities)) else print('WARNING: xmlns="',filter_xmlns_argument,'" not FOUND in DEVICE CAPABILITIES!')
-  ###---------------------------------------------------------------------------
-  if aargs.getdata:
-    ### ios-xe needs filter None and then returns text encapsulated by xml
-    if not get_filter:
-      get_filter=get_configurable_filter if recognised_dev_type else None
-    print('GET_FILTER:',str(get_filter))
-    rx_data = m.get(filter=get_filter) if not aargs.xpathexpression else m.get(filter=get_filter)
-    if aargs.verbose: print('GET_FILTER:',str(get_filter),'\nRECIEVED_DATA:\n',str(rx_data))
-    file_name=str(recognised_dev_type)+'_data_get_'+timestring+'.xml'
-    with open(file_name, 'w', encoding='utf8') as outfile:
-      outfile.write(str(rx_data))
-      print('Writing get data to file:',file_name)
-      return file_name
-  return str()
-### END OF NCCLIENT_GET --------------------------------------------------------
-
-
-### NCCCLIENT_RPC ==============================================================
-def nccclient_rpc(m,recognised_dev_type):
-  ### RPC XML FILTER -----------------------------------------------------
-  #rpc_filter = """<get-chassis-inventory><detail/></get-chassis-inventory>"""
-  #rpc_filter='''<get-interface-information><detail/></get-interface-information>'''
-  #'get-system-inventory'
-
-  # OMG: https://www.juniper.net/documentation/en_US/junos12.3/information-products/topic-collections/junos-xml-ref-oper/index.html
-  tag_list = ['get-interface-information','get-chassis-inventory']
-  file_name=str(recognised_dev_type)+'_rpc_'+timestring+'.xml'
-  with open(file_name, 'w', encoding='utf8') as outfile:
-    outfile.write('<xmlfile name="'+file_name+'">\n')
-    for tag in tag_list:
-      rpc_filter='''<{}><detail/></{}>'''.format(tag,tag)
-      result = m.rpc(rpc_filter)
-      print('RPC: '+tag)
-      if aargs.verbose: print(str(result)+'\n')
-      outfile.write('\n<rpc rpc_tag="'+tag+'">\n'+str(result)+'</command>\n')
-    outfile.write('</xmlfile>\n')
-    return file_name
-  return str()
-### END OF NCCCLIENT_RPC -------------------------------------------------------
+### NCCLIENT_GET_OR_RPC_OPERATIONAL_DATA_AS_STRING -============================
+def ncclient_get_or_rpc_operational_data_as_string(m,get_or_rpc_filter,recognised_dev_type):
+  op_data_string=str()
+  if recognised_dev_type=='junos':
+    rpc_filter='''<{}><detail/></{}>'''.format(get_or_rpc_filter,get_or_rpc_filter)
+    op_data_string = m.rpc(rpc_filter)
+    print('RPC: '+get_or_rpc_filter+'\n'+str(op_data_string)+'\n') if aargs.verbose else print('RPC: '+get_or_rpc_filter)
+  elif recognised_dev_type=='csr':
+    op_data_string = m.get(filter=get_or_rpc_filter)
+    print('GET_FILTER:\n'+str(op_data_string)) if aargs.verbose else print('GET_FILTER.')
+  ### HEADER/COMMENT FILTER-OUT ------------------------------------------------
+  op_data_string=str(op_data_string).split('?>')[1] if '?>' in str(op_data_string) else str(op_data_string)
+  return op_data_string
+### ----------------------------------------------------------------------------
 
 
 ### NCCLIENT_READ_ALL ==========================================================
@@ -523,12 +555,12 @@ def ncclient_read_all(m,recognised_dev_type):
   isis_data=str()
   rx_config=m.get_config('running').data_xml
   print('GET_CONFIG(RUNNING):\n'+str(rx_config)+'\n') if aargs.verbose else print('GET_CONFIG(RUNNING).')
+  ### HEADER/COMMENT FILTER-OUT ------------------------------------------------
+  rx_config_filtered=str(rx_config).split('?>')[1] if '?>' in str(rx_config) else str(rx_config)
+
+  ### GET ISIS ADJACENCY INFORMATION -------------------------------------------
   if recognised_dev_type=='junos':
-    tag='get-isis-adjacency-information'
-    rpc_filter='''<{}><detail/></{}>'''.format(tag,tag)
-    isis_data = m.rpc(rpc_filter)
-    print('RPC: '+tag+'\n'+str(isis_data)+'\n') if aargs.verbose else print('RPC: '+tag)
-    ###-------------------------------------------------------------------------
+    isis_data_filtered=ncclient_get_or_rpc_operational_data_as_string(m,'get-isis-adjacency-information',recognised_dev_type)
   elif recognised_dev_type=='csr':
     isis_filter='''<filter type="subtree">
   <isis xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-clns-isis-oper">
@@ -540,19 +572,16 @@ def ncclient_read_all(m,recognised_dev_type):
     </instances>
   </isis>
 </filter>'''.format('PAII')
-    isis_data = m.get(filter=isis_filter)
-    print('GET_FILTER:\n'+str(isis_data)) if aargs.verbose else print('GET_FILTER.')
-    ###-------------------------------------------------------------------------
-  ### make xml headers and write filtered data to file -------------------------
-  rx_config_filtered=str(rx_config).split('?>')[1] if '?>' in str(rx_config) else str(rx_config)
-  isis_data_filtered=str(isis_data).split('?>')[1] if '?>' in str(isis_data) else str(isis_data)
+    isis_data_filtered=ncclient_get_or_rpc_operational_data_as_string(m,isis_filter,recognised_dev_type)
+
+  ### MAKE XML HEADERS AND WRITE FILTERED DATA TO FILE -------------------------
   file_name=str(recognised_dev_type)+'_all_'+timestring+'.xml'
   with open(file_name, 'w', encoding='utf8') as outfile:
     outfile.write('<?xml version="1.0" encoding="UTF-8"?>\n<xmlfile xmlfilename="'+file_name+'">\n<get_config>\n')
     outfile.write(str(rx_config_filtered)+'\n</get_config>\n<get_isis_adjacency>\n'+str(isis_data_filtered)+'\n</get_isis_adjacency>\n</xmlfile>')
     print('\nCreating '+file_name+' file.\n')
     print('ACTUAL ISIS ADJACENCY STATE:')
-    print_lines=['  '.join(isis) for isis in decode_isis_adjacency(file_name,recognised_dev_type)]
+    print_lines=['  '.join(isis) for isis in get_isis_adjacency_datalist_from_xmlfile(file_name,recognised_dev_type)]
     print('\n'.join(print_lines))
     return file_name
   return str()
@@ -562,9 +591,10 @@ def ncclient_read_all(m,recognised_dev_type):
 ### MAIN =======================================================================
 def main():
 
+### TESTSTRINGS
 #   l1=[('SINPE55', 'ge-1/0/2.0', 'Up'), ('PASCR6', 'so-0/0/0.1', 'Up'), ('LONCR1', 'so-0/2/0.0', 'Up'), ('PASCR7', 'xe-1/2/1.0', 'Up'), ('SINCR4', 'xe-1/2/3.0', 'Up'), ('PASCR7', 'xe-1/2/4.0', 'Up'), ('SINCR4', 'xe-2/2/2.0', 'Up'), ('SINPE4', 'xe-2/2/3.0', 'Up'), ('PASCR7', 'xe-2/2/4.0', 'Up'), ('SINCR4', 'xe-2/2/5.0', 'Up')]
 #   l2=[('SINPE5', 'ge-1/0/2.0', 'Up'), ('PASCR6', 'so-0/0/0.0', 'Up'), ('LONCR1', 'so-0/2/0.0', 'Up'), ('PASCR7', 'xe-1/2/1.0', 'Down'), ('SINCR4', 'xe-1/2/3.0', 'Up'), ('PASCR7', 'xe-1/2/4.0', 'Up'), ('SINCR4', 'xe-2/2/2.0', 'Up'), ('SINPE4', 'xe-2/2/3.0', 'Up'), ('PASCR7', 'xe-2/2/4.0', 'Up'), ('SINCR4', 'xe-2/2/5.0', 'Up')]
-#   string_file_difference(l1,l2)
+#   get_string_file_difference_string(l1,l2)
 #   exit(0)
 
   file_name=str()
@@ -600,13 +630,13 @@ def main():
                              look_for_keys=False,hostkey_verify=False ) as m:
         print('CONNECTED  :',m.connected)
         get_junos_productmodel_and_osversion(m,recognised_dev_type)
-        if aargs.getcapabilities: ncclient_capabilities(m,recognised_dev_type)
-        if aargs.getrpc: file_name=nccclient_rpc(m,recognised_dev_type)
-        if aargs.getdata: file_name=nccclient_get(m,recognised_dev_type)
-        if aargs.getrunningconfig or aargs.getcandidateconfig: file_name=ncclient_getconfig(m,recognised_dev_type)
-        if aargs.getcommands: file_name=ncclient_commands(m,recognised_dev_type)
+        if aargs.getcapabilities: ncclient_capabilities_to_file(m,recognised_dev_type)
+        if aargs.getrpc: file_name=ncclient_rpc_to_file(m,recognised_dev_type)
+        if aargs.getdata: file_name=ncclient_get_to_file(m,recognised_dev_type)
+        if aargs.getrunningconfig or aargs.getcandidateconfig: file_name=ncclient_getconfig_to_file(m,recognised_dev_type)
+        if aargs.getcommands: file_name=ncclient_commands_to_file(m,recognised_dev_type)
         if not file_name: file_name=ncclient_read_all(m,recognised_dev_type)
-        if aargs.comparewithfile: compare_xml_xpath_files(file_name,aargs.comparewithfile,recognised_dev_type)
+        if aargs.comparewithfile: compare_xml_files_and_do_diff_file(file_name,aargs.comparewithfile,recognised_dev_type)
   ### --------------------------------------------------------------------------
   if aargs.verbose and aargs.xpathexpression: print('\nDEBUG_XPATH to XML:\n'+get_xmlstring_from_xpath(aargs.xpathexpression))
   ### --------------------------------------------------------------------------
