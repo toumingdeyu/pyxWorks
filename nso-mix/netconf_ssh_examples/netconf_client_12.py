@@ -282,7 +282,7 @@ def string_file_difference(old_isis_list,new_isis_list):
     BOLD='\033[1m'
     UNDERLINE='\033[4m'
 
-  print_string='ADJACENCY STATE:\n'
+  print_string="ISIS ADJACENCY STATE: ('-' missing, '+' added, '!' different)\n"
   if old_isis_list and new_isis_list:
     new_isis_address_list=[isis_address for isis_address,dummy1,dummy2 in new_isis_list]
     old_isis_address_list=[isis_address for isis_address,dummy1,dummy2 in old_isis_list]
@@ -357,15 +357,15 @@ def compare_xml_xpath_files(file_name,comparewithfile=None,recognised_dev_type=N
       with open(file_name+file_suffix, 'r') as post:
         with open('file-diff_'+timestring+'.diff', 'w', encoding='utf8') as outfile:
           print('Creating file-diff_'+timestring+'.diff file.')
-          print_string='\nPRE='+comparewithfile+file_suffix+'\nPOST='+file_name+file_suffix+'\nRAW-FILE-DIFF:'+'\n'+80*('=')+'\n'
-          print(print_string); outfile.write(print_string)
+          print_string='RAW-FILE-DIFF:\n(PRE='+comparewithfile+file_suffix+', POST='+file_name+file_suffix+')\n'+80*('=')+'\n'
+          print('\n'+print_string); outfile.write(print_string)
           diff = difflib.unified_diff(pre.readlines(),post.readlines(),fromfile='PRE',tofile='POST',n=0)
           for line in diff: print(line.replace('\n',''));outfile.write(line)
           print_string='\n'+80*('=')+'\n';print(print_string);outfile.write(print_string)
           ### SHOW UP/DOWN ISIS STATES -------------------------------------------------
           old_isis_state=decode_isis_adjacency(comparewithfile,recognised_dev_type)
           new_isis_state=decode_isis_adjacency(file_name,recognised_dev_type)
-          print_string=string_file_difference(old_isis_state,new_isis_state);print(print_string);outfile.write(print_string)
+          print_string=string_file_difference(old_isis_state,new_isis_state);print(print_string);outfile.write('\n'+print_string)
   ### --------------------------------------------------------------------------
 
 
