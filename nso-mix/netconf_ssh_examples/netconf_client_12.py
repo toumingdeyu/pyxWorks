@@ -282,8 +282,8 @@ def string_file_difference(old_isis_list,new_isis_list):
     BOLD='\033[1m'
     UNDERLINE='\033[4m'
 
+  print_string='ADJACENCY STATE:\n'
   if old_isis_list and new_isis_list:
-    print_string='ADJACENCY STATE:\n'
     new_isis_address_list=[isis_address for isis_address,dummy1,dummy2 in new_isis_list]
     old_isis_address_list=[isis_address for isis_address,dummy1,dummy2 in old_isis_list]
     lost_isis_items=[item for item in old_isis_address_list if item not in new_isis_address_list]
@@ -304,7 +304,7 @@ def string_file_difference(old_isis_list,new_isis_list):
       else:
         if 'DOWN' in new_isis_state.upper(): print_string=print_string+'%s  !  %s  %s  %s'%(bcolors.RED,new_isis_address,new_isis_interface,new_isis_state)+'\n'
         else: print_string=print_string+'%s  !  %s  %s  %s'%(bcolors.WARNING,new_isis_address,new_isis_interface,new_isis_state)+'\n'
-    return print_string
+  return print_string
 ###-----------------------------------------------------------------------------
 
 ###-----------------------------------------------------------------------------
