@@ -283,27 +283,28 @@ def string_file_difference(old_isis_list,new_isis_list):
     UNDERLINE='\033[4m'
 
   if old_isis_list and new_isis_list:
+    print_string='ADJACENCY STATE:\n'
     new_isis_address_list=[isis_address for isis_address,dummy1,dummy2 in new_isis_list]
     old_isis_address_list=[isis_address for isis_address,dummy1,dummy2 in old_isis_list]
     lost_isis_items=[item for item in old_isis_address_list if item not in new_isis_address_list]
     new_isis_items=[item for item in new_isis_address_list if item not in old_isis_address_list]
-    print('ADJACENCY STATE:')
     for old_isis_address,old_isis_interface,old_isis_state in old_isis_list:
       if old_isis_address in lost_isis_items:
-        print('%s  -  %s  %s  %s'%(bcolors.RED,old_isis_address,old_isis_interface,old_isis_state))
+        print_string=print_string+'%s  -  %s  %s  %s'%(bcolors.RED,old_isis_address,old_isis_interface,old_isis_state)+'\n'
     for new_isis_address,new_isis_interface,new_isis_state in new_isis_list:
       ### new addressess
       if new_isis_address in new_isis_items:
-        if 'DOWN' in new_isis_state.upper(): print('%s  +  %s  %s  %s'%(bcolors.RED,new_isis_address,new_isis_interface,new_isis_state))
-        else: print('%s  +  %s  %s  %s'%(bcolors.WARNING,new_isis_address,new_isis_interface,new_isis_state))
+        if 'DOWN' in new_isis_state.upper(): print_string=print_string+'%s  +  %s  %s  %s'%(bcolors.RED,new_isis_address,new_isis_interface,new_isis_state)+'\n'
+        else: print_string=print_string+'%s  +  %s  %s  %s'%(bcolors.WARNING,new_isis_address,new_isis_interface,new_isis_state)+'\n'
       ### isis are the same
       elif (new_isis_address,new_isis_interface,new_isis_state) in old_isis_list:
-        if 'DOWN' in new_isis_state.upper(): print('%s     %s  %s  %s'%(bcolors.RED,new_isis_address,new_isis_interface,new_isis_state))
-        else: print('%s     %s  %s  %s'%(bcolors.GREEN,new_isis_address,new_isis_interface,new_isis_state))
+        if 'DOWN' in new_isis_state.upper(): print_string=print_string+'%s     %s  %s  %s'%(bcolors.RED,new_isis_address,new_isis_interface,new_isis_state)+'\n'
+        else: print_string=print_string+'%s     %s  %s  %s'%(bcolors.GREEN,new_isis_address,new_isis_interface,new_isis_state)+'\n'
       ### different isis
       else:
-        if 'DOWN' in new_isis_state.upper(): print('%s  !  %s  %s  %s'%(bcolors.RED,new_isis_address,new_isis_interface,new_isis_state))
-        else: print('%s  !  %s  %s  %s'%(bcolors.WARNING,new_isis_address,new_isis_interface,new_isis_state))
+        if 'DOWN' in new_isis_state.upper(): print_string=print_string+'%s  !  %s  %s  %s'%(bcolors.RED,new_isis_address,new_isis_interface,new_isis_state)+'\n'
+        else: print_string=print_string+'%s  !  %s  %s  %s'%(bcolors.WARNING,new_isis_address,new_isis_interface,new_isis_state)+'\n'
+    return print_string
 ###-----------------------------------------------------------------------------
 
 ###-----------------------------------------------------------------------------
@@ -361,10 +362,10 @@ def compare_xml_xpath_files(file_name,comparewithfile=None,recognised_dev_type=N
           diff = difflib.unified_diff(pre.readlines(),post.readlines(),fromfile='PRE',tofile='POST',n=0)
           for line in diff: print(line.replace('\n',''));outfile.write(line)
           print_string='\n'+80*('=')+'\n';print(print_string);outfile.write(print_string)
-  ### SHOW UP/DOWN ISIS STATES -------------------------------------------------
-  old_isis_state=decode_isis_adjacency(comparewithfile,recognised_dev_type)
-  new_isis_state=decode_isis_adjacency(file_name,recognised_dev_type)
-  print(string_file_difference(old_isis_state,new_isis_state)  )
+          ### SHOW UP/DOWN ISIS STATES -------------------------------------------------
+          old_isis_state=decode_isis_adjacency(comparewithfile,recognised_dev_type)
+          new_isis_state=decode_isis_adjacency(file_name,recognised_dev_type)
+          print_string=string_file_difference(old_isis_state,new_isis_state);print(print_string);outfile.write(print_string)
   ### --------------------------------------------------------------------------
 
 
@@ -550,8 +551,9 @@ def ncclient_read_all(m,recognised_dev_type):
     outfile.write('<?xml version="1.0" encoding="UTF-8"?>\n<xmlfile xmlfilename="'+file_name+'">\n<get_config>\n')
     outfile.write(str(rx_config_filtered)+'\n</get_config>\n<get_isis_adjacency>\n'+str(isis_data_filtered)+'\n</get_isis_adjacency>\n</xmlfile>')
     print('\nCreating '+file_name+' file.\n')
-    print('ISIS ADJACENCY STATE:')
-    print(decode_isis_adjacency(file_name,recognised_dev_type))
+    print('ACTUAL ISIS ADJACENCY STATE:')
+    print_lines=['  '.join(isis) for isis in decode_isis_adjacency(file_name,recognised_dev_type)]
+    print('\n'.join(print_lines))
     return file_name
   return str()
 ###-----------------------------------------------------------------------------
