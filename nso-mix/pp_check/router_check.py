@@ -120,7 +120,6 @@ class bcolors:
         YELLOW     = '\033[93m'
         GREEN      = '\033[92m'
         OKGREEN    = '\033[92m'
-        GREEN      = '\033[92m'
         WARNING    = '\033[93m'
         RED        = '\033[91m'
         FAIL       = '\033[91m'
@@ -136,7 +135,7 @@ def find_router_type(host):
     return_stream = os.popen(snmp_req)
     retvalue = return_stream.readline()
     if len(retvalue) == 0:
-        print("\nCannot connect to %s (unknow host)") % (host)
+        print("\nCannot connect to %s (unknow host)" % (host))
         sys.exit()
     else:
         if PLATFORM_DESCR_XR in retvalue:
@@ -146,7 +145,7 @@ def find_router_type(host):
         elif PLATFORM_DESCR_JUNOS in retvalue:
             router_os = 'junos'
         else:
-            print "\nCannot find recognizable OS in %s" % (retvalue)
+            print("\nCannot find recognizable OS in %s" % (retvalue))
             sys.exit()
     return router_os
 
@@ -156,7 +155,7 @@ def find_platform_type(host):
     return_stream = os.popen(snmp_req)
     retvalue = return_stream.readline()
     if len(retvalue) == 0:
-        print("\nCannot connect to %s (unknow host)") % (host)
+        print("\nCannot connect to %s (unknow host)" % (host))
         sys.exit()
     else:
         if PLATFORM_DESCR_CRS in retvalue:
@@ -168,7 +167,7 @@ def find_platform_type(host):
         elif PLATFORM_DESCR_MX2020 in retvalue:
             platform_type = 'juniper-mx2020'
         else:
-            print "\nCannot find recognizable OS in %s" % (retvalue)
+            print("\nCannot find recognizable OS in %s" % (retvalue))
             sys.exit()
     return platform_type
 
@@ -345,7 +344,7 @@ def get_difference_string_from_string_or_list(old_string_or_list,new_string_or_l
                 else: print('!!! PARSING PROBLEM: ',j,old_line,' -- vs -- ',i,line,' !!!')
 
             if debug: print('####### %s  %s  %s  %s\n'%(go,color,diff_sign,print_line))
-            if print_line: print_string=print_string+'%s  %s  %s\n'%(color,diff_sign,print_line)
+            if print_line: print_string=print_string+'%s  %s  %s%s\n'%(color,diff_sign,print_line,bcolors.ENDC)
 
     return print_string
 
@@ -387,7 +386,7 @@ parser.add_argument("--noslice",
             default=False,
             help="postcheck with no end of line cut")
 
-args = parser.parse_args ()
+args = parser.parse_args()
 if args.post: pre_post = 'post'
 else: pre_post = 'pre'
 
@@ -412,27 +411,27 @@ if not os.path.exists('./logs'):
 
 if args.precheck_file != None:
     if not os.path.isfile(args.precheck_file):
-        print (bcolors.FAIL + " ... Can't find precheck file: %s" + bcolors.ENDC) \
+        print(bcolors.FAIL + " ... Can't find precheck file: %s" + bcolors.ENDC) \
            % args.precheck_file
         sys.exit()
 else:
     if pre_post == 'post':
         list_precheck_files = glob.glob("./logs/" + args.device + '*' + 'pre')
         if len(list_precheck_files) == 0:
-            print (bcolors.FAIL + " ... Can't find any precheck file: %s " + bcolors.ENDC)
-        sys.exit()
-    most_recent_precheck = list_precheck_files[0]
-    for item in list_precheck_files:
-        filecreation = os.path.getctime(item)
-        if filecreation > (os.path.getctime(most_recent_precheck)):
-            most_recent_precheck = item
-    args.precheck_file = most_recent_precheck
+            print(bcolors.FAIL + " ... Can't find any precheck file: %s " + bcolors.ENDC)
+            sys.exit()
+        most_recent_precheck = list_precheck_files[0]
+        for item in list_precheck_files:
+            filecreation = os.path.getctime(item)
+            if filecreation > (os.path.getctime(most_recent_precheck)):
+                most_recent_precheck = item
+        args.precheck_file = most_recent_precheck
 
 ######## Find command list file (optional)
 
 if args.cmd_file != None:
     if not os.path.isfile(args.cmd_file):
-        print (bcolors.FAIL + " ... Can't find command file: %s " + bcolors.ENDC) \
+        print(bcolors.FAIL + " ... Can't find command file: %s " + bcolors.ENDC) \
                 % args.cmd_file
         sys.exit()
     else:
@@ -530,10 +529,10 @@ try:
         fp.write(output)                                            
 
 except (socket.timeout, paramiko.AuthenticationException) as e:
-        print (bcolors.FAIL + " ... Connection closed: %s " + bcolors.ENDC) % e
-        sys.exit()
+    print(bcolors.FAIL + " ... Connection closed: %s " + bcolors.ENDC % (e))
+    sys.exit()
 finally:
-        client.close()
+    client.close()
 
 print " ... Collection is completed\n"
 fp.close()
@@ -547,8 +546,8 @@ if pre_post == "post":
     subprocess.call(['ls','-l',precheck_file])
     print "\nPostcheck file:"
     subprocess.call(['ls','-l',postcheck_file])
-    fp1=open(precheck_file,"r")
-    fp2=open(postcheck_file,"r")
+    fp1 = open(precheck_file,"r")
+    fp2 = open(postcheck_file,"r")
     text1_lines = fp1.readlines()
     text2_lines = fp2.readlines()
 
@@ -571,35 +570,6 @@ if pre_post == "post":
 
         print(bcolors.BOLD + '\n' + cli + bcolors.ENDC)
         print(get_difference_string_from_string_or_list(precheck_section,postcheck_section,note=True))
-
-#         # Building DIFF for this section
-#         diff = difflib.ndiff(precheck_section, postcheck_section)
-#         clean_diff = list(diff)
-#         diff_print_pre = list()
-#         diff_print_post = list()
-#
-#         for index, item in enumerate(clean_diff):
-#                 clean_diff[index] = item.rstrip()
-#         if (re.match(r'^\+',clean_diff[index])) != None \
-#             and (re.search(r'MET$',clean_diff[index])) == None \
-#             and (re.search(r'UTC$',clean_diff[index])) == None:
-#                 diff_print_pre.append(clean_diff[index])
-#
-#         for index, item in enumerate(clean_diff):
-#         clean_diff[index] = item.rstrip()
-#             if (re.match(r'^\-',clean_diff[index])) != None \
-#             and (re.search(r'MET$',clean_diff[index])) == None \
-#             and (re.search(r'UTC$',clean_diff[index])) == None:
-#                 diff_print_post.append(clean_diff[index])
-#
-#         # Display diff
-#         if len(diff_print_pre) != 0 or len(diff_print_post) != 0:
-#         print(bcolors.BOLD + '\n' + cli + bcolors.ENDC)
-#         for index, line in enumerate(diff_print_pre):
-#             print bcolors.GREEN + '\t' +  diff_print_pre[index] + bcolors.ENDC
-#         for index, line in enumerate(diff_print_post):
-#             print bcolors.RED + '\t' +  diff_print_post[index] + bcolors.ENDC
-
 
     fp1.close()
     fp2.close()
