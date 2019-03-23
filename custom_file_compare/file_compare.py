@@ -20,7 +20,7 @@ class bcolors:
 
 
 ### GET_STRING_FILE_DIFFERENCE_STRING ==========================================
-def get_string_file_difference_string(old_unknown_type,new_unknown_type,print_equals=None):
+def get_string_file_difference_string(old_unknown_type,new_unknown_type,print_equals=None,debug=None):
     '''
     The head of line is
     '-' for missing line,
@@ -37,30 +37,15 @@ def get_string_file_difference_string(old_unknown_type,new_unknown_type,print_eq
     enum_new_lines = enumerate(new_lines)
     enum_old_lines = enumerate(old_lines)
 
-    zipped_lines=zip(old_lines,new_lines)
-    #print(zipped_lines)
-
-    #print(old_lines,new_lines)
-#     print('---------------------unified_diff:')
-#     diff = difflib.unified_diff(old_lines,new_lines,n=0)
-#     for line in diff: print(line.replace('\n',''))
-#         #if not ('@@' in line or '---' in line or '+++' in line): print(line.replace('\n',''))
-#     print('---------------------context_diff:')
-#     diff = difflib.context_diff(old_lines,new_lines,)
-#     for line in diff: print(line.replace('\n',''))
-#     print('---------------------ndiff:')
-#     diff = difflib.ndiff(old_lines,new_lines,)
-#     for line in diff: print(line.replace('\n',''))
-
     if old_lines and new_lines:
         new_first_words = [line.split(' ')[0] for line in new_lines]
         old_first_words = [line.split(' ')[0] for line in old_lines]
-        print('11111 :',old_first_words,new_first_words)
+        if debug: print('11111 :',old_first_words,new_first_words)
 
         lost_lines = [item for item in old_first_words if item not in new_first_words]
         added_lines = [item for item in new_first_words if item not in old_first_words]
-        print('----- :',lost_lines)
-        print('+++++ :',added_lines)
+        if debug: print('----- :',lost_lines)
+        if debug: print('+++++ :',added_lines)
 
         try:    j, old_line = next(enum_old_lines)
         except: j, old_line = -1, str()
@@ -71,8 +56,6 @@ def get_string_file_difference_string(old_unknown_type,new_unknown_type,print_eq
         while i >= 0 and j>=0:
             go, diff_sign, color, print_line = 'void', ' ', bcolors.WHITE, str()
 
-            print('???????',j,old_line,'-------',i,line)
-
             # void new lines
             if not line.strip():
                 while len(line.strip()) == 0 and i >= 0:
@@ -80,7 +63,7 @@ def get_string_file_difference_string(old_unknown_type,new_unknown_type,print_eq
                     except: i, line = -1, str()
 
             # void old lines
-            elif not old_line.strip():
+            if not old_line.strip():
                 while len(old_line.strip()) == 0 and j >= 0:
                     try:    j, old_line = next(enum_old_lines)
                     except: j, old_line = -1, str()
@@ -95,6 +78,10 @@ def get_string_file_difference_string(old_unknown_type,new_unknown_type,print_eq
             if line.strip() == old_line.strip():
                 if print_equals: go, diff_sign, color, print_line= 'line_equals', '=', bcolors.WHITE, line
                 else:            go, diff_sign, color, print_line= 'line_equals', '=', bcolors.WHITE, str()
+
+                # In case of DOWN/FAIL write also equal values !!!
+                if 'DOWN' in line.upper() or 'FAIL' in line.upper(): color, print_line = bcolors.RED, line
+
                 try:    j, old_line = next(enum_old_lines)
                 except: j, old_line = -1, str()
 
@@ -102,10 +89,13 @@ def get_string_file_difference_string(old_unknown_type,new_unknown_type,print_eq
                 except: i, line = -1, str()
 
             # changed line
-            elif first_line_word == first_old_line_word and not new_first_words[i] in new_lines:
+            elif first_line_word == first_old_line_word and not new_first_words[i] in added_lines:
                 go, diff_sign, color, print_line = 'changed_line', '!', bcolors.YELLOW, line
+
+                if 'DOWN' in line.upper() or 'FAIL' in line.upper(): color = bcolors.RED
+
                 try:    j, old_line = next(enum_old_lines)
-                except: j, old_line = 0, str()
+                except: j, old_line = -1, str()
 
                 try:    i, line = next(enum_new_lines)
                 except: i, line = -1, str()
@@ -113,47 +103,70 @@ def get_string_file_difference_string(old_unknown_type,new_unknown_type,print_eq
             # added line
             elif first_line_word in added_lines:
                 go, diff_sign, color, print_line = 'added_line','+',  bcolors.YELLOW, line
+
+                if 'DOWN' in line.upper() or 'FAIL' in line.upper(): color = bcolors.RED
+
                 try:    i, line = next(enum_new_lines)
                 except: i, line = -1, str()
 
             # lost line
             elif not first_line_word in lost_lines and old_line.strip():
-                go, diff_sign, color, print_line = 'lost_line', '-',  bcolors.RED, old_line
+                go, diff_sign, color, print_line = 'lost_line', '-',  bcolors.YELLOW, old_line
+
                 try:    j, old_line = next(enum_old_lines)
                 except: j, old_line = -1, str()
+            else:
+                # added line on the end
+                if first_line_word and not first_old_line_word:
+                    go, diff_sign, color, print_line = 'added_line_on_end','+',  bcolors.YELLOW, line
 
-            if 'DOWN' in line.upper() or 'FAIL' in line.upper(): color = bcolors.RED
+                    if 'DOWN' in line.upper() or 'FAIL' in line.upper(): color = bcolors.RED
+
+                    try:    i, line = next(enum_new_lines)
+                    except: i, line = -1, str()
+                # lost line on the end
+                elif not first_line_word and first_old_line_word:
+                    go, diff_sign, color, print_line = 'lost_line_on_end', '-',  bcolors.YELLOW, old_line
+
+                    try:    j, old_line = next(enum_old_lines)
+                    except: j, old_line = -1, str()
+                else: print('!!! PARSING PROBLEM: ',j,old_line,' -- vs -- ',i,line,' !!!')
+
+            if debug: print('####### %s  %s  %s  %s\n'%(go,color,diff_sign,print_line))
+
             if print_line: print_string=print_string+'%s  %s  %s\n'%(color,diff_sign,print_line)
-
-            print('!!!!!!!',j,old_line,'-------',i,line)
-            print('-------%s  %s  %s  %s\n'%(go, color,diff_sign,print_line))
-
-
-
 
     return print_string
 
 def main():
 
     old_lines='''
-    aaa fdffd hjhjgj
+    aaa fdffd hjhjgj down
 
 
 bbb dfsfsd sss jyjyjtu
 ddd ggggggggggggg
 eee ffsgf srgwrgwfg down
 ccc sfewfweg  sdgwrg
-ssss ssss
+ssss ssss down
 ddd ddddddddddd
+
+sssss dsss
+ddd ggggggggggggg
+
     '''
-    new_lines='''aaa fdffd hjhjgj
+    new_lines='''aaa fdffd hjhjgj down
 bbb dfsfsd jyjyjtu
 ccc sfewfweg  sdgwrg
 fff dsgg ethtq hthtyh
 gggg dsvsvvsf down
-ssss ssss
+ssss ssss down
 
 dddd jjjj
+ddd ggggggggggggggggg
+
+eee gggggggggggggg
+
     '''
     print(get_string_file_difference_string(old_lines,new_lines))
 
