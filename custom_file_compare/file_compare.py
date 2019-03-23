@@ -20,7 +20,7 @@ class bcolors:
 
 
 ### GET_STRING_FILE_DIFFERENCE_STRING ==========================================
-def get_string_file_difference_string(old_unknown_type,new_unknown_type):
+def get_string_file_difference_string(old_unknown_type,new_unknown_type,print_equals=None):
     '''
     The head of line is
     '-' for missing line,
@@ -93,7 +93,8 @@ def get_string_file_difference_string(old_unknown_type,new_unknown_type):
 
             # if again - lines are the same
             if line.strip() == old_line.strip():
-                go, diff_sign, color, print_line= 'line_equals', '=', bcolors.WHITE, line
+                if print_equals: go, diff_sign, color, print_line= 'line_equals', '=', bcolors.WHITE, line
+                else:            go, diff_sign, color, print_line= 'line_equals', '=', bcolors.WHITE, str()
                 try:    j, old_line = next(enum_old_lines)
                 except: j, old_line = -1, str()
 
@@ -110,13 +111,13 @@ def get_string_file_difference_string(old_unknown_type,new_unknown_type):
                 except: i, line = -1, str()
 
             # added line
-            elif line.strip().split()[0] in added_lines:
+            elif first_line_word in added_lines:
                 go, diff_sign, color, print_line = 'added_line','+',  bcolors.YELLOW, line
                 try:    i, line = next(enum_new_lines)
                 except: i, line = -1, str()
 
             # lost line
-            elif not line.strip().split()[0] in lost_lines and old_line.strip():
+            elif not first_line_word in lost_lines and old_line.strip():
                 go, diff_sign, color, print_line = 'lost_line', '-',  bcolors.RED, old_line
                 try:    j, old_line = next(enum_old_lines)
                 except: j, old_line = -1, str()
@@ -143,6 +144,7 @@ ddd ggggggggggggg
 eee ffsgf srgwrgwfg down
 ccc sfewfweg  sdgwrg
 ssss ssss
+ddd ddddddddddd
     '''
     new_lines='''aaa fdffd hjhjgj
 bbb dfsfsd jyjyjtu
