@@ -3,6 +3,7 @@ import io
 import os
 import sys
 import difflib
+import argparse
 
 class bcolors:
     DEFAULT = '\033[99m'
@@ -18,24 +19,51 @@ class bcolors:
     BOLD='\033[1m'
     UNDERLINE='\033[4m'
 
+parser = argparse.ArgumentParser()
+parser.add_argument("-f1", "--file1", action = "store", default = '',help = "file1")
+parser.add_argument("-f2", "--file2", action = "store", default = '',help = "file2")
+aargs = parser.parse_args()
+
 
 ### GET_STRING_FILE_DIFFERENCE_STRING ==========================================
 def get_string_file_difference_string(old_unknown_type,new_unknown_type,print_equals=None,debug=None):
     '''
     The head of line is
     '-' for missing line,
-    '+' for added line and
-    '!' for line that is different.
-    RED for something going Down or something missing.
-    ORANGE for something going Up or something new (not present in pre-check)
+    '+' for added line,
+    '!' for line that is different and
+    '=' for the same line, but with problem.
+    RED for something going DOWN or something missing or failed.
+    ORANGE for something going UP or something NEW (not present in pre-check)
     '''
-    print_string = "\n('-' missing, '+' added, '!' different, '=' equal):\n"
+    problem_list_upper = [' DOWN', 'FAIL']
+    ignore_list = [' MET', ' UTC']
 
-    new_lines = new_unknown_type if type(new_unknown_type) == list else new_unknown_type.splitlines()
-    old_lines = old_unknown_type if type(old_unknown_type) == list else old_unknown_type.splitlines()
+    print_string = "DIFF('-' missing, '+' added, '!' different, '=' equal with problem):\n"
 
-    enum_new_lines = enumerate(new_lines)
+    # make list from string if is not list already
+    old_lines_unfiltered = old_unknown_type if type(old_unknown_type) == list else old_unknown_type.splitlines()
+    new_lines_unfiltered = new_unknown_type if type(new_unknown_type) == list else new_unknown_type.splitlines()
+
+    # make filtered-out list of lines from both files
+    old_lines, new_lines = [], []
+    for line in old_lines_unfiltered:
+        ignore=False
+        for ignore_item in ignore_list:
+            if ignore_item in line: ignore=True
+        if not ignore: old_lines.append(line)
+
+    for line in new_lines_unfiltered:
+        ignore=False
+        for ignore_item in ignore_list:
+            if ignore_item in line: ignore=True
+        if not ignore: new_lines.append(line)
+
+    del old_lines_unfiltered
+    del new_lines_unfiltered
+
     enum_old_lines = enumerate(old_lines)
+    enum_new_lines = enumerate(new_lines)
 
     if old_lines and new_lines:
         new_first_words = [line.split(' ')[0] for line in new_lines]
@@ -80,7 +108,8 @@ def get_string_file_difference_string(old_unknown_type,new_unknown_type,print_eq
                 else:            go, diff_sign, color, print_line= 'line_equals', '=', bcolors.WHITE, str()
 
                 # In case of DOWN/FAIL write also equal values !!!
-                if 'DOWN' in line.upper() or 'FAIL' in line.upper(): color, print_line = bcolors.RED, line
+                for item in problem_list_upper:
+                    if item in line.upper(): color, print_line = bcolors.RED, line
 
                 try:    j, old_line = next(enum_old_lines)
                 except: j, old_line = -1, str()
@@ -92,7 +121,8 @@ def get_string_file_difference_string(old_unknown_type,new_unknown_type,print_eq
             elif first_line_word == first_old_line_word and not new_first_words[i] in added_lines:
                 go, diff_sign, color, print_line = 'changed_line', '!', bcolors.YELLOW, line
 
-                if 'DOWN' in line.upper() or 'FAIL' in line.upper(): color = bcolors.RED
+                for item in problem_list_upper:
+                    if item in line.upper(): color = bcolors.RED
 
                 try:    j, old_line = next(enum_old_lines)
                 except: j, old_line = -1, str()
@@ -104,7 +134,8 @@ def get_string_file_difference_string(old_unknown_type,new_unknown_type,print_eq
             elif first_line_word in added_lines:
                 go, diff_sign, color, print_line = 'added_line','+',  bcolors.YELLOW, line
 
-                if 'DOWN' in line.upper() or 'FAIL' in line.upper(): color = bcolors.RED
+                for item in problem_list_upper:
+                    if item in line.upper(): color = bcolors.RED
 
                 try:    i, line = next(enum_new_lines)
                 except: i, line = -1, str()
@@ -120,7 +151,8 @@ def get_string_file_difference_string(old_unknown_type,new_unknown_type,print_eq
                 if first_line_word and not first_old_line_word:
                     go, diff_sign, color, print_line = 'added_line_on_end','+',  bcolors.YELLOW, line
 
-                    if 'DOWN' in line.upper() or 'FAIL' in line.upper(): color = bcolors.RED
+                    for item in problem_list_upper:
+                        if item in line.upper(): color = bcolors.RED
 
                     try:    i, line = next(enum_new_lines)
                     except: i, line = -1, str()
@@ -168,6 +200,13 @@ ddd ggggggggggggggggg
 eee gggggggggggggg
 
     '''
+
+    if aargs.file1:
+        with io.open(aargs.file1) as file1: old_lines = file1.read()
+
+    if aargs.file2:
+        with io.open(aargs.file2) as file2: new_lines = file2.read()
+
     print(get_string_file_difference_string(old_lines,new_lines))
 
 
