@@ -4,6 +4,7 @@ import os
 import sys
 import difflib
 import argparse
+import re
 
 class bcolors:
     DEFAULT = '\033[99m'
@@ -26,7 +27,7 @@ aargs = parser.parse_args()
 
 note_string = "DIFF('-' missing, '+' added, '!' different, '=' equal with problem):\n"
 default_problem_list_upper = [' DOWN', 'FAIL']
-default_ignore_list = [' MET', ' UTC']
+default_ignore_list = [r' MET$', r' UTC$']
 
 ### GET_STRING_FILE_DIFFERENCE_STRING ==========================================
 def get_string_file_difference_string(
@@ -58,13 +59,15 @@ def get_string_file_difference_string(
     for line in old_lines_unfiltered:
         ignore=False
         for ignore_item in ignore_list:
-            if ignore_item in line: ignore=True
+            if (re.search(ignore_item,line)) != None: ignore = True
+            #if ignore_item in line: ignore=True
         if not ignore: old_lines.append(line)
 
     for line in new_lines_unfiltered:
         ignore=False
         for ignore_item in ignore_list:
-            if ignore_item in line: ignore=True
+            if (re.search(ignore_item,line)) != None: ignore = True
+            #if ignore_item in line: ignore = True
         if not ignore: new_lines.append(line)
 
     del old_lines_unfiltered
@@ -215,7 +218,7 @@ eee gggggggggggggg
     if aargs.file2:
         with io.open(aargs.file2) as file2: new_lines = file2.read()
 
-    print(get_string_file_difference_string(old_lines,new_lines))
+    print(get_string_file_difference_string(old_lines,new_lines,note=True))
 
 
 if __name__ == "__main__": main()
