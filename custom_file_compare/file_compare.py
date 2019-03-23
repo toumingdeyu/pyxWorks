@@ -26,19 +26,30 @@ parser.add_argument("-f2", "--file2", action = "store", default = '',help = "fil
 aargs = parser.parse_args()
 
 note_string = "DIFF('-' missing, '+' added, '!' different, '=' equal with problem):\n"
-default_problem_list_upper = [' DOWN', 'FAIL']
+default_problem_list = [' DOWN', 'FAIL']
 default_ignore_list = [r' MET$', r' UTC$']
 
-### GET_STRING_FILE_DIFFERENCE_STRING ==========================================
-def get_string_file_difference_string(
+
+def get_difference_string_from_string_or_list(
         old_string_or_list,
         new_string_or_list,
-        problem_list_upper = default_problem_list_upper,
+        problem_list = default_problem_list,
         ignore_list = default_ignore_list,
         print_equals = None,
         debug = None,
         note = True ):
     '''
+    FUNCTION get_difference_string_from_string_or_list:
+    INPUT PARAMETERS:
+      - old_string_or_list - content of old file in string or list type
+      - new_string_or_list - content of new file in string or list type
+      - problem_list - list of regular expressions or strings which detects problems, even if files are equal
+      - ignore_list - list of regular expressions or strings when line is ignored for file (string) comparison
+      - print_equals - True/False prints all equal new file lines with '=' prefix , by default is False
+      - debug - True/False, prints debug info to stdout, by default is False
+      - note - True/False, prints info header to stdout, by default is True
+    RETURNS: string with file differencies
+
     The head of line is
     '-' for missing line,
     '+' for added line,
@@ -60,14 +71,12 @@ def get_string_file_difference_string(
         ignore=False
         for ignore_item in ignore_list:
             if (re.search(ignore_item,line)) != None: ignore = True
-            #if ignore_item in line: ignore=True
         if not ignore: old_lines.append(line)
 
     for line in new_lines_unfiltered:
         ignore=False
         for ignore_item in ignore_list:
             if (re.search(ignore_item,line)) != None: ignore = True
-            #if ignore_item in line: ignore = True
         if not ignore: new_lines.append(line)
 
     del old_lines_unfiltered
@@ -119,8 +128,8 @@ def get_string_file_difference_string(
                 else:            go, diff_sign, color, print_line= 'line_equals', '=', bcolors.WHITE, str()
 
                 # In case of DOWN/FAIL write also equal values !!!
-                for item in problem_list_upper:
-                    if item in line.upper(): color, print_line = bcolors.RED, line
+                for item in problem_list:
+                    if (re.search(item,line)) != None: color, print_line = bcolors.RED, line
 
                 try:    j, old_line = next(enum_old_lines)
                 except: j, old_line = -1, str()
@@ -132,8 +141,8 @@ def get_string_file_difference_string(
             elif first_line_word == first_old_line_word and not new_first_words[i] in added_lines:
                 go, diff_sign, color, print_line = 'changed_line', '!', bcolors.YELLOW, line
 
-                for item in problem_list_upper:
-                    if item in line.upper(): color = bcolors.RED
+                for item in problem_list:
+                    if (re.search(item,line)) != None: color = bcolors.RED
 
                 try:    j, old_line = next(enum_old_lines)
                 except: j, old_line = -1, str()
@@ -145,8 +154,8 @@ def get_string_file_difference_string(
             elif first_line_word in added_lines:
                 go, diff_sign, color, print_line = 'added_line','+',  bcolors.YELLOW, line
 
-                for item in problem_list_upper:
-                    if item in line.upper(): color = bcolors.RED
+                for item in problem_list:
+                    if (re.search(item,line)) != None: color = bcolors.RED
 
                 try:    i, line = next(enum_new_lines)
                 except: i, line = -1, str()
@@ -162,8 +171,8 @@ def get_string_file_difference_string(
                 if first_line_word and not first_old_line_word:
                     go, diff_sign, color, print_line = 'added_line_on_end','+',  bcolors.YELLOW, line
 
-                    for item in problem_list_upper:
-                        if item in line.upper(): color = bcolors.RED
+                    for item in problem_list:
+                        if (re.search(item,line)) != None: color = bcolors.RED
 
                     try:    i, line = next(enum_new_lines)
                     except: i, line = -1, str()
@@ -176,10 +185,11 @@ def get_string_file_difference_string(
                 else: print('!!! PARSING PROBLEM: ',j,old_line,' -- vs -- ',i,line,' !!!')
 
             if debug: print('####### %s  %s  %s  %s\n'%(go,color,diff_sign,print_line))
-
             if print_line: print_string=print_string+'%s  %s  %s\n'%(color,diff_sign,print_line)
 
     return print_string
+
+
 
 def main():
 
@@ -218,7 +228,7 @@ eee gggggggggggggg
     if aargs.file2:
         with io.open(aargs.file2) as file2: new_lines = file2.read()
 
-    print(get_string_file_difference_string(old_lines,new_lines,note=True))
+    print(get_difference_string_from_string_or_list(old_lines,new_lines,note=True))
 
 
 if __name__ == "__main__": main()
