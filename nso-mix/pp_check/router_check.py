@@ -38,8 +38,8 @@ UNKNOW_HOST     = 'Name or service not known'
 TIMEOUT         = 60
 USERNAME        = os.environ['USER']
 
-note_string = "DIFF('-' missing, '+' added, '!' different, '=' equal with problem):\n"
-default_problem_list = [' DOWN', 'FAIL']
+note_string = "DIFF('-' missing, '+' added, '!' different, '=' equal with problem)\n"
+default_problem_list = [' DOWN', ' down','Down','Fail', 'FAIL', 'fail']
 default_ignore_list  = [r' MET$', r' UTC$']
 
 ###############################################################################
@@ -551,7 +551,7 @@ if pre_post == "post":
     text1_lines = fp1.readlines()
     text2_lines = fp2.readlines()
 
-    print('\nNOTE:' + note_string)
+    print('\nNOTE: ' + note_string)
 
     for cli in CMD:
         # set up correct slicing to remove irrelevant end of line info
