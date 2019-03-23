@@ -362,29 +362,29 @@ parser = argparse.ArgumentParser(
                 epilog = "e.g: ./router_check.py --device ASHTR2 --post\n")
 
 parser.add_argument("--version",
-                    action='version', version= VERSION)
+                    action = 'version', version = VERSION)
 parser.add_argument("--device",
-                    action="store", dest='device',
-                    required=True,
-                    help="target router to check")
+                    action = "store", dest = 'device',
+                    required = True,
+                    help = "target router to check")
 parser.add_argument("--os",
-                    action="store", dest="router_type",
-                    choices=["ios-xr","ios-xe"],
-                    help="router operating system type")
-parser.add_argument("--post", action="store_true",
-                    help="run Postcheck")
+                    action = "store", dest="router_type",
+                    choices = ["ios-xr","ios-xe"],
+                    help = "router operating system type")
+parser.add_argument("--post", action = "store_true",
+                    help = "run Postcheck")
 parser.add_argument("--file",
-                    action='store', dest="precheck_file",
-                    help="run postcheck against a specific precheck file")
-parser.add_argument("--cmd", action='store', dest="cmd_file",
-                    help="specify a file with a list of commands to execute")
+                    action = 'store', dest = "precheck_file",
+                    help = "run postcheck against a specific precheck file")
+parser.add_argument("--cmd", action = 'store', dest = "cmd_file",
+                    help = "specify a file with a list of commands to execute")
 parser.add_argument("--user",
-                    action="store", dest='username',
-                    help="specify router user login")
+                    action = "store", dest = 'username',
+                    help = "specify router user login")
 parser.add_argument("--noslice",
-            action="store_true",
-            default=False,
-            help="postcheck with no end of line cut")
+            action = "store_true",
+            default = False,
+            help = "postcheck with no end of line cut")
 
 args = parser.parse_args()
 if args.post: pre_post = 'post'
@@ -551,6 +551,8 @@ if pre_post == "post":
     text1_lines = fp1.readlines()
     text2_lines = fp2.readlines()
 
+    print('\nNOTE:' + note_string)
+
     for cli in CMD:
         # set up correct slicing to remove irrelevant end of line info
         if (cli in IOS_XR_SLICE) and (not args.noslice):
@@ -566,10 +568,10 @@ if pre_post == "post":
         #Looking for relevant section in postcheck file
         postcheck_section = find_section(text2_lines, DEVICE_PROMPT)
         for index, item in enumerate(postcheck_section):
-            postcheck_section[index] =  postcheck_section[index][:slicer]
+            postcheck_section[index] = postcheck_section[index][:slicer]
 
         print(bcolors.BOLD + '\n' + cli + bcolors.ENDC)
-        print(get_difference_string_from_string_or_list(precheck_section,postcheck_section,note=True))
+        print(get_difference_string_from_string_or_list(precheck_section,postcheck_section,note=False))
 
     fp1.close()
     fp2.close()
