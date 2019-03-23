@@ -30,8 +30,8 @@ default_ignore_list = [' MET', ' UTC']
 
 ### GET_STRING_FILE_DIFFERENCE_STRING ==========================================
 def get_string_file_difference_string(
-        old_unknown_type,
-        new_unknown_type,
+        old_string_or_list,
+        new_string_or_list,
         problem_list_upper = default_problem_list_upper,
         ignore_list = default_ignore_list,
         print_equals = None,
@@ -50,8 +50,8 @@ def get_string_file_difference_string(
     print_string = note_string if note else str()
 
     # make list from string if is not list already
-    old_lines_unfiltered = old_unknown_type if type(old_unknown_type) == list else old_unknown_type.splitlines()
-    new_lines_unfiltered = new_unknown_type if type(new_unknown_type) == list else new_unknown_type.splitlines()
+    old_lines_unfiltered = old_string_or_list if type(old_string_or_list) == list else old_string_or_list.splitlines()
+    new_lines_unfiltered = new_string_or_list if type(new_string_or_list) == list else new_string_or_list.splitlines()
 
     # make filtered-out list of lines from both files
     old_lines, new_lines = [], []
