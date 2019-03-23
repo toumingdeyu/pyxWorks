@@ -135,7 +135,7 @@ def find_router_type(host):
     snmp_req = "snmpget -v1 -c " + SNMP_COMMUNITY + " -t 5 " + host + " sysDescr.0"
     return_stream = os.popen(snmp_req)
     retvalue = return_stream.readline()
-    if len(retvalue)== 0:
+    if len(retvalue) == 0:
         print("\nCannot connect to %s (unknow host)") % (host)
         sys.exit()
     else:
@@ -155,7 +155,7 @@ def find_platform_type(host):
     snmp_req = "snmpget -v1 -c " + SNMP_COMMUNITY + " -t 5 " + host + " sysDescr.0"
     return_stream = os.popen(snmp_req)
     retvalue = return_stream.readline()
-    if len(retvalue)== 0:
+    if len(retvalue) == 0:
         print("\nCannot connect to %s (unknow host)") % (host)
         sys.exit()
     else:
@@ -197,14 +197,7 @@ def find_section(text, prompt):
     return text[b_index:e_index]
 
 
-def get_difference_string_from_string_or_list(
-        old_string_or_list,
-        new_string_or_list,
-        problem_list = default_problem_list,
-        ignore_list = default_ignore_list,
-        print_equals = None,
-        debug = None,
-        note = True ):
+def get_difference_string_from_string_or_list(old_string_or_list,new_string_or_list,problem_list = default_problem_list,ignore_list = default_ignore_list,print_equals = None,debug = None,note = True ):
     '''
     FUNCTION get_difference_string_from_string_or_list:
     INPUT PARAMETERS:
@@ -455,9 +448,9 @@ if args.cmd_file != None:
             list_cmd.remove('')
         if '\n' in list_cmd:
             list_cmd.remove('\n')
-            # clean up the list of commands - Remove trailling \n
-            for index, line in enumerate(list_cmd):
-                list_cmd[index] = list_cmd[index].rstrip('\n')
+        # clean up the list of commands - Remove trailling \n
+        for index, line in enumerate(list_cmd):
+            list_cmd[index] = list_cmd[index].rstrip('\n')
 
         if router_type == 'ios-xe':
             CMD_IOS_XE = list_cmd
@@ -490,16 +483,16 @@ fp = open(filename,"w")
 # Collect pre/post check information
 
 if router_type == "ios-xe":
-        CMD = CMD_IOS_XE
-        DEVICE_PROMPT = args.device.upper() + '#'
-        TERM_LEN_0 = "terminal length 0\n"
-        EXIT = "exit\n"
+    CMD = CMD_IOS_XE
+    DEVICE_PROMPT = args.device.upper() + '#'
+    TERM_LEN_0 = "terminal length 0\n"
+    EXIT = "exit\n"
 
 elif router_type == "ios-xr":
-        CMD = CMD_IOS_XR
-        DEVICE_PROMPT = args.device.upper() + '#'
-        TERM_LEN_0 = "terminal length 0\n"
-        EXIT = "exit\n"
+    CMD = CMD_IOS_XR
+    DEVICE_PROMPT = args.device.upper() + '#'
+    TERM_LEN_0 = "terminal length 0\n"
+    EXIT = "exit\n"
 
 elif router_type == "junos":
     CMD = CMD_JUNOS
@@ -520,8 +513,8 @@ try:
     chan.settimeout(TIMEOUT)
     while not chan.recv_ready():
         time.sleep(1)
-        output = ssh_read_until(chan,DEVICE_PROMPT)
-        chan.send(TERM_LEN_0 + '\n') 
+    output = ssh_read_until(chan,DEVICE_PROMPT)
+    chan.send(TERM_LEN_0 + '\n') 
     output = ssh_read_until(chan,DEVICE_PROMPT)
     # router prompt needed as file header
     chan.send('\n')
@@ -532,7 +525,7 @@ try:
         output = ''
         chan.send(item + '\n')
         print " ... %s" % item
-    # chan.send('\n')
+        # chan.send('\n')
         output = ssh_read_until(chan,DEVICE_PROMPT)
         fp.write(output)                                            
 
@@ -577,7 +570,7 @@ if pre_post == "post":
             postcheck_section[index] =  postcheck_section[index][:slicer]
 
         print(bcolors.BOLD + '\n' + cli + bcolors.ENDC)
-        print(get_difference_string_from_string_or_list(old_lines,new_lines,note=True))
+        print(get_difference_string_from_string_or_list(precheck_section,postcheck_section,note=True))
 
 #         # Building DIFF for this section
 #         diff = difflib.ndiff(precheck_section, postcheck_section)
