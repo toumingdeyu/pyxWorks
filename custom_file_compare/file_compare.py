@@ -24,9 +24,19 @@ parser.add_argument("-f1", "--file1", action = "store", default = '',help = "fil
 parser.add_argument("-f2", "--file2", action = "store", default = '',help = "file2")
 aargs = parser.parse_args()
 
+note_string = "DIFF('-' missing, '+' added, '!' different, '=' equal with problem):\n"
+default_problem_list_upper = [' DOWN', 'FAIL']
+default_ignore_list = [' MET', ' UTC']
 
 ### GET_STRING_FILE_DIFFERENCE_STRING ==========================================
-def get_string_file_difference_string(old_unknown_type,new_unknown_type,print_equals=None,debug=None):
+def get_string_file_difference_string(
+        old_unknown_type,
+        new_unknown_type,
+        problem_list_upper = default_problem_list_upper,
+        ignore_list = default_ignore_list,
+        print_equals = None,
+        debug = None,
+        note = True ):
     '''
     The head of line is
     '-' for missing line,
@@ -36,10 +46,8 @@ def get_string_file_difference_string(old_unknown_type,new_unknown_type,print_eq
     RED for something going DOWN or something missing or failed.
     ORANGE for something going UP or something NEW (not present in pre-check)
     '''
-    problem_list_upper = [' DOWN', 'FAIL']
-    ignore_list = [' MET', ' UTC']
 
-    print_string = "DIFF('-' missing, '+' added, '!' different, '=' equal with problem):\n"
+    print_string = note_string if note else str()
 
     # make list from string if is not list already
     old_lines_unfiltered = old_unknown_type if type(old_unknown_type) == list else old_unknown_type.splitlines()
