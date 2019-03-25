@@ -61,7 +61,7 @@ CMD_IOS_XE = [
             "show crypto isakmp sa",
             "show crypto ipsec sa count",
             "show crypto eli",
-            "show interfaces | include 30 second"
+            'show interfaces | include (^[A-Z].*|minute|second|Last input)'
             ]
 CMD_IOS_XR = [
             "show version",
@@ -81,7 +81,8 @@ CMD_IOS_XR = [
             "show redundancy summary",
             "show processes cpu | utility head count 3",
             "show inventory",
-            "show system verify report"
+            "show system verify report",
+            'show interfaces | utility egrep -e "^[A-Z]|minute|second|Last link flapped|Last input"'
             ]
 CMD_JUNOS = [
             "show system software",
