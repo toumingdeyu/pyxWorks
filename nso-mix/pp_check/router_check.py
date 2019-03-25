@@ -62,7 +62,7 @@ CMD_IOS_XE = [
             "show crypto ipsec sa count",
             "show crypto eli",
             'show interfaces | include (^[A-Z].*|minute|second|Last input)'
-            ]
+             ]
 CMD_IOS_XR = [
             "show version",
             "show running-config",
@@ -82,7 +82,7 @@ CMD_IOS_XR = [
             "show processes cpu | utility head count 3",
             "show inventory",
             "show system verify report",
-            'show interfaces | utility egrep -e "^[A-Z]|minute|second|Last link flapped|Last input"'
+            'show interfaces | include "^[A-Z].*|minute|second|Last input"'
             ]
 CMD_JUNOS = [
             "show system software",
@@ -101,7 +101,7 @@ CMD_JUNOS = [
             "show chassis power",
             "show system alarms",
             'show interfaces detail | match "Physical interface|Last flapped| bps"'
-        ]
+            ]
 CMD_VRP = [
             "display version",
             "display inventory",
@@ -115,7 +115,6 @@ CMD_VRP = [
             "display ip routing-table",
             "display bgp routing-table",
             'display interface | include (Description|current state|minutes|bandwidth utilization|Last physical)'
-            #,"display diagnostic-information"
             ]
 
 IOS_XR_SLICE = {
@@ -202,6 +201,8 @@ def ssh_read_until(channel,prompt):
 # Find a section of text betwwen "cli" varaible from upper block and "prompt
 def find_section(text, prompt):
     look_end = 0
+#     b_index = 0
+#     e_index = 0
     for index,item in enumerate(text):
         text[index] = item.rstrip()
         if (prompt+cli.rstrip()) in text[index]:    # beginning section found
