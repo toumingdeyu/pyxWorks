@@ -563,7 +563,7 @@ try:
         fp.write(output)                                            
 
 except (socket.timeout, paramiko.AuthenticationException) as e:
-    print(bcolors.FAIL + " ... Connection closed: %s " + bcolors.ENDC % (e))
+    print(bcolors.FAIL + " ... Connection closed: %s " % (e) + bcolors.ENDC )
     sys.exit()
 finally:
     client.close()
