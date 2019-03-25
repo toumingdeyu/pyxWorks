@@ -6,8 +6,8 @@
 #         Peter Nemec      (peter.nemec@orange.com)                           #
 # Created: 06/01/2015                                                         #
 # Updated: 23/Mar/2019 -added new custom filediff                             #
-#          25/Mar/2019 -added vrf huawei router type, old/new filediff method #
-# TODO: vrf autodetect                                                        #
+#          25/Mar/2019 -added vrp huawei router type, old/new filediff method #
+# TODO: huawei vrp autodetect                                                 #
 # Description: Script to collect and compare output from a router before      #
 # and after a configuration change or maintenance to outline router change    #
 # status                                                                      #
@@ -60,7 +60,8 @@ CMD_IOS_XE = [
             "show ip route summary",
             "show crypto isakmp sa",
             "show crypto ipsec sa count",
-            "show crypto eli"
+            "show crypto eli",
+            "show interfaces | include 30 second"
             ]
 CMD_IOS_XR = [
             "show version",
@@ -99,7 +100,7 @@ CMD_JUNOS = [
             "show chassis power",
             "show system alarms"
         ]
-CMD_VRF = [
+CMD_VRP = [
             "display version",
             "display current-configuration",
             "display saved-configuration",
@@ -391,7 +392,7 @@ parser.add_argument("--device",
                     help = "target router to check")
 parser.add_argument("--os",
                     action = "store", dest="router_type",
-                    choices = ["ios-xr","ios-xe","junos","vrf"],
+                    choices = ["ios-xr","ios-xe","junos","vrp"],
                     help = "router operating system type")
 parser.add_argument("--post", action = "store_true",
                     help = "run Postcheck")
@@ -527,8 +528,8 @@ elif router_type == "junos":
     TERM_LEN_0 = "set cli screen-length 0\n"
     EXIT = "exit\n"
 
-elif router_type == "vrf":
-    CMD = CMD_VRF
+elif router_type == "vrp":
+    CMD = CMD_VRP
     DEVICE_PROMPT = '<' + args.device.upper() + '>'
     TERM_LEN_0 = "screen-length 0 temporary\n"     #"screen-length disable\n"
     EXIT = "quit\n"
