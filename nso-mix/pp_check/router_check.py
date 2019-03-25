@@ -5,7 +5,8 @@
 # Author: Philippe Marcais (philippe.marcais@orange.com)                      #
 #         Peter Nemec      (peter.nemec@orange.com)                           #
 # Created: 06/01/2015                                                         #
-# Updated: 23/03/2019 - custom filediff                                       #
+# Updated: 23/Mar/2019 - custom filediff                                      #
+#          25/Mar/2019 - added vrf huawei router type                         #
 # Description: Script to collect and compare output from a router before      #
 # and after a configuration change or maintenance to outline router change    #
 # status                                                                      #
@@ -97,6 +98,19 @@ CMD_JUNOS = [
             "show chassis power",
             "show system alarms"
         ]
+CMD_VRF = [
+            "display version",
+            "display current-configuration",
+            "display saved-configuration",
+            "display startup",
+            "display acl all",
+            "display alarm all",
+            "display interface brief",
+            "display ip interface brief",
+            "display ip routing-table",
+            "display bgp routing-table"
+            #,"display diagnostic-information"
+            ]
 
 IOS_XR_SLICE = {
             'show isis neighbors' : 51,
@@ -145,6 +159,7 @@ def find_router_type(host):
         elif PLATFORM_DESCR_JUNOS in retvalue:
             router_os = 'junos'
         else:
+            print('DEBUG:',retvalue)
             print("\nCannot find recognizable OS in %s" % (retvalue))
             sys.exit()
     return router_os
@@ -369,7 +384,7 @@ parser.add_argument("--device",
                     help = "target router to check")
 parser.add_argument("--os",
                     action = "store", dest="router_type",
-                    choices = ["ios-xr","ios-xe"],
+                    choices = ["ios-xr","ios-xe","junos","vrf"],
                     help = "router operating system type")
 parser.add_argument("--post", action = "store_true",
                     help = "run Postcheck")
@@ -400,7 +415,8 @@ if args.username != None:
 if args.router_type == None:
     router_type = find_router_type(args.device)
 else:
-    router_type == args.router_type
+    router_type = args.router_type
+    print('Forced router_type:',router_type)
 
 ######## Create logs directory if not existing  ######### 
 
@@ -498,6 +514,12 @@ elif router_type == "junos":
     DEVICE_PROMPT = USERNAME + '@' + args.device.upper() + '> ' # !! Need the space after >
     TERM_LEN_0 = "set cli screen-length 0\n"
     EXIT = "exit\n"
+
+elif router_type == "vrf":
+    CMD = CMD_VRF
+    DEVICE_PROMPT = '<' + args.device.upper() + '>'
+    TERM_LEN_0 = "screen-length 0 temporary\n"     #"screen-length disable\n"
+    EXIT = "quit\n"
 
 # SSH (default)
 
