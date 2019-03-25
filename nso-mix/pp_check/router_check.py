@@ -5,8 +5,9 @@
 # Author: Philippe Marcais (philippe.marcais@orange.com)                      #
 #         Peter Nemec      (peter.nemec@orange.com)                           #
 # Created: 06/01/2015                                                         #
-# Updated: 23/Mar/2019 - custom filediff                                      #
-#          25/Mar/2019 - added vrf huawei router type                         #
+# Updated: 23/Mar/2019 -added new custom filediff                             #
+#          25/Mar/2019 -added vrf huawei router type, old/new filediff method #
+# TODO: vrf autodetect                                                        #
 # Description: Script to collect and compare output from a router before      #
 # and after a configuration change or maintenance to outline router change    #
 # status                                                                      #
@@ -397,9 +398,14 @@ parser.add_argument("--user",
                     action = "store", dest = 'username',
                     help = "specify router user login")
 parser.add_argument("--noslice",
-            action = "store_true",
-            default = False,
-            help = "postcheck with no end of line cut")
+                    action = "store_true",
+                    default = False,
+                    help = "postcheck with no end of line cut")
+parser.add_argument("-fd", "--filediff"
+                    action = "store", dest="filediff",
+                    choices = ["old","new"],
+                    default = 'new'
+                    help = "file-diff method old/new")
 
 args = parser.parse_args()
 if args.post: pre_post = 'post'
@@ -573,6 +579,10 @@ if pre_post == "post":
     text1_lines = fp1.readlines()
     text2_lines = fp2.readlines()
 
+    # close file descriptors for sure
+    fp1.close()
+    fp2.close()
+
     print('\nNOTE: ' + note_string)
 
     for cli in CMD:
@@ -592,11 +602,38 @@ if pre_post == "post":
         for index, item in enumerate(postcheck_section):
             postcheck_section[index] = postcheck_section[index][:slicer]
 
-        print(bcolors.BOLD + '\n' + cli + bcolors.ENDC)
-        print(get_difference_string_from_string_or_list(precheck_section,postcheck_section,note=False))
+        if args.filediff == 'new':
+            print(bcolors.BOLD + '\n' + cli + bcolors.ENDC)
+            print(get_difference_string_from_string_or_list(precheck_section,postcheck_section,note=False))
+        else:
+            # Building DIFF for this section
+            diff = difflib.ndiff(precheck_section, postcheck_section)
+            clean_diff = list(diff)
+            diff_print_pre = list()
+            diff_print_post = list()
 
-    fp1.close()
-    fp2.close()
+            for index, item in enumerate(clean_diff):
+                clean_diff[index] = item.rstrip()
+            if (re.match(r'^\+',clean_diff[index])) != None \
+                and (re.search(r'MET$',clean_diff[index])) == None \
+                and (re.search(r'UTC$',clean_diff[index])) == None:
+                    diff_print_pre.append(clean_diff[index])
+
+            for index, item in enumerate(clean_diff):
+                clean_diff[index] = item.rstrip()
+                if (re.match(r'^\-',clean_diff[index])) != None \
+                    and (re.search(r'MET$',clean_diff[index])) == None \
+                    and (re.search(r'UTC$',clean_diff[index])) == None:
+                        diff_print_post.append(clean_diff[index])
+
+            # Display diff
+            if len(diff_print_pre) != 0 or len(diff_print_post) != 0:
+                print(bcolors.BOLD + '\n' + cli + bcolors.ENDC)
+                for index, line in enumerate(diff_print_pre):
+                    print bcolors.GREEN + '\t' +  diff_print_pre[index] + bcolors.ENDC
+                for index, line in enumerate(diff_print_post):
+                    print bcolors.RED + '\t' +  diff_print_post[index] + bcolors.ENDC
+
     print '\n ==> POSTCHECK COMPLETE !'
 
 elif pre_post == "pre":
