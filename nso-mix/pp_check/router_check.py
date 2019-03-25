@@ -160,7 +160,6 @@ def find_router_type(host):
         elif PLATFORM_DESCR_JUNOS in retvalue:
             router_os = 'junos'
         else:
-            print('DEBUG:',retvalue)
             print("\nCannot find recognizable OS in %s" % (retvalue))
             sys.exit()
     return router_os
@@ -212,7 +211,14 @@ def find_section(text, prompt):
     return text[b_index:e_index]
 
 
-def get_difference_string_from_string_or_list(old_string_or_list,new_string_or_list,problem_list = default_problem_list,ignore_list = default_ignore_list,print_equals = None,debug = None,note = True ):
+def get_difference_string_from_string_or_list(
+    old_string_or_list, \
+    new_string_or_list, \
+    problem_list = default_problem_list, \
+    ignore_list = default_ignore_list, \
+    print_equals = None, \
+    debug = None, \
+    note = True ):
     '''
     FUNCTION get_difference_string_from_string_or_list:
     INPUT PARAMETERS:
@@ -401,11 +407,11 @@ parser.add_argument("--noslice",
                     action = "store_true",
                     default = False,
                     help = "postcheck with no end of line cut")
-parser.add_argument("-fd", "--filediff"
-                    action = "store", dest="filediff",
-                    choices = ["old","new"],
-                    default = 'new'
-                    help = "file-diff method old/new")
+parser.add_argument("--diff",
+                    action = "store", dest="diff",
+                    choices = ['old','new'],
+                    default = 'new',
+                    help = "filediff method old/new")
 
 args = parser.parse_args()
 if args.post: pre_post = 'post'
@@ -422,7 +428,7 @@ if args.router_type == None:
     router_type = find_router_type(args.device)
 else:
     router_type = args.router_type
-    print('Forced router_type:',router_type)
+    print('Forced router_type:' + router_type)
 
 ######## Create logs directory if not existing  ######### 
 
@@ -583,7 +589,7 @@ if pre_post == "post":
     fp1.close()
     fp2.close()
 
-    print('\nNOTE: ' + note_string)
+    if args.diff != 'old': print('\nNOTE: ' + note_string)
 
     for cli in CMD:
         # set up correct slicing to remove irrelevant end of line info
@@ -602,10 +608,7 @@ if pre_post == "post":
         for index, item in enumerate(postcheck_section):
             postcheck_section[index] = postcheck_section[index][:slicer]
 
-        if args.filediff == 'new':
-            print(bcolors.BOLD + '\n' + cli + bcolors.ENDC)
-            print(get_difference_string_from_string_or_list(precheck_section,postcheck_section,note=False))
-        else:
+        if args.diff == 'old':
             # Building DIFF for this section
             diff = difflib.ndiff(precheck_section, postcheck_section)
             clean_diff = list(diff)
@@ -633,6 +636,9 @@ if pre_post == "post":
                     print bcolors.GREEN + '\t' +  diff_print_pre[index] + bcolors.ENDC
                 for index, line in enumerate(diff_print_post):
                     print bcolors.RED + '\t' +  diff_print_post[index] + bcolors.ENDC
+        else:
+            print(bcolors.BOLD + '\n' + cli + bcolors.ENDC)
+            print(get_difference_string_from_string_or_list(precheck_section,postcheck_section,note=False))
 
     print '\n ==> POSTCHECK COMPLETE !'
 
