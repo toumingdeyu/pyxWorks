@@ -99,10 +99,12 @@ CMD_JUNOS = [
             "show chassis fpc",
             "show chassis fpc pic-status",
             "show chassis power",
-            "show system alarms"
+            "show system alarms",
+            'show interfaces detail | match "Physical interface|Last flapped| bps"'
         ]
 CMD_VRP = [
             "display version",
+            "display inventory",
             "display current-configuration",
             "display saved-configuration",
             "display startup",
@@ -111,7 +113,8 @@ CMD_VRP = [
             "display interface brief",
             "display ip interface brief",
             "display ip routing-table",
-            "display bgp routing-table"
+            "display bgp routing-table",
+            'display interface | include (Description|current state|minutes|bandwidth utilization|Last physical)'
             #,"display diagnostic-information"
             ]
 
