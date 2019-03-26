@@ -1,7 +1,5 @@
 #!/home/pnemec/Python-3.7.2/python
-#!/usr/bin/python36
-ScriptAuthor='peter.nemec@orange.com'
-ScriptVersion='v1.00'
+# !/usr/bin/python36
 
 import io
 import os
@@ -18,21 +16,23 @@ import collections
 import datetime
 import xml.dom.minidom
 from ncclient import manager
-#from lxml import etree
 import difflib
 from xml.etree import ElementTree
 
 warnings.simplefilter("ignore", DeprecationWarning)
 
+ScriptAuthor = 'peter.nemec@orange.com'
+ScriptVersion = 'v1.00'
+
 ### Highest AUTH priority have cmdline parameters, then external yaml file, last internal netconf_auth_data_yaml
-netconf_auth_data_yaml='''
+netconf_auth_data_yaml = '''
 netconf_user: pnemec
 netconf_password:
 netconf_ipaddress: 127.0.0.1
 netconf_ssh_port: 22224
 '''
 
-usage_text='''NETCONF CLIENT {}, created by {}, {}
+usage_text = '''NETCONF CLIENT {}, created by {}, {}
 for more info please type: python netconf_client_07.py -h
 
 MAKING OF PRECHECK FILE:
@@ -44,28 +44,28 @@ python {} -cwf file.xml
 
 urllib3.disable_warnings()
 now = datetime.datetime.now()
-timestring='%04d%02d%02d_%02d%02d%02d'%(now.year,now.month,now.day,now.hour,now.minute,now.second)
+timestring = '%04d%02d%02d_%02d%02d%02d'%(now.year,now.month,now.day,now.hour,now.minute,now.second)
 
 ### ARGPARSE ###################################################################
-ScriptName=sys.argv[0]
+ScriptName = sys.argv[0]
 parser = argparse.ArgumentParser()
 
-parser.add_argument("-y", "--yamlauthfile", action="store", default='',help="yaml auth file (netconf_user,netconf_password,netconf_ipaddress,netconf_ssh_port)")
-parser.add_argument("-usr", "--netconfusername", action="store", default='',help="override/insert netconf username")
-parser.add_argument("-pwd", "--netconfpassword", action="store", default='',help="override/insert netconf password")
-parser.add_argument("-url", "--netconfaddress", action="store", default='',help="override/insert netconf url/ip address")
-parser.add_argument("-p", "--netconfport", action="store", default='',help="override/insert netconf port")
-parser.add_argument("-dt", "--devicetype", action="store", default='',choices=['j','c','n','h','junos','csr','nexus','huawei'],help="FORCE device type [(j)unos,(c)sr,(n)exus,(h)uawei], by default is auto-detected.")
-parser.add_argument("-gca", "--getcapabilities",action="store_true", default=False, help="get capabilities to file")
-parser.add_argument("-grc", "--getrunningconfig",action="store_true", default=False, help="get running-config to file")
-parser.add_argument("-gcc", "--getcandidateconfig",action="store_true", default=False, help="get candidate-config to file")
-parser.add_argument("-gcm", "--getcommands",action="store_true", default=False, help="get commands to xml file (working only on junos)")
-parser.add_argument("-rpc", "--getrpc",action="store_true", default=False, help="get rpc answer to xml file (working only on junos)")
-parser.add_argument("-g", "--getdata",action="store_true", default=False, help="get xml data to file (needed -x xpath)")
-parser.add_argument("-x", "--xpathexpression", action="store", default=str(),help="xpath filter expression i.e.( -x /netconf-state[@xmlns='urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring']/schemas) (please use ' instead of \")")
-parser.add_argument("-xo", "--xpathoutputcomparison",action="store_true", default=False, help="xpath output format for difference comparison (default is xmlpath format)")
-parser.add_argument("-cwf", "--comparewithfile", action="store", default='',help="compare with xml file")
-parser.add_argument("-v", "--verbose",action="store_true", default=False, help="set verbose mode")
+parser.add_argument("-y", "--yamlauthfile", action = "store", default = '',help = "yaml auth file (netconf_user,netconf_password,netconf_ipaddress,netconf_ssh_port)")
+parser.add_argument("-usr", "--netconfusername", action = "store", default = '',help = "override/insert netconf username")
+parser.add_argument("-pwd", "--netconfpassword", action = "store", default = '',help = "override/insert netconf password")
+parser.add_argument("-url", "--netconfaddress", action = "store", default = '',help = "override/insert netconf url/ip address")
+parser.add_argument("-p", "--netconfport", action = "store", default = '',help = "override/insert netconf port")
+parser.add_argument("-dt", "--devicetype", action = "store", default = '',choices = ['j','c','n','h','junos','csr','nexus','huawei'],help = "FORCE device type [(j)unos,(c)sr,(n)exus,(h)uawei], by default is auto-detected.")
+parser.add_argument("-gca", "--getcapabilities",action = "store_true", default = False, help = "get capabilities to file")
+parser.add_argument("-grc", "--getrunningconfig",action = "store_true", default = False, help = "get running-config to file")
+parser.add_argument("-gcc", "--getcandidateconfig",action = "store_true", default = False, help = "get candidate-config to file")
+parser.add_argument("-gcm", "--getcommands",action = "store_true", default = False, help = "get commands to xml file (working only on junos)")
+parser.add_argument("-rpc", "--getrpc",action = "store_true", default = False, help = "get rpc answer to xml file (working only on junos)")
+parser.add_argument("-g", "--getdata",action = "store_true", default = False, help = "get xml data to file (needed -x xpath)")
+parser.add_argument("-x", "--xpathexpression", action = "store", default = str(),help = "xpath filter expression i.e.( -x /netconf-state[@xmlns='urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring']/schemas) (please use ' instead of \")")
+parser.add_argument("-xo", "--xpathoutputcomparison",action = "store_true", default = False, help = "xpath output format for difference comparison (default is xmlpath format)")
+parser.add_argument("-cwf", "--comparewithfile", action = "store", default = '',help = "compare with xml file")
+parser.add_argument("-v", "--verbose",action = "store_true", default = False, help = "set verbose mode")
 aargs = parser.parse_args()
 if aargs.verbose: print('\nINPUT_PARAMS:',parser.parse_args())
 if len(sys.argv)<2: print(usage_text)
@@ -76,7 +76,7 @@ def ncclient_capabilities_to_file(m,recognised_dev_type):
   if aargs.verbose: print('CAPABILITIES:',list(m.server_capabilities))
   ### WRITE CAPABILITIES TO FILE -----------------------------------------
   if aargs.getcapabilities:
-    file_name=str(recognised_dev_type)+'_capabilities_'+timestring+'.cap'
+    file_name = str(recognised_dev_type)+'_capabilities_'+timestring+'.cap'
     with open(file_name, 'w', encoding='utf8') as outfile:
       for c in m.server_capabilities: outfile.write(str(c)+'\n')
       print('Writing capabilities to file:',file_name)
@@ -107,16 +107,16 @@ def ncclient_commands_to_file(m,recognised_dev_type):
             "show system users" ]
   ### GET (JUNOS) COMMANDS -----------------------------------------------------
   if aargs.getcommands:
-    file_name=str(recognised_dev_type)+'_commands_'+timestring+'.xml'
-    if recognised_dev_type=='junos': CMDS=JUNOS_CMDS
+    file_name = str(recognised_dev_type) + '_commands_' + timestring + '.xml'
+    if recognised_dev_type == 'junos': CMDS=JUNOS_CMDS
 #     elif recognised_dev_type=='csr': CMDS=CMD_IOS_XR_CMDS
 #     else: CMDS=CMD_IOS_XE_CMDS
     if CMDS:
-      with open(file_name, 'w', encoding='utf8') as outfile:
-        outfile.write('<xmlfile name="'+file_name+'">\n')
+      with open(file_name, 'w', encoding = 'utf8') as outfile:
+        outfile.write('<xmlfile name="' + file_name + '">\n')
         for command in CMDS:
-          result=m.command(command=command, format='xml')
-          print('COMMAND: '+command)
+          result = m.command(command = command, format = 'xml')
+          print('COMMAND: ' + command)
           if aargs.verbose: print(str(result)+'\n')
           outfile.write('\n<command cmd="'+command+'">\n'+str(result)+'</command>\n')
         outfile.write('</xmlfile>\n')
@@ -128,12 +128,12 @@ def ncclient_commands_to_file(m,recognised_dev_type):
 ### NCCLIENT_GETCONFIG_TO_FILE =================================================
 def ncclient_getconfig_to_file(m,recognised_dev_type):
   if (aargs.getrunningconfig or aargs.getcandidateconfig):
-    if aargs.xpathexpression: rx_config = m.get_config(source='candidate' if aargs.getcandidateconfig else 'running',filter=('xpath',aargs.xpathexpression)).data_xml
-    else: rx_config=m.get_config(source='candidate' if aargs.getcandidateconfig else 'running').data_xml
+    if aargs.xpathexpression: rx_config = m.get_config(source = 'candidate' if aargs.getcandidateconfig else 'running',filter = ('xpath',aargs.xpathexpression)).data_xml
+    else: rx_config = m.get_config(source = 'candidate' if aargs.getcandidateconfig else 'running').data_xml
     if aargs.verbose: print('\n%s_CONFIG:\n'%(('candidate' if aargs.getcandidateconfig else 'running').upper() ),
                             str(rx_config) if '\n' in rx_config else xml.dom.minidom.parseString(str(rx_config)).toprettyxml())
-    file_name=str(recognised_dev_type)+('_candidate' if aargs.getcandidateconfig else '_running')+'_config_'+timestring+'.xml'
-    with open(file_name, 'w', encoding='utf8') as outfile:
+    file_name = str(recognised_dev_type) + ('_candidate' if aargs.getcandidateconfig else '_running') + '_config_' + timestring + '.xml'
+    with open(file_name, 'w', encoding = 'utf8') as outfile:
       outfile.write(str(rx_config)) if '\n' in rx_config else outfile.write(xml.dom.minidom.parseString(str(rx_config)).toprettyxml())
       print('Writing %s-config %s to file:'%('candidate' if aargs.getcandidateconfig else 'running','XPATH='+aargs.xpathexpression if aargs.xpathexpression else ''),file_name)
       return file_name
