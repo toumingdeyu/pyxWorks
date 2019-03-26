@@ -31,13 +31,13 @@ default_ignore_list = [r' MET$', r' UTC$']
 
 
 def get_difference_string_from_string_or_list(
-        old_string_or_list,
-        new_string_or_list,
-        problem_list = default_problem_list,
-        ignore_list = default_ignore_list,
-        print_equals = None,
-        debug = None,
-        note = True ):
+    old_string_or_list, \
+    new_string_or_list, \
+    problem_list = default_problem_list, \
+    ignore_list = default_ignore_list, \
+    print_equals = None, \
+    debug = None, \
+    note = True ):
     '''
     FUNCTION get_difference_string_from_string_or_list:
     INPUT PARAMETERS:
@@ -185,7 +185,7 @@ def get_difference_string_from_string_or_list(
                 else: print('!!! PARSING PROBLEM: ',j,old_line,' -- vs -- ',i,line,' !!!')
 
             if debug: print('####### %s  %s  %s  %s\n'%(go,color,diff_sign,print_line))
-            if print_line: print_string=print_string+'%s  %s  %s\n'%(color,diff_sign,print_line)
+            if print_line: print_string=print_string+'%s  %s  %s%s\n'%(color,diff_sign,print_line,bcolors.ENDC)
 
     return print_string
 
