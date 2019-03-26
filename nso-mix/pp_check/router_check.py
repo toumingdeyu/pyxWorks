@@ -61,7 +61,7 @@ CMD_IOS_XE = [
             "show crypto isakmp sa",
             "show crypto ipsec sa count",
             "show crypto eli",
-            'show interfaces | include (^[A-Z].*|minute|second|Last input)'
+            'show interfaces | in (^[A-Z].*|minute|second|Last input)'
              ]
 CMD_IOS_XR = [
             "show version",
@@ -82,7 +82,7 @@ CMD_IOS_XR = [
             "show processes cpu | utility head count 3",
             "show inventory",
             "show system verify report",
-            'show interfaces | include "^[A-Z].*|minute|second|Last input"'
+            "show interfaces | in \"^[A-Z].*|minute|second|Last input\""
             ]
 CMD_JUNOS = [
             "show system software",
@@ -198,22 +198,23 @@ def ssh_read_until(channel,prompt):
         output += buff
     return output
 
-# Find a section of text betwwen "cli" varaible from upper block and "prompt
+# Find a section of text betwwen "cli" variable from upper block and "prompt
 def find_section(text, prompt):
     look_end = 0
-#     b_index = 0
-#     e_index = 0
+    b_index, e_index = None, None
     for index,item in enumerate(text):
         text[index] = item.rstrip()
-        if (prompt+cli.rstrip()) in text[index]:    # beginning section found
+        if (prompt+cli.rstrip()) in text[index]:   # beginning section found
             b_index = index
-            look_end = 1                  # look for end of section now
+            look_end = 1                           # look for end of section now
             continue
         if look_end == 1:
             if prompt.rstrip() in text[index]:
                 e_index = index
                 look_end = 0
-
+    if not(b_index and e_index):
+        print("Section '%s' could not be found and compared." % (prompt+cli.rstrip()))
+        return str()
     return text[b_index:e_index]
 
 
@@ -575,6 +576,7 @@ finally:
     client.close()
 
 print " ... Collection is completed\n"
+fp.flush()
 fp.close()
 
 # Post Check treatment 
