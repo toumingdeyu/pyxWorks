@@ -44,8 +44,9 @@ try:    USERNAME        = os.environ['USER']
 except: USERNAME        = None
 
 note_string = "DIFF('-' missing, '+' added, '!' different, '=' equal with problem)\n"
-default_problem_list = [' DOWN', ' down','Down','Fail', 'FAIL', 'fail']
-default_ignore_list  = [r' MET$', r' UTC$']
+default_problem_list = []   #[' DOWN', ' down','Down','Fail', 'FAIL', 'fail']
+default_ignoreline_list = [r' MET$', r' UTC$']
+default_linefilter_list = []   #[r'^\w+\s+\w+']
 
 ###############################################################################
 #
@@ -55,69 +56,71 @@ default_ignore_list  = [r' MET$', r' UTC$']
 
 # IOS-XE is only for IPsec GW 
 CMD_IOS_XE = [
-            "show version",
+            #"show version",
             "show running-config",
             "show isis neighbors",
-            "show mpls ldp neighbor",
-            "show ip interface brief",
-            "show ip route summary",
-            "show crypto isakmp sa",
-            "show crypto ipsec sa count",
-            "show crypto eli",
-            'show interfaces | in (^[A-Z].*|minute|second|Last input)'
+#             "show mpls ldp neighbor",
+#             "show ip interface brief",
+#             "show ip route summary",
+#             "show crypto isakmp sa",
+#             "show crypto ipsec sa count",
+#             "show crypto eli",
+#             'show interfaces | in (^[A-Z].*|minute|second|Last input)'
              ]
 CMD_IOS_XR = [
-            "show version",
+            #"show version",
             "show running-config",
-            "admin show run",
-            "show interface brief",
+            #"admin show run",
+            #"show interface brief",
             "show isis interface brief",
             "show isis neighbors",
-            "show mpls ldp neighbor brief",
-            "show mpls ldp interface brief",
-            "show bgp sessions",
-            "show route summary",
-            "show rsvp  neighbors",
-            "show pim neighbor",
-            "show l2vpn xconnect group group1",
-            "admin show platform",
-            "show redundancy summary",
-            "show processes cpu | utility head count 3",
-            "show inventory",
-            "show system verify report",
-            "show interfaces | in \"^[A-Z].*|minute|second|Last input\""
+#             "show mpls ldp neighbor brief",
+#             "show mpls ldp interface brief",
+#             "show bgp sessions",
+#             "show route summary",
+#             "show rsvp  neighbors",
+#             "show pim neighbor",
+#             "show l2vpn xconnect group group1",
+#             "admin show platform",
+#             "show redundancy summary",
+#             "show processes cpu | utility head count 3",
+#             "show inventory",
+#             "show system verify report",
+#             "show interfaces | in \"^[A-Z].*|minute|second|Last input\""
             ]
 CMD_JUNOS = [
-            "show system software",
+            #"show system software",
             "show configuration",
-            "show interfaces terse",
+            #"show interfaces terse",
             "show isis adjacency",
-            "show ldp session brief",
-            "show ldp neighbor",
-            "show bgp summary",
-            "show rsvp neighbor",
-            "show pim neighbors",
-            "show l2vpn connections summary",
-            "show chassis routing-engine",
-            "show chassis fpc",
-            "show chassis fpc pic-status",
-            "show chassis power",
-            "show system alarms",
-            'show interfaces detail | match "Physical interface|Last flapped| bps"'
+#             "show ldp session brief",
+#             "show ldp neighbor",
+#             "show bgp summary",
+#             "show rsvp neighbor",
+#             "show pim neighbors",
+#             "show l2vpn connections summary",
+#             "show chassis routing-engine",
+#             "show chassis fpc",
+#             "show chassis fpc pic-status",
+#             "show chassis power",
+#             "show system alarms",
+#             'show interfaces detail | match "Physical interface|Last flapped| bps"'
             ]
 CMD_VRP = [
-            "display version",
-            "display inventory",
+            #"display version",
+            #"display inventory",
             "display current-configuration",
-            "display saved-configuration",
-            "display startup",
-            "display acl all",
-            "display alarm all",
-            "display interface brief",
-            "display ip interface brief",
-            "display ip routing-table",
-            "display bgp routing-table",
-            'display interface | include (Description|current state|minutes|bandwidth utilization|Last physical)'
+            "display isis interface",
+            "display isis peer",
+#             "display saved-configuration",
+#             "display startup",
+#             "display acl all",
+#             "display alarm all",
+#             "display interface brief",
+#             "display ip interface brief",
+#             "display ip routing-table",
+#             "display bgp routing-table",
+#             'display interface | include (Description|current state|minutes|bandwidth utilization|Last physical)'
             ]
 
 IOS_XR_SLICE = {
@@ -227,8 +230,10 @@ def find_section(text, prompt,cli_index, cli):
 def get_difference_string_from_string_or_list(
     old_string_or_list, \
     new_string_or_list, \
+    diff_method = 'new', \
     problem_list = default_problem_list, \
-    ignore_list = default_ignore_list, \
+    ignore_list = default_ignoreline_list, \
+    linefilter_list = default_linefilter_list, \
     print_equals = None, \
     debug = None, \
     note = True ):
@@ -237,8 +242,10 @@ def get_difference_string_from_string_or_list(
     INPUT PARAMETERS:
       - old_string_or_list - content of old file in string or list type
       - new_string_or_list - content of new file in string or list type
+      - diff_method - ndiff or new
       - problem_list - list of regular expressions or strings which detects problems, even if files are equal
       - ignore_list - list of regular expressions or strings when line is ignored for file (string) comparison
+      - linefilter_list - list of regular expressions which filters each line
       - print_equals - True/False prints all equal new file lines with '=' prefix , by default is False
       - debug - True/False, prints debug info to stdout, by default is False
       - note - True/False, prints info header to stdout, by default is True
@@ -265,16 +272,43 @@ def get_difference_string_from_string_or_list(
         ignore=False
         for ignore_item in ignore_list:
             if (re.search(ignore_item,line)) != None: ignore = True
+        for linefilter_item in linefilter_list:
+            if (re.search(linefilter_item,line)) != None:
+                line = re.findall(linefilter_item,line)[0]
         if not ignore: old_lines.append(line)
 
     for line in new_lines_unfiltered:
         ignore=False
         for ignore_item in ignore_list:
             if (re.search(ignore_item,line)) != None: ignore = True
+        for linefilter_item in linefilter_list:
+            if (re.search(linefilter_item,line)) != None:
+                line = re.findall(linefilter_item,line)[0]
         if not ignore: new_lines.append(line)
 
     del old_lines_unfiltered
     del new_lines_unfiltered
+
+    # NDIFF COMPARISON METHOD
+    if diff_method == 'ndiff':
+        print_string = str()
+        diff = difflib.ndiff(old_lines, new_lines)
+        #print(list(diff))
+        for line in list(diff):
+            try:    first_chars = line.strip()[0]+line.strip()[1]
+            except: first_chars = str()
+            if '+ ' == first_chars: print_string = print_string + bcolors.GREEN + line + bcolors.ENDC + '\n'
+            elif '- ' == first_chars: print_string = print_string + bcolors.RED + line + bcolors.ENDC + '\n'
+            elif '? ' == first_chars or first_chars == str(): pass
+            else: print_string = print_string + line + '\n'
+
+        return print_string
+#                 for index, line in enumerate(diff_print_pre):
+#                     print bcolors.GREEN + '\t' +  diff_print_pre[index] + bcolors.ENDC
+#                 for index, line in enumerate(diff_print_post):
+#                     print bcolors.RED + '\t' +  diff_print_post[index] + bcolors.ENDC
+
+
 
     enum_old_lines = enumerate(old_lines)
     enum_new_lines = enumerate(new_lines)
@@ -659,7 +693,7 @@ if pre_post == "post":
             postcheck_section = find_section(text2_lines, DEVICE_PROMPT,cli_index, cli)
 
             print(bcolors.BOLD + '\n' + cli + bcolors.ENDC)
-            print(get_difference_string_from_string_or_list(precheck_section,postcheck_section,note=False))
+            print(get_difference_string_from_string_or_list(precheck_section,postcheck_section,diff_method='ndiff', print_equals=True,note=False))
 
     print '\n ==> POSTCHECK COMPLETE !'
 
