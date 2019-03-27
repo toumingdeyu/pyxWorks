@@ -38,7 +38,10 @@ PLATFORM_DESCR_ASR9K    = 'Cisco IOS XR Software (Cisco ASR9K'
 PLATFORM_DESCR_MX2020   = 'Juniper Networks, Inc. mx2020'
 UNKNOW_HOST     = 'Name or service not known'
 TIMEOUT         = 60
-USERNAME        = os.environ['USER']
+try:    PASSWORD        = os.environ['PASS']
+except: PASSWORD        = None
+try:    USERNAME        = os.environ['USER']
+except: USERNAME        = None
 
 note_string = "DIFF('-' missing, '+' added, '!' different, '=' equal with problem)\n"
 default_problem_list = [' DOWN', ' down','Down','Fail', 'FAIL', 'fail']
@@ -199,19 +202,22 @@ def ssh_read_until(channel,prompt):
     return output
 
 # Find a section of text betwwen "cli" variable from upper block and "prompt
-def find_section(text, prompt):
+def find_section(text, prompt,cli_index, cli):
     look_end = 0
-    b_index, e_index = None, None
+    b_index, e_index, c_index = None, None, -1
     for index,item in enumerate(text):
-        text[index] = item.rstrip()
-        if (prompt+cli.rstrip()) in text[index]:   # beginning section found
-            b_index = index
-            look_end = 1                           # look for end of section now
-            continue
-        if look_end == 1:
-            if prompt.rstrip() in text[index]:
-                e_index = index
-                look_end = 0
+        if prompt.rstrip() in text[index].rstrip():
+            c_index = c_index+1
+            # beginning section found
+            # + workarround for long commands shortened in router echoed line
+            if (prompt+cli.rstrip()) in text[index].rstrip() or c_index == cli_index:
+                b_index = index
+                look_end = 1                       # look for end of section now
+                continue
+            if look_end == 1:
+                if prompt.rstrip() in text[index]:
+                    e_index = index
+                    look_end = 0
     if not(b_index and e_index):
         print("Section '%s' could not be found and compared." % (prompt+cli.rstrip()))
         return str()
@@ -373,7 +379,7 @@ def get_difference_string_from_string_or_list(
                 else: print('!!! PARSING PROBLEM: ',j,old_line,' -- vs -- ',i,line,' !!!')
 
             if debug: print('####### %s  %s  %s  %s\n'%(go,color,diff_sign,print_line))
-            if print_line: print_string=print_string+'%s  %s  %s%s\n'%(color,diff_sign,print_line,bcolors.ENDC)
+            if print_line: print_string=print_string+'%s  %s  %s%s\n'%(color,diff_sign,print_line.rstrip(),bcolors.ENDC)
 
     return print_string
 
@@ -492,8 +498,7 @@ if args.cmd_file != None:
             CMD_IOS_XR = list_cmd
 
 ############# Starting pre or post check
-
-PASSWORD = getpass.getpass("TACACS password: ")
+if not PASSWORD: PASSWORD = getpass.getpass("TACACS password: ")
 
 if pre_post == "post":
     print " ==> STARTING POSTCHECK ..."
@@ -590,8 +595,11 @@ if pre_post == "post":
     subprocess.call(['ls','-l',postcheck_file])
     fp1 = open(precheck_file,"r")
     fp2 = open(postcheck_file,"r")
-    text1_lines = fp1.readlines()
-    text2_lines = fp2.readlines()
+
+    # routers sometimes returns windows lines ('\r\n')
+    # readlines() splits by default '\n' only and '\r'stays in lines ('\r'+text+'\r\n' )
+    text1_lines = fp1.read().replace('\r','').splitlines()
+    text2_lines = fp2.read().replace('\r','').splitlines()
 
     # close file descriptors for sure
     fp1.close()
@@ -599,24 +607,23 @@ if pre_post == "post":
 
     if args.diff != 'old': print('\nNOTE: ' + note_string)
 
-    for cli in CMD:
-        # set up correct slicing to remove irrelevant end of line info
-        if (cli in IOS_XR_SLICE) and (not args.noslice):
-            slicer = IOS_XR_SLICE[cli]
-        else:
-            slicer = 100
-
-        # Looking for relevant section in precheck file
-        precheck_section = find_section(text1_lines, DEVICE_PROMPT)
-        for index, item in enumerate(precheck_section):
-            precheck_section[index] =  precheck_section[index][:slicer]
-
-        #Looking for relevant section in postcheck file
-        postcheck_section = find_section(text2_lines, DEVICE_PROMPT)
-        for index, item in enumerate(postcheck_section):
-            postcheck_section[index] = postcheck_section[index][:slicer]
-
+    for cli_index, cli in enumerate(CMD):
         if args.diff == 'old':
+            # set up correct slicing to remove irrelevant end of line info
+            if (cli in IOS_XR_SLICE) and (not args.noslice):
+                slicer = IOS_XR_SLICE[cli]
+            else:
+                slicer = 100
+            # Looking for relevant section in precheck file
+            precheck_section = find_section(text1_lines, DEVICE_PROMPT, cli_index, cli)
+            for index, item in enumerate(precheck_section):
+                precheck_section[index] =  precheck_section[index][:slicer]
+
+            #Looking for relevant section in postcheck file
+            postcheck_section = find_section(text2_lines, DEVICE_PROMPT, cli_index, cli)
+            for index, item in enumerate(postcheck_section):
+                postcheck_section[index] = postcheck_section[index][:slicer]
+
             # Building DIFF for this section
             diff = difflib.ndiff(precheck_section, postcheck_section)
             clean_diff = list(diff)
@@ -645,6 +652,12 @@ if pre_post == "post":
                 for index, line in enumerate(diff_print_post):
                     print bcolors.RED + '\t' +  diff_print_post[index] + bcolors.ENDC
         else:
+            # Looking for relevant section in precheck file
+            precheck_section = find_section(text1_lines, DEVICE_PROMPT,cli_index, cli)
+
+            #Looking for relevant section in postcheck file
+            postcheck_section = find_section(text2_lines, DEVICE_PROMPT,cli_index, cli)
+
             print(bcolors.BOLD + '\n' + cli + bcolors.ENDC)
             print(get_difference_string_from_string_or_list(precheck_section,postcheck_section,note=False))
 
