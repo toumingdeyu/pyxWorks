@@ -293,22 +293,15 @@ def get_difference_string_from_string_or_list(
     if diff_method == 'ndiff':
         print_string = str()
         diff = difflib.ndiff(old_lines, new_lines)
-        #print(list(diff))
         for line in list(diff):
             try:    first_chars = line.strip()[0]+line.strip()[1]
             except: first_chars = str()
-            if '+ ' == first_chars: print_string = print_string + bcolors.GREEN + line + bcolors.ENDC + '\n'
-            elif '- ' == first_chars: print_string = print_string + bcolors.RED + line + bcolors.ENDC + '\n'
+            if '+ ' == first_chars: print_string += bcolors.GREEN + line + bcolors.ENDC + '\n'
+            elif '- ' == first_chars: print_string += bcolors.RED + line + bcolors.ENDC + '\n'
+            elif '! ' == first_chars: print_string += bcolors.RED + line + bcolors.ENDC + '\n'
             elif '? ' == first_chars or first_chars == str(): pass
-            else: print_string = print_string + line + '\n'
-
+            elif print_equals: print_string += line + '\n'
         return print_string
-#                 for index, line in enumerate(diff_print_pre):
-#                     print bcolors.GREEN + '\t' +  diff_print_pre[index] + bcolors.ENDC
-#                 for index, line in enumerate(diff_print_post):
-#                     print bcolors.RED + '\t' +  diff_print_post[index] + bcolors.ENDC
-
-
 
     enum_old_lines = enumerate(old_lines)
     enum_new_lines = enumerate(new_lines)
