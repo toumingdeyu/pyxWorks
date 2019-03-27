@@ -23,18 +23,25 @@ class bcolors:
 parser = argparse.ArgumentParser()
 parser.add_argument("-f1", "--file1", action = "store", default = '',help = "file1")
 parser.add_argument("-f2", "--file2", action = "store", default = '',help = "file2")
+parser.add_argument("--diff", action = "store", dest = "diff", choices = ['ndiff','new'],
+                    default = 'new', help = "filediff method ndiff/new")
+parser.add_argument("-pe", "--printequals",action = "store_true", default = False,
+                    help = "print equal lines")
 aargs = parser.parse_args()
 
 note_string = "DIFF('-' missing, '+' added, '!' different, '=' equal with problem):\n"
-default_problem_list = [' DOWN', 'FAIL']
-default_ignore_list = [r' MET$', r' UTC$']
+default_problem_list = []   #[' DOWN', ' down','Down','Fail', 'FAIL', 'fail']
+default_ignoreline_list = [r' MET$', r' UTC$']
+default_linefilter_list = []   #[r'^\w+\s+\w+']
 
 
 def get_difference_string_from_string_or_list(
     old_string_or_list, \
     new_string_or_list, \
+    diff_method = 'new', \
     problem_list = default_problem_list, \
-    ignore_list = default_ignore_list, \
+    ignore_list = default_ignoreline_list, \
+    linefilter_list = default_linefilter_list, \
     print_equals = None, \
     debug = None, \
     note = True ):
@@ -43,8 +50,10 @@ def get_difference_string_from_string_or_list(
     INPUT PARAMETERS:
       - old_string_or_list - content of old file in string or list type
       - new_string_or_list - content of new file in string or list type
+      - diff_method - ndiff or new
       - problem_list - list of regular expressions or strings which detects problems, even if files are equal
       - ignore_list - list of regular expressions or strings when line is ignored for file (string) comparison
+      - linefilter_list - list of regular expressions which filters each line
       - print_equals - True/False prints all equal new file lines with '=' prefix , by default is False
       - debug - True/False, prints debug info to stdout, by default is False
       - note - True/False, prints info header to stdout, by default is True
@@ -71,16 +80,36 @@ def get_difference_string_from_string_or_list(
         ignore=False
         for ignore_item in ignore_list:
             if (re.search(ignore_item,line)) != None: ignore = True
+        for linefilter_item in linefilter_list:
+            if (re.search(linefilter_item,line)) != None:
+                line = re.findall(linefilter_item,line)[0]
         if not ignore: old_lines.append(line)
 
     for line in new_lines_unfiltered:
         ignore=False
         for ignore_item in ignore_list:
             if (re.search(ignore_item,line)) != None: ignore = True
+        for linefilter_item in linefilter_list:
+            if (re.search(linefilter_item,line)) != None:
+                line = re.findall(linefilter_item,line)[0]
         if not ignore: new_lines.append(line)
 
     del old_lines_unfiltered
     del new_lines_unfiltered
+
+    # NDIFF COMPARISON METHOD
+    if diff_method == 'ndiff':
+        print_string = str()
+        diff = difflib.ndiff(old_lines, new_lines)
+        for line in list(diff):
+            try:    first_chars = line.strip()[0]+line.strip()[1]
+            except: first_chars = str()
+            if '+ ' == first_chars: print_string += bcolors.GREEN + line + bcolors.ENDC + '\n'
+            elif '- ' == first_chars: print_string += bcolors.RED + line + bcolors.ENDC + '\n'
+            elif '! ' == first_chars: print_string += bcolors.RED + line + bcolors.ENDC + '\n'
+            elif '? ' == first_chars or first_chars == str(): pass
+            elif print_equals: print_string += line + '\n'
+        return print_string
 
     enum_old_lines = enumerate(old_lines)
     enum_new_lines = enumerate(new_lines)
@@ -185,7 +214,7 @@ def get_difference_string_from_string_or_list(
                 else: print('!!! PARSING PROBLEM: ',j,old_line,' -- vs -- ',i,line,' !!!')
 
             if debug: print('####### %s  %s  %s  %s\n'%(go,color,diff_sign,print_line))
-            if print_line: print_string=print_string+'%s  %s  %s%s\n'%(color,diff_sign,print_line,bcolors.ENDC)
+            if print_line: print_string=print_string+'%s  %s  %s%s\n'%(color,diff_sign,print_line.rstrip(),bcolors.ENDC)
 
     return print_string
 
@@ -228,7 +257,10 @@ eee gggggggggggggg
     if aargs.file2:
         with io.open(aargs.file2) as file2: new_lines = file2.read()
 
-    print(get_difference_string_from_string_or_list(old_lines,new_lines,note=True))
+    print(get_difference_string_from_string_or_list(old_lines, \
+                            new_lines,diff_method = aargs.diff, \
+                            print_equals = aargs.printequals, \
+                            note=True))
 
 
 if __name__ == "__main__": main()
