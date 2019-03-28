@@ -23,13 +23,14 @@ class bcolors:
 parser = argparse.ArgumentParser()
 parser.add_argument("-f1", "--file1", action = "store", default = '',help = "file1")
 parser.add_argument("-f2", "--file2", action = "store", default = '',help = "file2")
-parser.add_argument("--diff", action = "store", dest = "diff", choices = ['ndiff','ndiff2','new'],
-                    default = 'new', help = "filediff method ndiff/new")
+parser.add_argument("--diff", action = "store", dest = "diff", choices = ['ndiff','ndiff1','ndiff2','new1','new2'],
+                    default = 'new2', help = "filediff method ['ndiff','ndiff1','ndiff2','new1','new2']")
 parser.add_argument("-pe", "--printequals",action = "store_true", default = False,
                     help = "print equal lines")
 aargs = parser.parse_args()
 
-note_string = "DIFF('-' missing, '+' added, '!' different, '=' equal with problem):\n"
+note_new1_string = "new1 DIFF('-' missing, '+' added, '!' different, ' ' equal ):\n"
+note_new2_string = "new2 DIFF('-' missing, '+' added, '!' different, '=' equal ):\n"
 default_problem_list = []   #[' DOWN', ' down','Down','Fail', 'FAIL', 'fail']
 default_ignoreline_list = [r' MET$', r' UTC$']
 default_linefilter_list = []   #[r'^\w+\s+\w+']
@@ -38,11 +39,11 @@ default_linefilter_list = []   #[r'^\w+\s+\w+']
 def get_difference_string_from_string_or_list(
     old_string_or_list, \
     new_string_or_list, \
-    diff_method = 'new', \
+    diff_method = 'new2', \
     problem_list = default_problem_list, \
     ignore_list = default_ignoreline_list, \
     linefilter_list = default_linefilter_list, \
-    print_equals = None, \
+    print_equallines = None, \
     debug = None, \
     note = True ):
     '''
@@ -54,21 +55,22 @@ def get_difference_string_from_string_or_list(
       - problem_list - list of regular expressions or strings which detects problems, even if files are equal
       - ignore_list - list of regular expressions or strings when line is ignored for file (string) comparison
       - linefilter_list - list of regular expressions which filters each line
-      - print_equals - True/False prints all equal new file lines with '=' prefix , by default is False
+      - print_equallines - True/False prints all equal new file lines with '=' prefix , by default is False
       - debug - True/False, prints debug info to stdout, by default is False
       - note - True/False, prints info header to stdout, by default is True
     RETURNS: string with file differencies
 
-    The head of line is
+    NEW/NEW2 FORMAT: The head of line is
     '-' for missing line,
     '+' for added line,
     '!' for line that is different and
-    '=' for the same line, but with problem.
+    '=' for the same line, but with problem. (valid for new2 format)
     RED for something going DOWN or something missing or failed.
     ORANGE for something going UP or something NEW (not present in pre-check)
     '''
     print_string = str()
-    if diff_method == 'new': print_string = note_string if note else str()
+    if diff_method == 'new1': print_string = note_new1_string if note else str()
+    if diff_method == 'new2': print_string = note_new2_string if note else print_string
 
     # make list from string if is not list already
     old_lines_unfiltered = old_string_or_list if type(old_string_or_list) == list else old_string_or_list.splitlines()
@@ -105,9 +107,9 @@ def get_difference_string_from_string_or_list(
             except: first_chars = str()
             if '+ ' == first_chars: print_string += bcolors.GREEN + line + bcolors.ENDC + '\n'
             elif '- ' == first_chars: print_string += bcolors.RED + line + bcolors.ENDC + '\n'
-            elif '! ' == first_chars: print_string += bcolors.RED + line + bcolors.ENDC + '\n'
+            elif '! ' == first_chars: print_string += bcolors.YELLOW + line + bcolors.ENDC + '\n'
             elif '? ' == first_chars or first_chars == str(): pass
-            elif print_equals: print_string += line + '\n'
+            elif print_equallines: print_string += line + '\n'
         return print_string
 
     # NEW COMPARISON METHOD CONTINUE
@@ -130,6 +132,7 @@ def get_difference_string_from_string_or_list(
         try:    i, line = next(enum_new_lines)
         except: i, line = -1, str()
 
+        print_old_line=None
         while i >= 0 and j>=0:
             go, diff_sign, color, print_line = 'void', ' ', bcolors.WHITE, str()
 
@@ -153,8 +156,9 @@ def get_difference_string_from_string_or_list(
 
             # if again - lines are the same
             if line.strip() == old_line.strip():
-                if print_equals: go, diff_sign, color, print_line= 'line_equals', '=', bcolors.WHITE, line
-                else:            go, diff_sign, color, print_line= 'line_equals', '=', bcolors.WHITE, str()
+                diff_sign = '=' if diff_method == 'new2' or diff_method == 'ndiff2' else ' '
+                if print_equallines: go, color, print_line= 'line_equals', bcolors.WHITE, line
+                else:            go, color, print_line= 'line_equals', bcolors.WHITE, str()
 
                 # In case of DOWN/FAIL write also equal values !!!
                 for item in problem_list:
@@ -268,7 +272,7 @@ eee gggggggggggggg
 
     print(get_difference_string_from_string_or_list(old_lines, \
                             new_lines,diff_method = aargs.diff, \
-                            print_equals = aargs.printequals, \
+                            print_equallines = aargs.printequals, \
                             note=True))
 
 
