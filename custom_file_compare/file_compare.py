@@ -29,8 +29,12 @@ parser.add_argument("-pe", "--printequals",action = "store_true", default = Fals
                     help = "print equal lines")
 aargs = parser.parse_args()
 
-note_new1_string = "new1 DIFF('-' missing, '+' added, '!' different, ' ' equal ):\n"
-note_new2_string = "new2 DIFF('-' missing, '+' added, '!' different, '=' equal ):\n"
+note_new1_string = "new1 FORMAT('-' missing, '+' added, '!' different, ' ' equal):\n"
+note_new2_string = "new2 FORMAT('-' missing, '+' added, '!' different, '=' equal):\n"
+note_ndiff1_string = "ndiff1 FORMAT('-' missing, '+' added, '-\\n+' different, ' ' equal):\n"
+note_ndiff2_string = "ndiff2 FORMAT('-' missing, '+' added, '-\\n+' different, '=' equal):\n"
+
+
 default_problem_list = ['DOWN']   #[' DOWN', ' down','Down','Fail', 'FAIL', 'fail']
 default_ignoreline_list = [r' MET$', r' UTC$']
 default_linefilter_list = []   #[r'^\w+\s+\w+']
@@ -71,6 +75,8 @@ def get_difference_string_from_string_or_list(
     print_string = str()
     if diff_method == 'new1': print_string = note_new1_string if note else str()
     if diff_method == 'new2': print_string = note_new2_string if note else print_string
+    if diff_method == 'ndiff1': print_string = note_ndiff1_string if note else print_string
+    if diff_method == 'ndiff2': print_string = note_ndiff2_string if note else print_string
 
     # make list from string if is not list already
     old_lines_unfiltered = old_string_or_list if type(old_string_or_list) == list else old_string_or_list.splitlines()
@@ -80,7 +86,7 @@ def get_difference_string_from_string_or_list(
     old_lines, new_lines, old_linefiltered_lines, new_linefiltered_lines = [], [], [], []
 
     for line in old_lines_unfiltered:
-        ignore, linefiltered_line = False, str()
+        ignore, linefiltered_line = False, line
         for ignore_item in ignore_list:
             if (re.search(ignore_item,line)) != None: ignore = True
         for linefilter_item in linefilter_list:
@@ -89,7 +95,7 @@ def get_difference_string_from_string_or_list(
         if not ignore: old_lines.append(line); old_linefiltered_lines.append(linefiltered_line)
 
     for line in new_lines_unfiltered:
-        ignore, linefiltered_line = False, str()
+        ignore, linefiltered_line = False, line
         for ignore_item in ignore_list:
             if (re.search(ignore_item,line)) != None: ignore = True
         for linefilter_item in linefilter_list:
@@ -173,11 +179,14 @@ def get_difference_string_from_string_or_list(
 
             # changed line
             elif first_line_word == first_old_line_word and not new_first_words[i] in added_lines:
-                go, diff_sign, color, print_line = 'changed_line', '!', bcolors.YELLOW, line
-                print_old_line = old_line
+                # filter-out not-important changes
+                if new_linefiltered_lines[i] == old_linefiltered_lines[j]: print_line = str()
+                else:
+                    go, diff_sign, color, print_line = 'changed_line', '!', bcolors.YELLOW, line
+                    print_old_line = old_line
 
-                for item in problem_list:
-                    if (re.search(item,line)) != None: color = bcolors.RED
+                    for item in problem_list:
+                        if (re.search(item,line)) != None: color = bcolors.RED
 
                 try:    j, old_line = next(enum_old_lines)
                 except: j, old_line = -1, str()
@@ -224,7 +233,7 @@ def get_difference_string_from_string_or_list(
                 if not print_old_line:
                     print_string=print_string+'%s  %s  %s%s\n'%(color,diff_sign,print_line.rstrip(),bcolors.ENDC)
                 else:
-                    if diff_method == 'ndiff2':
+                    if diff_method == 'ndiff1' or diff_method == 'ndiff2':
                         print_string=print_string+'%s  %s  %s%s\n'%(bcolors.RED,'-',print_old_line.rstrip(),bcolors.ENDC)
                         print_string=print_string+'%s  %s  %s%s\n'%(bcolors.GREEN,'+',print_line.rstrip(),bcolors.ENDC)
                     else:
