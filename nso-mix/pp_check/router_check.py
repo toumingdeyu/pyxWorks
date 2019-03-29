@@ -76,7 +76,7 @@ note_new2_string   = "new2(%s'-' missed, %s'+' added, %s'!' difference, %s'=' eq
 default_problemline_list = []
 default_ignoreline_list = [r' MET$', r' UTC$']
 default_linefilter_list = []
-default_compare_columns = [] #[0,3]
+default_compare_columns = []
 
 
 
@@ -90,7 +90,7 @@ default_compare_columns = [] #[0,3]
 CMD_IOS_XE = [
             #"show version",
             ("show running-config",'ndiff1'),
-            ("show isis neighbors",'new1'),
+            ("show isis neighbors",'new1', [0,1,2,3,4], ['DOWN']),
 #             "show mpls ldp neighbor",
 #             "show ip interface brief",
 #             "show ip route summary",
@@ -105,7 +105,7 @@ CMD_IOS_XR = [
             #"admin show run",
             #"show interface brief",
             ("show isis interface brief",'ndiff1'),
-            ("show isis neighbors", "new1", [0,3], ['Down']),
+            ("show isis neighbors", "new1", [0,1,2,3], ['Down']),
 #             "show mpls ldp neighbor brief",
 #             "show mpls ldp interface brief",
 #             "show bgp sessions",
@@ -124,7 +124,7 @@ CMD_JUNOS = [
             #"show system software",
             ("show configuration","ndiff1"),
             #"show interfaces terse",
-            ("show isis adjacency","new1"),
+            ("show isis adjacency","new1", [0,1,2,3,4], ['DOWN']),
 #             "show ldp session brief",
 #             "show ldp neighbor",
 #             "show bgp summary",
@@ -143,7 +143,7 @@ CMD_VRP = [
             #"display inventory",
             ("display current-configuration",'ndiff1'),
             ("display isis interface",'new1'),
-            ("display isis peer",'new1'),
+            ("display isis peer",'new1', [0,1,2,3], ['Down']),
 #             "display saved-configuration",
 #             "display startup",
 #             "display acl all",
