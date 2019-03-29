@@ -20,18 +20,27 @@ class bcolors:
     BOLD='\033[1m'
     UNDERLINE='\033[4m'
 
-note_new1_string   = "new1('-' missed, '+' added, '!' difference, ' ' equal)\n"
-note_new2_string   = "new2('-' missed, '+' added, '!' difference, '=' equal)\n"
-note_ndiff1_string = "ndiff1('-' missed, '+' added, '-\\n+' diff ,' ' equal)\n"
-note_ndiff2_string = "ndiff2('-' missed, '+' added, '-\\n+' diff ,'=' equal)\n"
+note_ndiff_string  = "ndiff(%s'-' missed,%s'+' added,%s'-\\n%s+' diff,%s' ' equal%s)\n" % \
+    (bcolors.RED,bcolors.GREEN,bcolors.RED,bcolors.GREEN,bcolors.GREY,bcolors.ENDC )
+note_ndiff1_string = "ndiff1(%s'-' missed, %s'+' added, %s'-\\n%s+' diff , %s' ' equal%s)\n" % \
+    (bcolors.RED,bcolors.YELLOW,bcolors.RED,bcolors.GREEN,bcolors.GREY,bcolors.ENDC )
+note_ndiff2_string = "ndiff2(%s'-' missed, %s'+' added, %s'-\\n%s+' diff , %s'=' equal%s)\n" % \
+    (bcolors.RED,bcolors.YELLOW,bcolors.RED,bcolors.GREEN,bcolors.GREY,bcolors.ENDC )
+note_new1_string   = "new1(%s'-' missed, %s'+' added, %s'!' difference, %s' ' equal%s)\n" % \
+    (bcolors.RED,bcolors.YELLOW,bcolors.YELLOW,bcolors.GREY,bcolors.ENDC )
+note_new2_string   = "new2(%s'-' missed, %s'+' added, %s'!' difference, %s'=' equal%s)\n" % \
+    (bcolors.RED,bcolors.YELLOW,bcolors.YELLOW,bcolors.GREY,bcolors.ENDC )
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-f1", "--file1", action = "store", default = '',help = "file1")
-parser.add_argument("-f2", "--file2", action = "store", default = '',help = "file2")
-parser.add_argument("--diff", action = "store", dest = "diff", choices = ['ndiff','ndiff1','ndiff2','new1','new2'],
-                    default = 'new1', help = "%s  %s  %s  %s"%
-                    (note_ndiff1_string,note_ndiff2_string,note_new1_string,note_new2_string))
-parser.add_argument("-pe", "--printequals",action = "store_true", default = False,
+parser.add_argument("-f1", "--file1", action = "store", default = '',help = "file1 (pre)")
+parser.add_argument("-f2", "--file2", action = "store", default = '',help = "file2 (post)")
+parser.add_argument("--diff", action = "store", dest = "diff", \
+                    choices = ['ndiff','ndiff1','ndiff2','new1','new2'], \
+                    default = 'new1', \
+                    help = "%s .............. %s .......... %s .......... %s ............... %s"% \
+                    (note_ndiff_string,note_ndiff1_string,note_ndiff2_string, \
+                    note_new1_string,note_new2_string))
+parser.add_argument("-pe", "--printequallines",action = "store_true", default = False,
                     help = "print equal lines")
 aargs = parser.parse_args()
 
@@ -77,10 +86,13 @@ def get_difference_string_from_string_or_list(
     ORANGE for something going UP or something NEW (not present in pre-check)
     '''
     print_string = str()
-    if diff_method == 'new1': print_string = note_new1_string if note else str()
-    if diff_method == 'new2': print_string = note_new2_string if note else print_string
-    if diff_method == 'ndiff1': print_string = note_ndiff1_string if note else print_string
-    if diff_method == 'ndiff2': print_string = note_ndiff2_string if note else print_string
+    if note:
+       print_string = "DIFF_METHOD: "
+       if diff_method   == 'new1':   print_string += note_new1_string
+       elif diff_method == 'new2':   print_string += note_new2_string
+       elif diff_method == 'ndiff1': print_string += note_ndiff1_string
+       elif diff_method == 'ndiff2': print_string += note_ndiff2_string
+       elif diff_method == 'ndiff':  print_string += note_ndiff_string
 
     # make list from string if is not list already
     old_lines_unfiltered = old_string_or_list if type(old_string_or_list) == list else old_string_or_list.splitlines()
@@ -136,7 +148,7 @@ def get_difference_string_from_string_or_list(
             elif '- ' == first_chars: print_string += bcolors.RED + line + bcolors.ENDC + '\n'
             elif '! ' == first_chars: print_string += bcolors.YELLOW + line + bcolors.ENDC + '\n'
             elif '? ' == first_chars or first_chars == str(): pass
-            elif print_equallines: print_string += line + '\n'
+            elif print_equallines: print_string += bcolors.GREY + line + bcolors.ENDC + '\n'
         return print_string
 
     # NEW COMPARISON METHOD CONTINUE
@@ -270,8 +282,8 @@ def get_difference_string_from_string_or_list(
 
 def main():
 
-    old_lines='''
-    the same line type1
+    old_lines='''totally equal line
+    the same line type1 different whitespaces on start
 
 
 changed line THISISCHANGEMINUS
@@ -286,7 +298,8 @@ missing line xxxx
 changed3 line ggggggggggggg
 
     '''
-    new_lines='''the same line type1
+    new_lines='''totally equal line
+the same line type1 different whitespaces on start
 changed line THISISCHANGEPLUS
 the same line type2 with UP
 added line xxxxxxxxxxxx
@@ -308,7 +321,7 @@ added4 line gggggggggggggg
 
     print(get_difference_string_from_string_or_list(old_lines, \
                             new_lines,diff_method = aargs.diff, \
-                            print_equallines = aargs.printequals, \
+                            print_equallines = aargs.printequallines, \
                             compare_columns = default_compare_columns, \
                             note=True))
 
