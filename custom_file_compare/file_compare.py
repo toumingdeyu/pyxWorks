@@ -200,8 +200,10 @@ def get_difference_string_from_string_or_list(
             # changed line
             elif first_line_word == first_old_line_word and not new_first_words[i] in added_lines:
                 if debug: print('SPLIT:' + new_split_lines[i] + ', LINEFILTER:' + new_linefiltered_lines[i])
-                # filter-out not-important changes
-                if new_linefiltered_lines[i] == old_linefiltered_lines[j]: print_line = str()
+                # filter-out not-important changes by SPLIT or LINEFILTER
+                if old_linefiltered_lines[j] and new_linefiltered_lines[i] and \
+                    new_linefiltered_lines[i] == old_linefiltered_lines[j]:
+                    print_line = str()
                 elif old_split_lines[j] and new_split_lines[i] and old_split_lines[j] == new_split_lines[i]:
                     print_line = str()
                 else:
