@@ -20,33 +20,36 @@ class bcolors:
     BOLD='\033[1m'
     UNDERLINE='\033[4m'
 
+note_new1_string   = "new1('-' missed, '+' added, '!' difference, ' ' equal)\n"
+note_new2_string   = "new2('-' missed, '+' added, '!' difference, '=' equal)\n"
+note_ndiff1_string = "ndiff1('-' missed, '+' added, '-\\n+' diff ,' ' equal)\n"
+note_ndiff2_string = "ndiff2('-' missed, '+' added, '-\\n+' diff ,'=' equal)\n"
+
 parser = argparse.ArgumentParser()
 parser.add_argument("-f1", "--file1", action = "store", default = '',help = "file1")
 parser.add_argument("-f2", "--file2", action = "store", default = '',help = "file2")
 parser.add_argument("--diff", action = "store", dest = "diff", choices = ['ndiff','ndiff1','ndiff2','new1','new2'],
-                    default = 'new1', help = "filediff method ['ndiff','ndiff1','ndiff2','new1','new2']")
+                    default = 'new1', help = "%s  %s  %s  %s"%
+                    (note_ndiff1_string,note_ndiff2_string,note_new1_string,note_new2_string))
 parser.add_argument("-pe", "--printequals",action = "store_true", default = False,
                     help = "print equal lines")
 aargs = parser.parse_args()
 
-note_new1_string = "new1 FORMAT('-' missing, '+' added, '!' different, ' ' equal):\n"
-note_new2_string = "new2 FORMAT('-' missing, '+' added, '!' different, '=' equal):\n"
-note_ndiff1_string = "ndiff1 FORMAT('-' missing, '+' added, '-\\n+' different, ' ' equal):\n"
-note_ndiff2_string = "ndiff2 FORMAT('-' missing, '+' added, '-\\n+' different, '=' equal):\n"
 
-
-default_problem_list = ['DOWN']   #[' DOWN', ' down','Down','Fail', 'FAIL', 'fail']
+default_problemline_list = ['DOWN']
 default_ignoreline_list = [r' MET$', r' UTC$']
-default_linefilter_list = []   #[r'^\w+\s+\w+']
+default_linefilter_list = []
+default_compare_columns = [] #[0,3]
 
 
 def get_difference_string_from_string_or_list(
     old_string_or_list, \
     new_string_or_list, \
     diff_method = 'new2', \
-    problem_list = default_problem_list, \
+    problem_list = default_problemline_list, \
     ignore_list = default_ignoreline_list, \
     linefilter_list = default_linefilter_list, \
+    compare_columns = [], \
     print_equallines = None, \
     debug = None, \
     note = True ):
@@ -59,6 +62,7 @@ def get_difference_string_from_string_or_list(
       - problem_list - list of regular expressions or strings which detects problems, even if files are equal
       - ignore_list - list of regular expressions or strings when line is ignored for file (string) comparison
       - linefilter_list - list of regular expressions which filters each line
+      - compare_columns - list of columns which are intended to be different , other columns in line are ignored
       - print_equallines - True/False prints all equal new file lines with '=' prefix , by default is False
       - debug - True/False, prints debug info to stdout, by default is False
       - note - True/False, prints info header to stdout, by default is True
@@ -83,25 +87,41 @@ def get_difference_string_from_string_or_list(
     new_lines_unfiltered = new_string_or_list if type(new_string_or_list) == list else new_string_or_list.splitlines()
 
     # make filtered-out list of lines from both files
-    old_lines, new_lines, old_linefiltered_lines, new_linefiltered_lines = [], [], [], []
+    old_lines, new_lines = [], []
+    old_linefiltered_lines, new_linefiltered_lines = [], []
+    old_split_lines, new_split_lines = [], []
 
     for line in old_lines_unfiltered:
-        ignore, linefiltered_line = False, line
+        ignore, linefiltered_line, split_line = False, line, str()
         for ignore_item in ignore_list:
             if (re.search(ignore_item,line)) != None: ignore = True
         for linefilter_item in linefilter_list:
             if (re.search(linefilter_item,line)) != None:
                 linefiltered_line = re.findall(linefilter_item,line)[0]
-        if not ignore: old_lines.append(line); old_linefiltered_lines.append(linefiltered_line)
+        for split_column in compare_columns:
+           try: temp_column = line.split()[split_column]
+           except: temp_column = str()
+           split_line += ' ' + temp_column
+        if not ignore:
+            old_lines.append(line)
+            old_linefiltered_lines.append(linefiltered_line)
+            old_split_lines.append(split_line)
 
     for line in new_lines_unfiltered:
-        ignore, linefiltered_line = False, line
+        ignore, linefiltered_line, split_line = False, line, str()
         for ignore_item in ignore_list:
             if (re.search(ignore_item,line)) != None: ignore = True
         for linefilter_item in linefilter_list:
             if (re.search(linefilter_item,line)) != None:
                 linefiltered_line = re.findall(linefilter_item,line)[0]
-        if not ignore: new_lines.append(line); new_linefiltered_lines.append(linefiltered_line)
+        for split_column in compare_columns:
+           try: temp_column = line.split()[split_column]
+           except: temp_column = str()
+           split_line += ' ' + temp_column
+        if not ignore:
+            new_lines.append(line);
+            new_linefiltered_lines.append(linefiltered_line)
+            new_split_lines.append(split_line)
 
     del old_lines_unfiltered
     del new_lines_unfiltered
@@ -179,8 +199,11 @@ def get_difference_string_from_string_or_list(
 
             # changed line
             elif first_line_word == first_old_line_word and not new_first_words[i] in added_lines:
+                if debug: print('SPLIT:' + new_split_lines[i] + ', LINEFILTER:' + new_linefiltered_lines[i])
                 # filter-out not-important changes
                 if new_linefiltered_lines[i] == old_linefiltered_lines[j]: print_line = str()
+                elif old_split_lines[j] and new_split_lines[i] and old_split_lines[j] == new_split_lines[i]:
+                    print_line = str()
                 else:
                     go, diff_sign, color, print_line = 'changed_line', '!', bcolors.YELLOW, line
                     print_old_line = old_line
@@ -284,6 +307,7 @@ added4 line gggggggggggggg
     print(get_difference_string_from_string_or_list(old_lines, \
                             new_lines,diff_method = aargs.diff, \
                             print_equallines = aargs.printequals, \
+                            compare_columns = default_compare_columns, \
                             note=True))
 
 
