@@ -215,9 +215,11 @@ def get_difference_string_from_string_or_list(
                 # filter-out not-important changes by SPLIT or LINEFILTER
                 if old_linefiltered_lines[j] and new_linefiltered_lines[i] and \
                     new_linefiltered_lines[i] == old_linefiltered_lines[j]:
-                    print_line = str()
+                    if print_equallines: go, color, print_line= 'line_equals', bcolors.GREY, line
+                    else:            go, color, print_line= 'line_equals', bcolors.GREY, str()
                 elif old_split_lines[j] and new_split_lines[i] and old_split_lines[j] == new_split_lines[i]:
-                    print_line = str()
+                    if print_equallines: go, color, print_line= 'line_equals', bcolors.GREY, line
+                    else:            go, color, print_line= 'line_equals', bcolors.GREY, str()
                 else:
                     go, diff_sign, color, print_line = 'changed_line', '!', bcolors.YELLOW, line
                     print_old_line = old_line
