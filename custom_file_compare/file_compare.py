@@ -24,14 +24,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-f1", "--file1", action = "store", default = '',help = "file1")
 parser.add_argument("-f2", "--file2", action = "store", default = '',help = "file2")
 parser.add_argument("--diff", action = "store", dest = "diff", choices = ['ndiff','ndiff1','ndiff2','new1','new2'],
-                    default = 'new2', help = "filediff method ['ndiff','ndiff1','ndiff2','new1','new2']")
+                    default = 'new1', help = "filediff method ['ndiff','ndiff1','ndiff2','new1','new2']")
 parser.add_argument("-pe", "--printequals",action = "store_true", default = False,
                     help = "print equal lines")
 aargs = parser.parse_args()
 
 note_new1_string = "new1 DIFF('-' missing, '+' added, '!' different, ' ' equal ):\n"
 note_new2_string = "new2 DIFF('-' missing, '+' added, '!' different, '=' equal ):\n"
-default_problem_list = []   #[' DOWN', ' down','Down','Fail', 'FAIL', 'fail']
+default_problem_list = ['DOWN']   #[' DOWN', ' down','Down','Fail', 'FAIL', 'fail']
 default_ignoreline_list = [r' MET$', r' UTC$']
 default_linefilter_list = []   #[r'^\w+\s+\w+']
 
@@ -77,24 +77,25 @@ def get_difference_string_from_string_or_list(
     new_lines_unfiltered = new_string_or_list if type(new_string_or_list) == list else new_string_or_list.splitlines()
 
     # make filtered-out list of lines from both files
-    old_lines, new_lines = [], []
+    old_lines, new_lines, old_linefiltered_lines, new_linefiltered_lines = [], [], [], []
+
     for line in old_lines_unfiltered:
-        ignore=False
+        ignore, linefiltered_line = False, str()
         for ignore_item in ignore_list:
             if (re.search(ignore_item,line)) != None: ignore = True
         for linefilter_item in linefilter_list:
             if (re.search(linefilter_item,line)) != None:
-                line = re.findall(linefilter_item,line)[0]
-        if not ignore: old_lines.append(line)
+                linefiltered_line = re.findall(linefilter_item,line)[0]
+        if not ignore: old_lines.append(line); old_linefiltered_lines.append(linefiltered_line)
 
     for line in new_lines_unfiltered:
-        ignore=False
+        ignore, linefiltered_line = False, str()
         for ignore_item in ignore_list:
             if (re.search(ignore_item,line)) != None: ignore = True
         for linefilter_item in linefilter_list:
             if (re.search(linefilter_item,line)) != None:
-                line = re.findall(linefilter_item,line)[0]
-        if not ignore: new_lines.append(line)
+                linefiltered_line = re.findall(linefilter_item,line)[0]
+        if not ignore: new_lines.append(line); new_linefiltered_lines.append(linefiltered_line)
 
     del old_lines_unfiltered
     del new_lines_unfiltered
@@ -134,7 +135,7 @@ def get_difference_string_from_string_or_list(
 
         print_old_line=None
         while i >= 0 and j>=0:
-            go, diff_sign, color, print_line = 'void', ' ', bcolors.WHITE, str()
+            go, diff_sign, color, print_line = 'void', ' ', bcolors.GREY, str()
 
             # void new lines
             if not line.strip():
@@ -157,8 +158,8 @@ def get_difference_string_from_string_or_list(
             # if again - lines are the same
             if line.strip() == old_line.strip():
                 diff_sign = '=' if diff_method == 'new2' or diff_method == 'ndiff2' else ' '
-                if print_equallines: go, color, print_line= 'line_equals', bcolors.WHITE, line
-                else:            go, color, print_line= 'line_equals', bcolors.WHITE, str()
+                if print_equallines: go, color, print_line= 'line_equals', bcolors.GREY, line
+                else:            go, color, print_line= 'line_equals', bcolors.GREY, str()
 
                 # In case of DOWN/FAIL write also equal values !!!
                 for item in problem_list:
@@ -236,31 +237,32 @@ def get_difference_string_from_string_or_list(
 def main():
 
     old_lines='''
-    aaa fdffd hjhjgj down
+    the same line type1
 
 
-bbb dfsfsd sss jyjyjtu
-ddd ggggggggggggg
-eee ffsgf srgwrgwfg down
-ccc sfewfweg  sdgwrg
-ssss ssss down
-ddd ddddddddddd
+changed line THISISCHANGEMINUS
+missing1 line
 
-sssss dsss
-ddd ggggggggggggg
+missing2 line with DOWN
+the same line type2 with UP
+the same line type3 with DOWN
+missingx line ddddddddddd
+
+missing line xxxx
+changed3 line ggggggggggggg
 
     '''
-    new_lines='''aaa fdffd hjhjgj down
-bbb dfsfsd jyjyjtu
-ccc sfewfweg  sdgwrg
-fff dsgg ethtq hthtyh
-gggg dsvsvvsf down
-ssss ssss down
+    new_lines='''the same line type1
+changed line THISISCHANGEPLUS
+the same line type2 with UP
+added line xxxxxxxxxxxx
+added line with DOWN
+the same line type3 with DOWN
 
-dddd jjjj
-ddd ggggggggggggggggg
+added line ddddddd
+changed3 line ggggggggggggggggg
 
-eee gggggggggggggg
+added4 line gggggggggggggg
 
     '''
 
