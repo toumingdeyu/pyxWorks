@@ -25,6 +25,25 @@ import argparse
 import glob
 import socket
 
+class bcolors:
+        DEFAULT    = '\033[99m'
+        WHITE      = '\033[97m'
+        CYAN       = '\033[96m'
+        MAGENTA    = '\033[95m'
+        HEADER     = '\033[95m'
+        OKBLUE     = '\033[94m'
+        BLUE       = '\033[94m'
+        YELLOW     = '\033[93m'
+        GREEN      = '\033[92m'
+        OKGREEN    = '\033[92m'
+        WARNING    = '\033[93m'
+        RED        = '\033[91m'
+        FAIL       = '\033[91m'
+        GREY       = '\033[90m'
+        ENDC       = '\033[0m'
+        BOLD       = '\033[1m'
+        UNDERLINE  = '\033[4m'
+
 TODAY            = datetime.datetime.now()
 VERSION          = str(TODAY.year)[2:] + '.' + str(TODAY.month) + '.' + str(TODAY.day)
 HELP             = "\nTry 'router_check.py --help' for more information\n"
@@ -43,10 +62,23 @@ except: PASSWORD        = None
 try:    USERNAME        = os.environ['USER']
 except: USERNAME        = None
 
-note_string = "DIFF('-' missing, '+' added, '!' different, '=' equal with problem)\n"
-default_problem_list = []   #[' DOWN', ' down','Down','Fail', 'FAIL', 'fail']
+note_ndiff_string  = "ndiff(%s'-' missed,%s'+' added,%s'-\\n%s+' diff,%s' ' equal%s)\n" % \
+    (bcolors.RED,bcolors.GREEN,bcolors.RED,bcolors.GREEN,bcolors.GREY,bcolors.ENDC )
+note_ndiff1_string = "ndiff1(%s'-' missed, %s'+' added, %s'-\\n%s+' diff , %s' ' equal%s)\n" % \
+    (bcolors.RED,bcolors.YELLOW,bcolors.RED,bcolors.GREEN,bcolors.GREY,bcolors.ENDC )
+note_ndiff2_string = "ndiff2(%s'-' missed, %s'+' added, %s'-\\n%s+' diff , %s'=' equal%s)\n" % \
+    (bcolors.RED,bcolors.YELLOW,bcolors.RED,bcolors.GREEN,bcolors.GREY,bcolors.ENDC )
+note_new1_string   = "new1(%s'-' missed, %s'+' added, %s'!' difference, %s' ' equal%s)\n" % \
+    (bcolors.RED,bcolors.YELLOW,bcolors.YELLOW,bcolors.GREY,bcolors.ENDC )
+note_new2_string   = "new2(%s'-' missed, %s'+' added, %s'!' difference, %s'=' equal%s)\n" % \
+    (bcolors.RED,bcolors.YELLOW,bcolors.YELLOW,bcolors.GREY,bcolors.ENDC )
+
+default_problemline_list = []
 default_ignoreline_list = [r' MET$', r' UTC$']
-default_linefilter_list = []   #[r'^\w+\s+\w+']
+default_linefilter_list = []
+default_compare_columns = [] #[0,3]
+
+
 
 ###############################################################################
 #
@@ -57,8 +89,8 @@ default_linefilter_list = []   #[r'^\w+\s+\w+']
 # IOS-XE is only for IPsec GW 
 CMD_IOS_XE = [
             #"show version",
-            "show running-config",
-            "show isis neighbors",
+            ("show running-config",'ndiff1'),
+            ("show isis neighbors",'new1'),
 #             "show mpls ldp neighbor",
 #             "show ip interface brief",
 #             "show ip route summary",
@@ -69,11 +101,11 @@ CMD_IOS_XE = [
              ]
 CMD_IOS_XR = [
             #"show version",
-            "show running-config",
+            ("show running-config",'ndiff1'),
             #"admin show run",
             #"show interface brief",
-            "show isis interface brief",
-            "show isis neighbors",
+            ("show isis interface brief",'ndiff1'),
+            ("show isis neighbors", "new1", [0,3], ['Down']),
 #             "show mpls ldp neighbor brief",
 #             "show mpls ldp interface brief",
 #             "show bgp sessions",
@@ -90,9 +122,9 @@ CMD_IOS_XR = [
             ]
 CMD_JUNOS = [
             #"show system software",
-            "show configuration",
+            ("show configuration","ndiff1"),
             #"show interfaces terse",
-            "show isis adjacency",
+            ("show isis adjacency","new1"),
 #             "show ldp session brief",
 #             "show ldp neighbor",
 #             "show bgp summary",
@@ -109,9 +141,9 @@ CMD_JUNOS = [
 CMD_VRP = [
             #"display version",
             #"display inventory",
-            "display current-configuration",
-            "display isis interface",
-            "display isis peer",
+            ("display current-configuration",'ndiff1'),
+            ("display isis interface",'new1'),
+            ("display isis peer",'new1'),
 #             "display saved-configuration",
 #             "display startup",
 #             "display acl all",
@@ -133,26 +165,6 @@ IOS_XR_SLICE = {
 # Function and Class
 #
 ###############################################################################
-
-class bcolors:
-        DEFAULT    = '\033[99m'
-        WHITE      = '\033[97m'
-        CYAN       = '\033[96m'
-        MAGENTA    = '\033[95m'
-        HEADER     = '\033[95m'
-        OKBLUE     = '\033[94m'
-        BLUE       = '\033[94m'
-        YELLOW     = '\033[93m'
-        GREEN      = '\033[92m'
-        OKGREEN    = '\033[92m'
-        WARNING    = '\033[93m'
-        RED        = '\033[91m'
-        FAIL       = '\033[91m'
-        GREY       = '\033[90m'
-        ENDC       = '\033[0m'
-        BOLD       = '\033[1m'
-        UNDERLINE  = '\033[4m'
-
 
 # Find OS running on a router with a snmp request
 def find_router_type(host):
@@ -230,11 +242,12 @@ def find_section(text, prompt,cli_index, cli):
 def get_difference_string_from_string_or_list(
     old_string_or_list, \
     new_string_or_list, \
-    diff_method = 'new', \
-    problem_list = default_problem_list, \
+    diff_method = 'new2', \
+    problem_list = default_problemline_list, \
     ignore_list = default_ignoreline_list, \
     linefilter_list = default_linefilter_list, \
-    print_equals = None, \
+    compare_columns = [], \
+    print_equallines = None, \
     debug = None, \
     note = True ):
     '''
@@ -246,21 +259,28 @@ def get_difference_string_from_string_or_list(
       - problem_list - list of regular expressions or strings which detects problems, even if files are equal
       - ignore_list - list of regular expressions or strings when line is ignored for file (string) comparison
       - linefilter_list - list of regular expressions which filters each line
-      - print_equals - True/False prints all equal new file lines with '=' prefix , by default is False
+      - compare_columns - list of columns which are intended to be different , other columns in line are ignored
+      - print_equallines - True/False prints all equal new file lines with '=' prefix , by default is False
       - debug - True/False, prints debug info to stdout, by default is False
       - note - True/False, prints info header to stdout, by default is True
     RETURNS: string with file differencies
 
-    The head of line is
+    NEW/NEW2 FORMAT: The head of line is
     '-' for missing line,
     '+' for added line,
     '!' for line that is different and
-    '=' for the same line, but with problem.
+    '=' for the same line, but with problem. (valid for new2 format)
     RED for something going DOWN or something missing or failed.
     ORANGE for something going UP or something NEW (not present in pre-check)
     '''
-
-    print_string = note_string if note else str()
+    print_string = str()
+    if note:
+       print_string = "DIFF_METHOD: "
+       if diff_method   == 'new1':   print_string += note_new1_string
+       elif diff_method == 'new2':   print_string += note_new2_string
+       elif diff_method == 'ndiff1': print_string += note_ndiff1_string
+       elif diff_method == 'ndiff2': print_string += note_ndiff2_string
+       elif diff_method == 'ndiff':  print_string += note_ndiff_string
 
     # make list from string if is not list already
     old_lines_unfiltered = old_string_or_list if type(old_string_or_list) == list else old_string_or_list.splitlines()
@@ -268,41 +288,58 @@ def get_difference_string_from_string_or_list(
 
     # make filtered-out list of lines from both files
     old_lines, new_lines = [], []
+    old_linefiltered_lines, new_linefiltered_lines = [], []
+    old_split_lines, new_split_lines = [], []
+
     for line in old_lines_unfiltered:
-        ignore=False
+        ignore, linefiltered_line, split_line = False, line, str()
         for ignore_item in ignore_list:
             if (re.search(ignore_item,line)) != None: ignore = True
         for linefilter_item in linefilter_list:
             if (re.search(linefilter_item,line)) != None:
-                line = re.findall(linefilter_item,line)[0]
-        if not ignore: old_lines.append(line)
+                linefiltered_line = re.findall(linefilter_item,line)[0]
+        for split_column in compare_columns:
+           try: temp_column = line.split()[split_column]
+           except: temp_column = str()
+           split_line += ' ' + temp_column
+        if not ignore:
+            old_lines.append(line)
+            old_linefiltered_lines.append(linefiltered_line)
+            old_split_lines.append(split_line)
 
     for line in new_lines_unfiltered:
-        ignore=False
+        ignore, linefiltered_line, split_line = False, line, str()
         for ignore_item in ignore_list:
             if (re.search(ignore_item,line)) != None: ignore = True
         for linefilter_item in linefilter_list:
             if (re.search(linefilter_item,line)) != None:
-                line = re.findall(linefilter_item,line)[0]
-        if not ignore: new_lines.append(line)
+                linefiltered_line = re.findall(linefilter_item,line)[0]
+        for split_column in compare_columns:
+           try: temp_column = line.split()[split_column]
+           except: temp_column = str()
+           split_line += ' ' + temp_column
+        if not ignore:
+            new_lines.append(line);
+            new_linefiltered_lines.append(linefiltered_line)
+            new_split_lines.append(split_line)
 
     del old_lines_unfiltered
     del new_lines_unfiltered
 
     # NDIFF COMPARISON METHOD
     if diff_method == 'ndiff':
-        print_string = str()
         diff = difflib.ndiff(old_lines, new_lines)
         for line in list(diff):
             try:    first_chars = line.strip()[0]+line.strip()[1]
             except: first_chars = str()
             if '+ ' == first_chars: print_string += bcolors.GREEN + line + bcolors.ENDC + '\n'
             elif '- ' == first_chars: print_string += bcolors.RED + line + bcolors.ENDC + '\n'
-            elif '! ' == first_chars: print_string += bcolors.RED + line + bcolors.ENDC + '\n'
+            elif '! ' == first_chars: print_string += bcolors.YELLOW + line + bcolors.ENDC + '\n'
             elif '? ' == first_chars or first_chars == str(): pass
-            elif print_equals: print_string += line + '\n'
+            elif print_equallines: print_string += bcolors.GREY + line + bcolors.ENDC + '\n'
         return print_string
 
+    # NEW COMPARISON METHOD CONTINUE
     enum_old_lines = enumerate(old_lines)
     enum_new_lines = enumerate(new_lines)
 
@@ -322,8 +359,9 @@ def get_difference_string_from_string_or_list(
         try:    i, line = next(enum_new_lines)
         except: i, line = -1, str()
 
+        print_old_line=None
         while i >= 0 and j>=0:
-            go, diff_sign, color, print_line = 'void', ' ', bcolors.WHITE, str()
+            go, diff_sign, color, print_line = 'void', ' ', bcolors.GREY, str()
 
             # void new lines
             if not line.strip():
@@ -345,8 +383,9 @@ def get_difference_string_from_string_or_list(
 
             # if again - lines are the same
             if line.strip() == old_line.strip():
-                if print_equals: go, diff_sign, color, print_line= 'line_equals', '=', bcolors.WHITE, line
-                else:            go, diff_sign, color, print_line= 'line_equals', '=', bcolors.WHITE, str()
+                diff_sign = '=' if diff_method == 'new2' or diff_method == 'ndiff2' else ' '
+                if print_equallines: go, color, print_line= 'line_equals', bcolors.GREY, line
+                else:            go, color, print_line= 'line_equals', bcolors.GREY, str()
 
                 # In case of DOWN/FAIL write also equal values !!!
                 for item in problem_list:
@@ -360,10 +399,21 @@ def get_difference_string_from_string_or_list(
 
             # changed line
             elif first_line_word == first_old_line_word and not new_first_words[i] in added_lines:
-                go, diff_sign, color, print_line = 'changed_line', '!', bcolors.YELLOW, line
+                if debug: print('SPLIT:' + new_split_lines[i] + ', LINEFILTER:' + new_linefiltered_lines[i])
+                # filter-out not-important changes by SPLIT or LINEFILTER
+                if old_linefiltered_lines[j] and new_linefiltered_lines[i] and \
+                    new_linefiltered_lines[i] == old_linefiltered_lines[j]:
+                    if print_equallines: go, color, print_line= 'line_equals', bcolors.GREY, line
+                    else:            go, color, print_line= 'line_equals', bcolors.GREY, str()
+                elif old_split_lines[j] and new_split_lines[i] and old_split_lines[j] == new_split_lines[i]:
+                    if print_equallines: go, color, print_line= 'line_equals', bcolors.GREY, line
+                    else:            go, color, print_line= 'line_equals', bcolors.GREY, str()
+                else:
+                    go, diff_sign, color, print_line = 'changed_line', '!', bcolors.YELLOW, line
+                    print_old_line = old_line
 
-                for item in problem_list:
-                    if (re.search(item,line)) != None: color = bcolors.RED
+                    for item in problem_list:
+                        if (re.search(item,line)) != None: color = bcolors.RED
 
                 try:    j, old_line = next(enum_old_lines)
                 except: j, old_line = -1, str()
@@ -383,7 +433,7 @@ def get_difference_string_from_string_or_list(
 
             # lost line
             elif not first_line_word in lost_lines and old_line.strip():
-                go, diff_sign, color, print_line = 'lost_line', '-',  bcolors.YELLOW, old_line
+                go, diff_sign, color, print_line = 'lost_line', '-',  bcolors.RED, old_line
 
                 try:    j, old_line = next(enum_old_lines)
                 except: j, old_line = -1, str()
@@ -399,15 +449,23 @@ def get_difference_string_from_string_or_list(
                     except: i, line = -1, str()
                 # lost line on the end
                 elif not first_line_word and first_old_line_word:
-                    go, diff_sign, color, print_line = 'lost_line_on_end', '-',  bcolors.YELLOW, old_line
+                    go, diff_sign, color, print_line = 'lost_line_on_end', '-',  bcolors.RED, old_line
 
                     try:    j, old_line = next(enum_old_lines)
                     except: j, old_line = -1, str()
                 else: print('!!! PARSING PROBLEM: ',j,old_line,' -- vs -- ',i,line,' !!!')
 
             if debug: print('####### %s  %s  %s  %s\n'%(go,color,diff_sign,print_line))
-            if print_line: print_string=print_string+'%s  %s  %s%s\n'%(color,diff_sign,print_line.rstrip(),bcolors.ENDC)
-
+            if print_line:
+                if not print_old_line:
+                    print_string=print_string+'%s  %s  %s%s\n'%(color,diff_sign,print_line.rstrip(),bcolors.ENDC)
+                else:
+                    if diff_method == 'ndiff1' or diff_method == 'ndiff2':
+                        print_string=print_string+'%s  %s  %s%s\n'%(bcolors.RED,'-',print_old_line.rstrip(),bcolors.ENDC)
+                        print_string=print_string+'%s  %s  %s%s\n'%(bcolors.GREEN,'+',print_line.rstrip(),bcolors.ENDC)
+                    else:
+                        print_string=print_string+'%s  %s  %s%s\n'%(color,diff_sign,print_line.rstrip(),bcolors.ENDC)
+                    print_old_line=None
     return print_string
 
 
@@ -447,11 +505,14 @@ parser.add_argument("--noslice",
                     action = "store_true",
                     default = False,
                     help = "postcheck with no end of line cut")
-parser.add_argument("--diff",
-                    action = "store", dest="diff",
-                    choices = ['old','new'],
-                    default = 'new',
-                    help = "filediff method old/new")
+parser.add_argument("--diff", action = "store", dest = "diff", \
+                    choices = ['old','ndiff','ndiff1','ndiff2','new1','new2'], \
+                    default = 'new1', \
+                    help = "%s .............. %s .......... %s .......... %s ............... %s"% \
+                    (note_ndiff_string,note_ndiff1_string,note_ndiff2_string, \
+                    note_new1_string,note_new2_string))
+parser.add_argument("-pe", "--printequallines",action = "store_true", default = False,
+                    help = "print equal lines")
 
 args = parser.parse_args()
 if args.post: pre_post = 'post'
@@ -593,7 +654,8 @@ try:
     output = ssh_read_until(chan,DEVICE_PROMPT)
     fp.write(output)
 
-    for item in CMD:
+    for cli_items in CMD:
+        item = cli_items[0]
         output = ''
         chan.send(item + '\n')
         print " ... %s" % item
@@ -632,9 +694,15 @@ if pre_post == "post":
     fp1.close()
     fp2.close()
 
-    if args.diff != 'old': print('\nNOTE: ' + note_string)
+    for cli_index, cli_items in enumerate(CMD):
+        cli = cli_items[0]
+        cli_diff_method = cli_items[1]
+        try: cli_compare_columns = cli_items[2]
+        except: cli_compare_columns = []
+        try: cli_problemline_list = cli_items[3]
+        except: cli_problemline_list = []
 
-    for cli_index, cli in enumerate(CMD):
+        # old comparison method
         if args.diff == 'old':
             # set up correct slicing to remove irrelevant end of line info
             if (cli in IOS_XR_SLICE) and (not args.noslice):
@@ -686,7 +754,11 @@ if pre_post == "post":
             postcheck_section = find_section(text2_lines, DEVICE_PROMPT,cli_index, cli)
 
             print(bcolors.BOLD + '\n' + cli + bcolors.ENDC)
-            print(get_difference_string_from_string_or_list(precheck_section,postcheck_section,diff_method='ndiff', print_equals=True,note=False))
+            print(get_difference_string_from_string_or_list(precheck_section,postcheck_section,
+                diff_method = cli_diff_method, \
+                compare_columns = cli_compare_columns, \
+                print_equallines=args.printequallines, \
+                note=True))
 
     print '\n ==> POSTCHECK COMPLETE !'
 
