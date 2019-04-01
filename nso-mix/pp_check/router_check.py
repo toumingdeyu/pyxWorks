@@ -62,15 +62,15 @@ except: PASSWORD        = None
 try:    USERNAME        = os.environ['USER']
 except: USERNAME        = None
 
-note_ndiff_string  = "ndiff(%s'-' missed,%s'+' added,%s'-\\n%s+' diff,%s' ' equal%s)\n" % \
+note_ndiff_string  = "ndiff( %s'-' missed, %s'+' added, %s'-\\n%s+' difference, %s' ' equal%s)\n" % \
     (bcolors.RED,bcolors.GREEN,bcolors.RED,bcolors.GREEN,bcolors.GREY,bcolors.ENDC )
-note_ndiff1_string = "ndiff1(%s'-' missed, %s'+' added, %s'-\\n%s+' diff , %s' ' equal%s)\n" % \
+note_ndiff1_string = "ndiff1(%s'-' missed, %s'+' added, %s'-\\n%s+' difference, %s' ' equal%s)\n" % \
     (bcolors.RED,bcolors.YELLOW,bcolors.RED,bcolors.GREEN,bcolors.GREY,bcolors.ENDC )
-note_ndiff2_string = "ndiff2(%s'-' missed, %s'+' added, %s'-\\n%s+' diff , %s'=' equal%s)\n" % \
+note_ndiff2_string = "ndiff2(%s'-' missed, %s'+' added, %s'-\\n%s+' difference, %s'=' equal%s)\n" % \
     (bcolors.RED,bcolors.YELLOW,bcolors.RED,bcolors.GREEN,bcolors.GREY,bcolors.ENDC )
-note_new1_string   = "new1(%s'-' missed, %s'+' added, %s'!' difference, %s' ' equal%s)\n" % \
+note_new1_string   = "new1(  %s'-' missed, %s'+' added, %s'!' difference,    %s' ' equal%s)\n" % \
     (bcolors.RED,bcolors.YELLOW,bcolors.YELLOW,bcolors.GREY,bcolors.ENDC )
-note_new2_string   = "new2(%s'-' missed, %s'+' added, %s'!' difference, %s'=' equal%s)\n" % \
+note_new2_string   = "new2(  %s'-' missed, %s'+' added, %s'!' difference,    %s'=' equal%s)\n" % \
     (bcolors.RED,bcolors.YELLOW,bcolors.YELLOW,bcolors.GREY,bcolors.ENDC )
 
 default_problemline_list = []
@@ -550,6 +550,9 @@ def get_difference_string_from_string_or_list(
 ##############################################################################
 
 ######## Parse program arguments #########
+if len(sys.argv) == 1 or sys.argv[1] == '-h' or sys.argv[1] == '--help':
+    print(('DIFF_FORMATS:\n  %s  %s  %s  %s  %s') % (note_ndiff_string, \
+        note_ndiff1_string,note_ndiff2_string,note_new1_string,note_new2_string))
 
 parser = argparse.ArgumentParser(
                 description = "Script to perform Pre and Post router check",
@@ -581,13 +584,10 @@ parser.add_argument("--noslice",
                     help = "postcheck with no end of line cut")
 parser.add_argument("--printall",action = "store_true", default = False,
                     help = "print all lines, changes will be coloured")
-parser.add_argument("--diff", action = "store", dest = "diff", \
-                    choices = ['old','ndiff','ndiff1','ndiff2','new1','new2'], \
-                    default = 'new1', \
-                    help = "%s .............. %s .......... %s .......... %s ............... %s"% \
-                    (note_ndiff_string,note_ndiff1_string,note_ndiff2_string, \
-                    note_new1_string,note_new2_string))
-
+# parser.add_argument("--diff", action = "store", dest = "diff", \
+#                     choices = ['old','ndiff','ndiff1','ndiff2','new1','new2'], \
+#                     default = 'new1', \
+#                     help = "more available diff formats" )
 args = parser.parse_args()
 if args.post: pre_post = 'post'
 else: pre_post = 'pre'
