@@ -88,7 +88,7 @@ default_compare_columns = []
 
 # IOS-XE is only for IPsec GW 
 CMD_IOS_XE = [
-            #"show version",
+            ("show version",'ndiff1'),
             ("show running-config",'ndiff1'),
             ("show isis neighbors",'new1', [0,1,2,3,4], ['DOWN']),
 #             "show mpls ldp neighbor",
@@ -100,7 +100,7 @@ CMD_IOS_XE = [
 #             'show interfaces | in (^[A-Z].*|minute|second|Last input)'
              ]
 CMD_IOS_XR = [
-            #"show version",
+            ("show version",'ndiff1'),
             ("show running-config",'ndiff1'),
             #"admin show run",
             #"show interface brief",
@@ -121,10 +121,10 @@ CMD_IOS_XR = [
 #             "show interfaces | in \"^[A-Z].*|minute|second|Last input\""
             ]
 CMD_JUNOS = [
-            #"show system software",
+            ("show system software",'ndiff1'),
             ("show configuration","ndiff1"),
             #"show interfaces terse",
-            ("show isis adjacency","new1", [0,1,2,3,4], ['DOWN']),
+            ("show isis adjacency","new1", [0,1,2,3], ['DOWN']),
 #             "show ldp session brief",
 #             "show ldp neighbor",
 #             "show bgp summary",
@@ -139,7 +139,7 @@ CMD_JUNOS = [
 #             'show interfaces detail | match "Physical interface|Last flapped| bps"'
             ]
 CMD_VRP = [
-            #"display version",
+            ("display version",'ndiff1'),
             #"display inventory",
             ("display current-configuration",'ndiff1'),
             ("display isis interface",'new1'),
@@ -181,7 +181,7 @@ def ssh_detect_prompt(chan, debug = False):
         except: last_line = 'dummyline1'
         try: last_but_one_line = output.splitlines()[-2].strip().replace('\x20','')
         except: last_but_one_line = 'dummyline2'
-    print('PROMPT_DETECTED: \'' + last_line + '\'\n')
+    print('PROMPT_DETECTED: \'' + last_line + '\'')
     return last_line
 
 
@@ -597,19 +597,15 @@ else: pre_post = 'pre'
 if args.username != None:
     USERNAME = args.username
 
-
-
-print(detect_router_by_ssh(debug = False))
-exit(0)
-
-
 ####### Figure out type of router OS
 
 if args.router_type == None:
-    router_type = find_router_type(args.device)
+    #router_type = find_router_type(args.device)
+    router_type = detect_router_by_ssh(debug = False)
+    print('DETECTED ROUTER_TYPE: ' + router_type)
 else:
     router_type = args.router_type
-    print('Forced router_type:' + router_type)
+    print('FORCED ROUTER_TYPE: ' + router_type)
 
 ######## Create logs directory if not existing  ######### 
 
@@ -838,7 +834,7 @@ if pre_post == "post":
                 diff_method = cli_diff_method, \
                 compare_columns = cli_compare_columns, \
                 print_equallines=args.printequallines, \
-                note=True))
+                note=False))
 
     print '\n ==> POSTCHECK COMPLETE !'
 
