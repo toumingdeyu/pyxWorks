@@ -130,10 +130,10 @@ CMD_IOS_XR = [
 #             "show interfaces | in \"^[A-Z].*|minute|second|Last input\""
             ]
 CMD_JUNOS = [
-            ("show system software",'ndiff1'),
+            ("show system software",'ndiff1', [], ['uptime','Uptime'], [], [], False),
             ("show configuration","ndiff1"),
             #"show interfaces terse",
-            ("show isis adjacency","new1", ['DOWN'], [], [], [0,1,2,3], True),
+            ("show isis adjacency","new1", ['DOWN'], [], [], [0,1,2,3], False),
 #             "show ldp session brief",
 #             "show ldp neighbor",
 #             "show bgp summary",
@@ -148,11 +148,11 @@ CMD_JUNOS = [
 #             'show interfaces detail | match "Physical interface|Last flapped| bps"'
             ]
 CMD_VRP = [
-            ("display version",'ndiff1'),
+            ("display version",'ndiff1', [], ['uptime','Uptime'], [], [], False),
             #"display inventory",
             ("display current-configuration",'ndiff1'),
-            ("display isis interface",'new1',[], [], [], [], True),
-            ("display isis peer",'new1', ['Down'], [], [], [0,1,2,3], True),
+            ("display isis interface",'new1',[], [], [], [], False),
+            ("display isis peer",'new1', ['Down'], [], [], [0,1,2,3], False),
 #             "display saved-configuration",
 #             "display startup",
 #             "display acl all",
@@ -596,6 +596,8 @@ parser.add_argument("--printall",action = "store_true", default = False,
                     help = "print all lines, changes will be coloured")
 parser.add_argument("--olddiff",action = "store_true", default = False,
                     help = "force old diff method")
+parser.add_argument("--recheck",action = "store_true", default = False,
+                    help = "recheck last diff pre/post files per inserted device")
 # parser.add_argument("--diff", action = "store", dest = "diff", \
 #                     choices = ['old','ndiff','ndiff1','ndiff2','new1','new2'], \
 #                     default = 'new1', \
@@ -605,13 +607,10 @@ if args.post: pre_post = 'post'
 else: pre_post = 'pre'
 
 ####### Set USERNAME if needed
-
-if args.username != None:
-    USERNAME = args.username
+if args.username != None: USERNAME = args.username
 
 ####### Figure out type of router OS
-
-if args.router_type == None:
+if not args.router_type:
     #router_type = find_router_type(args.device)
     router_type = detect_router_by_ssh(debug = False)
     print('DETECTED ROUTER_TYPE: ' + router_type)
@@ -620,22 +619,20 @@ else:
     print('FORCED ROUTER_TYPE: ' + router_type)
 
 ######## Create logs directory if not existing  ######### 
-
 if not os.path.exists('./logs'):
     os.makedirs('./logs')
 
 ####### Find necessary pre and post check files if needed 
-
 if args.precheck_file != None:
     if not os.path.isfile(args.precheck_file):
-        print(bcolors.FAIL + " ... Can't find precheck file: %s" + bcolors.ENDC) \
+        print(bcolors.MAGENTA + " ... Can't find precheck file: %s" + bcolors.ENDC) \
            % args.precheck_file
         sys.exit()
 else:
     if pre_post == 'post':
         list_precheck_files = glob.glob("./logs/" + args.device + '*' + 'pre')
         if len(list_precheck_files) == 0:
-            print(bcolors.FAIL + " ... Can't find any precheck file: %s " + bcolors.ENDC)
+            print(bcolors.MAGENTA + " ... Can't find any precheck file. %s " + bcolors.ENDC)
             sys.exit()
         most_recent_precheck = list_precheck_files[0]
         for item in list_precheck_files:
@@ -643,60 +640,73 @@ else:
             if filecreation > (os.path.getctime(most_recent_precheck)):
                 most_recent_precheck = item
         args.precheck_file = most_recent_precheck
+        precheck_file = most_recent_precheck
 
-######## Find command list file (optional)
-
-if args.cmd_file != None:
-    if not os.path.isfile(args.cmd_file):
-        print(bcolors.FAIL + " ... Can't find command file: %s " + bcolors.ENDC) \
-                % args.cmd_file
+# find last existing postcheck file
+if args.recheck:
+    list_postcheck_files = glob.glob("./logs/" + args.device + '*' + 'post')
+    if len(list_postcheck_files) == 0:
+        print(bcolors.MAGENTA + " ... Can't find any postcheck file. %s " + bcolors.ENDC)
         sys.exit()
-    else:
-        list_cmd = ['']
-        num_lines = sum(1 for line in open(args.cmd_file))
-        fp_cmd = open(args.cmd_file,"r")
-        for index in range(0, num_lines):
-            list_cmd.append(fp_cmd.readline())
-        fp_cmd.close
+    most_recent_postcheck = list_postcheck_files[0]
+    for item in list_postcheck_files:
+        filecreation = os.path.getctime(item)
+        if filecreation > (os.path.getctime(most_recent_postcheck)):
+            most_recent_postcheck = item
+    postcheck_file = most_recent_postcheck
 
-        # clean up the list of commands - Remove empty line in file
-        if '' in list_cmd:
-            list_cmd.remove('')
-        if '\n' in list_cmd:
-            list_cmd.remove('\n')
-        # clean up the list of commands - Remove trailling \n
-        for index, line in enumerate(list_cmd):
-            list_cmd[index] = list_cmd[index].rstrip('\n')
+else:
+    ######## Find command list file (optional)
+    if args.cmd_file != None:
+        if not os.path.isfile(args.cmd_file):
+            print(bcolors.MAGENTA + " ... Can't find command file: %s " + bcolors.ENDC) \
+                    % args.cmd_file
+            sys.exit()
+        else:
+            list_cmd = ['']
+            num_lines = sum(1 for line in open(args.cmd_file))
+            fp_cmd = open(args.cmd_file,"r")
+            for index in range(0, num_lines):
+                list_cmd.append(fp_cmd.readline())
+            fp_cmd.close
 
-        if router_type == 'ios-xe':
-            CMD_IOS_XE = list_cmd
-        elif router_type == 'ios-xr':
-            CMD_IOS_XR = list_cmd
+            # clean up the list of commands - Remove empty line in file
+            if '' in list_cmd:
+                list_cmd.remove('')
+            if '\n' in list_cmd:
+                list_cmd.remove('\n')
+            # clean up the list of commands - Remove trailling \n
+            for index, line in enumerate(list_cmd):
+                list_cmd[index] = list_cmd[index].rstrip('\n')
 
-############# Starting pre or post check
-if not PASSWORD: PASSWORD = getpass.getpass("TACACS password: ")
+            if router_type == 'ios-xe':
+                CMD_IOS_XE = list_cmd
+            elif router_type == 'ios-xr':
+                CMD_IOS_XR = list_cmd
 
-if pre_post == "post":
-    print " ==> STARTING POSTCHECK ..."
-elif pre_post == "pre":
-    print " ==> STARTING PRECHECK ..."
+    ############# Starting pre or post check
+    if not PASSWORD: PASSWORD = getpass.getpass("TACACS password: ")
 
-print " ... Openning %s check file to collect output" %( pre_post )
+    if pre_post == "post":
+        print " ==> STARTING POSTCHECK ..."
+    elif pre_post == "pre":
+        print " ==> STARTING PRECHECK ..."
 
-filename_prefix = "./logs/" + args.device
-filename_suffix = pre_post
-now = datetime.datetime.now()
-filename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s" % \
-    (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,now.second,filename_suffix)
+    print " ... Openning %s check file to collect output" %( pre_post )
 
-if pre_post == "post":
-    postcheck_file = filename
-    precheck_file = args.precheck_file
+    filename_prefix = "./logs/" + args.device
+    filename_suffix = pre_post
+    now = datetime.datetime.now()
+    filename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s" % \
+        (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,now.second,filename_suffix)
 
-fp = open(filename,"w")
+    if pre_post == "post":
+        postcheck_file = filename
+        precheck_file = args.precheck_file
+
+    fp = open(filename,"w")
 
 # Collect pre/post check information
-
 if router_type == "ios-xe":
     CMD = CMD_IOS_XE
     DEVICE_PROMPT = args.device.upper() + '#'
@@ -721,45 +731,45 @@ elif router_type == "vrp":
     TERM_LEN_0 = "screen-length 0 temporary\n"     #"screen-length disable\n"
     EXIT = "quit\n"
 
-# SSH (default)
+if not args.recheck:
+    # SSH (default)
+    print " ... Connecting (SSH) to %s" % args.device
+    client = paramiko.SSHClient()
+    client.load_system_host_keys()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-print " ... Connecting (SSH) to %s" % args.device 
-client = paramiko.SSHClient()
-client.load_system_host_keys()
-client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-try:
-    client.connect(args.device, username=USERNAME, password=PASSWORD)
-    chan = client.invoke_shell()
-    chan.settimeout(TIMEOUT)
-    while not chan.recv_ready():
-        time.sleep(1)
-    output = ssh_read_until(chan,DEVICE_PROMPT)
-    chan.send(TERM_LEN_0 + '\n') 
-    output = ssh_read_until(chan,DEVICE_PROMPT)
-    # router prompt needed as file header
-    chan.send('\n')
-    output = ssh_read_until(chan,DEVICE_PROMPT)
-    fp.write(output)
-
-    for cli_items in CMD:
-        item = cli_items[0]
-        output = ''
-        chan.send(item + '\n')
-        print " ... %s" % item
-        # chan.send('\n')
+    try:
+        client.connect(args.device, username=USERNAME, password=PASSWORD)
+        chan = client.invoke_shell()
+        chan.settimeout(TIMEOUT)
+        while not chan.recv_ready():
+            time.sleep(1)
         output = ssh_read_until(chan,DEVICE_PROMPT)
-        fp.write(output)                                            
+        chan.send(TERM_LEN_0 + '\n')
+        output = ssh_read_until(chan,DEVICE_PROMPT)
+        # router prompt needed as file header
+        chan.send('\n')
+        output = ssh_read_until(chan,DEVICE_PROMPT)
+        fp.write(output)
 
-except (socket.timeout, paramiko.AuthenticationException) as e:
-    print(bcolors.FAIL + " ... Connection closed: %s " % (e) + bcolors.ENDC )
-    sys.exit()
-finally:
-    client.close()
+        for cli_items in CMD:
+            item = cli_items[0]
+            output = ''
+            chan.send(item + '\n')
+            print " ... %s" % item
+            # chan.send('\n')
+            output = ssh_read_until(chan,DEVICE_PROMPT)
+            fp.write(output)
 
-print " ... Collection is completed\n"
-fp.flush()
-fp.close()
+    except (socket.timeout, paramiko.AuthenticationException) as e:
+        print(bcolors.FAIL + " ... Connection closed. %s " % (e) + bcolors.ENDC )
+        sys.exit()
+    finally:
+        client.close()
+
+    print " ... Collection is completed\n"
+    fp.flush()
+    fp.close()
 
 # Post Check treatment 
 if pre_post == "post":
