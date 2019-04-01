@@ -869,15 +869,17 @@ if pre_post == "post":
             postcheck_section = find_section(text2_lines, DEVICE_PROMPT,cli_index, cli)
 
             print(bcolors.BOLD + '\n' + cli + bcolors.ENDC)
-            print(get_difference_string_from_string_or_list(precheck_section,postcheck_section,
+            diff_result = get_difference_string_from_string_or_list( \
+                precheck_section,postcheck_section, \
                 diff_method = cli_diff_method, \
                 problem_list = cli_problemline_list, \
                 ignore_list = default_ignoreline_list + cli_ignore_list, \
                 linefilter_list = cli_linefilter_list, \
                 compare_columns = cli_compare_columns, \
                 print_equallines = cli_printall, \
-                note=False))
-
+                note=False)
+            if len(diff_result) == 0: print(bcolors.GREY + 'OK' + bcolors.ENDC)
+            else: print(diff_result)
     print '\n ==> POSTCHECK COMPLETE !'
 
 elif pre_post == "pre":
