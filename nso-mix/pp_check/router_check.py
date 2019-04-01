@@ -86,13 +86,22 @@ default_compare_columns = []
 #
 ###############################################################################
 
+# CLI LIST:
+# 0-cli
+# 1-diff_method
+# 2-problemline_list
+# 3-ignore_list
+# 4-linefilter_list
+# 5-compare_columns
+# 6-printall
+
 # IOS-XE is only for IPsec GW 
 CMD_IOS_XE = [
-            ("show version",'ndiff1'),
-            ("show running-config",'ndiff1'),
-            ("show isis neighbors",'new1', [0,1,2,3,4], ['DOWN'], True),
-#             "show mpls ldp neighbor",
-#             "show ip interface brief",
+            ("show version",           'ndiff1',[], ['uptime','Uptime'], [], [], False),
+            ("show running-config",    'ndiff1'),
+            ("show isis neighbors",    'new1', ['DOWN'], [], [], [0,1,2,3,4], False),
+            ("show mpls ldp neighbor", 'new1', [], [], [], [0,1,2,3,5], False ),
+            ("show ip interface brief",'new1', [], [], [], [], False ),
 #             "show ip route summary",
 #             "show crypto isakmp sa",
 #             "show crypto ipsec sa count",
@@ -100,12 +109,12 @@ CMD_IOS_XE = [
 #             'show interfaces | in (^[A-Z].*|minute|second|Last input)'
              ]
 CMD_IOS_XR = [
-            ("show version",'ndiff1'),
+            ("show version",'ndiff1',[], ['uptime','Uptime'], [], [], False),
             ("show running-config",'ndiff1'),
-            #"admin show run",
-            #"show interface brief",
-            ("show isis interface brief",'ndiff1',[],[], True),
-            ("show isis neighbors", "new1", [0,1,2,3], ['Down'], True),
+            ("admin show run",'ndiff1'),
+            ("show interface brief",'new1', [], [], [], [], False ),
+            ("show isis interface brief",'ndiff1',[], [], [], [], False),
+            ("show isis neighbors", "new1", ['Down'], [], [], [0,1,2,3], False),
 #             "show mpls ldp neighbor brief",
 #             "show mpls ldp interface brief",
 #             "show bgp sessions",
@@ -124,7 +133,7 @@ CMD_JUNOS = [
             ("show system software",'ndiff1'),
             ("show configuration","ndiff1"),
             #"show interfaces terse",
-            ("show isis adjacency","new1", [0,1,2,3], ['DOWN'], True),
+            ("show isis adjacency","new1", ['DOWN'], [], [], [0,1,2,3], True),
 #             "show ldp session brief",
 #             "show ldp neighbor",
 #             "show bgp summary",
@@ -142,8 +151,8 @@ CMD_VRP = [
             ("display version",'ndiff1'),
             #"display inventory",
             ("display current-configuration",'ndiff1'),
-            ("display isis interface",'new1',[],[], True),
-            ("display isis peer",'new1', [0,1,2,3], ['Down'], True),
+            ("display isis interface",'new1',[], [], [], [], True),
+            ("display isis peer",'new1', ['Down'], [], [], [0,1,2,3], True),
 #             "display saved-configuration",
 #             "display startup",
 #             "display acl all",
@@ -308,7 +317,8 @@ def find_section(text, prompt,cli_index, cli):
                     e_index = index
                     look_end = 0
     if not(b_index and e_index):
-        print("Section '%s' could not be found and compared." % (prompt+cli.rstrip()))
+        print("%sSection '%s' could not be found and compared!%s" % \
+              (bcolors.MAGENTA,prompt+cli.rstrip(),bcolors.ENDC))
         return str()
     return text[b_index:e_index]
 
@@ -774,17 +784,7 @@ if pre_post == "post":
 
     for cli_index, cli_items in enumerate(CMD):
         cli = cli_items[0]
-        try: cli_diff_method = cli_items[1]
-        except: cli_diff_method = 'ndiff1'
-        try: cli_compare_columns = cli_items[2]
-        except: cli_compare_columns = []
-        try: cli_problemline_list = cli_items[3]
-        except: cli_problemline_list = []
-        if args.printall:
-            cli_printall = args.printall
-        else:
-            try: cli_printall = cli_items[4]
-            except: cli_printall = False
+
         # old comparison method
         if args.olddiff:
             # set up correct slicing to remove irrelevant end of line info
@@ -830,6 +830,28 @@ if pre_post == "post":
                 for index, line in enumerate(diff_print_post):
                     print bcolors.RED + '\t' +  diff_print_post[index] + bcolors.ENDC
         else:
+            # unpack cli list
+            try: cli_diff_method = cli_items[1]
+            except: cli_diff_method = 'ndiff1'
+
+            try: cli_problemline_list = cli_items[2]
+            except: cli_problemline_list = []
+
+            try: cli_ignore_list = cli_items[3]
+            except: cli_ignore_list = []
+
+            try: cli_linefilter_list = cli_items[4]
+            except: cli_linefilter_list = []
+
+            try: cli_compare_columns = cli_items[5]
+            except: cli_compare_columns = []
+
+            if args.printall:
+                cli_printall = args.printall
+            else:
+                try: cli_printall = cli_items[6]
+                except: cli_printall = False
+
             # Looking for relevant section in precheck file
             precheck_section = find_section(text1_lines, DEVICE_PROMPT,cli_index, cli)
 
@@ -839,6 +861,9 @@ if pre_post == "post":
             print(bcolors.BOLD + '\n' + cli + bcolors.ENDC)
             print(get_difference_string_from_string_or_list(precheck_section,postcheck_section,
                 diff_method = cli_diff_method, \
+                problem_list = cli_problemline_list, \
+                ignore_list = default_ignoreline_list + cli_ignore_list, \
+                linefilter_list = cli_linefilter_list, \
                 compare_columns = cli_compare_columns, \
                 print_equallines = cli_printall, \
                 note=False))
