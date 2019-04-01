@@ -584,6 +584,8 @@ parser.add_argument("--noslice",
                     help = "postcheck with no end of line cut")
 parser.add_argument("--printall",action = "store_true", default = False,
                     help = "print all lines, changes will be coloured")
+parser.add_argument("--olddiff",action = "store_true", default = False,
+                    help = "force old diff method")
 # parser.add_argument("--diff", action = "store", dest = "diff", \
 #                     choices = ['old','ndiff','ndiff1','ndiff2','new1','new2'], \
 #                     default = 'new1', \
@@ -772,14 +774,15 @@ if pre_post == "post":
 
     for cli_index, cli_items in enumerate(CMD):
         cli = cli_items[0]
-        cli_diff_method = cli_items[1]
+        try: cli_diff_method = cli_items[1]
+        except: cli_diff_method = 'ndiff1'
         try: cli_compare_columns = cli_items[2]
         except: cli_compare_columns = []
         try: cli_problemline_list = cli_items[3]
         except: cli_problemline_list = []
 
         # old comparison method
-        if args.diff == 'old':
+        if args.olddiff:
             # set up correct slicing to remove irrelevant end of line info
             if (cli in IOS_XR_SLICE) and (not args.noslice):
                 slicer = IOS_XR_SLICE[cli]
