@@ -166,6 +166,80 @@ IOS_XR_SLICE = {
 #
 ###############################################################################
 
+
+# detect device prompt
+def ssh_detect_prompt(chan, debug = False):
+    output, buff, last_line, last_but_one_line = str(), str(), 'dummyline1', 'dummyline2'
+    chan.send('\t \n\n')
+    while not (last_line and last_but_one_line and last_line == last_but_one_line):
+        if debug: print('FIND_PROMPT:',last_but_one_line,last_line)
+        buff = chan.recv(9999)
+        output += buff.replace('\r','').replace('\x07','').replace('\x08','').replace('\x1b[K','').replace('\n{master}\n','')
+        if '--More--' or '---(more' in buff.strip(): chan.send('\x20')
+        if debug: print('BUFFER:' + buff)
+        try: last_line = output.splitlines()[-1].strip().replace('\x20','')
+        except: last_line = 'dummyline1'
+        try: last_but_one_line = output.splitlines()[-2].strip().replace('\x20','')
+        except: last_but_one_line = 'dummyline2'
+    print('PROMPT_DETECTED: \'' + last_line + '\'\n')
+    return last_line
+
+
+# bullet-proof read-until function , even in case of ---more---
+def ssh_read_until_prompt_bulletproof(chan,command,prompt,debug=False):
+    output, buff, last_line = str(), str(), 'dummyline1'
+    # avoid of echoing commands on ios-xe by timeout 1 second
+    flush_buffer = chan.recv(9999)
+    del flush_buffer
+    chan.send(command)
+    time.sleep(1)
+    while not last_line == prompt:
+        if debug: print('LAST_LINE:',prompt,last_line)
+        buff = chan.recv(9999)
+        output += buff.replace('\r','').replace('\x07','').replace('\x08','').replace('\x1b[K','').replace('\n{master}\n','')
+        if '--More--' or '---(more' in buff.strip(): chan.send('\x20')
+        if debug: print('BUFFER:' + buff)
+        try: last_line = output.splitlines()[-1].strip().replace('\x20','')
+        except: last_line = str()
+    return output
+
+# huawei does not respond to snmp
+def detect_router_by_ssh(debug = False):
+    router_os = str()
+    client = paramiko.SSHClient()
+    client.load_system_host_keys()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+    try:
+        client.connect(args.device, username=USERNAME, password=PASSWORD)
+        chan = client.invoke_shell()
+        chan.settimeout(TIMEOUT)
+        # prevent --More-- in log banner (space=page, enter=1line,tab=esc)
+        # \n\n get prompt as last line
+        prompt = ssh_detect_prompt(chan, debug=False)
+
+        #test if this is HUAWEI VRP
+        if prompt and not router_os:
+            command = 'display version | include (Huawei)\n'
+            output = ssh_read_until_prompt_bulletproof(chan, command, prompt, debug=debug)
+            if 'Huawei Versatile Routing Platform Software' in output: router_os = 'vrp'
+
+        #test if this is CISCO IOS-XR, IOS-XE or JUNOS
+        if prompt and not router_os:
+            command = 'show version\n'
+            output = ssh_read_until_prompt_bulletproof(chan, command, prompt, debug=debug)
+            if 'iosxr-' in output: router_os = 'ios-xr'
+            elif 'Cisco IOS-XE software' in output: router_os = 'ios-xe'
+            elif 'JUNOS OS' in output: router_os = 'junos'
+
+    except (socket.timeout, paramiko.AuthenticationException) as e:
+        print(bcolors.FAIL + " ... Connection closed: %s " % (e) + bcolors.ENDC )
+        sys.exit()
+    finally:
+        client.close()
+    return router_os
+
+
 # Find OS running on a router with a snmp request
 def find_router_type(host):
     snmp_req = "snmpget -v1 -c " + SNMP_COMMUNITY + " -t 5 " + host + " sysDescr.0"
@@ -522,6 +596,12 @@ else: pre_post = 'pre'
 
 if args.username != None:
     USERNAME = args.username
+
+
+
+print(detect_router_by_ssh(debug = False))
+exit(0)
+
 
 ####### Figure out type of router OS
 
