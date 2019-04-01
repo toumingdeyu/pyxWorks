@@ -90,7 +90,7 @@ default_compare_columns = []
 CMD_IOS_XE = [
             ("show version",'ndiff1'),
             ("show running-config",'ndiff1'),
-            ("show isis neighbors",'new1', [0,1,2,3,4], ['DOWN']),
+            ("show isis neighbors",'new1', [0,1,2,3,4], ['DOWN'], True),
 #             "show mpls ldp neighbor",
 #             "show ip interface brief",
 #             "show ip route summary",
@@ -104,8 +104,8 @@ CMD_IOS_XR = [
             ("show running-config",'ndiff1'),
             #"admin show run",
             #"show interface brief",
-            ("show isis interface brief",'ndiff1'),
-            ("show isis neighbors", "new1", [0,1,2,3], ['Down']),
+            ("show isis interface brief",'ndiff1',[],[], True),
+            ("show isis neighbors", "new1", [0,1,2,3], ['Down'], True),
 #             "show mpls ldp neighbor brief",
 #             "show mpls ldp interface brief",
 #             "show bgp sessions",
@@ -124,7 +124,7 @@ CMD_JUNOS = [
             ("show system software",'ndiff1'),
             ("show configuration","ndiff1"),
             #"show interfaces terse",
-            ("show isis adjacency","new1", [0,1,2,3], ['DOWN']),
+            ("show isis adjacency","new1", [0,1,2,3], ['DOWN'], True),
 #             "show ldp session brief",
 #             "show ldp neighbor",
 #             "show bgp summary",
@@ -142,8 +142,8 @@ CMD_VRP = [
             ("display version",'ndiff1'),
             #"display inventory",
             ("display current-configuration",'ndiff1'),
-            ("display isis interface",'new1'),
-            ("display isis peer",'new1', [0,1,2,3], ['Down']),
+            ("display isis interface",'new1',[],[], True),
+            ("display isis peer",'new1', [0,1,2,3], ['Down'], True),
 #             "display saved-configuration",
 #             "display startup",
 #             "display acl all",
@@ -780,7 +780,11 @@ if pre_post == "post":
         except: cli_compare_columns = []
         try: cli_problemline_list = cli_items[3]
         except: cli_problemline_list = []
-
+        if args.printall:
+            cli_printall = args.printall
+        else:
+            try: cli_printall = cli_items[4]
+            except: cli_printall = False
         # old comparison method
         if args.olddiff:
             # set up correct slicing to remove irrelevant end of line info
@@ -836,7 +840,7 @@ if pre_post == "post":
             print(get_difference_string_from_string_or_list(precheck_section,postcheck_section,
                 diff_method = cli_diff_method, \
                 compare_columns = cli_compare_columns, \
-                print_equallines=args.printall, \
+                print_equallines = cli_printall, \
                 note=False))
 
     print '\n ==> POSTCHECK COMPLETE !'
