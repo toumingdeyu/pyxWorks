@@ -579,14 +579,14 @@ parser.add_argument("--noslice",
                     action = "store_true",
                     default = False,
                     help = "postcheck with no end of line cut")
+parser.add_argument("--printall",action = "store_true", default = False,
+                    help = "print all lines, changes will be coloured")
 parser.add_argument("--diff", action = "store", dest = "diff", \
                     choices = ['old','ndiff','ndiff1','ndiff2','new1','new2'], \
                     default = 'new1', \
                     help = "%s .............. %s .......... %s .......... %s ............... %s"% \
                     (note_ndiff_string,note_ndiff1_string,note_ndiff2_string, \
                     note_new1_string,note_new2_string))
-parser.add_argument("-pe", "--printequallines",action = "store_true", default = False,
-                    help = "print equal lines")
 
 args = parser.parse_args()
 if args.post: pre_post = 'post'
@@ -833,7 +833,7 @@ if pre_post == "post":
             print(get_difference_string_from_string_or_list(precheck_section,postcheck_section,
                 diff_method = cli_diff_method, \
                 compare_columns = cli_compare_columns, \
-                print_equallines=args.printequallines, \
+                print_equallines=args.printall, \
                 note=False))
 
     print '\n ==> POSTCHECK COMPLETE !'
