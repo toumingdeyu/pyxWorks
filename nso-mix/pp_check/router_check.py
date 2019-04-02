@@ -89,17 +89,17 @@ default_compare_columns = []
 # CLI LIST:
 # 0-cli
 # 1-diff_method
-# 2-problemline_list
-# 3-ignore_list
+# 2-ignore_list - filters out all lines which contains words
+# 3-problemline_list
 # 4-linefilter_list
 # 5-compare_columns
 # 6-printall
 
 # IOS-XE is only for IPsec GW 
 CMD_IOS_XE = [
-            ("show version",           'ndiff1',[], ['uptime','Uptime'], [], [], False),
+            ("show version",           'ndiff1', ['uptime','Uptime'], [], [], [], False),
             ("show running-config",    'ndiff1'),
-            ("show isis neighbors",    'new1', ['DOWN'], [], [], [0,1,2,3,4], False),
+            ("show isis neighbors",    'new1', [], ['DOWN'], [], [0,1,2,3,4], False),
             ("show mpls ldp neighbor", 'new1', [], [], [], [0,1,2,3,5], False ),
             ("show ip interface brief",'new1', [], [], [], [], False ),
 #             "show ip route summary",
@@ -109,12 +109,12 @@ CMD_IOS_XE = [
 #             'show interfaces | in (^[A-Z].*|minute|second|Last input)'
              ]
 CMD_IOS_XR = [
-            ("show version",'ndiff1',[], ['uptime','Uptime'], [], [], False),
+            ("show version",'ndiff1', ['uptime','Uptime'], [], [], [], False),
             ("show running-config",'ndiff1'),
             ("admin show run",'ndiff1'),
             ("show interface brief",'new1', [], [], [], [], False ),
             ("show isis interface brief",'ndiff1',[], [], [], [], False),
-            ("show isis neighbors", "new1", ['Down'], [], [], [0,1,2,3], False),
+            ("show isis neighbors", "new1", [], ['Down'], [], [0,1,2,3], False),
 #             "show mpls ldp neighbor brief",
 #             "show mpls ldp interface brief",
 #             "show bgp sessions",
@@ -130,10 +130,10 @@ CMD_IOS_XR = [
 #             "show interfaces | in \"^[A-Z].*|minute|second|Last input\""
             ]
 CMD_JUNOS = [
-            ("show system software",'ndiff1', [], ['uptime','Uptime'], [], [], False),
+            ("show system software",'ndiff1', ['uptime','Uptime'], [], [], [], False),
             ("show configuration","ndiff1"),
             #"show interfaces terse",
-            ("show isis adjacency","new1", ['DOWN'], [], [], [0,1,2,3], False),
+            ("show isis adjacency","new1", [], ['DOWN'], [], [0,1,2,3], False),
 #             "show ldp session brief",
 #             "show ldp neighbor",
 #             "show bgp summary",
@@ -148,11 +148,11 @@ CMD_JUNOS = [
 #             'show interfaces detail | match "Physical interface|Last flapped| bps"'
             ]
 CMD_VRP = [
-            ("display version",'ndiff1', [], ['uptime','Uptime'], [], [], False),
+            ("display version",'ndiff1', ['uptime','Uptime'], [], [], [], False),
             #"display inventory",
             ("display current-configuration",'ndiff1'),
             ("display isis interface",'new1',[], [], [], [], False),
-            ("display isis peer",'new1', ['Down'], [], [], [0,1,2,3], False),
+            ("display isis peer",'new1', [], ['Down'], [], [0,1,2,3], False),
 #             "display saved-configuration",
 #             "display startup",
 #             "display acl all",
@@ -326,9 +326,9 @@ def find_section(text, prompt,cli_index, cli):
 def get_difference_string_from_string_or_list(
     old_string_or_list, \
     new_string_or_list, \
-    diff_method = 'new2', \
-    problem_list = default_problemline_list, \
+    diff_method = 'new1', \
     ignore_list = default_ignoreline_list, \
+    problem_list = default_problemline_list, \
     linefilter_list = default_linefilter_list, \
     compare_columns = [], \
     print_equallines = None, \
@@ -339,10 +339,10 @@ def get_difference_string_from_string_or_list(
     INPUT PARAMETERS:
       - old_string_or_list - content of old file in string or list type
       - new_string_or_list - content of new file in string or list type
-      - diff_method - ndiff or new
-      - problem_list - list of regular expressions or strings which detects problems, even if files are equal
+      - diff_method - ndiff, ndiff1, ndiff2, new1, new2
       - ignore_list - list of regular expressions or strings when line is ignored for file (string) comparison
-      - linefilter_list - list of regular expressions which filters each line
+      - problem_list - list of regular expressions or strings which detects problems, even if files are equal
+      - linefilter_list - list of regular expressions which filters each line (regexp results per line comparison)
       - compare_columns - list of columns which are intended to be different , other columns in line are ignored
       - print_equallines - True/False prints all equal new file lines with '=' prefix , by default is False
       - debug - True/False, prints debug info to stdout, by default is False
@@ -844,11 +844,11 @@ if pre_post == "post":
             try: cli_diff_method = cli_items[1]
             except: cli_diff_method = 'ndiff1'
 
-            try: cli_problemline_list = cli_items[2]
-            except: cli_problemline_list = []
-
-            try: cli_ignore_list = cli_items[3]
+            try: cli_ignore_list = cli_items[2]
             except: cli_ignore_list = []
+
+            try: cli_problemline_list = cli_items[3]
+            except: cli_problemline_list = []
 
             try: cli_linefilter_list = cli_items[4]
             except: cli_linefilter_list = []
