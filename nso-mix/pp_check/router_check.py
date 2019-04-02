@@ -74,9 +74,9 @@ note_new2_string   = "new2(  %s'-' missed, %s'+' added, %s'!' difference,    %s'
     (bcolors.RED,bcolors.YELLOW,bcolors.YELLOW,bcolors.GREY,bcolors.ENDC )
 
 default_problemline_list = []
-default_ignoreline_list = [r' MET$', r' UTC$']
-default_linefilter_list = []
-default_compare_columns = []
+default_ignoreline_list  = [r' MET$', r' UTC$']
+default_linefilter_list  = []
+default_compare_columns  = []
 
 
 
@@ -100,7 +100,7 @@ CMD_IOS_XE = [
             ("show version",           'ndiff1', ['uptime','Uptime'], [], [], [], False),
             ("show running-config",    'ndiff1'),
             ("show isis neighbors",    'new1', [], ['DOWN'], [], [0,1,2,3,4], False),
-            ("show mpls ldp neighbor", 'new1', [], [], [], [0,1,2,3,5], False ),
+            ("show mpls ldp neighbor", 'new1', ['Up time:'], [], [], [0,1,2,3,5], False ),
             ("show ip interface brief",'new1', [], [], [], [], False ),
 #             "show ip route summary",
 #             "show crypto isakmp sa",
@@ -553,6 +553,14 @@ def get_difference_string_from_string_or_list(
     return print_string
 
 
+def print_cmd_list(CMD):
+    if args.cmdlist == 'listall':
+        print("COMMAND LIST:")
+        for cli_index, cli_items in enumerate(CMD):
+            print("  %2d.    %s" % (cli_index,cli_items[0]))
+        print('\n')
+
+
 ##############################################################################
 #
 # BEGIN MAIN
@@ -598,6 +606,9 @@ parser.add_argument("--olddiff",action = "store_true", default = False,
                     help = "force old diff method")
 parser.add_argument("--recheck",action = "store_true", default = False,
                     help = "recheck last diff pre/post files per inserted device")
+parser.add_argument("--cmdlist",
+                    action = "store", dest = 'cmdlist', default = 'listall',
+                    help = "choose command from command list for comparison")
 # parser.add_argument("--diff", action = "store", dest = "diff", \
 #                     choices = ['old','ndiff','ndiff1','ndiff2','new1','new2'], \
 #                     default = 'new1', \
@@ -731,6 +742,8 @@ elif router_type == "vrp":
     TERM_LEN_0 = "screen-length 0 temporary\n"     #"screen-length disable\n"
     EXIT = "quit\n"
 
+print_cmd_list(CMD)
+
 if not args.recheck:
     # SSH (default)
     print " ... Connecting (SSH) to %s" % args.device
@@ -792,6 +805,16 @@ if pre_post == "post":
     fp1.close()
     fp2.close()
 
+    # run only chosen command from list by its number
+    if args.cmdlist != 'listall':
+        try: cmd_index = int(args.cmdlist)
+        except: cmd_index = -1
+        for cli_index, cli_items in enumerate(CMD):
+            if cli_index == cmd_index:
+                CMD = [cli_items]
+                break
+
+    # run commands tgrough CMD list
     for cli_index, cli_items in enumerate(CMD):
         cli = cli_items[0]
 
@@ -872,8 +895,8 @@ if pre_post == "post":
             diff_result = get_difference_string_from_string_or_list( \
                 precheck_section,postcheck_section, \
                 diff_method = cli_diff_method, \
-                problem_list = cli_problemline_list, \
                 ignore_list = default_ignoreline_list + cli_ignore_list, \
+                problem_list = cli_problemline_list, \
                 linefilter_list = cli_linefilter_list, \
                 compare_columns = cli_compare_columns, \
                 print_equallines = cli_printall, \
