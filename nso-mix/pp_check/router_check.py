@@ -108,7 +108,7 @@ CMD_IOS_XE = [
             ("show ip interface brief",
                    'new1', [], [], [], [], False ),
             ("show ip route summary",
-                   'ndiff1', [], [], [], [0,1], False),
+                   'ndiff1', [], [], [], [0,1,2], False),
             ("show crypto isakmp sa",
                    'ndiff1', [], [], [], [], False),
             ("show crypto ipsec sa count",
