@@ -190,7 +190,7 @@ def ssh_detect_prompt(chan, debug = False):
         except: last_line = 'dummyline1'
         try: last_but_one_line = output.splitlines()[-2].strip().replace('\x20','')
         except: last_but_one_line = 'dummyline2'
-    print('PROMPT_DETECTED: \'' + last_line + '\'')
+    print('DETECTED PROMPT: \'' + last_line + '\'')
     return last_line
 
 
@@ -554,12 +554,12 @@ def get_difference_string_from_string_or_list(
 
 
 def print_cmd_list(CMD):
-    if args.cmdlist == 'listall':
-        print("COMMAND LIST:")
+    if str(args.cmdlist) == 'list':
+        print("\nCOMMAND LIST:")
         for cli_index, cli_items in enumerate(CMD):
             print("  %2d.    %s" % (cli_index,cli_items[0]))
         print('\n')
-
+        sys.exit(0)
 
 ##############################################################################
 #
@@ -584,7 +584,7 @@ parser.add_argument("--device",
                     help = "target router to check")
 parser.add_argument("--os",
                     action = "store", dest="router_type",
-                    choices = ["ios-xr","ios-xe","junos","vrp"],
+                    choices = ["ios-xr", "ios-xe", "junos", "vrp"],
                     help = "router operating system type")
 parser.add_argument("--post", action = "store_true",
                     help = "run Postcheck")
@@ -600,15 +600,15 @@ parser.add_argument("--noslice",
                     action = "store_true",
                     default = False,
                     help = "postcheck with no end of line cut")
-parser.add_argument("--printall",action = "store_true", default = False,
-                    help = "print all lines, changes will be coloured")
 parser.add_argument("--olddiff",action = "store_true", default = False,
                     help = "force old diff method")
+parser.add_argument("--printall",action = "store_true", default = False,
+                    help = "print all lines, changes will be coloured")
 parser.add_argument("--recheck",action = "store_true", default = False,
                     help = "recheck last diff pre/post files per inserted device")
 parser.add_argument("--cmdlist",
-                    action = "store", dest = 'cmdlist', default = 'listall',
-                    help = "choose command from command list for comparison")
+                    action = "store", dest = 'cmdlist', default = '',
+                    help = "<list> - print command list / <nr of command> - choose one command from command list for post comparison")
 # parser.add_argument("--diff", action = "store", dest = "diff", \
 #                     choices = ['old','ndiff','ndiff1','ndiff2','new1','new2'], \
 #                     default = 'new1', \
@@ -695,27 +695,28 @@ else:
             elif router_type == 'ios-xr':
                 CMD_IOS_XR = list_cmd
 
-    ############# Starting pre or post check
-    if not PASSWORD: PASSWORD = getpass.getpass("TACACS password: ")
+    if str(args.cmdlist) != 'list':
+        ############# Starting pre or post check
+        if not PASSWORD: PASSWORD = getpass.getpass("TACACS password: ")
 
-    if pre_post == "post":
-        print " ==> STARTING POSTCHECK ..."
-    elif pre_post == "pre":
-        print " ==> STARTING PRECHECK ..."
+        if pre_post == "post":
+            print " ==> STARTING POSTCHECK ..."
+        elif pre_post == "pre":
+            print " ==> STARTING PRECHECK ..."
 
-    print " ... Openning %s check file to collect output" %( pre_post )
+        print " ... Openning %s check file to collect output" %( pre_post )
 
-    filename_prefix = "./logs/" + args.device
-    filename_suffix = pre_post
-    now = datetime.datetime.now()
-    filename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s" % \
-        (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,now.second,filename_suffix)
+        filename_prefix = "./logs/" + args.device
+        filename_suffix = pre_post
+        now = datetime.datetime.now()
+        filename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s" % \
+            (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,now.second,filename_suffix)
 
-    if pre_post == "post":
-        postcheck_file = filename
-        precheck_file = args.precheck_file
+        if pre_post == "post":
+            postcheck_file = filename
+            precheck_file = args.precheck_file
 
-    fp = open(filename,"w")
+        fp = open(filename,"w")
 
 # Collect pre/post check information
 if router_type == "ios-xe":
@@ -905,7 +906,7 @@ if pre_post == "post":
             else: print(diff_result)
     print '\n ==> POSTCHECK COMPLETE !'
 
-elif pre_post == "pre":
+elif pre_post == "pre" and not args.recheck:
     subprocess.call(['ls','-l',filename])
     print '\n ==> PRECHECK COMPLETE !'
 
