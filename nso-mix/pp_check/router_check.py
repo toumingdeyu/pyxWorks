@@ -108,7 +108,7 @@ CMD_IOS_XE = [
             ("show ip interface brief",
                    'new1', [], [], [], [], False ),
             ("show ip route summary",
-                   'ndiff1', [], [], [], [], False),
+                   'ndiff1', [], [], [], [0,1], False),
             ("show crypto isakmp sa",
                    'ndiff1', [], [], [], [], False),
             ("show crypto ipsec sa count",
@@ -116,7 +116,7 @@ CMD_IOS_XE = [
             ("show crypto eli",
                    'ndiff1', [], [], [], [], False),
             ('show interfaces | include (^[A-Z].*|minute|second|Last input)',
-                   'ndiff1', [], [], [], [], False)
+                   'ndiff1', [], [' 0 bits/sec'], [], [], False)
              ]
 CMD_IOS_XR = [
             ("show version",
@@ -156,7 +156,7 @@ CMD_IOS_XR = [
             ("show system verify report",
                    'ndiff1', [], [], [], [], False),
             ("show interfaces | include \"^[A-Z].*|minute|second|Last input\"",
-                   'ndiff1', [], [], [], [], False)
+                   'ndiff1', [], [' 0 bits/sec'], [], [], False)
              ]
 CMD_JUNOS = [
             ("show system software",
@@ -210,11 +210,11 @@ CMD_VRP = [
             ("display startup",
                       'ndiff1', [], [], [], [], False),
             ("display acl all",
-                      'ndiff1', [], [], [], [], False),
+                      'ndiff1', [], [' 0 times matched'], [], [0,1,2,3,4,5], False),
             ("display alarm all",
                       'ndiff1', [], [], [], [], False),
             ("display interface brief",
-                      'ndiff1', [], [], [], [], False),
+                      'ndiff1', [], ['down'], [], [], False),
             ("display ip interface brief",
                       'ndiff1', [], [], [], [], False),
             ("display ip routing-table",
