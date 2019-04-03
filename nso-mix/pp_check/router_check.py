@@ -174,9 +174,9 @@ CMD_JUNOS = [
             ("show bgp summary",
                    'ndiff1', [], [], [], [], False),
             ("show rsvp neighbor",
-                   'ndiff1', [], [], [], [], False),
+                   'ndiff1', [], [], [], [0], False),
             ("show pim neighbors",
-                   'ndiff1', [], [], [], [], False),
+                   'ndiff1', [], [], [], [0,1,2,3,6], False),
             ("show l2vpn connections summary",
                    'ndiff1', [], [], [], [], False),
             ("show chassis routing-engine",
@@ -189,8 +189,10 @@ CMD_JUNOS = [
                    'ndiff1', [], [], [], [], False),
             ("show system alarms",
                    'ndiff1', [], [], [], [], False),
-            ('show interfaces detail | match "Physical interface|Last flapped| bps"',
-                   'ndiff1',[], [], [], [], False)
+            ('show interfaces detail | match "Physical interface| bps"',
+                   'ndiff1',['Administratively down'], ['Down'], [], [], False),
+            ('show interfaces detail | match "Physical interface|Last flapped"',
+                   'ndiff1',[], [], [], [0,1,2,3,4], False)
             ]
 CMD_VRP = [
             ("display version",
