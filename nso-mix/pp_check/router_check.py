@@ -106,7 +106,7 @@ CMD_IOS_XE = [
             ("show crypto isakmp sa",  'ndiff1', [], [], [], [], False),
             ("show crypto ipsec sa count", 'ndiff1', [], [], [], [], False),
             ("show crypto eli",        'ndiff1', [], [], [], [], False),
-            ('show interfaces | in (^[A-Z].*|minute|second|Last input)','new1', [], [], [], [], False)
+            ('show interfaces | include (^[A-Z].*|minute|second|Last input)','new1', [], [], [], [], False)
              ]
 CMD_IOS_XR = [
             ("show version",'ndiff1', ['uptime','Uptime'], [], [], [], False),
@@ -127,7 +127,7 @@ CMD_IOS_XR = [
             ("show processes cpu | utility head count 3", 'ndiff1', [], [], [], [], False),
             ("show inventory", 'ndiff1', [], [], [], [], False),
             ("show system verify report", 'ndiff1', [], [], [], [], False),
-            ("show interfaces | in \"^[A-Z].*|minute|second|Last input\"",'new1', [], [], [], [], False)
+            ("show interfaces | include \"^[A-Z].*|minute|second|Last input\"",'new1', [], [], [], [], False)
              ]
 CMD_JUNOS = [
             ("show system software",'ndiff1', ['uptime','Uptime'], [], [], [], False),
@@ -296,7 +296,7 @@ def ssh_read_until(channel,prompt):
     output = ''
     while not output.endswith(prompt):
         buff = chan.recv(9999)
-        output += buff.replace('\r','').replace('\x07','').replace('\x08','').\
+        output += buff.replace('\x0d','').replace('\x07','').replace('\x08','').\
                   replace(' \x1b[1D','')
     return output
 
@@ -307,11 +307,12 @@ def find_section(text, prompt,cli_index, cli , file_name=str()):
     for index,item in enumerate(text):
         if prompt.rstrip() in text[index].rstrip():
             c_index = c_index+1
-            # beginning section found
+            # beginning section found ... or (c_index == cli_index):
             # + workarround for long commands shortened in router echoed line
+            try: cmd_text_short = text[index].rstrip()[0:78].split(prompt)[1]
+            except: cmd_text_short = str()
             if (prompt+cli.rstrip()) in text[index].rstrip() or \
-                (c_index == cli_index and text[index].rstrip() in (prompt+cli.rstrip())):
-                #(c_index == cli_index):
+                (c_index == cli_index and cmd_text_short and cmd_text_short in cli.rstrip()):
                 b_index = index
                 look_end = 1                       # look for end of section now
                 continue
