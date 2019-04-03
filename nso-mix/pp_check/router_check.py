@@ -102,11 +102,11 @@ CMD_IOS_XE = [
             ("show isis neighbors",    'new1', [], ['DOWN'], [], [0,1,2,3,4], False),
             ("show mpls ldp neighbor", 'new1', ['Up time:'], [], [], [0,1,2,3,5], False ),
             ("show ip interface brief",'new1', [], [], [], [], False ),
-#             "show ip route summary",
-#             "show crypto isakmp sa",
-#             "show crypto ipsec sa count",
-#             "show crypto eli",
-#             'show interfaces | in (^[A-Z].*|minute|second|Last input)'
+            ("show ip route summary",  'ndiff1', [], [], [], [], False),
+            ("show crypto isakmp sa",  'ndiff1', [], [], [], [], False),
+            ("show crypto ipsec sa count", 'ndiff1', [], [], [], [], False),
+            ("show crypto eli",        'ndiff1', [], [], [], [], False),
+            ('show interfaces | in (^[A-Z].*|minute|second|Last input)','new1', [], [], [], [], False)
              ]
 CMD_IOS_XR = [
             ("show version",'ndiff1', ['uptime','Uptime'], [], [], [], False),
@@ -115,53 +115,53 @@ CMD_IOS_XR = [
             ("show interface brief",'new1', [], [], [], [], False ),
             ("show isis interface brief",'ndiff1',[], [], [], [], False),
             ("show isis neighbors", "new1", [], ['Down'], [], [0,1,2,3], False),
-#             "show mpls ldp neighbor brief",
-#             "show mpls ldp interface brief",
-#             "show bgp sessions",
-#             "show route summary",
-#             "show rsvp  neighbors",
-#             "show pim neighbor",
-#             "show l2vpn xconnect group group1",
-#             "admin show platform",
-#             "show redundancy summary",
-#             "show processes cpu | utility head count 3",
-#             "show inventory",
-#             "show system verify report",
-#             "show interfaces | in \"^[A-Z].*|minute|second|Last input\""
-            ]
+            ("show mpls ldp neighbor brief",'ndiff1', [], [], [], [], False),
+            ("show mpls ldp interface brief",'ndiff1', [], [], [], [], False),
+            ("show bgp sessions", 'ndiff1', [], [], [], [], False),
+            ("show route summary", 'ndiff1', [], [], [], [], False),
+            ("show rsvp  neighbors", 'ndiff1', [], [], [], [], False),
+            ("show pim neighbor", 'ndiff1', [], [], [], [], False),
+            ("show l2vpn xconnect group group1", 'ndiff1', [], [], [], [], False),
+            ("admin show platform", 'ndiff1', [], [], [], [], False),
+            ("show redundancy summary", 'ndiff1', [], [], [], [], False),
+            ("show processes cpu | utility head count 3", 'ndiff1', [], [], [], [], False),
+            ("show inventory", 'ndiff1', [], [], [], [], False),
+            ("show system verify report", 'ndiff1', [], [], [], [], False),
+            ("show interfaces | in \"^[A-Z].*|minute|second|Last input\"",'new1', [], [], [], [], False)
+             ]
 CMD_JUNOS = [
             ("show system software",'ndiff1', ['uptime','Uptime'], [], [], [], False),
             ("show configuration","ndiff1"),
-            #"show interfaces terse",
+            ("show interfaces terse", 'ndiff1', [], [], [], [], False),
             ("show isis adjacency","new1", [], ['DOWN'], [], [0,1,2,3], False),
-#             "show ldp session brief",
-#             "show ldp neighbor",
-#             "show bgp summary",
-#             "show rsvp neighbor",
-#             "show pim neighbors",
-#             "show l2vpn connections summary",
-#             "show chassis routing-engine",
-#             "show chassis fpc",
-#             "show chassis fpc pic-status",
-#             "show chassis power",
-#             "show system alarms",
-#             'show interfaces detail | match "Physical interface|Last flapped| bps"'
+            ("show ldp session brief",'ndiff1', [], [], [], [], False),
+            ("show ldp neighbor",'ndiff1', [], [], [], [], False),
+            ("show bgp summary", 'ndiff1', [], [], [], [], False),
+            ("show rsvp neighbor",'ndiff1', [], [], [], [], False),
+            ("show pim neighbors", 'ndiff1', [], [], [], [], False),
+            ("show l2vpn connections summary", 'ndiff1', [], [], [], [], False),
+            ("show chassis routing-engine", 'ndiff1', [], [], [], [], False),
+            ("show chassis fpc",'ndiff1', [], [], [], [], False),
+            ("show chassis fpc pic-status", 'ndiff1', [], [], [], [], False),
+            ("show chassis power", 'ndiff1', [], [], [], [], False),
+            ("show system alarms", 'ndiff1', [], [], [], [], False),
+            ('show interfaces detail | match "Physical interface|Last flapped| bps"',[], [], [], [], False)
             ]
 CMD_VRP = [
             ("display version",'ndiff1', ['uptime','Uptime'], [], [], [], False),
-            #"display inventory",
+            ("display inventory",'ndiff1', [], [], [], [], False),
             ("display current-configuration",'ndiff1'),
             ("display isis interface",'new1',[], [], [], [], False),
             ("display isis peer",'new1', [], ['Down'], [], [0,1,2,3], False),
-#             "display saved-configuration",
-#             "display startup",
-#             "display acl all",
-#             "display alarm all",
-#             "display interface brief",
-#             "display ip interface brief",
-#             "display ip routing-table",
-#             "display bgp routing-table",
-#             'display interface | include (Description|current state|minutes|bandwidth utilization|Last physical)'
+            ("display saved-configuration",'ndiff1', [], [], [], [], False),
+            ("display startup",'ndiff1', [], [], [], [], False),
+            ("display acl all",'ndiff1', [], [], [], [], False),
+            ("display alarm all",'ndiff1', [], [], [], [], False),
+            ("display interface brief",'ndiff1', [], [], [], [], False),
+            ("display ip interface brief",'ndiff1', [], [], [], [], False),
+            ("display ip routing-table",'ndiff1', [], [], [], [], False),
+            ("display bgp routing-table",'ndiff1', [], [], [], [], False),
+            ('display interface | include (Description|current state|minutes|Last physical|bandwidth utilization)','new1', [], [], [], [], False)
             ]
 
 IOS_XR_SLICE = {
@@ -296,11 +296,12 @@ def ssh_read_until(channel,prompt):
     output = ''
     while not output.endswith(prompt):
         buff = chan.recv(9999)
-        output += buff
+        output += buff.replace('\r','').replace('\x07','').replace('\x08','').\
+                  replace(' \x1b[1D','')
     return output
 
 # Find a section of text betwwen "cli" variable from upper block and "prompt
-def find_section(text, prompt,cli_index, cli):
+def find_section(text, prompt,cli_index, cli , file_name=str()):
     look_end = 0
     b_index, e_index, c_index = None, None, -1
     for index,item in enumerate(text):
@@ -308,7 +309,9 @@ def find_section(text, prompt,cli_index, cli):
             c_index = c_index+1
             # beginning section found
             # + workarround for long commands shortened in router echoed line
-            if (prompt+cli.rstrip()) in text[index].rstrip() or c_index == cli_index:
+            if (prompt+cli.rstrip()) in text[index].rstrip() or \
+                (c_index == cli_index and text[index].rstrip() in (prompt+cli.rstrip())):
+                #(c_index == cli_index):
                 b_index = index
                 look_end = 1                       # look for end of section now
                 continue
@@ -317,8 +320,8 @@ def find_section(text, prompt,cli_index, cli):
                     e_index = index
                     look_end = 0
     if not(b_index and e_index):
-        print("%sSection '%s' could not be found and compared!%s" % \
-              (bcolors.MAGENTA,prompt+cli.rstrip(),bcolors.ENDC))
+        print("%sSection '%s' could not be found %s!%s" % \
+              (bcolors.MAGENTA,prompt+cli.rstrip(),file_name,bcolors.ENDC))
         return str()
     return text[b_index:e_index]
 
@@ -887,10 +890,12 @@ if pre_post == "post":
                 except: cli_printall = False
 
             # Looking for relevant section in precheck file
-            precheck_section = find_section(text1_lines, DEVICE_PROMPT,cli_index, cli)
+            precheck_section = find_section(text1_lines, DEVICE_PROMPT, \
+                cli_index, cli, file_name = 'in ' + precheck_file + ' file ')
 
             #Looking for relevant section in postcheck file
-            postcheck_section = find_section(text2_lines, DEVICE_PROMPT,cli_index, cli)
+            postcheck_section = find_section(text2_lines, DEVICE_PROMPT, \
+                cli_index, cli, file_name = 'in ' + postcheck_file + ' file ')
 
             if precheck_section and postcheck_section:
                 print(bcolors.BOLD + '\n' + cli + bcolors.ENDC)
