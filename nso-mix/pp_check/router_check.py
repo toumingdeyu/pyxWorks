@@ -309,7 +309,7 @@ def find_section(text, prompt,cli_index, cli , file_name=str()):
             c_index = c_index+1
             # beginning section found ... or (c_index == cli_index):
             # + workarround for long commands shortened in router echoed line
-            try: cmd_text_short = text[index].rstrip()[0:78].split(prompt)[1]
+            try: cmd_text_short = text[index].rstrip()[0:73].split(prompt)[1]
             except: cmd_text_short = str()
             if (prompt+cli.rstrip()) in text[index].rstrip() or \
                 (c_index == cli_index and cmd_text_short and cmd_text_short in cli.rstrip()):
