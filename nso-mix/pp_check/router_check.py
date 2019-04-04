@@ -285,8 +285,8 @@ CMD_VRP = [
                       'ndiff1', [], [],
                       [], [], [], False),
             ("display ip routing-table",
-                      'ndiff1', [], [],
-                      [], [], [], False),
+                      'ndiff3', [], [],
+                      [], [], [0,1,2,4,5,6], False),
             ("display bgp routing-table statistics",
                       'ndiff1', [], [],
                       [], [], [], False),
@@ -510,6 +510,18 @@ def get_difference_string_from_string_or_list(
     RED for something going DOWN or something missing or failed.
     ORANGE for something going UP or something NEW (not present in pre-check)
     '''
+    def decide_print_line_or_not(line,printalllines_list,problem_list):
+        print_line = str()
+        # print lines grey, write also equal values !!!
+        for item in printalllines_list:
+            if (re.search(item,line)) != None: color, print_line = bcolors.GREY, line
+        # In case of DOWN/FAIL write also equal values !!!
+        for item in problem_list:
+            if (re.search(item,line)) != None: color, print_line = bcolors.RED, line
+        if print_line:
+            print_line = '%s%s%s'%(color,print_line,bcolors.ENDC)
+        return print_line
+
     print_string = str()
     if note:
        print_string = "DIFF_METHOD: "
@@ -517,6 +529,7 @@ def get_difference_string_from_string_or_list(
        elif diff_method == 'new2':   print_string += note_new2_string
        elif diff_method == 'ndiff1': print_string += note_ndiff1_string
        elif diff_method == 'ndiff2': print_string += note_ndiff2_string
+       elif diff_method == 'ndiff3': print_string += note_ndiff_string
        elif diff_method == 'ndiff':  print_string += note_ndiff_string
 
     # make list from string if is not list already
@@ -563,7 +576,7 @@ def get_difference_string_from_string_or_list(
     del old_lines_unfiltered
     del new_lines_unfiltered
 
-    # NDIFF COMPARISON METHOD
+    # NDIFF COMPARISON METHOD---------------------------------------------------
     if diff_method == 'ndiff':
         diff = difflib.ndiff(old_lines, new_lines)
         for line in list(diff):
@@ -576,7 +589,56 @@ def get_difference_string_from_string_or_list(
             elif print_equallines: print_string += bcolors.GREY + line + bcolors.ENDC + '\n'
         return print_string
 
-    # NEW COMPARISON METHOD CONTINUE -------------------------------------------
+    # NDIFF3 COMPARISON METHOD--------------------------------------------------
+    if diff_method == 'ndiff3':
+        ignore_previous_line = False
+        diff = difflib.ndiff(old_lines, new_lines)
+        listdiff_nonfiltered = list(diff)
+        listdiff = []
+        for line in listdiff_nonfiltered:
+            try:    first_chars = line[0]+line[1]
+            except: first_chars = str()
+            if '+ ' in first_chars or '- ' in first_chars or '  ' in first_chars:
+                listdiff.append(line)
+        for line_number,line in enumerate(listdiff):
+            try:    first_chars_previousline = listdiff[line_number-1][0]+listdiff[line_number-1][1]
+            except: first_chars_previousline = str()
+            try:    first_chars = line[0]+line[1]
+            except: first_chars = str()
+            try:    first_chars_nextline = listdiff[line_number+1][0]+listdiff[line_number+1][1]
+            except: first_chars_nextline = str()
+            # check difference columns
+            split_line, split_next_line = str(), str()
+            if '- ' == first_chars and '+ ' == first_chars_nextline:
+                for split_column in compare_columns:
+                    # +1 means equal of deletion of first column -
+                    try: temp_column = line.split()[split_column+1]
+                    except: temp_column = str()
+                    split_line += ' ' + temp_column
+                for split_column in compare_columns:
+                    # +1 means equal of deletion of first column +
+                    try: temp_column = listdiff[line_number+1].split()[split_column+1]
+                    except: temp_column = str()
+                    split_next_line += ' ' + temp_column
+                if split_line and split_next_line and split_line == split_next_line:
+                    ignore_previous_line = True
+                    continue
+            if '- ' == first_chars: print_string += bcolors.RED + line + bcolors.ENDC + '\n'
+            elif '+ ' == first_chars and ignore_previous_line:
+                line_for_print = decide_print_line_or_not(line,printalllines_list,problem_list)
+                if line_for_print:
+                    line_for_print[0] = ' '
+                    print_string += line_for_print
+                ignore_previous_line = False
+            elif '+ ' == first_chars:
+                print_string += bcolors.GREEN + line + bcolors.ENDC + '\n'
+            elif print_equallines: print_string += bcolors.GREY + line + bcolors.ENDC + '\n'
+            else:
+                line_for_print = decide_print_line_or_not(line,printalllines_list,problem_list)
+                if line_for_print: print_string += line_for_print
+        return print_string
+
+    # NEWx COMPARISON METHOD CONTINUE ------------------------------------------
     enum_old_lines = enumerate(old_lines)
     enum_new_lines = enumerate(new_lines)
 
@@ -596,7 +658,7 @@ def get_difference_string_from_string_or_list(
         try:    i, line = next(enum_new_lines)
         except: i, line = -1, str()
 
-        print_old_line=None
+        print_old_line = None
         while i >= 0 and j>=0:
             go, diff_sign, color, print_line = 'void', ' ', bcolors.GREY, str()
 
