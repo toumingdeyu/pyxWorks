@@ -7,6 +7,7 @@
 # Created: 06/01/2015                                                         #
 # Updated: 23/Mar/2019 -added new custom filediff                             #
 #          25/Mar/2019 -added vrp huawei router type, old/new filediff method #
+#          04/Apr/2019 -autodetect VRP, new commands, new filtering           #
 # TODO: huawei vrp autodetect                                                 #
 # Description: Script to collect and compare output from a router before      #
 # and after a configuration change or maintenance to outline router change    #
@@ -47,10 +48,11 @@ class bcolors:
 TODAY            = datetime.datetime.now()
 VERSION          = str(TODAY.year)[2:] + '.' + str(TODAY.month) + '.' + str(TODAY.day)
 HELP             = "\nTry 'router_check.py --help' for more information\n"
-SNMP_COMMUNITY          = 'otauB9v1kYRO'
+SNMP_COMMUNITY          = 'qLqVHPZUNnGB'    # old 'otauB9v1kYRO'
 PLATFORM_DESCR_XR       = 'Cisco IOS XR Software'
 PLATFORM_DESCR_IOS      = 'Cisco IOS Software'
 PLATFORM_DESCR_JUNOS    = 'Juniper Networks'
+PLATFORM_DESCR_VRP      = 'Huawei Versatile Routing Platform Software'
 PLATFORM_DESCR_CRS      = 'Cisco IOS XR Software (Cisco CRS'
 PLATFORM_DESCR_NCS      = 'Cisco IOS XR Software (Cisco NCS'
 PLATFORM_DESCR_ASR9K    = 'Cisco IOS XR Software (Cisco ASR9K'
@@ -383,6 +385,8 @@ def find_router_type(host):
             router_os = 'ios-xe'
         elif PLATFORM_DESCR_JUNOS in retvalue:
             router_os = 'junos'
+        elif PLATFORM_DESCR_VRP in retvalue:
+            router_os = 'vrp'
         else:
             print("\nCannot find recognizable OS in %s" % (retvalue))
             sys.exit()
