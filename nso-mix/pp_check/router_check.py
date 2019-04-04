@@ -222,7 +222,7 @@ CMD_JUNOS = [
                    [], [], [0,1,2], False),
             ("show bgp summary",
                    'ndiff1', [], [],
-                   [], [], [], False),
+                   [], [], [0,1], False),
             ("show rsvp neighbor",
                    'ndiff1', [], [],
                    [], [], [0], False),
@@ -279,8 +279,8 @@ CMD_VRP = [
                       'ndiff1', [], [],
                       [], [], [], False),
             ("display interface | include (Description|current state|minutes|Last physical|bandwidth utilization)",
-                      'ndiff1', [], ['down'],
-                      [], [], [], False),
+                      'ndiff1', [], [],
+                      ['Description:'], [], [0,1,2,3,4], False),
             ("display ip interface brief",
                       'ndiff1', [], [],
                       [], [], [], False),
@@ -301,10 +301,10 @@ CMD_VRP = [
                       [], [], [], False),
             ("display bgp vpnv4 all peer",
                       'ndiff1', [], [],
-                      [], [], [], False),
+                      [], [], [0,1,2,7], False),
             ('display interface | include (Description|current state|minutes|Last physical|bandwidth utilization)',
                       'ndiff1', [], [],
-                      [], [], [], False)
+                      ['Description:',], [], [], False)
             ]
 
 IOS_XR_SLICE = {
