@@ -64,7 +64,9 @@ except: PASSWORD        = None
 try:    USERNAME        = os.environ['USER']
 except: USERNAME        = None
 
-note_ndiff_string  = "ndiff( %s'-' missed, %s'+' added, %s'-\\n%s+' difference, %s' ' equal%s)\n" % \
+note_ndiff_string  = "ndiff( %s'-' missed, %s'+' added, %s'-\\n%s+' difference, %s' ' equal%s) [no filters]\n" % \
+    (bcolors.RED,bcolors.GREEN,bcolors.RED,bcolors.GREEN,bcolors.GREY,bcolors.ENDC )
+note_ndiff0_string = "ndiff0(%s'-' missed, %s'+' added, %s'-\\n%s+' difference, %s' ' equal%s)\n" % \
     (bcolors.RED,bcolors.GREEN,bcolors.RED,bcolors.GREEN,bcolors.GREY,bcolors.ENDC )
 note_ndiff1_string = "ndiff1(%s'-' missed, %s'+' added, %s'-\\n%s+' difference, %s' ' equal%s)\n" % \
     (bcolors.RED,bcolors.YELLOW,bcolors.RED,bcolors.GREEN,bcolors.GREY,bcolors.ENDC )
@@ -285,7 +287,7 @@ CMD_VRP = [
                       'ndiff1', [], [],
                       [], [], [], False),
             ("display ip routing-table",
-                      'ndiff3', [], [],
+                      'ndiff0', [], [],
                       [], [], [0,1,2,4,5,6], False),
             ("display bgp routing-table statistics",
                       'ndiff1', [], [],
@@ -529,7 +531,7 @@ def get_difference_string_from_string_or_list(
        elif diff_method == 'new2':   print_string += note_new2_string
        elif diff_method == 'ndiff1': print_string += note_ndiff1_string
        elif diff_method == 'ndiff2': print_string += note_ndiff2_string
-       elif diff_method == 'ndiff3': print_string += note_ndiff_string
+       elif diff_method == 'ndiff0': print_string += note_ndiff0_string
        elif diff_method == 'ndiff':  print_string += note_ndiff_string
 
     # make list from string if is not list already
@@ -589,17 +591,19 @@ def get_difference_string_from_string_or_list(
             elif print_equallines: print_string += bcolors.GREY + line + bcolors.ENDC + '\n'
         return print_string
 
-    # NDIFF3 COMPARISON METHOD--------------------------------------------------
-    if diff_method == 'ndiff3':
+    # NDIFF0 COMPARISON METHOD--------------------------------------------------
+    if diff_method == 'ndiff0':
         ignore_previous_line = False
         diff = difflib.ndiff(old_lines, new_lines)
         listdiff_nonfiltered = list(diff)
         listdiff = []
+        # filter diff lines out of '? ' and void lines
         for line in listdiff_nonfiltered:
             try:    first_chars = line[0]+line[1]
             except: first_chars = str()
             if '+ ' in first_chars or '- ' in first_chars or '  ' in first_chars:
                 listdiff.append(line)
+        # main ndiff0 loop
         for line_number,line in enumerate(listdiff):
             try:    first_chars_previousline = listdiff[line_number-1][0]+listdiff[line_number-1][1]
             except: first_chars_previousline = str()
@@ -620,7 +624,17 @@ def get_difference_string_from_string_or_list(
                     try: temp_column = listdiff[line_number+1].split()[split_column+1]
                     except: temp_column = str()
                     split_next_line += ' ' + temp_column
-                if split_line and split_next_line and split_line == split_next_line:
+                # linefilter
+                for linefilter_item in linefilter_list:
+                    try: next_line = listdiff[line_number+1]
+                    except: next_line = str()
+                    if line and (re.search(linefilter_item,line)) != None:
+                        linefiltered_line = re.findall(linefilter_item,line)[0]
+                    if next_line and (re.search(linefilter_item,next_line)) != None:
+                        linefiltered_next_line = re.findall(linefilter_item,line)[0]
+                # filtered linefilter and columns commands
+                if (split_line and split_next_line and split_line == split_next_line) or \
+                   (linefiltered_line and linefiltered_next_line and linefiltered_line == linefiltered_next_line):
                     ignore_previous_line = True
                     continue
             if '- ' == first_chars: print_string += bcolors.RED + line + bcolors.ENDC + '\n'
@@ -798,8 +812,9 @@ def print_cmd_list(CMD):
 
 ######## Parse program arguments #########
 if len(sys.argv) == 1 or sys.argv[1] == '-h' or sys.argv[1] == '--help':
-    print(('DIFF_FORMATS:\n  %s  %s  %s  %s  %s') % (note_ndiff_string, \
-        note_ndiff1_string,note_ndiff2_string,note_new1_string,note_new2_string))
+    print(('DIFF_FORMATS:\n  %s  %s  %s  %s  %s  %s') % \
+          (note_ndiff_string,note_ndiff0_string, note_ndiff1_string, \
+          note_ndiff2_string,note_new1_string,note_new2_string))
 
 parser = argparse.ArgumentParser(
                 description = "Script to perform Pre and Post router check",
