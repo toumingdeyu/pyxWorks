@@ -167,7 +167,7 @@ CMD_IOS_XR = [
                    [], [], [], False),
             ("show bgp vpnv4 unicast sum",
                    'ndiff1', [], [],
-                   [], [], [], False),
+                   [], [], [0,1,2,5,6,7], False),
             ("show bgp vrf all sum",
                    'ndiff1', [], [],
                    [], [], [0,1,2,3,4,5], False),
