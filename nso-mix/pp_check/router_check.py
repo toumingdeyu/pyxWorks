@@ -576,7 +576,7 @@ def get_difference_string_from_string_or_list(
             elif print_equallines: print_string += bcolors.GREY + line + bcolors.ENDC + '\n'
         return print_string
 
-    # NEW COMPARISON METHOD CONTINUE
+    # NEW COMPARISON METHOD CONTINUE -------------------------------------------
     enum_old_lines = enumerate(old_lines)
     enum_new_lines = enumerate(new_lines)
 
@@ -618,11 +618,18 @@ def get_difference_string_from_string_or_list(
             try: first_old_line_word = old_line.strip().split()[0]
             except: first_old_line_word = str()
 
-            # if again - lines are the same
+            # auxiliary first words - are 1st words numbers, if yes --> changed line
+            # workarround = number is ussually different and then 1st word in line is different
+            try: first_word_is_number = float(line.strip().split()[0])
+            except: first_word_is_number = None
+            try: first_old_word_is_number = float(old_line.strip().split()[0])
+            except: first_old_word_is_number = None
+
+            # if again - lines are the same ------------------------------------
             if line.strip() == old_line.strip():
                 diff_sign = '=' if diff_method == 'new2' or diff_method == 'ndiff2' else ' '
                 if print_equallines: go, color, print_line= 'line_equals', bcolors.GREY, line
-                else:            go, color, print_line= 'line_equals', bcolors.GREY, str()
+                else:                go, color, print_line= 'line_equals', bcolors.GREY, str()
 
                 # print lines grey, write also equal values !!!
                 for item in printalllines_list:
@@ -638,8 +645,9 @@ def get_difference_string_from_string_or_list(
                 try:    i, line = next(enum_new_lines)
                 except: i, line = -1, str()
 
-            # changed line
-            elif first_line_word == first_old_line_word and not new_first_words[i] in added_lines:
+            # changed line -----------------------------------------------------
+            elif (first_line_word == first_old_line_word and not new_first_words[i] in added_lines) or \
+                 (first_word_is_number and first_old_word_is_number):
                 if debug: print('SPLIT:' + new_split_lines[i] + ', LINEFILTER:' + new_linefiltered_lines[i])
                 # filter-out not-important changes by SPLIT or LINEFILTER
                 if old_linefiltered_lines[j] and new_linefiltered_lines[i] and \
@@ -662,7 +670,7 @@ def get_difference_string_from_string_or_list(
                 try:    i, line = next(enum_new_lines)
                 except: i, line = -1, str()
 
-            # added line
+            # added line -------------------------------------------------------
             elif first_line_word in added_lines:
                 go, diff_sign, color, print_line = 'added_line','+',  bcolors.YELLOW, line
 
@@ -672,14 +680,14 @@ def get_difference_string_from_string_or_list(
                 try:    i, line = next(enum_new_lines)
                 except: i, line = -1, str()
 
-            # lost line
+            # lost line --------------------------------------------------------
             elif not first_line_word in lost_lines and old_line.strip():
                 go, diff_sign, color, print_line = 'lost_line', '-',  bcolors.RED, old_line
 
                 try:    j, old_line = next(enum_old_lines)
                 except: j, old_line = -1, str()
             else:
-                # added line on the end
+                # added line on the end ----------------------------------------
                 if first_line_word and not first_old_line_word:
                     go, diff_sign, color, print_line = 'added_line_on_end','+',  bcolors.YELLOW, line
 
@@ -688,7 +696,7 @@ def get_difference_string_from_string_or_list(
 
                     try:    i, line = next(enum_new_lines)
                     except: i, line = -1, str()
-                # lost line on the end
+                # lost line on the end -----------------------------------------
                 elif not first_line_word and first_old_line_word:
                     go, diff_sign, color, print_line = 'lost_line_on_end', '-',  bcolors.RED, old_line
 
@@ -696,7 +704,9 @@ def get_difference_string_from_string_or_list(
                     except: j, old_line = -1, str()
                 else: print('!!! PARSING PROBLEM: ',j,old_line,' -- vs -- ',i,line,' !!!')
 
-            if debug: print('####### %s  %s  %s  %s\n'%(go,color,diff_sign,print_line))
+            if debug: print(bcolors.MAGENTA+'####### %s  %s  %s  (%s,%s) %s\n' % \
+                (go,color,diff_sign,first_old_line_word,first_line_word,print_line))
+            ### final line print -----------------------------------------------
             if print_line:
                 if not print_old_line:
                     print_string=print_string+'%s  %s  %s%s\n'%(color,diff_sign,print_line.rstrip(),bcolors.ENDC)
