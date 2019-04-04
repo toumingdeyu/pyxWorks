@@ -233,12 +233,9 @@ CMD_JUNOS = [
             ("show system alarms",
                    'ndiff1', [], [],
                    [], [], [], False),
-            ('show interfaces detail | match "Physical interface| bps"',
-                   'ndiff1',['Administratively down'], ['Down'],
-                   [], [], [], False),
-            ('show interfaces detail | match "Physical interface|Last flapped"',
-                   'ndiff1',[], [],
-                   [], [], [0,1,2,3,4], False)
+            ('show interfaces detail | match "Physical interface|Last flapped| bps"',
+                   'ndiff1',['Administratively down'], [],
+                   ['Physical interface:'], [], [0,1,2,3,4], False)
             ]
 CMD_VRP = [
             ("display version",
