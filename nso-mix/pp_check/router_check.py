@@ -73,10 +73,11 @@ note_new1_string   = "new1(  %s'-' missed, %s'+' added, %s'!' difference,    %s'
 note_new2_string   = "new2(  %s'-' missed, %s'+' added, %s'!' difference,    %s'=' equal%s)\n" % \
     (bcolors.RED,bcolors.YELLOW,bcolors.YELLOW,bcolors.GREY,bcolors.ENDC )
 
-default_problemline_list = []
-default_ignoreline_list  = [r' MET$', r' UTC$']
-default_linefilter_list  = []
-default_compare_columns  = []
+default_problemline_list   = []
+default_ignoreline_list    = [r' MET$', r' UTC$']
+default_linefilter_list    = []
+default_compare_columns    = []
+default_printalllines_list = []
 
 
 
@@ -91,138 +92,196 @@ default_compare_columns  = []
 # 1-diff_method
 # 2-ignore_list - filters out all lines which contains words
 # 3-problemline_list
-# 4-linefilter_list
-# 5-compare_columns
-# 6-printall
+# 4-printalllines_list
+# 5-linefilter_list
+# 6-compare_columns
+# 7-printall
 
 # IOS-XE is only for IPsec GW 
 CMD_IOS_XE = [
             ("show version",
-                   'ndiff1', ['uptime','Uptime'], [], [], [], False),
+                   'ndiff1', ['uptime','Uptime'], [],
+                   [], [], [], False),
             ("show running-config",
                    'ndiff1'),
             ("show isis neighbors",
-                   'new1', [], ['DOWN'], [], [0,1,2,3,4], False),
+                   'new1', [], ['DOWN'],
+                   [], [], [0,1,2,3,4], False),
             ("show mpls ldp neighbor",
-                   'new1', ['Up time:'], [], [], [0,1,2,3,5], False ),
+                   'new1', ['Up time:'], [],
+                   [], [], [0,1,2,3,5], False ),
             ("show ip interface brief",
-                   'new1', [], [], [], [], False ),
+                   'new1', [], [],
+                   [], [], [], False ),
             ("show ip route summary",
-                   'ndiff1', [], [], [], [0,1,2], False),
+                   'ndiff1', [], [],
+                   [], [], [0,1,2], False),
             ("show crypto isakmp sa",
-                   'ndiff1', [], [], [], [], False),
+                   'ndiff1', [], [],
+                   [], [], [], False),
             ("show crypto ipsec sa count",
-                   'ndiff1', [], [], [], [], False),
+                   'ndiff1', [], [],
+                   [], [], [], False),
             ("show crypto eli",
-                   'ndiff1', [], [], [], [], False),
+                   'ndiff1', [], [],
+                   [], [], [], False),
             ('show interfaces | include (^[A-Z].*|minute|second|Last input)',
-                   'ndiff1', [], [' 0 bits/sec'], [], [], False)
+                   'ndiff1', [], [' 0 bits/sec'],
+                   [], [], [], False)
              ]
 CMD_IOS_XR = [
             ("show version",
-                   'ndiff1', ['uptime','Uptime'], [], [], [], False),
+                   'ndiff1', ['uptime','Uptime'], [],
+                   [], [], [], False),
             ("show running-config",
-                   'ndiff1'),
+                   'ndiff1', [], [],
+                   [], [], [], False ),
             ("admin show run",
-                    'ndiff1'),
+                    'ndiff1', [], [],
+                    [], [], [], False ),
             ("show interface brief",
-                   'new1', [], [], [], [], False ),
+                   'new1', [], [],
+                   [], [], [], False ),
             ("show isis interface brief",
-                   'ndiff1',[], [], [], [], False),
+                   'ndiff1',[], [],
+                   [], [], [], False),
             ("show isis neighbors",
-                   "new1", [], ['Down'], [], [0,1,2,3], False),
+                   "new1", [], ['Down'],
+                   [], [], [0,1,2,3], False),
             ("show mpls ldp neighbor brief",
-                   'ndiff1', [], [], [], [], False),
+                   'ndiff1', [], [],
+                   [], [], [], False),
             ("show mpls ldp interface brief",
-                   'ndiff1', [], [], [], [], False),
+                   'ndiff1', [], [],
+                   [], [], [], False),
             ("show bgp sessions",
-                   'ndiff1', [], [], [], [], False),
+                   'ndiff1', [], [],
+                   [], [], [], False),
             ("show route summary",
-                   'ndiff1', [], [], [], [], False),
+                   'ndiff1', [], [],
+                   [], [], [], False),
             ("show rsvp  neighbors",
-                   'ndiff1', [], [], [], [], False),
+                   'ndiff1', [], [],
+                   [], [], [], False),
             ("show pim neighbor",
-                   'ndiff1', [], [], [], [], False),
+                   'ndiff1', [], [],
+                   [], [], [], False),
             ("show l2vpn xconnect group group1",
-                   'ndiff1', [], [], [], [], False),
+                   'ndiff1', [], [],
+                   [], [], [], False),
             ("admin show platform",
-                    'ndiff1', [], [], [], [], False),
+                    'ndiff1', [], [],
+                    [], [], [], False),
             ("show redundancy summary",
-                   'ndiff1', [], [], [], [], False),
+                   'ndiff1', [], [],
+                   [], [], [], False),
             ("show processes cpu | utility head count 3",
-                   'ndiff1', [], [], [], [], False),
+                   'ndiff1', [], [],
+                   [], [], [], False),
             ("show inventory",
-                   'ndiff1', [], [], [], [], False),
+                   'ndiff1', [], [],
+                   [], [], [], False),
             ("show system verify report",
-                   'ndiff1', [], [], [], [], False),
+                   'ndiff1', [], [],
+                   [], [], [], False),
             ("show interfaces | include \"^[A-Z].*|minute|second|Last input\"",
-                   'ndiff1', [], [' 0 bits/sec'], [], [], False)
+                   'ndiff1', ['is administratively down,'], [],
+                   [', line protocol is'], [], [], False)
              ]
 CMD_JUNOS = [
             ("show system software",
-                   'ndiff1', ['uptime','Uptime'], [], [], [], False),
+                   'ndiff1', ['uptime','Uptime'], [],
+                   [], [], [], False),
             ("show configuration",
                    "ndiff1"),
             ("show interfaces terse",
-                   'ndiff1', [], [], [], [], False),
+                   'ndiff1', [], [],
+                   [], [], [], False),
             ("show isis adjacency",
-                   "new1", [], ['DOWN'], [], [0,1,2,3], False),
+                   "new1", [], ['DOWN'],
+                   [], [], [0,1,2,3], False),
             ("show ldp session brief",
-                   'ndiff1', [], [], [], [0,1,2], False),
+                   'ndiff1', [], [],
+                   [], [], [0,1,2], False),
             ("show ldp neighbor",
-                   'ndiff1', [], [], [], [0,1,2], False),
+                   'ndiff1', [], [],
+                   [], [], [0,1,2], False),
             ("show bgp summary",
-                   'ndiff1', [], [], [], [], False),
+                   'ndiff1', [], [],
+                   [], [], [], False),
             ("show rsvp neighbor",
-                   'ndiff1', [], [], [], [0], False),
+                   'ndiff1', [], [],
+                   [], [], [0], False),
             ("show pim neighbors",
-                   'ndiff1', [], [], [], [0,1,2,3,6], False),
+                   'ndiff1', [], [],
+                   [], [], [0,1,2,3,6], False),
             ("show l2vpn connections summary",
-                   'ndiff1', [], [], [], [], False),
+                   'ndiff1', [], [],
+                   [], [], [], False),
             ("show chassis routing-engine",
-                   'ndiff1', [], [], [], [], False),
+                   'ndiff1', [], [],
+                   [], [], [], False),
             ("show chassis fpc",
-                   'ndiff1', [], [], [], [], False),
+                   'ndiff1', [], [],
+                   [], [], [], False),
             ("show chassis fpc pic-status",
-                   'ndiff1', [], [], [], [], False),
+                   'ndiff1', [], [],
+                   [], [], [], False),
             ("show chassis power",
-                   'ndiff1', [], [], [], [], False),
+                   'ndiff1', [], [],
+                   [], [], [], False),
             ("show system alarms",
-                   'ndiff1', [], [], [], [], False),
+                   'ndiff1', [], [],
+                   [], [], [], False),
             ('show interfaces detail | match "Physical interface| bps"',
-                   'ndiff1',['Administratively down'], ['Down'], [], [], False),
+                   'ndiff1',['Administratively down'], ['Down'],
+                   [], [], [], False),
             ('show interfaces detail | match "Physical interface|Last flapped"',
-                   'ndiff1',[], [], [], [0,1,2,3,4], False)
+                   'ndiff1',[], [],
+                   [], [], [0,1,2,3,4], False)
             ]
 CMD_VRP = [
             ("display version",
-                      'ndiff1', ['uptime','Uptime'], [], [], [], False),
+                      'ndiff1', ['uptime','Uptime'], [],
+                      [], [], [], False),
             ("display inventory",
-                      'ndiff1', [], [], [], [], False),
+                      'ndiff1', [], [],
+                      [], [], [], False),
             ("display current-configuration",
                       'ndiff1'),
             ("display isis interface",
-                      'new1',[], [], [], [], False),
+                      'new1',[], [],
+                      [], [], [], False),
             ("display isis peer",
-                      'new1', [], ['Down'], [], [0,1,2,3], False),
+                      'new1', [], ['Down'],
+                      [], [], [0,1,2,3], False),
             ("display saved-configuration",
-                      'ndiff1', [], [], [], [], False),
+                      'ndiff1', [], [],
+                      [], [], [], False),
             ("display startup",
-                      'ndiff1', [], [], [], [], False),
+                      'ndiff1', [], [],
+                      [], [], [], False),
             ("display acl all",
-                      'ndiff1', [], [' 0 times matched'], [], [0,1,2,3,4,5], False),
+                      'ndiff1', [], [' 0 times matched'],
+                      [], [], [0,1,2,3,4,5], False),
             ("display alarm all",
-                      'ndiff1', [], [], [], [], False),
+                      'ndiff1', [], [],
+                      [], [], [], False),
             ("display interface brief",
-                      'ndiff1', [], ['down'], [], [], False),
+                      'ndiff1', [], ['down'],
+                      [], [], [], False),
             ("display ip interface brief",
-                      'ndiff1', [], [], [], [], False),
+                      'ndiff1', [], [],
+                      [], [], [], False),
             ("display ip routing-table",
-                      'ndiff1', [], [], [], [], False),
+                      'ndiff1', [], [],
+                      [], [], [], False),
             ("display bgp routing-table",
-                      'ndiff1', [], [], [], [], False),
+                      'ndiff1', [], [],
+                      [], [], [], False),
             ('display interface | include (Description|current state|minutes|Last physical|bandwidth utilization)',
-                      'ndiff1', [], [], [], [], False)
+                      'ndiff1', [], [],
+                      [], [], [], False)
             ]
 
 IOS_XR_SLICE = {
@@ -396,6 +455,7 @@ def get_difference_string_from_string_or_list(
     diff_method = 'new1', \
     ignore_list = default_ignoreline_list, \
     problem_list = default_problemline_list, \
+    printalllines_list = default_printalllines_list, \
     linefilter_list = default_linefilter_list, \
     compare_columns = [], \
     print_equallines = None, \
@@ -409,6 +469,7 @@ def get_difference_string_from_string_or_list(
       - diff_method - ndiff, ndiff1, ndiff2, new1, new2
       - ignore_list - list of regular expressions or strings when line is ignored for file (string) comparison
       - problem_list - list of regular expressions or strings which detects problems, even if files are equal
+      - printalllines_list - list of regular expressions or strings which will be printed grey, even if files are equal
       - linefilter_list - list of regular expressions which filters each line (regexp results per line comparison)
       - compare_columns - list of columns which are intended to be different , other columns in line are ignored
       - print_equallines - True/False prints all equal new file lines with '=' prefix , by default is False
@@ -537,6 +598,10 @@ def get_difference_string_from_string_or_list(
                 diff_sign = '=' if diff_method == 'new2' or diff_method == 'ndiff2' else ' '
                 if print_equallines: go, color, print_line= 'line_equals', bcolors.GREY, line
                 else:            go, color, print_line= 'line_equals', bcolors.GREY, str()
+
+                # print lines grey, write also equal values !!!
+                for item in printalllines_list:
+                    if (re.search(item,line)) != None: color, print_line = bcolors.GREY, line
 
                 # In case of DOWN/FAIL write also equal values !!!
                 for item in problem_list:
@@ -941,16 +1006,19 @@ if pre_post == "post":
             try: cli_problemline_list = cli_items[3]
             except: cli_problemline_list = []
 
-            try: cli_linefilter_list = cli_items[4]
+            try: cli_printalllines_list = cli_items[4]
+            except: cli_printalllines_list = []
+
+            try: cli_linefilter_list = cli_items[5]
             except: cli_linefilter_list = []
 
-            try: cli_compare_columns = cli_items[5]
+            try: cli_compare_columns = cli_items[6]
             except: cli_compare_columns = []
 
             if args.printall:
                 cli_printall = args.printall
             else:
-                try: cli_printall = cli_items[6]
+                try: cli_printall = cli_items[7]
                 except: cli_printall = False
 
             # Looking for relevant section in precheck file
@@ -968,6 +1036,7 @@ if pre_post == "post":
                     diff_method = cli_diff_method, \
                     ignore_list = default_ignoreline_list + cli_ignore_list, \
                     problem_list = cli_problemline_list, \
+                    printalllines_list = cli_printalllines_list, \
                     linefilter_list = cli_linefilter_list, \
                     compare_columns = cli_compare_columns, \
                     print_equallines = cli_printall, \
