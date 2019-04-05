@@ -154,19 +154,19 @@ CMD_IOS_XR = [
                    [], [], [0,1,2,3], False),
             ("show mpls ldp neighbor brief",
                    'ndiff1', [], [],
-                   [], [], [], False),
+                   [], [], [0,1,2,4,5,6,7,8,], False),
             ("show mpls ldp interface brief",
                    'ndiff1', [], [],
                    [], [], [], False),
             ("show bgp ipv4 uni summary",
-                   'ndiff1', [], [],
-                   [], [], [], False),
+                   'ndiff1', ['Speaker'], [],
+                   ['Neighbor        Spk'], [], [0,1,2], False),
             ("show bgp ipv4 multi summary",
-                   'ndiff1', [], [],
-                   [], [], [], False),
+                   'ndiff1', ['Speaker'], [],
+                   ['Neighbor        Spk'], [], [0,1,2], False),
             ("show bgp ipv6 uni summary",
-                   'ndiff1', [], [],
-                   [], [], [], False),
+                   'ndiff1', ['Speaker','                  0 '], [],
+                   [], [], [0,1,2], False),
             ("show bgp vpnv4 unicast sum",
                    'ndiff1', [], [],
                    [], [], [0,1,2,5,6,7], False),
@@ -174,14 +174,14 @@ CMD_IOS_XR = [
                    'ndiff1', [], [],
                    [], [], [0,1,2,3,4,5], False),
             ("show route summary",
-                   'ndiff1', [], [],
+                   'ndiff1', ['Total'], [],
                    [], [], [], False),
             ("show rsvp  neighbors",
                    'ndiff1', [], [],
                    [], [], [], False),
             ("show pim neighbor",
                    'ndiff1', [], [],
-                   [], [], [], False),
+                   [], [], [0,1,4,5,6], False),
             ("show l2vpn xconnect groups",
                    'ndiff1', [], [],
                    [], [], [], False),
@@ -197,7 +197,7 @@ CMD_IOS_XR = [
             ("show inventory",
                    'ndiff1', [], [],
                    [], [], [], False),
-            ("add show mpls interface",
+            ("show mpls interface",
                    'ndiff1', [], [],
                    [], [], [], False),
             ("show interfaces | include \"^[A-Z].*|minute|second|Last input|errors|total\"",
@@ -384,12 +384,15 @@ def detect_router_by_ssh(debug = False):
         if prompt and not router_os:
             command = 'show version\n'
             output = ssh_read_until_prompt_bulletproof(chan, command, prompt, debug=debug)
-            if 'iosxr-' in output: router_os = 'ios-xr'
+            if 'iosxr-' in output or 'Cisco IOS XR Software' in output: router_os = 'ios-xr'
             elif 'Cisco IOS-XE software' in output: router_os = 'ios-xe'
             elif 'JUNOS OS' in output: router_os = 'junos'
+            else:
+                print(bcolors.MAGENTA + "\nCannot find recognizable OS in %s" % (retvalue) + bcolors.ENDC)
+                sys.exit(0)
 
     except (socket.timeout, paramiko.AuthenticationException) as e:
-        print(bcolors.FAIL + " ... Connection closed: %s " % (e) + bcolors.ENDC )
+        print(bcolors.MAGENTA + " ... Connection closed: %s " % (e) + bcolors.ENDC )
         sys.exit()
     finally:
         client.close()
@@ -450,7 +453,7 @@ def ssh_read_until(channel,prompt):
     return output
 
 # Find a section of text betwwen "cli" variable from upper block and "prompt
-def find_section(text, prompt,cli_index, cli , file_name=str()):
+def find_section(text, prompt,cli_index, cli , file_name = str(),debug = True):
     look_end = 0
     b_index, e_index, c_index = None, None, -1
     for index,item in enumerate(text):
@@ -460,6 +463,7 @@ def find_section(text, prompt,cli_index, cli , file_name=str()):
             # + workarround for long commands shortened in router echoed line
             try: cmd_text_short = text[index].rstrip()[0:73].split(prompt)[1]
             except: cmd_text_short = str()
+            if debug: print('@@@@@@@@@@',cli_index,c_index,cmd_text_short,cli)
             if (prompt+cli.rstrip()) in text[index].rstrip() or \
                 (c_index == cli_index and cmd_text_short and cmd_text_short in cli.rstrip()):
                 b_index = index
@@ -1050,17 +1054,13 @@ if pre_post == "post":
     fp1.close()
     fp2.close()
 
-    # run only chosen command from list by its number
-    if args.cmdlist != 'listall':
-        try: cmd_index = int(args.cmdlist)
-        except: cmd_index = -1
-        for cli_index, cli_items in enumerate(CMD):
-            if cli_index == cmd_index:
-                CMD = [cli_items]
-                break
+    # run chosen command only from CMD list if inserted
+    try: cmd_index = int(args.cmdlist)
+    except: cmd_index = -1
 
     # run commands tgrough CMD list
     for cli_index, cli_items in enumerate(CMD):
+        if cmd_index>=0 and cli_index != cmd_index: continue
         cli = cli_items[0]
 
         # old comparison method
