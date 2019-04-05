@@ -7,7 +7,7 @@
 # Created: 06/01/2015                                                         #
 # Updated: 23/Mar/2019 -added new custom filediff                             #
 #          25/Mar/2019 -added vrp huawei router type, old/new filediff method #
-#          04/Apr/2019 -autodetect VRP, new commands, new filtering           #
+#          05/Apr/2019 -autod. all, new commands, new filtering, new colours  #
 # TODO: huawei vrp autodetect                                                 #
 # Description: Script to collect and compare output from a router before      #
 # and after a configuration change or maintenance to outline router change    #
@@ -266,10 +266,10 @@ CMD_VRP = [
             ("display current-configuration",
                       'ndiff0'),
             ("display isis interface",
-                      'new1',[], [],
+                      'ndiff0',[], [],
                       [], [], [], False),
             ("display isis peer",
-                      'new1', [], ['Down'],
+                      'ndiff0', [], ['Down'],
                       [], [], [0,1,2,3], False),
             ("display saved-configuration",
                       'ndiff0', [], [],
@@ -486,7 +486,7 @@ def find_section(text, prompt,cli_index, cli , file_name = str(),debug = False):
 def get_difference_string_from_string_or_list(
     old_string_or_list, \
     new_string_or_list, \
-    diff_method = 'new1', \
+    diff_method = 'ndiff0', \
     ignore_list = default_ignoreline_list, \
     problem_list = default_problemline_list, \
     printalllines_list = default_printalllines_list, \
@@ -515,7 +515,7 @@ def get_difference_string_from_string_or_list(
     '-' for missing line,
     '+' for added line,
     '!' for line that is different and
-    ' ' for the same line, but with problem. (valid for new2 format)
+    ' ' for the same line, but with problem.
     RED for something going DOWN or something missing or failed.
     ORANGE for something going UP or something NEW (not present in pre-check)
     '''
@@ -734,10 +734,7 @@ parser.add_argument("--recheck",action = "store_true", default = False,
 parser.add_argument("--cmdlist",
                     action = "store", dest = 'cmdlist', default = '',
                     help = "<list> - print command list / <nr of command> - choose one command from command list for post comparison")
-# parser.add_argument("--diff", action = "store", dest = "diff", \
-#                     choices = ['old','ndiff','ndiff1','ndiff2','new1','new2'], \
-#                     default = 'new1', \
-#                     help = "more available diff formats" )
+
 args = parser.parse_args()
 if args.post: pre_post = 'post'
 else: pre_post = 'pre'
