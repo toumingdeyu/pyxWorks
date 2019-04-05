@@ -283,9 +283,6 @@ CMD_VRP = [
             ("display alarm all",
                       'ndiff0', [], [],
                       [], [], [], False),
-            ("display interface | include (Description|current state|minutes|Last physical|bandwidth utilization)",
-                      'ndiff0', [], [],
-                      ['Description:'], [], [0,1,2,3,4], False),
             ("display ip interface brief",
                       'ndiff0', [], [],
                       [], [], [], False),
@@ -309,7 +306,7 @@ CMD_VRP = [
                       [], [], [0,1,2,7], False),
             ('display interface | include (Description|current state|minutes|Last physical|bandwidth utilization)',
                       'ndiff0', [], [],
-                      ['Description:',], [], [], False)
+                      ['Description:','current state'], [], [0,1,2,3,4], False)
             ]
 
 IOS_XR_SLICE = {
