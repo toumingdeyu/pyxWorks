@@ -453,7 +453,7 @@ def ssh_read_until(channel,prompt):
     return output
 
 # Find a section of text betwwen "cli" variable from upper block and "prompt
-def find_section(text, prompt,cli_index, cli , file_name = str(),debug = True):
+def find_section(text, prompt,cli_index, cli , file_name = str(),debug = False):
     look_end = 0
     b_index, e_index, c_index = None, None, -1
     for index,item in enumerate(text):
