@@ -45,9 +45,10 @@ class bcolors:
         BOLD       = '\033[1m'
         UNDERLINE  = '\033[4m'
 
+
 COL_DELETED = bcolors.RED
 COL_ADDED   = bcolors.GREEN
-COL_DIFFDEL = bcolors.YELLOW
+COL_DIFFDEL = bcolors.CYAN
 COL_DIFFADD = bcolors.YELLOW
 COL_EQUAL   = bcolors.GREY
 COL_PROBLEM = bcolors.RED
@@ -76,14 +77,8 @@ note_ndiff_string  = "ndiff( %s'-' missed, %s'+' added, %s'-\\n%s+' difference, 
     (bcolors.RED,bcolors.GREEN,bcolors.RED,bcolors.GREEN,bcolors.GREY,bcolors.ENDC )
 note_ndiff0_string = "ndiff0(%s'-' missed, %s'+' added, %s'-\\n%s+' difference, %s' ' equal%s)\n" % \
     (COL_DELETED,COL_ADDED,COL_DIFFDEL,COL_DIFFADD,COL_EQUAL,bcolors.ENDC )
-note_ndiff1_string = "ndiff1(%s'-' missed, %s'+' added, %s'-\\n%s+' difference, %s' ' equal%s)\n" % \
-    (bcolors.RED,bcolors.YELLOW,bcolors.RED,bcolors.GREEN,bcolors.GREY,bcolors.ENDC )
-note_ndiff2_string = "ndiff2(%s'-' missed, %s'+' added, %s'-\\n%s+' difference, %s'=' equal%s)\n" % \
-    (bcolors.RED,bcolors.YELLOW,bcolors.RED,bcolors.GREEN,bcolors.GREY,bcolors.ENDC )
-note_new1_string   = "new1(  %s'-' missed, %s'+' added, %s'!' difference,    %s' ' equal%s)\n" % \
-    (bcolors.RED,bcolors.YELLOW,bcolors.YELLOW,bcolors.GREY,bcolors.ENDC )
-note_new2_string   = "new2(  %s'-' missed, %s'+' added, %s'!' difference,    %s'=' equal%s)\n" % \
-    (bcolors.RED,bcolors.YELLOW,bcolors.YELLOW,bcolors.GREY,bcolors.ENDC )
+note_pdiff0_string = "pdiff0(%s'-' missed, %s'+' added, %s'!' difference,    %s' ' equal%s)\n" % \
+    (COL_DELETED,COL_ADDED,COL_DIFFADD,COL_EQUAL,bcolors.ENDC )
 
 default_problemline_list   = []
 default_ignoreline_list    = [r' MET$', r' UTC$']
@@ -214,7 +209,7 @@ CMD_IOS_XR = [
              ]
 CMD_JUNOS = [
             ("show system software",
-                   'ndiff1', ['uptime','Uptime'], [],
+                   'ndiff0', ['uptime','Uptime'], [],
                    [], [], [], False),
             ("show configuration",
                    "ndiff0"),
@@ -505,7 +500,7 @@ def get_difference_string_from_string_or_list(
     INPUT PARAMETERS:
       - old_string_or_list - content of old file in string or list type
       - new_string_or_list - content of new file in string or list type
-      - diff_method - ndiff, ndiff1, ndiff2, new1, new2
+      - diff_method - ndiff, ndiff0, pdiff0
       - ignore_list - list of regular expressions or strings when line is ignored for file (string) comparison
       - problem_list - list of regular expressions or strings which detects problems, even if files are equal
       - printalllines_list - list of regular expressions or strings which will be printed grey, even if files are equal
@@ -516,35 +511,20 @@ def get_difference_string_from_string_or_list(
       - note - True/False, prints info header to stdout, by default is True
     RETURNS: string with file differencies
 
-    NEW/NEW2 FORMAT: The head of line is
+    PDIFF0 FORMAT: The head of line is
     '-' for missing line,
     '+' for added line,
     '!' for line that is different and
-    '=' for the same line, but with problem. (valid for new2 format)
+    ' ' for the same line, but with problem. (valid for new2 format)
     RED for something going DOWN or something missing or failed.
     ORANGE for something going UP or something NEW (not present in pre-check)
     '''
-    def decide_print_line_or_not(line,printalllines_list,problem_list):
-        print_line = str()
-        # print lines grey, write also equal values !!!
-        for item in printalllines_list:
-            if (re.search(item,line)) != None: color, print_line = COL_EQUAL, line
-        # In case of DOWN/FAIL write also equal values !!!
-        for item in problem_list:
-            if (re.search(item,line)) != None: color, print_line = COL_PROBLEM, line
-        if print_line:
-            print_line = '%s%s%s'%(color,print_line,bcolors.ENDC)
-        return print_line
-
     print_string = str()
     if note:
        print_string = "DIFF_METHOD: "
-       if diff_method   == 'new1':   print_string += note_new1_string
-       elif diff_method == 'new2':   print_string += note_new2_string
-       elif diff_method == 'ndiff1': print_string += note_ndiff1_string
-       elif diff_method == 'ndiff2': print_string += note_ndiff2_string
-       elif diff_method == 'ndiff0': print_string += note_ndiff0_string
-       elif diff_method == 'ndiff':  print_string += note_ndiff_string
+       if diff_method   == 'ndiff0': print_string += note_ndiff0_string
+       elif diff_method == 'pdiff0': print_string += note_pdiff0_string
+       elif diff_method == 'ndiff' : print_string += note_ndiff_string
 
     # make list from string if is not list already
     old_lines_unfiltered = old_string_or_list if type(old_string_or_list) == list else old_string_or_list.splitlines()
@@ -616,9 +596,10 @@ def get_difference_string_from_string_or_list(
             if '+ ' in first_chars or '- ' in first_chars or '  ' in first_chars:
                 listdiff.append(line)
         del diff, listdiff_nonfiltered
-        # main ndiff0 loop
+        # main ndiff0/pdiff0 loop
         previous_minus_line_is_change = False
         for line_number,line in enumerate(listdiff):
+            print_color, print_line = COL_EQUAL, str()
             try:    first_chars_previousline = listdiff[line_number-1][0]+listdiff[line_number-1][1]
             except: first_chars_previousline = str()
             try:    first_chars = line[0]+line[1]
@@ -664,170 +645,36 @@ def get_difference_string_from_string_or_list(
                         if column == next_column: the_same_columns += 1
                     if line_list_lenght>0:
                         percentage_of_equality = (100*the_same_columns)/line_list_lenght
+                # CHANGED LINE -------------------------------------------------
                 if percentage_of_equality > 54:
-                    print_string += COL_DIFFDEL + line + bcolors.ENDC + '\n'
                     previous_minus_line_is_change = True
-                else: print_string += COL_DELETED + line + bcolors.ENDC + '\n'
+                    if diff_method == 'ndiff0':
+                        print_color, print_line = COL_DIFFDEL, line
+                # LOST/DELETED LINES -------------------------------------------
+                else: print_color, print_line = COL_DELETED, line
             # IGNORE EQUAL -/= LINES or PRINT printall and problem lines -------
             elif '+ ' == first_chars and ignore_previous_line:
-                line_for_print = decide_print_line_or_not(line,printalllines_list,problem_list)
-                if line_for_print:
-                    line_for_print[0] = ' '
-                    print_string += line_for_print + '\n'
+                line = ' ' + line[1:]
                 ignore_previous_line = False
             # ADDED NEW LINE ---------------------------------------------------
-            elif '+ ' == first_chars:
+            elif '+ ' == first_chars and not ignore_previous_line:
                 if previous_minus_line_is_change:
                     previous_minus_line_is_change = False
-                    print_string += COL_DIFFADD + line + bcolors.ENDC + '\n'
-                else: print_string += COL_ADDED + line + bcolors.ENDC + '\n'
-            elif print_equallines: print_string += bcolors.GREY + line + bcolors.ENDC + '\n'
-            else:
-                line_for_print = decide_print_line_or_not(line,printalllines_list,problem_list)
-                if line_for_print: print_string += line_for_print + '\n'
-        return print_string
-
-    # NEWx COMPARISON METHOD CONTINUE ------------------------------------------
-    enum_old_lines = enumerate(old_lines)
-    enum_new_lines = enumerate(new_lines)
-
-    if old_lines and new_lines:
-        new_first_words = [line.split(' ')[0] for line in new_lines]
-        old_first_words = [line.split(' ')[0] for line in old_lines]
-        if debug: print('11111 :',old_first_words,new_first_words)
-
-        lost_lines = [item for item in old_first_words if item not in new_first_words]
-        added_lines = [item for item in new_first_words if item not in old_first_words]
-        if debug: print('----- :',lost_lines)
-        if debug: print('+++++ :',added_lines)
-
-        try:    j, old_line = next(enum_old_lines)
-        except: j, old_line = -1, str()
-
-        try:    i, line = next(enum_new_lines)
-        except: i, line = -1, str()
-
-        print_old_line = None
-        while i >= 0 and j>=0:
-            go, diff_sign, color, print_line = 'void', ' ', bcolors.GREY, str()
-
-            # void new lines
-            if not line.strip():
-                while len(line.strip()) == 0 and i >= 0:
-                    try:    i, line = next(enum_new_lines)
-                    except: i, line = -1, str()
-
-            # void old lines
-            if not old_line.strip():
-                while len(old_line.strip()) == 0 and j >= 0:
-                    try:    j, old_line = next(enum_old_lines)
-                    except: j, old_line = -1, str()
-
-            # auxiliary first words
-            try: first_line_word = line.strip().split()[0]
-            except: first_line_word = str()
-            try: first_old_line_word = old_line.strip().split()[0]
-            except: first_old_line_word = str()
-
-            # auxiliary first words - are 1st words numbers, if yes --> changed line
-            # workarround = number is ussually different and then 1st word in line is different
-            try: first_word_is_number = float(line.strip().split()[0])
-            except: first_word_is_number = None
-            try: first_old_word_is_number = float(old_line.strip().split()[0])
-            except: first_old_word_is_number = None
-
-            # if again - lines are the same ------------------------------------
-            if line.strip() == old_line.strip():
-                diff_sign = '=' if diff_method == 'new2' or diff_method == 'ndiff2' else ' '
-                if print_equallines: go, color, print_line= 'line_equals', bcolors.GREY, line
-                else:                go, color, print_line= 'line_equals', bcolors.GREY, str()
-
+                    if diff_method == 'pdiff0': line = '!' + line[1:]
+                    print_color, print_line = COL_DIFFADD, line
+                else: print_color, print_line = COL_ADDED, line
+            # PRINTALL ---------------------------------------------------------
+            elif print_equallines: print_color, print_line = COL_EQUAL, line
+            # check if
+            if not print_line:
                 # print lines grey, write also equal values !!!
                 for item in printalllines_list:
-                    if (re.search(item,line)) != None: color, print_line = bcolors.GREY, line
-
-                # In case of DOWN/FAIL write also equal values !!!
-                for item in problem_list:
-                    if (re.search(item,line)) != None: color, print_line = bcolors.RED, line
-
-                try:    j, old_line = next(enum_old_lines)
-                except: j, old_line = -1, str()
-
-                try:    i, line = next(enum_new_lines)
-                except: i, line = -1, str()
-
-            # changed line -----------------------------------------------------
-            elif (first_line_word == first_old_line_word and not new_first_words[i] in added_lines) or \
-                 (first_word_is_number and first_old_word_is_number):
-                if debug: print('SPLIT:' + new_split_lines[i] + ', LINEFILTER:' + new_linefiltered_lines[i])
-                # filter-out not-important changes by SPLIT or LINEFILTER
-                if old_linefiltered_lines[j] and new_linefiltered_lines[i] and \
-                    new_linefiltered_lines[i] == old_linefiltered_lines[j]:
-                    if print_equallines: go, color, print_line= 'line_equals', bcolors.GREY, line
-                    else:            go, color, print_line= 'line_equals', bcolors.GREY, str()
-                elif old_split_lines[j] and new_split_lines[i] and old_split_lines[j] == new_split_lines[i]:
-                    if print_equallines: go, color, print_line= 'line_equals', bcolors.GREY, line
-                    else:            go, color, print_line= 'line_equals', bcolors.GREY, str()
-                else:
-                    go, diff_sign, color, print_line = 'changed_line', '!', bcolors.YELLOW, line
-                    print_old_line = old_line
-
-                    for item in problem_list:
-                        if (re.search(item,line)) != None: color = bcolors.RED
-
-                try:    j, old_line = next(enum_old_lines)
-                except: j, old_line = -1, str()
-
-                try:    i, line = next(enum_new_lines)
-                except: i, line = -1, str()
-
-            # added line -------------------------------------------------------
-            elif first_line_word in added_lines:
-                go, diff_sign, color, print_line = 'added_line','+',  bcolors.YELLOW, line
-
-                for item in problem_list:
-                    if (re.search(item,line)) != None: color = bcolors.RED
-
-                try:    i, line = next(enum_new_lines)
-                except: i, line = -1, str()
-
-            # lost line --------------------------------------------------------
-            elif not first_line_word in lost_lines and old_line.strip():
-                go, diff_sign, color, print_line = 'lost_line', '-',  bcolors.RED, old_line
-
-                try:    j, old_line = next(enum_old_lines)
-                except: j, old_line = -1, str()
-            else:
-                # added line on the end ----------------------------------------
-                if first_line_word and not first_old_line_word:
-                    go, diff_sign, color, print_line = 'added_line_on_end','+',  bcolors.YELLOW, line
-
-                    for item in problem_list:
-                        if (re.search(item,line)) != None: color = bcolors.RED
-
-                    try:    i, line = next(enum_new_lines)
-                    except: i, line = -1, str()
-                # lost line on the end -----------------------------------------
-                elif not first_line_word and first_old_line_word:
-                    go, diff_sign, color, print_line = 'lost_line_on_end', '-',  bcolors.RED, old_line
-
-                    try:    j, old_line = next(enum_old_lines)
-                    except: j, old_line = -1, str()
-                else: print('!!! PARSING PROBLEM: ',j,old_line,' -- vs -- ',i,line,' !!!')
-
-            if debug: print(bcolors.MAGENTA+'####### %s  %s  %s  (%s,%s) %s\n' % \
-                (go,color,diff_sign,first_old_line_word,first_line_word,print_line))
-            ### final line print -----------------------------------------------
-            if print_line:
-                if not print_old_line:
-                    print_string=print_string+'%s  %s  %s%s\n'%(color,diff_sign,print_line.rstrip(),bcolors.ENDC)
-                else:
-                    if diff_method == 'ndiff1' or diff_method == 'ndiff2':
-                        print_string=print_string+'%s  %s  %s%s\n'%(bcolors.RED,'-',print_old_line.rstrip(),bcolors.ENDC)
-                        print_string=print_string+'%s  %s  %s%s\n'%(bcolors.GREEN,'+',print_line.rstrip(),bcolors.ENDC)
-                    else:
-                        print_string=print_string+'%s  %s  %s%s\n'%(color,diff_sign,print_line.rstrip(),bcolors.ENDC)
-                    print_old_line=None
+                    if (re.search(item,line)) != None: print_color, print_line = COL_EQUAL, line
+            # PROBLEM LIST - In case of DOWN/FAIL write also equal values !!!
+            for item in problem_list:
+                if (re.search(item,line)) != None: print_color, print_line = COL_PROBLEM, line
+            # Final PRINT ------------------------------------------------------
+            if print_line: print_string += "%s%s%s\n" % (print_color,print_line,bcolors.ENDC)
     return print_string
 
 
@@ -847,9 +694,8 @@ def print_cmd_list(CMD):
 
 ######## Parse program arguments #########
 if len(sys.argv) == 1 or sys.argv[1] == '-h' or sys.argv[1] == '--help':
-    print(('DIFF_FORMATS:\n  %s  %s  %s  %s  %s  %s') % \
-          (note_ndiff_string,note_ndiff0_string, note_ndiff1_string, \
-          note_ndiff2_string,note_new1_string,note_new2_string))
+    print(('DIFF_FORMATS:\n  %s  %s  %s') % \
+          (note_ndiff_string,note_ndiff0_string, note_pdiff0_string))
 
 parser = argparse.ArgumentParser(
                 description = "Script to perform Pre and Post router check",
