@@ -48,7 +48,7 @@ class bcolors:
 
 COL_DELETED = bcolors.RED
 COL_ADDED   = bcolors.GREEN
-COL_DIFFDEL = bcolors.CYAN
+COL_DIFFDEL = bcolors.BLUE
 COL_DIFFADD = bcolors.YELLOW
 COL_EQUAL   = bcolors.GREY
 COL_PROBLEM = bcolors.RED
@@ -791,35 +791,22 @@ if args.recheck:
             most_recent_postcheck = item
     postcheck_file = most_recent_postcheck
 
-else:
-    ######## Find command list file (optional)
-    if args.cmd_file != None:
-        if not os.path.isfile(args.cmd_file):
-            print(bcolors.MAGENTA + " ... Can't find command file: %s " + bcolors.ENDC) \
-                    % args.cmd_file
-            sys.exit()
-        else:
-            list_cmd = ['']
-            num_lines = sum(1 for line in open(args.cmd_file))
-            fp_cmd = open(args.cmd_file,"r")
-            for index in range(0, num_lines):
-                list_cmd.append(fp_cmd.readline())
-            fp_cmd.close
 
-            # clean up the list of commands - Remove empty line in file
-            if '' in list_cmd:
-                list_cmd.remove('')
-            if '\n' in list_cmd:
-                list_cmd.remove('\n')
-            # clean up the list of commands - Remove trailling \n
-            for index, line in enumerate(list_cmd):
-                list_cmd[index] = list_cmd[index].rstrip('\n')
+######## Find command list file (optional)
+list_cmd = []
+if args.cmd_file != None:
+    if not os.path.isfile(args.cmd_file):
+        print(bcolors.MAGENTA + " ... Can't find command file: %s " + bcolors.ENDC) \
+                % args.cmd_file
+        sys.exit()
+    else:
+        num_lines = sum(1 for line in open(args.cmd_file))
+        fp_cmd = open(args.cmd_file,"r")
+        for index in range(0, num_lines):
+            list_cmd.append([fp_cmd.readline().strip()])
+        fp_cmd.close
 
-            if router_type == 'ios-xe':
-                CMD_IOS_XE = list_cmd
-            elif router_type == 'ios-xr':
-                CMD_IOS_XR = list_cmd
-
+if not args.recheck:
     if str(args.cmdlist) != 'list':
         ############# Starting pre or post check
         if not PASSWORD: PASSWORD = getpass.getpass("TACACS password: ")
@@ -845,25 +832,25 @@ else:
 
 # Collect pre/post check information
 if router_type == "ios-xe":
-    CMD = CMD_IOS_XE
+    CMD = list_cmd if len(list_cmd)>0 else CMD_IOS_XE
     DEVICE_PROMPT = args.device.upper() + '#'
     TERM_LEN_0 = "terminal length 0\n"
     EXIT = "exit\n"
 
 elif router_type == "ios-xr":
-    CMD = CMD_IOS_XR
+    CMD = list_cmd if len(list_cmd)>0 else CMD_IOS_XR
     DEVICE_PROMPT = args.device.upper() + '#'
     TERM_LEN_0 = "terminal length 0\n"
     EXIT = "exit\n"
 
 elif router_type == "junos":
-    CMD = CMD_JUNOS
+    CMD = list_cmd if len(list_cmd)>0 else CMD_JUNOS
     DEVICE_PROMPT = USERNAME + '@' + args.device.upper() + '> ' # !! Need the space after >
     TERM_LEN_0 = "set cli screen-length 0\n"
     EXIT = "exit\n"
 
 elif router_type == "vrp":
-    CMD = CMD_VRP
+    CMD = list_cmd if len(list_cmd)>0 else CMD_VRP
     DEVICE_PROMPT = '<' + args.device.upper() + '>'
     TERM_LEN_0 = "screen-length 0 temporary\n"     #"screen-length disable\n"
     EXIT = "quit\n"
@@ -987,7 +974,7 @@ if pre_post == "post":
         else:
             # unpack cli list
             try: cli_diff_method = cli_items[1]
-            except: cli_diff_method = 'ndiff1'
+            except: cli_diff_method = 'ndiff0'
 
             try: cli_ignore_list = cli_items[2]
             except: cli_ignore_list = []
