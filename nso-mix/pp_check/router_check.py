@@ -45,6 +45,14 @@ class bcolors:
         BOLD       = '\033[1m'
         UNDERLINE  = '\033[4m'
 
+COL_DELETED = bcolors.RED
+COL_ADDED   = bcolors.GREEN
+COL_DIFFDEL = bcolors.YELLOW
+COL_DIFFADD = bcolors.YELLOW
+COL_EQUAL   = bcolors.GREY
+COL_PROBLEM = bcolors.RED
+
+
 TODAY            = datetime.datetime.now()
 VERSION          = str(TODAY.year)[2:] + '.' + str(TODAY.month) + '.' + str(TODAY.day)
 HELP             = "\nTry 'router_check.py --help' for more information\n"
@@ -67,7 +75,7 @@ except: USERNAME        = None
 note_ndiff_string  = "ndiff( %s'-' missed, %s'+' added, %s'-\\n%s+' difference, %s' ' equal%s) [no filters]\n" % \
     (bcolors.RED,bcolors.GREEN,bcolors.RED,bcolors.GREEN,bcolors.GREY,bcolors.ENDC )
 note_ndiff0_string = "ndiff0(%s'-' missed, %s'+' added, %s'-\\n%s+' difference, %s' ' equal%s)\n" % \
-    (bcolors.RED,bcolors.GREEN,bcolors.RED,bcolors.GREEN,bcolors.GREY,bcolors.ENDC )
+    (COL_DELETED,COL_ADDED,COL_DIFFDEL,COL_DIFFADD,COL_EQUAL,bcolors.ENDC )
 note_ndiff1_string = "ndiff1(%s'-' missed, %s'+' added, %s'-\\n%s+' difference, %s' ' equal%s)\n" % \
     (bcolors.RED,bcolors.YELLOW,bcolors.RED,bcolors.GREEN,bcolors.GREY,bcolors.ENDC )
 note_ndiff2_string = "ndiff2(%s'-' missed, %s'+' added, %s'-\\n%s+' difference, %s'=' equal%s)\n" % \
@@ -520,10 +528,10 @@ def get_difference_string_from_string_or_list(
         print_line = str()
         # print lines grey, write also equal values !!!
         for item in printalllines_list:
-            if (re.search(item,line)) != None: color, print_line = bcolors.GREY, line
+            if (re.search(item,line)) != None: color, print_line = COL_EQUAL, line
         # In case of DOWN/FAIL write also equal values !!!
         for item in problem_list:
-            if (re.search(item,line)) != None: color, print_line = bcolors.RED, line
+            if (re.search(item,line)) != None: color, print_line = COL_PROBLEM, line
         if print_line:
             print_line = '%s%s%s'%(color,print_line,bcolors.ENDC)
         return print_line
@@ -596,7 +604,7 @@ def get_difference_string_from_string_or_list(
         return print_string
 
     # NDIFF0 COMPARISON METHOD--------------------------------------------------
-    if diff_method == 'ndiff0':
+    if diff_method == 'ndiff0' or diff_method == 'pdiff0':
         ignore_previous_line = False
         diff = difflib.ndiff(old_lines, new_lines)
         listdiff_nonfiltered = list(diff)
@@ -609,6 +617,7 @@ def get_difference_string_from_string_or_list(
                 listdiff.append(line)
         del diff, listdiff_nonfiltered
         # main ndiff0 loop
+        previous_minus_line_is_change = False
         for line_number,line in enumerate(listdiff):
             try:    first_chars_previousline = listdiff[line_number-1][0]+listdiff[line_number-1][1]
             except: first_chars_previousline = str()
@@ -641,18 +650,37 @@ def get_difference_string_from_string_or_list(
                    (linefiltered_line and linefiltered_next_line and linefiltered_line == linefiltered_next_line):
                     ignore_previous_line = True
                     continue
-            # CONTINUE CHECK DELETED/ADDED LINES
-            if '- ' == first_chars: print_string += bcolors.RED + line + bcolors.ENDC + '\n'
-
-
+            # CONTINUE CHECK DELETED/ADDED LINES--------------------------------
+            if '- ' == first_chars:
+                # FIND IF IT IS CHANGEDLINE OR DELETED LINE
+                line_list_lenght, the_same_columns = len(line.split()), 0
+                percentage_of_equality = 0
+                try: nextline_sign_column = listdiff[line_number+1].split()[0]
+                except: nextline_sign_column = str()
+                if nextline_sign_column == '+':
+                    for column_number,column in enumerate(line.split()):
+                        try: next_column = listdiff[line_number+1].split()[column_number]
+                        except: next_column = str()
+                        if column == next_column: the_same_columns += 1
+                    if line_list_lenght>0:
+                        percentage_of_equality = (100*the_same_columns)/line_list_lenght
+                if percentage_of_equality > 54:
+                    print_string += COL_DIFFDEL + line + bcolors.ENDC + '\n'
+                    previous_minus_line_is_change = True
+                else: print_string += COL_DELETED + line + bcolors.ENDC + '\n'
+            # IGNORE EQUAL -/= LINES or PRINT printall and problem lines -------
             elif '+ ' == first_chars and ignore_previous_line:
                 line_for_print = decide_print_line_or_not(line,printalllines_list,problem_list)
                 if line_for_print:
                     line_for_print[0] = ' '
                     print_string += line_for_print + '\n'
                 ignore_previous_line = False
+            # ADDED NEW LINE ---------------------------------------------------
             elif '+ ' == first_chars:
-                print_string += bcolors.GREEN + line + bcolors.ENDC + '\n'
+                if previous_minus_line_is_change:
+                    previous_minus_line_is_change = False
+                    print_string += COL_DIFFADD + line + bcolors.ENDC + '\n'
+                else: print_string += COL_ADDED + line + bcolors.ENDC + '\n'
             elif print_equallines: print_string += bcolors.GREY + line + bcolors.ENDC + '\n'
             else:
                 line_for_print = decide_print_line_or_not(line,printalllines_list,problem_list)
