@@ -12,6 +12,26 @@ import argparse
 import glob
 import socket
 
+class bcolors:
+        DEFAULT    = '\033[99m'
+        WHITE      = '\033[97m'
+        CYAN       = '\033[96m'
+        MAGENTA    = '\033[95m'
+        HEADER     = '\033[95m'
+        OKBLUE     = '\033[94m'
+        BLUE       = '\033[94m'
+        YELLOW     = '\033[93m'
+        GREEN      = '\033[92m'
+        OKGREEN    = '\033[92m'
+        WARNING    = '\033[93m'
+        RED        = '\033[91m'
+        FAIL       = '\033[91m'
+        GREY       = '\033[90m'
+        ENDC       = '\033[0m'
+        BOLD       = '\033[1m'
+        UNDERLINE  = '\033[4m'
+
+
 TODAY            = datetime.datetime.now()
 VERSION          = str(TODAY.year)[2:] + '.' + str(TODAY.month) + '.' + str(TODAY.day)
 HELP             = "\nTry ' --help' for more information\n"
@@ -23,6 +43,8 @@ except: PASSWORD        = None
 try:    USERNAME        = os.environ['USER']
 except: USERNAME        = None
 
+local_outout = str()
+
 ###############################################################################
 #
 # Generic list of commands
@@ -32,22 +54,29 @@ except: USERNAME        = None
 
 # IOS-XE is only for IPsec GW
 CMD_IOS_XE = [
-            ('sh int loopback 200 | i 172')
+            ('sh int loopback 200 | i 172'),
+            {'call_function': 'parse_ipv4_from_text', 'if_void_local_output':'stop'},
 
              ]
 CMD_IOS_XR = [
             ('sh int loopback 200 | i 172'),
-
-
+            {'call_function': 'parse_ipv4_from_text', 'if_void_local_output':'stop'},
+            'conf',
+            'interface loopback 200',
+            'ipv6 address __local_outout__/127',
+            'commi',
+            'exit'
+            'sh int loopback 200 | i __local_outout__'
              ]
 CMD_JUNOS = [
-            ('show configuration interfaces lo0 | match 172')
-
+            ('show configuration interfaces lo0 | match 172'),
+            {'call_function': 'parse_ipv4_from_text'},
+            ('sh int loopback 200 | i __local_outout__'),
             ]
 CMD_VRP = [
-            ('disp current-configuration interface LoopBack 200 | include 172')
-
-            ]
+            ('disp current-configuration interface LoopBack 200 | include 172'),
+            {'call_function': 'parse_ipv4_from_text'}
+          ]
 
 
 ###############################################################################
@@ -160,6 +189,13 @@ def ipv4_to_ipv6(ipv4address):
         except: pass
     return ip4to6, ip6to4
 
+
+def parse_ipv4_from_text(text):
+    try: ipv4=text.split('address')[1].split()[0].replace(';','')
+    except: ipv4 = str()
+    return ipv4_to_ipv6(ipv4)[0]
+
+
 ##############################################################################
 #
 # BEGIN MAIN
@@ -167,6 +203,14 @@ def ipv4_to_ipv6(ipv4address):
 ##############################################################################
 
 if __name__ != "__main__": sys.exit(0)
+
+# print(globals()['ipv4_to_ipv6'])
+# m=locals()['parse_ipv4_from_text']
+# print(m)
+# print(m('xxxxx address 1.1.1.1/44 kdslja ijada'))
+#
+# exit(0)
+
 
 ######## Parse program arguments #########
 parser = argparse.ArgumentParser(
@@ -271,18 +315,33 @@ try:
         for cli_items in CMD:
             try:
                 item = cli_items[0] if type(cli_items) == list else cli_items
-                output = ''
-                chan.send(item + '\n')
-                print "COMMAND: %s" % item
-                output = ssh_read_until(chan,DEVICE_PROMPT)
-                print(output)
-                fp.write(output)
+                if isinstance(item, basestring):
+                    output = str()
+                    item = item.replace('__local_outout__',local_outout)
+                    chan.send(item + '\n')
+                    print "COMMAND: %s" % item
+                    output = ssh_read_until(chan,DEVICE_PROMPT)
+                    print(output)
+                    fp.write(output)
+                # hack: use dictionary for running local python code functions
+                elif isinstance(item, dict):
+                    try:
+                        local_function = item.get('call_function','')
+                        local_outout = locals()[local_function](output)
+                        print("CALL_LOCAL_FUNCTION: '%s' = %s(output)\n'" % \
+                            (local_outout,local_function))
+                        if local_outout == str() and \
+                            item.get('if_void_local_output') == 'stop': break;
+                    except: local_outout = str()
+                else:
+                    print('UNSUPPORTED_TYPE %s of %s!' % (type(item),item))
             except: pass
 
 except (socket.timeout, paramiko.AuthenticationException) as e:
     print(bcolors.FAIL + " ... Connection closed. %s " % (e) + bcolors.ENDC )
     sys.exit()
 finally: client.close()
+
 
 subprocess.call(['ls','-l',filename])
 print '\n ==> COMPLETE !'
