@@ -3,7 +3,8 @@ import os, sys
 
 def ipv4_to_ipv6(ipv4address):
     ip4to6, ip6to4 = str(), str()
-    v4list = ipv4address.split('.')
+    try: v4list = ipv4address.split('/')[0].split('.')
+    except: v4list = []
     if len(v4list) == 4:
         try:
             if int(v4list[0])<256 and int(v4list[1])<256 and int(v4list[2])<256 \
