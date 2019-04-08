@@ -17,7 +17,7 @@ def ipv4_to_ipv6(ipv4address):
         except: pass
     return ip4to6, ip6to4
 
-ipv4list = ['1.1.1.1','2.2.2.2','1.2.3.4','255.255.255.255']
+ipv4list = ['1.1.1.1','2.2.2.2','1.2.3.4','255.255.255.255','172.25.4.65']
 
 for ipv4 in ipv4list:
     print(ipv4_to_ipv6(ipv4))
