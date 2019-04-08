@@ -56,7 +56,12 @@ local_outout = str()
 CMD_IOS_XE = [
             ('sh int loopback 200 | i 172'),
             {'call_function': 'parse_ipv4_from_text', 'if_void_local_output':'stop'},
-
+            'conf',
+            'interface loopback 200',
+            'ipv6 address __local_outout__/127',
+            'commi',
+            'exit'
+            'sh int loopback 200 | i __local_outout__'
              ]
 CMD_IOS_XR = [
             ('sh int loopback 200 | i 172'),
@@ -70,12 +75,12 @@ CMD_IOS_XR = [
              ]
 CMD_JUNOS = [
             ('show configuration interfaces lo0 | match 172'),
-            {'call_function': 'parse_ipv4_from_text'},
-            ('sh int loopback 200 | i __local_outout__'),
+            {'call_function': 'parse_ipv4_from_text', 'if_void_local_output':'stop'},
+
             ]
 CMD_VRP = [
             ('disp current-configuration interface LoopBack 200 | include 172'),
-            {'call_function': 'parse_ipv4_from_text'}
+            {'call_function': 'parse_ipv4_from_text', 'if_void_local_output':'stop'},
           ]
 
 
