@@ -80,11 +80,16 @@ CMD_IOS_XR = [
 CMD_JUNOS = [
             ('show configuration interfaces lo0 | match 172'),
             {'call_function': 'parse_ipv4_from_text', 'if_void_local_output':'stop'},
+             'conf',
 
+             'exit'
             ]
 CMD_VRP = [
             ('disp current-configuration interface LoopBack 200 | include 172'),
             {'call_function': 'parse_ipv4_from_text', 'if_void_local_output':'stop'},
+            'sys',
+
+            'quit'
           ]
 
 
