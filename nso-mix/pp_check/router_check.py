@@ -68,10 +68,10 @@ PLATFORM_DESCR_ASR9K    = 'Cisco IOS XR Software (Cisco ASR9K'
 PLATFORM_DESCR_MX2020   = 'Juniper Networks, Inc. mx2020'
 UNKNOW_HOST     = 'Name or service not known'
 TIMEOUT         = 60
-try:    PASSWORD        = os.environ['PASS']
-except: PASSWORD        = None
-try:    USERNAME        = os.environ['USER']
-except: USERNAME        = None
+try:    PASSWORD        = os.environ['NEWR_PASS']
+except: PASSWORD        = str()
+try:    USERNAME        = os.environ['NEWR_USER']
+except: USERNAME        = str()
 
 note_ndiff_string  = "ndiff( %s'-' missed, %s'+' added, %s'-\\n%s+' difference, %s' ' equal%s) [no filters]\n" % \
     (bcolors.RED,bcolors.GREEN,bcolors.RED,bcolors.GREEN,bcolors.GREY,bcolors.ENDC )
@@ -749,8 +749,8 @@ else:
     print('FORCED ROUTER_TYPE: ' + router_type)
 
 ######## Create logs directory if not existing  ######### 
-if not os.path.exists('./logs'):
-    os.makedirs('./logs')
+if not os.path.exists('$(HOME)/logs'):
+    os.makedirs('$(HOME)/logs')
 
 ####### Find necessary pre and post check files if needed 
 if args.precheck_file != None:
@@ -760,7 +760,7 @@ if args.precheck_file != None:
         sys.exit()
 else:
     if pre_post == 'post':
-        list_precheck_files = glob.glob("./logs/" + args.device + '*' + 'pre')
+        list_precheck_files = glob.glob("$(HOME)/logs/" + args.device + '*' + 'pre')
         if len(list_precheck_files) == 0:
             print(bcolors.MAGENTA + " ... Can't find any precheck file. %s " + bcolors.ENDC)
             sys.exit()
@@ -774,7 +774,7 @@ else:
 
 # find last existing postcheck file
 if args.recheck:
-    list_postcheck_files = glob.glob("./logs/" + args.device + '*' + 'post')
+    list_postcheck_files = glob.glob("$(HOME)/logs/" + args.device + '*' + 'post')
     if len(list_postcheck_files) == 0:
         print(bcolors.MAGENTA + " ... Can't find any postcheck file. %s " + bcolors.ENDC)
         sys.exit()
@@ -812,7 +812,7 @@ if not args.recheck:
 
         print " ... Openning %s check file to collect output" %( pre_post )
 
-        filename_prefix = "./logs/" + args.device
+        filename_prefix = "$(HOME)/logs/" + args.device
         filename_suffix = pre_post
         now = datetime.datetime.now()
         filename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s" % \
