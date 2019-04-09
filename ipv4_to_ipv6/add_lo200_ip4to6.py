@@ -120,15 +120,19 @@ def ssh_detect_prompt(chan, debug = False):
 
 
 # bullet-proof read-until function , even in case of ---more---
-def ssh_read_until_prompt_bulletproof(chan,command,prompt,debug=False):
-    output, buff, last_line = str(), str(), 'dummyline1'
+def ssh_read_until_prompt_bulletproof(chan,command,prompts,debug=False):
+    output, buff, last_line, exit_loop = str(), str(), 'dummyline1', False
     # avoid of echoing commands on ios-xe by timeout 1 second
     flush_buffer = chan.recv(9999)
     del flush_buffer
     chan.send(command)
     time.sleep(1)
-    while not last_line == prompt:
-        if debug: print('LAST_LINE:',prompt,last_line)
+
+    output, exit_loop = '', False
+    while not exit_loop:
+        for actual_prompt in prompts:
+            if output.endswith(actual_prompt): exit_loop=True; break
+        if debug: print('LAST_LINE:',prompts,last_line)
         buff = chan.recv(9999)
         output += buff.replace('\r','').replace('\x07','').replace('\x08','').\
                   replace('\x1b[K','').replace('\n{master}\n','')
@@ -156,13 +160,13 @@ def detect_router_by_ssh(debug = False):
         #test if this is HUAWEI VRP
         if prompt and not router_os:
             command = 'display version | include (Huawei)\n'
-            output = ssh_read_until_prompt_bulletproof(chan, command, prompt, debug=debug)
+            output = ssh_read_until_prompt_bulletproof(chan, command, DEVICE_PROMPTS, debug=debug)
             if 'Huawei Versatile Routing Platform Software' in output: router_os = 'vrp'
 
         #test if this is CISCO IOS-XR, IOS-XE or JUNOS
         if prompt and not router_os:
             command = 'show version\n'
-            output = ssh_read_until_prompt_bulletproof(chan, command, prompt, debug=debug)
+            output = ssh_read_until_prompt_bulletproof(chan, command, DEVICE_PROMPTS, debug=debug)
             if 'iosxr-' in output or 'Cisco IOS XR Software' in output: router_os = 'ios-xr'
             elif 'Cisco IOS-XE software' in output: router_os = 'ios-xe'
             elif 'JUNOS OS' in output: router_os = 'junos'
@@ -178,12 +182,14 @@ def detect_router_by_ssh(debug = False):
     return router_os
 
 
-def ssh_read_until(channel,prompt,conf_promt):
-    output = ''
-    while not (output.endswith(prompt) or output.endswith(conf_promt)):
+def ssh_read_until(channel,prompts):
+    output, exit_loop = '', False
+    while not exit_loop:
+        for actual_prompt in prompts:
+            if output.endswith(actual_prompt): exit_loop=True; break
         buff = chan.recv(9999)
         output += buff.replace('\x0d','').replace('\x07','').replace('\x08','').\
-                  replace(' \x1b[1D','')
+            replace(' \x1b[1D','')
     return output
 
 
@@ -297,29 +303,37 @@ if args.cmd_file:
 # Collect pre/post check information
 if router_type == "ios-xe":
     CMD = list_cmd if len(list_cmd)>0 else CMD_IOS_XE
-    DEVICE_PROMPT = args.device.upper() + '#'
-    DEVICE_PROMPT_CONF = args.device.upper() + '(config)#'
+    DEVICE_PROMPTS = [ \
+        '%s%s#'%(args.device.upper(),''), \
+        '%s%s#'%(args.device.upper(),'(config)'), \
+        '%s%s#'%(args.device.upper(),'(config-if)'), \
+        '%s%s#'%(args.device.upper(),'(config-line)') ]
     TERM_LEN_0 = "terminal length 0\n"
     EXIT = "exit\n"
 
 elif router_type == "ios-xr":
     CMD = list_cmd if len(list_cmd)>0 else CMD_IOS_XR
-    DEVICE_PROMPT = args.device.upper() + '#'
-    DEVICE_PROMPT_CONF = args.device.upper() + '(config)#'
+    DEVICE_PROMPTS = [ \
+        '%s%s#'%(args.device.upper(),''), \
+        '%s%s#'%(args.device.upper(),'(config)'), \
+        '%s%s#'%(args.device.upper(),'(config-if)'), \
+        '%s%s#'%(args.device.upper(),'(config-line)') ]
     TERM_LEN_0 = "terminal length 0\n"
     EXIT = "exit\n"
 
 elif router_type == "junos":
     CMD = list_cmd if len(list_cmd)>0 else CMD_JUNOS
-    DEVICE_PROMPT = USERNAME + '@' + args.device.upper() + '> ' # !! Need the space after >
-    DEVICE_PROMPT_CONF = USERNAME + '@' + args.device.upper() + '# '
+    DEVICE_PROMPTS = [ \
+         USERNAME + '@' + args.device.upper() + '> ', # !! Need the space after >
+         USERNAME + '@' + args.device.upper() + '# ' ]
     TERM_LEN_0 = "set cli screen-length 0\n"
     EXIT = "exit\n"
 
 elif router_type == "vrp":
     CMD = list_cmd if len(list_cmd)>0 else CMD_VRP
-    DEVICE_PROMPT = '<' + args.device.upper() + '>'
-    DEVICE_PROMPT_CONF = '[' + args.device.upper() + ']'
+    DEVICE_PROMPTS = [ \
+        '<' + args.device.upper() + '>',
+        '[' + args.device.upper() + ']'  ]
     TERM_LEN_0 = "screen-length 0 temporary\n"     #"screen-length disable\n"
     EXIT = "quit\n"
 
@@ -336,12 +350,12 @@ try:
     chan = client.invoke_shell()
     chan.settimeout(TIMEOUT)
     while not chan.recv_ready(): time.sleep(1)
-    output = ssh_read_until(chan,DEVICE_PROMPT,DEVICE_PROMPT_CONF)
+    output = ssh_read_until(chan,DEVICE_PROMPTS)
     chan.send(TERM_LEN_0 + '\n')
-    output = ssh_read_until(chan,DEVICE_PROMPT,DEVICE_PROMPT_CONF)
+    output = ssh_read_until(chan,DEVICE_PROMPTS)
     # router prompt needed as file header
     chan.send('\n')
-    output = ssh_read_until(chan,DEVICE_PROMPT,DEVICE_PROMPT_CONF)
+    output = ssh_read_until(chan,DEVICE_PROMPTS)
     with open(filename,"w") as fp:
         fp.write(output)
         print(output)
@@ -353,7 +367,7 @@ try:
                     item = item.replace('__local_outout__',local_outout)
                     chan.send(item + '\n')
                     print "COMMAND: %s" % item
-                    output = ssh_read_until(chan,DEVICE_PROMPT,DEVICE_PROMPT_CONF)
+                    output = ssh_read_until(chan,DEVICE_PROMPTS)
                     print(output)
                     fp.write(output)
                 # hack: use dictionary for running local python code functions
