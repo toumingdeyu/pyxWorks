@@ -38,10 +38,14 @@ HELP             = "\nTry ' --help' for more information\n"
 
 UNKNOW_HOST     = 'Name or service not known'
 TIMEOUT         = 60
-try:    PASSWORD        = os.environ['PASS']
-except: PASSWORD        = None
-try:    USERNAME        = os.environ['USER']
-except: USERNAME        = None
+try:    HOMEDIR         = os.environ['HOME']
+except: HOMEDIR         = str()
+try:    PASSWORD        = os.environ['NEWR_PASS']
+except: PASSWORD        = str()
+try:    USERNAME        = os.environ['NEWR_USER']
+except: USERNAME        = str()
+
+print('HOMEDIR: '+HOMEDIR)
 
 local_outout = str()
 
@@ -56,9 +60,9 @@ local_outout = str()
 CMD_IOS_XE = [
             ('sh int loopback 200 | i 172'),
             {'call_function': 'parse_ipv4_from_text', 'if_void_local_output':'stop'},
-            'conf',
+            'conf t',
             'interface loopback 200',
-            'ipv6 address __local_outout__/127',
+            'ipv6 address __local_outout__/128',
             'commi',
             'exit'
             'sh int loopback 200 | i __local_outout__'
@@ -68,7 +72,7 @@ CMD_IOS_XR = [
             {'call_function': 'parse_ipv4_from_text', 'if_void_local_output':'stop'},
             'conf',
             'interface loopback 200',
-            'ipv6 address __local_outout__/127',
+            'ipv6 address __local_outout__/128',
             'commi',
             'exit'
             'sh int loopback 200 | i __local_outout__'
@@ -169,9 +173,9 @@ def detect_router_by_ssh(debug = False):
     return router_os
 
 
-def ssh_read_until(channel,prompt):
+def ssh_read_until(channel,prompt,conf_promt):
     output = ''
-    while not output.endswith(prompt):
+    while not (output.endswith(prompt) or output.endswith(conf_promt)):
         buff = chan.recv(9999)
         output += buff.replace('\x0d','').replace('\x07','').replace('\x08','').\
                   replace(' \x1b[1D','')
@@ -194,11 +198,26 @@ def ipv4_to_ipv6(ipv4address):
         except: pass
     return ip4to6, ip6to4
 
+def ipv4_to_ipv6_obs(ipv4address):
+    ip4to6, ip6to4 = str(), str()
+    try: v4list = ipv4address.split('/')[0].split('.')
+    except: v4list = []
+    if len(v4list) == 4:
+        try:
+            if int(v4list[0])<256 and int(v4list[1])<256 and int(v4list[2])<256 \
+                and int(v4list[3])<256 and int(v4list[0])>=0 and \
+                int(v4list[1])>=0 and int(v4list[2])>=0 and int(v4list[3])>=0:
+                ip4to6 = 'fd00:0:0:5511::%02x%02x:%02x%02x' % \
+                    (int(v4list[0]),int(v4list[1]),int(v4list[2]),int(v4list[3]))
+                ip6to4 = '2002:%02x%02x:%02x%02x:0:0:0:0:0' % \
+                    (int(v4list[0]),int(v4list[1]),int(v4list[2]),int(v4list[3]))
+        except: pass
+    return ip4to6, ip6to4
 
 def parse_ipv4_from_text(text):
     try: ipv4=text.split('address')[1].split()[0].replace(';','')
     except: ipv4 = str()
-    return ipv4_to_ipv6(ipv4)[0]
+    return ipv4_to_ipv6_obs(ipv4)[0]
 
 
 ##############################################################################
@@ -252,8 +271,8 @@ else:
     print('FORCED ROUTER_TYPE: ' + router_type)
 
 ######## Create logs directory if not existing  #########
-if not os.path.exists('./logs'): os.makedirs('./logs')
-filename_prefix = "./logs/" + args.device
+if not os.path.exists(HOMEDIR + '/logs'): os.makedirs(HOMEDIR + '/logs')
+filename_prefix = HOMEDIR + "/logs/" + args.device
 filename_suffix = 'log'
 now = datetime.datetime.now()
 filename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s" % \
@@ -274,24 +293,28 @@ if args.cmd_file:
 if router_type == "ios-xe":
     CMD = list_cmd if len(list_cmd)>0 else CMD_IOS_XE
     DEVICE_PROMPT = args.device.upper() + '#'
+    DEVICE_PROMPT_CONF = args.device.upper() + '(config)#'
     TERM_LEN_0 = "terminal length 0\n"
     EXIT = "exit\n"
 
 elif router_type == "ios-xr":
     CMD = list_cmd if len(list_cmd)>0 else CMD_IOS_XR
     DEVICE_PROMPT = args.device.upper() + '#'
+    DEVICE_PROMPT_CONF = args.device.upper() + '(config)#'
     TERM_LEN_0 = "terminal length 0\n"
     EXIT = "exit\n"
 
 elif router_type == "junos":
     CMD = list_cmd if len(list_cmd)>0 else CMD_JUNOS
     DEVICE_PROMPT = USERNAME + '@' + args.device.upper() + '> ' # !! Need the space after >
+    DEVICE_PROMPT_CONF = USERNAME + '@' + args.device.upper() + '# '
     TERM_LEN_0 = "set cli screen-length 0\n"
     EXIT = "exit\n"
 
 elif router_type == "vrp":
     CMD = list_cmd if len(list_cmd)>0 else CMD_VRP
     DEVICE_PROMPT = '<' + args.device.upper() + '>'
+    DEVICE_PROMPT_CONF = '[' + args.device.upper() + ']'
     TERM_LEN_0 = "screen-length 0 temporary\n"     #"screen-length disable\n"
     EXIT = "quit\n"
 
@@ -308,12 +331,12 @@ try:
     chan = client.invoke_shell()
     chan.settimeout(TIMEOUT)
     while not chan.recv_ready(): time.sleep(1)
-    output = ssh_read_until(chan,DEVICE_PROMPT)
+    output = ssh_read_until(chan,DEVICE_PROMPT,DEVICE_PROMPT_CONF)
     chan.send(TERM_LEN_0 + '\n')
-    output = ssh_read_until(chan,DEVICE_PROMPT)
+    output = ssh_read_until(chan,DEVICE_PROMPT,DEVICE_PROMPT_CONF)
     # router prompt needed as file header
     chan.send('\n')
-    output = ssh_read_until(chan,DEVICE_PROMPT)
+    output = ssh_read_until(chan,DEVICE_PROMPT,DEVICE_PROMPT_CONF)
     with open(filename,"w") as fp:
         fp.write(output)
         print(output)
@@ -325,7 +348,7 @@ try:
                     item = item.replace('__local_outout__',local_outout)
                     chan.send(item + '\n')
                     print "COMMAND: %s" % item
-                    output = ssh_read_until(chan,DEVICE_PROMPT)
+                    output = ssh_read_until(chan,DEVICE_PROMPT,DEVICE_PROMPT_CONF)
                     print(output)
                     fp.write(output)
                 # hack: use dictionary for running local python code functions
