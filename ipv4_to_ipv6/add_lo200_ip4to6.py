@@ -160,13 +160,13 @@ def detect_router_by_ssh(debug = False):
         #test if this is HUAWEI VRP
         if prompt and not router_os:
             command = 'display version | include (Huawei)\n'
-            output = ssh_read_until_prompt_bulletproof(chan, command, DEVICE_PROMPTS, debug=debug)
+            output = ssh_read_until_prompt_bulletproof(chan, command, [prompt], debug=debug)
             if 'Huawei Versatile Routing Platform Software' in output: router_os = 'vrp'
 
         #test if this is CISCO IOS-XR, IOS-XE or JUNOS
         if prompt and not router_os:
             command = 'show version\n'
-            output = ssh_read_until_prompt_bulletproof(chan, command, DEVICE_PROMPTS, debug=debug)
+            output = ssh_read_until_prompt_bulletproof(chan, command, [prompt], debug=debug)
             if 'iosxr-' in output or 'Cisco IOS XR Software' in output: router_os = 'ios-xr'
             elif 'Cisco IOS-XE software' in output: router_os = 'ios-xe'
             elif 'JUNOS OS' in output: router_os = 'junos'
