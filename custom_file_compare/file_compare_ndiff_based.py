@@ -101,67 +101,42 @@ def get_difference_string_from_string_or_list(
     old_lines_unfiltered = old_string_or_list if type(old_string_or_list) == list else old_string_or_list.splitlines()
     new_lines_unfiltered = new_string_or_list if type(new_string_or_list) == list else new_string_or_list.splitlines()
 
-    # make filtered-out list of lines from both files
-    old_lines, new_lines = [], []
-    old_linefiltered_lines, new_linefiltered_lines = [], []
-    old_split_lines, new_split_lines = [], []
-
-    for line in old_lines_unfiltered:
-        ignore, linefiltered_line, split_line = False, line, str()
-        for ignore_item in ignore_list:
-            if (re.search(ignore_item,line)) != None: ignore = True
-        for linefilter_item in linefilter_list:
-            if (re.search(linefilter_item,line)) != None:
-                linefiltered_line = re.findall(linefilter_item,line)[0]
-        for split_column in compare_columns:
-           try: temp_column = line.split()[split_column]
-           except: temp_column = str()
-           split_line += ' ' + temp_column
-        if not ignore:
-            old_lines.append(line)
-            old_linefiltered_lines.append(linefiltered_line)
-            old_split_lines.append(split_line)
-
-    for line in new_lines_unfiltered:
-        ignore, linefiltered_line, split_line = False, line, str()
-        for ignore_item in ignore_list:
-            if (re.search(ignore_item,line)) != None: ignore = True
-        for linefilter_item in linefilter_list:
-            if (re.search(linefilter_item,line)) != None:
-                linefiltered_line = re.findall(linefilter_item,line)[0]
-        for split_column in compare_columns:
-           try: temp_column = line.split()[split_column]
-           except: temp_column = str()
-           split_line += ' ' + temp_column
-        if not ignore:
-            new_lines.append(line);
-            new_linefiltered_lines.append(linefiltered_line)
-            new_split_lines.append(split_line)
-
-    del old_lines_unfiltered
-    del new_lines_unfiltered
-
     # NDIFF COMPARISON METHOD---------------------------------------------------
     if diff_method == 'ndiff':
-        diff = difflib.ndiff(old_lines, new_lines)
+        diff = difflib.ndiff(old_lines_unfiltered, new_lines_unfiltered)
         for line in list(diff):
+            ignore = False
+            for ignore_item in ignore_list:
+                if (re.search(ignore_item,line)) != None: ignore = True
+            if ignore: continue
             try:    first_chars = line[0]+line[1]
             except: first_chars = str()
-            if '+ ' == first_chars: print_string += bcolors.GREEN + line + bcolors.ENDC + '\n'
-            elif '- ' == first_chars: print_string += bcolors.RED + line + bcolors.ENDC + '\n'
-            elif '! ' == first_chars: print_string += bcolors.YELLOW + line + bcolors.ENDC + '\n'
+            if len(line.strip())==0: pass
+            elif '+ ' == first_chars: print_string += COL_ADDED + line + bcolors.ENDC + '\n'
+            elif '- ' == first_chars: print_string += COL_DELETED + line + bcolors.ENDC + '\n'
             elif '? ' == first_chars or first_chars == str(): pass
-            elif print_equallines: print_string += bcolors.GREY + line + bcolors.ENDC + '\n'
+            elif print_equallines: print_string += COL_EQUAL + line + bcolors.ENDC + '\n'
+            else:
+                print_line, ignore = False, False
+                for item in printalllines_list:
+                    if (re.search(item,line)) != None: print_line = True
+                if print_line:
+                    print_string += COL_EQUAL + line + bcolors.ENDC + '\n'
         return print_string
 
     # NDIFF0 COMPARISON METHOD--------------------------------------------------
     if diff_method == 'ndiff0' or diff_method == 'pdiff0':
         ignore_previous_line = False
-        diff = difflib.ndiff(old_lines, new_lines)
+        diff = difflib.ndiff(old_lines_unfiltered, new_lines_unfiltered)
         listdiff_nonfiltered = list(diff)
         listdiff = []
         # filter diff lines out of '? ' and void lines
         for line in listdiff_nonfiltered:
+            # This ignore filter is much faster
+            ignore = False
+            for ignore_item in ignore_list:
+                if (re.search(ignore_item,line)) != None: ignore = True
+            if ignore: continue
             try:    first_chars = line[0]+line[1]
             except: first_chars = str()
             if '+ ' in first_chars or '- ' in first_chars or '  ' in first_chars:
@@ -247,6 +222,7 @@ def get_difference_string_from_string_or_list(
             # Final PRINT ------------------------------------------------------
             if print_line: print_string += "%s%s%s\n" % (print_color,print_line,bcolors.ENDC)
     return print_string
+
 
 
 parser = argparse.ArgumentParser()
