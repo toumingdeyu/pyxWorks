@@ -127,11 +127,8 @@ def ssh_read_until_prompt_bulletproof(chan,command,prompts,debug=False):
     del flush_buffer
     chan.send(command)
     time.sleep(1)
-
     output, exit_loop = '', False
     while not exit_loop:
-        for actual_prompt in prompts:
-            if output.endswith(actual_prompt): exit_loop=True; break
         if debug: print('LAST_LINE:',prompts,last_line)
         buff = chan.recv(9999)
         output += buff.replace('\r','').replace('\x07','').replace('\x08','').\
@@ -140,6 +137,8 @@ def ssh_read_until_prompt_bulletproof(chan,command,prompts,debug=False):
         if debug: print('BUFFER:' + buff)
         try: last_line = output.splitlines()[-1].strip().replace('\x20','')
         except: last_line = str()
+        for actual_prompt in prompts:
+            if output.endswith(actual_prompt): exit_loop=True; break
     return output
 
 # huawei does not respond to snmp
@@ -185,11 +184,11 @@ def detect_router_by_ssh(debug = False):
 def ssh_read_until(channel,prompts):
     output, exit_loop = '', False
     while not exit_loop:
-        for actual_prompt in prompts:
-            if output.endswith(actual_prompt): exit_loop=True; break
         buff = chan.recv(9999)
         output += buff.replace('\x0d','').replace('\x07','').replace('\x08','').\
             replace(' \x1b[1D','')
+        for actual_prompt in prompts:
+            if output.endswith(actual_prompt): exit_loop=True; break
     return output
 
 
@@ -366,22 +365,26 @@ try:
                     output = str()
                     item = item.replace('__local_outout__',local_outout)
                     chan.send(item + '\n')
-                    print "COMMAND: %s" % item
+                    print("%sCOMMAND: %s%s%s" % (bcolors.GREEN,bcolors.YELLOW,item,bcolors.ENDC))
                     output = ssh_read_until(chan,DEVICE_PROMPTS)
-                    print(output)
+                    print(bcolors.GREY + output + bcolors.ENDC)
                     fp.write(output)
                 # hack: use dictionary for running local python code functions
                 elif isinstance(item, dict):
                     try:
                         local_function = item.get('call_function','')
                         local_outout = locals()[local_function](output)
-                        print("CALL_LOCAL_FUNCTION: '%s' = %s(output)\n'" % \
-                            (local_outout,local_function))
+                        print("%sCALL_LOCAL_FUNCTION: %s'%s' = %s(output)\n%s" % \
+                            (bcolors.GREEN,bcolors.YELLOW,local_outout,local_function,bcolors.ENDC))
                         if local_outout == str() and \
-                            item.get('if_void_local_output') == 'stop': break;
+                            item.get('if_void_local_output') == 'stop':
+                            print("%sSTOP (VOID LOCAL OUTPUT).%s" % \
+                            (bcolors.RED,bcolors.ENDC))
+                            break;
                     except: local_outout = str()
                 else:
-                    print('UNSUPPORTED_TYPE %s of %s!' % (type(item),item))
+                    print('%sUNSUPPORTED_TYPE %s of %s!%s' % \
+                        (bcolors.MAGENTA,type(item),item,bcolors.ENDC))
             except: pass
 
 except (socket.timeout, paramiko.AuthenticationException) as e:
