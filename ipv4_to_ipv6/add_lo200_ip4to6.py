@@ -138,7 +138,7 @@ def ssh_read_until_prompt_bulletproof(chan,command,prompts,debug=False):
         try: last_line = output.splitlines()[-1].strip().replace('\x20','')
         except: last_line = str()
         for actual_prompt in prompts:
-            if output.endswith(actual_prompt): exit_loop=True; break
+            if output.endswith(actual_prompt) or actual_prompt in last_line: exit_loop = True
     return output
 
 # huawei does not respond to snmp
