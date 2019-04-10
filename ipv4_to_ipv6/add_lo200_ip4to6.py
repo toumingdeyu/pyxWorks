@@ -306,7 +306,8 @@ if router_type == "ios-xe":
         '%s%s#'%(args.device.upper(),''), \
         '%s%s#'%(args.device.upper(),'(config)'), \
         '%s%s#'%(args.device.upper(),'(config-if)'), \
-        '%s%s#'%(args.device.upper(),'(config-line)') ]
+        '%s%s#'%(args.device.upper(),'(config-line)'), \
+        '%s%s#'%(args.device.upper(),'(config-router)')  ]
     TERM_LEN_0 = "terminal length 0\n"
     EXIT = "exit\n"
 
@@ -316,7 +317,8 @@ elif router_type == "ios-xr":
         '%s%s#'%(args.device.upper(),''), \
         '%s%s#'%(args.device.upper(),'(config)'), \
         '%s%s#'%(args.device.upper(),'(config-if)'), \
-        '%s%s#'%(args.device.upper(),'(config-line)') ]
+        '%s%s#'%(args.device.upper(),'(config-line)'), \
+        '%s%s#'%(args.device.upper(),'(config-router)')  ]
     TERM_LEN_0 = "terminal length 0\n"
     EXIT = "exit\n"
 
