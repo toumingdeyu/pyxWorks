@@ -139,7 +139,7 @@ def ssh_read_until_prompt_bulletproof(chan,command,prompts,debug=False):
         try: last_line = output.splitlines()[-1].strip().replace('\x20','')
         except: last_line = str()
         for actual_prompt in prompts:
-            if output.endswith(actual_prompt): exit_loop=True; break
+            if output.endswith(actual_prompt) or actual_prompt in last_line: exit_loop = True
     return output
 
 # huawei does not respond to snmp
@@ -179,6 +179,8 @@ def detect_router_by_ssh(debug = False):
         sys.exit()
     finally:
         client.close()
+        print('Paramiko DISCONNECTED.')
+        time.sleep(1)
     return router_os
 
 
@@ -274,24 +276,25 @@ else:
     print('FORCED ROUTER_TYPE: ' + router_type)
 
 ######## Create logs directory if not existing  #########
-if not os.path.exists(HOMEDIR + '/logs'): os.makedirs(HOMEDIR + '/logs')
-filename_prefix = HOMEDIR + "/logs/" + args.device
-filename_suffix = 'log'
-now = datetime.datetime.now()
-filename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s" % \
-    (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,now.second,filename_suffix)
+# if not os.path.exists(HOMEDIR + '/logs'): os.makedirs(HOMEDIR + '/logs')
+# filename_prefix = HOMEDIR + "/logs/" + args.device
+# filename_suffix = 'log'
+# now = datetime.datetime.now()
+# filename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s" % \
+#     (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,now.second,filename_suffix)
 
 ######## Find command list file (optional)
-list_cmd, line_list= [], []
-if args.cmd_file:
-    if not os.path.isfile(args.cmd_file):
-        print(bcolors.MAGENTA + " ... Can't find command file: %s " + bcolors.ENDC) \
-                % args.cmd_file
-        sys.exit()
-    else:
-        with open(args.cmd_file) as cmdf:
-            list_cmd = cmdf.read().replace('\x0d','').splitlines()
+# list_cmd, line_list= [], []
+# if args.cmd_file:
+#     if not os.path.isfile(args.cmd_file):
+#         print(bcolors.MAGENTA + " ... Can't find command file: %s " + bcolors.ENDC) \
+#                 % args.cmd_file
+#         sys.exit()
+#     else:
+#         with open(args.cmd_file) as cmdf:
+#             list_cmd = cmdf.read().replace('\x0d','').splitlines()
 
+list_cmd = []
 # Collect pre/post check information
 if router_type == "ios-xe":
     CMD = list_cmd if len(list_cmd)>0 else CMD_IOS_XE
@@ -402,9 +405,7 @@ print('after disconnect')
 #     print(bcolors.FAIL + " ... Connection closed. %s " % (e) + bcolors.ENDC )
 #     sys.exit()
 # finally: client.close()
-
-
-subprocess.call(['ls','-l',filename])
-print '\n ==> COMPLETE !'
+# subprocess.call(['ls','-l',filename])
+# print '\n ==> COMPLETE !'
 
 
