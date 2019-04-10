@@ -531,8 +531,6 @@ def get_difference_string_from_string_or_list(
 
     # make filtered-out list of lines from both files
     old_lines, new_lines = [], []
-    old_linefiltered_lines, new_linefiltered_lines = [], []
-    old_split_lines, new_split_lines = [], []
 
     for line in old_lines_unfiltered:
         ignore, linefiltered_line, split_line = False, line, str()
@@ -545,10 +543,7 @@ def get_difference_string_from_string_or_list(
            try: temp_column = line.split()[split_column]
            except: temp_column = str()
            split_line += ' ' + temp_column
-        if not ignore:
-            old_lines.append(line)
-            old_linefiltered_lines.append(linefiltered_line)
-            old_split_lines.append(split_line)
+        if not ignore: old_lines.append(line)
 
     for line in new_lines_unfiltered:
         ignore, linefiltered_line, split_line = False, line, str()
@@ -561,10 +556,7 @@ def get_difference_string_from_string_or_list(
            try: temp_column = line.split()[split_column]
            except: temp_column = str()
            split_line += ' ' + temp_column
-        if not ignore:
-            new_lines.append(line);
-            new_linefiltered_lines.append(linefiltered_line)
-            new_split_lines.append(split_line)
+        if not ignore: new_lines.append(line)
 
     del old_lines_unfiltered
     del new_lines_unfiltered
