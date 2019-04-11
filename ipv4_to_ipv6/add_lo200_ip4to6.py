@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import sys, os, paramiko
+import sys, os, io, paramiko, json
 import getopt
 import getpass
 import telnetlib
@@ -160,14 +160,14 @@ def ssh_read_until_prompt_bulletproof(chan,command,prompts,debug=False):
     return output
 
 # huawei does not respond to snmp
-def detect_router_by_ssh(debug = False):
+def detect_router_by_ssh(device, debug = False):
     router_os = str()
     client = paramiko.SSHClient()
     client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
     try:
-        client.connect(args.device, username=USERNAME, password=PASSWORD)
+        client.connect(device, username=USERNAME, password=PASSWORD)
         chan = client.invoke_shell()
         chan.settimeout(TIMEOUT)
         # prevent --More-- in log banner (space=page, enter=1line,tab=esc)
@@ -270,6 +270,17 @@ def parse_whole_set_line_from_text(text):
     if set_text: set_ipv6line = 'set' + set_text + ' primary\n'
     return set_ipv6line
 
+def parse_json_file_and_get_oti_routers_list():
+    oti_routers = []
+    json_filename = '/home/dpenha/perl_shop/NIS9TABLE_BLDR/node_list.json'
+    with io.open(json_filename) as json_file: json_raw_data = json.load(json_file)
+    if json_raw_data:
+        for router in json_raw_data['results']:
+           if router['namings']['type']=='OTI':
+               oti_routers.append(router['name'])
+    return oti_routers
+
+
 ##############################################################################
 #
 # BEGIN MAIN
@@ -285,7 +296,6 @@ if __name__ != "__main__": sys.exit(0)
 #
 # exit(0)
 
-
 ######## Parse program arguments #########
 parser = argparse.ArgumentParser(
                 description = "Script to perform add ipv6 to lo200 check",
@@ -295,7 +305,7 @@ parser.add_argument("--version",
                     action = 'version', version = VERSION)
 parser.add_argument("--device",
                     action = "store", dest = 'device',
-                    required = True,
+                    required = True,  default = str(),
                     help = "target router to check")
 parser.add_argument("--os",
                     action = "store", dest="router_type",
@@ -306,8 +316,15 @@ parser.add_argument("--cmd", action = 'store', dest = "cmd_file", default = None
 parser.add_argument("--user",
                     action = "store", dest = 'username',
                     help = "specify router user login")
+parser.add_argument("--alloti",
+                    action = 'store_true', dest = "alloti", default = False,
+                    help = "do action on all oti routers")
 
 args = parser.parse_args()
+
+if args.alloti: device_list = parse_json_file_and_get_oti_routers_list()
+else: device_list = [args.device]
+
 
 ####### Set USERNAME if needed
 if args.username != None: USERNAME = args.username
@@ -318,130 +335,131 @@ if not USERNAME:
 # SSH (default)
 if not PASSWORD: PASSWORD = getpass.getpass("TACACS password: ")
 
-####### Figure out type of router OS
-if not args.router_type:
-    router_type = detect_router_by_ssh(debug = False)
-    print('DETECTED ROUTER_TYPE: ' + router_type)
-else:
-    router_type = args.router_type
-    print('FORCED ROUTER_TYPE: ' + router_type)
-
-######## Create logs directory if not existing  #########
-if not os.path.exists(HOMEDIR + '/logs'): os.makedirs(HOMEDIR + '/logs')
-filename_prefix = HOMEDIR + "/logs/" + args.device
-filename_suffix = 'log'
-now = datetime.datetime.now()
-filename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s" % \
-    (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,now.second,filename_suffix)
-
-######## Find command list file (optional)
-list_cmd, line_list= [], []
-if args.cmd_file:
-    if not os.path.isfile(args.cmd_file):
-        print(bcolors.MAGENTA + " ... Can't find command file: %s " + bcolors.ENDC) \
-                % args.cmd_file
-        sys.exit()
+for device in device_list:
+    print('\nDEVICE %s START.........................................'%(device))
+    ####### Figure out type of router OS
+    if not args.router_type:
+        router_type = detect_router_by_ssh(device,debug = False)
+        print('DETECTED ROUTER_TYPE: ' + router_type)
     else:
-        with open(args.cmd_file) as cmdf:
-            list_cmd = cmdf.read().replace('\x0d','').splitlines()
+        router_type = args.router_type
+        print('FORCED ROUTER_TYPE: ' + router_type)
 
-# Collect pre/post check information
-if router_type == "ios-xe":
-    CMD = list_cmd if len(list_cmd)>0 else CMD_IOS_XE
-    DEVICE_PROMPTS = [ \
-        '%s%s#'%(args.device.upper(),''), \
-        '%s%s#'%(args.device.upper(),'(config)'), \
-        '%s%s#'%(args.device.upper(),'(config-if)'), \
-        '%s%s#'%(args.device.upper(),'(config-line)'), \
-        '%s%s#'%(args.device.upper(),'(config-router)')  ]
-    TERM_LEN_0 = "terminal length 0\n"
-    EXIT = "exit\n"
+    ######## Create logs directory if not existing  #########
+    if not os.path.exists(HOMEDIR + '/logs'): os.makedirs(HOMEDIR + '/logs')
+    filename_prefix = HOMEDIR + "/logs/" + device
+    filename_suffix = 'log'
+    now = datetime.datetime.now()
+    filename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s" % \
+        (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,now.second,filename_suffix)
 
-elif router_type == "ios-xr":
-    CMD = list_cmd if len(list_cmd)>0 else CMD_IOS_XR
-    DEVICE_PROMPTS = [ \
-        '%s%s#'%(args.device.upper(),''), \
-        '%s%s#'%(args.device.upper(),'(config)'), \
-        '%s%s#'%(args.device.upper(),'(config-if)'), \
-        '%s%s#'%(args.device.upper(),'(config-line)'), \
-        '%s%s#'%(args.device.upper(),'(config-router)')  ]
-    TERM_LEN_0 = "terminal length 0\n"
-    EXIT = "exit\n"
+    ######## Find command list file (optional)
+    list_cmd, line_list= [], []
+    if args.cmd_file:
+        if not os.path.isfile(args.cmd_file):
+            print(bcolors.MAGENTA + " ... Can't find command file: %s " + bcolors.ENDC) \
+                    % args.cmd_file
+            sys.exit()
+        else:
+            with open(args.cmd_file) as cmdf:
+                list_cmd = cmdf.read().replace('\x0d','').splitlines()
 
-elif router_type == "junos":
-    CMD = list_cmd if len(list_cmd)>0 else CMD_JUNOS
-    DEVICE_PROMPTS = [ \
-         USERNAME + '@' + args.device.upper() + '> ', # !! Need the space after >
-         USERNAME + '@' + args.device.upper() + '# ' ]
-    TERM_LEN_0 = "set cli screen-length 0\n"
-    EXIT = "exit\n"
+    # Collect pre/post check information
+    if router_type == "ios-xe":
+        CMD = list_cmd if len(list_cmd)>0 else CMD_IOS_XE
+        DEVICE_PROMPTS = [ \
+            '%s%s#'%(args.device.upper(),''), \
+            '%s%s#'%(args.device.upper(),'(config)'), \
+            '%s%s#'%(args.device.upper(),'(config-if)'), \
+            '%s%s#'%(args.device.upper(),'(config-line)'), \
+            '%s%s#'%(args.device.upper(),'(config-router)')  ]
+        TERM_LEN_0 = "terminal length 0\n"
+        EXIT = "exit\n"
 
-elif router_type == "vrp":
-    CMD = list_cmd if len(list_cmd)>0 else CMD_VRP
-    DEVICE_PROMPTS = [ \
-        '<' + args.device.upper() + '>',
-        '[' + args.device.upper() + ']',
-        '[~' + args.device.upper() + ']',
-        '[*' + args.device.upper() + ']' ]
-    TERM_LEN_0 = "screen-length 0 temporary\n"     #"screen-length disable\n"
-    EXIT = "quit\n"
+    elif router_type == "ios-xr":
+        CMD = list_cmd if len(list_cmd)>0 else CMD_IOS_XR
+        DEVICE_PROMPTS = [ \
+            '%s%s#'%(args.device.upper(),''), \
+            '%s%s#'%(args.device.upper(),'(config)'), \
+            '%s%s#'%(args.device.upper(),'(config-if)'), \
+            '%s%s#'%(args.device.upper(),'(config-line)'), \
+            '%s%s#'%(args.device.upper(),'(config-router)')  ]
+        TERM_LEN_0 = "terminal length 0\n"
+        EXIT = "exit\n"
 
+    elif router_type == "junos":
+        CMD = list_cmd if len(list_cmd)>0 else CMD_JUNOS
+        DEVICE_PROMPTS = [ \
+             USERNAME + '@' + args.device.upper() + '> ', # !! Need the space after >
+             USERNAME + '@' + args.device.upper() + '# ' ]
+        TERM_LEN_0 = "set cli screen-length 0\n"
+        EXIT = "exit\n"
 
-print " ... Connecting (SSH) to %s" % args.device
-client = paramiko.SSHClient()
-client.load_system_host_keys()
-client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-try:
-    client.connect(args.device, username=USERNAME, password=PASSWORD)
-    chan = client.invoke_shell()
-    chan.settimeout(TIMEOUT)
-    while not chan.recv_ready(): time.sleep(1)
-    output = ssh_read_until(chan,DEVICE_PROMPTS)
-    chan.send(TERM_LEN_0 + '\n')
-    output = ssh_read_until(chan,DEVICE_PROMPTS)
-    # router prompt needed as file header
-    chan.send('\n')
-    output = ssh_read_until(chan,DEVICE_PROMPTS)
-    with open(filename,"w") as fp:
-        fp.write(output)
-        print(output)
-        for cli_items in CMD:
-            try:
-                item = cli_items[0] if type(cli_items) == list else cli_items
-                if isinstance(item, basestring):
-                    output = str()
-                    item = item.replace('__local_outout__',local_outout)
-                    chan.send(item + '\n')
-                    print("%sCOMMAND: %s%s%s" % (bcolors.GREEN,bcolors.YELLOW,item,bcolors.ENDC))
-                    output = ssh_read_until(chan,DEVICE_PROMPTS)
-                    print(bcolors.GREY + output + bcolors.ENDC)
-                    fp.write(output)
-                # hack: use dictionary for running local python code functions
-                elif isinstance(item, dict):
-                    try:
-                        local_function = item.get('call_function','')
-                        local_outout = locals()[local_function](output)
-                        print("%sCALL_LOCAL_FUNCTION: %s'%s' = %s(output)\n%s" % \
-                            (bcolors.GREEN,bcolors.YELLOW,local_outout,local_function,bcolors.ENDC))
-                        if local_outout == str() and \
-                            item.get('if_void_local_output') == 'stop':
-                            print("%sSTOP (VOID LOCAL OUTPUT).%s" % \
-                            (bcolors.RED,bcolors.ENDC))
-                            break;
-                    except: local_outout = str()
-                else:
-                    print('%sUNSUPPORTED_TYPE %s of %s!%s' % \
-                        (bcolors.MAGENTA,type(item),item,bcolors.ENDC))
-            except: pass
-
-except (socket.timeout, paramiko.AuthenticationException) as e:
-    print(bcolors.FAIL + " ... Connection closed. %s " % (e) + bcolors.ENDC )
-    sys.exit()
-finally: client.close()
+    elif router_type == "vrp":
+        CMD = list_cmd if len(list_cmd)>0 else CMD_VRP
+        DEVICE_PROMPTS = [ \
+            '<' + args.device.upper() + '>',
+            '[' + args.device.upper() + ']',
+            '[~' + args.device.upper() + ']',
+            '[*' + args.device.upper() + ']' ]
+        TERM_LEN_0 = "screen-length 0 temporary\n"     #"screen-length disable\n"
+        EXIT = "quit\n"
 
 
-subprocess.call(['ls','-l',filename])
-print '\n ==> COMPLETE !'
+    print " ... Connecting (SSH) to %s" % args.device
+    client = paramiko.SSHClient()
+    client.load_system_host_keys()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
+    try:
+        client.connect(device, username=USERNAME, password=PASSWORD)
+        chan = client.invoke_shell()
+        chan.settimeout(TIMEOUT)
+        while not chan.recv_ready(): time.sleep(1)
+        output = ssh_read_until(chan,DEVICE_PROMPTS)
+        chan.send(TERM_LEN_0 + '\n')
+        output = ssh_read_until(chan,DEVICE_PROMPTS)
+        # router prompt needed as file header
+        chan.send('\n')
+        output = ssh_read_until(chan,DEVICE_PROMPTS)
+        with open(filename,"w") as fp:
+            fp.write(output)
+            print(output)
+            for cli_items in CMD:
+                try:
+                    item = cli_items[0] if type(cli_items) == list else cli_items
+                    if isinstance(item, basestring):
+                        output = str()
+                        item = item.replace('__local_outout__',local_outout)
+                        chan.send(item + '\n')
+                        print("%sCOMMAND: %s%s%s" % (bcolors.GREEN,bcolors.YELLOW,item,bcolors.ENDC))
+                        output = ssh_read_until(chan,DEVICE_PROMPTS)
+                        print(bcolors.GREY + output + bcolors.ENDC)
+                        fp.write(output)
+                    # hack: use dictionary for running local python code functions
+                    elif isinstance(item, dict):
+                        try:
+                            local_function = item.get('call_function','')
+                            local_outout = locals()[local_function](output)
+                            print("%sCALL_LOCAL_FUNCTION: %s'%s' = %s(output)\n%s" % \
+                                (bcolors.GREEN,bcolors.YELLOW,local_outout,local_function,bcolors.ENDC))
+                            if local_outout == str() and \
+                                item.get('if_void_local_output') == 'stop':
+                                print("%sSTOP (VOID LOCAL OUTPUT).%s" % \
+                                (bcolors.RED,bcolors.ENDC))
+                                break;
+                        except: local_outout = str()
+                    else:
+                        print('%sUNSUPPORTED_TYPE %s of %s!%s' % \
+                            (bcolors.MAGENTA,type(item),item,bcolors.ENDC))
+                except: pass
+
+    except (socket.timeout, paramiko.AuthenticationException) as e:
+        print(bcolors.FAIL + " ... Connection closed. %s " % (e) + bcolors.ENDC )
+        sys.exit()
+    finally: client.close()
+
+    subprocess.call(['ls','-l',filename])
+    print('\nDEVICE %s DONE.'%(device))
+print('\nALL DEVICES DONE.')
 
