@@ -305,7 +305,7 @@ parser.add_argument("--version",
                     action = 'version', version = VERSION)
 parser.add_argument("--device",
                     action = "store", dest = 'device',
-                    required = True,  default = str(),
+                    default = str(),
                     help = "target router to check")
 parser.add_argument("--os",
                     action = "store", dest="router_type",
