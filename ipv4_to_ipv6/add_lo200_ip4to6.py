@@ -47,8 +47,8 @@ except: USERNAME        = str()
 
 print('HOMEDIR: '+HOMEDIR)
 
-local_outout = str()
-
+set_ipv6line = str()
+converted_ipv4 = str()
 ###############################################################################
 #
 # Generic list of commands
@@ -58,40 +58,58 @@ local_outout = str()
 
 # IOS-XE is only for IPsec GW
 CMD_IOS_XE = [
-            ('sh int loopback 200 | i 172'),
+			'sh run int loopback 200 | i 128',
+            {'call_function': 'stop_if_ipv6_found', 'if_void_local_output':'stop'},
+            'sh run int loopback 200 | i 172',
             {'call_function': 'parse_ipv4_from_text', 'if_void_local_output':'stop'},
             'conf t',
             'interface loopback 200',
-            'ipv6 address __local_outout__/128',
-            'commi',
-            'exit'
-            'sh int loopback 200 | i __local_outout__'
-             ]
+            'ipv6 address %s/128'% (converted_ipv4),
+            'exit',
+			'exit',
+			'write',
+            'sh int loopback 200 | i %s' % (converted_ipv4)
+              ]
 CMD_IOS_XR = [
-            ('sh int loopback 200 | i 172'),
+            ('sh run int loopback 200 | i 128'),
+            {'call_function': 'stop_if_ipv6_found', 'if_void_local_output':'stop'},
+			('sh run int loopback 200 | i 172'),
             {'call_function': 'parse_ipv4_from_text', 'if_void_local_output':'stop'},
             'conf',
-            'interface loopback 200',
-            'ipv6 address __local_outout__/128',
+			'interface loopback 200',
+            'ipv6 address %s/128' % (converted_ipv4),
             'commi',
-            'exit'
-            'sh int loopback 200 | i __local_outout__'
+            'exit',
+			'exit',
+            'sh int loopback 200 | i %s' % (converted_ipv4)
              ]
 CMD_JUNOS = [
-            ('show configuration interfaces lo0 | match 172'),
+            'show configuration interfaces lo0 | match 128',
+            {'call_function': 'stop_if_two_ipv6_found', 'if_void_local_output':'stop'},
+            'show configuration interfaces lo0 | display set | match 128',
+            {'call_function': 'parse_whole_set_line_from_text', 'if_void_local_output':'stop'},
+			'show configuration interfaces lo0 | match 172.25.4',
             {'call_function': 'parse_ipv4_from_text', 'if_void_local_output':'stop'},
-             'conf',
-
-             'exit'
-            ]
+             'configure private',
+             '%sset interfaces lo0 unit 0 family inet6 address %s/128' % (set_ipv6line,converted_ipv4),
+             'show configuration interfaces lo0 | match 128',
+    		 'commi',
+    		 'exit',
+             'show configuration interfaces lo0 | match 128',
+             ]
 CMD_VRP = [
-            ('disp current-configuration interface LoopBack 200 | include 172'),
+            'disp current-configuration interface LoopBack 200 | include 128',
+            {'call_function': 'stop_if_ipv6_found', 'if_void_local_output':'stop'},
+			'disp current-configuration interface LoopBack 200 | include 172',
             {'call_function': 'parse_ipv4_from_text', 'if_void_local_output':'stop'},
             'sys',
-
-            'quit'
+			'interface loopback 200',
+			'ipv6 address %s/128' % (converted_ipv4),
+			'commit',
+            'quit',
+			'quit',
+            'disp current-configuration interface LoopBack 200 | include %s' % (converted_ipv4)
           ]
-
 
 ###############################################################################
 #
@@ -225,10 +243,32 @@ def ipv4_to_ipv6_obs(ipv4address):
     return ip4to6, ip6to4
 
 def parse_ipv4_from_text(text):
-    try: ipv4=text.split('address')[1].split()[0].replace(';','')
+    global converted_ipv4
+    try: ipv4 = text.split('address')[1].split()[0].replace(';','')
     except: ipv4 = str()
+    converted_ipv4 = ipv4
     return ipv4_to_ipv6_obs(ipv4)[0]
 
+def stop_if_ipv6_found(text):
+    try: ipv6 = text.split('address')[1].split()[0].replace(';','')
+    except: ipv6 = str()
+    if ipv6: return str()
+    else: return "NOT_FOUND"
+
+def stop_if_two_ipv6_found(text):
+    try: ipv6 = text.split('address')[1].split()[0].replace(';','')
+    except: ipv6 = str()
+    try: ipv6two = text.split('address')[2].split()[0].replace(';','')
+    except: ipv6two = str()
+    if ipv6 and ipv6two: return str()
+    else: return "NOT_FOUND"
+
+def parse_whole_set_line_from_text(text):
+    global set_ipv6line
+    try: set_text = text.split('set')[1].split('\n')[0]
+    except: set_text = str()
+    if set_text: set_ipv6line = 'set' + set_text + ' primary\n'
+    return set_ipv6line
 
 ##############################################################################
 #
@@ -271,6 +311,12 @@ args = parser.parse_args()
 
 ####### Set USERNAME if needed
 if args.username != None: USERNAME = args.username
+if not USERNAME:
+    print(bcolors.MAGENTA + " ... Please insert your username by cmdline switch --user username !" + bcolors.ENDC )
+    sys.exit(0)
+
+# SSH (default)
+if not PASSWORD: PASSWORD = getpass.getpass("TACACS password: ")
 
 ####### Figure out type of router OS
 if not args.router_type:
@@ -334,12 +380,12 @@ elif router_type == "vrp":
     CMD = list_cmd if len(list_cmd)>0 else CMD_VRP
     DEVICE_PROMPTS = [ \
         '<' + args.device.upper() + '>',
-        '[' + args.device.upper() + ']'  ]
+        '[' + args.device.upper() + ']',
+        '[~' + args.device.upper() + ']',
+        '[*' + args.device.upper() + ']' ]
     TERM_LEN_0 = "screen-length 0 temporary\n"     #"screen-length disable\n"
     EXIT = "quit\n"
 
-# SSH (default)
-if not PASSWORD: PASSWORD = getpass.getpass("TACACS password: ")
 
 print " ... Connecting (SSH) to %s" % args.device
 client = paramiko.SSHClient()
