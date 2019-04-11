@@ -715,6 +715,12 @@ else: pre_post = 'pre'
 
 ####### Set USERNAME if needed
 if args.username != None: USERNAME = args.username
+if not USERNAME:
+    print(bcolors.MAGENTA + " ... Please insert your username by cmdline switch --user username !" + bcolors.ENDC )
+    sys.exit(0)
+
+# SSH (default)
+if not PASSWORD: PASSWORD = getpass.getpass("TACACS password: ")
 
 ####### Figure out type of router OS
 if not args.router_type:
@@ -779,8 +785,6 @@ if args.cmd_file != None:
 
 if not args.recheck:
     if str(args.cmdlist) != 'list':
-        ############# Starting pre or post check
-        if not PASSWORD: PASSWORD = getpass.getpass("TACACS password: ")
 
         if pre_post == "post":
             print " ==> STARTING POSTCHECK ..."
