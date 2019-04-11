@@ -88,7 +88,7 @@ default_linefilter_list    = []
 default_compare_columns    = []
 default_printalllines_list = []
 
-print('HOMEDIR: '+HOMEDIR)
+#print('HOMEDIR: '+HOMEDIR)
 
 ###############################################################################
 #
@@ -134,9 +134,9 @@ CMD_IOS_XE = [
             ("show crypto eli",
                    'ndiff0', [], [],
                    [], [], [], False),
-            ('show interfaces | include (^[A-Z].*|minute|second|Last input)',
-                   'ndiff0', [], [' 0 bits/sec'],
-                   [], [], [], False)
+#             ('show interfaces | include (^[A-Z].*|minute|second|Last input)',
+#                    'ndiff0', [], [' 0 bits/sec'],
+#                    [], [], [], False)
              ]
 CMD_IOS_XR = [
             ("show active install summary",
@@ -205,9 +205,9 @@ CMD_IOS_XR = [
             ("show mpls interface",
                    'ndiff0', [], [],
                    [], [], [], False),
-            ("show interfaces | include \"^[A-Z].*|minute|second|Last input|errors|total\"",
-                   'ndiff0', ['is administratively down,'], [],
-                   [', line protocol is'], [], [], False)
+#             ("show interfaces | include \"^[A-Z].*|minute|second|Last input|errors|total\"",
+#                    'ndiff0', ['is administratively down,'], [],
+#                    [', line protocol is'], [], [], False)
              ]
 CMD_JUNOS = [
             ("show system software",
@@ -254,9 +254,9 @@ CMD_JUNOS = [
             ("show system alarms",
                    'ndiff0', [], [],
                    [], [], [], False),
-            ('show interfaces detail | match "Physical interface|Last flapped| bps"',
-                   'ndiff0',['Administratively down'], [],
-                   ['Physical interface:'], [], [0,1,2,3,4], False)
+#             ('show interfaces detail | match "Physical interface|Last flapped| bps"',
+#                    'ndiff0',['Administratively down'], [],
+#                    ['Physical interface:'], [], [0,1,2,3,4], False)
             ]
 CMD_VRP = [
             ("display version",
@@ -306,9 +306,9 @@ CMD_VRP = [
             ("display bgp vpnv4 all peer",
                       'ndiff0', [], [],
                       [], [], [0,1,2,7], False),
-            ('display interface | include (Description|current state|minutes|Last physical|bandwidth utilization)',
-                      'ndiff0', [], [],
-                      ['Description:','current state'], [], [0,1,2,3,4], False)
+#             ('display interface | include (Description|current state|minutes|Last physical|bandwidth utilization)',
+#                       'ndiff0', [], [],
+#                       ['Description:','current state'], [], [0,1,2,3,4], False)
             ]
 
 IOS_XR_SLICE = {
@@ -338,7 +338,7 @@ def ssh_detect_prompt(chan, debug = False):
         except: last_line = 'dummyline1'
         try: last_but_one_line = output.splitlines()[-2].strip().replace('\x20','')
         except: last_but_one_line = 'dummyline2'
-    print('DETECTED PROMPT: \'' + last_line + '\'')
+    if debug: print('DETECTED PROMPT: \'' + last_line + '\'')
     return last_line
 
 
@@ -687,12 +687,15 @@ parser.add_argument("--os",
                     help = "router operating system type")
 parser.add_argument("--post", action = "store_true",
                     help = "run Postcheck")
-parser.add_argument("--file",
-                    action = 'store', dest = "precheck_file",
+parser.add_argument("--prefile",
+                    action = 'store', dest = "precheck_file", default = str(),
                     help = "run postcheck against a specific precheck file")
-parser.add_argument("--cmd", action = 'store', dest = "cmd_file",
+parser.add_argument("--postfile",
+                    action = 'store', dest = "postcheck_file", default = str(),
+                    help = "specify your postcheck file")
+parser.add_argument("--cmdfile", action = 'store', dest = "cmd_file", default = str(),
                     help = "specify a file with a list of commands to execute")
-parser.add_argument("--user",
+parser.add_argument("--user", default = str(),
                     action = "store", dest = 'username',
                     help = "specify router user login")
 parser.add_argument("--noslice",
@@ -704,17 +707,20 @@ parser.add_argument("--olddiff",action = "store_true", default = False,
 parser.add_argument("--printall",action = "store_true", default = False,
                     help = "print all lines, changes will be coloured")
 parser.add_argument("--recheck",action = "store_true", default = False,
-                    help = "recheck last diff pre/post files per inserted device")
+                    help = "recheck last or specified diff pre/post files per inserted device")
 parser.add_argument("--cmdlist",
                     action = "store", dest = 'cmdlist', default = '',
                     help = "<list> - print command list / <nr of command> - choose one command from command list for post comparison")
+parser.add_argument("--logfile",
+                    action = 'store_true', dest = "log_file", default = False,
+                    help = "do file-diff logfile (name will be generated and printed)")
 
 args = parser.parse_args()
 if args.post: pre_post = 'post'
 else: pre_post = 'pre'
 
 ####### Set USERNAME if needed
-if args.username != None: USERNAME = args.username
+if args.username: USERNAME = args.username
 if not USERNAME:
     print(bcolors.MAGENTA + " ... Please insert your username by cmdline switch --user username !" + bcolors.ENDC )
     sys.exit(0)
@@ -736,13 +742,14 @@ if not os.path.exists(HOMEDIR + '/logs'):
     os.makedirs(HOMEDIR + '/logs')
 
 ####### Find necessary pre and post check files if needed 
-if args.precheck_file != None:
+if args.precheck_file:
     if not os.path.isfile(args.precheck_file):
         print(bcolors.MAGENTA + " ... Can't find precheck file: %s" + bcolors.ENDC) \
            % args.precheck_file
         sys.exit()
+    precheck_file = args.precheck_file
 else:
-    if pre_post == 'post':
+    if pre_post == 'post' or args.recheck:
         list_precheck_files = glob.glob(HOMEDIR + "/logs/" + args.device + '*' + 'pre')
         if len(list_precheck_files) == 0:
             print(bcolors.MAGENTA + " ... Can't find any precheck file. %s " + bcolors.ENDC)
@@ -757,21 +764,28 @@ else:
 
 # find last existing postcheck file
 if args.recheck:
-    list_postcheck_files = glob.glob(HOMEDIR + "/logs/" + args.device + '*' + 'post')
-    if len(list_postcheck_files) == 0:
-        print(bcolors.MAGENTA + " ... Can't find any postcheck file. %s " + bcolors.ENDC)
-        sys.exit()
-    most_recent_postcheck = list_postcheck_files[0]
-    for item in list_postcheck_files:
-        filecreation = os.path.getctime(item)
-        if filecreation > (os.path.getctime(most_recent_postcheck)):
-            most_recent_postcheck = item
-    postcheck_file = most_recent_postcheck
+    if args.postcheck_file:
+        if not os.path.isfile(args.precheck_file):
+            print(bcolors.MAGENTA + " ... Can't find postcheck file: %s" + bcolors.ENDC) \
+               % args.precheck_file
+            sys.exit()
+        else: postcheck_file = args.postcheck_file
+    else:
+        list_postcheck_files = glob.glob(HOMEDIR + "/logs/" + args.device + '*' + 'post')
+        if len(list_postcheck_files) == 0:
+            print(bcolors.MAGENTA + " ... Can't find any postcheck file. %s " + bcolors.ENDC)
+            sys.exit()
+        most_recent_postcheck = list_postcheck_files[0]
+        for item in list_postcheck_files:
+            filecreation = os.path.getctime(item)
+            if filecreation > (os.path.getctime(most_recent_postcheck)):
+                most_recent_postcheck = item
+        postcheck_file = most_recent_postcheck
 
 
 ######## Find command list file (optional)
 list_cmd = []
-if args.cmd_file != None:
+if args.cmd_file:
     if not os.path.isfile(args.cmd_file):
         print(bcolors.MAGENTA + " ... Can't find command file: %s " + bcolors.ENDC) \
                 % args.cmd_file
@@ -783,27 +797,26 @@ if args.cmd_file != None:
             list_cmd.append([fp_cmd.readline().strip()])
         fp_cmd.close
 
+filename_prefix = HOMEDIR + "/logs/" + args.device
+filename_suffix = pre_post
+now = datetime.datetime.now()
+filename_generated = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s" % \
+    (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,now.second,filename_suffix)
+
+logfilename=str()
+if args.log_file:
+    logfilename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s" % \
+    (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,now.second,'log')
+
 if not args.recheck:
     if str(args.cmdlist) != 'list':
-
         if pre_post == "post":
             print " ==> STARTING POSTCHECK ..."
         elif pre_post == "pre":
             print " ==> STARTING PRECHECK ..."
-
         print " ... Openning %s check file to collect output" %( pre_post )
-
-        filename_prefix = HOMEDIR + "/logs/" + args.device
-        filename_suffix = pre_post
-        now = datetime.datetime.now()
-        filename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s" % \
-            (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,now.second,filename_suffix)
-
-        if pre_post == "post":
-            postcheck_file = filename
-            precheck_file = args.precheck_file
-
-        fp = open(filename,"w")
+        filename = filename_generated
+        if pre_post == "post" and not args.recheck: postcheck_file = filename
 
 # Collect pre/post check information
 if router_type == "ios-xe":
@@ -832,7 +845,11 @@ elif router_type == "vrp":
 
 print_cmd_list(CMD)
 
-if not args.recheck:
+# if postcheck file inserted DO-NOT new postcheck file
+if args.recheck or args.postcheck_file: pass
+else:
+    fp = open(filename,"w")
+
     # SSH (default)
     print " ... Connecting (SSH) to %s" % args.device
     client = paramiko.SSHClient()
@@ -873,7 +890,7 @@ if not args.recheck:
     fp.close()
 
 # Post Check treatment 
-if pre_post == "post":
+if pre_post == "post" or args.recheck or args.postcheck_file:
     print " ==> COMPARING PRECHECK & POSTCHECK ...\n"
 
     # Opening pre and post check files and loading content for processing
@@ -993,13 +1010,18 @@ if pre_post == "post":
                     print_equallines = cli_printall, \
                     note=False)
                 if len(diff_result) == 0: print(bcolors.GREY + 'OK' + bcolors.ENDC)
-                else: print(diff_result)
-    print '\n ==> POSTCHECK COMPLETE !'
+                else:
+                    print(diff_result)
+                    if logfilename:
+                        with open(logfilename, "w+") as myfile:
+                            myfile.write(diff_result + '\n')
 
+    print '\n ==> POSTCHECK COMPLETE !'
 elif pre_post == "pre" and not args.recheck:
     subprocess.call(['ls','-l',filename])
     print '\n ==> PRECHECK COMPLETE !'
 
+if logfilename: print(' ==> LOGFILE GENERATED: %s' % (logfilename))
 ############################################## END ################################################
 
 
