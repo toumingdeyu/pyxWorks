@@ -717,6 +717,7 @@ parser.add_argument("--logfile",
 
 args = parser.parse_args()
 if args.post: pre_post = 'post'
+elif args.recheck: pre_post = 'post'
 else: pre_post = 'pre'
 
 ####### Set USERNAME if needed
@@ -748,8 +749,9 @@ if args.precheck_file:
            % args.precheck_file
         sys.exit()
     precheck_file = args.precheck_file
+    pre_post = 'post'
 else:
-    if pre_post == 'post' or args.recheck:
+    if pre_post == 'post' or args.recheck or args.postcheck_file:
         list_precheck_files = glob.glob(HOMEDIR + "/logs/" + args.device + '*' + 'pre')
         if len(list_precheck_files) == 0:
             print(bcolors.MAGENTA + " ... Can't find any precheck file. %s " + bcolors.ENDC)
@@ -763,13 +765,14 @@ else:
         precheck_file = most_recent_precheck
 
 # find last existing postcheck file
-if args.recheck:
+if args.recheck or args.postcheck_file:
     if args.postcheck_file:
-        if not os.path.isfile(args.precheck_file):
+        if not os.path.isfile(args.postcheck_file):
             print(bcolors.MAGENTA + " ... Can't find postcheck file: %s" + bcolors.ENDC) \
                % args.precheck_file
             sys.exit()
-        else: postcheck_file = args.postcheck_file
+        postcheck_file = args.postcheck_file
+        pre_post = 'post'
     else:
         list_postcheck_files = glob.glob(HOMEDIR + "/logs/" + args.device + '*' + 'post')
         if len(list_postcheck_files) == 0:
@@ -914,6 +917,10 @@ if pre_post == "post" or args.recheck or args.postcheck_file:
     try: cmd_index = int(args.cmdlist)
     except: cmd_index = -1
 
+    if logfilename:
+        with open(logfilename, "w+") as myfile:
+            myfile.write('\nPrecheck file: %s\nPostcheck file: %s\n\n'%(precheck_file,postcheck_file))
+
     # run commands tgrough CMD list
     for cli_index, cli_items in enumerate(CMD):
         if cmd_index>=0 and cli_index != cmd_index: continue
@@ -958,11 +965,22 @@ if pre_post == "post" or args.recheck or args.postcheck_file:
 
             # Display diff
             if len(diff_print_pre) != 0 or len(diff_print_post) != 0:
+                if logfilename:
+                    with open(logfilename, "a") as myfile:
+                        myfile.write(bcolors.BOLD + '\n' + cli + bcolors.ENDC +'\n')
+                        for index, line in enumerate(diff_print_pre):
+                            myfile.write(bcolors.GREEN + '\t' +  diff_print_pre[index] + bcolors.ENDC + '\n')
+                        for index, line in enumerate(diff_print_post):
+                            myfile.write(bcolors.RED + '\t' +  diff_print_post[index] + bcolors.ENDC + '\n')
+
                 print(bcolors.BOLD + '\n' + cli + bcolors.ENDC)
                 for index, line in enumerate(diff_print_pre):
                     print bcolors.GREEN + '\t' +  diff_print_pre[index] + bcolors.ENDC
                 for index, line in enumerate(diff_print_post):
                     print bcolors.RED + '\t' +  diff_print_post[index] + bcolors.ENDC
+
+
+
         else:
             # unpack cli list
             try: cli_diff_method = cli_items[1]
@@ -1010,11 +1028,12 @@ if pre_post == "post" or args.recheck or args.postcheck_file:
                     print_equallines = cli_printall, \
                     note=False)
                 if len(diff_result) == 0: print(bcolors.GREY + 'OK' + bcolors.ENDC)
-                else:
-                    print(diff_result)
-                    if logfilename:
-                        with open(logfilename, "w+") as myfile:
-                            myfile.write(diff_result + '\n')
+                else: print(diff_result)
+                if logfilename:
+                    with open(logfilename, "a") as myfile:
+                        myfile.write('\n' + bcolors.BOLD + cli + bcolors.ENDC +'\n')
+                        if len(diff_result) == 0: myfile.write(bcolors.GREY + 'OK' + bcolors.ENDC + '\n\n')
+                        else: myfile.write(diff_result + '\n\n')
 
     print '\n ==> POSTCHECK COMPLETE !'
 elif pre_post == "pre" and not args.recheck:
