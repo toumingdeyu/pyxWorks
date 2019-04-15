@@ -1,8 +1,8 @@
 {
     "device": {
         "name": "iosxr",
-        "address": "127.0.0.1",
-        "port": 10022,
+        "address": "192.168.56.101",
+        "port": 12022,
         "state": {
             "admin-state": "unlocked"
         },
