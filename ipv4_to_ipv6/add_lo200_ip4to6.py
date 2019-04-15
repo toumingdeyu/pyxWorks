@@ -203,7 +203,7 @@ def ssh_read_until(channel,prompts):
     output, exit_loop = '', False
     while not exit_loop:
         buff = chan.recv(9999)
-        output += buff.replace('\x0d','').replace('\x07','').replace('\x08','').\
+        output += buff.decode("utf-8").replace('\x0d','').replace('\x07','').replace('\x08','').\
             replace(' \x1b[1D','')
         for actual_prompt in prompts:
             if output.endswith(actual_prompt): exit_loop=True; break
