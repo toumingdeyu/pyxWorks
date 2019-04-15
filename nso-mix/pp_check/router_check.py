@@ -330,7 +330,7 @@ def ssh_detect_prompt(chan, debug = False):
     while not (last_line and last_but_one_line and last_line == last_but_one_line):
         if debug: print('FIND_PROMPT:',last_but_one_line,last_line)
         buff = chan.recv(9999)
-        output += buff.replace('\r','').replace('\x07','').replace('\x08','').\
+        output += buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
                   replace('\x1b[K','').replace('\n{master}\n','')
         if '--More--' or '---(more' in buff.strip(): chan.send('\x20')
         if debug: print('BUFFER:' + buff)
@@ -353,7 +353,7 @@ def ssh_read_until_prompt_bulletproof(chan,command,prompt,debug=False):
     while not last_line == prompt:
         if debug: print('LAST_LINE:',prompt,last_line)
         buff = chan.recv(9999)
-        output += buff.replace('\r','').replace('\x07','').replace('\x08','').\
+        output += buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
                   replace('\x1b[K','').replace('\n{master}\n','')
         if '--More--' or '---(more' in buff.strip(): chan.send('\x20')
         if debug: print('BUFFER:' + buff)
