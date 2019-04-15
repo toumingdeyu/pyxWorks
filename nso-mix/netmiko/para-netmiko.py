@@ -73,17 +73,8 @@ CMD_IOS_XE = [
             'sh int loopback 200 | i %s' % (converted_ipv4)
               ]
 CMD_IOS_XR = [
-            ('sh run int loopback 200 | i 128'),
-#             {'call_function': 'stop_if_ipv6_found', 'if_void_local_output':'stop'},
-# 			('sh run int loopback 200 | i 172'),
-#             {'call_function': 'parse_ipv4_from_text', 'if_void_local_output':'stop'},
-#             'conf',
-# 			'interface loopback 200',
-#             'ipv6 address %s/128' % (converted_ipv4),
-#             'commi',
-#             'exit',
-# 			'exit',
-#             'sh int loopback 200 | i %s' % (converted_ipv4)
+            ('show version'),
+
              ]
 CMD_JUNOS = [
             'show configuration interfaces lo0 | match 128',
@@ -207,9 +198,26 @@ def detect_router_by_ssh(device, debug = False):
     return router_os, prompt
 
 
-def ssh_read_until(channel,prompts):
+
+def ssh_send_command_and_read_output(chan,send_data,prompts):
+    output, exit_loop = '', False
+    chan.send(send_data + '\n')
+    time.sleep(0.1)
+    while not exit_loop:
+        buff = chan.recv(9999)
+        output += buff.decode("utf-8").replace('\x0d','').replace('\x07','').replace('\x08','').\
+            replace(' \x1b[1D','')
+        try: last_line = output.splitlines()[-1].strip().replace('\x20','')
+        except: last_line = str()
+        for actual_prompt in prompts:
+            if output.endswith(actual_prompt) or actual_prompt in last_line: exit_loop=True; break
+    return output
+
+
+def ssh_read_until(chan,prompts):
     output, exit_loop = '', False
     while not exit_loop:
+        time.sleep(0.1)
         buff = chan.recv(9999)
         output += buff.decode("utf-8").replace('\x0d','').replace('\x07','').replace('\x08','').\
             replace(' \x1b[1D','')
@@ -298,13 +306,6 @@ def parse_json_file_and_get_oti_routers_list():
 ##############################################################################
 
 if __name__ != "__main__": sys.exit(0)
-
-# print(globals()['ipv4_to_ipv6'])
-# m=locals()['parse_ipv4_from_text']
-# print(m)
-# print(m('xxxxx address 1.1.1.1/44 kdslja ijada'))
-#
-# exit(0)
 
 ######## Parse program arguments #########
 parser = argparse.ArgumentParser(
@@ -425,7 +426,7 @@ for device in device_list:
             if router_prompt: DEVICE_PROMPTS.append(router_prompt)
             TERM_LEN_0 = "screen-length 0 temporary\n"     #"screen-length disable\n"
             EXIT = "quit\n"
-        print('PROMPTS: '+','.join(DEVICE_PROMPTS))
+        #print('PROMPTS: '+','.join(DEVICE_PROMPTS))
         print(" ... Connecting (SSH) to %s" % device)
         client = paramiko.SSHClient()
         client.load_system_host_keys()
@@ -449,14 +450,13 @@ for device in device_list:
                 for cli_items in CMD:
                     try:
                         item = cli_items[0] if type(cli_items) == list else cli_items
-                        if isinstance(item, basestring):
-                            output = str()
-                            item = item.replace('__local_outout__',local_outout)
-                            chan.send(item + '\n')
+                        print(item,isinstance(item, six.string_types))
+                        if isinstance(item, six.string_types):
                             print("%sCOMMAND: %s%s%s" % (bcolors.GREEN,bcolors.YELLOW,item,bcolors.ENDC))
-                            output = ssh_read_until(chan,DEVICE_PROMPTS)
+                            output = ssh_send_command_and_read_output(chan,item,DEVICE_PROMPTS)
                             print(bcolors.GREY + output + bcolors.ENDC)
                             fp.write(output)
+
                         # hack: use dictionary for running local python code functions
                         elif isinstance(item, dict):
                             try:
