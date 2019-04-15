@@ -814,10 +814,10 @@ if args.log_file:
 if not args.recheck:
     if str(args.cmdlist) != 'list':
         if pre_post == "post":
-            print " ==> STARTING POSTCHECK ..."
+            print(" ==> STARTING POSTCHECK ...")
         elif pre_post == "pre":
-            print " ==> STARTING PRECHECK ..."
-        print " ... Openning %s check file to collect output" %( pre_post )
+            print(" ==> STARTING PRECHECK ...")
+        print(" ... Openning %s check file to collect output" %( pre_post ))
         filename = filename_generated
         if pre_post == "post" and not args.recheck: postcheck_file = filename
 
@@ -854,7 +854,7 @@ else:
     fp = open(filename,"w")
 
     # SSH (default)
-    print " ... Connecting (SSH) to %s" % args.device
+    print(" ... Connecting (SSH) to %s" % (args.device))
     client = paramiko.SSHClient()
     client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -877,7 +877,7 @@ else:
             item = cli_items[0]
             output = ''
             chan.send(item + '\n')
-            print " ... %s" % item
+            print(" ... %s" % item)
             # chan.send('\n')
             output = ssh_read_until(chan,DEVICE_PROMPT)
             fp.write(output)
@@ -888,18 +888,18 @@ else:
     finally:
         client.close()
 
-    print " ... Collection is completed\n"
+    print(" ... Collection is completed\n")
     fp.flush()
     fp.close()
 
 # Post Check treatment 
 if pre_post == "post" or args.recheck or args.postcheck_file:
-    print " ==> COMPARING PRECHECK & POSTCHECK ...\n"
+    print(" ==> COMPARING PRECHECK & POSTCHECK ...\n")
 
     # Opening pre and post check files and loading content for processing
-    print "\nPrecheck file:"
+    print("\nPrecheck file:")
     subprocess.call(['ls','-l',precheck_file])
-    print "\nPostcheck file:"
+    print("\nPostcheck file:")
     subprocess.call(['ls','-l',postcheck_file])
     fp1 = open(precheck_file,"r")
     fp2 = open(postcheck_file,"r")
@@ -975,9 +975,9 @@ if pre_post == "post" or args.recheck or args.postcheck_file:
 
                 print(bcolors.BOLD + '\n' + cli + bcolors.ENDC)
                 for index, line in enumerate(diff_print_pre):
-                    print bcolors.GREEN + '\t' +  diff_print_pre[index] + bcolors.ENDC
+                    print(bcolors.GREEN + '\t' +  diff_print_pre[index] + bcolors.ENDC)
                 for index, line in enumerate(diff_print_post):
-                    print bcolors.RED + '\t' +  diff_print_post[index] + bcolors.ENDC
+                    print(bcolors.RED + '\t' +  diff_print_post[index] + bcolors.ENDC)
 
 
 
@@ -1035,10 +1035,10 @@ if pre_post == "post" or args.recheck or args.postcheck_file:
                         if len(diff_result) == 0: myfile.write(bcolors.GREY + 'OK' + bcolors.ENDC + '\n\n')
                         else: myfile.write(diff_result + '\n\n')
 
-    print '\n ==> POSTCHECK COMPLETE !'
+    print('\n ==> POSTCHECK COMPLETE !')
 elif pre_post == "pre" and not args.recheck:
     subprocess.call(['ls','-l',filename])
-    print '\n ==> PRECHECK COMPLETE !'
+    print('\n ==> PRECHECK COMPLETE !')
 
 if logfilename: print(' ==> LOGFILE GENERATED: %s' % (logfilename))
 ############################################## END ################################################
