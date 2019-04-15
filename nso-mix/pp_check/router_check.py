@@ -450,8 +450,8 @@ def ssh_read_until(channel,prompt):
     output = ''
     while not output.endswith(prompt):
         buff = chan.recv(9999)
-        output += buff.decode("utf-8").replace('\x0d','').replace('\x07','').replace('\x08','').\
-                  replace(' \x1b[1D','')
+        output += buff.decode("utf-8").replace('\x0d','').replace('\x07','').\
+                  replace('\x08','').replace(' \x1b[1D','')
     return output
 
 # Find a section of text betwwen "cli" variable from upper block and "prompt
