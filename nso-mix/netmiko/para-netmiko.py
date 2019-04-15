@@ -11,7 +11,7 @@ import re
 import argparse
 import glob
 import socket
-#import netmiko
+import netmiko
 import six
 
 class bcolors:
@@ -74,16 +74,16 @@ CMD_IOS_XE = [
               ]
 CMD_IOS_XR = [
             ('sh run int loopback 200 | i 128'),
-            {'call_function': 'stop_if_ipv6_found', 'if_void_local_output':'stop'},
-			('sh run int loopback 200 | i 172'),
-            {'call_function': 'parse_ipv4_from_text', 'if_void_local_output':'stop'},
-            'conf',
-			'interface loopback 200',
-            'ipv6 address %s/128' % (converted_ipv4),
-            'commi',
-            'exit',
-			'exit',
-            'sh int loopback 200 | i %s' % (converted_ipv4)
+#             {'call_function': 'stop_if_ipv6_found', 'if_void_local_output':'stop'},
+# 			('sh run int loopback 200 | i 172'),
+#             {'call_function': 'parse_ipv4_from_text', 'if_void_local_output':'stop'},
+#             'conf',
+# 			'interface loopback 200',
+#             'ipv6 address %s/128' % (converted_ipv4),
+#             'commi',
+#             'exit',
+# 			'exit',
+#             'sh int loopback 200 | i %s' % (converted_ipv4)
              ]
 CMD_JUNOS = [
             'show configuration interfaces lo0 | match 128',
@@ -168,8 +168,14 @@ def detect_router_by_ssh(device, debug = False):
     client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
+    try: PARAMIKO_HOST = device.split(':')[0]
+    except: PARAMIKO_HOST = str()
+    try: PARAMIKO_PORT = device.split(':')[1]
+    except: PARAMIKO_PORT = '22'
+
     try:
-        client.connect(device, username=USERNAME, password=PASSWORD)
+        #connect(self, hostname, port=22, username=None, password=None, pkey=None, key_filename=None, timeout=None, allow_agent=True, look_for_keys=True, compress=False)
+        client.connect(PARAMIKO_HOST, port=PARAMIKO_PORT, username=USERNAME, password=PASSWORD)
         chan = client.invoke_shell()
         chan.settimeout(TIMEOUT)
         # prevent --More-- in log banner (space=page, enter=1line,tab=esc)
@@ -198,17 +204,19 @@ def detect_router_by_ssh(device, debug = False):
         sys.exit()
     finally:
         client.close()
-    return router_os
+    return router_os, prompt
 
 
 def ssh_read_until(channel,prompts):
     output, exit_loop = '', False
     while not exit_loop:
         buff = chan.recv(9999)
-        output += buff.replace('\x0d','').replace('\x07','').replace('\x08','').\
+        output += buff.decode("utf-8").replace('\x0d','').replace('\x07','').replace('\x08','').\
             replace(' \x1b[1D','')
+        try: last_line = output.splitlines()[-1].strip().replace('\x20','')
+        except: last_line = str()
         for actual_prompt in prompts:
-            if output.endswith(actual_prompt): exit_loop=True; break
+            if output.endswith(actual_prompt) or actual_prompt in last_line: exit_loop=True; break
     return output
 
 
@@ -327,7 +335,6 @@ args = parser.parse_args()
 if args.alloti: device_list = parse_json_file_and_get_oti_routers_list()
 else: device_list = [args.device]
 
-
 ####### Set USERNAME if needed
 if args.username != None: USERNAME = args.username
 if not USERNAME:
@@ -339,18 +346,25 @@ if not PASSWORD: PASSWORD = getpass.getpass("TACACS password: ")
 
 for device in device_list:
     if device:
-        print('\nDEVICE %s START.........................................'%(device))
+        router_prompt = None
+        try: PARAMIKO_HOST = device.split(':')[0]
+        except: PARAMIKO_HOST = str()
+        try: PARAMIKO_PORT = device.split(':')[1]
+        except: PARAMIKO_PORT = '22'
+        print('\nDEVICE %s (HOST: %s, PORT: %s) START.........................'\
+            %(device,PARAMIKO_HOST, PARAMIKO_PORT))
+
         ####### Figure out type of router OS
         if not args.router_type:
-            router_type = detect_router_by_ssh(device,debug = False)
-            print('DETECTED ROUTER_TYPE: ' + router_type)
+            router_type , router_prompt = detect_router_by_ssh(device,debug = False)
+            print('DETECTED ROUTER_TYPE: %s, PROMPT: %s' % (router_type,router_prompt))
         else:
             router_type = args.router_type
             print('FORCED ROUTER_TYPE: ' + router_type)
 
         ######## Create logs directory if not existing  #########
-        if not os.path.exists(HOMEDIR + '/logs'): os.makedirs(HOMEDIR + '/logs')
-        filename_prefix = HOMEDIR + "/logs/" + device
+        if not os.path.exists(os.path.join(HOMEDIR,'logs')): os.makedirs(os.path.join(HOMEDIR,'logs'))
+        filename_prefix = os.path.join(HOMEDIR,'logs',device)
         filename_suffix = 'log'
         now = datetime.datetime.now()
         filename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s" % \
@@ -376,6 +390,7 @@ for device in device_list:
                 '%s%s#'%(args.device.upper(),'(config-if)'), \
                 '%s%s#'%(args.device.upper(),'(config-line)'), \
                 '%s%s#'%(args.device.upper(),'(config-router)')  ]
+            if router_prompt: DEVICE_PROMPTS.append(router_prompt)
             TERM_LEN_0 = "terminal length 0\n"
             EXIT = "exit\n"
 
@@ -387,6 +402,7 @@ for device in device_list:
                 '%s%s#'%(args.device.upper(),'(config-if)'), \
                 '%s%s#'%(args.device.upper(),'(config-line)'), \
                 '%s%s#'%(args.device.upper(),'(config-router)')  ]
+            if router_prompt: DEVICE_PROMPTS.append(router_prompt)
             TERM_LEN_0 = "terminal length 0\n"
             EXIT = "exit\n"
 
@@ -395,6 +411,7 @@ for device in device_list:
             DEVICE_PROMPTS = [ \
                  USERNAME + '@' + args.device.upper() + '> ', # !! Need the space after >
                  USERNAME + '@' + args.device.upper() + '# ' ]
+            if router_prompt: DEVICE_PROMPTS.append(router_prompt)
             TERM_LEN_0 = "set cli screen-length 0\n"
             EXIT = "exit\n"
 
@@ -405,17 +422,18 @@ for device in device_list:
                 '[' + args.device.upper() + ']',
                 '[~' + args.device.upper() + ']',
                 '[*' + args.device.upper() + ']' ]
+            if router_prompt: DEVICE_PROMPTS.append(router_prompt)
             TERM_LEN_0 = "screen-length 0 temporary\n"     #"screen-length disable\n"
             EXIT = "quit\n"
-
-
-        print(" ... Connecting (SSH) to %s" % args.device)
+        print('PROMPTS: '+','.join(DEVICE_PROMPTS))
+        print(" ... Connecting (SSH) to %s" % device)
         client = paramiko.SSHClient()
         client.load_system_host_keys()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
         try:
-            client.connect(device, username=USERNAME, password=PASSWORD)
+            client.connect(PARAMIKO_HOST, port=PARAMIKO_PORT, username=USERNAME,\
+                password=PASSWORD)
             chan = client.invoke_shell()
             chan.settimeout(TIMEOUT)
             while not chan.recv_ready(): time.sleep(1)
@@ -461,7 +479,7 @@ for device in device_list:
             print(bcolors.FAIL + " ... Connection closed. %s " % (e) + bcolors.ENDC )
             sys.exit()
         finally: client.close()
-        subprocess.call(['ls','-l',filename])
+        if os.path.exists(filename): print('%s file created.'%filename)
         print('\nDEVICE %s DONE.'%(device))
 print('\nEND.')
 
