@@ -188,7 +188,7 @@ def detect_router_by_ssh(device, debug = False):
             elif 'Cisco IOS-XE software' in output: router_os = 'ios-xe'
             elif 'JUNOS OS' in output: router_os = 'junos'
             else:
-                print(bcolors.MAGENTA + "\nCannot find recognizable OS in %s" % (retvalue) + bcolors.ENDC)
+                print(bcolors.MAGENTA + "\nCannot find recognizable OS in %s" % (output) + bcolors.ENDC)
                 sys.exit(0)
 
     except (socket.timeout, paramiko.AuthenticationException) as e:
