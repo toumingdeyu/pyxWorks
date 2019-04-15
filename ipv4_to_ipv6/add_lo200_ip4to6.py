@@ -407,7 +407,7 @@ for device in device_list:
             EXIT = "quit\n"
 
 
-        print " ... Connecting (SSH) to %s" % args.device
+        print(" ... Connecting (SSH) to %s" % args.device)
         client = paramiko.SSHClient()
         client.load_system_host_keys()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
