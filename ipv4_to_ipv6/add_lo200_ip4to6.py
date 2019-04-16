@@ -58,7 +58,7 @@ converted_ipv4 = str()
 
 # IOS-XE is only for IPsec GW
 CMD_IOS_XE = [
-			'sh run int loopback 200 | i 128',
+			'sh run int loopback 200 | i /128',
             {'call_function': 'stop_if_ipv6_found', 'if_void_local_output':'stop'},
             'sh run int loopback 200 | i 172',
             {'call_function': 'parse_ipv4_from_text', 'if_void_local_output':'stop'},
@@ -71,7 +71,7 @@ CMD_IOS_XE = [
             'sh int loopback 200 | i %s' % (converted_ipv4)
               ]
 CMD_IOS_XR = [
-            ('sh run int loopback 200 | i 128'),
+            ('sh run int loopback 200 | i /128'),
             {'call_function': 'stop_if_ipv6_found', 'if_void_local_output':'stop'},
 			('sh run int loopback 200 | i 172'),
             {'call_function': 'parse_ipv4_from_text', 'if_void_local_output':'stop'},
@@ -84,7 +84,7 @@ CMD_IOS_XR = [
             'sh int loopback 200 | i %s' % (converted_ipv4)
              ]
 CMD_JUNOS = [
-            'show configuration interfaces lo0 | match 128',
+            'show configuration interfaces lo0 | match /128',
             {'call_function': 'stop_if_two_ipv6_found', 'if_void_local_output':'stop'},
             'show configuration interfaces lo0 | display set | match 128',
             {'call_function': 'parse_whole_set_line_from_text', 'if_void_local_output':'stop'},
@@ -92,13 +92,13 @@ CMD_JUNOS = [
             {'call_function': 'parse_ipv4_from_text', 'if_void_local_output':'stop'},
              'configure private',
              '%sset interfaces lo0 unit 0 family inet6 address %s/128' % (set_ipv6line,converted_ipv4),
-             'show configuration interfaces lo0 | match 128',
+             'show configuration interfaces lo0 | match /128',
     		 'commi',
     		 'exit',
-             'show configuration interfaces lo0 | match 128',
+             'show configuration interfaces lo0 | match /128',
              ]
 CMD_VRP = [
-            'disp current-configuration interface LoopBack 200 | include 128',
+            'disp current-configuration interface LoopBack 200 | include /128',
             {'call_function': 'stop_if_ipv6_found', 'if_void_local_output':'stop'},
 			'disp current-configuration interface LoopBack 200 | include 172',
             {'call_function': 'parse_ipv4_from_text', 'if_void_local_output':'stop'},
@@ -246,8 +246,8 @@ def parse_ipv4_from_text(text):
     global converted_ipv4
     try: ipv4 = text.split('address')[1].split()[0].replace(';','')
     except: ipv4 = str()
-    converted_ipv4 = ipv4
-    return ipv4_to_ipv6_obs(ipv4)[0]
+    converted_ipv4 = ipv4_to_ipv6_obs(ipv4)[0]
+    return converted_ipv4
 
 def stop_if_ipv6_found(text):
     try: ipv6 = text.split('address')[1].split()[0].replace(';','')
