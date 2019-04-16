@@ -390,6 +390,7 @@ for device in device_list:
                 '%s%s#'%(args.device.upper(),'(config-line)'), \
                 '%s%s#'%(args.device.upper(),'(config-isis)'), \
                 '%s%s#'%(args.device.upper(),'(config-isis-if)'), \
+                '%s%s#'%(args.device.upper(),'(config-isis-if-af)'), \
                 '%s%s#'%(args.device.upper(),'(config-router)')  ]
             TERM_LEN_0 = "terminal length 0\n"
             EXIT = "exit\n"
