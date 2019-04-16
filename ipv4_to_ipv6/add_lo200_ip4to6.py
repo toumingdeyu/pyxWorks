@@ -64,24 +64,24 @@ CMD_IOS_XE = [
             {'call_function': 'parse_ipv4_from_text', 'if_void_local_output':'stop'},
             'conf t',
             'interface loopback 200',
-            'ipv6 address __converted_ipv4__/128',
+            'ipv6 address __var_converted_ipv4__',
             'exit',
 			'exit',
 			'write',
-            'sh int loopback 200 | i __converted_ipv4__'
+            'sh int loopback 200 | i __var_converted_ipv4__'
               ]
 CMD_IOS_XR = [
-            ('sh run int loopback 200 | i /128'),
+            'sh run int loopback 200 | i /128',
             {'call_function': 'stop_if_ipv6_found', 'if_void_local_output':'stop'},
-			('sh run int loopback 200 | i 172'),
+			'sh run int loopback 200 | i 172',
             {'call_function': 'parse_ipv4_from_text', 'if_void_local_output':'stop'},
             'conf',
 			'interface loopback 200',
-            'ipv6 address __converted_ipv4__/128',
+            'ipv6 address __var_converted_ipv4__',
             'commi',
             'exit',
 			'exit',
-            'sh int loopback 200 | i __converted_ipv4__'
+            'sh int loopback 200 | i __var_converted_ipv4__'
              ]
 CMD_JUNOS = [
             'show configuration interfaces lo0 | match /128',
@@ -91,7 +91,7 @@ CMD_JUNOS = [
 			'show configuration interfaces lo0 | match 172.25.4',
             {'call_function': 'parse_ipv4_from_text', 'if_void_local_output':'stop'},
              'configure private',
-             '%sset interfaces lo0 unit 0 family inet6 address __set_ipv6line_and_cipv4__%s/128',
+             '__var_set_ipv6line__set interfaces lo0 unit 0 family inet6 address __var_converted_ipv4__',
              'show configuration interfaces lo0 | match /128',
     		 'commi',
     		 'exit',
@@ -104,11 +104,11 @@ CMD_VRP = [
             {'call_function': 'parse_ipv4_from_text', 'if_void_local_output':'stop'},
             'sys',
 			'interface loopback 200',
-			'ipv6 address __converted_ipv4__/128',
+			'ipv6 address __var_converted_ipv4__',
 			'commit',
             'quit',
 			'quit',
-            'disp current-configuration interface LoopBack 200 | include __converted_ipv4__'
+            'disp current-configuration interface LoopBack 200 | include __var_converted_ipv4__'
           ]
 
 ###############################################################################
@@ -199,7 +199,7 @@ def detect_router_by_ssh(device, debug = False):
     return router_os
 
 
-def ssh_read_until(channel,prompts):
+def ssh_read_until(chan,prompts):
     output, exit_loop = '', False
     while not exit_loop:
         buff = chan.recv(9999)
@@ -243,7 +243,7 @@ def ipv4_to_ipv6_obs(ipv4address):
     return ip4to6, ip6to4
 
 def parse_ipv4_from_text(text):
-    global converted_ipv4
+    #global converted_ipv4
     try: ipv4 = text.split('address')[1].split()[0].replace(';','')
     except: ipv4 = str()
     converted_ipv4 = ipv4_to_ipv6_obs(ipv4)[0]
@@ -264,10 +264,11 @@ def stop_if_two_ipv6_found(text):
     else: return "NOT_FOUND"
 
 def parse_whole_set_line_from_text(text):
-    global set_ipv6line
+    #global set_ipv6line
     try: set_text = text.split('set')[1].split('\n')[0]
     except: set_text = str()
     if set_text: set_ipv6line = 'set' + set_text + ' primary\n'
+    else: set_ipv6line = str()
     return set_ipv6line
 
 def parse_json_file_and_get_oti_routers_list():
@@ -426,13 +427,16 @@ for device in device_list:
             with open(filename,"w") as fp:
                 fp.write(output)
                 print(output)
+                output=str()
                 for cli_items in CMD:
                     try:
                         item = cli_items[0] if type(cli_items) == list else cli_items
                         if isinstance(item, basestring):
-                            output = str()
-                            item = item.replace('__converted_ipv4__',converted_ipv4)
-                            item = item.replace('__set_ipv6line_and_cipv4__',''.join(set_ipv6line,converted_ipv4))
+                            print('ipv4to6='+converted_ipv4+', line='+set_ipv6line)
+                            try:
+                                if '__var_set_ipv6line__' in item: item = set_ipv6line + item.replace('__var_set_ipv6line__','')
+                                if '__var_converted_ipv4__' in item: item = item.replace('__var_converted_ipv4__','') + converted_ipv4 + '/128'
+                            except: pass
                             chan.send(item + '\n')
                             print("%sCOMMAND: %s%s%s" % (bcolors.GREEN,bcolors.YELLOW,item,bcolors.ENDC))
                             output = ssh_read_until(chan,DEVICE_PROMPTS)
@@ -442,15 +446,23 @@ for device in device_list:
                         elif isinstance(item, dict):
                             try:
                                 local_function = item.get('call_function','')
-                                local_outout = locals()[local_function](output)
+                                local_output = locals()[local_function](output)
                                 print("%sCALL_LOCAL_FUNCTION: %s'%s' = %s(output)\n%s" % \
-                                    (bcolors.GREEN,bcolors.YELLOW,local_outout,local_function,bcolors.ENDC))
-                                if local_outout == str() and \
+                                    (bcolors.GREEN,bcolors.YELLOW,local_output,local_function,bcolors.ENDC))
+                                if local_output == str() and \
                                     item.get('if_void_local_output') == 'stop':
                                     print("%sSTOP (VOID LOCAL OUTPUT).%s" % \
                                     (bcolors.RED,bcolors.ENDC))
                                     break;
-                            except: local_outout = str()
+                                elif len(local_output)>0:
+                                    if str(local_function) == 'parse_ipv4_from_text':
+                                        converted_ipv4 = str(local_output)
+                                        print('ipv4to6='+converted_ipv4)
+                                    elif str(local_function) == 'parse_whole_set_line_from_text':
+                                        set_ipv6line = str(local_output)
+                                        print('line='+set_ipv6line)
+
+                            except: local_output = str()
                         else:
                             print('%sUNSUPPORTED_TYPE %s of %s!%s' % \
                                 (bcolors.MAGENTA,type(item),item,bcolors.ENDC))
