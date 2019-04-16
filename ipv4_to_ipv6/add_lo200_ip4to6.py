@@ -64,11 +64,11 @@ CMD_IOS_XE = [
             {'call_function': 'parse_ipv4_from_text', 'if_void_local_output':'stop'},
             'conf t',
             'interface loopback 200',
-            'ipv6 address %s/128'% (converted_ipv4),
+            'ipv6 address __converted_ipv4__/128',
             'exit',
 			'exit',
 			'write',
-            'sh int loopback 200 | i %s' % (converted_ipv4)
+            'sh int loopback 200 | i __converted_ipv4__'
               ]
 CMD_IOS_XR = [
             ('sh run int loopback 200 | i /128'),
@@ -77,11 +77,11 @@ CMD_IOS_XR = [
             {'call_function': 'parse_ipv4_from_text', 'if_void_local_output':'stop'},
             'conf',
 			'interface loopback 200',
-            'ipv6 address %s/128' % (converted_ipv4),
+            'ipv6 address __converted_ipv4__/128',
             'commi',
             'exit',
 			'exit',
-            'sh int loopback 200 | i %s' % (converted_ipv4)
+            'sh int loopback 200 | i __converted_ipv4__'
              ]
 CMD_JUNOS = [
             'show configuration interfaces lo0 | match /128',
@@ -91,7 +91,7 @@ CMD_JUNOS = [
 			'show configuration interfaces lo0 | match 172.25.4',
             {'call_function': 'parse_ipv4_from_text', 'if_void_local_output':'stop'},
              'configure private',
-             '%sset interfaces lo0 unit 0 family inet6 address %s/128' % (set_ipv6line,converted_ipv4),
+             '%sset interfaces lo0 unit 0 family inet6 address __set_ipv6line_and_cipv4__%s/128',
              'show configuration interfaces lo0 | match /128',
     		 'commi',
     		 'exit',
@@ -104,11 +104,11 @@ CMD_VRP = [
             {'call_function': 'parse_ipv4_from_text', 'if_void_local_output':'stop'},
             'sys',
 			'interface loopback 200',
-			'ipv6 address %s/128' % (converted_ipv4),
+			'ipv6 address __converted_ipv4__/128',
 			'commit',
             'quit',
 			'quit',
-            'disp current-configuration interface LoopBack 200 | include %s' % (converted_ipv4)
+            'disp current-configuration interface LoopBack 200 | include __converted_ipv4__'
           ]
 
 ###############################################################################
@@ -431,7 +431,8 @@ for device in device_list:
                         item = cli_items[0] if type(cli_items) == list else cli_items
                         if isinstance(item, basestring):
                             output = str()
-                            item = item.replace('__local_outout__',local_outout)
+                            item = item.replace('__converted_ipv4__',converted_ipv4)
+                            item = item.replace('__set_ipv6line_and_cipv4__',''.join(set_ipv6line,converted_ipv4))
                             chan.send(item + '\n')
                             print("%sCOMMAND: %s%s%s" % (bcolors.GREEN,bcolors.YELLOW,item,bcolors.ENDC))
                             output = ssh_read_until(chan,DEVICE_PROMPTS)
