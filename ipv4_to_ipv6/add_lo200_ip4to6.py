@@ -94,7 +94,8 @@ CMD_JUNOS = [
 			'show configuration interfaces lo0 | match 172.25.4',
             {'call_function': 'parse_ipv4_from_text', 'if_void_local_output':'stop'},
              'configure private',
-             '__var_set_ipv6line__set interfaces lo0 unit 0 family inet6 address __var_converted_ipv4__',
+             #'__var_set_ipv6line__',
+             'set interfaces lo0 unit 0 family inet6 address __var_converted_ipv4__',
              'show configuration interfaces lo0 | match /128',
     		 'commi',
     		 'exit',
@@ -464,8 +465,10 @@ for device in device_list:
                         if isinstance(item, basestring):
                             print('ipv4to6='+converted_ipv4+', line='+set_ipv6line)
                             try:
-                                if '__var_set_ipv6line__' in item: item = set_ipv6line + item.replace('__var_set_ipv6line__','')
-                                if '__var_converted_ipv4__' in item: item = item.replace('__var_converted_ipv4__','') + converted_ipv4 + '/128'
+                                #if '__var_set_ipv6line__' in item: item = set_ipv6line + item.replace('__var_set_ipv6line__','')
+                                if '__var_converted_ipv4__' in item:
+                                    item = item.replace('__var_converted_ipv4__','') + converted_ipv4 + '/128'
+                                    if router_os == 'junos': item = item + ' primary'
                             except: pass
                             chan.send(item + '\n')
                             print("%sCOMMAND: %s%s%s" % (bcolors.GREEN,bcolors.YELLOW,item,bcolors.ENDC))
