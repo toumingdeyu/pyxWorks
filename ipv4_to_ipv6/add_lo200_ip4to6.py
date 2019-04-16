@@ -429,7 +429,11 @@ for device in device_list:
                 '<' + args.device.upper() + '>',
                 '[' + args.device.upper() + ']',
                 '[~' + args.device.upper() + ']',
-                '[*' + args.device.upper() + ']' ]
+                '[*' + args.device.upper() + ']',
+                '[~' + args.device.upper() + '-LoopBack200]',
+                '[*' + args.device.upper() + '-LoopBack200]',
+                '[' + args.device.upper() + '-LoopBack200]',
+                  ]
             TERM_LEN_0 = "screen-length 0 temporary\n"     #"screen-length disable\n"
             EXIT = "quit\n"
 
