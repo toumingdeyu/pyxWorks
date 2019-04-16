@@ -107,7 +107,9 @@ CMD_VRP = [
             {'call_function': 'parse_ipv4_from_text', 'if_void_local_output':'stop'},
             'sys',
 			'interface loopback 200',
+            'ipv6 enable',
 			'ipv6 address __var_converted_ipv4__',
+            'isis ipv6 enable 5511',
 			'commit',
             'quit',
 			'quit',
@@ -208,6 +210,7 @@ def ssh_read_until(chan,prompts):
         buff = chan.recv(9999)
         output += buff.decode("utf-8").replace('\x0d','').replace('\x07','').replace('\x08','').\
             replace(' \x1b[1D','')
+            #line.split('(config')[0]
         for actual_prompt in prompts:
             if output.endswith(actual_prompt): exit_loop=True; break
     return output
@@ -274,14 +277,28 @@ def parse_whole_set_line_from_text(text):
     else: set_ipv6line = str()
     return set_ipv6line
 
+# def parse_json_file_and_get_oti_routers_list():
+#     oti_routers = []
+#     json_filename = '/home/dpenha/perl_shop/NIS9TABLE_BLDR/node_list.json'
+#     with io.open(json_filename) as json_file: json_raw_data = json.load(json_file)
+#     if json_raw_data:
+#         for router in json_raw_data['results']:
+#            if router['namings']['type']=='OTI':
+#                oti_routers.append(router['name'])
+#     return oti_routers
+
 def parse_json_file_and_get_oti_routers_list():
-    oti_routers = []
-    json_filename = '/home/dpenha/perl_shop/NIS9TABLE_BLDR/node_list.json'
-    with io.open(json_filename) as json_file: json_raw_data = json.load(json_file)
+    oti_routers, json_raw_data = [], str()
+    json_filename = '/usr/local/iptac/oti_all.pl'
+    with io.open(json_filename,'r') as json_file:
+        data = json_file.read()
+        data_converted = data.split('%oti_all =')[1].replace("'",'"')\
+            .replace('=>',':').replace('(','{').replace(')','}').replace(';','')
+        data_converted='{\n  "OTI_ALL" : ' + data_converted + '\n}'
+        json_raw_data = json.loads(data_converted)
     if json_raw_data:
-        for router in json_raw_data['results']:
-           if router['namings']['type']=='OTI':
-               oti_routers.append(router['name'])
+        for router in json_raw_data['OTI_ALL']:
+            if '172.25.4' in json_raw_data['OTI_ALL'][router]['LSRID']: oti_routers.append(router)
     return oti_routers
 
 
@@ -292,6 +309,9 @@ def parse_json_file_and_get_oti_routers_list():
 ##############################################################################
 
 if __name__ != "__main__": sys.exit(0)
+
+# print(parse_json_file_and_get_oti_routers_list())
+# sys.exit(0)
 
 # print(globals()['ipv4_to_ipv6'])
 # m=locals()['parse_ipv4_from_text']
