@@ -68,7 +68,7 @@ CMD_IOS_XE = [
             'exit',
 			'exit',
 			'write',
-            'sh int loopback 200 | i __var_converted_ipv4__'
+            'sh int loopback 200 | i /128'
               ]
 CMD_IOS_XR = [
             'sh run int loopback 200 | i /128',
@@ -78,10 +78,13 @@ CMD_IOS_XR = [
             'conf',
 			'interface loopback 200',
             'ipv6 address __var_converted_ipv4__',
+            'router isis PAII',
+            'interface Loopback200',
+            'address-family ipv6 unicast',
             'commi',
             'exit',
 			'exit',
-            'sh int loopback 200 | i __var_converted_ipv4__'
+            'sh int loopback 200 | i /128'
              ]
 CMD_JUNOS = [
             'show configuration interfaces lo0 | match /128',
@@ -108,7 +111,7 @@ CMD_VRP = [
 			'commit',
             'quit',
 			'quit',
-            'disp current-configuration interface LoopBack 200 | include __var_converted_ipv4__'
+            'disp current-configuration interface LoopBack 200 | include /128'
           ]
 
 ###############################################################################
@@ -385,6 +388,8 @@ for device in device_list:
                 '%s%s#'%(args.device.upper(),'(config)'), \
                 '%s%s#'%(args.device.upper(),'(config-if)'), \
                 '%s%s#'%(args.device.upper(),'(config-line)'), \
+                '%s%s#'%(args.device.upper(),'(config-isis)'), \
+                '%s%s#'%(args.device.upper(),'(config-isis-if)'), \
                 '%s%s#'%(args.device.upper(),'(config-router)')  ]
             TERM_LEN_0 = "terminal length 0\n"
             EXIT = "exit\n"
