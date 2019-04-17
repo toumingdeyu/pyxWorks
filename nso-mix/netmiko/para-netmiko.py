@@ -11,8 +11,11 @@ import re
 import argparse
 import glob
 import socket
-import netmiko
 import six
+
+if sys.version_info >= (3,0):
+    import netmiko
+
 
 class bcolors:
         DEFAULT    = '\033[99m'
@@ -60,48 +63,23 @@ converted_ipv4 = str()
 
 # IOS-XE is only for IPsec GW
 CMD_IOS_XE = [
-			'sh run int loopback 200 | i 128',
-            {'call_function': 'stop_if_ipv6_found', 'if_void_local_output':'stop'},
-            'sh run int loopback 200 | i 172',
-            {'call_function': 'parse_ipv4_from_text', 'if_void_local_output':'stop'},
-            'conf t',
-            'interface loopback 200',
-            'ipv6 address %s/128'% (converted_ipv4),
-            'exit',
-			'exit',
-			'write',
-            'sh int loopback 200 | i %s' % (converted_ipv4)
+			'show version',
+            'show version'
+
               ]
 CMD_IOS_XR = [
-            ('show version'),
+            'show version',
+            'show version',
 
              ]
 CMD_JUNOS = [
-            'show configuration interfaces lo0 | match 128',
-            {'call_function': 'stop_if_two_ipv6_found', 'if_void_local_output':'stop'},
-            'show configuration interfaces lo0 | display set | match 128',
-            {'call_function': 'parse_whole_set_line_from_text', 'if_void_local_output':'stop'},
-			'show configuration interfaces lo0 | match 172.25.4',
-            {'call_function': 'parse_ipv4_from_text', 'if_void_local_output':'stop'},
-             'configure private',
-             '%sset interfaces lo0 unit 0 family inet6 address %s/128' % (set_ipv6line,converted_ipv4),
-             'show configuration interfaces lo0 | match 128',
-    		 'commi',
-    		 'exit',
-             'show configuration interfaces lo0 | match 128',
+            'show version',
+            'show version',
+
              ]
 CMD_VRP = [
-            'disp current-configuration interface LoopBack 200 | include 128',
-            {'call_function': 'stop_if_ipv6_found', 'if_void_local_output':'stop'},
-			'disp current-configuration interface LoopBack 200 | include 172',
-            {'call_function': 'parse_ipv4_from_text', 'if_void_local_output':'stop'},
-            'sys',
-			'interface loopback 200',
-			'ipv6 address %s/128' % (converted_ipv4),
-			'commit',
-            'quit',
-			'quit',
-            'disp current-configuration interface LoopBack 200 | include %s' % (converted_ipv4)
+            'display version',
+            'display version'
           ]
 
 ###############################################################################
@@ -137,7 +115,7 @@ def ssh_read_until_prompt_bulletproof(chan,command,prompts,debug=False):
     flush_buffer = chan.recv(9999)
     del flush_buffer
     chan.send(command)
-    time.sleep(1)
+    time.sleep(0.3)
     output, exit_loop = '', False
     while not exit_loop:
         if debug: print('LAST_LINE:',prompts,last_line)
@@ -166,7 +144,7 @@ def detect_router_by_ssh(device, debug = False):
 
     try:
         #connect(self, hostname, port=22, username=None, password=None, pkey=None, key_filename=None, timeout=None, allow_agent=True, look_for_keys=True, compress=False)
-        client.connect(PARAMIKO_HOST, port=PARAMIKO_PORT, username=USERNAME, password=PASSWORD)
+        client.connect(PARAMIKO_HOST, port=int(PARAMIKO_PORT), username=USERNAME, password=PASSWORD)
         chan = client.invoke_shell()
         chan.settimeout(TIMEOUT)
         # prevent --More-- in log banner (space=page, enter=1line,tab=esc)
@@ -200,17 +178,40 @@ def detect_router_by_ssh(device, debug = False):
 
 
 def ssh_send_command_and_read_output(chan,send_data,prompts):
-    output, exit_loop = '', False
+    output, exit_loop, = str(), False
+    # FLUSH BUFFERS FROM PREVIOUS COMMANDS IF THEY ARE ALREADY BUFFERD
+    if chan.recv_ready(): flush_buffer = chan.recv(9999)
     chan.send(send_data + '\n')
     time.sleep(0.1)
     while not exit_loop:
-        buff = chan.recv(9999)
-        output += buff.decode("utf-8").replace('\x0d','').replace('\x07','').replace('\x08','').\
-            replace(' \x1b[1D','')
-        try: last_line = output.splitlines()[-1].strip().replace('\x20','')
+        #while not chan.recv_ready():
+        if chan.recv_ready():
+            buff = chan.recv(9999)
+            output += buff.decode("utf-8").replace('\x0d','').replace('\x07','').\
+                replace('\x08','').replace(' \x1b[1D','')
+        else: time.sleep(0.1)
+        # FIND LAST LINE, THIS COULD BE PROMPT
+        try: last_line = output.splitlines()[-1].strip()
         except: last_line = str()
+        # FILTER-OUT '(...)' FROM PROMPT IOS-XR/IOS-XE
+        if router_type in ["ios-xr","ios-xe"]:
+            try:
+                last_line_part1 = last_line.split('(')[0]
+                last_line_part2 = last_line.split(')')[1]
+                last_line = last_line_part1 + last_line_part2
+            except: last_line = last_line
+        # FILTER-OUT '[*','[~','-...]' FROM VRP
+        elif router_type == "vrp":
+            try:
+                last_line_part1 = '[' + last_line.replace('[~','[').replace('[*','[').split('[')[1].split('-')[0]
+                last_line_part2 = ']' + last_line.replace('[~','[').replace('[*','[').split('[')[1].split(']')[1]
+                last_line = last_line_part1 + last_line_part2
+            except: last_line = last_line
         for actual_prompt in prompts:
-            if output.endswith(actual_prompt) or actual_prompt in last_line: exit_loop=True; break
+            if output.endswith(actual_prompt) or \
+                last_line and last_line.endswith(actual_prompt):
+                    exit_loop=True; break
+        else: print("UNCATCHED PROMPT: '%s'\n"%(last_line))
     return output
 
 
@@ -391,7 +392,6 @@ for device in device_list:
                 '%s%s#'%(args.device.upper(),'(config-if)'), \
                 '%s%s#'%(args.device.upper(),'(config-line)'), \
                 '%s%s#'%(args.device.upper(),'(config-router)')  ]
-            if router_prompt: DEVICE_PROMPTS.append(router_prompt)
             TERM_LEN_0 = "terminal length 0\n"
             EXIT = "exit\n"
 
@@ -403,7 +403,6 @@ for device in device_list:
                 '%s%s#'%(args.device.upper(),'(config-if)'), \
                 '%s%s#'%(args.device.upper(),'(config-line)'), \
                 '%s%s#'%(args.device.upper(),'(config-router)')  ]
-            if router_prompt: DEVICE_PROMPTS.append(router_prompt)
             TERM_LEN_0 = "terminal length 0\n"
             EXIT = "exit\n"
 
@@ -412,7 +411,6 @@ for device in device_list:
             DEVICE_PROMPTS = [ \
                  USERNAME + '@' + args.device.upper() + '> ', # !! Need the space after >
                  USERNAME + '@' + args.device.upper() + '# ' ]
-            if router_prompt: DEVICE_PROMPTS.append(router_prompt)
             TERM_LEN_0 = "set cli screen-length 0\n"
             EXIT = "exit\n"
 
@@ -423,21 +421,22 @@ for device in device_list:
                 '[' + args.device.upper() + ']',
                 '[~' + args.device.upper() + ']',
                 '[*' + args.device.upper() + ']' ]
-            if router_prompt: DEVICE_PROMPTS.append(router_prompt)
             TERM_LEN_0 = "screen-length 0 temporary\n"     #"screen-length disable\n"
             EXIT = "quit\n"
-        #print('PROMPTS: '+','.join(DEVICE_PROMPTS))
+        if router_prompt: DEVICE_PROMPTS.append(router_prompt)
+        print('PROMPTS: '+','.join(DEVICE_PROMPTS))
+
         print(" ... Connecting (SSH) to %s" % device)
         client = paramiko.SSHClient()
         client.load_system_host_keys()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
         try:
-            client.connect(PARAMIKO_HOST, port=PARAMIKO_PORT, username=USERNAME,\
+            client.connect(PARAMIKO_HOST, port=int(PARAMIKO_PORT), username=USERNAME,\
                 password=PASSWORD)
             chan = client.invoke_shell()
             chan.settimeout(TIMEOUT)
-            while not chan.recv_ready(): time.sleep(1)
+            while not chan.recv_ready(): time.sleep(0.1)
             output = ssh_read_until(chan,DEVICE_PROMPTS)
             chan.send(TERM_LEN_0 + '\n')
             output = ssh_read_until(chan,DEVICE_PROMPTS)
