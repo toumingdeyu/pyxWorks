@@ -132,7 +132,7 @@ def detect_router_by_ssh(device, debug = False):
             try: last_but_one_line = output.splitlines()[-2].strip().replace('\x20','')
             except: last_but_one_line = 'dummyline2'
         prompt = output.splitlines()[-1].strip()
-        print('DETECTED PROMPT: \'' + prompt + '\'')
+        if debug: print('DETECTED PROMPT: \'' + prompt + '\'')
         return prompt
 
     # bullet-proof read-until function , even in case of ---more---
@@ -239,14 +239,15 @@ def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True)
                 last_line_part2 = ']' + last_line.replace('[~','[').replace('[*','[').split('[')[1].split(']')[1]
                 last_line = last_line_part1 + last_line_part2
             except: last_line = last_line
+        # IS ACTUAL LAST LINE PROMPT ? IF YES , GO AWAY
         for actual_prompt in prompts:
             if output.endswith(actual_prompt) or \
                 last_line and last_line.endswith(actual_prompt):
                     exit_loop=True; break
         else:
             # 30SECONDS COMMAND TIMEOUT
-            seconds = 10
-            if (timeout_counter) > seconds*10: print("---'%s'"%last_line);exit_loop=True; break
+            seconds = 30
+            if (timeout_counter) > seconds*10: exit_loop=True; break
     return output
 
 ##############################################################################
@@ -306,7 +307,7 @@ for device in device_list:
         except: PARAMIKO_HOST = str()
         try: PARAMIKO_PORT = device.split(':')[1]
         except: PARAMIKO_PORT = '22'
-        print('\nDEVICE %s (host: %s, port: %s) START.........................'\
+        print('\nDEVICE %s (host=%s, port=%s) START.........................'\
             %(device,PARAMIKO_HOST, PARAMIKO_PORT))
 
         ####### Figure out type of router OS
@@ -347,7 +348,6 @@ for device in device_list:
                 '%s%s#'%(args.device.upper(),'(config-router)')  ]
             TERM_LEN_0 = "terminal length 0\n"
             EXIT = "exit\n"
-
         elif router_type == "ios-xr":
             CMD = list_cmd if len(list_cmd)>0 else CMD_IOS_XR
             DEVICE_PROMPTS = [ \
@@ -358,7 +358,6 @@ for device in device_list:
                 '%s%s#'%(args.device.upper(),'(config-router)')  ]
             TERM_LEN_0 = "terminal length 0\n"
             EXIT = "exit\n"
-
         elif router_type == "junos":
             CMD = list_cmd if len(list_cmd)>0 else CMD_JUNOS
             DEVICE_PROMPTS = [ \
@@ -366,7 +365,6 @@ for device in device_list:
                  USERNAME + '@' + args.device.upper() + '# ' ]
             TERM_LEN_0 = "set cli screen-length 0\n"
             EXIT = "exit\n"
-
         elif router_type == "vrp":
             CMD = list_cmd if len(list_cmd)>0 else CMD_VRP
             DEVICE_PROMPTS = [ \
@@ -376,7 +374,6 @@ for device in device_list:
                 '[*' + args.device.upper() + ']' ]
             TERM_LEN_0 = "screen-length 0 temporary\n"     #"screen-length disable\n"
             EXIT = "quit\n"
-
         elif router_type == "linux":
             CMD = list_cmd if len(list_cmd)>0 else CMD_LINUX
             DEVICE_PROMPTS = [ ]
