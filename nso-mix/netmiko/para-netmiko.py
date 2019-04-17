@@ -99,7 +99,12 @@ CMD_VRP = [
             'display version',
             'display version'
           ]
-
+CMD_LINUX = [
+            'who',
+            'whoami',
+            'free -m',
+            'lspci'
+            ]
 ###############################################################################
 #
 # Function and Class
@@ -126,8 +131,9 @@ def detect_router_by_ssh(device, debug = False):
             except: last_line = 'dummyline1'
             try: last_but_one_line = output.splitlines()[-2].strip().replace('\x20','')
             except: last_but_one_line = 'dummyline2'
-        if debug: print('DETECTED PROMPT: \'' + last_line + '\'')
-        return last_line
+        prompt = output.splitlines()[-1].strip()
+        print('DETECTED PROMPT: \'' + prompt + '\'')
+        return prompt
 
     # bullet-proof read-until function , even in case of ---more---
     def ssh_read_until_prompt_bulletproof(chan,command,prompts,debug = False):
@@ -145,10 +151,11 @@ def detect_router_by_ssh(device, debug = False):
                       replace('\x1b[K','').replace('\n{master}\n','')
             if '--More--' or '---(more' in buff.strip(): chan.send('\x20')
             if debug: print('BUFFER:' + buff)
-            try: last_line = output.splitlines()[-1].strip().replace('\x20','')
+            try: last_line = output.splitlines()[-1].strip()
             except: last_line = str()
             for actual_prompt in prompts:
-                if output.endswith(actual_prompt) or actual_prompt in last_line: exit_loop = True
+                if output.endswith(actual_prompt) or \
+                    last_line and last_line.endswith(actual_prompt): exit_loop = True
         return output
     # Detect function start
     router_os = str()
@@ -183,9 +190,14 @@ def detect_router_by_ssh(device, debug = False):
             if 'iosxr-' in output or 'Cisco IOS XR Software' in output: router_os = 'ios-xr'
             elif 'Cisco IOS-XE software' in output: router_os = 'ios-xe'
             elif 'JUNOS OS' in output: router_os = 'junos'
-            else:
-                print(bcolors.MAGENTA + "\nCannot find recognizable OS in %s" % (output) + bcolors.ENDC)
-                sys.exit(0)
+
+        if prompt and not router_os:
+            command = 'uname -a\n'
+            output = ssh_read_until_prompt_bulletproof(chan, command, [prompt], debug=debug)
+            if 'LINUX' in output.upper(): router_os = 'linux'
+
+        if not router_os:
+            print(bcolors.MAGENTA + "\nCannot find recognizable OS in %s" % (output) + bcolors.ENDC)
 
     except (socket.timeout, paramiko.AuthenticationException) as e:
         print(bcolors.MAGENTA + " ... Connection closed: %s " % (e) + bcolors.ENDC )
@@ -233,8 +245,8 @@ def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True)
                     exit_loop=True; break
         else:
             # 30SECONDS COMMAND TIMEOUT
-            seconds = 30
-            if (timeout_counter) > seconds*10: exit_loop=True; break
+            seconds = 10
+            if (timeout_counter) > seconds*10: print("---'%s'"%last_line);exit_loop=True; break
     return output
 
 ##############################################################################
@@ -300,7 +312,7 @@ for device in device_list:
         ####### Figure out type of router OS
         if not args.router_type:
             router_type , router_prompt = detect_router_by_ssh(device,debug = False)
-            print('DETECTED ROUTER_TYPE: %s, PROMPT: %s' % (router_type,router_prompt))
+            print('DETECTED ROUTER_TYPE: %s, PROMPT: \'%s\'' % (router_type,router_prompt))
         else:
             router_type = args.router_type
             print('FORCED ROUTER_TYPE: ' + router_type)
@@ -364,7 +376,21 @@ for device in device_list:
                 '[*' + args.device.upper() + ']' ]
             TERM_LEN_0 = "screen-length 0 temporary\n"     #"screen-length disable\n"
             EXIT = "quit\n"
+
+        elif router_type == "linux":
+            CMD = list_cmd if len(list_cmd)>0 else CMD_LINUX
+            DEVICE_PROMPTS = [ ]
+            TERM_LEN_0 = ''     #"screen-length disable\n"
+            EXIT = "exit\n"
+        else:
+            CMD = list_cmd if len(list_cmd)>0 else []
+            DEVICE_PROMPTS = [ ]
+            TERM_LEN_0 = ''     #"screen-length disable\n"
+            EXIT = "exit\n"
+
+        # ADD PROMPT TO PROMPTS LIST
         if router_prompt: DEVICE_PROMPTS.append(router_prompt)
+
         print(" ... Connecting (SSH) to %s" % device)
         client = paramiko.SSHClient()
         client.load_system_host_keys()
