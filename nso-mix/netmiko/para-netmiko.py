@@ -289,7 +289,7 @@ if args.nocolors: bcolors = nocolors
 device_list = [args.device]
 
 ####### Set USERNAME if needed
-if args.username != None: USERNAME = args.username
+if args.username: USERNAME = args.username
 if not USERNAME:
     print(bcolors.MAGENTA + " ... Please insert your username by cmdline switch --user username !" + bcolors.ENDC )
     sys.exit(0)
