@@ -36,6 +36,24 @@ class bcolors:
         BOLD       = '\033[1m'
         UNDERLINE  = '\033[4m'
 
+class nocolors:
+        DEFAULT    = ''
+        WHITE      = ''
+        CYAN       = ''
+        MAGENTA    = ''
+        HEADER     = ''
+        OKBLUE     = ''
+        BLUE       = ''
+        YELLOW     = ''
+        GREEN      = ''
+        OKGREEN    = ''
+        WARNING    = ''
+        RED        = ''
+        FAIL       = ''
+        GREY       = ''
+        ENDC       = ''
+        BOLD       = ''
+        UNDERLINE  = ''
 
 TODAY            = datetime.datetime.now()
 VERSION          = str(TODAY.year)[2:] + '.' + str(TODAY.month) + '.' + str(TODAY.day)
@@ -89,49 +107,50 @@ CMD_VRP = [
 ###############################################################################
 
 
-# detect device prompt
-def ssh_detect_prompt(chan, debug = False):
-    output, buff, last_line, last_but_one_line = str(), str(), 'dummyline1', 'dummyline2'
-    chan.send('\t \n\n')
-    while not (last_line and last_but_one_line and last_line == last_but_one_line):
-        if debug: print('FIND_PROMPT:',last_but_one_line,last_line)
-        buff = chan.recv(9999)
-        output += buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
-                  replace('\x1b[K','').replace('\n{master}\n','')
-        if '--More--' or '---(more' in buff.strip(): chan.send('\x20')
-        if debug: print('BUFFER:' + buff)
-        try: last_line = output.splitlines()[-1].strip().replace('\x20','')
-        except: last_line = 'dummyline1'
-        try: last_but_one_line = output.splitlines()[-2].strip().replace('\x20','')
-        except: last_but_one_line = 'dummyline2'
-    print('DETECTED PROMPT: \'' + last_line + '\'')
-    return last_line
 
-
-# bullet-proof read-until function , even in case of ---more---
-def ssh_read_until_prompt_bulletproof(chan,command,prompts,debug=False):
-    output, buff, last_line, exit_loop = str(), str(), 'dummyline1', False
-    # avoid of echoing commands on ios-xe by timeout 1 second
-    flush_buffer = chan.recv(9999)
-    del flush_buffer
-    chan.send(command)
-    time.sleep(0.3)
-    output, exit_loop = '', False
-    while not exit_loop:
-        if debug: print('LAST_LINE:',prompts,last_line)
-        buff = chan.recv(9999)
-        output += buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
-                  replace('\x1b[K','').replace('\n{master}\n','')
-        if '--More--' or '---(more' in buff.strip(): chan.send('\x20')
-        if debug: print('BUFFER:' + buff)
-        try: last_line = output.splitlines()[-1].strip().replace('\x20','')
-        except: last_line = str()
-        for actual_prompt in prompts:
-            if output.endswith(actual_prompt) or actual_prompt in last_line: exit_loop = True
-    return output
 
 # huawei does not respond to snmp
 def detect_router_by_ssh(device, debug = False):
+    # detect device prompt
+    def ssh_detect_prompt(chan, debug = False):
+        output, buff, last_line, last_but_one_line = str(), str(), 'dummyline1', 'dummyline2'
+        chan.send('\t \n\n')
+        while not (last_line and last_but_one_line and last_line == last_but_one_line):
+            if debug: print('FIND_PROMPT:',last_but_one_line,last_line)
+            buff = chan.recv(9999)
+            output += buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
+                      replace('\x1b[K','').replace('\n{master}\n','')
+            if '--More--' or '---(more' in buff.strip(): chan.send('\x20')
+            if debug: print('BUFFER:' + buff)
+            try: last_line = output.splitlines()[-1].strip().replace('\x20','')
+            except: last_line = 'dummyline1'
+            try: last_but_one_line = output.splitlines()[-2].strip().replace('\x20','')
+            except: last_but_one_line = 'dummyline2'
+        if debug: print('DETECTED PROMPT: \'' + last_line + '\'')
+        return last_line
+
+    # bullet-proof read-until function , even in case of ---more---
+    def ssh_read_until_prompt_bulletproof(chan,command,prompts,debug = False):
+        output, buff, last_line, exit_loop = str(), str(), 'dummyline1', False
+        # avoid of echoing commands on ios-xe by timeout 1 second
+        flush_buffer = chan.recv(9999)
+        del flush_buffer
+        chan.send(command)
+        time.sleep(0.3)
+        output, exit_loop = '', False
+        while not exit_loop:
+            if debug: print('LAST_LINE:',prompts,last_line)
+            buff = chan.recv(9999)
+            output += buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
+                      replace('\x1b[K','').replace('\n{master}\n','')
+            if '--More--' or '---(more' in buff.strip(): chan.send('\x20')
+            if debug: print('BUFFER:' + buff)
+            try: last_line = output.splitlines()[-1].strip().replace('\x20','')
+            except: last_line = str()
+            for actual_prompt in prompts:
+                if output.endswith(actual_prompt) or actual_prompt in last_line: exit_loop = True
+        return output
+    # Detect function start
     router_os = str()
     client = paramiko.SSHClient()
     client.load_system_host_keys()
@@ -176,20 +195,21 @@ def detect_router_by_ssh(device, debug = False):
     return router_os, prompt
 
 
-
-def ssh_send_command_and_read_output(chan,send_data,prompts):
-    output, exit_loop, = str(), False
+def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True):
+    output, exit_loop, timeout_counter = str(), False, 0
     # FLUSH BUFFERS FROM PREVIOUS COMMANDS IF THEY ARE ALREADY BUFFERD
     if chan.recv_ready(): flush_buffer = chan.recv(9999)
     chan.send(send_data + '\n')
     time.sleep(0.1)
+    if printall: print("%sCOMMAND: %s%s%s" % (bcolors.GREEN,bcolors.YELLOW,send_data,bcolors.ENDC))
     while not exit_loop:
-        #while not chan.recv_ready():
         if chan.recv_ready():
             buff = chan.recv(9999)
-            output += buff.decode("utf-8").replace('\x0d','').replace('\x07','').\
+            buff_read = buff.decode("utf-8").replace('\x0d','').replace('\x07','').\
                 replace('\x08','').replace(' \x1b[1D','')
-        else: time.sleep(0.1)
+            output += buff_read
+            if printall: print("%s%s%s" % (bcolors.GREY,buff_read,bcolors.ENDC))
+        else: time.sleep(0.1); timeout_counter += 1
         # FIND LAST LINE, THIS COULD BE PROMPT
         try: last_line = output.splitlines()[-1].strip()
         except: last_line = str()
@@ -211,94 +231,11 @@ def ssh_send_command_and_read_output(chan,send_data,prompts):
             if output.endswith(actual_prompt) or \
                 last_line and last_line.endswith(actual_prompt):
                     exit_loop=True; break
-        else: print("UNCATCHED PROMPT: '%s'\n"%(last_line))
+        else:
+            # 30SECONDS COMMAND TIMEOUT
+            seconds = 30
+            if (timeout_counter) > seconds*10: exit_loop=True; break
     return output
-
-
-def ssh_read_until(chan,prompts):
-    output, exit_loop = '', False
-    while not exit_loop:
-        time.sleep(0.1)
-        buff = chan.recv(9999)
-        output += buff.decode("utf-8").replace('\x0d','').replace('\x07','').replace('\x08','').\
-            replace(' \x1b[1D','')
-        try: last_line = output.splitlines()[-1].strip().replace('\x20','')
-        except: last_line = str()
-        for actual_prompt in prompts:
-            if output.endswith(actual_prompt) or actual_prompt in last_line: exit_loop=True; break
-    return output
-
-
-def ipv4_to_ipv6(ipv4address):
-    ip4to6, ip6to4 = str(), str()
-    try: v4list = ipv4address.split('/')[0].split('.')
-    except: v4list = []
-    if len(v4list) == 4:
-        try:
-            if int(v4list[0])<256 and int(v4list[1])<256 and int(v4list[2])<256 \
-                and int(v4list[3])<256 and int(v4list[0])>=0 and \
-                int(v4list[1])>=0 and int(v4list[2])>=0 and int(v4list[3])>=0:
-                ip4to6 = '0:0:0:0:0:FFFF:%02X%02X:%02X%02X' % \
-                    (int(v4list[0]),int(v4list[1]),int(v4list[2]),int(v4list[3]))
-                ip6to4 = '2002:%02x%02x:%02x%02x:0:0:0:0:0' % \
-                    (int(v4list[0]),int(v4list[1]),int(v4list[2]),int(v4list[3]))
-        except: pass
-    return ip4to6, ip6to4
-
-def ipv4_to_ipv6_obs(ipv4address):
-    ip4to6, ip6to4 = str(), str()
-    try: v4list = ipv4address.split('/')[0].split('.')
-    except: v4list = []
-    if len(v4list) == 4:
-        try:
-            if int(v4list[0])<256 and int(v4list[1])<256 and int(v4list[2])<256 \
-                and int(v4list[3])<256 and int(v4list[0])>=0 and \
-                int(v4list[1])>=0 and int(v4list[2])>=0 and int(v4list[3])>=0:
-                ip4to6 = 'fd00:0:0:5511::%02x%02x:%02x%02x' % \
-                    (int(v4list[0]),int(v4list[1]),int(v4list[2]),int(v4list[3]))
-                ip6to4 = '2002:%02x%02x:%02x%02x:0:0:0:0:0' % \
-                    (int(v4list[0]),int(v4list[1]),int(v4list[2]),int(v4list[3]))
-        except: pass
-    return ip4to6, ip6to4
-
-def parse_ipv4_from_text(text):
-    global converted_ipv4
-    try: ipv4 = text.split('address')[1].split()[0].replace(';','')
-    except: ipv4 = str()
-    converted_ipv4 = ipv4
-    return ipv4_to_ipv6_obs(ipv4)[0]
-
-def stop_if_ipv6_found(text):
-    try: ipv6 = text.split('address')[1].split()[0].replace(';','')
-    except: ipv6 = str()
-    if ipv6: return str()
-    else: return "NOT_FOUND"
-
-def stop_if_two_ipv6_found(text):
-    try: ipv6 = text.split('address')[1].split()[0].replace(';','')
-    except: ipv6 = str()
-    try: ipv6two = text.split('address')[2].split()[0].replace(';','')
-    except: ipv6two = str()
-    if ipv6 and ipv6two: return str()
-    else: return "NOT_FOUND"
-
-def parse_whole_set_line_from_text(text):
-    global set_ipv6line
-    try: set_text = text.split('set')[1].split('\n')[0]
-    except: set_text = str()
-    if set_text: set_ipv6line = 'set' + set_text + ' primary\n'
-    return set_ipv6line
-
-def parse_json_file_and_get_oti_routers_list():
-    oti_routers = []
-    json_filename = '/home/dpenha/perl_shop/NIS9TABLE_BLDR/node_list.json'
-    with io.open(json_filename) as json_file: json_raw_data = json.load(json_file)
-    if json_raw_data:
-        for router in json_raw_data['results']:
-           if router['namings']['type']=='OTI':
-               oti_routers.append(router['name'])
-    return oti_routers
-
 
 ##############################################################################
 #
@@ -326,16 +263,18 @@ parser.add_argument("--os",
 parser.add_argument("--cmd", action = 'store', dest = "cmd_file", default = None,
                     help = "specify a file with a list of commands to execute")
 parser.add_argument("--user",
-                    action = "store", dest = 'username',
+                    action = "store", dest = 'username', default = str(),
                     help = "specify router user login")
-parser.add_argument("--alloti",
-                    action = 'store_true', dest = "alloti", default = False,
-                    help = "do action on all oti routers")
-
+parser.add_argument("--pass",
+                    action = "store", dest = 'password', default = str(),
+                    help = "specify router user password")
+parser.add_argument("--nocolors",
+                    action = 'store_true', dest = "nocolors", default = False,
+                    help = "print mode with no colors.")
 args = parser.parse_args()
 
-if args.alloti: device_list = parse_json_file_and_get_oti_routers_list()
-else: device_list = [args.device]
+if args.nocolors: bcolors = nocolors
+device_list = [args.device]
 
 ####### Set USERNAME if needed
 if args.username != None: USERNAME = args.username
@@ -344,7 +283,9 @@ if not USERNAME:
     sys.exit(0)
 
 # SSH (default)
-if not PASSWORD: PASSWORD = getpass.getpass("TACACS password: ")
+if not PASSWORD:
+    if args.password: PASSWORD = args.password
+    else:             PASSWORD = getpass.getpass("TACACS password: ")
 
 for device in device_list:
     if device:
@@ -353,7 +294,7 @@ for device in device_list:
         except: PARAMIKO_HOST = str()
         try: PARAMIKO_PORT = device.split(':')[1]
         except: PARAMIKO_PORT = '22'
-        print('\nDEVICE %s (HOST: %s, PORT: %s) START.........................'\
+        print('\nDEVICE %s (host: %s, port: %s) START.........................'\
             %(device,PARAMIKO_HOST, PARAMIKO_PORT))
 
         ####### Figure out type of router OS
@@ -424,37 +365,28 @@ for device in device_list:
             TERM_LEN_0 = "screen-length 0 temporary\n"     #"screen-length disable\n"
             EXIT = "quit\n"
         if router_prompt: DEVICE_PROMPTS.append(router_prompt)
-        print('PROMPTS: '+','.join(DEVICE_PROMPTS))
-
         print(" ... Connecting (SSH) to %s" % device)
         client = paramiko.SSHClient()
         client.load_system_host_keys()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
         try:
-            client.connect(PARAMIKO_HOST, port=int(PARAMIKO_PORT), username=USERNAME,\
-                password=PASSWORD)
+            client.connect(PARAMIKO_HOST, port=int(PARAMIKO_PORT), \
+                           username=USERNAME, password=PASSWORD)
             chan = client.invoke_shell()
             chan.settimeout(TIMEOUT)
-            while not chan.recv_ready(): time.sleep(0.1)
-            output = ssh_read_until(chan,DEVICE_PROMPTS)
-            chan.send(TERM_LEN_0 + '\n')
-            output = ssh_read_until(chan,DEVICE_PROMPTS)
-            # router prompt needed as file header
-            chan.send('\n')
-            output = ssh_read_until(chan,DEVICE_PROMPTS)
+            output = ssh_send_command_and_read_output(chan,DEVICE_PROMPTS,TERM_LEN_0)
+            output += ssh_send_command_and_read_output(chan,DEVICE_PROMPTS,"")
             with open(filename,"w") as fp:
                 fp.write(output)
-                print(output)
                 for cli_items in CMD:
                     try:
                         item = cli_items[0] if type(cli_items) == list else cli_items
-                        print(item,isinstance(item, six.string_types))
+                        # py2to3 compatible test if type == string
                         if isinstance(item, six.string_types):
-                            print("%sCOMMAND: %s%s%s" % (bcolors.GREEN,bcolors.YELLOW,item,bcolors.ENDC))
-                            output = ssh_send_command_and_read_output(chan,item,DEVICE_PROMPTS)
-                            print(bcolors.GREY + output + bcolors.ENDC)
-                            fp.write(output)
+                            fp.write('COMMAND: %s\n'%(item))
+                            output = ssh_send_command_and_read_output(chan,DEVICE_PROMPTS,item)
+                            fp.write(output+'\n')
 
                         # hack: use dictionary for running local python code functions
                         elif isinstance(item, dict):
