@@ -13,8 +13,8 @@ import glob
 import socket
 import six
 
-if sys.version_info >= (3,0) or 'linux' in sys.platform: import netmiko
-
+#python 2.7 problem - hack 'pip install esptool'
+import netmiko
 
 class bcolors:
         DEFAULT    = '\033[99m'
@@ -133,7 +133,7 @@ if __name__ != "__main__": sys.exit(0)
 
 ######## Parse program arguments #########
 parser = argparse.ArgumentParser(
-                description = "Script to perform add ipv6 to lo200 check",
+                description = "",
                 epilog = "e.g: \n")
 
 parser.add_argument("--version",
