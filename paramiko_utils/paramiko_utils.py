@@ -294,7 +294,7 @@ parser.add_argument("--os",
                     action = "store", dest="router_type",
                     choices = ["ios-xr", "ios-xe", "junos", "vrp", "linux"],
                     help = "router operating system type")
-parser.add_argument("--cmd", action = 'store', dest = "cmd_file", default = None,
+parser.add_argument("--cmdfile", action = 'store', dest = "cmd_file", default = None,
                     help = "specify a file with a list of commands to execute")
 parser.add_argument("--user",
                     action = "store", dest = 'username', default = str(),
@@ -305,6 +305,9 @@ parser.add_argument("--pass",
 parser.add_argument("--nocolors",
                     action = 'store_true', dest = "nocolors", default = False,
                     help = "print mode with no colors.")
+parser.add_argument("--rcmd",
+                    action = "store", dest = 'rcommand', default = str(),
+                    help = "'command' or ['list of commands',...] to run on remote device")
 args = parser.parse_args()
 
 if args.nocolors: bcolors = nocolors
@@ -357,6 +360,8 @@ for device in device_list:
             else:
                 with open(args.cmd_file) as cmdf:
                     list_cmd = cmdf.read().replace('\x0d','').splitlines()
+
+        if args.rcommand: list_cmd = args.rcommand.replace('\'','').replace('"','').replace('[','').replace(']','').split(',')
 
         # Collect pre/post check information
         if router_type == "ios-xe":
