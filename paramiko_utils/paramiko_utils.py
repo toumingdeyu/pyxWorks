@@ -103,7 +103,9 @@ CMD_LINUX = [
             'who',
             'whoami',
             'free -m',
-            'lspci'
+            'lspci',
+            'cd tmp',
+            'who'
             ]
 ###############################################################################
 #
@@ -208,7 +210,9 @@ def detect_router_by_ssh(device, debug = False):
 
 
 def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True):
-    output, exit_loop, timeout_counter = str(), False, 0
+    output, output2, new_prompt = str(), str(), str()
+    exit_loop, exit_loop2 = False, False
+    timeout_counter, timeout_counter2 = 0, 0
     # FLUSH BUFFERS FROM PREVIOUS COMMANDS IF THEY ARE ALREADY BUFFERD
     if chan.recv_ready(): flush_buffer = chan.recv(9999)
     chan.send(send_data + '\n')
@@ -223,8 +227,8 @@ def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True)
             if printall: print("%s%s%s" % (bcolors.GREY,buff_read,bcolors.ENDC))
         else: time.sleep(0.1); timeout_counter += 1
         # FIND LAST LINE, THIS COULD BE PROMPT
-        try: last_line = output.splitlines()[-1].strip()
-        except: last_line = str()
+        try: last_line, last_line_orig = output.splitlines()[-1].strip(), output.splitlines()[-1].strip()
+        except: last_line, last_line_orig = str(), str()
         # FILTER-OUT '(...)' FROM PROMPT IOS-XR/IOS-XE
         if router_type in ["ios-xr","ios-xe"]:
             try:
@@ -245,10 +249,27 @@ def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True)
                 last_line and last_line.endswith(actual_prompt):
                     exit_loop=True; break
         else:
-            # 30SECONDS COMMAND TIMEOUT
-            seconds = 30
-            if (timeout_counter) > seconds*10: exit_loop=True; break
-    return output
+            # 30 SECONDS COMMAND TIMEOUT
+            if (timeout_counter) > 30*10: exit_loop=True; break
+            # 5 SECONDS --> This could be a new PROMPT
+            elif (timeout_counter) > 5*10 and not exit_loop2:
+                chan.send('\n')
+                time.sleep(0.1)
+                while(not exit_loop2):
+                    if chan.recv_ready():
+                        buff = chan.recv(9999)
+                        buff_read = buff.decode("utf-8").replace('\x0d','')\
+                           .replace('\x07','').replace('\x08','').replace(' \x1b[1D','')
+                        output2 += buff_read
+                    else: time.sleep(0.1); timeout_counter2 += 1
+                    try: new_last_line = output2.splitlines()[-1].strip()
+                    except: new_last_line = str()
+                    if last_line_orig and new_last_line and last_line_orig == new_last_line:
+                        print('%sNEW_PROMPT: %s%s' % (bcolors.CYAN,last_line_orig,bcolors.ENDC))
+                        new_prompt = last_line_orig; exit_loop=True;exit_loop2=True; break
+                    # WAIT UP TO 5 SECONDS
+                    if (timeout_counter2) > 5*10: exit_loop2 = True; break
+    return output, new_prompt
 
 ##############################################################################
 #
@@ -271,7 +292,7 @@ parser.add_argument("--device",
                     help = "target router to check")
 parser.add_argument("--os",
                     action = "store", dest="router_type",
-                    choices = ["ios-xr", "ios-xe", "junos", "vrp"],
+                    choices = ["ios-xr", "ios-xe", "junos", "vrp", "linux"],
                     help = "router operating system type")
 parser.add_argument("--cmd", action = 'store', dest = "cmd_file", default = None,
                     help = "specify a file with a list of commands to execute")
@@ -398,8 +419,9 @@ for device in device_list:
                            username=USERNAME, password=PASSWORD)
             chan = client.invoke_shell()
             chan.settimeout(TIMEOUT)
-            output = ssh_send_command_and_read_output(chan,DEVICE_PROMPTS,TERM_LEN_0)
-            output += ssh_send_command_and_read_output(chan,DEVICE_PROMPTS,"")
+            output, forget_it = ssh_send_command_and_read_output(chan,DEVICE_PROMPTS,TERM_LEN_0)
+            output2, forget_it = ssh_send_command_and_read_output(chan,DEVICE_PROMPTS,"")
+            output += output2
             with open(filename,"w") as fp:
                 fp.write(output)
                 for cli_items in CMD:
@@ -408,7 +430,8 @@ for device in device_list:
                         # py2to3 compatible test if type == string
                         if isinstance(item, six.string_types):
                             fp.write('COMMAND: %s\n'%(item))
-                            output = ssh_send_command_and_read_output(chan,DEVICE_PROMPTS,item)
+                            output, new_prompt = ssh_send_command_and_read_output(chan,DEVICE_PROMPTS,item)
+                            if new_prompt: DEVICE_PROMPTS.append(new_prompt)
                             fp.write(output+'\n')
 
                         # hack: use dictionary for running local python code functions
