@@ -25,6 +25,7 @@ import re
 import argparse
 import glob
 import socket
+import six
 
 class bcolors:
         DEFAULT    = '\033[99m'
@@ -45,6 +46,24 @@ class bcolors:
         BOLD       = '\033[1m'
         UNDERLINE  = '\033[4m'
 
+class nocolors:
+        DEFAULT    = ''
+        WHITE      = ''
+        CYAN       = ''
+        MAGENTA    = ''
+        HEADER     = ''
+        OKBLUE     = ''
+        BLUE       = ''
+        YELLOW     = ''
+        GREEN      = ''
+        OKGREEN    = ''
+        WARNING    = ''
+        RED        = ''
+        FAIL       = ''
+        GREY       = ''
+        ENDC       = ''
+        BOLD       = ''
+        UNDERLINE  = ''
 
 COL_DELETED = bcolors.RED
 COL_ADDED   = bcolors.GREEN
@@ -52,7 +71,6 @@ COL_DIFFDEL = bcolors.BLUE
 COL_DIFFADD = bcolors.YELLOW
 COL_EQUAL   = bcolors.GREY
 COL_PROBLEM = bcolors.RED
-
 
 TODAY            = datetime.datetime.now()
 VERSION          = str(TODAY.year)[2:] + '.' + str(TODAY.month) + '.' + str(TODAY.day)
@@ -68,8 +86,10 @@ PLATFORM_DESCR_ASR9K    = 'Cisco IOS XR Software (Cisco ASR9K'
 PLATFORM_DESCR_MX2020   = 'Juniper Networks, Inc. mx2020'
 UNKNOW_HOST     = 'Name or service not known'
 TIMEOUT         = 60
-try:    HOMEDIR         = os.environ['HOME']
-except: HOMEDIR         = str()
+
+WORKDIR_IF_EXISTS       = os.path.join(os.path.abspath(os.sep),'var','PrePost')
+
+WORKDIR                 = str()
 try:    PASSWORD        = os.environ['NEWR_PASS']
 except: PASSWORD        = str()
 try:    USERNAME        = os.environ['NEWR_USER']
@@ -87,8 +107,6 @@ default_ignoreline_list    = [r' MET$', r' UTC$']
 default_linefilter_list    = []
 default_compare_columns    = []
 default_printalllines_list = []
-
-#print('HOMEDIR: '+HOMEDIR)
 
 ###############################################################################
 #
@@ -323,53 +341,62 @@ IOS_XR_SLICE = {
 ###############################################################################
 
 
-# detect device prompt
-def ssh_detect_prompt(chan, debug = False):
-    output, buff, last_line, last_but_one_line = str(), str(), 'dummyline1', 'dummyline2'
-    chan.send('\t \n\n')
-    while not (last_line and last_but_one_line and last_line == last_but_one_line):
-        if debug: print('FIND_PROMPT:',last_but_one_line,last_line)
-        buff = chan.recv(9999)
-        output += buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
-                  replace('\x1b[K','').replace('\n{master}\n','')
-        if '--More--' or '---(more' in buff.strip(): chan.send('\x20')
-        if debug: print('BUFFER:' + buff)
-        try: last_line = output.splitlines()[-1].strip().replace('\x20','')
-        except: last_line = 'dummyline1'
-        try: last_but_one_line = output.splitlines()[-2].strip().replace('\x20','')
-        except: last_but_one_line = 'dummyline2'
-    if debug: print('DETECTED PROMPT: \'' + last_line + '\'')
-    return last_line
+def detect_router_by_ssh(device, debug = False):
+    # detect device prompt
+    def ssh_detect_prompt(chan, debug = False):
+        output, buff, last_line, last_but_one_line = str(), str(), 'dummyline1', 'dummyline2'
+        chan.send('\t \n\n')
+        while not (last_line and last_but_one_line and last_line == last_but_one_line):
+            if debug: print('FIND_PROMPT:',last_but_one_line,last_line)
+            buff = chan.recv(9999)
+            output += buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
+                      replace('\x1b[K','').replace('\n{master}\n','')
+            if '--More--' or '---(more' in buff.strip(): chan.send('\x20')
+            if debug: print('BUFFER:' + buff)
+            try: last_line = output.splitlines()[-1].strip().replace('\x20','')
+            except: last_line = 'dummyline1'
+            try: last_but_one_line = output.splitlines()[-2].strip().replace('\x20','')
+            except: last_but_one_line = 'dummyline2'
+        prompt = output.splitlines()[-1].strip()
+        if debug: print('DETECTED PROMPT: \'' + prompt + '\'')
+        return prompt
 
-
-# bullet-proof read-until function , even in case of ---more---
-def ssh_read_until_prompt_bulletproof(chan,command,prompt,debug=False):
-    output, buff, last_line = str(), str(), 'dummyline1'
-    # avoid of echoing commands on ios-xe by timeout 1 second
-    flush_buffer = chan.recv(9999)
-    del flush_buffer
-    chan.send(command)
-    time.sleep(1)
-    while not last_line == prompt:
-        if debug: print('LAST_LINE:',prompt,last_line)
-        buff = chan.recv(9999)
-        output += buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
-                  replace('\x1b[K','').replace('\n{master}\n','')
-        if '--More--' or '---(more' in buff.strip(): chan.send('\x20')
-        if debug: print('BUFFER:' + buff)
-        try: last_line = output.splitlines()[-1].strip().replace('\x20','')
-        except: last_line = str()
-    return output
-
-# huawei does not respond to snmp
-def detect_router_by_ssh(debug = False):
+    # bullet-proof read-until function , even in case of ---more---
+    def ssh_read_until_prompt_bulletproof(chan,command,prompts,debug = False):
+        output, buff, last_line, exit_loop = str(), str(), 'dummyline1', False
+        # avoid of echoing commands on ios-xe by timeout 1 second
+        flush_buffer = chan.recv(9999)
+        del flush_buffer
+        chan.send(command)
+        time.sleep(0.3)
+        output, exit_loop = '', False
+        while not exit_loop:
+            if debug: print('LAST_LINE:',prompts,last_line)
+            buff = chan.recv(9999)
+            output += buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
+                      replace('\x1b[K','').replace('\n{master}\n','')
+            if '--More--' or '---(more' in buff.strip(): chan.send('\x20')
+            if debug: print('BUFFER:' + buff)
+            try: last_line = output.splitlines()[-1].strip()
+            except: last_line = str()
+            for actual_prompt in prompts:
+                if output.endswith(actual_prompt) or \
+                    last_line and last_line.endswith(actual_prompt): exit_loop = True
+        return output
+    # Detect function start
     router_os = str()
     client = paramiko.SSHClient()
     client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
+    try: PARAMIKO_HOST = device.split(':')[0]
+    except: PARAMIKO_HOST = str()
+    try: PARAMIKO_PORT = device.split(':')[1]
+    except: PARAMIKO_PORT = '22'
+
     try:
-        client.connect(args.device, username=USERNAME, password=PASSWORD)
+        #connect(self, hostname, port=22, username=None, password=None, pkey=None, key_filename=None, timeout=None, allow_agent=True, look_for_keys=True, compress=False)
+        client.connect(PARAMIKO_HOST, port=int(PARAMIKO_PORT), username=USERNAME, password=PASSWORD)
         chan = client.invoke_shell()
         chan.settimeout(TIMEOUT)
         # prevent --More-- in log banner (space=page, enter=1line,tab=esc)
@@ -379,105 +406,121 @@ def detect_router_by_ssh(debug = False):
         #test if this is HUAWEI VRP
         if prompt and not router_os:
             command = 'display version | include (Huawei)\n'
-            output = ssh_read_until_prompt_bulletproof(chan, command, prompt, debug=debug)
+            output = ssh_read_until_prompt_bulletproof(chan, command, [prompt], debug=debug)
             if 'Huawei Versatile Routing Platform Software' in output: router_os = 'vrp'
 
         #test if this is CISCO IOS-XR, IOS-XE or JUNOS
         if prompt and not router_os:
             command = 'show version\n'
-            output = ssh_read_until_prompt_bulletproof(chan, command, prompt, debug=debug)
+            output = ssh_read_until_prompt_bulletproof(chan, command, [prompt], debug=debug)
             if 'iosxr-' in output or 'Cisco IOS XR Software' in output: router_os = 'ios-xr'
             elif 'Cisco IOS-XE software' in output: router_os = 'ios-xe'
             elif 'JUNOS OS' in output: router_os = 'junos'
-            else:
-                print(bcolors.MAGENTA + "\nCannot find recognizable OS in %s" % (output) + bcolors.ENDC)
-                sys.exit(0)
+
+        if prompt and not router_os:
+            command = 'uname -a\n'
+            output = ssh_read_until_prompt_bulletproof(chan, command, [prompt], debug=debug)
+            if 'LINUX' in output.upper(): router_os = 'linux'
+
+        if not router_os:
+            print(bcolors.MAGENTA + "\nCannot find recognizable OS in %s" % (output) + bcolors.ENDC)
 
     except (socket.timeout, paramiko.AuthenticationException) as e:
         print(bcolors.MAGENTA + " ... Connection closed: %s " % (e) + bcolors.ENDC )
         sys.exit()
     finally:
         client.close()
-    return router_os
+    return router_os, prompt
 
 
-# Find OS running on a router with a snmp request
-def find_router_type(host):
-    snmp_req = "snmpget -v1 -c " + SNMP_COMMUNITY + " -t 5 " + host + " sysDescr.0"
-    return_stream = os.popen(snmp_req)
-    retvalue = return_stream.readline()
-    if len(retvalue) == 0:
-        print("\nCannot connect to %s (unknow host)" % (host))
-        sys.exit()
-    else:
-        if PLATFORM_DESCR_XR in retvalue:
-            router_os = 'ios-xr'
-        elif PLATFORM_DESCR_IOS in retvalue:
-            router_os = 'ios-xe'
-        elif PLATFORM_DESCR_JUNOS in retvalue:
-            router_os = 'junos'
-        elif PLATFORM_DESCR_VRP in retvalue:
-            router_os = 'vrp'
+def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True):
+    output, output2, new_prompt = str(), str(), str()
+    exit_loop, exit_loop2 = False, False
+    timeout_counter, timeout_counter2 = 0, 0
+    # FLUSH BUFFERS FROM PREVIOUS COMMANDS IF THEY ARE ALREADY BUFFERD
+    if chan.recv_ready(): flush_buffer = chan.recv(9999)
+    chan.send(send_data + '\n')
+    time.sleep(0.1)
+    if printall: print("%sCOMMAND: %s%s%s" % (bcolors.GREEN,bcolors.YELLOW,send_data,bcolors.ENDC))
+    while not exit_loop:
+        if chan.recv_ready():
+            buff = chan.recv(9999)
+            buff_read = buff.decode("utf-8").replace('\x0d','').replace('\x07','').\
+                replace('\x08','').replace(' \x1b[1D','')
+            output += buff_read
+            if printall: print("%s%s%s" % (bcolors.GREY,buff_read,bcolors.ENDC))
+        else: time.sleep(0.1); timeout_counter += 1
+        # FIND LAST LINE, THIS COULD BE PROMPT
+        try: last_line, last_line_orig = output.splitlines()[-1].strip(), output.splitlines()[-1].strip()
+        except: last_line, last_line_orig = str(), str()
+        # FILTER-OUT '(...)' FROM PROMPT IOS-XR/IOS-XE
+        if router_type in ["ios-xr","ios-xe"]:
+            try:
+                last_line_part1 = last_line.split('(')[0]
+                last_line_part2 = last_line.split(')')[1]
+                last_line = last_line_part1 + last_line_part2
+            except: last_line = last_line
+        # FILTER-OUT '[*','[~','-...]' FROM VRP
+        elif router_type == "vrp":
+            try:
+                last_line_part1 = '[' + last_line.replace('[~','[').replace('[*','[').split('[')[1].split('-')[0]
+                last_line_part2 = ']' + last_line.replace('[~','[').replace('[*','[').split('[')[1].split(']')[1]
+                last_line = last_line_part1 + last_line_part2
+            except: last_line = last_line
+        # IS ACTUAL LAST LINE PROMPT ? IF YES , GO AWAY
+        for actual_prompt in prompts:
+            if output.endswith(actual_prompt) or \
+                last_line and last_line.endswith(actual_prompt):
+                    exit_loop=True; break
         else:
-            print("\nCannot find recognizable OS in %s" % (retvalue))
-            sys.exit()
-    return router_os
+            # 30 SECONDS COMMAND TIMEOUT
+            if (timeout_counter) > 30*10: exit_loop=True; break
+            # 15 SECONDS --> This could be a new PROMPT
+            elif (timeout_counter) > 15*10 and not exit_loop2:
+                chan.send('\n')
+                time.sleep(0.1)
+                while(not exit_loop2):
+                    if chan.recv_ready():
+                        buff = chan.recv(9999)
+                        buff_read = buff.decode("utf-8").replace('\x0d','')\
+                           .replace('\x07','').replace('\x08','').replace(' \x1b[1D','')
+                        output2 += buff_read
+                    else: time.sleep(0.1); timeout_counter2 += 1
+                    try: new_last_line = output2.splitlines()[-1].strip()
+                    except: new_last_line = str()
+                    if last_line_orig and new_last_line and last_line_orig == new_last_line:
+                        print('%sNEW_PROMPT: %s%s' % (bcolors.CYAN,last_line_orig,bcolors.ENDC))
+                        new_prompt = last_line_orig; exit_loop=True;exit_loop2=True; break
+                    # WAIT UP TO 5 SECONDS
+                    if (timeout_counter2) > 5*10: exit_loop2 = True; break
+    return output, new_prompt
 
-# Find router platform type with a snmp request
-def find_platform_type(host):
-    snmp_req = "snmpget -v1 -c " + SNMP_COMMUNITY + " -t 5 " + host + " sysDescr.0"
-    return_stream = os.popen(snmp_req)
-    retvalue = return_stream.readline()
-    if len(retvalue) == 0:
-        print("\nCannot connect to %s (unknow host)" % (host))
-        sys.exit()
-    else:
-        if PLATFORM_DESCR_CRS in retvalue:
-            platform_type = 'cisco-crs'
-        elif PLATFORM_DESCR_NCS in retvalue:
-            platform_type = 'cisco-ncs'
-        elif PLATFORM_DESCR_AR9K in retvalue:
-            platform_type = 'cisco-asr9k'
-        elif PLATFORM_DESCR_MX2020 in retvalue:
-            platform_type = 'juniper-mx2020'
-        else:
-            print("\nCannot find recognizable OS in %s" % (retvalue))
-            sys.exit()
-    return platform_type
-
-
-def ssh_read_until(channel,prompt):
-    output = ''
-    while not output.endswith(prompt):
-        buff = chan.recv(9999)
-        output += buff.decode("utf-8").replace('\x0d','').replace('\x07','').\
-                  replace('\x08','').replace(' \x1b[1D','')
-    return output
 
 # Find a section of text betwwen "cli" variable from upper block and "prompt
-def find_section(text, prompt,cli_index, cli , file_name = str(),debug = False):
+def find_section(text, prompts,cli_index, cli , file_name = str(),debug = False):
     look_end = 0
     b_index, e_index, c_index = None, None, -1
     for index,item in enumerate(text):
-        if prompt.rstrip() in text[index].rstrip():
-            c_index = c_index+1
-            # beginning section found ... or (c_index == cli_index):
-            # + workarround for long commands shortened in router echoed line
-            try: cmd_text_short = text[index].rstrip()[0:73].split(prompt)[1]
-            except: cmd_text_short = str()
-            if debug: print('@@@@@@@@@@',cli_index,c_index,cmd_text_short,cli)
-            if (prompt+cli.rstrip()) in text[index].rstrip() or \
-                (c_index == cli_index and cmd_text_short and cmd_text_short in cli.rstrip()):
-                b_index = index
-                look_end = 1                       # look for end of section now
-                continue
-            if look_end == 1:
-                if prompt.rstrip() in text[index]:
-                    e_index = index
-                    look_end = 0
+        for prompt in prompts:
+            if prompt.rstrip() in text[index].rstrip():
+                c_index = c_index+1
+                # beginning section found ... or (c_index == cli_index):
+                # + workarround for long commands shortened in router echoed line
+                try: cmd_text_short = text[index].rstrip()[0:73].split(prompt)[1]
+                except: cmd_text_short = str()
+                if debug: print('@@@@@@@@@@',cli_index,c_index,cmd_text_short,cli)
+                if (prompt+cli.rstrip()) in text[index].rstrip() or \
+                    (c_index == cli_index and cmd_text_short and cmd_text_short in cli.rstrip()):
+                    b_index = index
+                    look_end = 1                       # look for end of section now
+                    break #continue
+                if look_end == 1:
+                    if prompt.rstrip() in text[index]:
+                        e_index = index
+                        look_end = 0
     if not(b_index and e_index):
         print("%sSection '%s' could not be found %s!%s" % \
-              (bcolors.MAGENTA,prompt+cli.rstrip(),file_name,bcolors.ENDC))
+              (bcolors.MAGENTA,cli.rstrip(),file_name,bcolors.ENDC))
         return str()
     return text[b_index:e_index]
 
@@ -714,11 +757,30 @@ parser.add_argument("--cmdlist",
 parser.add_argument("--logfile",
                     action = 'store_true', dest = "log_file", default = False,
                     help = "do file-diff logfile (name will be generated and printed)")
+parser.add_argument("--nocolors",
+                    action = 'store_true', dest = "nocolors", default = False,
+                    help = "print mode with no colors.")
 
 args = parser.parse_args()
+
+if args.nocolors: bcolors = nocolors
+
+COL_DELETED = bcolors.RED
+COL_ADDED   = bcolors.GREEN
+COL_DIFFDEL = bcolors.BLUE
+COL_DIFFADD = bcolors.YELLOW
+COL_EQUAL   = bcolors.GREY
+COL_PROBLEM = bcolors.RED
+
 if args.post: pre_post = 'post'
 elif args.recheck: pre_post = 'post'
 else: pre_post = 'pre'
+
+# SET WORKING DIRECTORY
+try:    WORKDIR         = os.path.join(os.environ['HOME'],'logs')
+except: WORKDIR         = os.path.join(str(os.path.dirname(os.path.abspath(__file__))),'logs')
+if os.path.isdir(WORKDIR_IF_EXISTS) and os.path.exists(WORKDIR_IF_EXISTS):
+    WORKDIR = WORKDIR_IF_EXISTS
 
 ####### Set USERNAME if needed
 if args.username: USERNAME = args.username
@@ -729,18 +791,23 @@ if not USERNAME:
 # SSH (default)
 if not PASSWORD: PASSWORD = getpass.getpass("TACACS password: ")
 
+router_prompt = None
+try: PARAMIKO_HOST = args.device.split(':')[0]
+except: PARAMIKO_HOST = str()
+try: PARAMIKO_PORT = args.device.split(':')[1]
+except: PARAMIKO_PORT = '22'
+
 ####### Figure out type of router OS
 if not args.router_type:
     #router_type = find_router_type(args.device)
-    router_type = detect_router_by_ssh(debug = False)
+    router_type, router_prompt = detect_router_by_ssh(args.device,debug = False)
     print('DETECTED ROUTER_TYPE: ' + router_type)
 else:
     router_type = args.router_type
     print('FORCED ROUTER_TYPE: ' + router_type)
 
 ######## Create logs directory if not existing  ######### 
-if not os.path.exists(HOMEDIR + '/logs'):
-    os.makedirs(HOMEDIR + '/logs')
+if not os.path.exists(WORKDIR): os.makedirs(WORKDIR)
 
 ####### Find necessary pre and post check files if needed 
 if args.precheck_file:
@@ -752,7 +819,7 @@ if args.precheck_file:
     pre_post = 'post'
 else:
     if pre_post == 'post' or args.recheck or args.postcheck_file:
-        list_precheck_files = glob.glob(HOMEDIR + "/logs/" + args.device + '*' + 'pre')
+        list_precheck_files = glob.glob(os.path.join(WORKDIR,args.device.replace(':','_').replace('.','_')) + '*' + 'pre')
         if len(list_precheck_files) == 0:
             print(bcolors.MAGENTA + " ... Can't find any precheck file. %s " + bcolors.ENDC)
             sys.exit()
@@ -774,7 +841,7 @@ if args.recheck or args.postcheck_file:
         postcheck_file = args.postcheck_file
         pre_post = 'post'
     else:
-        list_postcheck_files = glob.glob(HOMEDIR + "/logs/" + args.device + '*' + 'post')
+        list_postcheck_files = glob.glob(os.path.join(WORKDIR,args.device.replace(':','_').replace('.','_')) + '*' + 'post')
         if len(list_postcheck_files) == 0:
             print(bcolors.MAGENTA + " ... Can't find any postcheck file. %s " + bcolors.ENDC)
             sys.exit()
@@ -800,7 +867,7 @@ if args.cmd_file:
             list_cmd.append([fp_cmd.readline().strip()])
         fp_cmd.close
 
-filename_prefix = HOMEDIR + "/logs/" + args.device
+filename_prefix = os.path.join(WORKDIR,args.device.replace(':','_').replace('.','_'))
 filename_suffix = pre_post
 now = datetime.datetime.now()
 filename_generated = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s" % \
@@ -824,35 +891,60 @@ if not args.recheck:
 # Collect pre/post check information
 if router_type == "ios-xe":
     CMD = list_cmd if len(list_cmd)>0 else CMD_IOS_XE
-    DEVICE_PROMPT = args.device.upper() + '#'
+    DEVICE_PROMPTS = [ \
+        '%s%s#'%(args.device.upper(),''), \
+        '%s%s#'%(args.device.upper(),'(config)'), \
+        '%s%s#'%(args.device.upper(),'(config-if)'), \
+        '%s%s#'%(args.device.upper(),'(config-line)'), \
+        '%s%s#'%(args.device.upper(),'(config-router)')  ]
     TERM_LEN_0 = "terminal length 0\n"
     EXIT = "exit\n"
-
 elif router_type == "ios-xr":
     CMD = list_cmd if len(list_cmd)>0 else CMD_IOS_XR
-    DEVICE_PROMPT = args.device.upper() + '#'
+    DEVICE_PROMPTS = [ \
+        '%s%s#'%(args.device.upper(),''), \
+        '%s%s#'%(args.device.upper(),'(config)'), \
+        '%s%s#'%(args.device.upper(),'(config-if)'), \
+        '%s%s#'%(args.device.upper(),'(config-line)'), \
+        '%s%s#'%(args.device.upper(),'(config-router)')  ]
     TERM_LEN_0 = "terminal length 0\n"
     EXIT = "exit\n"
-
 elif router_type == "junos":
     CMD = list_cmd if len(list_cmd)>0 else CMD_JUNOS
-    DEVICE_PROMPT = USERNAME + '@' + args.device.upper() + '> ' # !! Need the space after >
+    DEVICE_PROMPTS = [ \
+         USERNAME + '@' + args.device.upper() + '> ', # !! Need the space after >
+         USERNAME + '@' + args.device.upper() + '# ' ]
     TERM_LEN_0 = "set cli screen-length 0\n"
     EXIT = "exit\n"
-
 elif router_type == "vrp":
     CMD = list_cmd if len(list_cmd)>0 else CMD_VRP
-    DEVICE_PROMPT = '<' + args.device.upper() + '>'
+    DEVICE_PROMPTS = [ \
+        '<' + args.device.upper() + '>',
+        '[' + args.device.upper() + ']',
+        '[~' + args.device.upper() + ']',
+        '[*' + args.device.upper() + ']' ]
     TERM_LEN_0 = "screen-length 0 temporary\n"     #"screen-length disable\n"
     EXIT = "quit\n"
+elif router_type == "linux":
+    CMD = list_cmd if len(list_cmd)>0 else CMD_LINUX
+    DEVICE_PROMPTS = [ ]
+    TERM_LEN_0 = ''     #"screen-length disable\n"
+    EXIT = "exit\n"
+else:
+    CMD = list_cmd if len(list_cmd)>0 else []
+    DEVICE_PROMPTS = [ ]
+    TERM_LEN_0 = ''     #"screen-length disable\n"
+    EXIT = "exit\n"
+
+# ADD PROMPT TO PROMPTS LIST
+if router_prompt: DEVICE_PROMPTS.append(router_prompt)
+
 
 print_cmd_list(CMD)
 
 # if postcheck file inserted DO-NOT new postcheck file
 if args.recheck or args.postcheck_file: pass
 else:
-    fp = open(filename,"w")
-
     # SSH (default)
     print(" ... Connecting (SSH) to %s" % (args.device))
     client = paramiko.SSHClient()
@@ -860,27 +952,24 @@ else:
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
     try:
-        client.connect(args.device, username=USERNAME, password=PASSWORD)
+        output = str()
+        client.connect(PARAMIKO_HOST, port=int(PARAMIKO_PORT), username=USERNAME, password=PASSWORD)
         chan = client.invoke_shell()
         chan.settimeout(TIMEOUT)
-        while not chan.recv_ready():
-            time.sleep(1)
-        output = ssh_read_until(chan,DEVICE_PROMPT)
-        chan.send(TERM_LEN_0 + '\n')
-        output = ssh_read_until(chan,DEVICE_PROMPT)
-        # router prompt needed as file header
-        chan.send('\n')
-        output = ssh_read_until(chan,DEVICE_PROMPT)
-        fp.write(output)
-
-        for cli_items in CMD:
-            item = cli_items[0]
-            output = ''
-            chan.send(item + '\n')
-            print(" ... %s" % item)
-            # chan.send('\n')
-            output = ssh_read_until(chan,DEVICE_PROMPT)
+        output, forget_it = ssh_send_command_and_read_output(chan,DEVICE_PROMPTS,TERM_LEN_0,printall=False)
+        output, forget_it = ssh_send_command_and_read_output(chan,DEVICE_PROMPTS,"",printall=False)
+        with open(filename,"w") as fp:
             fp.write(output)
+            for cli_items in CMD:
+                try:
+                    item = cli_items[0] if type(cli_items) == list or type(cli_items) == tuple else cli_items
+                    # py2to3 compatible test if type == string
+                    if isinstance(item, six.string_types):
+                        print(' ... %s'%(item))
+                        output, new_prompt = ssh_send_command_and_read_output(chan,DEVICE_PROMPTS,item,printall=False)
+                        if new_prompt: DEVICE_PROMPTS.append(new_prompt)
+                        fp.write(output)
+                except: pass
 
     except (socket.timeout, paramiko.AuthenticationException) as e:
         print(bcolors.FAIL + " ... Connection closed. %s " % (e) + bcolors.ENDC )
@@ -889,8 +978,6 @@ else:
         client.close()
 
     print(" ... Collection is completed\n")
-    fp.flush()
-    fp.close()
 
 # Post Check treatment 
 if pre_post == "post" or args.recheck or args.postcheck_file:
@@ -898,9 +985,11 @@ if pre_post == "post" or args.recheck or args.postcheck_file:
 
     # Opening pre and post check files and loading content for processing
     print("\nPrecheck file:")
-    subprocess.call(['ls','-l',precheck_file])
+    #subprocess.call(['ls','-l',precheck_file])
+    if os.path.exists(precheck_file): print('%s file exists.'%precheck_file)
     print("\nPostcheck file:")
-    subprocess.call(['ls','-l',postcheck_file])
+    #subprocess.call(['ls','-l',postcheck_file])
+    if os.path.exists(postcheck_file): print('%s file exists.'%postcheck_file)
     fp1 = open(precheck_file,"r")
     fp2 = open(postcheck_file,"r")
 
@@ -934,12 +1023,12 @@ if pre_post == "post" or args.recheck or args.postcheck_file:
             else:
                 slicer = 100
             # Looking for relevant section in precheck file
-            precheck_section = find_section(text1_lines, DEVICE_PROMPT, cli_index, cli)
+            precheck_section = find_section(text1_lines, DEVICE_PROMPTS, cli_index, cli)
             for index, item in enumerate(precheck_section):
                 precheck_section[index] =  precheck_section[index][:slicer]
 
             #Looking for relevant section in postcheck file
-            postcheck_section = find_section(text2_lines, DEVICE_PROMPT, cli_index, cli)
+            postcheck_section = find_section(text2_lines, DEVICE_PROMPTS, cli_index, cli)
             for index, item in enumerate(postcheck_section):
                 postcheck_section[index] = postcheck_section[index][:slicer]
 
@@ -1008,11 +1097,11 @@ if pre_post == "post" or args.recheck or args.postcheck_file:
                 except: cli_printall = False
 
             # Looking for relevant section in precheck file
-            precheck_section = find_section(text1_lines, DEVICE_PROMPT, \
+            precheck_section = find_section(text1_lines, DEVICE_PROMPTS, \
                 cli_index, cli, file_name = 'in ' + precheck_file + ' file ')
 
             #Looking for relevant section in postcheck file
-            postcheck_section = find_section(text2_lines, DEVICE_PROMPT, \
+            postcheck_section = find_section(text2_lines, DEVICE_PROMPTS, \
                 cli_index, cli, file_name = 'in ' + postcheck_file + ' file ')
 
             if precheck_section and postcheck_section:
@@ -1037,7 +1126,7 @@ if pre_post == "post" or args.recheck or args.postcheck_file:
 
     print('\n ==> POSTCHECK COMPLETE !')
 elif pre_post == "pre" and not args.recheck:
-    subprocess.call(['ls','-l',filename])
+    if os.path.exists(filename): print('%s file created.'%(filename))
     print('\n ==> PRECHECK COMPLETE !')
 
 if logfilename: print(' ==> LOGFILE GENERATED: %s' % (logfilename))
