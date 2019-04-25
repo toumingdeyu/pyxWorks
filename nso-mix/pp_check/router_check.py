@@ -444,6 +444,8 @@ def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True)
     if printall: print("%sCOMMAND: %s%s%s" % (bcolors.GREEN,bcolors.YELLOW,send_data,bcolors.ENDC))
     while not exit_loop:
         if chan.recv_ready():
+            # workarround for discontious outputs from routers
+            timeout_counter = 0
             buff = chan.recv(9999)
             buff_read = buff.decode("utf-8").replace('\x0d','').replace('\x07','').\
                 replace('\x08','').replace(' \x1b[1D','')
@@ -726,7 +728,7 @@ parser.add_argument("--device",
                     help = "target router to check")
 parser.add_argument("--os",
                     action = "store", dest="router_type",
-                    choices = ["ios-xr", "ios-xe", "junos", "vrp"],
+                    choices = ["ios-xr", "ios-xe", "junos", "vrp", "linux"],
                     help = "router operating system type")
 parser.add_argument("--post", action = "store_true",
                     help = "run Postcheck")
@@ -760,6 +762,9 @@ parser.add_argument("--logfile",
 parser.add_argument("--nocolors",
                     action = 'store_true', dest = "nocolors", default = False,
                     help = "print mode with no colors.")
+parser.add_argument("--latest",
+                    action = 'store_true', dest = "latest", default = False,
+                    help = "look for really latest pre/postcheck files (also from somebody else), otherwise your own last pre/postcheck files will be used by default")
 
 args = parser.parse_args()
 
@@ -819,7 +824,11 @@ if args.precheck_file:
     pre_post = 'post'
 else:
     if pre_post == 'post' or args.recheck or args.postcheck_file:
-        list_precheck_files = glob.glob(os.path.join(WORKDIR,args.device.replace(':','_').replace('.','_')) + '*' + 'pre')
+        if args.latest:
+            list_precheck_files = glob.glob(os.path.join(WORKDIR,args.device.replace(':','_').replace('.','_')) + '*' + 'pre')
+        else:
+            list_precheck_files = glob.glob(os.path.join(WORKDIR,args.device.replace(':','_').replace('.','_')) + '*' + USERNAME + '-pre')
+
         if len(list_precheck_files) == 0:
             print(bcolors.MAGENTA + " ... Can't find any precheck file. %s " + bcolors.ENDC)
             sys.exit()
@@ -841,7 +850,11 @@ if args.recheck or args.postcheck_file:
         postcheck_file = args.postcheck_file
         pre_post = 'post'
     else:
-        list_postcheck_files = glob.glob(os.path.join(WORKDIR,args.device.replace(':','_').replace('.','_')) + '*' + 'post')
+        if args.latest:
+            list_postcheck_files = glob.glob(os.path.join(WORKDIR,args.device.replace(':','_').replace('.','_')) + '*' + 'post')
+        else:
+            list_postcheck_files = glob.glob(os.path.join(WORKDIR,args.device.replace(':','_').replace('.','_')) + '*' + USERNAME + '-post')
+
         if len(list_postcheck_files) == 0:
             print(bcolors.MAGENTA + " ... Can't find any postcheck file. %s " + bcolors.ENDC)
             sys.exit()
@@ -870,13 +883,13 @@ if args.cmd_file:
 filename_prefix = os.path.join(WORKDIR,args.device.replace(':','_').replace('.','_'))
 filename_suffix = pre_post
 now = datetime.datetime.now()
-filename_generated = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s" % \
-    (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,now.second,filename_suffix)
+filename_generated = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s-%s" % \
+    (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,now.second,USERNAME,filename_suffix)
 
 logfilename=str()
 if args.log_file:
-    logfilename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s" % \
-    (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,now.second,'log')
+    logfilename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s-%s" % \
+    (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,now.second,USERNAME,'log')
 
 if not args.recheck:
     if str(args.cmdlist) != 'list':
