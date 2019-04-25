@@ -234,7 +234,7 @@ for device in device_list:
             with open(filename,"w") as fp:
                 for cli_items in CMD:
                     try:
-                        item = cli_items[0] if type(cli_items) == list else cli_items
+                        item = cli_items[0] if type(cli_items) == list or type(cli_items) == tuple else cli_items
                         print(bcolors.GREEN + "COMMAND: %s" % (item) + bcolors.ENDC )
                         output = ssh_connection.send_command(item)
                         print(bcolors.GREY + "%s" % (output) + bcolors.ENDC )
