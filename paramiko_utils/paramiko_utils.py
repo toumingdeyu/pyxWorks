@@ -220,6 +220,8 @@ def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True)
     if printall: print("%sCOMMAND: %s%s%s" % (bcolors.GREEN,bcolors.YELLOW,send_data,bcolors.ENDC))
     while not exit_loop:
         if chan.recv_ready():
+            # workarround for discontious outputs from routers
+            timeout_counter = 0
             buff = chan.recv(9999)
             buff_read = buff.decode("utf-8").replace('\x0d','').replace('\x07','').\
                 replace('\x08','').replace(' \x1b[1D','')
@@ -251,8 +253,8 @@ def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True)
         else:
             # 30 SECONDS COMMAND TIMEOUT
             if (timeout_counter) > 30*10: exit_loop=True; break
-            # 5 SECONDS --> This could be a new PROMPT
-            elif (timeout_counter) > 5*10 and not exit_loop2:
+            # 10 SECONDS --> This could be a new PROMPT
+            elif (timeout_counter) > 10*10 and not exit_loop2:
                 chan.send('\n')
                 time.sleep(0.1)
                 while(not exit_loop2):
