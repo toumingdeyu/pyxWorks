@@ -433,7 +433,7 @@ for device in device_list:
                 fp.write(output)
                 for cli_items in CMD:
                     try:
-                        item = cli_items[0] if type(cli_items) == list else cli_items
+                        item = cli_items[0] if type(cli_items) == list or type(cli_items) == tuple else cli_items
                         # py2to3 compatible test if type == string
                         if isinstance(item, six.string_types):
                             fp.write('COMMAND: %s\n'%(item))
