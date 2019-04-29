@@ -86,7 +86,7 @@ CMD_IOS_XE = [
             {'call_function': 'parse_ipv4_from_text','input':'last_output', 'output':'converted_ipv4','if_output_is_void':'exit'},
             'conf t',
             'interface loopback 200',
-            ('ipv6 address', {'variable':'converted_ipv4'}),
+            ('ipv6 address', {'variable':'converted_ipv4'}, '/128'),
             'exit',
 			'exit',
 			'write',
@@ -99,7 +99,7 @@ CMD_IOS_XR = [
             {'call_function': 'parse_ipv4_from_text','input':'last_output', 'output':'converted_ipv4','if_output_is_void':'exit'},
             'conf',
 			'interface loopback 200',
-            'ipv6 address __var_converted_ipv4__',
+            ('ipv6 address ', {'variable':'converted_ipv4'}, '/128'),
             'router isis PAII',
             'interface Loopback200',
             'address-family ipv6 unicast',
@@ -117,7 +117,7 @@ CMD_JUNOS = [
             {'call_function': 'parse_ipv4_from_text','input':'last_output', 'output':'converted_ipv4','if_output_is_void':'exit'},
              'configure private',
              #'__var_set_ipv6line__',
-             'set interfaces lo0 unit 0 family inet6 address __var_converted_ipv4__',
+             ('set interfaces lo0 unit 0 family inet6 address ', {'variable':'converted_ipv4'}, '/128'),
              'show configuration interfaces lo0 | match /128',
     		 'commi',
     		 'exit',
@@ -131,7 +131,7 @@ CMD_VRP = [
             'sys',
 			'interface loopback 200',
             'ipv6 enable',
-			'ipv6 address __var_converted_ipv4__',
+			('ipv6 address ', {'variable':'converted_ipv4'}, '/128'),
             'isis ipv6 enable 5511',
 			'commit',
             'quit',
@@ -141,6 +141,7 @@ CMD_VRP = [
 CMD_LINUX = [
             'hostname',
             ('echo ', {'variable':'last_output'}),
+            ('echo ', {'variable':'notexistent'},{'if_output_is_void':'exit'}),
             'free -m'
             ]
 ###############################################################################
@@ -225,12 +226,15 @@ def parse_json_file_and_get_oti_routers_list():
     return oti_routers
 
 
-def run_remote_and_local_commands(CMD, logfilename):
+def run_remote_and_local_commands(CMD, logfilename = None):
     ssh_connection = None
     try:
         ssh_connection = netmiko.ConnectHandler(device_type = router_type, \
             ip = DEVICE_HOST, port = int(DEVICE_PORT), \
             username = USERNAME, password = PASSWORD)
+        if not logfilename:
+            if 'LINUX' in platform.system().upper(): logfilename = '/dev/null'
+            else: logfilename = 'nul'
         with open(logfilename,"w") as fp:
             dictionary_of_pseudovariables = {}
             for cli_items in CMD:
@@ -252,10 +256,10 @@ def run_remote_and_local_commands(CMD, logfilename):
                     for cli_item in cli_items:
                         if isinstance(cli_item, dict) and \
                             last_output.strip() == str() and \
-                            cli_items.get('if_output_is_void','') in ['exit','quit','stop']:
+                            cli_item.get('if_output_is_void','') in ['exit','quit','stop']:
                             print("%sSTOP (VOID OUTPUT).%s" % \
                                 (bcolors.RED,bcolors.ENDC))
-                            break;
+                            return None
                 # HACK: use dictionary for running local python code functions
                 elif isinstance(cli_items, dict):
                     if cli_items.get('call_function',''):
@@ -271,7 +275,7 @@ def run_remote_and_local_commands(CMD, logfilename):
                             cli_items.get('if_output_is_void') in ['exit','quit','stop']:
                             print("%sSTOP (VOID LOCAL OUTPUT).%s" % \
                                 (bcolors.RED,bcolors.ENDC))
-                            break;
+                            return None
                     elif cli_items.get('local_command',''):
                         local_process = cli_items.get('local_command','')
                         local_input = dictionary_of_pseudovariables.get('input','')
@@ -285,7 +289,7 @@ def run_remote_and_local_commands(CMD, logfilename):
                             cli_items.get('if_output_is_void') in ['exit','quit','stop']:
                             print("%sSTOP (VOID LOCAL OUTPUT).%s" % \
                                 (bcolors.RED,bcolors.ENDC))
-                            break;
+                            return None
                 else: print('%sUNSUPPORTED_TYPE %s of %s!%s' % \
                             (bcolors.MAGENTA,type(item),str(cli_items),bcolors.ENDC))
     except () as e:
@@ -293,7 +297,7 @@ def run_remote_and_local_commands(CMD, logfilename):
         sys.exit()
     finally:
         if ssh_connection: ssh_connection.disconnect()
-
+    return None
 
 
 
@@ -384,10 +388,7 @@ for device in device_list:
         logfilename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s-%s-%s" % \
             (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,\
             now.second,script_name.replace('.py',''),USERNAME,filename_suffix)
-
-        if args.nolog:
-            if 'LINUX' in platform.system().upper(): logfilename = '/dev/null'
-            else: logfilename = 'nul'
+        if args.nolog: logfilename = None
 
         ######## Find command list file (optional)
         list_cmd = []
@@ -414,7 +415,8 @@ for device in device_list:
 
         run_remote_and_local_commands(CMD, logfilename)
 
-        if os.path.exists(logfilename): print('%s file created.'%logfilename)
+        if logfilename and os.path.exists(logfilename):
+            print('%s file created.' % (logfilename))
         print('\nDEVICE %s DONE.'%(device))
 print('\nEND.')
 
