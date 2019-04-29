@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import sys, os, io, paramiko, json
+import sys, os, io, paramiko, json , platform
 import getopt
 import getpass
 import telnetlib
@@ -61,14 +61,18 @@ HELP             = "\nTry ' --help' for more information\n"
 
 UNKNOW_HOST     = 'Name or service not known'
 TIMEOUT         = 60
-try:    HOMEDIR         = os.environ['HOME']
-except: HOMEDIR         = str(os.path.dirname(os.path.abspath(__file__)))
+
+script_name             = sys.argv[0]
+try:    WORKDIR         = os.environ['HOME']
+except: WORKDIR         = str(os.path.dirname(os.path.abspath(__file__)))
+if WORKDIR: LOGDIR      = os.path.join(WORKDIR,'logs')
+
 try:    PASSWORD        = os.environ['NEWR_PASS']
 except: PASSWORD        = str()
 try:    USERNAME        = os.environ['NEWR_USER']
 except: USERNAME        = str()
 
-print('HOMEDIR/WORKDIR: '+HOMEDIR)
+print('LOGDIR: ' + LOGDIR)
 
 set_ipv6line = str()
 converted_ipv4 = str()
@@ -165,14 +169,14 @@ def detect_router_by_ssh(device, debug = False):
     client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-    try: PARAMIKO_HOST = device.split(':')[0]
-    except: PARAMIKO_HOST = str()
-    try: PARAMIKO_PORT = device.split(':')[1]
-    except: PARAMIKO_PORT = '22'
+    try: DEVICE_HOST = device.split(':')[0]
+    except: DEVICE_HOST = str()
+    try: DEVICE_PORT = device.split(':')[1]
+    except: DEVICE_PORT = '22'
 
     try:
         #connect(self, hostname, port=22, username=None, password=None, pkey=None, key_filename=None, timeout=None, allow_agent=True, look_for_keys=True, compress=False)
-        client.connect(PARAMIKO_HOST, port=int(PARAMIKO_PORT), username=USERNAME, password=PASSWORD)
+        client.connect(DEVICE_HOST, port=int(DEVICE_PORT), username=USERNAME, password=PASSWORD)
         chan = client.invoke_shell()
         chan.settimeout(TIMEOUT)
         # prevent --More-- in log banner (space=page, enter=1line,tab=esc)
@@ -273,6 +277,116 @@ def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True)
                     if (timeout_counter2) > 5*10: exit_loop2 = True; break
     return output, new_prompt
 
+
+def parse_json_file_and_get_oti_routers_list():
+    oti_routers, json_raw_data = [], str()
+    json_filename = '/usr/local/iptac/oti_all.pl'
+    with io.open(json_filename,'r') as json_file:
+        data = json_file.read()
+        data_converted = data.split('%oti_all =')[1].replace("'",'"')\
+            .replace('=>',':').replace('(','{').replace(')','}').replace(';','')
+        data_converted='{\n  "OTI_ALL" : ' + data_converted + '\n}'
+        json_raw_data = json.loads(data_converted)
+    if json_raw_data:
+        for router in json_raw_data['OTI_ALL']:
+            if '172.25.4' in json_raw_data['OTI_ALL'][router]['LSRID']: oti_routers.append(router)
+    return oti_routers
+
+
+def run_remote_and_local_commands(CMD, logfilename = None, printall = None, printcmdtologfile = None):
+    ssh_connection, output= None, None
+    try:
+        try: ssh_connection = netmiko.ConnectHandler(device_type = router_type, \
+                 ip = DEVICE_HOST, port = int(DEVICE_PORT), \
+                 username = USERNAME, password = PASSWORD)
+        except:
+            global DEVICE_PROMPTS
+            client = paramiko.SSHClient()
+            client.load_system_host_keys()
+            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            client.connect(DEVICE_HOST, port=int(DEVICE_PORT), \
+                           username=USERNAME, password=PASSWORD)
+            chan = client.invoke_shell()
+            chan.settimeout(TIMEOUT)
+            output, forget_it = ssh_send_command_and_read_output(chan,DEVICE_PROMPTS,TERM_LEN_0)
+            output2, forget_it = ssh_send_command_and_read_output(chan,DEVICE_PROMPTS,"")
+            output += output2
+
+        if not logfilename:
+            if 'LINUX' in platform.system().upper(): logfilename = '/dev/null'
+            else: logfilename = 'nul'
+        with open(logfilename,"w") as fp:
+            if output and not printcmdtologfile: fp.write(output)
+            dictionary_of_pseudovariables = {}
+            for cli_items in CMD:
+                cli_line = str()
+                # list,tupple,strins are remote device commands
+                if isinstance(cli_items, six.string_types) or \
+                    isinstance(cli_items, list) or isinstance(cli_items, tuple):
+                    if isinstance(cli_items, six.string_types): cli_line = cli_items
+                    if isinstance(cli_items, list) or isinstance(cli_items, tuple):
+                        for cli_item in cli_items:
+                           if isinstance(cli_item, dict): cli_line += dictionary_of_pseudovariables.get(cli_item.get('variable',''),'')
+                           else: cli_line += cli_item
+                    print(bcolors.GREEN + "COMMAND: %s" % (cli_line) + bcolors.ENDC )
+                    try: last_output = ssh_connection.send_command(cli_line)
+                    except:
+                        last_output, new_prompt = ssh_send_command_and_read_output(chan,DEVICE_PROMPTS,cli_line)
+                        if new_prompt: DEVICE_PROMPTS.append(new_prompt)
+                    last_output = last_output.replace('\x0d','')
+                    if printall: print(bcolors.GREY + "%s" % (last_output) + bcolors.ENDC )
+                    if printcmdtologfile: fp.write('COMMAND: ' + cli_line + '\n'+last_output+'\n')
+                    else: fp.write(last_output)
+                    dictionary_of_pseudovariables['last_output'] = last_output.rstrip()
+                    for cli_item in cli_items:
+                        if isinstance(cli_item, dict) and \
+                            last_output.strip() == str() and \
+                            cli_item.get('if_output_is_void','') in ['exit','quit','stop']:
+                            if printall: print("%sSTOP (VOID OUTPUT).%s" % \
+                                (bcolors.RED,bcolors.ENDC))
+                            return None
+                # HACK: use dictionary for running local python code functions
+                elif isinstance(cli_items, dict):
+                    if cli_items.get('call_function',''):
+                        local_function = cli_items.get('call_function','')
+                        local_input = dictionary_of_pseudovariables.get('input','')
+                        output_to_pseudovariable = dictionary_of_pseudovariables.get('output','')
+                        local_output = locals()[local_function](local_input)
+                        if output_to_pseudovariable:
+                            dictionary_of_pseudovariables[output_to_pseudovariable] = local_output
+                        if printall: print("%sCALL_LOCAL_FUNCTION: %s'%s' = %s(%s)\n%s" % \
+                            (bcolors.GREEN,bcolors.YELLOW,local_output,local_function,local_input,bcolors.ENDC))
+                        if local_output.strip() == str() and \
+                            cli_items.get('if_output_is_void') in ['exit','quit','stop']:
+                            if printall: print("%sSTOP (VOID LOCAL OUTPUT).%s" % \
+                                (bcolors.RED,bcolors.ENDC))
+                            return None
+                    elif cli_items.get('local_command',''):
+                        local_process = cli_items.get('local_command','')
+                        local_input = dictionary_of_pseudovariables.get('input','')
+                        output_to_pseudovariable = dictionary_of_pseudovariables.get('output','')
+                        local_output = subprocess.call(local_process+' '+local_input if local_input else local_process, shell=True)
+                        if output_to_pseudovariable:
+                            dictionary_of_pseudovariables[output_to_pseudovariable] = local_output
+                        if printall: print("%sLOCAL_COMMAND: %s'%s' = %s(%s)\n%s" % \
+                            (bcolors.GREEN,bcolors.YELLOW,local_output,local_function,local_input,bcolors.ENDC))
+                        if local_output.strip() == str() and \
+                            cli_items.get('if_output_is_void') in ['exit','quit','stop']:
+                            if printall: print("%sSTOP (VOID LOCAL OUTPUT).%s" % \
+                                (bcolors.RED,bcolors.ENDC))
+                            return None
+                elif printall: print('%sUNSUPPORTED_TYPE %s of %s!%s' % \
+                            (bcolors.MAGENTA,type(item),str(cli_items),bcolors.ENDC))
+    except () as e:
+        print(bcolors.FAIL + " ... EXCEPTION: (%s)" % (e) + bcolors.ENDC )
+        sys.exit()
+    finally:
+        try:
+            if ssh_connection: ssh_connection.disconnect()
+        except: client.close()
+    return None
+
+
 ##############################################################################
 #
 # BEGIN MAIN
@@ -307,13 +421,21 @@ parser.add_argument("--pass",
 parser.add_argument("--nocolors",
                     action = 'store_true', dest = "nocolors", default = False,
                     help = "print mode with no colors.")
+parser.add_argument("--nolog",
+                    action = 'store_true', dest = "nolog", default = None,
+                    help = "no logging to file.")
 parser.add_argument("--rcmd",
                     action = "store", dest = 'rcommand', default = str(),
                     help = "'command' or ['list of commands',...] to run on remote device")
+parser.add_argument("--alloti",
+                    action = 'store_true', dest = "alloti", default = None,
+                    help = "do action on all oti routers")
 args = parser.parse_args()
 
 if args.nocolors: bcolors = nocolors
-device_list = [args.device]
+
+if args.alloti: device_list = parse_json_file_and_get_oti_routers_list()
+else: device_list = [args.device]
 
 ####### Set USERNAME if needed
 if args.username: USERNAME = args.username
@@ -329,12 +451,12 @@ if not PASSWORD:
 for device in device_list:
     if device:
         router_prompt = None
-        try: PARAMIKO_HOST = device.split(':')[0]
-        except: PARAMIKO_HOST = str()
-        try: PARAMIKO_PORT = device.split(':')[1]
-        except: PARAMIKO_PORT = '22'
+        try: DEVICE_HOST = device.split(':')[0]
+        except: DEVICE_HOST = str()
+        try: DEVICE_PORT = device.split(':')[1]
+        except: DEVICE_PORT = '22'
         print('\nDEVICE %s (host=%s, port=%s) START.........................'\
-            %(device,PARAMIKO_HOST, PARAMIKO_PORT))
+            %(device,DEVICE_HOST, DEVICE_PORT))
 
         ####### Figure out type of router OS
         if not args.router_type:
@@ -345,12 +467,14 @@ for device in device_list:
             print('FORCED ROUTER_TYPE: ' + router_type)
 
         ######## Create logs directory if not existing  #########
-        if not os.path.exists(os.path.join(HOMEDIR,'logs')): os.makedirs(os.path.join(HOMEDIR,'logs'))
-        filename_prefix = os.path.join(HOMEDIR,'logs',device)
+        if not os.path.exists(LOGDIR): os.makedirs(LOGDIR)
+        filename_prefix = os.path.join(LOGDIR,device)
         filename_suffix = 'log'
         now = datetime.datetime.now()
-        filename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s" % \
-            (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,now.second,filename_suffix)
+        logfilename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s-%s-%s" % \
+            (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,\
+            now.second,script_name.replace('.py',''),USERNAME,filename_suffix)
+        if args.nolog: logfilename = None
 
         ######## Find command list file (optional)
         list_cmd, line_list= [], []
@@ -416,54 +540,10 @@ for device in device_list:
         # ADD PROMPT TO PROMPTS LIST
         if router_prompt: DEVICE_PROMPTS.append(router_prompt)
 
-        print(" ... Connecting (SSH) to %s" % device)
-        client = paramiko.SSHClient()
-        client.load_system_host_keys()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        run_remote_and_local_commands(CMD, logfilename , printall = True)
 
-        try:
-            client.connect(PARAMIKO_HOST, port=int(PARAMIKO_PORT), \
-                           username=USERNAME, password=PASSWORD)
-            chan = client.invoke_shell()
-            chan.settimeout(TIMEOUT)
-            output, forget_it = ssh_send_command_and_read_output(chan,DEVICE_PROMPTS,TERM_LEN_0)
-            output2, forget_it = ssh_send_command_and_read_output(chan,DEVICE_PROMPTS,"")
-            output += output2
-            with open(filename,"w") as fp:
-                fp.write(output)
-                for cli_items in CMD:
-                    try:
-                        item = cli_items[0] if type(cli_items) == list or type(cli_items) == tuple else cli_items
-                        # py2to3 compatible test if type == string
-                        if isinstance(item, six.string_types):
-                            fp.write('COMMAND: %s\n'%(item))
-                            output, new_prompt = ssh_send_command_and_read_output(chan,DEVICE_PROMPTS,item)
-                            if new_prompt: DEVICE_PROMPTS.append(new_prompt)
-                            fp.write(output+'\n')
-
-                        # hack: use dictionary for running local python code functions
-                        elif isinstance(item, dict):
-                            try:
-                                local_function = item.get('call_function','')
-                                local_outout = locals()[local_function](output)
-                                print("%sCALL_LOCAL_FUNCTION: %s'%s' = %s(output)\n%s" % \
-                                    (bcolors.GREEN,bcolors.YELLOW,local_outout,local_function,bcolors.ENDC))
-                                if local_outout == str() and \
-                                    item.get('if_void_local_output') == 'stop':
-                                    print("%sSTOP (VOID LOCAL OUTPUT).%s" % \
-                                    (bcolors.RED,bcolors.ENDC))
-                                    break;
-                            except: local_outout = str()
-                        else:
-                            print('%sUNSUPPORTED_TYPE %s of %s!%s' % \
-                                (bcolors.MAGENTA,type(item),item,bcolors.ENDC))
-                    except: pass
-
-        except (socket.timeout, paramiko.AuthenticationException) as e:
-            print(bcolors.FAIL + " ... Connection closed. %s " % (e) + bcolors.ENDC )
-            sys.exit()
-        finally: client.close()
-        if os.path.exists(filename): print('%s file created.'%filename)
+        if logfilename and os.path.exists(logfilename):
+            print('%s file created.' % (logfilename))
         print('\nDEVICE %s DONE.'%(device))
 print('\nEND.')
 
