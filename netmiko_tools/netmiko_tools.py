@@ -56,18 +56,20 @@ class nocolors:
 
 TODAY            = datetime.datetime.now()
 VERSION          = str(TODAY.year)[2:] + '.' + str(TODAY.month) + '.' + str(TODAY.day)
-HELP             = "\nTry ' --help' for more information\n"
+script_name      = sys.argv[0]
 
-UNKNOW_HOST     = 'Name or service not known'
-TIMEOUT         = 60
-try:    HOMEDIR         = os.environ['HOME']
-except: HOMEDIR         = str(os.path.dirname(os.path.abspath(__file__)))
+KNOWN_OS_TYPES = ['cisco_xr', 'cisco_ios', 'juniper', 'juniper_junos', 'huawei' ,'linux']
+
+try:    WORKDIR         = os.environ['HOME']
+except: WORKDIR         = str(os.path.dirname(os.path.abspath(__file__)))
+if WORKDIR: LOGDIR      = os.path.join(WORKDIR,'logs')
+
 try:    PASSWORD        = os.environ['NEWR_PASS']
 except: PASSWORD        = str()
 try:    USERNAME        = os.environ['NEWR_USER']
 except: USERNAME        = str()
 
-print('HOMEDIR/WORKDIR: ' + HOMEDIR)
+print('LOGDIR: ' + LOGDIR)
 
 ###############################################################################
 #
@@ -108,13 +110,14 @@ CMD_LINUX = [
 #
 ###############################################################################
 
-def netmiko_autodetect(device, debug = False):
+def netmiko_autodetect(device, debug = None):
     router_os = str()
     try: DEVICE_HOST = device.split(':')[0]
     except: DEVICE_HOST = str()
     try: DEVICE_PORT = device.split(':')[1]
     except: DEVICE_PORT = '22'
-    guesser = netmiko.ssh_autodetect.SSHDetect(device_type='autodetect', ip=DEVICE_HOST, port=int(DEVICE_PORT), username=USERNAME, password=PASSWORD)
+    guesser = netmiko.ssh_autodetect.SSHDetect(device_type='autodetect', \
+        ip=DEVICE_HOST, port=int(DEVICE_PORT), username=USERNAME, password=PASSWORD)
     best_match = guesser.autodetect()
     if debug:
         print('BEST_MATCH: %s\nPOTENTIAL_MATCHES:' %(best_match))
@@ -134,7 +137,7 @@ if __name__ != "__main__": sys.exit(0)
 ######## Parse program arguments #########
 parser = argparse.ArgumentParser(
                 description = "",
-                epilog = "e.g: \n")
+                epilog = "e.g: \n" )
 
 parser.add_argument("--version",
                     action = 'version', version = VERSION)
@@ -144,7 +147,7 @@ parser.add_argument("--device",
                     help = "target router to check")
 parser.add_argument("--os",
                     action = "store", dest="router_type",
-                    choices = ['cisco_xr', 'cisco_ios', 'juniper', 'juniper_junos', 'huawei' ,'linux'],
+                    choices = KNOWN_OS_TYPES,
                     help = "router operating system type")
 parser.add_argument("--cmdfile", action = 'store', dest = "cmd_file", default = None,
                     help = "specify a file with a list of commands to execute")
@@ -155,7 +158,7 @@ parser.add_argument("--pass",
                     action = "store", dest = 'password', default = str(),
                     help = "specify router user password")
 parser.add_argument("--nocolors",
-                    action = 'store_true', dest = "nocolors", default = False,
+                    action = 'store_true', dest = "nocolors", default = None,
                     help = "print mode with no colors.")
 parser.add_argument("--rcmd",
                     action = "store", dest = 'rcommand', default = str(),
@@ -164,6 +167,7 @@ args = parser.parse_args()
 
 if args.nocolors: bcolors = nocolors
 device_list = [args.device]
+
 
 ####### Set USERNAME if needed
 if args.username: USERNAME = args.username
@@ -183,43 +187,45 @@ for device in device_list:
         except: DEVICE_HOST = str()
         try: DEVICE_PORT = device.split(':')[1]
         except: DEVICE_PORT = '22'
-        print('\nDEVICE %s (host=%s, port=%s) START.........................'\
+        print('DEVICE %s (host=%s, port=%s) START.........................'\
             %(device,DEVICE_HOST, DEVICE_PORT))
 
         ####### Figure out type of router OS
         if not args.router_type:
-            #router_type , router_prompt = detect_router_by_ssh(device,debug = False)
-            router_type = netmiko_autodetect(device,debug = False)
-            print('DETECTED ROUTER_TYPE: %s' % (router_type))
+            router_type = netmiko_autodetect(device)
+            if not router_type in KNOWN_OS_TYPES:
+                print('%sUNSUPPORTED DEVICE TYPE: %s , BREAK!%s' % \
+                    (bcolors. MAGENTA,router_type, bcolors.ENDC))
+            else: print('DETECTED DEVICE_TYPE: %s' % (router_type))
         else:
             router_type = args.router_type
-            print('FORCED ROUTER_TYPE: ' + router_type)
+            print('FORCED DEVICE_TYPE: ' + router_type)
 
         ######## Create logs directory if not existing  #########
-        if not os.path.exists(os.path.join(HOMEDIR,'logs')): os.makedirs(os.path.join(HOMEDIR,'logs'))
-        filename_prefix = os.path.join(HOMEDIR,'logs',device)
+        if not os.path.exists(LOGDIR): os.makedirs(LOGDIR)
+        filename_prefix = os.path.join(LOGDIR,device)
         filename_suffix = 'log'
         now = datetime.datetime.now()
-        filename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s" % \
-            (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,now.second,filename_suffix)
+        filename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s-%s-%s" % \
+            (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,\
+            now.second,script_name.replace('.py',''),USERNAME,filename_suffix)
 
         ######## Find command list file (optional)
-        list_cmd, line_list= [], []
+        list_cmd = []
         if args.cmd_file:
             if not os.path.isfile(args.cmd_file):
-                print(bcolors.MAGENTA + " ... Can't find command file: %s " + bcolors.ENDC) \
-                        % args.cmd_file
+                print("%s ... Can't find command file: %s%s") % \
+                    (bcolors.MAGENTA, args.cmd_file, bcolors.ENDC)
                 sys.exit()
             else:
                 with open(args.cmd_file) as cmdf:
                     list_cmd = cmdf.read().replace('\x0d','').splitlines()
 
-        if args.rcommand: list_cmd = args.rcommand.replace('\'','').replace('"','').replace('[','').replace(']','').split(',')
+        if args.rcommand: list_cmd = args.rcommand.replace('\'','').\
+            replace('"','').replace('[','').replace(']','').split(',')
 
-        if len(list_cmd)>0:
-            CMD = list_cmd
+        if len(list_cmd)>0: CMD = list_cmd
         else:
-            # Collect pre/post check information
             if router_type == 'cisco_ios':  CMD = CMD_IOS_XE
             elif router_type == 'cisco_xr': CMD = CMD_IOS_XR
             elif router_type == 'juniper':  CMD = CMD_JUNOS
@@ -229,12 +235,15 @@ for device in device_list:
 
         ssh_connection = None
         try:
-            ssh_connection = netmiko.ConnectHandler(device_type=router_type, ip=DEVICE_HOST,\
-                port=int(DEVICE_PORT), username=USERNAME, password=PASSWORD)
+            ssh_connection = netmiko.ConnectHandler(device_type = router_type, \
+                ip = DEVICE_HOST, port = int(DEVICE_PORT), \
+                username = USERNAME, password = PASSWORD)
             with open(filename,"w") as fp:
                 for cli_items in CMD:
                     try:
                         item = cli_items[0] if type(cli_items) == list or type(cli_items) == tuple else cli_items
+#                         if type(cli_items) == list or type(cli_items) == tuple:
+#                             item = ' '.join(cli_items)
                         print(bcolors.GREEN + "COMMAND: %s" % (item) + bcolors.ENDC )
                         output = ssh_connection.send_command(item)
                         print(bcolors.GREY + "%s" % (output) + bcolors.ENDC )
