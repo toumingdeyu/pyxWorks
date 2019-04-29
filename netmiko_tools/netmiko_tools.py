@@ -144,7 +144,7 @@ parser.add_argument("--device",
                     help = "target router to check")
 parser.add_argument("--os",
                     action = "store", dest="router_type",
-                    choices = ['cisco_xr', 'cisco_xe', 'juniper', 'juniper_junos', 'huawei' ,'linux'],
+                    choices = ['cisco_xr', 'cisco_ios', 'juniper', 'juniper_junos', 'huawei' ,'linux'],
                     help = "router operating system type")
 parser.add_argument("--cmdfile", action = 'store', dest = "cmd_file", default = None,
                     help = "specify a file with a list of commands to execute")
