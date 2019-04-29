@@ -340,10 +340,15 @@ parser.add_argument("--nolog",
 parser.add_argument("--rcmd",
                     action = "store", dest = 'rcommand', default = str(),
                     help = "'command' or ['list of commands',...] to run on remote device")
+parser.add_argument("--alloti",
+                    action = 'store_true', dest = "alloti", default = None,
+                    help = "do action on all oti routers")
 args = parser.parse_args()
 
 if args.nocolors: bcolors = nocolors
-device_list = [args.device]
+
+if args.alloti: device_list = parse_json_file_and_get_oti_routers_list()
+else: device_list = [args.device]
 
 
 ####### Set USERNAME if needed
