@@ -112,7 +112,7 @@ CMD_JUNOS = [
             'show configuration interfaces lo0 | match /128',
             {'call_function': 'stop_if_two_ipv6_found', 'if_output_is_void':'exit'},
             'show configuration interfaces lo0 | display set | match 128',
-            {'call_function': 'parse_whole_set_line_from_text', 'if_output_is_void':'exit'},
+            #{'call_function': 'parse_whole_set_line_from_text', 'if_output_is_void':'exit'},
 			'show configuration interfaces lo0 | match 172.25.4',
             {'call_function': 'parse_ipv4_from_text','input':'last_output', 'output':'converted_ipv4','if_output_is_void':'exit'},
              'configure private',
@@ -183,7 +183,6 @@ def ipv4_to_ipv6_obs(ipv4address):
     return ip4to6, ip6to4
 
 def parse_ipv4_from_text(text):
-    #global converted_ipv4
     try: ipv4 = text.split('address')[1].split()[0].replace(';','')
     except: ipv4 = str()
     converted_ipv4 = ipv4_to_ipv6_obs(ipv4)[0]
@@ -204,7 +203,6 @@ def stop_if_two_ipv6_found(text):
     else: return "NOT_FOUND"
 
 def parse_whole_set_line_from_text(text):
-    #global set_ipv6line
     try: set_text = text.split('set')[1].split('\n')[0]
     except: set_text = str()
     if set_text: set_ipv6line = 'set' + set_text + ' primary\n'
