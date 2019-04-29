@@ -110,11 +110,11 @@ CMD_LINUX = [
 
 def netmiko_autodetect(device, debug = False):
     router_os = str()
-    try: PARAMIKO_HOST = device.split(':')[0]
-    except: PARAMIKO_HOST = str()
-    try: PARAMIKO_PORT = device.split(':')[1]
-    except: PARAMIKO_PORT = '22'
-    guesser = netmiko.ssh_autodetect.SSHDetect(device_type='autodetect', ip=PARAMIKO_HOST, port=int(PARAMIKO_PORT), username=USERNAME, password=PASSWORD)
+    try: DEVICE_HOST = device.split(':')[0]
+    except: DEVICE_HOST = str()
+    try: DEVICE_PORT = device.split(':')[1]
+    except: DEVICE_PORT = '22'
+    guesser = netmiko.ssh_autodetect.SSHDetect(device_type='autodetect', ip=DEVICE_HOST, port=int(DEVICE_PORT), username=USERNAME, password=PASSWORD)
     best_match = guesser.autodetect()
     if debug:
         print('BEST_MATCH: %s\nPOTENTIAL_MATCHES:' %(best_match))
@@ -179,12 +179,12 @@ if not PASSWORD:
 for device in device_list:
     if device:
         router_prompt = None
-        try: PARAMIKO_HOST = device.split(':')[0]
-        except: PARAMIKO_HOST = str()
-        try: PARAMIKO_PORT = device.split(':')[1]
-        except: PARAMIKO_PORT = '22'
+        try: DEVICE_HOST = device.split(':')[0]
+        except: DEVICE_HOST = str()
+        try: DEVICE_PORT = device.split(':')[1]
+        except: DEVICE_PORT = '22'
         print('\nDEVICE %s (host=%s, port=%s) START.........................'\
-            %(device,PARAMIKO_HOST, PARAMIKO_PORT))
+            %(device,DEVICE_HOST, DEVICE_PORT))
 
         ####### Figure out type of router OS
         if not args.router_type:
@@ -229,8 +229,8 @@ for device in device_list:
 
         ssh_connection = None
         try:
-            ssh_connection = netmiko.ConnectHandler(device_type=router_type, ip=PARAMIKO_HOST,\
-                port=int(PARAMIKO_PORT), username=USERNAME, password=PASSWORD)
+            ssh_connection = netmiko.ConnectHandler(device_type=router_type, ip=DEVICE_HOST,\
+                port=int(DEVICE_PORT), username=USERNAME, password=PASSWORD)
             with open(filename,"w") as fp:
                 for cli_items in CMD:
                     try:
