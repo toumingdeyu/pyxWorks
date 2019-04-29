@@ -224,7 +224,7 @@ def parse_json_file_and_get_oti_routers_list():
     return oti_routers
 
 
-def run_remote_and_local_commands(CMD, logfilename = None):
+def run_remote_and_local_commands(CMD, logfilename = None, printall = None):
     ssh_connection = None
     try:
         ssh_connection = netmiko.ConnectHandler(device_type = router_type, \
@@ -248,14 +248,14 @@ def run_remote_and_local_commands(CMD, logfilename = None):
                     print(bcolors.GREEN + "COMMAND: %s" % (cli_line) + bcolors.ENDC )
                     last_output = ssh_connection.send_command(cli_line)
                     last_output = last_output.replace('\x0d','')
-                    print(bcolors.GREY + "%s" % (last_output) + bcolors.ENDC )
+                    if printall: print(bcolors.GREY + "%s" % (last_output) + bcolors.ENDC )
                     fp.write('COMMAND: ' + cli_line + '\n'+last_output+'\n')
                     dictionary_of_pseudovariables['last_output'] = last_output.rstrip()
                     for cli_item in cli_items:
                         if isinstance(cli_item, dict) and \
                             last_output.strip() == str() and \
                             cli_item.get('if_output_is_void','') in ['exit','quit','stop']:
-                            print("%sSTOP (VOID OUTPUT).%s" % \
+                            if printall: print("%sSTOP (VOID OUTPUT).%s" % \
                                 (bcolors.RED,bcolors.ENDC))
                             return None
                 # HACK: use dictionary for running local python code functions
@@ -267,11 +267,11 @@ def run_remote_and_local_commands(CMD, logfilename = None):
                         local_output = locals()[local_function](local_input)
                         if output_to_pseudovariable:
                             dictionary_of_pseudovariables[output_to_pseudovariable] = local_output
-                        print("%sCALL_LOCAL_FUNCTION: %s'%s' = %s(%s)\n%s" % \
+                        if printall: print("%sCALL_LOCAL_FUNCTION: %s'%s' = %s(%s)\n%s" % \
                             (bcolors.GREEN,bcolors.YELLOW,local_output,local_function,local_input,bcolors.ENDC))
                         if local_output.strip() == str() and \
                             cli_items.get('if_output_is_void') in ['exit','quit','stop']:
-                            print("%sSTOP (VOID LOCAL OUTPUT).%s" % \
+                            if printall: print("%sSTOP (VOID LOCAL OUTPUT).%s" % \
                                 (bcolors.RED,bcolors.ENDC))
                             return None
                     elif cli_items.get('local_command',''):
@@ -281,14 +281,14 @@ def run_remote_and_local_commands(CMD, logfilename = None):
                         local_output = subprocess.call(local_process+' '+local_input if local_input else local_process, shell=True)
                         if output_to_pseudovariable:
                             dictionary_of_pseudovariables[output_to_pseudovariable] = local_output
-                        print("%sLOCAL_COMMAND: %s'%s' = %s(%s)\n%s" % \
+                        if printall: print("%sLOCAL_COMMAND: %s'%s' = %s(%s)\n%s" % \
                             (bcolors.GREEN,bcolors.YELLOW,local_output,local_function,local_input,bcolors.ENDC))
                         if local_output.strip() == str() and \
                             cli_items.get('if_output_is_void') in ['exit','quit','stop']:
-                            print("%sSTOP (VOID LOCAL OUTPUT).%s" % \
+                            if printall: print("%sSTOP (VOID LOCAL OUTPUT).%s" % \
                                 (bcolors.RED,bcolors.ENDC))
                             return None
-                else: print('%sUNSUPPORTED_TYPE %s of %s!%s' % \
+                elif printall: print('%sUNSUPPORTED_TYPE %s of %s!%s' % \
                             (bcolors.MAGENTA,type(item),str(cli_items),bcolors.ENDC))
     except () as e:
         print(bcolors.FAIL + " ... EXCEPTION: (%s)" % (e) + bcolors.ENDC )
@@ -411,7 +411,7 @@ for device in device_list:
             elif router_type == 'linux':    CMD = CMD_LINUX
             else: CMD = list_cmd
 
-        run_remote_and_local_commands(CMD, logfilename)
+        run_remote_and_local_commands(CMD, logfilename, printall=True)
 
         if logfilename and os.path.exists(logfilename):
             print('%s file created.' % (logfilename))
