@@ -162,7 +162,7 @@ parser.add_argument("--nocolors",
                     help = "print mode with no colors.")
 parser.add_argument("--rcmd",
                     action = "store", dest = 'rcommand', default = str(),
-                    help = "command to run on remote device")
+                    help = "'command' or ['list of commands',...] to run on remote device")
 args = parser.parse_args()
 
 if args.nocolors: bcolors = nocolors
