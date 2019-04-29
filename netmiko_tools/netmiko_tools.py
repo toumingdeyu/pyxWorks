@@ -181,16 +181,30 @@ def parse_json_file_and_get_oti_routers_list():
     return oti_routers
 
 
-def run_remote_and_local_commands(CMD, logfilename = None, printall = None):
-    ssh_connection = None
+def run_remote_and_local_commands(CMD, logfilename = None, printall = None, printcmdtologfile = None):
+    ssh_connection, output= None, None
     try:
-        ssh_connection = netmiko.ConnectHandler(device_type = router_type, \
-            ip = DEVICE_HOST, port = int(DEVICE_PORT), \
-            username = USERNAME, password = PASSWORD)
+        try: ssh_connection = netmiko.ConnectHandler(device_type = router_type, \
+                 ip = DEVICE_HOST, port = int(DEVICE_PORT), \
+                 username = USERNAME, password = PASSWORD)
+        except:
+            global DEVICE_PROMPTS
+            client = paramiko.SSHClient()
+            client.load_system_host_keys()
+            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            client.connect(DEVICE_HOST, port=int(DEVICE_PORT), \
+                           username=USERNAME, password=PASSWORD)
+            chan = client.invoke_shell()
+            chan.settimeout(TIMEOUT)
+            output, forget_it = ssh_send_command_and_read_output(chan,DEVICE_PROMPTS,TERM_LEN_0)
+            output2, forget_it = ssh_send_command_and_read_output(chan,DEVICE_PROMPTS,"")
+            output += output2
+
         if not logfilename:
             if 'LINUX' in platform.system().upper(): logfilename = '/dev/null'
             else: logfilename = 'nul'
         with open(logfilename,"w") as fp:
+            if output and not printcmdtologfile: fp.write(output)
             dictionary_of_pseudovariables = {}
             for cli_items in CMD:
                 cli_line = str()
@@ -203,10 +217,14 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None):
                            if isinstance(cli_item, dict): cli_line += dictionary_of_pseudovariables.get(cli_item.get('variable',''),'')
                            else: cli_line += cli_item
                     print(bcolors.GREEN + "COMMAND: %s" % (cli_line) + bcolors.ENDC )
-                    last_output = ssh_connection.send_command(cli_line)
+                    try: last_output = ssh_connection.send_command(cli_line)
+                    except:
+                        last_output, new_prompt = ssh_send_command_and_read_output(chan,DEVICE_PROMPTS,cli_line)
+                        if new_prompt: DEVICE_PROMPTS.append(new_prompt)
                     last_output = last_output.replace('\x0d','')
                     if printall: print(bcolors.GREY + "%s" % (last_output) + bcolors.ENDC )
-                    fp.write('COMMAND: ' + cli_line + '\n'+last_output+'\n')
+                    if printcmdtologfile: fp.write('COMMAND: ' + cli_line + '\n'+last_output+'\n')
+                    else: fp.write(last_output)
                     dictionary_of_pseudovariables['last_output'] = last_output.rstrip()
                     for cli_item in cli_items:
                         if isinstance(cli_item, dict) and \
@@ -251,7 +269,9 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None):
         print(bcolors.FAIL + " ... EXCEPTION: (%s)" % (e) + bcolors.ENDC )
         sys.exit()
     finally:
-        if ssh_connection: ssh_connection.disconnect()
+        try:
+            if ssh_connection: ssh_connection.disconnect()
+        except: client.close()
     return None
 
 
@@ -373,7 +393,7 @@ for device in device_list:
             elif router_type == 'linux':    CMD = CMD_LINUX
             else: CMD = list_cmd
 
-        run_remote_and_local_commands(CMD, logfilename, printall=True)
+        run_remote_and_local_commands(CMD, logfilename, printall = True, printcmdtologfile = True)
 
         if logfilename and os.path.exists(logfilename):
             print('%s file created.' % (logfilename))
