@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import sys, os, io, paramiko, json
+import sys, os, io, paramiko, json, platform
 import getopt
 import getpass
 import telnetlib
@@ -80,29 +80,26 @@ print('LOGDIR: ' + LOGDIR)
 
 # IOS-XE is only for IPsec GW
 CMD_IOS_XE = [
-			'show version',
-            'show version'
-
+               'show version',
+               'show version'
               ]
 CMD_IOS_XR = [
-            'show version',
-            'show version',
-
+               'show version',
+               'show version'
              ]
 CMD_JUNOS = [
-            'show version',
-            'show version',
-
+               'show version',
+               'show version'
              ]
 CMD_VRP = [
-            'display version',
-            'display version'
+             'display version',
+             'display version'
           ]
 CMD_LINUX = [
-            'who',
-            'whoami',
-            'free -m',
-            'lspci'
+            'hostname',
+            ('echo ', {'variable':'last_output'}),
+            ('echo ', {'variable':'notexistent'},{'if_output_is_void':'exit'}),
+            'free -m'
             ]
 ###############################################################################
 #
@@ -124,6 +121,140 @@ def netmiko_autodetect(device, debug = None):
         print(guesser.potential_matches)
     router_os = best_match
     return router_os
+
+
+def ipv4_to_ipv6_obs(ipv4address):
+    ip4to6, ip6to4 = str(), str()
+    try: v4list = ipv4address.split('/')[0].split('.')
+    except: v4list = []
+    if len(v4list) == 4:
+        try:
+            if int(v4list[0])<256 and int(v4list[1])<256 and int(v4list[2])<256 \
+                and int(v4list[3])<256 and int(v4list[0])>=0 and \
+                int(v4list[1])>=0 and int(v4list[2])>=0 and int(v4list[3])>=0:
+                ip4to6 = 'fd00:0:0:5511::%02x%02x:%02x%02x' % \
+                    (int(v4list[0]),int(v4list[1]),int(v4list[2]),int(v4list[3]))
+                ip6to4 = '2002:%02x%02x:%02x%02x:0:0:0:0:0' % \
+                    (int(v4list[0]),int(v4list[1]),int(v4list[2]),int(v4list[3]))
+        except: pass
+    return ip4to6, ip6to4
+
+def parse_ipv4_from_text(text):
+    try: ipv4 = text.split('address')[1].split()[0].replace(';','')
+    except: ipv4 = str()
+    converted_ipv4 = ipv4_to_ipv6_obs(ipv4)[0]
+    return converted_ipv4
+
+def stop_if_ipv6_found(text):
+    try: ipv6 = text.split('address')[1].split()[0].replace(';','')
+    except: ipv6 = str()
+    if ipv6: return str()
+    else: return "NOT_FOUND"
+
+def stop_if_two_ipv6_found(text):
+    try: ipv6 = text.split('address')[1].split()[0].replace(';','')
+    except: ipv6 = str()
+    try: ipv6two = text.split('address')[2].split()[0].replace(';','')
+    except: ipv6two = str()
+    if ipv6 and ipv6two: return str()
+    else: return "NOT_FOUND"
+
+def parse_whole_set_line_from_text(text):
+    try: set_text = text.split('set')[1].split('\n')[0]
+    except: set_text = str()
+    if set_text: set_ipv6line = 'set' + set_text + ' primary\n'
+    else: set_ipv6line = str()
+    return set_ipv6line
+
+def parse_json_file_and_get_oti_routers_list():
+    oti_routers, json_raw_data = [], str()
+    json_filename = '/usr/local/iptac/oti_all.pl'
+    with io.open(json_filename,'r') as json_file:
+        data = json_file.read()
+        data_converted = data.split('%oti_all =')[1].replace("'",'"')\
+            .replace('=>',':').replace('(','{').replace(')','}').replace(';','')
+        data_converted='{\n  "OTI_ALL" : ' + data_converted + '\n}'
+        json_raw_data = json.loads(data_converted)
+    if json_raw_data:
+        for router in json_raw_data['OTI_ALL']:
+            if '172.25.4' in json_raw_data['OTI_ALL'][router]['LSRID']: oti_routers.append(router)
+    return oti_routers
+
+
+def run_remote_and_local_commands(CMD, logfilename = None, printall = None):
+    ssh_connection = None
+    try:
+        ssh_connection = netmiko.ConnectHandler(device_type = router_type, \
+            ip = DEVICE_HOST, port = int(DEVICE_PORT), \
+            username = USERNAME, password = PASSWORD)
+        if not logfilename:
+            if 'LINUX' in platform.system().upper(): logfilename = '/dev/null'
+            else: logfilename = 'nul'
+        with open(logfilename,"w") as fp:
+            dictionary_of_pseudovariables = {}
+            for cli_items in CMD:
+                cli_line = str()
+                # list,tupple,strins are remote device commands
+                if isinstance(cli_items, six.string_types) or \
+                    isinstance(cli_items, list) or isinstance(cli_items, tuple):
+                    if isinstance(cli_items, six.string_types): cli_line = cli_items
+                    if isinstance(cli_items, list) or isinstance(cli_items, tuple):
+                        for cli_item in cli_items:
+                           if isinstance(cli_item, dict): cli_line += dictionary_of_pseudovariables.get(cli_item.get('variable',''),'')
+                           else: cli_line += cli_item
+                    print(bcolors.GREEN + "COMMAND: %s" % (cli_line) + bcolors.ENDC )
+                    last_output = ssh_connection.send_command(cli_line)
+                    last_output = last_output.replace('\x0d','')
+                    if printall: print(bcolors.GREY + "%s" % (last_output) + bcolors.ENDC )
+                    fp.write('COMMAND: ' + cli_line + '\n'+last_output+'\n')
+                    dictionary_of_pseudovariables['last_output'] = last_output.rstrip()
+                    for cli_item in cli_items:
+                        if isinstance(cli_item, dict) and \
+                            last_output.strip() == str() and \
+                            cli_item.get('if_output_is_void','') in ['exit','quit','stop']:
+                            if printall: print("%sSTOP (VOID OUTPUT).%s" % \
+                                (bcolors.RED,bcolors.ENDC))
+                            return None
+                # HACK: use dictionary for running local python code functions
+                elif isinstance(cli_items, dict):
+                    if cli_items.get('call_function',''):
+                        local_function = cli_items.get('call_function','')
+                        local_input = dictionary_of_pseudovariables.get('input','')
+                        output_to_pseudovariable = dictionary_of_pseudovariables.get('output','')
+                        local_output = locals()[local_function](local_input)
+                        if output_to_pseudovariable:
+                            dictionary_of_pseudovariables[output_to_pseudovariable] = local_output
+                        if printall: print("%sCALL_LOCAL_FUNCTION: %s'%s' = %s(%s)\n%s" % \
+                            (bcolors.GREEN,bcolors.YELLOW,local_output,local_function,local_input,bcolors.ENDC))
+                        if local_output.strip() == str() and \
+                            cli_items.get('if_output_is_void') in ['exit','quit','stop']:
+                            if printall: print("%sSTOP (VOID LOCAL OUTPUT).%s" % \
+                                (bcolors.RED,bcolors.ENDC))
+                            return None
+                    elif cli_items.get('local_command',''):
+                        local_process = cli_items.get('local_command','')
+                        local_input = dictionary_of_pseudovariables.get('input','')
+                        output_to_pseudovariable = dictionary_of_pseudovariables.get('output','')
+                        local_output = subprocess.call(local_process+' '+local_input if local_input else local_process, shell=True)
+                        if output_to_pseudovariable:
+                            dictionary_of_pseudovariables[output_to_pseudovariable] = local_output
+                        if printall: print("%sLOCAL_COMMAND: %s'%s' = %s(%s)\n%s" % \
+                            (bcolors.GREEN,bcolors.YELLOW,local_output,local_function,local_input,bcolors.ENDC))
+                        if local_output.strip() == str() and \
+                            cli_items.get('if_output_is_void') in ['exit','quit','stop']:
+                            if printall: print("%sSTOP (VOID LOCAL OUTPUT).%s" % \
+                                (bcolors.RED,bcolors.ENDC))
+                            return None
+                elif printall: print('%sUNSUPPORTED_TYPE %s of %s!%s' % \
+                            (bcolors.MAGENTA,type(item),str(cli_items),bcolors.ENDC))
+    except () as e:
+        print(bcolors.FAIL + " ... EXCEPTION: (%s)" % (e) + bcolors.ENDC )
+        sys.exit()
+    finally:
+        if ssh_connection: ssh_connection.disconnect()
+    return None
+
+
 
 
 ##############################################################################
@@ -160,13 +291,21 @@ parser.add_argument("--pass",
 parser.add_argument("--nocolors",
                     action = 'store_true', dest = "nocolors", default = None,
                     help = "print mode with no colors.")
+parser.add_argument("--nolog",
+                    action = 'store_true', dest = "nolog", default = None,
+                    help = "no logging to file.")
 parser.add_argument("--rcmd",
                     action = "store", dest = 'rcommand', default = str(),
                     help = "'command' or ['list of commands',...] to run on remote device")
+parser.add_argument("--alloti",
+                    action = 'store_true', dest = "alloti", default = None,
+                    help = "do action on all oti routers")
 args = parser.parse_args()
 
 if args.nocolors: bcolors = nocolors
-device_list = [args.device]
+
+if args.alloti: device_list = parse_json_file_and_get_oti_routers_list()
+else: device_list = [args.device]
 
 
 ####### Set USERNAME if needed
@@ -206,9 +345,10 @@ for device in device_list:
         filename_prefix = os.path.join(LOGDIR,device)
         filename_suffix = 'log'
         now = datetime.datetime.now()
-        filename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s-%s-%s" % \
+        logfilename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s-%s-%s" % \
             (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,\
             now.second,script_name.replace('.py',''),USERNAME,filename_suffix)
+        if args.nolog: logfilename = None
 
         ######## Find command list file (optional)
         list_cmd = []
@@ -233,30 +373,10 @@ for device in device_list:
             elif router_type == 'linux':    CMD = CMD_LINUX
             else: CMD = list_cmd
 
-        ssh_connection = None
-        try:
-            ssh_connection = netmiko.ConnectHandler(device_type = router_type, \
-                ip = DEVICE_HOST, port = int(DEVICE_PORT), \
-                username = USERNAME, password = PASSWORD)
-            with open(filename,"w") as fp:
-                for cli_items in CMD:
-                    try:
-                        item = cli_items[0] if type(cli_items) == list or type(cli_items) == tuple else cli_items
-#                         if type(cli_items) == list or type(cli_items) == tuple:
-#                             item = ' '.join(cli_items)
-                        print(bcolors.GREEN + "COMMAND: %s" % (item) + bcolors.ENDC )
-                        output = ssh_connection.send_command(item)
-                        print(bcolors.GREY + "%s" % (output) + bcolors.ENDC )
-                        fp.write('COMMAND: '+item+'\n'+output+'\n')
-                    except: pass
+        run_remote_and_local_commands(CMD, logfilename, printall=True)
 
-        except () as e:
-            print(bcolors.FAIL + " ... EXCEPTION: (%s)" % (e) + bcolors.ENDC )
-            sys.exit()
-        finally:
-            if ssh_connection: ssh_connection.disconnect()
-
-        if os.path.exists(filename): print('%s file created.'%filename)
+        if logfilename and os.path.exists(logfilename):
+            print('%s file created.' % (logfilename))
         print('\nDEVICE %s DONE.'%(device))
 print('\nEND.')
 
