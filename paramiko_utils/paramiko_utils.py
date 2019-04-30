@@ -56,11 +56,7 @@ class nocolors:
         UNDERLINE  = ''
 
 TODAY            = datetime.datetime.now()
-VERSION          = str(TODAY.year)[2:] + '.' + str(TODAY.month) + '.' + str(TODAY.day)
-HELP             = "\nTry ' --help' for more information\n"
-
-UNKNOW_HOST     = 'Name or service not known'
-TIMEOUT         = 60
+TIMEOUT          = 60
 
 script_name             = sys.argv[0]
 try:    WORKDIR         = os.environ['HOME']
@@ -387,6 +383,16 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
     return None
 
 
+def get_version_from_file_last_modification_date(path_to_file = str(os.path.abspath(__file__))):
+    file_time = None
+    if 'WINDOWS' in platform.system().upper():
+        file_time = os.path.getmtime(path_to_file)
+    else:
+        stat = os.stat(path_to_file)
+        file_time = stat.st_mtime
+    struct_time = time.gmtime(file_time)
+    return str(struct_time.tm_year)[2:] + '.' + str(struct_time.tm_mon) + '.' + str(struct_time.tm_mday)
+
 ##############################################################################
 #
 # BEGIN MAIN
@@ -395,9 +401,11 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
 
 if __name__ != "__main__": sys.exit(0)
 
+VERSION = get_version_from_file_last_modification_date()
+
 ######## Parse program arguments #########
 parser = argparse.ArgumentParser(
-                description = "Script to perform add ipv6 to lo200 check",
+                description = "Script v.%s" % (VERSION),
                 epilog = "e.g: \n")
 
 parser.add_argument("--version",
