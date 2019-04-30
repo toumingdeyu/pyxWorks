@@ -14,7 +14,7 @@
 # status                                                                      #
 ###############################################################################
 
-import sys, os, paramiko
+import sys, os, paramiko, platform
 import getopt
 import getpass 
 import telnetlib
@@ -72,10 +72,7 @@ COL_DIFFADD = bcolors.YELLOW
 COL_EQUAL   = bcolors.GREY
 COL_PROBLEM = bcolors.RED
 
-TODAY            = datetime.datetime.now()
-VERSION          = str(TODAY.year)[2:] + '.' + str(TODAY.month) + '.' + str(TODAY.day)
-HELP             = "\nTry 'router_check.py --help' for more information\n"
-SNMP_COMMUNITY          = 'qLqVHPZUNnGB'    # old 'otauB9v1kYRO'
+TODAY                   = datetime.datetime.now()
 PLATFORM_DESCR_XR       = 'Cisco IOS XR Software'
 PLATFORM_DESCR_IOS      = 'Cisco IOS Software'
 PLATFORM_DESCR_JUNOS    = 'Juniper Networks'
@@ -84,7 +81,6 @@ PLATFORM_DESCR_CRS      = 'Cisco IOS XR Software (Cisco CRS'
 PLATFORM_DESCR_NCS      = 'Cisco IOS XR Software (Cisco NCS'
 PLATFORM_DESCR_ASR9K    = 'Cisco IOS XR Software (Cisco ASR9K'
 PLATFORM_DESCR_MX2020   = 'Juniper Networks, Inc. mx2020'
-UNKNOW_HOST     = 'Name or service not known'
 TIMEOUT         = 60
 
 WORKDIR_IF_EXISTS       = os.path.join(os.path.abspath(os.sep),'var','PrePost')
@@ -339,7 +335,6 @@ IOS_XR_SLICE = {
 # Function and Class
 #
 ###############################################################################
-
 
 def detect_router_by_ssh(device, debug = False):
     # detect device prompt
@@ -705,11 +700,25 @@ def print_cmd_list(CMD):
         print('\n')
         sys.exit(0)
 
+
+def get_version_from_file_last_modification_date(path_to_file = str(os.path.abspath(__file__))):
+    file_time = None
+    if 'WINDOWS' in platform.system().upper():
+        file_time = os.path.getmtime(path_to_file)
+    else:
+        stat = os.stat(path_to_file)
+        file_time = stat.st_mtime
+    struct_time = time.gmtime(file_time)
+    return str(struct_time.tm_year)[2:] + '.' + str(struct_time.tm_mon) + '.' + str(struct_time.tm_mday)
+
 ##############################################################################
 #
 # BEGIN MAIN
 #
 ##############################################################################
+
+VERSION = get_version_from_file_last_modification_date()
+
 
 ######## Parse program arguments #########
 if len(sys.argv) == 1 or sys.argv[1] == '-h' or sys.argv[1] == '--help':
@@ -717,8 +726,8 @@ if len(sys.argv) == 1 or sys.argv[1] == '-h' or sys.argv[1] == '--help':
           (note_ndiff_string,note_ndiff0_string, note_pdiff0_string))
 
 parser = argparse.ArgumentParser(
-                description = "Script to perform Pre and Post router check",
-                epilog = "e.g: ./router_check.py --device ASHTR2 --post\n")
+    description = "Script to perform Pre and Post router check v.%s" % (VERSION),
+    epilog = "e.g: %s --device ASHTR2 --post\n" % (sys.argv[0]))
 
 parser.add_argument("--version",
                     action = 'version', version = VERSION)
