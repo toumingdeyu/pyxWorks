@@ -219,6 +219,9 @@ CMD_IOS_XR = [
             ("show mpls interface",
                    'ndiff0', [], [],
                    [], [], [], False),
+            ("show license",
+                   'ndiff0', [], [],
+                   [], [], [], False),
 #             ("show interfaces | include \"^[A-Z].*|minute|second|Last input|errors|total\"",
 #                    'ndiff0', ['is administratively down,'], [],
 #                    [', line protocol is'], [], [], False)
