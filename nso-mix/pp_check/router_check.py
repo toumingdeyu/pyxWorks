@@ -90,7 +90,7 @@ TIMEOUT         = 60
 WORKDIR_IF_EXISTS       = os.path.join(os.path.abspath(os.sep),'var','PrePost')
 
 WORKDIR                 = str()
-try:    PASSWORD        = os.environ['NEWR_PASS']
+try:    PASSWORD        = os.environ['NEWR_PASS'].replace('\\','')
 except: PASSWORD        = str()
 try:    USERNAME        = os.environ['NEWR_USER']
 except: USERNAME        = str()
@@ -762,6 +762,9 @@ parser.add_argument("--logfile",
 parser.add_argument("--nocolors",
                     action = 'store_true', dest = "nocolors", default = False,
                     help = "print mode with no colors.")
+parser.add_argument("--fgetpass",
+                    action = 'store_true', dest = "fgetpass", default = False,
+                    help = "force getpass.getpass() call even if NEWR_PASS is set.")
 parser.add_argument("--latest",
                     action = 'store_true', dest = "latest", default = False,
                     help = "look for really latest pre/postcheck files (also from somebody else), otherwise your own last pre/postcheck files will be used by default")
@@ -794,7 +797,7 @@ if not USERNAME:
     sys.exit(0)
 
 # SSH (default)
-if not PASSWORD: PASSWORD = getpass.getpass("TACACS password: ")
+if not PASSWORD or args.fgetpass: PASSWORD = getpass.getpass("TACACS password: ")
 
 router_prompt = None
 try: PARAMIKO_HOST = args.device.split(':')[0]
