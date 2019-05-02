@@ -272,13 +272,13 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
                     else: fp.write(last_output)
                     dictionary_of_pseudovariables['last_output'] = last_output.rstrip()
                     for cli_item in cli_items:
-                        if isinstance(cli_item, dict) and \
-                            last_output.strip() == str() and \
-                            cli_item.get('if_output_is_void','') in ['exit','quit','stop']:
+                        if isinstance(cli_item, dict) \
+                            and last_output.strip() == str() \
+                            and cli_item.get('if_output_is_void','') in ['exit','quit','stop']:
                             if printall: print("%sSTOP (VOID OUTPUT).%s" % \
                                 (bcolors.RED,bcolors.ENDC))
                             return None
-                # HACK: use dictionary for running local python code functions
+                # HACK: use dictionary for running local python code functions or local os commands
                 elif isinstance(cli_items, dict):
                     if cli_items.get('local_function',''):
                         local_function = cli_items.get('local_function','')
@@ -293,8 +293,8 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
                         fp.write("%LOCAL_FUNCTION: %s(%s)\n%s\n" % \
                             (local_function,local_input,local_output))
                         dictionary_of_pseudovariables['last_output'] = last_output.rstrip()
-                        if local_output.strip() == str() and \
-                            cli_items.get('if_output_is_void') in ['exit','quit','stop']:
+                        if local_output.strip() == str() \
+                            and cli_items.get('if_output_is_void') in ['exit','quit','stop']:
                             if printall: print("%sSTOP (VOID LOCAL OUTPUT).%s" % \
                                 (bcolors.RED,bcolors.ENDC))
                             return None
@@ -312,8 +312,8 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
                         fp.write("LOCAL_COMMAND: %s\n%s" % \
                             (str(local_process+'$'+name_of_local_variable+local_process_continue),local_output))
                         dictionary_of_pseudovariables['last_output'] = last_output.rstrip()
-                        if str(local_output).strip() == str() and \
-                            cli_items.get('if_output_is_void') in ['exit','quit','stop']:
+                        if str(local_output).strip() == str() \
+                            and cli_items.get('if_output_is_void') in ['exit','quit','stop']:
                             if printall: print("%sSTOP (VOID LOCAL OUTPUT).%s" % \
                                 (bcolors.RED,bcolors.ENDC))
                             return None
