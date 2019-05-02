@@ -317,12 +317,13 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
             for cli_items in CMD:
                 cli_line = str()
                 # list,tupple,strins are remote device commands
-                if isinstance(cli_items, six.string_types) or \
-                    isinstance(cli_items, list) or isinstance(cli_items, tuple):
+                if isinstance(cli_items, (six.string_types,list,tuple)):
                     if isinstance(cli_items, six.string_types): cli_line = cli_items
-                    if isinstance(cli_items, list) or isinstance(cli_items, tuple):
+                    if isinstance(cli_items, (list,tuple)):
                         for cli_item in cli_items:
-                           if isinstance(cli_item, dict): cli_line += dictionary_of_pseudovariables.get(cli_item.get('variable',''),'')
+                           if isinstance(cli_item, dict):
+                               name_of_local_variable = cli_item.get('input_variable','')
+                               cli_line += dictionary_of_pseudovariables.get(name_of_local_variable,'')
                            else: cli_line += cli_item
                     print(bcolors.GREEN + "COMMAND: %s" % (cli_line) + bcolors.ENDC )
                     try: last_output = ssh_connection.send_command(cli_line)
@@ -335,39 +336,48 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
                     else: fp.write(last_output)
                     dictionary_of_pseudovariables['last_output'] = last_output.rstrip()
                     for cli_item in cli_items:
-                        if isinstance(cli_item, dict) and \
-                            last_output.strip() == str() and \
-                            cli_item.get('if_output_is_void','') in ['exit','quit','stop']:
+                        if isinstance(cli_item, dict) \
+                            and last_output.strip() == str() \
+                            and cli_item.get('if_output_is_void','') in ['exit','quit','stop']:
                             if printall: print("%sSTOP (VOID OUTPUT).%s" % \
                                 (bcolors.RED,bcolors.ENDC))
                             return None
-                # HACK: use dictionary for running local python code functions
+                # HACK: use dictionary for running local python code functions or local os commands
                 elif isinstance(cli_items, dict):
-                    if cli_items.get('call_function',''):
-                        local_function = cli_items.get('call_function','')
-                        local_input = dictionary_of_pseudovariables.get('input','')
-                        output_to_pseudovariable = dictionary_of_pseudovariables.get('output','')
+                    if cli_items.get('local_function',''):
+                        local_function = cli_items.get('local_function','')
+                        name_of_local_variable = cli_items.get('input_variable','')
+                        local_input = dictionary_of_pseudovariables.get(name_of_local_variable,'')
+                        output_to_pseudovariable = dictionary_of_pseudovariables.get('output_variable','')
                         local_output = locals()[local_function](local_input)
                         if output_to_pseudovariable:
                             dictionary_of_pseudovariables[output_to_pseudovariable] = local_output
-                        if printall: print("%sCALL_LOCAL_FUNCTION: %s'%s' = %s(%s)\n%s" % \
-                            (bcolors.GREEN,bcolors.YELLOW,local_output,local_function,local_input,bcolors.ENDC))
-                        if local_output.strip() == str() and \
-                            cli_items.get('if_output_is_void') in ['exit','quit','stop']:
+                        if printall: print("%sLOCAL_FUNCTION: %s(%s)\n%s%s\n%s" % \
+                            (bcolors.CYAN,local_function,local_input,bcolors.GREY,local_output,bcolors.ENDC))
+                        fp.write("%LOCAL_FUNCTION: %s(%s)\n%s\n" % \
+                            (local_function,local_input,local_output))
+                        dictionary_of_pseudovariables['last_output'] = last_output.rstrip()
+                        if local_output.strip() == str() \
+                            and cli_items.get('if_output_is_void') in ['exit','quit','stop']:
                             if printall: print("%sSTOP (VOID LOCAL OUTPUT).%s" % \
                                 (bcolors.RED,bcolors.ENDC))
                             return None
                     elif cli_items.get('local_command',''):
                         local_process = cli_items.get('local_command','')
-                        local_input = dictionary_of_pseudovariables.get('input','')
-                        output_to_pseudovariable = dictionary_of_pseudovariables.get('output','')
-                        local_output = subprocess.call(local_process+' '+local_input if local_input else local_process, shell=True)
+                        local_process_continue = cli_items.get('local_command_continue','')
+                        name_of_local_variable = cli_items.get('input_variable','')
+                        local_input = dictionary_of_pseudovariables.get(name_of_local_variable,'')
+                        output_to_pseudovariable = dictionary_of_pseudovariables.get('output_variable','')
+                        local_output = subprocess.check_output(str(local_process+local_input+local_process_continue), shell=True)
                         if output_to_pseudovariable:
                             dictionary_of_pseudovariables[output_to_pseudovariable] = local_output
-                        if printall: print("%sLOCAL_COMMAND: %s'%s' = %s(%s)\n%s" % \
-                            (bcolors.GREEN,bcolors.YELLOW,local_output,local_function,local_input,bcolors.ENDC))
-                        if local_output.strip() == str() and \
-                            cli_items.get('if_output_is_void') in ['exit','quit','stop']:
+                        if printall: print("%sLOCAL_COMMAND: %s\n%s%s%s" % \
+                            (bcolors.CYAN,str(local_process+'$'+name_of_local_variable+local_process_continue),bcolors.GREY,local_output,bcolors.ENDC))
+                        fp.write("LOCAL_COMMAND: %s\n%s" % \
+                            (str(local_process+'$'+name_of_local_variable+local_process_continue),local_output))
+                        dictionary_of_pseudovariables['last_output'] = last_output.rstrip()
+                        if str(local_output).strip() == str() \
+                            and cli_items.get('if_output_is_void') in ['exit','quit','stop']:
                             if printall: print("%sSTOP (VOID LOCAL OUTPUT).%s" % \
                                 (bcolors.RED,bcolors.ENDC))
                             return None
