@@ -419,7 +419,7 @@ for device in device_list:
         now = datetime.datetime.now()
         logfilename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s-%s-%s" % \
             (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,\
-            now.second,script_name.replace('.py',''),USERNAME,filename_suffix)
+            now.second,script_name.replace('.py','').replace('./',''),USERNAME,filename_suffix)
         if args.nolog: logfilename = None
 
         ######## Find command list file (optional)
