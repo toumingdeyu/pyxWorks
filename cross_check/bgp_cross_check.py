@@ -125,7 +125,7 @@ CMD_JUNOS = [
              ]
 CMD_VRP = [
             'display bgp vpnv4 all peer',
-
+            {'local_command':'grep -A 1 \'VPN-Instance\' <<< \'' ,'input':'last_output' ,'local_command_continue':'\''},
 #             {'call_function': 'stop_if_ipv6_found', 'input':'last_output', 'if_output_is_void':'exit'},
 # 			'disp current-configuration interface LoopBack 200 | include 172',
 #             {'call_function': 'parse_ipv4_from_text', 'input':'last_output', 'output':'converted_ipv4','if_output_is_void':'exit'},
@@ -141,8 +141,8 @@ CMD_VRP = [
           ]
 CMD_LINUX = [
             'hostname',
-            ('echo ', {'variable':'last_output'}),
-            ('echo ', {'variable':'notexistent'},{'if_output_is_void':'exit'}),
+            ('echo ', {'input':'last_output'}),
+            ('echo ', {'input':'notexistent'},{'if_output_is_void':'exit'}),
             'free -m'
             ]
 ###############################################################################
@@ -252,13 +252,14 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
             dictionary_of_pseudovariables = {}
             for cli_items in CMD:
                 cli_line = str()
+                print('----',cli_items)
+                print('====',type(cli_items))
                 # list,tupple,strins are remote device commands
-                if isinstance(cli_items, six.string_types) or \
-                    isinstance(cli_items, list) or isinstance(cli_items, tuple):
+                if isinstance(cli_items, (six.string_types,list,tuple)):
                     if isinstance(cli_items, six.string_types): cli_line = cli_items
-                    if isinstance(cli_items, list) or isinstance(cli_items, tuple):
+                    if isinstance(cli_items, (list,tuple)):
                         for cli_item in cli_items:
-                           if isinstance(cli_item, dict): cli_line += dictionary_of_pseudovariables.get(cli_item.get('variable',''),'')
+                           if isinstance(cli_item, dict): cli_line += dictionary_of_pseudovariables.get(cli_item.get('input',''),'')
                            else: cli_line += cli_item
                     print(bcolors.GREEN + "COMMAND: %s" % (cli_line) + bcolors.ENDC )
                     try: last_output = ssh_connection.send_command(cli_line)
@@ -281,13 +282,13 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
                 elif isinstance(cli_items, dict):
                     if cli_items.get('call_function',''):
                         local_function = cli_items.get('call_function','')
-                        local_input = dictionary_of_pseudovariables.get('input','')
+                        local_input = dictionary_of_pseudovariables.get(cli_items.get('input',''),'')
                         output_to_pseudovariable = dictionary_of_pseudovariables.get('output','')
                         local_output = locals()[local_function](local_input)
                         if output_to_pseudovariable:
                             dictionary_of_pseudovariables[output_to_pseudovariable] = local_output
                         if printall: print("%sCALL_LOCAL_FUNCTION: %s'%s' = %s(%s)\n%s" % \
-                            (bcolors.GREEN,bcolors.YELLOW,local_output,local_function,local_input,bcolors.ENDC))
+                            (bcolors.CYAN,bcolors.YELLOW,local_output,local_function,local_input,bcolors.ENDC))
                         if local_output.strip() == str() and \
                             cli_items.get('if_output_is_void') in ['exit','quit','stop']:
                             if printall: print("%sSTOP (VOID LOCAL OUTPUT).%s" % \
@@ -295,14 +296,15 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
                             return None
                     elif cli_items.get('local_command',''):
                         local_process = cli_items.get('local_command','')
-                        local_input = dictionary_of_pseudovariables.get('input','')
+                        local_process_continue = cli_items.get('local_command_continue','')
+                        local_input = dictionary_of_pseudovariables.get(cli_items.get('input',''),'')
                         output_to_pseudovariable = dictionary_of_pseudovariables.get('output','')
-                        local_output = subprocess.call(local_process+' '+local_input if local_input else local_process, shell=True)
+                        local_output = subprocess.check_output(str(local_process+local_input+local_process_continue), shell=True)
                         if output_to_pseudovariable:
                             dictionary_of_pseudovariables[output_to_pseudovariable] = local_output
-                        if printall: print("%sLOCAL_COMMAND: %s'%s' = %s(%s)\n%s" % \
-                            (bcolors.GREEN,bcolors.YELLOW,local_output,local_function,local_input,bcolors.ENDC))
-                        if local_output.strip() == str() and \
+                        if printall: print("%sLOCAL_COMMAND:%s %s\n%s%s\n%s" % \
+                            (bcolors.CYAN,bcolors.YELLOW,local_process+local_input+local_process_continue,bcolors.GREY,local_output,bcolors.ENDC))
+                        if str(local_output).strip() == str() and \
                             cli_items.get('if_output_is_void') in ['exit','quit','stop']:
                             if printall: print("%sSTOP (VOID LOCAL OUTPUT).%s" % \
                                 (bcolors.RED,bcolors.ENDC))
