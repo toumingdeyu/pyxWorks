@@ -94,6 +94,8 @@ CMD_IOS_XE = [
               ]
 CMD_IOS_XR = [
             'show bgp vrf all summary',
+             {'local_function':'get_ciscoxr_bgp_vpn_peer_data', 'input_variable':'last_output', \
+              'output_variable':'bgp_vpn_peers', 'if_output_is_void':'exit'},
 
 #             {'local_function': 'stop_if_ipv6_found', 'input_variable':'last_output', 'if_output_is_void':'exit'},
 # 			'sh run int loopback 200 | i 172',
@@ -157,17 +159,33 @@ CMD_LINUX = [
 #
 ###############################################################################
 
+
+def get_ciscoxr_bgp_vpn_peer_data(text = None):
+    output = []
+    if text:
+        try:
+            vpn_sections = text.split('VRF: ')[1:]
+            for vpn_section in vpn_sections:
+               vpn_instance   = vpn_section.splitlines()[0].strip()
+               try: vpn_peer_lines = vpn_section.strip().split('Neighbor')[1].splitlines()[1:]
+               except: vpn_peer_lines = []
+               vpn_peers = [vpn_peer_line.split()[0] for vpn_peer_line in vpn_peer_lines]
+               output.append((vpn_instance,vpn_peers))
+        except: pass
+    return output
+
+
 def get_huawei_bgp_vpn_peer_data(text = None):
     output = []
     if text:
         try:
-             vpn_sections = text.split('VPN-Instance')[1:]
-             for vpn_section in vpn_sections:
-                 vpn_instance   = vpn_section.split(',')[0].strip()
-                 try: vpn_peer_lines = vpn_section.strip().splitlines()[1:]
-                 except: vpn_peer_lines = []
-                 vpn_peers = [vpn_peer_line.split()[0] for vpn_peer_line in vpn_peer_lines]
-                 output.append((vpn_instance,vpn_peers))
+            vpn_sections = text.split('VPN-Instance')[1:]
+            for vpn_section in vpn_sections:
+               vpn_instance   = vpn_section.split(',')[0].strip()
+               try: vpn_peer_lines = vpn_section.strip().splitlines()[1:]
+               except: vpn_peer_lines = []
+               vpn_peers = [vpn_peer_line.split()[0] for vpn_peer_line in vpn_peer_lines]
+               output.append((vpn_instance,vpn_peers))
         except: pass
     return output
 
