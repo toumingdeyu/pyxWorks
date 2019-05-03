@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import sys, os, io, paramiko, json, platform
+import sys, os, io, paramiko, json
 import getopt
 import getpass
 import telnetlib
@@ -124,9 +124,13 @@ CMD_JUNOS = [
 #              'show configuration interfaces lo0 | match /128',
              ]
 CMD_VRP = [
-            'display bgp vpnv4 all peer',
-            {'local_command':'grep -A 10000 \'VPN-Instance\' <<< \'' ,'input_variable':'last_output' ,'local_command_continue':'\''},
-#             {'local_function': 'stop_if_ipv6_found', 'input_variable':'last_output', 'if_output_is_void':'exit'},
+#             'display bgp vpnv4 all peer',
+#             {'local_function':'huawei_peer_data', 'input_variable':'last_output', 'if_output_is_void':'exit'},
+
+            #{'local_command':'grep -A 10000 \'VPN-Instance\' <<< \'' ,'input_variable':'last_output' ,'local_command_continue':'\''},
+
+             'disp current-configuration interface LoopBack 200 | include /128',
+            {'local_function': 'stop_if_ipv6_found', 'input_variable':'last_output', 'if_output_is_void':'exit'},
 # 			'disp current-configuration interface LoopBack 200 | include 172',
 #             {'local_function': 'parse_ipv4_from_text', 'input_variable':'last_output', 'output_variable':'converted_ipv4','if_output_is_void':'exit'},
 #             'sys',
@@ -150,6 +154,20 @@ CMD_LINUX = [
 # Function and Class
 #
 ###############################################################################
+
+def huawei_peer_data(input_string):
+    output = []
+    if input_string:
+        try:
+             vpn_sections = input_string.split('VPN-Instance')[1:]
+             for vpn_section in vpn_sections:
+                 vpn_instance   = vpn_section.split(',')[0].strip()
+                 vpn_peer_lines = vpn_section.replace('\r','').split(':\n')[1].split('\n')
+                 vpn_peers = [vpn_peer_line.split()[0] for vpn_peer_line in vpn_peer_lines]
+                 output.append([vpn_instance,vpn_peers])
+        except: pass
+    return str(output)
+
 
 def netmiko_autodetect(device, debug = None):
     router_os = str()
@@ -281,17 +299,17 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
                 # HACK: use dictionary for running local python code functions or local os commands
                 elif isinstance(cli_items, dict):
                     if cli_items.get('local_function',''):
-                        local_function = cli_items.get('local_function','')
+                        local_function_name = cli_items.get('local_function','')
                         name_of_local_variable = cli_items.get('input_variable','')
                         local_input = dictionary_of_pseudovariables.get(name_of_local_variable,'')
                         output_to_pseudovariable = dictionary_of_pseudovariables.get('output_variable','')
-                        local_output = locals()[local_function](local_input)
+                        local_output = locals()[local_function_name](local_input)
                         if output_to_pseudovariable:
                             dictionary_of_pseudovariables[output_to_pseudovariable] = local_output
                         if printall: print("%sLOCAL_FUNCTION: %s(%s)\n%s%s\n%s" % \
-                            (bcolors.CYAN,local_function,local_input,bcolors.GREY,local_output,bcolors.ENDC))
+                            (bcolors.CYAN,local_function_name,local_input,bcolors.GREY,local_output,bcolors.ENDC))
                         fp.write("%LOCAL_FUNCTION: %s(%s)\n%s\n" % \
-                            (local_function,local_input,local_output))
+                            (local_function_name,local_input,local_output))
                         dictionary_of_pseudovariables['last_output'] = last_output.rstrip()
                         if local_output.strip() == str() \
                             and cli_items.get('if_output_is_void') in ['exit','quit','stop']:
@@ -331,7 +349,7 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
 
 def get_version_from_file_last_modification_date(path_to_file = str(os.path.abspath(__file__))):
     file_time = None
-    if 'WINDOWS' in platform.system().upper():
+    if 'WIN32' in sys.platform.upper():
         file_time = os.path.getmtime(path_to_file)
     else:
         stat = os.stat(path_to_file)

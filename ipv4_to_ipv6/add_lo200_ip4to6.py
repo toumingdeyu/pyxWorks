@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import sys, os, io, paramiko, json, platform
+import sys, os, io, paramiko, json
 import getopt
 import getpass
 import telnetlib
@@ -329,7 +329,7 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
 
 def get_version_from_file_last_modification_date(path_to_file = str(os.path.abspath(__file__))):
     file_time = None
-    if 'WINDOWS' in platform.system().upper():
+    if 'WIN32' in sys.platform.upper():
         file_time = os.path.getmtime(path_to_file)
     else:
         stat = os.stat(path_to_file)
