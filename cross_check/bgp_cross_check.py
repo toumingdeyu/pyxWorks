@@ -56,6 +56,7 @@ class nocolors:
 
 TODAY            = datetime.datetime.now()
 script_name      = sys.argv[0]
+TIMEOUT          = 60
 
 KNOWN_OS_TYPES = ['cisco_xr', 'cisco_ios', 'juniper', 'juniper_junos', 'huawei' ,'linux']
 
@@ -246,7 +247,8 @@ def parse_json_file_and_get_oti_routers_list():
 def run_remote_and_local_commands(CMD, logfilename = None, printall = None, printcmdtologfile = None):
     ssh_connection, output= None, None
     try:
-        try: ssh_connection = netmiko.ConnectHandler(device_type = router_type, \
+        try:
+             ssh_connection = netmiko.ConnectHandler(device_type = router_type, \
                  ip = DEVICE_HOST, port = int(DEVICE_PORT), \
                  username = USERNAME, password = PASSWORD)
         except:
@@ -263,8 +265,8 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
             output += output2
 
         if not logfilename:
-            if 'LINUX' in platform.system().upper(): logfilename = '/dev/null'
-            else: logfilename = 'nul'
+            if 'WIN32' in sys.platform.upper(): logfilename = 'nul'
+            else: logfilename = '/dev/null'
         with open(logfilename,"w") as fp:
             if output and not printcmdtologfile: fp.write(output)
             dictionary_of_pseudovariables = {}
