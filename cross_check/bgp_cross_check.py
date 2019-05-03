@@ -164,9 +164,9 @@ def get_huawei_bgp_vpn_peer_data(text = None):
              vpn_sections = text.split('VPN-Instance')[1:]
              for vpn_section in vpn_sections:
                  vpn_instance   = vpn_section.split(',')[0].strip()
-                 vpn_peer_lines = vpn_section.replace('\r','').split(':\n')[1].split('\n')
+                 vpn_peer_lines = vpn_section.strip().splitlines()[1:]
                  vpn_peers = [vpn_peer_line.split()[0] for vpn_peer_line in vpn_peer_lines]
-                 output.append([vpn_instance,vpn_peers])
+                 output.append((vpn_instance,vpn_peers))
         except: pass
     return output
 
