@@ -56,12 +56,12 @@ converted_ipv4 = str()
 
 CMD_IOS_XE = [
 			'sh run int loopback 200 | i /128',
-            {'call_function': 'stop_if_ipv6_found','input':'last_output', 'if_output_is_void':'exit'},
+            {'local_function': 'stop_if_ipv6_found','input_variable':'last_output', 'if_output_is_void':'exit'},
             'sh run int loopback 200 | i 172',
-            {'call_function': 'parse_ipv4_from_text','input':'last_output', 'output':'converted_ipv4','if_output_is_void':'exit'},
+            {'local_function': 'parse_ipv4_from_text','input_variable':'last_output', 'output_variable':'converted_ipv4','if_output_is_void':'exit'},
             'conf t',
             'interface loopback 200',
-            ('ipv6 address', {'variable':'converted_ipv4'}, '/128'),
+            ('ipv6 address', {'input_variable':'converted_ipv4'}, '/128'),
             'exit',
 			'exit',
 			'write',
@@ -69,12 +69,12 @@ CMD_IOS_XE = [
               ]
 CMD_IOS_XR = [
             'sh run int loopback 200 | i /128',
-            {'call_function': 'stop_if_ipv6_found', 'input':'last_output', 'if_output_is_void':'exit'},
+            {'local_function': 'stop_if_ipv6_found', 'input_variable':'last_output', 'if_output_is_void':'exit'},
 			'sh run int loopback 200 | i 172',
-            {'call_function': 'parse_ipv4_from_text','input':'last_output', 'output':'converted_ipv4','if_output_is_void':'exit'},
+            {'local_function': 'parse_ipv4_from_text','input_variable':'last_output', 'output_variable':'converted_ipv4','if_output_is_void':'exit'},
             'conf',
 			'interface loopback 200',
-            ('ipv6 address ', {'variable':'converted_ipv4'}, '/128'),
+            ('ipv6 address ', {'input_variable':'converted_ipv4'}, '/128'),
             'router isis PAII',
             'interface Loopback200',
             'address-family ipv6 unicast',
@@ -85,14 +85,14 @@ CMD_IOS_XR = [
              ]
 CMD_JUNOS = [
             'show configuration interfaces lo0 | match /128',
-            {'call_function': 'stop_if_two_ipv6_found', 'if_output_is_void':'exit'},
+            {'local_function': 'stop_if_two_ipv6_found', 'if_output_is_void':'exit'},
             'show configuration interfaces lo0 | display set | match 128',
-            #{'call_function': 'parse_whole_set_line_from_text', 'if_output_is_void':'exit'},
+            #{'local_function': 'parse_whole_set_line_from_text', 'if_output_is_void':'exit'},
 			'show configuration interfaces lo0 | match 172.25.4',
-            {'call_function': 'parse_ipv4_from_text','input':'last_output', 'output':'converted_ipv4','if_output_is_void':'exit'},
+            {'local_function': 'parse_ipv4_from_text','input_variable':'last_output', 'output_variable':'converted_ipv4','if_output_is_void':'exit'},
              'configure private',
              #'__var_set_ipv6line__',
-             ('set interfaces lo0 unit 0 family inet6 address ', {'variable':'converted_ipv4'}, '/128'),
+             ('set interfaces lo0 unit 0 family inet6 address ', {'input_variable':'converted_ipv4'}, '/128'),
              'show configuration interfaces lo0 | match /128',
     		 'commi',
     		 'exit',
@@ -100,13 +100,13 @@ CMD_JUNOS = [
              ]
 CMD_VRP = [
             'disp current-configuration interface LoopBack 200 | include /128',
-            {'call_function': 'stop_if_ipv6_found', 'input':'last_output', 'if_output_is_void':'exit'},
+            {'local_function': 'stop_if_ipv6_found', 'input_variable':'last_output', 'if_output_is_void':'exit'},
 			'disp current-configuration interface LoopBack 200 | include 172',
-            {'call_function': 'parse_ipv4_from_text', 'input':'last_output', 'output':'converted_ipv4','if_output_is_void':'exit'},
+            {'local_function': 'parse_ipv4_from_text', 'input_variable':'last_output', 'output_variable':'converted_ipv4','if_output_is_void':'exit'},
             'sys',
 			'interface loopback 200',
             'ipv6 enable',
-			('ipv6 address ', {'variable':'converted_ipv4'}, '/128'),
+			('ipv6 address ', {'input_variable':'converted_ipv4'}, '/128'),
             'isis ipv6 enable 5511',
 			'commit',
             'quit',
@@ -115,8 +115,8 @@ CMD_VRP = [
           ]
 CMD_LINUX = [
             'hostname',
-            ('echo ', {'variable':'last_output'}),
-            ('echo ', {'variable':'notexistent'},{'if_output_is_void':'exit'}),
+            ('echo ', {'input_variable':'last_output'}),
+            ('echo ', {'input_variable':'notexistent'},{'if_output_is_void':'exit'}),
             'free -m'
             ]
 
