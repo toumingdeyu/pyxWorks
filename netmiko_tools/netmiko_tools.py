@@ -200,8 +200,8 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
             output += output2
 
         if not logfilename:
-            if 'LINUX' in platform.system().upper(): logfilename = '/dev/null'
-            else: logfilename = 'nul'
+            if 'WIN32' in sys.platform.upper(): logfilename = 'nul'
+            else: logfilename = '/dev/null'
         with open(logfilename,"w") as fp:
             if output and not printcmdtologfile: fp.write(output)
             dictionary_of_pseudovariables = {}

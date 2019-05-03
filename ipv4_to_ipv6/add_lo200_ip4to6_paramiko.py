@@ -11,6 +11,7 @@ import re
 import argparse
 import glob
 import socket
+import six
 
 class bcolors:
         DEFAULT    = '\033[99m'
