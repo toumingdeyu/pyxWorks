@@ -241,7 +241,8 @@ def parse_json_file_and_get_oti_routers_list():
         json_raw_data = json.loads(data_converted)
     if json_raw_data:
         for router in json_raw_data['OTI_ALL']:
-            if '172.25.4' in json_raw_data['OTI_ALL'][router]['LSRID']: oti_routers.append(router)
+            if '172.25.4' in json_raw_data['OTI_ALL'][router]['LSRID']:
+                oti_routers.append(router)
     return oti_routers
 
 
@@ -318,7 +319,8 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
                             local_input if len(local_input)<100 else name_of_local_variable,\
                             bcolors.GREY,local_output,bcolors.ENDC))
                         fp.write("LOCAL_FUNCTION: %s(%s)\n%s\n" % (local_function_name,\
-                            local_input if len(local_input)<100 else name_of_local_variable,local_output))
+                            local_input if len(local_input)<100 else name_of_local_variable,\
+                            local_output))
                         dictionary_of_variables['last_output'] = last_output
                         if (not local_output or str(local_output).strip() == str() )\
                             and cli_items.get('if_output_is_void') in ['exit','quit','stop']:
@@ -332,7 +334,9 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
                         local_input = dictionary_of_variables.get(name_of_local_variable,'')
                         output_to_pseudovariable = dictionary_of_variables.get('output_variable','')
                         ### SUBPROCESS CALL
-                        local_output = subprocess.check_output(str(local_process+local_input+local_process_continue), shell=True)
+                        local_output = subprocess.check_output( \
+                            str(local_process+local_input+local_process_continue),\
+                            shell=True)
                         if isinstance(local_output, six.string_types):
                             local_output = local_output.replace('\x0d','')
                         if output_to_pseudovariable:
@@ -430,7 +434,8 @@ else: device_list = [args.device]
 ####### Set USERNAME if needed
 if args.username: USERNAME = args.username
 if not USERNAME:
-    print(bcolors.MAGENTA + " ... Please insert your username by cmdline switch --user username !" + bcolors.ENDC )
+    print(bcolors.MAGENTA + " ... Please insert your username by cmdline switch \
+        --user username !" + bcolors.ENDC )
     sys.exit(0)
 
 # SSH (default)
@@ -466,7 +471,8 @@ for device in device_list:
         now = datetime.datetime.now()
         logfilename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s-%s-%s" % \
             (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,\
-            now.second,script_name.replace('.py','').replace('./',''),USERNAME,filename_suffix)
+            now.second,script_name.replace('.py','').replace('./',''),USERNAME,\
+            filename_suffix)
         if args.nolog: logfilename = None
 
         ######## Find command list file (optional)
@@ -492,7 +498,8 @@ for device in device_list:
             elif router_type == 'linux':    CMD = CMD_LINUX
             else: CMD = list_cmd
 
-        run_remote_and_local_commands(CMD, logfilename, printall = True , printcmdtologfile = True)
+        run_remote_and_local_commands(CMD, logfilename, printall = True , \
+            printcmdtologfile = True)
 
         if logfilename and os.path.exists(logfilename):
             print('%s file created.' % (logfilename))
