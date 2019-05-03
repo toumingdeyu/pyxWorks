@@ -126,7 +126,8 @@ CMD_JUNOS = [
              ]
 CMD_VRP = [
              'display bgp vpnv4 all peer',
-             {'local_function':'huawei_peer_data', 'input_variable':'last_output', 'if_output_is_void':'exit'},
+             {'local_function':'get_huawei_bgp_vpn_peer_data', 'input_variable':'last_output', \
+              'output_variable':'bgp_vpn_peers', 'if_output_is_void':'exit'},
 
             #{'local_command':'grep -A 10000 \'VPN-Instance\' <<< \'' ,'input_variable':'last_output' ,'local_command_continue':'\''},
 
@@ -156,19 +157,18 @@ CMD_LINUX = [
 #
 ###############################################################################
 
-def huawei_peer_data(input_string):
+def get_huawei_bgp_vpn_peer_data(text = None):
     output = []
-    if input_string:
+    if text:
         try:
-             vpn_sections = input_string.split('VPN-Instance')[1:]
+             vpn_sections = text.split('VPN-Instance')[1:]
              for vpn_section in vpn_sections:
                  vpn_instance   = vpn_section.split(',')[0].strip()
                  vpn_peer_lines = vpn_section.replace('\r','').split(':\n')[1].split('\n')
                  vpn_peers = [vpn_peer_line.split()[0] for vpn_peer_line in vpn_peer_lines]
                  output.append([vpn_instance,vpn_peers])
         except: pass
-        print(output)
-    return 'OK'
+    return output
 
 
 def netmiko_autodetect(device, debug = None):
@@ -269,17 +269,17 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
             else: logfilename = '/dev/null'
         with open(logfilename,"w") as fp:
             if output and not printcmdtologfile: fp.write(output)
-            dictionary_of_pseudovariables = {}
+            dictionary_of_variables = {}
             for cli_items in CMD:
                 cli_line = str()
-                # list,tupple,strins are remote device commands
+                ### LIST,TUPPLE,STRINS ARE REMOTE REMOTE DEVICE COMMANDS
                 if isinstance(cli_items, (six.string_types,list,tuple)):
                     if isinstance(cli_items, six.string_types): cli_line = cli_items
                     if isinstance(cli_items, (list,tuple)):
                         for cli_item in cli_items:
                            if isinstance(cli_item, dict):
                                name_of_local_variable = cli_item.get('input_variable','')
-                               cli_line += dictionary_of_pseudovariables.get(name_of_local_variable,'')
+                               cli_line += dictionary_of_variables.get(name_of_local_variable,'')
                            else: cli_line += cli_item
                     print(bcolors.GREEN + "COMMAND: %s" % (cli_line) + bcolors.ENDC )
 
@@ -292,55 +292,62 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
                     if printall: print(bcolors.GREY + "%s" % (last_output) + bcolors.ENDC )
                     if printcmdtologfile: fp.write('COMMAND: ' + cli_line + '\n'+last_output+'\n')
                     else: fp.write(last_output)
-                    dictionary_of_pseudovariables['last_output'] = last_output.rstrip()
+                    dictionary_of_variables['last_output'] = last_output.rstrip()
                     for cli_item in cli_items:
                         if isinstance(cli_item, dict) \
                             and last_output.strip() == str() \
                             and cli_item.get('if_output_is_void','') in ['exit','quit','stop']:
-                            if printall: print("%sSTOP (VOID OUTPUT).%s" % \
+                            if printall: print("%sSTOP [VOID OUTPUT].%s" % \
                                 (bcolors.RED,bcolors.ENDC))
                             return None
-                # HACK: use dictionary for running local python code functions or local os commands
+                ### HACK: USE DICTIONARY FOR RUNNING LOCAL PYTHON CODE FUNCTIONS OR LOCAL OS COMMANDS
                 elif isinstance(cli_items, dict):
                     if cli_items.get('local_function',''):
                         local_function_name = cli_items.get('local_function','')
                         name_of_local_variable = cli_items.get('input_variable','')
-                        local_input = dictionary_of_pseudovariables.get(name_of_local_variable,'')
-                        output_to_pseudovariable = dictionary_of_pseudovariables.get('output_variable','')
+                        local_input = dictionary_of_variables.get(name_of_local_variable,'')
+                        output_to_pseudovariable = dictionary_of_variables.get('output_variable','')
                         ### GLOBAL SYMBOLS
                         local_output = globals()[local_function_name](local_input)
+                        if isinstance(local_output, six.string_types):
+                            local_output = local_output.replace('\x0d','')
                         if output_to_pseudovariable:
-                            dictionary_of_pseudovariables[output_to_pseudovariable] = local_output
+                            dictionary_of_variables[output_to_pseudovariable] = local_output
                         if printall: print("%sLOCAL_FUNCTION: %s(%s)\n%s%s\n%s" % \
                             (bcolors.CYAN,local_function_name,\
                             local_input if len(local_input)<100 else name_of_local_variable,\
                             bcolors.GREY,local_output,bcolors.ENDC))
-                        fp.write("LOCAL_FUNCTION: %s(%s)\n%s\n" % \
-                            (local_function_name,local_input if len(local_input)<100 else name_of_local_variable,local_output))
-                        dictionary_of_pseudovariables['last_output'] = last_output.rstrip()
-                        if local_output.strip() == str() \
+                        fp.write("LOCAL_FUNCTION: %s(%s)\n%s\n" % (local_function_name,\
+                            local_input if len(local_input)<100 else name_of_local_variable,local_output))
+                        dictionary_of_variables['last_output'] = last_output
+                        if (not local_output or str(local_output).strip() == str() )\
                             and cli_items.get('if_output_is_void') in ['exit','quit','stop']:
-                            if printall: print("%sSTOP (VOID LOCAL OUTPUT).%s" % \
+                            if printall: print("%sSTOP [VOID OUTPUT].%s" % \
                                 (bcolors.RED,bcolors.ENDC))
                             return None
                     elif cli_items.get('local_command',''):
                         local_process = cli_items.get('local_command','')
                         local_process_continue = cli_items.get('local_command_continue','')
                         name_of_local_variable = cli_items.get('input_variable','')
-                        local_input = dictionary_of_pseudovariables.get(name_of_local_variable,'')
-                        output_to_pseudovariable = dictionary_of_pseudovariables.get('output_variable','')
+                        local_input = dictionary_of_variables.get(name_of_local_variable,'')
+                        output_to_pseudovariable = dictionary_of_variables.get('output_variable','')
                         ### SUBPROCESS CALL
                         local_output = subprocess.check_output(str(local_process+local_input+local_process_continue), shell=True)
+                        if isinstance(local_output, six.string_types):
+                            local_output = local_output.replace('\x0d','')
                         if output_to_pseudovariable:
-                            dictionary_of_pseudovariables[output_to_pseudovariable] = local_output
+                            dictionary_of_variables[output_to_pseudovariable] = local_output
                         if printall: print("%sLOCAL_COMMAND: %s%s%s\n%s%s%s" % \
-                            (bcolors.CYAN,str(local_process,local_input if len(local_input)<100 else '$'+name_of_local_variable,local_process_continue),bcolors.GREY,local_output,bcolors.ENDC))
-                        fp.write("LOCAL_COMMAND: %s%s%s\n%s" % \
-                            (local_process,local_input if len(local_input)<100 else '$'+name_of_local_variable,local_process_continue,local_output))
-                        dictionary_of_pseudovariables['last_output'] = last_output.rstrip()
-                        if str(local_output).strip() == str() \
+                            (bcolors.CYAN,str(local_process,\
+                            local_input if len(local_input)<100 else '$'+name_of_local_variable,\
+                            local_process_continue),bcolors.GREY,local_output,bcolors.ENDC))
+                        fp.write("LOCAL_COMMAND: %s%s%s\n%s" % (local_process,\
+                            local_input if len(local_input)<100 else '$'+name_of_local_variable,\
+                            local_process_continue,local_output))
+                        dictionary_of_variables['last_output'] = last_output
+                        if (not local_output or str(local_output).strip() == str() )\
                             and cli_items.get('if_output_is_void') in ['exit','quit','stop']:
-                            if printall: print("%sSTOP (VOID LOCAL OUTPUT).%s" % \
+                            if printall: print("%sSTOP [VOID OUTPUT].%s" % \
                                 (bcolors.RED,bcolors.ENDC))
                             return None
                 elif printall: print('%sUNSUPPORTED_TYPE %s of %s!%s' % \
