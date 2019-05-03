@@ -125,13 +125,13 @@ CMD_JUNOS = [
 #              'show configuration interfaces lo0 | match /128',
              ]
 CMD_VRP = [
-#             'display bgp vpnv4 all peer',
-#             {'local_function':'huawei_peer_data', 'input_variable':'last_output', 'if_output_is_void':'exit'},
+             'display bgp vpnv4 all peer',
+             {'local_function':'huawei_peer_data', 'input_variable':'last_output', 'if_output_is_void':'exit'},
 
             #{'local_command':'grep -A 10000 \'VPN-Instance\' <<< \'' ,'input_variable':'last_output' ,'local_command_continue':'\''},
 
-             'disp current-configuration interface LoopBack 200 | include /128',
-            {'local_function': 'stop_if_ipv6_found', 'input_variable':'last_output', 'if_output_is_void':'exit'},
+#             'disp current-configuration interface LoopBack 200 | include /128',
+#            {'local_function': 'stop_if_ipv6_found', 'input_variable':'last_output', 'if_output_is_void':'exit'},
 # 			'disp current-configuration interface LoopBack 200 | include 172',
 #             {'local_function': 'parse_ipv4_from_text', 'input_variable':'last_output', 'output_variable':'converted_ipv4','if_output_is_void':'exit'},
 #             'sys',
@@ -167,7 +167,8 @@ def huawei_peer_data(input_string):
                  vpn_peers = [vpn_peer_line.split()[0] for vpn_peer_line in vpn_peer_lines]
                  output.append([vpn_instance,vpn_peers])
         except: pass
-    return str(output)
+        print(output)
+    return 'OK'
 
 
 def netmiko_autodetect(device, debug = None):
@@ -247,22 +248,21 @@ def parse_json_file_and_get_oti_routers_list():
 def run_remote_and_local_commands(CMD, logfilename = None, printall = None, printcmdtologfile = None):
     ssh_connection, output= None, None
     try:
-        try:
-             ssh_connection = netmiko.ConnectHandler(device_type = router_type, \
-                 ip = DEVICE_HOST, port = int(DEVICE_PORT), \
-                 username = USERNAME, password = PASSWORD)
-        except:
-            global DEVICE_PROMPTS
-            client = paramiko.SSHClient()
-            client.load_system_host_keys()
-            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            client.connect(DEVICE_HOST, port=int(DEVICE_PORT), \
-                           username=USERNAME, password=PASSWORD)
-            chan = client.invoke_shell()
-            chan.settimeout(TIMEOUT)
-            output, forget_it = ssh_send_command_and_read_output(chan,DEVICE_PROMPTS,TERM_LEN_0)
-            output2, forget_it = ssh_send_command_and_read_output(chan,DEVICE_PROMPTS,"")
-            output += output2
+        ssh_connection = netmiko.ConnectHandler(device_type = router_type, \
+            ip = DEVICE_HOST, port = int(DEVICE_PORT), \
+            username = USERNAME, password = PASSWORD)
+
+#           global DEVICE_PROMPTS
+#           client = paramiko.SSHClient()
+#           client.load_system_host_keys()
+#           client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+#           client.connect(DEVICE_HOST, port=int(DEVICE_PORT), \
+#                          username=USERNAME, password=PASSWORD)
+#           chan = client.invoke_shell()
+#           chan.settimeout(TIMEOUT)
+#           output, forget_it = ssh_send_command_and_read_output(chan,DEVICE_PROMPTS,TERM_LEN_0)
+#           output2, forget_it = ssh_send_command_and_read_output(chan,DEVICE_PROMPTS,"")
+#           output += output2
 
         if not logfilename:
             if 'WIN32' in sys.platform.upper(): logfilename = 'nul'
@@ -282,10 +282,12 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
                                cli_line += dictionary_of_pseudovariables.get(name_of_local_variable,'')
                            else: cli_line += cli_item
                     print(bcolors.GREEN + "COMMAND: %s" % (cli_line) + bcolors.ENDC )
-                    try: last_output = ssh_connection.send_command(cli_line)
-                    except:
-                        last_output, new_prompt = ssh_send_command_and_read_output(chan,DEVICE_PROMPTS,cli_line)
-                        if new_prompt: DEVICE_PROMPTS.append(new_prompt)
+
+                    last_output = ssh_connection.send_command(cli_line)
+
+#                     last_output, new_prompt = ssh_send_command_and_read_output(chan,DEVICE_PROMPTS,cli_line)
+#                     if new_prompt: DEVICE_PROMPTS.append(new_prompt)
+
                     last_output = last_output.replace('\x0d','')
                     if printall: print(bcolors.GREY + "%s" % (last_output) + bcolors.ENDC )
                     if printcmdtologfile: fp.write('COMMAND: ' + cli_line + '\n'+last_output+'\n')
@@ -305,13 +307,16 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
                         name_of_local_variable = cli_items.get('input_variable','')
                         local_input = dictionary_of_pseudovariables.get(name_of_local_variable,'')
                         output_to_pseudovariable = dictionary_of_pseudovariables.get('output_variable','')
-                        local_output = locals()[local_function_name](local_input)
+                        ### GLOBAL SYMBOLS
+                        local_output = globals()[local_function_name](local_input)
                         if output_to_pseudovariable:
                             dictionary_of_pseudovariables[output_to_pseudovariable] = local_output
                         if printall: print("%sLOCAL_FUNCTION: %s(%s)\n%s%s\n%s" % \
-                            (bcolors.CYAN,local_function_name,local_input,bcolors.GREY,local_output,bcolors.ENDC))
-                        fp.write("%LOCAL_FUNCTION: %s(%s)\n%s\n" % \
-                            (local_function_name,local_input,local_output))
+                            (bcolors.CYAN,local_function_name,\
+                            local_input if len(local_input)<100 else name_of_local_variable,\
+                            bcolors.GREY,local_output,bcolors.ENDC))
+                        fp.write("LOCAL_FUNCTION: %s(%s)\n%s\n" % \
+                            (local_function_name,local_input if len(local_input)<100 else name_of_local_variable,local_output))
                         dictionary_of_pseudovariables['last_output'] = last_output.rstrip()
                         if local_output.strip() == str() \
                             and cli_items.get('if_output_is_void') in ['exit','quit','stop']:
@@ -324,13 +329,14 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
                         name_of_local_variable = cli_items.get('input_variable','')
                         local_input = dictionary_of_pseudovariables.get(name_of_local_variable,'')
                         output_to_pseudovariable = dictionary_of_pseudovariables.get('output_variable','')
+                        ### SUBPROCESS CALL
                         local_output = subprocess.check_output(str(local_process+local_input+local_process_continue), shell=True)
                         if output_to_pseudovariable:
                             dictionary_of_pseudovariables[output_to_pseudovariable] = local_output
-                        if printall: print("%sLOCAL_COMMAND: %s\n%s%s%s" % \
-                            (bcolors.CYAN,str(local_process+'$'+name_of_local_variable+local_process_continue),bcolors.GREY,local_output,bcolors.ENDC))
-                        fp.write("LOCAL_COMMAND: %s\n%s" % \
-                            (str(local_process+'$'+name_of_local_variable+local_process_continue),local_output))
+                        if printall: print("%sLOCAL_COMMAND: %s%s%s\n%s%s%s" % \
+                            (bcolors.CYAN,str(local_process,local_input if len(local_input)<100 else '$'+name_of_local_variable,local_process_continue),bcolors.GREY,local_output,bcolors.ENDC))
+                        fp.write("LOCAL_COMMAND: %s%s%s\n%s" % \
+                            (local_process,local_input if len(local_input)<100 else '$'+name_of_local_variable,local_process_continue,local_output))
                         dictionary_of_pseudovariables['last_output'] = last_output.rstrip()
                         if str(local_output).strip() == str() \
                             and cli_items.get('if_output_is_void') in ['exit','quit','stop']:
@@ -343,9 +349,11 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
         print(bcolors.FAIL + " ... EXCEPTION: (%s)" % (e) + bcolors.ENDC )
         sys.exit()
     finally:
-        try:
-            if ssh_connection: ssh_connection.disconnect()
-        except: client.close()
+
+        if ssh_connection: ssh_connection.disconnect()
+
+#        client.close()
+
     return None
 
 
