@@ -96,7 +96,7 @@ CMD_IOS_XR = [
             'show bgp vrf all summary',
              {'local_function':'get_ciscoxr_bgp_vpn_peer_data', 'input_variable':'last_output', \
               'output_variable':'bgp_vpn_peers', 'if_output_is_void':'exit'},
-
+              {'loop_list':'bgp_vpn_peers','remote_command':('show ',{'loop_item':'0'},{'loop_item':'1'}) }
 #             {'local_function': 'stop_if_ipv6_found', 'input_variable':'last_output', 'if_output_is_void':'exit'},
 # 			'sh run int loopback 200 | i 172',
 #             {'local_function': 'parse_ipv4_from_text','input_variable':'last_output', 'output_variable':'converted_ipv4','if_output_is_void':'exit'},
@@ -169,8 +169,10 @@ def get_ciscoxr_bgp_vpn_peer_data(text = None):
                vpn_instance   = vpn_section.splitlines()[0].strip()
                try: vpn_peer_lines = vpn_section.strip().split('Neighbor')[1].splitlines()[1:]
                except: vpn_peer_lines = []
-               vpn_peers = [vpn_peer_line.split()[0] for vpn_peer_line in vpn_peer_lines]
-               output.append((vpn_instance,vpn_peers))
+#                vpn_peers = [vpn_peer_line.split()[0] for vpn_peer_line in vpn_peer_lines]
+#                output.append((vpn_instance,vpn_peers))
+               for vpn_peer_line in vpn_peer_lines:
+                   output.append((vpn_instance,vpn_peer_line.split()[0]))
         except: pass
     return output
 
@@ -184,8 +186,10 @@ def get_huawei_bgp_vpn_peer_data(text = None):
                vpn_instance   = vpn_section.split(',')[0].strip()
                try: vpn_peer_lines = vpn_section.strip().splitlines()[1:]
                except: vpn_peer_lines = []
-               vpn_peers = [vpn_peer_line.split()[0] for vpn_peer_line in vpn_peer_lines]
-               output.append((vpn_instance,vpn_peers))
+#                vpn_peers = [vpn_peer_line.split()[0] for vpn_peer_line in vpn_peer_lines]
+#                output.append((vpn_instance,vpn_peers))
+               for vpn_peer_line in vpn_peer_lines:
+                   output.append((vpn_instance,vpn_peer_line.split()[0]))
         except: pass
     return output
 
@@ -320,9 +324,44 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
                             if printall: print("%sSTOP [VOID OUTPUT].%s" % \
                                 (bcolors.RED,bcolors.ENDC))
                             return None
-                ### HACK: USE DICTIONARY FOR RUNNING LOCAL PYTHON CODE FUNCTIONS OR LOCAL OS COMMANDS
+                ### HACK: USE DICTIONARY FOR RUNNING LOCAL PYTHON CODE FUNCTIONS OR LOCAL OS COMMANDS or LOOPS
                 elif isinstance(cli_items, dict):
-                    if cli_items.get('local_function',''):
+                    if cli_items.get('loop_list',''):
+                        list_name = cli_items.get('loop_list','')
+                        for loop_item in cli_items.get(list_name,''):
+                            if isinstance(loop_item, (list,tuple)):
+                                if cli_items.get('remote_command',''):
+                                    remote_cmd = cli_items.get('remote_command','')
+                                    cli_line=str()
+                                    if isinstance(remote_cmd, (list,tuple)):
+                                        for rem_cmd_part in remote_cmd:
+                                            if isinstance(rem_cmd_part, six.string_types):
+                                                cli_line += rem_cmd_part
+                                            elif isinstance(rem_cmd_part, dict):
+                                                if rem_cmd_part.get('loop_item',''):
+                                                    try: cli_line += loop_item[int(rem_cmd_part.get('loop_item',''))]
+                                                    except: pass
+                                                elif rem_cmd_part.get('input_variable',''):
+                                                    cli_line += dictionary_of_variables.get('input_variable','')
+                                        print(bcolors.GREEN + "COMMAND: %s" % (cli_line) + bcolors.ENDC )
+                                        last_output = ssh_connection.send_command(cli_line)
+
+                    #                     last_output, new_prompt = ssh_send_command_and_read_output(chan,DEVICE_PROMPTS,cli_line)
+                    #                     if new_prompt: DEVICE_PROMPTS.append(new_prompt)
+
+                                        last_output = last_output.replace('\x0d','')
+                                        if printall: print(bcolors.GREY + "%s" % (last_output) + bcolors.ENDC )
+                                        if printcmdtologfile: fp.write('COMMAND: ' + cli_line + '\n'+last_output+'\n')
+                                        else: fp.write(last_output)
+                                        dictionary_of_variables['last_output'] = last_output.rstrip()
+                                        for cli_item in cli_items:
+                                            if isinstance(cli_item, dict) \
+                                                and last_output.strip() == str() \
+                                                and cli_item.get('if_output_is_void','') in ['exit','quit','stop']:
+                                                if printall: print("%sSTOP [VOID OUTPUT].%s" % \
+                                                    (bcolors.RED,bcolors.ENDC))
+                                                return None
+                    elif cli_items.get('local_function',''):
                         local_function_name = cli_items.get('local_function','')
                         name_of_local_variable = cli_items.get('input_variable','')
                         local_input = dictionary_of_variables.get(name_of_local_variable,'')
