@@ -104,8 +104,12 @@ CMD_VRP = [
                  'output_variable':'bgp_vpn_peers', 'if_output_is_void':'exit'},
              {'loop_list':'bgp_vpn_peers','remote_command':('dis bgp vpnv4 vpn-instance ',\
                  {'loop_item':'0'},' peer ',{'loop_item':'1'},' verbose') },
-
-
+             'dis curr int | in (interface|ip binding vpn-instance)',
+             {'local_function':'get_huawei_vpn_interface', 'input_variable':'last_output',\
+                 'output_variable':'interface_list', 'if_output_is_void':'exit'},
+             {'loop_list':'interface_list','remote_command':('dis interface ',{'loop_item':'2'})},
+             {'loop_list':'bgp_vpn_peers','remote_command':('ping -s 1470 -c 1 -t 3000 -vpn-instance ',\
+                 {'loop_item':'0'},' ',{'loop_item':'1'})},
           ]
 CMD_LINUX = [
             'hostname',
@@ -118,6 +122,20 @@ CMD_LINUX = [
 # Function and Class
 #
 ###############################################################################
+
+def get_huawei_vpn_interface(text = None):
+    output = []
+    if text:
+        try: text = text.strip().split('MET')[1]
+        except: text = text.strip()
+        for interface in text.split('interface'):
+            try:
+                ### LIST=VPN,IP,INTERFACE_NAME
+                interface_name = interface.split()[0].strip()
+                vpn_name = interface.split('ip binding vpn-instance')[1].strip()
+                output.append((vpn_name,None,interface_name))
+            except: pass
+    return output
 
 
 def get_ciscoxr_vpnv4_all_interfaces(text = None):
