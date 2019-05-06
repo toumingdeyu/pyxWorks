@@ -94,9 +94,10 @@ CMD_IOS_XE = [
               ]
 CMD_IOS_XR = [
             'show bgp vrf all summary',
-             {'local_function':'get_ciscoxr_bgp_vpn_peer_data', 'input_variable':'last_output', \
-              'output_variable':'bgp_vpn_peers', 'if_output_is_void':'exit'},
-              {'loop_list':'bgp_vpn_peers','remote_command':('show ',{'loop_item':'0'},{'loop_item':'1'}) }
+             {'local_function':'get_ciscoxr_bgp_vpn_peer_data', 'input_variable':'last_output',\
+                 'output_variable':'bgp_vpn_peers', 'if_output_is_void':'exit'},
+             {'loop_list':'bgp_vpn_peers','remote_command':('show bgp vrf ',{'loop_item':'0'},\
+                 ' neighbors ',{'loop_item':'1'}) },
 #             {'local_function': 'stop_if_ipv6_found', 'input_variable':'last_output', 'if_output_is_void':'exit'},
 # 			'sh run int loopback 200 | i 172',
 #             {'local_function': 'parse_ipv4_from_text','input_variable':'last_output', 'output_variable':'converted_ipv4','if_output_is_void':'exit'},
@@ -128,8 +129,10 @@ CMD_JUNOS = [
              ]
 CMD_VRP = [
              'display bgp vpnv4 all peer',
-             {'local_function':'get_huawei_bgp_vpn_peer_data', 'input_variable':'last_output', \
-              'output_variable':'bgp_vpn_peers', 'if_output_is_void':'exit'},
+             {'local_function':'get_huawei_bgp_vpn_peer_data', 'input_variable':'last_output',\
+                 'output_variable':'bgp_vpn_peers', 'if_output_is_void':'exit'},
+             {'loop_list':'bgp_vpn_peers','remote_command':('dis bgp vpnv4 vpn-instance ',\
+                 {'loop_item':'0'},' peer ',{'loop_item':'1'},' verbose') },
 
             #{'local_command':'grep -A 10000 \'VPN-Instance\' <<< \'' ,'input_variable':'last_output' ,'local_command_continue':'\''},
 
@@ -328,7 +331,8 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
                 elif isinstance(cli_items, dict):
                     if cli_items.get('loop_list',''):
                         list_name = cli_items.get('loop_list','')
-                        for loop_item in cli_items.get(list_name,''):
+                        print(list_name,dictionary_of_variables.get(list_name,''))
+                        for loop_item in dictionary_of_variables.get(list_name,''):
                             if isinstance(loop_item, (list,tuple)):
                                 if cli_items.get('remote_command',''):
                                     remote_cmd = cli_items.get('remote_command','')
@@ -365,13 +369,13 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
                         local_function_name = cli_items.get('local_function','')
                         name_of_local_variable = cli_items.get('input_variable','')
                         local_input = dictionary_of_variables.get(name_of_local_variable,'')
-                        output_to_pseudovariable = dictionary_of_variables.get('output_variable','')
+                        name_of_output_variable = cli_items.get('output_variable','')
                         ### GLOBAL SYMBOLS
                         local_output = globals()[local_function_name](local_input)
                         if isinstance(local_output, six.string_types):
                             local_output = local_output.replace('\x0d','')
-                        if output_to_pseudovariable:
-                            dictionary_of_variables[output_to_pseudovariable] = local_output
+                        if name_of_output_variable:
+                            dictionary_of_variables[name_of_output_variable] = local_output
                         if printall: print("%sLOCAL_FUNCTION: %s(%s)\n%s%s\n%s" % \
                             (bcolors.CYAN,local_function_name,\
                             local_input if len(local_input)<100 else name_of_local_variable,\
@@ -390,15 +394,15 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
                         local_process_continue = cli_items.get('local_command_continue','')
                         name_of_local_variable = cli_items.get('input_variable','')
                         local_input = dictionary_of_variables.get(name_of_local_variable,'')
-                        output_to_pseudovariable = dictionary_of_variables.get('output_variable','')
+                        name_of_output_variable = cli_items.get('output_variable','')
                         ### SUBPROCESS CALL
                         local_output = subprocess.check_output( \
                             str(local_process+local_input+local_process_continue),\
                             shell=True)
                         if isinstance(local_output, six.string_types):
                             local_output = local_output.replace('\x0d','')
-                        if output_to_pseudovariable:
-                            dictionary_of_variables[output_to_pseudovariable] = local_output
+                        if name_of_output_variable:
+                            dictionary_of_variables[name_of_output_variable] = local_output
                         if printall: print("%sLOCAL_COMMAND: %s%s%s\n%s%s%s" % \
                             (bcolors.CYAN,str(local_process,\
                             local_input if len(local_input)<100 else '$'+name_of_local_variable,\
