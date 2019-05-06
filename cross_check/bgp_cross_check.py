@@ -134,6 +134,8 @@ CMD_VRP = [
              {'loop_list':'bgp_vpn_peers','remote_command':('dis bgp vpnv4 vpn-instance ',\
                  {'loop_item':'0'},' peer ',{'loop_item':'1'},' verbose') },
 
+            ###NOTE: - part of netmiko long command is displayed in output
+
             #{'local_command':'grep -A 10000 \'VPN-Instance\' <<< \'' ,'input_variable':'last_output' ,'local_command_continue':'\''},
 
 #             'disp current-configuration interface LoopBack 200 | include /128',
