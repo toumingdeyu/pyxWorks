@@ -80,17 +80,7 @@ print('LOGDIR: ' + LOGDIR)
 
 # IOS-XE is only for IPsec GW
 CMD_IOS_XE = [
-# 			'sh run int loopback 200 | i /128',
-#             {'local_function': 'stop_if_ipv6_found','input_variable':'last_output', 'if_output_is_void':'exit'},
-#             'sh run int loopback 200 | i 172',
-#             {'local_function': 'parse_ipv4_from_text','input_variable':'last_output', 'output_variable':'converted_ipv4','if_output_is_void':'exit'},
-#             'conf t',
-#             'interface loopback 200',
-#             ('ipv6 address', {'variable':'converted_ipv4'}, '/128'),
-#             'exit',
-# 			'exit',
-# 			'write',
-#             'sh int loopback 200 | i /128'
+
               ]
 CMD_IOS_XR = [
             'show bgp vrf all summary',
@@ -98,34 +88,15 @@ CMD_IOS_XR = [
                  'output_variable':'bgp_vpn_peers', 'if_output_is_void':'exit'},
              {'loop_list':'bgp_vpn_peers','remote_command':('show bgp vrf ',{'loop_item':'0'},\
                  ' neighbors ',{'loop_item':'1'}) },
-#             {'local_function': 'stop_if_ipv6_found', 'input_variable':'last_output', 'if_output_is_void':'exit'},
-# 			'sh run int loopback 200 | i 172',
-#             {'local_function': 'parse_ipv4_from_text','input_variable':'last_output', 'output_variable':'converted_ipv4','if_output_is_void':'exit'},
-#             'conf',
-# 			'interface loopback 200',
-#             ('ipv6 address ', {'variable':'converted_ipv4'}, '/128'),
-#             'router isis PAII',
-#             'interface Loopback200',
-#             'address-family ipv6 unicast',
-#             'commi',
-#             'exit',
-# 			'exit',
-#             'sh int loopback 200 | i /128'
+             'sh ipv4 vrf all int brief | exclude "unassigned|Protocol|default| MET"',
+             {'local_function':'get_ciscoxr_vpnv4_all_interfaces', 'input_variable':'last_output',\
+                 'output_variable':'interface_list', 'if_output_is_void':'exit'},
+             {'loop_list':'interface_list','remote_command':('show interface ',{'loop_item':'2'})},
+             {'loop_list':'bgp_vpn_peers','remote_command':('ping vrf ',{'loop_item':'0'},\
+                 ' ',{'loop_item':'1'},' size 1470 count 20')},
              ]
 CMD_JUNOS = [
-#             'show configuration interfaces lo0 | match /128',
-#             {'local_function': 'stop_if_two_ipv6_found', 'if_output_is_void':'exit'},
-#             'show configuration interfaces lo0 | display set | match 128',
-#             #{'local_function': 'parse_whole_set_line_from_text', 'if_output_is_void':'exit'},
-# 			'show configuration interfaces lo0 | match 172.25.4',
-#             {'local_function': 'parse_ipv4_from_text','input_variable':'last_output', 'output_variable':'converted_ipv4','if_output_is_void':'exit'},
-#              'configure private',
-#              #'__var_set_ipv6line__',
-#              ('set interfaces lo0 unit 0 family inet6 address ', {'variable':'converted_ipv4'}, '/128'),
-#              'show configuration interfaces lo0 | match /128',
-#     		 'commi',
-#     		 'exit',
-#              'show configuration interfaces lo0 | match /128',
+
              ]
 CMD_VRP = [
              'display bgp vpnv4 all peer',
@@ -134,23 +105,7 @@ CMD_VRP = [
              {'loop_list':'bgp_vpn_peers','remote_command':('dis bgp vpnv4 vpn-instance ',\
                  {'loop_item':'0'},' peer ',{'loop_item':'1'},' verbose') },
 
-            ###NOTE: - part of netmiko long command is displayed in output
 
-            #{'local_command':'grep -A 10000 \'VPN-Instance\' <<< \'' ,'input_variable':'last_output' ,'local_command_continue':'\''},
-
-#             'disp current-configuration interface LoopBack 200 | include /128',
-#            {'local_function': 'stop_if_ipv6_found', 'input_variable':'last_output', 'if_output_is_void':'exit'},
-# 			'disp current-configuration interface LoopBack 200 | include 172',
-#             {'local_function': 'parse_ipv4_from_text', 'input_variable':'last_output', 'output_variable':'converted_ipv4','if_output_is_void':'exit'},
-#             'sys',
-# 			'interface loopback 200',
-#             'ipv6 enable',
-# 			('ipv6 address ', {'variable':'converted_ipv4'}, '/128'),
-#             'isis ipv6 enable 5511',
-# 			'commit',
-#             'quit',
-# 			'quit',
-#             'disp current-configuration interface LoopBack 200 | include /128'
           ]
 CMD_LINUX = [
             'hostname',
@@ -163,6 +118,17 @@ CMD_LINUX = [
 # Function and Class
 #
 ###############################################################################
+
+
+def get_ciscoxr_vpnv4_all_interfaces(text = None):
+    output = []
+    if text:
+        for row in text.strip().splitlines():
+           ### LIST=VPN,IP,INTERFACE_NAME,UP,UP
+           columns = row.strip().split()
+           try: output.append((columns[4],columns[1],columns[0],columns[2],columns[3]))
+           except: pass
+    return output
 
 
 def get_ciscoxr_bgp_vpn_peer_data(text = None):
@@ -333,7 +299,6 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
                 elif isinstance(cli_items, dict):
                     if cli_items.get('loop_list',''):
                         list_name = cli_items.get('loop_list','')
-                        print(list_name,dictionary_of_variables.get(list_name,''))
                         for loop_item in dictionary_of_variables.get(list_name,''):
                             if isinstance(loop_item, (list,tuple)):
                                 if cli_items.get('remote_command',''):
