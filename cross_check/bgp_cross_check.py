@@ -88,7 +88,7 @@ CMD_IOS_XR = [
                  'output_variable':'bgp_vpn_peers', 'if_output_is_void':'exit'},
              {'loop_list':'bgp_vpn_peers','remote_command':('show bgp vrf ',{'loop_item':'0'},\
                  ' neighbors ',{'loop_item':'1'}) },
-             'sh ipv4 vrf all int brief | exclude "unassigned|Protocol|default| MET"',
+             'sh ipv4 vrf all int brief | exclude "unassigned|Protocol|default"',
              {'local_function':'get_ciscoxr_vpnv4_all_interfaces', 'input_variable':'last_output',\
                  'output_variable':'interface_list', 'if_output_is_void':'exit'},
              {'loop_list':'interface_list','remote_command':('show interface ',{'loop_item':'2'})},
@@ -123,7 +123,9 @@ CMD_LINUX = [
 def get_ciscoxr_vpnv4_all_interfaces(text = None):
     output = []
     if text:
-        for row in text.strip().splitlines():
+        try: text = text.strip().split('MET')[1]
+        except: text = text.strip()
+        for row in text.splitlines():
            ### LIST=VPN,IP,INTERFACE_NAME,UP,UP
            columns = row.strip().split()
            try: output.append((columns[4],columns[1],columns[0],columns[2],columns[3]))
