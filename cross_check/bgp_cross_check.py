@@ -110,16 +110,17 @@ CMD_VRP = [
              {'loop_list':'bgp_vpn_peers','remote_command':('dis bgp vpnv4 vpn-instance ',\
                  {'loop_item':'0'},' peer ',{'loop_item':'1'},' verbose') },
 
+
              {'loop_list':'bgp_vpn_peers','remote_command':('dis bgp vpnv4 vpn-instance ',\
                  {'loop_item':'0'},' routing-table peer ',{'loop_item':'1'},' accepted-routes') },
 
              'dis curr int | in (interface|ip binding vpn-instance)',
              {'local_function':'get_huawei_vpn_interface', 'input_variable':'last_output',\
                  'output_variable':'interface_list', 'if_output_is_void':'exit'},
-             {'loop_list':'interface_list','remote_command':('dis interface ',{'loop_item':'2'})},
-
-             {'loop_list':'bgp_vpn_peers','remote_command':('ping -s 1470 -c 2 -t 2000 -vpn-instance ',\
-                 {'loop_item':'0'},' ',{'loop_item':'1'})},
+#              {'loop_list':'interface_list','remote_command':('dis interface ',{'loop_item':'2'})},
+#
+#              {'loop_list':'bgp_vpn_peers','remote_command':('ping -s 1470 -c 2 -t 2000 -vpn-instance ',\
+#                  {'loop_item':'0'},' ',{'loop_item':'1'})},
           ]
 CMD_LINUX = [
             'hostname',
@@ -134,10 +135,12 @@ CMD_LINUX = [
 ###############################################################################
 
 
-def get_first_value_after(split_text = None, text = None):
+def get_first_value_after(text = None, split_text = None, delete_text = None):
     output = str()
     if text:
-        try: output = text.strip().split(split_text)[1].split()[0].strip()
+        try:
+            output = text.strip().split(split_text)[1].split()[0].strip()
+            if delete_text: output = output.replace(delete_text,'')
         except: pass
     return output
 
@@ -280,6 +283,107 @@ def parse_json_file_and_get_oti_routers_list():
 
 
 def run_remote_and_local_commands(CMD, logfilename = None, printall = None, printcmdtologfile = None):
+    ### RUN_COMMAND - REMOTE or LOCAL ------------------------------------------
+    def run_command(ssh_connection,cli_items,loop_item = None,run_remote = None,\
+        logfilename = logfilename,printall = printall, printcmdtologfile = printcmdtologfile):
+        global dictionary_of_variables
+        cli_line = str()
+        ### LIST,TUPPLE,STRINS ARE REMOTE REMOTE/LOCAL DEVICE COMMANDS
+        if isinstance(cli_items, (six.string_types,list,tuple)):
+            if isinstance(cli_items, six.string_types): cli_line = cli_items
+            elif isinstance(cli_items, (list,tuple)):
+                for cli_item in cli_items:
+                    if isinstance(cli_item, dict):
+                        if cli_item.get('loop_item',''):
+                            try: cli_line += str(loop_item[int(cli_item.get('loop_item',''))])
+                            except: pass
+                        elif cli_item.get('input_variable',''):
+                            name_of_local_variable = cli_item.get('input_variable','')
+                            cli_line += dictionary_of_variables.get(name_of_local_variable,'')
+                    else: cli_line += cli_item
+            if run_remote:
+                print(bcolors.GREEN + "REMOTE_COMMAND: %s" % (cli_line) + bcolors.ENDC )
+                ### NETMIKO
+                last_output = ssh_connection.send_command(cli_line)
+
+                ### PARAMIKO
+                #last_output, new_prompt = ssh_send_command_and_read_output(ssh_connection,DEVICE_PROMPTS,cli_line)
+                #if new_prompt: DEVICE_PROMPTS.append(new_prompt)
+            else:
+                print(bcolors.CYAN + "LOCAL_COMMAND: %s" % (cli_line) + bcolors.ENDC )
+                ### LOCAL COMMAND - SUBPROCESS CALL
+                last_output = subprocess.check_output(str(cli_line),shell=True)
+
+            ### FILTER LAST_OUTPUT
+            if isinstance(last_output, six.string_types):
+                last_output = last_output.decode("utf-8").replace('\x07','').\
+                    replace('\x08','').replace('\x0d','').replace('\x1b','').replace('\x1d','')
+
+                ### NETMIKO-BUG (https://github.com/ktbyers/netmiko/issues/1200)
+                if len(str(cli_line))>80 and run_remote:
+                    first_bugged_line = last_output.splitlines()[0]
+                    #print('NOISE:',first_bugged_line)
+                    last_output = last_output.replace(first_bugged_line+'\n','')
+                    if(last_output.strip() == first_bugged_line): last_output = str()
+
+            if printall: print(bcolors.GREY + "%s" % (last_output) + bcolors.ENDC )
+            if printcmdtologfile:
+                if run_remote: fp.write('REMOTE_COMMAND: ' + cli_line + '\n'+last_output+'\n')
+                else: fp.write('LOCAL_COMMAND: ' + cli_line + '\n'+last_output+'\n')
+            else: fp.write(last_output)
+            dictionary_of_variables['last_output'] = last_output.rstrip()
+            for cli_item in cli_items:
+                if isinstance(cli_item, dict) \
+                    and last_output.strip() == str() \
+                    and cli_item.get('if_output_is_void','') in ['exit','quit','stop']:
+                    if printall: print("%sSTOP [VOID OUTPUT].%s" % \
+                        (bcolors.RED,bcolors.ENDC))
+                    return True
+        return None
+    ### RUN_LOCAL_FUNCTION -----------------------------------------------------
+    def run_local_function(cli_items,loop_item = None,logfilename = logfilename,\
+        printall = printall, printcmdtologfile = printcmdtologfile):
+        global dictionary_of_variables
+        local_function_name = cli_items.get('local_function','')
+        if cli_items.get('input_list',''):
+            local_input = []
+            for input_list_item in cli_items.get('input_list',''):
+                if isinstance(input_list_item, dict):
+                    if cli_item.get('loop_item',''):
+                        try: local_input.append(loop_item[int(input_list_item.get('loop_item',''))])
+                        except: pass
+                    elif cli_item.get('input_variable',''):
+                        name_of_local_variable = input_list_item.get('input_variable','')
+                        local_input.append(dictionary_of_variables.get(name_of_local_variable,''))
+                else: local_input.append(input_list_item)
+        elif cli_items.get('input_variable',''):
+            name_of_local_variable = cli_items.get('input_variable','')
+            local_input = dictionary_of_variables.get(name_of_local_variable,'')
+        name_of_output_variable = cli_items.get('output_variable','')
+        ### GLOBAL SYMBOLS
+        if isinstance(local_input, (list,tuple)):
+            local_output = globals()[local_function_name](*local_input)
+        else: local_output = globals()[local_function_name](local_input)
+        if isinstance(local_output, six.string_types):
+            local_output = local_output.replace('\x0d','')
+        if name_of_output_variable:
+            dictionary_of_variables[name_of_output_variable] = local_output
+        if printall: print("%sLOCAL_FUNCTION: %s(%s)\n%s%s\n%s" % \
+            (bcolors.CYAN,local_function_name,\
+            local_input if len(local_input)<100 else name_of_local_variable,\
+            bcolors.GREY,local_output,bcolors.ENDC))
+        fp.write("LOCAL_FUNCTION: %s(%s)\n%s\n" % (local_function_name,\
+            local_input if len(local_input)<100 else name_of_local_variable,\
+            local_output))
+        dictionary_of_variables['last_output'] = local_output
+        if (not local_output or str(local_output).strip() == str() )\
+            and cli_items.get('if_output_is_void') in ['exit','quit','stop']:
+            if printall: print("%sSTOP [VOID OUTPUT].%s" % \
+                (bcolors.RED,bcolors.ENDC))
+            return True
+        return None
+
+    ### RUN_REMOTE_AND_LOCAL_COMMANDS START ====================================
     ssh_connection, output= None, None
     try:
         ssh_connection = netmiko.ConnectHandler(device_type = router_type, \
@@ -292,10 +396,10 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
 #           client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 #           client.connect(DEVICE_HOST, port=int(DEVICE_PORT), \
 #                          username=USERNAME, password=PASSWORD)
-#           chan = client.invoke_shell()
-#           chan.settimeout(TIMEOUT)
-#           output, forget_it = ssh_send_command_and_read_output(chan,DEVICE_PROMPTS,TERM_LEN_0)
-#           output2, forget_it = ssh_send_command_and_read_output(chan,DEVICE_PROMPTS,"")
+#           ssh_connection = client.invoke_shell()
+#           ssh_connection.settimeout(TIMEOUT)
+#           output, forget_it = ssh_send_command_and_read_output(ssh_connection,DEVICE_PROMPTS,TERM_LEN_0)
+#           output2, forget_it = ssh_send_command_and_read_output(ssh_connection,DEVICE_PROMPTS,"")
 #           output += output2
 
         if not logfilename:
@@ -303,38 +407,12 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
             else: logfilename = '/dev/null'
         with open(logfilename,"w") as fp:
             if output and not printcmdtologfile: fp.write(output)
-            dictionary_of_variables = {}
             for cli_items in CMD:
                 cli_line = str()
                 ### LIST,TUPPLE,STRINS ARE REMOTE REMOTE DEVICE COMMANDS
                 if isinstance(cli_items, (six.string_types,list,tuple)):
-                    if isinstance(cli_items, six.string_types): cli_line = cli_items
-                    if isinstance(cli_items, (list,tuple)):
-                        for cli_item in cli_items:
-                           if isinstance(cli_item, dict):
-                               name_of_local_variable = cli_item.get('input_variable','')
-                               cli_line += dictionary_of_variables.get(name_of_local_variable,'')
-                           else: cli_line += cli_item
-                    print(bcolors.GREEN + "COMMAND: %s" % (cli_line) + bcolors.ENDC )
-
-                    last_output = ssh_connection.send_command(cli_line)
-
-#                     last_output, new_prompt = ssh_send_command_and_read_output(chan,DEVICE_PROMPTS,cli_line)
-#                     if new_prompt: DEVICE_PROMPTS.append(new_prompt)
-
-                    last_output = last_output.replace('\x0d','')
-                    if printall: print(bcolors.GREY + "%s" % (last_output) + bcolors.ENDC )
-                    if printcmdtologfile: fp.write('COMMAND: ' + cli_line + '\n'+last_output+'\n')
-                    else: fp.write(last_output)
-                    dictionary_of_variables['last_output'] = last_output.rstrip()
-                    for cli_item in cli_items:
-                        if isinstance(cli_item, dict) \
-                            and last_output.strip() == str() \
-                            and cli_item.get('if_output_is_void','') in ['exit','quit','stop']:
-                            if printall: print("%sSTOP [VOID OUTPUT].%s" % \
-                                (bcolors.RED,bcolors.ENDC))
-                            return None
-                ### HACK: USE DICTIONARY FOR RUNNING LOCAL PYTHON CODE FUNCTIONS OR LOCAL OS COMMANDS or LOOPS
+                    if run_command(ssh_connection,cli_items,run_remote = True): return None
+                ### HACK: USE DICT FOR RUN LOCAL PYTHON CODE FUNCTIONS OR LOCAL OS COMMANDS or LOOPS
                 elif isinstance(cli_items, dict):
                     if cli_items.get('loop_list',''):
                         list_name = cli_items.get('loop_list','')
@@ -342,96 +420,16 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
                             if isinstance(loop_item, (list,tuple)):
                                 if cli_items.get('remote_command',''):
                                     remote_cmd = cli_items.get('remote_command','')
-                                    cli_line=str()
-                                    if isinstance(remote_cmd, (list,tuple)):
-                                        for rem_cmd_part in remote_cmd:
-                                            if isinstance(rem_cmd_part, six.string_types):
-                                                cli_line += rem_cmd_part
-                                            elif isinstance(rem_cmd_part, dict):
-                                                if rem_cmd_part.get('loop_item',''):
-                                                    try: cli_line += loop_item[int(rem_cmd_part.get('loop_item',''))]
-                                                    except: pass
-                                                elif rem_cmd_part.get('input_variable',''):
-                                                    cli_line += dictionary_of_variables.get('input_variable','')
-                                        print(bcolors.GREEN + "COMMAND: %s" % (cli_line) + bcolors.ENDC )
-                                        last_output = ssh_connection.send_command(cli_line)
-
-                    #                     last_output, new_prompt = ssh_send_command_and_read_output(chan,DEVICE_PROMPTS,cli_line)
-                    #                     if new_prompt: DEVICE_PROMPTS.append(new_prompt)
-
-                                        last_output = last_output.replace('\x0d','')
-                                        if printall: print(bcolors.GREY + "%s" % (last_output) + bcolors.ENDC )
-                                        if printcmdtologfile: fp.write('COMMAND: ' + cli_line + '\n'+last_output+'\n')
-                                        else: fp.write(last_output)
-                                        dictionary_of_variables['last_output'] = last_output.rstrip()
-                                        for cli_item in cli_items:
-                                            if isinstance(cli_item, dict) \
-                                                and last_output.strip() == str() \
-                                                and cli_item.get('if_output_is_void','') in ['exit','quit','stop']:
-                                                if printall: print("%sSTOP [VOID OUTPUT].%s" % \
-                                                    (bcolors.RED,bcolors.ENDC))
-                                                return None
+                                    if run_command(ssh_connection,remote_cmd,\
+                                        loop_item,run_remote = True): return None
+                                if cli_items.get('local_function',''):
+                                    if run_local_function(cli_items,loop_item): return None
+                                elif cli_items.get('local_command',''):
+                                    if run_command(ssh_connection,cli_items,loop_item): return None
                     elif cli_items.get('local_function',''):
-                        local_function_name = cli_items.get('local_function','')
-                        if cli_items.get('input_list',''):
-                            local_input = []
-                            for input_list_item in cli_items.get('input_list',''):
-                                if isinstance(input_list_item, dict):
-                                    name_of_local_variable = input_list_item.get('input_variable','')
-                                    local_input.append(dictionary_of_variables.get(name_of_local_variable,''))
-                                else: local_input.append(input_list_item)
-                        elif cli_items.get('input_variable',''):
-                            name_of_local_variable = cli_items.get('input_variable','')
-                            local_input = dictionary_of_variables.get(name_of_local_variable,'')
-                        name_of_output_variable = cli_items.get('output_variable','')
-                        ### GLOBAL SYMBOLS
-                        if isinstance(local_input, (list,tuple)):
-                            local_output = globals()[local_function_name](*local_input)
-                        else: local_output = globals()[local_function_name](local_input)
-                        if isinstance(local_output, six.string_types):
-                            local_output = local_output.replace('\x0d','')
-                        if name_of_output_variable:
-                            dictionary_of_variables[name_of_output_variable] = local_output
-                        if printall: print("%sLOCAL_FUNCTION: %s(%s)\n%s%s\n%s" % \
-                            (bcolors.CYAN,local_function_name,\
-                            local_input if len(local_input)<100 else name_of_local_variable,\
-                            bcolors.GREY,local_output,bcolors.ENDC))
-                        fp.write("LOCAL_FUNCTION: %s(%s)\n%s\n" % (local_function_name,\
-                            local_input if len(local_input)<100 else name_of_local_variable,\
-                            local_output))
-                        dictionary_of_variables['last_output'] = last_output
-                        if (not local_output or str(local_output).strip() == str() )\
-                            and cli_items.get('if_output_is_void') in ['exit','quit','stop']:
-                            if printall: print("%sSTOP [VOID OUTPUT].%s" % \
-                                (bcolors.RED,bcolors.ENDC))
-                            return None
+                        if run_local_function(cli_items): return None
                     elif cli_items.get('local_command',''):
-                        local_process = cli_items.get('local_command','')
-                        local_process_continue = cli_items.get('local_command_continue','')
-                        name_of_local_variable = cli_items.get('input_variable','')
-                        local_input = dictionary_of_variables.get(name_of_local_variable,'')
-                        name_of_output_variable = cli_items.get('output_variable','')
-                        ### SUBPROCESS CALL
-                        local_output = subprocess.check_output( \
-                            str(local_process+local_input+local_process_continue),\
-                            shell=True)
-                        if isinstance(local_output, six.string_types):
-                            local_output = local_output.replace('\x0d','')
-                        if name_of_output_variable:
-                            dictionary_of_variables[name_of_output_variable] = local_output
-                        if printall: print("%sLOCAL_COMMAND: %s%s%s\n%s%s%s" % \
-                            (bcolors.CYAN,str(local_process,\
-                            local_input if len(local_input)<100 else '$'+name_of_local_variable,\
-                            local_process_continue),bcolors.GREY,local_output,bcolors.ENDC))
-                        fp.write("LOCAL_COMMAND: %s%s%s\n%s" % (local_process,\
-                            local_input if len(local_input)<100 else '$'+name_of_local_variable,\
-                            local_process_continue,local_output))
-                        dictionary_of_variables['last_output'] = last_output
-                        if (not local_output or str(local_output).strip() == str() )\
-                            and cli_items.get('if_output_is_void') in ['exit','quit','stop']:
-                            if printall: print("%sSTOP [VOID OUTPUT].%s" % \
-                                (bcolors.RED,bcolors.ENDC))
-                            return None
+                        if run_command(ssh_connection,cli_items): return None
                 elif printall: print('%sUNSUPPORTED_TYPE %s of %s!%s' % \
                             (bcolors.MAGENTA,type(item),str(cli_items),bcolors.ENDC))
     except () as e:
@@ -462,11 +460,10 @@ def get_version_from_file_last_modification_date(path_to_file = str(os.path.absp
 #
 ##############################################################################
 
-
-
 if __name__ != "__main__": sys.exit(0)
 
 VERSION = get_version_from_file_last_modification_date()
+dictionary_of_variables = {}
 
 ######## Parse program arguments #########
 parser = argparse.ArgumentParser(
