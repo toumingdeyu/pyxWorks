@@ -133,6 +133,15 @@ CMD_LINUX = [
 #
 ###############################################################################
 
+
+def get_first_value_after(split_text = None, text = None):
+    output = str()
+    if text:
+        try: output = text.strip().split(split_text)[1].split()[0].strip()
+        except: pass
+    return output
+
+
 def get_huawei_vpn_interface(text = None):
     output = []
     if text:
@@ -364,11 +373,21 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
                                                 return None
                     elif cli_items.get('local_function',''):
                         local_function_name = cli_items.get('local_function','')
-                        name_of_local_variable = cli_items.get('input_variable','')
-                        local_input = dictionary_of_variables.get(name_of_local_variable,'')
+                        if cli_items.get('input_list',''):
+                            local_input = []
+                            for input_list_item in cli_items.get('input_list',''):
+                                if isinstance(input_list_item, dict):
+                                    name_of_local_variable = input_list_item.get('input_variable','')
+                                    local_input.append(dictionary_of_variables.get(name_of_local_variable,''))
+                                else: local_input.append(input_list_item)
+                        elif cli_items.get('input_variable',''):
+                            name_of_local_variable = cli_items.get('input_variable','')
+                            local_input = dictionary_of_variables.get(name_of_local_variable,'')
                         name_of_output_variable = cli_items.get('output_variable','')
                         ### GLOBAL SYMBOLS
-                        local_output = globals()[local_function_name](local_input)
+                        if isinstance(local_input, (list,tuple)):
+                            local_output = globals()[local_function_name](*local_input)
+                        else: local_output = globals()[local_function_name](local_input)
                         if isinstance(local_output, six.string_types):
                             local_output = local_output.replace('\x0d','')
                         if name_of_output_variable:
@@ -442,6 +461,8 @@ def get_version_from_file_last_modification_date(path_to_file = str(os.path.absp
 # BEGIN MAIN
 #
 ##############################################################################
+
+
 
 if __name__ != "__main__": sys.exit(0)
 
