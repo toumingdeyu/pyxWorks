@@ -898,12 +898,12 @@ if args.cmd_file:
 filename_prefix = os.path.join(WORKDIR,args.device.replace(':','_').replace('.','_'))
 filename_suffix = pre_post
 now = datetime.datetime.now()
-filename_generated = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s-%s" % \
+filename_generated = "%s-%.2i%.2i%.2i-%.2i%.2i%.2i-%s-%s" % \
     (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,now.second,USERNAME,filename_suffix)
 
 logfilename=str()
 if args.log_file:
-    logfilename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s-%s" % \
+    logfilename = "%s-%.2i%.2i%.2i-%.2i%.2i%.2i-%s-%s" % \
     (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,now.second,USERNAME,'log')
 
 if not args.recheck:
