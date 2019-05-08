@@ -345,9 +345,9 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
         printall = printall, printcmdtologfile = printcmdtologfile):
         global dictionary_of_variables
         local_function_name = cli_items.get('local_function','')
-        if cli_items.get('input_list',''):
+        if cli_items.get('input_parameters',''):
             local_input = []
-            for input_list_item in cli_items.get('input_list',''):
+            for input_list_item in cli_items.get('input_parameters',''):
                 if isinstance(input_list_item, dict):
                     if cli_item.get('loop_item',''):
                         try: local_input.append(loop_item[int(input_list_item.get('loop_item',''))])
