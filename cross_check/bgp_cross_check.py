@@ -287,7 +287,7 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
     def run_command(ssh_connection,cli_items,loop_item = None,run_remote = None,\
         logfilename = logfilename,printall = printall, printcmdtologfile = printcmdtologfile):
         global dictionary_of_variables
-        cli_line = str()
+        cli_line, name_of_output_variable = str(), None
         ### LIST,TUPPLE,STRINS ARE REMOTE REMOTE/LOCAL DEVICE COMMANDS
         if isinstance(cli_items, (six.string_types,list,tuple)):
             if isinstance(cli_items, six.string_types): cli_line = cli_items
@@ -298,8 +298,10 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
                             try: cli_line += str(loop_item[int(cli_item.get('loop_item',''))])
                             except: pass
                         elif cli_item.get('input_variable',''):
-                            name_of_local_variable = cli_item.get('input_variable','')
-                            cli_line += dictionary_of_variables.get(name_of_local_variable,'')
+                            name_of_input_variable = cli_item.get('input_variable','')
+                            cli_line += dictionary_of_variables.get(name_of_input_variable,'')
+                        elif cli_item.get('output_variable',''):
+                            name_of_output_variable = cli_item.get('output_variable','')
                     else: cli_line += cli_item
             if run_remote:
                 print(bcolors.GREEN + "REMOTE_COMMAND: %s" % (cli_line) + bcolors.ENDC )
@@ -331,7 +333,10 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
                 if run_remote: fp.write('REMOTE_COMMAND: ' + cli_line + '\n'+last_output+'\n')
                 else: fp.write('LOCAL_COMMAND: ' + cli_line + '\n'+last_output+'\n')
             else: fp.write(last_output)
+            ### Result will be allways string, so rstrip() could be done
             dictionary_of_variables['last_output'] = last_output.rstrip()
+            if name_of_output_variable:
+                dictionary_of_variables[name_of_output_variable] = last_output.rstrip()
             for cli_item in cli_items:
                 if isinstance(cli_item, dict) \
                     and last_output.strip() == str() \
@@ -430,6 +435,8 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
                         if run_local_function(cli_items): return None
                     elif cli_items.get('local_command',''):
                         if run_command(ssh_connection,cli_items): return None
+                    elif cli_items.get('remote_command',''):
+                        if run_command(ssh_connection,cli_items,run_remote = True): return None
                 elif printall: print('%sUNSUPPORTED_TYPE %s of %s!%s' % \
                             (bcolors.MAGENTA,type(item),str(cli_items),bcolors.ENDC))
     except () as e:
@@ -497,16 +504,17 @@ parser.add_argument("--nolog",
 parser.add_argument("--rcmd",
                     action = "store", dest = 'rcommand', default = str(),
                     help = "'command' or ['list of commands',...] to run on remote device")
-parser.add_argument("--alloti",
-                    action = 'store_true', dest = "alloti", default = None,
-                    help = "do action on all oti routers")
+# parser.add_argument("--alloti",
+#                     action = 'store_true', dest = "alloti", default = None,
+#                     help = "do action on all oti routers")
 args = parser.parse_args()
 
 if args.nocolors: bcolors = nocolors
 
-if args.alloti: device_list = parse_json_file_and_get_oti_routers_list()
-else: device_list = [args.device]
+# if args.alloti: device_list = parse_json_file_and_get_oti_routers_list()
+# else: device_list = [args.device]
 
+device_list = [args.device]
 
 ####### Set USERNAME if needed
 if args.username: USERNAME = args.username
