@@ -128,6 +128,35 @@ CMD_LINUX = [
             ('echo ', {'input_variable':'notexistent'},{'if_output_is_void':'exit'}),
             'free -m'
             ]
+
+
+bgp_json_txt_template='''
+{
+    "vrf_list": [
+            {
+                "vrf_name": null,
+                "neighbor_list": [
+                        {
+                            "ip_address": null,
+                            "bgp_current_state": null,
+                            "received_total_routes": null,
+                            "advertised_total_routes": null,
+                            "maximum_allowed_route_limit": null,
+                            "import_route_policy_is": null,
+                            "ping_response_success": null,
+                            "accepted-routes_list": []
+                        }
+                    ],
+                "interface_name": null,
+                "interface_mtu" : null,
+                "interface_intput_packets_per_seconds": null,
+                "interface_output_packets_per_seconds": null
+            }
+        ]
+}
+'''
+bgp_dict_data = json.loads(bgp_json_txt_template)
+
 ###############################################################################
 #
 # Function and Class
@@ -152,10 +181,10 @@ def get_huawei_vpn_interface(text = None):
         except: text = text.strip()
         for interface in text.split('interface'):
             try:
-                ### LIST=VPN,IP,INTERFACE_NAME
+                ### LIST=VPN,INTERFACE_NAME
                 interface_name = interface.split()[0].strip()
                 vpn_name = interface.split('ip binding vpn-instance')[1].strip()
-                output.append((vpn_name,None,interface_name))
+                output.append((vpn_name,interface_name))
             except: pass
     return output
 
@@ -166,9 +195,9 @@ def get_ciscoxr_vpnv4_all_interfaces(text = None):
         try: text = text.strip().split('MET')[1]
         except: text = text.strip()
         for row in text.splitlines():
-           ### LIST=VPN,IP,INTERFACE_NAME,UP,UP
+           ### LIST=VPN,INTERFACE_NAME
            columns = row.strip().split()
-           try: output.append((columns[4],columns[1],columns[0],columns[2],columns[3]))
+           try: output.append((columns[4],columns[0]))
            except: pass
     return output
 
