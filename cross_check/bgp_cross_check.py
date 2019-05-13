@@ -12,6 +12,7 @@ import argparse
 import glob
 import socket
 import six
+import collections
 
 #python 2.7 problem - hack 'pip install esptool'
 import netmiko
@@ -86,18 +87,18 @@ CMD_IOS_XR = [
             'show bgp vrf all summary',
              {'local_function':'get_ciscoxr_bgp_vpn_peer_data', 'input_variable':'last_output',\
                  'output_variable':'bgp_vpn_peers', 'if_output_is_void':'exit'},
-             {'loop_list':'bgp_vpn_peers','remote_command':('show bgp vrf ',{'loop_item':'0'},\
+             {'loop_zipped_list':'bgp_vpn_peers','remote_command':('show bgp vrf ',{'loop_item':'0'},\
                  ' neighbors ',{'loop_item':'1'}) },
 
-             {'loop_list':'bgp_vpn_peers','remote_command':('show bgp vrf ',{'loop_item':'0'},\
+             {'loop_zipped_list':'bgp_vpn_peers','remote_command':('show bgp vrf ',{'loop_item':'0'},\
                  ' neighbors ',{'loop_item':'1'},' routes') },
 
              'sh ipv4 vrf all int brief | exclude "unassigned|Protocol|default"',
              {'local_function':'get_ciscoxr_vpnv4_all_interfaces', 'input_variable':'last_output',\
                  'output_variable':'interface_list', 'if_output_is_void':'exit'},
-             {'loop_list':'interface_list','remote_command':('show interface ',{'loop_item':'2'})},
+             {'loop_zipped_list':'interface_list','remote_command':('show interface ',{'loop_item':'2'})},
 
-             {'loop_list':'bgp_vpn_peers','remote_command':('ping vrf ',{'loop_item':'0'},\
+             {'loop_zipped_list':'bgp_vpn_peers','remote_command':('ping vrf ',{'loop_item':'0'},\
                  ' ',{'loop_item':'1'},' size 1470 count 2')},
              ]
 CMD_JUNOS = [
@@ -107,19 +108,19 @@ CMD_VRP = [
              'display bgp vpnv4 all peer',
              {'local_function':'get_huawei_bgp_vpn_peer_data', 'input_variable':'last_output',\
                  'output_variable':'bgp_vpn_peers', 'if_output_is_void':'exit'},
-             {'loop_list':'bgp_vpn_peers','remote_command':('dis bgp vpnv4 vpn-instance ',\
+             {'loop_zipped_list':'bgp_vpn_peers','remote_command':('dis bgp vpnv4 vpn-instance ',\
                  {'loop_item':'0'},' peer ',{'loop_item':'1'},' verbose') },
 
 
-             {'loop_list':'bgp_vpn_peers','remote_command':('dis bgp vpnv4 vpn-instance ',\
+             {'loop_zipped_list':'bgp_vpn_peers','remote_command':('dis bgp vpnv4 vpn-instance ',\
                  {'loop_item':'0'},' routing-table peer ',{'loop_item':'1'},' accepted-routes') },
 
              'dis curr int | in (interface|ip binding vpn-instance)',
              {'local_function':'get_huawei_vpn_interface', 'input_variable':'last_output',\
                  'output_variable':'interface_list', 'if_output_is_void':'exit'},
-#              {'loop_list':'interface_list','remote_command':('dis interface ',{'loop_item':'2'})},
+#              {'loop_zipped_list':'interface_list','remote_command':('dis interface ',{'loop_item':'2'})},
 #
-#              {'loop_list':'bgp_vpn_peers','remote_command':('ping -s 1470 -c 2 -t 2000 -vpn-instance ',\
+#              {'loop_zipped_list':'bgp_vpn_peers','remote_command':('ping -s 1470 -c 2 -t 2000 -vpn-instance ',\
 #                  {'loop_item':'0'},' ',{'loop_item':'1'})},
           ]
 CMD_LINUX = [
@@ -130,38 +131,106 @@ CMD_LINUX = [
             ]
 
 
-bgp_json_txt_template='''
+################################################################################
+bgp_data = collections.OrderedDict()
+
+### Start of BASIC STRUCTURES OF JSON
+neighbor_list_item_txt_template = '''
 {
-    "vrf_list": [
-            {
-                "vrf_name": null,
-                "neighbor_list": [
-                        {
-                            "ip_address": null,
-                            "bgp_current_state": null,
-                            "received_total_routes": null,
-                            "advertised_total_routes": null,
-                            "maximum_allowed_route_limit": null,
-                            "import_route_policy_is": null,
-                            "ping_response_success": null,
-                            "accepted-routes_list": []
-                        }
-                    ],
-                "interface_name": null,
-                "interface_mtu" : null,
-                "interface_intput_packets_per_seconds": null,
-                "interface_output_packets_per_seconds": null
-            }
-        ]
+    "ip_address": null,
+    "bgp_current_state": null,
+    "received_total_routes": null,
+    "advertised_total_routes": null,
+    "maximum_allowed_route_limit": null,
+    "import_route_policy_is": null,
+    "ping_response_success": null,
+    "accepted-routes_list": []
 }
 '''
-bgp_dict_data = json.loads(bgp_json_txt_template)
+
+vrf_list_item_txt_template = '''
+{
+    "vrf_name": null,
+    "neighbor_list": [%s],
+    "interface_name": null,
+    "interface_mtu" : null,
+    "interface_intput_packets_per_seconds": null,
+    "interface_output_packets_per_seconds": null
+}
+''' % (neighbor_list_item_txt_template)
+
+bgp_json_txt_template='''
+{
+    "vrf_list": [%s]
+}
+''' % (vrf_list_item_txt_template)
+### End of BASIC STRUCTURES OF JSON
+
+bgp_data = json.loads(bgp_json_txt_template, \
+    object_pairs_hook = collections.OrderedDict)
+
+void_vrf_list_item = json.loads(vrf_list_item_txt_template, \
+    object_pairs_hook = collections.OrderedDict)
+
+void_neighbor_list_item = json.loads(neighbor_list_item_txt_template, \
+    object_pairs_hook = collections.OrderedDict)
 
 ###############################################################################
 #
 # Function and Class
 #
 ###############################################################################
+
+def update_bgpdata_structure(data_address, key_name = None, value = None, \
+    order_in_list = None, list_append_value = None, add_new_key = None, \
+    debug = None):
+    """
+    FUNCTION: update_bgpdata_structure
+    PARAMETERS:
+       data_address - address of json ending on parrent (key_name or list_number if exists)
+       key_name - name of key in dict
+       value - value of key in dict
+       order_in_list - if actuaal list is shorter than needed, append new template section
+       list_append_value - add new template section to list
+       add_new_key = True - add new keys/values to dictionary not existent in templates
+       debug - True/None
+    RETURNS:
+       change_applied - True = change applied , None - no change
+    """
+    global bgp_data
+    change_applied = None
+    ### REWRITE VALUE IN DICT ON KEY_NAME POSITION
+    if isinstance(data_address, (dict,collections.OrderedDict)) \
+        and isinstance(key_name, (six.string_types)):
+        data_address_values = data_address.keys()
+        # k,v = data_address.items()  , py3 data_address.iteritems()
+        for address_key_value in data_address_values:
+            if key_name and key_name == address_key_value:
+                data_address[key_name] = value
+                change_applied = True
+        else:
+            if add_new_key:
+                data_address[key_name] = value
+                change_applied = True
+    ### ADD LIST POSITION if NEEDED, REWRITE VALUE IN DICT ON KEY_NAME POSITION
+    elif isinstance(data_address, (list,tuple)):
+        ### ORDER_IN_LIST=[0..], LEN()=[0..]
+        if order_in_list == len(data_address):
+            data_address.append(list_append_value)
+        ### AFTER OPTIONAL ADDITION OF END OF LIST BY ONE
+        if order_in_list <= len(data_address)-1 \
+            and isinstance(data_address[order_in_list], (dict,collections.OrderedDict)):
+            data_address_values = data_address[order_in_list].keys()
+            for key_list_item in data_address_values:
+               if key_name and key_name == key_list_item:
+                   data_address[order_in_list][key_name] = value
+                   change_applied = True
+            else:
+                if add_new_key:
+                    data_address[order_in_list][key_name] = value
+                    change_applied = True
+    if debug: print(json.dumps(bgp_data, indent=2))
+    return change_applied
 
 
 def get_first_value_after(text = None, split_text = None, delete_text = None):
@@ -448,8 +517,8 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
                     if run_command(ssh_connection,cli_items,run_remote = True): return None
                 ### HACK: USE DICT FOR RUN LOCAL PYTHON CODE FUNCTIONS OR LOCAL OS COMMANDS or LOOPS
                 elif isinstance(cli_items, dict):
-                    if cli_items.get('loop_list',''):
-                        list_name = cli_items.get('loop_list','')
+                    if cli_items.get('loop_zipped_list',''):
+                        list_name = cli_items.get('loop_zipped_list','')
                         for loop_item in dictionary_of_variables.get(list_name,''):
                             if isinstance(loop_item, (list,tuple)):
                                 if cli_items.get('remote_command',''):
