@@ -130,6 +130,9 @@ bgp_data = json.loads(bgp_json_txt_template, \
 void_vrf_list_item = json.loads(vrf_list_item_txt_template, \
     object_pairs_hook = collections.OrderedDict)
 
+void_neighbor_list_item = json.loads(neighbor_list_item_txt_template, \
+    object_pairs_hook = collections.OrderedDict)
+
 #json.JSONDecoder(object_pairs_hook=collections.OrderedDict).decode('{"foo":1, "bar": 2}')
 
 print(json.dumps(bgp_data, indent=2))
@@ -151,4 +154,5 @@ update_bgpdata_structure(bgp_data["vrf_list"][0]["neighbor_list"][0],"ip_address
 update_bgpdata_structure(bgp_data["vrf_list"][0]["neighbor_list"][0],"bgp_current_state",'ENABLED')
 
 update_bgpdata_structure(bgp_data["vrf_list"],"vrf_name",'dddddd',1,void_vrf_list_item)
+update_bgpdata_structure(bgp_data["vrf_list"][0]["neighbor_list"],"bgp_current_state",'ENABLED',1,void_neighbor_list_item)
 #print(json.dumps(bgp_data, indent=2))
