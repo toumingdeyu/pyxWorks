@@ -8,41 +8,16 @@ import yaml
 import collections
 import six
 
-# def update_bgpdata_structure(data_structure = None, data_key = None, data_to_update = None):
-#     print('START:',type(data_structure),data_structure)
-#     if not data_structure: return None
-#     if not data_to_update: return data_structure
-#     if not data_key:       return data_structure
-#
-#
-#
-#
-#     ### CHECK DATA TYPE
-#     if isinstance(data_structure, dict):
-#         ### IF KEY EXISTS
-#         if data_structure.get(data_key,'') or data_key in data_structure.keys():
-#             data_structure.update(data_to_update)
-#         else: data_structure[data_key] = data_to_update
-#     elif isinstance(data_structure, (list,tuple)):
-#         if data_to_update in data_structure:
-#             data_structure[data_to_update]
-#         else:
-#             data_structure.append(data_to_update)
-#     else: data_structure = data_to_update
-#     print('END:',type(data_structure),data_structure)
-#     return data_structure
-
-
 ################################################################################
 bgp_data = collections.OrderedDict()
 
 def update_bgpdata_structure(data_address, key_name = None, value = None, \
     order_in_list = None, list_append_value = None, add_new_key = None, \
-    debug = True):
+    debug = None):
     """
     FUNCTION: update_bgpdata_structure
     PARAMETERS:
-       data_address - address of json ending on parrent (key_name or list_number)
+       data_address - address of json ending on parrent (key_name or list_number if exists)
        key_name - name of key in dict
        value - value of key in dict
        order_in_list - if actuaal list is shorter than needed, append new template section
@@ -137,22 +112,12 @@ void_neighbor_list_item = json.loads(neighbor_list_item_txt_template, \
 
 print(json.dumps(bgp_data, indent=2))
 print(75*'-'+'\n')
-# bgp_data["vrf_list"][0]["vrf_name"]='aasaas'
-#
-# aa = bgp_data["vrf_list"]
-# print(type(aa))
-#
-#
-# #print(bgp_dict_data.get(bgp_dict_data["vrf_list"][1],''))
-#
-# bgp_data["vrf_list"].append(void_vrf_list_item)
-#
-# bgp_data["vrf_list"][1]["vrf_name"]='qqqsaas'
 
 update_bgpdata_structure(bgp_data["vrf_list"][0],"vrf_name",'asasasa')
-update_bgpdata_structure(bgp_data["vrf_list"][0]["neighbor_list"][0],"ip_address",'1.1.1.1')
-update_bgpdata_structure(bgp_data["vrf_list"][0]["neighbor_list"][0],"bgp_current_state",'ENABLED')
+update_bgpdata_structure(bgp_data["vrf_list"][0]["neighbor_list"],"ip_address",'1.1.1.1',0,void_neighbor_list_item)
+update_bgpdata_structure(bgp_data["vrf_list"][0]["neighbor_list"],"bgp_current_state",'ENABLED',0,void_neighbor_list_item)
 
 update_bgpdata_structure(bgp_data["vrf_list"],"vrf_name",'dddddd',1,void_vrf_list_item)
 update_bgpdata_structure(bgp_data["vrf_list"][0]["neighbor_list"],"bgp_current_state",'ENABLED',1,void_neighbor_list_item)
-#print(json.dumps(bgp_data, indent=2))
+update_bgpdata_structure(bgp_data["vrf_list"][0]["neighbor_list"],"ip_address",'2.2.2.2',1,void_neighbor_list_item)
+print(json.dumps(bgp_data, indent=2))
