@@ -84,22 +84,25 @@ CMD_IOS_XE = [
 
               ]
 CMD_IOS_XR = [
-            'show bgp vrf all summary',
-             {'local_function':'get_ciscoxr_bgp_vpn_peer_data', 'input_variable':'last_output',\
-                 'output_variable':'bgp_vpn_peers', 'if_output_is_void':'exit'},
-             {'loop_zipped_list':'bgp_vpn_peers','remote_command':('show bgp vrf ',{'loop_item':'0'},\
-                 ' neighbors ',{'loop_item':'1'}) },
+               'show bgp vrf all summary | in "VRF: " | ex "monitor-vpn"',
+               {'input_variable':'last_output','output_variable':'bgp_vpn_all_summary'},
 
-             {'loop_zipped_list':'bgp_vpn_peers','remote_command':('show bgp vrf ',{'loop_item':'0'},\
-                 ' neighbors ',{'loop_item':'1'},' routes') },
-
-             'sh ipv4 vrf all int brief | exclude "unassigned|Protocol|default"',
-             {'local_function':'get_ciscoxr_vpnv4_all_interfaces', 'input_variable':'last_output',\
-                 'output_variable':'interface_list', 'if_output_is_void':'exit'},
-             {'loop_zipped_list':'interface_list','remote_command':('show interface ',{'loop_item':'2'})},
-
-             {'loop_zipped_list':'bgp_vpn_peers','remote_command':('ping vrf ',{'loop_item':'0'},\
-                 ' ',{'loop_item':'1'},' size 1470 count 2')},
+#              'show bgp vrf all summary',
+#              {'local_function':'get_ciscoxr_bgp_vpn_peer_data', 'input_variable':'last_output',\
+#                  'output_variable':'bgp_vpn_peers', 'if_output_is_void':'exit'},
+#              {'loop_zipped_list':'bgp_vpn_peers','remote_command':('show bgp vrf ',{'loop_item':'0'},\
+#                  ' neighbors ',{'loop_item':'1'}) },
+#
+#              {'loop_zipped_list':'bgp_vpn_peers','remote_command':('show bgp vrf ',{'loop_item':'0'},\
+#                  ' neighbors ',{'loop_item':'1'},' routes') },
+#
+#              'sh ipv4 vrf all int brief | exclude "unassigned|Protocol|default"',
+#              {'local_function':'get_ciscoxr_vpnv4_all_interfaces', 'input_variable':'last_output',\
+#                  'output_variable':'interface_list', 'if_output_is_void':'exit'},
+#              {'loop_zipped_list':'interface_list','remote_command':('show interface ',{'loop_item':'2'})},
+#
+#              {'loop_zipped_list':'bgp_vpn_peers','remote_command':('ping vrf ',{'loop_item':'0'},\
+#                  ' ',{'loop_item':'1'},' size 1470 count 2')},
              ]
 CMD_JUNOS = [
 
@@ -528,13 +531,13 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
                                 if cli_items.get('local_function',''):
                                     if run_local_function(cli_items,loop_item): return None
                                 elif cli_items.get('local_command',''):
-                                    if run_command(ssh_connection,cli_items,loop_item): return None
+                                    if run_command(ssh_connection,cli_items.get('local_command',''),loop_item): return None
                     elif cli_items.get('local_function',''):
                         if run_local_function(cli_items): return None
                     elif cli_items.get('local_command',''):
-                        if run_command(ssh_connection,cli_items): return None
+                        if run_command(ssh_connection,cli_items.get('local_command','')): return None
                     elif cli_items.get('remote_command',''):
-                        if run_command(ssh_connection,cli_items,run_remote = True): return None
+                        if run_command(ssh_connection,cli_items.get('remote_command',''),run_remote = True): return None
                 elif printall: print('%sUNSUPPORTED_TYPE %s of %s!%s' % \
                             (bcolors.MAGENTA,type(item),str(cli_items),bcolors.ENDC))
     except () as e:
