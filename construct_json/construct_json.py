@@ -62,35 +62,45 @@ bgp_data = {}
 # update_data_structure({'vrf_list':[{'vrf_name':'orange2','neighbor_list':[{'ip_address':'55.22.33.11'}]}]})
 # print(bgp_data)
 
-bgp_json_txt_template='''
+
+### Start of BASIC STRUCTURES OF JSON
+neighbor_list_item_txt_template = '''
 {
-    "vrf_list": [
-            {
-                "vrf_name": null,
-                "neighbor_list": [
-                        {
-                            "ip_address": null,
-                            "bgp_current_state": null,
-                            "received_total_routes": null,
-                            "advertised_total_routes": null,
-                            "maximum_allowed_route_limit": null,
-                            "import_route_policy_is": null,
-                            "ping_response_success": null,
-                            "accepted-routes_list": []
-                        }
-                    ],
-                "interface_name": null,
-                "interface_mtu" : null,
-                "interface_intput_packets_per_seconds": null,
-                "interface_output_packets_per_seconds": null
-            }
-        ]
+    "ip_address": null,
+    "bgp_current_state": null,
+    "received_total_routes": null,
+    "advertised_total_routes": null,
+    "maximum_allowed_route_limit": null,
+    "import_route_policy_is": null,
+    "ping_response_success": null,
+    "accepted-routes_list": []
 }
 '''
 
+vrf_list_item_txt_template = '''
+{
+    "vrf_name": null,
+    "neighbor_list": [%s],
+    "interface_name": null,
+    "interface_mtu" : null,
+    "interface_intput_packets_per_seconds": null,
+    "interface_output_packets_per_seconds": null
+}
+'''%(neighbor_list_item_txt_template)
+
+bgp_json_txt_template='''
+{
+    "vrf_list": [%s]
+}
+'''%(vrf_list_item_txt_template)
+### End of BASIC STRUCTURES OF JSON
+
 print(bgp_json_txt_template)
 
-bgp_dict_data=json.loads(bgp_json_txt_template, \
+bgp_dict_data = json.loads(bgp_json_txt_template, \
+    object_pairs_hook = collections.OrderedDict)
+
+void_vrf_list_item = json.loads(vrf_list_item_txt_template, \
     object_pairs_hook = collections.OrderedDict)
 
 #json.JSONDecoder(object_pairs_hook=collections.OrderedDict).decode('{"foo":1, "bar": 2}')
@@ -99,5 +109,9 @@ print(bgp_dict_data)
 print('\n')
 
 bgp_dict_data["vrf_list"][0]["vrf_name"]='aasaas'
+
+bgp_dict_data["vrf_list"].append(void_vrf_list_item)
+
+bgp_dict_data["vrf_list"][1]["vrf_name"]='qqqsaas'
 
 print(json.dumps(bgp_dict_data, indent=4))
