@@ -84,8 +84,7 @@ CMD_IOS_XE = [
 
               ]
 CMD_IOS_XR = [
-               'show bgp vrf all summary | in "VRF: " | ex "monitor-vpn"',
-               {'input_variable':'last_output','output_variable':'bgp_vpn_all_summary'},
+               {"remote_command":['show bgp vrf all summary | in "VRF: " | ex "monitor-vpn"', {'output_variable':'bgp_vpn_all_summary'}] },
 
 #              'show bgp vrf all summary',
 #              {'local_function':'get_ciscoxr_bgp_vpn_peer_data', 'input_variable':'last_output',\
@@ -137,7 +136,8 @@ CMD_LINUX = [
             {'local_function':"return_parameters", "input_parameters":[{"input_variable":"linux_users"}]},
             {'local_function':"return_splitlines_parameters", "input_parameters":[{"input_variable":"linux_users"}] , "output_variable":"splitlines_linux_users"},
             {'loop_zipped_list':'splitlines_linux_users', 'remote_command':['echo ', {'loop_item':'0'}] },
-            #('echo ', {'input_variable':'notexistent'},{'if_output_is_void':'exit'}),
+            {'loop_zipped_list':'splitlines_linux_users', 'local_command':['echo ', {'loop_item':'0'}] },
+            ('echo ', {'input_variable':'notexistent'},{'if_output_is_void':'exit'}),
             'free -m'
             ]
 
