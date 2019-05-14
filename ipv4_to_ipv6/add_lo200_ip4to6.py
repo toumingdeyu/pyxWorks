@@ -116,7 +116,7 @@ CMD_JUNOS = [
             {'local_function': 'parse_ipv4_from_text','input_variable':'last_output', 'output_variable':'converted_ipv4','if_output_is_void':'exit'},
              'configure private',
              #'__var_set_ipv6line__',
-             ('set interfaces lo0 unit 0 family inet6 address ', {'input_variable':'converted_ipv4'}, '/128'),
+             ('set interfaces lo0 unit 0 family inet6 address ', {'input_variable':'converted_ipv4'}, '/128 primary'),
              'show configuration interfaces lo0 | match /128',
     		 'commi',
     		 'exit',
