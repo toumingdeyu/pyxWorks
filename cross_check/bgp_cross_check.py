@@ -128,8 +128,16 @@ CMD_VRP = [
           ]
 CMD_LINUX = [
             'hostname',
-            ('echo ', {'input_variable':'last_output'}),
-            ('echo ', {'input_variable':'notexistent'},{'if_output_is_void':'exit'}),
+            ('echo ', {'input_variable':'last_output'},{"output_variable":"hostname"}),
+            {"remote_command":("who ", "| grep 2019",{"output_variable":"linux_users"})},
+            {"local_command":("echo ", {"input_variable":"linux_users"} , {"output_variable":"linux_users_2"})},
+            {"local_command":("echo ", {"input_variable":"linux_users"} , {"output_variable":"linux_users_2"})},
+            ('echo ', 'aaaa+', {"input_variable":"hostname"}),
+            {'local_function':"return_parameters", "input_variable":"linux_users"},
+            {'local_function':"return_parameters", "input_parameters":[{"input_variable":"linux_users"}]},
+            {'local_function':"return_splitlines_parameters", "input_parameters":[{"input_variable":"linux_users"}] , "output_variable":"splitlines_linux_users"},
+            {'loop_zipped_list':'splitlines_linux_users', 'remote_command':['echo ', {'loop_item':'0'}] },
+            #('echo ', {'input_variable':'notexistent'},{'if_output_is_void':'exit'}),
             'free -m'
             ]
 
@@ -183,6 +191,13 @@ void_neighbor_list_item = json.loads(neighbor_list_item_txt_template, \
 # Function and Class
 #
 ###############################################################################
+
+def return_parameters(text):
+    return text
+
+def return_splitlines_parameters(text):
+    return text.splitlines()
+
 
 def update_bgpdata_structure(data_address, key_name = None, value = None, \
     order_in_list = None, list_append_value = None, add_new_key = None, \
@@ -339,6 +354,106 @@ def netmiko_autodetect(device, debug = None):
     return router_os
 
 
+def detect_router_by_ssh(device, debug = False):
+    # detect device prompt
+    def ssh_detect_prompt(chan, debug = False):
+        output, buff, last_line, last_but_one_line = str(), str(), 'dummyline1', 'dummyline2'
+        chan.send('\t \n\n')
+        while not (last_line and last_but_one_line and last_line == last_but_one_line):
+            if debug: print('FIND_PROMPT:',last_but_one_line,last_line)
+            buff = chan.recv(9999)
+            output += buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
+                      replace('\x1b[K','').replace('\n{master}\n','')
+            if '--More--' or '---(more' in buff.strip(): chan.send('\x20')
+            if debug: print('BUFFER:' + buff)
+            try: last_line = output.splitlines()[-1].strip().replace('\x20','')
+            except: last_line = 'dummyline1'
+            try: last_but_one_line = output.splitlines()[-2].strip().replace('\x20','')
+            except: last_but_one_line = 'dummyline2'
+        prompt = output.splitlines()[-1].strip()
+        if debug: print('DETECTED PROMPT: \'' + prompt + '\'')
+        return prompt
+
+    # bullet-proof read-until function , even in case of ---more---
+    def ssh_read_until_prompt_bulletproof(chan,command,prompts,debug = False):
+        output, buff, last_line, exit_loop = str(), str(), 'dummyline1', False
+        # avoid of echoing commands on ios-xe by timeout 1 second
+        flush_buffer = chan.recv(9999)
+        del flush_buffer
+        chan.send(command)
+        time.sleep(0.3)
+        output, exit_loop = '', False
+        while not exit_loop:
+            if debug: print('LAST_LINE:',prompts,last_line)
+            buff = chan.recv(9999)
+            output += buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
+                      replace('\x1b[K','').replace('\n{master}\n','')
+            if '--More--' or '---(more' in buff.strip(): chan.send('\x20')
+            if debug: print('BUFFER:' + buff)
+            try: last_line = output.splitlines()[-1].strip()
+            except: last_line = str()
+            for actual_prompt in prompts:
+                if output.endswith(actual_prompt) or \
+                    last_line and last_line.endswith(actual_prompt): exit_loop = True
+        return output
+    # Detect function start
+    router_os = str()
+    client = paramiko.SSHClient()
+    client.load_system_host_keys()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+    try: DEVICE_HOST = device.split(':')[0]
+    except: DEVICE_HOST = str()
+    try: DEVICE_PORT = device.split(':')[1]
+    except: DEVICE_PORT = '22'
+
+    try:
+        #connect(self, hostname, port=22, username=None, password=None, pkey=None, key_filename=None, timeout=None, allow_agent=True, look_for_keys=True, compress=False)
+        client.connect(DEVICE_HOST, port=int(DEVICE_PORT), username=USERNAME, password=PASSWORD)
+        chan = client.invoke_shell()
+        chan.settimeout(TIMEOUT)
+        # prevent --More-- in log banner (space=page, enter=1line,tab=esc)
+        # \n\n get prompt as last line
+        prompt = ssh_detect_prompt(chan, debug=False)
+
+        #test if this is HUAWEI VRP
+        if prompt and not router_os:
+            command = 'display version | include (Huawei)\n'
+            output = ssh_read_until_prompt_bulletproof(chan, command, [prompt], debug=debug)
+            if 'Huawei Versatile Routing Platform Software' in output: router_os = 'vrp'
+
+        #test if this is CISCO IOS-XR, IOS-XE or JUNOS
+        if prompt and not router_os:
+            command = 'show version\n'
+            output = ssh_read_until_prompt_bulletproof(chan, command, [prompt], debug=debug)
+            if 'iosxr-' in output or 'Cisco IOS XR Software' in output: router_os = 'ios-xr'
+            elif 'Cisco IOS-XE software' in output: router_os = 'ios-xe'
+            elif 'JUNOS OS' in output: router_os = 'junos'
+
+        if prompt and not router_os:
+            command = 'uname -a\n'
+            output = ssh_read_until_prompt_bulletproof(chan, command, [prompt], debug=debug)
+            if 'LINUX' in output.upper(): router_os = 'linux'
+
+        if not router_os:
+            print(bcolors.MAGENTA + "\nCannot find recognizable OS in %s" % (output) + bcolors.ENDC)
+
+    except (socket.timeout, paramiko.AuthenticationException) as e:
+        print(bcolors.MAGENTA + " ... Connection closed: %s " % (e) + bcolors.ENDC )
+        sys.exit()
+    finally:
+        client.close()
+
+    netmiko_os = str()
+    if router_os == 'ios-xe': netmiko_os = 'cisco_ios'
+    if router_os == 'ios-xr': netmiko_os = 'cisco_xr'
+    if router_os == 'junos': netmiko_os = 'juniper'
+    if router_os == 'linux': netmiko_os = 'linux'
+    if router_os == 'vrp': netmiko_os = 'huawei'
+    return netmiko_os
+    #return router_os, prompt
+
+
 def ipv4_to_ipv6_obs(ipv4address):
     ip4to6, ip6to4 = str(), str()
     try: v4list = ipv4address.split('/')[0].split('.')
@@ -400,15 +515,15 @@ def parse_json_file_and_get_oti_routers_list():
 
 def run_remote_and_local_commands(CMD, logfilename = None, printall = None, printcmdtologfile = None):
     ### RUN_COMMAND - REMOTE or LOCAL ------------------------------------------
-    def run_command(ssh_connection,cli_items,loop_item = None,run_remote = None,\
+    def run_command(ssh_connection,cmd_line_items,loop_item = None,run_remote = None,\
         logfilename = logfilename,printall = printall, printcmdtologfile = printcmdtologfile):
         global dictionary_of_variables
         cli_line, name_of_output_variable = str(), None
         ### LIST,TUPPLE,STRINS ARE REMOTE REMOTE/LOCAL DEVICE COMMANDS
-        if isinstance(cli_items, (six.string_types,list,tuple)):
-            if isinstance(cli_items, six.string_types): cli_line = cli_items
-            elif isinstance(cli_items, (list,tuple)):
-                for cli_item in cli_items:
+        if isinstance(cmd_line_items, (six.string_types,list,tuple)):
+            if isinstance(cmd_line_items, six.string_types): cli_line = cmd_line_items
+            elif isinstance(cmd_line_items, (list,tuple)):
+                for cli_item in cmd_line_items:
                     if isinstance(cli_item, dict):
                         if cli_item.get('loop_item',''):
                             try: cli_line += str(loop_item[int(cli_item.get('loop_item',''))])
@@ -453,7 +568,7 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
             dictionary_of_variables['last_output'] = last_output.rstrip()
             if name_of_output_variable:
                 dictionary_of_variables[name_of_output_variable] = last_output.rstrip()
-            for cli_item in cli_items:
+            for cli_item in cmd_line_items:
                 if isinstance(cli_item, dict) \
                     and last_output.strip() == str() \
                     and cli_item.get('if_output_is_void','') in ['exit','quit','stop']:
@@ -462,25 +577,25 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
                     return True
         return None
     ### RUN_LOCAL_FUNCTION -----------------------------------------------------
-    def run_local_function(cli_items,loop_item = None,logfilename = logfilename,\
+    def run_local_function(cmd_line_items,loop_item = None,logfilename = logfilename,\
         printall = printall, printcmdtologfile = printcmdtologfile):
         global dictionary_of_variables
-        local_function_name = cli_items.get('local_function','')
-        if cli_items.get('input_parameters',''):
+        local_function_name = cmd_line_items.get('local_function','')
+        if cmd_line_items.get('input_parameters',''):
             local_input = []
-            for input_list_item in cli_items.get('input_parameters',''):
+            for input_list_item in cmd_line_items.get('input_parameters',''):
                 if isinstance(input_list_item, dict):
-                    if cli_item.get('loop_item',''):
+                    if input_list_item.get('loop_item',''):
                         try: local_input.append(loop_item[int(input_list_item.get('loop_item',''))])
                         except: pass
-                    elif cli_item.get('input_variable',''):
+                    elif input_list_item.get('input_variable',''):
                         name_of_local_variable = input_list_item.get('input_variable','')
                         local_input.append(dictionary_of_variables.get(name_of_local_variable,''))
                 else: local_input.append(input_list_item)
-        elif cli_items.get('input_variable',''):
-            name_of_local_variable = cli_items.get('input_variable','')
+        elif cmd_line_items.get('input_variable',''):
+            name_of_local_variable = cmd_line_items.get('input_variable','')
             local_input = dictionary_of_variables.get(name_of_local_variable,'')
-        name_of_output_variable = cli_items.get('output_variable','')
+        name_of_output_variable = cmd_line_items.get('output_variable','')
         ### GLOBAL SYMBOLS
         if isinstance(local_input, (list,tuple)):
             local_output = globals()[local_function_name](*local_input)
@@ -498,7 +613,7 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
             local_output))
         dictionary_of_variables['last_output'] = local_output
         if (not local_output or str(local_output).strip() == str() )\
-            and cli_items.get('if_output_is_void') in ['exit','quit','stop']:
+            and cmd_line_items.get('if_output_is_void') in ['exit','quit','stop']:
             if printall: print("%sSTOP [VOID OUTPUT].%s" % \
                 (bcolors.RED,bcolors.ENDC))
             return True
@@ -528,33 +643,36 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
             else: logfilename = '/dev/null'
         with open(logfilename,"w") as fp:
             if output and not printcmdtologfile: fp.write(output)
-            for cli_items in CMD:
+            for cmd_line_items in CMD:
                 cli_line = str()
                 ### LIST,TUPPLE,STRINS ARE REMOTE REMOTE DEVICE COMMANDS
-                if isinstance(cli_items, (six.string_types,list,tuple)):
-                    if run_command(ssh_connection,cli_items,run_remote = True): return None
+                if isinstance(cmd_line_items, (six.string_types,list,tuple)):
+                    if run_command(ssh_connection,cmd_line_items,run_remote = True): return None
                 ### HACK: USE DICT FOR RUN LOCAL PYTHON CODE FUNCTIONS OR LOCAL OS COMMANDS or LOOPS
-                elif isinstance(cli_items, dict):
-                    if cli_items.get('loop_zipped_list',''):
-                        list_name = cli_items.get('loop_zipped_list','')
+                elif isinstance(cmd_line_items, dict):
+                    if cmd_line_items.get('loop_zipped_list',''):
+                        list_name = cmd_line_items.get('loop_zipped_list','')
                         for loop_item in dictionary_of_variables.get(list_name,''):
-                            if isinstance(loop_item, (list,tuple)):
-                                if cli_items.get('remote_command',''):
-                                    remote_cmd = cli_items.get('remote_command','')
+                            ### HACK lower functions expect list or tupple so convert it
+                            if isinstance(loop_item, (int,float,six.string_types)):
+                                loop_item = [loop_item]
+                            if isinstance(loop_item, (list,tuple)):    #six.string_types
+                                if cmd_line_items.get('remote_command',''):
+                                    remote_cmd = cmd_line_items.get('remote_command','')
                                     if run_command(ssh_connection,remote_cmd,\
                                         loop_item,run_remote = True): return None
-                                if cli_items.get('local_function',''):
-                                    if run_local_function(cli_items,loop_item): return None
-                                elif cli_items.get('local_command',''):
-                                    if run_command(ssh_connection,cli_items.get('local_command',''),loop_item): return None
-                    elif cli_items.get('local_function',''):
-                        if run_local_function(cli_items): return None
-                    elif cli_items.get('local_command',''):
-                        if run_command(ssh_connection,cli_items.get('local_command','')): return None
-                    elif cli_items.get('remote_command',''):
-                        if run_command(ssh_connection,cli_items.get('remote_command',''),run_remote = True): return None
+                                if cmd_line_items.get('local_function',''):
+                                    if run_local_function(cmd_line_items,loop_item): return None
+                                elif cmd_line_items.get('local_command',''):
+                                    if run_command(ssh_connection,cmd_line_items.get('local_command',''),loop_item): return None
+                    elif cmd_line_items.get('local_function',''):
+                        if run_local_function(cmd_line_items): return None
+                    elif cmd_line_items.get('local_command',''):
+                        if run_command(ssh_connection,cmd_line_items.get('local_command','')): return None
+                    elif cmd_line_items.get('remote_command',''):
+                        if run_command(ssh_connection,cmd_line_items.get('remote_command',''),run_remote = True): return None
                 elif printall: print('%sUNSUPPORTED_TYPE %s of %s!%s' % \
-                            (bcolors.MAGENTA,type(item),str(cli_items),bcolors.ENDC))
+                            (bcolors.MAGENTA,type(item),str(cmd_line_items),bcolors.ENDC))
     except () as e:
         print(bcolors.FAIL + " ... EXCEPTION: (%s)" % (e) + bcolors.ENDC )
         sys.exit()
@@ -656,7 +774,8 @@ for device in device_list:
 
         ####### Figure out type of router OS
         if not args.router_type:
-            router_type = netmiko_autodetect(device)
+            #router_type = netmiko_autodetect(device)
+            router_type = detect_router_by_ssh(device)
             if not router_type in KNOWN_OS_TYPES:
                 print('%sUNSUPPORTED DEVICE TYPE: %s , BREAK!%s' % \
                     (bcolors. MAGENTA,router_type, bcolors.ENDC))
