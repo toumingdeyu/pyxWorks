@@ -84,24 +84,25 @@ CMD_IOS_XE = [
 
               ]
 CMD_IOS_XR = [
-               {"remote_command":['show bgp vrf all summary | in "VRF: " | ex "monitor-vpn"', {'output_variable':'bgp_vpn_all_summary'}] },
+               {"remote_command":['show bgp vrf all summary | in "VRF: " | ex "monitor-vpn"', {'output_variable':'bgp_vpn_all_summary'}]},
+               {'loop_zipped_list':'bgp_vpn_all_summary',"exec":['update_bgpdata_structure(bgp_data["vrf_list"][',{'zipped_item':'0'},'],"vrf_name","',{'zipped_item':'1'},'", ',{'zipped_item':'0'},',void_neighbor_list_item)']}
 
 #              'show bgp vrf all summary',
 #              {'local_function':'get_ciscoxr_bgp_vpn_peer_data', 'input_variable':'last_output',\
 #                  'output_variable':'bgp_vpn_peers', 'if_output_is_void':'exit'},
-#              {'loop_zipped_list':'bgp_vpn_peers','remote_command':('show bgp vrf ',{'loop_item':'0'},\
-#                  ' neighbors ',{'loop_item':'1'}) },
+#              {'loop_zipped_list':'bgp_vpn_peers','remote_command':('show bgp vrf ',{'zipped_item':'0'},\
+#                  ' neighbors ',{'zipped_item':'1'}) },
 #
-#              {'loop_zipped_list':'bgp_vpn_peers','remote_command':('show bgp vrf ',{'loop_item':'0'},\
-#                  ' neighbors ',{'loop_item':'1'},' routes') },
+#              {'loop_zipped_list':'bgp_vpn_peers','remote_command':('show bgp vrf ',{'zipped_item':'0'},\
+#                  ' neighbors ',{'zipped_item':'1'},' routes') },
 #
 #              'sh ipv4 vrf all int brief | exclude "unassigned|Protocol|default"',
 #              {'local_function':'get_ciscoxr_vpnv4_all_interfaces', 'input_variable':'last_output',\
 #                  'output_variable':'interface_list', 'if_output_is_void':'exit'},
-#              {'loop_zipped_list':'interface_list','remote_command':('show interface ',{'loop_item':'2'})},
+#              {'loop_zipped_list':'interface_list','remote_command':('show interface ',{'zipped_item':'2'})},
 #
-#              {'loop_zipped_list':'bgp_vpn_peers','remote_command':('ping vrf ',{'loop_item':'0'},\
-#                  ' ',{'loop_item':'1'},' size 1470 count 2')},
+#              {'loop_zipped_list':'bgp_vpn_peers','remote_command':('ping vrf ',{'zipped_item':'0'},\
+#                  ' ',{'zipped_item':'1'},' size 1470 count 2')},
              ]
 CMD_JUNOS = [
 
@@ -111,34 +112,36 @@ CMD_VRP = [
              {'local_function':'get_huawei_bgp_vpn_peer_data', 'input_variable':'last_output',\
                  'output_variable':'bgp_vpn_peers', 'if_output_is_void':'exit'},
              {'loop_zipped_list':'bgp_vpn_peers','remote_command':('dis bgp vpnv4 vpn-instance ',\
-                 {'loop_item':'0'},' peer ',{'loop_item':'1'},' verbose') },
+                 {'zipped_item':'0'},' peer ',{'zipped_item':'1'},' verbose') },
 
 
              {'loop_zipped_list':'bgp_vpn_peers','remote_command':('dis bgp vpnv4 vpn-instance ',\
-                 {'loop_item':'0'},' routing-table peer ',{'loop_item':'1'},' accepted-routes') },
+                 {'zipped_item':'0'},' routing-table peer ',{'zipped_item':'1'},' accepted-routes') },
 
              'dis curr int | in (interface|ip binding vpn-instance)',
              {'local_function':'get_huawei_vpn_interface', 'input_variable':'last_output',\
                  'output_variable':'interface_list', 'if_output_is_void':'exit'},
-#              {'loop_zipped_list':'interface_list','remote_command':('dis interface ',{'loop_item':'2'})},
+#              {'loop_zipped_list':'interface_list','remote_command':('dis interface ',{'zipped_item':'2'})},
 #
 #              {'loop_zipped_list':'bgp_vpn_peers','remote_command':('ping -s 1470 -c 2 -t 2000 -vpn-instance ',\
-#                  {'loop_item':'0'},' ',{'loop_item':'1'})},
+#                  {'zipped_item':'0'},' ',{'zipped_item':'1'})},
           ]
 CMD_LINUX = [
-            'hostname',
-            ('echo ', {'input_variable':'last_output'},{"output_variable":"hostname"}),
-            {"remote_command":("who ", "| grep 2019",{"output_variable":"linux_users"})},
-            {"local_command":("echo ", {"input_variable":"linux_users"} , {"output_variable":"linux_users_2"})},
-            {"local_command":("echo ", {"input_variable":"linux_users"} , {"output_variable":"linux_users_2"})},
-            ('echo ', 'aaaa+', {"input_variable":"hostname"}),
-            {'local_function':"return_parameters", "input_variable":"linux_users"},
-            {'local_function':"return_parameters", "input_parameters":[{"input_variable":"linux_users"}]},
-            {'local_function':"return_splitlines_parameters", "input_parameters":[{"input_variable":"linux_users"}] , "output_variable":"splitlines_linux_users"},
-            {'loop_zipped_list':'splitlines_linux_users', 'remote_command':['echo ', {'loop_item':'0'}] },
-            {'loop_zipped_list':'splitlines_linux_users', 'local_command':['echo ', {'loop_item':'0'}] },
-            ('echo ', {'input_variable':'notexistent'},{'if_output_is_void':'exit'}),
-            'free -m'
+#             'hostname',
+#             ('echo ', {'input_variable':'last_output'},{"output_variable":"hostname"}),
+#             {"remote_command":("who ", "| grep 2019",{"output_variable":"linux_users"})},
+#             {"local_command":("echo ", {"input_variable":"linux_users"} , {"output_variable":"linux_users_2"})},
+#             {"local_command":("echo ", {"input_variable":"linux_users"} , {"output_variable":"linux_users_2"})},
+#             ('echo ', 'aaaa+', {"input_variable":"hostname"}),
+#             {'local_function':"return_parameters", "input_variable":"linux_users"},
+#             {'local_function':"return_parameters", "input_parameters":[{"input_variable":"linux_users"}]},
+#             {'local_function':"return_splitlines_parameters", "input_parameters":[{"input_variable":"linux_users"}] , "output_variable":"splitlines_linux_users"},
+#             {'loop_zipped_list':'splitlines_linux_users', 'remote_command':['echo ', {'zipped_item':'0'}] },
+#             {'loop_zipped_list':'splitlines_linux_users', 'local_command':['echo ', {'zipped_item':'0'}] },
+            #('echo ', {'input_variable':'notexistent'},{'if_output_is_void':'exit'}),
+            'free -m',
+            {"exec":['update_bgpdata_structure(bgp_data["vrf_list"][',0,'],"vrf_name","','aaaaaa','", ',0,',void_neighbor_list_item)']}
+
             ]
 
 
@@ -525,15 +528,15 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
             elif isinstance(cmd_line_items, (list,tuple)):
                 for cli_item in cmd_line_items:
                     if isinstance(cli_item, dict):
-                        if cli_item.get('loop_item',''):
-                            try: cli_line += str(loop_item[int(cli_item.get('loop_item',''))])
+                        if cli_item.get('zipped_item',''):
+                            try: cli_line += str(loop_item[int(cli_item.get('zipped_item',''))])
                             except: pass
                         elif cli_item.get('input_variable',''):
                             name_of_input_variable = cli_item.get('input_variable','')
                             cli_line += dictionary_of_variables.get(name_of_input_variable,'')
                         elif cli_item.get('output_variable',''):
                             name_of_output_variable = cli_item.get('output_variable','')
-                    else: cli_line += cli_item
+                    else: cli_line += str(cli_item)
             if run_remote:
                 print(bcolors.GREEN + "REMOTE_COMMAND: %s" % (cli_line) + bcolors.ENDC )
                 ### NETMIKO
@@ -585,8 +588,8 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
             local_input = []
             for input_list_item in cmd_line_items.get('input_parameters',''):
                 if isinstance(input_list_item, dict):
-                    if input_list_item.get('loop_item',''):
-                        try: local_input.append(loop_item[int(input_list_item.get('loop_item',''))])
+                    if input_list_item.get('zipped_item',''):
+                        try: local_input.append(loop_item[int(input_list_item.get('zipped_item',''))])
                         except: pass
                     elif input_list_item.get('input_variable',''):
                         name_of_local_variable = input_list_item.get('input_variable','')
@@ -618,7 +621,33 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
                 (bcolors.RED,bcolors.ENDC))
             return True
         return None
-
+    ### EXEC_COMMAND -----------------------------------------------------------
+    def exec_command(ssh_connection,cmd_line_items,loop_item = None,\
+        logfilename = logfilename,printall = printall, printcmdtologfile = printcmdtologfile):
+        global dictionary_of_variables
+        cli_line, name_of_output_variable = str(), None
+        ### LIST,TUPPLE,STRINS ARE REMOTE REMOTE/LOCAL DEVICE COMMANDS
+        if isinstance(cmd_line_items, (six.string_types,list,tuple)):
+            if isinstance(cmd_line_items, six.string_types): cli_line = cmd_line_items
+            elif isinstance(cmd_line_items, (list,tuple)):
+                for cli_item in cmd_line_items:
+                    if isinstance(cli_item, dict):
+                        if cli_item.get('zipped_item',''):
+                            try: cli_line += str(loop_item[int(cli_item.get('zipped_item',''))])
+                            except: pass
+                        elif cli_item.get('input_variable',''):
+                            name_of_input_variable = cli_item.get('input_variable','')
+                            cli_line += dictionary_of_variables.get(name_of_input_variable,'')
+                        elif cli_item.get('output_variable',''):
+                            name_of_output_variable = cli_item.get('output_variable','')
+                    else: cli_line += str(cli_item)
+            print(bcolors.CYAN + "EXEC_COMMAND: %s" % (cli_line) + bcolors.ENDC )
+            ### EXEC COMMAND
+            exec(cli_line, {'update_bgpdata_structure':update_bgpdata_structure,\
+                'bgp_data':bgp_data,'void_neighbor_list_item':void_neighbor_list_item,\
+                'void_vrf_list_item':void_vrf_list_item })
+            if printcmdtologfile: fp.write('EXEC_COMMAND: ' + cli_line + '\n')
+        return None
     ### RUN_REMOTE_AND_LOCAL_COMMANDS START ====================================
     ssh_connection, output= None, None
     try:
@@ -665,12 +694,16 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
                                     if run_local_function(cmd_line_items,loop_item): return None
                                 elif cmd_line_items.get('local_command',''):
                                     if run_command(ssh_connection,cmd_line_items.get('local_command',''),loop_item): return None
+                                elif cmd_line_items.get('exec',''):
+                                    if exec_command(ssh_connection,cmd_line_items.get('exec',''),loop_item): return None
                     elif cmd_line_items.get('local_function',''):
                         if run_local_function(cmd_line_items): return None
                     elif cmd_line_items.get('local_command',''):
                         if run_command(ssh_connection,cmd_line_items.get('local_command','')): return None
                     elif cmd_line_items.get('remote_command',''):
                         if run_command(ssh_connection,cmd_line_items.get('remote_command',''),run_remote = True): return None
+                    elif cmd_line_items.get('exec',''):
+                        if exec_command(ssh_connection,cmd_line_items.get('exec','')): return None
                 elif printall: print('%sUNSUPPORTED_TYPE %s of %s!%s' % \
                             (bcolors.MAGENTA,type(item),str(cmd_line_items),bcolors.ENDC))
     except () as e:
@@ -825,4 +858,6 @@ for device in device_list:
             print('%s file created.' % (logfilename))
         print('\nDEVICE %s DONE.'%(device))
 print('\nEND.')
+
+print(json.dumps(bgp_data, indent=2))
 
