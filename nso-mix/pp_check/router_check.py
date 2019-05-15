@@ -714,6 +714,20 @@ def get_version_from_file_last_modification_date(path_to_file = str(os.path.absp
     struct_time = time.gmtime(file_time)
     return str(struct_time.tm_year)[2:] + '.' + str(struct_time.tm_mon) + '.' + str(struct_time.tm_mday)
 
+def send_me_email(subject='testmail', file_name='/dev/null'):
+    my_account = subprocess.check_output('whoami', shell=True)
+    my_finger_line = subprocess.check_output('finger | grep "%s"'%(my_account.strip()), shell=True)
+    try:
+        my_name = my_finger_line.splitlines()[0].split()[1]
+        my_surname = my_finger_line.splitlines()[0].split()[2]
+        my_email_address = '%s.%s@orange.com' % (my_name, my_surname)
+        mail_command = 'echo | mutt -s "%s" -a %s -- %s' % (subject,file_name,my_email_address)
+        #mail_command = 'uuencode %s %s | mail -s "%s" %s' % (file_name,file_name,subject,my_email_address)
+        print(mail_command)
+        forget_it = subprocess.check_output(mail_command, shell=True)
+        print('Email "%s" to %s sent.'%(subject,my_email_address))
+    except: pass
+
 ##############################################################################
 #
 # BEGIN MAIN
@@ -1155,9 +1169,14 @@ if pre_post == "post" or args.recheck or args.postcheck_file:
     print('\n ==> POSTCHECK COMPLETE !')
 elif pre_post == "pre" and not args.recheck:
     if os.path.exists(filename): print('%s file created.'%(filename))
+    try: send_me_email(subject = filename.replace('\\','/').split('/')[-1], file_name = filename)
+    except: pass
     print('\n ==> PRECHECK COMPLETE !')
 
-if logfilename: print(' ==> LOGFILE GENERATED: %s' % (logfilename))
+if logfilename:
+    print(' ==> LOGFILE GENERATED: %s' % (logfilename))
+    try: send_me_email(subject = logfilename.replace('\\','/').split('/')[-1], file_name = logfilename)
+    except: pass
 ############################################## END ################################################
 
 
