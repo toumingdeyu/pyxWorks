@@ -731,7 +731,6 @@ def send_me_email(subject='testmail', file_name='/dev/null'):
         else: my_email_address = '%s.%s@orange.com' % (my_name, my_surname)
         mail_command = 'echo | mutt -s "%s" -a %s -- %s' % (subject,file_name,my_email_address)
         #mail_command = 'uuencode %s %s | mail -s "%s" %s' % (file_name,file_name,subject,my_email_address)
-        print(mail_command)
         forget_it = subprocess.check_output(mail_command, shell=True)
         print('Email "%s" to %s sent.'%(subject,my_email_address))
     except: pass
@@ -1184,10 +1183,12 @@ if pre_post == "post" or args.recheck or args.postcheck_file:
 
     print('\n ==> POSTCHECK COMPLETE !')
 elif pre_post == "pre" and not args.recheck:
-    if os.path.exists(filename): print('%s file created.'%(filename))
+    print('\n ==> PRECHECK COMPLETE !')
+
+if os.path.exists(filename):
+    print('%s file created.'%(filename))
     try: send_me_email(subject = filename.replace('\\','/').split('/')[-1], file_name = filename)
     except: pass
-    print('\n ==> PRECHECK COMPLETE !')
 
 if logfilename:
     print(' ==> LOGFILE GENERATED: %s' % (logfilename))
