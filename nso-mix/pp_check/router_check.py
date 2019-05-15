@@ -276,7 +276,7 @@ CMD_JUNOS = [
             ("show system alarms",
                    'ndiff0', [], [],
                    [], [], [], False),
-            ("show l2circuit connections",
+            ("show l2circuit connections brief",
                    'ndiff0', [], [],
                    [], [], [], False),
 #             ('show interfaces detail | match "Physical interface|Last flapped| bps"',
