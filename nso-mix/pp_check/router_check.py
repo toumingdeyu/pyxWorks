@@ -90,6 +90,8 @@ try:    PASSWORD        = os.environ['NEWR_PASS'].replace('\\','')
 except: PASSWORD        = str()
 try:    USERNAME        = os.environ['NEWR_USER']
 except: USERNAME        = str()
+try:    EMAIL_ADDRESS   = os.environ['NEWR_EMAIL']
+except: EMAIL_ADDRESS   = str()
 
 note_ndiff_string  = "ndiff( %s'-' missed, %s'+' added, %s'-\\n%s+' difference, %s' ' equal%s)\n" % \
     (bcolors.RED,bcolors.GREEN,bcolors.RED,bcolors.GREEN,bcolors.GREY,bcolors.ENDC )
@@ -714,13 +716,19 @@ def get_version_from_file_last_modification_date(path_to_file = str(os.path.absp
     struct_time = time.gmtime(file_time)
     return str(struct_time.tm_year)[2:] + '.' + str(struct_time.tm_mon) + '.' + str(struct_time.tm_mday)
 
+
+def append_variable_to_bashrc(variable_name=None,variable_value=None):
+    forget_it = subprocess.check_output('echo export %s=%s >> ~/.bashrc'%(variable_name,variable_value), shell=True)
+
+
 def send_me_email(subject='testmail', file_name='/dev/null'):
     my_account = subprocess.check_output('whoami', shell=True)
     my_finger_line = subprocess.check_output('finger | grep "%s"'%(my_account.strip()), shell=True)
     try:
         my_name = my_finger_line.splitlines()[0].split()[1]
         my_surname = my_finger_line.splitlines()[0].split()[2]
-        my_email_address = '%s.%s@orange.com' % (my_name, my_surname)
+        if EMAIL_ADDRESS: my_email_address = EMAIL_ADDRESS
+        else: my_email_address = '%s.%s@orange.com' % (my_name, my_surname)
         mail_command = 'echo | mutt -s "%s" -a %s -- %s' % (subject,file_name,my_email_address)
         #mail_command = 'uuencode %s %s | mail -s "%s" %s' % (file_name,file_name,subject,my_email_address)
         print(mail_command)
@@ -793,9 +801,17 @@ parser.add_argument("--fgetpass",
                     help = "force getpass.getpass() call even if NEWR_PASS is set.")
 parser.add_argument("--latest",
                     action = 'store_true', dest = "latest", default = False,
-                    help = "look for really latest pre/postcheck files (also from somebody else), otherwise your own last pre/postcheck files will be used by default")
-
+                    help = "look for really latest pre/postcheck files (also from somebody else),\
+                    otherwise your own last pre/postcheck files will be used by default")
+parser.add_argument("--emailaddr",
+                    action = "store", dest = 'emailaddr', default = '',
+                    help = "insert your email address once if is different than name.surname@orange.com,\
+                    it will do NEWR_EMAIL variable record in your bashrc file and you do not need to insert it any more.")
 args = parser.parse_args()
+
+if args.emailaddr:
+    append_variable_to_bashrc(variable_name='NEWR_EMAIL',variable_value=args.emailaddr)
+    EMAIL_ADDRESS = args.emailaddr
 
 if args.nocolors: bcolors = nocolors
 
