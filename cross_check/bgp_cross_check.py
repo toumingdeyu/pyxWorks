@@ -84,8 +84,11 @@ CMD_IOS_XE = [
 
               ]
 CMD_IOS_XR = [
-               {"remote_command":['show bgp vrf all summary | in "VRF: " | ex "monitor-vpn"', {'output_variable':'bgp_vpn_all_summary'}]},
-               {'loop_zipped_list':'bgp_vpn_all_summary',"exec":['update_bgpdata_structure(bgp_data["vrf_list"][',{'zipped_item':'0'},'],"vrf_name","',{'zipped_item':'1'},'", ',{'zipped_item':'0'},',void_neighbor_list_item)']}
+               {"remote_command":['show bgp vrf all summary | in "VRF: " | ex "monitor-vpn"',\
+                   {'output_variable':'bgp_vpn_all_summary'}]},
+               {'loop_zipped_list':'bgp_vpn_all_summary',"exec":['update_bgpdata_structure(bgp_data["vrf_list"][',\
+                   {'zipped_item':'0'},'],"vrf_name","',{'zipped_item':'1'},'", ',\
+                   {'zipped_item':'0'},',void_neighbor_list_item)']}
 
 #              'show bgp vrf all summary',
 #              {'local_function':'get_ciscoxr_bgp_vpn_peer_data', 'input_variable':'last_output',\
