@@ -732,7 +732,7 @@ def send_me_email(subject='testmail', file_name='/dev/null'):
         mail_command = 'echo | mutt -s "%s" -a %s -- %s' % (subject,file_name,my_email_address)
         #mail_command = 'uuencode %s %s | mail -s "%s" %s' % (file_name,file_name,subject,my_email_address)
         forget_it = subprocess.check_output(mail_command, shell=True)
-        print('Email "%s" to %s sent.'%(subject,my_email_address))
+        print(' ==> Email "%s" sent to %s.'%(subject,my_email_address))
     except: pass
 
 ##############################################################################
@@ -1186,7 +1186,7 @@ elif pre_post == "pre" and not args.recheck:
     print('\n ==> PRECHECK COMPLETE !')
 
 if os.path.exists(filename):
-    print('%s file created.'%(filename))
+    print(' ==> File %s created.'%(filename))
     try: send_me_email(subject = filename.replace('\\','/').split('/')[-1], file_name = filename)
     except: pass
 
