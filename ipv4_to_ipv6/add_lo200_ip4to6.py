@@ -208,6 +208,16 @@ def parse_whole_set_line_from_text(text):
     else: set_ipv6line = str()
     return set_ipv6line
 
+# def parse_json_file_and_get_oti_routers_list():
+#     oti_routers = []
+#     json_filename = '/home/dpenha/perl_shop/NIS9TABLE_BLDR/node_list.json'
+#     with io.open(json_filename) as json_file: json_raw_data = json.load(json_file)
+#     if json_raw_data:
+#         for router in json_raw_data['results']:
+#            if router['namings']['type']=='OTI':
+#                oti_routers.append(router['name'])
+#     return oti_routers
+
 def parse_json_file_and_get_oti_routers_list():
     oti_routers, json_raw_data = [], str()
     json_filename = '/usr/local/iptac/oti_all.pl'
