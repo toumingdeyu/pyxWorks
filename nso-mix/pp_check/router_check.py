@@ -155,7 +155,13 @@ CMD_IOS_XE = [
 #                    [], [], [], False)
              ]
 CMD_IOS_XR = [
-            ("show active install summary",
+            ("show install active summary",
+                   'ndiff0', ['uptime','Uptime'], [],
+                   [], [], [], False),
+            ("show install summary",
+                   'ndiff0', ['uptime','Uptime'], [],
+                   [], [], [], False),
+            ("show install inactive summary",
                    'ndiff0', ['uptime','Uptime'], [],
                    [], [], [], False),
             ("show running-config",
@@ -191,13 +197,13 @@ CMD_IOS_XR = [
             ("show bgp vpnv4 unicast sum",
                    'ndiff0', ['Speaker'], [],
                    [], [], [0,1,2,5,6,7], False),
-            ("show bgp vrf all sum",
+            ("show bgp vrf all sum | exc \"BGP|ID|stop|Process|Speaker\"",
                    'ndiff0', ['Speaker'], [],
                    [], [], [0,1,2,3,4,5], False),
             ("show route summary",
                    'ndiff0', ['Total'], [],
                    [], [], [], False),
-            ("show rsvp  neighbors",
+            ("show rsvp neighbors",
                    'ndiff0', [], [],
                    [], [], [], False),
             ("show pim neighbor",
@@ -395,7 +401,7 @@ def detect_router_by_ssh(device, debug = False):
     # Detect function start
     router_os = str()
     client = paramiko.SSHClient()
-    client.load_system_host_keys()
+    #client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
     try: PARAMIKO_HOST = device.split(':')[0]
@@ -1014,7 +1020,7 @@ else:
     # SSH (default)
     print(" ... Connecting (SSH) to %s" % (args.device))
     client = paramiko.SSHClient()
-    client.load_system_host_keys()
+    #client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
     try:
