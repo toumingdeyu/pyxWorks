@@ -85,10 +85,11 @@ CMD_IOS_XE = [
               ]
 CMD_IOS_XR = [
                {"remote_command":['show bgp vrf all summary | in "VRF: " | ex "monitor-vpn"',\
-                   {'output_variable':'bgp_vpn_all_summary'}]},
-               {'loop_zipped_list':'bgp_vpn_all_summary',"exec":['update_bgpdata_structure(bgp_data["vrf_list"][',\
-                   {'zipped_item':'0'},'],"vrf_name","',{'zipped_item':'1'},'", ',\
-                   {'zipped_item':'0'},',void_neighbor_list_item)']}
+                   {'if_output_is_void':'exit'}]},
+               {'local_function':'cisco_xr_return_indexed_vrf_list', 'input_variable':'last_output',\
+                   'output_variable':'bgp_vpn_indexed_list', 'if_output_is_void':'exit'},
+               {'loop_zipped_list':'bgp_vpn_indexed_list',"eval":['update_bgpdata_structure(bgp_data["vrf_list"],\
+                   "vrf_name","',{'zipped_item':'1'},'", ',{'zipped_item':'0'},',void_vrf_list_item)']}
 
 #              'show bgp vrf all summary',
 #              {'local_function':'get_ciscoxr_bgp_vpn_peer_data', 'input_variable':'last_output',\
@@ -143,7 +144,7 @@ CMD_LINUX = [
 #             {'loop_zipped_list':'splitlines_linux_users', 'local_command':['echo ', {'zipped_item':'0'}] },
             #('echo ', {'input_variable':'notexistent'},{'if_output_is_void':'exit'}),
             'free -m',
-            {"exec":['update_bgpdata_structure(bgp_data["vrf_list"][',0,'],"vrf_name","','aaaaaa','", ',0,',void_neighbor_list_item)']}
+            {"eval":['update_bgpdata_structure(bgp_data["vrf_list"][',0,'],"vrf_name","','aaaaaa','", ',0,',void_neighbor_list_item)']}
 
             ]
 
@@ -203,7 +204,6 @@ def return_parameters(text):
 
 def return_splitlines_parameters(text):
     return text.splitlines()
-
 
 def update_bgpdata_structure(data_address, key_name = None, value = None, \
     order_in_list = None, list_append_value = None, add_new_key = None, \
@@ -270,6 +270,21 @@ def update_bgpdata_structure(data_address, key_name = None, value = None, \
                         change_applied = True
     if debug: print("CHANGE_APPLIED: ",change_applied)
     return change_applied
+
+
+def cisco_xr_return_indexed_vrf_list(text = None):
+    output = []
+    if text:
+        for row in text.splitlines():
+           try: output.append(row.split('VRF:')[1]).strip()
+           except: pass
+    return return_indexed_list(output)
+
+
+def return_indexed_list(data_list = None):
+    if data_list and isinstance(data_list, (list,tuple)):
+        return zip(range(len(data_list)),data_list)
+    return []
 
 
 def get_first_value_after(text = None, split_text = None, delete_text = None):
@@ -610,7 +625,7 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
             local_output = local_output.replace('\x0d','')
         if name_of_output_variable:
             dictionary_of_variables[name_of_output_variable] = local_output
-        if printall: print("%sLOCAL_FUNCTION: %s(%s)\n%s%s\n%s" % \
+        if printall: print("%sLOCAL_FUNCTION: %s(%s)\n%s%s%s" % \
             (bcolors.CYAN,local_function_name,\
             local_input if len(local_input)<100 else name_of_local_variable,\
             bcolors.GREY,local_output,bcolors.ENDC))
@@ -624,8 +639,8 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
                 (bcolors.RED,bcolors.ENDC))
             return True
         return None
-    ### EXEC_COMMAND -----------------------------------------------------------
-    def exec_command(ssh_connection,cmd_line_items,loop_item = None,\
+    ### eval_COMMAND -----------------------------------------------------------
+    def eval_command(ssh_connection,cmd_line_items,loop_item = None,\
         logfilename = logfilename,printall = printall, printcmdtologfile = printcmdtologfile):
         global dictionary_of_variables
         cli_line, name_of_output_variable = str(), None
@@ -644,12 +659,10 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
                         elif cli_item.get('output_variable',''):
                             name_of_output_variable = cli_item.get('output_variable','')
                     else: cli_line += str(cli_item)
-            print(bcolors.CYAN + "EXEC_COMMAND: %s" % (cli_line) + bcolors.ENDC )
-            ### EXEC COMMAND
-            exec(cli_line, {'update_bgpdata_structure':update_bgpdata_structure,\
-                'bgp_data':bgp_data,'void_neighbor_list_item':void_neighbor_list_item,\
-                'void_vrf_list_item':void_vrf_list_item })
-            if printcmdtologfile: fp.write('EXEC_COMMAND: ' + cli_line + '\n')
+            print(bcolors.CYAN + "EVAL_COMMAND: %s" % (cli_line) + bcolors.ENDC )
+            ret_value = eval(cli_line)
+            print(bcolors.GREY + str(ret_value) + bcolors.ENDC )
+            if printcmdtologfile: fp.write('EVAL_COMMAND: ' + cli_line + '\n' + str(ret_value) + '\n')
         return None
     ### RUN_REMOTE_AND_LOCAL_COMMANDS START ====================================
     ssh_connection, output= None, None
@@ -697,16 +710,16 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
                                     if run_local_function(cmd_line_items,loop_item): return None
                                 elif cmd_line_items.get('local_command',''):
                                     if run_command(ssh_connection,cmd_line_items.get('local_command',''),loop_item): return None
-                                elif cmd_line_items.get('exec',''):
-                                    if exec_command(ssh_connection,cmd_line_items.get('exec',''),loop_item): return None
+                                elif cmd_line_items.get('eval',''):
+                                    if eval_command(ssh_connection,cmd_line_items.get('eval',''),loop_item): return None
                     elif cmd_line_items.get('local_function',''):
                         if run_local_function(cmd_line_items): return None
                     elif cmd_line_items.get('local_command',''):
                         if run_command(ssh_connection,cmd_line_items.get('local_command','')): return None
                     elif cmd_line_items.get('remote_command',''):
                         if run_command(ssh_connection,cmd_line_items.get('remote_command',''),run_remote = True): return None
-                    elif cmd_line_items.get('exec',''):
-                        if exec_command(ssh_connection,cmd_line_items.get('exec','')): return None
+                    elif cmd_line_items.get('eval',''):
+                        if eval_command(ssh_connection,cmd_line_items.get('eval','')): return None
                 elif printall: print('%sUNSUPPORTED_TYPE %s of %s!%s' % \
                             (bcolors.MAGENTA,type(item),str(cmd_line_items),bcolors.ENDC))
     except () as e:
