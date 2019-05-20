@@ -85,10 +85,12 @@ CMD_IOS_XE = [
               ]
 CMD_IOS_XR = [
                'show bgp vrf all summary',
-               {'local_function':'get_ciscoxr_bgp_vpn_peer_data_to_json', \
+               {'local_function':'ciscoxr_get_bgp_vpn_peer_data_to_json', \
                    'input_variable':'last_output', 'output_variable':'bgp_vpn_peers'},
-#                {'loop_zipped_list':'bgp_vpn_peers','remote_command':('show bgp vrf ',\
-#                    {'zipped_item':'0'},' neighbors ',{'zipped_item':'1'}) },
+               {'loop_zipped_list':'bgp_vpn_peers',\
+                   'remote_command':('show bgp vrf ',{'zipped_item':'1'},' neighbors ',{'zipped_item':'3'}),
+                   'local_function':'ciscoxr_parse_bgp_neighbors', "input_parameters":[{"input_variable":"last_output"},{'zipped_item':'0'},{'zipped_item':'2'}]
+               },
 
 
 #
@@ -200,88 +202,36 @@ def return_parameters(text):
 def return_splitlines_parameters(text):
     return text.splitlines()
 
-def update_bgpdata_structure(data_address, key_name = None, value = None, \
-    order_in_list = None, list_append_value = None, add_new_key = None, \
-    debug = None):
-    """
-    FUNCTION: update_bgpdata_structure
-    PARAMETERS:
-       data_address - address of json ending on parrent (key_name or list_number if exists)
-       key_name - name of key in dict
-       value - value of key in dict
-       order_in_list - if actuaal list is shorter than needed, append new template section
-       list_append_value - add new template section to list
-       add_new_key = True - add new keys/values to dictionary not existent in templates
-       debug - True/None
-    RETURNS:
-       change_applied - True = change applied , None - no change
-    """
-    global bgp_data
-    change_applied = None
-    if debug: print("DATA_TYPE: ", type(data_address),'ID: ',id(data_address), \
-         "DATA: ", data_address)
-    ### REWRITE VALUE IN DICT ON KEY_NAME POSITION
-    if isinstance(data_address, (dict,collections.OrderedDict)) \
-        and isinstance(key_name, (six.string_types)):
-        data_address_values = data_address.keys()
-        for address_key_value in data_address_values:
-            if key_name and key_name == address_key_value:
-                data_address[key_name] = value
-                if debug: print('DICT[%s]=%s.'%(key_name,value))
-                change_applied = True
-        else:
-            if add_new_key:
-                data_address[key_name] = value
-                if debug: print('ADDED_TO_DICT[%s]=%s.'%(key_name,value))
-                change_applied = True
-    ### ADD LIST POSITION if NEEDED, REWRITE VALUE IN DICT ON KEY_NAME POSITION
-    elif isinstance(data_address, (list,tuple)):
-        ### SIMPLY ADD VALUE TO LIST WHEN ORDER NOT INSERTED
-        if not order_in_list and not key_name:
-            if debug: print('LIST_APPENDED.')
-            data_address.append(value)
-            change_applied = True
-        else:
-            ### ORDER_IN_LIST=[0..], LEN()=[0..]
-            if int(order_in_list) == len(data_address):
-                data_address.append(list_append_value)
-                if debug: print('LIST_APPENDED_BY_ONE_SECTION.')
-            ### AFTER OPTIONAL ADDITION OF END OF LIST BY ONE
-            if int(order_in_list) <= len(data_address)-1 \
-                and isinstance(data_address[int(order_in_list)], \
-                (dict,collections.OrderedDict)):
-                data_address_values = data_address[int(order_in_list)].keys()
-                for key_list_item in data_address_values:
-                   if key_name and key_name == key_list_item:
-                       data_address[int(order_in_list)][key_name] = value
-                       if debug: print('DICT_LIST[%s][%s]=%s.'% \
-                           (order_in_list,key_name,value))
-                       change_applied = True
-                else:
-                    if add_new_key:
-                        data_address[int(order_in_list)][key_name] = value
-                        if debug: print('ADDED_TO_DICT_LIST[%s][%s]=%s.'% \
-                            (order_in_list,key_name,value))
-                        change_applied = True
-    if debug: print("CHANGE_APPLIED: ",change_applied)
-    return change_applied
 
-
-def cisco_xr_return_indexed_vrf_list(text = None):
-    output = []
-    if text:
-        for row in text.splitlines():
-           try: output.append(row.split('VRF:')[1].strip())
-           except: pass
-    return return_indexed_list(output)
-
-
+### UNI-tools ###
 def return_indexed_list(data_list = None):
     if data_list and isinstance(data_list, (list,tuple)):
         return zip(range(len(data_list)),data_list)
     return []
 
-def get_ciscoxr_bgp_vpn_peer_data_to_json(text = None):
+
+def get_first_row_after(text = None, split_text = None, delete_text = None):
+    output = str()
+    if text:
+        try:
+            output = text.strip().split(split_text)[1].split()[0].strip()
+            if delete_text: output = output.replace(delete_text,'')
+        except: pass
+    return output
+
+
+def get_first_row_before(text = None, split_text = None, delete_text = None):
+    output = str()
+    if text:
+        try:
+            output = text.strip().split(split_text)[0].split()[-1].strip()
+            if delete_text: output = output.replace(delete_text,'')
+        except: pass
+    return output
+
+
+### CISCO-XR ###
+def ciscoxr_get_bgp_vpn_peer_data_to_json(text = None):
     output = []
     if text:
         try:    vpn_sections = text.split('VRF: ')[1:]
@@ -300,13 +250,25 @@ def get_ciscoxr_bgp_vpn_peer_data_to_json(text = None):
     return output
 
 
-def get_first_value_after(text = None, split_text = None, delete_text = None):
-    output = str()
+def ciscoxr_parse_bgp_neighbors(text = None,vrf_index = None,neighbor_index = None):
+    output = []
     if text:
-        try:
-            output = text.strip().split(split_text)[1].split()[0].strip()
-            if delete_text: output = output.replace(delete_text,'')
-        except: pass
+        bgp_current_state = get_first_row_after(text,'BGP state = ',',')
+        import_route_policy_is = get_first_row_after(text,'Policy for incoming advertisements is ')
+        received_total_routes = get_first_row_before(text,'accepted prefixes, ')
+        advertised_total_routes = get_first_row_after(text,'Prefix advertised ',',')
+        maximum_allowed_route_limit = get_first_row_after(text,'Maximum prefixes allowed ')
+        if vrf_index != None and neighbor_index != None:
+            update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"]\
+                [neighbor_index],"bgp_current_state",bgp_current_state)
+            update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"]\
+                [neighbor_index],"import_route_policy_is",import_route_policy_is)
+            update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"]\
+                [neighbor_index],"received_total_routes",received_total_routes)
+            update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"]\
+                [neighbor_index],"advertised_total_routes",advertised_total_routes)
+            update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"]\
+                [neighbor_index],"maximum_allowed_route_limit",maximum_allowed_route_limit)
     return output
 
 
@@ -702,10 +664,12 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
                                     remote_cmd = cmd_line_items.get('remote_command','')
                                     if run_command(ssh_connection,remote_cmd,\
                                         loop_item,run_remote = True): return None
+                                ### CHAIN - do local_function after remote_command
                                 if cmd_line_items.get('local_function',''):
                                     if run_local_function(cmd_line_items,loop_item): return None
                                 elif cmd_line_items.get('local_command',''):
                                     if run_command(ssh_connection,cmd_line_items.get('local_command',''),loop_item): return None
+                                ### CHAIN - do eval after local_function or remote_command
                                 if cmd_line_items.get('eval',''):
                                     if eval_command(ssh_connection,cmd_line_items.get('eval',''),loop_item): return None
                     elif cmd_line_items.get('local_function',''):
@@ -728,6 +692,73 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
 #        client.close()
 
     return None
+
+
+def update_bgpdata_structure(data_address, key_name = None, value = None, \
+    order_in_list = None, list_append_value = None, add_new_key = None, \
+    debug = None):
+    """
+    FUNCTION: update_bgpdata_structure
+    PARAMETERS:
+       data_address - address of json ending on parrent (key_name or list_number if exists)
+       key_name - name of key in dict
+       value - value of key in dict
+       order_in_list - if actuaal list is shorter than needed, append new template section
+       list_append_value - add new template section to list
+       add_new_key = True - add new keys/values to dictionary not existent in templates
+       debug - True/None
+    RETURNS:
+       change_applied - True = change applied , None - no change
+    """
+    global bgp_data
+    change_applied = None
+    if debug: print("DATA_TYPE: ", type(data_address),'ID: ',id(data_address), \
+         "DATA: ", data_address)
+    ### REWRITE VALUE IN DICT ON KEY_NAME POSITION
+    if isinstance(data_address, (dict,collections.OrderedDict)) \
+        and isinstance(key_name, (six.string_types)):
+        data_address_values = data_address.keys()
+        for address_key_value in data_address_values:
+            if key_name and key_name == address_key_value:
+                data_address[key_name] = value
+                if debug: print('DICT[%s]=%s.'%(key_name,value))
+                change_applied = True
+        else:
+            if add_new_key:
+                data_address[key_name] = value
+                if debug: print('ADDED_TO_DICT[%s]=%s.'%(key_name,value))
+                change_applied = True
+    ### ADD LIST POSITION if NEEDED, REWRITE VALUE IN DICT ON KEY_NAME POSITION
+    elif isinstance(data_address, (list,tuple)):
+        ### SIMPLY ADD VALUE TO LIST WHEN ORDER NOT INSERTED
+        if not order_in_list and not key_name:
+            if debug: print('LIST_APPENDED.')
+            data_address.append(value)
+            change_applied = True
+        else:
+            ### ORDER_IN_LIST=[0..], LEN()=[0..]
+            if int(order_in_list) == len(data_address):
+                data_address.append(list_append_value)
+                if debug: print('LIST_APPENDED_BY_ONE_SECTION.')
+            ### AFTER OPTIONAL ADDITION OF END OF LIST BY ONE
+            if int(order_in_list) <= len(data_address)-1 \
+                and isinstance(data_address[int(order_in_list)], \
+                (dict,collections.OrderedDict)):
+                data_address_values = data_address[int(order_in_list)].keys()
+                for key_list_item in data_address_values:
+                   if key_name and key_name == key_list_item:
+                       data_address[int(order_in_list)][key_name] = value
+                       if debug: print('DICT_LIST[%s][%s]=%s.'% \
+                           (order_in_list,key_name,value))
+                       change_applied = True
+                else:
+                    if add_new_key:
+                        data_address[int(order_in_list)][key_name] = value
+                        if debug: print('ADDED_TO_DICT_LIST[%s][%s]=%s.'% \
+                            (order_in_list,key_name,value))
+                        change_applied = True
+    if debug: print("CHANGE_APPLIED: ",change_applied)
+    return change_applied
 
 
 def get_version_from_file_last_modification_date(path_to_file = str(os.path.abspath(__file__))):
