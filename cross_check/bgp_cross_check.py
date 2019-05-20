@@ -84,18 +84,13 @@ CMD_IOS_XE = [
 
               ]
 CMD_IOS_XR = [
-               {"remote_command":['show bgp vrf all summary | in "VRF: " | ex "monitor-vpn"',\
-                   {'if_output_is_void':'exit'}]},
-               {'local_function':'cisco_xr_return_indexed_vrf_list', 'input_variable':'last_output',\
-                   'output_variable':'bgp_vpn_indexed_list', 'if_output_is_void':'exit'},
-               {'loop_zipped_list':'bgp_vpn_indexed_list',"eval":['update_bgpdata_structure(bgp_data["vrf_list"],\
-                   "vrf_name","',{'zipped_item':'1'},'", ',{'zipped_item':'0'},',void_vrf_list_item)']}
+               'show bgp vrf all summary',
+               {'local_function':'get_ciscoxr_bgp_vpn_peer_data_to_json', \
+                   'input_variable':'last_output', 'output_variable':'bgp_vpn_peers'},
+#                {'loop_zipped_list':'bgp_vpn_peers','remote_command':('show bgp vrf ',\
+#                    {'zipped_item':'0'},' neighbors ',{'zipped_item':'1'}) },
 
-#              'show bgp vrf all summary',
-#              {'local_function':'get_ciscoxr_bgp_vpn_peer_data', 'input_variable':'last_output',\
-#                  'output_variable':'bgp_vpn_peers', 'if_output_is_void':'exit'},
-#              {'loop_zipped_list':'bgp_vpn_peers','remote_command':('show bgp vrf ',{'zipped_item':'0'},\
-#                  ' neighbors ',{'zipped_item':'1'}) },
+
 #
 #              {'loop_zipped_list':'bgp_vpn_peers','remote_command':('show bgp vrf ',{'zipped_item':'0'},\
 #                  ' neighbors ',{'zipped_item':'1'},' routes') },
@@ -113,18 +108,18 @@ CMD_JUNOS = [
              ]
 CMD_VRP = [
              'display bgp vpnv4 all peer',
-             {'local_function':'get_huawei_bgp_vpn_peer_data', 'input_variable':'last_output',\
-                 'output_variable':'bgp_vpn_peers', 'if_output_is_void':'exit'},
-             {'loop_zipped_list':'bgp_vpn_peers','remote_command':('dis bgp vpnv4 vpn-instance ',\
-                 {'zipped_item':'0'},' peer ',{'zipped_item':'1'},' verbose') },
-
-
-             {'loop_zipped_list':'bgp_vpn_peers','remote_command':('dis bgp vpnv4 vpn-instance ',\
-                 {'zipped_item':'0'},' routing-table peer ',{'zipped_item':'1'},' accepted-routes') },
-
-             'dis curr int | in (interface|ip binding vpn-instance)',
-             {'local_function':'get_huawei_vpn_interface', 'input_variable':'last_output',\
-                 'output_variable':'interface_list', 'if_output_is_void':'exit'},
+#              {'local_function':'get_huawei_bgp_vpn_peer_data', 'input_variable':'last_output',\
+#                  'output_variable':'bgp_vpn_peers', 'if_output_is_void':'exit'},
+#              {'loop_zipped_list':'bgp_vpn_peers','remote_command':('dis bgp vpnv4 vpn-instance ',\
+#                  {'zipped_item':'0'},' peer ',{'zipped_item':'1'},' verbose') },
+#
+#
+#              {'loop_zipped_list':'bgp_vpn_peers','remote_command':('dis bgp vpnv4 vpn-instance ',\
+#                  {'zipped_item':'0'},' routing-table peer ',{'zipped_item':'1'},' accepted-routes') },
+#
+#              'dis curr int | in (interface|ip binding vpn-instance)',
+#              {'local_function':'get_huawei_vpn_interface', 'input_variable':'last_output',\
+#                  'output_variable':'interface_list', 'if_output_is_void':'exit'},
 #              {'loop_zipped_list':'interface_list','remote_command':('dis interface ',{'zipped_item':'2'})},
 #
 #              {'loop_zipped_list':'bgp_vpn_peers','remote_command':('ping -s 1470 -c 2 -t 2000 -vpn-instance ',\
@@ -248,23 +243,23 @@ def update_bgpdata_structure(data_address, key_name = None, value = None, \
             change_applied = True
         else:
             ### ORDER_IN_LIST=[0..], LEN()=[0..]
-            if order_in_list == len(data_address):
+            if int(order_in_list) == len(data_address):
                 data_address.append(list_append_value)
                 if debug: print('LIST_APPENDED_BY_ONE_SECTION.')
             ### AFTER OPTIONAL ADDITION OF END OF LIST BY ONE
-            if order_in_list <= len(data_address)-1 \
-                and isinstance(data_address[order_in_list], \
+            if int(order_in_list) <= len(data_address)-1 \
+                and isinstance(data_address[int(order_in_list)], \
                 (dict,collections.OrderedDict)):
-                data_address_values = data_address[order_in_list].keys()
+                data_address_values = data_address[int(order_in_list)].keys()
                 for key_list_item in data_address_values:
                    if key_name and key_name == key_list_item:
-                       data_address[order_in_list][key_name] = value
+                       data_address[int(order_in_list)][key_name] = value
                        if debug: print('DICT_LIST[%s][%s]=%s.'% \
                            (order_in_list,key_name,value))
                        change_applied = True
                 else:
                     if add_new_key:
-                        data_address[order_in_list][key_name] = value
+                        data_address[int(order_in_list)][key_name] = value
                         if debug: print('ADDED_TO_DICT_LIST[%s][%s]=%s.'% \
                             (order_in_list,key_name,value))
                         change_applied = True
@@ -276,7 +271,7 @@ def cisco_xr_return_indexed_vrf_list(text = None):
     output = []
     if text:
         for row in text.splitlines():
-           try: output.append(row.split('VRF:')[1]).strip()
+           try: output.append(row.split('VRF:')[1].strip())
            except: pass
     return return_indexed_list(output)
 
@@ -285,6 +280,24 @@ def return_indexed_list(data_list = None):
     if data_list and isinstance(data_list, (list,tuple)):
         return zip(range(len(data_list)),data_list)
     return []
+
+def get_ciscoxr_bgp_vpn_peer_data_to_json(text = None):
+    output = []
+    if text:
+        try:    vpn_sections = text.split('VRF: ')[1:]
+        except: vpn_sections = []
+        index_vrf = 0
+        for vpn_section in vpn_sections:
+           vpn_instance = vpn_section.splitlines()[0].strip()
+           try: vpn_peer_lines = vpn_section.strip().split('Neighbor')[1].splitlines()[1:]
+           except: vpn_peer_lines = []
+           if len(vpn_peer_lines)>0:
+               update_bgpdata_structure(bgp_data["vrf_list"],"vrf_name",str(vpn_instance),index_vrf, void_vrf_list_item)
+               for index_ip,vpn_peer_line in return_indexed_list(vpn_peer_lines):
+                   output.append((index_vrf,vpn_instance,index_ip,vpn_peer_line.split()[0]))
+                   update_bgpdata_structure(bgp_data["vrf_list"][index_vrf]["neighbor_list"],"ip_address",vpn_peer_line.split()[0],index_ip,void_neighbor_list_item)
+               index_vrf += 1
+    return output
 
 
 def get_first_value_after(text = None, split_text = None, delete_text = None):
@@ -322,23 +335,6 @@ def get_ciscoxr_vpnv4_all_interfaces(text = None):
            columns = row.strip().split()
            try: output.append((columns[4],columns[0]))
            except: pass
-    return output
-
-
-def get_ciscoxr_bgp_vpn_peer_data(text = None):
-    output = []
-    if text:
-        try:
-            vpn_sections = text.split('VRF: ')[1:]
-            for vpn_section in vpn_sections:
-               vpn_instance   = vpn_section.splitlines()[0].strip()
-               try: vpn_peer_lines = vpn_section.strip().split('Neighbor')[1].splitlines()[1:]
-               except: vpn_peer_lines = []
-#                vpn_peers = [vpn_peer_line.split()[0] for vpn_peer_line in vpn_peer_lines]
-#                output.append((vpn_instance,vpn_peers))
-               for vpn_peer_line in vpn_peer_lines:
-                   output.append((vpn_instance,vpn_peer_line.split()[0]))
-        except: pass
     return output
 
 
@@ -710,7 +706,7 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
                                     if run_local_function(cmd_line_items,loop_item): return None
                                 elif cmd_line_items.get('local_command',''):
                                     if run_command(ssh_connection,cmd_line_items.get('local_command',''),loop_item): return None
-                                elif cmd_line_items.get('eval',''):
+                                if cmd_line_items.get('eval',''):
                                     if eval_command(ssh_connection,cmd_line_items.get('eval',''),loop_item): return None
                     elif cmd_line_items.get('local_function',''):
                         if run_local_function(cmd_line_items): return None
