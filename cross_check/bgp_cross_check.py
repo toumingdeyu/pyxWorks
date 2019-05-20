@@ -88,14 +88,28 @@ CMD_IOS_XR = [
                {'local_function':'ciscoxr_get_bgp_vpn_peer_data_to_json', \
                    'input_variable':'last_output', 'output_variable':'bgp_vpn_peers'},
                {'loop_zipped_list':'bgp_vpn_peers',\
-                   'remote_command':('show bgp vrf ',{'zipped_item':'1'},' neighbors ',{'zipped_item':'3'}),
-                   'local_function':'ciscoxr_parse_bgp_neighbors', "input_parameters":[{"input_variable":"last_output"},{'zipped_item':'0'},{'zipped_item':'2'}]
+                   'remote_command':('show bgp vrf ',{'zipped_item':'1'},' neighbors ',\
+                       {'zipped_item':'3'}),
+                   'local_function':'ciscoxr_parse_bgp_neighbors', "input_parameters":\
+                       [{"input_variable":"last_output"},{'zipped_item':'0'},{'zipped_item':'2'}]
+               },
+               'sh ipv4 vrf all int brief | exclude "unassigned|Protocol|default"',
+               {'local_function':"ciscoxr_get_vpnv4_all_interfaces",'input_variable':\
+                   'last_output','output_variable':'bgp_vpn_peers_with_interfaces'},
+               {'loop_zipped_list':'bgp_vpn_peers_with_interfaces',
+                   'remote_command':('show interface ',{'zipped_item':'1'}),
+                   'local_function':'ciscoxr_parse_interface', "input_parameters":\
+                       [{"input_variable":"last_output"},{'zipped_item':'0'}]
                },
 
-
+#                {'loop_zipped_list':'bgp_vpn_peers','remote_command':('ping vrf ',{'zipped_item':'1'},\
+#                    ' ',{'zipped_item':'3'},' size 1470 count 2')
 #
-#              {'loop_zipped_list':'bgp_vpn_peers','remote_command':('show bgp vrf ',{'zipped_item':'0'},\
-#                  ' neighbors ',{'zipped_item':'1'},' routes') },
+#                },
+
+#                {'loop_zipped_list':'bgp_vpn_peers','remote_command':('show bgp vrf ',\
+#                    {'zipped_item':'1'},' neighbors ',{'zipped_item':'3'},' routes')
+#                },
 #
 #              'sh ipv4 vrf all int brief | exclude "unassigned|Protocol|default"',
 #              {'local_function':'get_ciscoxr_vpnv4_all_interfaces', 'input_variable':'last_output',\
@@ -168,8 +182,9 @@ vrf_list_item_txt_template = '''
     "vrf_name": null,
     "neighbor_list": [%s],
     "interface_name": null,
+    "interface_ip" : null,
     "interface_mtu" : null,
-    "interface_intput_packets_per_seconds": null,
+    "interface_input_packets_per_seconds": null,
     "interface_output_packets_per_seconds": null
 }
 ''' % (neighbor_list_item_txt_template)
@@ -210,21 +225,23 @@ def return_indexed_list(data_list = None):
     return []
 
 
-def get_first_row_after(text = None, split_text = None, delete_text = None):
+def get_first_row_after(text = None, split_text = None, delete_text = None, split_text_index = None):
     output = str()
     if text:
         try:
-            output = text.strip().split(split_text)[1].split()[0].strip()
+            if split_text_index == None: output = text.strip().split(split_text)[1].split()[0].strip()
+            else: output = text.strip().split(split_text)[int(split_text_index)+1].split()[0].strip()
             if delete_text: output = output.replace(delete_text,'')
         except: pass
     return output
 
 
-def get_first_row_before(text = None, split_text = None, delete_text = None):
+def get_first_row_before(text = None, split_text = None, delete_text = None, split_text_index = None):
     output = str()
     if text:
         try:
-            output = text.strip().split(split_text)[0].split()[-1].strip()
+            if split_text_index == None: output = text.strip().split(split_text)[0].split()[-1].strip()
+            else: output = text.strip().split(split_text)[int(split_text_index)].split()[-1].strip()
             if delete_text: output = output.replace(delete_text,'')
         except: pass
     return output
@@ -272,6 +289,43 @@ def ciscoxr_parse_bgp_neighbors(text = None,vrf_index = None,neighbor_index = No
     return output
 
 
+def ciscoxr_get_vpnv4_all_interfaces(text = None):
+    output, vpn_list = [], []
+    if text:
+        try: text = text.strip().split('MET')[1]
+        except: text = text.strip()
+        for row in text.splitlines():
+           ### LIST=VPN,INTERFACE_NAME,INTERFACE_IP
+           columns = row.strip().split()
+           try: vpn_list.append((columns[4],columns[0],columns[1]))
+           except: pass
+        for vpn_to_if in vpn_list:
+            for vrf_index, vrf_item in return_indexed_list(bgp_data["vrf_list"]):
+                if vrf_item.get("vrf_name") == vpn_to_if[0]:
+                    update_bgpdata_structure(bgp_data["vrf_list"][vrf_index],"interface_name",vpn_to_if[1])
+                    update_bgpdata_structure(bgp_data["vrf_list"][vrf_index],"interface_ip",vpn_to_if[2])
+                    output.append(vpn_to_if)
+    return output
+
+
+def ciscoxr_parse_interface(text = None,vrf_name = None):
+    output = []
+    if text:
+        interface_mtu = get_first_row_after(text,'MTU ')
+        interface_input_packets_per_seconds = get_first_row_before(text,'packets/sec')
+        interface_output_packets_per_seconds = get_first_row_before(text,'packets/sec',split_text_index=1)
+        output = [interface_mtu, interface_input_packets_per_seconds,interface_output_packets_per_seconds]
+        for vrf_index, vrf_item in return_indexed_list(bgp_data["vrf_list"]):
+            if vrf_item.get("vrf_name") == vrf_name: break
+        else:
+            return []
+        update_bgpdata_structure(bgp_data["vrf_list"][vrf_index],"interface_mtu",interface_mtu)
+        update_bgpdata_structure(bgp_data["vrf_list"][vrf_index],"interface_input_packets_per_seconds",interface_input_packets_per_seconds)
+        update_bgpdata_structure(bgp_data["vrf_list"][vrf_index],"interface_output_packets_per_seconds",interface_output_packets_per_seconds)
+    return output
+
+
+### HUAWEI ###
 def get_huawei_vpn_interface(text = None):
     output = []
     if text:
@@ -284,19 +338,6 @@ def get_huawei_vpn_interface(text = None):
                 vpn_name = interface.split('ip binding vpn-instance')[1].strip()
                 output.append((vpn_name,interface_name))
             except: pass
-    return output
-
-
-def get_ciscoxr_vpnv4_all_interfaces(text = None):
-    output = []
-    if text:
-        try: text = text.strip().split('MET')[1]
-        except: text = text.strip()
-        for row in text.splitlines():
-           ### LIST=VPN,INTERFACE_NAME
-           columns = row.strip().split()
-           try: output.append((columns[4],columns[0]))
-           except: pass
     return output
 
 
