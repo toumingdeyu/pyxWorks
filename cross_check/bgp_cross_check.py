@@ -110,7 +110,8 @@ CMD_IOS_XR = [
                    'remote_command':('show bgp vrf ',{'zipped_item':'1'},' neighbors ',{'zipped_item':'3'},' routes'),
                    'local_function':'ciscoxr_parse_bgp_neighbor_routes', "input_parameters":\
                        [{"input_variable":"last_output"},{'zipped_item':'0'},{'zipped_item':'2'}]
-               }
+               },
+               {"eval":"return_bgp_data_json()"}
              ]
 CMD_JUNOS = [
 
@@ -240,6 +241,25 @@ def get_first_row_before(text = None, split_text = None, delete_text = None, spl
     return output
 
 
+def return_bgp_data_json():
+    return json.dumps(bgp_data, indent=2)
+
+
+def read_bgp_data_json_from_logfile(filename = None):
+    bgp_data_loaded, text = None, None
+    with open(filename,"r") as fp:
+        text = fp.read()
+    if text:
+        try: bgp_data_json_text = text.split('EVAL_COMMAND: return_bgp_data_json()')[1]
+        except: bgp_data_json_text = str()
+        if bgp_data_json_text:
+            bgp_data_loaded = json.loads(bgp_data_json_text, object_pairs_hook = collections.OrderedDict)
+            print("LOADED_BGP_DATA: ",bgp_data_loaded)
+            print("\nLOADED JSON BGP_DATA: ")
+            print(json.dumps(bgp_data_loaded, indent=2))
+    return bgp_data_loaded
+
+
 ### CISCO-XR ###
 def ciscoxr_get_bgp_vpn_peer_data_to_json(text = None):
     output = []
@@ -340,6 +360,7 @@ def ciscoxr_parse_bgp_neighbor_routes(text = None,vrf_index = None,neighbor_inde
         update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"]\
             [neighbor_index],"accepted_routes_list",output)
     return output
+
 
 ### HUAWEI ###
 def get_huawei_vpn_interface(text = None):
@@ -871,6 +892,9 @@ parser.add_argument("--nolog",
 parser.add_argument("--rcmd",
                     action = "store", dest = 'rcommand', default = str(),
                     help = "'command' or ['list of commands',...] to run on remote device")
+parser.add_argument("--readlog",
+                    action = "store", dest = 'readlog', default = None,
+                    help = "name of the logfile to read json.")
 # parser.add_argument("--alloti",
 #                     action = 'store_true', dest = "alloti", default = None,
 #                     help = "do action on all oti routers")
@@ -882,6 +906,10 @@ if args.nocolors: bcolors = nocolors
 # else: device_list = [args.device]
 
 device_list = [args.device]
+
+if args.readlog:
+    read_bgp_data_json_from_logfile(args.readlog)
+    sys.exit(0)
 
 ####### Set USERNAME if needed
 if args.username: USERNAME = args.username
@@ -959,5 +987,5 @@ for device in device_list:
         print('\nDEVICE %s DONE.'%(device))
 print('\nEND.')
 
-print(json.dumps(bgp_data, indent=2))
+#print(json.dumps(bgp_data, indent=2))
 
