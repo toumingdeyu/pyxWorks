@@ -118,8 +118,9 @@ CMD_JUNOS = [
              ]
 CMD_VRP = [
              'display bgp vpnv4 all peer',
-#              {'local_function':'get_huawei_bgp_vpn_peer_data', 'input_variable':'last_output',\
-#                  'output_variable':'bgp_vpn_peers', 'if_output_is_void':'exit'},
+              {'local_function':'huawei_get_bgp_vpn_peer_data_to_json', 'input_variable':'last_output',\
+                  'output_variable':'bgp_vpn_peers', 'if_output_is_void':'exit'},
+
 #              {'loop_zipped_list':'bgp_vpn_peers','remote_command':('dis bgp vpnv4 vpn-instance ',\
 #                  {'zipped_item':'0'},' peer ',{'zipped_item':'1'},' verbose') },
 #
@@ -134,6 +135,7 @@ CMD_VRP = [
 #
 #              {'loop_zipped_list':'bgp_vpn_peers','remote_command':('ping -s 1470 -c 2 -t 2000 -vpn-instance ',\
 #                  {'zipped_item':'0'},' ',{'zipped_item':'1'})},
+             {"eval":"return_bgp_data_json()"}
           ]
 CMD_LINUX = [
 #             'hostname',
@@ -264,19 +266,21 @@ def read_bgp_data_json_from_logfile(filename = None):
 def ciscoxr_get_bgp_vpn_peer_data_to_json(text = None):
     output = []
     if text:
-        try:    vpn_sections = text.split('VRF: ')[1:]
-        except: vpn_sections = []
-        index_vrf = 0
-        for vpn_section in vpn_sections:
-           vpn_instance = vpn_section.splitlines()[0].strip()
-           try: vpn_peer_lines = vpn_section.strip().split('Neighbor')[1].splitlines()[1:]
-           except: vpn_peer_lines = []
-           if len(vpn_peer_lines)>0:
-               update_bgpdata_structure(bgp_data["vrf_list"],"vrf_name",str(vpn_instance),index_vrf, void_vrf_list_item)
-               for index_ip,vpn_peer_line in return_indexed_list(vpn_peer_lines):
-                   output.append((index_vrf,vpn_instance,index_ip,vpn_peer_line.split()[0]))
-                   update_bgpdata_structure(bgp_data["vrf_list"][index_vrf]["neighbor_list"],"ip_address",vpn_peer_line.split()[0],index_ip,void_neighbor_list_item)
-               index_vrf += 1
+        try:    vrf_sections = text.split('VRF: ')[1:]
+        except: vrf_sections = []
+        vrf_index = 0
+        for vrf_section in vrf_sections:
+           vrf_instance = vrf_section.splitlines()[0].strip()
+           try: vrf_peer_lines = vrf_section.strip().split('Neighbor')[1].splitlines()[1:]
+           except: vrf_peer_lines = []
+           if len(vrf_peer_lines)>0:
+               update_bgpdata_structure(bgp_data["vrf_list"],"vrf_name",str(vrf_instance),vrf_index, void_vrf_list_item)
+               neighbor_index = 0
+               for vrf_peer_line in vrf_peer_lines:
+                   output.append((vrf_index,vrf_instance,neighbor_index,vrf_peer_line.split()[0]))
+                   update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"],"ip_address",vrf_peer_line.split()[0],neighbor_index,void_neighbor_list_item)
+                   neighbor_index += 1
+               vrf_index += 1
     return output
 
 
@@ -363,34 +367,41 @@ def ciscoxr_parse_bgp_neighbor_routes(text = None,vrf_index = None,neighbor_inde
 
 
 ### HUAWEI ###
-def get_huawei_vpn_interface(text = None):
-    output = []
-    if text:
-        try: text = text.strip().split('MET')[1]
-        except: text = text.strip()
-        for interface in text.split('interface'):
-            try:
-                ### LIST=VPN,INTERFACE_NAME
-                interface_name = interface.split()[0].strip()
-                vpn_name = interface.split('ip binding vpn-instance')[1].strip()
-                output.append((vpn_name,interface_name))
-            except: pass
-    return output
+# def huawei_get_bgp_vpn_peer_data_to_json(text = None):
+#     output = []
+#     if text:
+#         try: text = text.strip().split('MET')[1]
+#         except: text = text.strip()
+#         vrf_index = 0
+#         for interface in text.split('interface'):
+#             try:
+#                 ### LIST=VPN,INTERFACE_NAME
+#                 interface_name = interface.split()[0].strip()
+#                 vpn_name = interface.split('ip binding vpn-instance')[1].strip()
+#                 output.append((vpn_name,interface_name))
+#             except: pass
+#     return output
 
 
-def get_huawei_bgp_vpn_peer_data(text = None):
+
+def huawei_get_bgp_vpn_peer_data_to_json(text = None):
     output = []
     if text:
         try:
-            vpn_sections = text.split('VPN-Instance')[1:]
-            for vpn_section in vpn_sections:
-               vpn_instance   = vpn_section.split(',')[0].strip()
-               try: vpn_peer_lines = vpn_section.strip().splitlines()[1:]
-               except: vpn_peer_lines = []
-#                vpn_peers = [vpn_peer_line.split()[0] for vpn_peer_line in vpn_peer_lines]
-#                output.append((vpn_instance,vpn_peers))
-               for vpn_peer_line in vpn_peer_lines:
-                   output.append((vpn_instance,vpn_peer_line.split()[0]))
+            vrf_sections = text.split('VPN-Instance')[1:]
+            vrf_index = 0
+            for vrf_section in vrf_sections:
+                vrf_instance = vrf_section.split(',')[0].strip()
+                try: vrf_peer_lines = vrf_section.strip().splitlines()[1:]
+                except: vrf_peer_lines = []
+                if len(vrf_peer_lines)>0:
+                    update_bgpdata_structure(bgp_data["vrf_list"],key_name="vrf_name",value=str(vrf_instance),order_in_list=vrf_index, list_append_value=void_vrf_list_item,debug=True)
+                    neighbor_index = 0
+                    for vrf_peer_line in vrf_peer_lines:
+                       output.append((vrf_index,vrf_instance,neighbor_index,vrf_peer_line.split()[0]))
+                       update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"],key_name="ip_address",value=str(vrf_peer_line.split()[0]),order_in_list=neighbor_index,list_append_value=void_neighbor_list_item,debug=True)
+                       neighbor_index += 1
+                    vrf_index += 1
         except: pass
     return output
 
@@ -790,8 +801,9 @@ def update_bgpdata_structure(data_address, key_name = None, value = None, \
     """
     global bgp_data
     change_applied = None
-    if debug: print("DATA_TYPE: ", type(data_address),'ID: ',id(data_address), \
-         "DATA: ", data_address)
+    if debug:
+        print(bcolors.MAGENTA+"KEY:"+str(key_name)+" VALUE:"+str(value)+" ORDER_IN_LIST:"+str(order_in_list)+" DATA_TYPE:"+str(type(data_address))+' ID:'+str(id(data_address))+bcolors.ENDC)
+
     ### REWRITE VALUE IN DICT ON KEY_NAME POSITION
     if isinstance(data_address, (dict,collections.OrderedDict)) \
         and isinstance(key_name, (six.string_types)):
@@ -799,12 +811,12 @@ def update_bgpdata_structure(data_address, key_name = None, value = None, \
         for address_key_value in data_address_values:
             if key_name and key_name == address_key_value:
                 data_address[key_name] = value
-                if debug: print('DICT[%s]=%s.'%(key_name,value))
+                if debug: print('DICT[%s]=%s'%(key_name,value))
                 change_applied = True
         else:
             if add_new_key:
                 data_address[key_name] = value
-                if debug: print('ADDED_TO_DICT[%s]=%s.'%(key_name,value))
+                if debug: print('ADDED_TO_DICT[%s]=%s'%(key_name,value))
                 change_applied = True
     ### ADD LIST POSITION if NEEDED, REWRITE VALUE IN DICT ON KEY_NAME POSITION
     elif isinstance(data_address, (list,tuple)):
@@ -817,22 +829,22 @@ def update_bgpdata_structure(data_address, key_name = None, value = None, \
             ### ORDER_IN_LIST=[0..], LEN()=[0..]
             if int(order_in_list) == len(data_address):
                 data_address.append(list_append_value)
-                if debug: print('LIST_APPENDED_BY_ONE_SECTION.')
+                if debug: print(bcolors.GREEN+'LIST_APPENDED_BY_ONE_SECTION (%s).'%(order_in_list)+bcolors.ENDC)
             ### AFTER OPTIONAL ADDITION OF END OF LIST BY ONE
             if int(order_in_list) <= len(data_address)-1 \
                 and isinstance(data_address[int(order_in_list)], \
                 (dict,collections.OrderedDict)):
                 data_address_values = data_address[int(order_in_list)].keys()
                 for key_list_item in data_address_values:
-                   if key_name and key_name == key_list_item:
-                       data_address[int(order_in_list)][key_name] = value
-                       if debug: print('DICT_LIST[%s][%s]=%s.'% \
+                   if key_name and str(key_name) == str(key_list_item):
+                       data_address[int(order_in_list)][str(key_name)] = value
+                       if debug: print('DICT_LIST[%s][%s]=%s'% \
                            (order_in_list,key_name,value))
                        change_applied = True
                 else:
                     if add_new_key:
                         data_address[int(order_in_list)][key_name] = value
-                        if debug: print('ADDED_TO_DICT_LIST[%s][%s]=%s.'% \
+                        if debug: print('ADDED_TO_DICT_LIST[%s][%s]=%s'% \
                             (order_in_list,key_name,value))
                         change_applied = True
     if debug: print("CHANGE_APPLIED: ",change_applied)
@@ -939,7 +951,7 @@ for device in device_list:
             router_type = detect_router_by_ssh(device)
             if not router_type in KNOWN_OS_TYPES:
                 print('%sUNSUPPORTED DEVICE TYPE: %s , BREAK!%s' % \
-                    (bcolors. MAGENTA,router_type, bcolors.ENDC))
+                    (bcolors.MAGENTA,router_type, bcolors.ENDC))
             else: print('DETECTED DEVICE_TYPE: %s' % (router_type))
         else:
             router_type = args.router_type
