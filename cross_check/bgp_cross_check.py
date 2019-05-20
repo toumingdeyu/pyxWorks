@@ -101,23 +101,16 @@ CMD_IOS_XR = [
                    'local_function':'ciscoxr_parse_interface', "input_parameters":\
                        [{"input_variable":"last_output"},{'zipped_item':'0'}]
                },
-
-#                {'loop_zipped_list':'bgp_vpn_peers','remote_command':('ping vrf ',{'zipped_item':'1'},\
-#                    ' ',{'zipped_item':'3'},' size 1470 count 2')
-#
-#                },
-
-#                {'loop_zipped_list':'bgp_vpn_peers','remote_command':('show bgp vrf ',\
-#                    {'zipped_item':'1'},' neighbors ',{'zipped_item':'3'},' routes')
-#                },
-#
-#              'sh ipv4 vrf all int brief | exclude "unassigned|Protocol|default"',
-#              {'local_function':'get_ciscoxr_vpnv4_all_interfaces', 'input_variable':'last_output',\
-#                  'output_variable':'interface_list', 'if_output_is_void':'exit'},
-#              {'loop_zipped_list':'interface_list','remote_command':('show interface ',{'zipped_item':'2'})},
-#
-#              {'loop_zipped_list':'bgp_vpn_peers','remote_command':('ping vrf ',{'zipped_item':'0'},\
-#                  ' ',{'zipped_item':'1'},' size 1470 count 2')},
+               {'loop_zipped_list':'bgp_vpn_peers','remote_command':('ping vrf ',\
+                   {'zipped_item':'1'},' ',{'zipped_item':'3'},' size 1470 count 2'),
+                   'local_function':'ciscoxr_parse_ping', "input_parameters":\
+                       [{"input_variable":"last_output"},{'zipped_item':'0'},{'zipped_item':'2'}]
+               },
+               {'loop_zipped_list':'bgp_vpn_peers',
+                   'remote_command':('show bgp vrf ',{'zipped_item':'1'},' neighbors ',{'zipped_item':'3'},' routes'),
+                   'local_function':'ciscoxr_parse_bgp_neighbor_routes', "input_parameters":\
+                       [{"input_variable":"last_output"},{'zipped_item':'0'},{'zipped_item':'2'}]
+               }
              ]
 CMD_JUNOS = [
 
@@ -173,7 +166,7 @@ neighbor_list_item_txt_template = '''
     "maximum_allowed_route_limit": null,
     "import_route_policy_is": null,
     "ping_response_success": null,
-    "accepted-routes_list": []
+    "accepted_routes_list": []
 }
 '''
 
@@ -324,6 +317,29 @@ def ciscoxr_parse_interface(text = None,vrf_name = None):
         update_bgpdata_structure(bgp_data["vrf_list"][vrf_index],"interface_output_packets_per_seconds",interface_output_packets_per_seconds)
     return output
 
+
+def ciscoxr_parse_ping(text = None,vrf_index = None,neighbor_index = None):
+    ping_response_success = get_first_row_after(text,'Success rate is ')
+    if ping_response_success == str(): ping_response_success = '0'
+    if vrf_index != None and neighbor_index != None:
+        update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"]\
+            [neighbor_index],"ping_response_success",ping_response_success)
+    return [ping_response_success]
+
+
+def ciscoxr_parse_bgp_neighbor_routes(text = None,vrf_index = None,neighbor_index = None):
+    output = []
+    try:
+        accepted_routes_text = text.split('Route Distinguisher: ')[2].splitlines()[1:]
+        for line in accepted_routes_text:
+            if line.strip() == str(): break
+            try: output.append(line.split()[1])
+            except: pass
+    except: pass
+    if vrf_index != None and neighbor_index != None:
+        update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"]\
+            [neighbor_index],"accepted_routes_list",output)
+    return output
 
 ### HUAWEI ###
 def get_huawei_vpn_interface(text = None):
