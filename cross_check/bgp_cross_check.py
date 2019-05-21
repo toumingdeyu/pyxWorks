@@ -120,13 +120,18 @@ CMD_VRP = [
              'display bgp vpnv4 all peer',
               {'local_function':'huawei_get_bgp_vpn_peer_data_to_json', 'input_variable':'last_output',\
                   'output_variable':'bgp_vpn_peers', 'if_output_is_void':'exit'},
-
-#              {'loop_zipped_list':'bgp_vpn_peers','remote_command':('dis bgp vpnv4 vpn-instance ',\
-#                  {'zipped_item':'0'},' peer ',{'zipped_item':'1'},' verbose') },
-#
-#
-#              {'loop_zipped_list':'bgp_vpn_peers','remote_command':('dis bgp vpnv4 vpn-instance ',\
-#                  {'zipped_item':'0'},' routing-table peer ',{'zipped_item':'1'},' accepted-routes') },
+             {'loop_zipped_list':'bgp_vpn_peers',
+                 'remote_command':('dis bgp vpnv4 vpn-instance ',{'zipped_item':'1'},\
+                     ' peer ',{'zipped_item':'3'},' verbose'),
+                 'local_function':'huawei_parse_bgp_neighbors', "input_parameters":\
+                       [{"input_variable":"last_output"},{'zipped_item':'0'},{'zipped_item':'2'}]
+             },
+             {'loop_zipped_list':'bgp_vpn_peers',
+                 'remote_command':('dis bgp vpnv4 vpn-instance ',{'zipped_item':'1'},\
+                     ' routing-table peer ',{'zipped_item':'3'},' accepted-routes'),
+                 'local_function':'huawei_parse_bgp_neighbor_routes', "input_parameters":\
+                      [{"input_variable":"last_output"},{'zipped_item':'0'},{'zipped_item':'2'}]
+             },
 #
 #              'dis curr int | in (interface|ip binding vpn-instance)',
 #              {'local_function':'get_huawei_vpn_interface', 'input_variable':'last_output',\
@@ -135,7 +140,7 @@ CMD_VRP = [
 #
 #              {'loop_zipped_list':'bgp_vpn_peers','remote_command':('ping -s 1470 -c 2 -t 2000 -vpn-instance ',\
 #                  {'zipped_item':'0'},' ',{'zipped_item':'1'})},
-             {"eval":"return_bgp_data_json()"}
+             {"eval":"return_bgp_data_json()"},
           ]
 CMD_LINUX = [
 #             'hostname',
@@ -151,8 +156,8 @@ CMD_LINUX = [
 #             {'loop_zipped_list':'splitlines_linux_users', 'local_command':['echo ', {'zipped_item':'0'}] },
             #('echo ', {'input_variable':'notexistent'},{'if_output_is_void':'exit'}),
             'free -m',
-            {"eval":['update_bgpdata_structure(bgp_data["vrf_list"][',0,'],"vrf_name","','aaaaaa','", ',0,',void_neighbor_list_item)']}
-
+            {"eval":['update_bgpdata_structure(bgp_data["vrf_list"][',0,'],"vrf_name","','aaaaaa','", ',0,',void_neighbor_list_item)']},
+            {"eval":"return_bgp_data_json()"}
             ]
 
 
@@ -262,7 +267,7 @@ def read_bgp_data_json_from_logfile(filename = None):
     return bgp_data_loaded
 
 
-### CISCO-XR ###
+### CISCO-XR FUNCTIONS ###
 def ciscoxr_get_bgp_vpn_peer_data_to_json(text = None):
     output = []
     if text:
@@ -366,7 +371,7 @@ def ciscoxr_parse_bgp_neighbor_routes(text = None,vrf_index = None,neighbor_inde
     return output
 
 
-### HUAWEI ###
+### HUAWEI FUNCTIONS ###
 # def huawei_get_bgp_vpn_peer_data_to_json(text = None):
 #     output = []
 #     if text:
@@ -387,27 +392,74 @@ def ciscoxr_parse_bgp_neighbor_routes(text = None,vrf_index = None,neighbor_inde
 def huawei_get_bgp_vpn_peer_data_to_json(text = None):
     output = []
     if text:
-        #try:
-            vrf_sections = text.split('VPN-Instance')[1:]
-            vrf_index = 0
-            ###update_bgpdata_structure(bgp_data["vrf_list"],order_in_list=len(vrf_sections), list_append_value=void_vrf_list_item,debug=True)
-            for vrf_section in vrf_sections:
-                vrf_instance = vrf_section.split(',')[0].strip()
-                try: vrf_peer_lines = vrf_section.strip().splitlines()[1:]
-                except: vrf_peer_lines = []
-                if len(vrf_peer_lines)>0:
-                    update_bgpdata_structure(bgp_data["vrf_list"],key_name="vrf_name",value=str(vrf_instance),order_in_list=vrf_index, list_append_value=void_vrf_list_item,debug=True)
-                    neighbor_index = 0
-                    ###update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"],order_in_list=len(vrf_peer_lines),list_append_value=void_neighbor_list_item,debug=True)
-                    for vrf_peer_line in vrf_peer_lines:
-                       output.append((vrf_index,vrf_instance,neighbor_index,vrf_peer_line.split()[0]))
-                       update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"],key_name="ip_address",value=str(vrf_peer_line.split()[0]),order_in_list=neighbor_index,list_append_value=void_neighbor_list_item,debug=True)
-                       neighbor_index += 1
-                    vrf_index += 1
-        #except: pass
+        try: vrf_sections = text.split('VPN-Instance')[1:]
+        except: vrf_sections = []
+        vrf_index = 0
+        for vrf_section in vrf_sections:
+            vrf_instance = vrf_section.split(',')[0].strip()
+            try: vrf_peer_lines = vrf_section.strip().splitlines()[1:]
+            except: vrf_peer_lines = []
+            if len(vrf_peer_lines)>0:
+                update_bgpdata_structure(bgp_data["vrf_list"],key_name="vrf_name",\
+                    value=str(vrf_instance),order_in_list=vrf_index, \
+                    list_append_value=void_vrf_list_item,debug=True)
+                neighbor_index = 0
+                for vrf_peer_line in vrf_peer_lines:
+                   output.append((vrf_index,vrf_instance,neighbor_index,vrf_peer_line.split()[0]))
+                   update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"],\
+                       key_name="ip_address",value=str(vrf_peer_line.split()[0]),\
+                       order_in_list=neighbor_index,list_append_value=\
+                       void_neighbor_list_item,debug=True)
+                   neighbor_index += 1
+                vrf_index += 1
     return output
 
 
+def huawei_parse_bgp_neighbors(text = None,vrf_index = None,neighbor_index = None):
+    output = []
+    if text:
+        bgp_current_state = get_first_row_after(text,'BGP current state: ',',')
+        import_route_policy_is = get_first_row_after(text,'Import route policy is: ')
+        received_total_routes = get_first_row_after(text,'Received total routes: ')
+        advertised_total_routes = get_first_row_after(text,'Advertised total routes: ')
+        maximum_allowed_route_limit = get_first_row_after(text,'Maximum allowed route limit: ')
+        if vrf_index != None and neighbor_index != None:
+            update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"]\
+                [neighbor_index],"bgp_current_state",bgp_current_state)
+            update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"]\
+                [neighbor_index],"import_route_policy_is",import_route_policy_is)
+            update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"]\
+                [neighbor_index],"received_total_routes",received_total_routes)
+            update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"]\
+                [neighbor_index],"advertised_total_routes",advertised_total_routes)
+            update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"]\
+                [neighbor_index],"maximum_allowed_route_limit",maximum_allowed_route_limit)
+    return output
+
+
+def huawei_parse_bgp_neighbor_routes(text = None,vrf_index = None,neighbor_index = None):
+    output = []
+    try:
+        accepted_routes_text = text.split('PrefVal Path/Ogn')[1].splitlines()[1:]
+        for line in accepted_routes_text:
+            if line.strip() == str(): continue
+            try: output.append(line.split()[1])
+            except: pass
+    except: pass
+    if vrf_index != None and neighbor_index != None:
+        update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"]\
+            [neighbor_index],"accepted_routes_list",output)
+    return output
+
+
+
+
+
+
+
+
+
+### SSH FUNCTIONS ###
 def netmiko_autodetect(device, debug = None):
     router_os = str()
     try: DEVICE_HOST = device.split(':')[0]
