@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import sys, os, io, paramiko, json
+import sys, os, io, paramiko, json , copy
 import getopt
 import getpass
 import telnetlib
@@ -387,9 +387,10 @@ def ciscoxr_parse_bgp_neighbor_routes(text = None,vrf_index = None,neighbor_inde
 def huawei_get_bgp_vpn_peer_data_to_json(text = None):
     output = []
     if text:
-        try:
+        #try:
             vrf_sections = text.split('VPN-Instance')[1:]
             vrf_index = 0
+            ###update_bgpdata_structure(bgp_data["vrf_list"],order_in_list=len(vrf_sections), list_append_value=void_vrf_list_item,debug=True)
             for vrf_section in vrf_sections:
                 vrf_instance = vrf_section.split(',')[0].strip()
                 try: vrf_peer_lines = vrf_section.strip().splitlines()[1:]
@@ -397,12 +398,13 @@ def huawei_get_bgp_vpn_peer_data_to_json(text = None):
                 if len(vrf_peer_lines)>0:
                     update_bgpdata_structure(bgp_data["vrf_list"],key_name="vrf_name",value=str(vrf_instance),order_in_list=vrf_index, list_append_value=void_vrf_list_item,debug=True)
                     neighbor_index = 0
+                    ###update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"],order_in_list=len(vrf_peer_lines),list_append_value=void_neighbor_list_item,debug=True)
                     for vrf_peer_line in vrf_peer_lines:
                        output.append((vrf_index,vrf_instance,neighbor_index,vrf_peer_line.split()[0]))
                        update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"],key_name="ip_address",value=str(vrf_peer_line.split()[0]),order_in_list=neighbor_index,list_append_value=void_neighbor_list_item,debug=True)
                        neighbor_index += 1
                     vrf_index += 1
-        except: pass
+        #except: pass
     return output
 
 
@@ -802,7 +804,9 @@ def update_bgpdata_structure(data_address, key_name = None, value = None, \
     global bgp_data
     change_applied = None
     if debug:
-        print(bcolors.MAGENTA+"KEY:"+str(key_name)+" VALUE:"+str(value)+" ORDER_IN_LIST:"+str(order_in_list)+" DATA_TYPE:"+str(type(data_address))+' ID:'+str(id(data_address))+bcolors.ENDC)
+        print(bcolors.MAGENTA+"KEY="+str(key_name)+" VALUE="+str(value)+" ORDER_IN_LIST="+\
+            str(order_in_list)+" DATA_TYPE="+str(type(data_address))+' ID='+\
+            str(id(data_address))+bcolors.ENDC)
 
     ### REWRITE VALUE IN DICT ON KEY_NAME POSITION
     if isinstance(data_address, (dict,collections.OrderedDict)) \
@@ -819,21 +823,24 @@ def update_bgpdata_structure(data_address, key_name = None, value = None, \
                 if debug: print('ADDED_TO_DICT[%s]=%s'%(key_name,value))
                 change_applied = True
     ### ADD LIST POSITION if NEEDED, REWRITE VALUE IN DICT ON KEY_NAME POSITION
-    elif isinstance(data_address, (list,tuple)):
-        ### SIMPLY ADD VALUE TO LIST WHEN ORDER NOT INSERTED
+    elif isinstance(data_address, (list)):
+        ### SIMPLY ADD VALUE TO LIST WHEN ORDER NOT INSERTED ###
         if not order_in_list and not key_name:
             if debug: print('LIST_APPENDED.')
             data_address.append(value)
             change_applied = True
         else:
-            ### ORDER_IN_LIST=[0..], LEN()=[0..]
-            if int(order_in_list) == len(data_address):
-                data_address.append(list_append_value)
-                if debug: print(bcolors.GREEN+'LIST_APPENDED_BY_ONE_SECTION (%s).'%(order_in_list)+bcolors.ENDC)
-            ### AFTER OPTIONAL ADDITION OF END OF LIST BY ONE
-            if int(order_in_list) <= len(data_address)-1 \
+            ### INCREASE LIST LENGHT if NEEDED ###
+            if int(order_in_list) >= len(data_address):
+                how_much_to_add = 1 + int(order_in_list) - len(data_address)
+                for i in range(how_much_to_add):
+                    data_address.append(copy.deepcopy(list_append_value))
+                if debug: print(bcolors.GREEN+'LIST_APPENDED_BY_SECTIONs +(%s).'\
+                    %(how_much_to_add)+bcolors.ENDC)
+            ### AFTER OPTIONAL ADDITION OF END OF LIST (AT LEAST) BY ONE ###
+            if int(order_in_list) < len(data_address) \
                 and isinstance(data_address[int(order_in_list)], \
-                (dict,collections.OrderedDict)):
+                (dict,collections.OrderedDict)) and value != None:
                 data_address_values = data_address[int(order_in_list)].keys()
                 for key_list_item in data_address_values:
                    if key_name and str(key_name) == str(key_list_item):
