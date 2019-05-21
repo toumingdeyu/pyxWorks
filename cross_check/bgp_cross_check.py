@@ -132,15 +132,18 @@ CMD_VRP = [
                  'local_function':'huawei_parse_bgp_neighbor_routes', "input_parameters":\
                       [{"input_variable":"last_output"},{'zipped_item':'0'},{'zipped_item':'2'}]
              },
-#
-#              'dis curr int | in (interface|ip binding vpn-instance)',
-#              {'local_function':'get_huawei_vpn_interface', 'input_variable':'last_output',\
-#                  'output_variable':'interface_list', 'if_output_is_void':'exit'},
-#              {'loop_zipped_list':'interface_list','remote_command':('dis interface ',{'zipped_item':'2'})},
+              'dis curr int | in (interface|ip binding vpn-instance)',
+              {'local_function':'huawei_parse_vpn_interfaces', 'input_variable':'last_output',\
+                  'output_variable':'interface_list', 'if_output_is_void':'exit'},
+              {'loop_zipped_list':'interface_list',
+                  'remote_command':('dis interface ',{'zipped_item':'1'}),
+                  'local_function':'huawei_parse_interface', "input_parameters":\
+                       [{"input_variable":"last_output"},{'zipped_item':'0'}]
+              },
 #
 #              {'loop_zipped_list':'bgp_vpn_peers','remote_command':('ping -s 1470 -c 2 -t 2000 -vpn-instance ',\
 #                  {'zipped_item':'0'},' ',{'zipped_item':'1'})},
-             {"eval":"return_bgp_data_json()"},
+             #{"eval":"return_bgp_data_json()"},
           ]
 CMD_LINUX = [
 #             'hostname',
@@ -372,23 +375,6 @@ def ciscoxr_parse_bgp_neighbor_routes(text = None,vrf_index = None,neighbor_inde
 
 
 ### HUAWEI FUNCTIONS ###
-# def huawei_get_bgp_vpn_peer_data_to_json(text = None):
-#     output = []
-#     if text:
-#         try: text = text.strip().split('MET')[1]
-#         except: text = text.strip()
-#         vrf_index = 0
-#         for interface in text.split('interface'):
-#             try:
-#                 ### LIST=VPN,INTERFACE_NAME
-#                 interface_name = interface.split()[0].strip()
-#                 vpn_name = interface.split('ip binding vpn-instance')[1].strip()
-#                 output.append((vpn_name,interface_name))
-#             except: pass
-#     return output
-
-
-
 def huawei_get_bgp_vpn_peer_data_to_json(text = None):
     output = []
     if text:
@@ -452,10 +438,40 @@ def huawei_parse_bgp_neighbor_routes(text = None,vrf_index = None,neighbor_index
     return output
 
 
+def huawei_parse_vpn_interfaces(text = None):
+    output, vpn_list = [], []
+    if text:
+        try: text = text.strip().split('MET')[1]
+        except: text = text.strip()
+        for interface in text.split('interface'):
+            ### LIST=VPN,INTERFACE_NAME
+            interface_name = interface.split()[0].strip()
+            try:
+                vpn_name = interface.split('ip binding vpn-instance')[1].strip()
+                vpn_list.append((vpn_name,interface_name))
+            except: pass
+        for vpn_to_if in vpn_list:
+            for vrf_index, vrf_item in return_indexed_list(bgp_data["vrf_list"]):
+                if vrf_item.get("vrf_name") == vpn_to_if[0]:
+                    update_bgpdata_structure(bgp_data["vrf_list"][vrf_index],"interface_name",vpn_to_if[1])
+                    output.append(vpn_to_if)
+    return output
 
-
-
-
+def huawei_parse_interface(text = None,vrf_name = None):
+    output = []
+    if text:
+        interface_mtu = get_first_row_after(text,'MTU ')
+        interface_input_packets_per_seconds = get_first_row_before(text,'packets/sec')
+        interface_output_packets_per_seconds = get_first_row_before(text,'packets/sec',split_text_index=1)
+        output = [interface_mtu, interface_input_packets_per_seconds,interface_output_packets_per_seconds]
+        for vrf_index, vrf_item in return_indexed_list(bgp_data["vrf_list"]):
+            if vrf_item.get("vrf_name") == vrf_name: break
+        else:
+            return []
+        update_bgpdata_structure(bgp_data["vrf_list"][vrf_index],"interface_mtu",interface_mtu)
+        update_bgpdata_structure(bgp_data["vrf_list"][vrf_index],"interface_input_packets_per_seconds",interface_input_packets_per_seconds)
+        update_bgpdata_structure(bgp_data["vrf_list"][vrf_index],"interface_output_packets_per_seconds",interface_output_packets_per_seconds)
+    return output
 
 
 
