@@ -70,6 +70,8 @@ try:    PASSWORD        = os.environ['NEWR_PASS']
 except: PASSWORD        = str()
 try:    USERNAME        = os.environ['NEWR_USER']
 except: USERNAME        = str()
+try:    EMAIL_ADDRESS   = os.environ['NEWR_EMAIL']
+except: EMAIL_ADDRESS   = str()
 
 print('LOGDIR: ' + LOGDIR)
 
@@ -101,16 +103,16 @@ CMD_IOS_XR = [
        'local_function':'ciscoxr_parse_interface', "input_parameters":\
            [{"input_variable":"last_output"},{'zipped_item':'0'}]
     },
-    {'loop_zipped_list':'bgp_vpn_peers','remote_command':('ping vrf ',\
-       {'zipped_item':'1'},' ',{'zipped_item':'3'},' size 1470 count 2'),
-       'local_function':'ciscoxr_parse_ping', "input_parameters":\
-           [{"input_variable":"last_output"},{'zipped_item':'0'},{'zipped_item':'2'}]
-    },
     {'loop_zipped_list':'bgp_vpn_peers',
         'remote_command':('show bgp vrf ',{'zipped_item':'1'},' neighbors ',\
             {'zipped_item':'3'},' routes'),
         'local_function':'ciscoxr_parse_bgp_neighbor_routes', "input_parameters":\
             [{"input_variable":"last_output"},{'zipped_item':'0'},{'zipped_item':'2'}]
+    },
+    {'loop_zipped_list':'bgp_vpn_peers','remote_command':('ping vrf ',\
+       {'zipped_item':'1'},' ',{'zipped_item':'3'},' size 1470 count 2'),
+       'local_function':'ciscoxr_parse_ping', "input_parameters":\
+           [{"input_variable":"last_output"},{'zipped_item':'0'},{'zipped_item':'2'}]
     },
     {"eval":"return_bgp_data_json()"},
 ]
@@ -486,8 +488,8 @@ def huawei_parse_interface(text = None,vrf_name = None):
 
 def huawei_parse_bgp_neighbor_routes(text = None,vrf_index = None,neighbor_index = None):
     ping_response = get_first_row_before(text,' packet loss',delete_text = '%')
-    try: ping_response_success = 100 - int(round(float(ping_response)))
-    except: ping_response_success = 0
+    try: ping_response_success = str(100 - int(round(float(ping_response))))
+    except: ping_response_success = '0'
     if ping_response_success == str(): ping_response_success = '0'
     if vrf_index != None and neighbor_index != None:
         update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"]\
@@ -956,6 +958,23 @@ def get_version_from_file_last_modification_date(path_to_file = str(os.path.absp
     struct_time = time.gmtime(file_time)
     return str(struct_time.tm_year)[2:] + '.' + str(struct_time.tm_mon) + '.' + str(struct_time.tm_mday)
 
+def append_variable_to_bashrc(variable_name=None,variable_value=None):
+    forget_it = subprocess.check_output('echo export %s=%s >> ~/.bashrc'%(variable_name,variable_value), shell=True)
+
+def send_me_email(subject='testmail', file_name='/dev/null'):
+    my_account = subprocess.check_output('whoami', shell=True)
+    my_finger_line = subprocess.check_output('finger | grep "%s"'%(my_account.strip()), shell=True)
+    try:
+        my_name = my_finger_line.splitlines()[0].split()[1]
+        my_surname = my_finger_line.splitlines()[0].split()[2]
+        if EMAIL_ADDRESS: my_email_address = EMAIL_ADDRESS
+        else: my_email_address = '%s.%s@orange.com' % (my_name, my_surname)
+        mail_command = 'echo | mutt -s "%s" -a %s -- %s' % (subject,file_name,my_email_address)
+        #mail_command = 'uuencode %s %s | mail -s "%s" %s' % (file_name,file_name,subject,my_email_address)
+        forget_it = subprocess.check_output(mail_command, shell=True)
+        print(' ==> Email "%s" sent to %s.'%(subject,my_email_address))
+    except: pass
+
 ##############################################################################
 #
 # BEGIN MAIN
@@ -1002,12 +1021,21 @@ parser.add_argument("--rcmd",
 parser.add_argument("--readlog",
                     action = "store", dest = 'readlog', default = None,
                     help = "name of the logfile to read json.")
+parser.add_argument("--emailaddr",
+                    action = "store", dest = 'emailaddr', default = '',
+                    help = "insert your email address once if is different than name.surname@orange.com,\
+                    it will do NEWR_EMAIL variable record in your bashrc file and \
+                    you do not need to insert it any more.")
 # parser.add_argument("--alloti",
 #                     action = 'store_true', dest = "alloti", default = None,
 #                     help = "do action on all oti routers")
 args = parser.parse_args()
 
 if args.nocolors: bcolors = nocolors
+
+if args.emailaddr:
+    append_variable_to_bashrc(variable_name='NEWR_EMAIL',variable_value=args.emailaddr)
+    EMAIL_ADDRESS = args.emailaddr
 
 # if args.alloti: device_list = parse_json_file_and_get_oti_routers_list()
 # else: device_list = [args.device]
@@ -1091,6 +1119,9 @@ for device in device_list:
 
         if logfilename and os.path.exists(logfilename):
             print('%s file created.' % (logfilename))
+            try: send_me_email(subject = logfilename.replace('\\','/').split('/')[-1], file_name = logfilename)
+            except: pass
+
         print('\nDEVICE %s DONE.'%(device))
 print('\nEND [script runtime = %d sec].'%(time.time() - START_EPOCH))
 
