@@ -73,6 +73,12 @@ except: USERNAME        = str()
 try:    EMAIL_ADDRESS   = os.environ['NEWR_EMAIL']
 except: EMAIL_ADDRESS   = str()
 
+default_problemline_list   = []
+default_ignoreline_list    = [r' MET$', r' UTC$']
+default_linefilter_list    = []
+default_compare_columns    = []
+default_printalllines_list = []
+
 print('LOGDIR: ' + LOGDIR)
 
 ###############################################################################
@@ -266,7 +272,7 @@ def return_bgp_data_json():
     return json.dumps(bgp_data, indent=2)
 
 
-def read_bgp_data_json_from_logfile(filename = None):
+def read_bgp_data_json_from_logfile(filename = None, printall = None):
     bgp_data_loaded, text = None, None
     with open(filename,"r") as fp:
         text = fp.read()
@@ -275,10 +281,19 @@ def read_bgp_data_json_from_logfile(filename = None):
         except: bgp_data_json_text = str()
         if bgp_data_json_text:
             bgp_data_loaded = json.loads(bgp_data_json_text, object_pairs_hook = collections.OrderedDict)
-            print("LOADED_BGP_DATA: ",bgp_data_loaded)
-            print("\nLOADED JSON BGP_DATA: ")
-            print(json.dumps(bgp_data_loaded, indent=2))
+            #print("LOADED_BGP_DATA: ",bgp_data_loaded)
+            if printall: print("\nLOADED JSON BGP_DATA: ")
+            if printall: print(json.dumps(bgp_data_loaded, indent=2))
     return bgp_data_loaded
+
+def return_string_from_bgp_vpn_section(vrf_data = None, vrf_name = None):
+    result = None
+    if vrf_data and vrf_name:
+        for vrf_index, vrf_item in return_indexed_list(vrf_data["vrf_list"]):
+            if vrf_item.get("vrf_name") == vrf_name:
+                result = json.dumps(vrf_item, indent=2)
+                break
+    return result
 
 
 ### CISCO-XR FUNCTIONS ###
@@ -948,6 +963,176 @@ def update_bgpdata_structure(data_address, key_name = None, value = None, \
     return change_applied
 
 
+def get_difference_string_from_string_or_list(
+    old_string_or_list, \
+    new_string_or_list, \
+    diff_method = 'ndiff0', \
+    ignore_list = default_ignoreline_list, \
+    problem_list = default_problemline_list, \
+    printalllines_list = default_printalllines_list, \
+    linefilter_list = default_linefilter_list, \
+    compare_columns = [], \
+    print_equallines = None, \
+    debug = None, \
+    note = True ):
+    '''
+    FUNCTION get_difference_string_from_string_or_list:
+    INPUT PARAMETERS:
+      - old_string_or_list - content of old file in string or list type
+      - new_string_or_list - content of new file in string or list type
+      - diff_method - ndiff, ndiff0, pdiff0
+      - ignore_list - list of regular expressions or strings when line is ignored for file (string) comparison
+      - problem_list - list of regular expressions or strings which detects problems, even if files are equal
+      - printalllines_list - list of regular expressions or strings which will be printed grey, even if files are equal
+      - linefilter_list - list of regular expressions which filters each line (regexp results per line comparison)
+      - compare_columns - list of columns which are intended to be different , other columns in line are ignored
+      - print_equallines - True/False prints all equal new file lines with '=' prefix , by default is False
+      - debug - True/False, prints debug info to stdout, by default is False
+      - note - True/False, prints info header to stdout, by default is True
+    RETURNS: string with file differencies
+
+    PDIFF0 FORMAT: The head of line is
+    '-' for missing line,
+    '+' for added line,
+    '!' for line that is different and
+    ' ' for the same line, but with problem.
+    RED for something going DOWN or something missing or failed.
+    ORANGE for something going UP or something NEW (not present in pre-check)
+    '''
+    print_string = str()
+    if note:
+       print_string = "DIFF_METHOD: "
+       if diff_method   == 'ndiff0': print_string += note_ndiff0_string
+       elif diff_method == 'pdiff0': print_string += note_pdiff0_string
+       elif diff_method == 'ndiff' : print_string += note_ndiff_string
+
+    # make list from string if is not list already
+    old_lines_unfiltered = old_string_or_list if type(old_string_or_list) == list else old_string_or_list.splitlines()
+    new_lines_unfiltered = new_string_or_list if type(new_string_or_list) == list else new_string_or_list.splitlines()
+
+    # NDIFF COMPARISON METHOD---------------------------------------------------
+    if diff_method == 'ndiff':
+        diff = difflib.ndiff(old_lines_unfiltered, new_lines_unfiltered)
+        for line in list(diff):
+            try:    first_chars = line[0]+line[1]
+            except: first_chars = str()
+            ignore = False
+            for ignore_item in ignore_list:
+                if (re.search(ignore_item,line)) != None: ignore = True
+            if ignore: continue
+            if len(line.strip())==0: pass
+            elif '+ ' == first_chars: print_string += COL_ADDED + line + bcolors.ENDC + '\n'
+            elif '- ' == first_chars: print_string += COL_DELETED + line + bcolors.ENDC + '\n'
+            elif '? ' == first_chars or first_chars == str(): pass
+            elif print_equallines: print_string += COL_EQUAL + line + bcolors.ENDC + '\n'
+            else:
+                print_line, ignore = False, False
+                for item in printalllines_list:
+                    if (re.search(item,line)) != None: print_line = True
+                if print_line:
+                    print_string += COL_EQUAL + line + bcolors.ENDC + '\n'
+        return print_string
+
+    # NDIFF0 COMPARISON METHOD--------------------------------------------------
+    if diff_method == 'ndiff0' or diff_method == 'pdiff0':
+        ignore_previous_line = False
+        diff = difflib.ndiff(old_lines_unfiltered, new_lines_unfiltered)
+        listdiff_nonfiltered = list(diff)
+        listdiff = []
+        # filter diff lines out of '? ' and void lines
+        for line in listdiff_nonfiltered:
+            # This ignore filter is much faster
+            ignore = False
+            for ignore_item in ignore_list:
+                if (re.search(ignore_item,line)) != None: ignore = True
+            if ignore: continue
+            try:    first_chars = line[0]+line[1]
+            except: first_chars = str()
+            if '+ ' in first_chars or '- ' in first_chars or '  ' in first_chars:
+                listdiff.append(line)
+        del diff, listdiff_nonfiltered
+        # main ndiff0/pdiff0 loop
+        previous_minus_line_is_change = False
+        for line_number,line in enumerate(listdiff):
+            print_color, print_line = COL_EQUAL, str()
+            try:    first_chars_previousline = listdiff[line_number-1][0]+listdiff[line_number-1][1]
+            except: first_chars_previousline = str()
+            try:    first_chars = line[0]+line[1]
+            except: first_chars = str()
+            try:    first_chars_nextline = listdiff[line_number+1][0]+listdiff[line_number+1][1]
+            except: first_chars_nextline = str()
+            # CHECK IF ARE LINES EQUAL AFTER FILTERING (compare_columns + linefilter_list)
+            split_line,split_next_line,linefiltered_line,linefiltered_next_line = str(),str(),str(),str()
+            if '- ' == first_chars and '+ ' == first_chars_nextline:
+                for split_column in compare_columns:
+                    # +1 means equal of deletion of first column -
+                    try: temp_column = line.split()[split_column+1]
+                    except: temp_column = str()
+                    split_line += ' ' + temp_column
+                for split_column in compare_columns:
+                    # +1 means equal of deletion of first column +
+                    try: temp_column = listdiff[line_number+1].split()[split_column+1]
+                    except: temp_column = str()
+                    split_next_line += ' ' + temp_column
+                for linefilter_item in linefilter_list:
+                    try: next_line = listdiff[line_number+1]
+                    except: next_line = str()
+                    if line and (re.search(linefilter_item,line)) != None:
+                        linefiltered_line = re.findall(linefilter_item,line)[0]
+                    if next_line and (re.search(linefilter_item,next_line)) != None:
+                        linefiltered_next_line = re.findall(linefilter_item,line)[0]
+                # LINES ARE EQUAL AFTER FILTERING - filtered linefilter and columns commands
+                if (split_line and split_next_line and split_line == split_next_line) or \
+                   (linefiltered_line and linefiltered_next_line and linefiltered_line == linefiltered_next_line):
+                    ignore_previous_line = True
+                    continue
+            # CONTINUE CHECK DELETED/ADDED LINES--------------------------------
+            if '- ' == first_chars:
+                # FIND IF IT IS CHANGEDLINE OR DELETED LINE
+                line_list_lenght, the_same_columns = len(line.split()), 0
+                percentage_of_equality = 0
+                try: nextline_sign_column = listdiff[line_number+1].split()[0]
+                except: nextline_sign_column = str()
+                if nextline_sign_column == '+':
+                    for column_number,column in enumerate(line.split()):
+                        try: next_column = listdiff[line_number+1].split()[column_number]
+                        except: next_column = str()
+                        if column == next_column: the_same_columns += 1
+                    if line_list_lenght>0:
+                        percentage_of_equality = (100*the_same_columns)/line_list_lenght
+                # CHANGED LINE -------------------------------------------------
+                if percentage_of_equality > 54:
+                    previous_minus_line_is_change = True
+                    if diff_method == 'ndiff0':
+                        print_color, print_line = COL_DIFFDEL, line
+                # LOST/DELETED LINES -------------------------------------------
+                else: print_color, print_line = COL_DELETED, line
+            # IGNORE EQUAL -/= LINES or PRINT printall and problem lines -------
+            elif '+ ' == first_chars and ignore_previous_line:
+                line = ' ' + line[1:]
+                ignore_previous_line = False
+            # ADDED NEW LINE ---------------------------------------------------
+            elif '+ ' == first_chars and not ignore_previous_line:
+                if previous_minus_line_is_change:
+                    previous_minus_line_is_change = False
+                    if diff_method == 'pdiff0': line = '!' + line[1:]
+                    print_color, print_line = COL_DIFFADD, line
+                else: print_color, print_line = COL_ADDED, line
+            # PRINTALL ---------------------------------------------------------
+            elif print_equallines: print_color, print_line = COL_EQUAL, line
+            # check if
+            if not print_line:
+                # print lines grey, write also equal values !!!
+                for item in printalllines_list:
+                    if (re.search(item,line)) != None: print_color, print_line = COL_EQUAL, line
+            # PROBLEM LIST - In case of DOWN/FAIL write also equal values !!!
+            for item in problem_list:
+                if (re.search(item,line)) != None: print_color, print_line = COL_PROBLEM, line
+            # Final PRINT ------------------------------------------------------
+            if print_line: print_string += "%s%s%s\n" % (print_color,print_line,bcolors.ENDC)
+    return print_string
+
+
 def get_version_from_file_last_modification_date(path_to_file = str(os.path.abspath(__file__))):
     file_time = None
     if 'WIN32' in sys.platform.upper():
@@ -1021,17 +1206,36 @@ parser.add_argument("--rcmd",
 parser.add_argument("--readlog",
                     action = "store", dest = 'readlog', default = None,
                     help = "name of the logfile to read json.")
+parser.add_argument("--readlognew",
+                    action = "store", dest = 'readlognew', default = None,
+                    help = "name of the logfile to read json.")
 parser.add_argument("--emailaddr",
                     action = "store", dest = 'emailaddr', default = '',
                     help = "insert your email address once if is different than name.surname@orange.com,\
                     it will do NEWR_EMAIL variable record in your bashrc file and \
                     you do not need to insert it any more.")
+parser.add_argument("--vpnlist",
+                    action = "store", dest = 'vpnlist', default = str(),
+                    help = "'vpn' or ['list of vpns',...] to compare")
+parser.add_argument("--printall",action = "store_true", default = False,
+                    help = "print all lines, changes will be coloured")
+parser.add_argument("--difffile",
+                    action = 'store_true', dest = "diff_file", default = False,
+                    help = "do file-diff logfile (name will be generated and printed)")
 # parser.add_argument("--alloti",
 #                     action = 'store_true', dest = "alloti", default = None,
 #                     help = "do action on all oti routers")
+
 args = parser.parse_args()
 
 if args.nocolors: bcolors = nocolors
+
+COL_DELETED = bcolors.RED
+COL_ADDED   = bcolors.GREEN
+COL_DIFFDEL = bcolors.BLUE
+COL_DIFFADD = bcolors.YELLOW
+COL_EQUAL   = bcolors.GREY
+COL_PROBLEM = bcolors.RED
 
 if args.emailaddr:
     append_variable_to_bashrc(variable_name='NEWR_EMAIL',variable_value=args.emailaddr)
@@ -1042,9 +1246,17 @@ if args.emailaddr:
 
 device_list = [args.device]
 
+bgp_data_loaded = None
 if args.readlog:
-    read_bgp_data_json_from_logfile(args.readlog)
-    sys.exit(0)
+    bgp_data_loaded = copy.deepcopy(read_bgp_data_json_from_logfile(args.readlog))
+
+if args.readlognew:
+    bgp_data = copy.deepcopy(read_bgp_data_json_from_logfile(args.readlognew))
+
+compare_vpn_list = None
+if args.vpnlist:
+    compare_vpn_list = args.vpnlist.replace('[','').replace(']','').replace('(','').\
+        replace(')','').split(',')
 
 ####### Set USERNAME if needed
 if args.username: USERNAME = args.username
@@ -1058,71 +1270,113 @@ if not PASSWORD:
     if args.password: PASSWORD = args.password
     else:             PASSWORD = getpass.getpass("TACACS password: ")
 
-for device in device_list:
-    if device:
-        router_prompt = None
-        try: DEVICE_HOST = device.split(':')[0]
-        except: DEVICE_HOST = str()
-        try: DEVICE_PORT = device.split(':')[1]
-        except: DEVICE_PORT = '22'
-        print('DEVICE %s (host=%s, port=%s) START.........................'\
-            %(device,DEVICE_HOST, DEVICE_PORT))
+logfilename = None
+if not args.readlognew:
+    for device in device_list:
+        if device:
+            router_prompt = None
+            try: DEVICE_HOST = device.split(':')[0]
+            except: DEVICE_HOST = str()
+            try: DEVICE_PORT = device.split(':')[1]
+            except: DEVICE_PORT = '22'
+            print('DEVICE %s (host=%s, port=%s) START.........................'\
+                %(device,DEVICE_HOST, DEVICE_PORT))
 
-        ####### Figure out type of router OS
-        if not args.router_type:
-            #router_type = netmiko_autodetect(device)
-            router_type = detect_router_by_ssh(device)
-            if not router_type in KNOWN_OS_TYPES:
-                print('%sUNSUPPORTED DEVICE TYPE: %s , BREAK!%s' % \
-                    (bcolors.MAGENTA,router_type, bcolors.ENDC))
-            else: print('DETECTED DEVICE_TYPE: %s' % (router_type))
-        else:
-            router_type = args.router_type
-            print('FORCED DEVICE_TYPE: ' + router_type)
-
-        ######## Create logs directory if not existing  #########
-        if not os.path.exists(LOGDIR): os.makedirs(LOGDIR)
-        filename_prefix = os.path.join(LOGDIR,device)
-        filename_suffix = 'log'
-        now = datetime.datetime.now()
-        logfilename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s-%s-%s" % \
-            (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,\
-            now.second,script_name.replace('.py','').replace('./',''),USERNAME,\
-            filename_suffix)
-        if args.nolog: logfilename = None
-
-        ######## Find command list file (optional)
-        list_cmd = []
-        if args.cmd_file:
-            if not os.path.isfile(args.cmd_file):
-                print("%s ... Can't find command file: %s%s") % \
-                    (bcolors.MAGENTA, args.cmd_file, bcolors.ENDC)
-                sys.exit()
+            ####### Figure out type of router OS
+            if not args.router_type:
+                #router_type = netmiko_autodetect(device)
+                router_type = detect_router_by_ssh(device)
+                if not router_type in KNOWN_OS_TYPES:
+                    print('%sUNSUPPORTED DEVICE TYPE: %s , BREAK!%s' % \
+                        (bcolors.MAGENTA,router_type, bcolors.ENDC))
+                else: print('DETECTED DEVICE_TYPE: %s' % (router_type))
             else:
-                with open(args.cmd_file) as cmdf:
-                    list_cmd = cmdf.read().replace('\x0d','').splitlines()
+                router_type = args.router_type
+                print('FORCED DEVICE_TYPE: ' + router_type)
 
-        if args.rcommand: list_cmd = args.rcommand.replace('\'','').\
-            replace('"','').replace('[','').replace(']','').split(',')
+            ######## Create logs directory if not existing  #########
+            if not os.path.exists(LOGDIR): os.makedirs(LOGDIR)
+            filename_prefix = os.path.join(LOGDIR,device)
+            filename_suffix = 'log'
+            now = datetime.datetime.now()
+            logfilename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s-%s-%s" % \
+                (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,\
+                now.second,script_name.replace('.py','').replace('./',''),USERNAME,\
+                filename_suffix)
+            if args.nolog: logfilename = None
 
-        if len(list_cmd)>0: CMD = list_cmd
-        else:
-            if router_type == 'cisco_ios':  CMD = CMD_IOS_XE
-            elif router_type == 'cisco_xr': CMD = CMD_IOS_XR
-            elif router_type == 'juniper':  CMD = CMD_JUNOS
-            elif router_type == 'huawei' :  CMD = CMD_VRP
-            elif router_type == 'linux':    CMD = CMD_LINUX
-            else: CMD = list_cmd
+            ######## Find command list file (optional)
+            list_cmd = []
+            if args.cmd_file:
+                if not os.path.isfile(args.cmd_file):
+                    print("%s ... Can't find command file: %s%s") % \
+                        (bcolors.MAGENTA, args.cmd_file, bcolors.ENDC)
+                    sys.exit()
+                else:
+                    with open(args.cmd_file) as cmdf:
+                        list_cmd = cmdf.read().replace('\x0d','').splitlines()
 
-        run_remote_and_local_commands(CMD, logfilename, printall = True , \
-            printcmdtologfile = True)
+            if args.rcommand: list_cmd = args.rcommand.replace('\'','').\
+                replace('"','').replace('[','').replace(']','').split(',')
 
-        if logfilename and os.path.exists(logfilename):
-            print('%s file created.' % (logfilename))
-            try: send_me_email(subject = logfilename.replace('\\','/').split('/')[-1], file_name = logfilename)
-            except: pass
+            if len(list_cmd)>0: CMD = list_cmd
+            else:
+                if router_type == 'cisco_ios':  CMD = CMD_IOS_XE
+                elif router_type == 'cisco_xr': CMD = CMD_IOS_XR
+                elif router_type == 'juniper':  CMD = CMD_JUNOS
+                elif router_type == 'huawei' :  CMD = CMD_VRP
+                elif router_type == 'linux':    CMD = CMD_LINUX
+                else: CMD = list_cmd
 
-        print('\nDEVICE %s DONE.'%(device))
+            run_remote_and_local_commands(CMD, logfilename, printall = True , \
+                printcmdtologfile = True)
+
+            if logfilename and os.path.exists(logfilename):
+                print('%s file created.' % (logfilename))
+                try: send_me_email(subject = logfilename.replace('\\','/').split('/')[-1],\
+                    file_name = logfilename)
+                except: pass
+            print('\nDEVICE %s DONE.'%(device))
+
+difffilename = str()
+if not logfilename:
+    if not os.path.exists(LOGDIR): os.makedirs(LOGDIR)
+    filename_prefix = os.path.join(LOGDIR,'device')
+    filename_suffix = 'log'
+    now = datetime.datetime.now()
+    logfilename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s-%s-%s" % \
+        (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,\
+        now.second,script_name.replace('.py','').replace('./',''),USERNAME,\
+        filename_suffix)
+
+if bgp_data_loaded and compare_vpn_list:
+    print(bcolors.YELLOW + '\n' + 75*'=' + '\nBGP DIFFERENCIES:\n' + 75*'=' + bcolors.ENDC)
+    for vpn_name in compare_vpn_list:
+        data1 = copy.deepcopy(return_string_from_bgp_vpn_section(bgp_data_loaded, vpn_name))
+        data2 = copy.deepcopy(return_string_from_bgp_vpn_section(bgp_data, vpn_name))
+        if data1 and data2:
+            print(bcolors.BOLD + '\nVPN: ' + vpn_name + bcolors.ENDC)
+            diff_result = get_difference_string_from_string_or_list( \
+                data1,data2, \
+                diff_method = 'ndiff0', \
+                ignore_list = default_ignoreline_list, \
+                print_equallines = args.printall, \
+                note=False)
+            if len(diff_result) == 0: print(bcolors.GREY + 'OK' + bcolors.ENDC)
+            else: print(diff_result)
+            if args.diff_file:
+                difffilename = logfilename + '-diff'
+                print(difffilename)
+                with open(difffilename, "a") as myfile:
+                    myfile.write('\n' + bcolors.BOLD + vpn_name + bcolors.ENDC +'\n')
+                    if len(diff_result) == 0: myfile.write(bcolors.GREY + 'OK' + bcolors.ENDC + '\n\n')
+                    else: myfile.write(diff_result + '\n\n')
+    print(bcolors.YELLOW + '\n' + 75*'=' + bcolors.ENDC)
+    if args.diff_file:
+        try: send_me_email(subject = difffilename.replace('\\','/').split('/')[-1],\
+                    file_name = difffilename)
+        except: pass
+
 print('\nEND [script runtime = %d sec].'%(time.time() - START_EPOCH))
 
 
