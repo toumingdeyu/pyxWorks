@@ -290,7 +290,8 @@ def return_string_from_bgp_vpn_section(vrf_data = None, vrf_name = None):
     result = None
     if vrf_data and vrf_name:
         for vrf_index, vrf_item in return_indexed_list(vrf_data["vrf_list"]):
-            if vrf_item.get("vrf_name") == vrf_name:
+            if vrf_item.get("vrf_name").replace('.','').replace('@','') == \
+                vrf_name.replace('.','').replace('@',''):
                 result = json.dumps(vrf_item, indent=2)
                 break
     return result
