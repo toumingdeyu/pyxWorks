@@ -29,8 +29,11 @@ def update_bgpdata_structure(data_address, key_name = None, value = None, \
     """
     global bgp_data
     change_applied = None
-    if debug: print("DATA_TYPE: ", type(data_address),'ID: ',id(data_address), \
-         "DATA: ", data_address)
+    if debug:
+        print(bcolors.MAGENTA+"KEY="+str(key_name)+" VALUE="+str(value)+" ORDER_IN_LIST="+\
+            str(order_in_list)+" DATA_TYPE="+str(type(data_address))+' ID='+\
+            str(id(data_address))+bcolors.ENDC)
+
     ### REWRITE VALUE IN DICT ON KEY_NAME POSITION
     if isinstance(data_address, (dict,collections.OrderedDict)) \
         and isinstance(key_name, (six.string_types)):
@@ -38,48 +41,48 @@ def update_bgpdata_structure(data_address, key_name = None, value = None, \
         for address_key_value in data_address_values:
             if key_name and key_name == address_key_value:
                 data_address[key_name] = value
-                if debug: print('DICT[%s]=%s.'%(key_name,value))
+                if debug: print('DICT[%s]=%s'%(key_name,value))
                 change_applied = True
         else:
             if add_new_key:
                 data_address[key_name] = value
-                if debug: print('ADDED_TO_DICT[%s]=%s.'%(key_name,value))
+                if debug: print('ADDED_TO_DICT[%s]=%s'%(key_name,value))
                 change_applied = True
     ### ADD LIST POSITION if NEEDED, REWRITE VALUE IN DICT ON KEY_NAME POSITION
-    elif isinstance(data_address, (list,tuple)):
-        ### SIMPLY ADD VALUE TO LIST WHEN ORDER NOT INSERTED
+    elif isinstance(data_address, (list)):
+        ### SIMPLY ADD VALUE TO LIST WHEN ORDER NOT INSERTED ###
         if not order_in_list and not key_name:
             if debug: print('LIST_APPENDED.')
             data_address.append(value)
             change_applied = True
         else:
-            ### ORDER_IN_LIST=[0..], LEN()=[0..]
-            if order_in_list == len(data_address):
-                data_address.append(list_append_value)
-                if debug: print('LIST_APPENDED_BY_ONE_SECTION.')
-            ### AFTER OPTIONAL ADDITION OF END OF LIST BY ONE
-            if order_in_list <= len(data_address)-1 \
-                and isinstance(data_address[order_in_list], \
-                (dict,collections.OrderedDict)):
-                data_address_values = data_address[order_in_list].keys()
+            ### INCREASE LIST LENGHT if NEEDED ###
+            if int(order_in_list) >= len(data_address):
+                how_much_to_add = 1 + int(order_in_list) - len(data_address)
+                for i in range(how_much_to_add):
+                    data_address.append(copy.deepcopy(list_append_value))
+                if debug: print(bcolors.GREEN+'LIST_APPENDED_BY_SECTIONs +(%s).'\
+                    %(how_much_to_add)+bcolors.ENDC)
+            ### AFTER OPTIONAL ADDITION OF END OF LIST (AT LEAST) BY ONE ###
+            if int(order_in_list) < len(data_address) \
+                and isinstance(data_address[int(order_in_list)], \
+                (dict,collections.OrderedDict)) and value != None:
+                data_address_values = data_address[int(order_in_list)].keys()
                 for key_list_item in data_address_values:
-                   if key_name and key_name == key_list_item:
-                       data_address[order_in_list][key_name] = value
-                       if debug: print('DICT_LIST[%s][%s]=%s.'% \
+                   if key_name and str(key_name) == str(key_list_item):
+                       data_address[int(order_in_list)][str(key_name)] = value
+                       if debug: print('DICT_LIST[%s][%s]=%s'% \
                            (order_in_list,key_name,value))
                        change_applied = True
                 else:
                     if add_new_key:
-                        data_address[order_in_list][key_name] = value
-                        if debug: print('ADDED_TO_DICT_LIST[%s][%s]=%s.'% \
+                        data_address[int(order_in_list)][key_name] = value
+                        if debug: print('ADDED_TO_DICT_LIST[%s][%s]=%s'% \
                             (order_in_list,key_name,value))
                         change_applied = True
-#     else:
-#         data_address = value
-#         change_applied = True
-    #if debug: print(json.dumps(bgp_data, indent=2))
     if debug: print("CHANGE_APPLIED: ",change_applied)
     return change_applied
+
 ################################################################################
 
 if __name__ != "__main__": sys.exit(0)
@@ -116,9 +119,11 @@ bgp_json_txt_template='''
 ''' % (vrf_list_item_txt_template)
 ### End of BASIC STRUCTURES OF JSON
 
+### BASIC BGP_DATA OBJECT with 1 neihbor and 1 vfr
 bgp_data = json.loads(bgp_json_txt_template, \
     object_pairs_hook = collections.OrderedDict)
 
+### OBJECTS FOR APPENDING LISTS, DO COPY.DEEPCOPY of them by APPENDING STRUCTURE
 void_vrf_list_item = json.loads(vrf_list_item_txt_template, \
     object_pairs_hook = collections.OrderedDict)
 
