@@ -55,6 +55,7 @@ class nocolors:
         BOLD       = ''
         UNDERLINE  = ''
 
+START_EPOCH      = time.time()
 TODAY            = datetime.datetime.now()
 script_name      = sys.argv[0]
 TIMEOUT          = 60
@@ -80,9 +81,8 @@ print('LOGDIR: ' + LOGDIR)
 
 
 # IOS-XE is only for IPsec GW
-CMD_IOS_XE = [
+CMD_IOS_XE = []
 
-              ]
 CMD_IOS_XR = [
     'show bgp vrf all summary',
     {'local_function':'ciscoxr_get_bgp_vpn_peer_data_to_json', \
@@ -115,9 +115,7 @@ CMD_IOS_XR = [
     {"eval":"return_bgp_data_json()"},
 ]
 
-CMD_JUNOS = [
-
-]
+CMD_JUNOS = []
 
 CMD_VRP = [
     'display bgp vpnv4 all peer',
@@ -487,7 +485,9 @@ def huawei_parse_interface(text = None,vrf_name = None):
 
 
 def huawei_parse_bgp_neighbor_routes(text = None,vrf_index = None,neighbor_index = None):
-    ping_response_success = get_first_row_after(text,'Success rate is ')
+    ping_response = get_first_row_before(text,' packet loss',delete_text = '%')
+    try: ping_response_success = 100 - int(round(float(ping_response)))
+    except: ping_response_success = 0
     if ping_response_success == str(): ping_response_success = '0'
     if vrf_index != None and neighbor_index != None:
         update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"]\
@@ -1092,7 +1092,6 @@ for device in device_list:
         if logfilename and os.path.exists(logfilename):
             print('%s file created.' % (logfilename))
         print('\nDEVICE %s DONE.'%(device))
-print('\nEND.')
+print('\nEND [script runtime = %d sec].'%(time.time() - START_EPOCH))
 
-#print(json.dumps(bgp_data, indent=2))
 
