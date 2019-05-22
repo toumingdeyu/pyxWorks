@@ -84,67 +84,76 @@ CMD_IOS_XE = [
 
               ]
 CMD_IOS_XR = [
-               'show bgp vrf all summary',
-               {'local_function':'ciscoxr_get_bgp_vpn_peer_data_to_json', \
-                   'input_variable':'last_output', 'output_variable':'bgp_vpn_peers'},
-               {'loop_zipped_list':'bgp_vpn_peers',\
-                   'remote_command':('show bgp vrf ',{'zipped_item':'1'},' neighbors ',\
-                       {'zipped_item':'3'}),
-                   'local_function':'ciscoxr_parse_bgp_neighbors', "input_parameters":\
-                       [{"input_variable":"last_output"},{'zipped_item':'0'},{'zipped_item':'2'}]
-               },
-               'sh ipv4 vrf all int brief | exclude "unassigned|Protocol|default"',
-               {'local_function':"ciscoxr_get_vpnv4_all_interfaces",'input_variable':\
-                   'last_output','output_variable':'bgp_vpn_peers_with_interfaces'},
-               {'loop_zipped_list':'bgp_vpn_peers_with_interfaces',
-                   'remote_command':('show interface ',{'zipped_item':'1'}),
-                   'local_function':'ciscoxr_parse_interface', "input_parameters":\
-                       [{"input_variable":"last_output"},{'zipped_item':'0'}]
-               },
-               {'loop_zipped_list':'bgp_vpn_peers','remote_command':('ping vrf ',\
-                   {'zipped_item':'1'},' ',{'zipped_item':'3'},' size 1470 count 2'),
-                   'local_function':'ciscoxr_parse_ping', "input_parameters":\
-                       [{"input_variable":"last_output"},{'zipped_item':'0'},{'zipped_item':'2'}]
-               },
-               {'loop_zipped_list':'bgp_vpn_peers',
-                   'remote_command':('show bgp vrf ',{'zipped_item':'1'},' neighbors ',{'zipped_item':'3'},' routes'),
-                   'local_function':'ciscoxr_parse_bgp_neighbor_routes', "input_parameters":\
-                       [{"input_variable":"last_output"},{'zipped_item':'0'},{'zipped_item':'2'}]
-               },
-               {"eval":"return_bgp_data_json()"}
-             ]
+    'show bgp vrf all summary',
+    {'local_function':'ciscoxr_get_bgp_vpn_peer_data_to_json', \
+       'input_variable':'last_output', 'output_variable':'bgp_vpn_peers'},
+    {'loop_zipped_list':'bgp_vpn_peers',\
+       'remote_command':('show bgp vrf ',{'zipped_item':'1'},' neighbors ',\
+           {'zipped_item':'3'}),
+       'local_function':'ciscoxr_parse_bgp_neighbors', "input_parameters":\
+           [{"input_variable":"last_output"},{'zipped_item':'0'},{'zipped_item':'2'}]
+    },
+    'sh ipv4 vrf all int brief | exclude "unassigned|Protocol|default"',
+    {'local_function':"ciscoxr_get_vpnv4_all_interfaces",'input_variable':\
+       'last_output','output_variable':'bgp_vpn_peers_with_interfaces'},
+    {'loop_zipped_list':'bgp_vpn_peers_with_interfaces',
+       'remote_command':('show interface ',{'zipped_item':'1'}),
+       'local_function':'ciscoxr_parse_interface', "input_parameters":\
+           [{"input_variable":"last_output"},{'zipped_item':'0'}]
+    },
+    {'loop_zipped_list':'bgp_vpn_peers','remote_command':('ping vrf ',\
+       {'zipped_item':'1'},' ',{'zipped_item':'3'},' size 1470 count 2'),
+       'local_function':'ciscoxr_parse_ping', "input_parameters":\
+           [{"input_variable":"last_output"},{'zipped_item':'0'},{'zipped_item':'2'}]
+    },
+    {'loop_zipped_list':'bgp_vpn_peers',
+        'remote_command':('show bgp vrf ',{'zipped_item':'1'},' neighbors ',\
+            {'zipped_item':'3'},' routes'),
+        'local_function':'ciscoxr_parse_bgp_neighbor_routes', "input_parameters":\
+            [{"input_variable":"last_output"},{'zipped_item':'0'},{'zipped_item':'2'}]
+    },
+    {"eval":"return_bgp_data_json()"},
+]
+
 CMD_JUNOS = [
 
-             ]
+]
+
 CMD_VRP = [
-             'display bgp vpnv4 all peer',
-              {'local_function':'huawei_get_bgp_vpn_peer_data_to_json', 'input_variable':'last_output',\
-                  'output_variable':'bgp_vpn_peers', 'if_output_is_void':'exit'},
-             {'loop_zipped_list':'bgp_vpn_peers',
-                 'remote_command':('dis bgp vpnv4 vpn-instance ',{'zipped_item':'1'},\
-                     ' peer ',{'zipped_item':'3'},' verbose'),
-                 'local_function':'huawei_parse_bgp_neighbors', "input_parameters":\
-                       [{"input_variable":"last_output"},{'zipped_item':'0'},{'zipped_item':'2'}]
-             },
-             {'loop_zipped_list':'bgp_vpn_peers',
-                 'remote_command':('dis bgp vpnv4 vpn-instance ',{'zipped_item':'1'},\
-                     ' routing-table peer ',{'zipped_item':'3'},' accepted-routes'),
-                 'local_function':'huawei_parse_bgp_neighbor_routes', "input_parameters":\
-                      [{"input_variable":"last_output"},{'zipped_item':'0'},{'zipped_item':'2'}]
-             },
-              'dis curr int | in (interface|ip binding vpn-instance)',
-              {'local_function':'huawei_parse_vpn_interfaces', 'input_variable':'last_output',\
-                  'output_variable':'interface_list', 'if_output_is_void':'exit'},
-              {'loop_zipped_list':'interface_list',
-                  'remote_command':('dis interface ',{'zipped_item':'1'}),
-                  'local_function':'huawei_parse_interface', "input_parameters":\
-                       [{"input_variable":"last_output"},{'zipped_item':'0'}]
-              },
-#
-#              {'loop_zipped_list':'bgp_vpn_peers','remote_command':('ping -s 1470 -c 2 -t 2000 -vpn-instance ',\
-#                  {'zipped_item':'0'},' ',{'zipped_item':'1'})},
-             #{"eval":"return_bgp_data_json()"},
-          ]
+    'display bgp vpnv4 all peer',
+    {'local_function':'huawei_get_bgp_vpn_peer_data_to_json', 'input_variable':'last_output',\
+      'output_variable':'bgp_vpn_peers', 'if_output_is_void':'exit'
+    },
+    {'loop_zipped_list':'bgp_vpn_peers',
+     'remote_command':('dis bgp vpnv4 vpn-instance ',{'zipped_item':'1'},\
+         ' peer ',{'zipped_item':'3'},' verbose'),
+     'local_function':'huawei_parse_bgp_neighbors', "input_parameters":\
+           [{"input_variable":"last_output"},{'zipped_item':'0'},{'zipped_item':'2'}]
+    },
+    {'loop_zipped_list':'bgp_vpn_peers',
+     'remote_command':('dis bgp vpnv4 vpn-instance ',{'zipped_item':'1'},\
+         ' routing-table peer ',{'zipped_item':'3'},' accepted-routes'),
+     'local_function':'huawei_parse_bgp_neighbor_routes', "input_parameters":\
+          [{"input_variable":"last_output"},{'zipped_item':'0'},{'zipped_item':'2'}]
+    },
+    'dis curr int | in (interface|ip binding vpn-instance)',
+    {'local_function':'huawei_parse_vpn_interfaces', 'input_variable':'last_output',\
+      'output_variable':'interface_list', 'if_output_is_void':'exit'
+    },
+    {'loop_zipped_list':'interface_list',
+      'remote_command':('dis interface ',{'zipped_item':'1'}),
+      'local_function':'huawei_parse_interface', "input_parameters":\
+           [{"input_variable":"last_output"},{'zipped_item':'0'}]
+    },
+    {'loop_zipped_list':'bgp_vpn_peers',
+        'remote_command':('ping -s 1470 -c 2 -t 2000 -vpn-instance ',\
+            {'zipped_item':'1'},' ',{'zipped_item':'3'}),
+        'local_function':'huawei_parse_bgp_neighbor_routes', "input_parameters":\
+           [{"input_variable":"last_output"},{'zipped_item':'0'},{'zipped_item':'2'}]
+    },
+    {"eval":"return_bgp_data_json()"},
+]
+
 CMD_LINUX = [
 #             'hostname',
 #             ('echo ', {'input_variable':'last_output'},{"output_variable":"hostname"}),
@@ -161,7 +170,7 @@ CMD_LINUX = [
             'free -m',
             {"eval":['update_bgpdata_structure(bgp_data["vrf_list"][',0,'],"vrf_name","','aaaaaa','", ',0,',void_neighbor_list_item)']},
             {"eval":"return_bgp_data_json()"}
-            ]
+]
 
 
 ################################################################################
@@ -200,9 +209,11 @@ bgp_json_txt_template='''
 ''' % (vrf_list_item_txt_template)
 ### End of BASIC STRUCTURES OF JSON
 
+### BASIC BGP_DATA OBJECT with 1 neihbor and 1 vfr
 bgp_data = json.loads(bgp_json_txt_template, \
     object_pairs_hook = collections.OrderedDict)
 
+### OBJECTS FOR APPENDING LISTS, DO COPY.DEEPCOPY of them by APPENDING STRUCTURE
 void_vrf_list_item = json.loads(vrf_list_item_txt_template, \
     object_pairs_hook = collections.OrderedDict)
 
@@ -457,10 +468,11 @@ def huawei_parse_vpn_interfaces(text = None):
                     output.append(vpn_to_if)
     return output
 
+
 def huawei_parse_interface(text = None,vrf_name = None):
     output = []
     if text:
-        interface_mtu = get_first_row_after(text,'MTU ')
+        interface_mtu = get_first_row_after(text,'The Maximum Transmit Unit is ')
         interface_input_packets_per_seconds = get_first_row_before(text,'packets/sec')
         interface_output_packets_per_seconds = get_first_row_before(text,'packets/sec',split_text_index=1)
         output = [interface_mtu, interface_input_packets_per_seconds,interface_output_packets_per_seconds]
@@ -473,6 +485,14 @@ def huawei_parse_interface(text = None,vrf_name = None):
         update_bgpdata_structure(bgp_data["vrf_list"][vrf_index],"interface_output_packets_per_seconds",interface_output_packets_per_seconds)
     return output
 
+
+def huawei_parse_bgp_neighbor_routes(text = None,vrf_index = None,neighbor_index = None):
+    ping_response_success = get_first_row_after(text,'Success rate is ')
+    if ping_response_success == str(): ping_response_success = '0'
+    if vrf_index != None and neighbor_index != None:
+        update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"]\
+            [neighbor_index],"ping_response_success",ping_response_success)
+    return [ping_response_success]
 
 
 ### SSH FUNCTIONS ###
