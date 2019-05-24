@@ -1161,6 +1161,25 @@ def send_me_email(subject='testmail', file_name='/dev/null'):
         print(' ==> Email "%s" sent to %s.'%(subject,my_email_address))
     except: pass
 
+
+def generate_file_name(prefix = None, suffix = None):
+    try:    WORKDIR         = os.environ['HOME']
+    except: WORKDIR         = str(os.path.dirname(os.path.abspath(__file__)))
+    if WORKDIR: LOGDIR      = os.path.join(WORKDIR,'logs')
+    if not os.path.exists(LOGDIR): os.makedirs(LOGDIR)
+    if os.path.exists(LOGDIR):
+        if not prefix: filename_prefix = os.path.join(LOGDIR,'device')
+        else: filename_prefix = prefix
+        if not suffix: filename_suffix = 'log'
+        else: filename_suffix = suffix
+        now = datetime.datetime.now()
+        filename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s-%s-%s" % \
+            (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,\
+            now.second,script_name.replace('.py','').replace('./','').\
+            replace(':','_').replace('.','_').replace('\\','/')\
+            .split('/')[-1],USERNAME,filename_suffix)
+    return filename
+
 ##############################################################################
 #
 # BEGIN MAIN
@@ -1297,13 +1316,7 @@ if not args.readlognew:
 
             ######## Create logs directory if not existing  #########
             if not os.path.exists(LOGDIR): os.makedirs(LOGDIR)
-            filename_prefix = os.path.join(LOGDIR,device)
-            filename_suffix = 'log'
-            now = datetime.datetime.now()
-            logfilename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s-%s-%s" % \
-                (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,\
-                now.second,script_name.replace('.py','').replace('./',''),USERNAME,\
-                filename_suffix)
+            logfilename = generate_file_name(prefix = device, suffix = 'log')
             if args.nolog: logfilename = None
 
             ######## Find command list file (optional)
@@ -1340,15 +1353,7 @@ if not args.readlognew:
             print('\nDEVICE %s DONE.'%(device))
 
 difffilename = str()
-if not logfilename:
-    if not os.path.exists(LOGDIR): os.makedirs(LOGDIR)
-    filename_prefix = os.path.join(LOGDIR,'device')
-    filename_suffix = 'log'
-    now = datetime.datetime.now()
-    logfilename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s-%s-%s" % \
-        (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,\
-        now.second,script_name.replace('.py','').replace('./',''),USERNAME,\
-        filename_suffix)
+if not logfilename: logfilename = generate_file_name(prefix = device, suffix = 'log')
 
 if bgp_data_loaded and compare_vpn_list:
     print(bcolors.YELLOW + '\n' + 75*'=' + '\nBGP DIFFERENCIES:\n' + 75*'=' + bcolors.ENDC)
