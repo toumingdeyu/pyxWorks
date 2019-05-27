@@ -1309,6 +1309,7 @@ if not args.readlognew:
                 if not router_type in KNOWN_OS_TYPES:
                     print('%sUNSUPPORTED DEVICE TYPE: %s , BREAK!%s' % \
                         (bcolors.MAGENTA,router_type, bcolors.ENDC))
+                    continue
                 else: print('DETECTED DEVICE_TYPE: %s' % (router_type))
             else:
                 router_type = args.router_type
