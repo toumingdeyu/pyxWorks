@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import sys, os, io, paramiko, json, platform
+import sys, os, io, paramiko, json , copy
 import getopt
 import getpass
 import telnetlib
@@ -12,6 +12,7 @@ import argparse
 import glob
 import socket
 import six
+import collections
 
 #python 2.7 problem - hack 'pip install esptool'
 import netmiko
@@ -54,8 +55,10 @@ class nocolors:
         BOLD       = ''
         UNDERLINE  = ''
 
+START_EPOCH      = time.time()
 TODAY            = datetime.datetime.now()
 script_name      = sys.argv[0]
+TIMEOUT          = 60
 
 KNOWN_OS_TYPES = ['cisco_xr', 'cisco_ios', 'juniper', 'juniper_junos', 'huawei' ,'linux']
 
@@ -67,6 +70,14 @@ try:    PASSWORD        = os.environ['NEWR_PASS']
 except: PASSWORD        = str()
 try:    USERNAME        = os.environ['NEWR_USER']
 except: USERNAME        = str()
+try:    EMAIL_ADDRESS   = os.environ['NEWR_EMAIL']
+except: EMAIL_ADDRESS   = str()
+
+default_problemline_list   = []
+default_ignoreline_list    = [r' MET$', r' UTC$']
+default_linefilter_list    = []
+default_compare_columns    = []
+default_printalllines_list = []
 
 print('LOGDIR: ' + LOGDIR)
 
@@ -78,92 +89,589 @@ print('LOGDIR: ' + LOGDIR)
 
 
 # IOS-XE is only for IPsec GW
-CMD_IOS_XE = [
-               'show version',
-               'show version'
-              ]
+CMD_IOS_XE = []
+
 CMD_IOS_XR = [
-               'show version',
-               'show version'
-             ]
-CMD_JUNOS = [
-               'show version',
-               'show version'
-             ]
+    'show bgp vrf all summary',
+    {'local_function':'ciscoxr_get_bgp_vpn_peer_data_to_json', \
+       'input_variable':'last_output', 'output_variable':'bgp_vpn_peers'},
+    {'loop_zipped_list':'bgp_vpn_peers',\
+       'remote_command':('show bgp vrf ',{'zipped_item':'1'},' neighbors ',\
+           {'zipped_item':'3'}),
+       'local_function':'ciscoxr_parse_bgp_neighbors', "input_parameters":\
+           [{"input_variable":"last_output"},{'zipped_item':'0'},{'zipped_item':'2'}]
+    },
+    'sh ipv4 vrf all int brief | exclude "unassigned|Protocol|default"',
+    {'local_function':"ciscoxr_get_vpnv4_all_interfaces",'input_variable':\
+       'last_output','output_variable':'bgp_vpn_peers_with_interfaces'},
+    {'loop_zipped_list':'bgp_vpn_peers_with_interfaces',
+       'remote_command':('show interface ',{'zipped_item':'1'}),
+       'local_function':'ciscoxr_parse_interface', "input_parameters":\
+           [{"input_variable":"last_output"},{'zipped_item':'0'}]
+    },
+    {'loop_zipped_list':'bgp_vpn_peers',
+        'remote_command':('show bgp vrf ',{'zipped_item':'1'},' neighbors ',\
+            {'zipped_item':'3'},' routes'),
+        'local_function':'ciscoxr_parse_bgp_neighbor_routes', "input_parameters":\
+            [{"input_variable":"last_output"},{'zipped_item':'0'},{'zipped_item':'2'}]
+    },
+    {'loop_zipped_list':'bgp_vpn_peers','remote_command':('ping vrf ',\
+       {'zipped_item':'1'},' ',{'zipped_item':'3'},' size 1470 count 2'),
+       'local_function':'ciscoxr_parse_ping', "input_parameters":\
+           [{"input_variable":"last_output"},{'zipped_item':'0'},{'zipped_item':'2'}]
+    },
+    {"eval":"return_bgp_data_json()"},
+]
+
+CMD_JUNOS = []
+
 CMD_VRP = [
-             'display version',
-             'display version'
-          ]
+    'display bgp vpnv4 all peer',
+    {'local_function':'huawei_get_bgp_vpn_peer_data_to_json', 'input_variable':'last_output',\
+      'output_variable':'bgp_vpn_peers', 'if_output_is_void':'exit'
+    },
+    {'loop_zipped_list':'bgp_vpn_peers',
+     'remote_command':('dis bgp vpnv4 vpn-instance ',{'zipped_item':'1'},\
+         ' peer ',{'zipped_item':'3'},' verbose'),
+     'local_function':'huawei_parse_bgp_neighbors', "input_parameters":\
+           [{"input_variable":"last_output"},{'zipped_item':'0'},{'zipped_item':'2'}]
+    },
+    {'loop_zipped_list':'bgp_vpn_peers',
+     'remote_command':('dis bgp vpnv4 vpn-instance ',{'zipped_item':'1'},\
+         ' routing-table peer ',{'zipped_item':'3'},' accepted-routes'),
+     'local_function':'huawei_parse_bgp_neighbor_routes', "input_parameters":\
+          [{"input_variable":"last_output"},{'zipped_item':'0'},{'zipped_item':'2'}]
+    },
+    'dis curr int | in (interface|ip binding vpn-instance)',
+    {'local_function':'huawei_parse_vpn_interfaces', 'input_variable':'last_output',\
+      'output_variable':'interface_list', 'if_output_is_void':'exit'
+    },
+    {'loop_zipped_list':'interface_list',
+      'remote_command':('dis interface ',{'zipped_item':'1'}),
+      'local_function':'huawei_parse_interface', "input_parameters":\
+           [{"input_variable":"last_output"},{'zipped_item':'0'}]
+    },
+    {'loop_zipped_list':'bgp_vpn_peers',
+        'remote_command':('ping -s 1470 -c 2 -t 2000 -vpn-instance ',\
+            {'zipped_item':'1'},' ',{'zipped_item':'3'}),
+        'local_function':'huawei_parse_bgp_neighbor_routes', "input_parameters":\
+           [{"input_variable":"last_output"},{'zipped_item':'0'},{'zipped_item':'2'}]
+    },
+    {"eval":"return_bgp_data_json()"},
+]
+
 CMD_LINUX = [
-            'hostname',
-            ('echo ', {'input_variable':'last_output'}),
-            ('echo ', {'input_variable':'notexistent'},{'if_output_is_void':'exit'}),
-            'free -m'
-            ]
+#             'hostname',
+#             ('echo ', {'input_variable':'last_output'},{"output_variable":"hostname"}),
+#             {"remote_command":("who ", "| grep 2019",{"output_variable":"linux_users"})},
+#             {"local_command":("echo ", {"input_variable":"linux_users"} , {"output_variable":"linux_users_2"})},
+#             {"local_command":("echo ", {"input_variable":"linux_users"} , {"output_variable":"linux_users_2"})},
+#             ('echo ', 'aaaa+', {"input_variable":"hostname"}),
+#             {'local_function':"return_parameters", "input_variable":"linux_users"},
+#             {'local_function':"return_parameters", "input_parameters":[{"input_variable":"linux_users"}]},
+#             {'local_function':"return_splitlines_parameters", "input_parameters":[{"input_variable":"linux_users"}] , "output_variable":"splitlines_linux_users"},
+#             {'loop_zipped_list':'splitlines_linux_users', 'remote_command':['echo ', {'zipped_item':'0'}] },
+#             {'loop_zipped_list':'splitlines_linux_users', 'local_command':['echo ', {'zipped_item':'0'}] },
+            #('echo ', {'input_variable':'notexistent'},{'if_output_is_void':'exit'}),
+            'free -m',
+            {"eval":['update_bgpdata_structure(bgp_data["vrf_list"][',0,'],"vrf_name","','aaaaaa','", ',0,',void_neighbor_list_item)']},
+            {"eval":"return_bgp_data_json()"}
+]
+
+#
+# ################################################################################
+# bgp_data = collections.OrderedDict()
+#
+# ### Start of BASIC STRUCTURES OF JSON
+# neighbor_list_item_txt_template = '''
+# {
+#     "ip_address": null,
+#     "bgp_current_state": null,
+#     "received_total_routes": null,
+#     "advertised_total_routes": null,
+#     "maximum_allowed_route_limit": null,
+#     "import_route_policy_is": null,
+#     "ping_response_success": null,
+#     "accepted_routes_list": []
+# }
+# '''
+#
+# vrf_list_item_txt_template = '''
+# {
+#     "vrf_name": null,
+#     "neighbor_list": [%s],
+#     "interface_name": null,
+#     "interface_ip" : null,
+#     "interface_mtu" : null,
+#     "interface_input_packets_per_seconds": null,
+#     "interface_output_packets_per_seconds": null
+# }
+# ''' % (neighbor_list_item_txt_template)
+#
+# bgp_json_txt_template='''
+# {
+#     "vrf_list": [%s]
+# }
+# ''' % (vrf_list_item_txt_template)
+# ### End of BASIC STRUCTURES OF JSON
+#
+# ### BASIC BGP_DATA OBJECT with 1 neihbor and 1 vfr
+# bgp_data = json.loads(bgp_json_txt_template, \
+#     object_pairs_hook = collections.OrderedDict)
+#
+# ### OBJECTS FOR APPENDING LISTS, DO COPY.DEEPCOPY of them by APPENDING STRUCTURE
+# void_vrf_list_item = json.loads(vrf_list_item_txt_template, \
+#     object_pairs_hook = collections.OrderedDict)
+#
+# void_neighbor_list_item = json.loads(neighbor_list_item_txt_template, \
+#     object_pairs_hook = collections.OrderedDict)
+
 ###############################################################################
 #
 # Function and Class
 #
 ###############################################################################
 
-def netmiko_autodetect(device, debug = None):
+# def return_parameters(text):
+#     return text
+#
+# def return_splitlines_parameters(text):
+#     return text.splitlines()
+
+
+### UNI-tools ###
+def return_indexed_list(data_list = None):
+    if data_list and isinstance(data_list, (list,tuple)):
+        return zip(range(len(data_list)),data_list)
+    return []
+
+
+def get_first_row_after(text = None, split_text = None, delete_text = None, split_text_index = None):
+    output = str()
+    if text:
+        try:
+            if split_text_index == None: output = text.strip().split(split_text)[1].split()[0].strip()
+            else: output = text.strip().split(split_text)[int(split_text_index)+1].split()[0].strip()
+            if delete_text: output = output.replace(delete_text,'')
+        except: pass
+    return output
+
+
+def get_first_row_before(text = None, split_text = None, delete_text = None, split_text_index = None):
+    output = str()
+    if text:
+        try:
+            if split_text_index == None: output = text.strip().split(split_text)[0].split()[-1].strip()
+            else: output = text.strip().split(split_text)[int(split_text_index)].split()[-1].strip()
+            if delete_text: output = output.replace(delete_text,'')
+        except: pass
+    return output
+
+
+# def return_bgp_data_json():
+#     return json.dumps(bgp_data, indent=2)
+#
+#
+# def read_bgp_data_json_from_logfile(filename = None, printall = None):
+#     bgp_data_loaded, text = None, None
+#     with open(filename,"r") as fp:
+#         text = fp.read()
+#     if text:
+#         try: bgp_data_json_text = text.split('EVAL_COMMAND: return_bgp_data_json()')[1]
+#         except: bgp_data_json_text = str()
+#         if bgp_data_json_text:
+#             bgp_data_loaded = json.loads(bgp_data_json_text, object_pairs_hook = collections.OrderedDict)
+#             #print("LOADED_BGP_DATA: ",bgp_data_loaded)
+#             if printall: print("\nLOADED JSON BGP_DATA: ")
+#             if printall: print(json.dumps(bgp_data_loaded, indent=2))
+#     return bgp_data_loaded
+#
+# def return_string_from_bgp_vpn_section(vrf_data = None, vrf_name = None):
+#     result = None
+#     if vrf_data and vrf_name:
+#         for vrf_index, vrf_item in return_indexed_list(vrf_data["vrf_list"]):
+#             if vrf_item.get("vrf_name").replace('.','').replace('@','') == \
+#                 vrf_name.replace('.','').replace('@',''):
+#                 result = json.dumps(vrf_item, indent=2)
+#                 break
+#     return result
+
+#
+# ### CISCO-XR FUNCTIONS ###
+# def ciscoxr_get_bgp_vpn_peer_data_to_json(text = None):
+#     output = []
+#     if text:
+#         try:    vrf_sections = text.split('VRF: ')[1:]
+#         except: vrf_sections = []
+#         vrf_index = 0
+#         for vrf_section in vrf_sections:
+#            vrf_instance = vrf_section.splitlines()[0].strip()
+#            try: vrf_peer_lines = vrf_section.strip().split('Neighbor')[1].splitlines()[1:]
+#            except: vrf_peer_lines = []
+#            if len(vrf_peer_lines)>0:
+#                update_bgpdata_structure(bgp_data["vrf_list"],"vrf_name",str(vrf_instance),vrf_index, void_vrf_list_item)
+#                neighbor_index = 0
+#                for vrf_peer_line in vrf_peer_lines:
+#                    output.append((vrf_index,vrf_instance,neighbor_index,vrf_peer_line.split()[0]))
+#                    update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"],"ip_address",vrf_peer_line.split()[0],neighbor_index,void_neighbor_list_item)
+#                    neighbor_index += 1
+#                vrf_index += 1
+#     return output
+#
+#
+# def ciscoxr_parse_bgp_neighbors(text = None,vrf_index = None,neighbor_index = None):
+#     output = []
+#     if text:
+#         bgp_current_state = get_first_row_after(text,'BGP state = ',',')
+#         import_route_policy_is = get_first_row_after(text,'Policy for incoming advertisements is ')
+#         received_total_routes = get_first_row_before(text,'accepted prefixes, ')
+#         advertised_total_routes = get_first_row_after(text,'Prefix advertised ',',')
+#         maximum_allowed_route_limit = get_first_row_after(text,'Maximum prefixes allowed ')
+#         if vrf_index != None and neighbor_index != None:
+#             update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"]\
+#                 [neighbor_index],"bgp_current_state",bgp_current_state)
+#             update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"]\
+#                 [neighbor_index],"import_route_policy_is",import_route_policy_is)
+#             update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"]\
+#                 [neighbor_index],"received_total_routes",received_total_routes)
+#             update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"]\
+#                 [neighbor_index],"advertised_total_routes",advertised_total_routes)
+#             update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"]\
+#                 [neighbor_index],"maximum_allowed_route_limit",maximum_allowed_route_limit)
+#     return output
+#
+#
+# def ciscoxr_get_vpnv4_all_interfaces(text = None):
+#     output, vpn_list = [], []
+#     if text:
+#         try: text = text.strip().split('MET')[1]
+#         except: text = text.strip()
+#         for row in text.splitlines():
+#            ### LIST=VPN,INTERFACE_NAME,INTERFACE_IP
+#            columns = row.strip().split()
+#            try: vpn_list.append((columns[4],columns[0],columns[1]))
+#            except: pass
+#         for vpn_to_if in vpn_list:
+#             for vrf_index, vrf_item in return_indexed_list(bgp_data["vrf_list"]):
+#                 if vrf_item.get("vrf_name") == vpn_to_if[0]:
+#                     update_bgpdata_structure(bgp_data["vrf_list"][vrf_index],"interface_name",vpn_to_if[1])
+#                     update_bgpdata_structure(bgp_data["vrf_list"][vrf_index],"interface_ip",vpn_to_if[2])
+#                     output.append(vpn_to_if)
+#     return output
+#
+#
+# def ciscoxr_parse_interface(text = None,vrf_name = None):
+#     output = []
+#     if text:
+#         interface_mtu = get_first_row_after(text,'MTU ')
+#         interface_input_packets_per_seconds = get_first_row_before(text,'packets/sec')
+#         interface_output_packets_per_seconds = get_first_row_before(text,'packets/sec',split_text_index=1)
+#         output = [interface_mtu, interface_input_packets_per_seconds,interface_output_packets_per_seconds]
+#         for vrf_index, vrf_item in return_indexed_list(bgp_data["vrf_list"]):
+#             if vrf_item.get("vrf_name") == vrf_name: break
+#         else:
+#             return []
+#         update_bgpdata_structure(bgp_data["vrf_list"][vrf_index],"interface_mtu",interface_mtu)
+#         update_bgpdata_structure(bgp_data["vrf_list"][vrf_index],"interface_input_packets_per_seconds",interface_input_packets_per_seconds)
+#         update_bgpdata_structure(bgp_data["vrf_list"][vrf_index],"interface_output_packets_per_seconds",interface_output_packets_per_seconds)
+#     return output
+#
+#
+# def ciscoxr_parse_ping(text = None,vrf_index = None,neighbor_index = None):
+#     ping_response_success = get_first_row_after(text,'Success rate is ')
+#     if ping_response_success == str(): ping_response_success = '0'
+#     if vrf_index != None and neighbor_index != None:
+#         update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"]\
+#             [neighbor_index],"ping_response_success",ping_response_success)
+#     return [ping_response_success]
+#
+#
+# def ciscoxr_parse_bgp_neighbor_routes(text = None,vrf_index = None,neighbor_index = None):
+#     output = []
+#     try:
+#         accepted_routes_text = text.split('Route Distinguisher: ')[2].splitlines()[1:]
+#         for line in accepted_routes_text:
+#             if line.strip() == str(): break
+#             try: output.append(line.split()[1])
+#             except: pass
+#     except: pass
+#     if vrf_index != None and neighbor_index != None:
+#         update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"]\
+#             [neighbor_index],"accepted_routes_list",output)
+#     return output
+
+#
+# ### HUAWEI FUNCTIONS ###
+# def huawei_get_bgp_vpn_peer_data_to_json(text = None):
+#     output = []
+#     if text:
+#         try: vrf_sections = text.split('VPN-Instance')[1:]
+#         except: vrf_sections = []
+#         vrf_index = 0
+#         for vrf_section in vrf_sections:
+#             vrf_instance = vrf_section.split(',')[0].strip()
+#             try: vrf_peer_lines = vrf_section.strip().splitlines()[1:]
+#             except: vrf_peer_lines = []
+#             if len(vrf_peer_lines)>0:
+#                 update_bgpdata_structure(bgp_data["vrf_list"],key_name="vrf_name",\
+#                     value=str(vrf_instance),order_in_list=vrf_index, \
+#                     list_append_value=void_vrf_list_item,debug=True)
+#                 neighbor_index = 0
+#                 for vrf_peer_line in vrf_peer_lines:
+#                    output.append((vrf_index,vrf_instance,neighbor_index,vrf_peer_line.split()[0]))
+#                    update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"],\
+#                        key_name="ip_address",value=str(vrf_peer_line.split()[0]),\
+#                        order_in_list=neighbor_index,list_append_value=\
+#                        void_neighbor_list_item,debug=True)
+#                    neighbor_index += 1
+#                 vrf_index += 1
+#     return output
+#
+#
+# def huawei_parse_bgp_neighbors(text = None,vrf_index = None,neighbor_index = None):
+#     output = []
+#     if text:
+#         bgp_current_state = get_first_row_after(text,'BGP current state: ',',')
+#         import_route_policy_is = get_first_row_after(text,'Import route policy is: ')
+#         received_total_routes = get_first_row_after(text,'Received total routes: ')
+#         advertised_total_routes = get_first_row_after(text,'Advertised total routes: ')
+#         maximum_allowed_route_limit = get_first_row_after(text,'Maximum allowed route limit: ')
+#         if vrf_index != None and neighbor_index != None:
+#             update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"]\
+#                 [neighbor_index],"bgp_current_state",bgp_current_state)
+#             update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"]\
+#                 [neighbor_index],"import_route_policy_is",import_route_policy_is)
+#             update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"]\
+#                 [neighbor_index],"received_total_routes",received_total_routes)
+#             update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"]\
+#                 [neighbor_index],"advertised_total_routes",advertised_total_routes)
+#             update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"]\
+#                 [neighbor_index],"maximum_allowed_route_limit",maximum_allowed_route_limit)
+#     return output
+#
+#
+# def huawei_parse_bgp_neighbor_routes(text = None,vrf_index = None,neighbor_index = None):
+#     output = []
+#     try:
+#         accepted_routes_text = text.split('PrefVal Path/Ogn')[1].splitlines()[1:]
+#         for line in accepted_routes_text:
+#             if line.strip() == str(): continue
+#             try: output.append(line.split()[1])
+#             except: pass
+#     except: pass
+#     if vrf_index != None and neighbor_index != None:
+#         update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"]\
+#             [neighbor_index],"accepted_routes_list",output)
+#     return output
+#
+#
+# def huawei_parse_vpn_interfaces(text = None):
+#     output, vpn_list = [], []
+#     if text:
+#         try: text = text.strip().split('MET')[1]
+#         except: text = text.strip()
+#         for interface in text.split('interface'):
+#             ### LIST=VPN,INTERFACE_NAME
+#             interface_name = interface.split()[0].strip()
+#             try:
+#                 vpn_name = interface.split('ip binding vpn-instance')[1].strip()
+#                 vpn_list.append((vpn_name,interface_name))
+#             except: pass
+#         for vpn_to_if in vpn_list:
+#             for vrf_index, vrf_item in return_indexed_list(bgp_data["vrf_list"]):
+#                 if vrf_item.get("vrf_name") == vpn_to_if[0]:
+#                     update_bgpdata_structure(bgp_data["vrf_list"][vrf_index],"interface_name",vpn_to_if[1])
+#                     output.append(vpn_to_if)
+#     return output
+#
+#
+# def huawei_parse_interface(text = None,vrf_name = None):
+#     output = []
+#     if text:
+#         interface_mtu = get_first_row_after(text,'The Maximum Transmit Unit is ')
+#         interface_input_packets_per_seconds = get_first_row_before(text,'packets/sec')
+#         interface_output_packets_per_seconds = get_first_row_before(text,'packets/sec',split_text_index=1)
+#         output = [interface_mtu, interface_input_packets_per_seconds,interface_output_packets_per_seconds]
+#         for vrf_index, vrf_item in return_indexed_list(bgp_data["vrf_list"]):
+#             if vrf_item.get("vrf_name") == vrf_name: break
+#         else:
+#             return []
+#         update_bgpdata_structure(bgp_data["vrf_list"][vrf_index],"interface_mtu",interface_mtu)
+#         update_bgpdata_structure(bgp_data["vrf_list"][vrf_index],"interface_input_packets_per_seconds",interface_input_packets_per_seconds)
+#         update_bgpdata_structure(bgp_data["vrf_list"][vrf_index],"interface_output_packets_per_seconds",interface_output_packets_per_seconds)
+#     return output
+#
+#
+# def huawei_parse_bgp_neighbor_routes(text = None,vrf_index = None,neighbor_index = None):
+#     ping_response = get_first_row_before(text,' packet loss',delete_text = '%')
+#     try: ping_response_success = str(100 - int(round(float(ping_response))))
+#     except: ping_response_success = '0'
+#     if ping_response_success == str(): ping_response_success = '0'
+#     if vrf_index != None and neighbor_index != None:
+#         update_bgpdata_structure(bgp_data["vrf_list"][vrf_index]["neighbor_list"]\
+#             [neighbor_index],"ping_response_success",ping_response_success)
+#     return [ping_response_success]
+
+#
+# ### SSH FUNCTIONS ###
+# def netmiko_autodetect(device, debug = None):
+#     router_os = str()
+#     try: DEVICE_HOST = device.split(':')[0]
+#     except: DEVICE_HOST = str()
+#     try: DEVICE_PORT = device.split(':')[1]
+#     except: DEVICE_PORT = '22'
+#     guesser = netmiko.ssh_autodetect.SSHDetect(device_type='autodetect', \
+#         ip=DEVICE_HOST, port=int(DEVICE_PORT), username=USERNAME, password=PASSWORD)
+#     best_match = guesser.autodetect()
+#     if debug:
+#         print('BEST_MATCH: %s\nPOTENTIAL_MATCHES:' %(best_match))
+#         print(guesser.potential_matches)
+#     router_os = best_match
+#     return router_os
+
+
+def detect_router_by_ssh(device, debug = False):
+    # detect device prompt
+    def ssh_detect_prompt(chan, debug = False):
+        output, buff, last_line, last_but_one_line = str(), str(), 'dummyline1', 'dummyline2'
+        chan.send('\t \n\n')
+        while not (last_line and last_but_one_line and last_line == last_but_one_line):
+            if debug: print('FIND_PROMPT:',last_but_one_line,last_line)
+            buff = chan.recv(9999)
+            output += buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
+                      replace('\x1b[K','').replace('\n{master}\n','')
+            if '--More--' or '---(more' in buff.strip(): chan.send('\x20')
+            if debug: print('BUFFER:' + buff)
+            try: last_line = output.splitlines()[-1].strip().replace('\x20','')
+            except: last_line = 'dummyline1'
+            try: last_but_one_line = output.splitlines()[-2].strip().replace('\x20','')
+            except: last_but_one_line = 'dummyline2'
+        prompt = output.splitlines()[-1].strip()
+        if debug: print('DETECTED PROMPT: \'' + prompt + '\'')
+        return prompt
+
+    # bullet-proof read-until function , even in case of ---more---
+    def ssh_read_until_prompt_bulletproof(chan,command,prompts,debug = False):
+        output, buff, last_line, exit_loop = str(), str(), 'dummyline1', False
+        # avoid of echoing commands on ios-xe by timeout 1 second
+        flush_buffer = chan.recv(9999)
+        del flush_buffer
+        chan.send(command)
+        time.sleep(0.3)
+        output, exit_loop = '', False
+        while not exit_loop:
+            if debug: print('LAST_LINE:',prompts,last_line)
+            buff = chan.recv(9999)
+            output += buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
+                      replace('\x1b[K','').replace('\n{master}\n','')
+            if '--More--' or '---(more' in buff.strip(): chan.send('\x20')
+            if debug: print('BUFFER:' + buff)
+            try: last_line = output.splitlines()[-1].strip()
+            except: last_line = str()
+            for actual_prompt in prompts:
+                if output.endswith(actual_prompt) or \
+                    last_line and last_line.endswith(actual_prompt): exit_loop = True
+        return output
+    # Detect function start
     router_os = str()
+    client = paramiko.SSHClient()
+    client.load_system_host_keys()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
     try: DEVICE_HOST = device.split(':')[0]
     except: DEVICE_HOST = str()
     try: DEVICE_PORT = device.split(':')[1]
     except: DEVICE_PORT = '22'
-    guesser = netmiko.ssh_autodetect.SSHDetect(device_type='autodetect', \
-        ip=DEVICE_HOST, port=int(DEVICE_PORT), username=USERNAME, password=PASSWORD)
-    best_match = guesser.autodetect()
-    if debug:
-        print('BEST_MATCH: %s\nPOTENTIAL_MATCHES:' %(best_match))
-        print(guesser.potential_matches)
-    router_os = best_match
-    return router_os
+
+    try:
+        #connect(self, hostname, port=22, username=None, password=None, pkey=None, key_filename=None, timeout=None, allow_agent=True, look_for_keys=True, compress=False)
+        client.connect(DEVICE_HOST, port=int(DEVICE_PORT), username=USERNAME, password=PASSWORD)
+        chan = client.invoke_shell()
+        chan.settimeout(TIMEOUT)
+        # prevent --More-- in log banner (space=page, enter=1line,tab=esc)
+        # \n\n get prompt as last line
+        prompt = ssh_detect_prompt(chan, debug=False)
+
+        #test if this is HUAWEI VRP
+        if prompt and not router_os:
+            command = 'display version | include (Huawei)\n'
+            output = ssh_read_until_prompt_bulletproof(chan, command, [prompt], debug=debug)
+            if 'Huawei Versatile Routing Platform Software' in output: router_os = 'vrp'
+
+        #test if this is CISCO IOS-XR, IOS-XE or JUNOS
+        if prompt and not router_os:
+            command = 'show version\n'
+            output = ssh_read_until_prompt_bulletproof(chan, command, [prompt], debug=debug)
+            if 'iosxr-' in output or 'Cisco IOS XR Software' in output: router_os = 'ios-xr'
+            elif 'Cisco IOS-XE software' in output: router_os = 'ios-xe'
+            elif 'JUNOS OS' in output: router_os = 'junos'
+
+        if prompt and not router_os:
+            command = 'uname -a\n'
+            output = ssh_read_until_prompt_bulletproof(chan, command, [prompt], debug=debug)
+            if 'LINUX' in output.upper(): router_os = 'linux'
+
+        if not router_os:
+            print(bcolors.MAGENTA + "\nCannot find recognizable OS in %s" % (output) + bcolors.ENDC)
+
+    except (socket.timeout, paramiko.AuthenticationException) as e:
+        print(bcolors.MAGENTA + " ... Connection closed: %s " % (e) + bcolors.ENDC )
+        sys.exit()
+    finally:
+        client.close()
+
+    netmiko_os = str()
+    if router_os == 'ios-xe': netmiko_os = 'cisco_ios'
+    if router_os == 'ios-xr': netmiko_os = 'cisco_xr'
+    if router_os == 'junos': netmiko_os = 'juniper'
+    if router_os == 'linux': netmiko_os = 'linux'
+    if router_os == 'vrp': netmiko_os = 'huawei'
+    return netmiko_os
+    #return router_os, prompt
 
 
-def ipv4_to_ipv6_obs(ipv4address):
-    ip4to6, ip6to4 = str(), str()
-    try: v4list = ipv4address.split('/')[0].split('.')
-    except: v4list = []
-    if len(v4list) == 4:
-        try:
-            if int(v4list[0])<256 and int(v4list[1])<256 and int(v4list[2])<256 \
-                and int(v4list[3])<256 and int(v4list[0])>=0 and \
-                int(v4list[1])>=0 and int(v4list[2])>=0 and int(v4list[3])>=0:
-                ip4to6 = 'fd00:0:0:5511::%02x%02x:%02x%02x' % \
-                    (int(v4list[0]),int(v4list[1]),int(v4list[2]),int(v4list[3]))
-                ip6to4 = '2002:%02x%02x:%02x%02x:0:0:0:0:0' % \
-                    (int(v4list[0]),int(v4list[1]),int(v4list[2]),int(v4list[3]))
-        except: pass
-    return ip4to6, ip6to4
-
-def parse_ipv4_from_text(text):
-    try: ipv4 = text.split('address')[1].split()[0].replace(';','')
-    except: ipv4 = str()
-    converted_ipv4 = ipv4_to_ipv6_obs(ipv4)[0]
-    return converted_ipv4
-
-def stop_if_ipv6_found(text):
-    try: ipv6 = text.split('address')[1].split()[0].replace(';','')
-    except: ipv6 = str()
-    if ipv6: return str()
-    else: return "NOT_FOUND"
-
-def stop_if_two_ipv6_found(text):
-    try: ipv6 = text.split('address')[1].split()[0].replace(';','')
-    except: ipv6 = str()
-    try: ipv6two = text.split('address')[2].split()[0].replace(';','')
-    except: ipv6two = str()
-    if ipv6 and ipv6two: return str()
-    else: return "NOT_FOUND"
-
-def parse_whole_set_line_from_text(text):
-    try: set_text = text.split('set')[1].split('\n')[0]
-    except: set_text = str()
-    if set_text: set_ipv6line = 'set' + set_text + ' primary\n'
-    else: set_ipv6line = str()
-    return set_ipv6line
+# def ipv4_to_ipv6_obs(ipv4address):
+#     ip4to6, ip6to4 = str(), str()
+#     try: v4list = ipv4address.split('/')[0].split('.')
+#     except: v4list = []
+#     if len(v4list) == 4:
+#         try:
+#             if int(v4list[0])<256 and int(v4list[1])<256 and int(v4list[2])<256 \
+#                 and int(v4list[3])<256 and int(v4list[0])>=0 and \
+#                 int(v4list[1])>=0 and int(v4list[2])>=0 and int(v4list[3])>=0:
+#                 ip4to6 = 'fd00:0:0:5511::%02x%02x:%02x%02x' % \
+#                     (int(v4list[0]),int(v4list[1]),int(v4list[2]),int(v4list[3]))
+#                 ip6to4 = '2002:%02x%02x:%02x%02x:0:0:0:0:0' % \
+#                     (int(v4list[0]),int(v4list[1]),int(v4list[2]),int(v4list[3]))
+#         except: pass
+#     return ip4to6, ip6to4
+#
+# def parse_ipv4_from_text(text):
+#     try: ipv4 = text.split('address')[1].split()[0].replace(';','')
+#     except: ipv4 = str()
+#     converted_ipv4 = ipv4_to_ipv6_obs(ipv4)[0]
+#     return converted_ipv4
+#
+# def stop_if_ipv6_found(text):
+#     try: ipv6 = text.split('address')[1].split()[0].replace(';','')
+#     except: ipv6 = str()
+#     if ipv6: return str()
+#     else: return "NOT_FOUND"
+#
+# def stop_if_two_ipv6_found(text):
+#     try: ipv6 = text.split('address')[1].split()[0].replace(';','')
+#     except: ipv6 = str()
+#     try: ipv6two = text.split('address')[2].split()[0].replace(';','')
+#     except: ipv6two = str()
+#     if ipv6 and ipv6two: return str()
+#     else: return "NOT_FOUND"
+#
+# def parse_whole_set_line_from_text(text):
+#     try: set_text = text.split('set')[1].split('\n')[0]
+#     except: set_text = str()
+#     if set_text: set_ipv6line = 'set' + set_text + ' primary\n'
+#     else: set_ipv6line = str()
+#     return set_ipv6line
 
 def parse_json_file_and_get_oti_routers_list():
     oti_routers, json_raw_data = [], str()
@@ -176,11 +684,153 @@ def parse_json_file_and_get_oti_routers_list():
         json_raw_data = json.loads(data_converted)
     if json_raw_data:
         for router in json_raw_data['OTI_ALL']:
-            if '172.25.4' in json_raw_data['OTI_ALL'][router]['LSRID']: oti_routers.append(router)
+            if '172.25.4' in json_raw_data['OTI_ALL'][router]['LSRID']:
+                oti_routers.append(router)
     return oti_routers
 
 
+# def parse_json_file_and_get_oti_routers_list():
+#     oti_routers = []
+#     json_filename = '/home/dpenha/perl_shop/NIS9TABLE_BLDR/node_list.json'
+#     with io.open(json_filename) as json_file: json_raw_data = json.load(json_file)
+#     if json_raw_data:
+#         for router in json_raw_data['results']:
+#            if router['namings']['type']=='OTI':
+#                oti_routers.append(router['name'])
+#     return oti_routers
+
+
 def run_remote_and_local_commands(CMD, logfilename = None, printall = None, printcmdtologfile = None):
+    ### RUN_COMMAND - REMOTE or LOCAL ------------------------------------------
+    def run_command(ssh_connection,cmd_line_items,loop_item = None,run_remote = None,\
+        logfilename = logfilename,printall = printall, printcmdtologfile = printcmdtologfile):
+        global dictionary_of_variables
+        cli_line, name_of_output_variable = str(), None
+        ### LIST,TUPPLE,STRINS ARE REMOTE REMOTE/LOCAL DEVICE COMMANDS
+        if isinstance(cmd_line_items, (six.string_types,list,tuple)):
+            if isinstance(cmd_line_items, six.string_types): cli_line = cmd_line_items
+            elif isinstance(cmd_line_items, (list,tuple)):
+                for cli_item in cmd_line_items:
+                    if isinstance(cli_item, dict):
+                        if cli_item.get('zipped_item',''):
+                            try: cli_line += str(loop_item[int(cli_item.get('zipped_item',''))])
+                            except: pass
+                        elif cli_item.get('input_variable',''):
+                            name_of_input_variable = cli_item.get('input_variable','')
+                            cli_line += dictionary_of_variables.get(name_of_input_variable,'')
+                        elif cli_item.get('output_variable',''):
+                            name_of_output_variable = cli_item.get('output_variable','')
+                    else: cli_line += str(cli_item)
+            if run_remote:
+                print(bcolors.GREEN + "REMOTE_COMMAND: %s" % (cli_line) + bcolors.ENDC )
+                ### NETMIKO
+                last_output = ssh_connection.send_command(cli_line)
+
+                ### PARAMIKO
+                #last_output, new_prompt = ssh_send_command_and_read_output(ssh_connection,DEVICE_PROMPTS,cli_line)
+                #if new_prompt: DEVICE_PROMPTS.append(new_prompt)
+            else:
+                print(bcolors.CYAN + "LOCAL_COMMAND: %s" % (cli_line) + bcolors.ENDC )
+                ### LOCAL COMMAND - SUBPROCESS CALL
+                last_output = subprocess.check_output(str(cli_line),shell=True)
+
+            ### FILTER LAST_OUTPUT
+            if isinstance(last_output, six.string_types):
+                last_output = last_output.decode("utf-8").replace('\x07','').\
+                    replace('\x08','').replace('\x0d','').replace('\x1b','').replace('\x1d','')
+
+                ### NETMIKO-BUG (https://github.com/ktbyers/netmiko/issues/1200)
+                if len(str(cli_line))>80 and run_remote:
+                    first_bugged_line = last_output.splitlines()[0]
+                    #print('NOISE:',first_bugged_line)
+                    last_output = last_output.replace(first_bugged_line+'\n','')
+                    if(last_output.strip() == first_bugged_line): last_output = str()
+
+            if printall: print(bcolors.GREY + "%s" % (last_output) + bcolors.ENDC )
+            if printcmdtologfile:
+                if run_remote: fp.write('REMOTE_COMMAND: ' + cli_line + '\n'+last_output+'\n')
+                else: fp.write('LOCAL_COMMAND: ' + cli_line + '\n'+last_output+'\n')
+            else: fp.write(last_output)
+            ### Result will be allways string, so rstrip() could be done
+            dictionary_of_variables['last_output'] = last_output.rstrip()
+            if name_of_output_variable:
+                dictionary_of_variables[name_of_output_variable] = last_output.rstrip()
+            for cli_item in cmd_line_items:
+                if isinstance(cli_item, dict) \
+                    and last_output.strip() == str() \
+                    and cli_item.get('if_output_is_void','') in ['exit','quit','stop']:
+                    if printall: print("%sSTOP [VOID OUTPUT].%s" % \
+                        (bcolors.RED,bcolors.ENDC))
+                    return True
+        return None
+    ### RUN_LOCAL_FUNCTION -----------------------------------------------------
+    def run_local_function(cmd_line_items,loop_item = None,logfilename = logfilename,\
+        printall = printall, printcmdtologfile = printcmdtologfile):
+        global dictionary_of_variables
+        local_function_name = cmd_line_items.get('local_function','')
+        if cmd_line_items.get('input_parameters',''):
+            local_input = []
+            for input_list_item in cmd_line_items.get('input_parameters',''):
+                if isinstance(input_list_item, dict):
+                    if input_list_item.get('zipped_item',''):
+                        try: local_input.append(loop_item[int(input_list_item.get('zipped_item',''))])
+                        except: pass
+                    elif input_list_item.get('input_variable',''):
+                        name_of_local_variable = input_list_item.get('input_variable','')
+                        local_input.append(dictionary_of_variables.get(name_of_local_variable,''))
+                else: local_input.append(input_list_item)
+        elif cmd_line_items.get('input_variable',''):
+            name_of_local_variable = cmd_line_items.get('input_variable','')
+            local_input = dictionary_of_variables.get(name_of_local_variable,'')
+        name_of_output_variable = cmd_line_items.get('output_variable','')
+        ### GLOBAL SYMBOLS
+        if isinstance(local_input, (list,tuple)):
+            local_output = globals()[local_function_name](*local_input)
+        else: local_output = globals()[local_function_name](local_input)
+        if isinstance(local_output, six.string_types):
+            local_output = local_output.replace('\x0d','')
+        if name_of_output_variable:
+            dictionary_of_variables[name_of_output_variable] = local_output
+        if printall: print("%sLOCAL_FUNCTION: %s(%s)\n%s%s%s" % \
+            (bcolors.CYAN,local_function_name,\
+            local_input if len(local_input)<100 else name_of_local_variable,\
+            bcolors.GREY,local_output,bcolors.ENDC))
+        fp.write("LOCAL_FUNCTION: %s(%s)\n%s\n" % (local_function_name,\
+            local_input if len(local_input)<100 else name_of_local_variable,\
+            local_output))
+        dictionary_of_variables['last_output'] = local_output
+        if (not local_output or str(local_output).strip() == str() )\
+            and cmd_line_items.get('if_output_is_void') in ['exit','quit','stop']:
+            if printall: print("%sSTOP [VOID OUTPUT].%s" % \
+                (bcolors.RED,bcolors.ENDC))
+            return True
+        return None
+    ### eval_COMMAND -----------------------------------------------------------
+    def eval_command(ssh_connection,cmd_line_items,loop_item = None,\
+        logfilename = logfilename,printall = printall, printcmdtologfile = printcmdtologfile):
+        global dictionary_of_variables
+        cli_line, name_of_output_variable = str(), None
+        ### LIST,TUPPLE,STRINS ARE REMOTE REMOTE/LOCAL DEVICE COMMANDS
+        if isinstance(cmd_line_items, (six.string_types,list,tuple)):
+            if isinstance(cmd_line_items, six.string_types): cli_line = cmd_line_items
+            elif isinstance(cmd_line_items, (list,tuple)):
+                for cli_item in cmd_line_items:
+                    if isinstance(cli_item, dict):
+                        if cli_item.get('zipped_item',''):
+                            try: cli_line += str(loop_item[int(cli_item.get('zipped_item',''))])
+                            except: pass
+                        elif cli_item.get('input_variable',''):
+                            name_of_input_variable = cli_item.get('input_variable','')
+                            cli_line += dictionary_of_variables.get(name_of_input_variable,'')
+                        elif cli_item.get('output_variable',''):
+                            name_of_output_variable = cli_item.get('output_variable','')
+                    else: cli_line += str(cli_item)
+            print(bcolors.CYAN + "EVAL_COMMAND: %s" % (cli_line) + bcolors.ENDC )
+            ret_value = eval(cli_line)
+            print(bcolors.GREY + str(ret_value) + bcolors.ENDC )
+            if printcmdtologfile: fp.write('EVAL_COMMAND: ' + cli_line + '\n' + str(ret_value) + '\n')
+        return None
+    ### RUN_REMOTE_AND_LOCAL_COMMANDS START ====================================
     ssh_connection, output= None, None
     try:
         ssh_connection = netmiko.ConnectHandler(device_type = router_type, \
@@ -193,10 +843,10 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
 #           client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 #           client.connect(DEVICE_HOST, port=int(DEVICE_PORT), \
 #                          username=USERNAME, password=PASSWORD)
-#           chan = client.invoke_shell()
-#           chan.settimeout(TIMEOUT)
-#           output, forget_it = ssh_send_command_and_read_output(chan,DEVICE_PROMPTS,TERM_LEN_0)
-#           output2, forget_it = ssh_send_command_and_read_output(chan,DEVICE_PROMPTS,"")
+#           ssh_connection = client.invoke_shell()
+#           ssh_connection.settimeout(TIMEOUT)
+#           output, forget_it = ssh_send_command_and_read_output(ssh_connection,DEVICE_PROMPTS,TERM_LEN_0)
+#           output2, forget_it = ssh_send_command_and_read_output(ssh_connection,DEVICE_PROMPTS,"")
 #           output += output2
 
         if not logfilename:
@@ -204,92 +854,42 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
             else: logfilename = '/dev/null'
         with open(logfilename,"w") as fp:
             if output and not printcmdtologfile: fp.write(output)
-            dictionary_of_variables = {}
-            for cli_items in CMD:
+            for cmd_line_items in CMD:
                 cli_line = str()
                 ### LIST,TUPPLE,STRINS ARE REMOTE REMOTE DEVICE COMMANDS
-                if isinstance(cli_items, (six.string_types,list,tuple)):
-                    if isinstance(cli_items, six.string_types): cli_line = cli_items
-                    if isinstance(cli_items, (list,tuple)):
-                        for cli_item in cli_items:
-                           if isinstance(cli_item, dict):
-                               name_of_local_variable = cli_item.get('input_variable','')
-                               cli_line += dictionary_of_variables.get(name_of_local_variable,'')
-                           else: cli_line += cli_item
-                    print(bcolors.GREEN + "COMMAND: %s" % (cli_line) + bcolors.ENDC )
-
-                    last_output = ssh_connection.send_command(cli_line)
-
-#                     last_output, new_prompt = ssh_send_command_and_read_output(chan,DEVICE_PROMPTS,cli_line)
-#                     if new_prompt: DEVICE_PROMPTS.append(new_prompt)
-
-                    last_output = last_output.replace('\x0d','')
-                    if printall: print(bcolors.GREY + "%s" % (last_output) + bcolors.ENDC )
-                    if printcmdtologfile: fp.write('COMMAND: ' + cli_line + '\n'+last_output+'\n')
-                    else: fp.write(last_output)
-                    dictionary_of_variables['last_output'] = last_output.rstrip()
-                    for cli_item in cli_items:
-                        if isinstance(cli_item, dict) \
-                            and last_output.strip() == str() \
-                            and cli_item.get('if_output_is_void','') in ['exit','quit','stop']:
-                            if printall: print("%sSTOP [VOID OUTPUT].%s" % \
-                                (bcolors.RED,bcolors.ENDC))
-                            return None
-                ### HACK: USE DICTIONARY FOR RUNNING LOCAL PYTHON CODE FUNCTIONS OR LOCAL OS COMMANDS
-                elif isinstance(cli_items, dict):
-                    if cli_items.get('local_function',''):
-                        local_function_name = cli_items.get('local_function','')
-                        name_of_local_variable = cli_items.get('input_variable','')
-                        local_input = dictionary_of_variables.get(name_of_local_variable,'')
-                        output_to_pseudovariable = dictionary_of_variables.get('output_variable','')
-                        ### GLOBAL SYMBOLS
-                        local_output = globals()[local_function_name](local_input)
-                        if isinstance(local_output, six.string_types):
-                            local_output = local_output.replace('\x0d','')
-                        if output_to_pseudovariable:
-                            dictionary_of_variables[output_to_pseudovariable] = local_output
-                        if printall: print("%sLOCAL_FUNCTION: %s(%s)\n%s%s\n%s" % \
-                            (bcolors.CYAN,local_function_name,\
-                            local_input if len(local_input)<100 else name_of_local_variable,\
-                            bcolors.GREY,local_output,bcolors.ENDC))
-                        fp.write("LOCAL_FUNCTION: %s(%s)\n%s\n" % (local_function_name,\
-                            local_input if len(local_input)<100 else name_of_local_variable,\
-                            local_output))
-                        dictionary_of_variables['last_output'] = last_output
-                        if (not local_output or str(local_output).strip() == str() )\
-                            and cli_items.get('if_output_is_void') in ['exit','quit','stop']:
-                            if printall: print("%sSTOP [VOID OUTPUT].%s" % \
-                                (bcolors.RED,bcolors.ENDC))
-                            return None
-                    elif cli_items.get('local_command',''):
-                        local_process = cli_items.get('local_command','')
-                        local_process_continue = cli_items.get('local_command_continue','')
-                        name_of_local_variable = cli_items.get('input_variable','')
-                        local_input = dictionary_of_variables.get(name_of_local_variable,'')
-                        output_to_pseudovariable = dictionary_of_variables.get('output_variable','')
-                        ### SUBPROCESS CALL
-                        local_output = subprocess.check_output( \
-                            str(local_process+local_input+local_process_continue),\
-                            shell=True)
-                        if isinstance(local_output, six.string_types):
-                            local_output = local_output.replace('\x0d','')
-                        if output_to_pseudovariable:
-                            dictionary_of_variables[output_to_pseudovariable] = local_output
-                        if printall: print("%sLOCAL_COMMAND: %s%s%s\n%s%s%s" % \
-                            (bcolors.CYAN,str(local_process,\
-                            local_input if len(local_input)<100 else '$'+name_of_local_variable,\
-                            local_process_continue),bcolors.GREY,local_output,bcolors.ENDC))
-                        fp.write("LOCAL_COMMAND: %s%s%s\n%s" % (local_process,\
-                            local_input if len(local_input)<100 else '$'+name_of_local_variable,\
-                            local_process_continue,local_output))
-                        dictionary_of_variables['last_output'] = last_output
-                        if (not local_output or str(local_output).strip() == str() )\
-                            and cli_items.get('if_output_is_void') in ['exit','quit','stop']:
-                            if printall: print("%sSTOP [VOID OUTPUT].%s" % \
-                                (bcolors.RED,bcolors.ENDC))
-                            return None
+                if isinstance(cmd_line_items, (six.string_types,list,tuple)):
+                    if run_command(ssh_connection,cmd_line_items,run_remote = True): return None
+                ### HACK: USE DICT FOR RUN LOCAL PYTHON CODE FUNCTIONS OR LOCAL OS COMMANDS or LOOPS
+                elif isinstance(cmd_line_items, dict):
+                    if cmd_line_items.get('loop_zipped_list',''):
+                        list_name = cmd_line_items.get('loop_zipped_list','')
+                        for loop_item in dictionary_of_variables.get(list_name,''):
+                            ### HACK lower functions expect list or tupple so convert it
+                            if isinstance(loop_item, (int,float,six.string_types)):
+                                loop_item = [loop_item]
+                            if isinstance(loop_item, (list,tuple)):    #six.string_types
+                                if cmd_line_items.get('remote_command',''):
+                                    remote_cmd = cmd_line_items.get('remote_command','')
+                                    if run_command(ssh_connection,remote_cmd,\
+                                        loop_item,run_remote = True): return None
+                                ### CHAIN - do local_function after remote_command
+                                if cmd_line_items.get('local_function',''):
+                                    if run_local_function(cmd_line_items,loop_item): return None
+                                elif cmd_line_items.get('local_command',''):
+                                    if run_command(ssh_connection,cmd_line_items.get('local_command',''),loop_item): return None
+                                ### CHAIN - do eval after local_function or remote_command
+                                if cmd_line_items.get('eval',''):
+                                    if eval_command(ssh_connection,cmd_line_items.get('eval',''),loop_item): return None
+                    elif cmd_line_items.get('local_function',''):
+                        if run_local_function(cmd_line_items): return None
+                    elif cmd_line_items.get('local_command',''):
+                        if run_command(ssh_connection,cmd_line_items.get('local_command','')): return None
+                    elif cmd_line_items.get('remote_command',''):
+                        if run_command(ssh_connection,cmd_line_items.get('remote_command',''),run_remote = True): return None
+                    elif cmd_line_items.get('eval',''):
+                        if eval_command(ssh_connection,cmd_line_items.get('eval','')): return None
                 elif printall: print('%sUNSUPPORTED_TYPE %s of %s!%s' % \
-                            (bcolors.MAGENTA,type(item),str(cli_items),bcolors.ENDC))
+                            (bcolors.MAGENTA,type(item),str(cmd_line_items),bcolors.ENDC))
     except () as e:
         print(bcolors.FAIL + " ... EXCEPTION: (%s)" % (e) + bcolors.ENDC )
         sys.exit()
@@ -302,6 +902,248 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
     return None
 
 
+# def update_bgpdata_structure(data_address, key_name = None, value = None, \
+#     order_in_list = None, list_append_value = None, add_new_key = None, \
+#     debug = None):
+#     """
+#     FUNCTION: update_bgpdata_structure
+#     PARAMETERS:
+#        data_address - address of json ending on parrent (key_name or list_number if exists)
+#        key_name - name of key in dict
+#        value - value of key in dict
+#        order_in_list - if actuaal list is shorter than needed, append new template section
+#        list_append_value - add new template section to list
+#        add_new_key = True - add new keys/values to dictionary not existent in templates
+#        debug - True/None
+#     RETURNS:
+#        change_applied - True = change applied , None - no change
+#     """
+#     global bgp_data
+#     change_applied = None
+#     if debug:
+#         print(bcolors.MAGENTA+"KEY="+str(key_name)+" VALUE="+str(value)+" ORDER_IN_LIST="+\
+#             str(order_in_list)+" DATA_TYPE="+str(type(data_address))+' ID='+\
+#             str(id(data_address))+bcolors.ENDC)
+#
+#     ### REWRITE VALUE IN DICT ON KEY_NAME POSITION
+#     if isinstance(data_address, (dict,collections.OrderedDict)) \
+#         and isinstance(key_name, (six.string_types)):
+#         data_address_values = data_address.keys()
+#         for address_key_value in data_address_values:
+#             if key_name and key_name == address_key_value:
+#                 data_address[key_name] = value
+#                 if debug: print('DICT[%s]=%s'%(key_name,value))
+#                 change_applied = True
+#         else:
+#             if add_new_key:
+#                 data_address[key_name] = value
+#                 if debug: print('ADDED_TO_DICT[%s]=%s'%(key_name,value))
+#                 change_applied = True
+#     ### ADD LIST POSITION if NEEDED, REWRITE VALUE IN DICT ON KEY_NAME POSITION
+#     elif isinstance(data_address, (list)):
+#         ### SIMPLY ADD VALUE TO LIST WHEN ORDER NOT INSERTED ###
+#         if not order_in_list and not key_name:
+#             if debug: print('LIST_APPENDED.')
+#             data_address.append(value)
+#             change_applied = True
+#         else:
+#             ### INCREASE LIST LENGHT if NEEDED ###
+#             if int(order_in_list) >= len(data_address):
+#                 how_much_to_add = 1 + int(order_in_list) - len(data_address)
+#                 for i in range(how_much_to_add):
+#                     data_address.append(copy.deepcopy(list_append_value))
+#                 if debug: print(bcolors.GREEN+'LIST_APPENDED_BY_SECTIONs +(%s).'\
+#                     %(how_much_to_add)+bcolors.ENDC)
+#             ### AFTER OPTIONAL ADDITION OF END OF LIST (AT LEAST) BY ONE ###
+#             if int(order_in_list) < len(data_address) \
+#                 and isinstance(data_address[int(order_in_list)], \
+#                 (dict,collections.OrderedDict)) and value != None:
+#                 data_address_values = data_address[int(order_in_list)].keys()
+#                 for key_list_item in data_address_values:
+#                    if key_name and str(key_name) == str(key_list_item):
+#                        data_address[int(order_in_list)][str(key_name)] = value
+#                        if debug: print('DICT_LIST[%s][%s]=%s'% \
+#                            (order_in_list,key_name,value))
+#                        change_applied = True
+#                 else:
+#                     if add_new_key:
+#                         data_address[int(order_in_list)][key_name] = value
+#                         if debug: print('ADDED_TO_DICT_LIST[%s][%s]=%s'% \
+#                             (order_in_list,key_name,value))
+#                         change_applied = True
+#     if debug: print("CHANGE_APPLIED: ",change_applied)
+#     return change_applied
+
+
+def get_difference_string_from_string_or_list(
+    old_string_or_list, \
+    new_string_or_list, \
+    diff_method = 'ndiff0', \
+    ignore_list = default_ignoreline_list, \
+    problem_list = default_problemline_list, \
+    printalllines_list = default_printalllines_list, \
+    linefilter_list = default_linefilter_list, \
+    compare_columns = [], \
+    print_equallines = None, \
+    debug = None, \
+    note = True ):
+    '''
+    FUNCTION get_difference_string_from_string_or_list:
+    INPUT PARAMETERS:
+      - old_string_or_list - content of old file in string or list type
+      - new_string_or_list - content of new file in string or list type
+      - diff_method - ndiff, ndiff0, pdiff0
+      - ignore_list - list of regular expressions or strings when line is ignored for file (string) comparison
+      - problem_list - list of regular expressions or strings which detects problems, even if files are equal
+      - printalllines_list - list of regular expressions or strings which will be printed grey, even if files are equal
+      - linefilter_list - list of regular expressions which filters each line (regexp results per line comparison)
+      - compare_columns - list of columns which are intended to be different , other columns in line are ignored
+      - print_equallines - True/False prints all equal new file lines with '=' prefix , by default is False
+      - debug - True/False, prints debug info to stdout, by default is False
+      - note - True/False, prints info header to stdout, by default is True
+    RETURNS: string with file differencies
+
+    PDIFF0 FORMAT: The head of line is
+    '-' for missing line,
+    '+' for added line,
+    '!' for line that is different and
+    ' ' for the same line, but with problem.
+    RED for something going DOWN or something missing or failed.
+    ORANGE for something going UP or something NEW (not present in pre-check)
+    '''
+    print_string = str()
+    if note:
+       print_string = "DIFF_METHOD: "
+       if diff_method   == 'ndiff0': print_string += note_ndiff0_string
+       elif diff_method == 'pdiff0': print_string += note_pdiff0_string
+       elif diff_method == 'ndiff' : print_string += note_ndiff_string
+
+    # make list from string if is not list already
+    old_lines_unfiltered = old_string_or_list if type(old_string_or_list) == list else old_string_or_list.splitlines()
+    new_lines_unfiltered = new_string_or_list if type(new_string_or_list) == list else new_string_or_list.splitlines()
+
+    # NDIFF COMPARISON METHOD---------------------------------------------------
+    if diff_method == 'ndiff':
+        diff = difflib.ndiff(old_lines_unfiltered, new_lines_unfiltered)
+        for line in list(diff):
+            try:    first_chars = line[0]+line[1]
+            except: first_chars = str()
+            ignore = False
+            for ignore_item in ignore_list:
+                if (re.search(ignore_item,line)) != None: ignore = True
+            if ignore: continue
+            if len(line.strip())==0: pass
+            elif '+ ' == first_chars: print_string += COL_ADDED + line + bcolors.ENDC + '\n'
+            elif '- ' == first_chars: print_string += COL_DELETED + line + bcolors.ENDC + '\n'
+            elif '? ' == first_chars or first_chars == str(): pass
+            elif print_equallines: print_string += COL_EQUAL + line + bcolors.ENDC + '\n'
+            else:
+                print_line, ignore = False, False
+                for item in printalllines_list:
+                    if (re.search(item,line)) != None: print_line = True
+                if print_line:
+                    print_string += COL_EQUAL + line + bcolors.ENDC + '\n'
+        return print_string
+
+    # NDIFF0 COMPARISON METHOD--------------------------------------------------
+    if diff_method == 'ndiff0' or diff_method == 'pdiff0':
+        ignore_previous_line = False
+        diff = difflib.ndiff(old_lines_unfiltered, new_lines_unfiltered)
+        listdiff_nonfiltered = list(diff)
+        listdiff = []
+        # filter diff lines out of '? ' and void lines
+        for line in listdiff_nonfiltered:
+            # This ignore filter is much faster
+            ignore = False
+            for ignore_item in ignore_list:
+                if (re.search(ignore_item,line)) != None: ignore = True
+            if ignore: continue
+            try:    first_chars = line[0]+line[1]
+            except: first_chars = str()
+            if '+ ' in first_chars or '- ' in first_chars or '  ' in first_chars:
+                listdiff.append(line)
+        del diff, listdiff_nonfiltered
+        # main ndiff0/pdiff0 loop
+        previous_minus_line_is_change = False
+        for line_number,line in enumerate(listdiff):
+            print_color, print_line = COL_EQUAL, str()
+            try:    first_chars_previousline = listdiff[line_number-1][0]+listdiff[line_number-1][1]
+            except: first_chars_previousline = str()
+            try:    first_chars = line[0]+line[1]
+            except: first_chars = str()
+            try:    first_chars_nextline = listdiff[line_number+1][0]+listdiff[line_number+1][1]
+            except: first_chars_nextline = str()
+            # CHECK IF ARE LINES EQUAL AFTER FILTERING (compare_columns + linefilter_list)
+            split_line,split_next_line,linefiltered_line,linefiltered_next_line = str(),str(),str(),str()
+            if '- ' == first_chars and '+ ' == first_chars_nextline:
+                for split_column in compare_columns:
+                    # +1 means equal of deletion of first column -
+                    try: temp_column = line.split()[split_column+1]
+                    except: temp_column = str()
+                    split_line += ' ' + temp_column
+                for split_column in compare_columns:
+                    # +1 means equal of deletion of first column +
+                    try: temp_column = listdiff[line_number+1].split()[split_column+1]
+                    except: temp_column = str()
+                    split_next_line += ' ' + temp_column
+                for linefilter_item in linefilter_list:
+                    try: next_line = listdiff[line_number+1]
+                    except: next_line = str()
+                    if line and (re.search(linefilter_item,line)) != None:
+                        linefiltered_line = re.findall(linefilter_item,line)[0]
+                    if next_line and (re.search(linefilter_item,next_line)) != None:
+                        linefiltered_next_line = re.findall(linefilter_item,line)[0]
+                # LINES ARE EQUAL AFTER FILTERING - filtered linefilter and columns commands
+                if (split_line and split_next_line and split_line == split_next_line) or \
+                   (linefiltered_line and linefiltered_next_line and linefiltered_line == linefiltered_next_line):
+                    ignore_previous_line = True
+                    continue
+            # CONTINUE CHECK DELETED/ADDED LINES--------------------------------
+            if '- ' == first_chars:
+                # FIND IF IT IS CHANGEDLINE OR DELETED LINE
+                line_list_lenght, the_same_columns = len(line.split()), 0
+                percentage_of_equality = 0
+                try: nextline_sign_column = listdiff[line_number+1].split()[0]
+                except: nextline_sign_column = str()
+                if nextline_sign_column == '+':
+                    for column_number,column in enumerate(line.split()):
+                        try: next_column = listdiff[line_number+1].split()[column_number]
+                        except: next_column = str()
+                        if column == next_column: the_same_columns += 1
+                    if line_list_lenght>0:
+                        percentage_of_equality = (100*the_same_columns)/line_list_lenght
+                # CHANGED LINE -------------------------------------------------
+                if percentage_of_equality > 54:
+                    previous_minus_line_is_change = True
+                    if diff_method == 'ndiff0':
+                        print_color, print_line = COL_DIFFDEL, line
+                # LOST/DELETED LINES -------------------------------------------
+                else: print_color, print_line = COL_DELETED, line
+            # IGNORE EQUAL -/= LINES or PRINT printall and problem lines -------
+            elif '+ ' == first_chars and ignore_previous_line:
+                line = ' ' + line[1:]
+                ignore_previous_line = False
+            # ADDED NEW LINE ---------------------------------------------------
+            elif '+ ' == first_chars and not ignore_previous_line:
+                if previous_minus_line_is_change:
+                    previous_minus_line_is_change = False
+                    if diff_method == 'pdiff0': line = '!' + line[1:]
+                    print_color, print_line = COL_DIFFADD, line
+                else: print_color, print_line = COL_ADDED, line
+            # PRINTALL ---------------------------------------------------------
+            elif print_equallines: print_color, print_line = COL_EQUAL, line
+            # check if
+            if not print_line:
+                # print lines grey, write also equal values !!!
+                for item in printalllines_list:
+                    if (re.search(item,line)) != None: print_color, print_line = COL_EQUAL, line
+            # PROBLEM LIST - In case of DOWN/FAIL write also equal values !!!
+            for item in problem_list:
+                if (re.search(item,line)) != None: print_color, print_line = COL_PROBLEM, line
+            # Final PRINT ------------------------------------------------------
+            if print_line: print_string += "%s%s%s\n" % (print_color,print_line,bcolors.ENDC)
+    return print_string
+
 
 def get_version_from_file_last_modification_date(path_to_file = str(os.path.abspath(__file__))):
     file_time = None
@@ -313,6 +1155,41 @@ def get_version_from_file_last_modification_date(path_to_file = str(os.path.absp
     struct_time = time.gmtime(file_time)
     return str(struct_time.tm_year)[2:] + '.' + str(struct_time.tm_mon) + '.' + str(struct_time.tm_mday)
 
+def append_variable_to_bashrc(variable_name=None,variable_value=None):
+    forget_it = subprocess.check_output('echo export %s=%s >> ~/.bashrc'%(variable_name,variable_value), shell=True)
+
+def send_me_email(subject='testmail', file_name='/dev/null'):
+    my_account = subprocess.check_output('whoami', shell=True)
+    my_finger_line = subprocess.check_output('finger | grep "%s"'%(my_account.strip()), shell=True)
+    try:
+        my_name = my_finger_line.splitlines()[0].split()[1]
+        my_surname = my_finger_line.splitlines()[0].split()[2]
+        if EMAIL_ADDRESS: my_email_address = EMAIL_ADDRESS
+        else: my_email_address = '%s.%s@orange.com' % (my_name, my_surname)
+        mail_command = 'echo | mutt -s "%s" -a %s -- %s' % (subject,file_name,my_email_address)
+        #mail_command = 'uuencode %s %s | mail -s "%s" %s' % (file_name,file_name,subject,my_email_address)
+        forget_it = subprocess.check_output(mail_command, shell=True)
+        print(' ==> Email "%s" sent to %s.'%(subject,my_email_address))
+    except: pass
+
+
+def generate_file_name(prefix = None, suffix = None):
+    try:    WORKDIR         = os.environ['HOME']
+    except: WORKDIR         = str(os.path.dirname(os.path.abspath(__file__)))
+    if WORKDIR: LOGDIR      = os.path.join(WORKDIR,'logs')
+    if not os.path.exists(LOGDIR): os.makedirs(LOGDIR)
+    if os.path.exists(LOGDIR):
+        if not prefix: filename_prefix = os.path.join(LOGDIR,'device')
+        else: filename_prefix = prefix
+        if not suffix: filename_suffix = 'log'
+        else: filename_suffix = suffix
+        now = datetime.datetime.now()
+        filename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s-%s-%s" % \
+            (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,\
+            now.second,script_name.replace('.py','').replace('./','').\
+            replace(':','_').replace('.','_').replace('\\','/')\
+            .split('/')[-1],USERNAME,filename_suffix)
+    return filename
 
 ##############################################################################
 #
@@ -323,10 +1200,11 @@ def get_version_from_file_last_modification_date(path_to_file = str(os.path.absp
 if __name__ != "__main__": sys.exit(0)
 
 VERSION = get_version_from_file_last_modification_date()
+dictionary_of_variables = {}
 
 ######## Parse program arguments #########
 parser = argparse.ArgumentParser(
-                description = "v.%s" % (VERSION),
+                description = "Script v.%s" % (VERSION),
                 epilog = "e.g: \n" )
 
 parser.add_argument("--version",
@@ -356,21 +1234,66 @@ parser.add_argument("--nolog",
 parser.add_argument("--rcmd",
                     action = "store", dest = 'rcommand', default = str(),
                     help = "'command' or ['list of commands',...] to run on remote device")
+parser.add_argument("--readlog",
+                    action = "store", dest = 'readlog', default = None,
+                    help = "name of the logfile to read json.")
+parser.add_argument("--readlognew",
+                    action = "store", dest = 'readlognew', default = None,
+                    help = "name of the logfile to read json.")
+parser.add_argument("--emailaddr",
+                    action = "store", dest = 'emailaddr', default = '',
+                    help = "insert your email address once if is different than name.surname@orange.com,\
+                    it will do NEWR_EMAIL variable record in your bashrc file and \
+                    you do not need to insert it any more.")
+# parser.add_argument("--vpnlist",
+#                     action = "store", dest = 'vpnlist', default = str(),
+#                     help = "'vpn' or ['list of vpns',...] to compare")
+parser.add_argument("--printall",action = "store_true", default = False,
+                    help = "print all lines, changes will be coloured")
+# parser.add_argument("--difffile",
+#                     action = 'store_true', dest = "diff_file", default = False,
+#                     help = "do file-diff logfile (name will be generated and printed)")
 parser.add_argument("--alloti",
                     action = 'store_true', dest = "alloti", default = None,
                     help = "do action on all oti routers")
+
 args = parser.parse_args()
 
 if args.nocolors: bcolors = nocolors
 
+COL_DELETED = bcolors.RED
+COL_ADDED   = bcolors.GREEN
+COL_DIFFDEL = bcolors.BLUE
+COL_DIFFADD = bcolors.YELLOW
+COL_EQUAL   = bcolors.GREY
+COL_PROBLEM = bcolors.RED
+
+if args.emailaddr:
+    append_variable_to_bashrc(variable_name='NEWR_EMAIL',variable_value=args.emailaddr)
+    EMAIL_ADDRESS = args.emailaddr
+
 if args.alloti: device_list = parse_json_file_and_get_oti_routers_list()
 else: device_list = [args.device]
 
+device_list = [args.device]
+
+# bgp_data_loaded = None
+# if args.readlog:
+#     bgp_data_loaded = copy.deepcopy(read_bgp_data_json_from_logfile(args.readlog))
+#
+# if args.readlognew:
+#     bgp_data = copy.deepcopy(read_bgp_data_json_from_logfile(args.readlognew))
+
+# compare_vpn_list = None
+# if args.vpnlist:
+#     compare_vpn_list = args.vpnlist.replace('[','').replace(']','').replace('(','').\
+#         replace(')','').split(',')
 
 ####### Set USERNAME if needed
 if args.username: USERNAME = args.username
 if not USERNAME:
-    print(bcolors.MAGENTA + " ... Please insert your username by cmdline switch --user username !" + bcolors.ENDC )
+    print(bcolors.MAGENTA + " ... Please insert your username by cmdline switch \
+        --user username !" + bcolors.ENDC )
     sys.exit(0)
 
 # SSH (default)
@@ -378,64 +1301,100 @@ if not PASSWORD:
     if args.password: PASSWORD = args.password
     else:             PASSWORD = getpass.getpass("TACACS password: ")
 
-for device in device_list:
-    if device:
-        router_prompt = None
-        try: DEVICE_HOST = device.split(':')[0]
-        except: DEVICE_HOST = str()
-        try: DEVICE_PORT = device.split(':')[1]
-        except: DEVICE_PORT = '22'
-        print('DEVICE %s (host=%s, port=%s) START.........................'\
-            %(device,DEVICE_HOST, DEVICE_PORT))
+logfilename = None
+if not args.readlognew:
+    for device in device_list:
+        if device:
+            router_prompt = None
+            try: DEVICE_HOST = device.split(':')[0]
+            except: DEVICE_HOST = str()
+            try: DEVICE_PORT = device.split(':')[1]
+            except: DEVICE_PORT = '22'
+            print('DEVICE %s (host=%s, port=%s) START.........................'\
+                %(device,DEVICE_HOST, DEVICE_PORT))
 
-        ####### Figure out type of router OS
-        if not args.router_type:
-            router_type = netmiko_autodetect(device)
-            if not router_type in KNOWN_OS_TYPES:
-                print('%sUNSUPPORTED DEVICE TYPE: %s , BREAK!%s' % \
-                    (bcolors. MAGENTA,router_type, bcolors.ENDC))
-            else: print('DETECTED DEVICE_TYPE: %s' % (router_type))
-        else:
-            router_type = args.router_type
-            print('FORCED DEVICE_TYPE: ' + router_type)
-
-        ######## Create logs directory if not existing  #########
-        if not os.path.exists(LOGDIR): os.makedirs(LOGDIR)
-        filename_prefix = os.path.join(LOGDIR,device)
-        filename_suffix = 'log'
-        now = datetime.datetime.now()
-        logfilename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s-%s-%s" % \
-            (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,\
-            now.second,script_name.replace('.py','').replace('./',''),USERNAME,filename_suffix)
-        if args.nolog: logfilename = None
-
-        ######## Find command list file (optional)
-        list_cmd = []
-        if args.cmd_file:
-            if not os.path.isfile(args.cmd_file):
-                print("%s ... Can't find command file: %s%s") % \
-                    (bcolors.MAGENTA, args.cmd_file, bcolors.ENDC)
-                sys.exit()
+            ####### Figure out type of router OS
+            if not args.router_type:
+                #router_type = netmiko_autodetect(device)
+                router_type = detect_router_by_ssh(device)
+                if not router_type in KNOWN_OS_TYPES:
+                    print('%sUNSUPPORTED DEVICE TYPE: %s , BREAK!%s' % \
+                        (bcolors.MAGENTA,router_type, bcolors.ENDC))
+                    continue
+                else: print('DETECTED DEVICE_TYPE: %s' % (router_type))
             else:
-                with open(args.cmd_file) as cmdf:
-                    list_cmd = cmdf.read().replace('\x0d','').splitlines()
+                router_type = args.router_type
+                print('FORCED DEVICE_TYPE: ' + router_type)
 
-        if args.rcommand: list_cmd = args.rcommand.replace('\'','').\
-            replace('"','').replace('[','').replace(']','').split(',')
+            ######## Create logs directory if not existing  #########
+            if not os.path.exists(LOGDIR): os.makedirs(LOGDIR)
+            logfilename = generate_file_name(prefix = device, suffix = 'log')
+            if args.nolog: logfilename = None
 
-        if len(list_cmd)>0: CMD = list_cmd
-        else:
-            if router_type == 'cisco_ios':  CMD = CMD_IOS_XE
-            elif router_type == 'cisco_xr': CMD = CMD_IOS_XR
-            elif router_type == 'juniper':  CMD = CMD_JUNOS
-            elif router_type == 'huawei' :  CMD = CMD_VRP
-            elif router_type == 'linux':    CMD = CMD_LINUX
-            else: CMD = list_cmd
+            ######## Find command list file (optional)
+            list_cmd = []
+            if args.cmd_file:
+                if not os.path.isfile(args.cmd_file):
+                    print("%s ... Can't find command file: %s%s") % \
+                        (bcolors.MAGENTA, args.cmd_file, bcolors.ENDC)
+                    sys.exit()
+                else:
+                    with open(args.cmd_file) as cmdf:
+                        list_cmd = cmdf.read().replace('\x0d','').splitlines()
 
-        run_remote_and_local_commands(CMD, logfilename, printall = True, printcmdtologfile = True)
+            if args.rcommand: list_cmd = args.rcommand.replace('\'','').\
+                replace('"','').replace('[','').replace(']','').split(',')
 
-        if logfilename and os.path.exists(logfilename):
-            print('%s file created.' % (logfilename))
-        print('\nDEVICE %s DONE.'%(device))
-print('\nEND.')
+            if len(list_cmd)>0: CMD = list_cmd
+            else:
+                if router_type == 'cisco_ios':  CMD = CMD_IOS_XE
+                elif router_type == 'cisco_xr': CMD = CMD_IOS_XR
+                elif router_type == 'juniper':  CMD = CMD_JUNOS
+                elif router_type == 'huawei' :  CMD = CMD_VRP
+                elif router_type == 'linux':    CMD = CMD_LINUX
+                else: CMD = list_cmd
+
+            run_remote_and_local_commands(CMD, logfilename, printall = True , \
+                printcmdtologfile = True)
+
+            if logfilename and os.path.exists(logfilename):
+                print('%s file created.' % (logfilename))
+                try: send_me_email(subject = logfilename.replace('\\','/').\
+                         split('/')[-1], file_name = logfilename)
+                except: pass
+            print('\nDEVICE %s DONE.'%(device))
+
+# difffilename = str()
+# if not logfilename: logfilename = generate_file_name(prefix = device, suffix = 'log')
+#
+# if bgp_data_loaded and compare_vpn_list:
+#     print(bcolors.YELLOW + '\n' + 75*'=' + '\nBGP DIFFERENCIES:\n' + 75*'=' + bcolors.ENDC)
+#     for vpn_name in compare_vpn_list:
+#         data1 = copy.deepcopy(return_string_from_bgp_vpn_section(bgp_data_loaded, vpn_name))
+#         data2 = copy.deepcopy(return_string_from_bgp_vpn_section(bgp_data, vpn_name))
+#         if data1 and data2:
+#             print(bcolors.BOLD + '\nVPN: ' + vpn_name + bcolors.ENDC)
+#             diff_result = get_difference_string_from_string_or_list( \
+#                 data1,data2, \
+#                 diff_method = 'ndiff0', \
+#                 ignore_list = default_ignoreline_list, \
+#                 print_equallines = args.printall, \
+#                 note=False)
+#             if len(diff_result) == 0: print(bcolors.GREY + 'OK' + bcolors.ENDC)
+#             else: print(diff_result)
+#             if args.diff_file:
+#                 difffilename = logfilename + '-diff'
+#                 print(difffilename)
+#                 with open(difffilename, "a") as myfile:
+#                     myfile.write('\n' + bcolors.BOLD + vpn_name + bcolors.ENDC +'\n')
+#                     if len(diff_result) == 0: myfile.write(bcolors.GREY + 'OK' + bcolors.ENDC + '\n\n')
+#                     else: myfile.write(diff_result + '\n\n')
+#     print(bcolors.YELLOW + '\n' + 75*'=' + bcolors.ENDC)
+#     if args.diff_file:
+#         try: send_me_email(subject = difffilename.replace('\\','/').split('/')[-1],\
+#                     file_name = difffilename)
+#         except: pass
+
+print('\nEND [script runtime = %d sec].'%(time.time() - START_EPOCH))
+
 
