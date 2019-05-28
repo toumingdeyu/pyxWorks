@@ -355,7 +355,6 @@ def ciscoxr_get_vpnv4_all_interfaces(text = None):
            except: pass
         for vpn_to_if in vpn_list:
             for vrf_index, vrf_item in return_indexed_list(bgp_data["vrf_list"]):
-                print(vrf_index,vrf_item.get("vrf_name"),vpn_to_if[0])
                 if vrf_item.get("vrf_name") == vpn_to_if[0]:
                     update_bgpdata_structure(bgp_data["vrf_list"][vrf_index],"interface_name",vpn_to_if[1])
                     update_bgpdata_structure(bgp_data["vrf_list"][vrf_index],"interface_ip",vpn_to_if[2])
