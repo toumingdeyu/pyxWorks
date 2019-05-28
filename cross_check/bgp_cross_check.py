@@ -344,15 +344,16 @@ def ciscoxr_parse_bgp_neighbors(text = None,vrf_index = None,neighbor_index = No
 def ciscoxr_get_vpnv4_all_interfaces(text = None):
     output, vpn_list = [], []
     if text:
-        try: text = text.strip().split('MET')[1]
-        except: text = text.strip()
         for row in text.splitlines():
            ### LIST=VPN,INTERFACE_NAME,INTERFACE_IP
            columns = row.strip().split()
            try: vpn_list.append((columns[4],columns[0],columns[1]))
            except: pass
+        print(text)
+        print(vpn_list)
         for vpn_to_if in vpn_list:
             for vrf_index, vrf_item in return_indexed_list(bgp_data["vrf_list"]):
+                print(vrf_index,vrf_item.get("vrf_name"),vpn_to_if[0])
                 if vrf_item.get("vrf_name") == vpn_to_if[0]:
                     update_bgpdata_structure(bgp_data["vrf_list"][vrf_index],"interface_name",vpn_to_if[1])
                     update_bgpdata_structure(bgp_data["vrf_list"][vrf_index],"interface_ip",vpn_to_if[2])
@@ -468,8 +469,6 @@ def huawei_parse_bgp_neighbor_routes(text = None,vrf_index = None,neighbor_index
 def huawei_parse_vpn_interfaces(text = None):
     output, vpn_list = [], []
     if text:
-        try: text = text.strip().split('MET')[1]
-        except: text = text.strip()
         for interface in text.split('interface'):
             ### LIST=VPN,INTERFACE_NAME
             interface_name = interface.split()[0].strip()
@@ -1290,7 +1289,7 @@ if not PASSWORD:
     if args.password: PASSWORD = args.password
     else:             PASSWORD = getpass.getpass("TACACS password: ")
 
-logfilename = None
+device, logfilename = None, None
 if not args.readlognew:
     for device in device_list:
         if device:
