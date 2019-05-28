@@ -471,8 +471,8 @@ def huawei_parse_vpn_interfaces(text = None):
     if text:
         for interface in text.split('interface'):
             ### LIST=VPN,INTERFACE_NAME
-            interface_name = interface.split()[0].strip()
             try:
+                interface_name = interface.split()[0].strip()
                 vpn_name = interface.split('ip binding vpn-instance')[1].strip()
                 vpn_list.append((vpn_name,interface_name))
             except: pass
