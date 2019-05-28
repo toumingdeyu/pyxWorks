@@ -305,10 +305,13 @@ def ciscoxr_get_bgp_vpn_peer_data_to_json(text = None):
         except: vrf_sections = []
         vrf_index = 0
         for vrf_section in vrf_sections:
-           vrf_instance = vrf_section.splitlines()[0].strip()
-           try: vrf_peer_lines = vrf_section.strip().split('Neighbor')[1].splitlines()[1:]
-           except: vrf_peer_lines = []
-           if len(vrf_peer_lines)>0:
+           try:
+               vrf_instance = vrf_section.splitlines()[0].strip()
+               vrf_peer_lines = vrf_section.strip().split('Neighbor')[1].splitlines()[1:]
+           except:
+               vrf_instance = None
+               vrf_peer_lines = []
+           if vrf_instance and len(vrf_peer_lines)>0:
                update_bgpdata_structure(bgp_data["vrf_list"],"vrf_name",str(vrf_instance),vrf_index, void_vrf_list_item)
                neighbor_index = 0
                for vrf_peer_line in vrf_peer_lines:
@@ -346,11 +349,10 @@ def ciscoxr_get_vpnv4_all_interfaces(text = None):
     if text:
         for row in text.splitlines():
            ### LIST=VPN,INTERFACE_NAME,INTERFACE_IP
-           columns = row.strip().split()
-           try: vpn_list.append((columns[4],columns[0],columns[1]))
+           try:
+                columns = row.strip().split()
+                vpn_list.append((columns[4],columns[0],columns[1]))
            except: pass
-        print(text)
-        print(vpn_list)
         for vpn_to_if in vpn_list:
             for vrf_index, vrf_item in return_indexed_list(bgp_data["vrf_list"]):
                 print(vrf_index,vrf_item.get("vrf_name"),vpn_to_if[0])
