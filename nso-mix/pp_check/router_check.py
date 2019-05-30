@@ -774,8 +774,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument("--version",
                     action = 'version', version = VERSION)
 parser.add_argument("--device",
-                    action = "store", dest = 'device',
-                    required = True,
+                    action = "store", dest = 'device', default = None,
                     help = "target router to check")
 parser.add_argument("--os",
                     action = "store", dest="router_type",
@@ -843,6 +842,10 @@ if args.post: pre_post = 'post'
 elif args.recheck: pre_post = 'post'
 else: pre_post = 'pre'
 
+if not args.device:
+    print(bcolors.MAGENTA + " ... Please insert device name !" + bcolors.ENDC)
+    sys.exit(0)
+
 # SET WORKING DIRECTORY
 try:    WORKDIR         = os.path.join(os.environ['HOME'],'logs')
 except: WORKDIR         = os.path.join(str(os.path.dirname(os.path.abspath(__file__))),'logs')
@@ -879,11 +882,15 @@ if not os.path.exists(WORKDIR): os.makedirs(WORKDIR)
 ####### Find necessary pre and post check files if needed 
 if args.precheck_file:
     if not os.path.isfile(args.precheck_file):
-        print(bcolors.MAGENTA + " ... Can't find precheck file: %s" + bcolors.ENDC) \
-           % args.precheck_file
-        sys.exit()
-    precheck_file = args.precheck_file
-    pre_post = 'post'
+        if os.path.isfile(os.path.join(WORKDIR,args.precheck_file)):
+            precheck_file = os.path.join(WORKDIR,args.precheck_file)
+        else:
+            print(bcolors.MAGENTA + " ... Can't find precheck file: %s" % \
+                (args.precheck_file) + bcolors.ENDC)
+            sys.exit()
+    else:
+        precheck_file = args.precheck_file
+        pre_post = 'post'
 else:
     if pre_post == 'post' or args.recheck or args.postcheck_file:
         if args.latest:
@@ -892,7 +899,7 @@ else:
             list_precheck_files = glob.glob(os.path.join(WORKDIR,args.device.replace(':','_').replace('.','_')) + '*' + USERNAME + '-pre')
 
         if len(list_precheck_files) == 0:
-            print(bcolors.MAGENTA + " ... Can't find any precheck file. %s " + bcolors.ENDC)
+            print(bcolors.MAGENTA + " ... Can't find any precheck file." + bcolors.ENDC)
             sys.exit()
         most_recent_precheck = list_precheck_files[0]
         for item in list_precheck_files:
@@ -906,11 +913,15 @@ else:
 if args.recheck or args.postcheck_file:
     if args.postcheck_file:
         if not os.path.isfile(args.postcheck_file):
-            print(bcolors.MAGENTA + " ... Can't find postcheck file: %s" + bcolors.ENDC) \
-               % args.precheck_file
-            sys.exit()
-        postcheck_file = args.postcheck_file
-        pre_post = 'post'
+            if os.path.isfile(os.path.join(WORKDIR,args.postcheck_file)):
+                postcheck_file = os.path.join(WORKDIR,args.postcheck_file)
+            else:
+                print(bcolors.MAGENTA + " ... Can't find postcheck file: %s" % \
+                    (args.postcheck_file) + bcolors.ENDC)
+                sys.exit()
+        else:
+            postcheck_file = args.postcheck_file
+            pre_post = 'post'
     else:
         if args.latest:
             list_postcheck_files = glob.glob(os.path.join(WORKDIR,args.device.replace(':','_').replace('.','_')) + '*' + 'post')
@@ -918,7 +929,7 @@ if args.recheck or args.postcheck_file:
             list_postcheck_files = glob.glob(os.path.join(WORKDIR,args.device.replace(':','_').replace('.','_')) + '*' + USERNAME + '-post')
 
         if len(list_postcheck_files) == 0:
-            print(bcolors.MAGENTA + " ... Can't find any postcheck file. %s " + bcolors.ENDC)
+            print(bcolors.MAGENTA + " ... Can't find any postcheck file." + bcolors.ENDC)
             sys.exit()
         most_recent_postcheck = list_postcheck_files[0]
         for item in list_postcheck_files:
@@ -961,7 +972,9 @@ if not args.recheck:
             print(" ==> STARTING PRECHECK ...")
         print(" ... Openning %s check file to collect output" %( pre_post ))
         filename = filename_generated
-        if pre_post == "post" and not args.recheck: postcheck_file = filename
+
+### if not inserted --postfile, we will use generated filename and write to this new file
+if not args.recheck and not args.postcheck_file: postcheck_file = filename
 
 # Collect pre/post check information
 if router_type == "ios-xe":
@@ -1014,7 +1027,6 @@ else:
 # ADD PROMPT TO PROMPTS LIST
 if router_prompt: DEVICE_PROMPTS.append(router_prompt)
 
-
 print_cmd_list(CMD)
 
 # if postcheck file inserted DO-NOT new postcheck file
@@ -1051,7 +1063,8 @@ else:
         sys.exit()
     finally:
         client.close()
-
+    ### MAKE READABLE for THE OTHERS
+    last_output = subprocess.check_output('chmod +r %s' % (filename),shell=True)
     print(" ... Collection is completed\n")
 
 # Post Check treatment 
@@ -1060,11 +1073,18 @@ if pre_post == "post" or args.recheck or args.postcheck_file:
 
     # Opening pre and post check files and loading content for processing
     print("\nPrecheck file:")
-    #subprocess.call(['ls','-l',precheck_file])
-    if os.path.exists(precheck_file): print('%s file exists.'%precheck_file)
+    if os.path.isfile(precheck_file) and os.access(precheck_file, os.R_OK):
+        print('%s file exists.'%(precheck_file))
+    else:
+        print('%s file does not exists or access problem occurs.'%(precheck_file))
+        sys.exit()
+
     print("\nPostcheck file:")
-    #subprocess.call(['ls','-l',postcheck_file])
-    if os.path.exists(postcheck_file): print('%s file exists.'%postcheck_file)
+    if os.path.isfile(postcheck_file) and os.access(postcheck_file, os.R_OK):
+        print('%s file exists.'%(postcheck_file))
+    else:
+        print('%s file does not exists or access problem occurs.'%(postcheck_file))
+        sys.exit()
     fp1 = open(precheck_file,"r")
     fp2 = open(postcheck_file,"r")
 
