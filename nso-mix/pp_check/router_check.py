@@ -414,7 +414,7 @@ def detect_router_by_ssh(device, debug = False):
 
     try:
         #connect(self, hostname, port=22, username=None, password=None, pkey=None, key_filename=None, timeout=None, allow_agent=True, look_for_keys=True, compress=False)
-        client.connect(PARAMIKO_HOST, port=int(PARAMIKO_PORT), username=USERNAME, password=PASSWORD)
+        client.connect(PARAMIKO_HOST, port=int(PARAMIKO_PORT), username=USERNAME, password=PASSWORD,look_for_keys=False)
         chan = client.invoke_shell()
         chan.settimeout(TIMEOUT)
         # prevent --More-- in log banner (space=page, enter=1line,tab=esc)
@@ -1041,7 +1041,7 @@ else:
 
     try:
         output = str()
-        client.connect(PARAMIKO_HOST, port=int(PARAMIKO_PORT), username=USERNAME, password=PASSWORD)
+        client.connect(PARAMIKO_HOST, port=int(PARAMIKO_PORT), username=USERNAME, password=PASSWORD,look_for_keys=False)
         chan = client.invoke_shell()
         chan.settimeout(TIMEOUT)
         output, forget_it = ssh_send_command_and_read_output(chan,DEVICE_PROMPTS,TERM_LEN_0,printall=False)
