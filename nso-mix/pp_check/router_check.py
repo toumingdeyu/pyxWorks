@@ -958,6 +958,7 @@ filename_suffix = pre_post
 now = datetime.datetime.now()
 filename_generated = "%s-%.2i%.2i%.2i-%.2i%.2i%.2i-%s-%s" % \
     (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,now.second,USERNAME,filename_suffix)
+filename = None
 
 logfilename=str()
 if args.log_file:
@@ -1223,7 +1224,7 @@ if pre_post == "post" or args.recheck or args.postcheck_file:
 elif pre_post == "pre" and not args.recheck:
     print('\n ==> PRECHECK COMPLETE !')
 
-if os.path.exists(filename):
+if filename and os.path.exists(filename):
     print(' ==> File %s created.'%(filename))
     try: send_me_email(subject = filename.replace('\\','/').split('/')[-1], file_name = filename)
     except: pass
