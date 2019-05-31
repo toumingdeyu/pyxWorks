@@ -1228,10 +1228,13 @@ def send_me_email(subject='testmail', file_name='/dev/null'):
 #     except: pass
 
 
-def generate_file_name(prefix = None, suffix = None):
-    try:    WORKDIR         = os.environ['HOME']
-    except: WORKDIR         = str(os.path.dirname(os.path.abspath(__file__)))
-    if WORKDIR: LOGDIR      = os.path.join(WORKDIR,'logs')
+def generate_file_name(prefix = None, suffix = None , directory = None):
+    filenamewithpath = None
+    if not directory:
+        try:    DIR         = os.environ['HOME']
+        except: DIR         = str(os.path.dirname(os.path.abspath(__file__)))
+    else: DIR = str(directory)
+    if DIR: LOGDIR      = os.path.join(WORKDIR,'logs')
     if not os.path.exists(LOGDIR): os.makedirs(LOGDIR)
     if os.path.exists(LOGDIR):
         if not prefix: filename_prefix = os.path.join(LOGDIR,'device')
@@ -1244,7 +1247,8 @@ def generate_file_name(prefix = None, suffix = None):
             now.second,script_name.replace('.py','').replace('./','').\
             replace(':','_').replace('.','_').replace('\\','/')\
             .split('/')[-1],USERNAME,filename_suffix)
-    return filename
+        filenamewithpath = str(os.path.join(LOGDIR,filename))
+    return filenamewithpath
 
 ##############################################################################
 #
@@ -1334,7 +1338,8 @@ device_list = [args.device]
 
 if args.device == str():
     remote_connect = None
-    device_list = ['local']
+    local_hostname = str(subprocess.check_output('hostname',shell=True)).strip().replace('\\','').replace('/','')
+    device_list = [local_hostname]
 
 # bgp_data_loaded = None
 # if args.readlog:
