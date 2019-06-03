@@ -94,7 +94,15 @@ print('LOGDIR: ' + LOGDIR)
 CMD_IOS_XE = []
 
 CMD_IOS_XR = [
-    {'remote_command':'sh run | in "router bgp"','if_last_output':'dictionary_of_variables["router_bgp"]=(dictionary_of_variables.get("last_output","").split("router bgp")[1])'},
+    {'remote_command':['sh run | in "router bgp"',{'output_variable':'router_bgp_text'}]
+    },
+    {'eval':['True if "router bgp 5511" in glob_vars.get("router_bgp_text","") else None',{'output_variable':'OTI_5511'}]
+    },
+    {'eval':['True if "router bgp 2300" in glob_vars.get("router_bgp_text","") else None',{'output_variable':'IMN_2300'}]
+    },
+    {'eval':'glob_vars.get("IMN_2300","")',},
+    {'eval':'glob_vars.get("IMN_2300","")',},
+    {'if':'glob_vars.get("IMN_2300","")', 'remote_command':'show bgp summary' }
 
 
 #     'show bgp summary | include "local AS number"',
@@ -194,11 +202,11 @@ CMD_LOCAL = [
     {"local_command":'hostname'},
     {"loop":"[0,1,2,3]","local_command":['whoami ',{'eval':'loop_item'}]
     },
-    {'eval':'dictionary_of_variables.get("last_output","")'
+    {'eval':'glob_vars.get("last_output","")'
     },
-    {'if':'dictionary_of_variables.get("last_output","")==""','eval':'dictionary_of_variables.get("last_output","")'
+    {'if':'glob_vars.get("last_output","")==""','eval':'glob_vars.get("last_output","")'
     },
-    {'if':'dictionary_of_variables.get("last_output","")', "local_command":'whoami'
+    {'if':'glob_vars.get("last_output","")', "local_command":'whoami'
     },
 ]
 
@@ -733,7 +741,7 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
     ### RUN_COMMAND - REMOTE or LOCAL ------------------------------------------
     def run_command(ssh_connection,cmd_line_items,loop_item=None,run_remote = None,\
         logfilename = logfilename,printall = printall, printcmdtologfile = printcmdtologfile):
-        global dictionary_of_variables
+        global glob_vars
         cli_line, name_of_output_variable = str(), None
         ### LIST,TUPPLE,STRINS ARE REMOTE REMOTE/LOCAL DEVICE COMMANDS
         if isinstance(cmd_line_items, (six.string_types,list,tuple)):
@@ -779,14 +787,14 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
                 else: fp.write('LOCAL_COMMAND: ' + cli_line + '\n'+last_output+'\n')
             else: fp.write(last_output)
             ### Result will be allways string, so rstrip() could be done
-            dictionary_of_variables['last_output'] = last_output.rstrip()
+            glob_vars['last_output'] = last_output.rstrip()
             if name_of_output_variable:
-                dictionary_of_variables[name_of_output_variable] = last_output.rstrip()
+                glob_vars[name_of_output_variable] = last_output.rstrip()
         return None
     ### EVAL_COMMAND -----------------------------------------------------------
     def eval_command(ssh_connection,cmd_line_items,loop_item=None,\
         logfilename = logfilename,printall = printall, printcmdtologfile = printcmdtologfile):
-        global dictionary_of_variables
+        global glob_vars
         cli_line, name_of_output_variable = str(), None
         ### LIST,TUPPLE,STRINS ARE REMOTE REMOTE/LOCAL DEVICE COMMANDS
         if isinstance(cmd_line_items, (six.string_types,list,tuple)):
@@ -804,13 +812,13 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
             print(bcolors.GREY + str(local_output) + bcolors.ENDC )
             if printcmdtologfile: fp.write('EVAL_COMMAND: ' + cli_line + '\n' + str(local_output) + '\n')
             if name_of_output_variable:
-                dictionary_of_variables[name_of_output_variable] = local_output
-            dictionary_of_variables['last_output'] = local_output
+                glob_vars[name_of_output_variable] = local_output
+            glob_vars['last_output'] = local_output
         return None
     ### IF_FUNCTION (simple eval) ----------------------------------------------
     def if_function(ssh_connection,cmd_line_items,loop_item=None,\
         logfilename = logfilename,printall = printall, printcmdtologfile = printcmdtologfile):
-        global dictionary_of_variables
+        global glob_vars
         cli_line, name_of_output_variable, success = str(), None, False
         if isinstance(cmd_line_items, (int,float,six.string_types)):
             condition_eval_text = cmd_line_items
@@ -824,13 +832,19 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
         return success
     ### MAIN_DO_STEP -----------------------------------------------------------
     def main_do_step(cmd_line_items,loop_item=None):
-        global dictionary_of_variables
+        global glob_vars
         condition_result = True
         if isinstance(cmd_line_items, (six.string_types,list,tuple)):
             if run_command(ssh_connection,cmd_line_items,loop_item,run_remote = True): return None
         if isinstance(cmd_line_items, (dict)):
+            if cmd_line_items.get('pre_remote_command','') and remote_connect:
+                if run_command(ssh_connection,cmd_line_items.get('pre_remote_command',''),loop_item,run_remote = True): return None
+            if cmd_line_items.get('pre_local_command',''):
+                if run_command(ssh_connection,cmd_line_items.get('pre_local_command',''),loop_item): return None
+            if cmd_line_items.get('pre_eval',''):
+                if eval_command(ssh_connection,cmd_line_items.get('pre_eval',''),loop_item): return None
             if cmd_line_items.get('if',''):
-                condition_result = if_function(ssh_connection,cmd_line_items,loop_item)
+                condition_result = if_function(ssh_connection,cmd_line_items.get('if',''),loop_item)
             if condition_result:
                 if cmd_line_items.get('remote_command','') and remote_connect:
                     if run_command(ssh_connection,cmd_line_items.get('remote_command',''),loop_item,run_remote = True): return None
@@ -841,7 +855,7 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
         return True
 
     ### RUN_REMOTE_AND_LOCAL_COMMANDS START ====================================
-    global remote_connect, dictionary_of_variables
+    global remote_connect, glob_vars
     ssh_connection, output= None, None
 
     try:
@@ -869,9 +883,9 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
         with open(logfilename,"w") as fp:
             if output and not printcmdtologfile: fp.write(output)
             for cmd_line_items in CMD:
-                #print('---->',cmd_line_items)
+                #print('----> ',cmd_line_items)
                 if cmd_line_items.get('loop_zipped_list',''):
-                    for loop_item in dictionary_of_variables.get(cmd_line_items.get('loop_zipped_list',''),''):
+                    for loop_item in glob_vars.get(cmd_line_items.get('loop_zipped_list',''),''):
                         main_do_step(cmd_line_items,loop_item)
                 elif cmd_line_items.get('loop',''):
                     for loop_item in eval(cmd_line_items.get('loop','')):
@@ -1191,7 +1205,7 @@ def generate_file_name(prefix = None, suffix = None , directory = None):
 if __name__ != "__main__": sys.exit(0)
 
 VERSION = get_version_from_file_last_modification_date()
-dictionary_of_variables = {}
+glob_vars = {}
 
 ######## Parse program arguments #########
 parser = argparse.ArgumentParser(
