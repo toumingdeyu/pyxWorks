@@ -94,9 +94,11 @@ print('LOGDIR: ' + LOGDIR)
 CMD_IOS_XE = []
 
 CMD_IOS_XR = [
-    'sh run | i "router bgp"',
-    'show bgp summary | include "local AS number"',
-    'show bgp vrf all summary | include "local AS number"',
+    {'remote_command':'sh run | in "router bgp"','if_last_output':'dictionary_of_variables["router_bgp"]=(dictionary_of_variables.get("last_output","").split("router bgp")[1])'},
+
+
+#     'show bgp summary | include "local AS number"',
+#     'show bgp vrf all summary | include "local AS number"',
 #     {'local_function':'ciscoxr_get_bgp_vpn_peer_data_to_json', \
 #        'input_variable':'last_output', 'output_variable':'bgp_vpn_peers'},
 #     {'loop_zipped_list':'bgp_vpn_peers',\
@@ -188,7 +190,13 @@ CMD_LINUX = [
 CMD_LOCAL = [
     {"local_command":['hostname', {"output_variable":"hostname"}]
     },
-    {'if':{'condition':'dictionary_of_variables.get("last_output","")==""'}
+    #{'eval': 'sys.exit(0)'},
+    {"local_command":'hostname'},
+    {"loop":"[0,1,2,3]","local_command":['whoami ',{'eval':'loop_item'}]
+    },
+    {'eval':'dictionary_of_variables.get("last_output","")'
+    },
+    {'if':'dictionary_of_variables.get("last_output","")==""','eval':'dictionary_of_variables.get("last_output","")'
     },
     {'if':'dictionary_of_variables.get("last_output","")', "local_command":'whoami'
     },
@@ -283,6 +291,11 @@ def get_first_row_before(text = None, split_text = None, delete_text = None, spl
         except: pass
     return output
 
+def does_text_contains_string(text = None, contains_string = None):
+    output = str()
+    if text and contains_text:
+        if contains_string in text: output = contains_string
+    return output
 
 # def return_bgp_data_json():
 #     return json.dumps(bgp_data, indent=2)
@@ -718,7 +731,7 @@ def parse_json_file_and_get_oti_routers_list():
 
 def run_remote_and_local_commands(CMD, logfilename = None, printall = None, printcmdtologfile = None):
     ### RUN_COMMAND - REMOTE or LOCAL ------------------------------------------
-    def run_command(ssh_connection,cmd_line_items,loop_item = None,run_remote = None,\
+    def run_command(ssh_connection,cmd_line_items,loop_item=None,run_remote = None,\
         logfilename = logfilename,printall = printall, printcmdtologfile = printcmdtologfile):
         global dictionary_of_variables
         cli_line, name_of_output_variable = str(), None
@@ -728,14 +741,10 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
             elif isinstance(cmd_line_items, (list,tuple)):
                 for cli_item in cmd_line_items:
                     if isinstance(cli_item, dict):
-                        if cli_item.get('zipped_item',''):
-                            try: cli_line += str(loop_item[int(cli_item.get('zipped_item',''))])
-                            except: pass
-                        elif cli_item.get('input_variable',''):
-                            name_of_input_variable = cli_item.get('input_variable','')
-                            cli_line += dictionary_of_variables.get(name_of_input_variable,'')
-                        elif cli_item.get('output_variable',''):
+                        if cli_item.get('output_variable',''):
                             name_of_output_variable = cli_item.get('output_variable','')
+                        elif cli_item.get('eval',''):
+                            cli_line += str(eval(cli_item.get('eval','')))
                     else: cli_line += str(cli_item)
             if run_remote:
                 print(bcolors.GREEN + "REMOTE_COMMAND: %s" % (cli_line) + bcolors.ENDC )
@@ -748,7 +757,9 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
             else:
                 print(bcolors.CYAN + "LOCAL_COMMAND: %s" % (cli_line) + bcolors.ENDC )
                 ### LOCAL COMMAND - SUBPROCESS CALL
-                last_output = subprocess.check_output(str(cli_line),shell=True)
+                try:
+                    last_output = subprocess.check_output(str(cli_line),shell=True)
+                except: last_output = str()
 
             ### FILTER LAST_OUTPUT
             if isinstance(last_output, six.string_types):
@@ -771,58 +782,9 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
             dictionary_of_variables['last_output'] = last_output.rstrip()
             if name_of_output_variable:
                 dictionary_of_variables[name_of_output_variable] = last_output.rstrip()
-            for cli_item in cmd_line_items:
-                if isinstance(cli_item, dict) \
-                    and last_output.strip() == str() \
-                    and cli_item.get('if_output_is_void','') in ['exit','quit','stop']:
-                    if printall: print("%sSTOP [VOID OUTPUT].%s" % \
-                        (bcolors.RED,bcolors.ENDC))
-                    return True
         return None
-    ### RUN_LOCAL_FUNCTION -----------------------------------------------------
-    def run_local_function(cmd_line_items,loop_item = None,logfilename = logfilename,\
-        printall = printall, printcmdtologfile = printcmdtologfile):
-        global dictionary_of_variables
-        local_function_name = cmd_line_items.get('local_function','')
-        if cmd_line_items.get('input_parameters',''):
-            local_input = []
-            for input_list_item in cmd_line_items.get('input_parameters',''):
-                if isinstance(input_list_item, dict):
-                    if input_list_item.get('zipped_item',''):
-                        try: local_input.append(loop_item[int(input_list_item.get('zipped_item',''))])
-                        except: pass
-                    elif input_list_item.get('input_variable',''):
-                        name_of_local_variable = input_list_item.get('input_variable','')
-                        local_input.append(dictionary_of_variables.get(name_of_local_variable,''))
-                else: local_input.append(input_list_item)
-        elif cmd_line_items.get('input_variable',''):
-            name_of_local_variable = cmd_line_items.get('input_variable','')
-            local_input = dictionary_of_variables.get(name_of_local_variable,'')
-        name_of_output_variable = cmd_line_items.get('output_variable','')
-        ### GLOBAL SYMBOLS
-        if isinstance(local_input, (list,tuple)):
-            local_output = globals()[local_function_name](*local_input)
-        else: local_output = globals()[local_function_name](local_input)
-        if isinstance(local_output, six.string_types):
-            local_output = local_output.replace('\x0d','')
-        if name_of_output_variable:
-            dictionary_of_variables[name_of_output_variable] = local_output
-        if printall: print("%sLOCAL_FUNCTION: %s(%s)\n%s%s%s" % \
-            (bcolors.CYAN,local_function_name,\
-            local_input if len(local_input)<100 else name_of_local_variable,\
-            bcolors.GREY,local_output,bcolors.ENDC))
-        fp.write("LOCAL_FUNCTION: %s(%s)\n%s\n" % (local_function_name,\
-            local_input if len(local_input)<100 else name_of_local_variable,\
-            local_output))
-        dictionary_of_variables['last_output'] = local_output
-        if (not local_output or str(local_output).strip() == str() )\
-            and cmd_line_items.get('if_output_is_void') in ['exit','quit','stop']:
-            if printall: print("%sSTOP [VOID OUTPUT].%s" % \
-                (bcolors.RED,bcolors.ENDC))
-            return True
-        return None
-    ### eval_COMMAND -----------------------------------------------------------
-    def eval_command(ssh_connection,cmd_line_items,loop_item = None,\
+    ### EVAL_COMMAND -----------------------------------------------------------
+    def eval_command(ssh_connection,cmd_line_items,loop_item=None,\
         logfilename = logfilename,printall = printall, printcmdtologfile = printcmdtologfile):
         global dictionary_of_variables
         cli_line, name_of_output_variable = str(), None
@@ -832,126 +794,96 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
             elif isinstance(cmd_line_items, (list,tuple)):
                 for cli_item in cmd_line_items:
                     if isinstance(cli_item, dict):
-                        if cli_item.get('zipped_item',''):
-                            try: cli_line += str(loop_item[int(cli_item.get('zipped_item',''))])
-                            except: pass
-                        elif cli_item.get('input_variable',''):
-                            name_of_input_variable = cli_item.get('input_variable','')
-                            cli_line += dictionary_of_variables.get(name_of_input_variable,'')
-                        elif cli_item.get('output_variable',''):
+                        if cli_item.get('output_variable',''):
                             name_of_output_variable = cli_item.get('output_variable','')
+                        elif cli_item.get('eval',''):
+                            cli_line += str(eval(cli_item.get('eval','')))
                     else: cli_line += str(cli_item)
             print(bcolors.CYAN + "EVAL_COMMAND: %s" % (cli_line) + bcolors.ENDC )
-            ret_value = eval(cli_line)
-            print(bcolors.GREY + str(ret_value) + bcolors.ENDC )
-            if printcmdtologfile: fp.write('EVAL_COMMAND: ' + cli_line + '\n' + str(ret_value) + '\n')
+            local_output = eval(cli_line)
+            print(bcolors.GREY + str(local_output) + bcolors.ENDC )
+            if printcmdtologfile: fp.write('EVAL_COMMAND: ' + cli_line + '\n' + str(local_output) + '\n')
+            if name_of_output_variable:
+                dictionary_of_variables[name_of_output_variable] = local_output
+            dictionary_of_variables['last_output'] = local_output
         return None
-    ### IF_FUNCTION ------------------------------------------------------------
-    def if_function(ssh_connection,cmd_line_items,loop_item = None,\
+    ### IF_FUNCTION (simple eval) ----------------------------------------------
+    def if_function(ssh_connection,cmd_line_items,loop_item=None,\
         logfilename = logfilename,printall = printall, printcmdtologfile = printcmdtologfile):
         global dictionary_of_variables
         cli_line, name_of_output_variable, success = str(), None, False
-        ###
-        if isinstance(cmd_line_items, dict):
-            condition_eval_text = cmd_line_items.get('condition','')
-            ret_value = eval(condition_eval_text)
-            if ret_value: success = True
-            else: success = False
-            print(bcolors.CYAN + "IF_(%s)" % (condition_eval_text) + " --> " + \
-                str(success).upper() + bcolors.ENDC )
-            if printcmdtologfile: fp.write('IF_(%s): ' % (condition_eval_text) +\
-                 " --> "+ str(success).upper() + '\n')
-        elif isinstance(cmd_line_items, (int,float,six.string_types)):
+        if isinstance(cmd_line_items, (int,float,six.string_types)):
             condition_eval_text = cmd_line_items
             ret_value = eval(str(condition_eval_text))
             if ret_value: success = True
             else: success = False
-            print(bcolors.CYAN + "IF_(%s)" % (condition_eval_text) + " --> " + \
+            print(bcolors.CYAN + "IF_(%s)" % (condition_eval_text) + " --> " +\
                 str(success).upper() + bcolors.ENDC )
             if printcmdtologfile: fp.write('IF_(%s): ' % (condition_eval_text) +\
                  " --> "+ str(success).upper() + '\n')
         return success
+    ### MAIN_DO_STEP -----------------------------------------------------------
+    def main_do_step(cmd_line_items,loop_item=None):
+        global dictionary_of_variables
+        condition_result = True
+        if isinstance(cmd_line_items, (six.string_types,list,tuple)):
+            if run_command(ssh_connection,cmd_line_items,loop_item,run_remote = True): return None
+        if isinstance(cmd_line_items, (dict)):
+            if cmd_line_items.get('if',''):
+                condition_result = if_function(ssh_connection,cmd_line_items,loop_item)
+            if condition_result:
+                if cmd_line_items.get('remote_command','') and remote_connect:
+                    if run_command(ssh_connection,cmd_line_items.get('remote_command',''),loop_item,run_remote = True): return None
+                if cmd_line_items.get('local_command',''):
+                    if run_command(ssh_connection,cmd_line_items.get('local_command',''),loop_item): return None
+                if cmd_line_items.get('eval',''):
+                    if eval_command(ssh_connection,cmd_line_items.get('eval',''),loop_item): return None
+        return True
+
     ### RUN_REMOTE_AND_LOCAL_COMMANDS START ====================================
-    global remote_connect
+    global remote_connect, dictionary_of_variables
     ssh_connection, output= None, None
-    if remote_connect:
-        try:
+
+    try:
+        if remote_connect:
             ssh_connection = netmiko.ConnectHandler(device_type = router_type, \
                 ip = DEVICE_HOST, port = int(DEVICE_PORT), \
                 username = USERNAME, password = PASSWORD)
-    # ### paramiko
-    #           global DEVICE_PROMPTS
-    #           client = paramiko.SSHClient()
-    #           client.load_system_host_keys()
-    #           client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    #           client.connect(DEVICE_HOST, port=int(DEVICE_PORT), \
-    #                          username=USERNAME, password=PASSWORD)
-    #           ssh_connection = client.invoke_shell()
-    #           ssh_connection.settimeout(TIMEOUT)
-    #           output, forget_it = ssh_send_command_and_read_output(ssh_connection,DEVICE_PROMPTS,TERM_LEN_0)
-    #           output2, forget_it = ssh_send_command_and_read_output(ssh_connection,DEVICE_PROMPTS,"")
-    #           output += output2
-        except () as e:
-            print(bcolors.FAIL + " ... EXCEPTION: (%s)" % (e) + bcolors.ENDC )
-            sys.exit()
-
-    ### WORK REMOTE or LOCAL ===================================================
-    if not logfilename:
-        if 'WIN32' in sys.platform.upper(): logfilename = 'nul'
-        else: logfilename = '/dev/null'
-    with open(logfilename,"w") as fp:
-        if output and not printcmdtologfile: fp.write(output)
-        for cmd_line_items in CMD:
-            condition_result = True
-            cli_line = str()
-            #print(cmd_line_items)
-            ### LIST,TUPPLE,STRINS ARE REMOTE REMOTE DEVICE COMMANDS
-            if isinstance(cmd_line_items, (six.string_types,list,tuple)):
-                if run_command(ssh_connection,cmd_line_items,run_remote = True): return None
-            ### HACK: USE DICT FOR RUN LOCAL PYTHON CODE FUNCTIONS OR LOCAL OS COMMANDS or LOOPS
-            elif isinstance(cmd_line_items, dict):
-                if cmd_line_items.get('loop_zipped_list',''):
-                    list_name = cmd_line_items.get('loop_zipped_list','')
-                    for loop_item in dictionary_of_variables.get(list_name,''):
-                        condition_result = True
-                        ### HACK lower functions expect list or tupple so convert it
-                        if isinstance(loop_item, (int,float,six.string_types)):
-                            loop_item = [loop_item]
-                        if isinstance(loop_item, (list,tuple)):    #six.string_types
-                            if cmd_line_items.get('if',''):
-                                condition_result = if_function(cmd_line_items,cmd_line_items.get('if',''))
-                            if condition_result:
-                                if cmd_line_items.get('remote_command','') and remote_connect:
-                                    remote_cmd = cmd_line_items.get('remote_command','')
-                                    if run_command(ssh_connection,remote_cmd,\
-                                        loop_item,run_remote = True): return None
-                                ### CHAIN - do local_function after remote_command
-                                if cmd_line_items.get('local_function',''):
-                                    if run_local_function(cmd_line_items,loop_item): return None
-                                elif cmd_line_items.get('local_command',''):
-                                    if run_command(ssh_connection,cmd_line_items.get('local_command',''),loop_item): return None
-                                ### CHAIN - do eval after local_function or remote_command
-                                if cmd_line_items.get('eval',''):
-                                    if eval_command(ssh_connection,cmd_line_items.get('eval',''),loop_item): return None
-                else:
-                    if cmd_line_items.get('if',''):
-                        condition_result = if_function(cmd_line_items,cmd_line_items.get('if',''))
-                    if condition_result:
-                        if cmd_line_items.get('remote_command','') and remote_connect:
-                            if run_command(ssh_connection,cmd_line_items.get('remote_command',''),run_remote = True): return None
-                        if cmd_line_items.get('local_function',''):
-                            if run_local_function(cmd_line_items): return None
-                        elif cmd_line_items.get('local_command',''):
-                            if run_command(ssh_connection,cmd_line_items.get('local_command','')): return None
-                        elif cmd_line_items.get('eval',''):
-                            if eval_command(ssh_connection,cmd_line_items.get('eval','')): return None
-            elif printall: print('%sUNSUPPORTED_TYPE %s of %s!%s' % \
-                        (bcolors.MAGENTA,type(item),str(cmd_line_items),bcolors.ENDC))
-
-        if remote_connect:
-            if ssh_connection: ssh_connection.disconnect()
         # ### paramiko
-        #        client.close()
+        #           global DEVICE_PROMPTS
+        #           client = paramiko.SSHClient()
+        #           client.load_system_host_keys()
+        #           client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        #           client.connect(DEVICE_HOST, port=int(DEVICE_PORT), \
+        #                          username=USERNAME, password=PASSWORD)
+        #           ssh_connection = client.invoke_shell()
+        #           ssh_connection.settimeout(TIMEOUT)
+        #           output, forget_it = ssh_send_command_and_read_output(ssh_connection,DEVICE_PROMPTS,TERM_LEN_0)
+        #           output2, forget_it = ssh_send_command_and_read_output(ssh_connection,DEVICE_PROMPTS,"")
+        #           output += output2
+
+        ### WORK REMOTE or LOCAL ===================================================
+        if not logfilename:
+            if 'WIN32' in sys.platform.upper(): logfilename = 'nul'
+            else: logfilename = '/dev/null'
+        with open(logfilename,"w") as fp:
+            if output and not printcmdtologfile: fp.write(output)
+            for cmd_line_items in CMD:
+                #print('---->',cmd_line_items)
+                if cmd_line_items.get('loop_zipped_list',''):
+                    for loop_item in dictionary_of_variables.get(cmd_line_items.get('loop_zipped_list',''),''):
+                        main_do_step(cmd_line_items,loop_item)
+                elif cmd_line_items.get('loop',''):
+                    for loop_item in eval(cmd_line_items.get('loop','')):
+                        main_do_step(cmd_line_items,loop_item)
+                else: main_do_step(cmd_line_items)
+    except () as e:
+        print(bcolors.FAIL + " ... EXCEPTION: (%s)" % (e) + bcolors.ENDC )
+        sys.exit()
+    finally:
+        if remote_connect and ssh_connection: ssh_connection.disconnect()
+    # ### paramiko
+    #        client.close()
 
     return None
 
@@ -1318,7 +1250,7 @@ parser.add_argument("--alloti",
 
 args = parser.parse_args()
 
-if args.nocolors: bcolors = nocolors
+if args.nocolors or 'WIN32' in sys.platform.upper(): bcolors = nocolors
 
 COL_DELETED = bcolors.RED
 COL_ADDED   = bcolors.GREEN
