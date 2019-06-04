@@ -892,14 +892,14 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
         if isinstance(cmd_line_items, (six.string_types,list,tuple)):
             if run_command(ssh_connection,cmd_line_items,loop_item,run_remote = True): return None
         if isinstance(cmd_line_items, (dict)):
-            if cmd_line_items.get('pre_remote_command','') and remote_connect:
-                if run_command(ssh_connection,cmd_line_items.get('pre_remote_command',''),loop_item,run_remote = True): return None
-            if cmd_line_items.get('pre_local_command',''):
-                if run_command(ssh_connection,cmd_line_items.get('pre_local_command',''),loop_item): return None
-            if cmd_line_items.get('pre_exec',''):
-                if exec_command(ssh_connection,cmd_line_items.get('pre_exec',''),loop_item): return None
-            if cmd_line_items.get('pre_eval',''):
-                if eval_command(ssh_connection,cmd_line_items.get('pre_eval',''),loop_item): return None
+            if cmd_line_items.get('pre_if_remote_command','') and remote_connect:
+                if run_command(ssh_connection,cmd_line_items.get('pre_if_remote_command',''),loop_item,run_remote = True): return None
+            if cmd_line_items.get('pre_if_local_command',''):
+                if run_command(ssh_connection,cmd_line_items.get('pre_if_local_command',''),loop_item): return None
+            if cmd_line_items.get('pre_if_exec',''):
+                if exec_command(ssh_connection,cmd_line_items.get('pre_if_exec',''),loop_item): return None
+            if cmd_line_items.get('pre_if_eval',''):
+                if eval_command(ssh_connection,cmd_line_items.get('pre_if_eval',''),loop_item): return None
             if cmd_line_items.get('if',''):
                 condition_result = if_function(ssh_connection,cmd_line_items.get('if',''),loop_item)
             if condition_result:
@@ -960,6 +960,15 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
                     pre_condition_result = if_function(ssh_connection, \
                         cmd_line_items.get('pre_loop_if',''))
                 if pre_condition_result:
+                    if isinstance(cmd_line_items, (dict)):
+                        if cmd_line_items.get('pre_loop_remote_command','') and remote_connect:
+                            if run_command(ssh_connection,cmd_line_items.get('pre_loop_remote_command',''),loop_item,run_remote = True): return None
+                        if cmd_line_items.get('pre_loop_local_command',''):
+                            if run_command(ssh_connection,cmd_line_items.get('pre_loop_local_command',''),loop_item): return None
+                        if cmd_line_items.get('pre_loop_exec',''):
+                            if exec_command(ssh_connection,cmd_line_items.get('pre_loop_exec',''),loop_item): return None
+                        if cmd_line_items.get('pre_loop_eval',''):
+                            if eval_command(ssh_connection,cmd_line_items.get('pre_if_eval',''),loop_item): return None
                     if isinstance(cmd_line_items, dict) and cmd_line_items.get('loop_zipped_list',''):
                         for loop_item in glob_vars.get(cmd_line_items.get('loop_zipped_list',''),''):
                             main_do_step(cmd_line_items,loop_item)
