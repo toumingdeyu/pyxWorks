@@ -144,13 +144,91 @@ CMD_IOS_XR = [
     {'eval':'glob_vars.get("OTI_INT_IPS_V6","")'},
 
 
-    {'pre_loop_if':'glob_vars.get("SHUT","")',
-        'eval':'glob_vars.get("OTI_EXT_IPS_V4","")',
-        'eval_2':'glob_vars.get("OTI_EXT_IPS_V6","")',
+    ### SHUT -------------------------------------------------------------------
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6",""))',
+        #'pre_loop_remote_command':'conf t',
+        #'pre_loop_remote_command_2':'router bgp 5511',
     },
-    {'if':'glob_vars.get("NOSHUT","")'},
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V4","")',
+        #'loop_glob_var':"OTI_EXT_IPS_V4",
+        #    'remote_command':'neighbor loop_item',
+        #    'remote_command_2':'shut',
+    },
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V6","")',
+        #'loop_glob_var':"OTI_EXT_IPS_V6",
+        #    'remote_command':'neighbor loop_item',
+        #    'remote_command_2':'shut',
+    },
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6",""))',
+        #'remote_command':'Commit',
+        #'remote_command_2':'Exit',
+        #'remote_command_3':'Exit',
+    },
 
-    #{'exec':'time.sleep(30)'},
+    {'exec':'time.sleep(120)'},
+
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_INT_IPS_V4","") or glob_vars.get("OTI_INT_IPS_V6",""))',
+        #'pre_loop_remote_command':'conf t',
+        #'pre_loop_remote_command_2':'router bgp 5511',
+    },
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_INT_IPS_V4","")',
+        #'loop_glob_var':"OTI_EXT_IPS_V4",
+        #    'remote_command':'neighbor loop_item',
+        #    'remote_command_2':'shut',
+    },
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_INT_IPS_V6","")',
+        #'loop_glob_var':"OTI_EXT_IPS_V6",
+        #    'remote_command':'neighbor loop_item',
+        #    'remote_command_2':'shut',
+    },
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_INT_IPS_V4","") or glob_vars.get("OTI_INT_IPS_V6",""))',
+        #'remote_command':'Commit',
+        #'remote_command_2':'Exit',
+        #'remote_command_3':'Exit',
+    },
+
+    ### NOSHUT -----------------------------------------------------------------
+    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_INT_IPS_V4","") or glob_vars.get("OTI_INT_IPS_V6",""))',
+        #'pre_loop_remote_command':'conf t',
+        #'pre_loop_remote_command_2':'router bgp 5511',
+    },
+    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_INT_IPS_V4","")',
+        #'loop_glob_var':"OTI_EXT_IPS_V4",
+        #    'remote_command':'neighbor loop_item',
+        #    'remote_command_2':'no shut',
+    },
+    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_INT_IPS_V6","")',
+        #'loop_glob_var':"OTI_EXT_IPS_V6",
+        #    'remote_command':'neighbor loop_item',
+        #    'remote_command_2':'no shut',
+    },
+    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_INT_IPS_V4","") or glob_vars.get("OTI_INT_IPS_V6",""))',
+        #'remote_command':'Commit',
+        #'remote_command_2':'Exit',
+        #'remote_command_3':'Exit',
+    },
+
+    {'exec':'time.sleep(120)'},
+
+    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6",""))',
+        #'pre_loop_remote_command':'conf t',
+        #'pre_loop_remote_command_2':'router bgp 5511',
+    },
+    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V4","")',
+        #'loop_glob_var':"OTI_EXT_IPS_V4",
+        #    'remote_command':'neighbor loop_item',
+        #    'remote_command_2':'shut',
+    },
+    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V6","")',
+        #'loop_glob_var':"OTI_EXT_IPS_V6",
+        #    'remote_command':'neighbor loop_item',
+        #    'remote_command_2':'shut',
+    },
+    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6",""))',
+        #'remote_command':'Commit',
+        #'remote_command_2':'Exit',
+        #'remote_command_3':'Exit',
+    },
 ]
 
 CMD_JUNOS = []
@@ -160,13 +238,13 @@ CMD_VRP = [
 #     {'local_function':'huawei_get_bgp_vpn_peer_data_to_json', 'input_variable':'last_output',\
 #       'output_variable':'bgp_vpn_peers', 'if_output_is_void':'exit'
 #     },
-#     {'loop_zipped_list':'bgp_vpn_peers',
+#     {'loop_glob_var':'bgp_vpn_peers',
 #      'remote_command':('dis bgp vpnv4 vpn-instance ',{'zipped_item':'1'},\
 #          ' peer ',{'zipped_item':'3'},' verbose'),
 #      'local_function':'huawei_parse_bgp_neighbors', "input_parameters":\
 #            [{"input_variable":"last_output"},{'zipped_item':'0'},{'zipped_item':'2'}]
 #     },
-#     {'loop_zipped_list':'bgp_vpn_peers',
+#     {'loop_glob_var':'bgp_vpn_peers',
 #      'remote_command':('dis bgp vpnv4 vpn-instance ',{'zipped_item':'1'},\
 #          ' routing-table peer ',{'zipped_item':'3'},' accepted-routes'),
 #      'local_function':'huawei_parse_bgp_neighbor_routes', "input_parameters":\
@@ -176,12 +254,12 @@ CMD_VRP = [
 #     {'local_function':'huawei_parse_vpn_interfaces', 'input_variable':'last_output',\
 #       'output_variable':'interface_list', 'if_output_is_void':'exit'
 #     },
-#     {'loop_zipped_list':'interface_list',
+#     {'loop_glob_var':'interface_list',
 #       'remote_command':('dis interface ',{'zipped_item':'1'}),
 #       'local_function':'huawei_parse_interface', "input_parameters":\
 #            [{"input_variable":"last_output"},{'zipped_item':'0'}]
 #     },
-#     {'loop_zipped_list':'bgp_vpn_peers',
+#     {'loop_glob_var':'bgp_vpn_peers',
 #         'remote_command':('ping -s 1470 -c 2 -t 2000 -vpn-instance ',\
 #             {'zipped_item':'1'},' ',{'zipped_item':'3'}),
 #         'local_function':'huawei_parse_bgp_neighbor_routes', "input_parameters":\
@@ -203,8 +281,8 @@ CMD_LINUX = [
 #             {'local_function':"return_parameters", "input_variable":"linux_users"},
 #             {'local_function':"return_parameters", "input_parameters":[{"input_variable":"linux_users"}]},
 #             {'local_function':"return_splitlines_parameters", "input_parameters":[{"input_variable":"linux_users"}] , "output_variable":"splitlines_linux_users"},
-#             {'loop_zipped_list':'splitlines_linux_users', 'remote_command':['echo ', {'zipped_item':'0'}] },
-#             {'loop_zipped_list':'splitlines_linux_users', 'local_command':['echo ', {'zipped_item':'0'}] },
+#             {'loop_glob_var':'splitlines_linux_users', 'remote_command':['echo ', {'zipped_item':'0'}] },
+#             {'loop_glob_var':'splitlines_linux_users', 'local_command':['echo ', {'zipped_item':'0'}] },
             #('echo ', {'input_variable':'notexistent'},{'if_output_is_void':'exit'}),
             'free -m',
             {"eval":['update_bgpdata_structure(bgp_data["vrf_list"][',0,'],"vrf_name","','aaaaaa','", ',0,',void_neighbor_list_item)']},
@@ -928,7 +1006,7 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
     ### RUN_REMOTE_AND_LOCAL_COMMANDS START ====================================
     global remote_connect, glob_vars
     ssh_connection, output= None, None
-
+    command_range = 10
     try:
         if remote_connect:
             ssh_connection = netmiko.ConnectHandler(device_type = router_type, \
@@ -962,15 +1040,18 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
                 if pre_condition_result:
                     if isinstance(cmd_line_items, (dict)):
                         if cmd_line_items.get('pre_loop_remote_command','') and remote_connect:
-                            if run_command(ssh_connection,cmd_line_items.get('pre_loop_remote_command',''),loop_item,run_remote = True): return None
+                            if run_command(ssh_connection,cmd_line_items.get('pre_loop_remote_command',''),run_remote = True): return None
+                    for ii in range(command_range):
+                        if cmd_line_items.get('pre_loop_remote_command_'+str(ii),'') and remote_connect:
+                            if run_command(ssh_connection,cmd_line_items.get('pre_loop_remote_command'+str(ii),''),run_remote = True): return None
                         if cmd_line_items.get('pre_loop_local_command',''):
                             if run_command(ssh_connection,cmd_line_items.get('pre_loop_local_command',''),loop_item): return None
                         if cmd_line_items.get('pre_loop_exec',''):
                             if exec_command(ssh_connection,cmd_line_items.get('pre_loop_exec',''),loop_item): return None
                         if cmd_line_items.get('pre_loop_eval',''):
                             if eval_command(ssh_connection,cmd_line_items.get('pre_if_eval',''),loop_item): return None
-                    if isinstance(cmd_line_items, dict) and cmd_line_items.get('loop_zipped_list',''):
-                        for loop_item in glob_vars.get(cmd_line_items.get('loop_zipped_list',''),''):
+                    if isinstance(cmd_line_items, dict) and cmd_line_items.get('loop_glob_var',''):
+                        for loop_item in glob_vars.get(cmd_line_items.get('loop_glob_var',''),''):
                             main_do_step(cmd_line_items,loop_item)
                     elif isinstance(cmd_line_items, dict) and cmd_line_items.get('loop',''):
                         for loop_item in eval(cmd_line_items.get('loop','')):
