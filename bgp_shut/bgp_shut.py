@@ -98,12 +98,22 @@ CMD_IOS_XR = [
     },
     {'eval':['True if "router bgp 5511" in glob_vars.get("router_bgp_text","") else None',{'output_variable':'OTI_5511'}]
     },
-    {'eval':['True if "router bgp 2300" in glob_vars.get("router_bgp_text","") else None',{'output_variable':'IMN_2300'}]
+#     {'eval':['True if "router bgp 2300" in glob_vars.get("router_bgp_text","") else None',{'output_variable':'IMN_2300'}]
+#     },
+#     {'eval':'glob_vars.get("IMN_2300","")',},
+#     {'if':'glob_vars.get("IMN_2300","")', 'remote_command':['show bgp vrf all summary | exclude 2300',{'output_variable':'IMN_EXT_IP_TEXT'}]},
+#     {'if':'glob_vars.get("IMN_2300","")', 'remote_command':['show bgp vrf all summary | include 2300',{'output_variable':'IMN_INT_IP_TEXT'}]},
+    {'eval':'glob_vars.get("OTI_5511","")',},
+    {'if':'glob_vars.get("OTI_5511","")',
+        'remote_command':['show bgp summary | exclude 5511'],
+        'eval':['([ipline.split()[0] for ipline in glob_vars.get("last_output","").split("St/PfxRcd")[1].splitlines()])',{'output_variable':'OTI_EXT_IPS'}],
     },
-    {'eval':'glob_vars.get("IMN_2300","")',},
-    {'eval':'glob_vars.get("IMN_2300","")',},
-    {'if':'glob_vars.get("IMN_2300","")', 'remote_command':'show bgp summary' }
-
+    {'eval':'glob_vars.get("OTI_EXT_IPS","")'},
+    {'if':'glob_vars.get("OTI_5511","")',
+        'remote_command':['show bgp summary | include 5511'],
+        'eval':['([ipline.split()[0] for ipline in glob_vars.get("last_output","").split("local AS number 5511")[1].splitlines()])',{'output_variable':'OTI_INT_IPS'}],
+    },
+    {'eval':'glob_vars.get("OTI_INT_IPS","")'},
 
 #     'show bgp summary | include "local AS number"',
 #     'show bgp vrf all summary | include "local AS number"',
@@ -207,6 +217,10 @@ CMD_LOCAL = [
     {'if':'glob_vars.get("last_output","")==""','eval':'glob_vars.get("last_output","")'
     },
     {'if':'glob_vars.get("last_output","")', "local_command":'whoami'
+    },
+    {'exec':'glob_vars["aaa"] = [ ipline for ipline in [0,1,2,3,4,5] ]'
+    },
+    {'eval':'glob_vars.get("aaa","")'
     },
 ]
 
@@ -808,12 +822,36 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
                             cli_line += str(eval(cli_item.get('eval','')))
                     else: cli_line += str(cli_item)
             print(bcolors.CYAN + "EVAL_COMMAND: %s" % (cli_line) + bcolors.ENDC )
-            local_output = eval(cli_line)
+            try: local_output = eval(cli_line)
+            except: local_output = str()
             print(bcolors.GREY + str(local_output) + bcolors.ENDC )
             if printcmdtologfile: fp.write('EVAL_COMMAND: ' + cli_line + '\n' + str(local_output) + '\n')
             if name_of_output_variable:
                 glob_vars[name_of_output_variable] = local_output
             glob_vars['last_output'] = local_output
+        return None
+    ### EXEC_COMMAND -----------------------------------------------------------
+    def exec_command(ssh_connection,cmd_line_items,loop_item=None,\
+        logfilename = logfilename,printall = printall, printcmdtologfile = printcmdtologfile):
+        global glob_vars, global_env
+        cli_line, name_of_output_variable = str(), None
+        ### LIST,TUPPLE,STRINS ARE REMOTE REMOTE/LOCAL DEVICE COMMANDS
+        if isinstance(cmd_line_items, (six.string_types,list,tuple)):
+            if isinstance(cmd_line_items, six.string_types): cli_line = cmd_line_items
+            elif isinstance(cmd_line_items, (list,tuple)):
+                for cli_item in cmd_line_items:
+                    if isinstance(cli_item, dict):
+                        if cli_item.get('output_variable',''):
+                            name_of_output_variable = cli_item.get('output_variable','')
+                        elif cli_item.get('eval',''):
+                            cli_line += str(eval(cli_item.get('eval','')))
+                    else: cli_line += str(cli_item)
+            print(bcolors.CYAN + "EXEC_COMMAND: %s" % (cli_line) + bcolors.ENDC )
+            code_object = compile(cli_line, 'sumstring', 'exec')
+            local_env = {}
+            for item in eval('dir()'): local_env[item] = eval(item)
+            exec(code_object,global_env,local_env)
+            if printcmdtologfile: fp.write('EXEC_COMMAND: ' + cli_line + '\n')
         return None
     ### IF_FUNCTION (simple eval) ----------------------------------------------
     def if_function(ssh_connection,cmd_line_items,loop_item=None,\
@@ -825,9 +863,9 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
             ret_value = eval(str(condition_eval_text))
             if ret_value: success = True
             else: success = False
-            print(bcolors.CYAN + "IF_(%s)" % (condition_eval_text) + " --> " +\
+            print(bcolors.CYAN + "IF_CONDITION(%s)" % (condition_eval_text) + " --> " +\
                 str(success).upper() + bcolors.ENDC )
-            if printcmdtologfile: fp.write('IF_(%s): ' % (condition_eval_text) +\
+            if printcmdtologfile: fp.write('IF_CONDITION(%s): ' % (condition_eval_text) +\
                  " --> "+ str(success).upper() + '\n')
         return success
     ### MAIN_DO_STEP -----------------------------------------------------------
@@ -841,6 +879,8 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
                 if run_command(ssh_connection,cmd_line_items.get('pre_remote_command',''),loop_item,run_remote = True): return None
             if cmd_line_items.get('pre_local_command',''):
                 if run_command(ssh_connection,cmd_line_items.get('pre_local_command',''),loop_item): return None
+            if cmd_line_items.get('pre_exec',''):
+                if exec_command(ssh_connection,cmd_line_items.get('pre_exec',''),loop_item): return None
             if cmd_line_items.get('pre_eval',''):
                 if eval_command(ssh_connection,cmd_line_items.get('pre_eval',''),loop_item): return None
             if cmd_line_items.get('if',''):
@@ -850,6 +890,8 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
                     if run_command(ssh_connection,cmd_line_items.get('remote_command',''),loop_item,run_remote = True): return None
                 if cmd_line_items.get('local_command',''):
                     if run_command(ssh_connection,cmd_line_items.get('local_command',''),loop_item): return None
+                if cmd_line_items.get('exec',''):
+                    if exec_command(ssh_connection,cmd_line_items.get('exec',''),loop_item): return None
                 if cmd_line_items.get('eval',''):
                     if eval_command(ssh_connection,cmd_line_items.get('eval',''),loop_item): return None
         return True
@@ -1206,7 +1248,8 @@ if __name__ != "__main__": sys.exit(0)
 
 VERSION = get_version_from_file_last_modification_date()
 glob_vars = {}
-
+global_env = {}
+for item in eval('dir()'): global_env[item] = eval(item)
 ######## Parse program arguments #########
 parser = argparse.ArgumentParser(
                 description = "Script v.%s" % (VERSION),
