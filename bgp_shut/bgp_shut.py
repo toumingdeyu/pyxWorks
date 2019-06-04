@@ -136,50 +136,21 @@ CMD_IOS_XR = [
             \nexcept: pass' \
                ],
     },
+
     {'eval':'glob_vars.get("OTI_EXT_IPS_V4","")'},
+    {'eval':'glob_vars.get("OTI_EXT_IPS_V6","")'},
+
     {'eval':'glob_vars.get("OTI_INT_IPS_V4","")'},
     {'eval':'glob_vars.get("OTI_INT_IPS_V6","")'},
-    {'eval':'glob_vars.get("OTI_EXT_IPS_V6","")'},
-#     {'if':'glob_vars.get("OTI_5511","")',
-#         'remote_command':['show bgp ipv6 unicast summary | include 5511',{'output_variable':'OTI_IPV6_TEXT'}],
-#         'exec':['glob_vars["OTI_INT_IPS_V6"] = [ipline.split()[0] for ipline in glob_vars.get("last_output","").split("St/PfxRcd")[1].strip().splitlines()]'],
-#     },
-#     {'eval':'glob_vars.get("OTI_EXT_IPS_V6","")'},
-#     {'eval':'glob_vars.get("OTI_INT_IPS_V6","")'},
 
 
+    {'pre_loop_if':'glob_vars.get("SHUT","")',
+        'eval':'glob_vars.get("OTI_EXT_IPS_V4","")',
+        'eval_2':'glob_vars.get("OTI_EXT_IPS_V6","")',
+    },
+    {'if':'glob_vars.get("NOSHUT","")'},
 
-
-#     'show bgp summary | include "local AS number"',
-#     'show bgp vrf all summary | include "local AS number"',
-#     {'local_function':'ciscoxr_get_bgp_vpn_peer_data_to_json', \
-#        'input_variable':'last_output', 'output_variable':'bgp_vpn_peers'},
-#     {'loop_zipped_list':'bgp_vpn_peers',\
-#        'remote_command':('show bgp vrf ',{'zipped_item':'1'},' neighbors ',\
-#            {'zipped_item':'3'}),
-#        'local_function':'ciscoxr_parse_bgp_neighbors', "input_parameters":\
-#            [{"input_variable":"last_output"},{'zipped_item':'0'},{'zipped_item':'2'}]
-#     },
-#     'sh ipv4 vrf all int brief | exclude "unassigned|Protocol|default"',
-#     {'local_function':"ciscoxr_get_vpnv4_all_interfaces",'input_variable':\
-#        'last_output','output_variable':'bgp_vpn_peers_with_interfaces'},
-#     {'loop_zipped_list':'bgp_vpn_peers_with_interfaces',
-#        'remote_command':('show interface ',{'zipped_item':'1'}),
-#        'local_function':'ciscoxr_parse_interface', "input_parameters":\
-#            [{"input_variable":"last_output"},{'zipped_item':'0'}]
-#     },
-#     {'loop_zipped_list':'bgp_vpn_peers',
-#         'remote_command':('show bgp vrf ',{'zipped_item':'1'},' neighbors ',\
-#             {'zipped_item':'3'},' routes'),
-#         'local_function':'ciscoxr_parse_bgp_neighbor_routes', "input_parameters":\
-#             [{"input_variable":"last_output"},{'zipped_item':'0'},{'zipped_item':'2'}]
-#     },
-#     {'loop_zipped_list':'bgp_vpn_peers','remote_command':('ping vrf ',\
-#        {'zipped_item':'1'},' ',{'zipped_item':'3'},' size 1470 count 2'),
-#        'local_function':'ciscoxr_parse_ping', "input_parameters":\
-#            [{"input_variable":"last_output"},{'zipped_item':'0'},{'zipped_item':'2'}]
-#     },
-#     {"eval":"return_bgp_data_json()"},
+    #{'exec':'time.sleep(30)'},
 ]
 
 CMD_JUNOS = []
@@ -261,6 +232,8 @@ CMD_LOCAL = [
     },
     {'eval':'glob_vars.get("bbb","")'
     },
+    {'if':'glob_vars.get("SHUT","")'},
+    {'if':'glob_vars.get("NOSHUT","")'}
 ]
 
 #
@@ -790,7 +763,8 @@ def parse_json_file_and_get_oti_routers_list():
 #     return oti_routers
 
 
-def run_remote_and_local_commands(CMD, logfilename = None, printall = None, printcmdtologfile = None):
+def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
+    printcmdtologfile = None, debug = None):
     ### RUN_COMMAND - REMOTE or LOCAL ------------------------------------------
     def run_command(ssh_connection,cmd_line_items,loop_item=None,run_remote = None,\
         logfilename = logfilename,printall = printall, printcmdtologfile = printcmdtologfile):
@@ -973,21 +947,29 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
         #           output2, forget_it = ssh_send_command_and_read_output(ssh_connection,DEVICE_PROMPTS,"")
         #           output += output2
 
-        ### WORK REMOTE or LOCAL ===================================================
+        ### WORK REMOTE or LOCAL ===============================================
         if not logfilename:
             if 'WIN32' in sys.platform.upper(): logfilename = 'nul'
             else: logfilename = '/dev/null'
         with open(logfilename,"w") as fp:
             if output and not printcmdtologfile: fp.write(output)
             for cmd_line_items in CMD:
-                #print('----> ',cmd_line_items)
-                if isinstance(cmd_line_items, dict) and cmd_line_items.get('loop_zipped_list',''):
-                    for loop_item in glob_vars.get(cmd_line_items.get('loop_zipped_list',''),''):
-                        main_do_step(cmd_line_items,loop_item)
-                elif isinstance(cmd_line_items, dict) and cmd_line_items.get('loop',''):
-                    for loop_item in eval(cmd_line_items.get('loop','')):
-                        main_do_step(cmd_line_items,loop_item)
-                else: main_do_step(cmd_line_items)
+                if debug: print('----> ',cmd_line_items)
+                pre_condition_result = True
+                if isinstance(cmd_line_items, dict) and cmd_line_items.get('pre_loop_if',''):
+                    pre_condition_result = if_function(ssh_connection, \
+                        cmd_line_items.get('pre_loop_if',''))
+                if pre_condition_result:
+                    if isinstance(cmd_line_items, dict) and cmd_line_items.get('loop_zipped_list',''):
+                        for loop_item in glob_vars.get(cmd_line_items.get('loop_zipped_list',''),''):
+                            main_do_step(cmd_line_items,loop_item)
+                    elif isinstance(cmd_line_items, dict) and cmd_line_items.get('loop',''):
+                        for loop_item in eval(cmd_line_items.get('loop','')):
+                            main_do_step(cmd_line_items,loop_item)
+                    else: main_do_step(cmd_line_items)
+                ### DIRECT REMOTE CALL WITHOUT PRE_IF --------------------------
+                elif isinstance(cmd_line_items, (list,tuple,six.string_types)):
+                    main_do_step(cmd_line_items)
     except () as e:
         print(bcolors.FAIL + " ... EXCEPTION: (%s)" % (e) + bcolors.ENDC )
         sys.exit()
@@ -1363,7 +1345,12 @@ parser.add_argument("--printall",action = "store_true", default = False,
 parser.add_argument("--alloti",
                     action = 'store_true', dest = "alloti", default = None,
                     help = "do action on all oti routers")
-
+parser.add_argument("--shut",
+                    action = 'store_true', dest = "shut", default = None,
+                    help = "switch-off bgp traffic")
+parser.add_argument("--noshut",
+                    action = 'store_true', dest = "noshut", default = None,
+                    help = "switch-on bgp traffic")
 args = parser.parse_args()
 
 if args.nocolors or 'WIN32' in sys.platform.upper(): bcolors = nocolors
@@ -1383,6 +1370,13 @@ if args.alloti: device_list = parse_json_file_and_get_oti_routers_list()
 else: device_list = [args.device]
 
 device_list = [args.device]
+
+if args.shut and args.noshut:
+    print(bcolors.MAGENTA + " ... BGP traffic-on or traffic-off is allowed, not both!" + bcolors.ENDC )
+    sys.exit(0)
+
+if args.shut: glob_vars["SHUT"] = True
+if args.noshut: glob_vars["NOSHUT"] = True
 
 if args.device == str():
     remote_connect = None
