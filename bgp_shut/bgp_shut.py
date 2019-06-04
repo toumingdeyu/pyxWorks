@@ -111,7 +111,7 @@ CMD_IOS_XR = [
     {'eval':'glob_vars.get("OTI_EXT_IPS","")'},
     {'if':'glob_vars.get("OTI_5511","")',
         'remote_command':['show bgp summary | include 5511'],
-        'eval':['([ipline.split()[0] for ipline in glob_vars.get("last_output","").split("local AS number 5511")[1].splitlines()])',{'output_variable':'OTI_INT_IPS'}],
+        'exec':['glob_vars[OTI_INT_IPS] = [ipline.split()[0] for ipline in glob_vars.get("last_output","").split("local AS number 5511")[1].splitlines()]'],
     },
     {'eval':'glob_vars.get("OTI_INT_IPS","")'},
 
@@ -221,6 +221,10 @@ CMD_LOCAL = [
     {'exec':'glob_vars["aaa"] = [ ipline for ipline in [0,1,2,3,4,5] ]'
     },
     {'eval':'glob_vars.get("aaa","")'
+    },
+    {'eval':['[ ipline[0] for ipline in [[0,0],[1,1],[2,2],[3,3],[4,4],[5,5],[6,6],[7,7]] ]' ,{'output_variable':'bbb'} ]
+    },
+    {'eval':'glob_vars.get("bbb","")'
     },
 ]
 
@@ -847,10 +851,13 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
                             cli_line += str(eval(cli_item.get('eval','')))
                     else: cli_line += str(cli_item)
             print(bcolors.CYAN + "EXEC_COMMAND: %s" % (cli_line) + bcolors.ENDC )
-            code_object = compile(cli_line, 'sumstring', 'exec')
-            local_env = {}
-            for item in eval('dir()'): local_env[item] = eval(item)
-            exec(code_object,global_env,local_env)
+            ### CODE for PYTHON>v2.7.9
+            # code_object = compile(cli_line, 'sumstring', 'exec')
+            # local_env = {}
+            # for item in eval('dir()'): local_env[item] = eval(item)
+            # exec(code_object,global_env,local_env)
+            ### EXEC CODE WORKAROUND for OLD PYTHON v2.7.5
+            edict = {}; eval(compile(cli_line, '<string>', 'exec'), globals(), edict)
             if printcmdtologfile: fp.write('EXEC_COMMAND: ' + cli_line + '\n')
         return None
     ### IF_FUNCTION (simple eval) ----------------------------------------------
@@ -1248,8 +1255,12 @@ if __name__ != "__main__": sys.exit(0)
 
 VERSION = get_version_from_file_last_modification_date()
 glob_vars = {}
-global_env = {}
-for item in eval('dir()'): global_env[item] = eval(item)
+
+# global_env = {}
+# for item in eval('dir()'): global_env[item] = eval(item)
+
+global_env = globals()
+
 ######## Parse program arguments #########
 parser = argparse.ArgumentParser(
                 description = "Script v.%s" % (VERSION),
