@@ -106,14 +106,41 @@ CMD_IOS_XR = [
     {'eval':'glob_vars.get("OTI_5511","")',},
     {'if':'glob_vars.get("OTI_5511","")',
         'remote_command':['show bgp summary | exclude 5511'],
-        'eval':['([ipline.split()[0] for ipline in glob_vars.get("last_output","").split("St/PfxRcd")[1].splitlines()])',{'output_variable':'OTI_EXT_IPS'}],
+        'exec':['glob_vars["OTI_EXT_IPS_V4"] = [ipline.split()[0] for ipline in glob_vars.get("last_output","").split("St/PfxRcd")[1].strip().splitlines()]'],
     },
-    {'eval':'glob_vars.get("OTI_EXT_IPS","")'},
     {'if':'glob_vars.get("OTI_5511","")',
         'remote_command':['show bgp summary | include 5511'],
-        'exec':['glob_vars[OTI_INT_IPS] = [ipline.split()[0] for ipline in glob_vars.get("last_output","").split("local AS number 5511")[1].splitlines()]'],
+        'exec':['glob_vars["OTI_INT_IPS_V4"] = [ipline.split()[0] for ipline in glob_vars.get("last_output","").split("local AS number 5511")[1].strip().splitlines()]'],
     },
-    {'eval':'glob_vars.get("OTI_INT_IPS","")'},
+    {'eval':'glob_vars.get("OTI_EXT_IPS_V4","")'},
+    {'eval':'glob_vars.get("OTI_INT_IPS_V4","")'},
+    {'if':'glob_vars.get("OTI_5511","")',
+        'remote_command':['show bgp ipv6 unicast summary'],
+        'exec':['try: \
+            \n  temp_ipv6 = glob_vars.get("last_output","").split("St/PfxRcd")[1].strip().splitlines() \
+            \n  previous_line, ext_list, int_list = None , [], [] \
+            \n  for line in temp_ipv6: \
+            \n    if len(line.split())==1: previous_line = line; continue \
+            \n    if previous_line: line = previous_line + line; previous_line = None \
+            \n    try: \
+            \n      if "5511" in line.split()[2]: int_list.append(line.split()[0]) \
+            \n      else: ext_list.append(line.split()[0]) \
+            \n    except: pass \
+            \n  glob_vars["OTI_INT_IPS_V6"] = int_list; glob_vars["OTI_EXT_IPS_V6"] = ext_list \
+            \nexcept: pass' \
+               ],
+    },
+    {'eval':'glob_vars.get("OTI_INT_IPS_V6","")'},
+    {'eval':'glob_vars.get("OTI_EXT_IPS_V6","")'},
+#     {'if':'glob_vars.get("OTI_5511","")',
+#         'remote_command':['show bgp ipv6 unicast summary | include 5511',{'output_variable':'OTI_IPV6_TEXT'}],
+#         'exec':['glob_vars["OTI_INT_IPS_V6"] = [ipline.split()[0] for ipline in glob_vars.get("last_output","").split("St/PfxRcd")[1].strip().splitlines()]'],
+#     },
+#     {'eval':'glob_vars.get("OTI_EXT_IPS_V6","")'},
+#     {'eval':'glob_vars.get("OTI_INT_IPS_V6","")'},
+
+
+
 
 #     'show bgp summary | include "local AS number"',
 #     'show bgp vrf all summary | include "local AS number"',
@@ -851,7 +878,7 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
                             cli_line += str(eval(cli_item.get('eval','')))
                     else: cli_line += str(cli_item)
             print(bcolors.CYAN + "EXEC_COMMAND: %s" % (cli_line) + bcolors.ENDC )
-            ### CODE for PYTHON>v2.7.9
+            ### EXEC CODE for PYTHON>v2.7.9
             # code_object = compile(cli_line, 'sumstring', 'exec')
             # local_env = {}
             # for item in eval('dir()'): local_env[item] = eval(item)
@@ -933,10 +960,10 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
             if output and not printcmdtologfile: fp.write(output)
             for cmd_line_items in CMD:
                 #print('----> ',cmd_line_items)
-                if cmd_line_items.get('loop_zipped_list',''):
+                if isinstance(cmd_line_items, dict) and cmd_line_items.get('loop_zipped_list',''):
                     for loop_item in glob_vars.get(cmd_line_items.get('loop_zipped_list',''),''):
                         main_do_step(cmd_line_items,loop_item)
-                elif cmd_line_items.get('loop',''):
+                elif isinstance(cmd_line_items, dict) and cmd_line_items.get('loop',''):
                     for loop_item in eval(cmd_line_items.get('loop','')):
                         main_do_step(cmd_line_items,loop_item)
                 else: main_do_step(cmd_line_items)
