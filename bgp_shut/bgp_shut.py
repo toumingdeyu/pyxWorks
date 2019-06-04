@@ -912,6 +912,7 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
         return success
     ### MAIN_DO_STEP -----------------------------------------------------------
     def main_do_step(cmd_line_items,loop_item=None):
+        command_range=10
         global glob_vars
         condition_result = True
         if isinstance(cmd_line_items, (six.string_types,list,tuple)):
@@ -930,12 +931,24 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, prin
             if condition_result:
                 if cmd_line_items.get('remote_command','') and remote_connect:
                     if run_command(ssh_connection,cmd_line_items.get('remote_command',''),loop_item,run_remote = True): return None
+                for i in range(command_range):
+                    if cmd_line_items.get('remote_command_'+str(i),'') and remote_connect:
+                        if run_command(ssh_connection,cmd_line_items.get('remote_command'+str(i),''),loop_item,run_remote = True): return None
                 if cmd_line_items.get('local_command',''):
                     if run_command(ssh_connection,cmd_line_items.get('local_command',''),loop_item): return None
+                for i in range(command_range):
+                    if cmd_line_items.get('local_command_'+str(i),''):
+                        if run_command(ssh_connection,cmd_line_items.get('local_command_'+str(i),''),loop_item): return None
                 if cmd_line_items.get('exec',''):
                     if exec_command(ssh_connection,cmd_line_items.get('exec',''),loop_item): return None
+                for i in range(command_range):
+                    if cmd_line_items.get('exec_'+str(i),''):
+                        if exec_command(ssh_connection,cmd_line_items.get('exec_'+str(i),''),loop_item): return None
                 if cmd_line_items.get('eval',''):
                     if eval_command(ssh_connection,cmd_line_items.get('eval',''),loop_item): return None
+                for i in range(command_range):
+                    if cmd_line_items.get('eval_'+str(i),''):
+                        if eval_command(ssh_connection,cmd_line_items.get('eval_'+str(i),''),loop_item): return None
         return True
 
     ### RUN_REMOTE_AND_LOCAL_COMMANDS START ====================================
