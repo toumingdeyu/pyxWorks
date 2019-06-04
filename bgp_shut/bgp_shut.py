@@ -98,22 +98,28 @@ CMD_IOS_XR = [
     },
     {'eval':['True if "router bgp 5511" in glob_vars.get("router_bgp_text","") else None',{'output_variable':'OTI_5511'}]
     },
+    {'eval':'glob_vars.get("OTI_5511","")',},
 #     {'eval':['True if "router bgp 2300" in glob_vars.get("router_bgp_text","") else None',{'output_variable':'IMN_2300'}]
 #     },
 #     {'eval':'glob_vars.get("IMN_2300","")',},
 #     {'if':'glob_vars.get("IMN_2300","")', 'remote_command':['show bgp vrf all summary | exclude 2300',{'output_variable':'IMN_EXT_IP_TEXT'}]},
 #     {'if':'glob_vars.get("IMN_2300","")', 'remote_command':['show bgp vrf all summary | include 2300',{'output_variable':'IMN_INT_IP_TEXT'}]},
-    {'eval':'glob_vars.get("OTI_5511","")',},
     {'if':'glob_vars.get("OTI_5511","")',
-        'remote_command':['show bgp summary | exclude 5511'],
-        'exec':['glob_vars["OTI_EXT_IPS_V4"] = [ipline.split()[0] for ipline in glob_vars.get("last_output","").split("St/PfxRcd")[1].strip().splitlines()]'],
+        'remote_command':['show bgp summary'],
+        'exec':['try: \
+            \n  temp_ipv4 = glob_vars.get("last_output","").split("St/PfxRcd")[1].strip().splitlines() \
+            \n  previous_line, ext_list, int_list = None , [], [] \
+            \n  for line in temp_ipv4: \
+            \n    if len(line.split())==1: previous_line = line; continue \
+            \n    if previous_line: line = previous_line + line; previous_line = None \
+            \n    try: \
+            \n      if "5511" in line.split()[2] and "." in line.split()[0]: int_list.append(line.split()[0]) \
+            \n      elif "." in line.split()[0]: ext_list.append(line.split()[0]) \
+            \n    except: pass \
+            \n  glob_vars["OTI_INT_IPS_V4"] = int_list; glob_vars["OTI_EXT_IPS_V4"] = ext_list \
+            \nexcept: pass' \
+               ],
     },
-    {'if':'glob_vars.get("OTI_5511","")',
-        'remote_command':['show bgp summary | include 5511'],
-        'exec':['glob_vars["OTI_INT_IPS_V4"] = [ipline.split()[0] for ipline in glob_vars.get("last_output","").split("local AS number 5511")[1].strip().splitlines()]'],
-    },
-    {'eval':'glob_vars.get("OTI_EXT_IPS_V4","")'},
-    {'eval':'glob_vars.get("OTI_INT_IPS_V4","")'},
     {'if':'glob_vars.get("OTI_5511","")',
         'remote_command':['show bgp ipv6 unicast summary'],
         'exec':['try: \
@@ -123,13 +129,15 @@ CMD_IOS_XR = [
             \n    if len(line.split())==1: previous_line = line; continue \
             \n    if previous_line: line = previous_line + line; previous_line = None \
             \n    try: \
-            \n      if "5511" in line.split()[2]: int_list.append(line.split()[0]) \
-            \n      else: ext_list.append(line.split()[0]) \
+            \n      if "5511" in line.split()[2] and ":" in line.split()[0]: int_list.append(line.split()[0]) \
+            \n      elif ":" in line.split()[0]: ext_list.append(line.split()[0]) \
             \n    except: pass \
             \n  glob_vars["OTI_INT_IPS_V6"] = int_list; glob_vars["OTI_EXT_IPS_V6"] = ext_list \
             \nexcept: pass' \
                ],
     },
+    {'eval':'glob_vars.get("OTI_EXT_IPS_V4","")'},
+    {'eval':'glob_vars.get("OTI_INT_IPS_V4","")'},
     {'eval':'glob_vars.get("OTI_INT_IPS_V6","")'},
     {'eval':'glob_vars.get("OTI_EXT_IPS_V6","")'},
 #     {'if':'glob_vars.get("OTI_5511","")',
