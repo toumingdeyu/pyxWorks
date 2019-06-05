@@ -99,12 +99,18 @@ CMD_IOS_XR = [
     {'eval':['True if "router bgp 5511" in glob_vars.get("router_bgp_text","") else None',{'output_variable':'OTI_5511'}]
     },
     {'eval':'glob_vars.get("OTI_5511","")',},
+
+    {'if':'glob_vars.get("NOSHUT","")',
+        "eval":"read_bgp_data_json_from_logfile(filename, printall = True)"
+    },
+
 #     {'eval':['True if "router bgp 2300" in glob_vars.get("router_bgp_text","") else None',{'output_variable':'IMN_2300'}]
 #     },
 #     {'eval':'glob_vars.get("IMN_2300","")',},
 #     {'if':'glob_vars.get("IMN_2300","")', 'remote_command':['show bgp vrf all summary | exclude 2300',{'output_variable':'IMN_EXT_IP_TEXT'}]},
 #     {'if':'glob_vars.get("IMN_2300","")', 'remote_command':['show bgp vrf all summary | include 2300',{'output_variable':'IMN_INT_IP_TEXT'}]},
-    {'if':'glob_vars.get("OTI_5511","")',
+
+    {'if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","")',
         'remote_command':['show bgp summary'],
         'exec':['try: \
             \n  temp_ipv4 = glob_vars.get("last_output","").split("St/PfxRcd")[1].strip().splitlines() \
@@ -120,7 +126,7 @@ CMD_IOS_XR = [
             \nexcept: pass' \
                ],
     },
-    {'if':'glob_vars.get("OTI_5511","")',
+    {'if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","")',
         'remote_command':['show bgp ipv6 unicast summary'],
         'exec':['try: \
             \n  temp_ipv6 = glob_vars.get("last_output","").split("St/PfxRcd")[1].strip().splitlines() \
@@ -143,6 +149,15 @@ CMD_IOS_XR = [
     {'eval':'glob_vars.get("OTI_INT_IPS_V4","")'},
     {'eval':'glob_vars.get("OTI_INT_IPS_V6","")'},
 
+    {'if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_EXT_IPS_V4","")',
+        'exec':'bgp_data["OTI_EXT_IPS_V4"] = glob_vars.get("OTI_EXT_IPS_V4","")'},
+    {'if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_EXT_IPS_V6","")',
+        'exec':'bgp_data["OTI_EXT_IPS_V6"] = glob_vars.get("OTI_EXT_IPS_V6","")'},
+
+    {'if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_INT_IPS_V4","")',
+        'exec':'bgp_data["OTI_INT_IPS_V4"] = glob_vars.get("OTI_INT_IPS_V4","")'},
+    {'if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_INT_IPS_V6","")',
+        'exec':'bgp_data["OTI_INT_IPS_V6"] = glob_vars.get("OTI_INT_IPS_V6","")'},
 
     ### SHUT -------------------------------------------------------------------
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6",""))',
@@ -165,7 +180,9 @@ CMD_IOS_XR = [
         #'remote_command_3':'Exit',
     },
 
-    {'exec':'time.sleep(120)'},
+    {'if':'glob_vars.get("SHUT","")',
+        'exec':'time.sleep(120)'
+    },
 
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_INT_IPS_V4","") or glob_vars.get("OTI_INT_IPS_V6",""))',
         #'pre_loop_remote_command':'conf t',
@@ -208,7 +225,9 @@ CMD_IOS_XR = [
         #'remote_command_3':'Exit',
     },
 
-    {'exec':'time.sleep(120)'},
+    {'if':'glob_vars.get("NOSHUT","")',
+        'exec':'time.sleep(120)'
+    },
 
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6",""))',
         #'pre_loop_remote_command':'conf t',
@@ -228,6 +247,9 @@ CMD_IOS_XR = [
         #'remote_command':'Commit',
         #'remote_command_2':'Exit',
         #'remote_command_3':'Exit',
+    },
+    {'if':'glob_vars.get("SHUT","")',
+        "eval":"return_bgp_data_json()"
     },
 ]
 
@@ -320,51 +342,21 @@ CMD_LOCAL = [
 
 #
 # ################################################################################
-# bgp_data = collections.OrderedDict()
-#
-# ### Start of BASIC STRUCTURES OF JSON
-# neighbor_list_item_txt_template = '''
-# {
-#     "ip_address": null,
-#     "bgp_current_state": null,
-#     "received_total_routes": null,
-#     "advertised_total_routes": null,
-#     "maximum_allowed_route_limit": null,
-#     "import_route_policy_is": null,
-#     "ping_response_success": null,
-#     "accepted_routes_list": []
-# }
-# '''
-#
-# vrf_list_item_txt_template = '''
-# {
-#     "vrf_name": null,
-#     "neighbor_list": [%s],
-#     "interface_name": null,
-#     "interface_ip" : null,
-#     "interface_mtu" : null,
-#     "interface_input_packets_per_seconds": null,
-#     "interface_output_packets_per_seconds": null
-# }
-# ''' % (neighbor_list_item_txt_template)
-#
-# bgp_json_txt_template='''
-# {
-#     "vrf_list": [%s]
-# }
-# ''' % (vrf_list_item_txt_template)
-# ### End of BASIC STRUCTURES OF JSON
-#
-# ### BASIC BGP_DATA OBJECT with 1 neihbor and 1 vfr
-# bgp_data = json.loads(bgp_json_txt_template, \
-#     object_pairs_hook = collections.OrderedDict)
-#
-# ### OBJECTS FOR APPENDING LISTS, DO COPY.DEEPCOPY of them by APPENDING STRUCTURE
-# void_vrf_list_item = json.loads(vrf_list_item_txt_template, \
-#     object_pairs_hook = collections.OrderedDict)
-#
-# void_neighbor_list_item = json.loads(neighbor_list_item_txt_template, \
-#     object_pairs_hook = collections.OrderedDict)
+bgp_data = collections.OrderedDict()
+
+### Start of BASIC STRUCTURES OF JSON
+bgp_json_txt_template = '''
+ {
+      "OTI_EXT_IPS_V4": [],
+      "OTI_EXT_IPS_V6": [],
+      "OTI_INT_IPS_V4": [],
+      "OTI_INT_IPS_V6": []
+ }
+'''
+### End of BASIC STRUCTURES OF JSON
+
+### BASIC BGP_DATA OBJECT with 1 neihbor and 1 vfr
+bgp_data = json.loads(bgp_json_txt_template, object_pairs_hook = collections.OrderedDict)
 
 ###############################################################################
 #
@@ -413,24 +405,24 @@ def does_text_contains_string(text = None, contains_string = None):
         if contains_string in text: output = contains_string
     return output
 
-# def return_bgp_data_json():
-#     return json.dumps(bgp_data, indent=2)
-#
-#
-# def read_bgp_data_json_from_logfile(filename = None, printall = None):
-#     bgp_data_loaded, text = None, None
-#     with open(filename,"r") as fp:
-#         text = fp.read()
-#     if text:
-#         try: bgp_data_json_text = text.split('EVAL_COMMAND: return_bgp_data_json()')[1]
-#         except: bgp_data_json_text = str()
-#         if bgp_data_json_text:
-#             bgp_data_loaded = json.loads(bgp_data_json_text, object_pairs_hook = collections.OrderedDict)
-#             #print("LOADED_BGP_DATA: ",bgp_data_loaded)
-#             if printall: print("\nLOADED JSON BGP_DATA: ")
-#             if printall: print(json.dumps(bgp_data_loaded, indent=2))
-#     return bgp_data_loaded
-#
+def return_bgp_data_json():
+    return json.dumps(bgp_data, indent=2)
+
+
+def read_bgp_data_json_from_logfile(filename = None, printall = None):
+    bgp_data_loaded, text = None, None
+    with open(filename,"r") as fp:
+        text = fp.read()
+    if text:
+        try: bgp_data_json_text = text.split('EVAL_COMMAND: return_bgp_data_json()')[1]
+        except: bgp_data_json_text = str()
+        if bgp_data_json_text:
+            bgp_data_loaded = json.loads(bgp_data_json_text, object_pairs_hook = collections.OrderedDict)
+            #print("LOADED_BGP_DATA: ",bgp_data_loaded)
+            if printall: print("\nLOADED JSON BGP_DATA: ")
+            if printall: print(json.dumps(bgp_data_loaded, indent=2))
+    return bgp_data_loaded
+
 # def return_string_from_bgp_vpn_section(vrf_data = None, vrf_name = None):
 #     result = None
 #     if vrf_data and vrf_name:
@@ -1477,17 +1469,10 @@ if args.device == str():
     local_hostname = str(subprocess.check_output('hostname',shell=True)).strip().replace('\\','').replace('/','')
     device_list = [local_hostname]
 
-# bgp_data_loaded = None
-# if args.readlog:
-#     bgp_data_loaded = copy.deepcopy(read_bgp_data_json_from_logfile(args.readlog))
-#
-# if args.readlognew:
-#     bgp_data = copy.deepcopy(read_bgp_data_json_from_logfile(args.readlognew))
 
-# compare_vpn_list = None
-# if args.vpnlist:
-#     compare_vpn_list = args.vpnlist.replace('[','').replace(']','').replace('(','').\
-#         replace(')','').split(',')
+if args.readlog:
+    bgp_data = read_bgp_data_json_from_logfile(args.readlog)
+
 
 if remote_connect:
     ####### Set USERNAME if needed
