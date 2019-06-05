@@ -104,16 +104,6 @@ CMD_IOS_XR = [
         "eval":"return_bgp_data_json()"
     },
 
-    {'if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","")',
-        'remote_command':'conf t',
-        'remote_command_2':'router isis PAII',
-        'remote_command_3':'set-overload-bit',
-        'remote_command_4':'Commit',
-        'remote_command_5':'Exit',
-        'remote_command_6':'Exit',
-        'exec':'time.sleep(120)',
-    },
-
     {'if':'glob_vars.get("NOSHUT","") and len(bgp_data.get("OTI_EXT_IPS_V4",""))>0',
         'exec':'glob_vars["OTI_EXT_IPS_V4"] = bgp_data["OTI_EXT_IPS_V4"]'},
     {'if':'glob_vars.get("NOSHUT","") and len(bgp_data.get("OTI_EXT_IPS_V6",""))>0',
@@ -124,11 +114,15 @@ CMD_IOS_XR = [
     {'if':'glob_vars.get("NOSHUT","") and len(bgp_data.get("OTI_INT_IPS_V6",""))>0',
         'exec':'glob_vars["OTI_INT_IPS_V6"] = bgp_data["OTI_INT_IPS_V6"]'},
 
-#     {'eval':['True if "router bgp 2300" in glob_vars.get("router_bgp_text","") else None',{'output_variable':'IMN_2300'}]
-#     },
-#     {'eval':'glob_vars.get("IMN_2300","")',},
-#     {'if':'glob_vars.get("IMN_2300","")', 'remote_command':['show bgp vrf all summary | exclude 2300',{'output_variable':'IMN_EXT_IP_TEXT'}]},
-#     {'if':'glob_vars.get("IMN_2300","")', 'remote_command':['show bgp vrf all summary | include 2300',{'output_variable':'IMN_INT_IP_TEXT'}]},
+    {'if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","")',
+        'remote_command':'conf t',
+        'remote_command_2':'router isis PAII',
+        'remote_command_3':'set-overload-bit',
+        'remote_command_4':'Commit',
+        'remote_command_5':'Exit',
+        'remote_command_6':'Exit',
+        'exec':'time.sleep(120)',
+    },
 
     {'if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","")',
         'remote_command':['show bgp summary'],
@@ -207,11 +201,11 @@ CMD_IOS_XR = [
         'pre_loop_remote_command_2':'router bgp 5511',
     },
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_INT_IPS_V4","")',
-        'loop_glob_var':"OTI_EXT_IPS_V4",
+        'loop_glob_var':"OTI_INT_IPS_V4",
             'remote_command':['neighbor ',{'eval':'loop_item'},' shutdown'],
     },
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_INT_IPS_V6","")',
-        'loop_glob_var':"OTI_EXT_IPS_V6",
+        'loop_glob_var':"OTI_INT_IPS_V6",
             'remote_command':['neighbor ',{'eval':'loop_item'},' shutdown'],
     },
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_INT_IPS_V4","") or glob_vars.get("OTI_INT_IPS_V6",""))',
@@ -226,11 +220,11 @@ CMD_IOS_XR = [
         'pre_loop_remote_command_2':'router bgp 5511',
     },
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_INT_IPS_V4","")',
-        'loop_glob_var':"OTI_EXT_IPS_V4",
+        'loop_glob_var':"OTI_INT_IPS_V4",
             'remote_command':['no neighbor ',{'eval':'loop_item'},' shutdown']
     },
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_INT_IPS_V6","")',
-        'loop_glob_var':"OTI_EXT_IPS_V6",
+        'loop_glob_var':"OTI_INT_IPS_V6",
             'remote_command':['no neighbor ',{'eval':'loop_item'},' shutdown']
     },
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_INT_IPS_V4","") or glob_vars.get("OTI_INT_IPS_V6",""))',
@@ -334,31 +328,6 @@ CMD_LINUX = []
 CMD_LOCAL = [
      {"local_command":['hostname', {"output_variable":"hostname"}]
      },
-
-#     #{'eval': 'sys.exit(0)'},
-#     {"local_command":'hostname'},
-#     {"loop":"[0,1,2,3]","local_command":['whoami ',{'eval':'loop_item'}]
-#     },
-#     {'eval':'glob_vars.get("last_output","")'
-#     },
-#     {'if':'glob_vars.get("last_output","")==""','eval':'glob_vars.get("last_output","")'
-#     },
-#     {'if':'glob_vars.get("last_output","")', "local_command":'whoami'
-#     },
-#     {'exec':'glob_vars["aaa"] = [ ipline for ipline in [0,1,2,3,4,5] ]'
-#     },
-#     {'eval':'glob_vars.get("aaa","")'
-#     },
-#     {'eval':['[ ipline[0] for ipline in [[0,0],[1,1],[2,2],[3,3],[4,4],[5,5],[6,6],[7,7]] ]' ,{'output_variable':'bbb'} ]
-#     },
-#     {'eval':'glob_vars.get("bbb","")'
-#     },
-#     {'if':'glob_vars.get("SHUT","")'},
-#     {'if':'glob_vars.get("NOSHUT","")'},
-#     {'pre_loop_if':'glob_vars.get("NOSHUT","")',
-#         'loop_glob_var':"bbb",
-#             'local_command':['echo ',{'eval':'loop_item'}],
-#     },
 ]
 
 #
