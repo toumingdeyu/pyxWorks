@@ -104,6 +104,16 @@ CMD_IOS_XR = [
         "eval":"return_bgp_data_json()"
     },
 
+    {'if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","")',
+        'remote_command':'conf t',
+        'remote_command_2':'router isis PAII',
+        'remote_command_3':'set-overload-bit',
+        'remote_command_4':'Commit',
+        'remote_command_5':'Exit',
+        'remote_command_6':'Exit',
+        'exec':'time.sleep(120)',
+    },
+
     {'if':'glob_vars.get("NOSHUT","") and len(bgp_data.get("OTI_EXT_IPS_V4",""))>0',
         'exec':'glob_vars["OTI_EXT_IPS_V4"] = bgp_data["OTI_EXT_IPS_V4"]'},
     {'if':'glob_vars.get("NOSHUT","") and len(bgp_data.get("OTI_EXT_IPS_V6",""))>0',
@@ -176,13 +186,11 @@ CMD_IOS_XR = [
     },
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V4","")',
         'loop_glob_var':"OTI_EXT_IPS_V4",
-            'remote_command':['neighbor ',{'eval':'loop_item'}],
-            'remote_command_2':'shut',
+            'remote_command':['neighbor ',{'eval':'loop_item'},' shutdown']
     },
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V6","")',
         'loop_glob_var':"OTI_EXT_IPS_V6",
-            'remote_command':['neighbor ',{'eval':'loop_item'}],
-            'remote_command_2':'shut',
+            'remote_command':['neighbor ',{'eval':'loop_item'},' shutdown']
     },
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6",""))',
         'remote_command':'Commit',
@@ -191,7 +199,7 @@ CMD_IOS_XR = [
     },
 
     {'if':'glob_vars.get("SHUT","")',
-        'exec':'time.sleep(120)'
+        'exec':'time.sleep(200)'
     },
 
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_INT_IPS_V4","") or glob_vars.get("OTI_INT_IPS_V6",""))',
@@ -200,13 +208,11 @@ CMD_IOS_XR = [
     },
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_INT_IPS_V4","")',
         'loop_glob_var':"OTI_EXT_IPS_V4",
-            'remote_command':['neighbor ',{'eval':'loop_item'}],
-            'remote_command_2':'shut',
+            'remote_command':['neighbor ',{'eval':'loop_item'},' shutdown'],
     },
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_INT_IPS_V6","")',
         'loop_glob_var':"OTI_EXT_IPS_V6",
-            'remote_command':['neighbor ',{'eval':'loop_item'}],
-            'remote_command_2':'shut',
+            'remote_command':['neighbor ',{'eval':'loop_item'},' shutdown'],
     },
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_INT_IPS_V4","") or glob_vars.get("OTI_INT_IPS_V6",""))',
         'remote_command':'Commit',
@@ -221,15 +227,35 @@ CMD_IOS_XR = [
     },
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_INT_IPS_V4","")',
         'loop_glob_var':"OTI_EXT_IPS_V4",
-            'remote_command':['neighbor ',{'eval':'loop_item'}],
-            'remote_command_2':'no shut',
+            'remote_command':['no neighbor ',{'eval':'loop_item'},' shutdown']
     },
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_INT_IPS_V6","")',
         'loop_glob_var':"OTI_EXT_IPS_V6",
-            'remote_command':['neighbor ',{'eval':'loop_item'}],
-            'remote_command_2':'no shut',
+            'remote_command':['no neighbor ',{'eval':'loop_item'},' shutdown']
     },
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_INT_IPS_V4","") or glob_vars.get("OTI_INT_IPS_V6",""))',
+        'remote_command':'Commit',
+        'remote_command_2':'Exit',
+        'remote_command_3':'Exit',
+    },
+
+    {'if':'glob_vars.get("NOSHUT","")',
+        'exec':'time.sleep(200)'
+    },
+
+    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6",""))',
+        'pre_loop_remote_command':'conf t',
+        'pre_loop_remote_command_2':'router bgp 5511',
+    },
+    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V4","")',
+        'loop_glob_var':"OTI_EXT_IPS_V4",
+            'remote_command':['no neighbor ',{'eval':'loop_item'},' shutdown']
+    },
+    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V6","")',
+        'loop_glob_var':"OTI_EXT_IPS_V6",
+            'remote_command':['no neighbor ',{'eval':'loop_item'},' shutdown']
+    },
+    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6",""))',
         'remote_command':'Commit',
         'remote_command_2':'Exit',
         'remote_command_3':'Exit',
@@ -239,25 +265,15 @@ CMD_IOS_XR = [
         'exec':'time.sleep(120)'
     },
 
-    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6",""))',
-        'pre_loop_remote_command':'conf t',
-        'pre_loop_remote_command_2':'router bgp 5511',
+    {'if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","")',
+        'remote_command':'conf t',
+        'remote_command_2':'router isis PAII',
+        'remote_command_3':'no set-overload-bit',
+        'remote_command_4':'Commit',
+        'remote_command_5':'Exit',
+        'remote_command_6':'Exit',
     },
-    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V4","")',
-        'loop_glob_var':"OTI_EXT_IPS_V4",
-            'remote_command':['neighbor ',{'eval':'loop_item'}],
-            'remote_command_2':'shut',
-    },
-    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V6","")',
-        'loop_glob_var':"OTI_EXT_IPS_V6",
-            'remote_command':['neighbor ',{'eval':'loop_item'}],
-            'remote_command_2':'shut',
-    },
-    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6",""))',
-        'remote_command':'Commit',
-        'remote_command_2':'Exit',
-        'remote_command_3':'Exit',
-    },
+
     {'if':'glob_vars.get("SHUT","")',
         "eval":"return_bgp_data_json()"
     },
@@ -427,7 +443,9 @@ def read_bgp_data_json_from_logfile(filename = None, printall = None):
         try: bgp_data_json_text = text.split('EVAL_COMMAND: return_bgp_data_json()')[1]
         except: bgp_data_json_text = str()
         if bgp_data_json_text:
-            bgp_data_loaded = json.loads(bgp_data_json_text, object_pairs_hook = collections.OrderedDict)
+            try:
+                bgp_data_loaded = json.loads(bgp_data_json_text, object_pairs_hook = collections.OrderedDict)
+            except: pass
             #print("LOADED_BGP_DATA: ",bgp_data_loaded)
             if printall: print("\nLOADED JSON BGP_DATA: ")
             if printall: print(json.dumps(bgp_data_loaded, indent=2))
@@ -1482,6 +1500,9 @@ if args.device == str():
 
 if args.readlog:
     bgp_data = read_bgp_data_json_from_logfile(args.readlog)
+    if not bgp_data:
+        print(bcolors.MAGENTA + " ... Please insert shut session log! (Inserted log seems to be noshut log.)" + bcolors.ENDC )
+        sys.exit(0)
 
 if remote_connect:
     ####### Set USERNAME if needed
