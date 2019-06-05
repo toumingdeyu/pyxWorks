@@ -243,6 +243,51 @@ CMD_IOS_XR = [
         'exec':'time.sleep(200)'
     },
 
+    {'if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","")',
+        'remote_command':['show bgp summary'],
+        'exec':['try: \
+            \n  temp_ipv4 = glob_vars.get("last_output","").split("St/PfxRcd")[1].strip().splitlines() \
+            \n  previous_line, int_list, error = None, [], None \
+            \n  for line in temp_ipv4: \
+            \n    if len(line.split())==1: previous_line = line; continue \
+            \n    if previous_line: line = previous_line + line; previous_line = None \
+            \n    try: \
+            \n      if "5511" in line.split()[2] and "." in line.split()[0]: \
+            \n          try: dummy = int(line.split()[9]) \
+            \n          except: error = True \
+            \n    except: pass \
+            \n  glob_vars["IPV4_ERROR"] = error \
+            \nexcept: pass' \
+               ],
+    },
+    {'if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","")',
+        'remote_command':['show bgp ipv6 unicast summary'],
+        'exec':['try: \
+            \n  temp_ipv6 = glob_vars.get("last_output","").split("St/PfxRcd")[1].strip().splitlines() \
+            \n  previous_line, int_list, error = None, [], None \
+            \n  for line in temp_ipv6: \
+            \n    if len(line.split())==1: previous_line = line; continue \
+            \n    if previous_line: line = previous_line + line; previous_line = None \
+            \n    try: \
+            \n      if "5511" in line.split()[2] and "." in line.split()[0]: \
+            \n          try: dummy = int(line.split()[9]) \
+            \n          except: error = True \
+            \n    except: pass \
+            \n  glob_vars["IPV6_ERROR"] = error \
+            \nexcept: pass' \
+               ],
+    },
+
+    {'exec':'glob_vars["CONTINUE_AFTER_IBGP_PROBLEM"] = "Y"'},
+    {'if':'glob_vars.get("IPV4_ERROR","") or glob_vars.get("IPV6_ERROR","")',
+         'exec':'print("WARNING: Possible problem in internal BGP! Please manually check status of iBGP.")',
+         'exec_2':'glob_vars["CONTINUE_AFTER_IBGP_PROBLEM"] = raw_input("Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:")',
+    },
+    {'if':'glob_vars.get("CONTINUE_AFTER_IBGP_PROBLEM","").upper() != "Y"',
+         'exec':'sys.exit(0)'
+    },
+
+
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6",""))',
         'pre_loop_remote_command':'conf t',
         'pre_loop_remote_command_2':'router bgp 5511',
@@ -338,8 +383,17 @@ CMD_LINUX = [
 ]
 
 CMD_LOCAL = [
-#     {"local_command":['hostname', {"output_variable":"hostname"}]
-#     },
+      {
+         'exec':'print("WARNING: Possible problem in internal BGP! Please manually check status of iBGP.")',
+         'exec_2':'glob_vars["CONTINUE_AFTER_IBGP_PROBLEM"] = raw_input("Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:")',
+      },
+      {'if':'glob_vars.get("CONTINUE_AFTER_IBGP_PROBLEM","").upper() != "Y"',
+          'exec':'sys.exit(0)'
+      },
+
+     {"local_command":['hostname', {"output_variable":"hostname"}]
+     },
+
 #     #{'eval': 'sys.exit(0)'},
 #     {"local_command":'hostname'},
 #     {"loop":"[0,1,2,3]","local_command":['whoami ',{'eval':'loop_item'}]
