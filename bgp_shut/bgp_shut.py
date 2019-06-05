@@ -278,13 +278,14 @@ CMD_IOS_XR = [
                ],
     },
 
-    {'exec':'glob_vars["CONTINUE_AFTER_IBGP_PROBLEM"] = "Y"'},
     {'if':'glob_vars.get("IPV4_ERROR","") or glob_vars.get("IPV6_ERROR","")',
          'exec':'print("WARNING: Possible problem in internal BGP! Please manually check status of iBGP.")',
          'exec_2':'glob_vars["CONTINUE_AFTER_IBGP_PROBLEM"] = raw_input("Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:")',
     },
-    {'if':'glob_vars.get("CONTINUE_AFTER_IBGP_PROBLEM","").upper() != "Y"',
-         'exec':'sys.exit(0)'
+    {'if':'(glob_vars.get("IPV4_ERROR","") or glob_vars.get("IPV6_ERROR","")) and glob_vars.get("CONTINUE_AFTER_IBGP_PROBLEM","").upper() != "Y"',
+         'exec':'print("File %s created." % logfilename)',
+         'exec_2':'try: send_me_email(logfilename.replace("\\\\","/").split("/")[-1], file_name=logfilename)\nexcept: pass',
+         'exec_3':'sys.exit(0)'
     },
 
 
@@ -383,13 +384,15 @@ CMD_LINUX = [
 ]
 
 CMD_LOCAL = [
-      {
-         'exec':'print("WARNING: Possible problem in internal BGP! Please manually check status of iBGP.")',
-         'exec_2':'glob_vars["CONTINUE_AFTER_IBGP_PROBLEM"] = raw_input("Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:")',
-      },
-      {'if':'glob_vars.get("CONTINUE_AFTER_IBGP_PROBLEM","").upper() != "Y"',
-          'exec':'sys.exit(0)'
-      },
+#       {
+#          'exec':'print("WARNING: Possible problem in internal BGP! Please manually check status of iBGP.")',
+#          'exec_2':'glob_vars["CONTINUE_AFTER_IBGP_PROBLEM"] = raw_input("Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:")',
+#       },
+#       {'if':'glob_vars.get("CONTINUE_AFTER_IBGP_PROBLEM","").upper() != "Y"',
+#           'exec':'print("File %s created." % logfilename)',
+#           'exec_2':'try: send_me_email(logfilename.replace("\\\\","/").split("/")[-1], file_name=logfilename)\nexcept: pass',
+#           'exec_3':'sys.exit(0)'
+#       },
 
      {"local_command":['hostname', {"output_variable":"hostname"}]
      },
