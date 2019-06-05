@@ -115,12 +115,12 @@ CMD_IOS_XR = [
         'exec':'glob_vars["OTI_INT_IPS_V6"] = bgp_data["OTI_INT_IPS_V6"]'},
 
     {'if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","")',
-        'remote_command':'conf t',
-        'remote_command_2':'router isis PAII',
-        'remote_command_3':'set-overload-bit',
-        'remote_command_4':'Commit',
-        'remote_command_5':'Exit',
-        'remote_command_6':'Exit',
+        'remote_command':['conf t',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'remote_command_2':['router isis PAII',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'remote_command_3':['set-overload-bit',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'remote_command_4':['Commit',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'remote_command_5':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'remote_command_6':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'exec':'time.sleep(120)',
     },
 
@@ -175,21 +175,21 @@ CMD_IOS_XR = [
 
     ### SHUT -------------------------------------------------------------------
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6",""))',
-        'pre_loop_remote_command':'conf t',
-        'pre_loop_remote_command_2':'router bgp 5511',
+        'pre_loop_remote_command':['conf t',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'pre_loop_remote_command_2':['router bgp 5511',{'sim':'glob_vars.get("SIM_CMD","")'}],
     },
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V4","")',
         'loop_glob_var':"OTI_EXT_IPS_V4",
-            'remote_command':['neighbor ',{'eval':'loop_item'},' shutdown']
+            'remote_command':['neighbor ',{'eval':'loop_item'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V6","")',
         'loop_glob_var':"OTI_EXT_IPS_V6",
-            'remote_command':['neighbor ',{'eval':'loop_item'},' shutdown']
+            'remote_command':['neighbor ',{'eval':'loop_item'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6",""))',
-        'remote_command':'Commit',
-        'remote_command_2':'Exit',
-        'remote_command_3':'Exit',
+        'remote_command':['Commit',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'remote_command_2':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'remote_command_3':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
 
     {'if':'glob_vars.get("SHUT","")',
@@ -197,40 +197,40 @@ CMD_IOS_XR = [
     },
 
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_INT_IPS_V4","") or glob_vars.get("OTI_INT_IPS_V6",""))',
-        'pre_loop_remote_command':'conf t',
-        'pre_loop_remote_command_2':'router bgp 5511',
+        'pre_loop_remote_command':['conf t',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'pre_loop_remote_command_2':['router bgp 5511',{'sim':'glob_vars.get("SIM_CMD","")'}],
     },
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_INT_IPS_V4","")',
         'loop_glob_var':"OTI_INT_IPS_V4",
-            'remote_command':['neighbor ',{'eval':'loop_item'},' shutdown'],
+            'remote_command':['neighbor ',{'eval':'loop_item'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}],
     },
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_INT_IPS_V6","")',
         'loop_glob_var':"OTI_INT_IPS_V6",
-            'remote_command':['neighbor ',{'eval':'loop_item'},' shutdown'],
+            'remote_command':['neighbor ',{'eval':'loop_item'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}],
     },
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_INT_IPS_V4","") or glob_vars.get("OTI_INT_IPS_V6",""))',
-        'remote_command':'Commit',
-        'remote_command_2':'Exit',
-        'remote_command_3':'Exit',
+        'remote_command':['Commit',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'remote_command_2':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'remote_command_3':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
 
     ### NOSHUT -----------------------------------------------------------------
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_INT_IPS_V4","") or glob_vars.get("OTI_INT_IPS_V6",""))',
-        'pre_loop_remote_command':'conf t',
-        'pre_loop_remote_command_2':'router bgp 5511',
+        'pre_loop_remote_command':['conf t',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'pre_loop_remote_command_2':['router bgp 5511',{'sim':'glob_vars.get("SIM_CMD","")'}],
     },
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_INT_IPS_V4","")',
         'loop_glob_var':"OTI_INT_IPS_V4",
-            'remote_command':['no neighbor ',{'eval':'loop_item'},' shutdown']
+            'remote_command':['no neighbor ',{'eval':'loop_item'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_INT_IPS_V6","")',
         'loop_glob_var':"OTI_INT_IPS_V6",
-            'remote_command':['no neighbor ',{'eval':'loop_item'},' shutdown']
+            'remote_command':['no neighbor ',{'eval':'loop_item'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_INT_IPS_V4","") or glob_vars.get("OTI_INT_IPS_V6",""))',
-        'remote_command':'Commit',
-        'remote_command_2':'Exit',
-        'remote_command_3':'Exit',
+        'remote_command':['Commit',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'remote_command_2':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'remote_command_3':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
 
     {'if':'glob_vars.get("NOSHUT","")',
@@ -284,21 +284,21 @@ CMD_IOS_XR = [
 
 
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6",""))',
-        'pre_loop_remote_command':'conf t',
-        'pre_loop_remote_command_2':'router bgp 5511',
+        'pre_loop_remote_command':['conf t',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'pre_loop_remote_command_2':['router bgp 5511',{'sim':'glob_vars.get("SIM_CMD","")'}],
     },
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V4","")',
         'loop_glob_var':"OTI_EXT_IPS_V4",
-            'remote_command':['no neighbor ',{'eval':'loop_item'},' shutdown']
+            'remote_command':['no neighbor ',{'eval':'loop_item'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V6","")',
         'loop_glob_var':"OTI_EXT_IPS_V6",
-            'remote_command':['no neighbor ',{'eval':'loop_item'},' shutdown']
+            'remote_command':['no neighbor ',{'eval':'loop_item'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6",""))',
-        'remote_command':'Commit',
-        'remote_command_2':'Exit',
-        'remote_command_3':'Exit',
+        'remote_command':['Commit',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'remote_command_2':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'remote_command_3':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
 
     {'if':'glob_vars.get("NOSHUT","")',
@@ -306,12 +306,12 @@ CMD_IOS_XR = [
     },
 
     {'if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","")',
-        'remote_command':'conf t',
-        'remote_command_2':'router isis PAII',
-        'remote_command_3':'no set-overload-bit',
-        'remote_command_4':'Commit',
-        'remote_command_5':'Exit',
-        'remote_command_6':'Exit',
+        'remote_command':['conf t',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'remote_command_2':['router isis PAII',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'remote_command_3':['no set-overload-bit',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'remote_command_4':['Commit',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'remote_command_5':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'remote_command_6':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
 
     {'if':'glob_vars.get("SHUT","")',
@@ -326,7 +326,8 @@ CMD_VRP = []
 CMD_LINUX = []
 
 CMD_LOCAL = [
-     {"local_command":['hostname', {"output_variable":"hostname"}]
+     {'eval':'glob_vars.get("SIM_CMD","")'},
+     {"local_command":['hostname', {"output_variable":"hostname"},{'sim':'glob_vars.get("SIM_CMD","")'}]
      },
 ]
 
@@ -542,7 +543,7 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
     def run_command(ssh_connection,cmd_line_items,loop_item=None,run_remote = None,\
         logfilename = logfilename,printall = printall, printcmdtologfile = printcmdtologfile):
         global glob_vars
-        cli_line, name_of_output_variable = str(), None
+        cli_line, name_of_output_variable, simulate_command, sim_text = str(), None, None, str()
         ### LIST,TUPPLE,STRINS ARE REMOTE REMOTE/LOCAL DEVICE COMMANDS
         if isinstance(cmd_line_items, (six.string_types,list,tuple)):
             if isinstance(cmd_line_items, six.string_types): cli_line = cmd_line_items
@@ -553,21 +554,27 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
                             name_of_output_variable = cli_item.get('output_variable','')
                         elif cli_item.get('eval',''):
                             cli_line += str(eval(cli_item.get('eval','')))
+                        elif cli_item.get('sim',''):
+                            simulate_command = True if str(eval(cli_item.get('sim',''))).upper()=='ON' else None
+                            if simulate_command: sim_text = '(SIM)'
                     else: cli_line += str(cli_item)
             if run_remote:
-                print(bcolors.GREEN + "REMOTE_COMMAND: %s" % (cli_line) + bcolors.ENDC )
+                print(bcolors.GREEN + "REMOTE_COMMAND%s: %s" % (sim_text,cli_line) + bcolors.ENDC )
                 ### NETMIKO
-                last_output = ssh_connection.send_command(cli_line)
+                if simulate_command: last_output = str()
+                else: last_output = ssh_connection.send_command(cli_line)
 
                 ### PARAMIKO
                 #last_output, new_prompt = ssh_send_command_and_read_output(ssh_connection,DEVICE_PROMPTS,cli_line)
                 #if new_prompt: DEVICE_PROMPTS.append(new_prompt)
             else:
-                print(bcolors.CYAN + "LOCAL_COMMAND: %s" % (cli_line) + bcolors.ENDC )
+                print(bcolors.CYAN + "LOCAL_COMMAND%s: %s" % (sim_text,cli_line) + bcolors.ENDC )
                 ### LOCAL COMMAND - SUBPROCESS CALL
-                try:
-                    last_output = subprocess.check_output(str(cli_line),shell=True)
-                except: last_output = str()
+                if simulate_command: last_output = str()
+                else:
+                    try:
+                        last_output = subprocess.check_output(str(cli_line),shell=True)
+                    except: last_output = str()
 
             ### FILTER LAST_OUTPUT
             if isinstance(last_output, six.string_types):
@@ -893,6 +900,9 @@ parser.add_argument("--shut",
 parser.add_argument("--noshut",
                     action = 'store_true', dest = "noshut", default = None,
                     help = "switch-on bgp traffic")
+parser.add_argument("--sim",
+                    action = 'store_true', dest = "sim", default = None,
+                    help = "simulate critical command runs")
 args = parser.parse_args()
 
 if args.nocolors or 'WIN32' in sys.platform.upper(): bcolors = nocolors
@@ -919,6 +929,8 @@ if args.shut and args.noshut:
 
 if args.shut: glob_vars["SHUT"] = True
 if args.noshut: glob_vars["NOSHUT"] = True
+
+if args.sim: glob_vars["SIM_CMD"] = 'ON';
 
 if args.device == str():
     remote_connect = None
