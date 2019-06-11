@@ -338,7 +338,7 @@ CMD_VRP = [
     {'exec':'try: bgp_data["Import_VPN_Targets"] = glob_vars.get("VPN_INSTANCE_IP_TEXT","").split("Import VPN Targets :")[1].splitlines()[0].strip()\nexcept: pass',
     },
 
-    {'if':'glob_vars.get("Interfaces","")',
+    {'if':'bgp_data.get("Interfaces","")',
         'remote_command': ['disp current-configuration interface ',{"eval":'bgp_data.get("Interfaces","")'},{'output_variable':'VPN_IF_TEXT'}],
         'exec':'try: bgp_data["vlan-type"] = glob_vars.get("VPN_IF_TEXT","").split("vlan-type")[1].splitlines()[0].strip()\nexcept: pass',
         'exec_2':'try: bgp_data["description"] = glob_vars.get("VPN_IF_TEXT","").split("description")[1].splitlines()[0].strip()\nexcept: pass',
@@ -346,16 +346,28 @@ CMD_VRP = [
         'exec_4':'try: bgp_data["ip_address"] = glob_vars.get("VPN_IF_TEXT","").split("ip address")[1].splitlines()[0].split()[0].strip()\nexcept: pass',
         'exec_5':'try: bgp_data["ip_address_mask"] = glob_vars.get("VPN_IF_TEXT","").split("ip address")[1].splitlines()[0].split()[1].strip()\nexcept: pass',
         'exec_6':'try: bgp_data["traffic-policy"] = glob_vars.get("VPN_IF_TEXT","").split("traffic-policy")[1].split()[0].strip()\nexcept: pass',
+        'exec_7':'try: bgp_data["cir_inbound"] = glob_vars.get("VPN_IF_TEXT","").split("user-queue cir")[1].split()[0].strip()\nexcept: pass',
+        'exec_8':'try: tmp_data = glob_vars.get("VPN_IF_TEXT","").split("user-queue cir")[2].split()[0].strip()\nexcept:tmp_data = None\nfinally: bgp_data["cir_outbound"] = tmp_data',
+
     },
 
+
+    {'remote_command':['disp ip routing-table vpn-instance ',{"eval":'glob_vars["VPN_NAME"]'},' protocol static',{'output_variable':'VPN_STATIC_TEXT'}]
+    },
+    {'if':'"Static" in glob_vars.get("VPN_STATIC_TEXT","")',
+         'exec':'bgp_data["eBGP_or_Static"] = "Static"',
+    },
+    {'if':'not "Static" in glob_vars.get("VPN_STATIC_TEXT","")',
+         'exec':'bgp_data["eBGP_or_Static"] = "eBGP"',
+    },
 
     {'remote_command':['display bgp vpnv4 vpn-instance ',{"eval":'glob_vars["VPN_NAME"]'},' peer verbose',{'output_variable':'VPN_PEER_TEXT'}],
     },
     {'exec':'try: bgp_data["remote_AS"] = glob_vars.get("VPN_PEER_TEXT","").split("remote AS")[1].splitlines()[0].strip()\nexcept: pass',
     },
-    {'exec':'try: bgp_data["Remote_router_ID"] = glob_vars.get("VPN_PEER_TEXT","").split("Remote router ID")[1].splitlines()[0].strip()\nexcept: pass',
+    {'exec':'try: bgp_data["BGP_Peer_is"] = glob_vars.get("VPN_PEER_TEXT","").split("BGP Peer is")[1].splitlines()[0].split(",")[0].strip()\nexcept: pass',
     },
-    {'exec':'try: bgp_data["BGP_current_state"] = glob_vars.get("VPN_PEER_TEXT","").split("BGP current state:")[1].split(",")[0].strip()\nexcept: pass',
+    {'exec':'try: bgp_data["BGP_current_state"] = glob_vars.get("VPN_PEER_TEXT","").split("BGP current state:")[1].splitlines()[0].split(",")[0].strip()\nexcept: pass',
     },
     {'exec':'try: bgp_data["Received_total_routes"] = glob_vars.get("VPN_PEER_TEXT","").split("Received total routes:")[1].splitlines()[0].strip()\nexcept: pass',
     },
@@ -850,19 +862,19 @@ def append_variable_to_bashrc(variable_name=None,variable_value=None):
 
 def send_me_email(subject='testmail', file_name='/dev/null'):
     pass
-#     if not 'WIN32' in sys.platform.upper():
-#         my_account = subprocess.check_output('whoami', shell=True)
-#         my_finger_line = subprocess.check_output('finger | grep "%s"'%(my_account.strip()), shell=True)
-#         try:
-#             my_name = my_finger_line.splitlines()[0].split()[1]
-#             my_surname = my_finger_line.splitlines()[0].split()[2]
-#             if EMAIL_ADDRESS: my_email_address = EMAIL_ADDRESS
-#             else: my_email_address = '%s.%s@orange.com' % (my_name, my_surname)
-#             mail_command = 'echo | mutt -s "%s" -a %s -- %s' % (subject,file_name,my_email_address)
-#             #mail_command = 'uuencode %s %s | mail -s "%s" %s' % (file_name,file_name,subject,my_email_address)
-#             forget_it = subprocess.check_output(mail_command, shell=True)
-#             print(' ==> Email "%s" sent to %s.'%(subject,my_email_address))
-#         except: pass
+    if not 'WIN32' in sys.platform.upper():
+        my_account = subprocess.check_output('whoami', shell=True)
+        my_finger_line = subprocess.check_output('finger | grep "%s"'%(my_account.strip()), shell=True)
+        try:
+            my_name = my_finger_line.splitlines()[0].split()[1]
+            my_surname = my_finger_line.splitlines()[0].split()[2]
+            if EMAIL_ADDRESS: my_email_address = EMAIL_ADDRESS
+            else: my_email_address = '%s.%s@orange.com' % (my_name, my_surname)
+            mail_command = 'echo | mutt -s "%s" -a %s -- %s' % (subject,file_name,my_email_address)
+            #mail_command = 'uuencode %s %s | mail -s "%s" %s' % (file_name,file_name,subject,my_email_address)
+            forget_it = subprocess.check_output(mail_command, shell=True)
+            print(' ==> Email "%s" sent to %s.'%(subject,my_email_address))
+        except: pass
 
 
 def generate_file_name(prefix = None, suffix = None , directory = None):
@@ -902,6 +914,7 @@ glob_vars = {}
 # for item in eval('dir()'): global_env[item] = eval(item)
 
 global_env = globals()
+
 
 ######## Parse program arguments #########
 parser = argparse.ArgumentParser(
