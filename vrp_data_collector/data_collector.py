@@ -322,6 +322,8 @@ CMD_IOS_XR = [
 CMD_JUNOS = []
 
 CMD_VRP = [
+    {'exec':'bgp_data["vrf_name"] = glob_vars.get("VPN_NAME","")'},
+
     {'remote_command':['disp ip vpn-instance verbose ',{'eval':'glob_vars.get("VPN_NAME","")'},{'output_variable':'VPN_INSTANCE_IP_TEXT'}]
     },
     {'if':'"VPN instance does not exist." in glob_vars.get("VPN_INSTANCE_IP_TEXT","")',
@@ -329,6 +331,10 @@ CMD_VRP = [
          'exec':'print("VPN instance %s does not exist on %s!" % (glob_vars.get("VPN_NAME",""),device))',
          'exec_2':'sys.exit(0)'
     },
+    {'exec':'try: glob_vars["INTERFACE"] = glob_vars.get("VPN_INSTANCE_IP_TEXT","").split("Interfaces :")[1].splitlines()[0].strip()\nexcept: pass'},
+
+
+
     {'exec':'try: bgp_data["Route_Distinguisher"] = glob_vars.get("VPN_INSTANCE_IP_TEXT","").split("Route Distinguisher :")[1].splitlines()[0].strip()\nexcept: pass',
     },
     {'exec':'try: bgp_data["Export_VPN_Targets"] = glob_vars.get("VPN_INSTANCE_IP_TEXT","").split("Export VPN Targets :")[1].splitlines()[0].strip()\nexcept: pass',
@@ -336,13 +342,13 @@ CMD_VRP = [
     {'exec':'try: bgp_data["Import_VPN_Targets"] = glob_vars.get("VPN_INSTANCE_IP_TEXT","").split("Import VPN Targets :")[1].splitlines()[0].strip()\nexcept: pass',
     },
 
-    {'if':'bgp_data.get("Interfaces","")',
-        'remote_command': ['disp current-configuration interface ',{"eval":'bgp_data.get("Interfaces","")'},{'output_variable':'VPN_IF_TEXT'}],
-        'exec':'try: bgp_data["vlan-type"] = glob_vars.get("VPN_IF_TEXT","").split("vlan-type")[1].splitlines()[0].strip()\nexcept: pass',
+
+
+    {'if':'glob_vars.get("INTERFACE","")',
+        'remote_command': ['disp current-configuration interface ',{"eval":'glob_vars.get("INTERFACE","")'},{'output_variable':'VPN_IF_TEXT'}],
         'exec_6':'try: bgp_data["traffic-policy"] = glob_vars.get("VPN_IF_TEXT","").split("traffic-policy")[1].split()[0].strip()\nexcept: pass',
         'exec_7':'try: bgp_data["cir_inbound"] = glob_vars.get("VPN_IF_TEXT","").split("user-queue cir")[1].split()[0].strip()\nexcept: pass',
         'exec_8':'try: tmp_data = glob_vars.get("VPN_IF_TEXT","").split("user-queue cir")[2].split()[0].strip()\nexcept:tmp_data = None\nfinally: bgp_data["cir_outbound"] = tmp_data',
-
     },
 
 
@@ -382,20 +388,20 @@ CMD_VRP = [
 
 
     {'exec':'bgp_data["device_name"] = device'},
-    {'exec':'try: glob_vars["INTERFACE"] = glob_vars.get("VPN_INSTANCE_IP_TEXT","").split("Interfaces :")[1].splitlines()[0].strip() \
-           \nexcept: glob_vars["INTERFACE"] = None'
+
+    {'exec':'try: glob_vars["INTERFACE_WITHOUT_DOT"] = glob_vars.get("INTERFACE","").split(".")[0] \
+           \nexcept: bgp_data["INTERFACE_WITHOUT_DOT"] = glob_vars.get("INTERFACE","")'
     },
-    {'exec':'try: glob_vars["INTERFACE"] = glob_vars.get("INTERFACE","").split(".")[0] \
-           \nexcept: bgp_data["INTERFACE"] = glob_vars.get("INTERFACE","")'
-    },
-    {'exec':'try: bgp_data["Interface_type"] = re.findall(r"^.*[a-zA-Z]",glob_vars.get("INTERFACE",""))[0] \
+    {'exec':'try: bgp_data["Interface_type"] = re.findall(r"^.*[a-zA-Z]",glob_vars.get("INTERFACE_WITHOUT_DOT",""))[0] \
            \nexcept: bgp_data["Interface_type"] = None'
     },
-    {'exec':'try: bgp_data["Interface_number"] = re.findall(r"[0-9].*$",glob_vars.get("INTERFACE",""))[0] \
+    {'exec':'try: bgp_data["Interface_number"] = re.findall(r"[0-9].*$",glob_vars.get("INTERFACE_WITHOUT_DOT",""))[0] \
            \nexcept: bgp_data["Interface_number"] = None'
     },
     {'exec':'bgp_data["interface_info"] = collections.OrderedDict()'},
-    {'exec':'bgp_data["interface_info"]["vlan_id"] = glob_vars.get("VPN_NAME","")'},
+    {'exec':'try: bgp_data["interface_info"]["vlan_id"] = glob_vars.get("VPN_IF_TEXT","").split("vlan-type")[1].splitlines()[0].split()[1].strip() \
+           \nexcept: bgp_data["interface_info"]["vlan_id"] = None',
+    },
     {'exec':'try: bgp_data["interface_info"]["circuit_id"] = "LD"+glob_vars.get("VPN_IF_TEXT","").split("description")[1].splitlines()[0].split(" LD")[1].split()[0].strip() \
            \nexcept: bgp_data["interface_info"]["circuit_id"] = None'},
     {'exec':'try: bgp_data["interface_info"]["address_v4"] = glob_vars.get("VPN_IF_TEXT","").split("ip address")[1].splitlines()[0].split()[0].strip() \
