@@ -134,8 +134,8 @@ CMD_IOS_XR = [
             \n    if len(line.split())==1: previous_line = line; continue \
             \n    if previous_line: line = previous_line + line; previous_line = None \
             \n    try: \
-            \n      if "5511" in line.split()[2] and "." in line.split()[0]: int_list.append(line.split()[0]) \
-            \n      elif "." in line.split()[0]: ext_list.append(line.split()[0]) \
+            \n      if "5511" in line.split()[2] and "." in line.split()[0]: int_list.append([line.split()[0],line.split()[9]]) \
+            \n      elif "." in line.split()[0]: ext_list.append([line.split()[0],line.split()[9]]) \
             \n    except: pass \
             \n  glob_vars["OTI_INT_IPS_V4"] = int_list; glob_vars["OTI_EXT_IPS_V4"] = ext_list \
             \nexcept: pass' \
@@ -150,8 +150,8 @@ CMD_IOS_XR = [
             \n    if len(line.split())==1: previous_line = line; continue \
             \n    if previous_line: line = previous_line + line; previous_line = None \
             \n    try: \
-            \n      if "5511" in line.split()[2] and ":" in line.split()[0]: int_list.append(line.split()[0]) \
-            \n      elif ":" in line.split()[0]: ext_list.append(line.split()[0]) \
+            \n      if "5511" in line.split()[2] and ":" in line.split()[0]: int_list.append([line.split()[0],line.split()[9]]) \
+            \n      elif ":" in line.split()[0]: ext_list.append([line.split()[0],line.split()[9]]) \
             \n    except: pass \
             \n  glob_vars["OTI_INT_IPS_V6"] = int_list; glob_vars["OTI_EXT_IPS_V6"] = ext_list \
             \nexcept: pass' \
@@ -181,11 +181,11 @@ CMD_IOS_XR = [
     },
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V4","")',
         'loop_glob_var':"OTI_EXT_IPS_V4",
-            'remote_command':['neighbor ',{'eval':'loop_item'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}]
+            'remote_command':['neighbor ',{'eval':'loop_item[0]'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V6","")',
         'loop_glob_var':"OTI_EXT_IPS_V6",
-            'remote_command':['neighbor ',{'eval':'loop_item'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}]
+            'remote_command':['neighbor ',{'eval':'loop_item[0]'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6",""))',
         'remote_command':['Commit',{'sim':'glob_vars.get("SIM_CMD","")'}],
@@ -203,11 +203,11 @@ CMD_IOS_XR = [
     },
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_INT_IPS_V4","")',
         'loop_glob_var':"OTI_INT_IPS_V4",
-            'remote_command':['neighbor ',{'eval':'loop_item'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}],
+            'remote_command':['neighbor ',{'eval':'loop_item[0]'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}],
     },
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_INT_IPS_V6","")',
         'loop_glob_var':"OTI_INT_IPS_V6",
-            'remote_command':['neighbor ',{'eval':'loop_item'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}],
+            'remote_command':['neighbor ',{'eval':'loop_item[0]'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}],
     },
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_INT_IPS_V4","") or glob_vars.get("OTI_INT_IPS_V6",""))',
         'remote_command':['Commit',{'sim':'glob_vars.get("SIM_CMD","")'}],
@@ -222,11 +222,11 @@ CMD_IOS_XR = [
     },
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_INT_IPS_V4","")',
         'loop_glob_var':"OTI_INT_IPS_V4",
-            'remote_command':['no neighbor ',{'eval':'loop_item'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}]
+            'remote_command':['no neighbor ',{'eval':'loop_item[0]'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_INT_IPS_V6","")',
         'loop_glob_var':"OTI_INT_IPS_V6",
-            'remote_command':['no neighbor ',{'eval':'loop_item'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}]
+            'remote_command':['no neighbor ',{'eval':'loop_item[0]'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_INT_IPS_V4","") or glob_vars.get("OTI_INT_IPS_V6",""))',
         'remote_command':['Commit',{'sim':'glob_vars.get("SIM_CMD","")'}],
@@ -249,7 +249,11 @@ CMD_IOS_XR = [
             \n    try: \
             \n      if "5511" in line.split()[2] and "." in line.split()[0]: \
             \n          try: dummy = int(line.split()[9]) \
-            \n          except: error = True \
+            \n          except: \
+            \n              error = True \
+            \n              for ip4address,ip4status in "OTI_INT_IPS_V4": \
+            \n                  if line.split()[0] == ip4address and ip4status == line.split()[9]: \
+            \n                      error = False \
             \n    except: pass \
             \n  glob_vars["IPV4_ERROR"] = error \
             \nexcept: pass' \
@@ -266,7 +270,11 @@ CMD_IOS_XR = [
             \n    try: \
             \n      if "5511" in line.split()[2] and "." in line.split()[0]: \
             \n          try: dummy = int(line.split()[9]) \
-            \n          except: error = True \
+            \n          except: \
+            \n              error = True \
+            \n              for ip6address,ip6status in "OTI_INT_IPS_V6": \
+            \n                  if line.split()[0] == ip6address and ip6status == line.split()[9]: \
+            \n                      error = False \
             \n    except: pass \
             \n  glob_vars["IPV6_ERROR"] = error \
             \nexcept: pass' \
