@@ -273,8 +273,11 @@ CMD_IOS_XR = [
     },
 
     {'if':'glob_vars.get("IPV4_ERROR","") or glob_vars.get("IPV6_ERROR","")',
-         'exec':'print("WARNING: Possible problem in internal BGP! Please manually check status of iBGP.")',
-         'exec_2':'glob_vars["CONTINUE_AFTER_IBGP_PROBLEM"] = raw_input("Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:")',
+#          'exec':'print("WARNING: Possible problem in internal BGP! Please manually check status of iBGP.")',
+#          'exec_2':'glob_vars["CONTINUE_AFTER_IBGP_PROBLEM"] = raw_input("Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:")',
+         'local_command':['echo "WARNING: Possible problem in internal BGP! Please manually check status of iBGP."',{'print_output':'on'}],
+         'local_command_1':['echo "Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:"',{'print_output':'on'}],
+         'local_command_2':['read var;echo $var',{"output_variable":"CONTINUE_AFTER_IBGP_PROBLEM"}],
     },
     {'if':'(glob_vars.get("IPV4_ERROR","") or glob_vars.get("IPV6_ERROR","")) and glob_vars.get("CONTINUE_AFTER_IBGP_PROBLEM","").upper() != "Y"',
          'exec':'print("File %s created." % logfilename)',
@@ -326,9 +329,14 @@ CMD_VRP = []
 CMD_LINUX = [
     {"local_command":'hostname'},
     {"remote_command":'hostname'},
+#     {'if':'True',
+#          'exec':'print("WARNING: Possible problem in internal BGP! Please manually check status of iBGP.")',
+#          'exec_2':'glob_vars["CONTINUE_AFTER_IBGP_PROBLEM"] = raw_input("Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:")',
+#     },
     {'if':'True',
-         'exec':'print("WARNING: Possible problem in internal BGP! Please manually check status of iBGP.")',
-         'exec_2':'glob_vars["CONTINUE_AFTER_IBGP_PROBLEM"] = raw_input("Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:")',
+         #'exec':'print("WARNING: Possible problem in internal BGP! Please manually check status of iBGP.")',
+         #'exec_2':'glob_vars["CONTINUE_AFTER_IBGP_PROBLEM"] = raw_input("Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:")',
+         'local_command':'echo "Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:" ;read var;echo $var'
     },
 ]
 
@@ -336,9 +344,15 @@ CMD_LOCAL = [
     {'eval':'glob_vars.get("SIM_CMD","")'},
     {"local_command":['hostname', {"output_variable":"hostname"},{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
+#     {'if':'True',
+#          'exec':'print("WARNING: Possible problem in internal BGP! Please manually check status of iBGP.")',
+#          'exec_2':'glob_vars["CONTINUE_AFTER_IBGP_PROBLEM"] = raw_input("Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:")',
+#     },
     {'if':'True',
-         'exec':'print("WARNING: Possible problem in internal BGP! Please manually check status of iBGP.")',
-         'exec_2':'glob_vars["CONTINUE_AFTER_IBGP_PROBLEM"] = raw_input("Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:")',
+         'local_command':['echo "WARNING: Possible problem in internal BGP! Please manually check status of iBGP."',{'print_output':'on'}],
+         'local_command_1':['echo "Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:"',{'print_output':'on'}],
+         'local_command_2':['read var;echo $var',{"output_variable":"CONTINUE_AFTER_IBGP_PROBLEM"}],
+         'eval':['glob_vars.get("CONTINUE_AFTER_IBGP_PROBLEM","")',{'print_output':'on'}],
     },
 ]
 
@@ -578,7 +592,7 @@ def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True)
                     try: new_last_line = output2.splitlines()[-1].strip()
                     except: new_last_line = str()
                     if last_line_orig and new_last_line and last_line_orig == new_last_line:
-                        print('%sNEW_PROMPT: %s%s' % (bcolors.CYAN,last_line_orig,bcolors.ENDC))
+                        if printall: print('%sNEW_PROMPT: %s%s' % (bcolors.CYAN,last_line_orig,bcolors.ENDC))
                         new_prompt = last_line_orig; exit_loop=True;exit_loop2=True; break
                     # WAIT UP TO 5 SECONDS
                     if (timeout_counter2) > 5*10: exit_loop2 = True; break
@@ -620,6 +634,7 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
         logfilename = logfilename,printall = printall, printcmdtologfile = printcmdtologfile):
         global glob_vars, DEVICE_PROMPTS
         cli_line, name_of_output_variable, simulate_command, sim_text = str(), None, None, str()
+        print_output = None
         ### LIST,TUPPLE,STRINS ARE REMOTE REMOTE/LOCAL DEVICE COMMANDS
         if isinstance(cmd_line_items, (six.string_types,list,tuple)):
             if isinstance(cmd_line_items, six.string_types): cli_line = cmd_line_items
@@ -633,18 +648,20 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
                         elif cli_item.get('sim',''):
                             simulate_command = True if str(eval(cli_item.get('sim',''))).upper()=='ON' else None
                             if simulate_command: sim_text = '(SIM)'
+                        elif cli_item.get('print_output',''):
+                            print_output = True if str(cli_item.get('print_output','')).upper()=='ON' else None
                     else: cli_line += str(cli_item)
             if run_remote:
-                print(bcolors.GREEN + "REMOTE_COMMAND%s: %s" % (sim_text,cli_line) + bcolors.ENDC )
+                if printall: print(bcolors.GREEN + "REMOTE_COMMAND%s: %s" % (sim_text,cli_line) + bcolors.ENDC )
                 ### NETMIKO
 #                 if simulate_command: last_output = str()
 #                 else: last_output = ssh_connection.send_command(cli_line)
 
                 ### PARAMIKO
-                last_output, new_prompt = ssh_send_command_and_read_output(ssh_connection,DEVICE_PROMPTS,cli_line)
+                last_output, new_prompt = ssh_send_command_and_read_output(ssh_connection,DEVICE_PROMPTS,cli_line,printall=printall)
                 if new_prompt: DEVICE_PROMPTS.append(new_prompt)
             else:
-                print(bcolors.CYAN + "LOCAL_COMMAND%s: %s" % (sim_text,cli_line) + bcolors.ENDC )
+                if printall: print(bcolors.CYAN + "LOCAL_COMMAND%s: %s" % (sim_text,cli_line) + bcolors.ENDC )
                 ### LOCAL COMMAND - SUBPROCESS CALL
                 if simulate_command: last_output = str()
                 else:
@@ -664,7 +681,7 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
                     last_output = last_output.replace(first_bugged_line+'\n','')
                     if(last_output.strip() == first_bugged_line): last_output = str()
 
-            if printall: print(bcolors.GREY + "%s" % (last_output) + bcolors.ENDC )
+            if printall or print_output: print(bcolors.GREY + "%s" % (last_output) + bcolors.ENDC )
             if printcmdtologfile:
                 if run_remote: fp.write('REMOTE_COMMAND: ' + cli_line + '\n'+last_output+'\n')
                 else: fp.write('LOCAL_COMMAND: ' + cli_line + '\n'+last_output+'\n')
@@ -678,7 +695,7 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
     def eval_command(ssh_connection,cmd_line_items,loop_item=None,\
         logfilename = logfilename,printall = printall, printcmdtologfile = printcmdtologfile):
         global glob_vars, DEVICE_PROMPTS
-        cli_line, name_of_output_variable = str(), None
+        cli_line, name_of_output_variable, print_output = str(), None, None
         ### LIST,TUPPLE,STRINS ARE REMOTE REMOTE/LOCAL DEVICE COMMANDS
         if isinstance(cmd_line_items, (six.string_types,list,tuple)):
             if isinstance(cmd_line_items, six.string_types): cli_line = cmd_line_items
@@ -689,11 +706,13 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
                             name_of_output_variable = cli_item.get('output_variable','')
                         elif cli_item.get('eval',''):
                             cli_line += str(eval(cli_item.get('eval','')))
+                        elif cli_item.get('print_output',''):
+                            print_output = True if str(cli_item.get('print_output','')).upper()=='ON' else None
                     else: cli_line += str(cli_item)
-            print(bcolors.CYAN + "EVAL_COMMAND: %s" % (cli_line) + bcolors.ENDC )
+            if printall: print(bcolors.CYAN + "EVAL_COMMAND: %s" % (cli_line) + bcolors.ENDC )
             try: local_output = eval(cli_line)
             except: local_output = str()
-            print(bcolors.GREY + str(local_output) + bcolors.ENDC )
+            if printall or print_output: print(bcolors.GREY + str(local_output) + bcolors.ENDC )
             if printcmdtologfile: fp.write('EVAL_COMMAND: ' + cli_line + '\n' + str(local_output) + '\n')
             if name_of_output_variable:
                 glob_vars[name_of_output_variable] = local_output
@@ -715,7 +734,7 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
                         elif cli_item.get('eval',''):
                             cli_line += str(eval(cli_item.get('eval','')))
                     else: cli_line += str(cli_item)
-            print(bcolors.CYAN + "EXEC_COMMAND: %s" % (cli_line) + bcolors.ENDC )
+            if printall: print(bcolors.CYAN + "EXEC_COMMAND: %s" % (cli_line) + bcolors.ENDC )
             ### EXEC CODE for PYTHON>v2.7.9
             # code_object = compile(cli_line, 'sumstring', 'exec')
             # local_env = {}
@@ -735,7 +754,7 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
             ret_value = eval(str(condition_eval_text))
             if ret_value: success = True
             else: success = False
-            print(bcolors.CYAN + "IF_CONDITION(%s)" % (condition_eval_text) + " --> " +\
+            if printall: print(bcolors.CYAN + "IF_CONDITION(%s)" % (condition_eval_text) + " --> " +\
                 str(success).upper() + bcolors.ENDC )
             if printcmdtologfile: fp.write('IF_CONDITION(%s): ' % (condition_eval_text) +\
                  " --> "+ str(success).upper() + '\n')
@@ -1126,7 +1145,7 @@ if not args.readlognew:
             # ADD PROMPT TO PROMPTS LIST
             if router_prompt: DEVICE_PROMPTS.append(router_prompt)
 
-            run_remote_and_local_commands(CMD, logfilename, printall = True , \
+            run_remote_and_local_commands(CMD, logfilename, printall = args.printall , \
                 printcmdtologfile = True)
 
             if logfilename and os.path.exists(logfilename):
