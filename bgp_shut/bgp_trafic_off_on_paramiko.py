@@ -929,6 +929,22 @@ def generate_file_name(prefix = None, suffix = None , directory = None):
         filenamewithpath = str(os.path.join(LOGDIR,filename))
     return filenamewithpath
 
+
+def find_last_shut_logfile():
+    if args.latest:
+        list_shut_files = glob.glob(os.path.join(WORKDIR,args.device.replace(':','_').replace('.','_')) + '*' + '-shut.log')
+    else:
+        list_shut_files = glob.glob(os.path.join(WORKDIR,args.device.replace(':','_').replace('.','_')) + '*' + USERNAME + '-shut.log')
+    if len(list_shut_files) == 0:
+        print(bcolors.MAGENTA + " ... Can't find any shut file." + bcolors.ENDC)
+        sys.exit()
+    most_recent_shut = list_shut_files[0]
+    for item in list_shut_files:
+        filecreation = os.path.getctime(item)
+        if filecreation > (os.path.getctime(most_recent_shut)):
+            most_recent_shut = item
+    shut_file = most_recent_shut
+    return shut_file
 ##############################################################################
 #
 # BEGIN MAIN
@@ -1051,6 +1067,13 @@ if args.readlog:
         print(bcolors.MAGENTA + " ... Please insert shut session log! (Inserted log seems to be noshut log.)" + bcolors.ENDC )
         sys.exit(0)
 
+if args.noshut and not args.readlog:
+    last_shut_file = find_last_shut_logfile()
+    bgp_data = read_bgp_data_json_from_logfile(last_shut_file)
+    if not bgp_data:
+        print(bcolors.MAGENTA + " ... Please insert shut session log!" + bcolors.ENDC )
+        sys.exit(0)
+
 if remote_connect:
     ####### Set USERNAME if needed
     if args.username: USERNAME = args.username
@@ -1091,7 +1114,10 @@ if not args.readlognew:
 
             ######## Create logs directory if not existing  #########
             if not os.path.exists(LOGDIR): os.makedirs(LOGDIR)
-            logfilename = generate_file_name(prefix = device, suffix = 'log')
+            on_off_name = ''
+            if args.shut: on_off_name = 'shut'
+            if args.noshut: on_off_name = 'noshut'
+            logfilename = generate_file_name(prefix = device, suffix = on_off_name + '.log')
             if args.nolog: logfilename = None
 
             ######## Find command list file (optional)
