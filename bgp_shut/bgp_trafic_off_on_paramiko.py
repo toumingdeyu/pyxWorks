@@ -338,7 +338,7 @@ CMD_LINUX = [
 #      'remote_command_1':['echo "Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:"',{'print_output':'on'}],
 #      'remote_command_2':['read var;echo $var',{"output_variable":"CONTINUE_AFTER_IBGP_PROBLEM"}],
 #      'eval':['"YOUR_CHOISE_IS: " + glob_vars.get("CONTINUE_AFTER_IBGP_PROBLEM","")',{'print_output':'on'}],
-    },
+#    },
 ]
 
 CMD_LOCAL = [
