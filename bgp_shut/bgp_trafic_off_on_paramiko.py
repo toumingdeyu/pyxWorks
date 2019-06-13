@@ -323,12 +323,23 @@ CMD_JUNOS = []
 
 CMD_VRP = []
 
-CMD_LINUX = []
+CMD_LINUX = [
+    {"local_command":'hostname'},
+    {"remote_command":'hostname'},
+    {'if':'True',
+         'exec':'print("WARNING: Possible problem in internal BGP! Please manually check status of iBGP.")',
+         'exec_2':'glob_vars["CONTINUE_AFTER_IBGP_PROBLEM"] = raw_input("Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:")',
+    },
+]
 
 CMD_LOCAL = [
-     {'eval':'glob_vars.get("SIM_CMD","")'},
-     {"local_command":['hostname', {"output_variable":"hostname"},{'sim':'glob_vars.get("SIM_CMD","")'}]
-     },
+    {'eval':'glob_vars.get("SIM_CMD","")'},
+    {"local_command":['hostname', {"output_variable":"hostname"},{'sim':'glob_vars.get("SIM_CMD","")'}]
+    },
+    {'if':'True',
+         'exec':'print("WARNING: Possible problem in internal BGP! Please manually check status of iBGP.")',
+         'exec_2':'glob_vars["CONTINUE_AFTER_IBGP_PROBLEM"] = raw_input("Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:")',
+    },
 ]
 
 #
@@ -506,8 +517,73 @@ def detect_router_by_ssh(device, debug = False):
     if router_os == 'junos': netmiko_os = 'juniper'
     if router_os == 'linux': netmiko_os = 'linux'
     if router_os == 'vrp': netmiko_os = 'huawei'
-    return netmiko_os
+    #return netmiko_os
     #return router_os, prompt
+    return netmiko_os, prompt
+
+
+def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True):
+    output, output2, new_prompt = str(), str(), str()
+    exit_loop, exit_loop2 = False, False
+    timeout_counter, timeout_counter2 = 0, 0
+    # FLUSH BUFFERS FROM PREVIOUS COMMANDS IF THEY ARE ALREADY BUFFERD
+    if chan.recv_ready(): flush_buffer = chan.recv(9999)
+    chan.send(send_data + '\n')
+    time.sleep(0.1)
+    while not exit_loop:
+        if chan.recv_ready():
+            # workarround for discontious outputs from routers
+            timeout_counter = 0
+            buff = chan.recv(9999)
+            buff_read = buff.decode("utf-8").replace('\x0d','').replace('\x07','').\
+                replace('\x08','').replace(' \x1b[1D','')
+            output += buff_read
+        else: time.sleep(0.1); timeout_counter += 1
+        # FIND LAST LINE, THIS COULD BE PROMPT
+        try: last_line, last_line_orig = output.splitlines()[-1].strip(), output.splitlines()[-1].strip()
+        except: last_line, last_line_orig = str(), str()
+        # FILTER-OUT '(...)' FROM PROMPT IOS-XR/IOS-XE
+        if router_type in ["ios-xr","ios-xe"]:
+            try:
+                last_line_part1 = last_line.split('(')[0]
+                last_line_part2 = last_line.split(')')[1]
+                last_line = last_line_part1 + last_line_part2
+            except: last_line = last_line
+        # FILTER-OUT '[*','[~','-...]' FROM VRP
+        elif router_type == "vrp":
+            try:
+                last_line_part1 = '[' + last_line.replace('[~','[').replace('[*','[').split('[')[1].split('-')[0]
+                last_line_part2 = ']' + last_line.replace('[~','[').replace('[*','[').split('[')[1].split(']')[1]
+                last_line = last_line_part1 + last_line_part2
+            except: last_line = last_line
+        # IS ACTUAL LAST LINE PROMPT ? IF YES , GO AWAY
+        for actual_prompt in prompts:
+            if output.endswith(actual_prompt) or \
+                last_line and last_line.endswith(actual_prompt):
+                    exit_loop=True; break
+        else:
+            # 30 SECONDS COMMAND TIMEOUT
+            if (timeout_counter) > 30*10: exit_loop=True; break
+            # 10 SECONDS --> This could be a new PROMPT
+            elif (timeout_counter) > 10*10 and not exit_loop2:
+                chan.send('\n')
+                time.sleep(0.1)
+                while(not exit_loop2):
+                    if chan.recv_ready():
+                        buff = chan.recv(9999)
+                        buff_read = buff.decode("utf-8").replace('\x0d','')\
+                           .replace('\x07','').replace('\x08','').replace(' \x1b[1D','')
+                        output2 += buff_read
+                    else: time.sleep(0.1); timeout_counter2 += 1
+                    try: new_last_line = output2.splitlines()[-1].strip()
+                    except: new_last_line = str()
+                    if last_line_orig and new_last_line and last_line_orig == new_last_line:
+                        print('%sNEW_PROMPT: %s%s' % (bcolors.CYAN,last_line_orig,bcolors.ENDC))
+                        new_prompt = last_line_orig; exit_loop=True;exit_loop2=True; break
+                    # WAIT UP TO 5 SECONDS
+                    if (timeout_counter2) > 5*10: exit_loop2 = True; break
+    return output, new_prompt
+
 
 
 def parse_json_file_and_get_oti_routers_list():
@@ -542,7 +618,7 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
     ### RUN_COMMAND - REMOTE or LOCAL ------------------------------------------
     def run_command(ssh_connection,cmd_line_items,loop_item=None,run_remote = None,\
         logfilename = logfilename,printall = printall, printcmdtologfile = printcmdtologfile):
-        global glob_vars
+        global glob_vars, DEVICE_PROMPTS
         cli_line, name_of_output_variable, simulate_command, sim_text = str(), None, None, str()
         ### LIST,TUPPLE,STRINS ARE REMOTE REMOTE/LOCAL DEVICE COMMANDS
         if isinstance(cmd_line_items, (six.string_types,list,tuple)):
@@ -561,12 +637,12 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
             if run_remote:
                 print(bcolors.GREEN + "REMOTE_COMMAND%s: %s" % (sim_text,cli_line) + bcolors.ENDC )
                 ### NETMIKO
-                if simulate_command: last_output = str()
-                else: last_output = ssh_connection.send_command(cli_line)
+#                 if simulate_command: last_output = str()
+#                 else: last_output = ssh_connection.send_command(cli_line)
 
                 ### PARAMIKO
-                #last_output, new_prompt = ssh_send_command_and_read_output(ssh_connection,DEVICE_PROMPTS,cli_line)
-                #if new_prompt: DEVICE_PROMPTS.append(new_prompt)
+                last_output, new_prompt = ssh_send_command_and_read_output(ssh_connection,DEVICE_PROMPTS,cli_line)
+                if new_prompt: DEVICE_PROMPTS.append(new_prompt)
             else:
                 print(bcolors.CYAN + "LOCAL_COMMAND%s: %s" % (sim_text,cli_line) + bcolors.ENDC )
                 ### LOCAL COMMAND - SUBPROCESS CALL
@@ -601,7 +677,7 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
     ### EVAL_COMMAND -----------------------------------------------------------
     def eval_command(ssh_connection,cmd_line_items,loop_item=None,\
         logfilename = logfilename,printall = printall, printcmdtologfile = printcmdtologfile):
-        global glob_vars
+        global glob_vars, DEVICE_PROMPTS
         cli_line, name_of_output_variable = str(), None
         ### LIST,TUPPLE,STRINS ARE REMOTE REMOTE/LOCAL DEVICE COMMANDS
         if isinstance(cmd_line_items, (six.string_types,list,tuple)):
@@ -667,7 +743,7 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
     ### MAIN_DO_STEP -----------------------------------------------------------
     def main_do_step(cmd_line_items,loop_item=None):
         command_range=10
-        global glob_vars
+        global glob_vars, DEVICE_PROMPTS
         condition_result = True
         if isinstance(cmd_line_items, (six.string_types,list,tuple)):
             if run_command(ssh_connection,cmd_line_items,loop_item,run_remote = True): return None
@@ -706,26 +782,26 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
         return True
 
     ### RUN_REMOTE_AND_LOCAL_COMMANDS START ====================================
-    global remote_connect, glob_vars
+    global remote_connect, glob_vars, DEVICE_PROMPTS
     ssh_connection, output= None, None
     command_range = 10
     try:
         if remote_connect:
-            ssh_connection = netmiko.ConnectHandler(device_type = router_type, \
-                ip = DEVICE_HOST, port = int(DEVICE_PORT), \
-                username = USERNAME, password = PASSWORD)
-        # ### paramiko
-        #           global DEVICE_PROMPTS
-        #           client = paramiko.SSHClient()
-        #           client.load_system_host_keys()
-        #           client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        #           client.connect(DEVICE_HOST, port=int(DEVICE_PORT), \
-        #                          username=USERNAME, password=PASSWORD)
-        #           ssh_connection = client.invoke_shell()
-        #           ssh_connection.settimeout(TIMEOUT)
-        #           output, forget_it = ssh_send_command_and_read_output(ssh_connection,DEVICE_PROMPTS,TERM_LEN_0)
-        #           output2, forget_it = ssh_send_command_and_read_output(ssh_connection,DEVICE_PROMPTS,"")
-        #           output += output2
+#             ssh_connection = netmiko.ConnectHandler(device_type = router_type, \
+#                 ip = DEVICE_HOST, port = int(DEVICE_PORT), \
+#                 username = USERNAME, password = PASSWORD)
+           ### paramiko
+           global DEVICE_PROMPTS
+           client = paramiko.SSHClient()
+           client.load_system_host_keys()
+           client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+           client.connect(DEVICE_HOST, port=int(DEVICE_PORT), \
+                          username=USERNAME, password=PASSWORD)
+           ssh_connection = client.invoke_shell()
+           ssh_connection.settimeout(TIMEOUT)
+           output, forget_it = ssh_send_command_and_read_output(ssh_connection,DEVICE_PROMPTS,TERM_LEN_0)
+           output2, forget_it = ssh_send_command_and_read_output(ssh_connection,DEVICE_PROMPTS,"")
+           output += output2
 
         ### WORK REMOTE or LOCAL ===============================================
         if not logfilename:
@@ -766,9 +842,10 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
         print(bcolors.FAIL + " ... EXCEPTION: (%s)" % (e) + bcolors.ENDC )
         sys.exit()
     finally:
-        if remote_connect and ssh_connection: ssh_connection.disconnect()
-    # ### paramiko
-    #   if remote_connect: client.close()
+        ### netmiko
+        #if remote_connect and ssh_connection: ssh_connection.disconnect()
+        ### paramiko
+        if remote_connect and ssh_connection: client.close()
 
     return None
 
@@ -972,7 +1049,7 @@ if not args.readlognew:
                 ####### Figure out type of router OS
                 if not args.router_type:
                     #router_type = netmiko_autodetect(device)
-                    router_type = detect_router_by_ssh(device)
+                    router_type, router_prompt = detect_router_by_ssh(device)
                     if not router_type in KNOWN_OS_TYPES:
                         print('%sUNSUPPORTED DEVICE TYPE: %s , BREAK!%s' % \
                             (bcolors.MAGENTA,router_type, bcolors.ENDC))
@@ -1003,12 +1080,51 @@ if not args.readlognew:
 
             if len(list_cmd)>0: CMD = list_cmd
             else:
-                if router_type == 'cisco_ios':  CMD = CMD_IOS_XE
-                elif router_type == 'cisco_xr': CMD = CMD_IOS_XR
-                elif router_type == 'juniper':  CMD = CMD_JUNOS
-                elif router_type == 'huawei' :  CMD = CMD_VRP
-                elif router_type == 'linux':    CMD = CMD_LINUX
+                if router_type == 'cisco_ios':
+                    CMD = CMD_IOS_XE
+                    DEVICE_PROMPTS = [ \
+                        '%s%s#'%(args.device.upper(),''), \
+                        '%s%s#'%(args.device.upper(),'(config)'), \
+                        '%s%s#'%(args.device.upper(),'(config-if)'), \
+                        '%s%s#'%(args.device.upper(),'(config-line)'), \
+                        '%s%s#'%(args.device.upper(),'(config-router)')  ]
+                    TERM_LEN_0 = "terminal length 0\n"
+                    EXIT = "exit\n"
+                elif router_type == 'cisco_xr':
+                    CMD = CMD_IOS_XR
+                    DEVICE_PROMPTS = [ \
+                        '%s%s#'%(args.device.upper(),''), \
+                        '%s%s#'%(args.device.upper(),'(config)'), \
+                        '%s%s#'%(args.device.upper(),'(config-if)'), \
+                        '%s%s#'%(args.device.upper(),'(config-line)'), \
+                        '%s%s#'%(args.device.upper(),'(config-router)')  ]
+                    TERM_LEN_0 = "terminal length 0\n"
+                    EXIT = "exit\n"
+                elif router_type == 'juniper':
+                    CMD = CMD_JUNOS
+                    DEVICE_PROMPTS = [ \
+                         USERNAME + '@' + args.device.upper() + '> ', # !! Need the space after >
+                         USERNAME + '@' + args.device.upper() + '# ' ]
+                    TERM_LEN_0 = "set cli screen-length 0\n"
+                    EXIT = "exit\n"
+                elif router_type == 'huawei' :
+                    CMD = CMD_VRP
+                    DEVICE_PROMPTS = [ \
+                        '<' + args.device.upper() + '>',
+                        '[' + args.device.upper() + ']',
+                        '[~' + args.device.upper() + ']',
+                        '[*' + args.device.upper() + ']' ]
+                    TERM_LEN_0 = "screen-length 0 temporary\n"     #"screen-length disable\n"
+                    EXIT = "quit\n"
+                elif router_type == 'linux':
+                    CMD = CMD_LINUX
+                    DEVICE_PROMPTS = [ ]
+                    TERM_LEN_0 = ''     #"screen-length disable\n"
+                    EXIT = "exit\n"
                 else: CMD = CMD_LOCAL
+
+            # ADD PROMPT TO PROMPTS LIST
+            if router_prompt: DEVICE_PROMPTS.append(router_prompt)
 
             run_remote_and_local_commands(CMD, logfilename, printall = True , \
                 printcmdtologfile = True)
