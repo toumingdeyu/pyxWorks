@@ -13,6 +13,7 @@ import glob
 import socket
 import six
 import collections
+#import interactive
 
 #python 2.7 problem - hack 'pip install esptool'
 import netmiko
@@ -333,10 +334,10 @@ CMD_LINUX = [
 #          'exec':'print("WARNING: Possible problem in internal BGP! Please manually check status of iBGP.")',
 #          'exec_2':'glob_vars["CONTINUE_AFTER_IBGP_PROBLEM"] = raw_input("Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:")',
 #     },
-    {'if':'True',
-         #'exec':'print("WARNING: Possible problem in internal BGP! Please manually check status of iBGP.")',
-         #'exec_2':'glob_vars["CONTINUE_AFTER_IBGP_PROBLEM"] = raw_input("Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:")',
-         'local_command':'echo "Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:" ;read var;echo $var'
+#     {'remote_command':['echo "WARNING: Possible problem in internal BGP! Please manually check status of iBGP."',{'print_output':'on'}],
+#      'remote_command_1':['echo "Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:"',{'print_output':'on'}],
+#      'remote_command_2':['read var;echo $var',{"output_variable":"CONTINUE_AFTER_IBGP_PROBLEM"}],
+#      'eval':['"YOUR_CHOISE_IS: " + glob_vars.get("CONTINUE_AFTER_IBGP_PROBLEM","")',{'print_output':'on'}],
     },
 ]
 
@@ -352,7 +353,7 @@ CMD_LOCAL = [
          'local_command':['echo "WARNING: Possible problem in internal BGP! Please manually check status of iBGP."',{'print_output':'on'}],
          'local_command_1':['echo "Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:"',{'print_output':'on'}],
          'local_command_2':['read var;echo $var',{"output_variable":"CONTINUE_AFTER_IBGP_PROBLEM"}],
-         'eval':['glob_vars.get("CONTINUE_AFTER_IBGP_PROBLEM","")',{'print_output':'on'}],
+         'eval':['"YOUR_CHOISE_IS: " + glob_vars.get("CONTINUE_AFTER_IBGP_PROBLEM","")',{'print_output':'on'}],
     },
 ]
 
@@ -814,10 +815,10 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
                     username = USERNAME, password = PASSWORD)
             elif use_module == 'paramiko':
                 client = paramiko.SSHClient()
-                client.load_system_host_keys()
+                #client.load_system_host_keys()
                 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
                 client.connect(DEVICE_HOST, port=int(DEVICE_PORT), \
-                              username=USERNAME, password=PASSWORD)
+                              username=USERNAME, password=PASSWORD,look_for_keys=False)
                 ssh_connection = client.invoke_shell()
                 ssh_connection.settimeout(TIMEOUT)
                 output, forget_it = ssh_send_command_and_read_output(ssh_connection,DEVICE_PROMPTS,TERM_LEN_0)
