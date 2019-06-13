@@ -628,10 +628,10 @@ def parse_json_file_and_get_oti_routers_list():
 
 
 def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
-    printcmdtologfile = None, debug = None):
+    printcmdtologfile = None, debug = None,use_module = 'paramiko'):
     ### RUN_COMMAND - REMOTE or LOCAL ------------------------------------------
     def run_command(ssh_connection,cmd_line_items,loop_item=None,run_remote = None,\
-        logfilename = logfilename,printall = printall, printcmdtologfile = printcmdtologfile):
+        logfilename = logfilename,printall = printall, printcmdtologfile = printcmdtologfile,use_module = use_module):
         global glob_vars, DEVICE_PROMPTS
         cli_line, name_of_output_variable, simulate_command, sim_text = str(), None, None, str()
         print_output = None
@@ -656,20 +656,19 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
                     else: cli_line += str(cli_item)
             if run_remote:
                 if printall: print(bcolors.GREEN + "REMOTE_COMMAND%s: %s" % (sim_text,cli_line) + bcolors.ENDC )
-                ### NETMIKO
-#                 if simulate_command: last_output = str()
-#                 else: last_output = ssh_connection.send_command(cli_line)
-
-                ### PARAMIKO
-                last_output, new_prompt = ssh_send_command_and_read_output(ssh_connection,DEVICE_PROMPTS,cli_line,printall=printall)
-                if new_prompt: DEVICE_PROMPTS.append(new_prompt)
+                if use_module == 'netmiko':
+                    if simulate_command: last_output = str()
+                    else: last_output = ssh_connection.send_command(cli_line)
+                elif use_module == 'paramiko':
+                    last_output, new_prompt = ssh_send_command_and_read_output( \
+                        ssh_connection,DEVICE_PROMPTS,cli_line,printall=printall)
+                    if new_prompt: DEVICE_PROMPTS.append(new_prompt)
             else:
                 if printall: print(bcolors.CYAN + "LOCAL_COMMAND%s: %s" % (sim_text,cli_line) + bcolors.ENDC )
                 ### LOCAL COMMAND - SUBPROCESS CALL
                 if simulate_command: last_output = str()
                 else:
-                    try:
-                        last_output = subprocess.check_output(str(cli_line),shell=True)
+                    try: last_output = subprocess.check_output(str(cli_line),shell=True)
                     except: last_output = str()
 
             ### FILTER LAST_OUTPUT
@@ -809,21 +808,21 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
     command_range = 10
     try:
         if remote_connect:
-#             ssh_connection = netmiko.ConnectHandler(device_type = router_type, \
-#                 ip = DEVICE_HOST, port = int(DEVICE_PORT), \
-#                 username = USERNAME, password = PASSWORD)
-           ### paramiko
-           global DEVICE_PROMPTS
-           client = paramiko.SSHClient()
-           client.load_system_host_keys()
-           client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-           client.connect(DEVICE_HOST, port=int(DEVICE_PORT), \
-                          username=USERNAME, password=PASSWORD)
-           ssh_connection = client.invoke_shell()
-           ssh_connection.settimeout(TIMEOUT)
-           output, forget_it = ssh_send_command_and_read_output(ssh_connection,DEVICE_PROMPTS,TERM_LEN_0)
-           output2, forget_it = ssh_send_command_and_read_output(ssh_connection,DEVICE_PROMPTS,"")
-           output += output2
+            if use_module == 'netmiko':
+                ssh_connection = netmiko.ConnectHandler(device_type = router_type, \
+                    ip = DEVICE_HOST, port = int(DEVICE_PORT), \
+                    username = USERNAME, password = PASSWORD)
+            elif use_module == 'paramiko':
+                client = paramiko.SSHClient()
+                client.load_system_host_keys()
+                client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                client.connect(DEVICE_HOST, port=int(DEVICE_PORT), \
+                              username=USERNAME, password=PASSWORD)
+                ssh_connection = client.invoke_shell()
+                ssh_connection.settimeout(TIMEOUT)
+                output, forget_it = ssh_send_command_and_read_output(ssh_connection,DEVICE_PROMPTS,TERM_LEN_0)
+                output2, forget_it = ssh_send_command_and_read_output(ssh_connection,DEVICE_PROMPTS,"")
+                output += output2
 
         ### WORK REMOTE or LOCAL ===============================================
         if not logfilename:
@@ -864,11 +863,9 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
         print(bcolors.FAIL + " ... EXCEPTION: (%s)" % (e) + bcolors.ENDC )
         sys.exit()
     finally:
-        ### netmiko
-        #if remote_connect and ssh_connection: ssh_connection.disconnect()
-        ### paramiko
-        if remote_connect and ssh_connection: client.close()
-
+        if remote_connect and ssh_connection:
+            if use_module == 'netmiko': ssh_connection.disconnect()
+            elif use_module == 'paramiko': client.close()
     return None
 
 
