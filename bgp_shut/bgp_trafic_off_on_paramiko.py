@@ -646,7 +646,10 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
                         elif cli_item.get('eval',''):
                             cli_line += str(eval(cli_item.get('eval','')))
                         elif cli_item.get('sim',''):
-                            simulate_command = True if str(eval(cli_item.get('sim',''))).upper()=='ON' else None
+                            simulate_command = True
+                            if str(eval(cli_item.get('sim',''))).upper()=='ON' or \
+                              str(cli_item.get('sim','')).upper()=='ON': simulate_command = True
+                            else: simulate_command = None
                             if simulate_command: sim_text = '(SIM)'
                         elif cli_item.get('print_output',''):
                             print_output = True if str(cli_item.get('print_output','')).upper()=='ON' else None
@@ -997,7 +1000,9 @@ parser.add_argument("--noshut",
                     action = 'store_true', dest = "noshut", default = None,
                     help = "switch-on bgp traffic")
 parser.add_argument("--sim",
-                    action = 'store_true', dest = "sim", default = None,
+                    action = 'store_true', dest = "sim",
+                    default = True,
+                    #default = None,
                     help = "simulate critical command runs")
 args = parser.parse_args()
 
