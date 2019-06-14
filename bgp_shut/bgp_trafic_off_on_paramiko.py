@@ -947,7 +947,6 @@ def find_last_shut_logfile(prefix = None, suffix = None,directory = None):
         list_shut_files = glob.glob(os.path.join(LOGDIR,prefix.replace(':','_').replace('.','_')) + '*' + '-' + suffix)
     else:
         list_shut_files = glob.glob(os.path.join(LOGDIR,prefix.replace(':','_').replace('.','_')) + '*' + USERNAME + '-' + suffix)
-    print(prefix,suffix,list_shut_files)
     if len(list_shut_files) == 0:
         print(bcolors.MAGENTA + " ... Can't find any shut file." + bcolors.ENDC)
         sys.exit()
