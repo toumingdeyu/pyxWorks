@@ -250,10 +250,11 @@ CMD_IOS_XR = [
             \n      if "5511" in line.split()[2] and "." in line.split()[0]: \
             \n          try: dummy = int(line.split()[9]) \
             \n          except: \
-            \n              error = True \
+            \n              partial_error = True \
             \n              for ip4address,ip4status in "OTI_INT_IPS_V4": \
             \n                  if line.split()[0] == ip4address and ip4status == line.split()[9]: \
-            \n                      error = False \
+            \n                      partial_error = False \
+            \n              if partial_error: error = True \
             \n    except: pass \
             \n  glob_vars["IPV4_ERROR"] = error \
             \nexcept: pass' \
@@ -271,10 +272,11 @@ CMD_IOS_XR = [
             \n      if "5511" in line.split()[2] and "." in line.split()[0]: \
             \n          try: dummy = int(line.split()[9]) \
             \n          except: \
-            \n              error = True \
+            \n              partial_error = True \
             \n              for ip6address,ip6status in "OTI_INT_IPS_V6": \
             \n                  if line.split()[0] == ip6address and ip6status == line.split()[9]: \
-            \n                      error = False \
+            \n                      partial_error = False \
+            \n              if partial_error: error = True \
             \n    except: pass \
             \n  glob_vars["IPV6_ERROR"] = error \
             \nexcept: pass' \
@@ -692,7 +694,8 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
                     last_output = last_output.replace(first_bugged_line+'\n','')
                     if(last_output.strip() == first_bugged_line): last_output = str()
 
-            if printall or print_output: print(bcolors.GREY + "%s" % (last_output) + bcolors.ENDC )
+            if printall: print(bcolors.GREY + "%s" % (last_output) + bcolors.ENDC )
+            elif print_output: print(bcolors.YELLOW + "%s" % (last_output) + bcolors.ENDC )
             if printcmdtologfile:
                 if run_remote: fp.write('REMOTE_COMMAND: ' + cli_line + '\n'+last_output+'\n')
                 else: fp.write('LOCAL_COMMAND: ' + cli_line + '\n'+last_output+'\n')
@@ -723,7 +726,8 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
             if printall: print(bcolors.CYAN + "EVAL_COMMAND: %s" % (cli_line) + bcolors.ENDC )
             try: local_output = eval(cli_line)
             except: local_output = str()
-            if printall or print_output: print(bcolors.GREY + str(local_output) + bcolors.ENDC )
+            if printall: print(bcolors.GREY + str(local_output) + bcolors.ENDC )
+            elif print_output: print(bcolors.YELLOW + str(local_output) + bcolors.ENDC )
             if printcmdtologfile: fp.write('EVAL_COMMAND: ' + cli_line + '\n' + str(local_output) + '\n')
             if name_of_output_variable:
                 glob_vars[name_of_output_variable] = local_output
