@@ -976,33 +976,33 @@ parser.add_argument("--device",
                     action = "store", dest = 'device',
                     default = str(),
                     help = "target router to check")
-parser.add_argument("--os",
-                    action = "store", dest="router_type",
-                    choices = KNOWN_OS_TYPES,
-                    help = "router operating system type")
-parser.add_argument("--cmdfile", action = 'store', dest = "cmd_file", default = None,
-                    help = "specify a file with a list of commands to execute")
+# parser.add_argument("--os",
+#                     action = "store", dest="router_type",
+#                     choices = KNOWN_OS_TYPES,
+#                     help = "router operating system type")
+# parser.add_argument("--cmdfile", action = 'store', dest = "cmd_file", default = None,
+#                     help = "specify a file with a list of commands to execute")
 parser.add_argument("--user",
                     action = "store", dest = 'username', default = str(),
                     help = "specify router user login")
-parser.add_argument("--pass",
-                    action = "store", dest = 'password', default = str(),
-                    help = "specify router user password")
+# parser.add_argument("--pass",
+#                     action = "store", dest = 'password', default = str(),
+#                     help = "specify router user password")
 parser.add_argument("--nocolors",
                     action = 'store_true', dest = "nocolors", default = None,
                     help = "print mode with no colors.")
 parser.add_argument("--nolog",
                     action = 'store_true', dest = "nolog", default = None,
                     help = "no logging to file.")
-parser.add_argument("--rcmd",
-                    action = "store", dest = 'rcommand', default = str(),
-                    help = "'command' or ['list of commands',...] to run on remote device")
+# parser.add_argument("--rcmd",
+#                     action = "store", dest = 'rcommand', default = str(),
+#                     help = "'command' or ['list of commands',...] to run on remote device")
 parser.add_argument("--readlog",
                     action = "store", dest = 'readlog', default = None,
                     help = "name of the logfile to read json.")
-parser.add_argument("--readlognew",
-                    action = "store", dest = 'readlognew', default = None,
-                    help = "name of the logfile to read json.")
+# parser.add_argument("--readlognew",
+#                     action = "store", dest = 'readlognew', default = None,
+#                     help = "name of the logfile to read json.")
 parser.add_argument("--emailaddr",
                     action = "store", dest = 'emailaddr', default = '',
                     help = "insert your email address once if is different than name.surname@orange.com,\
@@ -1010,7 +1010,7 @@ parser.add_argument("--emailaddr",
                     you do not need to insert it any more.")
 parser.add_argument("--latest",
                     action = 'store_true', dest = "latest", default = False,
-                    help = "look for really latest pre/postcheck files (also from somebody else),\
+                    help = "look for really latest shut file (also owned by somebody else),\
                     otherwise your own last shut file will be used by default")
 # parser.add_argument("--vpnlist",
 #                     action = "store", dest = 'vpnlist', default = str(),
@@ -1020,9 +1020,9 @@ parser.add_argument("--printall",action = "store_true", default = False,
 # parser.add_argument("--difffile",
 #                     action = 'store_true', dest = "diff_file", default = False,
 #                     help = "do file-diff logfile (name will be generated and printed)")
-parser.add_argument("--alloti",
-                    action = 'store_true', dest = "alloti", default = None,
-                    help = "do action on all oti routers")
+# parser.add_argument("--alloti",
+#                     action = 'store_true', dest = "alloti", default = None,
+#                     help = "do action on all oti routers")
 parser.add_argument("--shut",
                     action = 'store_true', dest = "shut", default = None,
                     help = "switch-off bgp traffic")
@@ -1049,8 +1049,10 @@ if args.emailaddr:
     append_variable_to_bashrc(variable_name='NEWR_EMAIL',variable_value=args.emailaddr)
     EMAIL_ADDRESS = args.emailaddr
 
-if args.alloti: device_list = parse_json_file_and_get_oti_routers_list()
-else: device_list = [args.device]
+device_list = [args.device]
+
+#if args.alloti: device_list = parse_json_file_and_get_oti_routers_list()
+
 
 device_list = [args.device]
 
@@ -1092,113 +1094,116 @@ if remote_connect:
 
     # SSH (default)
     if not PASSWORD:
-        if args.password: PASSWORD = args.password
-        else:             PASSWORD = getpass.getpass("TACACS password: ")
+#         if args.password: PASSWORD = args.password
+#         else:
+            PASSWORD = getpass.getpass("TACACS password: ")
 
 logfilename, router_type = None, None
-if not args.readlognew:
-    for device in device_list:
-        if device:
-            router_prompt = None
-            try: DEVICE_HOST = device.split(':')[0]
-            except: DEVICE_HOST = str()
-            try: DEVICE_PORT = device.split(':')[1]
-            except: DEVICE_PORT = '22'
-            print('DEVICE %s (host=%s, port=%s) START.........................'\
-                %(device,DEVICE_HOST, DEVICE_PORT))
-            if remote_connect:
-                ####### Figure out type of router OS
-                if not args.router_type:
-                    #router_type = netmiko_autodetect(device)
-                    router_type, router_prompt = detect_router_by_ssh(device)
-                    if not router_type in KNOWN_OS_TYPES:
-                        print('%sUNSUPPORTED DEVICE TYPE: %s , BREAK!%s' % \
-                            (bcolors.MAGENTA,router_type, bcolors.ENDC))
-                        continue
-                    else: print('DETECTED DEVICE_TYPE: %s' % (router_type))
-                else:
-                    router_type = args.router_type
-                    print('FORCED DEVICE_TYPE: ' + router_type)
+#if not args.readlognew:
+for device in device_list:
+    if device:
+        router_prompt = None
+        try: DEVICE_HOST = device.split(':')[0]
+        except: DEVICE_HOST = str()
+        try: DEVICE_PORT = device.split(':')[1]
+        except: DEVICE_PORT = '22'
+        print('DEVICE %s (host=%s, port=%s) START.........................'\
+            %(device,DEVICE_HOST, DEVICE_PORT))
+        if remote_connect:
+            ####### Figure out type of router OS
+#             if not args.router_type:
+                #router_type = netmiko_autodetect(device)
+                router_type, router_prompt = detect_router_by_ssh(device)
+                if not router_type in KNOWN_OS_TYPES:
+                    print('%sUNSUPPORTED DEVICE TYPE: %s , BREAK!%s' % \
+                        (bcolors.MAGENTA,router_type, bcolors.ENDC))
+                    continue
+                else: print('DETECTED DEVICE_TYPE: %s' % (router_type))
+#             else:
+#                 router_type = args.router_type
+#                 print('FORCED DEVICE_TYPE: ' + router_type)
 
-            ######## Create logs directory if not existing  #########
-            if not os.path.exists(LOGDIR): os.makedirs(LOGDIR)
-            on_off_name = ''
-            if args.shut: on_off_name = 'shut'
-            if args.noshut: on_off_name = 'noshut'
-            logfilename = generate_file_name(prefix = device, suffix = on_off_name + '-log')
-            if args.nolog: logfilename = None
+        ######## Create logs directory if not existing  #########
+        if not os.path.exists(LOGDIR): os.makedirs(LOGDIR)
+        on_off_name = ''
+        if args.shut: on_off_name = 'shut'
+        if args.noshut: on_off_name = 'noshut'
+        logfilename = generate_file_name(prefix = device, suffix = on_off_name + '-log')
+        if args.nolog: logfilename = None
 
-            ######## Find command list file (optional)
-            list_cmd = []
-            if args.cmd_file:
-                if not os.path.isfile(args.cmd_file):
-                    print("%s ... Can't find command file: %s%s") % \
-                        (bcolors.MAGENTA, args.cmd_file, bcolors.ENDC)
-                    sys.exit()
-                else:
-                    with open(args.cmd_file) as cmdf:
-                        list_cmd = cmdf.read().replace('\x0d','').splitlines()
+        ######## Find command list file (optional)
+        list_cmd = []
+#         if args.cmd_file:
+#             if not os.path.isfile(args.cmd_file):
+#                 print("%s ... Can't find command file: %s%s") % \
+#                     (bcolors.MAGENTA, args.cmd_file, bcolors.ENDC)
+#                 sys.exit()
+#             else:
+#                 with open(args.cmd_file) as cmdf:
+#                     list_cmd = cmdf.read().replace('\x0d','').splitlines()
 
-            if args.rcommand: list_cmd = args.rcommand.replace('\'','').\
-                replace('"','').replace('[','').replace(']','').split(',')
+#         if args.rcommand: list_cmd = args.rcommand.replace('\'','').\
+#             replace('"','').replace('[','').replace(']','').split(',')
 
-            if len(list_cmd)>0: CMD = list_cmd
-            else:
-                if router_type == 'cisco_ios':
-                    CMD = CMD_IOS_XE
-                    DEVICE_PROMPTS = [ \
-                        '%s%s#'%(args.device.upper(),''), \
-                        '%s%s#'%(args.device.upper(),'(config)'), \
-                        '%s%s#'%(args.device.upper(),'(config-if)'), \
-                        '%s%s#'%(args.device.upper(),'(config-line)'), \
-                        '%s%s#'%(args.device.upper(),'(config-router)')  ]
-                    TERM_LEN_0 = "terminal length 0\n"
-                    EXIT = "exit\n"
-                elif router_type == 'cisco_xr':
-                    CMD = CMD_IOS_XR
-                    DEVICE_PROMPTS = [ \
-                        '%s%s#'%(args.device.upper(),''), \
-                        '%s%s#'%(args.device.upper(),'(config)'), \
-                        '%s%s#'%(args.device.upper(),'(config-if)'), \
-                        '%s%s#'%(args.device.upper(),'(config-line)'), \
-                        '%s%s#'%(args.device.upper(),'(config-router)')  ]
-                    TERM_LEN_0 = "terminal length 0\n"
-                    EXIT = "exit\n"
-                elif router_type == 'juniper':
-                    CMD = CMD_JUNOS
-                    DEVICE_PROMPTS = [ \
-                         USERNAME + '@' + args.device.upper() + '> ', # !! Need the space after >
-                         USERNAME + '@' + args.device.upper() + '# ' ]
-                    TERM_LEN_0 = "set cli screen-length 0\n"
-                    EXIT = "exit\n"
-                elif router_type == 'huawei' :
-                    CMD = CMD_VRP
-                    DEVICE_PROMPTS = [ \
-                        '<' + args.device.upper() + '>',
-                        '[' + args.device.upper() + ']',
-                        '[~' + args.device.upper() + ']',
-                        '[*' + args.device.upper() + ']' ]
-                    TERM_LEN_0 = "screen-length 0 temporary\n"     #"screen-length disable\n"
-                    EXIT = "quit\n"
-                elif router_type == 'linux':
-                    CMD = CMD_LINUX
-                    DEVICE_PROMPTS = [ ]
-                    TERM_LEN_0 = ''     #"screen-length disable\n"
-                    EXIT = "exit\n"
-                else: CMD = CMD_LOCAL
+        if len(list_cmd)>0: CMD = list_cmd
+        else:
+            if router_type == 'cisco_ios':
+                CMD = CMD_IOS_XE
+                DEVICE_PROMPTS = [ \
+                    '%s%s#'%(args.device.upper(),''), \
+                    '%s%s#'%(args.device.upper(),'(config)'), \
+                    '%s%s#'%(args.device.upper(),'(config-if)'), \
+                    '%s%s#'%(args.device.upper(),'(config-line)'), \
+                    '%s%s#'%(args.device.upper(),'(config-router)')  ]
+                TERM_LEN_0 = "terminal length 0\n"
+                EXIT = "exit\n"
+            elif router_type == 'cisco_xr':
+                CMD = CMD_IOS_XR
+                DEVICE_PROMPTS = [ \
+                    '%s%s#'%(args.device.upper(),''), \
+                    '%s%s#'%(args.device.upper(),'(config)'), \
+                    '%s%s#'%(args.device.upper(),'(config-if)'), \
+                    '%s%s#'%(args.device.upper(),'(config-line)'), \
+                    '%s%s#'%(args.device.upper(),'(config-router)')  ]
+                TERM_LEN_0 = "terminal length 0\n"
+                EXIT = "exit\n"
+            elif router_type == 'juniper':
+                CMD = CMD_JUNOS
+                DEVICE_PROMPTS = [ \
+                     USERNAME + '@' + args.device.upper() + '> ', # !! Need the space after >
+                     USERNAME + '@' + args.device.upper() + '# ' ]
+                TERM_LEN_0 = "set cli screen-length 0\n"
+                EXIT = "exit\n"
+            elif router_type == 'huawei' :
+                CMD = CMD_VRP
+                DEVICE_PROMPTS = [ \
+                    '<' + args.device.upper() + '>',
+                    '[' + args.device.upper() + ']',
+                    '[~' + args.device.upper() + ']',
+                    '[*' + args.device.upper() + ']' ]
+                TERM_LEN_0 = "screen-length 0 temporary\n"     #"screen-length disable\n"
+                EXIT = "quit\n"
+            elif router_type == 'linux':
+                CMD = CMD_LINUX
+                DEVICE_PROMPTS = [ ]
+                TERM_LEN_0 = ''     #"screen-length disable\n"
+                EXIT = "exit\n"
+            else: CMD = CMD_LOCAL
 
-            # ADD PROMPT TO PROMPTS LIST
-            if router_prompt: DEVICE_PROMPTS.append(router_prompt)
+        # ADD PROMPT TO PROMPTS LIST
+        if router_prompt: DEVICE_PROMPTS.append(router_prompt)
 
-            run_remote_and_local_commands(CMD, logfilename, printall = args.printall , \
-                printcmdtologfile = True)
+        run_remote_and_local_commands(CMD, logfilename, printall = args.printall , \
+            printcmdtologfile = True)
 
-            if logfilename and os.path.exists(logfilename):
-                print('%s file created.' % (logfilename))
-                try: send_me_email(subject = logfilename.replace('\\','/').\
-                         split('/')[-1], file_name = logfilename)
-                except: pass
-            print('\nDEVICE %s DONE.'%(device))
+        if logfilename and os.path.exists(logfilename):
+            print('%s file created.' % (logfilename))
+            ### MAKE READABLE for THE OTHERS
+            dummy = subprocess.check_output('chmod +r %s' % (logfilename),shell=True)
+            try: send_me_email(subject = logfilename.replace('\\','/').\
+                     split('/')[-1], file_name = logfilename)
+            except: pass
+        print('\nDEVICE %s DONE.'%(device))
 
 print('\nEND [script runtime = %d sec].'%(time.time() - START_EPOCH))
 
