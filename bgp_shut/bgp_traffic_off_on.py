@@ -1078,7 +1078,7 @@ if args.sim: glob_vars["SIM_CMD"] = 'ON';
 
 if args.device == str():
     remote_connect = None
-    local_hostname = str(subprocess.check_output('hostname',shell=True)).strip().replace('\\','').replace('/','')
+    local_hostname = str(subprocess.check_output('hostname',shell=True).decode('utf8')).strip().replace('\\','').replace('/','')
     device_list = [local_hostname]
 
 
