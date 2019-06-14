@@ -1074,7 +1074,8 @@ if args.shut and args.noshut:
 if args.shut: glob_vars["SHUT"] = True
 if args.noshut: glob_vars["NOSHUT"] = True
 
-if args.sim: glob_vars["SIM_CMD"] = 'ON';
+if args.sim: glob_vars["SIM_CMD"] = 'ON'
+else: glob_vars["SIM_CMD"] = 'OFF'
 
 if args.device == str():
     remote_connect = None
