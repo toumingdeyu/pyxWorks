@@ -554,7 +554,7 @@ def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True)
     # FLUSH BUFFERS FROM PREVIOUS COMMANDS IF THEY ARE ALREADY BUFFERD
     if chan.recv_ready(): flush_buffer = chan.recv(9999)
     chan.send(send_data + '\n')
-    time.sleep(0.1)
+    time.sleep(0.2)
     while not exit_loop:
         if chan.recv_ready():
             # workarround for discontious outputs from routers
@@ -568,14 +568,14 @@ def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True)
         try: last_line, last_line_orig = output.splitlines()[-1].strip(), output.splitlines()[-1].strip()
         except: last_line, last_line_orig = str(), str()
         # FILTER-OUT '(...)' FROM PROMPT IOS-XR/IOS-XE
-        if router_type in ["ios-xr","ios-xe"]:
+        if router_type in ["ios-xr","ios-xe",'cisco_ios','cisco_xr']:
             try:
                 last_line_part1 = last_line.split('(')[0]
                 last_line_part2 = last_line.split(')')[1]
                 last_line = last_line_part1 + last_line_part2
             except: last_line = last_line
         # FILTER-OUT '[*','[~','-...]' FROM VRP
-        elif router_type == "vrp":
+        elif router_type in ["vrp",'huawei']:
             try:
                 last_line_part1 = '[' + last_line.replace('[~','[').replace('[*','[').split('[')[1].split('-')[0]
                 last_line_part2 = ']' + last_line.replace('[~','[').replace('[*','[').split('[')[1].split(']')[1]
@@ -1167,8 +1167,8 @@ for device in device_list:
                     '%s%s#'%(args.device.upper(),'(config-if)'), \
                     '%s%s#'%(args.device.upper(),'(config-line)'), \
                     '%s%s#'%(args.device.upper(),'(config-router)')  ]
-                TERM_LEN_0 = "terminal length 0\n"
-                EXIT = "exit\n"
+                TERM_LEN_0 = "terminal length 0"
+                EXIT = "exit"
             elif router_type == 'cisco_xr':
                 CMD = CMD_IOS_XR
                 DEVICE_PROMPTS = [ \
@@ -1177,15 +1177,15 @@ for device in device_list:
                     '%s%s#'%(args.device.upper(),'(config-if)'), \
                     '%s%s#'%(args.device.upper(),'(config-line)'), \
                     '%s%s#'%(args.device.upper(),'(config-router)')  ]
-                TERM_LEN_0 = "terminal length 0\n"
-                EXIT = "exit\n"
+                TERM_LEN_0 = "terminal length 0"
+                EXIT = "exit"
             elif router_type == 'juniper':
                 CMD = CMD_JUNOS
                 DEVICE_PROMPTS = [ \
                      USERNAME + '@' + args.device.upper() + '> ', # !! Need the space after >
                      USERNAME + '@' + args.device.upper() + '# ' ]
-                TERM_LEN_0 = "set cli screen-length 0\n"
-                EXIT = "exit\n"
+                TERM_LEN_0 = "set cli screen-length 0"
+                EXIT = "exit"
             elif router_type == 'huawei' :
                 CMD = CMD_VRP
                 DEVICE_PROMPTS = [ \
@@ -1193,13 +1193,13 @@ for device in device_list:
                     '[' + args.device.upper() + ']',
                     '[~' + args.device.upper() + ']',
                     '[*' + args.device.upper() + ']' ]
-                TERM_LEN_0 = "screen-length 0 temporary\n"     #"screen-length disable\n"
-                EXIT = "quit\n"
+                TERM_LEN_0 = "screen-length 0 temporary"     #"screen-length disable"
+                EXIT = "quit"
             elif router_type == 'linux':
                 CMD = CMD_LINUX
                 DEVICE_PROMPTS = [ ]
-                TERM_LEN_0 = ''     #"screen-length disable\n"
-                EXIT = "exit\n"
+                TERM_LEN_0 = ''     #"screen-length disable"
+                EXIT = "exit"
             else: CMD = CMD_LOCAL
 
         # ADD PROMPT TO PROMPTS LIST
