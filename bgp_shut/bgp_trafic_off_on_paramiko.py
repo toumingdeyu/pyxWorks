@@ -937,11 +937,17 @@ def generate_file_name(prefix = None, suffix = None , directory = None):
     return filenamewithpath
 
 
-def find_last_shut_logfile():
+def find_last_shut_logfile(prefix = None, suffix = None,directory = None):
+    if not directory:
+        try:    DIR         = os.environ['HOME']
+        except: DIR         = str(os.path.dirname(os.path.abspath(__file__)))
+    else: DIR = str(directory)
+    if DIR: LOGDIR      = os.path.join(WORKDIR,'logs')
     if args.latest:
-        list_shut_files = glob.glob(os.path.join(WORKDIR,args.device.replace(':','_').replace('.','_')) + '*' + '-shut-log')
+        list_shut_files = glob.glob(os.path.join(LOGDIR,prefix.replace(':','_').replace('.','_')) + '*' + '-' + suffix)
     else:
-        list_shut_files = glob.glob(os.path.join(WORKDIR,args.device.replace(':','_').replace('.','_')) + '*' + USERNAME + '-shut-log')
+        list_shut_files = glob.glob(os.path.join(LOGDIR,prefix.replace(':','_').replace('.','_')) + '*' + USERNAME + '-' + suffix)
+    print(prefix,suffix,list_shut_files)
     if len(list_shut_files) == 0:
         print(bcolors.MAGENTA + " ... Can't find any shut file." + bcolors.ENDC)
         sys.exit()
@@ -1081,10 +1087,10 @@ if args.readlog:
         sys.exit(0)
 
 if args.noshut and not args.readlog:
-    last_shut_file = find_last_shut_logfile()
+    last_shut_file = find_last_shut_logfile(prefix = device_list[0],suffix = 'shut-log')
     bgp_data = read_bgp_data_json_from_logfile(last_shut_file)
     if not bgp_data:
-        print(bcolors.MAGENTA + " ... Please insert shut session log!" + bcolors.ENDC )
+        print(bcolors.MAGENTA + " ... Please insert valid shut session log! \nFile " + last_shut_file + " \ndoes not contain return_bgp_data_json !" + bcolors.ENDC )
         sys.exit(0)
 
 if remote_connect:
