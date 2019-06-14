@@ -738,7 +738,7 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
     def exec_command(ssh_connection,cmd_line_items,loop_item=None,\
         logfilename = logfilename,printall = printall, printcmdtologfile = printcmdtologfile):
         global glob_vars, global_env
-        cli_line, name_of_output_variable = str(), None
+        cli_line, name_of_output_variable, print_output = str(), None, None
         ### LIST,TUPPLE,STRINS ARE REMOTE REMOTE/LOCAL DEVICE COMMANDS
         if isinstance(cmd_line_items, (six.string_types,list,tuple)):
             if isinstance(cmd_line_items, six.string_types): cli_line = cmd_line_items
@@ -749,8 +749,10 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
                             name_of_output_variable = cli_item.get('output_variable','')
                         elif cli_item.get('eval',''):
                             cli_line += str(eval(cli_item.get('eval','')))
+                        elif cli_item.get('print_output',''):
+                            print_output = True if str(cli_item.get('print_output','')).upper()=='ON' else None
                     else: cli_line += str(cli_item)
-            if printall: print(bcolors.CYAN + "EXEC_COMMAND: %s" % (cli_line) + bcolors.ENDC )
+            if printall or print_output: print(bcolors.CYAN + "EXEC_COMMAND: %s" % (cli_line) + bcolors.ENDC )
             ### EXEC CODE for PYTHON>v2.7.9
             # code_object = compile(cli_line, 'sumstring', 'exec')
             # local_env = {}
