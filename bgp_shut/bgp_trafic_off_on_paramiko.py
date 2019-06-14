@@ -936,9 +936,9 @@ def generate_file_name(prefix = None, suffix = None , directory = None):
 
 def find_last_shut_logfile():
     if args.latest:
-        list_shut_files = glob.glob(os.path.join(WORKDIR,args.device.replace(':','_').replace('.','_')) + '*' + '-shut.log')
+        list_shut_files = glob.glob(os.path.join(WORKDIR,args.device.replace(':','_').replace('.','_')) + '*' + '-shut-log')
     else:
-        list_shut_files = glob.glob(os.path.join(WORKDIR,args.device.replace(':','_').replace('.','_')) + '*' + USERNAME + '-shut.log')
+        list_shut_files = glob.glob(os.path.join(WORKDIR,args.device.replace(':','_').replace('.','_')) + '*' + USERNAME + '-shut-log')
     if len(list_shut_files) == 0:
         print(bcolors.MAGENTA + " ... Can't find any shut file." + bcolors.ENDC)
         sys.exit()
@@ -1008,6 +1008,10 @@ parser.add_argument("--emailaddr",
                     help = "insert your email address once if is different than name.surname@orange.com,\
                     it will do NEWR_EMAIL variable record in your bashrc file and \
                     you do not need to insert it any more.")
+parser.add_argument("--latest",
+                    action = 'store_true', dest = "latest", default = False,
+                    help = "look for really latest pre/postcheck files (also from somebody else),\
+                    otherwise your own last shut file will be used by default")
 # parser.add_argument("--vpnlist",
 #                     action = "store", dest = 'vpnlist', default = str(),
 #                     help = "'vpn' or ['list of vpns',...] to compare")
@@ -1121,7 +1125,7 @@ if not args.readlognew:
             on_off_name = ''
             if args.shut: on_off_name = 'shut'
             if args.noshut: on_off_name = 'noshut'
-            logfilename = generate_file_name(prefix = device, suffix = on_off_name + '.log')
+            logfilename = generate_file_name(prefix = device, suffix = on_off_name + '-log')
             if args.nolog: logfilename = None
 
             ######## Find command list file (optional)
