@@ -667,13 +667,14 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
                     else: cli_line += str(cli_item)
             if run_remote:
                 if printall: print(bcolors.GREEN + "REMOTE_COMMAND%s: %s" % (sim_text,cli_line) + bcolors.ENDC )
-                if use_module == 'netmiko':
-                    if simulate_command: last_output = str()
-                    else: last_output = ssh_connection.send_command(cli_line)
-                elif use_module == 'paramiko':
-                    last_output, new_prompt = ssh_send_command_and_read_output( \
-                        ssh_connection,DEVICE_PROMPTS,cli_line,printall=printall)
-                    if new_prompt: DEVICE_PROMPTS.append(new_prompt)
+                if simulate_command: last_output = str()
+                else:
+                    if use_module == 'netmiko':
+                        last_output = ssh_connection.send_command(cli_line)
+                    elif use_module == 'paramiko':
+                        last_output, new_prompt = ssh_send_command_and_read_output( \
+                            ssh_connection,DEVICE_PROMPTS,cli_line,printall=printall)
+                        if new_prompt: DEVICE_PROMPTS.append(new_prompt)
             else:
                 if printall: print(bcolors.CYAN + "LOCAL_COMMAND%s: %s" % (sim_text,cli_line) + bcolors.ENDC )
                 ### LOCAL COMMAND - SUBPROCESS CALL
@@ -697,8 +698,8 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
             if printall: print(bcolors.GREY + "%s" % (last_output) + bcolors.ENDC )
             elif print_output: print(bcolors.YELLOW + "%s" % (last_output) + bcolors.ENDC )
             if printcmdtologfile:
-                if run_remote: fp.write('REMOTE_COMMAND: ' + cli_line + '\n'+last_output+'\n')
-                else: fp.write('LOCAL_COMMAND: ' + cli_line + '\n'+last_output+'\n')
+                if run_remote: fp.write('REMOTE_COMMAND'+sim_text+': ' + cli_line + '\n'+last_output+'\n')
+                else: fp.write('LOCAL_COMMAND'+sim_text+': ' + cli_line + '\n'+last_output+'\n')
             else: fp.write(last_output)
             ### Result will be allways string, so rstrip() could be done
             glob_vars['last_output'] = last_output.rstrip()
