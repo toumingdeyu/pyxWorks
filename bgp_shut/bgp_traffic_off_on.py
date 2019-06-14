@@ -685,9 +685,12 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
 
             ### FILTER LAST_OUTPUT
             if isinstance(last_output, six.string_types):
-                last_output = last_output.decode("utf-8").replace('\x07','').\
-                    replace('\x08','').replace('\x0d','').replace('\x1b','').replace('\x1d','')
-
+                try:
+                    last_output = last_output.decode("utf-8").replace('\x07','').\
+                        replace('\x08','').replace('\x0d','').replace('\x1b','').replace('\x1d','')
+                except:
+                     last_output = last_output.replace('\x07','').\
+                        replace('\x08','').replace('\x0d','').replace('\x1b','').replace('\x1d','')
                 ### NETMIKO-BUG (https://github.com/ktbyers/netmiko/issues/1200)
                 if len(str(cli_line))>80 and run_remote:
                     first_bugged_line = last_output.splitlines()[0]
@@ -699,7 +702,7 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
             elif print_output: print(bcolors.YELLOW + "%s" % (last_output) + bcolors.ENDC )
             if printcmdtologfile:
                 if run_remote: fp.write('REMOTE_COMMAND'+sim_text+': ' + cli_line + '\n'+last_output+'\n')
-                else: fp.write('LOCAL_COMMAND'+sim_text+': ' + cli_line + '\n'+last_output+'\n')
+                else: fp.write('LOCAL_COMMAND'+sim_text+': ' + str(cli_line) + '\n'+str(last_output)+'\n')
             else: fp.write(last_output)
             ### Result will be allways string, so rstrip() could be done
             glob_vars['last_output'] = last_output.rstrip()
@@ -1207,7 +1210,9 @@ for device in device_list:
         if logfilename and os.path.exists(logfilename):
             print('%s file created.' % (logfilename))
             ### MAKE READABLE for THE OTHERS
-            dummy = subprocess.check_output('chmod +r %s' % (logfilename),shell=True)
+            try:
+                dummy = subprocess.check_output('chmod +r %s' % (logfilename),shell=True)
+            except: pass
             try: send_me_email(subject = logfilename.replace('\\','/').\
                      split('/')[-1], file_name = logfilename)
             except: pass
