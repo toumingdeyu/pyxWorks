@@ -95,6 +95,16 @@ print('LOGDIR: ' + LOGDIR)
 CMD_IOS_XE = []
 
 CMD_IOS_XR = [
+    {'if':'device',
+         'exec':'print("%sYou are about to shut down all the BGP sessions on %s do you want to continue? (Y/N) [Enter]%s:"%(bcolors.RED,device,bcolors.ENDC))',
+    },
+    {'if':'device',
+         'local_command_2':['read var;echo $var',{"output_variable":"CONTINUE_OR_NOT"}],
+    },
+    {'if':'glob_vars.get("CONTINUE_OR_NOT","").upper() != "Y"',
+         'exec':'sys.exit(0)'
+    },
+
     {'remote_command':['sh run | in "router bgp"',{'output_variable':'router_bgp_text'}]
     },
     {'eval':['True if "router bgp 5511" in glob_vars.get("router_bgp_text","") else None',{'output_variable':'OTI_5511'}]
@@ -353,17 +363,31 @@ CMD_LINUX = [
 
 CMD_LOCAL = [
     {'eval':['"SIM = "+glob_vars.get("SIM_CMD","")',{'print_output':'on'}]},
-    {"local_command":['hostname', {"output_variable":"hostname"},{'sim':'glob_vars.get("SIM_CMD","")'}]
-    },
+#     {"local_command":['hostname', {"output_variable":"hostname"},{'sim':'glob_vars.get("SIM_CMD","")'}]
+#     },
 #     {'if':'True',
 #          'exec':'print("WARNING: Possible problem in internal BGP! Please manually check status of iBGP.")',
 #          'exec_2':'glob_vars["CONTINUE_AFTER_IBGP_PROBLEM"] = raw_input("Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:")',
 #     },
-    {'if':'True',
-         'local_command':['echo "WARNING: Possible problem in internal BGP! Please manually check status of iBGP."',{'print_output':'on'}],
-         'local_command_1':['echo "Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:"',{'print_output':'on'}],
-         'local_command_2':['read var;echo $var',{"output_variable":"CONTINUE_AFTER_IBGP_PROBLEM"}],
-         'eval':['"YOUR_CHOISE_IS: " + glob_vars.get("CONTINUE_AFTER_IBGP_PROBLEM","")',{'print_output':'on'}],
+#     {'if':'True',
+#          'local_command':['echo "WARNING: Possible problem in internal BGP! Please manually check status of iBGP."',{'print_output':'on'}],
+#          'local_command_1':['echo "Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:"',{'print_output':'on'}],
+#          'local_command_2':['read var;echo $var',{"output_variable":"CONTINUE_AFTER_IBGP_PROBLEM"}],
+#          'eval':['"YOUR_CHOISE_IS: " + glob_vars.get("CONTINUE_AFTER_IBGP_PROBLEM","")',{'print_output':'on'}],
+#     },
+
+
+    {'if':'device',
+         'exec':'print("%sYou are about to shut down all the BGP sessions on %s do you want to continue? (Y/N) [Enter]%s:"%(bcolors.RED,device,bcolors.ENDC))',
+    },
+    {'if':'device',
+         'local_command_2':['read var;echo $var',{"output_variable":"CONTINUE_OR_NOT"}],
+    },
+    {'if':'glob_vars.get("CONTINUE_OR_NOT","").upper() != "Y"',
+         'exec':'sys.exit(0)'
+    },
+
+    {"local_command":['hostname', {"output_variable":"hostname"},{'sim':'glob_vars.get("SIM_CMD","")'},{'print_output':'on'}]
     },
 ]
 
