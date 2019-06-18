@@ -95,13 +95,18 @@ print('LOGDIR: ' + LOGDIR)
 CMD_IOS_XE = []
 
 CMD_IOS_XR = [
-    {'if':'device',
+    {'if':'not glob_vars.get("SHUT","") and not glob_vars.get("NOSHUT","")',
+         'exec':'print("%sPlease specify --shut or --noshut ... %s"%(bcolors.RED,bcolors.ENDC))',
+         'exec_2':'sys.exit(0)'
+    },
+
+    {'if':'glob_vars.get("SHUT","")',
          'exec':'print("%sYou are about to shut down all the BGP sessions on %s do you want to continue? (Y/N) [Enter]%s:"%(bcolors.RED,device,bcolors.ENDC))',
     },
-    {'if':'device',
+    {'if':'glob_vars.get("SHUT","")',
          'local_command_2':['read var;echo $var',{"output_variable":"CONTINUE_OR_NOT"}],
     },
-    {'if':'glob_vars.get("CONTINUE_OR_NOT","").upper() != "Y"',
+    {'if':'glob_vars.get("SHUT","") and glob_vars.get("CONTINUE_OR_NOT","").upper() != "Y"',
          'exec':'sys.exit(0)'
     },
 
@@ -226,6 +231,16 @@ CMD_IOS_XR = [
     },
 
     ### NOSHUT -----------------------------------------------------------------
+    {'if':'glob_vars.get("NOSHUT","")',
+         'exec':'print("%sYou are about to switch-on all the BGP sessions on %s do you want to continue? (Y/N) [Enter]%s:"%(bcolors.RED,device,bcolors.ENDC))',
+    },
+    {'if':'glob_vars.get("NOSHUT","")',
+         'local_command_2':['read var;echo $var',{"output_variable":"CONTINUE_OR_NOT2"}],
+    },
+    {'if':'glob_vars.get("NOSHUT","") and glob_vars.get("CONTINUE_OR_NOT2","").upper() != "Y"',
+         'exec':'sys.exit(0)'
+    },
+
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_INT_IPS_V4","") or glob_vars.get("OTI_INT_IPS_V6",""))',
         'pre_loop_remote_command':['conf',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'pre_loop_remote_command_2':['router bgp 5511',{'sim':'glob_vars.get("SIM_CMD","")'}],
@@ -376,7 +391,10 @@ CMD_LOCAL = [
 #          'eval':['"YOUR_CHOISE_IS: " + glob_vars.get("CONTINUE_AFTER_IBGP_PROBLEM","")',{'print_output':'on'}],
 #     },
 
-
+    {'if':'not glob_vars.get("SHUT","") and not glob_vars.get("NOSHUT","")',
+         'exec':'print("%sPlease specify --shut or --noshut ... %s"%(bcolors.RED,bcolors.ENDC))',
+         'exec_2':'sys.exit(0)'
+    },
     {'if':'device',
          'exec':'print("%sYou are about to shut down all the BGP sessions on %s do you want to continue? (Y/N) [Enter]%s:"%(bcolors.RED,device,bcolors.ENDC))',
     },
