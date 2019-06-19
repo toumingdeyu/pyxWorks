@@ -117,7 +117,7 @@ CMD_IOS_XR = [
     {'eval':'glob_vars.get("OTI_5511","")',},
 
     {'if':'glob_vars.get("NOSHUT","")',
-        "eval":["return_bgp_data_json()",{'print_output':'on'}]
+        "eval":"return_bgp_data_json()"
     },
 
     {'if':'glob_vars.get("NOSHUT","") and len(bgp_data.get("OTI_EXT_IPS_V4",""))>0',
@@ -149,9 +149,11 @@ CMD_IOS_XR = [
             \n  for line in temp_ipv4: \
             \n    if len(line.split())==1: previous_line = line; continue \
             \n    if previous_line: line = previous_line + line; previous_line = None \
+            \n    try: column10 = line.split()[10] \
+            \n    except: column10 = ""\
             \n    try: \
-            \n      if "5511" in line.split()[2] and "." in line.split()[0]: int_list.append([line.split()[0],line.split()[9]]) \
-            \n      elif "." in line.split()[0]: ext_list.append([line.split()[0],line.split()[9]]) \
+            \n      if "5511" in line.split()[2] and "." in line.split()[0]: int_list.append([line.split()[0],line.split()[9]+column10]) \
+            \n      elif "." in line.split()[0]: ext_list.append([line.split()[0],line.split()[9]+column10]) \
             \n    except: pass \
             \n  glob_vars["OTI_INT_IPS_V4"] = int_list; glob_vars["OTI_EXT_IPS_V4"] = ext_list \
             \nexcept: pass' \
@@ -165,9 +167,11 @@ CMD_IOS_XR = [
             \n  for line in temp_ipv6: \
             \n    if len(line.split())==1: previous_line = line; continue \
             \n    if previous_line: line = previous_line + line; previous_line = None \
+            \n    try: column10 = line.split()[10] \
+            \n    except: column10 = ""\
             \n    try: \
-            \n      if "5511" in line.split()[2] and ":" in line.split()[0]: int_list.append([line.split()[0],line.split()[9]]) \
-            \n      elif ":" in line.split()[0]: ext_list.append([line.split()[0],line.split()[9]]) \
+            \n      if "5511" in line.split()[2] and ":" in line.split()[0]: int_list.append([line.split()[0],line.split()[9]+column10]) \
+            \n      elif ":" in line.split()[0]: ext_list.append([line.split()[0],line.split()[9]+column10]) \
             \n    except: pass \
             \n  glob_vars["OTI_INT_IPS_V6"] = int_list; glob_vars["OTI_EXT_IPS_V6"] = ext_list \
             \nexcept: pass' \
@@ -249,11 +253,13 @@ CMD_IOS_XR = [
     },
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_INT_IPS_V4","")',
         'loop_glob_var':"OTI_INT_IPS_V4",
-            'remote_command':['no neighbor ',{'eval':'loop_item[0]'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}]
+            'if':'not "ADMIN" in str(loop_item[1]).upper()',
+                'remote_command':['no neighbor ',{'eval':'loop_item[0]'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_INT_IPS_V6","")',
         'loop_glob_var':"OTI_INT_IPS_V6",
-            'remote_command':['no neighbor ',{'eval':'loop_item[0]'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}]
+            'if':'not "ADMIN" in str(loop_item[1]).upper()',
+                'remote_command':['no neighbor ',{'eval':'loop_item[0]'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_INT_IPS_V4","") or glob_vars.get("OTI_INT_IPS_V6",""))',
         'remote_command':['Commit',{'sim':'glob_vars.get("SIM_CMD","")'}],
@@ -280,7 +286,9 @@ CMD_IOS_XR = [
             \n          except: \
             \n              partial_error = True \
             \n              for ip4address,ip4status in "OTI_INT_IPS_V4": \
-            \n                  if line.split()[0] == ip4address and ip4status == line.split()[9]: \
+            \n                  try: column10 = line.split()[10] \
+            \n                  except: column10 = ""\
+            \n                  if line.split()[0] == ip4address and ip4status == line.split()[9]+column10: \
             \n                      partial_error = False \
             \n              if partial_error: error = True \
             \n    except: pass \
@@ -302,7 +310,9 @@ CMD_IOS_XR = [
             \n          except: \
             \n              partial_error = True \
             \n              for ip6address,ip6status in "OTI_INT_IPS_V6": \
-            \n                  if line.split()[0] == ip6address and ip6status == line.split()[9]: \
+            \n                  try: column10 = line.split()[10] \
+            \n                  except: column10 = ""\
+            \n                  if line.split()[0] == ip6address and ip6status == line.split()[9]+column10: \
             \n                      partial_error = False \
             \n              if partial_error: error = True \
             \n    except: pass \
@@ -360,8 +370,13 @@ CMD_IOS_XR = [
     },
 
     {'if':'glob_vars.get("SHUT","")',
-        "eval":["return_bgp_data_json()",{'print_output':'on'}]
+        "eval":"return_bgp_data_json()"
     },
+
+    {'exec':'print("show bgp summary")'},
+    {'remote_command':['show bgp summary',{'print_output':'on'}]},
+    {'exec':'print("show bgp ipv6 unicast summary")'},
+    {'remote_command':['show bgp ipv6 unicast summary',{'print_output':'on'}]},
 ]
 
 CMD_JUNOS = []
