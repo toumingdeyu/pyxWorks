@@ -369,14 +369,14 @@ CMD_IOS_XR = [
         'remote_command_6':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
 
-    {'if':'glob_vars.get("SHUT","")',
-        "eval":"return_bgp_data_json()"
-    },
-
     {'exec':'print("show bgp summary")'},
     {'remote_command':['show bgp summary',{'print_output':'on'}]},
     {'exec':'print("show bgp ipv6 unicast summary")'},
     {'remote_command':['show bgp ipv6 unicast summary',{'print_output':'on'}]},
+
+    {'if':'glob_vars.get("SHUT","")',
+        "eval":"return_bgp_data_json()"
+    },
 ]
 
 CMD_JUNOS = []
