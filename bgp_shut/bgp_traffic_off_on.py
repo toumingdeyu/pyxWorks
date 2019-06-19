@@ -328,11 +328,11 @@ CMD_IOS_XR = [
     },
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V4","")',
         'loop_glob_var':"OTI_EXT_IPS_V4",
-            'remote_command':['no neighbor ',{'eval':'loop_item'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}]
+            'remote_command':['no neighbor ',{'eval':'loop_item[0]'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V6","")',
         'loop_glob_var':"OTI_EXT_IPS_V6",
-            'remote_command':['no neighbor ',{'eval':'loop_item'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}]
+            'remote_command':['no neighbor ',{'eval':'loop_item[0]'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6",""))',
         'remote_command':['Commit',{'sim':'glob_vars.get("SIM_CMD","")'}],
