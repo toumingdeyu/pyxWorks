@@ -210,7 +210,7 @@ CMD_IOS_XR = [
     },
 
     {'if':'glob_vars.get("SHUT","")',
-        'exec':'print("eBGP peers have been shut down, waiting 120sec...")',
+        'exec':'print("eBGP peers have been shut down, waiting 200sec...")',
         'exec_2':'time.sleep(200)',
     },
 
