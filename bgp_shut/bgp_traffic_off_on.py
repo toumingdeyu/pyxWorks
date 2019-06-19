@@ -137,7 +137,8 @@ CMD_IOS_XR = [
         'remote_command_4':['Commit',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'remote_command_5':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'remote_command_6':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}],
-        'exec':['time.sleep(120)',{'print_output':'on'}]
+        'exec':'print("ISIS overload bit set, waiting 120sec...")',
+        'exec_2':'time.sleep(120)',
     },
 
     {'if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","")',
@@ -209,7 +210,8 @@ CMD_IOS_XR = [
     },
 
     {'if':'glob_vars.get("SHUT","")',
-        'exec':['time.sleep(200)',{'print_output':'on'}]
+        'exec':'print("eBGP peers have been shut down, waiting 120sec...")',
+        'exec_2':'time.sleep(200)',
     },
 
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_INT_IPS_V4","") or glob_vars.get("OTI_INT_IPS_V6",""))',
@@ -260,7 +262,8 @@ CMD_IOS_XR = [
     },
 
     {'if':'glob_vars.get("NOSHUT","")',
-        'exec':['time.sleep(200)',{'print_output':'on'}]
+        'exec':'print("iBGP peers have been unshut, waiting 200sec...")',
+        'exec_2':'time.sleep(200)',
     },
 
     {'if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","")',
@@ -328,11 +331,13 @@ CMD_IOS_XR = [
     },
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V4","")',
         'loop_glob_var':"OTI_EXT_IPS_V4",
-            'remote_command':['no neighbor ',{'eval':'loop_item[0]'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}]
+            'if':'not "ADMIN" in loop_item[1].upper()',
+                'remote_command':['no neighbor ',{'eval':'loop_item[0]'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V6","")',
         'loop_glob_var':"OTI_EXT_IPS_V6",
-            'remote_command':['no neighbor ',{'eval':'loop_item[0]'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}]
+            'if':'not "ADMIN" in loop_item[1].upper()',
+                'remote_command':['no neighbor ',{'eval':'loop_item[0]'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6",""))',
         'remote_command':['Commit',{'sim':'glob_vars.get("SIM_CMD","")'}],
@@ -341,7 +346,8 @@ CMD_IOS_XR = [
     },
 
     {'if':'glob_vars.get("NOSHUT","")',
-        'exec':['time.sleep(120)',{'print_output':'on'}]
+        'exec':'print("eBGP peers have been unshut, waiting 120sec...")',
+        'exec_2':'time.sleep(120)',
     },
 
     {'if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","")',
