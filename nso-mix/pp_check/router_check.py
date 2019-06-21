@@ -150,6 +150,9 @@ CMD_IOS_XE = [
             ("show crypto eli",
                    'ndiff0', [], [],
                    [], [], [], False),
+            ('sh int | i (line protocol|input rate|output rate)',
+                   'ndiff0', [], [],
+                   ['line protocol'], [], [], False),                   
 #             ('show interfaces | include (^[A-Z].*|minute|second|Last input)',
 #                    'ndiff0', [], [' 0 bits/sec'],
 #                    [], [], [], False)
@@ -235,7 +238,7 @@ CMD_IOS_XR = [
                    [], [], [], False),
             ('sh int | i "line protocol|input rate|output rate"',
                    'ndiff0', [], [],
-                   [', line protocol is'], [], [], False)
+                   [', line protocol is'], [], [], False),
 #             ("show interfaces | in \"^[A-Z].*|minute|second|Last input|errors|total\"",
 #                    'ndiff0', ['is administratively down,'], [],
 #                    [', line protocol is'], [], [], False)
