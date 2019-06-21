@@ -243,6 +243,8 @@ CMD_IOS_XR = [
 #                    'ndiff0', ['is administratively down,'], [],
 #                    [', line protocol is'], [], [], False)
              ]
+             
+### JUNOS ACCEPTS ONLY 60 CHARs LONG LINE, WITH NO CONTRACTIONS !!!             
 CMD_JUNOS = [
             ("show system software",
                    'ndiff0', ['uptime','Uptime'], [],
@@ -291,9 +293,9 @@ CMD_JUNOS = [
             ("show l2circuit connections brief",
                    'ndiff0', [], [],
                    [], [], [], False),
-            ('sh int',
+            ('show interfaces | match "Physical interface:| rate "',
                    'ndiff0', [], [],
-                   ['Physical interface:','Input rate','Output rate'], [], [], False),
+                   ['Physical interface:'], [], [], False),
 
 #             ('show interfaces detail | match "Physical interface|Last flapped| bps"',
 #                    'ndiff0',['Administratively down'], [],
