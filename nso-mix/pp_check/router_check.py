@@ -233,7 +233,10 @@ CMD_IOS_XR = [
             ("show l2vpn xconnect",
                    'ndiff0', [], [],
                    [], [], [], False),
-#             ("show interfaces | include \"^[A-Z].*|minute|second|Last input|errors|total\"",
+            ('sh int | i "line protocol|input rate|output rate"',
+                   'ndiff0', [], [],
+                   [', line protocol is'], [], [], False)
+#             ("show interfaces | in \"^[A-Z].*|minute|second|Last input|errors|total\"",
 #                    'ndiff0', ['is administratively down,'], [],
 #                    [', line protocol is'], [], [], False)
              ]
@@ -285,6 +288,10 @@ CMD_JUNOS = [
             ("show l2circuit connections brief",
                    'ndiff0', [], [],
                    [], [], [], False),
+            ('sh int',
+                   'ndiff0', [], [],
+                   ['Physical interface:','Input rate','Output rate'], [], [], False),
+
 #             ('show interfaces detail | match "Physical interface|Last flapped| bps"',
 #                    'ndiff0',['Administratively down'], [],
 #                    ['Physical interface:'], [], [0,1,2,3,4], False)
@@ -341,6 +348,9 @@ CMD_VRP = [
                       'ndiff0', [], [],
                       [], [], [0,1,2,7], False),
             ("display mpls l2vc brief",
+                      'ndiff0', [], [],
+                      [], [], [], False),
+            ("display interface brief",
                       'ndiff0', [], [],
                       [], [], [], False),
 #             ('display interface | include (Description|current state|minutes|Last physical|bandwidth utilization)',
