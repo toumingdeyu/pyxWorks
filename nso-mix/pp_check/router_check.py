@@ -718,9 +718,9 @@ def get_difference_string_from_string_or_list(
                         try: next_column = listdiff[line_number+1].split()[column_number]
                         except: next_column = str()
                         ### TOLERANCE_PERCENTAGE -------------------------------
-                        try: next_column_is_number = float(next_column)
+                        try: next_column_is_number = float(next_column.replace(',',''))
                         except: next_column_is_number = None
-                        try: column_is_number = float(column)
+                        try: column_is_number = float(column.replace(',',''))
                         except: column_is_number = None
                         if column_is_number and next_column_is_number and tolerance_percentage:
                             if column_is_number <= next_column_is_number * ((100 + tolerance_percentage)/100)\
