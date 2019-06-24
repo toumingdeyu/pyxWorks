@@ -121,6 +121,7 @@ default_printalllines_list = []
 # 5-linefilter_list
 # 6-compare_columns
 # 7-printall
+# 8-tolerance_percentage (number)
 
 # IOS-XE is only for IPsec GW 
 CMD_IOS_XE = [
@@ -152,13 +153,13 @@ CMD_IOS_XE = [
                    [], [], [], False),
             ('sh int | i (line protocol|input rate|output rate)',
                    'ndiff0', [], [],
-                   ['line protocol'], [], [], False),
+                   ['line protocol'], [], [], False, 10),
             ('sh ip bgp neighbors | i (BGP neighbor is|Prefixes )',
                    'ndiff0', [], [],
-                   ['neighbor'], [], [], False),
+                   ['neighbor'], [], [], False, 3),
             ('sh ip bgp vpnv4 all neighbors | i (BGP neighbor is|Prefixes )',
                    'ndiff0', [], [],
-                   ['neighbor'], [], [], False),
+                   ['neighbor'], [], [], False, 3),
 
 #             ('show interfaces | include (^[A-Z].*|minute|second|Last input)',
 #                    'ndiff0', [], [' 0 bits/sec'],
@@ -245,13 +246,13 @@ CMD_IOS_XR = [
                    [], [], [], False),
             ('sh int | i "line protocol|input rate|output rate"',
                    'ndiff0', [], [],
-                   [', line protocol is'], [], [], False),
+                   [', line protocol is'], [], [], False, 10),
             ('sh bgp neighbor | i "neighbor is|prefixes|Prefix"',
                    'ndiff0', [], [],
-                   ['neighbor'], [], [], False),
+                   ['neighbor'], [], [], False, 3),
             ('sh bgp vpnv4 unicast neighbors | i "neighbor is|refix"',
                    'ndiff0', [], [],
-                   ['neighbor'], [], [], False),
+                   ['neighbor'], [], [], False, 3),
 #             ("show interfaces | in \"^[A-Z].*|minute|second|Last input|errors|total\"",
 #                    'ndiff0', ['is administratively down,'], [],
 #                    [', line protocol is'], [], [], False)
@@ -308,10 +309,10 @@ CMD_JUNOS = [
                    [], [], [], False),
             ('show interfaces | match "Physical interface:| rate "',
                    'ndiff0', [], [],
-                   ['Physical interface:'], [], [], False),
+                   ['Physical interface:'], [], [], False, 10),
             ('show bgp neighbor | match "^Peer:|prefixes:|damping:"',
                    'ndiff0', [], [],
-                   ['Peer:'], [], [], False),
+                   ['Peer:'], [], [], False, 3),
 #             ('show interfaces detail | match "Physical interface|Last flapped| bps"',
 #                    'ndiff0',['Administratively down'], [],
 #                    ['Physical interface:'], [], [0,1,2,3,4], False)
@@ -372,13 +373,13 @@ CMD_VRP = [
                       [], [], [], False),
             ("display interface brief",
                       'ndiff0', [], [],
-                      [], [], [], False),
+                      [], [], [], False, 10),
             ("disp bgp peer verbose | i (BGP Peer is|routes)",
                       'ndiff0', [], [],
-                      ['Peer'], [], [], False),
+                      ['Peer'], [], [], False, 3),
             ("disp bgp vpnv4 all peer verbose | i (BGP Peer is|routes)",
                       'ndiff0', [], [],
-                      ['Peer'], [], [], False),
+                      ['Peer'], [], [], False, 3),
 #             ('display interface | include (Description|current state|minutes|Last physical|bandwidth utilization)',
 #                       'ndiff0', [], [],
 #                       ['Description:','current state'], [], [0,1,2,3,4], False)
@@ -591,6 +592,7 @@ def get_difference_string_from_string_or_list(
     linefilter_list = default_linefilter_list, \
     compare_columns = [], \
     print_equallines = None, \
+    tolerance_percentage = None, \
     debug = None, \
     note = True ):
     '''
@@ -715,7 +717,16 @@ def get_difference_string_from_string_or_list(
                     for column_number,column in enumerate(line.split()):
                         try: next_column = listdiff[line_number+1].split()[column_number]
                         except: next_column = str()
-                        if column == next_column: the_same_columns += 1
+                        ### TOLERANCE_PERCENTAGE -------------------------------
+                        try: next_column_is_number = float(next_column)
+                        except: next_column_is_number = None
+                        try: column_is_number = float(column)
+                        except: column_is_number = None
+                        if column_is_number and next_column_is_number and tolerance_percentage:
+                            if column_is_number <= next_column_is_number * ((100 + tolerance_percentage)/100)\
+                                and column_is_number >= next_column_is_number * ((100 - tolerance_percentage)/100):
+                                    the_same_columns += 1
+                        elif column == next_column: the_same_columns += 1
                     if line_list_lenght>0:
                         percentage_of_equality = (100*the_same_columns)/line_list_lenght
                 # CHANGED LINE -------------------------------------------------
@@ -1228,6 +1239,9 @@ if pre_post == "post" or args.recheck or args.postcheck_file:
                 try: cli_printall = cli_items[7]
                 except: cli_printall = False
 
+            try: cli_tolerance_percentage = cli_items[8]
+            except: cli_tolerance_percentage = None
+
             # Looking for relevant section in precheck file
             precheck_section = find_section(text1_lines, DEVICE_PROMPTS, \
                 cli_index, cli, file_name = 'in ' + precheck_file + ' file ')
@@ -1247,7 +1261,8 @@ if pre_post == "post" or args.recheck or args.postcheck_file:
                     linefilter_list = cli_linefilter_list, \
                     compare_columns = cli_compare_columns, \
                     print_equallines = cli_printall, \
-                    note=False)
+                    tolerance_percentage = cli_tolerance_percentage, \
+                    note = False)
                 if len(diff_result) == 0: print(bcolors.GREY + 'OK' + bcolors.ENDC)
                 else: print(diff_result)
                 if logfilename:
