@@ -707,9 +707,9 @@ def get_difference_string_from_string_or_list(
                 if not split_line: split_line = line
                 if not split_next_line: split_next_line = line
                 for split_column,split_next_column in zip(split_line.split(),split_next_line.split()):
-                    try: next_column_is_number = float(split_next_column.replace(',',''))
+                    try: next_column_is_number = float(split_next_column.replace(',','').replace('%',''))
                     except: next_column_is_number = None
-                    try: column_is_number = float(split_column.replace(',',''))
+                    try: column_is_number = float(split_column.replace(',','').replace('%',''))
                     except: column_is_number = None
                     if column_is_number and next_column_is_number and tolerance_percentage:
                         if column_is_number <= next_column_is_number * ((100 + tolerance_percentage)/100)\
