@@ -153,10 +153,10 @@ CMD_IOS_XE = [
             ('sh int | i (line protocol|input rate|output rate)',
                    'ndiff0', [], [],
                    ['line protocol'], [], [], False),
-            ('sh ip bgp neighbors | i (BGP neighbor is|Prefixes)',
+            ('sh ip bgp neighbors | i (BGP neighbor is|Prefixes )',
                    'ndiff0', [], [],
                    ['neighbor'], [], [], False),
-            ('sh ip bgp vpnv4 all neighbors | i (BGP neighbor is|Prefixes)',
+            ('sh ip bgp vpnv4 all neighbors | i (BGP neighbor is|Prefixes )',
                    'ndiff0', [], [],
                    ['neighbor'], [], [], False),
 
