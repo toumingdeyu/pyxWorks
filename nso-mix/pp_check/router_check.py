@@ -694,6 +694,7 @@ def get_difference_string_from_string_or_list(
                     try: temp_column = listdiff[line_number+1].split()[split_column+1]
                     except: temp_column = str()
                     split_next_line += ' ' + temp_column
+                ### LINEFILTER -------------------------------------------------
                 for linefilter_item in linefilter_list:
                     try: next_line = listdiff[line_number+1]
                     except: next_line = str()
@@ -701,7 +702,27 @@ def get_difference_string_from_string_or_list(
                         linefiltered_line = re.findall(linefilter_item,line)[0]
                     if next_line and (re.search(linefilter_item,next_line)) != None:
                         linefiltered_next_line = re.findall(linefilter_item,line)[0]
-                # LINES ARE EQUAL AFTER FILTERING - filtered linefilter and columns commands
+                ### TOLERANCE_PERCENTAGE = COMPARING NUMBER COLUMNS with TOLERANCE
+                columns_are_equal = 0
+                if not split_line: split_line = line
+                if not split_next_line: split_next_line = line
+                for split_column,split_next_column in zip(split_line.split(),split_next_line.split()):
+                    try: next_column_is_number = float(split_next_column.replace(',',''))
+                    except: next_column_is_number = None
+                    try: column_is_number = float(split_column.replace(',',''))
+                    except: column_is_number = None
+                    if column_is_number and next_column_is_number and tolerance_percentage:
+                        if column_is_number <= next_column_is_number * ((100 + tolerance_percentage)/100)\
+                            and column_is_number >= next_column_is_number * ((100 - tolerance_percentage)/100):
+                                columns_are_equal += 1
+                    elif split_column and split_next_column and split_column == split_next_column:
+                        columns_are_equal += 1
+                ### IF LINES ARE EQUAL WITH +/- TOLERANCE ----------------------
+                if columns_are_equal > 0 and columns_are_equal == len(split_line.split()) \
+                    and columns_are_equal == len(split_next_line.split()):
+                        ignore_previous_line = True
+                        continue
+                ### LINES ARE EQUAL AFTER FILTERING - filtered linefilter and columns commands
                 if (split_line and split_next_line and split_line == split_next_line) or \
                    (linefiltered_line and linefiltered_next_line and linefiltered_line == linefiltered_next_line):
                     ignore_previous_line = True
@@ -717,16 +738,7 @@ def get_difference_string_from_string_or_list(
                     for column_number,column in enumerate(line.split()):
                         try: next_column = listdiff[line_number+1].split()[column_number]
                         except: next_column = str()
-                        ### TOLERANCE_PERCENTAGE -------------------------------
-                        try: next_column_is_number = float(next_column.replace(',',''))
-                        except: next_column_is_number = None
-                        try: column_is_number = float(column.replace(',',''))
-                        except: column_is_number = None
-                        if column_is_number and next_column_is_number and tolerance_percentage:
-                            if column_is_number <= next_column_is_number * ((100 + tolerance_percentage)/100)\
-                                and column_is_number >= next_column_is_number * ((100 - tolerance_percentage)/100):
-                                    the_same_columns += 1
-                        elif column == next_column: the_same_columns += 1
+                        if column == next_column: the_same_columns += 1
                     if line_list_lenght>0:
                         percentage_of_equality = (100*the_same_columns)/line_list_lenght
                 # CHANGED LINE -------------------------------------------------
