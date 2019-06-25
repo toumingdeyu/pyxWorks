@@ -601,17 +601,17 @@ def get_difference_string_from_string_or_list(
     '''
     FUNCTION get_difference_string_from_string_or_list:
     INPUT PARAMETERS:
-      - old_string_or_list - content of old file in string or list type
-      - new_string_or_list - content of new file in string or list type
-      - diff_method - ndiff, ndiff0, pdiff0
-      - ignore_list - list of regular expressions or strings when line is ignored for file (string) comparison
-      - problem_list - list of regular expressions or strings which detects problems, even if files are equal
-      - printalllines_list - list of regular expressions or strings which will be printed grey, even if files are equal
-      - linefilter_list - list of regular expressions which filters each line (regexp results per line comparison)
-      - compare_columns - list of columns which are intended to be different , other columns in line are ignored
-      - print_equallines - True/False prints all equal new file lines with '=' prefix , by default is False
-      - debug - True/False, prints debug info to stdout, by default is False
-      - note - True/False, prints info header to stdout, by default is True
+      - OLD_STRING_OR_LIST - content of old file in string or list type
+      - NEW_STRING_OR_LIST - content of new file in string or list type
+      - DIFF_METHOD - ndiff, ndiff0, pdiff0
+      - IGNORE_LIST - list of regular expressions or strings when line is ignored for file (string) comparison
+      - PROBLEM_LIST - list of regular expressions or strings which detects problems, even if files are equal
+      - PRINTALLLINES_LIST - list of regular expressions or strings which will be printed grey, even if files are equal
+      - LINEFILTER_LIST - list of regular expressions which filters each line (regexp results per line comparison)
+      - COMPARE_COLUMNS - list of columns which are intended to be different , other columns in line are ignored
+      - PRINT_EQUALLINES - True/False prints all equal new file lines with '=' prefix , by default is False
+      - DEBUG - True/False, prints debug info to stdout, by default is False
+      - NOTE - True/False, prints info header to stdout, by default is True
     RETURNS: string with file differencies
 
     PDIFF0 FORMAT: The head of line is
@@ -674,23 +674,24 @@ def get_difference_string_from_string_or_list(
             if '+ ' in first_chars or '- ' in first_chars or '  ' in first_chars:
                 listdiff.append(line)
         del diff, listdiff_nonfiltered
-
-        print('='*70+'\n');print('\n'.join(listdiff));print('='*70+'\n')
-
         # MAIN NDIFF0/PDIFF0 LOOP ----------------------------------------------
         previous_minus_line_is_change = False
         for line_number,line in enumerate(listdiff):
             print_color, print_line = COL_EQUAL, str()
-            try:    first_chars_previousline = listdiff[line_number-1][0]+listdiff[line_number-1][1]
+            try:    first_chars_previousline = listdiff[line_number-1][0]+listdiff[line_number-1][1].replace('\t',' ')
             except: first_chars_previousline = str()
-            try:    first_chars = line[0]+line[1]
+            try:    first_chars = line[0]+line[1].replace('\t',' ')
             except: first_chars = str()
-            try:    first_chars_nextline = listdiff[line_number+1][0]+listdiff[line_number+1][1]
+            try:    first_chars_nextline = listdiff[line_number+1][0]+listdiff[line_number+1][1].replace('\t',' ')
             except: first_chars_nextline = str()
             # CHECK IF ARE LINES EQUAL AFTER FILTERING (compare_columns + linefilter_list)
             split_line,split_next_line,linefiltered_line,linefiltered_next_line = str(),str(),str(),str()
+            ### CLEAR AUXILIARY VARIABLES WHEN NO -/+ FIRST CHARACTERS ---------
+            if first_chars.strip() == str():
+                ignore_previous_line = False
+                previous_minus_line_is_change = False
             ### POSSIBLE CHANGE in LINE ----------------------------------------
-            if '- ' == first_chars and '+ ' == first_chars_nextline:
+            if '-' in first_chars and '+' in first_chars_nextline:
                 ### SELECT COMPARE_COLUMNS -------------------------------------
                 for split_column in compare_columns:
                     # +1 MEANS EQUAL OF DELETION OF FIRST COLUMN -
@@ -710,24 +711,25 @@ def get_difference_string_from_string_or_list(
                         linefiltered_line = re.findall(linefilter_item,line)[0]
                     if next_line and (re.search(linefilter_item,next_line)) != None:
                         linefiltered_next_line = re.findall(linefilter_item,line)[0]
+                ### IF SPLIT_LINE DOES not EXIST FROM COMPARE_COLUMNS DO IT ----
+                if not split_line: split_line = line
+                if not split_next_line: split_next_line = listdiff[line_number+1]
                 ### TOLERANCE_PERCENTAGE = COMPARING NUMBER COLUMNS with TOLERANCE
                 columns_are_equal = 0
-                if not split_line: split_line = line
-                if not split_next_line: split_next_line = line
-                for split_column,split_next_column in zip(split_line.split(),split_next_line.split()):
-                    try: next_column_is_number = float(split_next_column.replace(',','').replace('%',''))
+                for split_column,split_next_column in zip(split_line.split()[1:],split_next_line.split()[1:]):
+                    try: next_column_is_number = float(split_next_column.replace(',','').replace('%','').replace('(',''))
                     except: next_column_is_number = None
-                    try: column_is_number = float(split_column.replace(',','').replace('%',''))
+                    try: column_is_number = float(split_column.replace(',','').replace('%','').replace('(',''))
                     except: column_is_number = None
                     if column_is_number and next_column_is_number and tolerance_percentage:
-                        if column_is_number <= next_column_is_number * ((100 + tolerance_percentage)/100)\
-                            and column_is_number >= next_column_is_number * ((100 - tolerance_percentage)/100):
+                        if column_is_number <= next_column_is_number * ((100 + float(tolerance_percentage))/100)\
+                            and column_is_number >= next_column_is_number * ((100 - float(tolerance_percentage))/100):
                                 columns_are_equal += 1
                     elif split_column and split_next_column and split_column == split_next_column:
                         columns_are_equal += 1
                 ### IF LINES ARE EQUAL WITH +/- TOLERANCE ----------------------
-                if columns_are_equal > 0 and columns_are_equal == len(split_line.split()) \
-                    and columns_are_equal == len(split_next_line.split()):
+                if columns_are_equal > 0 and columns_are_equal + 1 == len(split_line.split()) \
+                    and columns_are_equal + 1 == len(split_next_line.split()):
                         ignore_previous_line = True
                         continue
                 ### LINES ARE EQUAL AFTER FILTERING - filtered linefilter and columns commands
@@ -736,7 +738,7 @@ def get_difference_string_from_string_or_list(
                     ignore_previous_line = True
                     continue
             # CONTINUE CHECK DELETED/ADDED LINES--------------------------------
-            if '- ' == first_chars:
+            if '-' in first_chars:
                 ignore_previous_line = False
                 # FIND IF IT IS CHANGEDLINE OR DELETED LINE
                 line_list_lenght, the_same_columns = len(line.split()), 0
@@ -758,11 +760,11 @@ def get_difference_string_from_string_or_list(
                 # LOST/DELETED LINES -------------------------------------------
                 else: print_color, print_line = COL_DELETED, line
             # IGNORE EQUAL -/= LINES or PRINT printall and problem lines -------
-            elif '+ ' == first_chars and ignore_previous_line:
+            elif '+' in first_chars and ignore_previous_line:
                 line = ' ' + line[1:]
                 ignore_previous_line = False
             # ADDED NEW LINE ---------------------------------------------------
-            elif '+ ' == first_chars and not ignore_previous_line:
+            elif '+' in first_chars and not ignore_previous_line:
                 if previous_minus_line_is_change:
                     previous_minus_line_is_change = False
                     if diff_method == 'pdiff0': line = '!' + line[1:]
@@ -770,12 +772,11 @@ def get_difference_string_from_string_or_list(
                 else: print_color, print_line = COL_ADDED, line
             # PRINTALL ---------------------------------------------------------
             elif print_equallines: print_color, print_line = COL_EQUAL, line
-            # check if
+            # PRINTALL LINES GREY IF not ALREADY PRINTED BY ANOTHER COLOR ------
             if not print_line:
-                # print lines grey, write also equal values !!!
                 for item in printalllines_list:
                     if (re.search(item,line)) != None: print_color, print_line = COL_EQUAL, line
-            # PROBLEM LIST - In case of DOWN/FAIL write also equal values !!!
+            # PROBLEM LIST - IN CASE OF DOWN/FAIL WRITE ALSO EQUAL VALUES !!! --
             for item in problem_list:
                 if (re.search(item,line)) != None: print_color, print_line = COL_PROBLEM, line
             # Final PRINT ------------------------------------------------------
