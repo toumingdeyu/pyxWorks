@@ -282,7 +282,7 @@ CMD_JUNOS = [
                    [], [], [0,1,2], False),
             ("show bgp summary",
                    'ndiff0', [], [],
-                   [], [], [0,1,9,10], False,3),
+                   [], [], [0,1,8,9], False,3),
             ("show rsvp neighbor",
                    'ndiff0', [], [],
                    [], [], [0], False),
@@ -294,7 +294,7 @@ CMD_JUNOS = [
                    [], [], [], False),
             ("show chassis routing-engine",
                    'ndiff0', [], [],
-                   [], [], [], False),
+                   [], [], [], False,5),
             ("show chassis fpc",
                    'ndiff0', [], [],
                    [], [], [], False),
@@ -303,7 +303,7 @@ CMD_JUNOS = [
                    [], [], [], False),
             ("show chassis power",
                    'ndiff0', [], [],
-                   [], [], [], False),
+                   [], [], [], False,5),
             ("show system alarms",
                    'ndiff0', [], [],
                    [], [], [], False),
@@ -697,12 +697,12 @@ def get_difference_string_from_string_or_list(
                     # +1 MEANS EQUAL OF DELETION OF FIRST COLUMN -
                     try: temp_column = line.split()[split_column+1]
                     except: temp_column = str()
-                    split_line += ' ' + temp_column
+                    split_line += ' ' + temp_column.replace('/',' ')
                 for split_column in compare_columns:
                     # +1 MEANS EQUAL OF DELETION OF FIRST COLUMN +
                     try: temp_column = listdiff[line_number+1].split()[split_column+1]
                     except: temp_column = str()
-                    split_next_line += ' ' + temp_column
+                    split_next_line += ' ' + temp_column.replace('/',' ')
                 ### LINEFILTER -------------------------------------------------
                 for linefilter_item in linefilter_list:
                     try: next_line = listdiff[line_number+1]
@@ -712,8 +712,8 @@ def get_difference_string_from_string_or_list(
                     if next_line and (re.search(linefilter_item,next_line)) != None:
                         linefiltered_next_line = re.findall(linefilter_item,line)[0]
                 ### IF SPLIT_LINE DOES not EXIST FROM COMPARE_COLUMNS DO IT ----
-                if not split_line: split_line = line
-                if not split_next_line: split_next_line = listdiff[line_number+1]
+                if not split_line: split_line = line.replace('/',' ')
+                if not split_next_line: split_next_line = listdiff[line_number+1].replace('/',' ')
                 ### TOLERANCE_PERCENTAGE = COMPARING NUMBER COLUMNS with TOLERANCE
                 columns_are_equal = 0
                 for split_column,split_next_column in zip(split_line.split()[1:],split_next_line.split()[1:]):
