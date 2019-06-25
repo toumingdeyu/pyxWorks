@@ -612,7 +612,7 @@ def get_difference_string_from_string_or_list(
       - PRINT_EQUALLINES - True/False prints all equal new file lines with '=' prefix , by default is False
       - DEBUG - True/False, prints debug info to stdout, by default is False
       - NOTE - True/False, prints info header to stdout, by default is True
-    RETURNS: string with file differencies
+    RETURNS: string with file differencies , all_ok [True/False]
 
     PDIFF0 FORMAT: The head of line is
     '-' for missing line,
@@ -622,7 +622,7 @@ def get_difference_string_from_string_or_list(
     RED for something going DOWN or something missing or failed.
     ORANGE for something going UP or something NEW (not present in pre-check)
     '''
-    print_string = str()
+    print_string, all_ok = str(), True
     if note:
        print_string = "DIFF_METHOD: "
        if diff_method   == 'ndiff0': print_string += note_ndiff0_string
@@ -779,9 +779,12 @@ def get_difference_string_from_string_or_list(
             # PROBLEM LIST - IN CASE OF DOWN/FAIL WRITE ALSO EQUAL VALUES !!! --
             for item in problem_list:
                 if (re.search(item,line)) != None: print_color, print_line = COL_PROBLEM, line
+            # TEST if ALL_OK ---------------------------------------------------
+            if len(print_line)>0:
+                if print_color == COL_PROBLEM or print_line[0] in ['+','-','!']: all_ok = False
             # Final PRINT ------------------------------------------------------
             if print_line: print_string += "%s%s%s\n" % (print_color,print_line,bcolors.ENDC)
-    return print_string
+    return print_string, all_ok
 
 
 def print_cmd_list(CMD):
@@ -1274,7 +1277,7 @@ if pre_post == "post" or args.recheck or args.postcheck_file:
 
             if precheck_section and postcheck_section:
                 print(bcolors.BOLD + '\n' + cli + bcolors.ENDC)
-                diff_result = get_difference_string_from_string_or_list( \
+                diff_result, all_ok = get_difference_string_from_string_or_list( \
                     precheck_section,postcheck_section, \
                     diff_method = cli_diff_method, \
                     ignore_list = default_ignoreline_list + cli_ignore_list, \
@@ -1285,8 +1288,9 @@ if pre_post == "post" or args.recheck or args.postcheck_file:
                     print_equallines = cli_printall, \
                     tolerance_percentage = cli_tolerance_percentage, \
                     note = False)
-                if len(diff_result) == 0: print(bcolors.GREY + 'OK' + bcolors.ENDC)
-                else: print(diff_result)
+                if all_ok: print(bcolors.GREY + 'OK' + bcolors.ENDC)
+                elif len(diff_result) > 0: print(diff_result)
+
                 if logfilename:
                     with open(logfilename, "a") as myfile:
                         myfile.write('\n' + bcolors.BOLD + cli + bcolors.ENDC +'\n')
