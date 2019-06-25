@@ -629,7 +629,7 @@ def get_difference_string_from_string_or_list(
        elif diff_method == 'pdiff0': print_string += note_pdiff0_string
        elif diff_method == 'ndiff' : print_string += note_ndiff_string
 
-    # make list from string if is not list already
+    # MAKE LIST FROM STRING IF IS NOT LIST ALREADY -----------------------------
     old_lines_unfiltered = old_string_or_list if type(old_string_or_list) == list else old_string_or_list.splitlines()
     new_lines_unfiltered = new_string_or_list if type(new_string_or_list) == list else new_string_or_list.splitlines()
 
@@ -662,7 +662,7 @@ def get_difference_string_from_string_or_list(
         diff = difflib.ndiff(old_lines_unfiltered, new_lines_unfiltered)
         listdiff_nonfiltered = list(diff)
         listdiff = []
-        # filter diff lines out of '? ' and void lines
+        # FILTER DIFF LINES OUT OF '? ' AND VOID LINES -------------------------
         for line in listdiff_nonfiltered:
             # This ignore filter is much faster
             ignore = False
@@ -674,7 +674,10 @@ def get_difference_string_from_string_or_list(
             if '+ ' in first_chars or '- ' in first_chars or '  ' in first_chars:
                 listdiff.append(line)
         del diff, listdiff_nonfiltered
-        # main ndiff0/pdiff0 loop
+
+        print('='*70+'\n');print('\n'.join(listdiff));print('='*70+'\n')
+
+        # MAIN NDIFF0/PDIFF0 LOOP ----------------------------------------------
         previous_minus_line_is_change = False
         for line_number,line in enumerate(listdiff):
             print_color, print_line = COL_EQUAL, str()
@@ -686,14 +689,16 @@ def get_difference_string_from_string_or_list(
             except: first_chars_nextline = str()
             # CHECK IF ARE LINES EQUAL AFTER FILTERING (compare_columns + linefilter_list)
             split_line,split_next_line,linefiltered_line,linefiltered_next_line = str(),str(),str(),str()
+            ### POSSIBLE CHANGE in LINE ----------------------------------------
             if '- ' == first_chars and '+ ' == first_chars_nextline:
+                ### SELECT COMPARE_COLUMNS -------------------------------------
                 for split_column in compare_columns:
-                    # +1 means equal of deletion of first column -
+                    # +1 MEANS EQUAL OF DELETION OF FIRST COLUMN -
                     try: temp_column = line.split()[split_column+1]
                     except: temp_column = str()
                     split_line += ' ' + temp_column
                 for split_column in compare_columns:
-                    # +1 means equal of deletion of first column +
+                    # +1 MEANS EQUAL OF DELETION OF FIRST COLUMN +
                     try: temp_column = listdiff[line_number+1].split()[split_column+1]
                     except: temp_column = str()
                     split_next_line += ' ' + temp_column
@@ -732,6 +737,7 @@ def get_difference_string_from_string_or_list(
                     continue
             # CONTINUE CHECK DELETED/ADDED LINES--------------------------------
             if '- ' == first_chars:
+                ignore_previous_line = False
                 # FIND IF IT IS CHANGEDLINE OR DELETED LINE
                 line_list_lenght, the_same_columns = len(line.split()), 0
                 percentage_of_equality = 0
