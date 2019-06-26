@@ -610,6 +610,7 @@ def get_difference_string_from_string_or_list(
       - LINEFILTER_LIST - list of regular expressions which filters each line (regexp results per line comparison)
       - COMPARE_COLUMNS - list of columns which are intended to be different , other columns in line are ignored
       - PRINT_EQUALLINES - True/False prints all equal new file lines with '=' prefix , by default is False
+      - TOLERANCE_PERCENTAGE - All numbers/selected columns in line with % tolerance. String columns must be equal.
       - DEBUG - True/False, prints debug info to stdout, by default is False
       - NOTE - True/False, prints info header to stdout, by default is True
     RETURNS: string with file differencies , all_ok [True/False]
