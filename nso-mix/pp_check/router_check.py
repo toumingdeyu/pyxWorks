@@ -723,9 +723,15 @@ def get_difference_string_from_string_or_list(
                     try: column_is_number = float(split_column.replace(',','').replace('%','').replace('(',''))
                     except: column_is_number = None
                     if column_is_number and next_column_is_number and tolerance_percentage:
-                        if column_is_number <= next_column_is_number * ((100 + float(tolerance_percentage))/100)\
-                            and column_is_number >= next_column_is_number * ((100 - float(tolerance_percentage))/100):
-                                columns_are_equal += 1
+                        if column_is_number>100:
+                            if column_is_number <= next_column_is_number * ((100 + float(tolerance_percentage))/100)\
+                                and column_is_number >= next_column_is_number * ((100 - float(tolerance_percentage))/100):
+                                    columns_are_equal += 1
+                        ### FOR SMALL VALUES UP to 100 , use TWICE TOLERANCE_PERCENTAGE
+                        else:
+                            if column_is_number <= next_column_is_number * ((100 + float(2 * tolerance_percentage))/100)\
+                                and column_is_number >= next_column_is_number * ((100 - float(2 * tolerance_percentage))/100):
+                                    columns_are_equal += 1
                     elif split_column and split_next_column and split_column == split_next_column:
                         columns_are_equal += 1
                 ### IF LINES ARE EQUAL WITH +/- TOLERANCE ----------------------
