@@ -855,7 +855,7 @@ def sql_interface_data():
     def sql_read_all_table_columns(table_name):
         cursor = sql_connection.cursor()
         try: cursor.execute("select * from INFORMATION_SCHEMA.COLUMNS where TABLE_NAME='%s'"%(table_name))
-        except Error as error: print("Error: %s"%(error))
+        except Exception as e: print(e)
         records = cursor.fetchall()
         cursor.close()
         columns = [item[3] for item in records]
@@ -864,7 +864,7 @@ def sql_interface_data():
     def sql_read_data(sql_command):
         cursor = sql_connection.cursor()
         try: cursor.execute(sql_command)
-        except Error as error: print("Error: %s"%(error))
+        except Exception as e: print(e)
         records = cursor.fetchall()
         cursor.close()
         return records
@@ -873,7 +873,7 @@ def sql_interface_data():
         #sql_connection.autocommit = False
         cursor = sql_connection.cursor(prepared=True)
         try: cursor.execute(sql_command)
-        except Error as error: print("Error: %s"%(error))
+        except Exception as e: print(e)
         if not sql_connection.autocommit: sql_connection.commit()
         cursor.close()
         return None
@@ -893,7 +893,21 @@ def sql_interface_data():
                     if len(columns_string) > 0: columns_string += ','
                     if len(values_string) > 0: values_string += ','
                 columns_string += '`' + key + '`'
-                values_string += "'" + str(bgp_data.get(key,"")) + "'"
+                ### be aware of data type
+                if isinstance(bgp_data.get(key,""), (list,tuple)):
+                    item_string = str()
+                    for item in bgp_data.get(key,""):
+                        if isinstance(item, (six.string_types)):
+                            if len(item_string) > 0: item_string += ','
+                            item_string += item
+                        elif isinstance(item, (dict,collections.OrderedDict)):
+                            for i in item:
+                                if len(item_string) > 0: item_string += ','
+                                item_string += item.get(i,"")
+                    values_string += "'" + item_string + "'"
+                elif isinstance(bgp_data.get(key,""), (six.string_types)):
+                    values_string += "'" + str(bgp_data.get(key,"")) + "'"
+
             sql_string = """INSERT INTO `ipxt_data_collector` (%s) VALUES (%s)""" \
                 % (columns_string,values_string)
             print(sql_string)
@@ -906,7 +920,7 @@ def sql_interface_data():
                 check_data = sql_read_data("SELECT * FROM ipxt_data_collector WHERE vrf_name = '%s'" \
                     %(bgp_data.get('vrf_name',"")))
                 print('DB_READ_CHECK:',check_data)
-    except mysql.connector.Error as error: print("Error: %s"%(error))
+    except Exception as e: print(e)
     finally:
         if sql_connection.is_connected():
             sql_connection.close()
