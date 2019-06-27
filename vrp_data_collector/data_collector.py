@@ -13,8 +13,8 @@ import glob
 import socket
 import six
 import collections
+import mysql.connector
 #import interactive
-
 #python 2.7 problem - hack 'pip install esptool'
 import netmiko
 
@@ -237,19 +237,19 @@ CMD_LINUX = [
 ]
 
 CMD_LOCAL = [
-    {'eval':['"SIM = "+glob_vars.get("SIM_CMD","")',{'print_output':'on'}]},
+    {'eval':['"SIM = "glob_vars.get("SIM_CMD","")',{'print_output':'on'}]},
     {"local_command":['hostname', {"output_variable":"hostname"},{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
 #     {'if':'True',
 #          'exec':'print("WARNING: Possible problem in internal BGP! Please manually check status of iBGP.")',
 #          'exec_2':'glob_vars["CONTINUE_AFTER_IBGP_PROBLEM"] = raw_input("Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:")',
 #     },
-    {'if':'True',
-         'local_command':['echo "WARNING: Possible problem in internal BGP! Please manually check status of iBGP."',{'print_output':'on'}],
-         'local_command_1':['echo "Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:"',{'print_output':'on'}],
-         'local_command_2':['read var;echo $var',{"output_variable":"CONTINUE_AFTER_IBGP_PROBLEM"}],
-         'eval':['"YOUR_CHOISE_IS: " + glob_vars.get("CONTINUE_AFTER_IBGP_PROBLEM","")',{'print_output':'on'}],
-    },
+#     {'if':'True',
+#          'local_command':['echo "WARNING: Possible problem in internal BGP! Please manually check status of iBGP."',{'print_output':'on'}],
+#          'local_command_1':['echo "Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:"',{'print_output':'on'}],
+#          'local_command_2':['read var;echo $var',{"output_variable":"CONTINUE_AFTER_IBGP_PROBLEM"}],
+#          'eval':['"YOUR_CHOISE_IS: " + glob_vars.get("CONTINUE_AFTER_IBGP_PROBLEM","")',{'print_output':'on'}],
+#     },
 ]
 
 #
@@ -845,6 +845,73 @@ def generate_file_name(prefix = None, suffix = None , directory = None):
 #             most_recent_shut = item
 #     shut_file = most_recent_shut
 #     return shut_file
+
+
+
+
+def sql_interface_data():
+    ### import mysql.connector
+    ### MARIADB - By default AUTOCOMMIT is disabled
+    def sql_read_all_table_columns(table_name):
+        cursor = sql_connection.cursor()
+        try: cursor.execute("select * from INFORMATION_SCHEMA.COLUMNS where TABLE_NAME='%s'"%(table_name))
+        except Error as error: print("Error: %s"%(error))
+        records = cursor.fetchall()
+        cursor.close()
+        columns = [item[3] for item in records]
+        return columns
+
+    def sql_read_data(sql_command):
+        cursor = sql_connection.cursor()
+        try: cursor.execute(sql_command)
+        except Error as error: print("Error: %s"%(error))
+        records = cursor.fetchall()
+        cursor.close()
+        return records
+
+    def sql_write_data(sql_command):
+        #sql_connection.autocommit = False
+        cursor = sql_connection.cursor(prepared=True)
+        try: cursor.execute(sql_command)
+        except Error as error: print("Error: %s"%(error))
+        if not sql_connection.autocommit: sql_connection.commit()
+        cursor.close()
+        return None
+
+    try:
+        sql_connection = mysql.connector.connect(host='localhost', user='cfgbuilder', \
+            password='cfgbuildergetdata', database='rtr_configuration')
+
+        if sql_connection.is_connected():
+            #print(sql_read_all_table_columns('ipxt_data_collector'))
+            #print(sql_read_data("SELECT * FROM ipxt_data_collector"))
+
+            sql_table_columns = sql_read_all_table_columns('ipxt_data_collector')
+            columns_string, values_string = str(), str()
+            for key in bgp_data:
+                if key in sql_table_columns:
+                    if len(columns_string) > 0: columns_string += ','
+                    if len(values_string) > 0: values_string += ','
+                columns_string += '`' + key + '`'
+                values_string += "'" + str(bgp_data.get(key,"")) + "'"
+            sql_string = """INSERT INTO `ipxt_data_collector` (%s) VALUES (%s)""" \
+                % (columns_string,values_string)
+            print(sql_string)
+            if columns_string:
+                sql_write_data("""INSERT INTO `ipxt_data_collector`
+                    (%s) VALUES (%s)""" %(columns_string,values_string))
+
+            # SQL READ CHECK ---------------------------------------------------
+            if bgp_data.get('vrf_name',""):
+                check_data = sql_read_data("SELECT * FROM ipxt_data_collector WHERE vrf_name = '%s'" \
+                    %(bgp_data.get('vrf_name',"")))
+                print('DB_READ_CHECK:',check_data)
+    except mysql.connector.Error as error: print("Error: %s"%(error))
+    finally:
+        if sql_connection.is_connected():
+            sql_connection.close()
+            print("SQL connection is closed.")
+
 ##############################################################################
 #
 # BEGIN MAIN
@@ -1112,7 +1179,7 @@ for device in device_list:
                      split('/')[-1], file_name = logfilename)
             except: pass
         print('\nDEVICE %s DONE.'%(device))
-
+        if router_type == 'huawei': sql_interface_data()
 print('\nEND [script runtime = %d sec].'%(time.time() - START_EPOCH))
 
 
