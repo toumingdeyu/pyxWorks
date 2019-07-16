@@ -1,11 +1,13 @@
 #!/usr/bin/python36
 # -*- coding: UTF-8 -*-
 
+import sys
 import ipaddress
 import json
-
 from mako.template import Template
 from mako.lookup import TemplateLookup
+from flask import Flask, request
+import requests
 
 template_string = '''!<% rule_num = 10 %>
 ipv4 access-list IPXT.${customer_name}-IN
@@ -16,7 +18,7 @@ ipv4 access-list IPXT.${customer_name}-IN
 !
 '''
 
-
+### FUNCTIONS ############################################ 
 def load_json(path, file_name):
     """Open json file return dictionary."""
     try:
@@ -28,16 +30,63 @@ def load_json(path, file_name):
 
     return json_data
 
-############################################
-# Define paths to data.
-############################################
+def print_config():
+    mytemplate = Template(template_string)
+    config_string = mytemplate.render(**data)
+    return config_string
 
-#mylookup = TemplateLookup(directories=['./'])
+def print_json():
+    try: json_data = json.dumps(data, indent=2)
+    except: json_data = ''
+    return json_data
 
+### CODE START ############################################
+### First load dummy config
 data = load_json('./', 'ipx_cfg.json')
+### Then read data and wait to POST REQUEST to '/send'
+app = Flask(__name__)
 
-#mytemplate = mylookup.get_template('ipv4_acl_xr.tmpl')
+@app.route('/',methods=['GET'])
+def return_data():
+    return print_config() + '\n'+ 70 * '-' + '\n' + print_json()
 
-mytemplate = Template(template_string)
+@app.route('/config',methods=['GET'])
+def return_config_data():
+    return print_config()
 
-print(mytemplate.render(**data))
+@app.route('/json',methods=['GET'])
+def return_json_data():
+    return print_json()    
+
+@app.route('/update', methods=['POST'])
+def receive_data_addons():
+    received_json = request.get_json()
+    data.update(received_json)
+    json_dumps = json.dumps(data, indent=2)
+    return json_dumps 
+
+@app.route('/send', methods=['POST'])
+def send_data():
+    return print_config() 
+
+@app.route('/sendandexit', methods=['POST'])
+def send_data_and_exit():
+    func = request.environ.get('werkzeug.server.shutdown')
+    if func is None:
+        raise RuntimeError('Not running with the Werkzeug Server')
+    func()
+    return str(print_config())+'\n\n==> Data sent + Exit...' 
+
+@app.route('/exit', methods=['POST'])
+def send_exit():
+    func = request.environ.get('werkzeug.server.shutdown')
+    if func is None:
+        raise RuntimeError('Not running with the Werkzeug Server')
+    func()
+    return "==> Shutting down..."
+
+### MAIN START ############################################
+if __name__ == '__main__':
+    app.run(debug=True, port=8080)
+
+
