@@ -12,6 +12,8 @@ import collections
 import json
 import six
 
+server_address = 'http://localhost'
+server_port = 8080
 
 parameters = collections.OrderedDict()
 parameters.update({'parameter1':'text'})
@@ -32,7 +34,7 @@ ipv4 access-list IPXT.${customer_name}-IN
 input_jinja2_template = '''
 <html>
    <body>
-      <form action = "http://localhost:8080/result" method = "POST">
+      <form action = "{{server_address}}:{{server_port}}/result" method = "POST">
         {% for key, value in parameters.items() %}
            <p>{{key}}<input type = "{{value}}" name = "{{key}}" /></p>
         {% endfor %}
@@ -72,7 +74,7 @@ app = Flask(__name__)
 
 @app.route('/')
 def student():
-   return render_template_string(input_jinja2_template, parameters = parameters)
+   return render_template_string(input_jinja2_template, parameters = parameters, server_port = server_port, server_address = server_address)
 
 @app.route('/result',methods = ['POST', 'GET'])
 def result():
@@ -129,6 +131,6 @@ def send_exit():
 
 ### MAIN START ############################################
 if __name__ == '__main__':
-    app.run(debug=True, port=8080)
+    app.run(debug=True, port=server_port)
 
 
