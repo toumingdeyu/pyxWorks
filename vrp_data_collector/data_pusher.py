@@ -6,10 +6,21 @@ import ipaddress
 import json
 from mako.template import Template
 from mako.lookup import TemplateLookup
-from flask import Flask, request
+from flask import Flask, request, render_template_string
 import requests
+import collections
+import json
+import six
 
-template_string = '''!<% rule_num = 10 %>
+
+parameters = collections.OrderedDict()
+parameters.update({'parameter1':'text'})
+parameters.update({'parameter2':'text'})
+parameters.update({'parameter3':'text'})
+parameters.update({'parameter4':'text'})
+
+
+config_template_string = '''!<% rule_num = 10 %>
 ipv4 access-list IPXT.${customer_name}-IN
 % for rule in customer_prefixes_v4:
  ${rule_num} permit ipv4 ${rule['customer_prefix_v4']} ${rule['customer_subnetmask_v4']} any<% rule_num += 10 %>
@@ -18,11 +29,24 @@ ipv4 access-list IPXT.${customer_name}-IN
 !
 '''
 
+input_jinja2_template = '''
+<html>
+   <body>
+      <form action = "http://localhost:8080/result" method = "POST">
+        {% for key, value in parameters.items() %}
+           <p>{{key}}<input type = "{{value}}" name = "{{key}}" /></p>
+        {% endfor %}
+        <p><input type = "submit" value = "submit" /></p>
+      </form>
+   </body>
+</html>
+'''
+
 ### FUNCTIONS ############################################ 
 def load_json(path, file_name):
     """Open json file return dictionary."""
     try:
-        json_data = json.load(open(path + file_name))
+        json_data = json.load(open(path + file_name),object_pairs_hook=collections.OrderedDict)
     except IOError as err:
         raise Exception('Could not open file: {}'.format(err))
     except json.decoder.JSONDecodeError as err:
@@ -31,7 +55,7 @@ def load_json(path, file_name):
     return json_data
 
 def print_config():
-    mytemplate = Template(template_string)
+    mytemplate = Template(config_template_string)
     config_string = mytemplate.render(**data)
     return config_string
 
@@ -46,9 +70,18 @@ data = load_json('./', 'ipx_cfg.json')
 ### Then read data and wait to POST REQUEST to '/send'
 app = Flask(__name__)
 
-@app.route('/',methods=['GET'])
-def return_data():
-    return print_config() + '\n'+ 70 * '-' + '\n' + print_json()
+@app.route('/')
+def student():
+   return render_template_string(input_jinja2_template, parameters = parameters)
+
+@app.route('/result',methods = ['POST', 'GET'])
+def result():
+    global data   
+    if request.method == 'POST':
+        result = request.form        
+        for key,value in result.items(): data[key] = value    
+    json_dumps = json.dumps(data, indent=2)
+    return json_dumps 
 
 @app.route('/config',methods=['GET'])
 def return_config_data():
@@ -60,6 +93,7 @@ def return_json_data():
 
 @app.route('/update', methods=['POST'])
 def receive_data_addons():
+    global data   
     received_json = request.get_json()
     data.update(received_json)
     json_dumps = json.dumps(data, indent=2)
@@ -67,16 +101,17 @@ def receive_data_addons():
 
 @app.route('/update/<string:key_plus_value>', methods=['POST','PUT'])
 def receive_data_add_one(key_plus_value):
+    global data   
     try: data[key_plus_value.split(':')[0]] = key_plus_value.split(':')[1]
     except: pass
     json_dumps = json.dumps(data, indent=2)
     return json_dumps 
 
-@app.route('/send', methods=['POST','PUT'])
+@app.route('/send', methods=['GET','POST','PUT'])
 def send_data():
     return print_config() 
 
-@app.route('/sendandexit', methods=['POST','PUT'])
+@app.route('/sendandexit', methods=['GET','POST','PUT'])
 def send_data_and_exit():
     func = request.environ.get('werkzeug.server.shutdown')
     if func is None:
@@ -84,7 +119,7 @@ def send_data_and_exit():
     func()
     return str(print_config())+'\n\n==> Data sent + Exit...' 
 
-@app.route('/exit', methods=['POST','PUT'])
+@app.route('/exit', methods=['GET','POST','PUT'])
 def send_exit():
     func = request.environ.get('werkzeug.server.shutdown')
     if func is None:
