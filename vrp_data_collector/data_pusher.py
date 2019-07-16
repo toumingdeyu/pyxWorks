@@ -65,11 +65,18 @@ def receive_data_addons():
     json_dumps = json.dumps(data, indent=2)
     return json_dumps 
 
-@app.route('/send', methods=['POST'])
+@app.route('/update/<string:key_plus_value>', methods=['POST','PUT'])
+def receive_data_add_one(key_plus_value):
+    try: data[key_plus_value.split(':')[0]] = key_plus_value.split(':')[1]
+    except: pass
+    json_dumps = json.dumps(data, indent=2)
+    return json_dumps 
+
+@app.route('/send', methods=['POST','PUT'])
 def send_data():
     return print_config() 
 
-@app.route('/sendandexit', methods=['POST'])
+@app.route('/sendandexit', methods=['POST','PUT'])
 def send_data_and_exit():
     func = request.environ.get('werkzeug.server.shutdown')
     if func is None:
@@ -77,7 +84,7 @@ def send_data_and_exit():
     func()
     return str(print_config())+'\n\n==> Data sent + Exit...' 
 
-@app.route('/exit', methods=['POST'])
+@app.route('/exit', methods=['POST','PUT'])
 def send_exit():
     func = request.environ.get('werkzeug.server.shutdown')
     if func is None:
