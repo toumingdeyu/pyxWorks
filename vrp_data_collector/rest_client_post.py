@@ -1,9 +1,14 @@
-﻿import requests
-import json
-import sys
+﻿#!/usr/bin/env python
+#!/usr/bin/python
 
-if len(sys.argv)>1: url='http://127.0.0.1:8080/'+sys.argv[1]
-else:               url='http://127.0.0.1:8080/'
+import requests
+import json
+import sys, os
+
+url='http://127.0.0.1:8880/'
+
+if len(sys.argv)>1: url = url + str(sys.argv[1])
+
 print(url)
 
 response = requests.post(url, json={"XXX" : "YYY", "AAA" : "BBB"})

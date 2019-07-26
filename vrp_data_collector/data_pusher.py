@@ -11,9 +11,14 @@ import requests
 import collections
 import json
 import six
+import os, subprocess
 
-server_address = 'http://localhost'
-server_port = 8080
+try:    server_address = 'http://' + str(subprocess.check_output('hostname', shell=True).decode('utf-8')).strip()
+except: server_address = 'http://localhost'
+
+server_port = 8880
+
+print("--- %s:%s ---"%(server_address,server_port))
 
 parameters = collections.OrderedDict()
 parameters.update({'parameter1':'text'})
@@ -68,12 +73,13 @@ def print_json():
 
 ### CODE START ############################################
 ### First load dummy config
+data = collections.OrderedDict()
 data = load_json('./', 'ipx_cfg.json')
 ### Then read data and wait to POST REQUEST to '/send'
 app = Flask(__name__)
 
 @app.route('/')
-def student():
+def root_path():
    return render_template_string(input_jinja2_template, parameters = parameters, server_port = server_port, server_address = server_address)
 
 @app.route('/result',methods = ['POST', 'GET'])
@@ -131,6 +137,6 @@ def send_exit():
 
 ### MAIN START ############################################
 if __name__ == '__main__':
-    app.run(debug=True, port=server_port)
+    app.run(debug=True, port=server_port, use_reloader=False)
 
 

@@ -1,10 +1,16 @@
-﻿import requests
-import json
-import sys
+﻿#!/usr/bin/env python
+#!/usr/bin/python
 
-if len(sys.argv)>1: url='http://127.0.0.1:8080/'+sys.argv[1]
-else:               url='http://127.0.0.1:8080/'
+import requests
+import json
+import sys, os
+
+url='http://127.0.0.1:8880/'
+
+if len(sys.argv)>1: url = url + str(sys.argv[1])
+
 print(url)
+
 response = requests.get(url)
 if response.status_code != 200: raise ApiError('GET /tasks/ {}'.format(response.status_code))
 print('-'*80)
