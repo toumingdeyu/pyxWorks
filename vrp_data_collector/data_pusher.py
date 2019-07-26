@@ -102,7 +102,8 @@ def return_json_data():
 @app.route('/update', methods=['POST'])
 def receive_data_addons():
     global data   
-    received_json = request.get_json()
+    try:    received_json = request.get_json()
+    except: received_json = request.form.to_dict(flat=False)
     data.update(received_json)
     json_dumps = json.dumps(data, indent=2)
     return json_dumps 

@@ -1020,8 +1020,9 @@ def return_json_data():
 
 @app.route('/update', methods=['POST'])
 def receive_data_addons():
-    global bgp_data   
-    received_json = request.get_json()
+    global bgp_data
+    try:    received_json = request.get_json()
+    except: received_json = request.form.to_dict(flat=False)
     bgp_data.update(received_json)
     json_dumps = json.dumps(bgp_data, indent=2)
     return json_dumps 
