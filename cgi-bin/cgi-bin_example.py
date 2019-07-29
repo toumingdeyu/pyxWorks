@@ -36,3 +36,5 @@ data = read_cgibin_post_form()
 for key, value in data.items(): print "<h2>%s : %s</h2>" % (key, value)
 print "</body>"
 print "</html>"
+
+### http://127.0.0.1/cgi-bin/cgi-bin_example.py?name=Joe+Blow&addr=At+Home
