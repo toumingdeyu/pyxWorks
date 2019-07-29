@@ -1,10 +1,13 @@
-#!/usr/bin/env python
+#!/usr/bin/python
+
+### #!/usr/bin/env python
+
 import sys
 import collections
 import cgi
 import cgitb; cgitb.enable()
 
-sys.stderr = sys.stdout
+#sys.stderr = sys.stdout
 print("Content-type:text/html\r\n\r\n")
 #print("Content-Type: text/plain")
 
