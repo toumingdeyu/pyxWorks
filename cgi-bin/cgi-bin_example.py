@@ -38,3 +38,4 @@ print "</body>"
 print "</html>"
 
 ### http://127.0.0.1/cgi-bin/cgi-bin_example.py?name=Joe+Blow&addr=At+Home
+### https://iptac1.apps.ocn.infra.ftgroup/cgi-bin/cgi-bin_example?name=Joe+Blow&addr=At+Home
