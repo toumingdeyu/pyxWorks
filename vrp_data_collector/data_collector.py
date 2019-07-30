@@ -1187,7 +1187,8 @@ if device_name:
     else:
         load_logfile = find_last_logfile('Submit step 1')
         bgp_data = copy.deepcopy(read_bgp_data_json_from_logfile(load_logfile))
-        print(bgp_data,form_data) 
+        print(bgp_data)
+        print(form_data) 
 
 
         
