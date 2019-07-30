@@ -16,16 +16,13 @@ import collections
 import mysql.connector
 from mako.template import Template
 from mako.lookup import TemplateLookup
-from flask import Flask, request, render_template_string
+import cgi
+import cgitb; cgitb.enable()
 import requests
 #import interactive
 #python 2.7 problem - hack 'pip install esptool'
 import netmiko
 
-try:    server_address = 'http://' + str(subprocess.check_output('hostname', shell=True).decode('utf-8')).strip()
-except: server_address = 'http://localhost'
-
-server_port = 8880
 
 class bcolors:
         DEFAULT    = '\033[99m'
@@ -937,14 +934,6 @@ def sql_interface_data():
 
 
 ##############################################################################        
-print("--- %s:%s ---"%(server_address,server_port))
-
-parameters = collections.OrderedDict()
-parameters.update({'parameter1':'text'})
-parameters.update({'parameter2':'text'})
-parameters.update({'parameter3':'text'})
-parameters.update({'parameter4':'text'})
-
 
 config_template_string = '''!<% rule_num = 10 %>
 ipv4 access-list IPXT.${customer_name}-IN
@@ -990,70 +979,29 @@ def print_json():
     except: json_data = ''
     return json_data
 
-### CODE START ############################################
-### First load dummy config
-#data = collections.OrderedDict()
-#data = load_json('./', 'ipx_cfg.json')
-### Then read data and wait to POST REQUEST to '/send'
-app = Flask(__name__)
+def read_cgibin_get_post_form():
+    # import collections, cgi
+    # import cgitb; cgitb.enable()
+    data, submit_form = collections.OrderedDict(), None
+    form = cgi.FieldStorage()
+    for key in form.keys():
+        variable = str(key)
+        try: value = str(form.getvalue(variable))
+        except: value = str(','.join(form.getlist(name)))
+        if variable and value and variable != "submit": data[variable] = value
+        if variable == "submit": submit_form = value
+    return data, submit_form
 
-@app.route('/')
-def root_path():
-   return render_template_string(input_jinja2_template, parameters = parameters, server_port = server_port, server_address = server_address)
-
-@app.route('/result',methods = ['POST', 'GET'])
-def result():
-    global bgp_data   
-    if request.method == 'POST':
-        result = request.form        
-        for key,value in result.items(): bgp_data[key] = value    
-    json_dumps = json.dumps(bgp_data, indent=2)
-    return json_dumps 
-
-@app.route('/config',methods=['GET'])
-def return_config_data():
-    return print_config()
-
-@app.route('/json',methods=['GET'])
-def return_json_data():
-    return print_json()    
-
-@app.route('/update', methods=['POST'])
-def receive_data_addons():
-    global bgp_data
-    try:    received_json = request.get_json()
-    except: received_json = request.form.to_dict(flat=False)
-    bgp_data.update(received_json)
-    json_dumps = json.dumps(bgp_data, indent=2)
-    return json_dumps 
-
-@app.route('/update/<string:key_plus_value>', methods=['POST','PUT'])
-def receive_data_add_one(key_plus_value):
-    global bgp_data   
-    try: bgp_data[key_plus_value.split(':')[0]] = key_plus_value.split(':')[1]
-    except: pass
-    json_dumps = json.dumps(bgp_data, indent=2)
-    return json_dumps 
-
-@app.route('/send', methods=['GET','POST','PUT'])
-def send_data():
-    return print_config() 
-
-@app.route('/sendandexit', methods=['GET','POST','PUT'])
-def send_data_and_exit():
-    func = request.environ.get('werkzeug.server.shutdown')
-    if func is None:
-        raise RuntimeError('Not running with the Werkzeug Server')
-    func()
-    return str(print_config())+'\n\n==> Data sent + Exit...' 
-
-@app.route('/exit', methods=['GET','POST','PUT'])
-def send_exit():
-    func = request.environ.get('werkzeug.server.shutdown')
-    if func is None:
-        raise RuntimeError('Not running with the Werkzeug Server')
-    func()
-    return "==> Shutting down..."
+def print_html_data(data):
+    print("Content-type:text/html\r\n\r\n")
+    print "<html>"
+    print "<head>"
+    print "<title>DATA</title>"
+    print "</head>"
+    print "<body>"
+    for key, value in data.items(): print "<h2>%s : %s</h2>" % (str(key), str(value))
+    print "</body>"
+    print "</html>"
 
 ##############################################################################
 #
@@ -1065,10 +1013,6 @@ if __name__ != "__main__": sys.exit(0)
 
 VERSION = get_version_from_file_last_modification_date()
 glob_vars = {}
-
-# global_env = {}
-# for item in eval('dir()'): global_env[item] = eval(item)
-
 global_env = globals()
 
 ######## Parse program arguments #########
@@ -1143,16 +1087,9 @@ parser.add_argument("--sim",
                     #default = True,
                     default = None,
                     help = "simulate critical command runs")
-parser.add_argument("--serverport",
-                    action = "store", dest = 'serverport', default = None,
-                    help = "server port for listening of HTTP REQUESTS")
 args = parser.parse_args()
 
 if args.nocolors or 'WIN32' in sys.platform.upper(): bcolors = nocolors
-
-if args.serverport : 
-    try: server_port = int(args.serverport)
-    except: pass
 
 COL_DELETED = bcolors.RED
 COL_ADDED   = bcolors.GREEN
@@ -1165,61 +1102,56 @@ if args.emailaddr:
     append_variable_to_bashrc(variable_name='NEWR_EMAIL',variable_value=args.emailaddr)
     EMAIL_ADDRESS = args.emailaddr
 
-device_list = [args.device]
 
-#if args.alloti: device_list = parse_json_file_and_get_oti_routers_list()
-
-
-device_list = [args.device]
-
-# if args.shut and args.noshut:
-#     print(bcolors.MAGENTA + " ... BGP traffic-on or traffic-off is allowed, not both!" + bcolors.ENDC )
-#     sys.exit(0)
-
-# if args.shut: glob_vars["SHUT"] = True
-# if args.noshut: glob_vars["NOSHUT"] = True
-
-if args.sim: glob_vars["SIM_CMD"] = 'ON'
-else: glob_vars["SIM_CMD"] = 'OFF'
-
-if args.vpn: glob_vars["VPN_NAME"] = args.vpn;
+form_data = None
+if len(sys.argv)==1: 
+    form_data, submit_form = read_cgibin_get_post_form()
+    
+    device_name = form_data.get('device',None)
+    
+    if device_name: device_list = [device_name]
+    else: device_list = []
+    
+    vpn_name = form_data.get('vpn',None)
+    if vpn_name: glob_vars["VPN_NAME"] = vpn_name;
+    else: print(" ... VPN NAME must be specified!")
 else:
-    print(bcolors.MAGENTA + " ... VPN NAME must be specified!" + bcolors.ENDC )
-    sys.exit(0)
+    device_list = [args.device]
 
+    if args.sim: glob_vars["SIM_CMD"] = 'ON'
+    else: glob_vars["SIM_CMD"] = 'OFF'
 
-if args.device == str():
-    remote_connect = None
-    local_hostname = str(subprocess.check_output('hostname',shell=True).decode('utf8')).strip().replace('\\','').replace('/','')
-    device_list = [local_hostname]
-
-
-if args.readlog:
-    bgp_data = read_bgp_data_json_from_logfile(args.readlog)
-    if not bgp_data:
-        print(bcolors.MAGENTA + " ... Please insert shut session log! (Inserted log seems to be noshut log.)" + bcolors.ENDC )
+    if args.vpn: glob_vars["VPN_NAME"] = args.vpn;
+    else:
+        print(bcolors.MAGENTA + " ... VPN NAME must be specified!" + bcolors.ENDC )
         sys.exit(0)
 
-# if args.noshut and not args.readlog:
-#     last_shut_file = find_last_shut_logfile(prefix = device_list[0],suffix = 'shut-log')
-#     bgp_data = read_bgp_data_json_from_logfile(last_shut_file)
-#     if not bgp_data:
-#         print(bcolors.MAGENTA + " ... Please insert valid shut session log! \nFile " + last_shut_file + " \ndoes not contain return_bgp_data_json !" + bcolors.ENDC )
-#         sys.exit(0)
 
-if remote_connect:
-    ####### Set USERNAME if needed
-    if args.username: USERNAME = args.username
-    if not USERNAME:
-        print(bcolors.MAGENTA + " ... Please insert your username by cmdline switch \
-            --user username !" + bcolors.ENDC )
-        sys.exit(0)
+    if args.device == str():
+        remote_connect = None
+        local_hostname = str(subprocess.check_output('hostname',shell=True).decode('utf8')).strip().replace('\\','').replace('/','')
+        device_list = [local_hostname]
 
-    # SSH (default)
-    if not PASSWORD:
-#         if args.password: PASSWORD = args.password
-#         else:
-            PASSWORD = getpass.getpass("TACACS password: ")
+
+    if args.readlog:
+        bgp_data = read_bgp_data_json_from_logfile(args.readlog)
+        if not bgp_data:
+            print(bcolors.MAGENTA + " ... Please insert shut session log! (Inserted log seems to be noshut log.)" + bcolors.ENDC )
+            sys.exit(0)
+
+    if remote_connect:
+        ####### Set USERNAME if needed
+        if args.username: USERNAME = args.username
+        if not USERNAME:
+            print(bcolors.MAGENTA + " ... Please insert your username by cmdline switch \
+                --user username !" + bcolors.ENDC )
+            sys.exit(0)
+
+        # SSH (default)
+        if not PASSWORD:
+    #         if args.password: PASSWORD = args.password
+    #         else:
+                PASSWORD = getpass.getpass("TACACS password: ")
 
 logfilename, router_type = None, None
 #if not args.readlognew:
@@ -1330,10 +1262,7 @@ for device in device_list:
             except: pass
         print('\nDEVICE %s DONE.'%(device))
         if router_type == 'huawei': sql_interface_data()
-        
-### MAIN FLASK APP START ############################################
-if __name__ == '__main__': app.run(debug=True, port=server_port, use_reloader=False)
-                
 print('\nEND [script runtime = %d sec].'%(time.time() - START_EPOCH))
+
 
 
