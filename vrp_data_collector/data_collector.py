@@ -967,15 +967,17 @@ def print_json():
 def read_cgibin_get_post_form():
     # import collections, cgi
     # import cgitb; cgitb.enable()
-    data, submit_form = collections.OrderedDict(), None
+    data, submit_form, username, password = collections.OrderedDict(), None, None, None
     form = cgi.FieldStorage()
     for key in form.keys():
         variable = str(key)
         try: value = str(form.getvalue(variable))
         except: value = str(','.join(form.getlist(name)))
-        if variable and value and variable != "submit": data[variable] = value
+        if variable and value and not variable in ["submit","username","password"]: data[variable] = value
         if variable == "submit": submit_form = value
-    return data, submit_form
+        if variable == "username": username = value
+        if variable == "password": password = value
+    return data, submit_form, username, password
 
 def print_html_data(data):
     #print("Content-type:text/html\n\n")
@@ -1001,7 +1003,9 @@ glob_vars = {}
 global_env = globals()
 
 ### CGI-BIN READ FORM ############################################
-form_data, submit_form = read_cgibin_get_post_form()
+form_data, submit_form, cgi_username, cgi_password = read_cgibin_get_post_form()
+
+if cgi_username and cgi_password: USERNAME, PASSWORD = cgi_username, cgi_password
 
 if submit_form: print("Content-type:text/html\n\n")
 else: print('LOGDIR: ' + LOGDIR) 
