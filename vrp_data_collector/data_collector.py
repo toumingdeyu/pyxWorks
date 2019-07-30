@@ -1177,9 +1177,10 @@ for device in device_list:
             try:
                 dummy = subprocess.check_output('chmod +r %s' % (logfilename),shell=True)
             except: pass
-            try: send_me_email(subject = logfilename.replace('\\','/').\
-                     split('/')[-1], file_name = logfilename)
-            except: pass
+            if not submit_form:
+                try: send_me_email(subject = logfilename.replace('\\','/').\
+                         split('/')[-1], file_name = logfilename)
+                except: pass
         print('\nDEVICE %s DONE.'%(device))
         if router_type == 'huawei': sql_interface_data()
 print('\nEND [script runtime = %d sec].'%(time.time() - START_EPOCH))
