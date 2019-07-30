@@ -88,8 +88,6 @@ default_linefilter_list    = []
 default_compare_columns    = []
 default_printalllines_list = []
 
-print('LOGDIR: ' + LOGDIR)
-
 ###############################################################################
 #
 # Generic list of commands
@@ -258,23 +256,10 @@ CMD_LOCAL = [
 #     },
 ]
 
-#
-# ################################################################################
+
+###############################################################################
 bgp_data = collections.OrderedDict()
-#
-# ### Start of BASIC STRUCTURES OF JSON
-# bgp_json_txt_template = '''
-#  {
-#       "OTI_EXT_IPS_V4": [],
-#       "OTI_EXT_IPS_V6": [],
-#       "OTI_INT_IPS_V4": [],
-#       "OTI_INT_IPS_V6": []
-#  }
-# '''
-# ### End of BASIC STRUCTURES OF JSON
-#
-# ### BASIC BGP_DATA OBJECT with 1 neihbor and 1 vfr
-# bgp_data = json.loads(bgp_json_txt_template, object_pairs_hook = collections.OrderedDict)
+
 
 ###############################################################################
 #
@@ -993,15 +978,15 @@ def read_cgibin_get_post_form():
     return data, submit_form
 
 def print_html_data(data):
-    print("Content-type:text/html\r\n\r\n")
-    print "<html>"
-    print "<head>"
-    print "<title>DATA</title>"
-    print "</head>"
-    print "<body>"
-    for key, value in data.items(): print "<h2>%s : %s</h2>" % (str(key), str(value))
-    print "</body>"
-    print "</html>"
+    #print("Content-type:text/html\n\n")
+    print("<html>")
+    print("<head>")
+    print("<title>DATA</title>")
+    print("</head>")
+    print("<body>")
+    for key, value in data.items(): print("<h2>%s : %s</h2>" % (str(key), str(value)))
+    print("</body>")
+    print("</html>")
 
 ##############################################################################
 #
@@ -1011,48 +996,47 @@ def print_html_data(data):
 
 if __name__ != "__main__": sys.exit(0)
 
+### CGI-BIN READ FORM ############################################
+form_data, submit_form = read_cgibin_get_post_form()
+
+if submit_form: print("Content-type:text/html\n\n")
+else: print('LOGDIR: ' + LOGDIR) 
+
+device_name = form_data.get('device',None)
+
+if device_name: device_list = [device_name]
+else: device_list = []
+
+vpn_name = form_data.get('vpn',None)
+if vpn_name: glob_vars["VPN_NAME"] = vpn_name
+
+### INIT PART #####################################################
 VERSION = get_version_from_file_last_modification_date()
 glob_vars = {}
 global_env = globals()
 
-######## Parse program arguments #########
+######## Parse program arguments ##################################
 parser = argparse.ArgumentParser(
-                description = "Script v.%s" % (VERSION),
-                epilog = "e.g: \n" )
-
+                    description = "Script v.%s" % (VERSION),
+                    epilog = "e.g: \n" )
 parser.add_argument("--version",
                     action = 'version', version = VERSION)
 parser.add_argument("--device",
                     action = "store", dest = 'device',
                     default = str(),
                     help = "target router to check")
-# parser.add_argument("--os",
-#                     action = "store", dest="router_type",
-#                     choices = KNOWN_OS_TYPES,
-#                     help = "router operating system type")
-# parser.add_argument("--cmdfile", action = 'store', dest = "cmd_file", default = None,
-#                     help = "specify a file with a list of commands to execute")
 parser.add_argument("--user",
                     action = "store", dest = 'username', default = str(),
                     help = "specify router user login")
-# parser.add_argument("--pass",
-#                     action = "store", dest = 'password', default = str(),
-#                     help = "specify router user password")
 parser.add_argument("--nocolors",
                     action = 'store_true', dest = "nocolors", default = None,
                     help = "print mode with no colors.")
 parser.add_argument("--nolog",
                     action = 'store_true', dest = "nolog", default = None,
                     help = "no logging to file.")
-# parser.add_argument("--rcmd",
-#                     action = "store", dest = 'rcommand', default = str(),
-#                     help = "'command' or ['list of commands',...] to run on remote device")
 parser.add_argument("--readlog",
                     action = "store", dest = 'readlog', default = None,
                     help = "name of the logfile to read json.")
-# parser.add_argument("--readlognew",
-#                     action = "store", dest = 'readlognew', default = None,
-#                     help = "name of the logfile to read json.")
 parser.add_argument("--emailaddr",
                     action = "store", dest = 'emailaddr', default = '',
                     help = "insert your email address once if is different than name.surname@orange.com,\
@@ -1065,23 +1049,8 @@ parser.add_argument("--latest",
                     action = 'store_true', dest = "latest", default = False,
                     help = "look for really latest shut file (also owned by somebody else),\
                     otherwise your own last shut file will be used by default")
-# parser.add_argument("--vpnlist",
-#                     action = "store", dest = 'vpnlist', default = str(),
-#                     help = "'vpn' or ['list of vpns',...] to compare")
 parser.add_argument("--printall",action = "store_true", default = False,
                     help = "print all lines, changes will be coloured")
-# parser.add_argument("--difffile",
-#                     action = 'store_true', dest = "diff_file", default = False,
-#                     help = "do file-diff logfile (name will be generated and printed)")
-# parser.add_argument("--alloti",
-#                     action = 'store_true', dest = "alloti", default = None,
-#                     help = "do action on all oti routers")
-# parser.add_argument("--shut",
-#                     action = 'store_true', dest = "shut", default = None,
-#                     help = "switch-off bgp traffic")
-# parser.add_argument("--noshut",
-#                     action = 'store_true', dest = "noshut", default = None,
-#                     help = "switch-on bgp traffic")
 parser.add_argument("--sim",
                     action = 'store_true', dest = "sim",
                     #default = True,
@@ -1098,25 +1067,13 @@ COL_DIFFADD = bcolors.YELLOW
 COL_EQUAL   = bcolors.GREY
 COL_PROBLEM = bcolors.RED
 
-if args.emailaddr:
-    append_variable_to_bashrc(variable_name='NEWR_EMAIL',variable_value=args.emailaddr)
-    EMAIL_ADDRESS = args.emailaddr
-
-
-form_data = None
-if len(sys.argv)==1: 
-    form_data, submit_form = read_cgibin_get_post_form()
-    
-    device_name = form_data.get('device',None)
-    
-    if device_name: device_list = [device_name]
-    else: device_list = []
-    
-    vpn_name = form_data.get('vpn',None)
-    if vpn_name: glob_vars["VPN_NAME"] = vpn_name;
-    else: print(" ... VPN NAME must be specified!")
-else:
+### PARSE CMDLINE ARGUMENTS IF NOT CGI-BIN ARGUMENTS #################    
+if len(device_list)==0 and not vpn_name and not submit_form:
     device_list = [args.device]
+    
+    if args.emailaddr:
+        append_variable_to_bashrc(variable_name='NEWR_EMAIL',variable_value=args.emailaddr)
+        EMAIL_ADDRESS = args.emailaddr
 
     if args.sim: glob_vars["SIM_CMD"] = 'ON'
     else: glob_vars["SIM_CMD"] = 'OFF'
@@ -1149,9 +1106,7 @@ else:
 
         # SSH (default)
         if not PASSWORD:
-    #         if args.password: PASSWORD = args.password
-    #         else:
-                PASSWORD = getpass.getpass("TACACS password: ")
+            PASSWORD = getpass.getpass("TACACS password: ")
 
 logfilename, router_type = None, None
 #if not args.readlognew:
