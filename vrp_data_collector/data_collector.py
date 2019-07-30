@@ -996,6 +996,10 @@ def print_html_data(data):
 
 if __name__ != "__main__": sys.exit(0)
 
+### INIT PART #####################################################
+glob_vars = {}
+global_env = globals()
+
 ### CGI-BIN READ FORM ############################################
 form_data, submit_form = read_cgibin_get_post_form()
 
@@ -1010,10 +1014,8 @@ else: device_list = []
 vpn_name = form_data.get('vpn',None)
 if vpn_name: glob_vars["VPN_NAME"] = vpn_name
 
-### INIT PART #####################################################
+###################################################################
 VERSION = get_version_from_file_last_modification_date()
-glob_vars = {}
-global_env = globals()
 
 ######## Parse program arguments ##################################
 parser = argparse.ArgumentParser(
