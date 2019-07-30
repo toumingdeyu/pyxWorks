@@ -816,30 +816,6 @@ def generate_file_name(prefix = None, suffix = None , directory = None):
     return filenamewithpath
 
 
-# def find_last_shut_logfile(prefix = None, suffix = None,directory = None):
-#     if not directory:
-#         try:    DIR         = os.environ['HOME']
-#         except: DIR         = str(os.path.dirname(os.path.abspath(__file__)))
-#     else: DIR = str(directory)
-#     if DIR: LOGDIR      = os.path.join(WORKDIR,'logs')
-#     if args.latest:
-#         list_shut_files = glob.glob(os.path.join(LOGDIR,prefix.replace(':','_').replace('.','_')) + '*' + '-' + suffix)
-#     else:
-#         list_shut_files = glob.glob(os.path.join(LOGDIR,prefix.replace(':','_').replace('.','_')) + '*' + USERNAME + '-' + suffix)
-#     if len(list_shut_files) == 0:
-#         print(bcolors.MAGENTA + " ... Can't find any shut file." + bcolors.ENDC)
-#         sys.exit()
-#     most_recent_shut = list_shut_files[0]
-#     for item in list_shut_files:
-#         filecreation = os.path.getctime(item)
-#         if filecreation > (os.path.getctime(most_recent_shut)):
-#             most_recent_shut = item
-#     shut_file = most_recent_shut
-#     return shut_file
-
-
-
-
 def sql_interface_data():
     ### import mysql.connector
     ### MARIADB - By default AUTOCOMMIT is disabled
@@ -1075,7 +1051,8 @@ COL_PROBLEM = bcolors.RED
 
 ### PARSE CMDLINE ARGUMENTS IF NOT CGI-BIN ARGUMENTS #################    
 if len(device_list)==0 and not vpn_name and not submit_form:
-    device_list = [args.device]
+    device_name = args.device
+    device_list = [device_name]
     
     if args.emailaddr:
         append_variable_to_bashrc(variable_name='NEWR_EMAIL',variable_value=args.emailaddr)
@@ -1084,7 +1061,7 @@ if len(device_list)==0 and not vpn_name and not submit_form:
     if args.sim: glob_vars["SIM_CMD"] = 'ON'
     else: glob_vars["SIM_CMD"] = 'OFF'
 
-    if args.vpn: glob_vars["VPN_NAME"] = args.vpn;
+    if args.vpn: glob_vars["VPN_NAME"] = args.vpn; vpn_name = args.vpn
     else:
         print(bcolors.MAGENTA + " ... VPN NAME must be specified!" + bcolors.ENDC )
         sys.exit(0)
@@ -1115,7 +1092,7 @@ if len(device_list)==0 and not vpn_name and not submit_form:
             PASSWORD = getpass.getpass("TACACS password: ")
 
 logfilename, router_type = None, None
-#if not args.readlognew:
+
 for device in device_list:
     if device:
         router_prompt = None
@@ -1127,76 +1104,58 @@ for device in device_list:
             %(device,DEVICE_HOST, DEVICE_PORT))
         if remote_connect:
             ####### Figure out type of router OS
-#             if not args.router_type:
-                #router_type = netmiko_autodetect(device)
                 router_type, router_prompt = detect_router_by_ssh(device)
                 if not router_type in KNOWN_OS_TYPES:
                     print('%sUNSUPPORTED DEVICE TYPE: %s , BREAK!%s' % \
                         (bcolors.MAGENTA,router_type, bcolors.ENDC))
                     continue
                 else: print('DETECTED DEVICE_TYPE: %s' % (router_type))
-#             else:
-#                 router_type = args.router_type
-#                 print('FORCED DEVICE_TYPE: ' + router_type)
 
         ######## Create logs directory if not existing  #########
         if not os.path.exists(LOGDIR): os.makedirs(LOGDIR)
         on_off_name = ''
-#         if args.shut: on_off_name = 'shut'
-#         if args.noshut: on_off_name = 'noshut'
-        logfilename = generate_file_name(prefix = device, suffix = 'vrp-' + args.vpn + '-log')
+        logfilename = generate_file_name(prefix = device, suffix = 'vrp-' + vpn_name + '-log')
         if args.nolog: logfilename = None
 
         ######## Find command list file (optional)
         list_cmd = []
-#         if args.cmd_file:
-#             if not os.path.isfile(args.cmd_file):
-#                 print("%s ... Can't find command file: %s%s") % \
-#                     (bcolors.MAGENTA, args.cmd_file, bcolors.ENDC)
-#                 sys.exit()
-#             else:
-#                 with open(args.cmd_file) as cmdf:
-#                     list_cmd = cmdf.read().replace('\x0d','').splitlines()
-
-#         if args.rcommand: list_cmd = args.rcommand.replace('\'','').\
-#             replace('"','').replace('[','').replace(']','').split(',')
 
         if len(list_cmd)>0: CMD = list_cmd
         else:
             if router_type == 'cisco_ios':
                 CMD = CMD_IOS_XE
                 DEVICE_PROMPTS = [ \
-                    '%s%s#'%(args.device.upper(),''), \
-                    '%s%s#'%(args.device.upper(),'(config)'), \
-                    '%s%s#'%(args.device.upper(),'(config-if)'), \
-                    '%s%s#'%(args.device.upper(),'(config-line)'), \
-                    '%s%s#'%(args.device.upper(),'(config-router)')  ]
+                    '%s%s#'%(device_name.upper(),''), \
+                    '%s%s#'%(device_name.upper(),'(config)'), \
+                    '%s%s#'%(device_name.upper(),'(config-if)'), \
+                    '%s%s#'%(device_name.upper(),'(config-line)'), \
+                    '%s%s#'%(device_name.upper(),'(config-router)')  ]
                 TERM_LEN_0 = "terminal length 0"
                 EXIT = "exit"
             elif router_type == 'cisco_xr':
                 CMD = CMD_IOS_XR
                 DEVICE_PROMPTS = [ \
-                    '%s%s#'%(args.device.upper(),''), \
-                    '%s%s#'%(args.device.upper(),'(config)'), \
-                    '%s%s#'%(args.device.upper(),'(config-if)'), \
-                    '%s%s#'%(args.device.upper(),'(config-line)'), \
-                    '%s%s#'%(args.device.upper(),'(config-router)')  ]
+                    '%s%s#'%(device_name.upper(),''), \
+                    '%s%s#'%(device_name.upper(),'(config)'), \
+                    '%s%s#'%(device_name.upper(),'(config-if)'), \
+                    '%s%s#'%(device_name.upper(),'(config-line)'), \
+                    '%s%s#'%(device_name.upper(),'(config-router)')  ]
                 TERM_LEN_0 = "terminal length 0"
                 EXIT = "exit"
             elif router_type == 'juniper':
                 CMD = CMD_JUNOS
                 DEVICE_PROMPTS = [ \
-                     USERNAME + '@' + args.device.upper() + '> ', # !! Need the space after >
-                     USERNAME + '@' + args.device.upper() + '# ' ]
+                     USERNAME + '@' + device_name.upper() + '> ', # !! Need the space after >
+                     USERNAME + '@' + device_name.upper() + '# ' ]
                 TERM_LEN_0 = "set cli screen-length 0"
                 EXIT = "exit"
             elif router_type == 'huawei' :
                 CMD = CMD_VRP
                 DEVICE_PROMPTS = [ \
-                    '<' + args.device.upper() + '>',
-                    '[' + args.device.upper() + ']',
-                    '[~' + args.device.upper() + ']',
-                    '[*' + args.device.upper() + ']' ]
+                    '<' + device_name.upper() + '>',
+                    '[' + device_name.upper() + ']',
+                    '[~' + device_name.upper() + ']',
+                    '[*' + device_name.upper() + ']' ]
                 TERM_LEN_0 = "screen-length 0 temporary"     #"screen-length disable"
                 EXIT = "quit"
             elif router_type == 'linux':
