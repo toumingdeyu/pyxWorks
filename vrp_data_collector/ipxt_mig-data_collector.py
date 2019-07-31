@@ -870,7 +870,7 @@ def sql_interface_data():
 def read_cgibin_get_post_form():
     # import collections, cgi
     # import cgitb; cgitb.enable()
-    data, submit_form, username, password = collections.OrderedDict(), None, None, None
+    data, submit_form, username, password = collections.OrderedDict(), '', '', ''
     form = cgi.FieldStorage()
     for key in form.keys():
         variable = str(key)
@@ -904,9 +904,10 @@ if cgi_username and cgi_password: USERNAME, PASSWORD = cgi_username, cgi_passwor
 
 if submit_form: 
     print("Content-type:text/html\n\n")
-    for key, value in form_data.items(): print("CGI_DATA[%s:%s] \n" % (str(key), str(value)))
+    print("<html><head><title>%s</title></head><body>"%(submit_form))
+    for key, value in form_data.items(): print("CGI_DATA[%s:%s] <br/>\n" % (str(key), str(value)))
 
-print('LOGDIR[%s] \n'%(LOGDIR))
+print('LOGDIR[%s] <br/>\n'%(LOGDIR))
 
 device_name = form_data.get('device','')
 vpn_name = form_data.get('vpn','')
@@ -1016,15 +1017,15 @@ if device_name:
     except: DEVICE_HOST = str()
     try: DEVICE_PORT = device_name.split(':')[1]
     except: DEVICE_PORT = '22'
-    print('DEVICE %s (host=%s, port=%s) START.........................'\
+    print('DEVICE %s (host=%s, port=%s) START.........................<br/>'\
         %(device_name,DEVICE_HOST, DEVICE_PORT))
     if remote_connect:
         ####### Figure out type of router OS
             router_type, router_prompt = detect_router_by_ssh(device_name)
             if not router_type in KNOWN_OS_TYPES:
-                print('%sUNSUPPORTED DEVICE TYPE: %s , BREAK!%s' % \
+                print('%sUNSUPPORTED DEVICE TYPE: %s , BREAK!<br/>%s' % \
                     (bcolors.MAGENTA,router_type, bcolors.ENDC))
-            else: print('DETECTED DEVICE_TYPE: %s' % (router_type))
+            else: print('DETECTED DEVICE_TYPE: %s <br/>' % (router_type))
 
     ######## Create logs directory if not existing  #########
     if not os.path.exists(LOGDIR): os.makedirs(LOGDIR)
@@ -1088,7 +1089,7 @@ if device_name:
     else: pass        
 
     if logfilename and os.path.exists(logfilename):
-        print('%s file created.' % (logfilename))
+        print('%s file created. <br/>' % (logfilename))
         ### MAKE READABLE for THE OTHERS
         try:
             dummy = subprocess.check_output('chmod +r %s' % (logfilename),shell=True)
@@ -1097,12 +1098,13 @@ if device_name:
             try: send_me_email(subject = logfilename.replace('\\','/').\
                      split('/')[-1], file_name = logfilename)
             except: pass
-    print('\nDEVICE %s DONE.'%(device_name))
+    print('\nDEVICE %s DONE. <br/>'%(device_name))
 
     if submit_form and submit_form == step1_string or router_type == 'huawei':    
         if router_type == 'huawei': sql_interface_data()
             
-print('\nEND [script runtime = %d sec].'%(time.time() - START_EPOCH))
+print('\nEND [script runtime = %d sec]. <br/>'%(time.time() - START_EPOCH))
+if submit_form: print("</body></html>")
 
 
 

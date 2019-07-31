@@ -801,7 +801,7 @@ def print_json():
 def read_cgibin_get_post_form():
     # import collections, cgi
     # import cgitb; cgitb.enable()
-    data, submit_form, username, password = collections.OrderedDict(), None, None, None
+    data, submit_form, username, password = collections.OrderedDict(), '', '', ''
     form = cgi.FieldStorage()
     for key in form.keys():
         variable = str(key)
@@ -861,9 +861,10 @@ if cgi_username and cgi_password: USERNAME, PASSWORD = cgi_username, cgi_passwor
 
 if submit_form: 
     print("Content-type:text/html\n\n")
-    for key, value in form_data.items(): print("CGI_DATA[%s:%s] \n" % (str(key), str(value)))
+    print("<html><head><title>%s</title></head><body>"%(submit_form))
+    for key, value in form_data.items(): print("CGI_DATA[%s:%s] <br/>\n" % (str(key), str(value)))
 
-print('LOGDIR: ' + LOGDIR)
+print('LOGDIR[%s] <br/>\n'%(LOGDIR))
 
 script_action = submit_form.replace(' ','_') if submit_form else 'unknown_action' 
 device_name = form_data.get('device','')
@@ -1071,6 +1072,7 @@ print(form_data)
         # if router_type == 'huawei': sql_interface_data()
             
 print('\nEND [script runtime = %d sec].'%(time.time() - START_EPOCH))
+if submit_form: print("</body></html>")
 
 
 
