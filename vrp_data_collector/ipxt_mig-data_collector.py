@@ -850,7 +850,7 @@ def sql_interface_data():
 
             sql_string = """INSERT INTO `ipxt_data_collector` (%s) VALUES (%s)""" \
                 % (columns_string,values_string)
-            print("<br/>\n"sql_string+"\n<br/>")
+            print("<br/>\n"+sql_string+"\n<br/>")
             if columns_string:
                 sql_write_data("""INSERT INTO `ipxt_data_collector`
                     (%s) VALUES (%s)""" %(columns_string,values_string))
