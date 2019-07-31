@@ -813,21 +813,9 @@ def read_cgibin_get_post_form():
         if variable == "password": password = value
     return data, submit_form, username, password
 
-def print_html_data(data):
-    #print("Content-type:text/html\n\n")
-    print("<html>")
-    print("<head>")
-    print("<title>DATA</title>")
-    print("</head>")
-    print("<body>")
-    for key, value in data.items(): print("<h2>%s : %s</h2>" % (str(key), str(value)))
-    print("</body>")
-    print("</html>")
-
-
 def find_last_logfile():
     most_recent_logfile = None
-    log_file_name=os.path.join(LOGDIR,huawei_device_name.replace(':','_').replace('.','_')) + '*' + USERNAME + '*vrp-' + vpn_name + "*" + step1_string.replace(' ','_') + "*"
+    log_file_name=os.path.join(LOGDIR,huawei_device_name.replace(':','_').replace('.','_').upper()) + '*' + USERNAME + '*vrp-' + vpn_name + "*" + step1_string.replace(' ','_') + "*"
     log_filenames = glob.glob(log_file_name)
     if len(log_filenames) == 0:
         print(bcolors.MAGENTA + " ... Can't find any proper (%s) log file."%(log_file_name) + bcolors.ENDC)
@@ -973,9 +961,11 @@ logfilename, router_type = None, None
 
 load_logfile = find_last_logfile()
 bgp_data = copy.deepcopy(read_bgp_data_json_from_logfile(load_logfile))
+print('<br/>')
 print(bgp_data)
+print('<br/><br/>')
 print(form_data) 
-
+print('<br/>')
 
 
 
@@ -998,7 +988,7 @@ print(form_data)
     # ######## Create logs directory if not existing  #########
     # if not os.path.exists(LOGDIR): os.makedirs(LOGDIR)
     # on_off_name = ''
-    # logfilename = generate_file_name(prefix = device_name, suffix = 'vrp-' + vpn_name + '-' + script_action + '-log')
+    # logfilename = generate_file_name(prefix = device_name.upper(), suffix = 'vrp-' + vpn_name + '-' + script_action + '-log')
     # if args.nolog: logfilename = None
 
     # ######## Find command list file (optional)
@@ -1071,7 +1061,7 @@ print(form_data)
     # if submit_form and submit_form == step1_string or router_type == 'huawei':    
         # if router_type == 'huawei': sql_interface_data()
             
-print('\nEND [script runtime = %d sec].'%(time.time() - START_EPOCH))
+print('<br/>\nEND [script runtime = %d sec].<br/>'%(time.time() - START_EPOCH))
 if submit_form: print("</body></html>")
 
 

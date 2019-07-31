@@ -850,7 +850,7 @@ def sql_interface_data():
 
             sql_string = """INSERT INTO `ipxt_data_collector` (%s) VALUES (%s)""" \
                 % (columns_string,values_string)
-            print(sql_string)
+            print("<br/>\n"sql_string+"\n<br/>")
             if columns_string:
                 sql_write_data("""INSERT INTO `ipxt_data_collector`
                     (%s) VALUES (%s)""" %(columns_string,values_string))
@@ -1030,7 +1030,7 @@ if device_name:
     ######## Create logs directory if not existing  #########
     if not os.path.exists(LOGDIR): os.makedirs(LOGDIR)
     on_off_name = ''
-    logfilename = generate_file_name(prefix = device_name, suffix = 'vrp-' + vpn_name + '-' + step1_string.replace(' ','_') + '-log')
+    logfilename = generate_file_name(prefix = device_name.upper(), suffix = 'vrp-' + vpn_name + '-' + step1_string.replace(' ','_') + '-log')
     if args.nolog: logfilename = None
 
     ######## Find command list file (optional)
@@ -1103,7 +1103,7 @@ if device_name:
     if submit_form and submit_form == step1_string or router_type == 'huawei':    
         if router_type == 'huawei': sql_interface_data()
             
-print('\nEND [script runtime = %d sec]. <br/>'%(time.time() - START_EPOCH))
+print('<br/>\nEND [script runtime = %d sec]. <br/>'%(time.time() - START_EPOCH))
 if submit_form: print("</body></html>")
 
 
