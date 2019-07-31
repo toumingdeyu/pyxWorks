@@ -117,7 +117,8 @@ CMD_VRP = [
                \n    print(vpnline.split()[0].replace(",","").strip()) \
                \nexcept: pass',
          'exec_1':'print("... VPN instance %s does not exist on %s! Please choose from listed VPNs ..." % (glob_vars.get("VPN_NAME",""),device))',
-         'exec_2':'sys.exit(0)'
+         'exec_2':'if submit_form: print("</body></html>")',
+         'exec_3':'sys.exit(0)'
     },
     {'exec':'try: glob_vars["INTERFACE"] = glob_vars.get("VPN_INSTANCE_IP_TEXT","").split("Interfaces :")[1].splitlines()[0].strip()\nexcept: pass'},
 
@@ -381,6 +382,7 @@ def detect_router_by_ssh(device, debug = False):
 
     except (socket.timeout, paramiko.AuthenticationException) as e:
         print(bcolors.MAGENTA + " ... Connection closed: %s " % (e) + bcolors.ENDC )
+        if submit_form: print("</body></html>")
         sys.exit()
     finally:
         client.close()
@@ -729,6 +731,7 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
                     main_do_step(cmd_line_items)
     except () as e:
         print(bcolors.FAIL + " ... EXCEPTION: (%s)" % (e) + bcolors.ENDC )
+        if submit_form: print("</body></html>")
         sys.exit()
     finally:
         if remote_connect and ssh_connection:
@@ -982,6 +985,7 @@ if device_name and not vpn_name and not submit_form:
     if args.vpn: glob_vars["VPN_NAME"] = args.vpn; vpn_name = args.vpn
     else:
         print(bcolors.MAGENTA + " ... VPN NAME must be specified!" + bcolors.ENDC )
+        if submit_form: print("</body></html>")
         sys.exit(0)
 
 
@@ -995,6 +999,7 @@ if device_name and not vpn_name and not submit_form:
         bgp_data = read_bgp_data_json_from_logfile(args.readlog)
         if not bgp_data:
             print(bcolors.MAGENTA + " ... Please insert shut session log! (Inserted log seems to be noshut log.)" + bcolors.ENDC )
+            if submit_form: print("</body></html>")
             sys.exit(0)
 
     if remote_connect:
@@ -1003,6 +1008,7 @@ if device_name and not vpn_name and not submit_form:
         if not USERNAME:
             print(bcolors.MAGENTA + " ... Please insert your username by cmdline switch \
                 --user username !" + bcolors.ENDC )
+            if submit_form: print("</body></html>")    
             sys.exit(0)
 
         # SSH (default)
