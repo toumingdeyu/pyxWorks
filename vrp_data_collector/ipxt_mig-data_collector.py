@@ -1020,7 +1020,7 @@ if device_name:
         %(device_name,DEVICE_HOST, DEVICE_PORT))
     if remote_connect:
         ####### Figure out type of router OS
-            router_type, router_prompt = detect_router_by_ssh(device)
+            router_type, router_prompt = detect_router_by_ssh(device_name)
             if not router_type in KNOWN_OS_TYPES:
                 print('%sUNSUPPORTED DEVICE TYPE: %s , BREAK!%s' % \
                     (bcolors.MAGENTA,router_type, bcolors.ENDC))
