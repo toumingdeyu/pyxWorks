@@ -108,157 +108,11 @@ CMD_IOS_XR = [
 
 CMD_JUNOS = []
 
-CMD_VRP = [
+CMD_VRP = []
 
-    {'remote_command':['disp ip vpn-instance verbose ',{'eval':'glob_vars.get("VPN_NAME","")'},{'output_variable':'VPN_INSTANCE_IP_TEXT'}]
-    },
-    {'if':'"VPN instance does not exist." in glob_vars.get("VPN_INSTANCE_IP_TEXT","")',
-         'remote_command':'display bgp vpnv4 all peer | in (VPN-Instance)',
-         'exec':'print("... VPN_LIST:") \
-               \ntry: \
-               \n  for vpnline in glob_vars.get("last_output","").split("VPN-Instance ")[1:]: \
-               \n    print(vpnline.split()[0].replace(",","").strip()) \
-               \nexcept: pass',
-         'exec_1':'print("... VPN instance %s does not exist on %s! Please choose from listed VPNs ..." % (glob_vars.get("VPN_NAME",""),device))',
-         'exec_2':'sys.exit(0)'
-    },
-    {'exec':'try: glob_vars["INTERFACE"] = glob_vars.get("VPN_INSTANCE_IP_TEXT","").split("Interfaces :")[1].splitlines()[0].strip()\nexcept: pass'},
+CMD_LINUX = []
 
-    {'exec':'try: bgp_data["customer_name"] = glob_vars.get("VPN_NAME","").split(".")[1] \
-           \nexcept: bgp_data["customer_name"] = None'},
-    {'exec':'bgp_data["device_name"] = device_name'},
-    {'exec':'bgp_data["interface_number"] = None'},
-    {'exec':'bgp_data["vrf_name"] = glob_vars.get("VPN_NAME","")'},
-    {'exec':'try: bgp_data["rd"] = glob_vars.get("VPN_INSTANCE_IP_TEXT","").split("Route Distinguisher :")[1].splitlines()[0].strip()\nexcept: pass',
-    },
-    {'exec':'try: bgp_data["rt_import"] = glob_vars.get("VPN_INSTANCE_IP_TEXT","").split("Import VPN Targets :")[1].splitlines()[0].strip().split() \
-           \nexcept: bgp_data["rt_import"] = []',
-    },
-    {'exec':'try: bgp_data["rt_export"] = glob_vars.get("VPN_INSTANCE_IP_TEXT","").split("Export VPN Targets :")[1].splitlines()[0].strip().split() \
-           \nexcept: bgp_data["rt_export"] = []',
-    },
-    {'exec':'bgp_data["vlan_id"] = None'},
-    {'exec':'bgp_data["circuit_id"] = None'},
-
-    {'if':'glob_vars.get("INTERFACE","")',
-        'remote_command': ['disp current-configuration interface ',{"eval":'glob_vars.get("INTERFACE","")'},{'output_variable':'VPN_IF_TEXT'}],
-#         'exec_6':'try: bgp_data["traffic-policy"] = glob_vars.get("VPN_IF_TEXT","").split("traffic-policy")[1].split()[0].strip()\nexcept: pass',
-#         'exec_7':'try: bgp_data["cir_inbound"] = glob_vars.get("VPN_IF_TEXT","").split("user-queue cir")[1].split()[0].strip()\nexcept: pass',
-#         'exec_8':'try: tmp_data = glob_vars.get("VPN_IF_TEXT","").split("user-queue cir")[2].split()[0].strip()\nexcept:tmp_data = None\nfinally: bgp_data["cir_outbound"] = tmp_data',
-    },
-
-
-#     {'remote_command':['disp ip routing-table vpn-instance ',{"eval":'glob_vars["VPN_NAME"]'},' protocol static',{'output_variable':'VPN_STATIC_TEXT'}]
-#     },
-#     {'exec':'bgp_data["eBGP_or_Static"] = "eBGP"'},
-#     {'if':'"Static" in glob_vars.get("VPN_STATIC_TEXT","")',
-#          'exec':'bgp_data["eBGP_or_Static"] = "Static"',
-#     },
-
-    {'remote_command':['display bgp vpnv4 vpn-instance ',{"eval":'glob_vars["VPN_NAME"]'},' peer verbose',{'output_variable':'VPN_PEER_TEXT'}],
-    },
-    {'exec':'try: glob_vars["Import_distribute_policy_is_access-listname"] = glob_vars.get("VPN_PEER_TEXT","").split("Import distribute policy is access-listname:")[1].splitlines()[0].strip() \
-            \nexcept: pass',
-    },
-
-#     {'exec':'try: bgp_data["BGP_current_state"] = glob_vars.get("VPN_PEER_TEXT","").split("BGP current state:")[1].splitlines()[0].split(",")[0].strip()\nexcept: pass',
-#     },
-#     {'exec':'try: bgp_data["Received_total_routes"] = glob_vars.get("VPN_PEER_TEXT","").split("Received total routes:")[1].splitlines()[0].strip()\nexcept: pass',
-#     },
-#     {'exec':'try: bgp_data["Received_active_routes_total"] = glob_vars.get("VPN_PEER_TEXT","").split("Received active routes total:")[1].splitlines()[0].strip()\nexcept: pass',
-#     },
-#     {'exec':'try: bgp_data["Advertised_total_routes"] = glob_vars.get("VPN_PEER_TEXT","").split("Advertised total routes:")[1].splitlines()[0].strip()\nexcept: pass',
-#     },
-#     {'exec':'try: bgp_data["Maximum_allowed_route_limit"] = glob_vars.get("VPN_PEER_TEXT","").split("Maximum allowed route limit:")[1].splitlines()[0].strip()\nexcept: pass',
-#     },
-#     {'exec':'try: bgp_data["Import_route_policy_is"] = glob_vars.get("VPN_PEER_TEXT","").split("Import route policy is:")[1].splitlines()[0].strip()\nexcept: pass',
-#     },
-#
-#     {'remote_command':['display route-policy ',{"eval":'bgp_data.get("Import_route_policy_is","")'}],
-#     },
-#
-#     {'remote_command':['display traffic policy user-defined ',{"eval":'bgp_data.get("Import_distribute_policy_is_access-listname","")'}],
-#     },
-#
-#     {'remote_command':['display traffic policy user-defined ',{"eval":'bgp_data.get("Import_distribute_policy_is_access-listname","")'},' precedence'],
-#     },
-
-
-    {'exec':'try: glob_vars["INTERFACE_WITHOUT_DOT"] = glob_vars.get("INTERFACE","").split(".")[0] \
-           \nexcept: bgp_data["INTERFACE_WITHOUT_DOT"] = glob_vars.get("INTERFACE","")'
-    },
-#     {'exec':'try: bgp_data["Interface_type"] = re.findall(r"^.*[a-zA-Z]",glob_vars.get("INTERFACE_WITHOUT_DOT",""))[0] \
-#            \nexcept: bgp_data["Interface_type"] = None'
-#     },
-    {'exec':'try: bgp_data["interface_number"] = re.findall(r"[0-9].*$",glob_vars.get("INTERFACE_WITHOUT_DOT",""))[0] \
-           \nexcept: bgp_data["Interface_number"] = None'
-    },
-    {'exec':'try: bgp_data["vlan_id"] = glob_vars.get("VPN_IF_TEXT","").split("vlan-type")[1].splitlines()[0].split()[1].strip() \
-           \nexcept: bgp_data["vlan_id"] = None',
-    },
-    {'exec':'try: bgp_data["circuit_id"] = "LD"+glob_vars.get("VPN_IF_TEXT","").split("description")[1].splitlines()[0].split(" LD")[1].split()[0].strip() \
-           \nexcept: bgp_data["circuit_id"] = None'},
-    {'exec':'try: bgp_data["ip_address"] = glob_vars.get("VPN_IF_TEXT","").split("ip address")[1].splitlines()[0].split()[0].strip() \
-             \nexcept: bgp_data["ip_address"] = None',
-    },
-    {'exec':'try: bgp_data["mask"] = glob_vars.get("VPN_IF_TEXT","").split("ip address")[1].splitlines()[0].split()[1].strip() \
-             \nexcept: bgp_data["mask"] = None',
-    },
-    {'exec':'try: bgp_data["ip_address_customer"] = glob_vars.get("VPN_IF_TEXT","").split("description")[1].splitlines()[0].split(" @")[1].split()[0].strip() \
-           \nexcept: bgp_data["ip_address_customer"] = None'},
-
-    {'exec':'try: bgp_data["peer_as"] = glob_vars.get("VPN_PEER_TEXT","").split("remote AS")[1].splitlines()[0].strip()\
-           \nexcept: bgp_data["peer_as"] = None',
-    },
-    {'exec':'try: bgp_data["peer_address"] = glob_vars.get("VPN_PEER_TEXT","").split("BGP Peer is")[1].splitlines()[0].split(",")[0].strip()\
-           \nexcept: bgp_data["peer_address"] = None',
-    },
-    {'exec':'try: bgp_data["contract_band_width"] = glob_vars.get("VPN_IF_TEXT","").split("bandwidth")[1].splitlines()[0].strip() \
-           \nexcept: bgp_data["contract_band_width"] = None',
-    },
-
-    {'remote_command':['display acl name ',{"eval":'glob_vars.get("Import_distribute_policy_is_access-listname","")'},{'output_variable':'ACL_TEXT'}],
-    },
-    {'pre_if':'"permit ip source" in glob_vars.get("ACL_TEXT","")',
-         'exec':'bgp_data["customer_prefixes_v4"] = [] \
-              \nfor line in glob_vars.get("ACL_TEXT","").split("permit ip source")[1:]:\
-              \n  bgp_data["customer_prefixes_v4"].append({"customer_prefix_v4":line.split()[0],"customer_subnetmask_v4":line.split()[1]})'
-    },
-
-    {"eval":["return_bgp_data_json()",{'print_output':'on'}]},
-]
-
-CMD_LINUX = [
-    {"local_command":'hostname'},
-    {"remote_command":'hostname'},
-    {"remote_command":'who'},
-    {"remote_command":'whoami'},
-#     {'if':'True',
-#          'exec':'print("WARNING: Possible problem in internal BGP! Please manually check status of iBGP.")',
-#          'exec_2':'glob_vars["CONTINUE_AFTER_IBGP_PROBLEM"] = raw_input("Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:")',
-#     },
-#     {'remote_command':['echo "WARNING: Possible problem in internal BGP! Please manually check status of iBGP."',{'print_output':'on'}],
-#      'remote_command_1':['echo "Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:"',{'print_output':'on'}],
-#      'remote_command_2':['read var;echo $var',{"output_variable":"CONTINUE_AFTER_IBGP_PROBLEM"}],
-#      'eval':['"YOUR_CHOISE_IS: " + glob_vars.get("CONTINUE_AFTER_IBGP_PROBLEM","")',{'print_output':'on'}],
-#     },
-]
-
-CMD_LOCAL = [
-    {'eval':['"SIM = "glob_vars.get("SIM_CMD","")',{'print_output':'on'}]},
-    {"local_command":['hostname', {"output_variable":"hostname"},{'sim':'glob_vars.get("SIM_CMD","")'}]
-    },
-#     {'if':'True',
-#          'exec':'print("WARNING: Possible problem in internal BGP! Please manually check status of iBGP.")',
-#          'exec_2':'glob_vars["CONTINUE_AFTER_IBGP_PROBLEM"] = raw_input("Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:")',
-#     },
-#     {'if':'True',
-#          'local_command':['echo "WARNING: Possible problem in internal BGP! Please manually check status of iBGP."',{'print_output':'on'}],
-#          'local_command_1':['echo "Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:"',{'print_output':'on'}],
-#          'local_command_2':['read var;echo $var',{"output_variable":"CONTINUE_AFTER_IBGP_PROBLEM"}],
-#          'eval':['"YOUR_CHOISE_IS: " + glob_vars.get("CONTINUE_AFTER_IBGP_PROBLEM","")',{'print_output':'on'}],
-#     },
-]
+CMD_LOCAL = []
 
 
 ###############################################################################
@@ -971,9 +825,9 @@ def print_html_data(data):
     print("</html>")
 
 
-def find_last_logfile(get_script_action):
+def find_last_logfile():
     most_recent_logfile = None
-    log_file_name=os.path.join(LOGDIR,device_name.replace(':','_').replace('.','_')) + '*' + USERNAME + '*vrp-' + vpn_name + "*" + get_script_action + "*"
+    log_file_name=os.path.join(LOGDIR,huawei_device_name.replace(':','_').replace('.','_')) + '*' + USERNAME + '*vrp-' + vpn_name + "*" + step1_string.replace(' ','_') + "*"
     log_filenames = glob.glob(log_file_name)
     if len(log_filenames) == 0:
         print(bcolors.MAGENTA + " ... Can't find any proper (%s) log file."%(log_file_name) + bcolors.ENDC)
@@ -1005,14 +859,17 @@ form_data, submit_form, cgi_username, cgi_password = read_cgibin_get_post_form()
 
 if cgi_username and cgi_password: USERNAME, PASSWORD = cgi_username, cgi_password
 
-if submit_form: print("Content-type:text/html\n\n")
-else: print('LOGDIR: ' + LOGDIR)
+if submit_form: 
+    print("Content-type:text/html\n\n")
+    for key, value in form_data.items(): print("CGI_DATA[%s:%s] \n" % (str(key), str(value)))
+
+print('LOGDIR: ' + LOGDIR)
 
 script_action = submit_form.replace(' ','_') if submit_form else 'unknown_action' 
+device_name = form_data.get('device','')
+huawei_device_name = form_data.get('huawei-router-name','')
 
-device_name = form_data.get('device',None)
-
-vpn_name = form_data.get('vpn',None)
+vpn_name = form_data.get('vpn','')
 if vpn_name: glob_vars["VPN_NAME"] = vpn_name
 
 ###################################################################
@@ -1113,104 +970,105 @@ if device_name and not vpn_name and not submit_form:
 
 logfilename, router_type = None, None
 
-if device_name:
-    router_prompt = None
-    try: DEVICE_HOST = device_name.split(':')[0]
-    except: DEVICE_HOST = str()
-    try: DEVICE_PORT = device_name.split(':')[1]
-    except: DEVICE_PORT = '22'
-    print('DEVICE %s (host=%s, port=%s) START.........................'\
-        %(device_name,DEVICE_HOST, DEVICE_PORT))
-    if remote_connect:
-        ####### Figure out type of router OS
-            router_type, router_prompt = detect_router_by_ssh(device)
-            if not router_type in KNOWN_OS_TYPES:
-                print('%sUNSUPPORTED DEVICE TYPE: %s , BREAK!%s' % \
-                    (bcolors.MAGENTA,router_type, bcolors.ENDC))
-            else: print('DETECTED DEVICE_TYPE: %s' % (router_type))
-
-    ######## Create logs directory if not existing  #########
-    if not os.path.exists(LOGDIR): os.makedirs(LOGDIR)
-    on_off_name = ''
-    logfilename = generate_file_name(prefix = device_name, suffix = 'vrp-' + vpn_name + '-' + script_action + '-log')
-    if args.nolog: logfilename = None
-
-    ######## Find command list file (optional)
-    list_cmd = []
-
-    if len(list_cmd)>0: CMD = list_cmd
-    else:
-        if router_type == 'cisco_ios':
-            CMD = CMD_IOS_XE
-            DEVICE_PROMPTS = [ \
-                '%s%s#'%(device_name.upper(),''), \
-                '%s%s#'%(device_name.upper(),'(config)'), \
-                '%s%s#'%(device_name.upper(),'(config-if)'), \
-                '%s%s#'%(device_name.upper(),'(config-line)'), \
-                '%s%s#'%(device_name.upper(),'(config-router)')  ]
-            TERM_LEN_0 = "terminal length 0"
-            EXIT = "exit"
-        elif router_type == 'cisco_xr':
-            CMD = CMD_IOS_XR
-            DEVICE_PROMPTS = [ \
-                '%s%s#'%(device_name.upper(),''), \
-                '%s%s#'%(device_name.upper(),'(config)'), \
-                '%s%s#'%(device_name.upper(),'(config-if)'), \
-                '%s%s#'%(device_name.upper(),'(config-line)'), \
-                '%s%s#'%(device_name.upper(),'(config-router)')  ]
-            TERM_LEN_0 = "terminal length 0"
-            EXIT = "exit"
-        elif router_type == 'juniper':
-            CMD = CMD_JUNOS
-            DEVICE_PROMPTS = [ \
-                 USERNAME + '@' + device_name.upper() + '> ', # !! Need the space after >
-                 USERNAME + '@' + device_name.upper() + '# ' ]
-            TERM_LEN_0 = "set cli screen-length 0"
-            EXIT = "exit"
-        elif router_type == 'huawei' :
-            CMD = CMD_VRP
-            DEVICE_PROMPTS = [ \
-                '<' + device_name.upper() + '>',
-                '[' + device_name.upper() + ']',
-                '[~' + device_name.upper() + ']',
-                '[*' + device_name.upper() + ']' ]
-            TERM_LEN_0 = "screen-length 0 temporary"     #"screen-length disable"
-            EXIT = "quit"
-        elif router_type == 'linux':
-            CMD = CMD_LINUX
-            DEVICE_PROMPTS = [ ]
-            TERM_LEN_0 = ''     #"screen-length disable"
-            EXIT = "exit"
-        else: CMD = CMD_LOCAL
-
-    # ADD PROMPT TO PROMPTS LIST
-    if router_prompt: DEVICE_PROMPTS.append(router_prompt)
-    
-    if submit_form and submit_form == step1_string or router_type == 'huawei':
-        run_remote_and_local_commands(CMD, logfilename, printall = args.printall, printcmdtologfile = True)
-    else:
-        load_logfile = find_last_logfile(step1_string)
-        bgp_data = copy.deepcopy(read_bgp_data_json_from_logfile(load_logfile))
-        print(bgp_data)
-        print(form_data) 
+load_logfile = find_last_logfile()
+bgp_data = copy.deepcopy(read_bgp_data_json_from_logfile(load_logfile))
+print(bgp_data)
+print(form_data) 
 
 
+
+
+# if device_name:
+    # router_prompt = None
+    # try: DEVICE_HOST = device_name.split(':')[0]
+    # except: DEVICE_HOST = str()
+    # try: DEVICE_PORT = device_name.split(':')[1]
+    # except: DEVICE_PORT = '22'
+    # print('DEVICE %s (host=%s, port=%s) START.........................'\
+        # %(device_name,DEVICE_HOST, DEVICE_PORT))
+    # if remote_connect:
+        # ####### Figure out type of router OS
+            # router_type, router_prompt = detect_router_by_ssh(device)
+            # if not router_type in KNOWN_OS_TYPES:
+                # print('%sUNSUPPORTED DEVICE TYPE: %s , BREAK!%s' % \
+                    # (bcolors.MAGENTA,router_type, bcolors.ENDC))
+            # else: print('DETECTED DEVICE_TYPE: %s' % (router_type))
+
+    # ######## Create logs directory if not existing  #########
+    # if not os.path.exists(LOGDIR): os.makedirs(LOGDIR)
+    # on_off_name = ''
+    # logfilename = generate_file_name(prefix = device_name, suffix = 'vrp-' + vpn_name + '-' + script_action + '-log')
+    # if args.nolog: logfilename = None
+
+    # ######## Find command list file (optional)
+    # list_cmd = []
+
+    # if len(list_cmd)>0: CMD = list_cmd
+    # else:
+        # if router_type == 'cisco_ios':
+            # CMD = CMD_IOS_XE
+            # DEVICE_PROMPTS = [ \
+                # '%s%s#'%(device_name.upper(),''), \
+                # '%s%s#'%(device_name.upper(),'(config)'), \
+                # '%s%s#'%(device_name.upper(),'(config-if)'), \
+                # '%s%s#'%(device_name.upper(),'(config-line)'), \
+                # '%s%s#'%(device_name.upper(),'(config-router)')  ]
+            # TERM_LEN_0 = "terminal length 0"
+            # EXIT = "exit"
+        # elif router_type == 'cisco_xr':
+            # CMD = CMD_IOS_XR
+            # DEVICE_PROMPTS = [ \
+                # '%s%s#'%(device_name.upper(),''), \
+                # '%s%s#'%(device_name.upper(),'(config)'), \
+                # '%s%s#'%(device_name.upper(),'(config-if)'), \
+                # '%s%s#'%(device_name.upper(),'(config-line)'), \
+                # '%s%s#'%(device_name.upper(),'(config-router)')  ]
+            # TERM_LEN_0 = "terminal length 0"
+            # EXIT = "exit"
+        # elif router_type == 'juniper':
+            # CMD = CMD_JUNOS
+            # DEVICE_PROMPTS = [ \
+                 # USERNAME + '@' + device_name.upper() + '> ', # !! Need the space after >
+                 # USERNAME + '@' + device_name.upper() + '# ' ]
+            # TERM_LEN_0 = "set cli screen-length 0"
+            # EXIT = "exit"
+        # elif router_type == 'huawei' :
+            # CMD = CMD_VRP
+            # DEVICE_PROMPTS = [ \
+                # '<' + device_name.upper() + '>',
+                # '[' + device_name.upper() + ']',
+                # '[~' + device_name.upper() + ']',
+                # '[*' + device_name.upper() + ']' ]
+            # TERM_LEN_0 = "screen-length 0 temporary"     #"screen-length disable"
+            # EXIT = "quit"
+        # elif router_type == 'linux':
+            # CMD = CMD_LINUX
+            # DEVICE_PROMPTS = [ ]
+            # TERM_LEN_0 = ''     #"screen-length disable"
+            # EXIT = "exit"
+        # else: CMD = CMD_LOCAL
+
+    # # ADD PROMPT TO PROMPTS LIST
+    # if router_prompt: DEVICE_PROMPTS.append(router_prompt)
+
+    # # if submit_form and submit_form == step1_string or router_type == 'huawei':
+        # # run_remote_and_local_commands(CMD, logfilename, printall = args.printall, printcmdtologfile = True)
         
 
-    if logfilename and os.path.exists(logfilename):
-        print('%s file created.' % (logfilename))
-        ### MAKE READABLE for THE OTHERS
-        try:
-            dummy = subprocess.check_output('chmod +r %s' % (logfilename),shell=True)
-        except: pass
-        if not submit_form:
-            try: send_me_email(subject = logfilename.replace('\\','/').\
-                     split('/')[-1], file_name = logfilename)
-            except: pass
-    print('\nDEVICE %s DONE.'%(device_name))
+    # if logfilename and os.path.exists(logfilename):
+        # print('%s file created.' % (logfilename))
+        # ### MAKE READABLE for THE OTHERS
+        # try:
+            # dummy = subprocess.check_output('chmod +r %s' % (logfilename),shell=True)
+        # except: pass
+        # if not submit_form:
+            # try: send_me_email(subject = logfilename.replace('\\','/').\
+                     # split('/')[-1], file_name = logfilename)
+            # except: pass
+    # print('\nDEVICE %s DONE.'%(device_name))
 
-    if submit_form and submit_form == step1_string or router_type == 'huawei':    
-        if router_type == 'huawei': sql_interface_data()
+    # if submit_form and submit_form == step1_string or router_type == 'huawei':    
+        # if router_type == 'huawei': sql_interface_data()
             
 print('\nEND [script runtime = %d sec].'%(time.time() - START_EPOCH))
 

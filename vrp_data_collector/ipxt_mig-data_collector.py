@@ -25,7 +25,6 @@ import netmiko
 
 
 step1_string = 'Submit step 1'
-step2_string = 'Submit step 2'
 
 
 class bcolors:
@@ -102,9 +101,7 @@ default_printalllines_list = []
 # IOS-XE is only for IPsec GW
 CMD_IOS_XE = []
 
-CMD_IOS_XR = [
-
-]
+CMD_IOS_XR = []
 
 CMD_JUNOS = []
 
@@ -224,41 +221,13 @@ CMD_VRP = [
               \nfor line in glob_vars.get("ACL_TEXT","").split("permit ip source")[1:]:\
               \n  bgp_data["customer_prefixes_v4"].append({"customer_prefix_v4":line.split()[0],"customer_subnetmask_v4":line.split()[1]})'
     },
-
+    {'exec':'bgp_data["session_id"] = logfilename'},
     {"eval":["return_bgp_data_json()",{'print_output':'on'}]},
 ]
 
-CMD_LINUX = [
-    {"local_command":'hostname'},
-    {"remote_command":'hostname'},
-    {"remote_command":'who'},
-    {"remote_command":'whoami'},
-#     {'if':'True',
-#          'exec':'print("WARNING: Possible problem in internal BGP! Please manually check status of iBGP.")',
-#          'exec_2':'glob_vars["CONTINUE_AFTER_IBGP_PROBLEM"] = raw_input("Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:")',
-#     },
-#     {'remote_command':['echo "WARNING: Possible problem in internal BGP! Please manually check status of iBGP."',{'print_output':'on'}],
-#      'remote_command_1':['echo "Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:"',{'print_output':'on'}],
-#      'remote_command_2':['read var;echo $var',{"output_variable":"CONTINUE_AFTER_IBGP_PROBLEM"}],
-#      'eval':['"YOUR_CHOISE_IS: " + glob_vars.get("CONTINUE_AFTER_IBGP_PROBLEM","")',{'print_output':'on'}],
-#     },
-]
+CMD_LINUX = []
 
-CMD_LOCAL = [
-    {'eval':['"SIM = "glob_vars.get("SIM_CMD","")',{'print_output':'on'}]},
-    {"local_command":['hostname', {"output_variable":"hostname"},{'sim':'glob_vars.get("SIM_CMD","")'}]
-    },
-#     {'if':'True',
-#          'exec':'print("WARNING: Possible problem in internal BGP! Please manually check status of iBGP.")',
-#          'exec_2':'glob_vars["CONTINUE_AFTER_IBGP_PROBLEM"] = raw_input("Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:")',
-#     },
-#     {'if':'True',
-#          'local_command':['echo "WARNING: Possible problem in internal BGP! Please manually check status of iBGP."',{'print_output':'on'}],
-#          'local_command_1':['echo "Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:"',{'print_output':'on'}],
-#          'local_command_2':['read var;echo $var',{"output_variable":"CONTINUE_AFTER_IBGP_PROBLEM"}],
-#          'eval':['"YOUR_CHOISE_IS: " + glob_vars.get("CONTINUE_AFTER_IBGP_PROBLEM","")',{'print_output':'on'}],
-#     },
-]
+CMD_LOCAL = []
 
 
 ###############################################################################
@@ -896,53 +865,7 @@ def sql_interface_data():
         if sql_connection.is_connected():
             sql_connection.close()
             print("SQL connection is closed.")
-
-
-##############################################################################        
-
-config_template_string = '''!<% rule_num = 10 %>
-ipv4 access-list IPXT.${customer_name}-IN
-% for rule in customer_prefixes_v4:
- ${rule_num} permit ipv4 ${rule['customer_prefix_v4']} ${rule['customer_subnetmask_v4']} any<% rule_num += 10 %>
-% endfor
- ${rule_num} deny ipv4 any any
-!
-'''
-
-input_jinja2_template = '''
-<html>
-   <body>
-      <form action = "{{server_address}}:{{server_port}}/result" method = "POST">
-        {% for key, value in parameters.items() %}
-           <p>{{key}}<input type = "{{value}}" name = "{{key}}" /></p>
-        {% endfor %}
-        <p><input type = "submit" value = "submit" /></p>
-      </form>
-   </body>
-</html>
-'''
-
-### FUNCTIONS ############################################ 
-# def load_json(path, file_name):
-#     """Open json file return dictionary."""
-#     try:
-#         json_data = json.load(open(path + file_name),object_pairs_hook=collections.OrderedDict)
-#     except IOError as err:
-#         raise Exception('Could not open file: {}'.format(err))
-#     except json.decoder.JSONDecodeError as err:
-#         raise Exception('JSON format error in: {} {}'.format(file_name, err))
-
-#     return json_data
-
-def print_config():
-    mytemplate = Template(config_template_string)
-    config_string = mytemplate.render(**bgp_data)
-    return config_string
-
-def print_json():
-    try: json_data = json.dumps(bgp_data, indent=2)
-    except: json_data = ''
-    return json_data
+    
 
 def read_cgibin_get_post_form():
     # import collections, cgi
@@ -959,34 +882,8 @@ def read_cgibin_get_post_form():
         if variable == "password": password = value
     return data, submit_form, username, password
 
-def print_html_data(data):
-    #print("Content-type:text/html\n\n")
-    print("<html>")
-    print("<head>")
-    print("<title>DATA</title>")
-    print("</head>")
-    print("<body>")
-    for key, value in data.items(): print("<h2>%s : %s</h2>" % (str(key), str(value)))
-    print("</body>")
-    print("</html>")
 
-
-def find_last_logfile(get_script_action):
-    most_recent_logfile = None
-    log_file_name=os.path.join(LOGDIR,device_name.replace(':','_').replace('.','_')) + '*' + USERNAME + '*vrp-' + vpn_name + "*" + get_script_action + "*"
-    log_filenames = glob.glob(log_file_name)
-    if len(log_filenames) == 0:
-        print(bcolors.MAGENTA + " ... Can't find any proper (%s) log file."%(log_file_name) + bcolors.ENDC)
-        sys.exit()
-    most_recent_logfile = log_filenames[0]
-    for item in log_filenames:
-        filecreation = os.path.getctime(item)
-        if filecreation > (os.path.getctime(most_recent_logfile)):
-            most_recent_logfile = item
-    return most_recent_logfile
     
-    
-
 ##############################################################################
 #
 # BEGIN MAIN
@@ -1005,14 +902,14 @@ form_data, submit_form, cgi_username, cgi_password = read_cgibin_get_post_form()
 
 if cgi_username and cgi_password: USERNAME, PASSWORD = cgi_username, cgi_password
 
-if submit_form: print("Content-type:text/html\n\n")
-else: print('LOGDIR: ' + LOGDIR)
+if submit_form: 
+    print("Content-type:text/html\n\n")
+    for key, value in form_data.items(): print("CGI_DATA[%s:%s] \n" % (str(key), str(value)))
 
-script_action = submit_form.replace(' ','_') if submit_form else 'unknown_action' 
+print('LOGDIR[%s] \n'%(LOGDIR))
 
-device_name = form_data.get('device',None)
-
-vpn_name = form_data.get('vpn',None)
+device_name = form_data.get('device','')
+vpn_name = form_data.get('vpn','')
 if vpn_name: glob_vars["VPN_NAME"] = vpn_name
 
 ###################################################################
@@ -1132,7 +1029,7 @@ if device_name:
     ######## Create logs directory if not existing  #########
     if not os.path.exists(LOGDIR): os.makedirs(LOGDIR)
     on_off_name = ''
-    logfilename = generate_file_name(prefix = device_name, suffix = 'vrp-' + vpn_name + '-' + script_action + '-log')
+    logfilename = generate_file_name(prefix = device_name, suffix = 'vrp-' + vpn_name + '-' + step1_string.replace(' ','_') + '-log')
     if args.nolog: logfilename = None
 
     ######## Find command list file (optional)
@@ -1188,14 +1085,7 @@ if device_name:
     
     if submit_form and submit_form == step1_string or router_type == 'huawei':
         run_remote_and_local_commands(CMD, logfilename, printall = args.printall, printcmdtologfile = True)
-    else:
-        load_logfile = find_last_logfile(step1_string)
-        bgp_data = copy.deepcopy(read_bgp_data_json_from_logfile(load_logfile))
-        print(bgp_data)
-        print(form_data) 
-
-
-        
+    else: pass        
 
     if logfilename and os.path.exists(logfilename):
         print('%s file created.' % (logfilename))
