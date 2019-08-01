@@ -120,16 +120,23 @@ bgp_data = collections.OrderedDict()
 
 
 ###############################################################################
+# acl_config_template_string = '''!<% rule_num = 10 %>
+# ipv4 access-list IPXT.${customer_name}-IN
+# % for rule in customer_prefixes_v4:
+ # ${rule_num} permit ipv4 ${rule['customer_prefix_v4']} ${rule['customer_subnetmask_v4']} any<% rule_num += 10 %>
+# % endfor
+ # ${rule_num} deny ipv4 any any
+# !
+# '''
+
 acl_config_template_string = '''!<% rule_num = 10 %>
 ipv4 access-list IPXT.${customer_name}-IN
 % for rule in customer_prefixes_v4:
- ${rule_num} permit ipv4 ${rule['customer_prefix_v4']} ${rule['customer_subnetmask_v4']} any<% rule_num += 10 %>
+ ${rule_num} permit ipv4 ${rule.get('customer_prefix_v4','')} ${rule['customer_subnetmask_v4']} any<% rule_num += 10 %>
 % endfor
  ${rule_num} deny ipv4 any any
 !
 '''
-
-
 
 ###############################################################################
 #

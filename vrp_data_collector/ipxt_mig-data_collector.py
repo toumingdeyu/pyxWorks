@@ -852,6 +852,8 @@ def sql_interface_data():
                     values_string += "'" + item_string + "'"
                 elif isinstance(bgp_data.get(key,""), (six.string_types)):
                     values_string += "'" + str(bgp_data.get(key,"")) + "'"
+                else:
+                    values_string += "'" + str(bgp_data.get(key,"")) + "'"
 
             sql_string = """INSERT INTO `ipxt_data_collector` (%s) VALUES (%s);""" \
                 % (columns_string,values_string)
