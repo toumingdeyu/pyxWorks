@@ -1,4 +1,4 @@
-#!/usr/bin/python36
+#!/usr/bin/python
 
 import sys, os, io, paramiko, json , copy
 import getopt
@@ -129,15 +129,7 @@ ipv4 access-list IPXT.${customer_name}-IN
 !
 '''
 
-config_template_string = '''!<% rule_num = 10 %>
-ipv4 access-list IPXT.${customer_name}-IN
-% for rule in customer_prefixes_v4:
- ${rule_num} permit ipv4 ${rule['customer_prefix_v4']} ${rule['customer_subnetmask_v4']} any<% rule_num += 10 %>
-% endfor
- ${rule_num} deny ipv4 any any
-!
-${aaaaa}
-'''
+
 
 ###############################################################################
 #
@@ -889,7 +881,29 @@ print(bgp_data)
 if submit_form: print('<br/><br/>')
 print(form_data) 
 if submit_form: print('<br/>')
-print_config()
+
+list1 = list(bgp_data.keys())
+list2 = list(form_data.keys())
+
+if submit_form: print('<br/>')
+print(list1)
+if submit_form: print('<br/>')
+print(list2)
+if submit_form: print('<br/>')
+
+for item in list2:
+    if item in list1:
+        if submit_form: print('<br/>')    
+        print('WARNING: %s is already in %s!'%())
+        if submit_form: print('<br/>')
+
+bgp_data.update(form_data)
+if submit_form: print('<br/>')
+print(bgp_data)
+if submit_form: print('<br/>')
+
+if submit_form: print('<br/>')
+print(print_config())
 if submit_form: print('<br/>')
 
 
