@@ -1,4 +1,4 @@
-#!/usr/bin/python36
+#!/usr/bin/python
 
 import sys, os, io, paramiko, json , copy
 import getopt
@@ -106,7 +106,8 @@ CMD_IOS_XR = []
 CMD_JUNOS = []
 
 CMD_VRP = [
-
+    {'exec':'bgp_data["username"] = USERNAME'},
+    {'exec':'bgp_data["session_id"] = logfilename'},
     {'remote_command':['disp ip vpn-instance verbose ',{'eval':'glob_vars.get("VPN_NAME","")'},{'output_variable':'VPN_INSTANCE_IP_TEXT'}]
     },
     {'if':'"VPN instance does not exist." in glob_vars.get("VPN_INSTANCE_IP_TEXT","")',
@@ -222,7 +223,6 @@ CMD_VRP = [
               \nfor line in glob_vars.get("ACL_TEXT","").split("permit ip source")[1:]:\
               \n  bgp_data["customer_prefixes_v4"].append({"customer_prefix_v4":line.split()[0],"customer_subnetmask_v4":line.split()[1]})'
     },
-    {'exec':'bgp_data["session_id"] = logfilename'},
     {"eval":["return_bgp_data_json()",{'print_output':'on'}]},
 ]
 
@@ -797,7 +797,7 @@ def sql_interface_data():
     ### MARIADB - By default AUTOCOMMIT is disabled
     def sql_read_all_table_columns(table_name):
         cursor = sql_connection.cursor()
-        try: cursor.execute("select * from INFORMATION_SCHEMA.COLUMNS where TABLE_NAME='%s'"%(table_name))
+        try: cursor.execute("select * from INFORMATION_SCHEMA.COLUMNS where TABLE_NAME='%s';"%(table_name))
         except Exception as e: print(e)
         records = cursor.fetchall()
         cursor.close()
@@ -826,7 +826,9 @@ def sql_interface_data():
             password='cfgbuildergetdata', database='rtr_configuration')
 
         if sql_connection.is_connected():
-            #print(sql_read_all_table_columns('ipxt_data_collector'))
+            if submit_form: print("<br/>")
+            print(sql_read_all_table_columns('ipxt_data_collector'))
+            if submit_form: print("<br/>")
             #print(sql_read_data("SELECT * FROM ipxt_data_collector"))
 
             sql_table_columns = sql_read_all_table_columns('ipxt_data_collector')
@@ -851,23 +853,29 @@ def sql_interface_data():
                 elif isinstance(bgp_data.get(key,""), (six.string_types)):
                     values_string += "'" + str(bgp_data.get(key,"")) + "'"
 
-            sql_string = """INSERT INTO `ipxt_data_collector` (%s) VALUES (%s)""" \
+            sql_string = """INSERT INTO `ipxt_data_collector` (%s) VALUES (%s);""" \
                 % (columns_string,values_string)
-            print("<br/>\n"+sql_string+"\n<br/>")
+            if submit_form: print("<br/>")    
+            print("\n"+sql_string+"\n")
+            if submit_form: print("<br/>")
             if columns_string:
                 sql_write_data("""INSERT INTO `ipxt_data_collector`
-                    (%s) VALUES (%s)""" %(columns_string,values_string))
+                    (%s) VALUES (%s);""" %(columns_string,values_string))
 
             # SQL READ CHECK ---------------------------------------------------
             if bgp_data.get('vrf_name',""):
-                check_data = sql_read_data("SELECT * FROM ipxt_data_collector WHERE vrf_name = '%s'" \
+                check_data = sql_read_data("SELECT * FROM ipxt_data_collector WHERE vrf_name = '%s';" \
                     %(bgp_data.get('vrf_name',"")))
+                if submit_form: print("<br/>")    
                 print('DB_READ_CHECK:',check_data)
+                if submit_form: print("<br/>")
     except Exception as e: print(e)
     finally:
         if sql_connection.is_connected():
             sql_connection.close()
+            if submit_form: print("<br/>")
             print("SQL connection is closed.")
+            if submit_form: print("<br/>")
     
 
 def read_cgibin_get_post_form():

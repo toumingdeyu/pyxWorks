@@ -120,6 +120,26 @@ bgp_data = collections.OrderedDict()
 
 
 ###############################################################################
+acl_config_template_string = '''!<% rule_num = 10 %>
+ipv4 access-list IPXT.${customer_name}-IN
+% for rule in customer_prefixes_v4:
+ ${rule_num} permit ipv4 ${rule['customer_prefix_v4']} ${rule['customer_subnetmask_v4']} any<% rule_num += 10 %>
+% endfor
+ ${rule_num} deny ipv4 any any
+!
+'''
+
+config_template_string = '''!<% rule_num = 10 %>
+ipv4 access-list IPXT.${customer_name}-IN
+% for rule in customer_prefixes_v4:
+ ${rule_num} permit ipv4 ${rule['customer_prefix_v4']} ${rule['customer_subnetmask_v4']} any<% rule_num += 10 %>
+% endfor
+ ${rule_num} deny ipv4 any any
+!
+${aaaaa}
+'''
+
+###############################################################################
 #
 # Function and Class
 #
@@ -676,123 +696,18 @@ def generate_file_name(prefix = None, suffix = None , directory = None):
     return filenamewithpath
 
 
-def sql_interface_data():
-    ### import mysql.connector
-    ### MARIADB - By default AUTOCOMMIT is disabled
-    def sql_read_all_table_columns(table_name):
-        cursor = sql_connection.cursor()
-        try: cursor.execute("select * from INFORMATION_SCHEMA.COLUMNS where TABLE_NAME='%s'"%(table_name))
-        except Exception as e: print(e)
-        records = cursor.fetchall()
-        cursor.close()
-        columns = [item[3] for item in records]
-        return columns
-
-    def sql_read_data(sql_command):
-        cursor = sql_connection.cursor()
-        try: cursor.execute(sql_command)
-        except Exception as e: print(e)
-        records = cursor.fetchall()
-        cursor.close()
-        return records
-
-    def sql_write_data(sql_command):
-        #sql_connection.autocommit = False
-        cursor = sql_connection.cursor(prepared=True)
-        try: cursor.execute(sql_command)
-        except Exception as e: print(e)
-        if not sql_connection.autocommit: sql_connection.commit()
-        cursor.close()
-        return None
-
-    try:
-        sql_connection = mysql.connector.connect(host='localhost', user='cfgbuilder', \
-            password='cfgbuildergetdata', database='rtr_configuration')
-
-        if sql_connection.is_connected():
-            #print(sql_read_all_table_columns('ipxt_data_collector'))
-            #print(sql_read_data("SELECT * FROM ipxt_data_collector"))
-
-            sql_table_columns = sql_read_all_table_columns('ipxt_data_collector')
-            columns_string, values_string = str(), str()
-            for key in bgp_data:
-                if key in sql_table_columns:
-                    if len(columns_string) > 0: columns_string += ','
-                    if len(values_string) > 0: values_string += ','
-                columns_string += '`' + key + '`'
-                ### be aware of data type
-                if isinstance(bgp_data.get(key,""), (list,tuple)):
-                    item_string = str()
-                    for item in bgp_data.get(key,""):
-                        if isinstance(item, (six.string_types)):
-                            if len(item_string) > 0: item_string += ','
-                            item_string += item
-                        elif isinstance(item, (dict,collections.OrderedDict)):
-                            for i in item:
-                                if len(item_string) > 0: item_string += ','
-                                item_string += item.get(i,"")
-                    values_string += "'" + item_string + "'"
-                elif isinstance(bgp_data.get(key,""), (six.string_types)):
-                    values_string += "'" + str(bgp_data.get(key,"")) + "'"
-
-            sql_string = """INSERT INTO `ipxt_data_collector` (%s) VALUES (%s)""" \
-                % (columns_string,values_string)
-            print(sql_string)
-            if columns_string:
-                sql_write_data("""INSERT INTO `ipxt_data_collector`
-                    (%s) VALUES (%s)""" %(columns_string,values_string))
-
-            # SQL READ CHECK ---------------------------------------------------
-            if bgp_data.get('vrf_name',""):
-                check_data = sql_read_data("SELECT * FROM ipxt_data_collector WHERE vrf_name = '%s'" \
-                    %(bgp_data.get('vrf_name',"")))
-                print('DB_READ_CHECK:',check_data)
-    except Exception as e: print(e)
-    finally:
-        if sql_connection.is_connected():
-            sql_connection.close()
-            print("SQL connection is closed.")
-
 
 ##############################################################################        
-
-config_template_string = '''!<% rule_num = 10 %>
-ipv4 access-list IPXT.${customer_name}-IN
-% for rule in customer_prefixes_v4:
- ${rule_num} permit ipv4 ${rule['customer_prefix_v4']} ${rule['customer_subnetmask_v4']} any<% rule_num += 10 %>
-% endfor
- ${rule_num} deny ipv4 any any
-!
-'''
-
-input_jinja2_template = '''
-<html>
-   <body>
-      <form action = "{{server_address}}:{{server_port}}/result" method = "POST">
-        {% for key, value in parameters.items() %}
-           <p>{{key}}<input type = "{{value}}" name = "{{key}}" /></p>
-        {% endfor %}
-        <p><input type = "submit" value = "submit" /></p>
-      </form>
-   </body>
-</html>
-'''
-
-### FUNCTIONS ############################################ 
-# def load_json(path, file_name):
-#     """Open json file return dictionary."""
-#     try:
-#         json_data = json.load(open(path + file_name),object_pairs_hook=collections.OrderedDict)
-#     except IOError as err:
-#         raise Exception('Could not open file: {}'.format(err))
-#     except json.decoder.JSONDecodeError as err:
-#         raise Exception('JSON format error in: {} {}'.format(file_name, err))
-
-#     return json_data
-
 def print_config():
-    mytemplate = Template(config_template_string)
-    config_string = mytemplate.render(**bgp_data)
+    config_string = str()
+    mytemplate = Template(acl_config_template_string)
+    config_string += mytemplate.render(**bgp_data)
+
+
+    # aaaaa = {'aaaaa':'33'}
+    # mytemplate = Template(acl_config_template_string)
+    # config_string = mytemplate.render(**bgp_data, **aaaaa)
+    
     return config_string
 
 def print_json():
@@ -855,7 +770,9 @@ if submit_form:
     print("<html><head><title>%s</title></head><body>"%(submit_form))
     for key, value in form_data.items(): print("CGI_DATA[%s:%s] <br/>\n" % (str(key), str(value)))
 
-print('LOGDIR[%s] <br/>\n'%(LOGDIR))
+if submit_form: print('<br/>')
+print('LOGDIR[%s] \n'%(LOGDIR))
+if submit_form: print('<br/>')
 
 script_action = submit_form.replace(' ','_') if submit_form else 'unknown_action' 
 device_name = form_data.get('device','')
@@ -967,107 +884,18 @@ logfilename, router_type = None, None
 
 load_logfile = find_last_logfile()
 bgp_data = copy.deepcopy(read_bgp_data_json_from_logfile(load_logfile))
-print('<br/>')
+if submit_form: print('<br/>')
 print(bgp_data)
-print('<br/><br/>')
+if submit_form: print('<br/><br/>')
 print(form_data) 
-print('<br/>')
+if submit_form: print('<br/>')
+print_config()
+if submit_form: print('<br/>')
 
 
-
-# if device_name:
-    # router_prompt = None
-    # try: DEVICE_HOST = device_name.split(':')[0]
-    # except: DEVICE_HOST = str()
-    # try: DEVICE_PORT = device_name.split(':')[1]
-    # except: DEVICE_PORT = '22'
-    # print('DEVICE %s (host=%s, port=%s) START.........................'\
-        # %(device_name,DEVICE_HOST, DEVICE_PORT))
-    # if remote_connect:
-        # ####### Figure out type of router OS
-            # router_type, router_prompt = detect_router_by_ssh(device_name)
-            # if not router_type in KNOWN_OS_TYPES:
-                # print('%sUNSUPPORTED DEVICE TYPE: %s , BREAK!%s' % \
-                    # (bcolors.MAGENTA,router_type, bcolors.ENDC))
-            # else: print('DETECTED DEVICE_TYPE: %s' % (router_type))
-
-    # ######## Create logs directory if not existing  #########
-    # if not os.path.exists(LOGDIR): os.makedirs(LOGDIR)
-    # on_off_name = ''
-    # logfilename = generate_file_name(prefix = device_name.upper(), suffix = 'vrp-' + vpn_name + '-' + script_action + '-log')
-    # if args.nolog: logfilename = None
-
-    # ######## Find command list file (optional)
-    # list_cmd = []
-
-    # if len(list_cmd)>0: CMD = list_cmd
-    # else:
-        # if router_type == 'cisco_ios':
-            # CMD = CMD_IOS_XE
-            # DEVICE_PROMPTS = [ \
-                # '%s%s#'%(device_name.upper(),''), \
-                # '%s%s#'%(device_name.upper(),'(config)'), \
-                # '%s%s#'%(device_name.upper(),'(config-if)'), \
-                # '%s%s#'%(device_name.upper(),'(config-line)'), \
-                # '%s%s#'%(device_name.upper(),'(config-router)')  ]
-            # TERM_LEN_0 = "terminal length 0"
-            # EXIT = "exit"
-        # elif router_type == 'cisco_xr':
-            # CMD = CMD_IOS_XR
-            # DEVICE_PROMPTS = [ \
-                # '%s%s#'%(device_name.upper(),''), \
-                # '%s%s#'%(device_name.upper(),'(config)'), \
-                # '%s%s#'%(device_name.upper(),'(config-if)'), \
-                # '%s%s#'%(device_name.upper(),'(config-line)'), \
-                # '%s%s#'%(device_name.upper(),'(config-router)')  ]
-            # TERM_LEN_0 = "terminal length 0"
-            # EXIT = "exit"
-        # elif router_type == 'juniper':
-            # CMD = CMD_JUNOS
-            # DEVICE_PROMPTS = [ \
-                 # USERNAME + '@' + device_name.upper() + '> ', # !! Need the space after >
-                 # USERNAME + '@' + device_name.upper() + '# ' ]
-            # TERM_LEN_0 = "set cli screen-length 0"
-            # EXIT = "exit"
-        # elif router_type == 'huawei' :
-            # CMD = CMD_VRP
-            # DEVICE_PROMPTS = [ \
-                # '<' + device_name.upper() + '>',
-                # '[' + device_name.upper() + ']',
-                # '[~' + device_name.upper() + ']',
-                # '[*' + device_name.upper() + ']' ]
-            # TERM_LEN_0 = "screen-length 0 temporary"     #"screen-length disable"
-            # EXIT = "quit"
-        # elif router_type == 'linux':
-            # CMD = CMD_LINUX
-            # DEVICE_PROMPTS = [ ]
-            # TERM_LEN_0 = ''     #"screen-length disable"
-            # EXIT = "exit"
-        # else: CMD = CMD_LOCAL
-
-    # # ADD PROMPT TO PROMPTS LIST
-    # if router_prompt: DEVICE_PROMPTS.append(router_prompt)
-
-    # # if submit_form and submit_form == step1_string or router_type == 'huawei':
-        # # run_remote_and_local_commands(CMD, logfilename, printall = args.printall, printcmdtologfile = True)
-        
-
-    # if logfilename and os.path.exists(logfilename):
-        # print('%s file created.' % (logfilename))
-        # ### MAKE READABLE for THE OTHERS
-        # try:
-            # dummy = subprocess.check_output('chmod +r %s' % (logfilename),shell=True)
-        # except: pass
-        # if not submit_form:
-            # try: send_me_email(subject = logfilename.replace('\\','/').\
-                     # split('/')[-1], file_name = logfilename)
-            # except: pass
-    # print('\nDEVICE %s DONE.'%(device_name))
-
-    # if submit_form and submit_form == step1_string or router_type == 'huawei':    
-        # if router_type == 'huawei': sql_interface_data()
-            
-print('<br/>\nEND [script runtime = %d sec].<br/>'%(time.time() - START_EPOCH))
+if submit_form: print('<br/>')            
+print('\nEND [script runtime = %d sec].'%(time.time() - START_EPOCH))
+if submit_form: print('<br/>')
 if submit_form: print("</body></html>")
 
 
