@@ -19,8 +19,6 @@ import cgi
 import requests
 
 
-
-
 class CGI_handle():
     """
     CGI_handle - Simple class for handling CGI parameters and 
@@ -28,7 +26,6 @@ class CGI_handle():
     """ 
     # import collections, cgi, six
     # import cgitb; cgitb.enable()
-
     def __init__(self):
         self.debug = True
         self.START_EPOCH = time.time()
@@ -74,18 +71,13 @@ class CGI_handle():
                 if tag and 'p' in tag: print('</p>')
                 if tag and 'h' in tag: print('</%s>'%(tag))
 
-    def print_GCI_data(self):
-        if self.gci_active and self.debug:  
-            for key, value in self.data.items(): 
-                self.uprint("CGI_DATA[%s:%s] " % (str(key), str(value)))
-
     def __repr__(self):
         if self.gci_active:
-            print_string = '[CGI('       
-            for key, value in self.data.items(): 
-                print_string += '%s:%s ' % (str(key), str(value))
-            print_string += ') <br/>]'                      
-        else: print_string = '[CLI()]'  
+            print_string = 'CGI_args=%s <br/>' % \
+                ([ [k,v] for k, v in self.data.items() ])
+            #for key, value in self.data.items(): \
+            #    ("%s:%s " % (str(key), str(value)))                
+        else: print_string = 'CLI_args=%s \n' % (str(sys.argv[1:]))  
         return print_string        
             
 ##############################################################################
@@ -98,7 +90,8 @@ if __name__ != "__main__": sys.exit(0)
 
 ### CGI-BIN READ FORM ############################################
 gci_instance = CGI_handle()
-gci_instance.print_GCI_data()
+print(repr(gci_instance))
+#str(gci_instance)
 
 #uprint('LOGDIR[%s] \n'%(LOGDIR))
 CGI_handle.uprint(gci_instance,'aaa')
@@ -106,8 +99,9 @@ gci_instance.uprint('aaa')
 #gci_instance.uprint(aaa)          
 gci_instance.uprint(['aaa2','aaa3'])
 gci_instance.uprint({'aaa4':'aaa5'}, tag = 'h1')
-#repr(gci_instance)
-#str(gci_instance)
+
+
+
 
 
 
