@@ -884,7 +884,8 @@ def read_cgibin_get_post_form():
     # import collections, cgi
     # import cgitb; cgitb.enable()
     data, submit_form, username, password = collections.OrderedDict(), '', '', ''
-    form = cgi.FieldStorage()
+    try: form = cgi.FieldStorage()
+    except: form = collections.OrderedDict()
     for key in form.keys():
         variable = str(key)
         try: value = str(form.getvalue(variable))
