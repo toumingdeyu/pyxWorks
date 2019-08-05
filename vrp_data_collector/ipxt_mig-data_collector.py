@@ -833,27 +833,29 @@ def sql_interface_data():
 
             sql_table_columns = sql_read_all_table_columns('ipxt_data_collector')
             columns_string, values_string = str(), str()
-            for key in bgp_data:
-                if key in sql_table_columns:
+            ### assumption: list of columns has correct order!!!
+            for key in sql_table_columns:
+                if key in bgp_data:
                     if len(columns_string) > 0: columns_string += ','
                     if len(values_string) > 0: values_string += ','
-                columns_string += '`' + key + '`'
-                ### be aware of data type
-                if isinstance(bgp_data.get(key,""), (list,tuple)):
-                    item_string = str()
-                    for item in bgp_data.get(key,""):
-                        if isinstance(item, (six.string_types)):
-                            if len(item_string) > 0: item_string += ','
-                            item_string += item
-                        elif isinstance(item, (dict,collections.OrderedDict)):
-                            for i in item:
+                    ### write key/columns_string
+                    columns_string += '`' + key + '`'
+                    ### be aware of data type
+                    if isinstance(bgp_data.get(key,""), (list,tuple)):
+                        item_string = str()
+                        for item in bgp_data.get(key,""):
+                            if isinstance(item, (six.string_types)):
                                 if len(item_string) > 0: item_string += ','
-                                item_string += item.get(i,"")
-                    values_string += "'" + item_string + "'"
-                elif isinstance(bgp_data.get(key,""), (six.string_types)):
-                    values_string += "'" + str(bgp_data.get(key,"")) + "'"
-                else:
-                    values_string += "'" + str(bgp_data.get(key,"")) + "'"
+                                item_string += item
+                            elif isinstance(item, (dict,collections.OrderedDict)):
+                                for i in item:
+                                    if len(item_string) > 0: item_string += ','
+                                    item_string += item.get(i,"")
+                        values_string += "'" + item_string + "'"
+                    elif isinstance(bgp_data.get(key,""), (six.string_types)):
+                        values_string += "'" + str(bgp_data.get(key,"")) + "'"
+                    else:
+                        values_string += "'" + str(bgp_data.get(key,"")) + "'"
 
             sql_string = """INSERT INTO `ipxt_data_collector` (%s) VALUES (%s);""" \
                 % (columns_string,values_string)
@@ -868,7 +870,7 @@ def sql_interface_data():
             if bgp_data.get('vrf_name',""):
                 check_data = sql_read_data("SELECT * FROM ipxt_data_collector WHERE vrf_name = '%s';" \
                     %(bgp_data.get('vrf_name',"")))
-                if submit_form: print("<br/>")    
+                if submit_form: print("<br/>--------------------------------<br/>")    
                 print('DB_READ_CHECK:',check_data)
                 if submit_form: print("<br/>")
     except Exception as e: print(e)
