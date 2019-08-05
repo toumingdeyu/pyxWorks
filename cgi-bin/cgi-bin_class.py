@@ -15,13 +15,20 @@ import six
 import collections
 
 import cgi
-#import cgitb; cgitb.enable()
+###import cgitb; cgitb.enable()
 import requests
 
 
 
 
-class CGI_print():    
+class CGI_handle():
+    """
+    CGI_handle - Simple class for handling CGI parameters and 
+                 clean (debug) printing to HTML/CLI    
+    """ 
+    # import collections, cgi, six
+    # import cgitb; cgitb.enable()
+
     def __init__(self):
         self.debug = True
         self.START_EPOCH = time.time()
@@ -36,12 +43,10 @@ class CGI_print():
                 (self.submit_form if self.submit_form else 'No submit'))
         
     def __del__(self):
-        self.print_html('\nEND[script runtime = %d sec]. '%(time.time() - self.START_EPOCH))
+        self.uprint('\nEND[script runtime = %d sec]. '%(time.time() - self.START_EPOCH))
         if self.gci_active: print("</body></html>")
         
     def read_cgibin_get_post_form(self):
-        # import collections, cgi
-        # import cgitb; cgitb.enable()
         data, submit_form, username, password = collections.OrderedDict(), '', '', ''
         form = cgi.FieldStorage()
         for key in form.keys():
@@ -55,28 +60,33 @@ class CGI_print():
             if variable == "password": password = value
         return data, submit_form, username, password
 
+    def uprint(self, text, tag = None):
+        if self.debug: 
+            if self.gci_active:
+                if tag and 'h' in tag: print('<%s>'%(tag))
+                if tag and 'p' in tag: print('<p>')
+                if isinstance(text, six.string_types): 
+                    text = str(text.replace('\n','<br/>'))
+                else: text = str(text)   
+            print(text)
+            if self.gci_active: 
+                print('<br/>');
+                if tag and 'p' in tag: print('</p>')
+                if tag and 'h' in tag: print('</%s>'%(tag))
+
     def print_GCI_data(self):
         if self.gci_active and self.debug:  
             for key, value in self.data.items(): 
-                self.print_html("CGI_DATA[%s:%s] \n" % (str(key), str(value)))
+                self.uprint("CGI_DATA[%s:%s] " % (str(key), str(value)))
 
-
-    def print_html(self, text):
-        if self.debug: 
-            if self.gci_active: 
-                if isinstance(text, six.string_types): 
-                    text = text.replace('\n','<br/>')
-            print(text)
-            if self.gci_active: print('<br/>');
-
-    def print_html_paragraph(self, text):
-        if self.debug: 
-            if self.gci_active: 
-                print('<p>')
-                if isinstance(text, six.string_types): 
-                    text = text.replace('\n','<br/>')    
-            print(text);
-            if self.gci_active: print('</p>')
+    def __repr__(self):
+        if self.gci_active:
+            print_string = '[CGI('       
+            for key, value in self.data.items(): 
+                print_string += '%s:%s ' % (str(key), str(value))
+            print_string += ') <br/>]'                      
+        else: print_string = '[CLI()]'  
+        return print_string        
             
 ##############################################################################
 #
@@ -87,14 +97,17 @@ class CGI_print():
 if __name__ != "__main__": sys.exit(0)
 
 ### CGI-BIN READ FORM ############################################
-gci_instance = CGI_print()
+gci_instance = CGI_handle()
 gci_instance.print_GCI_data()
 
-#print_html('LOGDIR[%s] \n'%(LOGDIR))
-CGI_print.print_html(gci_instance,'aaa')
-gci_instance.print_html('aaa') 
-#gci_instance.print_html(aaa)          
-gci_instance.print_html(['aaa2','aaa3'])
+#uprint('LOGDIR[%s] \n'%(LOGDIR))
+CGI_handle.uprint(gci_instance,'aaa')
+gci_instance.uprint('aaa') 
+#gci_instance.uprint(aaa)          
+gci_instance.uprint(['aaa2','aaa3'])
+gci_instance.uprint({'aaa4':'aaa5'}, tag = 'h1')
+#repr(gci_instance)
+#str(gci_instance)
 
 
 
