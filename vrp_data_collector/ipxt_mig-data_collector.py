@@ -835,7 +835,7 @@ def sql_interface_data():
             columns_string, values_string = str(), str()
             ### assumption: list of columns has correct order!!!
             for key in sql_table_columns:
-                if key in bgp_data:
+                if key in list(bgp_data.keys()):
                     if len(columns_string) > 0: columns_string += ','
                     if len(values_string) > 0: values_string += ','
                     ### write key/columns_string
