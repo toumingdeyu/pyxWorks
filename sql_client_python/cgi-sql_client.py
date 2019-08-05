@@ -100,13 +100,14 @@ class sql_interface():
         try:    
             self.sql_connection = mysql.connector.connect(host='localhost', user='cfgbuilder', \
                 password='cfgbuildergetdata', database='rtr_configuration')
-            print("SQL connection is open.")    
+            gci_ins.uprint("SQL connection is open.")    
         except Exception as e: print(e)           
     
     def __del__(self):
+
         if self.sql_connection and self.sql_connection.is_connected():
             self.sql_connection.close()            
-            print("SQL connection is closed.")
+            gci_ins.uprint("SQL connection is closed.")
         
     def sql_read_all_table_columns(self, table_name):
         columns = None
@@ -178,24 +179,25 @@ class sql_interface():
                ### FINALIZE SQL_STRING
                sql_string = """INSERT INTO `ipxt_data_collector` (%s) VALUES (%s);""" \
                    % (columns_string,values_string)   
-               print("\n"+sql_string+"\n")
                if columns_string:
                    self.sql_write_sql_command("""INSERT INTO `ipxt_data_collector`
                        (%s) VALUES (%s);""" %(columns_string,values_string))
+               gci_ins.uprint("\n"+sql_string+"\n")        
        return None                
    
-    def sql_read_table_from_dict(self, table_name, where_column_name, where_columns_equals):
+    def sql_read_table_to_dict(self, table_name, where_column_name, where_column_equals):
         '''sql_read_table_from_dict('ipxt_data_collector','vrf_name','name_of_vrf')'''
         check_data = None
         if self.sql_connection and self.sql_connection.is_connected():
-            if where_column_name and where_columns_equals:
-                select_string = "SELECT * FROM %s WHERE %s = '%s';" \
-                    %(table_name,where_column_name,where_columns_equals)
+            if where_column_name and where_column_equals:
+                sql_string = "SELECT * FROM %s WHERE %s = '%s';" \
+                    %(table_name,where_column_name,where_column_equals)
             else:
-                select_string = "SELECT * FROM %s;" \
-                    %(table_name,where_column_name,where_columns_equals)
-            check_data = sql_read_data(select_string)        
-            print(select_string,check_data)                    
+                sql_string = "SELECT * FROM %s;" \
+                    %(table_name)
+            check_data = self.sql_read_sql_command(sql_string)        
+            gci_ins.uprint(sql_string)
+            gci_ins.uprint(check_data)                    
         return check_data
 
                 
@@ -209,20 +211,29 @@ class sql_interface():
 if __name__ != "__main__": sys.exit(0)
 
 ### CGI-BIN READ FORM ############################################
-gci_instance = CGI_CLI_handle()
-print(repr(gci_instance))
+gci_ins = CGI_CLI_handle()
+print(repr(gci_ins))
 #print(str(gci_instance))
 
-CGI_CLI_handle.uprint(gci_instance,'aaa')
-gci_instance.uprint('aaa')          
-gci_instance.uprint(['aaa2','aaa3'])
-gci_instance.uprint({'aaa4':'aaa5'}, tag = 'h1')
+CGI_CLI_handle.uprint(gci_ins,'aaa')
+gci_ins.uprint('aaa')          
+gci_ins.uprint(['aaa2','aaa3'])
+gci_ins.uprint({'aaa4':'aaa5'}, tag = 'h1')
 #cgi.print_environ()
 
 
-sqli = sql_interface()
-print(sqli.sql_read_all_table_columns('ipxt_data_collector'))
-#sqli.sql_read_table_from_dict('ipxt_data_collector','vrf_name','SIGTRAN.Meditel')
+sql_ins = sql_interface()
+gci_ins.uprint(sql_ins.sql_read_all_table_columns('ipxt_data_collector'))
+sql_ins.sql_read_table_to_dict('ipxt_data_collector','vrf_name','SIGTRAN.Meditel')
+
+
+
+
+
+### DESTRUCTORS SEQUENCE
+del sql_ins
+del gci_ins
+
 
 
 
