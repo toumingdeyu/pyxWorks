@@ -19,76 +19,86 @@ import cgi
 import requests
 
 
-class CGI_CLI_handle():
+class CGI_CLI(object):
     """
-    CGI_handle - Simple class for handling CGI parameters and 
+    CGI_handle - Simple statis class for handling CGI parameters and 
                  clean (debug) printing to HTML/CLI    
        Notes:  - In case of cgi_parameters_error - http[500] is raised, 
                  but at least no appache timeout occurs...
     """ 
     # import collections, cgi, six
     # import cgitb; cgitb.enable()
-    def __init__(self):
-        self.debug = True
-        self.START_EPOCH = time.time()
-        self.cgi_parameters_error = None
-        self.gci_active = None
-        self.data, self.submit_form, self.username, self.password = \
-            self.read_cgibin_get_post_form()
-        if self.submit_form or len(self.data)>0: self.gci_active = True
-        if self.gci_active:
-            import cgitb; cgitb.enable()        
-            print("Content-type:text/html\n\n")
-            print("<html><head><title>%s</title></head><body>" % 
-                (self.submit_form if self.submit_form else 'No submit'))
-        # if self.cgi_parameters_error:
-            # import cgitb; cgitb.enable()   
-            # print("Content-type:text/html\n\n")
-            # print("<html><head><title>%s</title></head><body>" % 
-                # (self.submit_form if self.submit_form else 'No submit'))         
-            # self.uprint('\nNO INSERTED CGI PARAMETERS!\n')
-        
-    def __del__(self):
-        self.uprint('\nEND[script runtime = %d sec]. '%(time.time() - self.START_EPOCH))
-        if self.gci_active: print("</body></html>")
-        
-    def read_cgibin_get_post_form(self):
-        data, submit_form, username, password = collections.OrderedDict(), '', '', ''
+     
+    debug = True
+    initialized = None
+    START_EPOCH = time.time()
+    cgi_parameters_error = None
+    gci_active = None
+    
+    @staticmethod        
+    def __cleanup__():
+        CGI_CLI.uprint('\nEND[script runtime = %d sec]. '%(time.time() - CGI_CLI.START_EPOCH))
+        if CGI_CLI.gci_active: print("</body></html>")
+
+    @staticmethod
+    def register_cleanup_at_exit():
+        """
+        In static class is no constructor or destructor 
+        --> Register __cleanup__ in system
+        """
+        import atexit; atexit.register(CGI_CLI.__cleanup__)
+
+    @staticmethod
+    def init_cgi():
+        CGI_CLI.START_EPOCH = time.time()
+        CGI_CLI.initialized = True 
+        CGI_CLI.data, CGI_CLI.submit_form, CGI_CLI.username, CGI_CLI.password = \
+            collections.OrderedDict(), '', '', ''   
         try: form = cgi.FieldStorage()
         except: 
             form = collections.OrderedDict()
-            self.cgi_parameters_error = True
+            CGI_CLI.cgi_parameters_error = True
         for key in form.keys():
             variable = str(key)
             try: value = str(form.getvalue(variable))
             except: value = str(','.join(form.getlist(name)))
             if variable and value and not variable in ["submit","username","password"]: 
-                data[variable] = value
-            if variable == "submit": submit_form = value
-            if variable == "username": username = value
-            if variable == "password": password = value
-        return data, submit_form, username, password
+                CGI_CLI.data[variable] = value
+            if variable == "submit": CGI_CLI.submit_form = value
+            if variable == "username": CGI_CLI.username = value
+            if variable == "password": CGI_CLI.password = value
+        if CGI_CLI.submit_form or len(CGI_CLI.data)>0: CGI_CLI.gci_active = True
+        if CGI_CLI.gci_active:
+            import cgitb; cgitb.enable()        
+            print("Content-type:text/html\n\n")
+            print("<html><head><title>%s</title></head><body>" % 
+                (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit'))
+        import atexit; atexit.register(CGI_CLI.__cleanup__)
+        return None
 
-    def uprint(self, text, tag = None):
-        if self.debug: 
-            if self.gci_active:
+    @staticmethod 
+    def uprint(text, tag = None):
+        if CGI_CLI.debug: 
+            if CGI_CLI.gci_active:
                 if tag and 'h' in tag: print('<%s>'%(tag))
                 if tag and 'p' in tag: print('<p>')
                 if isinstance(text, six.string_types): 
                     text = str(text.replace('\n','<br/>'))
                 else: text = str(text)   
             print(text)
-            if self.gci_active: 
+            if CGI_CLI.gci_active: 
                 print('<br/>');
                 if tag and 'p' in tag: print('</p>')
                 if tag and 'h' in tag: print('</%s>'%(tag))
 
-    def __repr__(self):
-        if self.gci_active:
-            try: print_string = 'CGI_args=' + json.dumps(self.data) + ' <br/>'
+    @staticmethod
+    def print_args():
+        if CGI_CLI.gci_active:
+            try: print_string = 'CGI_args=' + json.dumps(CGI_CLI.data) + ' <br/>'
             except: print_string = 'CGI_args=' + ' <br/>'                
-        else: print_string = 'CLI_args=%s \n' % (str(sys.argv[1:]))  
-        return print_string        
+        else: print_string = 'CLI_args=%s \n' % (str(sys.argv[1:]))
+        CGI_CLI.uprint(print_string)
+        return print_string          
 
 
 class sql_interface():
@@ -97,17 +107,21 @@ class sql_interface():
     
     def __init__(self):
         self.sql_connection = None
+        try: 
+            if CGI_CLI.initialized: pass
+            else: CGI_CLI.init_cgi(); CGI_CLI.print_args()
+        except: pass
         try:    
             self.sql_connection = mysql.connector.connect(host='localhost', user='cfgbuilder', \
                 password='cfgbuildergetdata', database='rtr_configuration')
-            gci_ins.uprint("SQL connection is open.")    
+            CGI_CLI.uprint("SQL connection is open.")    
         except Exception as e: print(e)           
     
     def __del__(self):
 
         if self.sql_connection and self.sql_connection.is_connected():
             self.sql_connection.close()            
-            gci_ins.uprint("SQL connection is closed.")
+            CGI_CLI.uprint("SQL connection is closed.")
         
     def sql_read_all_table_columns(self, table_name):
         columns = None
@@ -182,22 +196,24 @@ class sql_interface():
                if columns_string:
                    self.sql_write_sql_command("""INSERT INTO `ipxt_data_collector`
                        (%s) VALUES (%s);""" %(columns_string,values_string))
-               gci_ins.uprint("\n"+sql_string+"\n")        
+               CGI_CLI.uprint("\n"+sql_string+"\n")        
        return None                
    
-    def sql_read_table_to_dict(self, table_name, where_column_name, where_column_equals):
-        '''sql_read_table_from_dict('ipxt_data_collector','vrf_name','name_of_vrf')'''
+    def sql_read_table_record_to_dict(self, table_name = None, where_string = None):
+        '''sql_read_table_from_dict('ipxt_data_collector',"vrf_name = 'name_of_vrf'" ) '''
         check_data = None
+        
+        #SELECT vlan_id FROM ipxt_data_collector WHERE id=(SELECT max(id)FROM ipxt_data_collector) AND username='mkrupa' AND device_name='AUVPE3'; 
         if self.sql_connection and self.sql_connection.is_connected():
-            if where_column_name and where_column_equals:
-                sql_string = "SELECT * FROM %s WHERE %s = '%s';" \
-                    %(table_name,where_column_name,where_column_equals)
+            if where_string:
+                sql_string = "SELECT * FROM %s WHERE id=(SELECT max(id) FROM %s) AND %s;" \
+                    %(table_name, table_name, where_string)
             else:
-                sql_string = "SELECT * FROM %s;" \
-                    %(table_name)
+                sql_string = "SELECT * FROM %s WHERE id=(SELECT max(id) FROM %s);" \
+                    %(table_name, table_name)
             check_data = self.sql_read_sql_command(sql_string)        
-            gci_ins.uprint(sql_string)
-            gci_ins.uprint(check_data)                    
+            CGI_CLI.uprint(sql_string)
+            CGI_CLI.uprint(check_data)                    
         return check_data
 
                 
@@ -211,28 +227,26 @@ class sql_interface():
 if __name__ != "__main__": sys.exit(0)
 
 ### CGI-BIN READ FORM ############################################
-gci_ins = CGI_CLI_handle()
-print(repr(gci_ins))
-#print(str(gci_instance))
+CGI_CLI()
+CGI_CLI.init_cgi()
+CGI_CLI.print_args()
 
-CGI_CLI_handle.uprint(gci_ins,'aaa')
-gci_ins.uprint('aaa')          
-gci_ins.uprint(['aaa2','aaa3'])
-gci_ins.uprint({'aaa4':'aaa5'}, tag = 'h1')
-#cgi.print_environ()
+CGI_CLI.uprint('aaa')       
 
+CGI_CLI.uprint(['aaa2','aaa3'])
+CGI_CLI.uprint({'aaa4':'aaa5'}, tag = 'h1')
 
-sql_ins = sql_interface()
-gci_ins.uprint(sql_ins.sql_read_all_table_columns('ipxt_data_collector'))
-sql_ins.sql_read_table_to_dict('ipxt_data_collector','vrf_name','SIGTRAN.Meditel')
+sql_inst = sql_interface()
+CGI_CLI.uprint(sql_inst.sql_read_all_table_columns('ipxt_data_collector'))
+sql_inst.sql_read_table_record_to_dict('ipxt_data_collector')
+#,"username='mkrupa' AND device_name='AUVPE3'")
 
-
+#SELECT vlan_id FROM ipxt_data_collector WHERE id=(SELECT max(id)FROM ipxt_data_collector) AND username='mkrupa' AND device_name='AUVPE3';
 
 
 
 ### DESTRUCTORS SEQUENCE
-del sql_ins
-del gci_ins
+del sql_inst
 
 
 
