@@ -17,9 +17,8 @@ import collections
 import cgi
 import cgitb; cgitb.enable()
 import requests
-#if int(sys.version_info[0]) == 3: import pymysql
-#else: import mysql.connector
-import mysql.connector
+if int(sys.version_info[0]) == 3: import pymysql
+else: import mysql.connector
 
 
 class CGI_CLI(object):
@@ -115,28 +114,32 @@ class sql_interface():
             else: CGI_CLI.init_cgi(); CGI_CLI.print_args()
         except: pass
         try:
-            # if int(sys.version_info[0]) == 3:
-                # self.sql_connection = pymysql.connect( \
-                    # host=host, user=user, password=password, database=database)
-            # else: 
-                # self.sql_connection = mysql.connector.connect( \
-                    # host=host, user=user, password=password, database=database)
-
-            self.sql_connection = mysql.connector.connect( \
-                host=host, user=user, password=password, database=database)
+            if int(sys.version_info[0]) == 3:
+                self.sql_connection = pymysql.connect( \
+                    host=host, user=user, password=password, database=database)
+            else: 
+                self.sql_connection = mysql.connector.connect( \
+                    host=host, user=user, password=password, database=database)
                        
             CGI_CLI.uprint("SQL connection is open.")    
         except Exception as e: print(e)           
     
     def __del__(self):
-
         if self.sql_connection and self.sql_connection.is_connected():
             self.sql_connection.close()            
             CGI_CLI.uprint("SQL connection is closed.")
+
+    def sql_is_connected(self):
+        if self.sql_connection: 
+            if int(sys.version_info[0]) == 3 and self.sql_connection.open:
+                return True
+            elif int(sys.version_info[0]) == 2 and self.sql_connection.is_connected():
+                return True
+        return None
         
     def sql_read_all_table_columns(self, table_name):
         columns = None
-        if self.sql_connection and self.sql_connection.is_connected():
+        if self.sql_is_connected():
             cursor = self.sql_connection.cursor()
             try: 
                 cursor.execute("select * from INFORMATION_SCHEMA.COLUMNS where TABLE_NAME='%s';"%(table_name))
@@ -149,7 +152,7 @@ class sql_interface():
 
     def sql_read_sql_command(self, sql_command):
         records = None
-        if self.sql_connection and self.sql_connection.is_connected():
+        if self.sql_is_connected():
             cursor = self.sql_connection.cursor()
             try: 
                 cursor.execute(sql_command)
@@ -160,20 +163,23 @@ class sql_interface():
         return records 
 
     def sql_write_sql_command(self, sql_command):
-        if self.sql_connection and self.sql_connection.is_connected():
-            cursor = self.sql_connection.cursor(prepared=True)
+        if self.sql_is_connected(): 
+            if int(sys.version_info[0]) == 3:
+                cursor = self.sql_connection.cursor()
+            elif int(sys.version_info[0]) == 2:        
+                cursor = self.sql_connection.cursor(prepared=True)
             try: 
                 cursor.execute(sql_command)
                 ### DO NOT COMMIT IF AUTOCOMMIT IS SET 
-                if not sql_connection.autocommit: sql_connection.commit()
+                if not self.sql_connection.autocommit: self.sql_connection.commit()
             except Exception as e: print(e)
             try: cursor.close()
             except: pass
         return None
 
     def sql_write_table_from_dict(self, table_name, dict_data):  ###'ipxt_data_collector'
-       if self.sql_connection and self.sql_connection.is_connected():
-           existing_sql_table_columns = sql_read_all_table_columns(table_name) 
+       if self.sql_is_connected():
+           existing_sql_table_columns = self.sql_read_all_table_columns(table_name) 
            if existing_sql_table_columns:
                columns_string, values_string = str(), str()
                ### ASSUMPTION: LIST OF COLUMNS HAS CORRECT ORDER!!!
@@ -207,7 +213,7 @@ class sql_interface():
                if columns_string:
                    self.sql_write_sql_command("""INSERT INTO `ipxt_data_collector`
                        (%s) VALUES (%s);""" %(columns_string,values_string))
-               CGI_CLI.uprint("\n"+sql_string+"\n")        
+               #CGI_CLI.uprint("\n"+sql_string+"\n")        
        return None                
    
     def sql_read_table_last_record(self, select_string = None , from_string = None, where_string = None):
@@ -215,7 +221,7 @@ class sql_interface():
         check_data = None
         if not select_string: select_string = '*'
         #SELECT vlan_id FROM ipxt_data_collector WHERE id=(SELECT max(id) FROM ipxt_data_collector WHERE username='mkrupa' AND device_name='AUVPE3'); 
-        if self.sql_connection and self.sql_connection.is_connected():
+        if self.sql_is_connected():
             if from_string:
                 if where_string:
                     sql_string = "SELECT %s FROM %s WHERE id=(SELECT max(id) FROM %s WHERE %s);" \
@@ -224,8 +230,8 @@ class sql_interface():
                     sql_string = "SELECT %s FROM %s WHERE id=(SELECT max(id) FROM %s);" \
                         %(select_string, from_string, from_string)
                 check_data = self.sql_read_sql_command(sql_string)        
-            CGI_CLI.uprint(sql_string)
-            CGI_CLI.uprint(check_data)                    
+            #CGI_CLI.uprint(sql_string)
+            #CGI_CLI.uprint(check_data)                    
         return check_data
 
                 
@@ -243,23 +249,38 @@ CGI_CLI()
 CGI_CLI.init_cgi()
 CGI_CLI.print_args()
 
-CGI_CLI.uprint('aaa')       
+# CGI_CLI.uprint('aaa')       
 
-CGI_CLI.uprint(['aaa2','aaa3'])
-CGI_CLI.uprint({'aaa4':'aaa5'}, tag = 'h1')
+# CGI_CLI.uprint(['aaa2','aaa3'])
+# CGI_CLI.uprint({'aaa4':'aaa5'}, tag = 'h1')
+
+# sql_inst = sql_interface(host='localhost', user='cfgbuilder', password='cfgbuildergetdata', database='rtr_configuration')
+# CGI_CLI.uprint(sql_inst.sql_read_all_table_columns('ipxt_data_collector'))
+# sql_inst.sql_read_table_last_record(from_string = 'ipxt_data_collector')
+# sql_inst.sql_read_table_last_record(from_string = 'ipxt_data_collector', \
+    # where_string = "username='mkrupa' AND device_name='AUVPE3'") 
+    
+# sql_inst.sql_read_table_last_record(from_string = 'ipxt_data_collector', \
+    # where_string = "username='%s'" % \
+        # ('mkrupa' if not CGI_CLI.username else CGI_CLI.username,))
 
 sql_inst = sql_interface(host='localhost', user='cfgbuilder', password='cfgbuildergetdata', database='rtr_configuration')
-CGI_CLI.uprint(sql_inst.sql_read_all_table_columns('ipxt_data_collector'))
-sql_inst.sql_read_table_last_record(from_string = 'ipxt_data_collector')
-sql_inst.sql_read_table_last_record(from_string = 'ipxt_data_collector', \
-    where_string = "username='mkrupa' AND device_name='AUVPE3'") 
-    
-sql_inst.sql_read_table_last_record(from_string = 'ipxt_data_collector', \
-    where_string = "username='%s'" % \
-        ('mkrupa' if not CGI_CLI.username else CGI_CLI.username,))
 
-#SELECT vlan_id FROM ipxt_data_collector WHERE id=(SELECT max(id)FROM ipxt_data_collector WHERE username='mkrupa' AND device_name='AUVPE3'); 
+name_list = sql_inst.sql_read_all_table_columns('ipxt_data_collector')
+data_list = sql_inst.sql_read_table_last_record(from_string = 'ipxt_data_collector')
 
+CGI_CLI.uprint(name_list)
+CGI_CLI.uprint(data_list)
+
+if name_list and data_list: read_data = collections.OrderedDict(zip(name_list[:-1], data_list[0][:-1]))
+else: read_data = collections.OrderedDict()
+
+CGI_CLI.uprint('READ_DATA:')
+CGI_CLI.uprint(read_data) 
+
+sql_inst.sql_write_table_from_dict('ipxt_data_collector', read_data)
+
+CGI_CLI.uprint(sql_inst.sql_read_table_last_record(from_string = 'ipxt_data_collector'))
 
 ### DESTRUCTORS SEQUENCE
 del sql_inst
