@@ -199,19 +199,20 @@ class sql_interface():
                CGI_CLI.uprint("\n"+sql_string+"\n")        
        return None                
    
-    def sql_read_table_record_to_dict(self, table_name = None, where_string = None):
+    def sql_read_table_last_record(self, select_string = None , from_string = None, where_string = None):
         '''sql_read_table_from_dict('ipxt_data_collector',"vrf_name = 'name_of_vrf'" ) '''
         check_data = None
-        
-        #SELECT vlan_id FROM ipxt_data_collector WHERE id=(SELECT max(id)FROM ipxt_data_collector) AND username='mkrupa' AND device_name='AUVPE3'; 
+        if not select_string: select_string = '*'
+        #SELECT vlan_id FROM ipxt_data_collector WHERE id=(SELECT max(id) FROM ipxt_data_collector WHERE username='mkrupa' AND device_name='AUVPE3'); 
         if self.sql_connection and self.sql_connection.is_connected():
-            if where_string:
-                sql_string = "SELECT * FROM %s WHERE id=(SELECT max(id) FROM %s) AND %s;" \
-                    %(table_name, table_name, where_string)
-            else:
-                sql_string = "SELECT * FROM %s WHERE id=(SELECT max(id) FROM %s);" \
-                    %(table_name, table_name)
-            check_data = self.sql_read_sql_command(sql_string)        
+            if from_string:
+                if where_string:
+                    sql_string = "SELECT %s FROM %s WHERE id=(SELECT max(id) FROM %s WHERE %s);" \
+                        %(select_string, from_string, from_string, where_string)
+                else:
+                    sql_string = "SELECT %s FROM %s WHERE id=(SELECT max(id) FROM %s);" \
+                        %(select_string, from_string, from_string)
+                check_data = self.sql_read_sql_command(sql_string)        
             CGI_CLI.uprint(sql_string)
             CGI_CLI.uprint(check_data)                    
         return check_data
@@ -238,11 +239,15 @@ CGI_CLI.uprint({'aaa4':'aaa5'}, tag = 'h1')
 
 sql_inst = sql_interface()
 CGI_CLI.uprint(sql_inst.sql_read_all_table_columns('ipxt_data_collector'))
-sql_inst.sql_read_table_record_to_dict('ipxt_data_collector')
-#,"username='mkrupa' AND device_name='AUVPE3'")
+sql_inst.sql_read_table_last_record(from_string = 'ipxt_data_collector')
+sql_inst.sql_read_table_last_record(from_string = 'ipxt_data_collector', \
+    where_string = "username='mkrupa' AND device_name='AUVPE3'") 
+    
+sql_inst.sql_read_table_last_record(from_string = 'ipxt_data_collector', \
+    where_string = "username='%s'" % \
+        ('mkrupa' if not CGI_CLI.username else CGI_CLI.username,))
 
-#SELECT vlan_id FROM ipxt_data_collector WHERE id=(SELECT max(id)FROM ipxt_data_collector) AND username='mkrupa' AND device_name='AUVPE3';
-
+#SELECT vlan_id FROM ipxt_data_collector WHERE id=(SELECT max(id)FROM ipxt_data_collector WHERE username='mkrupa' AND device_name='AUVPE3'); 
 
 
 ### DESTRUCTORS SEQUENCE
