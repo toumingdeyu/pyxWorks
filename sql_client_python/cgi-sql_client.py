@@ -1,4 +1,4 @@
-#!/usr/bin/python36
+#!/usr/bin/python
 
 import sys, os, io, paramiko, json, copy, html
 
@@ -115,11 +115,14 @@ class sql_interface():
         except: pass
         try:
             if int(sys.version_info[0]) == 3:
+                ### PYMYSQL DISABLE AUTOCOMMIT BY DEFAULT !!!
                 self.sql_connection = pymysql.connect( \
-                    host=host, user=user, password=password, database=database)
+                    host = host, user = user, password = password, \
+                    database = database, autocommit = True)
             else: 
                 self.sql_connection = mysql.connector.connect( \
-                    host=host, user=user, password=password, database=database)
+                    host = host, user = user, password = password,\
+                    database = database, autocommit = True)
                        
             #CGI_CLI.uprint("SQL connection is open.")    
         except Exception as e: print(e)           
@@ -217,8 +220,8 @@ class sql_interface():
                        (%s) VALUES (%s);""" %(columns_string,values_string))       
        return None                
    
-    def sql_read_table_last_record(self, select_string = None , from_string = None, where_string = None):
-        '''NOTE: FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE'''
+    def sql_read_table_last_record(self, select_string = None, from_string = None, where_string = None):
+        """NOTE: FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE"""
         check_data = None
         if not select_string: select_string = '*'
         #SELECT vlan_id FROM ipxt_data_collector WHERE id=(SELECT max(id) FROM ipxt_data_collector WHERE username='mkrupa' AND device_name='AUVPE3'); 
