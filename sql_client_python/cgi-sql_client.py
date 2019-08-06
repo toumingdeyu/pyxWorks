@@ -1,6 +1,7 @@
-#!/usr/bin/python
+#!/usr/bin/python36
 
 import sys, os, io, paramiko, json, copy, html
+
 import getopt
 import getpass
 import telnetlib
@@ -13,10 +14,12 @@ import glob
 import socket
 import six
 import collections
-import mysql.connector
 import cgi
-###import cgitb; cgitb.enable()
+import cgitb; cgitb.enable()
 import requests
+#if int(sys.version_info[0]) == 3: import pymysql
+#else: import mysql.connector
+import mysql.connector
 
 
 class CGI_CLI(object):
@@ -111,9 +114,17 @@ class sql_interface():
             if CGI_CLI.initialized: pass
             else: CGI_CLI.init_cgi(); CGI_CLI.print_args()
         except: pass
-        try:    
+        try:
+            # if int(sys.version_info[0]) == 3:
+                # self.sql_connection = pymysql.connect( \
+                    # host=host, user=user, password=password, database=database)
+            # else: 
+                # self.sql_connection = mysql.connector.connect( \
+                    # host=host, user=user, password=password, database=database)
+
             self.sql_connection = mysql.connector.connect( \
                 host=host, user=user, password=password, database=database)
+                       
             CGI_CLI.uprint("SQL connection is open.")    
         except Exception as e: print(e)           
     
