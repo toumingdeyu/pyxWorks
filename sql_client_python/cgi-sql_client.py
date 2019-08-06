@@ -105,15 +105,15 @@ class sql_interface():
     ### import mysql.connector
     ### MARIADB - By default AUTOCOMMIT is disabled
     
-    def __init__(self):
+    def __init__(self, host = None, user = None, password = None, database = None):
         self.sql_connection = None
         try: 
             if CGI_CLI.initialized: pass
             else: CGI_CLI.init_cgi(); CGI_CLI.print_args()
         except: pass
         try:    
-            self.sql_connection = mysql.connector.connect(host='localhost', user='cfgbuilder', \
-                password='cfgbuildergetdata', database='rtr_configuration')
+            self.sql_connection = mysql.connector.connect( \
+                host=host, user=user, password=password, database=database)
             CGI_CLI.uprint("SQL connection is open.")    
         except Exception as e: print(e)           
     
@@ -237,7 +237,7 @@ CGI_CLI.uprint('aaa')
 CGI_CLI.uprint(['aaa2','aaa3'])
 CGI_CLI.uprint({'aaa4':'aaa5'}, tag = 'h1')
 
-sql_inst = sql_interface()
+sql_inst = sql_interface(host='localhost', user='cfgbuilder', password='cfgbuildergetdata', database='rtr_configuration')
 CGI_CLI.uprint(sql_inst.sql_read_all_table_columns('ipxt_data_collector'))
 sql_inst.sql_read_table_last_record(from_string = 'ipxt_data_collector')
 sql_inst.sql_read_table_last_record(from_string = 'ipxt_data_collector', \
