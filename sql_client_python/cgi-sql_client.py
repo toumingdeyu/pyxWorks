@@ -121,13 +121,13 @@ class sql_interface():
                 self.sql_connection = mysql.connector.connect( \
                     host=host, user=user, password=password, database=database)
                        
-            CGI_CLI.uprint("SQL connection is open.")    
+            #CGI_CLI.uprint("SQL connection is open.")    
         except Exception as e: print(e)           
     
     def __del__(self):
         if self.sql_connection and self.sql_connection.is_connected():
             self.sql_connection.close()            
-            CGI_CLI.uprint("SQL connection is closed.")
+            #CGI_CLI.uprint("SQL connection is closed.")
 
     def sql_is_connected(self):
         if self.sql_connection: 
@@ -151,6 +151,7 @@ class sql_interface():
         return columns 
 
     def sql_read_sql_command(self, sql_command):
+        '''NOTE: FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE'''
         records = None
         if self.sql_is_connected():
             cursor = self.sql_connection.cursor()
@@ -160,6 +161,7 @@ class sql_interface():
             except Exception as e: print(e)
             try: cursor.close()
             except: pass
+            ### FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE
         return records 
 
     def sql_write_sql_command(self, sql_command):
@@ -212,12 +214,11 @@ class sql_interface():
                    % (columns_string,values_string)   
                if columns_string:
                    self.sql_write_sql_command("""INSERT INTO `ipxt_data_collector`
-                       (%s) VALUES (%s);""" %(columns_string,values_string))
-               #CGI_CLI.uprint("\n"+sql_string+"\n")        
+                       (%s) VALUES (%s);""" %(columns_string,values_string))       
        return None                
    
     def sql_read_table_last_record(self, select_string = None , from_string = None, where_string = None):
-        '''sql_read_table_from_dict('ipxt_data_collector',"vrf_name = 'name_of_vrf'" ) '''
+        '''NOTE: FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE'''
         check_data = None
         if not select_string: select_string = '*'
         #SELECT vlan_id FROM ipxt_data_collector WHERE id=(SELECT max(id) FROM ipxt_data_collector WHERE username='mkrupa' AND device_name='AUVPE3'); 
@@ -229,9 +230,7 @@ class sql_interface():
                 else:
                     sql_string = "SELECT %s FROM %s WHERE id=(SELECT max(id) FROM %s);" \
                         %(select_string, from_string, from_string)
-                check_data = self.sql_read_sql_command(sql_string)        
-            #CGI_CLI.uprint(sql_string)
-            #CGI_CLI.uprint(check_data)                    
+                check_data = self.sql_read_sql_command(sql_string)                          
         return check_data
 
                 
