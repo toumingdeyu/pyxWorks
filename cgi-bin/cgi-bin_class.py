@@ -32,11 +32,11 @@ class CGI_CLI_handle():
         self.debug = True
         self.START_EPOCH = time.time()
         self.cgi_parameters_error = None
-        self.gci_active = None
+        self.cgi_active = None
         self.data, self.submit_form, self.username, self.password = \
             self.read_cgibin_get_post_form()
-        if self.submit_form or len(self.data)>0: self.gci_active = True
-        if self.gci_active:
+        if self.submit_form or len(self.data)>0: self.cgi_active = True
+        if self.cgi_active:
             import cgitb; cgitb.enable()        
             print("Content-type:text/html\n\n")
             print("<html><head><title>%s</title></head><body>" % 
@@ -50,7 +50,7 @@ class CGI_CLI_handle():
         
     def __del__(self):
         self.uprint('\nEND[script runtime = %d sec]. '%(time.time() - self.START_EPOCH))
-        if self.gci_active: print("</body></html>")
+        if self.cgi_active: print("</body></html>")
         
     def read_cgibin_get_post_form(self):
         data, submit_form, username, password = collections.OrderedDict(), '', '', ''
@@ -71,20 +71,20 @@ class CGI_CLI_handle():
 
     def uprint(self, text, tag = None):
         if self.debug: 
-            if self.gci_active:
+            if self.cgi_active:
                 if tag and 'h' in tag: print('<%s>'%(tag))
                 if tag and 'p' in tag: print('<p>')
                 if isinstance(text, six.string_types): 
                     text = str(text.replace('\n','<br/>'))
                 else: text = str(text)   
             print(text)
-            if self.gci_active: 
+            if self.cgi_active: 
                 print('<br/>');
                 if tag and 'p' in tag: print('</p>')
                 if tag and 'h' in tag: print('</%s>'%(tag))
 
     def __repr__(self):
-        if self.gci_active:
+        if self.cgi_active:
             try: print_string = 'CGI_args=' + json.dumps(self.data) + ' <br/>'
             except: print_string = 'CGI_args=' + ' <br/>'                
         else: print_string = 'CLI_args=%s \n' % (str(sys.argv[1:]))  

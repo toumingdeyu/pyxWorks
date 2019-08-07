@@ -33,12 +33,12 @@ class CGI_CLI(object):
     initialized = None
     START_EPOCH = time.time()
     cgi_parameters_error = None
-    gci_active = None
+    cgi_active = None
     
     @staticmethod        
     def __cleanup__():
         CGI_CLI.uprint('\nEND[script runtime = %d sec]. '%(time.time() - CGI_CLI.START_EPOCH))
-        if CGI_CLI.gci_active: print("</body></html>")
+        if CGI_CLI.cgi_active: print("</body></html>")
 
     @staticmethod
     def register_cleanup_at_exit():
@@ -67,8 +67,8 @@ class CGI_CLI(object):
             if variable == "submit": CGI_CLI.submit_form = value
             if variable == "username": CGI_CLI.username = value
             if variable == "password": CGI_CLI.password = value
-        if CGI_CLI.submit_form or len(CGI_CLI.data)>0: CGI_CLI.gci_active = True
-        if CGI_CLI.gci_active:
+        if CGI_CLI.submit_form or len(CGI_CLI.data)>0: CGI_CLI.cgi_active = True
+        if CGI_CLI.cgi_active:
             import cgitb; cgitb.enable()        
             print("Content-type:text/html\n\n")
             print("<html><head><title>%s</title></head><body>" % 
@@ -79,21 +79,21 @@ class CGI_CLI(object):
     @staticmethod 
     def uprint(text, tag = None):
         if CGI_CLI.debug: 
-            if CGI_CLI.gci_active:
+            if CGI_CLI.cgi_active:
                 if tag and 'h' in tag: print('<%s>'%(tag))
                 if tag and 'p' in tag: print('<p>')
                 if isinstance(text, six.string_types): 
                     text = str(text.replace('\n','<br/>'))
                 else: text = str(text)   
             print(text)
-            if CGI_CLI.gci_active: 
+            if CGI_CLI.cgi_active: 
                 print('<br/>');
                 if tag and 'p' in tag: print('</p>')
                 if tag and 'h' in tag: print('</%s>'%(tag))
 
     @staticmethod
     def print_args():
-        if CGI_CLI.gci_active:
+        if CGI_CLI.cgi_active:
             try: print_string = 'CGI_args=' + json.dumps(CGI_CLI.data) + ' <br/>'
             except: print_string = 'CGI_args=' + ' <br/>'                
         else: print_string = 'CLI_args=%s \n' % (str(sys.argv[1:]))
