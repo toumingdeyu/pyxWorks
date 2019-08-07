@@ -13,7 +13,7 @@ import glob
 import socket
 import six
 import collections
-import mysql.connector
+
 from mako.template import Template
 from mako.lookup import TemplateLookup
 import cgi
@@ -22,6 +22,8 @@ import requests
 #import interactive
 #python 2.7 problem - hack 'pip install esptool'
 import netmiko
+if int(sys.version_info[0]) == 3: import pymysql
+else: import mysql.connector
 
 
 step1_string = 'Submit step 1'
@@ -99,21 +101,6 @@ default_printalllines_list = []
 ###############################################################################
 
 
-# IOS-XE is only for IPsec GW
-CMD_IOS_XE = []
-
-CMD_IOS_XR = [
-
-]
-
-CMD_JUNOS = []
-
-CMD_VRP = []
-
-CMD_LINUX = []
-
-CMD_LOCAL = []
-
 
 ###############################################################################
 bgp_data = collections.OrderedDict()
@@ -145,57 +132,25 @@ ipv4 access-list IPXT.${customer_name}-IN
 ###############################################################################
 
 ### UNI-tools ###
-def return_indexed_list(data_list = None):
-    if data_list and isinstance(data_list, (list,tuple)):
-        return zip(range(len(data_list)),data_list)
-    return []
-
-
-def get_first_row_after(text = None, split_text = None, delete_text = None, split_text_index = None):
-    output = str()
-    if text:
-        try:
-            if split_text_index == None: output = text.strip().split(split_text)[1].split()[0].strip()
-            else: output = text.strip().split(split_text)[int(split_text_index)+1].split()[0].strip()
-            if delete_text: output = output.replace(delete_text,'')
-        except: pass
-    return output
-
-
-def get_first_row_before(text = None, split_text = None, delete_text = None, split_text_index = None):
-    output = str()
-    if text:
-        try:
-            if split_text_index == None: output = text.strip().split(split_text)[0].split()[-1].strip()
-            else: output = text.strip().split(split_text)[int(split_text_index)].split()[-1].strip()
-            if delete_text: output = output.replace(delete_text,'')
-        except: pass
-    return output
-
-def does_text_contains_string(text = None, contains_string = None):
-    output = str()
-    if text and contains_text:
-        if contains_string in text: output = contains_string
-    return output
-
 def return_bgp_data_json():
     return json.dumps(bgp_data, indent=2)
 
 
 def read_bgp_data_json_from_logfile(filename = None, printall = None):
     bgp_data_loaded, text = None, None
-    with open(filename,"r") as fp:
-        text = fp.read()
-    if text:
-        try: bgp_data_json_text = text.split('EVAL_COMMAND: return_bgp_data_json()')[1]
-        except: bgp_data_json_text = str()
-        if bgp_data_json_text:
-            try:
-                bgp_data_loaded = json.loads(bgp_data_json_text, object_pairs_hook = collections.OrderedDict)
-            except: pass
-            #print("LOADED_BGP_DATA: ",bgp_data_loaded)
-            if printall: print("\nLOADED JSON BGP_DATA: ")
-            if printall: print(json.dumps(bgp_data_loaded, indent=2))
+    if filename:
+        with open(filename,"r") as fp:
+            text = fp.read()
+        if text:
+            try: bgp_data_json_text = text.split('EVAL_COMMAND: return_bgp_data_json()')[1]
+            except: bgp_data_json_text = str()
+            if bgp_data_json_text:
+                try:
+                    bgp_data_loaded = json.loads(bgp_data_json_text, object_pairs_hook = collections.OrderedDict)
+                except: pass
+                #print("LOADED_BGP_DATA: ",bgp_data_loaded)
+                if printall: print("\nLOADED JSON BGP_DATA: ")
+                if printall: print(json.dumps(bgp_data_loaded, indent=2))
     return bgp_data_loaded
 
 
@@ -364,285 +319,6 @@ def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True)
     return output, new_prompt
 
 
-
-def parse_json_file_and_get_oti_routers_list():
-    oti_routers, json_raw_data = [], str()
-    json_filename = '/usr/local/iptac/oti_all.pl'
-    with io.open(json_filename,'r') as json_file:
-        data = json_file.read()
-        data_converted = data.split('%oti_all =')[1].replace("'",'"')\
-            .replace('=>',':').replace('(','{').replace(')','}').replace(';','')
-        data_converted='{\n  "OTI_ALL" : ' + data_converted + '\n}'
-        json_raw_data = json.loads(data_converted)
-    if json_raw_data:
-        for router in json_raw_data['OTI_ALL']:
-            if '172.25.4' in json_raw_data['OTI_ALL'][router]['LSRID']:
-                oti_routers.append(router)
-    return oti_routers
-
-
-# def parse_json_file_and_get_oti_routers_list():
-#     oti_routers = []
-#     json_filename = '/home/dpenha/perl_shop/NIS9TABLE_BLDR/node_list.json'
-#     with io.open(json_filename) as json_file: json_raw_data = json.load(json_file)
-#     if json_raw_data:
-#         for router in json_raw_data['results']:
-#            if router['namings']['type']=='OTI':
-#                oti_routers.append(router['name'])
-#     return oti_routers
-
-
-def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
-    printcmdtologfile = None, debug = None,use_module = 'paramiko'):
-    ### RUN_COMMAND - REMOTE or LOCAL ------------------------------------------
-    def run_command(ssh_connection,cmd_line_items,loop_item=None,run_remote = None,\
-        logfilename = logfilename,printall = printall, printcmdtologfile = printcmdtologfile,use_module = use_module):
-        global glob_vars, DEVICE_PROMPTS
-        cli_line, name_of_output_variable, simulate_command, sim_text = str(), None, None, str()
-        print_output = None
-        ### LIST,TUPPLE,STRINS ARE REMOTE REMOTE/LOCAL DEVICE COMMANDS
-        if isinstance(cmd_line_items, (six.string_types,list,tuple)):
-            if isinstance(cmd_line_items, six.string_types): cli_line = cmd_line_items
-            elif isinstance(cmd_line_items, (list,tuple)):
-                for cli_item in cmd_line_items:
-                    if isinstance(cli_item, dict):
-                        if cli_item.get('output_variable',''):
-                            name_of_output_variable = cli_item.get('output_variable','')
-                        elif cli_item.get('eval',''):
-                            cli_line += str(eval(cli_item.get('eval','')))
-                        elif cli_item.get('sim',''):
-                            simulate_command = True
-                            if str(eval(cli_item.get('sim',''))).upper()=='ON' or \
-                              str(cli_item.get('sim','')).upper()=='ON': simulate_command = True
-                            else: simulate_command = None
-                            if simulate_command: sim_text = '(SIM)'
-                        elif cli_item.get('print_output',''):
-                            print_output = True if str(cli_item.get('print_output','')).upper()=='ON' else None
-                    else: cli_line += str(cli_item)
-            if run_remote:
-                if printall: print(bcolors.GREEN + "REMOTE_COMMAND%s: %s" % (sim_text,cli_line) + bcolors.ENDC )
-                if simulate_command: last_output = str()
-                else:
-                    if use_module == 'netmiko':
-                        last_output = ssh_connection.send_command(cli_line)
-                    elif use_module == 'paramiko':
-                        last_output, new_prompt = ssh_send_command_and_read_output( \
-                            ssh_connection,DEVICE_PROMPTS,cli_line,printall=printall)
-                        if new_prompt: DEVICE_PROMPTS.append(new_prompt)
-            else:
-                if printall: print(bcolors.CYAN + "LOCAL_COMMAND%s: %s" % (sim_text,cli_line) + bcolors.ENDC )
-                ### LOCAL COMMAND - SUBPROCESS CALL
-                if simulate_command: last_output = str()
-                else:
-                    try: last_output = subprocess.check_output(str(cli_line),shell=True)
-                    except: last_output = str()
-
-            ### FILTER LAST_OUTPUT
-            if isinstance(last_output, six.string_types):
-                try:
-                    last_output = last_output.decode("utf-8").replace('\x07','').\
-                        replace('\x08','').replace('\x0d','').replace('\x1b','').replace('\x1d','')
-                except:
-                     last_output = last_output.replace('\x07','').\
-                        replace('\x08','').replace('\x0d','').replace('\x1b','').replace('\x1d','')
-                ### NETMIKO-BUG (https://github.com/ktbyers/netmiko/issues/1200)
-                if len(str(cli_line))>80 and run_remote:
-                    first_bugged_line = last_output.splitlines()[0]
-                    #print('NOISE:',first_bugged_line)
-                    last_output = last_output.replace(first_bugged_line+'\n','')
-                    if(last_output.strip() == first_bugged_line): last_output = str()
-
-            if printall: print(bcolors.GREY + "%s" % (last_output) + bcolors.ENDC )
-            elif print_output: print(bcolors.YELLOW + "%s" % (last_output) + bcolors.ENDC )
-            if printcmdtologfile:
-                if run_remote: fp.write('REMOTE_COMMAND'+sim_text+': ' + cli_line + '\n'+last_output+'\n')
-                else: fp.write('LOCAL_COMMAND'+sim_text+': ' + str(cli_line) + '\n'+str(last_output)+'\n')
-            else: fp.write(last_output)
-            ### Result will be allways string, so rstrip() could be done
-            glob_vars['last_output'] = last_output.rstrip()
-            if name_of_output_variable:
-                glob_vars[name_of_output_variable] = last_output.rstrip()
-        return None
-    ### EVAL_COMMAND -----------------------------------------------------------
-    def eval_command(ssh_connection,cmd_line_items,loop_item=None,\
-        logfilename = logfilename,printall = printall, printcmdtologfile = printcmdtologfile):
-        global glob_vars, DEVICE_PROMPTS
-        cli_line, name_of_output_variable, print_output = str(), None, None
-        ### LIST,TUPPLE,STRINS ARE REMOTE REMOTE/LOCAL DEVICE COMMANDS
-        if isinstance(cmd_line_items, (six.string_types,list,tuple)):
-            if isinstance(cmd_line_items, six.string_types): cli_line = cmd_line_items
-            elif isinstance(cmd_line_items, (list,tuple)):
-                for cli_item in cmd_line_items:
-                    if isinstance(cli_item, dict):
-                        if cli_item.get('output_variable',''):
-                            name_of_output_variable = cli_item.get('output_variable','')
-                        elif cli_item.get('eval',''):
-                            cli_line += str(eval(cli_item.get('eval','')))
-                        elif cli_item.get('print_output',''):
-                            print_output = True if str(cli_item.get('print_output','')).upper()=='ON' else None
-                    else: cli_line += str(cli_item)
-            if printall: print(bcolors.CYAN + "EVAL_COMMAND: %s" % (cli_line) + bcolors.ENDC )
-            try: local_output = eval(cli_line)
-            except: local_output = str()
-            if printall: print(bcolors.GREY + str(local_output) + bcolors.ENDC )
-            elif print_output: print(bcolors.YELLOW + str(local_output) + bcolors.ENDC )
-            if printcmdtologfile: fp.write('EVAL_COMMAND: ' + cli_line + '\n' + str(local_output) + '\n')
-            if name_of_output_variable:
-                glob_vars[name_of_output_variable] = local_output
-            glob_vars['last_output'] = local_output
-        return None
-    ### EXEC_COMMAND -----------------------------------------------------------
-    def exec_command(ssh_connection,cmd_line_items,loop_item=None,\
-        logfilename = logfilename,printall = printall, printcmdtologfile = printcmdtologfile):
-        global glob_vars, global_env
-        cli_line, name_of_output_variable, print_output = str(), None, None
-        ### LIST,TUPPLE,STRINS ARE REMOTE REMOTE/LOCAL DEVICE COMMANDS
-        if isinstance(cmd_line_items, (six.string_types,list,tuple)):
-            if isinstance(cmd_line_items, six.string_types): cli_line = cmd_line_items
-            elif isinstance(cmd_line_items, (list,tuple)):
-                for cli_item in cmd_line_items:
-                    if isinstance(cli_item, dict):
-                        if cli_item.get('output_variable',''):
-                            name_of_output_variable = cli_item.get('output_variable','')
-                        elif cli_item.get('eval',''):
-                            cli_line += str(eval(cli_item.get('eval','')))
-                        elif cli_item.get('print_output',''):
-                            print_output = True if str(cli_item.get('print_output','')).upper()=='ON' else None
-                    else: cli_line += str(cli_item)
-            if printall or print_output: print(bcolors.CYAN + "EXEC_COMMAND: %s" % (cli_line) + bcolors.ENDC )
-            ### EXEC CODE for PYTHON>v2.7.9
-            # code_object = compile(cli_line, 'sumstring', 'exec')
-            # local_env = {}
-            # for item in eval('dir()'): local_env[item] = eval(item)
-            # exec(code_object,global_env,local_env)
-            ### EXEC CODE WORKAROUND for OLD PYTHON v2.7.5
-            edict = {}; eval(compile(cli_line, '<string>', 'exec'), globals(), edict)
-            if printcmdtologfile: fp.write('EXEC_COMMAND: ' + cli_line + '\n')
-        return None
-    ### IF_FUNCTION (simple eval) ----------------------------------------------
-    def if_function(ssh_connection,cmd_line_items,loop_item=None,\
-        logfilename = logfilename,printall = printall, printcmdtologfile = printcmdtologfile):
-        global glob_vars
-        cli_line, name_of_output_variable, success = str(), None, False
-        if isinstance(cmd_line_items, (int,float,six.string_types)):
-            condition_eval_text = cmd_line_items
-            ret_value = eval(str(condition_eval_text))
-            if ret_value: success = True
-            else: success = False
-            if printall: print(bcolors.CYAN + "IF_CONDITION(%s)" % (condition_eval_text) + " --> " +\
-                str(success).upper() + bcolors.ENDC )
-            if printcmdtologfile: fp.write('IF_CONDITION(%s): ' % (condition_eval_text) +\
-                 " --> "+ str(success).upper() + '\n')
-        return success
-    ### MAIN_DO_STEP -----------------------------------------------------------
-    def main_do_step(cmd_line_items,loop_item=None):
-        command_range=10
-        global glob_vars, DEVICE_PROMPTS
-        condition_result = True
-        if isinstance(cmd_line_items, (six.string_types,list,tuple)):
-            if run_command(ssh_connection,cmd_line_items,loop_item,run_remote = True): return None
-        if isinstance(cmd_line_items, (dict)):
-            if cmd_line_items.get('pre_if_remote_command','') and remote_connect:
-                if run_command(ssh_connection,cmd_line_items.get('pre_if_remote_command',''),loop_item,run_remote = True): return None
-            if cmd_line_items.get('pre_if_local_command',''):
-                if run_command(ssh_connection,cmd_line_items.get('pre_if_local_command',''),loop_item): return None
-            if cmd_line_items.get('pre_if_exec',''):
-                if exec_command(ssh_connection,cmd_line_items.get('pre_if_exec',''),loop_item): return None
-            if cmd_line_items.get('pre_if_eval',''):
-                if eval_command(ssh_connection,cmd_line_items.get('pre_if_eval',''),loop_item): return None
-            if cmd_line_items.get('if',''):
-                condition_result = if_function(ssh_connection,cmd_line_items.get('if',''),loop_item)
-            if condition_result:
-                if cmd_line_items.get('remote_command','') and remote_connect:
-                    if run_command(ssh_connection,cmd_line_items.get('remote_command',''),loop_item,run_remote = True): return None
-                for i in range(command_range):
-                    if cmd_line_items.get('remote_command_'+str(i),'') and remote_connect:
-                        if run_command(ssh_connection,cmd_line_items.get('remote_command_'+str(i),''),loop_item,run_remote = True): return None
-                if cmd_line_items.get('local_command',''):
-                    if run_command(ssh_connection,cmd_line_items.get('local_command',''),loop_item): return None
-                for i in range(command_range):
-                    if cmd_line_items.get('local_command_'+str(i),''):
-                        if run_command(ssh_connection,cmd_line_items.get('local_command_'+str(i),''),loop_item): return None
-                if cmd_line_items.get('exec',''):
-                    if exec_command(ssh_connection,cmd_line_items.get('exec',''),loop_item): return None
-                for i in range(command_range):
-                    if cmd_line_items.get('exec_'+str(i),''):
-                        if exec_command(ssh_connection,cmd_line_items.get('exec_'+str(i),''),loop_item): return None
-                if cmd_line_items.get('eval',''):
-                    if eval_command(ssh_connection,cmd_line_items.get('eval',''),loop_item): return None
-                for i in range(command_range):
-                    if cmd_line_items.get('eval_'+str(i),''):
-                        if eval_command(ssh_connection,cmd_line_items.get('eval_'+str(i),''),loop_item): return None
-        return True
-
-    ### RUN_REMOTE_AND_LOCAL_COMMANDS START ====================================
-    global remote_connect, glob_vars, DEVICE_PROMPTS
-    ssh_connection, output= None, None
-    command_range = 10
-    try:
-        if remote_connect:
-            if use_module == 'netmiko':
-                ssh_connection = netmiko.ConnectHandler(device_type = router_type, \
-                    ip = DEVICE_HOST, port = int(DEVICE_PORT), \
-                    username = USERNAME, password = PASSWORD)
-            elif use_module == 'paramiko':
-                client = paramiko.SSHClient()
-                #client.load_system_host_keys()
-                client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-                client.connect(DEVICE_HOST, port=int(DEVICE_PORT), \
-                              username=USERNAME, password=PASSWORD,look_for_keys=False)
-                ssh_connection = client.invoke_shell()
-                ssh_connection.settimeout(TIMEOUT)
-                dummy, forget_it = ssh_send_command_and_read_output(ssh_connection,DEVICE_PROMPTS,TERM_LEN_0)
-                dummy, forget_it = ssh_send_command_and_read_output(ssh_connection,DEVICE_PROMPTS,"")
-                time.sleep(0.5)
-
-        ### WORK REMOTE or LOCAL ===============================================
-        if not logfilename:
-            if 'WIN32' in sys.platform.upper(): logfilename = 'nul'
-            else: logfilename = '/dev/null'
-        with open(logfilename,"w") as fp:
-            #if output and not printcmdtologfile: fp.write(output)
-            for cmd_line_items in CMD:
-                if debug: print('----> ',cmd_line_items)
-                pre_condition_result = True
-                if isinstance(cmd_line_items, dict) and cmd_line_items.get('pre_loop_if',''):
-                    pre_condition_result = if_function(ssh_connection, \
-                        cmd_line_items.get('pre_loop_if',''))
-                if pre_condition_result:
-                    if isinstance(cmd_line_items, (dict)):
-                        if cmd_line_items.get('pre_loop_remote_command','') and remote_connect:
-                            if run_command(ssh_connection,cmd_line_items.get('pre_loop_remote_command',''),run_remote = True): return None
-                        for ii in range(command_range):
-                            if cmd_line_items.get('pre_loop_remote_command_'+str(ii),'') and remote_connect:
-                                if run_command(ssh_connection,cmd_line_items.get('pre_loop_remote_command_'+str(ii),''),run_remote = True): return None
-                        if cmd_line_items.get('pre_loop_local_command',''):
-                            if run_command(ssh_connection,cmd_line_items.get('pre_loop_local_command',''),loop_item): return None
-                        if cmd_line_items.get('pre_loop_exec',''):
-                            if exec_command(ssh_connection,cmd_line_items.get('pre_loop_exec',''),loop_item): return None
-                        if cmd_line_items.get('pre_loop_eval',''):
-                            if eval_command(ssh_connection,cmd_line_items.get('pre_if_eval',''),loop_item): return None
-                    if isinstance(cmd_line_items, dict) and cmd_line_items.get('loop_glob_var',''):
-                        for loop_item in glob_vars.get(cmd_line_items.get('loop_glob_var',''),''):
-                            main_do_step(cmd_line_items,loop_item)
-                    elif isinstance(cmd_line_items, dict) and cmd_line_items.get('loop',''):
-                        for loop_item in eval(cmd_line_items.get('loop','')):
-                            main_do_step(cmd_line_items,loop_item)
-                    else: main_do_step(cmd_line_items)
-                ### DIRECT REMOTE CALL WITHOUT PRE_IF --------------------------
-                elif isinstance(cmd_line_items, (list,tuple,six.string_types)):
-                    main_do_step(cmd_line_items)
-    except () as e:
-        print(bcolors.FAIL + " ... EXCEPTION: (%s)" % (e) + bcolors.ENDC )
-        if submit_form: print("</body></html>")
-        sys.exit()
-    finally:
-        if remote_connect and ssh_connection:
-            if use_module == 'netmiko': ssh_connection.disconnect()
-            elif use_module == 'paramiko': client.close()
-    return None
-
-
 def get_version_from_file_last_modification_date(path_to_file = str(os.path.abspath(__file__))):
     file_time = None
     if 'WIN32' in sys.platform.upper():
@@ -694,231 +370,331 @@ def generate_file_name(prefix = None, suffix = None , directory = None):
         filenamewithpath = str(os.path.join(LOGDIR,filename))
     return filenamewithpath
 
-
-
-##############################################################################        
-def print_config():
+      
+def generate_config(dict_data = None):
     config_string = str()
     mytemplate = Template(acl_config_template_string)
-    config_string += mytemplate.render(**bgp_data)
-
-
-    # aaaaa = {'aaaaa':'33'}
-    # mytemplate = Template(acl_config_template_string)
-    # config_string = mytemplate.render(**bgp_data, **aaaaa)
-    
+    config_string += mytemplate.render(**dict_data)    
     return config_string
 
-def print_json():
-    try: json_data = json.dumps(bgp_data, indent=2)
+def dict_to_json_string(dict_data = None):
+    try: json_data = json.dumps(dict_data, indent=2)
     except: json_data = ''
     return json_data
-
-def read_cgibin_get_post_form():
-    # import collections, cgi
-    # import cgitb; cgitb.enable()
-    data, submit_form, username, password = collections.OrderedDict(), '', '', ''
-    try: form = cgi.FieldStorage()
-    except: form = collections.OrderedDict()
-    for key in form.keys():
-        variable = str(key)
-        try: value = str(form.getvalue(variable))
-        except: value = str(','.join(form.getlist(name)))
-        if variable and value and not variable in ["submit","username","password"]: data[variable] = value
-        if variable == "submit": submit_form = value
-        if variable == "username": username = value
-        if variable == "password": password = value
-    return data, submit_form, username, password
 
 def find_last_logfile():
     most_recent_logfile = None
     log_file_name=os.path.join(LOGDIR,huawei_device_name.replace(':','_').replace('.','_').upper()) + '*' + USERNAME + '*vrp-' + vpn_name + "*" + step1_string.replace(' ','_') + "*"
     log_filenames = glob.glob(log_file_name)
     if len(log_filenames) == 0:
-        print(bcolors.MAGENTA + " ... Can't find any proper (%s) log file."%(log_file_name) + bcolors.ENDC)
-        if submit_form: print("</body></html>")
-        sys.exit()
-    most_recent_logfile = log_filenames[0]
-    for item in log_filenames:
-        filecreation = os.path.getctime(item)
-        if filecreation > (os.path.getctime(most_recent_logfile)):
-            most_recent_logfile = item
+        print(" ... Can't find any proper (%s) log file.\n"%(log_file_name))
+    else:    
+        most_recent_logfile = log_filenames[0]
+        for item in log_filenames:
+            filecreation = os.path.getctime(item)
+            if filecreation > (os.path.getctime(most_recent_logfile)):
+                most_recent_logfile = item
     return most_recent_logfile
+
+
+def find_dict_duplicate_keys(data1, data2):
+    duplicate_keys_list = None
+    if data1 and data2:
+        list1 = list(data1.keys())
+        list2 = list(data2.keys())
+        for item in list2:
+            if item in list1:
+                if not duplicate_keys_list: duplicate_keys_list = []
+                duplicate_keys_list.append(list1)
+    return duplicate_keys_list
+
+
+class CGI_CLI(object):
+    """
+    CGI_handle - Simple statis class for handling CGI parameters and 
+                 clean (debug) printing to HTML/CLI    
+       Notes:  - In case of cgi_parameters_error - http[500] is raised, 
+                 but at least no appache timeout occurs...
+    """ 
+    # import collections, cgi, six
+    # import cgitb; cgitb.enable()
+     
+    debug = True
+    initialized = None
+    START_EPOCH = time.time()
+    cgi_parameters_error = None
+    gci_active = None
+    #data, submit_form, username, password = None, None, None, None
     
+    @staticmethod        
+    def __cleanup__():
+        CGI_CLI.uprint('\nEND[script runtime = %d sec]. '%(time.time() - CGI_CLI.START_EPOCH))
+        if CGI_CLI.gci_active: print("</body></html>")
+
+    @staticmethod
+    def register_cleanup_at_exit():
+        """
+        In static class is no constructor or destructor 
+        --> Register __cleanup__ in system
+        """
+        import atexit; atexit.register(CGI_CLI.__cleanup__)
+
+    @staticmethod
+    def init_cgi():
+        CGI_CLI.START_EPOCH = time.time()
+        CGI_CLI.initialized = True 
+        CGI_CLI.data, CGI_CLI.submit_form, CGI_CLI.username, CGI_CLI.password = \
+            collections.OrderedDict(), '', '', ''   
+        try: form = cgi.FieldStorage()
+        except: 
+            form = collections.OrderedDict()
+            CGI_CLI.cgi_parameters_error = True
+        for key in form.keys():
+            variable = str(key)
+            try: value = str(form.getvalue(variable))
+            except: value = str(','.join(form.getlist(name)))
+            if variable and value and not variable in ["submit","username","password"]: 
+                CGI_CLI.data[variable] = value
+            if variable == "submit": CGI_CLI.submit_form = value
+            if variable == "username": CGI_CLI.username = value
+            if variable == "password": CGI_CLI.password = value
+        if CGI_CLI.submit_form or len(CGI_CLI.data)>0: CGI_CLI.gci_active = True
+        if CGI_CLI.gci_active:
+            import cgitb; cgitb.enable()        
+            print("Content-type:text/html\n\n")
+            print("<html><head><title>%s</title></head><body>" % 
+                (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit'))
+        import atexit; atexit.register(CGI_CLI.__cleanup__)
+        return None
+
+    @staticmethod 
+    def uprint(text, tag = None):
+        if CGI_CLI.debug: 
+            if CGI_CLI.gci_active:
+                if tag and 'h' in tag: print('<%s>'%(tag))
+                if tag and 'p' in tag: print('<p>')
+                if isinstance(text, six.string_types): 
+                    text = str(text.replace('\n','<br/>'))
+                else: text = str(text)   
+            print(text)
+            if CGI_CLI.gci_active: 
+                print('<br/>');
+                if tag and 'p' in tag: print('</p>')
+                if tag and 'h' in tag: print('</%s>'%(tag))
+
+    @staticmethod
+    def print_args():
+        if CGI_CLI.gci_active:
+            try: print_string = 'CGI_args=' + json.dumps(CGI_CLI.data) + ' <br/>'
+            except: print_string = 'CGI_args=' + ' <br/>'                
+        else: print_string = 'CLI_args=%s \n' % (str(sys.argv[1:]))
+        CGI_CLI.uprint(print_string)
+        return print_string          
+
+
+class sql_interface():
+    ### import mysql.connector
+    ### MARIADB - By default AUTOCOMMIT is disabled
     
+    def __init__(self, host = None, user = None, password = None, database = None):
+        self.sql_connection = None
+        try: 
+            if CGI_CLI.initialized: pass
+            else: CGI_CLI.init_cgi(); CGI_CLI.print_args()
+        except: pass
+        try:
+            if int(sys.version_info[0]) == 3:
+                ### PYMYSQL DISABLE AUTOCOMMIT BY DEFAULT !!!
+                self.sql_connection = pymysql.connect( \
+                    host = host, user = user, password = password, \
+                    database = database, autocommit = True)
+            else: 
+                self.sql_connection = mysql.connector.connect( \
+                    host = host, user = user, password = password,\
+                    database = database, autocommit = True)
+                       
+            #CGI_CLI.uprint("SQL connection is open.")    
+        except Exception as e: print(e)           
+    
+    def __del__(self):
+        if self.sql_connection and self.sql_connection.is_connected():
+            self.sql_connection.close()            
+            #CGI_CLI.uprint("SQL connection is closed.")
+
+    def sql_is_connected(self):
+        if self.sql_connection: 
+            if int(sys.version_info[0]) == 3 and self.sql_connection.open:
+                return True
+            elif int(sys.version_info[0]) == 2 and self.sql_connection.is_connected():
+                return True
+        return None
+        
+    def sql_read_all_table_columns(self, table_name):
+        columns = None
+        if self.sql_is_connected():
+            cursor = self.sql_connection.cursor()
+            try: 
+                cursor.execute("select * from INFORMATION_SCHEMA.COLUMNS where TABLE_NAME='%s';"%(table_name))
+                records = cursor.fetchall()
+                columns = [item[3] for item in records]
+            except Exception as e: print(e)
+            try: cursor.close()
+            except: pass
+        return columns 
+
+    def sql_read_sql_command(self, sql_command):
+        '''NOTE: FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE'''
+        records = None
+        if self.sql_is_connected():
+            cursor = self.sql_connection.cursor()
+            try: 
+                cursor.execute(sql_command)
+                records = cursor.fetchall()
+            except Exception as e: print(e)
+            try: cursor.close()
+            except: pass
+            ### FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE
+        return records 
+
+    def sql_write_sql_command(self, sql_command):
+        if self.sql_is_connected(): 
+            if int(sys.version_info[0]) == 3:
+                cursor = self.sql_connection.cursor()
+            elif int(sys.version_info[0]) == 2:        
+                cursor = self.sql_connection.cursor(prepared=True)
+            try: 
+                cursor.execute(sql_command)
+                ### DO NOT COMMIT IF AUTOCOMMIT IS SET 
+                if not self.sql_connection.autocommit: self.sql_connection.commit()
+            except Exception as e: print(e)
+            try: cursor.close()
+            except: pass
+        return None
+
+    def sql_write_table_from_dict(self, table_name, dict_data):  ###'ipxt_data_collector'
+       if self.sql_is_connected():
+           existing_sql_table_columns = self.sql_read_all_table_columns(table_name) 
+           if existing_sql_table_columns:
+               columns_string, values_string = str(), str()
+               ### ASSUMPTION: LIST OF COLUMNS HAS CORRECT ORDER!!!
+               for key in existing_sql_table_columns:
+                   if key in list(dict_data.keys()):
+                        if len(columns_string) > 0: columns_string += ','
+                        if len(values_string) > 0: values_string += ','
+                        ### WRITE KEY/COLUMNS_STRING
+                        columns_string += '`' + key + '`'
+                        ### BE AWARE OF DATA TYPE
+                        if isinstance(dict_data.get(key,""), (list,tuple)):
+                            item_string = str()
+                            for item in dict_data.get(key,""):
+                                ### LIST TO COMMA SEPARATED STRING
+                                if isinstance(item, (six.string_types)):
+                                    if len(item_string) > 0: item_string += ','
+                                    item_string += item
+                                ### DICTIONARY TO COMMA SEPARATED STRING    
+                                elif isinstance(item, (dict,collections.OrderedDict)):
+                                    for i in item:
+                                        if len(item_string) > 0: item_string += ','
+                                        item_string += item.get(i,"")
+                            values_string += "'" + item_string + "'"
+                        elif isinstance(dict_data.get(key,""), (six.string_types)):
+                            values_string += "'" + str(dict_data.get(key,"")) + "'"
+                        else:
+                            values_string += "'" + str(dict_data.get(key,"")) + "'"
+               ### FINALIZE SQL_STRING
+               sql_string = """INSERT INTO `ipxt_data_collector` (%s) VALUES (%s);""" \
+                   % (columns_string,values_string)   
+               if columns_string:
+                   self.sql_write_sql_command("""INSERT INTO `ipxt_data_collector`
+                       (%s) VALUES (%s);""" %(columns_string,values_string))       
+       return None                
+   
+    def sql_read_table_last_record(self, select_string = None, from_string = None, where_string = None):
+        """NOTE: FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE"""
+        check_data = None
+        if not select_string: select_string = '*'
+        #SELECT vlan_id FROM ipxt_data_collector WHERE id=(SELECT max(id) FROM ipxt_data_collector WHERE username='mkrupa' AND device_name='AUVPE3'); 
+        if self.sql_is_connected():
+            if from_string:
+                if where_string:
+                    sql_string = "SELECT %s FROM %s WHERE id=(SELECT max(id) FROM %s WHERE %s);" \
+                        %(select_string, from_string, from_string, where_string)
+                else:
+                    sql_string = "SELECT %s FROM %s WHERE id=(SELECT max(id) FROM %s);" \
+                        %(select_string, from_string, from_string)
+                check_data = self.sql_read_sql_command(sql_string)                          
+        return check_data
+
+    def sql_read_last_record_to_dict(table_name = None, from_string = None, \
+        select_string = None, where_string = None):
+        """sql_read_last_record_to_dict - MAKE DICTIONARY FROM LAST TABLE RECORD 
+           NOTES: -'table_name' is alternative name to 'from_string'
+                  - it always read last record dependent on 'where_string'
+                    which contains(=filters by) username,device_name,vpn_name                  
+        """
+        dict_data = collections.OrderedDict()
+        table_name_or_from_string = None
+        if table_name:  table_name_or_from_string = table_name
+        if from_string: table_name_or_from_string = from_string     
+        columns_list = sql_inst.sql_read_all_table_columns(table_name_or_from_string)
+        data_list = sql_inst.sql_read_table_last_record( \
+            from_string = table_name_or_from_string, \
+            select_string = select_string, where_string = where_string)
+        if columns_list and data_list: 
+            dict_data = collections.OrderedDict(zip(columns_list, data_list[0]))
+        try:
+            ### DELETE NOT VALID (AUXILIARY) TABLE COLUMNS
+            del dict_data['id']
+            del dict_data['last_updated']
+        except: pass    
+        return dict_data      
+
 
 ##############################################################################
 #
 # BEGIN MAIN
 #
 ##############################################################################
-
 if __name__ != "__main__": sys.exit(0)
 
 ### INIT PART #####################################################
-glob_vars = {}
-global_env = globals()
 load_logfile = None
 
 ### CGI-BIN READ FORM ############################################
-form_data, submit_form, cgi_username, cgi_password = read_cgibin_get_post_form()
+CGI_CLI()
+CGI_CLI.init_cgi()
+CGI_CLI.print_args()
 
-if cgi_username and cgi_password: USERNAME, PASSWORD = cgi_username, cgi_password
+script_action = CGI_CLI.submit_form.replace(' ','_') if CGI_CLI.submit_form else 'unknown_action' 
+device_name = CGI_CLI.data.get('device','')
+huawei_device_name = CGI_CLI.data.get('huawei-router-name','')
 
-if submit_form: 
-    print("Content-type:text/html\n\n")
-    print("<html><head><title>%s</title></head><body>"%(submit_form))
-    for key, value in form_data.items(): print("CGI_DATA[%s:%s] <br/>\n" % (str(key), str(value)))
-
-if submit_form: print('<br/>')
-print('LOGDIR[%s] \n'%(LOGDIR))
-if submit_form: print('<br/>')
-
-script_action = submit_form.replace(' ','_') if submit_form else 'unknown_action' 
-device_name = form_data.get('device','')
-huawei_device_name = form_data.get('huawei-router-name','')
-
-vpn_name = form_data.get('vpn','')
-if vpn_name: glob_vars["VPN_NAME"] = vpn_name
+vpn_name = CGI_CLI.data.get('vpn','')
 
 ###################################################################
 VERSION = get_version_from_file_last_modification_date()
-
-######## Parse program arguments ##################################
-parser = argparse.ArgumentParser(
-                    description = "Script v.%s" % (VERSION),
-                    epilog = "e.g: \n" )
-parser.add_argument("--version",
-                    action = 'version', version = VERSION)
-parser.add_argument("--device",
-                    action = "store", dest = 'device',
-                    default = str(),
-                    help = "target router to check")
-parser.add_argument("--user",
-                    action = "store", dest = 'username', default = str(),
-                    help = "specify router user login")
-parser.add_argument("--nocolors",
-                    action = 'store_true', dest = "nocolors", default = None,
-                    help = "print mode with no colors.")
-parser.add_argument("--nolog",
-                    action = 'store_true', dest = "nolog", default = None,
-                    help = "no logging to file.")
-parser.add_argument("--readlog",
-                    action = "store", dest = 'readlog', default = None,
-                    help = "name of the logfile to read json.")
-parser.add_argument("--emailaddr",
-                    action = "store", dest = 'emailaddr', default = '',
-                    help = "insert your email address once if is different than name.surname@orange.com,\
-                    it will do NEWR_EMAIL variable record in your bashrc file and \
-                    you do not need to insert it any more.")
-parser.add_argument("--vpn",
-                    action = "store", dest = 'vpn', default = None,
-                    help = "vpn name")
-parser.add_argument("--latest",
-                    action = 'store_true', dest = "latest", default = False,
-                    help = "look for really latest shut file (also owned by somebody else),\
-                    otherwise your own last shut file will be used by default")
-parser.add_argument("--printall",action = "store_true", default = False,
-                    help = "print all lines, changes will be coloured")
-parser.add_argument("--sim",
-                    action = 'store_true', dest = "sim",
-                    #default = True,
-                    default = None,
-                    help = "simulate critical command runs")
-args = parser.parse_args()
-
-if args.nocolors or 'WIN32' in sys.platform.upper() or submit_form: bcolors = nocolors
-
-COL_DELETED = bcolors.RED
-COL_ADDED   = bcolors.GREEN
-COL_DIFFDEL = bcolors.BLUE
-COL_DIFFADD = bcolors.YELLOW
-COL_EQUAL   = bcolors.GREY
-COL_PROBLEM = bcolors.RED
-
-### PARSE CMDLINE ARGUMENTS IF NOT CGI-BIN ARGUMENTS #################    
-if device_name and not vpn_name and not submit_form:
-    device_name = args.device
-    
-    if args.emailaddr:
-        append_variable_to_bashrc(variable_name='NEWR_EMAIL',variable_value=args.emailaddr)
-        EMAIL_ADDRESS = args.emailaddr
-
-    if args.sim: glob_vars["SIM_CMD"] = 'ON'
-    else: glob_vars["SIM_CMD"] = 'OFF'
-
-    if args.vpn: glob_vars["VPN_NAME"] = args.vpn; vpn_name = args.vpn
-    else:
-        print(bcolors.MAGENTA + " ... VPN NAME must be specified!" + bcolors.ENDC )
-        if submit_form: print("</body></html>")
-        sys.exit(0)
-
-
-    if args.device == str():
-        remote_connect = None
-        local_hostname = str(subprocess.check_output('hostname',shell=True).decode('utf8')).strip().replace('\\','').replace('/','')
-        device_name = local_hostname
-
-
-    if args.readlog:
-        bgp_data = read_bgp_data_json_from_logfile(args.readlog)
-        if not bgp_data:
-            print(bcolors.MAGENTA + " ... Please insert shut session log! (Inserted log seems to be noshut log.)" + bcolors.ENDC )
-            if submit_form: print("</body></html>")
-            sys.exit(0)
-
-    if remote_connect:
-        ####### Set USERNAME if needed
-        if args.username: USERNAME = args.username
-        if not USERNAME:
-            print(bcolors.MAGENTA + " ... Please insert your username by cmdline switch \
-                --user username !" + bcolors.ENDC )
-            if submit_form: print("</body></html>")    
-            sys.exit(0)
-
-        # SSH (default)
-        if not PASSWORD:
-            PASSWORD = getpass.getpass("TACACS password: ")
 
 logfilename, router_type = None, None
 
 load_logfile = find_last_logfile()
 bgp_data = copy.deepcopy(read_bgp_data_json_from_logfile(load_logfile))
-if submit_form: print('<br/>')
-print(bgp_data)
-if submit_form: print('<br/><br/>')
-print(form_data) 
-if submit_form: print('<br/>')
 
-list1 = list(bgp_data.keys())
-list2 = list(form_data.keys())
+if bgp_data:
+    CGI_CLI.uprint('BGP_DATA:', tag = 'h1')
+    CGI_CLI.uprint(bgp_data)
 
-if submit_form: print('<br/>')
-print(list1)
-if submit_form: print('<br/>')
-print(list2)
-if submit_form: print('<br/>')
+if bgp_data and CGI_CLI.data and not find_dict_duplicate_keys(bgp_data, CGI_CLI.data):
+    bgp_data.update(CGI_CLI.data)
 
-for item in list2:
-    if item in list1:
-        if submit_form: print('<br/>')    
-        print('WARNING: %s is already in %s!'%())
-        if submit_form: print('<br/>')
+CGI_CLI.uprint('CONFIG:', tag = 'h1')
 
-bgp_data.update(form_data)
-if submit_form: print('<br/>')
-print(bgp_data)
-if submit_form: print('<br/>')
-
-if submit_form: print('<br/>')
-print(print_config())
-if submit_form: print('<br/>')
+if bgp_data: 
+    config_text = generate_config(bgp_data)
+    CGI_CLI.uprint(config_text)
 
 
-if submit_form: print('<br/>')            
-print('\nEND [script runtime = %d sec].'%(time.time() - START_EPOCH))
-if submit_form: print('<br/>')
-if submit_form: print("</body></html>")
+
+
 
 
 
