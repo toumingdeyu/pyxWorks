@@ -790,114 +790,259 @@ def generate_file_name(prefix = None, suffix = None , directory = None):
             .split('/')[-1],USERNAME,filename_suffix)
         filenamewithpath = str(os.path.join(LOGDIR,filename))
     return filenamewithpath
-
-
-def sql_interface_data():
-    ### import mysql.connector
-    ### MARIADB - By default AUTOCOMMIT is disabled
-    def sql_read_all_table_columns(table_name):
-        cursor = sql_connection.cursor()
-        try: cursor.execute("select * from INFORMATION_SCHEMA.COLUMNS where TABLE_NAME='%s';"%(table_name))
-        except Exception as e: print(e)
-        records = cursor.fetchall()
-        cursor.close()
-        columns = [item[3] for item in records]
-        return columns
-
-    def sql_read_data(sql_command):
-        cursor = sql_connection.cursor()
-        try: cursor.execute(sql_command)
-        except Exception as e: print(e)
-        records = cursor.fetchall()
-        cursor.close()
-        return records
-
-    def sql_write_data(sql_command):
-        #sql_connection.autocommit = False
-        cursor = sql_connection.cursor(prepared=True)
-        try: cursor.execute(sql_command)
-        except Exception as e: print(e)
-        if not sql_connection.autocommit: sql_connection.commit()
-        cursor.close()
-        return None
-
-    try:
-        sql_connection = mysql.connector.connect(host='localhost', user='cfgbuilder', \
-            password='cfgbuildergetdata', database='rtr_configuration')
-
-        if sql_connection.is_connected():
-            if submit_form: print("<br/>")
-            print(sql_read_all_table_columns('ipxt_data_collector'))
-            if submit_form: print("<br/>")
-            #print(sql_read_data("SELECT * FROM ipxt_data_collector"))
-
-            sql_table_columns = sql_read_all_table_columns('ipxt_data_collector')
-            columns_string, values_string = str(), str()
-            ### assumption: list of columns has correct order!!!
-            for key in sql_table_columns:
-                if key in list(bgp_data.keys()):
-                    if len(columns_string) > 0: columns_string += ','
-                    if len(values_string) > 0: values_string += ','
-                    ### write key/columns_string
-                    columns_string += '`' + key + '`'
-                    ### be aware of data type
-                    if isinstance(bgp_data.get(key,""), (list,tuple)):
-                        item_string = str()
-                        for item in bgp_data.get(key,""):
-                            if isinstance(item, (six.string_types)):
-                                if len(item_string) > 0: item_string += ','
-                                item_string += item
-                            elif isinstance(item, (dict,collections.OrderedDict)):
-                                for i in item:
-                                    if len(item_string) > 0: item_string += ','
-                                    item_string += item.get(i,"")
-                        values_string += "'" + item_string + "'"
-                    elif isinstance(bgp_data.get(key,""), (six.string_types)):
-                        values_string += "'" + str(bgp_data.get(key,"")) + "'"
-                    else:
-                        values_string += "'" + str(bgp_data.get(key,"")) + "'"
-
-            sql_string = """INSERT INTO `ipxt_data_collector` (%s) VALUES (%s);""" \
-                % (columns_string,values_string)
-            if submit_form: print("<br/>")    
-            print("\n"+sql_string+"\n")
-            if submit_form: print("<br/>")
-            if columns_string:
-                sql_write_data("""INSERT INTO `ipxt_data_collector`
-                    (%s) VALUES (%s);""" %(columns_string,values_string))
-
-            # SQL READ CHECK ---------------------------------------------------
-            if bgp_data.get('vrf_name',""):
-                check_data = sql_read_data("SELECT * FROM ipxt_data_collector WHERE vrf_name = '%s';" \
-                    %(bgp_data.get('vrf_name',"")))
-                if submit_form: print("<br/>--------------------------------<br/>")    
-                print('DB_READ_CHECK:',check_data)
-                if submit_form: print("<br/>")
-    except Exception as e: print(e)
-    finally:
-        if sql_connection.is_connected():
-            sql_connection.close()
-            if submit_form: print("<br/>")
-            print("SQL connection is closed.")
-            if submit_form: print("<br/>")
     
 
-def read_cgibin_get_post_form():
-    # import collections, cgi
-    # import cgitb; cgitb.enable()
-    data, submit_form, username, password = collections.OrderedDict(), '', '', ''
-    try: form = cgi.FieldStorage()
-    except: form = collections.OrderedDict()
-    for key in form.keys():
-        variable = str(key)
-        try: value = str(form.getvalue(variable))
-        except: value = str(','.join(form.getlist(name)))
-        if variable and value and not variable in ["submit","username","password"]: data[variable] = value
-        if variable == "submit": submit_form = value
-        if variable == "username": username = value
-        if variable == "password": password = value
-    return data, submit_form, username, password
+def find_dict_duplicate_keys(data1, data2):
+    duplicate_keys_list = None
+    if data1 and data2:
+        list1 = list(data1.keys())
+        list2 = list(data2.keys())
+        for item in list2:
+            if item in list1:
+                if not duplicate_keys_list: duplicate_keys_list = []
+                duplicate_keys_list.append(list1)
+    return duplicate_keys_list
 
+
+class CGI_CLI(object):
+    """
+    CGI_handle - Simple statis class for handling CGI parameters and 
+                 clean (debug) printing to HTML/CLI    
+       Notes:  - In case of cgi_parameters_error - http[500] is raised, 
+                 but at least no appache timeout occurs...
+    """ 
+    # import collections, cgi, six
+    # import cgitb; cgitb.enable()
+     
+    debug = True
+    initialized = None
+    START_EPOCH = time.time()
+    cgi_parameters_error = None
+    cgi_active = None
+    #data, submit_form, username, password = None, None, None, None
+    
+    @staticmethod        
+    def __cleanup__():
+        CGI_CLI.uprint('\nEND[script runtime = %d sec]. '%(time.time() - CGI_CLI.START_EPOCH))
+        if CGI_CLI.cgi_active: print("</body></html>")
+
+    @staticmethod
+    def register_cleanup_at_exit():
+        """
+        In static class is no constructor or destructor 
+        --> Register __cleanup__ in system
+        """
+        import atexit; atexit.register(CGI_CLI.__cleanup__)
+
+    @staticmethod
+    def init_cgi():
+        CGI_CLI.START_EPOCH = time.time()
+        CGI_CLI.initialized = True 
+        CGI_CLI.data, CGI_CLI.submit_form, CGI_CLI.username, CGI_CLI.password = \
+            collections.OrderedDict(), '', '', ''   
+        try: form = cgi.FieldStorage()
+        except: 
+            form = collections.OrderedDict()
+            CGI_CLI.cgi_parameters_error = True
+        for key in form.keys():
+            variable = str(key)
+            try: value = str(form.getvalue(variable))
+            except: value = str(','.join(form.getlist(name)))
+            if variable and value and not variable in ["submit","username","password"]: 
+                CGI_CLI.data[variable] = value
+            if variable == "submit": CGI_CLI.submit_form = value
+            if variable == "username": CGI_CLI.username = value
+            if variable == "password": CGI_CLI.password = value
+        if CGI_CLI.submit_form or len(CGI_CLI.data)>0: CGI_CLI.cgi_active = True
+        if CGI_CLI.cgi_active:
+            import cgitb; cgitb.enable()        
+            print("Content-type:text/html\n\n")
+            print("<html><head><title>%s</title></head><body>" % 
+                (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit'))
+        import atexit; atexit.register(CGI_CLI.__cleanup__)
+        return None
+
+    @staticmethod 
+    def uprint(text, tag = None):
+        if CGI_CLI.debug: 
+            if CGI_CLI.cgi_active:
+                if tag and 'h' in tag: print('<%s>'%(tag))
+                if tag and 'p' in tag: print('<p>')
+                if isinstance(text, six.string_types): 
+                    text = str(text.replace('\n','<br/>'))
+                else: text = str(text)   
+            print(text)
+            if CGI_CLI.cgi_active: 
+                print('<br/>');
+                if tag and 'p' in tag: print('</p>')
+                if tag and 'h' in tag: print('</%s>'%(tag))
+
+    @staticmethod
+    def print_args():
+        if CGI_CLI.cgi_active:
+            try: print_string = 'CGI_args=' + json.dumps(CGI_CLI.data) + ' <br/>'
+            except: print_string = 'CGI_args=' + ' <br/>'                
+        else: print_string = 'CLI_args=%s \n' % (str(sys.argv[1:]))
+        CGI_CLI.uprint(print_string)
+        return print_string          
+
+
+class sql_interface():
+    ### import mysql.connector
+    ### MARIADB - By default AUTOCOMMIT is disabled
+    
+    def __init__(self, host = None, user = None, password = None, database = None):
+        self.sql_connection = None
+        try: 
+            if CGI_CLI.initialized: pass
+            else: CGI_CLI.init_cgi(); CGI_CLI.print_args()
+        except: pass
+        try:
+            if int(sys.version_info[0]) == 3:
+                ### PYMYSQL DISABLE AUTOCOMMIT BY DEFAULT !!!
+                self.sql_connection = pymysql.connect( \
+                    host = host, user = user, password = password, \
+                    database = database, autocommit = True)
+            else: 
+                self.sql_connection = mysql.connector.connect( \
+                    host = host, user = user, password = password,\
+                    database = database, autocommit = True)
+                       
+            #CGI_CLI.uprint("SQL connection is open.")    
+        except Exception as e: print(e)           
+    
+    def __del__(self):
+        if self.sql_connection and self.sql_connection.is_connected():
+            self.sql_connection.close()            
+            #CGI_CLI.uprint("SQL connection is closed.")
+
+    def sql_is_connected(self):
+        if self.sql_connection: 
+            if int(sys.version_info[0]) == 3 and self.sql_connection.open:
+                return True
+            elif int(sys.version_info[0]) == 2 and self.sql_connection.is_connected():
+                return True
+        return None
+        
+    def sql_read_all_table_columns(self, table_name):
+        columns = None
+        if self.sql_is_connected():
+            cursor = self.sql_connection.cursor()
+            try: 
+                cursor.execute("select * from INFORMATION_SCHEMA.COLUMNS where TABLE_NAME='%s';"%(table_name))
+                records = cursor.fetchall()
+                columns = [item[3] for item in records]
+            except Exception as e: print(e)
+            try: cursor.close()
+            except: pass
+        return columns 
+
+    def sql_read_sql_command(self, sql_command):
+        '''NOTE: FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE'''
+        records = None
+        if self.sql_is_connected():
+            cursor = self.sql_connection.cursor()
+            try: 
+                cursor.execute(sql_command)
+                records = cursor.fetchall()
+            except Exception as e: print(e)
+            try: cursor.close()
+            except: pass
+            ### FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE
+        return records 
+
+    def sql_write_sql_command(self, sql_command):
+        if self.sql_is_connected(): 
+            if int(sys.version_info[0]) == 3:
+                cursor = self.sql_connection.cursor()
+            elif int(sys.version_info[0]) == 2:        
+                cursor = self.sql_connection.cursor(prepared=True)
+            try: 
+                cursor.execute(sql_command)
+                ### DO NOT COMMIT IF AUTOCOMMIT IS SET 
+                if not self.sql_connection.autocommit: self.sql_connection.commit()
+            except Exception as e: print(e)
+            try: cursor.close()
+            except: pass
+        return None
+
+    def sql_write_table_from_dict(self, table_name, dict_data):  ###'ipxt_data_collector'
+       if self.sql_is_connected():
+           existing_sql_table_columns = self.sql_read_all_table_columns(table_name) 
+           if existing_sql_table_columns:
+               columns_string, values_string = str(), str()
+               ### ASSUMPTION: LIST OF COLUMNS HAS CORRECT ORDER!!!
+               for key in existing_sql_table_columns:
+                   if key in list(dict_data.keys()):
+                        if len(columns_string) > 0: columns_string += ','
+                        if len(values_string) > 0: values_string += ','
+                        ### WRITE KEY/COLUMNS_STRING
+                        columns_string += '`' + key + '`'
+                        ### BE AWARE OF DATA TYPE
+                        if isinstance(dict_data.get(key,""), (list,tuple)):
+                            item_string = str()
+                            for item in dict_data.get(key,""):
+                                ### LIST TO COMMA SEPARATED STRING
+                                if isinstance(item, (six.string_types)):
+                                    if len(item_string) > 0: item_string += ','
+                                    item_string += item
+                                ### DICTIONARY TO COMMA SEPARATED STRING    
+                                elif isinstance(item, (dict,collections.OrderedDict)):
+                                    for i in item:
+                                        if len(item_string) > 0: item_string += ','
+                                        item_string += item.get(i,"")
+                            values_string += "'" + item_string + "'"
+                        elif isinstance(dict_data.get(key,""), (six.string_types)):
+                            values_string += "'" + str(dict_data.get(key,"")) + "'"
+                        else:
+                            values_string += "'" + str(dict_data.get(key,"")) + "'"
+               ### FINALIZE SQL_STRING
+               sql_string = """INSERT INTO `ipxt_data_collector` (%s) VALUES (%s);""" \
+                   % (columns_string,values_string)   
+               if columns_string:
+                   self.sql_write_sql_command("""INSERT INTO `ipxt_data_collector`
+                       (%s) VALUES (%s);""" %(columns_string,values_string))       
+       return None                
+   
+    def sql_read_table_last_record(self, select_string = None, from_string = None, where_string = None):
+        """NOTE: FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE"""
+        check_data = None
+        if not select_string: select_string = '*'
+        #SELECT vlan_id FROM ipxt_data_collector WHERE id=(SELECT max(id) FROM ipxt_data_collector WHERE username='mkrupa' AND device_name='AUVPE3'); 
+        if self.sql_is_connected():
+            if from_string:
+                if where_string:
+                    sql_string = "SELECT %s FROM %s WHERE id=(SELECT max(id) FROM %s WHERE %s);" \
+                        %(select_string, from_string, from_string, where_string)
+                else:
+                    sql_string = "SELECT %s FROM %s WHERE id=(SELECT max(id) FROM %s);" \
+                        %(select_string, from_string, from_string)
+                check_data = self.sql_read_sql_command(sql_string)                          
+        return check_data
+
+    def sql_read_last_record_to_dict(table_name = None, from_string = None, \
+        select_string = None, where_string = None):
+        """sql_read_last_record_to_dict - MAKE DICTIONARY FROM LAST TABLE RECORD 
+           NOTES: -'table_name' is alternative name to 'from_string'
+                  - it always read last record dependent on 'where_string'
+                    which contains(=filters by) username,device_name,vpn_name                  
+        """
+        dict_data = collections.OrderedDict()
+        table_name_or_from_string = None
+        if table_name:  table_name_or_from_string = table_name
+        if from_string: table_name_or_from_string = from_string     
+        columns_list = sql_inst.sql_read_all_table_columns(table_name_or_from_string)
+        data_list = sql_inst.sql_read_table_last_record( \
+            from_string = table_name_or_from_string, \
+            select_string = select_string, where_string = where_string)
+        if columns_list and data_list: 
+            dict_data = collections.OrderedDict(zip(columns_list, data_list[0]))
+        try:
+            ### DELETE NOT VALID (AUXILIARY) TABLE COLUMNS
+            del dict_data['id']
+            del dict_data['last_updated']
+        except: pass    
+        return dict_data   
 
     
 ##############################################################################
@@ -914,19 +1059,16 @@ global_env = globals()
 load_logfile = None
 
 ### CGI-BIN READ FORM ############################################
-form_data, submit_form, cgi_username, cgi_password = read_cgibin_get_post_form()
+CGI_CLI()
+CGI_CLI.init_cgi()
+CGI_CLI.print_args()
 
-if cgi_username and cgi_password: USERNAME, PASSWORD = cgi_username, cgi_password
+if CGI_CLI.username and CGI_CLI.password: USERNAME, PASSWORD = CGI_CLI.username, CGI_CLI.password
 
-if submit_form: 
-    print("Content-type:text/html\n\n")
-    print("<html><head><title>%s</title></head><body>"%(submit_form))
-    for key, value in form_data.items(): print("CGI_DATA[%s:%s] <br/>\n" % (str(key), str(value)))
+CGI_CLI.uprint('LOGDIR[%s] \n'%(LOGDIR))
 
-print('LOGDIR[%s] <br/>\n'%(LOGDIR))
-
-device_name = form_data.get('device','')
-vpn_name = form_data.get('vpn','')
+device_name = CGI_CLI.data.get('device','')
+vpn_name = CGI_CLI.data.get('vpn','')
 if vpn_name: glob_vars["VPN_NAME"] = vpn_name
 
 ###################################################################
@@ -975,7 +1117,7 @@ parser.add_argument("--sim",
                     help = "simulate critical command runs")
 args = parser.parse_args()
 
-if args.nocolors or 'WIN32' in sys.platform.upper() or submit_form: bcolors = nocolors
+if args.nocolors or 'WIN32' in sys.platform.upper() or CGI_CLI.cgi_active: bcolors = nocolors
 
 COL_DELETED = bcolors.RED
 COL_ADDED   = bcolors.GREEN
@@ -985,7 +1127,7 @@ COL_EQUAL   = bcolors.GREY
 COL_PROBLEM = bcolors.RED
 
 ### PARSE CMDLINE ARGUMENTS IF NOT CGI-BIN ARGUMENTS #################    
-if device_name and not vpn_name and not submit_form:
+if device_name and not vpn_name and not CGI_CLI.cgi_active:
     device_name = args.device
     
     if args.emailaddr:
@@ -997,8 +1139,7 @@ if device_name and not vpn_name and not submit_form:
 
     if args.vpn: glob_vars["VPN_NAME"] = args.vpn; vpn_name = args.vpn
     else:
-        print(bcolors.MAGENTA + " ... VPN NAME must be specified!" + bcolors.ENDC )
-        if submit_form: print("</body></html>")
+        CGI_CLI.uprint(bcolors.MAGENTA + " ... VPN NAME must be specified!" + bcolors.ENDC )
         sys.exit(0)
 
 
@@ -1011,17 +1152,15 @@ if device_name and not vpn_name and not submit_form:
     if args.readlog:
         bgp_data = read_bgp_data_json_from_logfile(args.readlog)
         if not bgp_data:
-            print(bcolors.MAGENTA + " ... Please insert shut session log! (Inserted log seems to be noshut log.)" + bcolors.ENDC )
-            if submit_form: print("</body></html>")
+            CGI_CLI.uprint(bcolors.MAGENTA + " ... Please insert shut session log! (Inserted log seems to be noshut log.)" + bcolors.ENDC )
             sys.exit(0)
 
     if remote_connect:
         ####### Set USERNAME if needed
         if args.username: USERNAME = args.username
         if not USERNAME:
-            print(bcolors.MAGENTA + " ... Please insert your username by cmdline switch \
-                --user username !" + bcolors.ENDC )
-            if submit_form: print("</body></html>")    
+            CGI_CLI.uprint(bcolors.MAGENTA + " ... Please insert your username by cmdline switch \
+                --user username !" + bcolors.ENDC )  
             sys.exit(0)
 
         # SSH (default)
@@ -1036,15 +1175,15 @@ if device_name:
     except: DEVICE_HOST = str()
     try: DEVICE_PORT = device_name.split(':')[1]
     except: DEVICE_PORT = '22'
-    print('DEVICE %s (host=%s, port=%s) START.........................<br/>'\
+    CGI_CLI.uprint('DEVICE %s (host=%s, port=%s) START.........................'\
         %(device_name,DEVICE_HOST, DEVICE_PORT))
     if remote_connect:
         ####### Figure out type of router OS
             router_type, router_prompt = detect_router_by_ssh(device_name)
             if not router_type in KNOWN_OS_TYPES:
-                print('%sUNSUPPORTED DEVICE TYPE: %s , BREAK!<br/>%s' % \
+                CGI_CLI.uprint('%sUNSUPPORTED DEVICE TYPE: %s , BREAK! %s' % \
                     (bcolors.MAGENTA,router_type, bcolors.ENDC))
-            else: print('DETECTED DEVICE_TYPE: %s <br/>' % (router_type))
+            else: CGI_CLI.uprint('DETECTED DEVICE_TYPE: %s ' % (router_type))
 
     ######## Create logs directory if not existing  #########
     if not os.path.exists(LOGDIR): os.makedirs(LOGDIR)
@@ -1103,27 +1242,32 @@ if device_name:
     # ADD PROMPT TO PROMPTS LIST
     if router_prompt: DEVICE_PROMPTS.append(router_prompt)
     
-    if submit_form and submit_form == step1_string or router_type == 'huawei':
+    if CGI_CLI.cgi_active and CGI_CLI.submit_form == step1_string or router_type == 'huawei':
         run_remote_and_local_commands(CMD, logfilename, printall = args.printall, printcmdtologfile = True)
     else: pass        
 
     if logfilename and os.path.exists(logfilename):
-        print('%s file created. <br/>' % (logfilename))
+        CGI_CLI.uprint('%s file created. ' % (logfilename))
         ### MAKE READABLE for THE OTHERS
         try:
             dummy = subprocess.check_output('chmod +r %s' % (logfilename),shell=True)
         except: pass
-        if not submit_form:
+        if not CGI_CLI.cgi_active:
             try: send_me_email(subject = logfilename.replace('\\','/').\
                      split('/')[-1], file_name = logfilename)
             except: pass
-    print('\nDEVICE %s DONE. <br/>'%(device_name))
+    CGI_CLI.uprint('\nDEVICE %s DONE. '%(device_name))
 
-    if submit_form and submit_form == step1_string or router_type == 'huawei':    
-        if router_type == 'huawei': sql_interface_data()
-            
-print('<br/>\nEND [script runtime = %d sec]. <br/>'%(time.time() - START_EPOCH))
-if submit_form: print("</body></html>")
+    if CGI_CLI.cgi_active and CGI_CLI.submit_form == step1_string or router_type == 'huawei':    
+        if router_type == 'huawei': 
+            sql_inst = sql_interface(host='localhost', user='cfgbuilder', \
+                password='cfgbuildergetdata', database='rtr_configuration')
+            CGI_CLI.uprint('BEFORE_WRITE:',tag = 'h1')    
+            CGI_CLI.uprint(sql_inst.sql_read_last_record_to_dict(from_string = 'ipxt_data_collector'))    
+            sql_inst.sql_write_table_from_dict('ipxt_data_collector', bgp_data)  
+            CGI_CLI.uprint('AFTER_WRITE:',tag = 'h1')
+            CGI_CLI.uprint(sql_inst.sql_read_last_record_to_dict(from_string = 'ipxt_data_collector'))
+
 
 
 
