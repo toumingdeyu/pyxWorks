@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python36
 
 import sys, os, io, paramiko, json, copy, html
 
@@ -236,6 +236,29 @@ class sql_interface():
                 check_data = self.sql_read_sql_command(sql_string)                          
         return check_data
 
+    def sql_read_last_record_to_dict(table_name = None, from_string = None, \
+        select_string = None, where_string = None):
+        """sql_read_last_record_to_dict - MAKE DICTIONARY FROM LAST TABLE RECORD 
+           NOTES: -'table_name' is alternative name to 'from_string'
+                  - it always read last record dependent on 'where_string'
+                    which contains(=filters by) username,device_name,vpn_name                  
+        """
+        dict_data = collections.OrderedDict()
+        table_name_or_from_string = None
+        if table_name:  table_name_or_from_string = table_name
+        if from_string: table_name_or_from_string = from_string     
+        columns_list = sql_inst.sql_read_all_table_columns(table_name_or_from_string)
+        data_list = sql_inst.sql_read_table_last_record( \
+            from_string = table_name_or_from_string, \
+            select_string = select_string, where_string = where_string)
+        if columns_list and data_list: 
+            dict_data = collections.OrderedDict(zip(columns_list, data_list[0]))
+        try:
+            ### DELETE NOT VALID (AUXILIARY) TABLE COLUMNS
+            del dict_data['id']
+            del dict_data['last_updated']
+        except: pass    
+        return dict_data     
                 
             
 ##############################################################################
@@ -268,21 +291,22 @@ CGI_CLI.print_args()
 
 sql_inst = sql_interface(host='localhost', user='cfgbuilder', password='cfgbuildergetdata', database='rtr_configuration')
 
-name_list = sql_inst.sql_read_all_table_columns('ipxt_data_collector')
-data_list = sql_inst.sql_read_table_last_record(from_string = 'ipxt_data_collector')
+# name_list = sql_inst.sql_read_all_table_columns('ipxt_data_collector')
+# data_list = sql_inst.sql_read_table_last_record(from_string = 'ipxt_data_collector')
 
-CGI_CLI.uprint(name_list)
-CGI_CLI.uprint(data_list)
+# CGI_CLI.uprint(name_list)
+# CGI_CLI.uprint(data_list)
 
-if name_list and data_list: read_data = collections.OrderedDict(zip(name_list[:-1], data_list[0][:-1]))
-else: read_data = collections.OrderedDict()
+# if name_list and data_list: read_data = collections.OrderedDict(zip(name_list[:-1], data_list[0][:-1]))
+# else: read_data = collections.OrderedDict()
 
-CGI_CLI.uprint('READ_DATA:')
-CGI_CLI.uprint(read_data) 
+# CGI_CLI.uprint('READ_DATA:')
+# CGI_CLI.uprint(read_data) 
 
-sql_inst.sql_write_table_from_dict('ipxt_data_collector', read_data)
+# sql_inst.sql_write_table_from_dict('ipxt_data_collector', read_data)
 
 CGI_CLI.uprint(sql_inst.sql_read_table_last_record(from_string = 'ipxt_data_collector'))
+CGI_CLI.uprint(sql_inst.sql_read_last_record_to_dict(from_string = 'ipxt_data_collector'))
 
 ### DESTRUCTORS SEQUENCE
 del sql_inst
