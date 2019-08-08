@@ -13,6 +13,7 @@ import glob
 import socket
 import six
 import collections
+import ipaddress
 
 from mako.template import Template
 from mako.lookup import TemplateLookup
@@ -43,103 +44,32 @@ try:    EMAIL_ADDRESS   = os.environ['NEWR_EMAIL']
 except: EMAIL_ADDRESS   = str()
 
 
-###############################################################################
 
-# acl_config_template = '''!<% rule_num = 10 %>
-# ipv4 access-list IPXT.${customer_name}-IN
-# % for rule in customer_prefixes_v4:
- # ${rule_num} permit ipv4 ${rule['customer_prefix_v4']} ${rule['customer_subnetmask_v4']} any<% rule_num += 10 %>
-# % endfor
- # ${rule_num} deny ipv4 any any
-# !
-# '''
 
-acl_config_template = '''!<% rule_num = 10 %>
-ipv4 access-list IPXT.${customer_name}-IN
-% for rule in customer_prefixes_v4:
- ${rule_num} permit ipv4 ${rule.get('customer_prefix_v4','')} ${rule['customer_subnetmask_v4']} any<% rule_num += 10 %>
-% endfor
- ${rule_num} deny ipv4 any any
-!
-'''
-
-static_route_config_template = '''
-!
-router static
- vrf ${vpn.replace('.','@')} 
-  address-family ipv4 unicast
-   193.251.244.166/32 Bundle-Ether1.65 193.251.157.67
-!
-'''
 ###############################################################################
 #
 # Function and Class
 #
 ###############################################################################
 
-def generate_IPSEC_GW_router_config(dict_data = None):
-    config_string = str()
-    
-    mytemplate = Template(acl_config_template)
-    config_string += mytemplate.render(**dict_data)
-    
-    mytemplate = Template(static_route_config_template)
-    config_string += mytemplate.render(**dict_data) 
-    
-    return config_string
-    
-def generate_PE_router_config(dict_data = None):
-    config_string = str()
-    
-    mytemplate = Template(acl_config_template)
-    config_string += mytemplate.render(**dict_data)
-    
-    mytemplate = Template(static_route_config_template)
-    config_string += mytemplate.render(**dict_data) 
-    
-    return config_string 
-
-
-
-
-################################################################################
-
-def read_bgp_data_json_from_logfile(filename = None, printall = None):
-    bgp_data_loaded, text = None, None
+def read_data_json_from_logfile(filename = None, printall = None):
+    data_loaded, text = collections.OrderedDict(), None
     if filename:
         with open(filename,"r") as fp:
             text = fp.read()
         if text:
-            try: bgp_data_json_text = text.split('EVAL_COMMAND: return_bgp_data_json()')[1]
-            except: bgp_data_json_text = str()
-            if bgp_data_json_text:
+            try: data_json_text = text.split('EVAL_COMMAND: return_bgp_data_json()')[1]
+            except: data_json_text = str()
+            if data_json_text:
                 try:
-                    bgp_data_loaded = json.loads(bgp_data_json_text, \
+                    data_loaded = json.loads(data_json_text, \
                         object_pairs_hook = collections.OrderedDict)
                 except: pass
-                #print("LOADED_BGP_DATA: ",bgp_data_loaded)
-                if printall: print("\nLOADED JSON BGP_DATA: ")
-                if printall: print(json.dumps(bgp_data_loaded, indent=2))
-    return bgp_data_loaded
+                #print("LOADED_data: ",data_loaded)
+                if printall: print("\nLOADED JSON data: ")
+                if printall: print(json.dumps(data_loaded, indent=2))
+    return data_loaded
 
-def append_variable_to_bashrc(variable_name=None,variable_value=None):
-    forget_it = subprocess.check_output('echo export %s=%s >> ~/.bashrc' % \
-        (variable_name,variable_value), shell=True)
-
-def send_me_email(subject='testmail', file_name='/dev/null'):
-    if not 'WIN32' in sys.platform.upper():
-        my_account = subprocess.check_output('whoami', shell=True)
-        my_finger_line = subprocess.check_output('finger | grep "%s"'%(my_account.strip()), shell=True)
-        try:
-            my_name = my_finger_line.splitlines()[0].split()[1]
-            my_surname = my_finger_line.splitlines()[0].split()[2]
-            if EMAIL_ADDRESS: my_email_address = EMAIL_ADDRESS
-            else: my_email_address = '%s.%s@orange.com' % (my_name, my_surname)
-            mail_command = 'echo | mutt -s "%s" -a %s -- %s' % (subject,file_name,my_email_address)
-            #mail_command = 'uuencode %s %s | mail -s "%s" %s' % (file_name,file_name,subject,my_email_address)
-            forget_it = subprocess.check_output(mail_command, shell=True)
-            print(' ==> Email "%s" sent to %s.'%(subject,my_email_address))
-        except: pass
 
 def generate_file_name(prefix = None, suffix = None , directory = None):
     filenamewithpath = None
@@ -163,10 +93,12 @@ def generate_file_name(prefix = None, suffix = None , directory = None):
         filenamewithpath = str(os.path.join(LOGDIR,filename))
     return filenamewithpath         
 
+
 def dict_to_json_string(dict_data = None):
     try: json_data = json.dumps(dict_data, indent=2)
     except: json_data = ''
     return json_data
+
 
 def find_last_logfile():
     most_recent_logfile = None
@@ -184,7 +116,8 @@ def find_last_logfile():
                 most_recent_logfile = item
     return most_recent_logfile
 
-def find_dict_duplicate_keys(data1, data2):
+
+def find_duplicate_keys_in_dictionaries(data1, data2):
     duplicate_keys_list = None
     if data1 and data2:
         list1 = list(data1.keys())
@@ -194,6 +127,7 @@ def find_dict_duplicate_keys(data1, data2):
                 if not duplicate_keys_list: duplicate_keys_list = []
                 duplicate_keys_list.append(list1)
     return duplicate_keys_list
+
 
 ##################################################################################
 
@@ -212,7 +146,7 @@ class CGI_CLI(object):
     START_EPOCH = time.time()
     cgi_parameters_error = None
     cgi_active = None
-    #data, submit_form, username, password = None, None, None, None
+    data, submit_form, username, password = collections.OrderedDict(), None, None, None
     
     @staticmethod        
     def __cleanup__():
@@ -439,6 +373,224 @@ class sql_interface():
         return dict_data      
 
 
+
+###############################################################################
+
+GW_interface_change_templ = '''
+interface Tunnel${cgi_data.get('vlan-id','UNKNOWN')}
+ no ip address
+ ip address ${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('mask','UNKNOWN')} 
+ exit
+'''
+
+################################################################################
+
+PE_vrf_config_templ = """!
+vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')}
+ description ${cgi_data.get('vpn','UNKNOWN')}.${cgi_data.get('customer_name','UNKNOWN')}.IPXT
+ address-family ipv4 unicast
+ import route-target
+% for item in bgp_data.get('rt_import',[]):
+  ${item}
+% endfor  
+ exit
+ export route-target
+% for item in bgp_data.get('rt_export',[]): 
+  ${item}
+% endfor  
+  exit
+ exit
+!
+"""
+
+PE_acl_config_templ = '''!<% rule_num = 10 %>
+ipv4 access-list IPXT.${cgi_data.get('customer_name','UNKNOWN')}-IN
+% for rule in bgp_data.get('customer_prefixes_v4',{}):
+ ${rule_num} permit ipv4 ${rule.get('customer_prefix_v4','UNKNOWN')} ${rule.get('customer_subnetmask_v4','UNKNOWN')} any<% rule_num += 10 %>
+% endfor
+ 1000 deny ipv4 any any
+!
+'''
+
+PE_prefix_config_templ = """! <% list_count = 0; list_len = len(bgp_data.get('customer_prefixes_v4',{})) %>\
+prefix-set IPXT.${cgi_data.get('customer_name','UNKNOWN')}-IN
+% for item in bgp_data.get('customer_prefixes_v4',{}):
+<% import ipaddress; net = ipaddress.ip_network(item.get('customer_prefix_v4','1.1.1.1')+'/'+item.get('customer_subnetmask_v4','32')); list_count += 1 %>
+% if list_count == list_len:
+  ${net} le 32
+% else:
+  ${net} le 32,
+% endif 
+% endfor
+end-set
+!
+"""
+
+PE_policy_map_templ = """!
+policy-map ${cgi_data.get('vpn','UNKNOWN')}-IN
+ class class-default
+  service-policy ${cgi_data.get('vpn','UNKNOWN')}-COS-IN
+  police rate ${cgi_data.get('vpn','UNKNOWN')} mbps 
+end-policy-map
+! 
+policy-map ${cgi_data.get('vpn','UNKNOWN')}-OUT
+ class class-default
+  service-policy IPXT.Tyntec-COS-OUT
+  shape average ${cgi_data.get('gold-bw','UNKNOWN')} mbps
+  bandwidth ${cgi_data.get('vpn','UNKNOWN')} mbps 
+ ! 
+end-policy-map
+! 
+policy-map ${cgi_data.get('vpn','UNKNOWN')}-COS-IN
+ class GOLD
+  police rate ${cgi_data.get('gold-bw','UNKNOWN')} mbps 
+  ! 
+  set mpls experimental imposition 5
+ ! 
+ class SILVER
+  set mpls experimental imposition 3
+ ! 
+ class class-default
+  set mpls experimental imposition 0
+ ! 
+ end-policy-map
+! 
+policy-map ${cgi_data.get('vpn','UNKNOWN')}-COS-OUT
+ class GOLD
+  police rate ${cgi_data.get('gold-bw','UNKNOWN')} mbps 
+  ! 
+  priority level 1 
+ ! 
+ class SILVER
+  bandwidth remaining percent 50 
+ ! 
+ class class-default
+ ! 
+ end-policy-map
+!
+!
+"""
+
+PE_interface_description_templ = """interface Bundle-Ether1 
+ description TESTING ${cgi_data.get('ipsec-gw-router','UNKNOWN')} from ${cgi_data.get('pe-router','UNKNOWN')} :IPXT ASN43566 @XXX.XXX.XXX.XXX - For IPXT over IPSEC FIBXXXXX - Custom
+ no ipv4 address
+ carrier-delay up 3 down 0
+ load-interval 30
+!
+"""
+
+PE_customer_interface_templ = """interface Bundle-Ether1.${cgi_data.get('vlan-id','UNKNOWN')}
+ encapsulation dot1Q ${cgi_data.get('vlan-id','UNKNOWN')}
+ description TESTING Tyntec :IPXT ASN43566 @${cgi_data.get('aaaaa','UNKNOWN')} - IPX LD123456 TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
+ bandwidth ${cgi_data.get('gold-bw','UNKNOWN')}000
+ vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')} 
+ ipv4 address ${cgi_data.get('interco_ip','UNKNOWN')} ${cgi_data.get('interco_mask','UNKNOWN')}
+ ipv4 access-group ${cgi_data.get('vpn','UNKNOWN')}-IN ingress
+ service-policy input ${cgi_data.get('vpn','UNKNOWN')}-IN
+ service-policy output ${cgi_data.get('vpn','UNKNOWN')}-OUT
+!
+"""
+
+PE_customer_policy_templ = """!
+route-policy IPXT.Tyntec-IN
+  if not destination in ${cgi_data.get('vpn','UNKNOWN')}-IN then
+   drop
+  endif
+  if community matches-any (2300:80) then
+    set local-preference 80
+    set community (43566:11000) <--<< need to collect the communities from Huawei
+    set community (43566:20200) additive
+  elseif community matches-any (2300:90) then
+    set local-preference 90
+    set community (43566:11000)
+    set community (43566:20200) additive
+  else
+    set local-preference 100
+    set community (43566:11000)
+    set community (43566:20200) additive
+  endif
+end-policy 
+!
+"""
+
+PE_bgp_config_templ = """!
+router bgp 2300
+ neighbor-group ${cgi_data.get('vpn','UNKNOWN')}
+  remote-as 43566
+  ebgp-multihop 5
+  advertisement-interval 0
+  address-family ipv4 unicast
+   send-community-ebgp
+   route-policy ${cgi_data.get('vpn','UNKNOWN')}-IN in
+   maximum-prefix 10 90
+   route-policy PASS-ALL out
+   soft-reconfiguration inbound
+  !
+ !
+vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')}
+  rd ${bgp_data.get('rd','UNKNOWN')}
+  address-family ipv4 unicast
+   redistribute connected route-policy NO-EXPORT-INTERCO
+  !
+  neighbor 193.251.244.166
+   use neighbor-group ${cgi_data.get('vpn','UNKNOWN')}
+  !
+!
+"""
+
+PE_static_route_config_templ = '''!
+router static
+ vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')} 
+  address-family ipv4 unicast
+   193.251.244.166/32 Bundle-Ether1.65 193.251.157.67
+!
+'''
+
+
+#############################################################################
+def generate_IPSEC_GW_router_config(data = None):
+    config_string = str()
+    
+    mytemplate = Template(GW_interface_change_templ,strict_undefined=True)
+    config_string += mytemplate.render(**data)     
+    
+    
+    return config_string
+
+    
+def generate_PE_router_config(dict_data = None):
+    config_string = str()
+
+    mytemplate = Template(PE_vrf_config_templ,strict_undefined=True)
+    config_string += mytemplate.render(**data)
+    
+    mytemplate = Template(PE_acl_config_templ,strict_undefined=True)
+    config_string += mytemplate.render(**data)
+    
+    mytemplate = Template(PE_prefix_config_templ,strict_undefined=True)
+    config_string += (mytemplate.render(**data)).replace('\n\n','\n')
+
+    mytemplate = Template(PE_policy_map_templ,strict_undefined=True)
+    config_string += (mytemplate.render(**data)).replace('\n\n','\n')
+
+    mytemplate = Template(PE_interface_description_templ,strict_undefined=True)
+    config_string += (mytemplate.render(**data)).replace('\n\n','\n')
+
+    mytemplate = Template(PE_customer_interface_templ,strict_undefined=True)
+    config_string += (mytemplate.render(**data)).replace('\n\n','\n')
+
+    mytemplate = Template(PE_customer_policy_templ,strict_undefined=True)
+    config_string += (mytemplate.render(**data)).replace('\n\n','\n')
+
+    mytemplate = Template(PE_bgp_config_templ,strict_undefined=True)
+    config_string += (mytemplate.render(**data)).replace('\n\n','\n')
+
+    mytemplate = Template(PE_static_route_config_templ,strict_undefined=True)
+    config_string += (mytemplate.render(**data)).replace('\n\n','\n')    
+    return config_string 
+
+
+
 ##############################################################################
 #
 # BEGIN MAIN
@@ -456,29 +608,25 @@ device_name = CGI_CLI.data.get('device','')
 huawei_device_name = CGI_CLI.data.get('huawei-router-name','')
 vpn_name = CGI_CLI.data.get('vpn','')
 
-bgp_data = collections.OrderedDict()
-bgp_data = copy.deepcopy(read_bgp_data_json_from_logfile(find_last_logfile()))
-bgp_data.update(CGI_CLI.data)
-CGI_CLI.uprint(dict_to_json_string(bgp_data))
+### START OF DATA PROCESSING ###
 
+data = collections.OrderedDict()
+bgp_data = copy.deepcopy(read_data_json_from_logfile(find_last_logfile()))
+cgi_data = copy.deepcopy(CGI_CLI.data)
+data['bgp_data'] = bgp_data
+data['cgi_data'] = cgi_data
 
-
-# if bgp_data:
-    # CGI_CLI.uprint('BGP_DATA:', tag = 'h1')
-    # CGI_CLI.uprint(bgp_data)
-
-# if bgp_data and CGI_CLI.data and not find_dict_duplicate_keys(bgp_data, CGI_CLI.data):
-    # bgp_data.update(CGI_CLI.data)
-    # CGI_CLI.uprint('BGP_DATA_COLLECTED:', tag = 'h1')
-    # CGI_CLI.uprint(dict_to_json_string(bgp_data))
+CGI_CLI.uprint(dict_to_json_string(data)+'\n')
     
-if bgp_data: 
-    config_text_gw = generate_IPSEC_GW_router_config(bgp_data)
-    CGI_CLI.uprint('IPSEC GW ROUTER CONFIG:', tag = 'h1')
+if data: 
+    config_text_gw = generate_IPSEC_GW_router_config(data)
+    CGI_CLI.uprint('IPSEC GW ROUTER (%s) CONFIG:' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()), tag = 'h1')
     CGI_CLI.uprint(config_text_gw)    
-    config_text_pe = generate_PE_router_config(bgp_data)
-    CGI_CLI.uprint('PE ROUTER CONFIG:', tag = 'h1')
+    config_text_pe = generate_PE_router_config(data)
+    CGI_CLI.uprint('PE ROUTER (%s) CONFIG:' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()), tag = 'h1')
     CGI_CLI.uprint(config_text_pe)
+     
+
 
 
 
