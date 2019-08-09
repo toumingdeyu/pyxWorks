@@ -94,8 +94,9 @@ def generate_file_name(prefix = None, suffix = None , directory = None):
     return filenamewithpath         
 
 
-def dict_to_json_string(dict_data = None):
-    try: json_data = json.dumps(dict_data, indent=2)
+def dict_to_json_string(dict_data = None, indent = None):
+    if not indent: indent = 4 
+    try: json_data = json.dumps(dict_data, indent = indent)
     except: json_data = ''
     return json_data
 
@@ -128,6 +129,11 @@ def find_duplicate_keys_in_dictionaries(data1, data2):
                 duplicate_keys_list.append(list1)
     return duplicate_keys_list
 
+def get_variable_name(var):
+    import inspect
+    callers_local_vars = inspect.currentframe().f_back.f_locals.items()
+    var_list = [var_name for var_name, var_val in callers_local_vars if var_val is var]
+    return str(','.join(var_list))
 
 ##################################################################################
 
@@ -601,7 +607,7 @@ if __name__ != "__main__": sys.exit(0)
 ### CGI-BIN READ FORM ############################################
 CGI_CLI()
 CGI_CLI.init_cgi()
-CGI_CLI.print_args()
+#CGI_CLI.print_args()
 
 script_action = CGI_CLI.submit_form.replace(' ','_') if CGI_CLI.submit_form else 'unknown_action' 
 device_name = CGI_CLI.data.get('device','')
@@ -616,7 +622,7 @@ cgi_data = copy.deepcopy(CGI_CLI.data)
 data['bgp_data'] = bgp_data
 data['cgi_data'] = cgi_data
 
-CGI_CLI.uprint(dict_to_json_string(data)+'\n')
+CGI_CLI.uprint(get_variable_name(data) + ' = ' + dict_to_json_string(data) + '\n')
     
 if data: 
     config_text_gw = generate_IPSEC_GW_router_config(data)
@@ -626,7 +632,6 @@ if data:
     CGI_CLI.uprint('PE ROUTER (%s) CONFIG:' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()), tag = 'h1')
     CGI_CLI.uprint(config_text_pe)
      
-
 
 
 
