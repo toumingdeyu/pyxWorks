@@ -85,7 +85,7 @@ class CGI_CLI(object):
                 if tag and 'h' in tag: print('<%s>'%(tag))
                 if tag and 'p' in tag: print('<p>')
                 if isinstance(text, six.string_types): 
-                    text = str(text.replace('\n','<br/>'))
+                    text = str(text.replace('\n','<br/>').replace(' ','&nbsp;'))
                 else: text = str(text)   
             print(text)
             if CGI_CLI.cgi_active: 
