@@ -381,7 +381,6 @@ class sql_interface():
 
 
 ###############################################################################
-
 GW_interface_change_templ = '''
 interface Tunnel${cgi_data.get('vlan-id','UNKNOWN')}
  no ip address
@@ -389,8 +388,106 @@ interface Tunnel${cgi_data.get('vlan-id','UNKNOWN')}
  exit
 '''
 
+GW_check_vrf_and_crypto_templ = """!
+vrf definition LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
+ description Local vrf for tunnel ${cgi_data.get('vlan-id','UNKNOWN')} - ${cgi_data.get('vpn','UNKNOWN')}
+ rd 0.0.0.128:65
+ !
+ address-family ipv4
+ exit-address-family
+ !
+ address-family ipv6
+ exit-address-family
+!
+!
+crypto keyring ${cgi_data.get('vpn','UNKNOWN')}  
+  local-address 193.251.245.106
+  pre-shared-key address 78.110.224.70 key testbox1234
+!
+crypto isakmp profile ${cgi_data.get('vpn','UNKNOWN')}
+   vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
+   keyring ${cgi_data.get('vpn','UNKNOWN')}
+   match identity address 78.110.224.70 255.255.255.255 
+   local-address 193.251.245.106
+   keepalive 10 retry 3
+!
+crypto ipsec profile ${cgi_data.get('vpn','UNKNOWN')}
+ set security-association lifetime seconds 28800
+ set transform-set vpn-aes256-sha256
+ set pfs group1
+ set isakmp-profile ${cgi_data.get('vpn','UNKNOWN')}
+!
+"""
+
+GW_tunnel_interface_templ = """interface Tunnel${cgi_data.get('vlan-id','UNKNOWN')}
+ no shutdown
+ description TESTING ${cgi_data.get('customer_name','UNKNOWN')} @193.251.244.166 - IPX LD123456 TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
+ bandwidth ${cgi_data.get('gold-bw','UNKNOWN')}000
+ vrf forwarding LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
+ ip address 193.251.244.167 255.255.255.254
+ no ip redirects
+ no ip proxy-arp
+ ip mtu 1420
+ logging event link-status
+ load-interval 30
+ carrier-delay msec 0
+ tunnel source 193.251.245.106
+ tunnel destination 78.110.224.70
+ tunnel protection ipsec profile ${cgi_data.get('vpn','UNKNOWN')}
+!
+"""
+
+GW_port_channel_interface_templ = """interface Port-channel1
+ no shutdown
+ description TESTING AUVPE5 from AUVPE6 @XXX.XXX.XXX.XXX - For IPXT over IPSEC FIBXXXXX - Custom
+ mtu 4470
+ no ip address
+ no ip redirects
+ no ip proxy-arp
+ logging event link-status
+ load-interval 30
+ carrier-delay msec 0
+!
+"""
+
+GW_interconnect_interface_templ = """interface Port-channel1.${cgi_data.get('vlan-id','UNKNOWN')}
+ encapsulation dot1Q ${cgi_data.get('vlan-id','UNKNOWN')}
+ description TESTING ${cgi_data.get('customer_name','UNKNOWN')} @193.251.157.66 - IPX LD123456 TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
+ bandwidth ${cgi_data.get('gold-bw','UNKNOWN')}000
+ vrf forwarding LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
+ ip address 193.251.157.67 255.255.255.254 <--<< number 6 in diagram
+ no ip redirects
+ no ip proxy-arp
+!
+"""
+
+GW_customer_router_templ = """!
+ip route vrf LOCAL.65 0.0.0.0 0.0.0.0 Port-channel1.65 193.251.157.66 <--<< default route pointing to PE the next-hop address (193.251.157.66) is number 5 in the diagram.
+ip route vrf LOCAL.65 193.251.244.166 255.255.255.255 Tunnel65 193.251.244.166  <--<< static route for customer BGP address (peer_address in json). next-hop is number 4 in diagram.
+
+The rest are the customer prefixes (customer_prefixes_v4)
+ip route vrf LOCAL.65 78.110.224.70 255.255.255.255 Tunnel65 193.251.244.166
+ip route vrf LOCAL.65 178.23.31.16 255.255.255.255 Tunnel65 193.251.244.166
+ip route vrf LOCAL.65 178.23.31.128 255.255.255.128 Tunnel65 193.251.244.166
+ip route vrf LOCAL.65 78.110.239.128 255.255.255.128 Tunnel65 193.251.244.166
+!
+"""
+
+################################################################################
+def generate_IPSEC_GW_router_config(data = None):
+    config_string = str()
+    
+    mytemplate = Template(GW_interconnect_interface_templ,strict_undefined=True)
+    config_string += (mytemplate.render(**data)).replace('\n\n','\n')    
+
+    mytemplate = Template(GW_customer_router_templ,strict_undefined=True)
+    config_string += (mytemplate.render(**data)).replace('\n\n','\n') 
+        
+    return config_string
 ################################################################################
 
+
+################################################################################
 PE_vrf_config_templ = """!
 vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')}
  description ${cgi_data.get('vpn','UNKNOWN')}.${cgi_data.get('customer_name','UNKNOWN')}.IPXT
@@ -441,7 +538,7 @@ end-policy-map
 ! 
 policy-map ${cgi_data.get('vpn','UNKNOWN')}-OUT
  class class-default
-  service-policy IPXT.Tyntec-COS-OUT
+  service-policy ${cgi_data.get('vpn','UNKNOWN')}-COS-OUT
   shape average ${cgi_data.get('gold-bw','UNKNOWN')} mbps
   bandwidth ${cgi_data.get('vpn','UNKNOWN')} mbps 
  ! 
@@ -487,7 +584,7 @@ PE_interface_description_templ = """interface Bundle-Ether1
 
 PE_customer_interface_templ = """interface Bundle-Ether1.${cgi_data.get('vlan-id','UNKNOWN')}
  encapsulation dot1Q ${cgi_data.get('vlan-id','UNKNOWN')}
- description TESTING Tyntec :IPXT ASN43566 @${cgi_data.get('aaaaa','UNKNOWN')} - IPX LD123456 TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
+ description TESTING ${cgi_data.get('customer_name','UNKNOWN')} :IPXT ASN43566 @${cgi_data.get('aaaaa','UNKNOWN')} - IPX LD123456 TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
  bandwidth ${cgi_data.get('gold-bw','UNKNOWN')}000
  vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')} 
  ipv4 address ${cgi_data.get('interco_ip','UNKNOWN')} ${cgi_data.get('interco_mask','UNKNOWN')}
@@ -498,7 +595,7 @@ PE_customer_interface_templ = """interface Bundle-Ether1.${cgi_data.get('vlan-id
 """
 
 PE_customer_policy_templ = """!
-route-policy IPXT.Tyntec-IN
+route-policy ${cgi_data.get('vpn','UNKNOWN')}-IN
   if not destination in ${cgi_data.get('vpn','UNKNOWN')}-IN then
    drop
   endif
@@ -551,27 +648,15 @@ router static
    193.251.244.166/32 Bundle-Ether1.65 193.251.157.67
 !
 '''
-
-
-#############################################################################
-def generate_IPSEC_GW_router_config(data = None):
-    config_string = str()
-    
-    mytemplate = Template(GW_interface_change_templ,strict_undefined=True)
-    config_string += mytemplate.render(**data)     
-    
-    
-    return config_string
-
-    
+#############################################################################    
 def generate_PE_router_config(dict_data = None):
     config_string = str()
 
     mytemplate = Template(PE_vrf_config_templ,strict_undefined=True)
-    config_string += mytemplate.render(**data)
+    config_string += (mytemplate.render(**data)).replace('\n\n','\n')
     
     mytemplate = Template(PE_acl_config_templ,strict_undefined=True)
-    config_string += mytemplate.render(**data)
+    config_string += (mytemplate.render(**data)).replace('\n\n','\n')
     
     mytemplate = Template(PE_prefix_config_templ,strict_undefined=True)
     config_string += (mytemplate.render(**data)).replace('\n\n','\n')
@@ -594,7 +679,7 @@ def generate_PE_router_config(dict_data = None):
     mytemplate = Template(PE_static_route_config_templ,strict_undefined=True)
     config_string += (mytemplate.render(**data)).replace('\n\n','\n')    
     return config_string 
-
+################################################################################
 
 
 ##############################################################################
