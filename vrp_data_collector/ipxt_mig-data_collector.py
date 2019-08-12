@@ -118,7 +118,7 @@ CMD_VRP = [
                \n    print(vpnline.split()[0].replace(",","").strip()) \
                \nexcept: pass',
          'exec_1':'print("... VPN instance %s does not exist on %s! Please choose from listed VPNs ..." % (glob_vars.get("VPN_NAME",""),device))',
-         'exec_2':'if submit_form: print("</body></html>")',
+         'exec_2':'if CLI_CGI.cgi_active: print("</body></html>")',
          'exec_3':'sys.exit(0)'
     },
     {'exec':'try: glob_vars["INTERFACE"] = glob_vars.get("VPN_INSTANCE_IP_TEXT","").split("Interfaces :")[1].splitlines()[0].strip()\nexcept: pass'},
@@ -382,7 +382,6 @@ def detect_router_by_ssh(device, debug = False):
 
     except (socket.timeout, paramiko.AuthenticationException) as e:
         print(bcolors.MAGENTA + " ... Connection closed: %s " % (e) + bcolors.ENDC )
-        if submit_form: print("</body></html>")
         sys.exit()
     finally:
         client.close()
@@ -731,7 +730,6 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
                     main_do_step(cmd_line_items)
     except () as e:
         print(bcolors.FAIL + " ... EXCEPTION: (%s)" % (e) + bcolors.ENDC )
-        if submit_form: print("</body></html>")
         sys.exit()
     finally:
         if remote_connect and ssh_connection:
@@ -880,7 +878,7 @@ class CGI_CLI(object):
     @staticmethod
     def print_args():
         if CGI_CLI.cgi_active:
-            try: print_string = 'CGI_args=' + json.dumps(CGI_CLI.data) + ' <br/>'
+            try: print_string = 'CGI_args['+str(CGI_CLI.cgi_active)+'] = ' + json.dumps(CGI_CLI.data) + ' <br/>'
             except: print_string = 'CGI_args=' + ' <br/>'                
         else: print_string = 'CLI_args=%s \n' % (str(sys.argv[1:]))
         CGI_CLI.uprint(print_string)
@@ -1127,16 +1125,16 @@ COL_EQUAL   = bcolors.GREY
 COL_PROBLEM = bcolors.RED
 
 ### PARSE CMDLINE ARGUMENTS IF NOT CGI-BIN ARGUMENTS #################    
-if device_name and not vpn_name and not CGI_CLI.cgi_active:
-    device_name = args.device
-    
-    if args.emailaddr:
-        append_variable_to_bashrc(variable_name='NEWR_EMAIL',variable_value=args.emailaddr)
-        EMAIL_ADDRESS = args.emailaddr
+if args.emailaddr:
+    append_variable_to_bashrc(variable_name='NEWR_EMAIL',variable_value=args.emailaddr)
+    EMAIL_ADDRESS = args.emailaddr
 
-    if args.sim: glob_vars["SIM_CMD"] = 'ON'
-    else: glob_vars["SIM_CMD"] = 'OFF'
+if args.sim: glob_vars["SIM_CMD"] = 'ON'
+else: glob_vars["SIM_CMD"] = 'OFF'
 
+if not CGI_CLI.cgi_active:
+    if args.device:
+        device_name = args.device
     if args.vpn: glob_vars["VPN_NAME"] = args.vpn; vpn_name = args.vpn
     else:
         CGI_CLI.uprint(bcolors.MAGENTA + " ... VPN NAME must be specified!" + bcolors.ENDC )
@@ -1149,23 +1147,23 @@ if device_name and not vpn_name and not CGI_CLI.cgi_active:
         device_name = local_hostname
 
 
-    if args.readlog:
-        bgp_data = read_bgp_data_json_from_logfile(args.readlog)
-        if not bgp_data:
-            CGI_CLI.uprint(bcolors.MAGENTA + " ... Please insert shut session log! (Inserted log seems to be noshut log.)" + bcolors.ENDC )
-            sys.exit(0)
+if args.readlog:
+    bgp_data = read_bgp_data_json_from_logfile(args.readlog)
+    if not bgp_data:
+        CGI_CLI.uprint(bcolors.MAGENTA + " ... Please insert shut session log! (Inserted log seems to be noshut log.)" + bcolors.ENDC )
+        sys.exit(0)
 
-    if remote_connect:
-        ####### Set USERNAME if needed
-        if args.username: USERNAME = args.username
-        if not USERNAME:
-            CGI_CLI.uprint(bcolors.MAGENTA + " ... Please insert your username by cmdline switch \
-                --user username !" + bcolors.ENDC )  
-            sys.exit(0)
+if remote_connect:
+    ####### Set USERNAME if needed
+    if args.username: USERNAME = args.username
+    if not USERNAME:
+        CGI_CLI.uprint(bcolors.MAGENTA + " ... Please insert your username by cmdline switch \
+            --user username !" + bcolors.ENDC )  
+        sys.exit(0)
 
-        # SSH (default)
-        if not PASSWORD:
-            PASSWORD = getpass.getpass("TACACS password: ")
+    # SSH (default)
+    if not CGI_CLI.cgi_active and not PASSWORD:
+        PASSWORD = getpass.getpass("TACACS password: ")
 
 logfilename, router_type = None, None
 
