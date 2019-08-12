@@ -143,7 +143,7 @@ class nocolors:
 
 class CMD_PROC():
     @staticmethod
-    def init(device = None, cmd_list = None, username = None, password = None, \
+    def init(device = None, cmd_lists = None, username = None, password = None, \
         use_module = 'paramiko', logfilename = None, timeout = 60):
         import atexit; atexit.register(CMD_PROC.__cleanup__)
         if device:
@@ -167,7 +167,7 @@ class CMD_PROC():
             else: CGI_CLI.uprint('DETECTED DEVICE_TYPE: %s' % (CMD_PROC.router_type))
             ####################################################################
             if CMD_PROC.router_type == 'cisco_ios':
-                CMD = CMD_IOS_XE
+                CMD_PROC.CMD = cmd_lists.CMD_IOS_XE
                 CMD_PROC.DEVICE_PROMPTS = [ \
                     '%s%s#'%(args.device.upper(),''), \
                     '%s%s#'%(args.device.upper(),'(config)'), \
@@ -177,7 +177,7 @@ class CMD_PROC():
                 CMD_PROC.TERM_LEN_0 = "terminal length 0"
                 CMD_PROC.EXIT = "exit"
             elif CMD_PROC.router_type == 'cisco_xr':
-                CMD = CMD_IOS_XR
+                CMD_PROC.CMD = cmd_lists.CMD_IOS_XR
                 CMD_PROC.DEVICE_PROMPTS = [ \
                     '%s%s#'%(args.device.upper(),''), \
                     '%s%s#'%(args.device.upper(),'(config)'), \
@@ -187,14 +187,14 @@ class CMD_PROC():
                 CMD_PROC.TERM_LEN_0 = "terminal length 0"
                 CMD_PROC.EXIT = "exit"
             elif CMD_PROC.router_type == 'juniper':
-                CMD = CMD_JUNOS
+                CMD_PROC.CMD = cmd_lists.CMD_JUNOS
                 CMD_PROC.DEVICE_PROMPTS = [ \
                      USERNAME + '@' + args.device.upper() + '> ', # !! Need the space after >
                      USERNAME + '@' + args.device.upper() + '# ' ]
                 CMD_PROC.TERM_LEN_0 = "set cli screen-length 0"
                 CMD_PROC.EXIT = "exit"
             elif CMD_PROC.router_type == 'huawei' :
-                CMD = CMD_VRP
+                CMD_PROC.CMD = cmd_lists.CMD_VRP
                 CMD_PROC.DEVICE_PROMPTS = [ \
                     '<' + args.device.upper() + '>',
                     '[' + args.device.upper() + ']',
@@ -203,13 +203,13 @@ class CMD_PROC():
                 CMD_PROC.TERM_LEN_0 = "screen-length 0 temporary"     #"screen-length disable"
                 CMD_PROC.EXIT = "quit"
             elif CMD_PROC.router_type == 'linux':
-                CMD = CMD_LINUX
+                CMD = cmd_lists.CMD_LINUX
                 CMD_PROC.DEVICE_PROMPTS = [ ]
                 CMD_PROC.TERM_LEN_0 = ''     #"screen-length disable"
                 CMD_PROC.EXIT = "exit"
-            else: CMD = CMD_LOCAL
+            else: CMD_PROC.CMD = cmd_lists.CMD_LOCAL
             # ADD PROMPT TO PROMPTS LIST
-            if router_prompt: CMD_PROC.DEVICE_PROMPTS.append(CMD_PROC.router_prompt)
+            if CMD_PROC.router_prompt: CMD_PROC.DEVICE_PROMPTS.append(CMD_PROC.router_prompt)
             ### START SSH CONNECTION AGAIN #####################################
             try:
                 if CMD_PROC.use_module == 'netmiko':
@@ -230,10 +230,10 @@ class CMD_PROC():
                 if not CMD_PROC.logfilename:
                     if 'WIN32' in sys.platform.upper(): CMD_PROC.logfilename = 'nul'
                     else: CMD_PROC.logfilename = '/dev/null'
-                with open(CMD_PROC.logfilename,"w") as fp:
+                with open(CMD_PROC.logfilename,"w+") as fp:
                     if CMD_PROC.output and not printcmdtologfile: fp.write(CMD_PROC.output)
                     ### process commands #######################################
-                    for CMD_PROC.cmd_line_items in cmd_list:
+                    for cmd_line_items in CMD_PROC.CMD:
                         pass
 
 
