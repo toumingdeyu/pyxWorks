@@ -802,6 +802,13 @@ def find_dict_duplicate_keys(data1, data2):
     return duplicate_keys_list
 
 
+def get_variable_name(var):
+    import inspect
+    callers_local_vars = inspect.currentframe().f_back.f_locals.items()
+    var_list = [var_name for var_name, var_val in callers_local_vars if var_val is var]
+    return str(','.join(var_list))
+
+
 class CGI_CLI(object):
     """
     CGI_handle - Simple statis class for handling CGI parameters and 
@@ -1245,7 +1252,7 @@ if device_name:
     else: pass        
 
     if logfilename and os.path.exists(logfilename):
-        CGI_CLI.uprint('%s file created. ' % (logfilename))
+        CGI_CLI.uprint('\n%s file created. ' % (logfilename))
         ### MAKE READABLE for THE OTHERS
         try:
             dummy = subprocess.check_output('chmod +r %s' % (logfilename),shell=True)
@@ -1260,10 +1267,10 @@ if device_name:
         if router_type == 'huawei': 
             sql_inst = sql_interface(host='localhost', user='cfgbuilder', \
                 password='cfgbuildergetdata', database='rtr_configuration')
-            CGI_CLI.uprint('BEFORE_WRITE:',tag = 'h1')    
+            CGI_CLI.uprint('BEFORE_SQL_WRITE:',tag = 'h1')    
             CGI_CLI.uprint(sql_inst.sql_read_last_record_to_dict(from_string = 'ipxt_data_collector'))    
             sql_inst.sql_write_table_from_dict('ipxt_data_collector', bgp_data)  
-            CGI_CLI.uprint('AFTER_WRITE:',tag = 'h1')
+            CGI_CLI.uprint('AFTER_SQL_WRITE:',tag = 'h1')
             CGI_CLI.uprint(sql_inst.sql_read_last_record_to_dict(from_string = 'ipxt_data_collector'))
 
 
