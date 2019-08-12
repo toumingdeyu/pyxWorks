@@ -117,8 +117,8 @@ CMD_VRP = [
                \n  for vpnline in glob_vars.get("last_output","").split("VPN-Instance ")[1:]: \
                \n    print(vpnline.split()[0].replace(",","").strip()) \
                \nexcept: pass',
-         'exec_1':'print("... VPN instance %s does not exist on %s! Please choose from listed VPNs ..." % (glob_vars.get("VPN_NAME",""),device))',
-         'exec_2':'if CLI_CGI.cgi_active: print("</body></html>")',
+         'exec_1':'print("... VPN instance %s does not exist on %s! Please choose from listed VPNs ..." % (glob_vars.get("VPN_NAME",""),device_name))',
+         'exec_2':'if glob_vars.get("CGI_ACTIVE",""): print("</body></html>")',
          'exec_3':'sys.exit(0)'
     },
     {'exec':'try: glob_vars["INTERFACE"] = glob_vars.get("VPN_INSTANCE_IP_TEXT","").split("Interfaces :")[1].splitlines()[0].strip()\nexcept: pass'},
@@ -1075,6 +1075,8 @@ CGI_CLI.uprint('LOGDIR[%s] \n'%(LOGDIR))
 device_name = CGI_CLI.data.get('device','')
 vpn_name = CGI_CLI.data.get('vpn','')
 if vpn_name: glob_vars["VPN_NAME"] = vpn_name
+
+glob_vars["CGI_ACTIVE"] = CGI_CLI.cgi_active
 
 ###################################################################
 VERSION = get_version_from_file_last_modification_date()
