@@ -144,7 +144,7 @@ class nocolors:
 class CMD_PROC():
     @staticmethod
     def init(device = None, cmd_lists = None, username = None, password = None, \
-        use_module = 'paramiko', logfilename = None, timeout = 60):
+        use_module = 'paramiko', logfilename = None, timeout = 60, printall = True):
         import atexit; atexit.register(CMD_PROC.__cleanup__)
         if device:
             CMD_PROC.ssh_connection = None
@@ -234,9 +234,10 @@ class CMD_PROC():
                     if CMD_PROC.output and not printcmdtologfile: fp.write(CMD_PROC.output)
                     ### process commands #######################################
                     for cmd_line_items in CMD_PROC.CMD:
-                        pass
-
-
+                        last_output, new_prompt = ssh_send_command_and_read_output( \
+                            ssh_connection, CMD_PROC.DEVICE_PROMPTS, \
+                            send_data = cmd_line_items, printall = printall)
+                        if new_prompt: CMD_PROC.DEVICE_PROMPTS.append(new_prompt)
 
             except () as e:
                 print(bcolors.FAIL + " ... EXCEPTION: (%s)" % (e) + bcolors.ENDC )
@@ -255,6 +256,72 @@ class CMD_PROC():
             if CMD_PROC.use_module == 'netmiko': CMD_PROC.ssh_connection.disconnect()
             elif CMD_PROC.use_module == 'paramiko': client.close()
         CGI_CLI.uprint('DEVICE %s:%s DONE.' % (CMD_PROC.DEVICE_HOST, CMD_PROC.DEVICE_PORT))
+
+    @staticmethod
+    def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True):
+        output, output2, new_prompt = str(), str(), str()
+        exit_loop, exit_loop2 = False, False
+        timeout_counter, timeout_counter2 = 0, 0
+        # FLUSH BUFFERS FROM PREVIOUS COMMANDS IF THEY ARE ALREADY BUFFERD
+        if chan.recv_ready(): flush_buffer = chan.recv(9999)
+        chan.send(send_data + '\n')
+        time.sleep(0.2)
+        while not exit_loop:
+            if chan.recv_ready():
+                # workarround for discontious outputs from routers
+                timeout_counter = 0
+                buff = chan.recv(9999)
+                buff_read = buff.decode("utf-8").replace('\x0d','').replace('\x07','').\
+                    replace('\x08','').replace(' \x1b[1D','')
+                output += buff_read
+            else: time.sleep(0.1); timeout_counter += 1
+            # FIND LAST LINE, THIS COULD BE PROMPT
+            try: last_line, last_line_orig = output.splitlines()[-1].strip(), output.splitlines()[-1].strip()
+            except: last_line, last_line_orig = str(), str()
+            # FILTER-OUT '(...)' FROM PROMPT IOS-XR/IOS-XE
+            if router_type in ["ios-xr","ios-xe",'cisco_ios','cisco_xr']:
+                try:
+                    last_line_part1 = last_line.split('(')[0]
+                    last_line_part2 = last_line.split(')')[1]
+                    last_line = last_line_part1 + last_line_part2
+                except: last_line = last_line
+            # FILTER-OUT '[*','[~','-...]' FROM VRP
+            elif router_type in ["vrp",'huawei']:
+                try:
+                    last_line_part1 = '[' + last_line.replace('[~','[').replace('[*','[').split('[')[1].split('-')[0]
+                    last_line_part2 = ']' + last_line.replace('[~','[').replace('[*','[').split('[')[1].split(']')[1]
+                    last_line = last_line_part1 + last_line_part2
+                except: last_line = last_line
+            # IS ACTUAL LAST LINE PROMPT ? IF YES , GO AWAY
+            for actual_prompt in prompts:
+                if output.endswith(actual_prompt) or \
+                    last_line and last_line.endswith(actual_prompt):
+                        exit_loop=True; break
+            else:
+                # 30 SECONDS COMMAND TIMEOUT
+                if (timeout_counter) > 30*10: exit_loop=True; break
+                # 10 SECONDS --> This could be a new PROMPT
+                elif (timeout_counter) > 10*10 and not exit_loop2:
+                    chan.send('\n')
+                    time.sleep(0.1)
+                    while(not exit_loop2):
+                        if chan.recv_ready():
+                            buff = chan.recv(9999)
+                            buff_read = buff.decode("utf-8").replace('\x0d','')\
+                               .replace('\x07','').replace('\x08','').replace(' \x1b[1D','')
+                            output2 += buff_read
+                        else: time.sleep(0.1); timeout_counter2 += 1
+                        try: new_last_line = output2.splitlines()[-1].strip()
+                        except: new_last_line = str()
+                        if last_line_orig and new_last_line and last_line_orig == new_last_line:
+                            if printall: print('%sNEW_PROMPT: %s%s' % (bcolors.CYAN,last_line_orig,bcolors.ENDC))
+                            new_prompt = last_line_orig; exit_loop=True;exit_loop2=True; break
+                        # WAIT UP TO 5 SECONDS
+                        if (timeout_counter2) > 5*10: exit_loop2 = True; break
+        return output, new_prompt
+
+
+
 
     @staticmethod
     def detect_router_by_ssh(debug = False):
