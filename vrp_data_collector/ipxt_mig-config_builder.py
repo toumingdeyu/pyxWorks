@@ -108,7 +108,7 @@ def find_last_logfile():
         "*" + step1_string.replace(' ','_') + "*"
     log_filenames = glob.glob(log_file_name)
     if len(log_filenames) == 0:
-        print(" ... Can't find any proper (%s) log file.\n"%(log_file_name))
+        CGI_CLI.uprint(" ... Can't find any proper (%s) log file.\n"%(log_file_name))
     else:    
         most_recent_logfile = log_filenames[0]
         for item in log_filenames:
