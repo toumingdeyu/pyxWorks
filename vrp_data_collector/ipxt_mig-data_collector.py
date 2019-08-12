@@ -112,12 +112,12 @@ CMD_VRP = [
     },
     {'if':'"VPN instance does not exist." in glob_vars.get("VPN_INSTANCE_IP_TEXT","")',
          'remote_command':'display bgp vpnv4 all peer | in (VPN-Instance)',
-         'exec':'print("... VPN_LIST:") \
+         'exec':'CGI_CLI.uprint("... VPN_LIST:") \
                \ntry: \
                \n  for vpnline in glob_vars.get("last_output","").split("VPN-Instance ")[1:]: \
-               \n    print(vpnline.split()[0].replace(",","").strip()) \
+               \n    CGI_CLI.uprint(vpnline.split()[0].replace(",","").strip()) \
                \nexcept: pass',
-         'exec_1':'print("... VPN instance %s does not exist on %s! Please choose from listed VPNs ..." % (glob_vars.get("VPN_NAME",""),device_name))',
+         'exec_1':'CGI_CLI.uprint("... VPN instance %s does not exist on %s! Please choose from listed VPNs ..." % (glob_vars.get("VPN_NAME",""),device_name))',
          'exec_2':'if glob_vars.get("CGI_ACTIVE",""): print("</body></html>")',
          'exec_3':'sys.exit(0)'
     },
