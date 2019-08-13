@@ -259,7 +259,49 @@ class sql_interface():
             del dict_data['last_updated']
         except: pass    
         return dict_data     
-                
+
+    def sql_read_table_records(self, select_string = None, from_string = None, where_string = None):
+        """NOTE: FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE"""
+        check_data = None
+        if not select_string: select_string = '*'
+        #SELECT vlan_id FROM ipxt_data_collector WHERE id=(SELECT max(id) FROM ipxt_data_collector \
+        #WHERE username='mkrupa' AND device_name='AUVPE3'); 
+        if self.sql_is_connected():
+            if from_string:
+                if where_string:
+                    sql_string = "SELECT %s FROM %s WHERE %s);" \
+                        %(select_string, from_string, where_string)
+                else:
+                    sql_string = "SELECT %s FROM %s;" \
+                        %(select_string, from_string )
+                check_data = self.sql_read_sql_command(sql_string)                          
+        return check_data
+
+    def sql_read_records_to_dict_list(table_name = None, from_string = None, \
+        select_string = None, where_string = None):
+        """sql_read_last_record_to_dict - MAKE DICTIONARY FROM LAST TABLE RECORD 
+           NOTES: -'table_name' is alternative name to 'from_string'
+                  - it always read last record dependent on 'where_string'
+                    which contains(=filters by) username,device_name,vpn_name                  
+        """
+        dict_data, dict_list = collections.OrderedDict(), []
+        table_name_or_from_string = None
+        if table_name:  table_name_or_from_string = table_name
+        if from_string: table_name_or_from_string = from_string     
+        columns_list = sql_inst.sql_read_all_table_columns(table_name_or_from_string)
+        data_list = sql_inst.sql_read_table_records( \
+            from_string = table_name_or_from_string, \
+            select_string = select_string, where_string = where_string)
+        if columns_list and data_list:
+            for line_list in data_list:
+                dict_data = collections.OrderedDict(zip(columns_list, line_list))
+                dict_list.append(dict_data)
+        try:
+            ### DELETE NOT VALID (AUXILIARY) TABLE COLUMNS
+            del dict_data['id']
+            del dict_data['last_updated']
+        except: pass    
+        return dict_list                
             
 ##############################################################################
 #
