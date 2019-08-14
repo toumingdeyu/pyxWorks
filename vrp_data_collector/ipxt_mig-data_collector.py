@@ -895,8 +895,9 @@ class CGI_CLI(object):
 class sql_interface():
     ### import mysql.connector
     ### MARIADB - By default AUTOCOMMIT is disabled
-    
+                    
     def __init__(self, host = None, user = None, password = None, database = None):
+        default_ipxt_data_collector_delete_columns = ['id','last_updated']
         self.sql_connection = None
         try: 
             if CGI_CLI.initialized: pass
@@ -1002,18 +1003,19 @@ class sql_interface():
                         else:
                             values_string += "'" + str(dict_data.get(key,"")) + "'"
                ### FINALIZE SQL_STRING
-               sql_string = """INSERT INTO `ipxt_data_collector` (%s) VALUES (%s);""" \
-                   % (columns_string,values_string)   
+               sql_string = """INSERT INTO `%s` (%s) VALUES (%s);""" \
+                   % (table_name,columns_string,values_string)   
                if columns_string:
-                   self.sql_write_sql_command("""INSERT INTO `ipxt_data_collector`
-                       (%s) VALUES (%s);""" %(columns_string,values_string))       
+                   self.sql_write_sql_command("""INSERT INTO `%s`
+                       (%s) VALUES (%s);""" %(table_name,columns_string,values_string))       
        return None                
    
     def sql_read_table_last_record(self, select_string = None, from_string = None, where_string = None):
         """NOTE: FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE"""
         check_data = None
         if not select_string: select_string = '*'
-        #SELECT vlan_id FROM ipxt_data_collector WHERE id=(SELECT max(id) FROM ipxt_data_collector WHERE username='mkrupa' AND device_name='AUVPE3'); 
+        #SELECT vlan_id FROM ipxt_data_collector WHERE id=(SELECT max(id) FROM ipxt_data_collector \
+        #WHERE username='mkrupa' AND device_name='AUVPE3'); 
         if self.sql_is_connected():
             if from_string:
                 if where_string:
@@ -1026,7 +1028,7 @@ class sql_interface():
         return check_data
 
     def sql_read_last_record_to_dict(table_name = None, from_string = None, \
-        select_string = None, where_string = None):
+        select_string = None, where_string = None, delete_columns = None):
         """sql_read_last_record_to_dict - MAKE DICTIONARY FROM LAST TABLE RECORD 
            NOTES: -'table_name' is alternative name to 'from_string'
                   - it always read last record dependent on 'where_string'
@@ -1042,12 +1044,13 @@ class sql_interface():
             select_string = select_string, where_string = where_string)
         if columns_list and data_list: 
             dict_data = collections.OrderedDict(zip(columns_list, data_list[0]))
-        try:
-            ### DELETE NOT VALID (AUXILIARY) TABLE COLUMNS
-            del dict_data['id']
-            del dict_data['last_updated']
-        except: pass    
-        return dict_data   
+        if delete_columns:
+            for column in delete_columns:   
+                try:
+                    ### DELETE NOT VALID (AUXILIARY) TABLE COLUMNS
+                    del dict_data[column]
+                except: pass  
+        return dict_data      
 
     def sql_read_table_records(self, select_string = None, from_string = None, where_string = None):
         """NOTE: FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE"""
@@ -1067,7 +1070,7 @@ class sql_interface():
         return check_data
 
     def sql_read_records_to_dict_list(table_name = None, from_string = None, \
-        select_string = None, where_string = None):
+        select_string = None, where_string = None, delete_columns = None):
         """sql_read_last_record_to_dict - MAKE DICTIONARY FROM LAST TABLE RECORD 
            NOTES: -'table_name' is alternative name to 'from_string'
                   - it always read last record dependent on 'where_string'
@@ -1085,11 +1088,12 @@ class sql_interface():
             for line_list in data_list:
                 dict_data = collections.OrderedDict(zip(columns_list, line_list))
                 dict_list.append(dict_data)
-        try:
-            ### DELETE NOT VALID (AUXILIARY) TABLE COLUMNS
-            del dict_data['id']
-            del dict_data['last_updated']
-        except: pass    
+        if delete_columns:
+            for column in delete_columns:   
+                try:
+                    ### DELETE NOT VALID (AUXILIARY) TABLE COLUMNS
+                    del dict_data[column]
+                except: pass     
         return dict_list
     
 ##############################################################################

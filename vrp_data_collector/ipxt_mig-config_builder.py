@@ -223,8 +223,9 @@ class CGI_CLI(object):
 class sql_interface():
     ### import mysql.connector
     ### MARIADB - By default AUTOCOMMIT is disabled
-    
+                    
     def __init__(self, host = None, user = None, password = None, database = None):
+        default_ipxt_data_collector_delete_columns = ['id','last_updated']
         self.sql_connection = None
         try: 
             if CGI_CLI.initialized: pass
@@ -355,7 +356,7 @@ class sql_interface():
         return check_data
 
     def sql_read_last_record_to_dict(table_name = None, from_string = None, \
-        select_string = None, where_string = None):
+        select_string = None, where_string = None, delete_columns = None):
         """sql_read_last_record_to_dict - MAKE DICTIONARY FROM LAST TABLE RECORD 
            NOTES: -'table_name' is alternative name to 'from_string'
                   - it always read last record dependent on 'where_string'
@@ -371,11 +372,12 @@ class sql_interface():
             select_string = select_string, where_string = where_string)
         if columns_list and data_list: 
             dict_data = collections.OrderedDict(zip(columns_list, data_list[0]))
-        try:
-            ### DELETE NOT VALID (AUXILIARY) TABLE COLUMNS
-            del dict_data['id']
-            del dict_data['last_updated']
-        except: pass    
+        if delete_columns:
+            for column in delete_columns:   
+                try:
+                    ### DELETE NOT VALID (AUXILIARY) TABLE COLUMNS
+                    del dict_data[column]
+                except: pass  
         return dict_data      
 
     def sql_read_table_records(self, select_string = None, from_string = None, where_string = None):
@@ -396,7 +398,7 @@ class sql_interface():
         return check_data
 
     def sql_read_records_to_dict_list(table_name = None, from_string = None, \
-        select_string = None, where_string = None):
+        select_string = None, where_string = None, delete_columns = None):
         """sql_read_last_record_to_dict - MAKE DICTIONARY FROM LAST TABLE RECORD 
            NOTES: -'table_name' is alternative name to 'from_string'
                   - it always read last record dependent on 'where_string'
@@ -414,11 +416,12 @@ class sql_interface():
             for line_list in data_list:
                 dict_data = collections.OrderedDict(zip(columns_list, line_list))
                 dict_list.append(dict_data)
-        try:
-            ### DELETE NOT VALID (AUXILIARY) TABLE COLUMNS
-            del dict_data['id']
-            del dict_data['last_updated']
-        except: pass    
+        if delete_columns:
+            for column in delete_columns:   
+                try:
+                    ### DELETE NOT VALID (AUXILIARY) TABLE COLUMNS
+                    del dict_data[column]
+                except: pass     
         return dict_list
 
 
@@ -869,17 +872,19 @@ if data:
     CGI_CLI.uprint('\nPE ROUTER (%s) POST CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()), tag = 'h1')
     CGI_CLI.uprint(post_config_text_pe)
      
-    # [?2019-?08-?14 09:18] KRUPA Martin WIN/OINIS: 
-    # MariaDB [rtr_configuration]> describe ipxt_config;              
-    # +---------------+------------------+------+-----+---------+-------+
-    # | Field         | Type             | Null | Key | Default | Extra |
-    # +---------------+------------------+------+-----+---------+-------+
-    # | session_id    | int(10) unsigned | NO   | PRI | NULL    |       |
-    # | PE_config_old | text             | YES  |     | NULL    |       |
-    # | PE_config_new | text             | YES  |     | NULL    |       |
-    # | GW_config_old | text             | YES  |     | NULL    |       |
-    # | GW_config_new | text             | YES  |     | NULL    |       |
-    # +---------------+------------------+------+-----+---------+-------+ 
+    # MariaDB [rtr_configuration]> describe ipxt_config;                                              
+    # +---------------+------------------+------+-----+---------+----------------+
+    # | Field         | Type             | Null | Key | Default | Extra          |
+    # +---------------+------------------+------+-----+---------+----------------+
+    # | session_id    | int(10) unsigned | NO   |     | NULL    |                |
+    # | PE_config_old | text             | YES  |     | NULL    |                |
+    # | PE_config_new | text             | YES  |     | NULL    |                |
+    # | GW_config_old | text             | YES  |     | NULL    |                |
+    # | GW_config_new | text             | YES  |     | NULL    |                |
+    # | id            | int(11)          | NO   | PRI | NULL    | auto_increment |
+    # | username      | varchar(40)      | YES  |     | NULL    |                |
+    # | device_name   | varchar(40)      | YES  |     | NULL    |                |
+    # +---------------+------------------+------+-----+---------+----------------+
 
     sql_inst = sql_interface(host='localhost', user='cfgbuilder', \
         password='cfgbuildergetdata', database='rtr_configuration')
@@ -896,4 +901,3 @@ if data:
     CGI_CLI.uprint('\nCONFIGS: \n', tag = 'h1')
     config_data2 = sql_inst.sql_read_last_record_to_dict(from_string = 'ipxt_config')    
     CGI_CLI.uprint(get_variable_name(data) + ' = ' + dict_to_json_string(config_data2) + '\n')
-
