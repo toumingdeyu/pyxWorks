@@ -100,6 +100,15 @@ def dict_to_json_string(dict_data = None, indent = None):
     except: json_data = ''
     return json_data
 
+def get_variable_name(var):
+    import inspect
+    callers_local_vars = inspect.currentframe().f_back.f_locals.items()
+    var_list = [var_name for var_name, var_val in callers_local_vars if var_val is var]
+    return str(','.join(var_list))
+
+def get_json_with_variable_name(dict_data = None, indent = None):
+    return '\n' + get_variable_name(data) + ' = ' + dict_to_json_string(data) + '\n'
+
 
 def find_last_logfile():
     most_recent_logfile = None
@@ -128,12 +137,6 @@ def find_duplicate_keys_in_dictionaries(data1, data2):
                 if not duplicate_keys_list: duplicate_keys_list = []
                 duplicate_keys_list.append(list1)
     return duplicate_keys_list
-
-def get_variable_name(var):
-    import inspect
-    callers_local_vars = inspect.currentframe().f_back.f_locals.items()
-    var_list = [var_name for var_name, var_val in callers_local_vars if var_val is var]
-    return str(','.join(var_list))
 
 ##################################################################################
 
@@ -428,13 +431,13 @@ class sql_interface():
 ###############################################################################
 pre_GW_vrf_definition_templ = """vrf definition LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
  description Local vrf for tunnel ${cgi_data.get('vlan-id','UNKNOWN')} - ${cgi_data.get('vpn','UNKNOWN')}
- rd 0.0.0.128:${cgi_data.get('vlan-id','UNKNOWN')}
+ rd 0.0.0.${''.join([ str(item.get('as_id','')) for item in private_as_test if item.get('cust_name','')==cgi_data.get('customer_name',"UNKNOWN") ])}:${cgi_data.get('vlan-id','UNKNOWN')}
  !
 """
 
 pre_GW_tunnel_interface_templ = """interface Tunnel${cgi_data.get('vlan-id','UNKNOWN')}
- description Tyntec :IPXT @193.251.244.166 - IPX LD012394 LD012395 LDM00279-LDA11843 TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
- bandwidth 10000
+ description ${cgi_data.get('customer_name','UNKNOWN')} :IPXT @193.251.244.166 - IPX LD012394 LD012395 LDM00279-LDA11843 TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
+ bandwidth ${cgi_data.get('int-bw','UNKNOWN')}000
  vrf forwarding LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
  ip flow monitor ICX sampler ICX input
  ip address 193.251.244.167 255.255.255.254 <--<< number 3 in drawing
@@ -445,18 +448,18 @@ pre_GW_tunnel_interface_templ = """interface Tunnel${cgi_data.get('vlan-id','UNK
  tunnel source 193.251.245.106
  tunnel mode ipsec ipv4
  tunnel destination 78.110.224.70
- tunnel protection ipsec profile TYNTEC-IPXT
+ tunnel protection ipsec profile ${cgi_data.get('customer_name','UNKNOWN')}-IPXT
 ! 
 """
 
 pre_GW_interface_tovards_huawei_templ = """interface GigabitEthernet0/0/2
  description AUVPE3 from AUVPE6 @XXX.XXX.XXX.XXX - w/ IPSEC Customers FIB14274 - Backbone
 !
-interface GigabitEthernet0/0/2.65
- description Tyntec :IPXT @172.25.10.24 - IPX LD012394 LD012395 LDM00279-LDA11843 TunnelIpsec65 - Custom
- bandwidth 10000
- encapsulation dot1Q 65
- vrf forwarding LOCAL.65
+interface GigabitEthernet0/0/2.${cgi_data.get('vlan-id','UNKNOWN')}
+ description Tyntec :IPXT @172.25.10.24 - IPX LD012394 LD012395 LDM00279-LDA11843 TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
+ bandwidth ${cgi_data.get('int-bw','UNKNOWN')}000
+ encapsulation dot1Q ${cgi_data.get('vlan-id','UNKNOWN')}
+ vrf forwarding LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
  ip flow monitor ICX sampler ICX input
  ip address 172.25.10.25 255.255.255.254  <--<< number 2 in drawing
  no ip redirects
@@ -466,16 +469,16 @@ interface GigabitEthernet0/0/2.65
 
 pre_GW_router_bgp_templ = """router bgp 2300
  address-family ipv4 vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
-  neighbor IPXT.Tyntec peer-group
-  neighbor IPXT.Tyntec remote-as 43566 <--<< customers AS number (peer_as in json)
-  neighbor IPXT.Tyntec ebgp-multihop 5
-  neighbor IPXT.Tyntec update-source Tunnel${cgi_data.get('vlan-id','UNKNOWN')}
-  neighbor IPXT.Tyntec send-community both
-  neighbor IPXT.Tyntec maximum-prefix 1000 90
+  neighbor ${cgi_data.get('vpn','UNKNOWN')} peer-group
+  neighbor ${cgi_data.get('vpn','UNKNOWN')} remote-as 43566 <--<< customers AS number (peer_as in json)
+  neighbor ${cgi_data.get('vpn','UNKNOWN')} ebgp-multihop 5
+  neighbor ${cgi_data.get('vpn','UNKNOWN')} update-source Tunnel${cgi_data.get('vlan-id','UNKNOWN')}
+  neighbor ${cgi_data.get('vpn','UNKNOWN')} send-community both
+  neighbor ${cgi_data.get('vpn','UNKNOWN')} maximum-prefix 1000 90
   neighbor 172.25.10.24 remote-as 2300 <--<< number 2 in drawing
   neighbor 172.25.10.24 activate
   neighbor 172.25.10.24 send-community both
-  neighbor 193.251.244.166 peer-group IPXT.Tyntec  <--<< peer_address json (number 4 in drawing)
+  neighbor 193.251.244.166 peer-group ${cgi_data.get('vpn','UNKNOWN')}
   neighbor 193.251.244.166 activate
  exit-address-family
  !
@@ -521,7 +524,7 @@ def generate_pre_PE_router_config(dict_data = None):
 GW_check_vrf_and_crypto_templ = """!
 vrf definition LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
  description Local vrf for tunnel ${cgi_data.get('vlan-id','UNKNOWN')} - ${cgi_data.get('vpn','UNKNOWN')}
- rd 0.0.0.128:65
+ rd 0.0.0.${''.join([ str(item.get('as_id','')) for item in private_as_test if item.get('cust_name','')==cgi_data.get('customer_name',"UNKNOWN") ])}:${cgi_data.get('vlan-id','UNKNOWN')}
  !
  address-family ipv4
  exit-address-family
@@ -552,7 +555,7 @@ crypto ipsec profile ${cgi_data.get('vpn','UNKNOWN')}
 GW_tunnel_interface_templ = """interface Tunnel${cgi_data.get('vlan-id','UNKNOWN')}
  no shutdown
  description TESTING ${cgi_data.get('customer_name','UNKNOWN')} @193.251.244.166 - IPX LD123456 TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
- bandwidth ${cgi_data.get('gold-bw','UNKNOWN')}000
+ bandwidth ${cgi_data.get('int-bw','UNKNOWN')}000
  vrf forwarding LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
  ip address 193.251.244.167 255.255.255.254
  no ip redirects
@@ -583,7 +586,7 @@ GW_port_channel_interface_templ = """interface Port-channel1
 GW_interconnect_interface_templ = """interface Port-channel1.${cgi_data.get('vlan-id','UNKNOWN')}
  encapsulation dot1Q ${cgi_data.get('vlan-id','UNKNOWN')}
  description TESTING ${cgi_data.get('customer_name','UNKNOWN')} @193.251.157.66 - IPX LD123456 TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
- bandwidth ${cgi_data.get('gold-bw','UNKNOWN')}000
+ bandwidth ${cgi_data.get('int-bw','UNKNOWN')}000
  vrf forwarding LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
  ip address 193.251.157.67 255.255.255.254 <--<< number 6 in diagram
  no ip redirects
@@ -592,14 +595,14 @@ GW_interconnect_interface_templ = """interface Port-channel1.${cgi_data.get('vla
 """
 
 GW_customer_router_templ = """!
-ip route vrf LOCAL.65 0.0.0.0 0.0.0.0 Port-channel1.65 193.251.157.66 <--<< default route pointing to PE the next-hop address (193.251.157.66) is number 5 in the diagram.
-ip route vrf LOCAL.65 193.251.244.166 255.255.255.255 Tunnel65 193.251.244.166  <--<< static route for customer BGP address (peer_address in json). next-hop is number 4 in diagram.
+ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 0.0.0.0 0.0.0.0 Port-channel1.65 193.251.157.66 <--<< default route pointing to PE the next-hop address (193.251.157.66) is number 5 in the diagram.
+ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 193.251.244.166 255.255.255.255 Tunnel${cgi_data.get('vlan-id','UNKNOWN')} 193.251.244.166  <--<< static route for customer BGP address (peer_address in json). next-hop is number 4 in diagram.
 
 The rest are the customer prefixes (customer_prefixes_v4)
-ip route vrf LOCAL.65 78.110.224.70 255.255.255.255 Tunnel65 193.251.244.166
-ip route vrf LOCAL.65 178.23.31.16 255.255.255.255 Tunnel65 193.251.244.166
-ip route vrf LOCAL.65 178.23.31.128 255.255.255.128 Tunnel65 193.251.244.166
-ip route vrf LOCAL.65 78.110.239.128 255.255.255.128 Tunnel65 193.251.244.166
+ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 78.110.224.70 255.255.255.255 Tunnel${cgi_data.get('vlan-id','UNKNOWN')} 193.251.244.166
+ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 178.23.31.16 255.255.255.255 Tunnel${cgi_data.get('vlan-id','UNKNOWN')} 193.251.244.166
+ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 178.23.31.128 255.255.255.128 Tunnel${cgi_data.get('vlan-id','UNKNOWN')} 193.251.244.166
+ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 78.110.239.128 255.255.255.128 Tunnel${cgi_data.get('vlan-id','UNKNOWN')} 193.251.244.166
 !
 """
 
@@ -715,7 +718,7 @@ policy-map ${cgi_data.get('vpn','UNKNOWN')}-COS-OUT
 """
 
 PE_interface_description_templ = """interface Bundle-Ether1 
- description TESTING ${cgi_data.get('ipsec-gw-router','UNKNOWN')} from ${cgi_data.get('pe-router','UNKNOWN')} :IPXT ASN43566 @XXX.XXX.XXX.XXX - For IPXT over IPSEC FIBXXXXX - Custom
+ description TESTING ${cgi_data.get('ipsec-gw-router','UNKNOWN')} from ${cgi_data.get('pe-router','UNKNOWN')} :IPXT ASN43566 @XXX.XXX.XXX.XXX - For IPXT over IPSEC FIB${cgi_data.get('ld-number','UNKNOWN')} - Custom
  no ipv4 address
  carrier-delay up 3 down 0
  load-interval 30
@@ -725,7 +728,7 @@ PE_interface_description_templ = """interface Bundle-Ether1
 PE_customer_interface_templ = """interface Bundle-Ether1.${cgi_data.get('vlan-id','UNKNOWN')}
  encapsulation dot1Q ${cgi_data.get('vlan-id','UNKNOWN')}
  description TESTING ${cgi_data.get('customer_name','UNKNOWN')} :IPXT ASN43566 @${cgi_data.get('aaaaa','UNKNOWN')} - IPX LD123456 TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
- bandwidth ${cgi_data.get('gold-bw','UNKNOWN')}000
+ bandwidth ${cgi_data.get('int-bw','UNKNOWN')}000
  vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')} 
  ipv4 address ${cgi_data.get('interco_ip','UNKNOWN')} ${cgi_data.get('interco_mask','UNKNOWN')}
  ipv4 access-group ${cgi_data.get('vpn','UNKNOWN')}-IN ingress
@@ -759,7 +762,7 @@ end-policy
 PE_bgp_config_templ = """!
 router bgp 2300
  neighbor-group ${cgi_data.get('vpn','UNKNOWN')}
-  remote-as 43566
+  remote-as ${cgi_data.get('bgp-customer-as','UNKNOWN')}
   ebgp-multihop 5
   advertisement-interval 0
   address-family ipv4 unicast
@@ -785,7 +788,7 @@ PE_static_route_config_templ = """!
 router static
  vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')} 
   address-family ipv4 unicast
-   193.251.244.166/32 Bundle-Ether1.65 193.251.157.67
+   193.251.244.166/32 Bundle-Ether1.${cgi_data.get('vlan-id','UNKNOWN')} 193.251.157.67
 !
 """
 #############################################################################    
@@ -841,7 +844,6 @@ vpn_name = CGI_CLI.data.get('vpn','')
 
 ### START OF DATA PROCESSING ###
 config_data = collections.OrderedDict()
-
 data = collections.OrderedDict()
 bgp_data = copy.deepcopy(read_data_json_from_logfile(find_last_logfile()))
 cgi_data = copy.deepcopy(CGI_CLI.data)
@@ -851,10 +853,10 @@ data['cgi_data'] = cgi_data
 sql_inst = sql_interface(host='localhost', user='cfgbuilder', password='cfgbuildergetdata', database='rtr_configuration')
 data['private_as_test'] = sql_inst.sql_read_records_to_dict_list(from_string = 'private_as_test')
 data['ipsec_ipxt_table'] = sql_inst.sql_read_records_to_dict_list(from_string = 'ipsec_ipxt_table')
+data['ipxt_data_collector'] = sql_inst.sql_read_records_to_dict_list(from_string = 'ipxt_data_collector')
 
 
-
-CGI_CLI.uprint(get_variable_name(data) + ' = ' + dict_to_json_string(data) + '\n')
+CGI_CLI.uprint('\n' + get_variable_name(data) + ' = ' + dict_to_json_string(data) + '\n')
     
 if data:
     pre_config_text_gw = generate_pre_IPSEC_GW_router_config(data)
@@ -885,19 +887,23 @@ if data:
     # | username      | varchar(40)      | YES  |     | NULL    |                |
     # | device_name   | varchar(40)      | YES  |     | NULL    |                |
     # +---------------+------------------+------+-----+---------+----------------+
-
-    sql_inst = sql_interface(host='localhost', user='cfgbuilder', \
-        password='cfgbuildergetdata', database='rtr_configuration')
+        
     config_data['session_id'] = data['cgi_data'].get('session_id','UNKNOWN')
     config_data['username'] = CGI_CLI.username
-    config_data['device_name'] = data['cgi_data'].get('huawei-router','UNKNOWN')
-       
+    config_data['device_name'] = data['cgi_data'].get('huawei-router','UNKNOWN')       
     config_data['GW_config_old'] = pre_config_text_gw
     config_data['PE_config_old'] = pre_config_text_pe
     config_data['GW_config_new'] = post_config_text_gw
     config_data['PE_config_new'] = post_config_text_pe        
-    sql_inst.sql_write_table_from_dict('ipxt_config', config_data) 
+    
+    # sql_inst.sql_write_table_from_dict('ipxt_config', config_data) 
 
-    CGI_CLI.uprint('\nCONFIGS: \n', tag = 'h1')
-    config_data2 = sql_inst.sql_read_last_record_to_dict(from_string = 'ipxt_config')    
-    CGI_CLI.uprint(get_variable_name(data) + ' = ' + dict_to_json_string(config_data2) + '\n')
+    # CGI_CLI.uprint('\nCONFIGS READ FROM SQL: \n', tag = 'h1')
+    # config_data_read_from_sql = sql_inst.sql_read_last_record_to_dict(from_string = 'ipxt_config')    
+    # CGI_CLI.uprint(get_json_with_variable_name(config_data_read_from_sql))
+
+
+
+
+    #print(''.join([ str(item.get('as_id','')) for item in data['private_as_test'] if item.get('cust_name','')==data['cgi_data'].get('customer_name',"UNKNOWN") ]))
+
