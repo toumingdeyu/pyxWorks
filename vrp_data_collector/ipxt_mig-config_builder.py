@@ -156,7 +156,7 @@ class CGI_CLI(object):
     
     @staticmethod        
     def __cleanup__():
-        CGI_CLI.uprint('\nEND[script runtime = %d sec]. '%(time.time() - CGI_CLI.START_EPOCH))
+        CGI_CLI.uprint('\nEND[script runtime = %d sec]. '%(time.time() - CGI_CLI.START_EPOCH), tag = 'h1')
         if CGI_CLI.cgi_active: print("</body></html>")
 
     @staticmethod
@@ -330,11 +330,11 @@ class sql_interface():
                         else:
                             values_string += "'" + str(dict_data.get(key,"")) + "'"
                ### FINALIZE SQL_STRING
-               sql_string = """INSERT INTO `ipxt_data_collector` (%s) VALUES (%s);""" \
-                   % (columns_string,values_string)   
+               sql_string = """INSERT INTO `%s` (%s) VALUES (%s);""" \
+                   % (table_name,columns_string,values_string)   
                if columns_string:
-                   self.sql_write_sql_command("""INSERT INTO `ipxt_data_collector`
-                       (%s) VALUES (%s);""" %(columns_string,values_string))       
+                   self.sql_write_sql_command("""INSERT INTO `%s`
+                       (%s) VALUES (%s);""" %(table_name,columns_string,values_string))       
        return None                
    
     def sql_read_table_last_record(self, select_string = None, from_string = None, where_string = None):
@@ -423,12 +423,97 @@ class sql_interface():
 
 
 ###############################################################################
-GW_interface_change_templ = '''
-interface Tunnel${cgi_data.get('vlan-id','UNKNOWN')}
- no ip address
- ip address ${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('mask','UNKNOWN')} 
- exit
-'''
+pre_GW_vrf_definition_templ = """vrf definition LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
+ description Local vrf for tunnel ${cgi_data.get('vlan-id','UNKNOWN')} - ${cgi_data.get('vpn','UNKNOWN')}
+ rd 0.0.0.128:${cgi_data.get('vlan-id','UNKNOWN')}
+ !
+"""
+
+pre_GW_tunnel_interface_templ = """interface Tunnel${cgi_data.get('vlan-id','UNKNOWN')}
+ description Tyntec :IPXT @193.251.244.166 - IPX LD012394 LD012395 LDM00279-LDA11843 TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
+ bandwidth 10000
+ vrf forwarding LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
+ ip flow monitor ICX sampler ICX input
+ ip address 193.251.244.167 255.255.255.254 <--<< number 3 in drawing
+ no ip redirects
+ no ip proxy-arp
+ ip mtu 1420
+ logging event link-status
+ tunnel source 193.251.245.106
+ tunnel mode ipsec ipv4
+ tunnel destination 78.110.224.70
+ tunnel protection ipsec profile TYNTEC-IPXT
+! 
+"""
+
+pre_GW_interface_tovards_huawei_templ = """interface GigabitEthernet0/0/2
+ description AUVPE3 from AUVPE6 @XXX.XXX.XXX.XXX - w/ IPSEC Customers FIB14274 - Backbone
+!
+interface GigabitEthernet0/0/2.65
+ description Tyntec :IPXT @172.25.10.24 - IPX LD012394 LD012395 LDM00279-LDA11843 TunnelIpsec65 - Custom
+ bandwidth 10000
+ encapsulation dot1Q 65
+ vrf forwarding LOCAL.65
+ ip flow monitor ICX sampler ICX input
+ ip address 172.25.10.25 255.255.255.254  <--<< number 2 in drawing
+ no ip redirects
+ no ip proxy-arp
+!
+"""
+
+pre_GW_router_bgp_templ = """router bgp 2300
+ address-family ipv4 vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
+  neighbor IPXT.Tyntec peer-group
+  neighbor IPXT.Tyntec remote-as 43566 <--<< customers AS number (peer_as in json)
+  neighbor IPXT.Tyntec ebgp-multihop 5
+  neighbor IPXT.Tyntec update-source Tunnel${cgi_data.get('vlan-id','UNKNOWN')}
+  neighbor IPXT.Tyntec send-community both
+  neighbor IPXT.Tyntec maximum-prefix 1000 90
+  neighbor 172.25.10.24 remote-as 2300 <--<< number 2 in drawing
+  neighbor 172.25.10.24 activate
+  neighbor 172.25.10.24 send-community both
+  neighbor 193.251.244.166 peer-group IPXT.Tyntec  <--<< peer_address json (number 4 in drawing)
+  neighbor 193.251.244.166 activate
+ exit-address-family
+ !
+"""
+################################################################################
+def generate_pre_IPSEC_GW_router_config(data = None):
+    config_string = str()
+    
+    mytemplate = Template(pre_GW_vrf_definition_templ,strict_undefined=True)
+    config_string += (mytemplate.render(**data)).replace('\n\n','\n')    
+
+    mytemplate = Template(pre_GW_tunnel_interface_templ,strict_undefined=True)
+    config_string += (mytemplate.render(**data)).replace('\n\n','\n') 
+
+    mytemplate = Template(pre_GW_interface_tovards_huawei_templ,strict_undefined=True)
+    config_string += (mytemplate.render(**data)).replace('\n\n','\n') 
+
+    mytemplate = Template(pre_GW_router_bgp_templ,strict_undefined=True)
+    config_string += (mytemplate.render(**data)).replace('\n\n','\n') 
+        
+    return config_string
+###############################################################################
+
+
+pre_PE_bundl_eether_interface_templ = """interface Bundle-Ether1 <--<< the main interface should already be configured
+ description TESTING AUVPE6 from AUVPE5 :IPXT ASN43566 @XXX.XXX.XXX.XXX - For IPXT over IPSEC FIBXXXXX - Custom
+ no ipv4 address
+ carrier-delay up 3 down 0
+ load-interval 30
+!
+"""
+
+def generate_pre_PE_router_config(dict_data = None):
+    config_string = str()
+
+    mytemplate = Template(pre_PE_bundl_eether_interface_templ,strict_undefined=True)
+    config_string += (mytemplate.render(**data)).replace('\n\n','\n')
+      
+    return config_string 
+
+###############################################################################
 
 GW_check_vrf_and_crypto_templ = """!
 vrf definition LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
@@ -516,8 +601,20 @@ ip route vrf LOCAL.65 78.110.239.128 255.255.255.128 Tunnel65 193.251.244.166
 """
 
 ################################################################################
-def generate_IPSEC_GW_router_config(data = None):
+def generate_post_IPSEC_GW_router_config(data = None):
     config_string = str()
+
+    mytemplate = Template(GW_check_vrf_and_crypto_templ,strict_undefined=True)
+    config_string += (mytemplate.render(**data)).replace('\n\n','\n')  
+    
+    mytemplate = Template(GW_tunnel_interface_templ,strict_undefined=True)
+    config_string += (mytemplate.render(**data)).replace('\n\n','\n')      
+
+    mytemplate = Template(GW_port_channel_interface_templ,strict_undefined=True)
+    config_string += (mytemplate.render(**data)).replace('\n\n','\n')  
+    
+    mytemplate = Template(GW_port_channel_interface_templ,strict_undefined=True)
+    config_string += (mytemplate.render(**data)).replace('\n\n','\n')    
     
     mytemplate = Template(GW_interconnect_interface_templ,strict_undefined=True)
     config_string += (mytemplate.render(**data)).replace('\n\n','\n')    
@@ -528,8 +625,6 @@ def generate_IPSEC_GW_router_config(data = None):
     return config_string
 ################################################################################
 
-
-################################################################################
 PE_vrf_config_templ = """!
 vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')}
  description ${cgi_data.get('vpn','UNKNOWN')}.${cgi_data.get('customer_name','UNKNOWN')}.IPXT
@@ -683,15 +778,15 @@ vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')}
 !
 """
 
-PE_static_route_config_templ = '''!
+PE_static_route_config_templ = """!
 router static
  vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')} 
   address-family ipv4 unicast
    193.251.244.166/32 Bundle-Ether1.65 193.251.157.67
 !
-'''
+"""
 #############################################################################    
-def generate_PE_router_config(dict_data = None):
+def generate_post_PE_router_config(dict_data = None):
     config_string = str()
 
     mytemplate = Template(PE_vrf_config_templ,strict_undefined=True)
@@ -742,6 +837,7 @@ huawei_device_name = CGI_CLI.data.get('huawei-router-name','')
 vpn_name = CGI_CLI.data.get('vpn','')
 
 ### START OF DATA PROCESSING ###
+config_data = collections.OrderedDict()
 
 data = collections.OrderedDict()
 bgp_data = copy.deepcopy(read_data_json_from_logfile(find_last_logfile()))
@@ -757,18 +853,47 @@ data['ipsec_ipxt_table'] = sql_inst.sql_read_records_to_dict_list(from_string = 
 
 CGI_CLI.uprint(get_variable_name(data) + ' = ' + dict_to_json_string(data) + '\n')
     
-if data: 
-    config_text_gw = generate_IPSEC_GW_router_config(data)
-    CGI_CLI.uprint('IPSEC GW ROUTER (%s) CONFIG:' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()), tag = 'h1')
-    CGI_CLI.uprint(config_text_gw)    
-    config_text_pe = generate_PE_router_config(data)
-    CGI_CLI.uprint('PE ROUTER (%s) CONFIG:' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()), tag = 'h1')
-    CGI_CLI.uprint(config_text_pe)
+if data:
+    pre_config_text_gw = generate_pre_IPSEC_GW_router_config(data)
+    CGI_CLI.uprint('\nIPSEC GW ROUTER (%s) PRE CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()), tag = 'h1')
+    CGI_CLI.uprint(pre_config_text_gw)    
+
+    pre_config_text_pe = generate_pre_PE_router_config(data)
+    CGI_CLI.uprint('\nPE ROUTER (%s) POST CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()), tag = 'h1')
+    CGI_CLI.uprint(pre_config_text_pe)
+
+    post_config_text_gw = generate_post_IPSEC_GW_router_config(data)
+    CGI_CLI.uprint('\nIPSEC GW ROUTER (%s) POST CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()), tag = 'h1')
+    CGI_CLI.uprint(post_config_text_gw)    
+    post_config_text_pe = generate_post_PE_router_config(data)
+    CGI_CLI.uprint('\nPE ROUTER (%s) POST CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()), tag = 'h1')
+    CGI_CLI.uprint(post_config_text_pe)
      
+    # [?2019-?08-?14 09:18] KRUPA Martin WIN/OINIS: 
+    # MariaDB [rtr_configuration]> describe ipxt_config;              
+    # +---------------+------------------+------+-----+---------+-------+
+    # | Field         | Type             | Null | Key | Default | Extra |
+    # +---------------+------------------+------+-----+---------+-------+
+    # | session_id    | int(10) unsigned | NO   | PRI | NULL    |       |
+    # | PE_config_old | text             | YES  |     | NULL    |       |
+    # | PE_config_new | text             | YES  |     | NULL    |       |
+    # | GW_config_old | text             | YES  |     | NULL    |       |
+    # | GW_config_new | text             | YES  |     | NULL    |       |
+    # +---------------+------------------+------+-----+---------+-------+ 
 
+    sql_inst = sql_interface(host='localhost', user='cfgbuilder', \
+        password='cfgbuildergetdata', database='rtr_configuration')
+    config_data['session_id'] = data['cgi_data'].get('session_id','UNKNOWN')
+    config_data['username'] = CGI_CLI.username
+    config_data['device_name'] = data['cgi_data'].get('huawei-router','UNKNOWN')
+       
+    config_data['GW_config_old'] = pre_config_text_gw
+    config_data['PE_config_old'] = pre_config_text_pe
+    config_data['GW_config_new'] = post_config_text_gw
+    config_data['PE_config_new'] = post_config_text_pe        
+    sql_inst.sql_write_table_from_dict('ipxt_config', config_data) 
 
-
-
-
-
+    CGI_CLI.uprint('\nCONFIGS: \n', tag = 'h1')
+    config_data2 = sql_inst.sql_read_last_record_to_dict(from_string = 'ipxt_config')    
+    CGI_CLI.uprint(get_variable_name(data) + ' = ' + dict_to_json_string(config_data2) + '\n')
 
