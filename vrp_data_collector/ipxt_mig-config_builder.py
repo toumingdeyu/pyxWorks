@@ -658,25 +658,34 @@ vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')}
 # !
 # '''
  
-PE_acl_config_templ = """!<% rule_num = 10; i = 0 %>
+PE_acl_config_templ = """!<% rule_num = 10; list = cgi_data.get('ipv4-acl','').split(',') %>
 ipv4 access-list IPXT.${cgi_data.get('customer_name','UNKNOWN')}-IN
-% for item in cgi_data.get('ipv4-acl','').split(','):
-% if i%2:
- ${rule_num} permit ipv4 ${address} ${item} any<% rule_num += 10; address = item %>
-% else:
-<% address = item %>
-% endif
-<% i += 1 %>
+% for i in range(int(len(list)/2)):
+ ${rule_num} permit ipv4 ${cgi_data.get('ipv4-acl','').split(',')[2*i]} ${cgi_data.get('ipv4-acl','').split(',')[2*i+1]} any<% rule_num += 10 %>
 % endfor
  1000 deny ipv4 any any
 !
 """
 
-PE_prefix_config_templ = """!<% list_count = 0; list_len = len(bgp_data.get('customer_prefixes_v4',{})) %>
+# PE_prefix_config_templ = """!<% list_count = 0; list_len = len(bgp_data.get('customer_prefixes_v4',{})) %>
+# prefix-set IPXT.${cgi_data.get('customer_name','UNKNOWN')}-IN
+# % for item in bgp_data.get('customer_prefixes_v4',{}):
+# <% import ipaddress; net = ipaddress.ip_network(item.get('customer_prefix_v4','1.1.1.1')+'/'+item.get('customer_subnetmask_v4','32')); list_count += 1 %>
+# % if list_count == list_len:
+  # ${net} le 32
+# % else:
+  # ${net} le 32,
+# % endif 
+# % endfor
+# end-set
+# !
+# """
+
+PE_prefix_config_templ = """!<% import ipaddress; list = cgi_data.get('ipv4-acl','').split(',') %>
 prefix-set IPXT.${cgi_data.get('customer_name','UNKNOWN')}-IN
-% for item in bgp_data.get('customer_prefixes_v4',{}):
-<% import ipaddress; net = ipaddress.ip_network(item.get('customer_prefix_v4','1.1.1.1')+'/'+item.get('customer_subnetmask_v4','32')); list_count += 1 %>
-% if list_count == list_len:
+% for i in range(int(len(list)/2)):
+<% net = ipaddress.ip_network(cgi_data.get('ipv4-acl','').split(',')[2*i]+'/'+cgi_data.get('ipv4-acl','').split(',')[2*i+1]) %>
+% if i == range(int(len(list)/2)):
   ${net} le 32
 % else:
   ${net} le 32,
@@ -810,31 +819,31 @@ def generate_post_PE_router_config(dict_data = None):
     config_string = str()
 
     mytemplate = Template(PE_vrf_config_templ,strict_undefined=True)
-    config_string += (mytemplate.render(**data)).rstrip().replace('\n\n','\n')
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n')
     
     mytemplate = Template(PE_acl_config_templ,strict_undefined=True)
-    config_string += (mytemplate.render(**data)).rstrip().replace('\n\n','\n')
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n')
     
     mytemplate = Template(PE_prefix_config_templ,strict_undefined=True)
-    config_string += (mytemplate.render(**data)).rstrip().replace('\n\n','\n')
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n')
 
     mytemplate = Template(PE_policy_map_templ,strict_undefined=True)
-    config_string += (mytemplate.render(**data)).rstrip().replace('\n\n','\n')
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n')
 
     mytemplate = Template(PE_interface_description_templ,strict_undefined=True)
-    config_string += (mytemplate.render(**data)).rstrip().replace('\n\n','\n')
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n')
 
     mytemplate = Template(PE_customer_interface_templ,strict_undefined=True)
-    config_string += (mytemplate.render(**data)).rstrip().replace('\n\n','\n')
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n')
 
     mytemplate = Template(PE_customer_policy_templ,strict_undefined=True)
-    config_string += (mytemplate.render(**data)).rstrip().replace('\n\n','\n')
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n')
 
     mytemplate = Template(PE_bgp_config_templ,strict_undefined=True)
-    config_string += (mytemplate.render(**data)).rstrip().replace('\n\n','\n')
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n')
 
     mytemplate = Template(PE_static_route_config_templ,strict_undefined=True)
-    config_string += (mytemplate.render(**data)).rstrip().replace('\n\n','\n')    
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n')    
     return config_string 
 ################################################################################
 
