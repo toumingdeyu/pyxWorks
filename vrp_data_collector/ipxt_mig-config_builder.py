@@ -436,7 +436,7 @@ pre_GW_vrf_definition_templ = """vrf definition LOCAL.${cgi_data.get('vlan-id','
 """
 
 pre_GW_tunnel_interface_templ = """interface Tunnel${cgi_data.get('vlan-id','UNKNOWN')}
- description ${cgi_data.get('customer_name','UNKNOWN')} :IPXT @193.251.244.166 - IPX LD012394 LD012395 LDM00279-LDA11843 TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
+ description ${cgi_data.get('customer_name','UNKNOWN')} :IPXT @193.251.244.166 - IPX ${cgi_data.get('ld-number','UNKNOWN')} TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
  bandwidth ${cgi_data.get('int-bw','UNKNOWN')}000
  vrf forwarding LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
  ip flow monitor ICX sampler ICX input
@@ -453,10 +453,10 @@ pre_GW_tunnel_interface_templ = """interface Tunnel${cgi_data.get('vlan-id','UNK
 """
 
 pre_GW_interface_tovards_huawei_templ = """interface GigabitEthernet0/0/2
- description AUVPE3 from AUVPE6 @XXX.XXX.XXX.XXX - w/ IPSEC Customers FIB14274 - Backbone
+ description AUVPE3 from AUVPE6 @XXX.XXX.XXX.XXX - w/ IPSEC Customers FIB${cgi_data.get('ld-number','UNKNOWN')} - Backbone
 !
 interface GigabitEthernet0/0/2.${cgi_data.get('vlan-id','UNKNOWN')}
- description Tyntec :IPXT @172.25.10.24 - IPX LD012394 LD012395 LDM00279-LDA11843 TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
+ description Tyntec :IPXT @172.25.10.24 - IPX ${cgi_data.get('ld-number','UNKNOWN')} TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
  bandwidth ${cgi_data.get('int-bw','UNKNOWN')}000
  encapsulation dot1Q ${cgi_data.get('vlan-id','UNKNOWN')}
  vrf forwarding LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
@@ -504,7 +504,7 @@ def generate_pre_IPSEC_GW_router_config(data = None):
 
 
 pre_PE_bundl_eether_interface_templ = """interface Bundle-Ether1 <--<< the main interface should already be configured
- description TESTING AUVPE6 from AUVPE5 :IPXT ASN43566 @XXX.XXX.XXX.XXX - For IPXT over IPSEC FIBXXXXX - Custom
+ description TESTING AUVPE6 from AUVPE5 :IPXT ASN43566 @XXX.XXX.XXX.XXX - For IPXT over IPSEC FIB${cgi_data.get('ld-number','UNKNOWN')} - Custom
  no ipv4 address
  carrier-delay up 3 down 0
  load-interval 30
@@ -554,7 +554,7 @@ crypto ipsec profile ${cgi_data.get('vpn','UNKNOWN')}
 
 GW_tunnel_interface_templ = """interface Tunnel${cgi_data.get('vlan-id','UNKNOWN')}
  no shutdown
- description TESTING ${cgi_data.get('customer_name','UNKNOWN')} @193.251.244.166 - IPX LD123456 TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
+ description TESTING ${cgi_data.get('customer_name','UNKNOWN')} @193.251.244.166 - IPX ${cgi_data.get('ld-number','UNKNOWN')} TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
  bandwidth ${cgi_data.get('int-bw','UNKNOWN')}000
  vrf forwarding LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
  ip address ${cgi_data.get('gw-ip-address','UNKNOWN')} ${cgi_data.get('ipv4-mask','UNKNOWN')}
@@ -572,7 +572,7 @@ GW_tunnel_interface_templ = """interface Tunnel${cgi_data.get('vlan-id','UNKNOWN
 
 GW_port_channel_interface_templ = """interface Port-channel1.${cgi_data.get('vlan-id','UNKNOWN')}
  no shutdown
- description TESTING ${cgi_data.get('pe-router','UNKNOWN')} from ${cgi_data.get('ipsec-gw-router','UNKNOWN')} @XXX.XXX.XXX.XXX - For IPXT over IPSEC FIB${cgi_data.get('ld-number','UNKNOWN')} - Custom
+ description TESTING ${cgi_data.get('pe-router','UNKNOWN')} from ${cgi_data.get('ipsec-gw-router','UNKNOWN')} @${cgi_data.get('gw-ip-address','UNKNOWN')} - For IPXT over IPSEC FIB${cgi_data.get('ld-number','UNKNOWN')} - Custom
  mtu 4470
  no ip address
  no ip redirects
@@ -588,7 +588,7 @@ GW_interconnect_interface_templ = """interface Port-channel1.${cgi_data.get('vla
  description TESTING ${cgi_data.get('customer_name','UNKNOWN')} @193.251.157.66 - IPX ${cgi_data.get('ld-number','UNKNOWN')} TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
  bandwidth ${cgi_data.get('int-bw','UNKNOWN')}000
  vrf forwarding LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
- ip address 193.251.157.67 255.255.255.254 <--<< number 6 in diagram
+ ip address ${cgi_data.get('gw-ip-address','UNKNOWN')} 255.255.255.254
  no ip redirects
  no ip proxy-arp
 !
@@ -727,7 +727,7 @@ PE_interface_description_templ = """interface Bundle-Ether1
 
 PE_customer_interface_templ = """interface Bundle-Ether1.${cgi_data.get('vlan-id','UNKNOWN')}
  encapsulation dot1Q ${cgi_data.get('vlan-id','UNKNOWN')}
- description TESTING ${cgi_data.get('customer_name','UNKNOWN')} :IPXT ASN43566 @${cgi_data.get('aaaaa','UNKNOWN')} - IPX LD123456 TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
+ description TESTING ${cgi_data.get('customer_name','UNKNOWN')} :IPXT ASN43566 @${cgi_data.get('aaaaa','UNKNOWN')} - IPX ${cgi_data.get('ld-number','UNKNOWN')} TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
  bandwidth ${cgi_data.get('int-bw','UNKNOWN')}000
  vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')} 
  ipv4 address ${cgi_data.get('interco_ip','UNKNOWN')} ${cgi_data.get('interco_mask','UNKNOWN')}
