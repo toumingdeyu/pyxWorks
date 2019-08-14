@@ -774,7 +774,7 @@ router bgp 2300
   !
  !
 vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')}
-  rd ${bgp_data.get('rd','UNKNOWN')}
+  rd 0.0.0.${''.join([ str(item.get('as_id','')) for item in private_as_test if item.get('cust_name','')==cgi_data.get('customer_name',"UNKNOWN") ])}:${cgi_data.get('vlan-id','UNKNOWN')}
   address-family ipv4 unicast
    redistribute connected route-policy NO-EXPORT-INTERCO
   !
