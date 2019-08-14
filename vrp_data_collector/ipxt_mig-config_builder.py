@@ -534,19 +534,19 @@ vrf definition LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
 !
 !
 crypto keyring ${cgi_data.get('vpn','UNKNOWN')}  
-  local-address 193.251.245.106
-  pre-shared-key address 78.110.224.70 key testbox1234
+  local-address ${''.join([ str(item.get('loopback1','UNKNOWN')) for item in private_as_test if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}
+  pre-shared-key address ${cgi_data.get('ipsec-tunnel-dest','UNKNOWN')} key ${cgi_data.get('ipsec-preshare-key','UNKNOWN')}
 !
 crypto isakmp profile ${cgi_data.get('vpn','UNKNOWN')}
    vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
    keyring ${cgi_data.get('vpn','UNKNOWN')}
-   match identity address 78.110.224.70 255.255.255.255 
-   local-address 193.251.245.106
+   match identity address ${cgi_data.get('ipsec-tunnel-dest','UNKNOWN')} 255.255.255.255 
+   local-address ${''.join([ str(item.get('loopback1','UNKNOWN')) for item in private_as_test if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}
    keepalive 10 retry 3
 !
 crypto ipsec profile ${cgi_data.get('vpn','UNKNOWN')}
  set security-association lifetime seconds 28800
- set transform-set vpn-aes256-sha256
+ set transform-set ${cgi_data.get('ipsec-transf-set','UNKNOWN')}
  set pfs group1
  set isakmp-profile ${cgi_data.get('vpn','UNKNOWN')}
 !
@@ -557,22 +557,22 @@ GW_tunnel_interface_templ = """interface Tunnel${cgi_data.get('vlan-id','UNKNOWN
  description TESTING ${cgi_data.get('customer_name','UNKNOWN')} @193.251.244.166 - IPX LD123456 TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
  bandwidth ${cgi_data.get('int-bw','UNKNOWN')}000
  vrf forwarding LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
- ip address 193.251.244.167 255.255.255.254
+ ip address ${cgi_data.get('gw-ip-address','UNKNOWN')} ${cgi_data.get('ipv4-mask','UNKNOWN')}
  no ip redirects
  no ip proxy-arp
  ip mtu 1420
  logging event link-status
  load-interval 30
  carrier-delay msec 0
- tunnel source 193.251.245.106
- tunnel destination 78.110.224.70
+ tunnel source ${''.join([ str(item.get('loopback1','UNKNOWN')) for item in private_as_test if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}
+ tunnel destination ${cgi_data.get('ipsec-tunnel-dest','UNKNOWN')}
  tunnel protection ipsec profile ${cgi_data.get('vpn','UNKNOWN')}
 !
 """
 
-GW_port_channel_interface_templ = """interface Port-channel1
+GW_port_channel_interface_templ = """interface Port-channel1.${cgi_data.get('vlan-id','UNKNOWN')}
  no shutdown
- description TESTING AUVPE5 from AUVPE6 @XXX.XXX.XXX.XXX - For IPXT over IPSEC FIBXXXXX - Custom
+ description TESTING ${cgi_data.get('pe-router','UNKNOWN')} from ${cgi_data.get('ipsec-gw-router','UNKNOWN')} @XXX.XXX.XXX.XXX - For IPXT over IPSEC FIB${cgi_data.get('ld-number','UNKNOWN')} - Custom
  mtu 4470
  no ip address
  no ip redirects
@@ -585,7 +585,7 @@ GW_port_channel_interface_templ = """interface Port-channel1
 
 GW_interconnect_interface_templ = """interface Port-channel1.${cgi_data.get('vlan-id','UNKNOWN')}
  encapsulation dot1Q ${cgi_data.get('vlan-id','UNKNOWN')}
- description TESTING ${cgi_data.get('customer_name','UNKNOWN')} @193.251.157.66 - IPX LD123456 TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
+ description TESTING ${cgi_data.get('customer_name','UNKNOWN')} @193.251.157.66 - IPX ${cgi_data.get('ld-number','UNKNOWN')} TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
  bandwidth ${cgi_data.get('int-bw','UNKNOWN')}000
  vrf forwarding LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
  ip address 193.251.157.67 255.255.255.254 <--<< number 6 in diagram
@@ -900,6 +900,7 @@ if data:
 
     # CGI_CLI.uprint('\nCONFIGS READ FROM SQL: \n', tag = 'h1')
     # config_data_read_from_sql = sql_inst.sql_read_last_record_to_dict(from_string = 'ipxt_config')    
+
     # CGI_CLI.uprint(get_json_with_variable_name(config_data_read_from_sql))
 
 
