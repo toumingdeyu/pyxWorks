@@ -632,17 +632,35 @@ def generate_post_IPSEC_GW_router_config(data = None):
     return config_string
 ################################################################################
 
+# PE_vrf_config_templ = """!
+# vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')}
+ # description ${cgi_data.get('vpn','UNKNOWN')}.${cgi_data.get('customer_name','UNKNOWN')}.IPXT
+ # address-family ipv4 unicast
+ # import route-target
+# % for item in bgp_data.get('rt_import',[]):
+  # ${item}
+# % endfor  
+ # exit
+ # export route-target
+# % for item in bgp_data.get('rt_export',[]): 
+  # ${item}
+# % endfor  
+  # exit
+ # exit
+# !
+# """
+
 PE_vrf_config_templ = """!
 vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')}
  description ${cgi_data.get('vpn','UNKNOWN')}.${cgi_data.get('customer_name','UNKNOWN')}.IPXT
  address-family ipv4 unicast
  import route-target
-% for item in bgp_data.get('rt_import',[]):
+% for item in ''.join([ str(item.get('rt_import','')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ]).split(','):
   ${item}
 % endfor  
  exit
  export route-target
-% for item in bgp_data.get('rt_export',[]): 
+% for item in ''.join([ str(item.get('rt_import','')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ]).split(','): 
   ${item}
 % endfor  
   exit
@@ -870,18 +888,20 @@ vpn_name = CGI_CLI.data.get('vpn','')
 ### START OF DATA PROCESSING ###
 config_data = collections.OrderedDict()
 data = collections.OrderedDict()
-bgp_data = copy.deepcopy(read_data_json_from_logfile(find_last_logfile()))
 cgi_data = copy.deepcopy(CGI_CLI.data)
-data['bgp_data'] = bgp_data
 data['cgi_data'] = cgi_data
+
+### JUST OMMIT READING FROM LOGFILE BECAUSE OF WEB FORM POSSIBILITY OF DATA EDITING  
+### bgp_data = copy.deepcopy(read_data_json_from_logfile(find_last_logfile()))
+### data['bgp_data'] = bgp_data
 
 sql_inst = sql_interface(host='localhost', user='cfgbuilder', password='cfgbuildergetdata', database='rtr_configuration')
 data['private_as_test'] = sql_inst.sql_read_records_to_dict_list(from_string = 'private_as_test' , where_string = "cust_name = '%s'" % (cgi_data.get('customer_name','UNKNOWN')))
 data['ipsec_ipxt_table'] = sql_inst.sql_read_records_to_dict_list(from_string = 'ipsec_ipxt_table', where_string = "ipsec_rtr_name = '%s'" % (cgi_data.get('ipsec-gw-router','UNKNOWN')))
 data['ipxt_data_collector'] = sql_inst.sql_read_records_to_dict_list(from_string = 'ipxt_data_collector', where_string = "session_id = '%s'" % (cgi_data.get('session_id','UNKNOWN')))
 
-
-CGI_CLI.uprint('\n' + get_variable_name(data) + ' = ' + dict_to_json_string(data) + '\n')
+### PRINT OF ALL DATA IN STRUCTURE DATA
+CGI_CLI.uprint(get_json_with_variable_name(data))
     
 if data:
     pre_config_text_gw = generate_pre_IPSEC_GW_router_config(data)
@@ -927,9 +947,3 @@ if data:
     # config_data_read_from_sql = sql_inst.sql_read_last_record_to_dict(from_string = 'ipxt_config')    
 
     # CGI_CLI.uprint(get_json_with_variable_name(config_data_read_from_sql))
-
-
-
-
-    #print(''.join([ str(item.get('as_id','')) for item in data['private_as_test'] if item.get('cust_name','')==data['cgi_data'].get('customer_name',"UNKNOWN") ]))
-
