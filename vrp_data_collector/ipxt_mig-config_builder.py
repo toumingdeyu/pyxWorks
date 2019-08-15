@@ -504,8 +504,8 @@ def generate_pre_IPSEC_GW_router_config(data = None):
 ###############################################################################
 
 
-pre_PE_bundl_eether_interface_templ = """interface Bundle-Ether1 <--<< the main interface should already be configured
- description TESTING AUVPE6 from AUVPE5 :IPXT ASN43566 @XXX.XXX.XXX.XXX - For IPXT over IPSEC FIB${cgi_data.get('ld-number','UNKNOWN')} - Custom
+pre_PE_bundl_eether_interface_templ = """interface ${''.join([ str(item.get('int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}
+ description TESTING ${cgi_data.get('ipsec-gw-router','UNKNOWN')} from ${cgi_data.get('pe-router','UNKNOWN')} :IPXT ASN43566 @XXX.XXX.XXX.XXX - For IPXT over IPSEC FIB${cgi_data.get('ld-number','UNKNOWN')} - Custom
  no ipv4 address
  carrier-delay up 3 down 0
  load-interval 30
@@ -571,7 +571,7 @@ GW_tunnel_interface_templ = """interface Tunnel${cgi_data.get('vlan-id','UNKNOWN
 !
 """
 
-GW_port_channel_interface_templ = """interface Port-channel1.${cgi_data.get('vlan-id','UNKNOWN')}
+GW_port_channel_interface_templ = """interface ${''.join([ str(item.get('ipsec_int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')}
  no shutdown
  description TESTING ${cgi_data.get('pe-router','UNKNOWN')} from ${cgi_data.get('ipsec-gw-router','UNKNOWN')} @${cgi_data.get('gw-ip-address','UNKNOWN')} - For IPXT over IPSEC FIB${cgi_data.get('ld-number','UNKNOWN')} - Custom
  mtu 4470
@@ -584,7 +584,7 @@ GW_port_channel_interface_templ = """interface Port-channel1.${cgi_data.get('vla
 !
 """
 
-GW_interconnect_interface_templ = """interface Port-channel1.${cgi_data.get('vlan-id','UNKNOWN')}
+GW_interconnect_interface_templ = """interface ${''.join([ str(item.get('ipsec_int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')}
  encapsulation dot1Q ${cgi_data.get('vlan-id','UNKNOWN')}
  description TESTING ${cgi_data.get('customer_name','UNKNOWN')} @193.251.157.66 - IPX ${cgi_data.get('ld-number','UNKNOWN')} TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
  bandwidth ${cgi_data.get('int-bw','UNKNOWN')}000
@@ -596,7 +596,7 @@ GW_interconnect_interface_templ = """interface Port-channel1.${cgi_data.get('vla
 """
 
 GW_customer_router_templ = """!
-ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 0.0.0.0 0.0.0.0 Port-channel1.65 193.251.157.66 <--<< default route pointing to PE the next-hop address (193.251.157.66) is number 5 in the diagram.
+ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 0.0.0.0 0.0.0.0 ${''.join([ str(item.get('ipsec_int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')} 193.251.157.66 
 ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 193.251.244.166 255.255.255.255 Tunnel${cgi_data.get('vlan-id','UNKNOWN')} 193.251.244.166  <--<< static route for customer BGP address (peer_address in json). next-hop is number 4 in diagram.
 
 The rest are the customer prefixes (customer_prefixes_v4)
@@ -759,7 +759,7 @@ policy-map ${cgi_data.get('vpn','UNKNOWN')}-COS-OUT
 !
 """
 
-PE_interface_description_templ = """interface Bundle-Ether1 
+PE_interface_description_templ = """interface ${''.join([ str(item.get('int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}
  description TESTING ${cgi_data.get('ipsec-gw-router','UNKNOWN')} from ${cgi_data.get('pe-router','UNKNOWN')} :IPXT ASN43566 @XXX.XXX.XXX.XXX - For IPXT over IPSEC FIB${cgi_data.get('ld-number','UNKNOWN')} - Custom
  no ipv4 address
  carrier-delay up 3 down 0
@@ -767,9 +767,9 @@ PE_interface_description_templ = """interface Bundle-Ether1
 !
 """
 
-PE_customer_interface_templ = """interface Bundle-Ether1.${cgi_data.get('vlan-id','UNKNOWN')}
+PE_customer_interface_templ = """interface ${''.join([ str(item.get('int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')}
  encapsulation dot1Q ${cgi_data.get('vlan-id','UNKNOWN')}
- description TESTING ${cgi_data.get('customer_name','UNKNOWN')} :IPXT ASN43566 @${cgi_data.get('aaaaa','UNKNOWN')} - IPX ${cgi_data.get('ld-number','UNKNOWN')} TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
+ description TESTING ${cgi_data.get('customer_name','UNKNOWN')} :IPXT ASN43566 @XXX.XXX.XXX.XXX - IPX ${cgi_data.get('ld-number','UNKNOWN')} TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
  bandwidth ${cgi_data.get('int-bw','UNKNOWN')}000
  vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')} 
  ipv4 address ${cgi_data.get('interco_ip','UNKNOWN')} ${cgi_data.get('interco_mask','UNKNOWN')}
@@ -830,7 +830,7 @@ PE_static_route_config_templ = """!
 router static
  vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')} 
   address-family ipv4 unicast
-   193.251.244.166/32 Bundle-Ether1.${cgi_data.get('vlan-id','UNKNOWN')} 193.251.157.67
+   193.251.244.166/32 ${''.join([ str(item.get('int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')} 193.251.157.67
 !
 """
 #############################################################################    
