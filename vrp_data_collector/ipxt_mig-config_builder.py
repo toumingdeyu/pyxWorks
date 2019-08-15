@@ -599,7 +599,7 @@ GW_customer_router_templ = """!<% list = cgi_data.get('ipv4-acl','').split(',') 
 ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 0.0.0.0 0.0.0.0 ${''.join([ str(item.get('ipsec_int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')} ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} 
 ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} 255.255.255.255 Tunnel${cgi_data.get('vlan-id','UNKNOWN')} ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} 
 % for i in range(int(len(list)/2)):
-ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('ipv4-acl','').split(',')[2*i]} ${cgi_data.get('ipv4-acl','').split(',')[2*i+1]} Tunnel${cgi_data.get('vlan-id','UNKNOWN')} ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}
+ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('ipv4-acl','').split(',')[2*i]} ${'.'.join([ str(int(mask_item)^255) for mask_item in cgi_data.get('ipv4-acl','').split(',')[2*i+1].split('.') ])} Tunnel${cgi_data.get('vlan-id','UNKNOWN')} ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}
 % endfor
 !
 """
@@ -947,3 +947,6 @@ if data:
     # config_data_read_from_sql = sql_inst.sql_read_last_record_to_dict(from_string = 'ipxt_config')    
 
     # CGI_CLI.uprint(get_json_with_variable_name(config_data_read_from_sql))
+    
+    
+
