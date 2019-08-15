@@ -571,7 +571,7 @@ GW_tunnel_interface_templ = """interface Tunnel${cgi_data.get('vlan-id','UNKNOWN
 !
 """
 
-GW_port_channel_interface_templ = """interface ${''.join([ str(item.get('ipsec_int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')}
+GW_port_channel_interface_templ = """interface ${''.join([ str(item.get('ipsec_int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}
  no shutdown
  description TESTING ${cgi_data.get('pe-router','UNKNOWN')} from ${cgi_data.get('ipsec-gw-router','UNKNOWN')} @${cgi_data.get('gw-ip-address','UNKNOWN')} - For IPXT over IPSEC FIB${cgi_data.get('ld-number','UNKNOWN')} - Custom
  mtu 4470
@@ -677,8 +677,10 @@ vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')}
 # !
 # '''
  
-PE_acl_config_templ = """!<% rule_num = 10; list = cgi_data.get('ipv4-acl','').split(',') %>
+PE_acl_config_templ = """!<% rule_num = 30; list = cgi_data.get('ipv4-acl','').split(',') %>
 ipv4 access-list ${cgi_data.get('vpn','UNKNOWN')}-IN
+ 10 permit ipv4 ${cgi_data.get('pe-ip-address','')}
+ 20 permit ipv4 ${''.join([ str(item.get('ip_address_customer','')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} 0.0.0.0 any
 % for i in range(int(len(list)/2)):
  ${rule_num} permit ipv4 ${cgi_data.get('ipv4-acl','').split(',')[2*i]} ${cgi_data.get('ipv4-acl','').split(',')[2*i+1]} any<% rule_num += 10 %>
 % endfor
@@ -820,7 +822,7 @@ vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')}
   address-family ipv4 unicast
    redistribute connected route-policy NO-EXPORT-INTERCO
   !
-  neighbor 193.251.244.166
+  neighbor ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}
    use neighbor-group ${cgi_data.get('vpn','UNKNOWN')}
   !
 !
@@ -830,9 +832,10 @@ PE_static_route_config_templ = """!
 router static
  vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')} 
   address-family ipv4 unicast
-   193.251.244.166/32 ${''.join([ str(item.get('int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')} 193.251.157.67
+  ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}/32 ${''.join([ str(item.get('int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('gw-ip-address','UNKNOWN')}
 !
 """
+
 #############################################################################    
 def generate_post_PE_router_config(dict_data = None):
     config_string = str()
