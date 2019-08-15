@@ -272,7 +272,7 @@ class sql_interface():
         if self.sql_is_connected():
             if from_string:
                 if where_string:
-                    sql_string = "SELECT %s FROM %s WHERE %s);" \
+                    sql_string = "SELECT %s FROM %s WHERE %s;" \
                         %(select_string, from_string, where_string)
                 else:
                     sql_string = "SELECT %s FROM %s;" \
