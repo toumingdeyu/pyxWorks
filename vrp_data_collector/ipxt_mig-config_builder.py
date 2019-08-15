@@ -669,7 +669,7 @@ vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')}
 """
 
 # PE_acl_config_templ = '''!<% rule_num = 10 %>
-# ipv4 access-list IPXT.${cgi_data.get('customer_name','UNKNOWN')}-IN
+# ipv4 access-list ${cgi_data.get('vpn','UNKNOWN')}-IN
 # % for rule in bgp_data.get('customer_prefixes_v4',{}):
  # ${rule_num} permit ipv4 ${rule.get('customer_prefix_v4','UNKNOWN')} ${rule.get('customer_subnetmask_v4','UNKNOWN')} any<% rule_num += 10 %>
 # % endfor
@@ -678,7 +678,7 @@ vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')}
 # '''
  
 PE_acl_config_templ = """!<% rule_num = 10; list = cgi_data.get('ipv4-acl','').split(',') %>
-ipv4 access-list IPXT.${cgi_data.get('customer_name','UNKNOWN')}-IN
+ipv4 access-list ${cgi_data.get('vpn','UNKNOWN')}-IN
 % for i in range(int(len(list)/2)):
  ${rule_num} permit ipv4 ${cgi_data.get('ipv4-acl','').split(',')[2*i]} ${cgi_data.get('ipv4-acl','').split(',')[2*i+1]} any<% rule_num += 10 %>
 % endfor
@@ -687,7 +687,7 @@ ipv4 access-list IPXT.${cgi_data.get('customer_name','UNKNOWN')}-IN
 """
 
 # PE_prefix_config_templ = """!<% list_count = 0; list_len = len(bgp_data.get('customer_prefixes_v4',{})) %>
-# prefix-set IPXT.${cgi_data.get('customer_name','UNKNOWN')}-IN
+# prefix-set ${cgi_data.get('vpn','UNKNOWN')}-IN
 # % for item in bgp_data.get('customer_prefixes_v4',{}):
 # <% import ipaddress; net = ipaddress.ip_network(item.get('customer_prefix_v4','1.1.1.1')+'/'+item.get('customer_subnetmask_v4','32')); list_count += 1 %>
 # % if list_count == list_len:
@@ -701,7 +701,7 @@ ipv4 access-list IPXT.${cgi_data.get('customer_name','UNKNOWN')}-IN
 # """
 
 PE_prefix_config_templ = """!<% import ipaddress; list = cgi_data.get('ipv4-acl','').split(',') %>
-prefix-set IPXT.${cgi_data.get('customer_name','UNKNOWN')}-IN
+prefix-set ${cgi_data.get('vpn','UNKNOWN')}-IN
 % for i in range(int(len(list)/2)):
 <% net = ipaddress.ip_network(cgi_data.get('ipv4-acl','').split(',')[2*i]+'/'+cgi_data.get('ipv4-acl','').split(',')[2*i+1]) %>
 % if i == range(int(len(list)/2)):
