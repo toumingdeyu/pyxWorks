@@ -441,7 +441,7 @@ pre_GW_tunnel_interface_templ = """interface Tunnel${cgi_data.get('vlan-id','UNK
  bandwidth ${cgi_data.get('int-bw','UNKNOWN')}000
  vrf forwarding LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
  ip flow monitor ICX sampler ICX input
- ip address 193.251.244.167 255.255.255.254 <--<< number 3 in drawing
+ ip address 193.251.244.167 255.255.255.254
  no ip redirects
  no ip proxy-arp
  ip mtu 1420
@@ -449,20 +449,20 @@ pre_GW_tunnel_interface_templ = """interface Tunnel${cgi_data.get('vlan-id','UNK
  tunnel source 193.251.245.106
  tunnel mode ipsec ipv4
  tunnel destination 78.110.224.70
- tunnel protection ipsec profile ${cgi_data.get('customer_name','UNKNOWN')}-IPXT
+ tunnel protection ipsec profile ${(cgi_data.get('customer_name','UNKNOWN')).upper()}-IPXT
 ! 
 """
 
 pre_GW_interface_tovards_huawei_templ = """interface GigabitEthernet0/0/2
- description AUVPE3 from AUVPE6 @XXX.XXX.XXX.XXX - w/ IPSEC Customers FIB${cgi_data.get('ld-number','UNKNOWN')} - Backbone
+ description ${cgi_data.get('huawei-router','UNKNOWN')} from ${cgi_data.get('ipsec-gw-router','UNKNOWN')} @XXX.XXX.XXX.XXX - w/ IPSEC Customers FIB${cgi_data.get('ld-number','UNKNOWN')} - Backbone
 !
 interface GigabitEthernet0/0/2.${cgi_data.get('vlan-id','UNKNOWN')}
- description Tyntec :IPXT @172.25.10.24 - IPX ${cgi_data.get('ld-number','UNKNOWN')} TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
+ description ${(cgi_data.get('customer_name','UNKNOWN'))} :IPXT @172.25.10.24 - IPX ${cgi_data.get('ld-number','UNKNOWN')} TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
  bandwidth ${cgi_data.get('int-bw','UNKNOWN')}000
  encapsulation dot1Q ${cgi_data.get('vlan-id','UNKNOWN')}
  vrf forwarding LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
  ip flow monitor ICX sampler ICX input
- ip address 172.25.10.25 255.255.255.254  <--<< number 2 in drawing
+ ip address 172.25.10.25 255.255.255.254
  no ip redirects
  no ip proxy-arp
 !
@@ -471,12 +471,12 @@ interface GigabitEthernet0/0/2.${cgi_data.get('vlan-id','UNKNOWN')}
 pre_GW_router_bgp_templ = """router bgp 2300
  address-family ipv4 vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
   neighbor ${cgi_data.get('vpn','UNKNOWN')} peer-group
-  neighbor ${cgi_data.get('vpn','UNKNOWN')} remote-as 43566 <--<< customers AS number (peer_as in json)
+  neighbor ${cgi_data.get('vpn','UNKNOWN')} remote-as ${cgi_data.get('bgp-customer-as','UNKNOWN')}
   neighbor ${cgi_data.get('vpn','UNKNOWN')} ebgp-multihop 5
   neighbor ${cgi_data.get('vpn','UNKNOWN')} update-source Tunnel${cgi_data.get('vlan-id','UNKNOWN')}
   neighbor ${cgi_data.get('vpn','UNKNOWN')} send-community both
   neighbor ${cgi_data.get('vpn','UNKNOWN')} maximum-prefix 1000 90
-  neighbor 172.25.10.24 remote-as 2300 <--<< number 2 in drawing
+  neighbor 172.25.10.24 remote-as 2300
   neighbor 172.25.10.24 activate
   neighbor 172.25.10.24 send-community both
   neighbor 193.251.244.166 peer-group ${cgi_data.get('vpn','UNKNOWN')}
