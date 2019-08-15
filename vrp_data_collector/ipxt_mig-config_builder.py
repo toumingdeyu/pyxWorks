@@ -278,6 +278,7 @@ class sql_interface():
         '''NOTE: FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE'''
         records = None
         if self.sql_is_connected():
+            #CGI_CLI.uprint(sql_command)
             cursor = self.sql_connection.cursor()
             try: 
                 cursor.execute(sql_command)
@@ -392,12 +393,12 @@ class sql_interface():
         if self.sql_is_connected():
             if from_string:
                 if where_string:
-                    sql_string = "SELECT %s FROM %s WHERE %s);" \
+                    sql_string = "SELECT %s FROM %s WHERE %s;" \
                         %(select_string, from_string, where_string)
                 else:
                     sql_string = "SELECT %s FROM %s;" \
                         %(select_string, from_string )
-                check_data = self.sql_read_sql_command(sql_string)                          
+                check_data = self.sql_read_sql_command(sql_string)
         return check_data
 
     def sql_read_records_to_dict_list(table_name = None, from_string = None, \
@@ -488,16 +489,16 @@ def generate_pre_IPSEC_GW_router_config(data = None):
     config_string = str()
     
     mytemplate = Template(pre_GW_vrf_definition_templ,strict_undefined=True)
-    config_string += (mytemplate.render(**data)).replace('\n\n','\n')    
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'    
 
     mytemplate = Template(pre_GW_tunnel_interface_templ,strict_undefined=True)
-    config_string += (mytemplate.render(**data)).replace('\n\n','\n') 
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n' 
 
     mytemplate = Template(pre_GW_interface_tovards_huawei_templ,strict_undefined=True)
-    config_string += (mytemplate.render(**data)).replace('\n\n','\n') 
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n' 
 
     mytemplate = Template(pre_GW_router_bgp_templ,strict_undefined=True)
-    config_string += (mytemplate.render(**data)).replace('\n\n','\n') 
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
         
     return config_string
 ###############################################################################
@@ -515,8 +516,8 @@ def generate_pre_PE_router_config(dict_data = None):
     config_string = str()
 
     mytemplate = Template(pre_PE_bundl_eether_interface_templ,strict_undefined=True)
-    config_string += (mytemplate.render(**data)).replace('\n\n','\n')
-      
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
+     
     return config_string 
 
 ###############################################################################
@@ -611,23 +612,23 @@ def generate_post_IPSEC_GW_router_config(data = None):
     config_string = str()
 
     mytemplate = Template(GW_check_vrf_and_crypto_templ,strict_undefined=True)
-    config_string += (mytemplate.render(**data)).replace('\n\n','\n')  
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'  
     
     mytemplate = Template(GW_tunnel_interface_templ,strict_undefined=True)
-    config_string += (mytemplate.render(**data)).replace('\n\n','\n')      
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'      
 
     mytemplate = Template(GW_port_channel_interface_templ,strict_undefined=True)
-    config_string += (mytemplate.render(**data)).replace('\n\n','\n')  
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'  
     
     mytemplate = Template(GW_port_channel_interface_templ,strict_undefined=True)
-    config_string += (mytemplate.render(**data)).replace('\n\n','\n')    
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'    
     
     mytemplate = Template(GW_interconnect_interface_templ,strict_undefined=True)
-    config_string += (mytemplate.render(**data)).replace('\n\n','\n')    
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'   
 
     mytemplate = Template(GW_customer_router_templ,strict_undefined=True)
-    config_string += (mytemplate.render(**data)).replace('\n\n','\n') 
-        
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
+       
     return config_string
 ################################################################################
 
@@ -819,31 +820,32 @@ def generate_post_PE_router_config(dict_data = None):
     config_string = str()
 
     mytemplate = Template(PE_vrf_config_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n')
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
     
     mytemplate = Template(PE_acl_config_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n')
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
     
     mytemplate = Template(PE_prefix_config_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n')
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
 
     mytemplate = Template(PE_policy_map_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n')
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
 
     mytemplate = Template(PE_interface_description_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n')
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
 
     mytemplate = Template(PE_customer_interface_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n')
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
 
     mytemplate = Template(PE_customer_policy_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n')
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
 
     mytemplate = Template(PE_bgp_config_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n')
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
 
     mytemplate = Template(PE_static_route_config_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n')    
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
+
     return config_string 
 ################################################################################
 
@@ -876,7 +878,7 @@ data['cgi_data'] = cgi_data
 sql_inst = sql_interface(host='localhost', user='cfgbuilder', password='cfgbuildergetdata', database='rtr_configuration')
 data['private_as_test'] = sql_inst.sql_read_records_to_dict_list(from_string = 'private_as_test')
 data['ipsec_ipxt_table'] = sql_inst.sql_read_records_to_dict_list(from_string = 'ipsec_ipxt_table')
-data['ipxt_data_collector'] = sql_inst.sql_read_records_to_dict_list(from_string = 'ipxt_data_collector')
+data['ipxt_data_collector'] = sql_inst.sql_read_records_to_dict_list(from_string = 'ipxt_data_collector', where_string = "session_id = '%s'" % (cgi_data.get('session_id','UNKNOWN')))
 
 
 CGI_CLI.uprint('\n' + get_variable_name(data) + ' = ' + dict_to_json_string(data) + '\n')
