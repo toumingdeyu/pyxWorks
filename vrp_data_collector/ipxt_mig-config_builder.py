@@ -535,14 +535,14 @@ vrf definition LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
 !
 !
 crypto keyring ${cgi_data.get('vpn','UNKNOWN')}  
-  local-address ${''.join([ str(item.get('loopback1','UNKNOWN')) for item in private_as_test if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}
+  local-address ${''.join([ str(item.get('loopback1','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}
   pre-shared-key address ${cgi_data.get('ipsec-tunnel-dest','UNKNOWN')} key ${cgi_data.get('ipsec-preshare-key','UNKNOWN')}
 !
 crypto isakmp profile ${cgi_data.get('vpn','UNKNOWN')}
    vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
    keyring ${cgi_data.get('vpn','UNKNOWN')}
    match identity address ${cgi_data.get('ipsec-tunnel-dest','UNKNOWN')} 255.255.255.255 
-   local-address ${''.join([ str(item.get('loopback1','UNKNOWN')) for item in private_as_test if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}
+   local-address ${''.join([ str(item.get('loopback1','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}
    keepalive 10 retry 3
 !
 crypto ipsec profile ${cgi_data.get('vpn','UNKNOWN')}
@@ -565,7 +565,7 @@ GW_tunnel_interface_templ = """interface Tunnel${cgi_data.get('vlan-id','UNKNOWN
  logging event link-status
  load-interval 30
  carrier-delay msec 0
- tunnel source ${''.join([ str(item.get('loopback1','UNKNOWN')) for item in private_as_test if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}
+ tunnel source ${''.join([ str(item.get('loopback1','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}
  tunnel destination ${cgi_data.get('ipsec-tunnel-dest','UNKNOWN')}
  tunnel protection ipsec profile ${cgi_data.get('vpn','UNKNOWN')}
 !
@@ -876,8 +876,8 @@ data['bgp_data'] = bgp_data
 data['cgi_data'] = cgi_data
 
 sql_inst = sql_interface(host='localhost', user='cfgbuilder', password='cfgbuildergetdata', database='rtr_configuration')
-data['private_as_test'] = sql_inst.sql_read_records_to_dict_list(from_string = 'private_as_test')
-data['ipsec_ipxt_table'] = sql_inst.sql_read_records_to_dict_list(from_string = 'ipsec_ipxt_table')
+data['private_as_test'] = sql_inst.sql_read_records_to_dict_list(from_string = 'private_as_test' , where_string = "cust_name = '%s'" % (cgi_data.get('customer_name','UNKNOWN')))
+data['ipsec_ipxt_table'] = sql_inst.sql_read_records_to_dict_list(from_string = 'ipsec_ipxt_table', where_string = "ipsec_rtr_name = '%s'" % (cgi_data.get('ipsec-gw-router','UNKNOWN')))
 data['ipxt_data_collector'] = sql_inst.sql_read_records_to_dict_list(from_string = 'ipxt_data_collector', where_string = "session_id = '%s'" % (cgi_data.get('session_id','UNKNOWN')))
 
 
