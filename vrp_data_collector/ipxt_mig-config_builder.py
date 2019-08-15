@@ -505,7 +505,7 @@ def generate_pre_IPSEC_GW_router_config(data = None):
 
 
 pre_PE_bundl_eether_interface_templ = """interface ${''.join([ str(item.get('int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}
- description TESTING ${cgi_data.get('ipsec-gw-router','UNKNOWN')} from ${cgi_data.get('pe-router','UNKNOWN')} :IPXT ASN43566 @XXX.XXX.XXX.XXX - For IPXT over IPSEC FIB${cgi_data.get('ld-number','UNKNOWN')} - Custom
+ description TESTING ${cgi_data.get('ipsec-gw-router','UNKNOWN')} from ${cgi_data.get('pe-router','UNKNOWN')} :IPXT @XXX.XXX.XXX.XXX - For IPXT over IPSEC FIB${cgi_data.get('ld-number','UNKNOWN')} - Custom
  no ipv4 address
  carrier-delay up 3 down 0
  load-interval 30
@@ -535,14 +535,14 @@ vrf definition LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
 !
 !
 crypto keyring ${cgi_data.get('vpn','UNKNOWN')}  
-  local-address ${''.join([ str(item.get('loopback1','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}
+  local-address ${''.join([ str(item.get('loc_tun_addr','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}
   pre-shared-key address ${cgi_data.get('ipsec-tunnel-dest','UNKNOWN')} key ${cgi_data.get('ipsec-preshare-key','UNKNOWN')}
 !
 crypto isakmp profile ${cgi_data.get('vpn','UNKNOWN')}
    vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
    keyring ${cgi_data.get('vpn','UNKNOWN')}
    match identity address ${cgi_data.get('ipsec-tunnel-dest','UNKNOWN')} 255.255.255.255 
-   local-address ${''.join([ str(item.get('loopback1','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}
+   local-address ${''.join([ str(item.get('loc_tun_addr','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}
    keepalive 10 retry 3
 !
 crypto ipsec profile ${cgi_data.get('vpn','UNKNOWN')}
@@ -555,17 +555,17 @@ crypto ipsec profile ${cgi_data.get('vpn','UNKNOWN')}
 
 GW_tunnel_interface_templ = """interface Tunnel${cgi_data.get('vlan-id','UNKNOWN')}
  no shutdown
- description TESTING ${cgi_data.get('customer_name','UNKNOWN')} @193.251.244.166 - IPX ${cgi_data.get('ld-number','UNKNOWN')} TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
+ description TESTING ${cgi_data.get('customer_name','UNKNOWN')} @${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} - IPX ${cgi_data.get('ld-number','UNKNOWN')} TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
  bandwidth ${cgi_data.get('int-bw','UNKNOWN')}000
  vrf forwarding LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
- ip address ${cgi_data.get('gw-ip-address','UNKNOWN')} ${cgi_data.get('ipv4-mask','UNKNOWN')}
+ ip address ${''.join([ str(item.get('ip_address','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} 255.255.255.254
  no ip redirects
  no ip proxy-arp
  ip mtu 1420
  logging event link-status
  load-interval 30
  carrier-delay msec 0
- tunnel source ${''.join([ str(item.get('loopback1','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}
+ tunnel source ${''.join([ str(item.get('loc_tun_addr','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}
  tunnel destination ${cgi_data.get('ipsec-tunnel-dest','UNKNOWN')}
  tunnel protection ipsec profile ${cgi_data.get('vpn','UNKNOWN')}
 !
@@ -586,7 +586,7 @@ GW_port_channel_interface_templ = """interface ${''.join([ str(item.get('ipsec_i
 
 GW_interconnect_interface_templ = """interface ${''.join([ str(item.get('ipsec_int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')}
  encapsulation dot1Q ${cgi_data.get('vlan-id','UNKNOWN')}
- description TESTING ${cgi_data.get('customer_name','UNKNOWN')} @193.251.157.66 - IPX ${cgi_data.get('ld-number','UNKNOWN')} TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
+ description TESTING ${cgi_data.get('customer_name','UNKNOWN')} @${cgi_data.get('pe-ip-address','UNKNOWN')} - IPX ${cgi_data.get('ld-number','UNKNOWN')} TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
  bandwidth ${cgi_data.get('int-bw','UNKNOWN')}000
  vrf forwarding LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
  ip address ${cgi_data.get('gw-ip-address','UNKNOWN')} 255.255.255.254
@@ -596,14 +596,14 @@ GW_interconnect_interface_templ = """interface ${''.join([ str(item.get('ipsec_i
 """
 
 GW_customer_router_templ = """!
-ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 0.0.0.0 0.0.0.0 ${''.join([ str(item.get('ipsec_int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')} 193.251.157.66 
-ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 193.251.244.166 255.255.255.255 Tunnel${cgi_data.get('vlan-id','UNKNOWN')} 193.251.244.166  <--<< static route for customer BGP address (peer_address in json). next-hop is number 4 in diagram.
+ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 0.0.0.0 0.0.0.0 ${''.join([ str(item.get('ipsec_int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')} ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} 
+ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} 255.255.255.255 Tunnel${cgi_data.get('vlan-id','UNKNOWN')} ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} 
 
 The rest are the customer prefixes (customer_prefixes_v4)
-ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 78.110.224.70 255.255.255.255 Tunnel${cgi_data.get('vlan-id','UNKNOWN')} 193.251.244.166
-ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 178.23.31.16 255.255.255.255 Tunnel${cgi_data.get('vlan-id','UNKNOWN')} 193.251.244.166
-ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 178.23.31.128 255.255.255.128 Tunnel${cgi_data.get('vlan-id','UNKNOWN')} 193.251.244.166
-ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 78.110.239.128 255.255.255.128 Tunnel${cgi_data.get('vlan-id','UNKNOWN')} 193.251.244.166
+ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 78.110.224.70 255.255.255.255 Tunnel${cgi_data.get('vlan-id','UNKNOWN')} ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}
+ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 178.23.31.16 255.255.255.255 Tunnel${cgi_data.get('vlan-id','UNKNOWN')} ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}
+ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 178.23.31.128 255.255.255.128 Tunnel${cgi_data.get('vlan-id','UNKNOWN')} ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}
+ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 78.110.239.128 255.255.255.128 Tunnel${cgi_data.get('vlan-id','UNKNOWN')} ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}
 !
 """
 
@@ -762,7 +762,7 @@ policy-map ${cgi_data.get('vpn','UNKNOWN')}-COS-OUT
 """
 
 PE_interface_description_templ = """interface ${''.join([ str(item.get('int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}
- description TESTING ${cgi_data.get('ipsec-gw-router','UNKNOWN')} from ${cgi_data.get('pe-router','UNKNOWN')} :IPXT ASN43566 @XXX.XXX.XXX.XXX - For IPXT over IPSEC FIB${cgi_data.get('ld-number','UNKNOWN')} - Custom
+ description TESTING ${cgi_data.get('ipsec-gw-router','UNKNOWN')} from ${cgi_data.get('pe-router','UNKNOWN')} :IPXT @XXX.XXX.XXX.XXX - For IPXT over IPSEC FIB${cgi_data.get('ld-number','UNKNOWN')} - Custom
  no ipv4 address
  carrier-delay up 3 down 0
  load-interval 30
@@ -771,10 +771,10 @@ PE_interface_description_templ = """interface ${''.join([ str(item.get('int_id',
 
 PE_customer_interface_templ = """interface ${''.join([ str(item.get('int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')}
  encapsulation dot1Q ${cgi_data.get('vlan-id','UNKNOWN')}
- description TESTING ${cgi_data.get('customer_name','UNKNOWN')} :IPXT ASN43566 @XXX.XXX.XXX.XXX - IPX ${cgi_data.get('ld-number','UNKNOWN')} TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
+ description TESTING ${cgi_data.get('customer_name','UNKNOWN')} :IPXT @${cgi_data.get('gw-ip-address','UNKNOWN')} - IPX ${cgi_data.get('ld-number','UNKNOWN')} TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
  bandwidth ${cgi_data.get('int-bw','UNKNOWN')}000
  vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')} 
- ipv4 address ${cgi_data.get('interco_ip','UNKNOWN')} ${cgi_data.get('interco_mask','UNKNOWN')}
+ ipv4 address ${cgi_data.get('pe-ip-address','UNKNOWN')} 255.255.255.254
  ipv4 access-group ${cgi_data.get('vpn','UNKNOWN')}-IN ingress
  service-policy input ${cgi_data.get('vpn','UNKNOWN')}-IN
  service-policy output ${cgi_data.get('vpn','UNKNOWN')}-OUT
