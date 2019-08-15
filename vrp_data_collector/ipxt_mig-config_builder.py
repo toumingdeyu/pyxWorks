@@ -657,7 +657,7 @@ vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')}
 % endfor  
  exit
  export route-target
-% for item in ''.join([ str(item.get('rt_import','')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ]).split(','): 
+% for item in ''.join([ str(item.get('rt_export','')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ]).split(','): 
   ${item}
 % endfor  
   exit
