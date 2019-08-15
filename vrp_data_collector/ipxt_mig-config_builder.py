@@ -905,18 +905,18 @@ CGI_CLI.uprint(get_json_with_variable_name(data))
     
 if data:
     pre_config_text_gw = generate_pre_IPSEC_GW_router_config(data)
-    CGI_CLI.uprint('\nIPSEC GW ROUTER (%s) PRE CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()), tag = 'h1')
+    CGI_CLI.uprint('\nIPSEC GW ROUTER (%s) PRE-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()), tag = 'h1')
     CGI_CLI.uprint(pre_config_text_gw)    
 
     pre_config_text_pe = generate_pre_PE_router_config(data)
-    CGI_CLI.uprint('\nPE ROUTER (%s) POST CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()), tag = 'h1')
+    CGI_CLI.uprint('\nPE ROUTER (%s) PRE-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()), tag = 'h1')
     CGI_CLI.uprint(pre_config_text_pe)
 
     post_config_text_gw = generate_post_IPSEC_GW_router_config(data)
-    CGI_CLI.uprint('\nIPSEC GW ROUTER (%s) POST CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()), tag = 'h1')
+    CGI_CLI.uprint('\nIPSEC GW ROUTER (%s) POST-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()), tag = 'h1')
     CGI_CLI.uprint(post_config_text_gw)    
     post_config_text_pe = generate_post_PE_router_config(data)
-    CGI_CLI.uprint('\nPE ROUTER (%s) POST CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()), tag = 'h1')
+    CGI_CLI.uprint('\nPE ROUTER (%s) POST-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()), tag = 'h1')
     CGI_CLI.uprint(post_config_text_pe)
      
     # MariaDB [rtr_configuration]> describe ipxt_config;                                              
