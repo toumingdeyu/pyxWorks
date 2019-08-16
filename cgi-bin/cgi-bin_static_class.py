@@ -46,7 +46,7 @@ class CGI_CLI(object):
         In static class is no constructor or destructor 
         --> Register __cleanup__ in system
         """
-        import atexit; atexit.register(CGI_CLI.__cleanup__)
+        if not atexit in sys.modules: import atexit; atexit.register(CGI_CLI.__cleanup__)
 
     @staticmethod
     def init_cgi():
@@ -69,15 +69,15 @@ class CGI_CLI(object):
             if variable == "password": CGI_CLI.password = value
         if CGI_CLI.submit_form or len(CGI_CLI.data)>0: CGI_CLI.cgi_active = True
         if CGI_CLI.cgi_active:
-            import cgitb; cgitb.enable()        
+            if not 'cgitb' in sys.modules: import cgitb; cgitb.enable()        
             print("Content-type:text/html\n\n")
             print("<html><head><title>%s</title></head><body>" % 
                 (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit'))
-        import atexit; atexit.register(CGI_CLI.__cleanup__)
+        if not 'atexit' in sys.modules: import atexit; atexit.register(CGI_CLI.__cleanup__)
         return None
 
     @staticmethod 
-    def uprint(text, tag = None):
+    def oprint(text, tag = None):
         if CGI_CLI.debug: 
             if CGI_CLI.cgi_active:
                 if tag and 'h' in tag: print('<%s>'%(tag))
@@ -86,6 +86,31 @@ class CGI_CLI(object):
                     text = str(text.replace('\n','<br/>').replace(' ','&nbsp;'))
                 else: text = str(text)   
             print(text)
+            if CGI_CLI.cgi_active: 
+                print('<br/>');
+                if tag and 'p' in tag: print('</p>')
+                if tag and 'h' in tag: print('</%s>'%(tag))
+
+    @staticmethod 
+    def uprint(text, tag = None, name = None):
+        print_text, print_name = copy.deepcopy(text), str()
+        if CGI_CLI.debug:
+            if isinstance(text, (dict,collections.OrderedDict)):
+                print_text = json.dumps(text, indent = 4)
+            if name:
+                #if not 'inspect' in sys.modules: 
+                import inspect
+                callers_local_vars = inspect.currentframe().f_back.f_locals.items()
+                var_list = [var_name for var_name, var_val in callers_local_vars if var_val is text]
+                if str(','.join(var_list)).strip(): print_name = str(','.join(var_list)) + ' = '
+            print_text = str(print_text)
+            if CGI_CLI.cgi_active:
+                if tag and 'h' in tag: print('<%s>'%(tag))
+                if tag and 'p' in tag: print('<p>')
+                if isinstance(print_text, six.string_types): 
+                    print_text = str(print_text.replace('\n','<br/>').replace(' ','&nbsp;')) 
+            print(print_name + print_text)
+            del print_text
             if CGI_CLI.cgi_active: 
                 print('<br/>');
                 if tag and 'p' in tag: print('</p>')
@@ -115,14 +140,19 @@ if __name__ != "__main__": sys.exit(0)
 CGI_CLI.init_cgi()
 CGI_CLI.print_args()
 
-print(repr(CGI_CLI))
+#print(repr(CGI_CLI))
 #print(str(CGI_CLI))
 
 CGI_CLI.uprint('aaa')
 CGI_CLI.uprint('aaa')          
 CGI_CLI.uprint(['aaa2','aaa3'])
-CGI_CLI.uprint({'aaa4':'aaa5'}, tag = 'h1')
+CGI_CLI.uprint({'aaa4':'aaa5'}, tag = 'h1' , name = True)
 CGI_CLI.print_args()
+
+aaa = {'aaa8':'aaa9'}
+CGI_CLI.uprint(aaa, name = True)
+bbb = ['aaa8','aaa9']
+CGI_CLI.uprint(bbb, name = True)
 #cgi.print_environ()
 
 
