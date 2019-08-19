@@ -1472,6 +1472,7 @@ if device_name:
         if first_router_type == 'huawei': 
             sql_inst = sql_interface(host='localhost', user='cfgbuilder', \
                 password='cfgbuildergetdata', database='rtr_configuration')
+            CGI_CLI.uprint(bgp_data, tag = 'p', color = 'red', name = True, jsonprint = True)    
             CGI_CLI.uprint('BEFORE_SQL_WRITE:',tag = 'h1')    
             CGI_CLI.uprint(sql_inst.sql_read_last_record_to_dict(from_string = 'ipxt_data_collector'), jsonprint = True)    
             sql_inst.sql_write_table_from_dict('ipxt_data_collector', bgp_data)  
