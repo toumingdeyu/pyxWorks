@@ -1,6 +1,8 @@
 #!/usr/bin/python
 
 import sys, os, io, paramiko, json, copy, html
+import cgi
+import cgitb; cgitb.enable()
 import getopt
 import getpass
 import telnetlib
@@ -13,9 +15,6 @@ import glob
 import socket
 import six
 import collections
-
-import cgi
-import cgitb; cgitb.enable()
 import requests
 
 
@@ -46,7 +45,7 @@ class CGI_CLI(object):
         In static class is no constructor or destructor 
         --> Register __cleanup__ in system
         """
-        if not atexit in sys.modules: import atexit; atexit.register(CGI_CLI.__cleanup__)
+        if not 'atexit' in sys.modules: import atexit; atexit.register(CGI_CLI.__cleanup__)
 
     @staticmethod
     def init_cgi():
@@ -92,14 +91,15 @@ class CGI_CLI(object):
                 if tag and 'h' in tag: print('</%s>'%(tag))
 
     @staticmethod 
-    def uprint(text, tag = None, name = None):
+    def uprint(text, tag = None, name = None, jsonprint = None):
         print_text, print_name = copy.deepcopy(text), str()
         if CGI_CLI.debug:
-            if isinstance(text, (dict,collections.OrderedDict)):
-                print_text = json.dumps(text, indent = 4)
+            if jsonprint:
+                if isinstance(text, (dict,collections.OrderedDict,list,tuple)):
+                    try: print_text = json.dumps(text, indent = 4)
+                    except: pass   
             if name:
-                #if not 'inspect' in sys.modules: 
-                import inspect
+                if not 'inspect.currentframe' in sys.modules: import inspect
                 callers_local_vars = inspect.currentframe().f_back.f_locals.items()
                 var_list = [var_name for var_name, var_val in callers_local_vars if var_val is text]
                 if str(','.join(var_list)).strip(): print_name = str(','.join(var_list)) + ' = '
@@ -108,7 +108,8 @@ class CGI_CLI(object):
                 if tag and 'h' in tag: print('<%s>'%(tag))
                 if tag and 'p' in tag: print('<p>')
                 if isinstance(print_text, six.string_types): 
-                    print_text = str(print_text.replace('\n','<br/>').replace(' ','&nbsp;')) 
+                    print_text = str(print_text.replace('&','&amp;').replace('<','&lt;'). \
+                        replace('>','&gt;').replace('\n','<br/>').replace(' ','&nbsp;')) 
             print(print_name + print_text)
             del print_text
             if CGI_CLI.cgi_active: 
@@ -119,9 +120,9 @@ class CGI_CLI(object):
     @staticmethod
     def print_args():
         if CGI_CLI.cgi_active:
-            try: print_string = 'CGI_args=' + json.dumps(CGI_CLI.data) + ' <br/>'
-            except: print_string = 'CGI_args=' + ' <br/>'                
-        else: print_string = 'CLI_args=%s \n' % (str(sys.argv[1:]))
+            try: print_string = 'CGI_args = ' + json.dumps(CGI_CLI.data) 
+            except: print_string = 'CGI_args = '                 
+        else: print_string = 'CLI_args = %s' % (str(sys.argv[1:]))
         CGI_CLI.uprint(print_string)
         return print_string        
 
@@ -155,6 +156,8 @@ bbb = ['aaa8','aaa9']
 CGI_CLI.uprint(bbb, name = True)
 #cgi.print_environ()
 
+CGI_CLI.uprint(123423)
+CGI_CLI.uprint('&<">&')
 
 
 
