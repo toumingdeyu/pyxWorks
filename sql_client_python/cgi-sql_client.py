@@ -30,7 +30,6 @@ class CGI_CLI(object):
     """ 
     # import collections, cgi, six
     # import cgitb; cgitb.enable()
-     
     debug = True
     initialized = None
     START_EPOCH = time.time()
@@ -108,6 +107,8 @@ class sql_interface():
     ### MARIADB - By default AUTOCOMMIT is disabled
                     
     def __init__(self, host = None, user = None, password = None, database = None):
+        if int(sys.version_info[0]) == 3 and not 'pymysql.connect' in sys.modules: import pymysql
+        elif int(sys.version_info[0]) == 2 and not 'mysql.connector' in sys.modules: import mysql.connector
         default_ipxt_data_collector_delete_columns = ['id','last_updated']
         self.sql_connection = None
         try: 
