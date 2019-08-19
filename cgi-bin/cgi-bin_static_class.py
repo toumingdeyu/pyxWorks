@@ -91,22 +91,25 @@ class CGI_CLI(object):
                 if tag and 'h' in tag: print('</%s>'%(tag))
 
     @staticmethod 
-    def uprint(text, tag = None, name = None, jsonprint = None):
+    def uprint(text, tag = None, color = None, name = None, jsonprint = None):
+        """NOTE: name parameter could be True or string."""
         print_text, print_name = copy.deepcopy(text), str()
         if CGI_CLI.debug:
             if jsonprint:
                 if isinstance(text, (dict,collections.OrderedDict,list,tuple)):
                     try: print_text = json.dumps(text, indent = 4)
                     except: pass   
-            if name:
+            if name==True:
                 if not 'inspect.currentframe' in sys.modules: import inspect
                 callers_local_vars = inspect.currentframe().f_back.f_locals.items()
                 var_list = [var_name for var_name, var_val in callers_local_vars if var_val is text]
                 if str(','.join(var_list)).strip(): print_name = str(','.join(var_list)) + ' = '
+            elif isinstance(name, (six.string_types)): print_name = str(name) + ' = '
+            
             print_text = str(print_text)
             if CGI_CLI.cgi_active:
-                if tag and 'h' in tag: print('<%s>'%(tag))
-                if tag and 'p' in tag: print('<p>')
+                if tag and 'h' in tag: print('<%s%s>'%(tag,' style="color:%s;"'%(color) if color else str()))
+                if color or tag and 'p' in tag: tag = 'p'; print('<p%s>'%(' style="color:%s;"'%(color) if color else str()))
                 if isinstance(print_text, six.string_types): 
                     print_text = str(print_text.replace('&','&amp;').replace('<','&lt;'). \
                         replace('>','&gt;').replace('\n','<br/>').replace(' ','&nbsp;')) 
@@ -148,7 +151,7 @@ CGI_CLI.uprint('aaa')
 CGI_CLI.uprint('aaa')          
 CGI_CLI.uprint(['aaa2','aaa3'])
 CGI_CLI.uprint({'aaa4':'aaa5'}, tag = 'h1' , name = True)
-CGI_CLI.print_args()
+CGI_CLI.uprint(CGI_CLI.data, name = True, jsonprint = True , tag = 'h1' , color = 'yellow')
 
 aaa = {'aaa8':'aaa9'}
 CGI_CLI.uprint(aaa, name = True)
@@ -156,7 +159,7 @@ bbb = ['aaa8','aaa9']
 CGI_CLI.uprint(bbb, name = True)
 #cgi.print_environ()
 
-CGI_CLI.uprint(123423)
+CGI_CLI.uprint(123423, color = 'red')
 CGI_CLI.uprint('&<">&')
 
 
