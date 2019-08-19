@@ -97,9 +97,41 @@ default_printalllines_list = []
 
 
 # IOS-XE is only for IPsec GW
-CMD_IOS_XE = []
+CMD_IOS_XE = [
+    {'if':"bgp_data.get('vlan_id','')",
+        'remote_command':['show running-config interface tunnel',{'eval':"bgp_data.get('vlan_id','')"}]},
+    {'exec':'try: glob_vars["gw_vrf_forwarding"] = glob_vars.get("last_output","").split("vrf forwarding ")[1].splitlines()[0].strip() \
+           \nexcept: pass', 
+    },
+    {'if':'glob_vars.get("gw_vrf_forwarding","")', 
+        'remote_command':['show bgp vrf ',{"eval":'glob_vars.get("gw_vrf_forwarding","")'},' all summary']},
+    {'exec':'try: glob_vars["gw_vrf_parsed_lines"] = glob_vars.get("last_output","").split("State/PfxRcd")[1].strip().splitlines() \
+           \nexcept: pass '},     
+    {'if':'glob_vars.get("gw_vrf_parsed_lines","")',
+        'exec':'bgp_data["peer_address"], bgp_data["peer_as"] = read_gw_vrf_parsed_lines(glob_vars.get("gw_vrf_parsed_lines",""))'
 
-CMD_IOS_XR = []
+    },
+       
+    {"eval":["return_bgp_data_json()",{'print_output':'on'}]},
+]
+
+CMD_IOS_XR = [
+    {'if':"bgp_data.get('vlan_id','')",
+        'remote_command':['show running-config interface tunnel',{'eval':"bgp_data.get('vlan_id','')"}]},
+    {'exec':'try: glob_vars["gw_vrf_forwarding"] = glob_vars.get("last_output","").split("vrf forwarding ")[1].splitlines()[0].strip() \
+           \nexcept: pass', 
+    },
+    {'if':'glob_vars.get("gw_vrf_forwarding","")', 
+        'remote_command':['show bgp vrf ',{"eval":'glob_vars.get("gw_vrf_forwarding","")'},' all summary']},
+    {'exec':'try: glob_vars["gw_vrf_parsed_lines"] = glob_vars.get("last_output","").split("State/PfxRcd")[1].strip().splitlines() \
+           \nexcept: pass '},     
+    {'if':'glob_vars.get("gw_vrf_parsed_lines","")',
+        'exec':'bgp_data["peer_address"], bgp_data["peer_as"] = read_gw_vrf_parsed_lines(glob_vars.get("gw_vrf_parsed_lines",""))'
+
+    },
+       
+    {"eval":["return_bgp_data_json()",{'print_output':'on'}]},
+]
 
 CMD_JUNOS = []
 
@@ -119,7 +151,7 @@ CMD_VRP = [
          'exec_2':'if glob_vars.get("CGI_ACTIVE",""): print("</body></html>")',
          'exec_3':'sys.exit(0)'
     },
-    {'exec':'try: glob_vars["INTERFACE"] = glob_vars.get("VPN_INSTANCE_IP_TEXT","").split("Interfaces :")[1].splitlines()[0].strip()\nexcept: pass'},
+    {'exec':'try: glob_vars["INTERFACE"] = glob_vars.get("VPN_INSTANCE_IP_TEXT","").split("Interfaces :")[1].splitlines()[0].strip().replace(",","")\nexcept: pass'},
 
     {'exec':'try: bgp_data["customer_name"] = glob_vars.get("VPN_NAME","").split(".")[1] \
            \nexcept: bgp_data["customer_name"] = None'},
@@ -204,12 +236,15 @@ CMD_VRP = [
     {'exec':'try: bgp_data["ip_address_customer"] = glob_vars.get("VPN_IF_TEXT","").split("description")[1].splitlines()[0].split(" @")[1].split()[0].strip() \
            \nexcept: bgp_data["ip_address_customer"] = None'},
 
-    {'exec':'try: bgp_data["peer_as"] = glob_vars.get("VPN_PEER_TEXT","").split("remote AS")[1].splitlines()[0].strip()\
-           \nexcept: bgp_data["peer_as"] = None',
-    },
-    {'exec':'try: bgp_data["peer_address"] = glob_vars.get("VPN_PEER_TEXT","").split("BGP Peer is")[1].splitlines()[0].split(",")[0].strip()\
-           \nexcept: bgp_data["peer_address"] = None',
-    },
+#    {'exec':'try: bgp_data["peer_as"] = glob_vars.get("VPN_PEER_TEXT","").split("remote AS")[1].splitlines()[0].strip()\
+#           \nexcept: bgp_data["peer_as"] = None',
+#    },
+#    {'exec':'try: bgp_data["peer_address"] = glob_vars.get("VPN_PEER_TEXT","").split("BGP Peer is")[1].splitlines()[0].split(",")[0].strip()\
+#           \nexcept: bgp_data["peer_address"] = None',
+#    },
+    {'exec':'bgp_data["peer_as"] = None'},
+    {'exec':'bgp_data["peer_address"] = None'},
+
     {'exec':'try: bgp_data["contract_band_width"] = glob_vars.get("VPN_IF_TEXT","").split("bandwidth")[1].splitlines()[0].strip() \
            \nexcept: bgp_data["contract_band_width"] = None',
     },
@@ -221,7 +256,7 @@ CMD_VRP = [
               \nfor line in glob_vars.get("ACL_TEXT","").split("permit ip source")[1:]:\
               \n  bgp_data["customer_prefixes_v4"].append({"customer_prefix_v4":line.split()[0],"customer_subnetmask_v4":line.split()[1]})'
     },
-    {"eval":["return_bgp_data_json()",{'print_output':'on'}]},
+    #{"eval":["return_bgp_data_json()",{'print_output':'on'}]},
 ]
 
 CMD_LINUX = []
@@ -238,6 +273,14 @@ bgp_data = collections.OrderedDict()
 # Function and Class
 #
 ###############################################################################
+
+def read_gw_vrf_parsed_lines(text):
+    ip_address, as_number = None, None
+    for line in text:
+        try: ip_addr = line.split()[0]; as_nr = int(line.split()[2]) 
+        except: ip_addr = None; as_nr = None
+        if as_nr and ip_addr and as_nr != 2300 and '.' in ip_addr: ip_address = ip_addr; as_number = as_nr       
+    return ip_address, str(as_number)
 
 ### UNI-tools ###
 def return_indexed_list(data_list = None):
@@ -695,7 +738,7 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
         if not logfilename:
             if 'WIN32' in sys.platform.upper(): logfilename = 'nul'
             else: logfilename = '/dev/null'
-        with open(logfilename,"w") as fp:
+        with open(logfilename,"a+") as fp:
             #if output and not printcmdtologfile: fp.write(output)
             for cmd_line_items in CMD:
                 if debug: print('----> ',cmd_line_items)
@@ -749,9 +792,10 @@ def get_version_from_file_last_modification_date(path_to_file = str(os.path.absp
 def append_variable_to_bashrc(variable_name=None,variable_value=None):
     forget_it = subprocess.check_output('echo export %s=%s >> ~/.bashrc'%(variable_name,variable_value), shell=True)
 
-def send_me_email(subject='testmail', file_name='/dev/null'):
+def send_me_email(subject='testmail', file_name='/dev/null', username = None):
     if not 'WIN32' in sys.platform.upper():
-        my_account = subprocess.check_output('whoami', shell=True)
+        if username: my_account = username        
+        else: my_account = subprocess.check_output('whoami', shell=True)
         my_finger_line = subprocess.check_output('finger | grep "%s"'%(my_account.strip()), shell=True)
         try:
             my_name = my_finger_line.splitlines()[0].split()[1]
@@ -1148,6 +1192,7 @@ if CGI_CLI.username and CGI_CLI.password: USERNAME, PASSWORD = CGI_CLI.username,
 CGI_CLI.uprint('LOGDIR[%s] \n'%(LOGDIR))
 
 device_name = CGI_CLI.data.get('device','')
+gw_device_name = CGI_CLI.data.get('gwdevice','')
 vpn_name = CGI_CLI.data.get('vpn','')
 if vpn_name: glob_vars["VPN_NAME"] = vpn_name
 
@@ -1166,6 +1211,10 @@ parser.add_argument("--device",
                     action = "store", dest = 'device',
                     default = str(),
                     help = "target router to check")
+parser.add_argument("--gwdevice",
+                    action = "store", dest = 'gwdevice',
+                    default = str(),
+                    help = "target gwrouter to check")                    
 parser.add_argument("--user",
                     action = "store", dest = 'username', default = str(),
                     help = "specify router user login")
@@ -1219,6 +1268,8 @@ else: glob_vars["SIM_CMD"] = 'OFF'
 if not CGI_CLI.cgi_active:
     if args.device:
         device_name = args.device
+    if args.gwdevice:
+        gw_device_name = args.gwdevice               
     if args.vpn: glob_vars["VPN_NAME"] = args.vpn; vpn_name = args.vpn
     else:
         CGI_CLI.uprint(bcolors.MAGENTA + " ... VPN NAME must be specified!" + bcolors.ENDC )
@@ -1249,7 +1300,7 @@ if remote_connect:
     if not CGI_CLI.cgi_active and not PASSWORD:
         PASSWORD = getpass.getpass("TACACS password: ")
 
-logfilename, router_type = None, None
+logfilename, router_type, first_router_type = None, None, None
 
 if device_name:
     router_prompt = None
@@ -1323,32 +1374,109 @@ if device_name:
 
     # ADD PROMPT TO PROMPTS LIST
     if router_prompt: DEVICE_PROMPTS.append(router_prompt)
+    first_router_type = router_type
     
     if CGI_CLI.cgi_active and CGI_CLI.submit_form == step1_string or router_type == 'huawei':
         run_remote_and_local_commands(CMD, logfilename, printall = args.printall, printcmdtologfile = True)
     else: pass        
+    CGI_CLI.uprint('\nDEVICE %s DONE. '%(device_name))
+    
+    ### GATEWAY ROUTER - XR ...
+    if gw_device_name:
+        device_name = gw_device_name
+        router_prompt = None
+        try: DEVICE_HOST = device_name.split(':')[0]
+        except: DEVICE_HOST = str()
+        try: DEVICE_PORT = device_name.split(':')[1]
+        except: DEVICE_PORT = '22'
+        CGI_CLI.uprint('DEVICE %s (host=%s, port=%s) START.........................'\
+            %(device_name,DEVICE_HOST, DEVICE_PORT))
+        if remote_connect:
+            ####### Figure out type of router OS
+                router_type, router_prompt = detect_router_by_ssh(device_name)
+                if not router_type in KNOWN_OS_TYPES:
+                    CGI_CLI.uprint('%sUNSUPPORTED DEVICE TYPE: %s , BREAK! %s' % \
+                        (bcolors.MAGENTA,router_type, bcolors.ENDC))
+                else: CGI_CLI.uprint('DETECTED DEVICE_TYPE: %s ' % (router_type))
 
+        ######## Find command list file (optional)
+        list_cmd = []
+
+        if len(list_cmd)>0: CMD = list_cmd
+        else:
+            if router_type == 'cisco_ios':
+                CMD = CMD_IOS_XE
+                DEVICE_PROMPTS = [ \
+                    '%s%s#'%(device_name.upper(),''), \
+                    '%s%s#'%(device_name.upper(),'(config)'), \
+                    '%s%s#'%(device_name.upper(),'(config-if)'), \
+                    '%s%s#'%(device_name.upper(),'(config-line)'), \
+                    '%s%s#'%(device_name.upper(),'(config-router)')  ]
+                TERM_LEN_0 = "terminal length 0"
+                EXIT = "exit"
+            elif router_type == 'cisco_xr':
+                CMD = CMD_IOS_XR
+                DEVICE_PROMPTS = [ \
+                    '%s%s#'%(device_name.upper(),''), \
+                    '%s%s#'%(device_name.upper(),'(config)'), \
+                    '%s%s#'%(device_name.upper(),'(config-if)'), \
+                    '%s%s#'%(device_name.upper(),'(config-line)'), \
+                    '%s%s#'%(device_name.upper(),'(config-router)')  ]
+                TERM_LEN_0 = "terminal length 0"
+                EXIT = "exit"
+            elif router_type == 'juniper':
+                CMD = CMD_JUNOS
+                DEVICE_PROMPTS = [ \
+                     USERNAME + '@' + device_name.upper() + '> ', # !! Need the space after >
+                     USERNAME + '@' + device_name.upper() + '# ' ]
+                TERM_LEN_0 = "set cli screen-length 0"
+                EXIT = "exit"
+            elif router_type == 'huawei' :
+                CMD = CMD_VRP
+                DEVICE_PROMPTS = [ \
+                    '<' + device_name.upper() + '>',
+                    '[' + device_name.upper() + ']',
+                    '[~' + device_name.upper() + ']',
+                    '[*' + device_name.upper() + ']' ]
+                TERM_LEN_0 = "screen-length 0 temporary"     #"screen-length disable"
+                EXIT = "quit"
+            elif router_type == 'linux':
+                CMD = CMD_LINUX
+                DEVICE_PROMPTS = [ ]
+                TERM_LEN_0 = ''     #"screen-length disable"
+                EXIT = "exit"
+            else: CMD = CMD_LOCAL
+
+        # ADD PROMPT TO PROMPTS LIST
+        if router_prompt: DEVICE_PROMPTS.append(router_prompt)
+        
+        if CGI_CLI.cgi_active and CGI_CLI.submit_form == step1_string or router_type == 'cisco_xr' or router_type == 'cisco_ios':
+            run_remote_and_local_commands(CMD, logfilename, printall = args.printall, printcmdtologfile = True)
+        else: pass    
+    ### END OF GATEWAY...       
+
+    ### LOG FROM BOTH DEVICES ######################################################
     if logfilename and os.path.exists(logfilename):
         CGI_CLI.uprint('\n%s file created. ' % (logfilename))
         ### MAKE READABLE for THE OTHERS
         try:
             dummy = subprocess.check_output('chmod +r %s' % (logfilename),shell=True)
         except: pass
-        if not CGI_CLI.cgi_active:
-            try: send_me_email(subject = logfilename.replace('\\','/').\
-                     split('/')[-1], file_name = logfilename)
-            except: pass
+        ### SEND EMAIL
+        try: send_me_email(subject = logfilename.replace('\\','/').\
+                 split('/')[-1], file_name = logfilename , username = USERNAME)
+        except: pass
     CGI_CLI.uprint('\nDEVICE %s DONE. '%(device_name))
 
-    if CGI_CLI.cgi_active and CGI_CLI.submit_form == step1_string or router_type == 'huawei':    
-        if router_type == 'huawei': 
+    if CGI_CLI.cgi_active and CGI_CLI.submit_form == step1_string or first_router_type == 'huawei':    
+        if first_router_type == 'huawei': 
             sql_inst = sql_interface(host='localhost', user='cfgbuilder', \
                 password='cfgbuildergetdata', database='rtr_configuration')
             CGI_CLI.uprint('BEFORE_SQL_WRITE:',tag = 'h1')    
-            CGI_CLI.uprint(sql_inst.sql_read_last_record_to_dict(from_string = 'ipxt_data_collector'))    
+            CGI_CLI.uprint(sql_inst.sql_read_last_record_to_dict(from_string = 'ipxt_data_collector'), jsonprint = True)    
             sql_inst.sql_write_table_from_dict('ipxt_data_collector', bgp_data)  
             CGI_CLI.uprint('AFTER_SQL_WRITE:',tag = 'h1')
-            CGI_CLI.uprint(sql_inst.sql_read_last_record_to_dict(from_string = 'ipxt_data_collector'))
+            CGI_CLI.uprint(sql_inst.sql_read_last_record_to_dict(from_string = 'ipxt_data_collector'), jsonprint = True)
 
 
 
