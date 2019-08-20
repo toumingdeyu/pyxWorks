@@ -599,7 +599,11 @@ GW_customer_router_templ = """!<% list = cgi_data.get('ipv4-acl','').split(',') 
 ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 0.0.0.0 0.0.0.0 ${''.join([ str(item.get('ipsec_int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('pe-ip-address','UNKNOWN')} 
 ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} 255.255.255.255 Tunnel${cgi_data.get('vlan-id','UNKNOWN')} ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} 
 % for i in range(int(len(list)/2)):
-ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('ipv4-acl','').split(',')[2*i]} ${'.'.join([ str(int(mask_item)^255) for mask_item in cgi_data.get('ipv4-acl','').split(',')[2*i+1].split('.') ])} Tunnel${cgi_data.get('vlan-id','UNKNOWN')} ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}
+% if cgi_data.get('ipv4-acl','').split(',')[2*i+1] == "0":
+ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('ipv4-acl','').split(',')[2*i]} 255.255.255.255 Tunnel${cgi_data.get('vlan-id','UNKNOWN')} ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}
+% else:
+ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('ipv4-acl','').split(',')[2*i]} ${'.'.join([ str(int(mask_item)^255) for mask_item in cgi_data.get('ipv4-acl','').split(',')[2*i+1].split('.') if '.' in cgi_data.get('ipv4-acl','').split(',')[2*i+1] ])} Tunnel${cgi_data.get('vlan-id','UNKNOWN')} ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}
+% endif
 % endfor
 !
 """
@@ -673,11 +677,21 @@ vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')}
  # 1000 deny ipv4 any any
 # !
 # '''
+
+# PE_acl_config_templ = """!<% rule_num = 30; list = cgi_data.get('ipv4-acl','').split(',') %>
+# ipv4 access-list ${cgi_data.get('vpn','UNKNOWN')}-IN
+ # 10 permit ipv4 ${cgi_data.get('pe-ip-address','')}
+ # 20 permit ipv4 ${''.join([ str(item.get('ip_address_customer','')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} 0.0.0.0 any
+# % for i in range(int(len(list)/2)):
+ # ${rule_num} permit ipv4 ${cgi_data.get('ipv4-acl','').split(',')[2*i]} ${cgi_data.get('ipv4-acl','').split(',')[2*i+1]} any<% rule_num += 10 %>
+# % endfor
+ # 1000 deny ipv4 any any
+# !
+# """
  
-PE_acl_config_templ = """!<% rule_num = 30; list = cgi_data.get('ipv4-acl','').split(',') %>
+PE_acl_config_templ = """!<% rule_num = 20; list = cgi_data.get('ipv4-acl','').split(',') %>
 ipv4 access-list ${cgi_data.get('vpn','UNKNOWN')}-IN
  10 permit ipv4 ${cgi_data.get('pe-ip-address','')}
- 20 permit ipv4 ${''.join([ str(item.get('ip_address_customer','')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} 0.0.0.0 any
 % for i in range(int(len(list)/2)):
  ${rule_num} permit ipv4 ${cgi_data.get('ipv4-acl','').split(',')[2*i]} ${cgi_data.get('ipv4-acl','').split(',')[2*i+1]} any<% rule_num += 10 %>
 % endfor
@@ -699,11 +713,11 @@ ipv4 access-list ${cgi_data.get('vpn','UNKNOWN')}-IN
 # !
 # """
 
-PE_prefix_config_templ = """!<% import ipaddress; list = cgi_data.get('ipv4-acl','').split(',') %>
+PE_prefix_config_templ = """!<% import ipaddress; splitted_list = cgi_data.get('ipv4-acl','').split(',') %>
 prefix-set ${cgi_data.get('vpn','UNKNOWN')}-IN
-% for i in range(int(len(list)/2)):
-<% net = ipaddress.ip_network(cgi_data.get('ipv4-acl','').split(',')[2*i]+'/'+cgi_data.get('ipv4-acl','').split(',')[2*i+1]) %>
-% if i == range(int(len(list)/2)):
+% for i in range(1,int(len(splitted_list)/2)):
+<% net = splitted_list[2*i]+"/32" if splitted_list[2*i+1]=="0" else ipaddress.ip_network(splitted_list[2*i]+'/'+splitted_list[2*i+1], strict=True)%>
+% if i == range(int(len(splitted_list)/2)):
   ${net} le 32
 % else:
   ${net} le 32,
