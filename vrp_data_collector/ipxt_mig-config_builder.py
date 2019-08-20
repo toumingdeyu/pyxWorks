@@ -155,11 +155,10 @@ class CGI_CLI(object):
     START_EPOCH = time.time()
     cgi_parameters_error = None
     cgi_active = None
-    data, submit_form, username, password = collections.OrderedDict(), None, None, None
     
     @staticmethod        
     def __cleanup__():
-        CGI_CLI.uprint('\nEND[script runtime = %d sec]. '%(time.time() - CGI_CLI.START_EPOCH), tag = 'h1')
+        CGI_CLI.uprint('\nEND[script runtime = %d sec]. '%(time.time() - CGI_CLI.START_EPOCH))
         if CGI_CLI.cgi_active: print("</body></html>")
 
     @staticmethod
@@ -168,7 +167,7 @@ class CGI_CLI(object):
         In static class is no constructor or destructor 
         --> Register __cleanup__ in system
         """
-        import atexit; atexit.register(CGI_CLI.__cleanup__)
+        if not 'atexit' in sys.modules: import atexit; atexit.register(CGI_CLI.__cleanup__)
 
     @staticmethod
     def init_cgi():
@@ -191,15 +190,15 @@ class CGI_CLI(object):
             if variable == "password": CGI_CLI.password = value
         if CGI_CLI.submit_form or len(CGI_CLI.data)>0: CGI_CLI.cgi_active = True
         if CGI_CLI.cgi_active:
-            import cgitb; cgitb.enable()        
+            if not 'cgitb' in sys.modules: import cgitb; cgitb.enable()        
             print("Content-type:text/html\n\n")
             print("<html><head><title>%s</title></head><body>" % 
                 (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit'))
-        import atexit; atexit.register(CGI_CLI.__cleanup__)
+        if not 'atexit' in sys.modules: import atexit; atexit.register(CGI_CLI.__cleanup__)
         return None
 
     @staticmethod 
-    def uprint(text, tag = None):
+    def oprint(text, tag = None):
         if CGI_CLI.debug: 
             if CGI_CLI.cgi_active:
                 if tag and 'h' in tag: print('<%s>'%(tag))
@@ -213,14 +212,45 @@ class CGI_CLI(object):
                 if tag and 'p' in tag: print('</p>')
                 if tag and 'h' in tag: print('</%s>'%(tag))
 
+    @staticmethod 
+    def uprint(text, tag = None, color = None, name = None, jsonprint = None):
+        """NOTE: name parameter could be True or string."""
+        print_text, print_name = copy.deepcopy(text), str()
+        if CGI_CLI.debug:
+            if jsonprint:
+                if isinstance(text, (dict,collections.OrderedDict,list,tuple)):
+                    try: print_text = json.dumps(text, indent = 4)
+                    except: pass   
+            if name==True:
+                if not 'inspect.currentframe' in sys.modules: import inspect
+                callers_local_vars = inspect.currentframe().f_back.f_locals.items()
+                var_list = [var_name for var_name, var_val in callers_local_vars if var_val is text]
+                if str(','.join(var_list)).strip(): print_name = str(','.join(var_list)) + ' = '
+            elif isinstance(name, (six.string_types)): print_name = str(name) + ' = '
+            
+            print_text = str(print_text)
+            if CGI_CLI.cgi_active:
+                if tag and 'h' in tag: print('<%s%s>'%(tag,' style="color:%s;"'%(color) if color else str()))
+                if color or tag and 'p' in tag: tag = 'p'; print('<p%s>'%(' style="color:%s;"'%(color) if color else str()))
+                if isinstance(print_text, six.string_types): 
+                    print_text = str(print_text.replace('&','&amp;').replace('<','&lt;'). \
+                        replace('>','&gt;').replace('\n','<br/>').replace(' ','&nbsp;')) 
+            print(print_name + print_text)
+            del print_text
+            if CGI_CLI.cgi_active: 
+                print('<br/>');
+                if tag and 'p' in tag: print('</p>')
+                if tag and 'h' in tag: print('</%s>'%(tag))
+
     @staticmethod
     def print_args():
         if CGI_CLI.cgi_active:
-            try: print_string = 'CGI_args=' + json.dumps(CGI_CLI.data) + ' <br/>'
-            except: print_string = 'CGI_args=' + ' <br/>'                
-        else: print_string = 'CLI_args=%s \n' % (str(sys.argv[1:]))
+            try: print_string = 'CGI_args = ' + json.dumps(CGI_CLI.data) 
+            except: print_string = 'CGI_args = '                 
+        else: print_string = 'CLI_args = %s' % (str(sys.argv[1:]))
         CGI_CLI.uprint(print_string)
-        return print_string          
+        return print_string        
+
 
 
 class sql_interface():
@@ -799,16 +829,16 @@ route-policy ${cgi_data.get('vpn','UNKNOWN')}-IN
   endif
   if community matches-any (2300:80) then
     set local-preference 80
-    set community (43566:11000) <--<< need to collect the communities from Huawei
-    set community (43566:20200) additive
+    set community (${''.join([ str(item.get('bgp_community_1','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}) 
+    set community (${''.join([ str(item.get('bgp_community_2','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}) additive
   elseif community matches-any (2300:90) then
     set local-preference 90
-    set community (43566:11000)
-    set community (43566:20200) additive
+    set community (${''.join([ str(item.get('bgp_community_1','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])})
+    set community (${''.join([ str(item.get('bgp_community_2','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}) additive
   else
     set local-preference 100
-    set community (43566:11000)
-    set community (43566:20200) additive
+    set community (${''.join([ str(item.get('bgp_community_1','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])})
+    set community (${''.join([ str(item.get('bgp_community_2','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}) additive
   endif
 end-policy 
 !
@@ -955,12 +985,12 @@ if data:
     config_data['GW_config_new'] = post_config_text_gw
     config_data['PE_config_new'] = post_config_text_pe        
     
-    # sql_inst.sql_write_table_from_dict('ipxt_config', config_data) 
+    sql_inst.sql_write_table_from_dict('ipxt_config', config_data) 
 
-    # CGI_CLI.uprint('\nCONFIGS READ FROM SQL: \n', tag = 'h1')
-    # config_data_read_from_sql = sql_inst.sql_read_last_record_to_dict(from_string = 'ipxt_config')    
+    CGI_CLI.uprint('\nCONFIGS READ FROM SQL: \n', tag = 'h1')
+    config_data_read_from_sql = sql_inst.sql_read_last_record_to_dict(from_string = 'ipxt_config')    
 
-    # CGI_CLI.uprint(get_json_with_variable_name(config_data_read_from_sql))
+    CGI_CLI.uprint(config_data_read_from_sql, name = True, jsonprint = True, color = 'red')
     
     
 
