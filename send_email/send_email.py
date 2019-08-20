@@ -18,7 +18,7 @@ import collections
 import requests
 
 
-def send_me_email(subject='testmail', file_name = None, email_address = None, username = None):
+def send_me_email(subject='testmail', emailbody = str(), file_name = None, email_address = None, username = None):
     if not 'WIN32' in sys.platform.upper():
         if username: my_account = username        
         else: my_account = subprocess.check_output('whoami', shell=True)
@@ -32,22 +32,34 @@ def send_me_email(subject='testmail', file_name = None, email_address = None, us
         #my_surname = my_finger_line.splitlines()[0].split()[2]
         my_name = my_finger_line.splitlines()[0].split()[0]
         my_surname = my_finger_line.splitlines()[0].split()[1]        
-        if email_address: sugested_email_address = email_address
-        else: sugested_email_address = '%s.%s@orange.com' % (my_name, my_surname)        
-        if file_name: mail_command = 'echo | mutt -s "%s" -a %s -- %s' % (subject,file_name,sugested_email_address)
-        else: mail_command = 'echo | mutt -s "%s" -- %s' % (subject,sugested_email_address)    
+        if email_address: suggested_email_address = email_address
+        else: suggested_email_address = '%s.%s@orange.com' % (my_name, my_surname)
+        if file_name: mail_command = 'echo | mutt -s "%s" -a %s -- %s' % (subject,file_name,suggested_email_address)
+        else: mail_command = 'echo | mutt -s "%s" -- %s' % (subject,suggested_email_address)
         try: 
             forget_it = subprocess.check_output(mail_command, shell=True)
-            CGI_CLI.uprint(' ==> Email sent. Subject:"%s" SentTo:%s by command[%s] with result(%s)...'%(subject,sugested_email_address,mail_command,forget_it), color = 'blue')
+            CGI_CLI.uprint(' ==> Email sent. Subject:"%s" SentTo:%s by command[%s] with result(%s)...'%(subject,suggested_email_address,mail_command,forget_it), color = 'blue')
         except Exception as e: CGI_CLI.uprint(" ==> Problem to send email by command[%s], problem(%s) ..."% (mail_command,str(e)) ,color = 'red')
         ### UUENCODE does not provide attaching fo files
-        ### mail_command = 'uuencode %s %s | mail -s "%s" %s' % (file_name,file_name,subject,sugested_email_address)         
-        mail_command = 'mail -s "%s" %s' % (subject,sugested_email_address)
+        ### mail_command = 'uuencode %s %s | mail -s "%s" %s' % (file_name,file_name,subject,suggested_email_address)
+        mail_command = 'mail -s "%s" %s' % (subject,suggested_email_address)
         try: 
             forget_it = subprocess.check_output(mail_command, shell=True)
-            CGI_CLI.uprint(' ==> Email sent. Subject:"%s" SentTo:%s by command[%s] with result(%s)...'%(subject,sugested_email_address,mail_command,forget_it), color = 'blue')           
+            CGI_CLI.uprint(' ==> Email sent. Subject:"%s" SentTo:%s by command[%s] with result(%s)...'%(subject,suggested_email_address,mail_command,forget_it), color = 'blue')
         except Exception as e: CGI_CLI.uprint(" ==> Problem to send email by command[%s], problem(%s) ..."% (mail_command,str(e)) ,color = 'red')
         subprocess.check_output('ls -all /var/log/httpd/ssl_error_log', shell=True)
+    else:
+        ### pip install pywin32
+        if not 'win32com.client' in sys.modules: import win32com.client
+        olMailItem = 0
+        ol = win32com.client.Dispatch("Outlook.Application")
+        msg = ol.CreateItem(olMailItem)
+        msg.To = email_address
+        msg.Subject = subject
+        msg.Body = emailbody
+        msg.Attachments.Add(file_name)
+        msg.Send()
+        ol.Quit()
 
 class CGI_CLI(object):
     """
