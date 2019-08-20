@@ -200,11 +200,13 @@ CMD_VRP = [
 #     },
 #     {'exec':'try: bgp_data["Maximum_allowed_route_limit"] = glob_vars.get("VPN_PEER_TEXT","").split("Maximum allowed route limit:")[1].splitlines()[0].strip()\nexcept: pass',
 #     },
-#     {'exec':'try: bgp_data["Import_route_policy_is"] = glob_vars.get("VPN_PEER_TEXT","").split("Import route policy is:")[1].splitlines()[0].strip()\nexcept: pass',
-#     },
-#
-#     {'remote_command':['display route-policy ',{"eval":'bgp_data.get("Import_route_policy_is","")'}],
-#     },
+    {'exec':'try: bgp_data["Import_route_policy_is"] = glob_vars.get("VPN_PEER_TEXT","").split("Import route policy is:")[1].splitlines()[0].strip()\nexcept: pass',
+    },    
+    {'if':'bgp_data.get("Import_route_policy_is","")',
+        'remote_command':['display route-policy ',{"eval":'bgp_data.get("Import_route_policy_is","")'}],
+    },
+    {'exec':'try: bgp_data["bgp_community_1"], bgp_data["bgp_community_2"] = glob_vars.get("last_output","").split("apply community ")[1].splitlines()[0].strip().split()\nexcept: pass',
+    },    
 #
 #     {'remote_command':['display traffic policy user-defined ',{"eval":'bgp_data.get("Import_distribute_policy_is_access-listname","")'}],
 #     },
@@ -792,21 +794,30 @@ def get_version_from_file_last_modification_date(path_to_file = str(os.path.absp
 def append_variable_to_bashrc(variable_name=None,variable_value=None):
     forget_it = subprocess.check_output('echo export %s=%s >> ~/.bashrc'%(variable_name,variable_value), shell=True)
 
-def send_me_email(subject='testmail', file_name='/dev/null', username = None):
+def send_me_email(subject='testmail', file_name = None, email_address = None, username = None):
     if not 'WIN32' in sys.platform.upper():
         if username: my_account = username        
         else: my_account = subprocess.check_output('whoami', shell=True)
-        my_finger_line = subprocess.check_output('finger | grep "%s"'%(my_account.strip()), shell=True)
-        try:
-            my_name = my_finger_line.splitlines()[0].split()[1]
-            my_surname = my_finger_line.splitlines()[0].split()[2]
-            if EMAIL_ADDRESS: my_email_address = EMAIL_ADDRESS
-            else: my_email_address = '%s.%s@orange.com' % (my_name, my_surname)
-            mail_command = 'echo | mutt -s "%s" -a %s -- %s' % (subject,file_name,my_email_address)
-            #mail_command = 'uuencode %s %s | mail -s "%s" %s' % (file_name,file_name,subject,my_email_address)
+        ### WITH APACHE USER IS INSERTED USER NOT LOGGED IN SO FINGER WILL NOT WORK
+        ### my_finger_line = subprocess.check_output('finger | grep "%s"'%(my_account.strip()), shell=True)
+        ### output(pnemec:x:3844:1003:Peter Nemec IPTAC Slovakia:/home/pnemec:/bin/bash)
+        try: my_finger_line = ' '.join((subprocess.check_output('getent passwd "%s"'% \
+            (my_account.strip()), shell=True)).split(':')[4].split()[:2])
+        except: my_finger_line = None
+        #my_name = my_finger_line.splitlines()[0].split()[1]
+        #my_surname = my_finger_line.splitlines()[0].split()[2]
+        my_name = my_finger_line.splitlines()[0].split()[0]
+        my_surname = my_finger_line.splitlines()[0].split()[1]        
+        if email_address: sugested_email_address = email_address
+        else: sugested_email_address = '%s.%s@orange.com' % (my_name, my_surname)
+        ### UUENCODE does not provide attaching fo files
+        ### mail_command = 'uuencode %s %s | mail -s "%s" %s' % (file_name,file_name,subject,sugested_email_address)                
+        if file_name: mail_command = 'echo | mutt -s "%s" -a %s -- %s' % (subject,file_name,sugested_email_address)
+        else: mail_command = 'echo | mutt -s "%s" -- %s' % (subject,sugested_email_address)    
+        try: 
             forget_it = subprocess.check_output(mail_command, shell=True)
-            print(' ==> Email "%s" sent to %s.'%(subject,my_email_address))
-        except: pass
+            CGI_CLI.uprint(' ==> Email "%s" sent to %s. (%s)'%(subject,sugested_email_address,forget_it))
+        except Exception as e: CGI_CLI.uprint("Problem to send email (%s) ..."% (str(e)) ,color = 'red') 
 
 
 def generate_file_name(prefix = None, suffix = None , directory = None):
@@ -1464,7 +1475,7 @@ if device_name:
         except: pass
         ### SEND EMAIL
         try: send_me_email(subject = logfilename.replace('\\','/').\
-                 split('/')[-1], file_name = logfilename , username = USERNAME)
+                 split('/')[-1], file_name = logfilename, email_address = EMAIL_ADDRESS, username = USERNAME)
         except: pass
     CGI_CLI.uprint('\nDEVICE %s DONE. '%(device_name))
 
