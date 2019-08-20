@@ -47,7 +47,7 @@ def send_me_email(subject='testmail', file_name = None, email_address = None, us
             forget_it = subprocess.check_output(mail_command, shell=True)
             CGI_CLI.uprint(' ==> Email sent. Subject:"%s" SentTo:%s by command[%s] with result(%s)...'%(subject,sugested_email_address,mail_command,forget_it), color = 'blue')           
         except Exception as e: CGI_CLI.uprint(" ==> Problem to send email by command[%s], problem(%s) ..."% (mail_command,str(e)) ,color = 'red')
-        
+        subprocess.check_output('ls -all /var/log/httpd/ssl_error_log', shell=True)
 
 class CGI_CLI(object):
     """
