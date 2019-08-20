@@ -99,7 +99,7 @@ default_printalllines_list = []
 # IOS-XE is only for IPsec GW
 CMD_IOS_XE = [
     {'if':"bgp_data.get('vlan_id','')",
-        'remote_command':['show running-config interface tunnel',{'eval':"bgp_data.get('vlan_id','')"}]},
+        'remote_command':['show running-config interface tunnel',{'eval':"bgp_data.get('vlan_id','')"},{'output_variable':'CONFIG_IF_TEXT'}]},
     {'exec':'try: glob_vars["gw_vrf_forwarding"] = glob_vars.get("last_output","").split("vrf forwarding ")[1].splitlines()[0].strip() \
            \nexcept: pass', 
     },
@@ -108,16 +108,17 @@ CMD_IOS_XE = [
     {'exec':'try: glob_vars["gw_vrf_parsed_lines"] = glob_vars.get("last_output","").split("State/PfxRcd")[1].strip().splitlines() \
            \nexcept: pass '},     
     {'if':'glob_vars.get("gw_vrf_parsed_lines","")',
-        'exec':'bgp_data["peer_address"], bgp_data["peer_as"] = read_gw_vrf_parsed_lines(glob_vars.get("gw_vrf_parsed_lines",""))'
-
+        'exec':'try: bgp_data["peer_address"], bgp_data["peer_as"] = read_gw_vrf_parsed_lines(glob_vars.get("gw_vrf_parsed_lines","")) \nexcept: pass'
     },
-       
+    {'if':'glob_vars.get("CONFIG_IF_TEXT","")', 
+        'exec':'bgp_data["ip_address"] = glob_vars.get("CONFIG_IF_TEXT","").split("ip address ")[1].split()[0].strip()'
+    },   
     {"eval":["return_bgp_data_json()",{'print_output':'on'}]},
 ]
 
 CMD_IOS_XR = [
     {'if':"bgp_data.get('vlan_id','')",
-        'remote_command':['show running-config interface tunnel',{'eval':"bgp_data.get('vlan_id','')"}]},
+        'remote_command':['show running-config interface tunnel',{'eval':"bgp_data.get('vlan_id','')"},{'output_variable':'CONFIG_IF_TEXT'}]},
     {'exec':'try: glob_vars["gw_vrf_forwarding"] = glob_vars.get("last_output","").split("vrf forwarding ")[1].splitlines()[0].strip() \
            \nexcept: pass', 
     },
@@ -126,10 +127,11 @@ CMD_IOS_XR = [
     {'exec':'try: glob_vars["gw_vrf_parsed_lines"] = glob_vars.get("last_output","").split("State/PfxRcd")[1].strip().splitlines() \
            \nexcept: pass '},     
     {'if':'glob_vars.get("gw_vrf_parsed_lines","")',
-        'exec':'bgp_data["peer_address"], bgp_data["peer_as"] = read_gw_vrf_parsed_lines(glob_vars.get("gw_vrf_parsed_lines",""))'
-
+        'exec':'try: bgp_data["peer_address"], bgp_data["peer_as"] = read_gw_vrf_parsed_lines(glob_vars.get("gw_vrf_parsed_lines","")) \nexcept: pass'
     },
-       
+    {'if':'glob_vars.get("CONFIG_IF_TEXT","")', 
+        'exec':'bgp_data["ip_address"] = glob_vars.get("CONFIG_IF_TEXT","").split("ip address ")[1].split()[0].strip()'
+    },   
     {"eval":["return_bgp_data_json()",{'print_output':'on'}]},
 ]
 
@@ -229,9 +231,10 @@ CMD_VRP = [
     },
     {'exec':'try: bgp_data["circuit_id"] = "LD"+glob_vars.get("VPN_IF_TEXT","").split("description")[1].splitlines()[0].split(" LD")[1].split()[0].strip() \
            \nexcept: bgp_data["circuit_id"] = None'},
-    {'exec':'try: bgp_data["ip_address"] = glob_vars.get("VPN_IF_TEXT","").split("ip address")[1].splitlines()[0].split()[0].strip() \
-             \nexcept: bgp_data["ip_address"] = None',
-    },
+#    {'exec':'try: bgp_data["ip_address"] = glob_vars.get("VPN_IF_TEXT","").split("ip address")[1].splitlines()[0].split()[0].strip() \
+#             \nexcept: bgp_data["ip_address"] = None',
+    {'exec':'bgp_data["ip_address"] = None'},
+    
     {'exec':'try: bgp_data["mask"] = glob_vars.get("VPN_IF_TEXT","").split("ip address")[1].splitlines()[0].split()[1].strip() \
              \nexcept: bgp_data["mask"] = None',
     },
