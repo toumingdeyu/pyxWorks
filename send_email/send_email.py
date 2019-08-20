@@ -33,17 +33,20 @@ def send_me_email(subject='testmail', file_name = None, email_address = None, us
         my_name = my_finger_line.splitlines()[0].split()[0]
         my_surname = my_finger_line.splitlines()[0].split()[1]        
         if email_address: sugested_email_address = email_address
-        else: sugested_email_address = '%s.%s@orange.com' % (my_name, my_surname)
-        ### UUENCODE does not provide attaching fo files
-        ### mail_command = 'uuencode %s %s | mail -s "%s" %s' % (file_name,file_name,subject,sugested_email_address)                
+        else: sugested_email_address = '%s.%s@orange.com' % (my_name, my_surname)        
         if file_name: mail_command = 'echo | mutt -s "%s" -a %s -- %s' % (subject,file_name,sugested_email_address)
         else: mail_command = 'echo | mutt -s "%s" -- %s' % (subject,sugested_email_address)    
         try: 
             forget_it = subprocess.check_output(mail_command, shell=True)
-            CGI_CLI.uprint(' ==> Email "%s" sent to %s. (%s)'%(subject,sugested_email_address,forget_it))
-        except Exception as e: CGI_CLI.uprint("Problem to send email (%s) ..."% (str(e)) ,color = 'red') 
-
-
+            CGI_CLI.uprint(' ==> Email sent. Subject:"%s" SentTo:%s by command[%s] with result(%s)...'%(subject,sugested_email_address,mail_command,forget_it), color = 'blue')
+        except Exception as e: CGI_CLI.uprint(" ==> Problem to send email by command[%s], problem(%s) ..."% (mail_command,str(e)) ,color = 'red')
+        ### UUENCODE does not provide attaching fo files
+        ### mail_command = 'uuencode %s %s | mail -s "%s" %s' % (file_name,file_name,subject,sugested_email_address)         
+        mail_command = 'mail -s "%s" %s' % (subject,sugested_email_address)
+        try: 
+            forget_it = subprocess.check_output(mail_command, shell=True)
+            CGI_CLI.uprint(' ==> Email sent. Subject:"%s" SentTo:%s by command[%s] with result(%s)...'%(subject,sugested_email_address,mail_command,forget_it), color = 'blue')           
+        except Exception as e: CGI_CLI.uprint(" ==> Problem to send email by command[%s], problem(%s) ..."% (mail_command,str(e)) ,color = 'red')
         
 
 class CGI_CLI(object):
