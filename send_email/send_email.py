@@ -241,6 +241,9 @@ CGI_CLI.print_args()
 if not 'WIN32' in sys.platform.upper():
     send_me_email(subject = 'testmail1', attachments = ['./send_email.py','./cgi-bin_static_class.py'], email_body = 'sdsafaf\nfaffa', email_address = 'peter.nemec@orange.com')
 
+if not 'WIN32' in sys.platform.upper():
+    send_me_email(subject = 'testmail1', attachments = ['./send_email.py','./cgi-bin_static_class.py'], email_body = 'sdsafaf\nfaffa', username = 'pnemec')
+
 if 'WIN32' in sys.platform.upper():
     send_me_email(subject = 'testmail1', attachments = ['c:\\_pyxWorks\\send_email\\send_email.py','c:\\_pyxWorks\\send_email\\cgi-bin_static_class.py'], email_body = 'sdsafaf\nfaffa', email_address = 'peter.nemec@orange.com')
 
