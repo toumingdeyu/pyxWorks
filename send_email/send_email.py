@@ -20,7 +20,7 @@ import requests
 
 
 def send_me_email(subject = str(), email_body = str(), file_name = None, attachments = None, \
-        email_address = None, username = None):
+        email_address = None, cc = None, bcc = None, username = None):
     def send_unix_email_body(mail_command):
         email_success = None
         try: 
@@ -51,32 +51,23 @@ def send_me_email(subject = str(), email_body = str(), file_name = None, attachm
                 sugested_email_address = '%s.%s@orange.com' % (my_name, my_surname)    
             except: pass        
 
-        # ### UNIX - MUTT ---------------------------------------------------- 
-        # if file_name and isinstance(file_name, six.string_types) and os.path.exists(file_name): 
-            # mail_command = 'echo %s| mutt -s "%s" -a %s -- %s' % (email_body,subject,file_name,sugested_email_address)
-        # elif attachments and isinstance(attachments, (list,tuple)):
-            # mail_command = 'echo %s| mutt -s "%s" ' % (email_body,subject)        
-            # for attach_file in attachments:
-                # if os.path.exists(attach_file): mail_command += '-a %s ' % (attach_file) 
-            # mail_command += ' -- %s' % (sugested_email_address)
-        # elif attachments and isinstance(attachments, six.string_types) and os.path.exists(attachments):
-                # mail_command = 'echo %s| mutt -s "%s" -a %s -- %s' % (email_body,subject,attachments,sugested_email_address)    
-        # else: mail_command = 'echo %s| mutt -s "%s" -- %s' % (email_body,subject,sugested_email_address)
-        # email_sent = send_unix_email_body(mail_command)
-
-        ### UNIX - MAIL ----------------------------------------------------  
-        if not email_sent:                       
-            if file_name and isinstance(file_name, six.string_types) and os.path.exists(file_name): 
-                mail_command = 'echo %s | mail -s "%s" -a %s %s' % (email_body,subject,file_name,sugested_email_address)
-            elif attachments and isinstance(attachments, (list,tuple)):
-                mail_command = 'echo %s | mail -s "%s" ' % (email_body,subject)        
-                for attach_file in attachments:
-                    if os.path.exists(attach_file): mail_command += '-a %s ' % (attach_file) 
-                mail_command += '%s' % (sugested_email_address)
-            elif attachments and isinstance(attachments, six.string_types) and os.path.exists(attachments):
-                mail_command = 'echo %s | mail -s "%s" -a %s %s' % (email_body,subject,attachments,sugested_email_address)
-            else: mail_command = 'echo %s | mail -s "%s" %s' % (email_body,subject,sugested_email_address)            
-            email_sent = send_unix_email_body(mail_command)
+        ### UNIX - MAILX ----------------------------------------------------
+        mail_command = 'echo \'%s\' | mailx -s "%s" ' % (email_body,subject)
+        if cc:
+            if isinstance(cc, six.string_types): mail_command += '-c %s' % (cc)
+            if cc and isinstance(cc, (list,tuple)): mail_command += ''.join([ '-c %s ' % (bcc_email) for bcc_email in bcc ])
+        if bcc:
+            if isinstance(bcc, six.string_types): mail_command += '-b %s' % (bcc)
+            if bcc and isinstance(bcc, (list,tuple)): mail_command += ''.join([ '-b %s ' % (bcc_email) for bcc_email in bcc ])    
+        if file_name and isinstance(file_name, six.string_types) and os.path.exists(file_name): 
+            mail_command += '-a %s ' % (file_name)
+        if attachments:
+            if isinstance(attachments, (list,tuple)): 
+                mail_command += ''.join([ '-a %s ' % (attach_file) for attach_file in attachments if os.path.exists(attach_file) ])      
+            if isinstance(attachments, six.string_types) and os.path.exists(attachments):
+                mail_command += '-a %s ' % (attachments)
+        mail_command += '%s' % (sugested_email_address)            
+        email_sent = send_unix_email_body(mail_command)
 
     if 'WIN32' in sys.platform.upper():
         ### NEEDED 'pip install pywin32'
@@ -86,14 +77,29 @@ def send_me_email(subject = str(), email_body = str(), file_name = None, attachm
         try:
             ol = win32com.client.Dispatch(email_application)
             msg = ol.CreateItem(olMailItem)
-            msg.To, msg.Subject, msg.Body = email_address, subject, email_body
-            if file_name and isinstance(file_name, six.string_types) and os.path.exists(file_name): 
-                msg.Attachments.Add(file_name)
-            if attachments and isinstance(attachments, (list,tuple)):
-                for attach_file in attachments:
-                    if os.path.exists(attach_file): msg.Attachments.Add(attach_file)
-            elif attachments and isinstance(attachments, six.string_types) and os.path.exists(attachments): 
-                msg.Attachments.Add(attachments)        
+            if email_address:
+                msg.Subject, msg.Body = subject, email_body
+                if email_address:
+                    if isinstance(email_address, six.string_types): msg.To = email_address
+                    if email_address and isinstance(email_address, (list,tuple)): 
+                        msg.To = ';'.join([ eadress for eadress in email_address if eadress != "" ])                
+                if cc:
+                    if isinstance(cc, six.string_types): msg.CC = cc
+                    if cc and isinstance(cc, (list,tuple)): 
+                        msg.CC = ';'.join([ eadress for eadress in cc if eadress != "" ])
+                if bcc:
+                    if isinstance(bcc, six.string_types): msg.BCC = bcc
+                    if bcc and isinstance(bcc, (list,tuple)): 
+                        msg.BCC = ';'.join([ eadress for eadress in bcc if eadress != "" ])             
+                if file_name and isinstance(file_name, six.string_types) and os.path.exists(file_name): 
+                    msg.Attachments.Add(file_name)
+                if attachments:
+                    if isinstance(attachments, (list,tuple)): 
+                        for attach_file in attachments:
+                            if os.path.exists(attach_file): msg.Attachments.Add(attach_file)      
+                    if isinstance(attachments, six.string_types) and os.path.exists(attachments):
+                        msg.Attachments.Add(attachments)
+               
             msg.Send()
             ol.Quit()
             CGI_CLI.uprint(' ==> Email sent. Subject:"%s" SentTo:%s by APPLICATION=[%s].'\
@@ -232,8 +238,9 @@ CGI_CLI.init_cgi()
 CGI_CLI.print_args()
 
 #send_me_email(subject = 'testmail', file_name = None, username = CGI_CLI.username if CGI_CLI.username else None)
+if not 'WIN32' in sys.platform.upper():
+    send_me_email(subject = 'testmail1', attachments = ['./send_email.py','./cgi-bin_static_class.py'], email_body = 'sdsafaf\nfaffa', email_address = 'peter.nemec@orange.com')
 
-send_me_email(subject = 'testmail1', file_name = './send_email.py', email_body = 'sdsafaf\nfaffa', email_address = 'peter.nemec@orange.com')
-
-
+if 'WIN32' in sys.platform.upper():
+    send_me_email(subject = 'testmail1', attachments = ['c:\\_pyxWorks\\send_email\\send_email.py','c:\\_pyxWorks\\send_email\\cgi-bin_static_class.py'], email_body = 'sdsafaf\nfaffa', email_address = 'peter.nemec@orange.com')
 
