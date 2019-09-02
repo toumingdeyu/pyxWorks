@@ -111,10 +111,10 @@ CMD_IOS_XE = [
         'exec':'try: bgp_data["peer_address"], bgp_data["peer_as"] = read_gw_vrf_parsed_lines(glob_vars.get("gw_vrf_parsed_lines","")) \nexcept: pass'
     },
     {'if':'glob_vars.get("CONFIG_IF_TEXT","")', 
-        'exec':'bgp_data["ip_address"] = glob_vars.get("CONFIG_IF_TEXT","").split("ip address ")[1].split()[0].strip()'
+        'exec':'try: bgp_data["ip_address"] = glob_vars.get("CONFIG_IF_TEXT","").split("ip address ")[1].split()[0].strip() \nexcept: pass'
     },  
     {'if':'glob_vars.get("CONFIG_IF_TEXT","")', 
-        'exec':'bgp_data["mask"] = glob_vars.get("CONFIG_IF_TEXT","").split("ip address ")[1].split()[1].strip()'
+        'exec':'try: bgp_data["mask"] = glob_vars.get("CONFIG_IF_TEXT","").split("ip address ")[1].split()[1].strip() \nexcept: pass'
     },     
     {"eval":["return_bgp_data_json()",{'print_output':'on'}]},
 ]
@@ -133,10 +133,10 @@ CMD_IOS_XR = [
         'exec':'try: bgp_data["peer_address"], bgp_data["peer_as"] = read_gw_vrf_parsed_lines(glob_vars.get("gw_vrf_parsed_lines","")) \nexcept: pass'
     },
     {'if':'glob_vars.get("CONFIG_IF_TEXT","")', 
-        'exec':'bgp_data["ip_address"] = glob_vars.get("CONFIG_IF_TEXT","").split("ip address ")[1].split()[0].strip()'
-    },
+        'exec':'try: bgp_data["ip_address"] = glob_vars.get("CONFIG_IF_TEXT","").split("ip address ")[1].split()[0].strip() \nexcept: pass'
+    },  
     {'if':'glob_vars.get("CONFIG_IF_TEXT","")', 
-        'exec':'bgp_data["mask"] = glob_vars.get("CONFIG_IF_TEXT","").split("ip address ")[1].split()[1].strip()'
+        'exec':'try: bgp_data["mask"] = glob_vars.get("CONFIG_IF_TEXT","").split("ip address ")[1].split()[1].strip() \nexcept: pass'
     },     
     {"eval":["return_bgp_data_json()",{'print_output':'on'}]},
 ]
