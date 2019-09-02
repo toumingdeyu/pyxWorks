@@ -18,7 +18,9 @@ import collections
 import requests
 
 
-def send_me_email(subject='testmail', email_body = str(), file_name = None, email_address = None, username = None):
+
+def send_me_email(subject = str(), email_body = str(), file_name = None, attachments = None, \
+        email_address = None, username = None):
     def send_unix_email_body(mail_command):
         email_success = None
         try: 
@@ -29,54 +31,78 @@ def send_me_email(subject='testmail', email_body = str(), file_name = None, emai
         except Exception as e: CGI_CLI.uprint(" ==> Problem to send email by COMMAND=[%s], PROBLEM=[%s]\n"\
                 % (mail_command,str(e)) ,color = 'red')
         return email_success        
-                
-    if not 'WIN32' in sys.platform.upper():
-        if username: my_account = username        
-        else: my_account = subprocess.check_output('whoami', shell=True)
-        ### WITH APACHE USER IS INSERTED USER NOT LOGGED IN SO FINGER WILL NOT WORK
-        ### my_finger_line = subprocess.check_output('finger | grep "%s"'%(my_account.strip()), shell=True)
-        ### my_name = my_finger_line.splitlines()[0].split()[1]
-        ### my_surname = my_finger_line.splitlines()[0].split()[2]
-        
-        ### GETENT .. output='pnemec:x:3844:1003:Peter Nemec IPTAC Slovakia:/home/pnemec:/bin/bash'
-        try: my_finger_line = ' '.join((subprocess.check_output('getent passwd "%s"'% \
-            (my_account.strip()), shell=True)).split(':')[4].split()[:2])
-        except: my_finger_line = None
-        my_name = my_finger_line.splitlines()[0].split()[0]
-        my_surname = my_finger_line.splitlines()[0].split()[1]
-
+    ### FUCTION send_me_email START ----------------------------------------
+    email_sent, sugested_email_address = None, str()    
+    if email_address: sugested_email_address = email_address    
+    if not 'WIN32' in sys.platform.upper():        
         try: ldap_email_address = subprocess.check_output(\
                 'ldapsearch -LLL -x uid=%s mail' % (my_account), shell=True).\
                 split('mail:')[1].splitlines()[0].strip()
-        except: ldap_email_address = None
-        
-        if email_address: sugested_email_address = email_address
-        elif ldap_email_address: sugested_email_address = ldap_email_address
-        else: sugested_email_address = '%s.%s@orange.com' % (my_name, my_surname)
-        
-        if file_name: mail_command = 'echo | mutt -s "%s" -a %s -- %s' % \
-                          (subject,file_name,sugested_email_address)
-        else: mail_command = 'echo | mutt -s "%s" -- %s' % (subject,sugested_email_address)
-        email_sent = send_unix_email_body(mail_command)
-        if not email_sent:
-            ### UUENCODE does not provide attaching fo files
-            ### mail_command = 'uuencode %s %s | mail -s "%s" %s' % \
-            ###     (file_name,file_name,subject,sugested_email_address)         
-            mail_command = 'mail -s "%s" %s' % (subject,sugested_email_address)
-            send_unix_email_body(mail_command)
-    else:
+        except: ldap_email_address = None                
+        if ldap_email_address: sugested_email_address = ldap_email_address
+        else:
+            if username: my_account = username        
+            else: my_account = subprocess.check_output('whoami', shell=True).strip()
+            try: 
+                my_getent_line = ' '.join((subprocess.check_output('getent passwd "%s"'% \
+                    (my_account.strip()), shell=True)).split(':')[4].split()[:2])
+                my_name = my_getent_line.splitlines()[0].split()[0]
+                my_surname = my_getent_line.splitlines()[0].split()[1]
+                sugested_email_address = '%s.%s@orange.com' % (my_name, my_surname)    
+            except: pass        
+
+        # ### UNIX - MUTT ---------------------------------------------------- 
+        # if file_name and isinstance(file_name, six.string_types) and os.path.exists(file_name): 
+            # mail_command = 'echo %s| mutt -s "%s" -a %s -- %s' % (email_body,subject,file_name,sugested_email_address)
+        # elif attachments and isinstance(attachments, (list,tuple)):
+            # mail_command = 'echo %s| mutt -s "%s" ' % (email_body,subject)        
+            # for attach_file in attachments:
+                # if os.path.exists(attach_file): mail_command += '-a %s ' % (attach_file) 
+            # mail_command += ' -- %s' % (sugested_email_address)
+        # elif attachments and isinstance(attachments, six.string_types) and os.path.exists(attachments):
+                # mail_command = 'echo %s| mutt -s "%s" -a %s -- %s' % (email_body,subject,attachments,sugested_email_address)    
+        # else: mail_command = 'echo %s| mutt -s "%s" -- %s' % (email_body,subject,sugested_email_address)
+        # email_sent = send_unix_email_body(mail_command)
+
+        ### UNIX - MAIL ----------------------------------------------------  
+        if not email_sent:                       
+            if file_name and isinstance(file_name, six.string_types) and os.path.exists(file_name): 
+                mail_command = 'echo %s | mail -s "%s" -a %s %s' % (email_body,subject,file_name,sugested_email_address)
+            elif attachments and isinstance(attachments, (list,tuple)):
+                mail_command = 'echo %s | mail -s "%s" ' % (email_body,subject)        
+                for attach_file in attachments:
+                    if os.path.exists(attach_file): mail_command += '-a %s ' % (attach_file) 
+                mail_command += '%s' % (sugested_email_address)
+            elif attachments and isinstance(attachments, six.string_types) and os.path.exists(attachments):
+                mail_command = 'echo %s | mail -s "%s" -a %s %s' % (email_body,subject,attachments,sugested_email_address)
+            else: mail_command = 'echo %s | mail -s "%s" %s' % (email_body,subject,sugested_email_address)            
+            email_sent = send_unix_email_body(mail_command)
+
+    if 'WIN32' in sys.platform.upper():
         ### NEEDED 'pip install pywin32'
-        if not 'win32com.client' in sys.modules: import win32com.client
+        #if not 'win32com.client' in sys.modules: import win32com.client
+        import win32com.client
         olMailItem, email_application = 0, 'Outlook.Application'
         try:
             ol = win32com.client.Dispatch(email_application)
             msg = ol.CreateItem(olMailItem)
             msg.To, msg.Subject, msg.Body = email_address, subject, email_body
-            msg.Attachments.Add(file_name)
+            if file_name and isinstance(file_name, six.string_types) and os.path.exists(file_name): 
+                msg.Attachments.Add(file_name)
+            if attachments and isinstance(attachments, (list,tuple)):
+                for attach_file in attachments:
+                    if os.path.exists(attach_file): msg.Attachments.Add(attach_file)
+            elif attachments and isinstance(attachments, six.string_types) and os.path.exists(attachments): 
+                msg.Attachments.Add(attachments)        
             msg.Send()
             ol.Quit()
-        except Exception as e: CGI_CLI.uprint(" ==> Problem to send email by application[%s], PROBLEM=[%s]\n"\
+            CGI_CLI.uprint(' ==> Email sent. Subject:"%s" SentTo:%s by APPLICATION=[%s].'\
+                %(subject,sugested_email_address,email_application), color = 'blue')
+            email_sent = True    
+        except Exception as e: CGI_CLI.uprint(" ==> Problem to send email by APPLICATION=[%s], PROBLEM=[%s]\n"\
                 % (email_application,str(e)) ,color = 'red')            
+    return email_sent
+
 
 
 class CGI_CLI(object):
@@ -205,9 +231,9 @@ if __name__ != "__main__": sys.exit(0)
 CGI_CLI.init_cgi()
 CGI_CLI.print_args()
 
-send_me_email(subject = 'testmail', file_name = None, username = CGI_CLI.username if CGI_CLI.username else None)
+#send_me_email(subject = 'testmail', file_name = None, username = CGI_CLI.username if CGI_CLI.username else None)
 
-
+send_me_email(subject = 'testmail1', file_name = './send_email.py', email_body = 'sdsafaf\nfaffa', email_address = 'peter.nemec@orange.com')
 
 
 
