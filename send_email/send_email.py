@@ -23,10 +23,10 @@ def send_me_email(subject='testmail', email_body = str(), file_name = None, emai
         email_success = None
         try: 
             forget_it = subprocess.check_output(mail_command, shell=True)
-            CGI_CLI.uprint(' ==> Email sent. Subject:"%s" SentTo:%s by command[%s] with result(%s)...'\
+            CGI_CLI.uprint(' ==> Email sent. Subject:"%s" SentTo:%s by COMMAND=[%s] with RESULT=[%s]...'\
                 %(subject,sugested_email_address,mail_command,forget_it), color = 'blue')
             email_success = True    
-        except Exception as e: CGI_CLI.uprint(" ==> Problem to send email by command[%s], PROBLEM=[%s]\n"\
+        except Exception as e: CGI_CLI.uprint(" ==> Problem to send email by COMMAND=[%s], PROBLEM=[%s]\n"\
                 % (mail_command,str(e)) ,color = 'red')
         return email_success        
                 
