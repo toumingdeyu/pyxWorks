@@ -805,30 +805,96 @@ def get_version_from_file_last_modification_date(path_to_file = str(os.path.absp
 def append_variable_to_bashrc(variable_name=None,variable_value=None):
     forget_it = subprocess.check_output('echo export %s=%s >> ~/.bashrc'%(variable_name,variable_value), shell=True)
 
-def send_me_email(subject='testmail', file_name = None, email_address = None, username = None):
-    if not 'WIN32' in sys.platform.upper():
-        if username: my_account = username        
-        else: my_account = subprocess.check_output('whoami', shell=True)
-        ### WITH APACHE USER IS INSERTED USER NOT LOGGED IN SO FINGER WILL NOT WORK
-        ### my_finger_line = subprocess.check_output('finger | grep "%s"'%(my_account.strip()), shell=True)
-        ### output(pnemec:x:3844:1003:Peter Nemec IPTAC Slovakia:/home/pnemec:/bin/bash)
-        try: my_finger_line = ' '.join((subprocess.check_output('getent passwd "%s"'% \
-            (my_account.strip()), shell=True)).split(':')[4].split()[:2])
-        except: my_finger_line = None
-        #my_name = my_finger_line.splitlines()[0].split()[1]
-        #my_surname = my_finger_line.splitlines()[0].split()[2]
-        my_name = my_finger_line.splitlines()[0].split()[0]
-        my_surname = my_finger_line.splitlines()[0].split()[1]        
-        if email_address: sugested_email_address = email_address
-        else: sugested_email_address = '%s.%s@orange.com' % (my_name, my_surname)
-        ### UUENCODE does not provide attaching fo files
-        ### mail_command = 'uuencode %s %s | mail -s "%s" %s' % (file_name,file_name,subject,sugested_email_address)                
-        if file_name: mail_command = 'echo | mutt -s "%s" -a %s -- %s' % (subject,file_name,sugested_email_address)
-        else: mail_command = 'echo | mutt -s "%s" -- %s' % (subject,sugested_email_address)    
+def send_me_email(subject = str(), email_body = str(), file_name = None, attachments = None, \
+        email_address = None, cc = None, bcc = None, username = None):
+    def send_unix_email_body(mail_command):
+        email_success = None
         try: 
             forget_it = subprocess.check_output(mail_command, shell=True)
-            CGI_CLI.uprint(' ==> Email "%s" sent to %s. (%s)'%(subject,sugested_email_address,forget_it))
-        except Exception as e: CGI_CLI.uprint("Problem to send email (%s) ..."% (str(e)) ,color = 'red') 
+            CGI_CLI.uprint(' ==> Email sent. Subject:"%s" SentTo:%s by COMMAND=[%s] with RESULT=[%s]...'\
+                %(subject,sugested_email_address,mail_command,forget_it), color = 'blue')
+            email_success = True    
+        except Exception as e: CGI_CLI.uprint(" ==> Problem to send email by COMMAND=[%s], PROBLEM=[%s]\n"\
+                % (mail_command,str(e)) ,color = 'red')
+        return email_success        
+    ### FUCTION send_me_email START ----------------------------------------
+    email_sent, sugested_email_address = None, str()    
+    if email_address: sugested_email_address = email_address    
+    if not 'WIN32' in sys.platform.upper():        
+        try: ldap_email_address = subprocess.check_output(\
+                'ldapsearch -LLL -x uid=%s mail' % (my_account), shell=True).\
+                split('mail:')[1].splitlines()[0].strip()
+        except: ldap_email_address = None                
+        if ldap_email_address: sugested_email_address = ldap_email_address
+        else:
+            if username: my_account = username        
+            else: my_account = subprocess.check_output('whoami', shell=True).strip()
+            try: 
+                my_getent_line = ' '.join((subprocess.check_output('getent passwd "%s"'% \
+                    (my_account.strip()), shell=True)).split(':')[4].split()[:2])
+                my_name = my_getent_line.splitlines()[0].split()[0]
+                my_surname = my_getent_line.splitlines()[0].split()[1]
+                sugested_email_address = '%s.%s@orange.com' % (my_name, my_surname)    
+            except: pass        
+
+        ### UNIX - MAILX ----------------------------------------------------
+        mail_command = 'echo \'%s\' | mailx -s "%s" ' % (email_body,subject)
+        if cc:
+            if isinstance(cc, six.string_types): mail_command += '-c %s' % (cc)
+            if cc and isinstance(cc, (list,tuple)): mail_command += ''.join([ '-c %s ' % (bcc_email) for bcc_email in bcc ])
+        if bcc:
+            if isinstance(bcc, six.string_types): mail_command += '-b %s' % (bcc)
+            if bcc and isinstance(bcc, (list,tuple)): mail_command += ''.join([ '-b %s ' % (bcc_email) for bcc_email in bcc ])    
+        if file_name and isinstance(file_name, six.string_types) and os.path.exists(file_name): 
+            mail_command += '-a %s ' % (file_name)
+        if attachments:
+            if isinstance(attachments, (list,tuple)): 
+                mail_command += ''.join([ '-a %s ' % (attach_file) for attach_file in attachments if os.path.exists(attach_file) ])      
+            if isinstance(attachments, six.string_types) and os.path.exists(attachments):
+                mail_command += '-a %s ' % (attachments)
+        mail_command += '%s' % (sugested_email_address)            
+        email_sent = send_unix_email_body(mail_command)
+
+    if 'WIN32' in sys.platform.upper():
+        ### NEEDED 'pip install pywin32'
+        #if not 'win32com.client' in sys.modules: import win32com.client
+        import win32com.client
+        olMailItem, email_application = 0, 'Outlook.Application'
+        try:
+            ol = win32com.client.Dispatch(email_application)
+            msg = ol.CreateItem(olMailItem)
+            if email_address:
+                msg.Subject, msg.Body = subject, email_body
+                if email_address:
+                    if isinstance(email_address, six.string_types): msg.To = email_address
+                    if email_address and isinstance(email_address, (list,tuple)): 
+                        msg.To = ';'.join([ eadress for eadress in email_address if eadress != "" ])                
+                if cc:
+                    if isinstance(cc, six.string_types): msg.CC = cc
+                    if cc and isinstance(cc, (list,tuple)): 
+                        msg.CC = ';'.join([ eadress for eadress in cc if eadress != "" ])
+                if bcc:
+                    if isinstance(bcc, six.string_types): msg.BCC = bcc
+                    if bcc and isinstance(bcc, (list,tuple)): 
+                        msg.BCC = ';'.join([ eadress for eadress in bcc if eadress != "" ])             
+                if file_name and isinstance(file_name, six.string_types) and os.path.exists(file_name): 
+                    msg.Attachments.Add(file_name)
+                if attachments:
+                    if isinstance(attachments, (list,tuple)): 
+                        for attach_file in attachments:
+                            if os.path.exists(attach_file): msg.Attachments.Add(attach_file)      
+                    if isinstance(attachments, six.string_types) and os.path.exists(attachments):
+                        msg.Attachments.Add(attachments)
+               
+            msg.Send()
+            ol.Quit()
+            CGI_CLI.uprint(' ==> Email sent. Subject:"%s" SentTo:%s by APPLICATION=[%s].'\
+                %(subject,sugested_email_address,email_application), color = 'blue')
+            email_sent = True    
+        except Exception as e: CGI_CLI.uprint(" ==> Problem to send email by APPLICATION=[%s], PROBLEM=[%s]\n"\
+                % (email_application,str(e)) ,color = 'red')            
+    return email_sent
+
 
 
 def generate_file_name(prefix = None, suffix = None , directory = None):
