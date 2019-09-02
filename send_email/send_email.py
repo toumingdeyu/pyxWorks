@@ -18,48 +18,66 @@ import collections
 import requests
 
 
-def send_me_email(subject='testmail', emailbody = str(), file_name = None, email_address = None, username = None):
+def send_me_email(subject='testmail', email_body = str(), file_name = None, email_address = None, username = None):
+    def send_unix_email_body(mail_command):
+        email_success = None
+        try: 
+            forget_it = subprocess.check_output(mail_command, shell=True)
+            CGI_CLI.uprint(' ==> Email sent. Subject:"%s" SentTo:%s by command[%s] with result(%s)...'\
+                %(subject,sugested_email_address,mail_command,forget_it), color = 'blue')
+            email_success = True    
+        except Exception as e: CGI_CLI.uprint(" ==> Problem to send email by command[%s], PROBLEM=[%s]\n"\
+                % (mail_command,str(e)) ,color = 'red')
+        return email_success        
+                
     if not 'WIN32' in sys.platform.upper():
         if username: my_account = username        
         else: my_account = subprocess.check_output('whoami', shell=True)
         ### WITH APACHE USER IS INSERTED USER NOT LOGGED IN SO FINGER WILL NOT WORK
         ### my_finger_line = subprocess.check_output('finger | grep "%s"'%(my_account.strip()), shell=True)
-        ### output(pnemec:x:3844:1003:Peter Nemec IPTAC Slovakia:/home/pnemec:/bin/bash)
+        ### my_name = my_finger_line.splitlines()[0].split()[1]
+        ### my_surname = my_finger_line.splitlines()[0].split()[2]
+        
+        ### GETENT .. output='pnemec:x:3844:1003:Peter Nemec IPTAC Slovakia:/home/pnemec:/bin/bash'
         try: my_finger_line = ' '.join((subprocess.check_output('getent passwd "%s"'% \
             (my_account.strip()), shell=True)).split(':')[4].split()[:2])
         except: my_finger_line = None
-        #my_name = my_finger_line.splitlines()[0].split()[1]
-        #my_surname = my_finger_line.splitlines()[0].split()[2]
         my_name = my_finger_line.splitlines()[0].split()[0]
-        my_surname = my_finger_line.splitlines()[0].split()[1]        
-        if email_address: suggested_email_address = email_address
-        else: suggested_email_address = '%s.%s@orange.com' % (my_name, my_surname)
-        if file_name: mail_command = 'echo | mutt -s "%s" -a %s -- %s' % (subject,file_name,suggested_email_address)
-        else: mail_command = 'echo | mutt -s "%s" -- %s' % (subject,suggested_email_address)
-        try: 
-            forget_it = subprocess.check_output(mail_command, shell=True)
-            CGI_CLI.uprint(' ==> Email sent. Subject:"%s" SentTo:%s by command[%s] with result(%s)...'%(subject,suggested_email_address,mail_command,forget_it), color = 'blue')
-        except Exception as e: CGI_CLI.uprint(" ==> Problem to send email by command[%s], problem(%s) ..."% (mail_command,str(e)) ,color = 'red')
-        ### UUENCODE does not provide attaching fo files
-        ### mail_command = 'uuencode %s %s | mail -s "%s" %s' % (file_name,file_name,subject,suggested_email_address)
-        mail_command = 'mail -s "%s" %s' % (subject,suggested_email_address)
-        try: 
-            forget_it = subprocess.check_output(mail_command, shell=True)
-            CGI_CLI.uprint(' ==> Email sent. Subject:"%s" SentTo:%s by command[%s] with result(%s)...'%(subject,suggested_email_address,mail_command,forget_it), color = 'blue')
-        except Exception as e: CGI_CLI.uprint(" ==> Problem to send email by command[%s], problem(%s) ..."% (mail_command,str(e)) ,color = 'red')
-        subprocess.check_output('ls -all /var/log/httpd/ssl_error_log', shell=True)
+        my_surname = my_finger_line.splitlines()[0].split()[1]
+
+        try: ldap_email_address = subprocess.check_output(\
+                'ldapsearch -LLL -x uid=%s mail' % (my_account), shell=True).\
+                split('mail:')[1].splitlines()[0].strip()
+        except: ldap_email_address = None
+        
+        if email_address: sugested_email_address = email_address
+        elif ldap_email_address: sugested_email_address = ldap_email_address
+        else: sugested_email_address = '%s.%s@orange.com' % (my_name, my_surname)
+        
+        if file_name: mail_command = 'echo | mutt -s "%s" -a %s -- %s' % \
+                          (subject,file_name,sugested_email_address)
+        else: mail_command = 'echo | mutt -s "%s" -- %s' % (subject,sugested_email_address)
+        email_sent = send_unix_email_body(mail_command)
+        if not email_sent:
+            ### UUENCODE does not provide attaching fo files
+            ### mail_command = 'uuencode %s %s | mail -s "%s" %s' % \
+            ###     (file_name,file_name,subject,sugested_email_address)         
+            mail_command = 'mail -s "%s" %s' % (subject,sugested_email_address)
+            send_unix_email_body(mail_command)
     else:
-        ### pip install pywin32
+        ### NEEDED 'pip install pywin32'
         if not 'win32com.client' in sys.modules: import win32com.client
-        olMailItem = 0
-        ol = win32com.client.Dispatch("Outlook.Application")
-        msg = ol.CreateItem(olMailItem)
-        msg.To = email_address
-        msg.Subject = subject
-        msg.Body = emailbody
-        msg.Attachments.Add(file_name)
-        msg.Send()
-        ol.Quit()
+        olMailItem, email_application = 0, 'Outlook.Application'
+        try:
+            ol = win32com.client.Dispatch(email_application)
+            msg = ol.CreateItem(olMailItem)
+            msg.To, msg.Subject, msg.Body = email_address, subject, email_body
+            msg.Attachments.Add(file_name)
+            msg.Send()
+            ol.Quit()
+        except Exception as e: CGI_CLI.uprint(" ==> Problem to send email by application[%s], PROBLEM=[%s]\n"\
+                % (email_application,str(e)) ,color = 'red')            
+
 
 class CGI_CLI(object):
     """
