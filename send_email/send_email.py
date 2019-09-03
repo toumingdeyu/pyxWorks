@@ -240,11 +240,11 @@ CGI_CLI.print_args()
 
 #send_me_email(subject = 'testmail', file_name = None, username = CGI_CLI.username if CGI_CLI.username else None)
 if not 'WIN32' in sys.platform.upper():
-    send_me_email(subject = 'testmail1', attachments = ['./send_email.py','./cgi-bin_static_class.py'], email_body = 'sdsafaf\nfaffa', email_address = 'peter.nemec@orange.com')
+    send_me_email(subject = 'testmail1', attachments = ['./send_email.py'], email_body = 'sdsafaf\nfaffa', email_address = 'peter.nemec@orange.com')
 
 if not 'WIN32' in sys.platform.upper():
-    send_me_email(subject = 'testmail1', attachments = ['./send_email.py','./cgi-bin_static_class.py'], email_body = 'sdsafaf\nfaffa', username = 'pnemec')
+    send_me_email(subject = 'testmail1', attachments = ['./send_email.py'], email_body = 'sdsafaf\nfaffa', username = 'pnemec')
 
 if 'WIN32' in sys.platform.upper():
-    send_me_email(subject = 'testmail1', attachments = ['c:\\_pyxWorks\\send_email\\send_email.py','c:\\_pyxWorks\\send_email\\cgi-bin_static_class.py'], email_body = 'sdsafaf\nfaffa', email_address = 'peter.nemec@orange.com')
+    send_me_email(subject = 'testmail1', attachments = ['c:\\_pyxWorks\\send_email\\send_email.py'], email_body = 'sdsafaf\nfaffa', email_address = 'peter.nemec@orange.com')
 
