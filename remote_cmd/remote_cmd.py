@@ -338,7 +338,8 @@ class RCMD(object):
             if RCMD.use_module == 'netmiko': RCMD.ssh_connection.disconnect()
             elif RCMD.use_module == 'paramiko': RCMD.client.close()
             CGI_CLI.uprint('DEVICE %s:%s DONE.' % (RCMD.DEVICE_HOST, RCMD.DEVICE_PORT))
-
+            RCMD.ssh_connection = None
+            
     @staticmethod
     def disconnect():
         RCMD.output, RCMD.fp = None, None
@@ -346,6 +347,7 @@ class RCMD(object):
             if RCMD.use_module == 'netmiko': RCMD.ssh_connection.disconnect()
             elif RCMD.use_module == 'paramiko': RCMD.client.close()
             CGI_CLI.uprint('DEVICE %s:%s DISCONNECTED.' % (RCMD.DEVICE_HOST, RCMD.DEVICE_PORT))
+            RCMD.ssh_connection = None
 
     @staticmethod
     def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True):
@@ -455,7 +457,7 @@ class RCMD(object):
         # Detect function start
         router_os = str()
         client = paramiko.SSHClient()
-        client.load_system_host_keys()
+        #client.load_system_host_keys()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         try:
             client.connect(RCMD.DEVICE_HOST, port = int(RCMD.DEVICE_PORT), \
