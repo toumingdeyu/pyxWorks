@@ -249,6 +249,15 @@ if __name__ != "__main__": sys.exit(0)
 CGI_CLI.init_cgi()
 CGI_CLI.print_args()
 
-if CGI_CLI.cgi_active and CGI_CLI.data.get("getfile",None) and os.path.exists(CGI_CLI.data.get("getfile",None)):
-    send_me_email(subject = CGI_CLI.data.get("getfile",None).replace("\\","/").split("/")[-1], attachments = [CGI_CLI.data.get("getfile",None)], username = CGI_CLI.username )
 
+
+if CGI_CLI.cgi_active:
+    filename = CGI_CLI.data.get("getfile",None)
+    if filename and os.path.exists(filename): 
+        if os.path.isfile(filename):
+            send_me_email(subject = filename.replace("\\","/").split("/")[-1], \
+                attachments = [CGI_CLI.data.get("getfile",None)], username = CGI_CLI.username )
+        elif os.path.isdir(filename):
+           command = 'ls -l %s' % (filename)
+           CGI_CLI.uprint(command, tag='h2')
+           CGI_CLI.uprint(subprocess.check_output(command, shell=True).decode("utf-8"))
