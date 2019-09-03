@@ -176,7 +176,20 @@ class RCMD(object):
 
     @staticmethod
     def connect(device = None, cmd_lists = None, username = None, password = None, \
-        use_module = 'paramiko', logfilename = None, timeout = 60, disconnect = None, printall = True):
+        use_module = 'paramiko', logfilename = None, timeout = 60, disconnect = None, printall = None):
+        """ FUNCTION: RCMD.connect(), RETURNS: list of command_outputs
+        PARAMETERS:
+        device     - string , device_name/ip_address/device_name:PORT_NUMBER/ip_address:PORT_NUMBER 
+        cmd_lists  - dict, {'cisco_ios':[..], 'cisco_xr':[..], 'juniper':[..], 'huawei':[], 'linux':[..]}
+        username   - string, remote username
+        password   - string, remote password
+        use_module - string, paramiko/netmiko
+        disconnect - immediate disconnect after RCMD.connect and processing of cmd_lists
+        logfilename - name of logging file
+        NOTES: 
+        1. cmd_lists is DEVICE TYPE INDEPENDENT and will be processed after device detection
+        2. only 1 instance of static class RCMD could exists
+        """
         import atexit; atexit.register(RCMD.__cleanup__)
         command_outputs, RCMD.ssh_connection = None, None
         if device:
@@ -283,6 +296,9 @@ class RCMD(object):
 
     @staticmethod
     def run_commands(cmd_list = None, printall = None):
+        """
+        cmd_list - list of strings, DETECTED DEVICE TYPE DEPENDENT
+        """
         command_outputs = None
         if not printall: printall = RCMD.printall
         if RCMD.ssh_connection:
@@ -300,6 +316,9 @@ class RCMD(object):
         
     @staticmethod
     def run_command(cli_line, printall = None):
+        """
+        cli_line - string, DETECTED DEVICE TYPE DEPENDENT
+        """
         last_output = str()
         if not printall: printall = RCMD.printall
         if RCMD.ssh_connection:
@@ -522,7 +541,10 @@ if device:
     CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'blue')
     RCMD.disconnect()
 
-
+if CGI_CLI.data.get('device2',None):
+    rcmd_outputs = RCMD.connect(CGI_CLI.data.get('device2',None), cmd_list1, username = CGI_CLI.username, password = CGI_CLI.password)
+    CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'green')
+    RCMD.disconnect()
 
 
 
