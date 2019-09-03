@@ -1093,13 +1093,14 @@ if data:
             except: pass
             with open(logfilename,"w") as fp:
                 fp.write('DATA = ' + get_json_with_variable_name(data) + "\n\n")
-                fp.write('\n\nIPSEC GW ROUTER (%s) PRE-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()) + '\n')
+                fp.write('\n\nIPSEC GW ROUTER (%s) PRE-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()) + 50*'-' + '\n')
                 fp.write(pre_config_text_gw)    
-                fp.write('\n\nPE ROUTER (%s) PRE-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()) + '\n')
+                fp.write('\n\nPE ROUTER (%s) PRE-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()) + 50*'-'  + '\n')
                 fp.write(pre_config_text_pe)
-                fp.write('\n\nIPSEC GW ROUTER (%s) POST-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()) + '\n')
+                fp.write('\n\nIPSEC GW ROUTER (%s) POST-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()) + 50*'-'  + '\n')
                 fp.write(post_config_text_gw)    
-                fp.write('\n\nPE ROUTER (%s) POST-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()) + '\n')
+                fp.write('\n\nPE ROUTER (%s) POST-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()) + 50*'-' + '\n')
+                fp.write(post_config_text_pe)
             ### MAKE READABLE for THE OTHERS
             try: dummy = subprocess.check_output('chmod +r %s' % (logfilename), shell=True)
             except: pass
