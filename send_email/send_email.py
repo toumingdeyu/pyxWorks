@@ -20,7 +20,18 @@ import requests
 
 
 def send_me_email(subject = str(), email_body = str(), file_name = None, attachments = None, \
-        email_address = None, cc = None, bcc = None, username = None):
+    email_address = None, cc = None, bcc = None, username = None):
+    """
+    FUCTION: send_me_email, RETURNS: True/None, Successfully send email or not
+    INPUT PARAMETERS:
+    email_address - string, email address if is known, otherwise use username parameter
+    username    - string, system username from which colud be generated email
+    subject     - string, email subject 
+    email_body  - string, email body 
+    cc, bcc     - list or string, in case of list possibility to insert more email addresses
+    attachments - list or string , possibility to attach more files
+    file_name   - string, simple file attachment option   
+    """    
     def send_unix_email_body(mail_command):
         email_success = None
         try: 
