@@ -817,18 +817,18 @@ def send_me_email(subject = str(), email_body = str(), file_name = None, attachm
         except Exception as e: CGI_CLI.uprint(" ==> Problem to send email by COMMAND=[%s], PROBLEM=[%s]\n"\
                 % (mail_command,str(e)) ,color = 'red')
         return email_success        
-    ### FUCTION send_me_email START ----------------------------------------
-    email_sent, sugested_email_address = None, str()    
+    ### FUCTION send_me_email START ----------------------------------------                    
+    email_sent, sugested_email_address = None, str()
+    if username: my_account = username        
+    else: my_account = subprocess.check_output('whoami', shell=True).strip()    
     if email_address: sugested_email_address = email_address    
     if not 'WIN32' in sys.platform.upper():        
-        try: ldap_email_address = subprocess.check_output(\
-                'ldapsearch -LLL -x uid=%s mail' % (my_account), shell=True).\
-                split('mail:')[1].splitlines()[0].strip()
-        except: ldap_email_address = None                
+        try: 
+            ldapsearch_output = subprocess.check_output('ldapsearch -LLL -x uid=%s mail' % (my_account), shell=True)
+            ldap_email_address = ldapsearch_output.decode("utf-8").split('mail:')[1].splitlines()[0].strip()
+        except: ldap_email_address = None        
         if ldap_email_address: sugested_email_address = ldap_email_address
         else:
-            if username: my_account = username        
-            else: my_account = subprocess.check_output('whoami', shell=True).strip()
             try: 
                 my_getent_line = ' '.join((subprocess.check_output('getent passwd "%s"'% \
                     (my_account.strip()), shell=True)).split(':')[4].split()[:2])
@@ -894,6 +894,7 @@ def send_me_email(subject = str(), email_body = str(), file_name = None, attachm
         except Exception as e: CGI_CLI.uprint(" ==> Problem to send email by APPLICATION=[%s], PROBLEM=[%s]\n"\
                 % (email_application,str(e)) ,color = 'red')            
     return email_sent
+
 
 
 
@@ -1552,7 +1553,7 @@ if device_name:
         except: pass
         ### SEND EMAIL
         try: send_me_email(subject = logfilename.replace('\\','/').\
-                 split('/')[-1], file_name = logfilename, email_address = EMAIL_ADDRESS, username = USERNAME)
+                 split('/')[-1], file_name = logfilename, username = USERNAME)
         except: pass
     CGI_CLI.uprint('\nDEVICE %s DONE. '%(device_name))
 
