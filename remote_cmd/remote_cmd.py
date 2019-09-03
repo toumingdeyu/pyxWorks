@@ -176,7 +176,8 @@ class RCMD(object):
 
     @staticmethod
     def connect(device = None, cmd_lists = None, username = None, password = None, \
-        use_module = 'paramiko', logfilename = None, timeout = 60, disconnect = None, printall = None):
+        use_module = 'paramiko', logfilename = None, timeout = 60, conf = None, \
+        disconnect = None, printall = None):
         """ FUNCTION: RCMD.connect(), RETURNS: list of command_outputs
         PARAMETERS:
         device     - string , device_name/ip_address/device_name:PORT_NUMBER/ip_address:PORT_NUMBER 
@@ -184,8 +185,9 @@ class RCMD(object):
         username   - string, remote username
         password   - string, remote password
         use_module - string, paramiko/netmiko
-        disconnect - immediate disconnect after RCMD.connect and processing of cmd_lists
-        logfilename - name of logging file
+        disconnect - True/False, immediate disconnect after RCMD.connect and processing of cmd_lists
+        logfilename - strng, name of logging file
+        conf        - True/False, go to config mode
         NOTES: 
         1. cmd_lists is DEVICE TYPE INDEPENDENT and will be processed after device detection
         2. only 1 instance of static class RCMD could exists
@@ -204,6 +206,7 @@ class RCMD(object):
             RCMD.router_prompt = None
             RCMD.printall = printall
             RCMD.router_type = None
+            RCMD.conf = conf
             RCMD.KNOWN_OS_TYPES = ['cisco_xr', 'cisco_ios', 'juniper', 'juniper_junos', 'huawei' ,'linux']
             try: RCMD.DEVICE_HOST = device.split(':')[0]
             except: RCMD.DEVICE_HOST = str()
@@ -295,12 +298,13 @@ class RCMD(object):
         return command_outputs        
 
     @staticmethod
-    def run_commands(cmd_list = None, printall = None):
+    def run_commands(cmd_list = None, printall = None, conf = None):
         """
         cmd_list - list of strings, DETECTED DEVICE TYPE DEPENDENT
         """
         command_outputs = None
         if not printall: printall = RCMD.printall
+        if not conf: conf = RCMD.conf
         if RCMD.ssh_connection:
             ### WORK REMOTE ================================================
             if not RCMD.logfilename:
@@ -309,9 +313,30 @@ class RCMD(object):
             with open(RCMD.logfilename,"a+") as RCMD.fp:
                 if RCMD.output: RCMD.fp.write(RCMD.output)
                 command_outputs = []
+                ### CONFIG MODE FOR NETMIKO ################################
+                if conf and RCMD.use_module == 'netmiko':                
+                    RCMD.ssh_connection.send_config_set(cmd_list)
+                ### CONFIG MODE FOR PARAMIKO ###############################    
+                if conf and RCMD.use_module == 'paramiko':    
+                    if RCMD.router_type=='cisco_ios': command_outputs.append(RCMD.run_command('config t'))
+                    if RCMD.router_type=='cisco_xr': command_outputs.append(RCMD.run_command('config t'))
+                    if RCMD.router_type=='juniper': command_outputs.append(RCMD.run_command('configure'))
+                    if RCMD.router_type=='huawei': command_outputs.append(RCMD.run_command('system-view'))
                 ### PROCESS COMMANDS #######################################
                 for cli_line in cmd_list:
                     command_outputs.append(RCMD.run_command(cli_line))
+                ### EXIT FROM CONFIG MODE FOR PARAMIKO #####################    
+                if conf and RCMD.use_module == 'paramiko':
+                    ### COMMIT SECTION -------------------------------------               
+                    if RCMD.router_type=='cisco_ios': command_outputs.append(RCMD.run_command('commit'))
+                    if RCMD.router_type=='cisco_xr': command_outputs.append(RCMD.run_command('commit'))
+                    if RCMD.router_type=='juniper': command_outputs.append(RCMD.run_command('commit'))
+                    if RCMD.router_type=='huawei': command_outputs.append(RCMD.run_command('save'))
+                    ### EXIT SECTION ---------------------------------------
+                    if RCMD.router_type=='cisco_ios': command_outputs.append(RCMD.run_command('exit')) 
+                    if RCMD.router_type=='cisco_xr': command_outputs.append(RCMD.run_command('exit'))
+                    if RCMD.router_type=='juniper': command_outputs.append(RCMD.run_command('exit'))
+                    if RCMD.router_type=='huawei': command_outputs.append(RCMD.run_command('return'))                   
         return command_outputs
         
     @staticmethod
