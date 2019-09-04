@@ -1326,3 +1326,10 @@ if device_name:
 # | pe_router | varchar(6)    | NO   |     | NULL    |                |
 # | vrf_list  | varchar(1000) | YES  |     | NULL    |                |
 # +-----------+---------------+------+-----+---------+----------------+ 
+
+# AUVPE3
+# PASPE8
+# HKGPE3
+# SINPE3
+# MIAPE4
+# NYKPE3
