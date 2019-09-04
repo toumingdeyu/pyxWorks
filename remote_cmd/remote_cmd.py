@@ -195,6 +195,7 @@ class RCMD(object):
         import atexit; atexit.register(RCMD.__cleanup__)
         command_outputs, RCMD.ssh_connection = None, None
         if device:
+            RCMD.CMD = []
             RCMD.output, RCMD.fp = None, None
             RCMD.device = device
             RCMD.ssh_connection = None
@@ -221,7 +222,7 @@ class RCMD(object):
             else: CGI_CLI.uprint('DETECTED DEVICE_TYPE: %s' % (RCMD.router_type))
             ####################################################################
             if RCMD.router_type == 'cisco_ios':
-                RCMD.CMD = cmd_lists.get('cisco_ios',[])
+                if cmd_lists: RCMD.CMD = cmd_lists.get('cisco_ios',[])
                 RCMD.DEVICE_PROMPTS = [ \
                     '%s%s#'%(RCMD.device.upper(),''), \
                     '%s%s#'%(RCMD.device.upper(),'(config)'), \
@@ -231,7 +232,7 @@ class RCMD(object):
                 RCMD.TERM_LEN_0 = "terminal length 0"
                 RCMD.EXIT = "exit"
             elif RCMD.router_type == 'cisco_xr':
-                RCMD.CMD = cmd_lists.get('cisco_xr',[])
+                if cmd_lists: RCMD.CMD = cmd_lists.get('cisco_xr',[])
                 RCMD.DEVICE_PROMPTS = [ \
                     '%s%s#'%(RCMD.device.upper(),''), \
                     '%s%s#'%(RCMD.device.upper(),'(config)'), \
@@ -241,7 +242,7 @@ class RCMD(object):
                 RCMD.TERM_LEN_0 = "terminal length 0"
                 RCMD.EXIT = "exit"
             elif RCMD.router_type == 'juniper':
-                RCMD.CMD = cmd_lists.get('juniper',[])
+                if cmd_lists: RCMD.CMD = cmd_lists.get('juniper',[])
                 RCMD.DEVICE_PROMPTS = [ \
                      USERNAME + '@' + RCMD.device.upper() + '> ', # !! Need the space after >
                      USERNAME + '@' + RCMD.device.upper() + '# ' ]
@@ -257,11 +258,11 @@ class RCMD(object):
                 RCMD.TERM_LEN_0 = "screen-length 0 temporary"     #"screen-length disable"
                 RCMD.EXIT = "quit"
             elif RCMD.router_type == 'linux':
-                CMD = cmd_lists.get('linux',[])
+                if cmd_lists: CMD = cmd_lists.get('linux',[])
                 RCMD.DEVICE_PROMPTS = [ ]
                 RCMD.TERM_LEN_0 = ''     #"screen-length disable"
                 RCMD.EXIT = "exit"
-            else: RCMD.CMD = cmd_lists.CMD_LOCAL
+            else: RCMD.CMD = []
             # ADD PROMPT TO PROMPTS LIST
             if RCMD.router_prompt: RCMD.DEVICE_PROMPTS.append(RCMD.router_prompt)
             ### START SSH CONNECTION AGAIN #####################################
@@ -287,7 +288,7 @@ class RCMD(object):
                 print(bcolors.FAIL + " ... EXCEPTION: (%s)" % (e) + bcolors.ENDC )
                 sys.exit()
             except:
-                CGI_CLI.uprint(bcolors.MAGENTA + " ... Connection error: %s " % (str(sys.exc_info()[:-1])) + bcolors.ENDC )
+                CGI_CLI.uprint(bcolors.MAGENTA + " ... CONNECTION ERROR: %s " % (str(sys.exc_info()[:-1])) + bcolors.ENDC )
                 sys.exit()
             finally:
                 if RCMD.ssh_connection:
@@ -298,13 +299,25 @@ class RCMD(object):
         return command_outputs        
 
     @staticmethod
-    def run_commands(cmd_list = None, printall = None, conf = None):
+    def run_commands(cmd_list = None, cmd_lists = None, printall = None, conf = None):
         """
-        cmd_list - list of strings, DETECTED DEVICE TYPE DEPENDENT
+        FUNCTION: run_commands(), RETURN: list of command_outputs
+        PARAMETERS:
+        cmd_list  - list of strings, DETECTED DEVICE TYPE DEPENDENT
+        cmd_lists - dict, DEVICE TYPE INDEPENDENT
+        conf      - True/False, go to config mode        
         """
         command_outputs = None
         if not printall: printall = RCMD.printall
         if not conf: conf = RCMD.conf
+        
+        if cmd_lists and isinstance(cmd_lists, (dict,collections.OrderedDict)):
+            if RCMD.router_type=='cisco_ios': cmd_list = cmd_lists.get('cisco_ios',[])
+            elif RCMD.router_type=='cisco_xr': cmd_list = cmd_lists.get('cisco_xr',[])
+            elif RCMD.router_type=='juniper': cmd_list = cmd_lists.get('juniper',[])
+            elif RCMD.router_type=='huawei': cmd_list = cmd_lists.get('huawei',[]) 
+            elif RCMD.router_type=='linux': cmd_list = cmd_lists.get('linux',[]) 
+        
         if RCMD.ssh_connection:
             ### WORK REMOTE ================================================
             if not RCMD.logfilename:
@@ -319,9 +332,9 @@ class RCMD(object):
                 ### CONFIG MODE FOR PARAMIKO ###############################    
                 if conf and RCMD.use_module == 'paramiko':    
                     if RCMD.router_type=='cisco_ios': command_outputs.append(RCMD.run_command('config t'))
-                    if RCMD.router_type=='cisco_xr': command_outputs.append(RCMD.run_command('config t'))
-                    if RCMD.router_type=='juniper': command_outputs.append(RCMD.run_command('configure'))
-                    if RCMD.router_type=='huawei': command_outputs.append(RCMD.run_command('system-view'))
+                    elif RCMD.router_type=='cisco_xr': command_outputs.append(RCMD.run_command('config t'))
+                    elif RCMD.router_type=='juniper': command_outputs.append(RCMD.run_command('configure'))
+                    elif RCMD.router_type=='huawei': command_outputs.append(RCMD.run_command('system-view'))
                 ### PROCESS COMMANDS #######################################
                 for cli_line in cmd_list:
                     command_outputs.append(RCMD.run_command(cli_line))
@@ -329,14 +342,14 @@ class RCMD(object):
                 if conf and RCMD.use_module == 'paramiko':
                     ### COMMIT SECTION -------------------------------------               
                     if RCMD.router_type=='cisco_ios': command_outputs.append(RCMD.run_command('commit'))
-                    if RCMD.router_type=='cisco_xr': command_outputs.append(RCMD.run_command('commit'))
-                    if RCMD.router_type=='juniper': command_outputs.append(RCMD.run_command('commit'))
-                    if RCMD.router_type=='huawei': command_outputs.append(RCMD.run_command('save'))
+                    elif RCMD.router_type=='cisco_xr': command_outputs.append(RCMD.run_command('commit'))
+                    elif RCMD.router_type=='juniper': command_outputs.append(RCMD.run_command('commit'))
+                    elif RCMD.router_type=='huawei': command_outputs.append(RCMD.run_command('save'))
                     ### EXIT SECTION ---------------------------------------
                     if RCMD.router_type=='cisco_ios': command_outputs.append(RCMD.run_command('exit')) 
-                    if RCMD.router_type=='cisco_xr': command_outputs.append(RCMD.run_command('exit'))
-                    if RCMD.router_type=='juniper': command_outputs.append(RCMD.run_command('exit'))
-                    if RCMD.router_type=='huawei': command_outputs.append(RCMD.run_command('return'))                   
+                    elif RCMD.router_type=='cisco_xr': command_outputs.append(RCMD.run_command('exit'))
+                    elif RCMD.router_type=='juniper': command_outputs.append(RCMD.run_command('exit'))
+                    elif RCMD.router_type=='huawei': command_outputs.append(RCMD.run_command('return'))                   
         return command_outputs
         
     @staticmethod
@@ -568,10 +581,11 @@ if device:
     CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'blue')
     RCMD.disconnect()
 
-if CGI_CLI.data.get('device2',None):
-    rcmd_outputs = RCMD.connect(CGI_CLI.data.get('device2',None), cmd_list1, username = CGI_CLI.username, password = CGI_CLI.password)
-    CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'green')
-    RCMD.disconnect()
+# if CGI_CLI.data.get('device2',None):
+    # rcmd_outputs = RCMD.connect(CGI_CLI.data.get('device2',None), username = CGI_CLI.username, password = CGI_CLI.password)
+    # CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'green')
+    # RCMD.run_commands(cmd_lists = cmd_list1)
+    # RCMD.disconnect()
 
 
 
