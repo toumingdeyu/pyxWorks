@@ -1280,8 +1280,8 @@ if CGI_CLI.username and CGI_CLI.password: USERNAME, PASSWORD = CGI_CLI.username,
 
 CGI_CLI.uprint('LOGDIR[%s] \n'%(LOGDIR))
 
-device_name = CGI_CLI.data.get('device','')
-gw_device_name = CGI_CLI.data.get('gwdevice','')
+device_name = CGI_CLI.data.get('huawei-router','')
+gw_device_name = CGI_CLI.data.get('ipsec-gw-router','')
 vpn_name = CGI_CLI.data.get('vpn','')
 if vpn_name: glob_vars["VPN_NAME"] = vpn_name
 
