@@ -343,7 +343,7 @@ class RCMD(object):
                     elif RCMD.router_type=='cisco_xr': commit_output = RCMD.run_command('commit')
                     elif RCMD.router_type=='juniper': commit_output = RCMD.run_command('commit')
                     elif RCMD.router_type=='huawei': commit_output = RCMD.run_command('save')
-                    CGI_CLI.uprint(commit_output)
+                    CGI_CLI.uprint('COMMIT:' + commit_output)
                     ### EXIT SECTION ---------------------------------------
                     if RCMD.router_type=='cisco_ios': RCMD.run_command('exit') 
                     elif RCMD.router_type=='cisco_xr': RCMD.run_command('exit')
