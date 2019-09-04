@@ -98,9 +98,11 @@ default_printalllines_list = []
 
 # IOS-XE is only for IPsec GW
 CMD_IOS_XE = [
+    {"eval":["bgp_data.get('vlan_id','')"]}, 
     {'if':"bgp_data.get('vlan_id','')",
         'remote_command':['show running-config interface tunnel',{'eval':"bgp_data.get('vlan_id','')"},{'output_variable':'CONFIG_IF_TEXT'}]},
-    {'exec':'try: glob_vars["gw_vrf_forwarding"] = glob_vars.get("last_output","").split("vrf forwarding ")[1].splitlines()[0].strip() \
+    {"eval":["bgp_data.get('CONFIG_IF_TEXT','')"]},
+    {'exec':'try: glob_vars["gw_vrf_forwarding"] = glob_vars.get("CONFIG_IF_TEXT","").split("vrf forwarding ")[1].splitlines()[0].strip() \
            \nexcept: pass', 
     },
     {'if':'glob_vars.get("gw_vrf_forwarding","")', 
@@ -115,14 +117,18 @@ CMD_IOS_XE = [
     },  
     {'if':'glob_vars.get("CONFIG_IF_TEXT","")', 
         'exec':'try: bgp_data["mask"] = glob_vars.get("CONFIG_IF_TEXT","").split("ip address ")[1].split()[1].strip() \nexcept: pass'
-    },     
+    },
+    {"eval":["bgp_data.get('ip_address','')"]},
+    {"eval":["bgp_data.get('mask','')"]},
     {"eval":["return_bgp_data_json()",{'print_output':'on'}]},
 ]
 
 CMD_IOS_XR = [
+    {"eval":["bgp_data.get('vlan_id','')"]}, 
     {'if':"bgp_data.get('vlan_id','')",
         'remote_command':['show running-config interface tunnel',{'eval':"bgp_data.get('vlan_id','')"},{'output_variable':'CONFIG_IF_TEXT'}]},
-    {'exec':'try: glob_vars["gw_vrf_forwarding"] = glob_vars.get("last_output","").split("vrf forwarding ")[1].splitlines()[0].strip() \
+    {"eval":["bgp_data.get('CONFIG_IF_TEXT','')"]},
+    {'exec':'try: glob_vars["gw_vrf_forwarding"] = glob_vars.get("CONFIG_IF_TEXT","").split("vrf forwarding ")[1].splitlines()[0].strip() \
            \nexcept: pass', 
     },
     {'if':'glob_vars.get("gw_vrf_forwarding","")', 
@@ -137,7 +143,9 @@ CMD_IOS_XR = [
     },  
     {'if':'glob_vars.get("CONFIG_IF_TEXT","")', 
         'exec':'try: bgp_data["mask"] = glob_vars.get("CONFIG_IF_TEXT","").split("ip address ")[1].split()[1].strip() \nexcept: pass'
-    },     
+    },
+    {"eval":["bgp_data.get('ip_address','')"]},
+    {"eval":["bgp_data.get('mask','')"]},
     {"eval":["return_bgp_data_json()",{'print_output':'on'}]},
 ]
 
