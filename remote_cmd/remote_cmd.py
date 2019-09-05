@@ -326,29 +326,30 @@ class RCMD(object):
                 ### CONFIG MODE FOR NETMIKO ################################
                 if conf and RCMD.use_module == 'netmiko':                
                     RCMD.ssh_connection.send_config_set(cmd_list)
-                ### CONFIG MODE FOR PARAMIKO ###############################    
-                if conf and RCMD.use_module == 'paramiko':    
-                    if RCMD.router_type=='cisco_ios': RCMD.run_command('config t')
-                    elif RCMD.router_type=='cisco_xr': RCMD.run_command('config t')
-                    elif RCMD.router_type=='juniper': RCMD.run_command('configure')
-                    elif RCMD.router_type=='huawei': RCMD.run_command('system-view')
-                ### PROCESS COMMANDS #######################################
-                for cli_line in cmd_list:
-                    command_outputs.append(RCMD.run_command(cli_line))
-                ### EXIT FROM CONFIG MODE FOR PARAMIKO #####################    
-                if conf and RCMD.use_module == 'paramiko':
-                    ### COMMIT SECTION -------------------------------------
-                    commit_output = ""                    
-                    if RCMD.router_type=='cisco_ios': commit_output = RCMD.run_command('commit')
-                    elif RCMD.router_type=='cisco_xr': commit_output = RCMD.run_command('commit')
-                    elif RCMD.router_type=='juniper': commit_output = RCMD.run_command('commit')
-                    elif RCMD.router_type=='huawei': commit_output = RCMD.run_command('save')
-                    CGI_CLI.uprint('COMMIT:' + commit_output)
-                    ### EXIT SECTION ---------------------------------------
-                    if RCMD.router_type=='cisco_ios': RCMD.run_command('exit') 
-                    elif RCMD.router_type=='cisco_xr': RCMD.run_command('exit')
-                    elif RCMD.router_type=='juniper': RCMD.run_command('exit')
-                    elif RCMD.router_type=='huawei': RCMD.run_command('return')                   
+                else:    
+                    ### CONFIG MODE FOR PARAMIKO ###############################    
+                    if conf and RCMD.use_module == 'paramiko':    
+                        if RCMD.router_type=='cisco_ios': RCMD.run_command('config t')
+                        elif RCMD.router_type=='cisco_xr': RCMD.run_command('config t')
+                        elif RCMD.router_type=='juniper': RCMD.run_command('configure')
+                        elif RCMD.router_type=='huawei': RCMD.run_command('system-view')
+                    ### PROCESS COMMANDS #######################################
+                    for cli_line in cmd_list:
+                        command_outputs.append(RCMD.run_command(cli_line))
+                    ### EXIT FROM CONFIG MODE FOR PARAMIKO #####################    
+                    if conf and RCMD.use_module == 'paramiko':
+                        ### COMMIT SECTION -------------------------------------
+                        commit_output = ""                    
+                        if RCMD.router_type=='cisco_ios': commit_output = RCMD.run_command('commit')
+                        elif RCMD.router_type=='cisco_xr': commit_output = RCMD.run_command('commit')
+                        elif RCMD.router_type=='juniper': commit_output = RCMD.run_command('commit')
+                        elif RCMD.router_type=='huawei': commit_output = RCMD.run_command('save')
+                        CGI_CLI.uprint('COMMIT:' + commit_output)
+                        ### EXIT SECTION ---------------------------------------
+                        if RCMD.router_type=='cisco_ios': RCMD.run_command('exit') 
+                        elif RCMD.router_type=='cisco_xr': RCMD.run_command('exit')
+                        elif RCMD.router_type=='juniper': RCMD.run_command('exit')
+                        elif RCMD.router_type=='huawei': RCMD.run_command('return')                   
         return command_outputs
         
     @staticmethod
@@ -551,8 +552,8 @@ class LCMD(object):
         LCMD.printall = printall
          
     @staticmethod
-    def run_os_cmd(cli_line = None, logfilename = None, printall = None):
-        os_output = str()
+    def run_os_command(cli_line = None, logfilename = None, printall = None):
+        os_output, cli_list = str(), None
         ### RUN INIT DURING FIRST RUN IF NO INIT BEFORE
         try:
             if LCMD.initialized: pass
@@ -560,8 +561,8 @@ class LCMD(object):
         ### LOCAL PRINTALL AND LOGFILENAME OVERWRITES GLOBAL
         if not printall: printall = LCMD.printall
         if not logfilename: logfilename = LCMD.logfilename
-        if cli_line:        
-            with open(logfilename,"a+") as LCMD.fp:
+        if cli_line:      
+            with open(logfilename,"a+") as LCMD.fp:      
                 if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cli_line))
                 LCMD.fp.write('LOCAL_COMMAND: ' + cli_line + '\n')
                 try: os_output = subprocess.check_output(str(cli_line), shell=True).decode("utf-8") 
@@ -575,6 +576,39 @@ class LCMD(object):
                 if os_output and printall: CGI_CLI.uprint(os_output)
                 LCMD.fp.write(os_output + '\n')
         return os_output
+
+    @staticmethod
+    def run_os_commands(cli_lists = None, logfilename = None, printall = None):
+        os_outputs, cli_list =  None, None
+        ### RUN INIT DURING FIRST RUN IF NO INIT BEFORE
+        try:
+            if LCMD.initialized: pass
+        except: LCMD.init(logfilename = logfilename, printall = printall)
+        ### LOCAL PRINTALL AND LOGFILENAME OVERWRITES GLOBAL
+        if not printall: printall = LCMD.printall
+        if not logfilename: logfilename = LCMD.logfilename
+        if cli_lists and isinstance(cli_lists, (dict,collections.OrderedDict)):
+            if 'WIN32' in sys.platform.upper(): cli_list = cli_lists.get('windows',[])
+            else: cli_list = cli_lists.get('unix',[])
+        if cli_list: 
+            os_outputs = []        
+            with open(logfilename,"a+") as LCMD.fp:
+                for cli_line in cli_list:
+                    os_output = str()
+                    if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cli_line))
+                    LCMD.fp.write('LOCAL_COMMAND: ' + cli_line + '\n')
+                    try: os_output = subprocess.check_output(str(cli_line), shell=True).decode("utf-8") 
+                    except (subprocess.CalledProcessError) as e: 
+                        if printall: CGI_CLI.uprint(str(e))
+                        LCMD.fp.write(str(e) + '\n')
+                    except: 
+                        exc_text = traceback.format_exc()
+                        CGI_CLI.uprint(exc_text)
+                        LCMD.fp.write(exc_text + '\n')                
+                    if os_output and printall: CGI_CLI.uprint(os_output)
+                    LCMD.fp.write(os_output + '\n')
+                    os_outputs.append(os_output)
+        return os_outputs
 
             
 ##############################################################################
@@ -610,6 +644,11 @@ cmd_list1 = {
     'linux':['uname'],
 }
 
+cli_list1 = {
+    'windows':['whoami'],
+    'unix':['whoami'],
+}
+
 # if device:
     # rcmd_outputs = RCMD.connect(device, cmd_list1, username = CGI_CLI.username, password = CGI_CLI.password)
     # CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'blue')
@@ -626,4 +665,5 @@ cmd_list1 = {
 
 cli_line = """exit 1"""
 LCMD.init(printall = True)
-LCMD.run_os_cmd(cli_line)
+LCMD.run_os_command(cli_line)
+LCMD.run_os_commands(cli_list1)
