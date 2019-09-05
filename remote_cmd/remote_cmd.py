@@ -539,7 +539,42 @@ class RCMD(object):
 
 
 
+class LCMD(object):
 
+    @staticmethod
+    def init(logfilename = None, printall = None):
+        LCMD.initialized = True
+        if logfilename: LCMD.logfilename = logfilename
+        else:
+            if 'WIN32' in sys.platform.upper(): LCMD.logfilename = 'nul'
+            else: LCMD.logfilename = '/dev/null'
+        LCMD.printall = printall
+         
+    @staticmethod
+    def run_os_cmd(cli_line = None, logfilename = None, printall = None):
+        os_output = str()
+        ### RUN INIT DURING FIRST RUN IF NO INIT BEFORE
+        try:
+            if LCMD.initialized: pass
+        except: LCMD.init(logfilename = logfilename, printall = printall)
+        ### LOCAL PRINTALL AND LOGFILENAME OVERWRITES GLOBAL
+        if not printall: printall = LCMD.printall
+        if not logfilename: logfilename = LCMD.logfilename
+        if cli_line:        
+            with open(logfilename,"a+") as LCMD.fp:
+                if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cli_line))
+                LCMD.fp.write('LOCAL_COMMAND: ' + cli_line + '\n')
+                try: os_output = subprocess.check_output(str(cli_line), shell=True).decode("utf-8") 
+                except (subprocess.CalledProcessError) as e: 
+                    if printall: CGI_CLI.uprint(str(e))
+                    LCMD.fp.write(str(e) + '\n')
+                except: 
+                    exc_text = traceback.format_exc()
+                    CGI_CLI.uprint(exc_text)
+                    LCMD.fp.write(exc_text + '\n')                
+                if os_output and printall: CGI_CLI.uprint(os_output)
+                LCMD.fp.write(os_output + '\n')
+        return os_output
 
             
 ##############################################################################
@@ -575,11 +610,11 @@ cmd_list1 = {
     'linux':['uname'],
 }
 
-if device:
-    rcmd_outputs = RCMD.connect(device, cmd_list1, username = CGI_CLI.username, password = CGI_CLI.password)
-    CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'blue')
-    RCMD.run_commands(cmd_lists = cmd_list1)
-    RCMD.disconnect()
+# if device:
+    # rcmd_outputs = RCMD.connect(device, cmd_list1, username = CGI_CLI.username, password = CGI_CLI.password)
+    # CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'blue')
+    # RCMD.run_commands(cmd_lists = cmd_list1)
+    # RCMD.disconnect()
 
 # if CGI_CLI.data.get('device2',None):
     # rcmd_outputs = RCMD.connect(CGI_CLI.data.get('device2',None), username = CGI_CLI.username, password = CGI_CLI.password)
@@ -589,5 +624,6 @@ if device:
 
 
 
-
-
+cli_line = """exit 1"""
+LCMD.init(printall = True)
+LCMD.run_os_cmd(cli_line)
