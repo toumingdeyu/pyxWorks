@@ -648,10 +648,7 @@ def generate_post_IPSEC_GW_router_config(data = None):
     config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'      
 
     mytemplate = Template(GW_port_channel_interface_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'  
-    
-    mytemplate = Template(GW_port_channel_interface_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'    
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'      
     
     mytemplate = Template(GW_interconnect_interface_templ,strict_undefined=True)
     config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'   
