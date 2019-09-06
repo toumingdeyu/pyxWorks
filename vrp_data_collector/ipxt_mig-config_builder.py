@@ -757,23 +757,23 @@ end-set
 """
 
 PE_policy_map_templ = """!
-policy-map ${cgi_data.get('vpn','UNKNOWN')}-IN
+policy-map ${cgi_data.get('customer_name','UNKNOWN')}-IN
  class class-default
-  service-policy ${cgi_data.get('vpn','UNKNOWN')}-COS-IN
-  police rate ${cgi_data.get('vpn','UNKNOWN')} mbps 
+  service-policy ${cgi_data.get('customer_name','UNKNOWN')}-COS-IN
+  police rate ${cgi_data.get('int-bw','UNKNOWN')} mbps 
 end-policy-map
 ! 
-policy-map ${cgi_data.get('vpn','UNKNOWN')}-OUT
+policy-map ${cgi_data.get('customer_name','UNKNOWN')}-OUT
  class class-default
-  service-policy ${cgi_data.get('vpn','UNKNOWN')}-COS-OUT
-  shape average ${cgi_data.get('gold-bw','UNKNOWN')} mbps
-  bandwidth ${cgi_data.get('vpn','UNKNOWN')} mbps 
+  service-policy ${cgi_data.get('customer_name','UNKNOWN')}-COS-OUT
+  shape average ${cgi_data.get('int-bw','UNKNOWN')} mbps
+  bandwidth ${cgi_data.get('int-bw','UNKNOWN')} mbps 
  ! 
 end-policy-map
 ! 
-policy-map ${cgi_data.get('vpn','UNKNOWN')}-COS-IN
+policy-map ${cgi_data.get('customer_name','UNKNOWN')}-COS-IN
  class GOLD
-  police rate ${cgi_data.get('gold-bw','UNKNOWN')} mbps 
+  police rate ${cgi_data.get('int-bw','UNKNOWN')} mbps 
   ! 
   set mpls experimental imposition 5
  ! 
@@ -785,9 +785,9 @@ policy-map ${cgi_data.get('vpn','UNKNOWN')}-COS-IN
  ! 
  end-policy-map
 ! 
-policy-map ${cgi_data.get('vpn','UNKNOWN')}-COS-OUT
+policy-map ${cgi_data.get('customer_name','UNKNOWN')}-COS-OUT
  class GOLD
-  police rate ${cgi_data.get('gold-bw','UNKNOWN')} mbps 
+  police rate ${cgi_data.get('int-bw','UNKNOWN')} mbps 
   ! 
   priority level 1 
  ! 
@@ -815,6 +815,7 @@ PE_customer_interface_templ = """interface ${''.join([ str(item.get('int_id','UN
  bandwidth ${cgi_data.get('int-bw','UNKNOWN')}000
  vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')} 
  ipv4 address ${cgi_data.get('pe-ip-address','UNKNOWN')} 255.255.255.254
+ flow ipv4 monitor ICX sampler ICX ingress
  ipv4 access-group ${cgi_data.get('vpn','UNKNOWN')}-IN ingress
  service-policy input ${cgi_data.get('vpn','UNKNOWN')}-IN
  service-policy output ${cgi_data.get('vpn','UNKNOWN')}-OUT
