@@ -52,7 +52,7 @@ class CGI_CLI(object):
                             action = "store", dest = 'password', default = str(),
                             help = "specify router password (test only...)")
         parser.add_argument("--getpass",
-                            action = "store", dest = 'getpass', default = str(),
+                            action = "store_true", dest = 'getpass', default = None,
                             help = "insert router password interactively getpass.getpass()")                                                        
         parser.add_argument("--pe_device",
                             action = "store", dest = 'pe_device',
@@ -110,10 +110,11 @@ class CGI_CLI(object):
         except: CGI_CLI.PASSWORD        = str()
         try:    CGI_CLI.USERNAME        = os.environ['NEWR_USER']
         except: CGI_CLI.USERNAME        = str()
-        if CGI_CLI.args.username: 
+        if CGI_CLI.args.username:        
             CGI_CLI.USERNAME = CGI_CLI.args.username
+            CGI_CLI.PASSWORD = str()
             if interaction or CGI_CLI.args.getpass: CGI_CLI.PASSWORD = getpass.getpass("TACACS password: ")
-            elif CGI_CLI.args.password: CGI_CLI.USERNAME = CGI_CLI.args.password                
+            elif CGI_CLI.args.password: CGI_CLI.password = CGI_CLI.args.password                
         if CGI_CLI.username: CGI_CLI.USERNAME = CGI_CLI.username
         if CGI_CLI.password: CGI_CLI.PASSWORD = CGI_CLI.password
         if CGI_CLI.cgi_active or 'WIN32' in sys.platform.upper(): bcolors = nocolors
@@ -505,9 +506,9 @@ class RCMD(object):
         return output, new_prompt
 
     @staticmethod
-    def detect_router_by_ssh(debug = False):
+    def detect_router_by_ssh(debug = None):
         # detect device prompt
-        def ssh_detect_prompt(chan, debug = False):
+        def ssh_detect_prompt(chan, debug = debug):
             output, buff, last_line, last_but_one_line = str(), str(), 'dummyline1', 'dummyline2'
             chan.send('\t \n\n')
             while not (last_line and last_but_one_line and last_line == last_but_one_line):
@@ -525,7 +526,7 @@ class RCMD(object):
             if debug: CGI_CLI.uprint('DETECTED PROMPT: \'' + prompt + '\'')
             return prompt
         # bullet-proof read-until function , even in case of ---more---
-        def ssh_read_until_prompt_bulletproof(chan,command,prompts,debug = False):
+        def ssh_read_until_prompt_bulletproof(chan,command,prompts,debug = debug):
             output, buff, last_line, exit_loop = str(), str(), 'dummyline1', False
             # avoid of echoing commands on ios-xe by timeout 1 second
             flush_buffer = chan.recv(9999)
