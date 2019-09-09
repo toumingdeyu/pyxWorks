@@ -622,6 +622,41 @@ class LCMD(object):
                     os_outputs.append(os_output)
         return os_outputs
 
+    @staticmethod
+    def eval_command(cmd_data = None, logfilename = None, printall = None):
+        local_output = None
+        ### LOCAL PRINTALL AND LOGFILENAME OVERWRITES GLOBAL
+        if not printall: printall = LCMD.printall
+        if not logfilename: logfilename = LCMD.logfilename
+        if cmd_data and isinstance(cmd_data, (six.string_types)):
+            with open(logfilename,"a+") as LCMD.fp:
+                if printall: CGI_CLI.uprint("EVAL: %s" % (cmd_data))
+                try: 
+                    local_output = eval(cmd_data)
+                    if printall: CGI_CLI.uprint(str(local_output))
+                    LCMD.fp.write('EVAL: ' + cmd_data + '\n' + str(local_output) + '\n')
+                except Exception as e: 
+                    if printall:CGI_CLI.uprint('EVAL_PROBLEM[' + str(e) + ']')
+                    LCMD.fp.write('EVAL_PROBLEM[' + str(e) + ']\n')
+        return local_output
+        
+    @staticmethod
+    def exec_command(cmd_data = None, logfilename = None, printall = None):
+        ### LOCAL PRINTALL AND LOGFILENAME OVERWRITES GLOBAL
+        if not printall: printall = LCMD.printall
+        if not logfilename: logfilename = LCMD.logfilename
+        if cmd_data and isinstance(cmd_data, (six.string_types)): 
+            with open(logfilename,"a+") as LCMD.fp:
+                if printall: CGI_CLI.uprint("EXEC: %s" % (cmd_data))
+                LCMD.fp.write('EXEC: ' + cmd_data + '\n')
+                ### EXEC CODE WORKAROUND for OLD PYTHON v2.7.5
+                try:
+                    edict = {}; eval(compile(cmd_data, '<string>', 'exec'), globals(), edict)
+                except Exception as e: 
+                    if printall:CGI_CLI.uprint('EXEC_PROBLEM[' + str(e) + ']')
+                    LCMD.fp.write('EXEC_PROBLEM[' + str(e) + ']\n')                    
+        return None
+
             
 ##############################################################################
 #
@@ -679,3 +714,34 @@ lcmd_line = """exit 1"""
 LCMD.init(printall = True)
 LCMD.run_command(lcmd_line)
 LCMD.run_commands(lcmd_data2)
+
+LCMD.eval_command('lcmd_data2')
+LCMD.exec_command('print(lcmd_data2)')
+
+# 127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+# ::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+# 127.0.1.1   iptac5
+# 10.253.58.126   iptac5 iptac5.oakhill.lab
+
+
+# # Oak Hill Lab
+# 192.168.122.2   NSO2_HOST
+# 192.168.122.3   NSO_SERVER
+# 192.168.122.4   pronghong
+
+# # vASR9K's
+# 192.168.122.140 PARTR0
+# 192.168.122.141 NYKTR0
+
+# # vMX-x's
+# 192.168.122.150 PARCR0
+# 192.168.122.151 NYKCR0
+
+# # vASR1K's
+# 192.168.122.160 PARPE0
+# 192.168.122.161 NYKPE0
+# 192.168.122.170 PARCE0
+# 192.168.122.171 NYKCE0
+
+# 192.168.122.253 LABSW1
+# 192.168.122.252 OAKPE0
