@@ -193,7 +193,7 @@ class RCMD(object):
         2. only 1 instance of static class RCMD could exists
         """
         import atexit; atexit.register(RCMD.__cleanup__)
-        command_outputs = None
+        command_outputs = str()
         if device:
             RCMD.CMD = []
             RCMD.output, RCMD.fp = None, None
@@ -217,7 +217,7 @@ class RCMD(object):
                 %(device, RCMD.DEVICE_HOST, RCMD.DEVICE_PORT)+24 * '.')
             RCMD.router_type, RCMD.router_prompt = RCMD.detect_router_by_ssh()
             if not RCMD.router_type in RCMD.KNOWN_OS_TYPES:
-                CGI_CLI.uprint('%sUNSUPPORTED DEVICE TYPE: %s , BREAK!%s' % \
+                CGI_CLI.uprint('%sUNSUPPORTED DEVICE TYPE: \'%s\', BREAK!%s' % \
                     (bcolors.MAGENTA, RCMD.router_type, bcolors.ENDC))
             else: CGI_CLI.uprint('DETECTED DEVICE_TYPE: %s' % (RCMD.router_type))
             ####################################################################
@@ -284,12 +284,7 @@ class RCMD(object):
                 ### WORK REMOTE  =============================================
                 command_outputs = RCMD.run_commands(RCMD.CMD)
                 ### ==========================================================  
-            except () as e:
-                print(bcolors.FAIL + " ... EXCEPTION: (%s)" % (e) + bcolors.ENDC )
-                sys.exit()
-            except:
-                CGI_CLI.uprint(bcolors.MAGENTA + " ... CONNECTION ERROR: %s " % (str(sys.exc_info()[:-1])) + bcolors.ENDC )
-                sys.exit()
+            except Exception as e: CGI_CLI.uprint('CONNECTION_PROBLEM[' + str(e) + ']')    
             finally:
                 if disconnect: RCMD.disconnect()
         else: CGI_CLI.uprint('DEVICE NOT INSERTED!')
@@ -321,7 +316,7 @@ class RCMD(object):
                  - list of strings or string, OS TYPE DEPENDENT    
         conf     - True/False, go to config mode        
         """
-        command_outputs = None
+        command_outputs = str()
         if not printall: printall = RCMD.printall
         if not conf: conf = RCMD.conf
 
@@ -496,7 +491,7 @@ class RCMD(object):
                         last_line and last_line.endswith(actual_prompt): exit_loop = True
             return output
         # Detect function start
-        router_os = str()
+        router_os, prompt = str(), str()
         client = paramiko.SSHClient()
         #client.load_system_host_keys()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -526,12 +521,7 @@ class RCMD(object):
                 if 'LINUX' in output.upper(): router_os = 'linux'
             if not router_os:
                 CGI_CLI.uprint(bcolors.MAGENTA + "\nCannot find recognizable OS in %s" % (output) + bcolors.ENDC)
-        except (socket.timeout, paramiko.AuthenticationException) as e:
-            CGI_CLI.uprint(bcolors.MAGENTA + " ... Connection closed: %s " % (e) + bcolors.ENDC )
-            sys.exit()
-        except:
-            CGI_CLI.uprint(bcolors.MAGENTA + " ... Connection error: %s " % (str(sys.exc_info()[:-1])) + bcolors.ENDC )
-            sys.exit()
+        except Exception as e: CGI_CLI.uprint('CONNECTION_PROBLEM[' + str(e) + ']')
         finally: client.close()
         netmiko_os = str()
         if router_os == 'ios-xe': netmiko_os = 'cisco_ios'
@@ -553,10 +543,9 @@ class LCMD(object):
             if 'WIN32' in sys.platform.upper(): LCMD.logfilename = 'nul'
             else: LCMD.logfilename = '/dev/null'
         LCMD.printall = printall
-         
+
     @staticmethod
-    def run_command(cmd_line = None, logfilename = None, printall = None):
-        os_output, cmd_list = str(), None
+    def init_log_and_print(logfilename = None, printall = None):
         ### RUN INIT DURING FIRST RUN IF NO INIT BEFORE
         try:
             if LCMD.initialized: pass
@@ -564,6 +553,12 @@ class LCMD(object):
         ### LOCAL PRINTALL AND LOGFILENAME OVERWRITES GLOBAL
         if not printall: printall = LCMD.printall
         if not logfilename: logfilename = LCMD.logfilename
+        return logfilename, printall
+         
+    @staticmethod
+    def run_command(cmd_line = None, logfilename = None, printall = None):
+        os_output, cmd_list = str(), None
+        logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
         if cmd_line:      
             with open(logfilename,"a+") as LCMD.fp:      
                 if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line))
@@ -589,13 +584,7 @@ class LCMD(object):
                  - list of strings or string, OS TYPE DEPENDENT       
         """
         os_outputs =  None
-        ### RUN INIT DURING FIRST RUN IF NO INIT BEFORE
-        try:
-            if LCMD.initialized: pass
-        except: LCMD.init(logfilename = logfilename, printall = printall)
-        ### LOCAL PRINTALL AND LOGFILENAME OVERWRITES GLOBAL
-        if not printall: printall = LCMD.printall
-        if not logfilename: logfilename = LCMD.logfilename
+        logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
         if cmd_data and isinstance(cmd_data, (dict,collections.OrderedDict)):
             if 'WIN32' in sys.platform.upper(): cmd_list = cmd_data.get('windows',[])
             else: cmd_list = cmd_data.get('unix',[])
@@ -625,9 +614,7 @@ class LCMD(object):
     @staticmethod
     def eval_command(cmd_data = None, logfilename = None, printall = None):
         local_output = None
-        ### LOCAL PRINTALL AND LOGFILENAME OVERWRITES GLOBAL
-        if not printall: printall = LCMD.printall
-        if not logfilename: logfilename = LCMD.logfilename
+        logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
         if cmd_data and isinstance(cmd_data, (six.string_types)):
             with open(logfilename,"a+") as LCMD.fp:
                 if printall: CGI_CLI.uprint("EVAL: %s" % (cmd_data))
@@ -642,9 +629,7 @@ class LCMD(object):
         
     @staticmethod
     def exec_command(cmd_data = None, logfilename = None, printall = None):
-        ### LOCAL PRINTALL AND LOGFILENAME OVERWRITES GLOBAL
-        if not printall: printall = LCMD.printall
-        if not logfilename: logfilename = LCMD.logfilename
+        logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
         if cmd_data and isinstance(cmd_data, (six.string_types)): 
             with open(logfilename,"a+") as LCMD.fp:
                 if printall: CGI_CLI.uprint("EXEC: %s" % (cmd_data))
@@ -671,9 +656,12 @@ CGI_CLI.init_cgi()
 CGI_CLI.print_args()
 if CGI_CLI.cgi_active or 'WIN32' in sys.platform.upper(): bcolors = nocolors
 
-device = None
-if CGI_CLI.cgi_active and CGI_CLI.data.get('device',None):
-    device = CGI_CLI.data.get('device',None)
+pe_device, gw_device = None, None
+if CGI_CLI.cgi_active and CGI_CLI.data.get('pe-router',None):
+    pe_device = CGI_CLI.data.get('pe-router',None)
+
+if CGI_CLI.cgi_active and CGI_CLI.data.get('ipsec-gw-router',None):
+    gw_device = CGI_CLI.data.get('ipsec-gw-router',None)
 
 # cmd_data = {
     # 'cisco_ios':[],
@@ -696,24 +684,28 @@ lcmd_data2 = {
     'unix':['whoami'],
 }
 
-# if device:
-    # rcmd_outputs = RCMD.connect(device, rcmd_data1, username = CGI_CLI.username, password = CGI_CLI.password)
-    # CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'blue')
-    # RCMD.run_commands(cmd_data = rcmd_data1)
-    # RCMD.disconnect()
+pe_device = 'partr0'
+username = 'iptac' 
+password = 'paiiUNDO'
 
-# if CGI_CLI.data.get('device2',None):
-    # rcmd_outputs = RCMD.connect(CGI_CLI.data.get('device2',None), username = CGI_CLI.username, password = CGI_CLI.password)
+print(pe_device)
+
+if pe_device:
+    rcmd_outputs = RCMD.connect(pe_device, rcmd_data1, username = 'iptac', password = 'paiiUNDO')
+    CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'blue')
+    RCMD.disconnect()
+
+# if gw_device:
+    # rcmd_outputs = RCMD.connect(gw_device, rcmd_data1, username = CGI_CLI.username, password = CGI_CLI.password)
     # CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'green')
-    # RCMD.run_commands(cmd_data = rcmd_data1)
     # RCMD.disconnect()
 
 
 
-lcmd_line = """exit 1"""
-LCMD.init(printall = True)
-LCMD.run_command(lcmd_line)
-LCMD.run_commands(lcmd_data2)
+# lcmd_line = """exit 1"""
+# LCMD.init(printall = True)
+# LCMD.run_command(lcmd_line)
+# LCMD.run_commands(lcmd_data2)
 
 LCMD.eval_command('lcmd_data2')
 LCMD.exec_command('print(lcmd_data2)')
