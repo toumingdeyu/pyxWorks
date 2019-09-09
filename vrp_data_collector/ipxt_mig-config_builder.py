@@ -1088,6 +1088,7 @@ if data:
     ### MAKE LOGFILE STEP2 + SEND EMAIL    
     if CGI_CLI.cgi_active and data:
         logfilename = data['cgi_data'].get('session_id',None).replace('Submit_step_1','Submit_step_2').strip()
+        cfgfilename = logfilename.replace('Submit_step_2-log','config')
         if logfilename:
             try: dummy = subprocess.check_output('rm -rf %s' % (logfilename), shell=True)
             except: pass
@@ -1104,8 +1105,25 @@ if data:
             ### MAKE READABLE for THE OTHERS
             try: dummy = subprocess.check_output('chmod +r %s' % (logfilename), shell=True)
             except: pass
+
+        configtext = str()            
+        if cfgfilename:
+            try: dummy = subprocess.check_output('rm -rf %s' % (cfgfilename), shell=True)
+            except: pass
+            with open(cfgfilename,"w") as fp:
+                fp.write('\n\nIPSEC GW ROUTER (%s) POST-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()) + 50*'-'  + '\n')
+                fp.write(post_config_text_gw)    
+                fp.write('\n\nPE ROUTER (%s) POST-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()) + 50*'-' + '\n')
+                fp.write(post_config_text_pe)
+                configtext = '\n\nIPSEC GW ROUTER (%s) POST-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()) + 50*'-'  + '\n'
+                configtext += post_config_text_gw
+                configtext += '\n\nPE ROUTER (%s) POST-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()) + 50*'-' + '\n'
+                configtext += post_config_text_pe                
+            ### MAKE READABLE for THE OTHERS
+            try: dummy = subprocess.check_output('chmod +r %s' % (cfgfilename), shell=True)
+            except: pass
             
-        if logfilename and os.path.exists(logfilename):            
-            try: send_me_email(subject = logfilename.replace('\\','/').split('/')[-1], \
-                     file_name = logfilename, username = USERNAME)
-            except: pass            
+        if logfilename and cfgfilename and os.path.exists(logfilename) and os.path.exists(cfgfilename):           
+            send_me_email(subject = cfgfilename.replace('\\','/').split('/')[-1], \
+                attachments = [logfilename,cfgfilename], email_body = configtext, username = USERNAME)
+            
