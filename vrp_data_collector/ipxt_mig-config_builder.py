@@ -466,7 +466,7 @@ pre_GW_vrf_definition_templ = """vrf definition LOCAL.${cgi_data.get('vlan-id','
 """
 
 pre_GW_tunnel_interface_templ = """interface Tunnel${cgi_data.get('vlan-id','UNKNOWN')}
- description ${cgi_data.get('customer_name','UNKNOWN')} :IPXT @${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} - IPX ${cgi_data.get('ld-number','UNKNOWN')} TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
+ description ${cgi_data.get('customer_name','UNKNOWN')} :IPXT @${cgi_data.get('bgp-peer-address','UNKNOWN')} - IPX ${cgi_data.get('ld-number','UNKNOWN')} TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
  bandwidth ${cgi_data.get('int-bw','UNKNOWN')}000
  vrf forwarding LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
  ip flow monitor ICX sampler ICX input
@@ -584,7 +584,7 @@ crypto ipsec profile ${cgi_data.get('vpn','UNKNOWN')}
 
 GW_tunnel_interface_templ = """interface Tunnel${cgi_data.get('vlan-id','UNKNOWN')}
  no shutdown
- description TESTING ${cgi_data.get('customer_name','UNKNOWN')} @${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} - IPX ${cgi_data.get('ld-number','UNKNOWN')} TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
+ description TESTING ${cgi_data.get('customer_name','UNKNOWN')} @${cgi_data.get('bgp-peer-address','UNKNOWN')} - IPX ${cgi_data.get('ld-number','UNKNOWN')} TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
  bandwidth ${cgi_data.get('int-bw','UNKNOWN')}000
  vrf forwarding LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
  ip address ${''.join([ str(item.get('ip_address','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} 255.255.255.254
@@ -629,13 +629,15 @@ ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 0.0.0.0 0.0.0.0 ${''.joi
 ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} 255.255.255.255 Tunnel${cgi_data.get('vlan-id','UNKNOWN')} ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} 
 % for i in range(int(len(list)/2)):
 % if cgi_data.get('ipv4-acl','').split(',')[2*i+1] == "0":
-ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('ipv4-acl','').split(',')[2*i]} 255.255.255.255 Tunnel${cgi_data.get('vlan-id','UNKNOWN')} ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}
+ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('ipv4-acl','').split(',')[2*i]} 255.255.255.255 Tunnel${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('bgp-peer-address','UNKNOWN')}
 % else:
-ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('ipv4-acl','').split(',')[2*i]} ${'.'.join([ str(int(mask_item)^255) for mask_item in cgi_data.get('ipv4-acl','').split(',')[2*i+1].split('.') if '.' in cgi_data.get('ipv4-acl','').split(',')[2*i+1] and not "" in mask_item ])} Tunnel${cgi_data.get('vlan-id','UNKNOWN')} ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}
+ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('ipv4-acl','').split(',')[2*i]} ${'.'.join([ str(int(mask_item)^255) for mask_item in cgi_data.get('ipv4-acl','').split(',')[2*i+1].split('.') if '.' in cgi_data.get('ipv4-acl','').split(',')[2*i+1] and not "" in mask_item ])} Tunnel${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('bgp-peer-address','UNKNOWN')}
 % endif
 % endfor
 !
 """
+
+### ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}
 
 ################################################################################
 def generate_post_IPSEC_GW_router_config(data = None):
