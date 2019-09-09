@@ -559,7 +559,7 @@ class RCMD(object):
             chan.settimeout(RCMD.TIMEOUT)
             # prevent --More-- in log banner (space=page, enter=1line,tab=esc)
             # \n\n get prompt as last line
-            prompt = ssh_detect_prompt(chan, debug=False)
+            prompt = ssh_detect_prompt(chan, debug=debug)
             #test if this is HUAWEI VRP
             if prompt and not router_os:
                 command = 'display version | include (Huawei)\n'
