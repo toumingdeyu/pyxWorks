@@ -34,6 +34,25 @@ class CGI_CLI(object):
     START_EPOCH = time.time()
     cgi_parameters_error = None
     cgi_active = None
+
+    @staticmethod        
+    def cli_parser():
+        ######## Parse program arguments ##################################
+        parser = argparse.ArgumentParser(
+                            description = "Script %s v.%s" % (sys.argv[0], CGI_CLI.VERSION()),
+                            epilog = "e.g: \n" )
+        parser.add_argument("--version",
+                            action = 'version', version = CGI_CLI.VERSION())
+        parser.add_argument("--pe_device",
+                            action = "store", dest = 'pe_device',
+                            default = str(),
+                            help = "target pe router to check")
+        parser.add_argument("--gw_device",
+                            action = "store", dest = 'gw_device',
+                            default = str(),
+                            help = "target gw router to check")                    
+        args = parser.parse_args()
+        return args
     
     @staticmethod        
     def __cleanup__():
@@ -122,14 +141,26 @@ class CGI_CLI(object):
                 if tag and 'h' in tag: print('</%s>'%(tag))
 
     @staticmethod
-    def print_args():
-        if CGI_CLI.cgi_active:
-            try: print_string = 'CGI_args = ' + json.dumps(CGI_CLI.data) 
-            except: print_string = 'CGI_args = '                 
-        else: print_string = 'CLI_args = %s' % (str(sys.argv[1:]))
-        CGI_CLI.uprint(print_string)
-        return print_string        
+    def VERSION(path_to_file = str(os.path.abspath(__file__))):
+        if 'WIN32' in sys.platform.upper():
+            file_time = os.path.getmtime(path_to_file)
+        else:
+            stat = os.stat(path_to_file)
+            file_time = stat.st_mtime
+        return time.strftime("%y.%m.%d_%H:%M",time.gmtime(file_time)) 
 
+    @staticmethod
+    def print_args():
+        from platform import python_version
+        print_string = 'python[%s], ' % (str(python_version()))
+        print_string += 'file[%s], ' % (sys.argv[0])
+        print_string += 'version[%s], ' % (CGI_CLI.VERSION())
+        if CGI_CLI.cgi_active:
+            try: print_string += 'CGI_args = %s' % (json.dumps(CGI_CLI.data)) 
+            except: pass                 
+        else: print_string += 'CLI_args = %s' % (str(sys.argv[1:]))
+        CGI_CLI.uprint(print_string)
+        return print_string
 
 
 ##############################################################################
@@ -642,6 +673,7 @@ class LCMD(object):
                     LCMD.fp.write('EXEC_PROBLEM[' + str(e) + ']\n')                    
         return None
 
+
             
 ##############################################################################
 #
@@ -654,14 +686,29 @@ if __name__ != "__main__": sys.exit(0)
 CGI_CLI()
 CGI_CLI.init_cgi()
 CGI_CLI.print_args()
+args = CGI_CLI.cli_parser()
+try:    PASSWORD        = os.environ['NEWR_PASS']
+except: PASSWORD        = str()
+try:    USERNAME        = os.environ['NEWR_USER']
+except: USERNAME        = str()
+if CGI_CLI.username: USERNAME = CGI_CLI.username
+if CGI_CLI.password: PASSWORD = CGI_CLI.password
+
 if CGI_CLI.cgi_active or 'WIN32' in sys.platform.upper(): bcolors = nocolors
 
 pe_device, gw_device = None, None
+
 if CGI_CLI.cgi_active and CGI_CLI.data.get('pe-router',None):
     pe_device = CGI_CLI.data.get('pe-router',None)
 
 if CGI_CLI.cgi_active and CGI_CLI.data.get('ipsec-gw-router',None):
     gw_device = CGI_CLI.data.get('ipsec-gw-router',None)
+
+if args.pe_device:
+    pe_device = args.pe_device
+
+if args.gw_device:
+    pe_device = args.gw_device
 
 # cmd_data = {
     # 'cisco_ios':[],
@@ -684,14 +731,14 @@ lcmd_data2 = {
     'unix':['whoami'],
 }
 
-pe_device = 'partr0'
-username = 'iptac' 
-password = 'paiiUNDO'
+# pe_device = 'partr0'
+# USERNAME = 'iptac' 
+# PASSWORD = 'paiiUNDO'
 
-print(pe_device)
+CGI_CLI.uprint('DEVICE[%s], USERNAME[%s]'%(pe_device,USERNAME))
 
 if pe_device:
-    rcmd_outputs = RCMD.connect(pe_device, rcmd_data1, username = 'iptac', password = 'paiiUNDO')
+    rcmd_outputs = RCMD.connect(pe_device, rcmd_data1, username = USERNAME, password = PASSWORD)
     CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'blue')
     RCMD.disconnect()
 
