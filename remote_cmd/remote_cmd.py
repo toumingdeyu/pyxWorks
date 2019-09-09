@@ -1,4 +1,6 @@
-#!/usr/bin/python36
+#!/usr/bin/python
+
+###!/usr/bin/python36
 
 import sys, os, io, paramiko, json, copy, html
 import getopt
@@ -43,6 +45,15 @@ class CGI_CLI(object):
                             epilog = "e.g: \n" )
         parser.add_argument("--version",
                             action = 'version', version = CGI_CLI.VERSION())
+        parser.add_argument("--username",
+                            action = "store", dest = 'username', default = str(),
+                            help = "specify router user login") 
+        parser.add_argument("--password",
+                            action = "store", dest = 'password', default = str(),
+                            help = "specify router password (test only...)")
+        parser.add_argument("--getpass",
+                            action = "store", dest = 'getpass', default = str(),
+                            help = "insert router password interactively getpass.getpass()")                                                        
         parser.add_argument("--pe_device",
                             action = "store", dest = 'pe_device',
                             default = str(),
@@ -68,7 +79,7 @@ class CGI_CLI(object):
         if not 'atexit' in sys.modules: import atexit; atexit.register(CGI_CLI.__cleanup__)
 
     @staticmethod
-    def init_cgi():
+    def init_cgi(interaction = None):
         CGI_CLI.START_EPOCH = time.time()
         CGI_CLI.initialized = True 
         CGI_CLI.data, CGI_CLI.submit_form, CGI_CLI.username, CGI_CLI.password = \
@@ -93,7 +104,21 @@ class CGI_CLI(object):
             print("<html><head><title>%s</title></head><body>" % 
                 (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit'))
         if not 'atexit' in sys.modules: import atexit; atexit.register(CGI_CLI.__cleanup__)
-        return None
+        ### GAIN USERNAME AND PASSWORD FROM CGI/CLI
+        CGI_CLI.args = CGI_CLI.cli_parser()               
+        try:    CGI_CLI.PASSWORD        = os.environ['NEWR_PASS']
+        except: CGI_CLI.PASSWORD        = str()
+        try:    CGI_CLI.USERNAME        = os.environ['NEWR_USER']
+        except: CGI_CLI.USERNAME        = str()
+        if CGI_CLI.args.username: 
+            CGI_CLI.USERNAME = CGI_CLI.args.username
+            if interaction or CGI_CLI.args.getpass: CGI_CLI.PASSWORD = getpass.getpass("TACACS password: ")
+            elif CGI_CLI.args.password: CGI_CLI.USERNAME = CGI_CLI.args.password                
+        if CGI_CLI.username: CGI_CLI.USERNAME = CGI_CLI.username
+        if CGI_CLI.password: CGI_CLI.PASSWORD = CGI_CLI.password
+        if CGI_CLI.cgi_active or 'WIN32' in sys.platform.upper(): bcolors = nocolors
+        CGI_CLI.uprint('USERNAME[%s], PASSWORD[%s]' % (CGI_CLI.USERNAME, 'Yes' if CGI_CLI.PASSWORD else 'No'))        
+        return CGI_CLI.USERNAME, CGI_CLI.PASSWORD
 
     @staticmethod 
     def oprint(text, tag = None):
@@ -246,7 +271,7 @@ class RCMD(object):
             except: RCMD.DEVICE_PORT = '22'
             CGI_CLI.uprint('DEVICE %s (host=%s, port=%s) START'\
                 %(device, RCMD.DEVICE_HOST, RCMD.DEVICE_PORT)+24 * '.')
-            RCMD.router_type, RCMD.router_prompt = RCMD.detect_router_by_ssh()
+            RCMD.router_type, RCMD.router_prompt = RCMD.detect_router_by_ssh(debug=True)
             if not RCMD.router_type in RCMD.KNOWN_OS_TYPES:
                 CGI_CLI.uprint('%sUNSUPPORTED DEVICE TYPE: \'%s\', BREAK!%s' % \
                     (bcolors.MAGENTA, RCMD.router_type, bcolors.ENDC))
@@ -684,17 +709,8 @@ if __name__ != "__main__": sys.exit(0)
 
 ### CGI-BIN READ FORM ############################################
 CGI_CLI()
-CGI_CLI.init_cgi()
+USERNAME, PASSWORD = CGI_CLI.init_cgi()
 CGI_CLI.print_args()
-args = CGI_CLI.cli_parser()
-try:    PASSWORD        = os.environ['NEWR_PASS']
-except: PASSWORD        = str()
-try:    USERNAME        = os.environ['NEWR_USER']
-except: USERNAME        = str()
-if CGI_CLI.username: USERNAME = CGI_CLI.username
-if CGI_CLI.password: PASSWORD = CGI_CLI.password
-
-if CGI_CLI.cgi_active or 'WIN32' in sys.platform.upper(): bcolors = nocolors
 
 pe_device, gw_device = None, None
 
@@ -704,11 +720,11 @@ if CGI_CLI.cgi_active and CGI_CLI.data.get('pe-router',None):
 if CGI_CLI.cgi_active and CGI_CLI.data.get('ipsec-gw-router',None):
     gw_device = CGI_CLI.data.get('ipsec-gw-router',None)
 
-if args.pe_device:
-    pe_device = args.pe_device
+if CGI_CLI.args.pe_device:
+    pe_device = CGI_CLI.args.pe_device
 
-if args.gw_device:
-    pe_device = args.gw_device
+if CGI_CLI.args.gw_device:
+    pe_device = CGI_CLI.args.gw_device
 
 # cmd_data = {
     # 'cisco_ios':[],
@@ -734,8 +750,6 @@ lcmd_data2 = {
 # pe_device = 'partr0'
 # USERNAME = 'iptac' 
 # PASSWORD = 'paiiUNDO'
-
-CGI_CLI.uprint('DEVICE[%s], USERNAME[%s]'%(pe_device,USERNAME))
 
 if pe_device:
     rcmd_outputs = RCMD.connect(pe_device, rcmd_data1, username = USERNAME, password = PASSWORD)
