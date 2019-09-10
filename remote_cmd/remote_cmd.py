@@ -457,7 +457,7 @@ class RCMD(object):
                 timeout_counter = 0
                 buff = chan.recv(9999)
                 buff_read = buff.decode("utf-8").replace('\x0d','').replace('\x07','').\
-                    replace('\x08','').replace(' \x1b[1D','').replace('#$','#')
+                    replace('\x08','').replace(' \x1b[1D','')
                 output += buff_read
             else: time.sleep(0.1); timeout_counter += 1
             # FIND LAST LINE, THIS COULD BE PROMPT
@@ -493,7 +493,7 @@ class RCMD(object):
                         if chan.recv_ready():
                             buff = chan.recv(9999)
                             buff_read = buff.decode("utf-8").replace('\x0d','')\
-                               .replace('\x07','').replace('\x08','').replace(' \x1b[1D','').replace('#$','#')
+                               .replace('\x07','').replace('\x08','').replace(' \x1b[1D','')
                             output2 += buff_read
                         else: time.sleep(0.1); timeout_counter2 += 1
                         try: new_last_line = output2.splitlines()[-1].strip()
@@ -548,7 +548,7 @@ class RCMD(object):
                 if debug: print('LAST_LINE:',prompts,last_line)
                 buff = chan.recv(9999)
                 output += buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
-                          replace('\x1b[K','').replace('\n{master}\n','').replace('$','')
+                          replace('\x1b[K','').replace('\n{master}\n','')
                 if '--More--' or '---(more' in buff.strip(): chan.send('\x20')
                 if debug: print('BUFFER:' + buff)
                 try: last_line = output.splitlines()[-1].strip()
