@@ -272,7 +272,7 @@ class RCMD(object):
             except: RCMD.DEVICE_PORT = '22'
             CGI_CLI.uprint('DEVICE %s (host=%s, port=%s) START'\
                 %(device, RCMD.DEVICE_HOST, RCMD.DEVICE_PORT)+24 * '.')
-            RCMD.router_type, RCMD.router_prompt = RCMD.ssh_raw_detect_router_type(debug = None)
+            RCMD.router_type, RCMD.router_prompt = RCMD.ssh_raw_detect_router_type(debug = True)
             if not RCMD.router_type in RCMD.KNOWN_OS_TYPES:
                 CGI_CLI.uprint('%sUNSUPPORTED DEVICE TYPE: \'%s\', BREAK!%s' % \
                     (bcolors.MAGENTA, RCMD.router_type, bcolors.ENDC))
@@ -526,7 +526,11 @@ class RCMD(object):
                         time.sleep(0.3)
                     try: last_line = output.splitlines()[-1].strip().replace('\x20','')
                     except: last_line = 'dummyline1'
-                    try: last_but_one_line = output.splitlines()[-2].strip().replace('\x20','')
+                    try: 
+                        last_but_one_line = output.splitlines()[-2].strip().replace('\x20','')
+                        if len(last_but_one_line) == 0:
+                            ### vJunos '\x20' --> '\n\nprompt' workarround
+                            last_but_one_line = output.splitlines()[-3].strip().replace('\x20','')
                     except: last_but_one_line = 'dummyline2'
             prompt = output.splitlines()[-1].strip()
             if debug: CGI_CLI.uprint('DETECTED PROMPT: \'' + prompt + '\'')
