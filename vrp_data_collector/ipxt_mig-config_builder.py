@@ -741,10 +741,18 @@ ipv4 access-list ${cgi_data.get('vpn','UNKNOWN')}-IN
 # !
 # """
 
+
+#<% net = splitted_list[2*i]+"/32" if splitted_list[2*i+1]=="0" else ipaddress.ip_network(splitted_list[2*i]+'/'+splitted_list[2*i+1], strict=True)%>
+
 PE_prefix_config_templ = """!<% import ipaddress; splitted_list = cgi_data.get('ipv4-acl','').split(',') %>
 prefix-set ${cgi_data.get('vpn','UNKNOWN')}-IN
 % for i in range(1,int(len(splitted_list)/2)):
-<% net = splitted_list[2*i]+"/32" if splitted_list[2*i+1]=="0" else ipaddress.ip_network(splitted_list[2*i]+'/'+splitted_list[2*i+1], strict=True)%>
+<% 
+if splitted_list[2*i+1] == "0": net = splitted_list[2*i]+"/32" 
+else:
+    try: net = ipaddress.ip_network(splitted_list[2*i]+'/'+splitted_list[2*i+1], strict=True)
+    except: net = splitted_list[2*i] + '/32'
+%>
 % if i == range(int(len(splitted_list)/2)):
   ${net} le 32
 % else:
