@@ -111,13 +111,13 @@ CMD_VRP = [
     {'exec':'bgp_data["pe_router"] = CGI_CLI.data.get("device","")'},
     {
      'remote_command':'display bgp vpnv4 all peer | in (VPN-Instance)',
-     'exec':'CGI_CLI.uprint("VPN_LIST:") \
+     'exec':'bgp_data["vrf_list"] = "" \
            \ntry: \
-           \n  bgp_data["vrf_list"] = ""\
            \n  for vpnline in glob_vars.get("last_output","").split("VPN-Instance ")[1:]: \
            \n    bgp_data["vrf_list"] += vpnline.split()[0].replace(",","").strip() + ","\
            \n  bgp_data["vrf_list"] = bgp_data["vrf_list"].rstrip(",")\
-           \nexcept: pass',
+           \nexcept: pass\
+           \nCGI_CLI.uprint("VPN_LIST: " + bgp_data.get("vrf_list","---"))',
     },
 ]
 
@@ -809,6 +809,40 @@ class CGI_CLI(object):
     START_EPOCH = time.time()
     cgi_parameters_error = None
     cgi_active = None
+
+    @staticmethod        
+    def cli_parser():
+        ######## Parse program arguments ##################################
+        parser = argparse.ArgumentParser(
+                            description = "Script %s v.%s" % (sys.argv[0], CGI_CLI.VERSION()),
+                            epilog = "e.g: \n" )
+        parser.add_argument("--version",
+                            action = 'version', version = CGI_CLI.VERSION())
+        parser.add_argument("--username",
+                            action = "store", dest = 'username', default = str(),
+                            help = "specify router user login") 
+        parser.add_argument("--password",
+                            action = "store", dest = 'password', default = str(),
+                            help = "specify router password (test only...)")
+        parser.add_argument("--getpass",
+                            action = "store_true", dest = 'getpass', default = None,
+                            help = "insert router password interactively getpass.getpass()")
+        parser.add_argument("--device",
+                            action = "store", dest = 'device',
+                            default = str(),
+                            help = "target router to check")
+        parser.add_argument("--printall",action = "store_true", default = None,
+                            help = "print all lines, changes will be coloured")                            
+        # parser.add_argument("--pe_device",
+                            # action = "store", dest = 'pe_device',
+                            # default = str(),
+                            # help = "target pe router to check")
+        # parser.add_argument("--gw_device",
+                            # action = "store", dest = 'gw_device',
+                            # default = str(),
+                            # help = "target gw router to check")                    
+        args = parser.parse_args()
+        return args
     
     @staticmethod        
     def __cleanup__():
@@ -824,7 +858,7 @@ class CGI_CLI(object):
         if not 'atexit' in sys.modules: import atexit; atexit.register(CGI_CLI.__cleanup__)
 
     @staticmethod
-    def init_cgi():
+    def init_cgi(interaction = None):
         CGI_CLI.START_EPOCH = time.time()
         CGI_CLI.initialized = True 
         CGI_CLI.data, CGI_CLI.submit_form, CGI_CLI.username, CGI_CLI.password = \
@@ -849,7 +883,22 @@ class CGI_CLI(object):
             print("<html><head><title>%s</title></head><body>" % 
                 (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit'))
         if not 'atexit' in sys.modules: import atexit; atexit.register(CGI_CLI.__cleanup__)
-        return None
+        ### GAIN USERNAME AND PASSWORD FROM CGI/CLI
+        CGI_CLI.args = CGI_CLI.cli_parser()               
+        try:    CGI_CLI.PASSWORD        = os.environ['NEWR_PASS']
+        except: CGI_CLI.PASSWORD        = str()
+        try:    CGI_CLI.USERNAME        = os.environ['NEWR_USER']
+        except: CGI_CLI.USERNAME        = str()
+        if CGI_CLI.args.username:        
+            CGI_CLI.USERNAME = CGI_CLI.args.username
+            CGI_CLI.PASSWORD = str()
+            if interaction or CGI_CLI.args.getpass: CGI_CLI.PASSWORD = getpass.getpass("TACACS password: ")
+            elif CGI_CLI.args.password: CGI_CLI.password = CGI_CLI.args.password                
+        if CGI_CLI.username: CGI_CLI.USERNAME = CGI_CLI.username
+        if CGI_CLI.password: CGI_CLI.PASSWORD = CGI_CLI.password
+        if CGI_CLI.cgi_active or 'WIN32' in sys.platform.upper(): bcolors = nocolors
+        CGI_CLI.uprint('USERNAME[%s], PASSWORD[%s]' % (CGI_CLI.USERNAME, 'Yes' if CGI_CLI.PASSWORD else 'No'))        
+        return CGI_CLI.USERNAME, CGI_CLI.PASSWORD
 
     @staticmethod 
     def oprint(text, tag = None):
@@ -897,13 +946,26 @@ class CGI_CLI(object):
                 if tag and 'h' in tag: print('</%s>'%(tag))
 
     @staticmethod
+    def VERSION(path_to_file = str(os.path.abspath(__file__))):
+        if 'WIN32' in sys.platform.upper():
+            file_time = os.path.getmtime(path_to_file)
+        else:
+            stat = os.stat(path_to_file)
+            file_time = stat.st_mtime
+        return time.strftime("%y.%m.%d_%H:%M",time.gmtime(file_time)) 
+
+    @staticmethod
     def print_args():
+        from platform import python_version
+        print_string = 'python[%s], ' % (str(python_version()))
+        print_string += 'file[%s], ' % (sys.argv[0])
+        print_string += 'version[%s], ' % (CGI_CLI.VERSION())
         if CGI_CLI.cgi_active:
-            try: print_string = 'CGI_args = ' + json.dumps(CGI_CLI.data) 
-            except: print_string = 'CGI_args = '                 
-        else: print_string = 'CLI_args = %s' % (str(sys.argv[1:]))
+            try: print_string += 'CGI_args = %s' % (json.dumps(CGI_CLI.data)) 
+            except: pass                 
+        else: print_string += 'CLI_args = %s' % (str(sys.argv[1:]))
         CGI_CLI.uprint(print_string)
-        return print_string           
+        return print_string
 
 
 class sql_interface():
@@ -1134,58 +1196,13 @@ load_logfile = None
 
 ### CGI-BIN READ FORM ############################################
 CGI_CLI()
-CGI_CLI.init_cgi()
+USERNAME, PASSWORD = CGI_CLI.init_cgi()
 CGI_CLI.print_args()
-
-if CGI_CLI.username and CGI_CLI.password: USERNAME, PASSWORD = CGI_CLI.username, CGI_CLI.password
 
 device_name = CGI_CLI.data.get('device','')
 glob_vars["CGI_ACTIVE"] = CGI_CLI.cgi_active
 
 ###################################################################
-VERSION = get_version_from_file_last_modification_date()
-
-######## Parse program arguments ##################################
-parser = argparse.ArgumentParser(
-                    description = "Script v.%s" % (VERSION),
-                    epilog = "e.g: \n" )
-parser.add_argument("--version",
-                    action = 'version', version = VERSION)
-parser.add_argument("--device",
-                    action = "store", dest = 'device',
-                    default = str(),
-                    help = "target router to check")                 
-parser.add_argument("--user",
-                    action = "store", dest = 'username', default = str(),
-                    help = "specify router user login")
-parser.add_argument("--nocolors",
-                    action = 'store_true', dest = "nocolors", default = None,
-                    help = "print mode with no colors.")
-parser.add_argument("--nolog",
-                    action = 'store_true', dest = "nolog", default = None,
-                    help = "no logging to file.")
-parser.add_argument("--readlog",
-                    action = "store", dest = 'readlog', default = None,
-                    help = "name of the logfile to read json.")
-parser.add_argument("--emailaddr",
-                    action = "store", dest = 'emailaddr', default = '',
-                    help = "insert your email address once if is different than name.surname@orange.com,\
-                    it will do NEWR_EMAIL variable record in your bashrc file and \
-                    you do not need to insert it any more.")
-parser.add_argument("--latest",
-                    action = 'store_true', dest = "latest", default = False,
-                    help = "look for really latest shut file (also owned by somebody else),\
-                    otherwise your own last shut file will be used by default")
-parser.add_argument("--printall",action = "store_true", default = False,
-                    help = "print all lines, changes will be coloured")
-parser.add_argument("--sim",
-                    action = 'store_true', dest = "sim",
-                    #default = True,
-                    default = None,
-                    help = "simulate critical command runs")
-args = parser.parse_args()
-
-if args.nocolors or 'WIN32' in sys.platform.upper() or CGI_CLI.cgi_active: bcolors = nocolors
 
 COL_DELETED = bcolors.RED
 COL_ADDED   = bcolors.GREEN
@@ -1195,39 +1212,15 @@ COL_EQUAL   = bcolors.GREY
 COL_PROBLEM = bcolors.RED
 
 ### PARSE CMDLINE ARGUMENTS IF NOT CGI-BIN ARGUMENTS #################    
-if args.emailaddr:
-    append_variable_to_bashrc(variable_name='NEWR_EMAIL',variable_value=args.emailaddr)
-    EMAIL_ADDRESS = args.emailaddr
-
-if args.sim: glob_vars["SIM_CMD"] = 'ON'
-else: glob_vars["SIM_CMD"] = 'OFF'
+glob_vars["SIM_CMD"] = 'OFF'
 
 if not CGI_CLI.cgi_active:
-    if args.device:
-        device_name = args.device              
-    if args.device == str():
+    if CGI_CLI.args.device:
+        device_name = CGI_CLI.args.device              
+    if CGI_CLI.args.device == str():
         remote_connect = None
         local_hostname = str(subprocess.check_output('hostname',shell=True).decode('utf8')).strip().replace('\\','').replace('/','')
         device_name = local_hostname
-
-
-if args.readlog:
-    bgp_data = read_bgp_data_json_from_logfile(args.readlog)
-    if not bgp_data:
-        CGI_CLI.uprint(bcolors.MAGENTA + " ... Please insert shut session log! (Inserted log seems to be noshut log.)" + bcolors.ENDC )
-        sys.exit(0)
-
-if remote_connect:
-    ####### Set USERNAME if needed
-    if args.username: USERNAME = args.username
-    if not USERNAME:
-        CGI_CLI.uprint(bcolors.MAGENTA + " ... Please insert your username by cmdline switch \
-            --user username !" + bcolors.ENDC )  
-        sys.exit(0)
-
-    # SSH (default)
-    if not CGI_CLI.cgi_active and not PASSWORD:
-        PASSWORD = getpass.getpass("TACACS password: ")
 
 logfilename, router_type, first_router_type = None, None, None
 
@@ -1249,9 +1242,6 @@ if device_name:
 
     ######## Create logs directory if not existing  #########
     if not os.path.exists(LOGDIR): os.makedirs(LOGDIR)
-    on_off_name = ''
-    #logfilename = generate_file_name(prefix = device_name.upper(), suffix = 'vrp-' + vpn_name + '-' + step1_string.replace(' ','_') + '-log')
-    if args.nolog: logfilename = None
 
     ######## Find command list file (optional)
     list_cmd = []
@@ -1306,7 +1296,7 @@ if device_name:
     first_router_type = router_type
     
     if CGI_CLI.cgi_active and CGI_CLI.submit_form == step1_string or router_type == 'huawei':
-        run_remote_and_local_commands(CMD, logfilename, printall = args.printall, printcmdtologfile = True)
+        run_remote_and_local_commands(CMD, logfilename, printall = CGI_CLI.args.printall, printcmdtologfile = True)
     else: pass        
     CGI_CLI.uprint('\nDEVICE %s DONE. '%(device_name))
     
