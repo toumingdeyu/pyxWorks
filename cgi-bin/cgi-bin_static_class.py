@@ -33,6 +33,34 @@ class CGI_CLI(object):
     START_EPOCH = time.time()
     cgi_parameters_error = None
     cgi_active = None
+
+    @staticmethod        
+    def cli_parser():
+        ######## Parse program arguments ##################################
+        parser = argparse.ArgumentParser(
+                            description = "Script %s v.%s" % (sys.argv[0], CGI_CLI.VERSION()),
+                            epilog = "e.g: \n" )
+        parser.add_argument("--version",
+                            action = 'version', version = CGI_CLI.VERSION())
+        parser.add_argument("--username",
+                            action = "store", dest = 'username', default = str(),
+                            help = "specify router user login") 
+        parser.add_argument("--password",
+                            action = "store", dest = 'password', default = str(),
+                            help = "specify router password (test only...)")
+        parser.add_argument("--getpass",
+                            action = "store_true", dest = 'getpass', default = None,
+                            help = "insert router password interactively getpass.getpass()")                                                        
+        parser.add_argument("--pe_device",
+                            action = "store", dest = 'pe_device',
+                            default = str(),
+                            help = "target pe router to check")
+        parser.add_argument("--gw_device",
+                            action = "store", dest = 'gw_device',
+                            default = str(),
+                            help = "target gw router to check")                    
+        args = parser.parse_args()
+        return args
     
     @staticmethod        
     def __cleanup__():
@@ -48,7 +76,7 @@ class CGI_CLI(object):
         if not 'atexit' in sys.modules: import atexit; atexit.register(CGI_CLI.__cleanup__)
 
     @staticmethod
-    def init_cgi():
+    def init_cgi(interaction = None):
         CGI_CLI.START_EPOCH = time.time()
         CGI_CLI.initialized = True 
         CGI_CLI.data, CGI_CLI.submit_form, CGI_CLI.username, CGI_CLI.password = \
@@ -73,7 +101,22 @@ class CGI_CLI(object):
             print("<html><head><title>%s</title></head><body>" % 
                 (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit'))
         if not 'atexit' in sys.modules: import atexit; atexit.register(CGI_CLI.__cleanup__)
-        return None
+        ### GAIN USERNAME AND PASSWORD FROM CGI/CLI
+        CGI_CLI.args = CGI_CLI.cli_parser()               
+        try:    CGI_CLI.PASSWORD        = os.environ['NEWR_PASS']
+        except: CGI_CLI.PASSWORD        = str()
+        try:    CGI_CLI.USERNAME        = os.environ['NEWR_USER']
+        except: CGI_CLI.USERNAME        = str()
+        if CGI_CLI.args.username:        
+            CGI_CLI.USERNAME = CGI_CLI.args.username
+            CGI_CLI.PASSWORD = str()
+            if interaction or CGI_CLI.args.getpass: CGI_CLI.PASSWORD = getpass.getpass("TACACS password: ")
+            elif CGI_CLI.args.password: CGI_CLI.password = CGI_CLI.args.password                
+        if CGI_CLI.username: CGI_CLI.USERNAME = CGI_CLI.username
+        if CGI_CLI.password: CGI_CLI.PASSWORD = CGI_CLI.password
+        if CGI_CLI.cgi_active or 'WIN32' in sys.platform.upper(): bcolors = nocolors
+        CGI_CLI.uprint('USERNAME[%s], PASSWORD[%s]' % (CGI_CLI.USERNAME, 'Yes' if CGI_CLI.PASSWORD else 'No'))        
+        return CGI_CLI.USERNAME, CGI_CLI.PASSWORD
 
     @staticmethod 
     def oprint(text, tag = None):
@@ -121,14 +164,26 @@ class CGI_CLI(object):
                 if tag and 'h' in tag: print('</%s>'%(tag))
 
     @staticmethod
-    def print_args():
-        if CGI_CLI.cgi_active:
-            try: print_string = 'CGI_args = ' + json.dumps(CGI_CLI.data) 
-            except: print_string = 'CGI_args = '                 
-        else: print_string = 'CLI_args = %s' % (str(sys.argv[1:]))
-        CGI_CLI.uprint(print_string)
-        return print_string        
+    def VERSION(path_to_file = str(os.path.abspath(__file__))):
+        if 'WIN32' in sys.platform.upper():
+            file_time = os.path.getmtime(path_to_file)
+        else:
+            stat = os.stat(path_to_file)
+            file_time = stat.st_mtime
+        return time.strftime("%y.%m.%d_%H:%M",time.gmtime(file_time)) 
 
+    @staticmethod
+    def print_args():
+        from platform import python_version
+        print_string = 'python[%s], ' % (str(python_version()))
+        print_string += 'file[%s], ' % (sys.argv[0])
+        print_string += 'version[%s], ' % (CGI_CLI.VERSION())
+        if CGI_CLI.cgi_active:
+            try: print_string += 'CGI_args = %s' % (json.dumps(CGI_CLI.data)) 
+            except: pass                 
+        else: print_string += 'CLI_args = %s' % (str(sys.argv[1:]))
+        CGI_CLI.uprint(print_string)
+        return print_string
 
             
 ##############################################################################
