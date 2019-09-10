@@ -30,11 +30,46 @@ class CGI_CLI(object):
     """ 
     # import collections, cgi, six
     # import cgitb; cgitb.enable()
+     
     debug = True
     initialized = None
     START_EPOCH = time.time()
     cgi_parameters_error = None
     cgi_active = None
+
+    @staticmethod        
+    def cli_parser():
+        ######## Parse program arguments ##################################
+        parser = argparse.ArgumentParser(
+                            description = "Script %s v.%s" % (sys.argv[0], CGI_CLI.VERSION()),
+                            epilog = "e.g: \n" )
+        parser.add_argument("--version",
+                            action = 'version', version = CGI_CLI.VERSION())
+        parser.add_argument("--username",
+                            action = "store", dest = 'username', default = str(),
+                            help = "specify router user login") 
+        parser.add_argument("--password",
+                            action = "store", dest = 'password', default = str(),
+                            help = "specify router password (test only...)")
+        parser.add_argument("--getpass",
+                            action = "store_true", dest = 'getpass', default = None,
+                            help = "insert router password interactively getpass.getpass()")
+        parser.add_argument("--device",
+                            action = "store", dest = 'device',
+                            default = str(),
+                            help = "target router to check")
+        parser.add_argument("--printall",action = "store_true", default = None,
+                            help = "print all lines, changes will be coloured")                            
+        # parser.add_argument("--pe_device",
+                            # action = "store", dest = 'pe_device',
+                            # default = str(),
+                            # help = "target pe router to check")
+        # parser.add_argument("--gw_device",
+                            # action = "store", dest = 'gw_device',
+                            # default = str(),
+                            # help = "target gw router to check")                    
+        args = parser.parse_args()
+        return args
     
     @staticmethod        
     def __cleanup__():
@@ -47,10 +82,10 @@ class CGI_CLI(object):
         In static class is no constructor or destructor 
         --> Register __cleanup__ in system
         """
-        import atexit; atexit.register(CGI_CLI.__cleanup__)
+        if not 'atexit' in sys.modules: import atexit; atexit.register(CGI_CLI.__cleanup__)
 
     @staticmethod
-    def init_cgi():
+    def init_cgi(interaction = None):
         CGI_CLI.START_EPOCH = time.time()
         CGI_CLI.initialized = True 
         CGI_CLI.data, CGI_CLI.submit_form, CGI_CLI.username, CGI_CLI.password = \
@@ -70,15 +105,30 @@ class CGI_CLI(object):
             if variable == "password": CGI_CLI.password = value
         if CGI_CLI.submit_form or len(CGI_CLI.data)>0: CGI_CLI.cgi_active = True
         if CGI_CLI.cgi_active:
-            import cgitb; cgitb.enable()        
+            if not 'cgitb' in sys.modules: import cgitb; cgitb.enable()        
             print("Content-type:text/html\n\n")
             print("<html><head><title>%s</title></head><body>" % 
                 (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit'))
-        import atexit; atexit.register(CGI_CLI.__cleanup__)
-        return None
+        if not 'atexit' in sys.modules: import atexit; atexit.register(CGI_CLI.__cleanup__)
+        ### GAIN USERNAME AND PASSWORD FROM CGI/CLI
+        CGI_CLI.args = CGI_CLI.cli_parser()               
+        try:    CGI_CLI.PASSWORD        = os.environ['NEWR_PASS']
+        except: CGI_CLI.PASSWORD        = str()
+        try:    CGI_CLI.USERNAME        = os.environ['NEWR_USER']
+        except: CGI_CLI.USERNAME        = str()
+        if CGI_CLI.args.username:        
+            CGI_CLI.USERNAME = CGI_CLI.args.username
+            CGI_CLI.PASSWORD = str()
+            if interaction or CGI_CLI.args.getpass: CGI_CLI.PASSWORD = getpass.getpass("TACACS password: ")
+            elif CGI_CLI.args.password: CGI_CLI.password = CGI_CLI.args.password                
+        if CGI_CLI.username: CGI_CLI.USERNAME = CGI_CLI.username
+        if CGI_CLI.password: CGI_CLI.PASSWORD = CGI_CLI.password
+        if CGI_CLI.cgi_active or 'WIN32' in sys.platform.upper(): bcolors = nocolors
+        CGI_CLI.uprint('USERNAME[%s], PASSWORD[%s]' % (CGI_CLI.USERNAME, 'Yes' if CGI_CLI.PASSWORD else 'No'))        
+        return CGI_CLI.USERNAME, CGI_CLI.PASSWORD
 
     @staticmethod 
-    def uprint(text, tag = None):
+    def oprint(text, tag = None):
         if CGI_CLI.debug: 
             if CGI_CLI.cgi_active:
                 if tag and 'h' in tag: print('<%s>'%(tag))
@@ -92,21 +142,64 @@ class CGI_CLI(object):
                 if tag and 'p' in tag: print('</p>')
                 if tag and 'h' in tag: print('</%s>'%(tag))
 
+    @staticmethod 
+    def uprint(text, tag = None, color = None, name = None, jsonprint = None):
+        """NOTE: name parameter could be True or string."""
+        print_text, print_name = copy.deepcopy(text), str()
+        if CGI_CLI.debug:
+            if jsonprint:
+                if isinstance(text, (dict,collections.OrderedDict,list,tuple)):
+                    try: print_text = json.dumps(text, indent = 4)
+                    except: pass   
+            if name==True:
+                if not 'inspect.currentframe' in sys.modules: import inspect
+                callers_local_vars = inspect.currentframe().f_back.f_locals.items()
+                var_list = [var_name for var_name, var_val in callers_local_vars if var_val is text]
+                if str(','.join(var_list)).strip(): print_name = str(','.join(var_list)) + ' = '
+            elif isinstance(name, (six.string_types)): print_name = str(name) + ' = '
+            
+            print_text = str(print_text)
+            if CGI_CLI.cgi_active:
+                if tag and 'h' in tag: print('<%s%s>'%(tag,' style="color:%s;"'%(color) if color else str()))
+                if color or tag and 'p' in tag: tag = 'p'; print('<p%s>'%(' style="color:%s;"'%(color) if color else str()))
+                if isinstance(print_text, six.string_types): 
+                    print_text = str(print_text.replace('&','&amp;').replace('<','&lt;'). \
+                        replace('>','&gt;').replace('\n','<br/>').replace(' ','&nbsp;')) 
+            print(print_name + print_text)
+            del print_text
+            if CGI_CLI.cgi_active: 
+                print('<br/>');
+                if tag and 'p' in tag: print('</p>')
+                if tag and 'h' in tag: print('</%s>'%(tag))
+
+    @staticmethod
+    def VERSION(path_to_file = str(os.path.abspath(__file__))):
+        if 'WIN32' in sys.platform.upper():
+            file_time = os.path.getmtime(path_to_file)
+        else:
+            stat = os.stat(path_to_file)
+            file_time = stat.st_mtime
+        return time.strftime("%y.%m.%d_%H:%M",time.gmtime(file_time)) 
+
     @staticmethod
     def print_args():
+        from platform import python_version
+        print_string = 'python[%s], ' % (str(python_version()))
+        print_string += 'file[%s], ' % (sys.argv[0])
+        print_string += 'version[%s], ' % (CGI_CLI.VERSION())
         if CGI_CLI.cgi_active:
-            try: print_string = 'CGI_args=' + json.dumps(CGI_CLI.data) + ' <br/>'
-            except: print_string = 'CGI_args=' + ' <br/>'                
-        else: print_string = 'CLI_args=%s \n' % (str(sys.argv[1:]))
+            try: print_string += 'CGI_args = %s' % (json.dumps(CGI_CLI.data)) 
+            except: pass                 
+        else: print_string += 'CLI_args = %s' % (str(sys.argv[1:]))
         CGI_CLI.uprint(print_string)
-        return print_string          
+        return print_string
 
 
 class sql_interface():
     ### import mysql.connector
     ### MARIADB - By default AUTOCOMMIT is disabled
                     
-    def __init__(self, host = None, user = None, password = None, database = None):
+    def __init__(self, host = None, user = None, password = None, database = None):    
         if int(sys.version_info[0]) == 3 and not 'pymysql.connect' in sys.modules: import pymysql
         elif int(sys.version_info[0]) == 2 and not 'mysql.connector' in sys.modules: import mysql.connector
         default_ipxt_data_collector_delete_columns = ['id','last_updated']
@@ -184,7 +277,7 @@ class sql_interface():
             except: pass
         return None
 
-    def sql_write_table_from_dict(self, table_name, dict_data):  ###'ipxt_data_collector'
+    def sql_write_table_from_dict(self, table_name, dict_data, update = None):  ###'ipxt_data_collector'
        if self.sql_is_connected():
            existing_sql_table_columns = self.sql_read_all_table_columns(table_name) 
            if existing_sql_table_columns:
@@ -214,12 +307,19 @@ class sql_interface():
                             values_string += "'" + str(dict_data.get(key,"")) + "'"
                         else:
                             values_string += "'" + str(dict_data.get(key,"")) + "'"
-               ### FINALIZE SQL_STRING
-               sql_string = """INSERT INTO `%s` (%s) VALUES (%s);""" \
-                   % (table_name,columns_string,values_string)   
-               if columns_string:
-                   self.sql_write_sql_command("""INSERT INTO `%s`
-                       (%s) VALUES (%s);""" %(table_name,columns_string,values_string))       
+               ### FINALIZE SQL_STRING - INSERT
+               if not update:
+                   sql_string = """INSERT INTO `%s` (%s) VALUES (%s);""" \
+                       % (table_name,columns_string,values_string)   
+                   if columns_string:
+                       self.sql_write_sql_command("""INSERT INTO `%s`
+                           (%s) VALUES (%s);""" %(table_name,columns_string,values_string))
+               else:
+                   sql_string = """UPDATE `%s` (%s) VALUES (%s);""" \
+                       % (table_name,columns_string,values_string)   
+                   if columns_string:
+                       self.sql_write_sql_command("""UPDATE `%s`
+                           (%s) VALUES (%s);""" %(table_name,columns_string,values_string))                        
        return None                
    
     def sql_read_table_last_record(self, select_string = None, from_string = None, where_string = None):
@@ -306,7 +406,8 @@ class sql_interface():
                     ### DELETE NOT VALID (AUXILIARY) TABLE COLUMNS
                     del dict_data[column]
                 except: pass     
-        return dict_list      
+        return dict_list
+
             
 ##############################################################################
 #
