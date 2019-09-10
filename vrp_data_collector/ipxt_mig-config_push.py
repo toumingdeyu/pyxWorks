@@ -1,4 +1,6 @@
-#!/usr/bin/python36
+#!/usr/bin/python
+
+###!/usr/bin/python36
 
 import sys, os, io, paramiko, json, copy, html
 import getopt
@@ -34,6 +36,34 @@ class CGI_CLI(object):
     START_EPOCH = time.time()
     cgi_parameters_error = None
     cgi_active = None
+
+    @staticmethod        
+    def cli_parser():
+        ######## Parse program arguments ##################################
+        parser = argparse.ArgumentParser(
+                            description = "Script %s v.%s" % (sys.argv[0], CGI_CLI.VERSION()),
+                            epilog = "e.g: \n" )
+        parser.add_argument("--version",
+                            action = 'version', version = CGI_CLI.VERSION())
+        parser.add_argument("--username",
+                            action = "store", dest = 'username', default = str(),
+                            help = "specify router user login") 
+        parser.add_argument("--password",
+                            action = "store", dest = 'password', default = str(),
+                            help = "specify router password (test only...)")
+        parser.add_argument("--getpass",
+                            action = "store_true", dest = 'getpass', default = None,
+                            help = "insert router password interactively getpass.getpass()")                                                        
+        parser.add_argument("--pe_device",
+                            action = "store", dest = 'pe_device',
+                            default = str(),
+                            help = "target pe router to check")
+        parser.add_argument("--gw_device",
+                            action = "store", dest = 'gw_device',
+                            default = str(),
+                            help = "target gw router to check")                    
+        args = parser.parse_args()
+        return args
     
     @staticmethod        
     def __cleanup__():
@@ -49,7 +79,7 @@ class CGI_CLI(object):
         if not 'atexit' in sys.modules: import atexit; atexit.register(CGI_CLI.__cleanup__)
 
     @staticmethod
-    def init_cgi():
+    def init_cgi(interaction = None):
         CGI_CLI.START_EPOCH = time.time()
         CGI_CLI.initialized = True 
         CGI_CLI.data, CGI_CLI.submit_form, CGI_CLI.username, CGI_CLI.password = \
@@ -74,7 +104,22 @@ class CGI_CLI(object):
             print("<html><head><title>%s</title></head><body>" % 
                 (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit'))
         if not 'atexit' in sys.modules: import atexit; atexit.register(CGI_CLI.__cleanup__)
-        return None
+        ### GAIN USERNAME AND PASSWORD FROM CGI/CLI
+        CGI_CLI.args = CGI_CLI.cli_parser()               
+        try:    CGI_CLI.PASSWORD        = os.environ['NEWR_PASS']
+        except: CGI_CLI.PASSWORD        = str()
+        try:    CGI_CLI.USERNAME        = os.environ['NEWR_USER']
+        except: CGI_CLI.USERNAME        = str()
+        if CGI_CLI.args.username:        
+            CGI_CLI.USERNAME = CGI_CLI.args.username
+            CGI_CLI.PASSWORD = str()
+            if interaction or CGI_CLI.args.getpass: CGI_CLI.PASSWORD = getpass.getpass("TACACS password: ")
+            elif CGI_CLI.args.password: CGI_CLI.password = CGI_CLI.args.password                
+        if CGI_CLI.username: CGI_CLI.USERNAME = CGI_CLI.username
+        if CGI_CLI.password: CGI_CLI.PASSWORD = CGI_CLI.password
+        if CGI_CLI.cgi_active or 'WIN32' in sys.platform.upper(): bcolors = nocolors
+        CGI_CLI.uprint('USERNAME[%s], PASSWORD[%s]' % (CGI_CLI.USERNAME, 'Yes' if CGI_CLI.PASSWORD else 'No'))        
+        return CGI_CLI.USERNAME, CGI_CLI.PASSWORD
 
     @staticmethod 
     def oprint(text, tag = None):
@@ -122,12 +167,24 @@ class CGI_CLI(object):
                 if tag and 'h' in tag: print('</%s>'%(tag))
 
     @staticmethod
+    def VERSION(path_to_file = str(os.path.abspath(__file__))):
+        if 'WIN32' in sys.platform.upper():
+            file_time = os.path.getmtime(path_to_file)
+        else:
+            stat = os.stat(path_to_file)
+            file_time = stat.st_mtime
+        return time.strftime("%y.%m.%d_%H:%M",time.gmtime(file_time)) 
+
+    @staticmethod
     def print_args():
         from platform import python_version
+        print_string = 'python[%s], ' % (str(python_version()))
+        print_string += 'file[%s], ' % (sys.argv[0])
+        print_string += 'version[%s], ' % (CGI_CLI.VERSION())
         if CGI_CLI.cgi_active:
-            try: print_string = 'python[' + str(python_version()) + '], CGI_args = ' + json.dumps(CGI_CLI.data) 
-            except: print_string = 'CGI_args = '                 
-        else: print_string = 'python[' + str(python_version()) + '], CLI_args = %s' % (str(sys.argv[1:]))
+            try: print_string += 'CGI_args = %s' % (json.dumps(CGI_CLI.data)) 
+            except: pass                 
+        else: print_string += 'CLI_args = %s' % (str(sys.argv[1:]))
         CGI_CLI.uprint(print_string)
         return print_string
 
@@ -215,7 +272,7 @@ class RCMD(object):
             except: RCMD.DEVICE_PORT = '22'
             CGI_CLI.uprint('DEVICE %s (host=%s, port=%s) START'\
                 %(device, RCMD.DEVICE_HOST, RCMD.DEVICE_PORT)+24 * '.')
-            RCMD.router_type, RCMD.router_prompt = RCMD.detect_router_by_ssh()
+            RCMD.router_type, RCMD.router_prompt = RCMD.ssh_raw_detect_router_type(debug = True)
             if not RCMD.router_type in RCMD.KNOWN_OS_TYPES:
                 CGI_CLI.uprint('%sUNSUPPORTED DEVICE TYPE: \'%s\', BREAK!%s' % \
                     (bcolors.MAGENTA, RCMD.router_type, bcolors.ENDC))
@@ -449,27 +506,37 @@ class RCMD(object):
         return output, new_prompt
 
     @staticmethod
-    def detect_router_by_ssh(debug = False):
-        # detect device prompt
-        def ssh_detect_prompt(chan, debug = False):
+    def ssh_raw_detect_router_type(debug = None):
+        ### DETECT DEVICE PROMPT FIRST
+        def ssh_raw_detect_prompt(chan, debug = debug):
             output, buff, last_line, last_but_one_line = str(), str(), 'dummyline1', 'dummyline2'
+            flush_buffer = chan.recv(9999)
+            del flush_buffer
             chan.send('\t \n\n')
+            time.sleep(0.3)
             while not (last_line and last_but_one_line and last_line == last_but_one_line):
-                if debug: print('FIND_PROMPT:',last_but_one_line,last_line)
                 buff = chan.recv(9999)
-                output += buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
-                          replace('\x1b[K','').replace('\n{master}\n','')
-                if '--More--' or '---(more' in buff.strip(): chan.send('\x20')
-                if debug: print('BUFFER:' + buff)
-                try: last_line = output.splitlines()[-1].strip().replace('\x20','')
-                except: last_line = 'dummyline1'
-                try: last_but_one_line = output.splitlines()[-2].strip().replace('\x20','')
-                except: last_but_one_line = 'dummyline2'
+                if len(buff)>0:
+                    if debug: print('LOOKING_FOR_PROMPT:',last_but_one_line,last_line)                
+                    output += buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
+                              replace('\x1b[K','').replace('\n{master}\n','')
+                    if '--More--' or '---(more' in buff.strip(): 
+                        chan.send('\x20')
+                        if debug: print('SPACE_SENT.')
+                        time.sleep(0.3)
+                    try: last_line = output.splitlines()[-1].strip().replace('\x20','')
+                    except: last_line = 'dummyline1'
+                    try: 
+                        last_but_one_line = output.splitlines()[-2].strip().replace('\x20','')
+                        if len(last_but_one_line) == 0:
+                            ### vJunos '\x20' --> '\n\nprompt' workarround
+                            last_but_one_line = output.splitlines()[-3].strip().replace('\x20','')
+                    except: last_but_one_line = 'dummyline2'
             prompt = output.splitlines()[-1].strip()
             if debug: CGI_CLI.uprint('DETECTED PROMPT: \'' + prompt + '\'')
             return prompt
         # bullet-proof read-until function , even in case of ---more---
-        def ssh_read_until_prompt_bulletproof(chan,command,prompts,debug = False):
+        def ssh_raw_read_until_prompt(chan,command,prompts,debug = debug):
             output, buff, last_line, exit_loop = str(), str(), 'dummyline1', False
             # avoid of echoing commands on ios-xe by timeout 1 second
             flush_buffer = chan.recv(9999)
@@ -502,22 +569,22 @@ class RCMD(object):
             chan.settimeout(RCMD.TIMEOUT)
             # prevent --More-- in log banner (space=page, enter=1line,tab=esc)
             # \n\n get prompt as last line
-            prompt = ssh_detect_prompt(chan, debug=False)
+            prompt = ssh_raw_detect_prompt(chan, debug=debug)
             #test if this is HUAWEI VRP
             if prompt and not router_os:
                 command = 'display version | include (Huawei)\n'
-                output = ssh_read_until_prompt_bulletproof(chan, command, [prompt], debug=debug)
+                output = ssh_raw_read_until_prompt(chan, command, [prompt], debug=debug)
                 if 'Huawei Versatile Routing Platform Software' in output: router_os = 'vrp'
             #test if this is CISCO IOS-XR, IOS-XE or JUNOS
             if prompt and not router_os:
                 command = 'show version\n'
-                output = ssh_read_until_prompt_bulletproof(chan, command, [prompt], debug=debug)
+                output = ssh_raw_read_until_prompt(chan, command, [prompt], debug=debug)
                 if 'iosxr-' in output or 'Cisco IOS XR Software' in output: router_os = 'ios-xr'
                 elif 'Cisco IOS-XE software' in output: router_os = 'ios-xe'
                 elif 'JUNOS OS' in output: router_os = 'junos'
             if prompt and not router_os:
                 command = 'uname -a\n'
-                output = ssh_read_until_prompt_bulletproof(chan, command, [prompt], debug=debug)
+                output = ssh_raw_read_until_prompt(chan, command, [prompt], debug=debug)
                 if 'LINUX' in output.upper(): router_os = 'linux'
             if not router_os:
                 CGI_CLI.uprint(bcolors.MAGENTA + "\nCannot find recognizable OS in %s" % (output) + bcolors.ENDC)
@@ -642,6 +709,7 @@ class LCMD(object):
                     LCMD.fp.write('EXEC_PROBLEM[' + str(e) + ']\n')                    
         return None
 
+
             
 ##############################################################################
 #
@@ -652,17 +720,22 @@ if __name__ != "__main__": sys.exit(0)
 
 ### CGI-BIN READ FORM ############################################
 CGI_CLI()
-CGI_CLI.init_cgi()
+USERNAME, PASSWORD = CGI_CLI.init_cgi()
 CGI_CLI.print_args()
-if CGI_CLI.cgi_active or 'WIN32' in sys.platform.upper(): bcolors = nocolors
-
 
 pe_device, gw_device = None, None
+
 if CGI_CLI.cgi_active and CGI_CLI.data.get('pe-router',None):
     pe_device = CGI_CLI.data.get('pe-router',None)
 
 if CGI_CLI.cgi_active and CGI_CLI.data.get('ipsec-gw-router',None):
     gw_device = CGI_CLI.data.get('ipsec-gw-router',None)
+
+if CGI_CLI.args.pe_device:
+    pe_device = CGI_CLI.args.pe_device
+
+if CGI_CLI.args.gw_device:
+    pe_device = CGI_CLI.args.gw_device
 
 # cmd_data = {
     # 'cisco_ios':[],
@@ -685,14 +758,12 @@ lcmd_data2 = {
     'unix':['whoami'],
 }
 
-pe_device = 'partr0'
-username = 'iptac' 
-password = 'paiiUNDO'
-
-print(pe_device)
+# pe_device = 'partr0'
+# USERNAME = 'iptac' 
+# PASSWORD = 'paiiUNDO'
 
 if pe_device:
-    rcmd_outputs = RCMD.connect(pe_device, rcmd_data1, username = 'iptac', password = 'paiiUNDO')
+    rcmd_outputs = RCMD.connect(pe_device, rcmd_data1, username = USERNAME, password = PASSWORD)
     CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'blue')
     RCMD.disconnect()
 
@@ -710,6 +781,8 @@ if pe_device:
 
 LCMD.eval_command('lcmd_data2')
 LCMD.exec_command('print(lcmd_data2)')
+
+#CGI_CLI.uprint(CGI_CLI.args, jsonprint=True)
 
 # 127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
 # ::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
