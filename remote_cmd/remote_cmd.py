@@ -272,7 +272,7 @@ class RCMD(object):
             except: RCMD.DEVICE_PORT = '22'
             CGI_CLI.uprint('DEVICE %s (host=%s, port=%s) START'\
                 %(device, RCMD.DEVICE_HOST, RCMD.DEVICE_PORT)+24 * '.')
-            RCMD.router_type, RCMD.router_prompt = RCMD.detect_router_by_ssh(debug=True)
+            RCMD.router_type, RCMD.router_prompt = RCMD.detect_router_by_ssh(debug = None)
             if not RCMD.router_type in RCMD.KNOWN_OS_TYPES:
                 CGI_CLI.uprint('%sUNSUPPORTED DEVICE TYPE: \'%s\', BREAK!%s' % \
                     (bcolors.MAGENTA, RCMD.router_type, bcolors.ENDC))
@@ -457,7 +457,7 @@ class RCMD(object):
                 timeout_counter = 0
                 buff = chan.recv(9999)
                 buff_read = buff.decode("utf-8").replace('\x0d','').replace('\x07','').\
-                    replace('\x08','').replace(' \x1b[1D','')
+                    replace('\x08','').replace(' \x1b[1D','').replace('#$','#')
                 output += buff_read
             else: time.sleep(0.1); timeout_counter += 1
             # FIND LAST LINE, THIS COULD BE PROMPT
@@ -493,7 +493,7 @@ class RCMD(object):
                         if chan.recv_ready():
                             buff = chan.recv(9999)
                             buff_read = buff.decode("utf-8").replace('\x0d','')\
-                               .replace('\x07','').replace('\x08','').replace(' \x1b[1D','')
+                               .replace('\x07','').replace('\x08','').replace(' \x1b[1D','').replace('#$','#')
                             output2 += buff_read
                         else: time.sleep(0.1); timeout_counter2 += 1
                         try: new_last_line = output2.splitlines()[-1].strip()
@@ -507,21 +507,27 @@ class RCMD(object):
 
     @staticmethod
     def detect_router_by_ssh(debug = None):
-        # detect device prompt
-        def ssh_detect_prompt(chan, debug = debug):
+        ### DETECT DEVICE PROMPT FIRST
+        def ssh_raw_detect_prompt(chan, debug = debug):
             output, buff, last_line, last_but_one_line = str(), str(), 'dummyline1', 'dummyline2'
+            flush_buffer = chan.recv(9999)
+            del flush_buffer
             chan.send('\t \n\n')
+            time.sleep(0.3)
             while not (last_line and last_but_one_line and last_line == last_but_one_line):
-                if debug: print('FIND_PROMPT:',last_but_one_line,last_line)
                 buff = chan.recv(9999)
-                output += buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
-                          replace('\x1b[K','').replace('\n{master}\n','')
-                if '--More--' or '---(more' in buff.strip(): chan.send('\x20')
-                if debug: print('BUFFER:' + buff)
-                try: last_line = output.splitlines()[-1].strip().replace('\x20','')
-                except: last_line = 'dummyline1'
-                try: last_but_one_line = output.splitlines()[-2].strip().replace('\x20','')
-                except: last_but_one_line = 'dummyline2'
+                if len(buff)>0:
+                    if debug: print('LOOKING_FOR_PROMPT:',last_but_one_line,last_line)                
+                    output += buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
+                              replace('\x1b[K','').replace('\n{master}\n','')
+                    if '--More--' or '---(more' in buff.strip(): 
+                        chan.send('\x20')
+                        if debug: print('SPACE_SENT.')
+                        time.sleep(0.3)
+                    try: last_line = output.splitlines()[-1].strip().replace('\x20','')
+                    except: last_line = 'dummyline1'
+                    try: last_but_one_line = output.splitlines()[-2].strip().replace('\x20','')
+                    except: last_but_one_line = 'dummyline2'
             prompt = output.splitlines()[-1].strip()
             if debug: CGI_CLI.uprint('DETECTED PROMPT: \'' + prompt + '\'')
             return prompt
@@ -538,7 +544,7 @@ class RCMD(object):
                 if debug: print('LAST_LINE:',prompts,last_line)
                 buff = chan.recv(9999)
                 output += buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
-                          replace('\x1b[K','').replace('\n{master}\n','')
+                          replace('\x1b[K','').replace('\n{master}\n','').replace('$','')
                 if '--More--' or '---(more' in buff.strip(): chan.send('\x20')
                 if debug: print('BUFFER:' + buff)
                 try: last_line = output.splitlines()[-1].strip()
@@ -559,7 +565,7 @@ class RCMD(object):
             chan.settimeout(RCMD.TIMEOUT)
             # prevent --More-- in log banner (space=page, enter=1line,tab=esc)
             # \n\n get prompt as last line
-            prompt = ssh_detect_prompt(chan, debug=debug)
+            prompt = ssh_raw_detect_prompt(chan, debug=debug)
             #test if this is HUAWEI VRP
             if prompt and not router_os:
                 command = 'display version | include (Huawei)\n'
