@@ -272,7 +272,7 @@ class RCMD(object):
             except: RCMD.DEVICE_PORT = '22'
             CGI_CLI.uprint('DEVICE %s (host=%s, port=%s) START'\
                 %(device, RCMD.DEVICE_HOST, RCMD.DEVICE_PORT)+24 * '.')
-            RCMD.router_type, RCMD.router_prompt = RCMD.detect_router_by_ssh(debug = None)
+            RCMD.router_type, RCMD.router_prompt = RCMD.ssh_raw_detect_router_type(debug = None)
             if not RCMD.router_type in RCMD.KNOWN_OS_TYPES:
                 CGI_CLI.uprint('%sUNSUPPORTED DEVICE TYPE: \'%s\', BREAK!%s' % \
                     (bcolors.MAGENTA, RCMD.router_type, bcolors.ENDC))
@@ -506,7 +506,7 @@ class RCMD(object):
         return output, new_prompt
 
     @staticmethod
-    def detect_router_by_ssh(debug = None):
+    def ssh_raw_detect_router_type(debug = None):
         ### DETECT DEVICE PROMPT FIRST
         def ssh_raw_detect_prompt(chan, debug = debug):
             output, buff, last_line, last_but_one_line = str(), str(), 'dummyline1', 'dummyline2'
@@ -532,7 +532,7 @@ class RCMD(object):
             if debug: CGI_CLI.uprint('DETECTED PROMPT: \'' + prompt + '\'')
             return prompt
         # bullet-proof read-until function , even in case of ---more---
-        def ssh_read_until_prompt_bulletproof(chan,command,prompts,debug = debug):
+        def ssh_raw_read_until_prompt(chan,command,prompts,debug = debug):
             output, buff, last_line, exit_loop = str(), str(), 'dummyline1', False
             # avoid of echoing commands on ios-xe by timeout 1 second
             flush_buffer = chan.recv(9999)
@@ -569,18 +569,18 @@ class RCMD(object):
             #test if this is HUAWEI VRP
             if prompt and not router_os:
                 command = 'display version | include (Huawei)\n'
-                output = ssh_read_until_prompt_bulletproof(chan, command, [prompt], debug=debug)
+                output = ssh_raw_read_until_prompt(chan, command, [prompt], debug=debug)
                 if 'Huawei Versatile Routing Platform Software' in output: router_os = 'vrp'
             #test if this is CISCO IOS-XR, IOS-XE or JUNOS
             if prompt and not router_os:
                 command = 'show version\n'
-                output = ssh_read_until_prompt_bulletproof(chan, command, [prompt], debug=debug)
+                output = ssh_raw_read_until_prompt(chan, command, [prompt], debug=debug)
                 if 'iosxr-' in output or 'Cisco IOS XR Software' in output: router_os = 'ios-xr'
                 elif 'Cisco IOS-XE software' in output: router_os = 'ios-xe'
                 elif 'JUNOS OS' in output: router_os = 'junos'
             if prompt and not router_os:
                 command = 'uname -a\n'
-                output = ssh_read_until_prompt_bulletproof(chan, command, [prompt], debug=debug)
+                output = ssh_raw_read_until_prompt(chan, command, [prompt], debug=debug)
                 if 'LINUX' in output.upper(): router_os = 'linux'
             if not router_os:
                 CGI_CLI.uprint(bcolors.MAGENTA + "\nCannot find recognizable OS in %s" % (output) + bcolors.ENDC)
@@ -777,6 +777,8 @@ if pe_device:
 
 LCMD.eval_command('lcmd_data2')
 LCMD.exec_command('print(lcmd_data2)')
+
+#CGI_CLI.uprint(CGI_CLI.args, jsonprint=True)
 
 # 127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
 # ::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
