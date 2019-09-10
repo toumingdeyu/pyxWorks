@@ -1118,11 +1118,12 @@ if CGI_CLI.cgi_active and CGI_CLI.data.get('pe-router',None):
 if CGI_CLI.cgi_active and CGI_CLI.data.get('ipsec-gw-router',None):
     gw_device = CGI_CLI.data.get('ipsec-gw-router',None)
 
-if CGI_CLI.args.pe_device:
-    pe_device = CGI_CLI.args.pe_device
+if not CGI_CLI.cgi_active:
+    if CGI_CLI.args.pe_device:
+        pe_device = CGI_CLI.args.pe_device
 
-if CGI_CLI.args.gw_device:
-    pe_device = CGI_CLI.args.gw_device
+    if CGI_CLI.args.gw_device:
+        pe_device = CGI_CLI.args.gw_device
 
 # cmd_data = {
     # 'cisco_ios':[],
@@ -1145,10 +1146,6 @@ lcmd_data2 = {
     'unix':['whoami'],
 }
 
-# pe_device = 'partr0'
-# USERNAME = 'iptac' 
-# PASSWORD = 'paiiUNDO'
-
 if pe_device:
     rcmd_outputs = RCMD.connect(pe_device, rcmd_data1, username = USERNAME, password = PASSWORD)
     CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'blue')
@@ -1159,42 +1156,9 @@ if pe_device:
     # CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'green')
     # RCMD.disconnect()
 
-
-
-# lcmd_line = """exit 1"""
-# LCMD.init(printall = True)
-# LCMD.run_command(lcmd_line)
-# LCMD.run_commands(lcmd_data2)
-
-LCMD.eval_command('lcmd_data2')
-LCMD.exec_command('print(lcmd_data2)')
-
-#CGI_CLI.uprint(CGI_CLI.args, jsonprint=True)
-
-# 127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
-# ::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
-# 127.0.1.1   iptac5
-# 10.253.58.126   iptac5 iptac5.oakhill.lab
-
-
-# # Oak Hill Lab
-# 192.168.122.2   NSO2_HOST
-# 192.168.122.3   NSO_SERVER
-# 192.168.122.4   pronghong
-
-# # vASR9K's
-# 192.168.122.140 PARTR0
-# 192.168.122.141 NYKTR0
-
-# # vMX-x's
-# 192.168.122.150 PARCR0
-# 192.168.122.151 NYKCR0
-
-# # vASR1K's
-# 192.168.122.160 PARPE0
-# 192.168.122.161 NYKPE0
-# 192.168.122.170 PARCE0
-# 192.168.122.171 NYKCE0
-
-# 192.168.122.253 LABSW1
-# 192.168.122.252 OAKPE0
+if CGI_CLI.cgi_active:    
+    sql_inst = sql_interface(host='localhost', user='cfgbuilder', \
+        password='cfgbuildergetdata', database='rtr_configuration')
+    #CGI_CLI.uprint(CGI_CLI.data, tag = 'p', color = 'red', name = True, jsonprint = True)    
+    CGI_CLI.uprint('SQL_READ (CONFIG):',tag = 'h1')    
+    CGI_CLI.uprint(sql_inst.sql_read_last_record_to_dict(from_string = 'ipxt_config'), jsonprint = True)    
