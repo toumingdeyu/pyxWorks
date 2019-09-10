@@ -358,28 +358,39 @@ def read_bgp_data_json_from_logfile(filename = None, printall = None):
     return bgp_data_loaded
 
 
-def detect_router_by_ssh(device, debug = False):
+def ssh_raw_detect_router_type(device, debug = None):
     # detect device prompt
-    def ssh_detect_prompt(chan, debug = False):
+    def ssh_raw_detect_prompt(chan, debug = debug):
         output, buff, last_line, last_but_one_line = str(), str(), 'dummyline1', 'dummyline2'
+        flush_buffer = chan.recv(9999)
+        del flush_buffer
         chan.send('\t \n\n')
+        time.sleep(0.3)
         while not (last_line and last_but_one_line and last_line == last_but_one_line):
-            if debug: print('FIND_PROMPT:',last_but_one_line,last_line)
             buff = chan.recv(9999)
-            output += buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
-                      replace('\x1b[K','').replace('\n{master}\n','')
-            if '--More--' or '---(more' in buff.strip(): chan.send('\x20')
-            if debug: print('BUFFER:' + buff)
-            try: last_line = output.splitlines()[-1].strip().replace('\x20','')
-            except: last_line = 'dummyline1'
-            try: last_but_one_line = output.splitlines()[-2].strip().replace('\x20','')
-            except: last_but_one_line = 'dummyline2'
+            if len(buff)>0:
+                if debug: print('LOOKING_FOR_PROMPT:',last_but_one_line,last_line)
+                output += buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
+                          replace('\x1b[K','').replace('\n{master}\n','')
+                if '--More--' or '---(more' in buff.strip(): 
+                    chan.send('\x20')
+                    if debug: print('SPACE_SENT.')
+                    time.sleep(0.3)
+                if debug: print('BUFFER:' + buff)
+                try: last_line = output.splitlines()[-1].strip().replace('\x20','')
+                except: last_line = 'dummyline1'
+                try: 
+                    last_but_one_line = output.splitlines()[-2].strip().replace('\x20','')
+                    if len(last_but_one_line) == 0:
+                        ### vJunos '\x20' --> '\n\nprompt' workarround
+                        last_but_one_line = output.splitlines()[-3].strip().replace('\x20','')
+                except: last_but_one_line = 'dummyline2'
         prompt = output.splitlines()[-1].strip()
         if debug: print('DETECTED PROMPT: \'' + prompt + '\'')
         return prompt
 
     # bullet-proof read-until function , even in case of ---more---
-    def ssh_read_until_prompt_bulletproof(chan,command,prompts,debug = False):
+    def ssh_raw_read_until_prompt(chan,command,prompts,debug = debug):
         output, buff, last_line, exit_loop = str(), str(), 'dummyline1', False
         # avoid of echoing commands on ios-xe by timeout 1 second
         flush_buffer = chan.recv(9999)
@@ -403,7 +414,7 @@ def detect_router_by_ssh(device, debug = False):
     # Detect function start
     router_os = str()
     client = paramiko.SSHClient()
-    client.load_system_host_keys()
+    #client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
     try: DEVICE_HOST = device.split(':')[0]
@@ -418,35 +429,31 @@ def detect_router_by_ssh(device, debug = False):
         chan.settimeout(TIMEOUT)
         # prevent --More-- in log banner (space=page, enter=1line,tab=esc)
         # \n\n get prompt as last line
-        prompt = ssh_detect_prompt(chan, debug=False)
+        prompt = ssh_raw_detect_prompt(chan, debug=debug)
 
         #test if this is HUAWEI VRP
         if prompt and not router_os:
             command = 'display version | include (Huawei)\n'
-            output = ssh_read_until_prompt_bulletproof(chan, command, [prompt], debug=debug)
+            output = ssh_raw_read_until_prompt(chan, command, [prompt], debug=debug)
             if 'Huawei Versatile Routing Platform Software' in output: router_os = 'vrp'
 
         #test if this is CISCO IOS-XR, IOS-XE or JUNOS
         if prompt and not router_os:
             command = 'show version\n'
-            output = ssh_read_until_prompt_bulletproof(chan, command, [prompt], debug=debug)
+            output = ssh_raw_read_until_prompt(chan, command, [prompt], debug=debug)
             if 'iosxr-' in output or 'Cisco IOS XR Software' in output: router_os = 'ios-xr'
             elif 'Cisco IOS-XE software' in output: router_os = 'ios-xe'
             elif 'JUNOS OS' in output: router_os = 'junos'
 
         if prompt and not router_os:
             command = 'uname -a\n'
-            output = ssh_read_until_prompt_bulletproof(chan, command, [prompt], debug=debug)
+            output = ssh_raw_read_until_prompt(chan, command, [prompt], debug=debug)
             if 'LINUX' in output.upper(): router_os = 'linux'
 
         if not router_os:
-            print(bcolors.MAGENTA + "\nCannot find recognizable OS in %s" % (output) + bcolors.ENDC)
-
-    except (socket.timeout, paramiko.AuthenticationException) as e:
-        print(bcolors.MAGENTA + " ... Connection closed: %s " % (e) + bcolors.ENDC )
-        sys.exit()
-    finally:
-        client.close()
+            CGI_CLI.uprint(bcolors.MAGENTA + "\nCannot find recognizable OS in %s" % (output) + bcolors.ENDC)
+    except Exception as e: CGI_CLI.uprint('CONNECTION_PROBLEM[' + str(e) + ']')
+    finally: client.close()
 
     netmiko_os = str()
     if router_os == 'ios-xe': netmiko_os = 'cisco_ios'
@@ -454,8 +461,6 @@ def detect_router_by_ssh(device, debug = False):
     if router_os == 'junos': netmiko_os = 'juniper'
     if router_os == 'linux': netmiko_os = 'linux'
     if router_os == 'vrp': netmiko_os = 'huawei'
-    #return netmiko_os
-    #return router_os, prompt
     return netmiko_os, prompt
 
 
@@ -1409,7 +1414,7 @@ if device_name:
         %(device_name,DEVICE_HOST, DEVICE_PORT))
     if remote_connect:
         ####### Figure out type of router OS
-            router_type, router_prompt = detect_router_by_ssh(device_name)
+            router_type, router_prompt = ssh_raw_detect_router_type(device_name)
             if not router_type in KNOWN_OS_TYPES:
                 CGI_CLI.uprint('%sUNSUPPORTED DEVICE TYPE: %s , BREAK! %s' % \
                     (bcolors.MAGENTA,router_type, bcolors.ENDC))
@@ -1490,7 +1495,7 @@ if device_name:
             %(device_name,DEVICE_HOST, DEVICE_PORT))
         if remote_connect:
             ####### Figure out type of router OS
-                router_type, router_prompt = detect_router_by_ssh(device_name)
+                router_type, router_prompt = ssh_raw_detect_router_type(device_name)
                 if not router_type in KNOWN_OS_TYPES:
                     CGI_CLI.uprint('%sUNSUPPORTED DEVICE TYPE: %s , BREAK! %s' % \
                         (bcolors.MAGENTA,router_type, bcolors.ENDC))
