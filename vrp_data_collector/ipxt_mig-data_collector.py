@@ -115,6 +115,9 @@ CMD_IOS_XE = [
     {'if':'glob_vars.get("gw_vrf_parsed_lines","")',
         'exec':'try: bgp_data["peer_address"], bgp_data["peer_as"] = read_gw_vrf_parsed_lines(glob_vars.get("gw_vrf_parsed_lines","")) \nexcept: pass'
     },   
+    {'if':'glob_vars.get("gw_vrf_parsed_lines","")',
+        'exec':'try: bgp_data["peer_address2"] = read_gw_vrf_parsed_lines_and_get_peer_address2(glob_vars.get("gw_vrf_parsed_lines","")) \nexcept: pass'
+    },
     {'if':'glob_vars.get("CONFIG_IF_TEXT","")', 
         'exec':'try: bgp_data["ip_address"] = glob_vars.get("CONFIG_IF_TEXT","").split("ip address ")[1].split()[0].strip() \nexcept: pass'
     },  
@@ -282,6 +285,14 @@ def read_gw_vrf_parsed_lines(text):
         except: ip_addr = None; as_nr = None
         if as_nr and ip_addr and as_nr != 2300 and '.' in ip_addr: ip_address = ip_addr; as_number = as_nr       
     return ip_address, str(as_number)
+
+def read_gw_vrf_parsed_lines_and_get_peer_address2(text):
+    ip_address, as_number = None, None
+    for line in text:
+        try: ip_addr = line.split()[0]; as_nr = int(line.split()[2]) 
+        except: ip_addr = None; as_nr = None
+        if as_nr and ip_addr and as_nr == 2300 and '.' in ip_addr: ip_address = ip_addr; as_number = as_nr       
+    return ip_address
 
 ### UNI-tools ###
 def return_indexed_list(data_list = None):
