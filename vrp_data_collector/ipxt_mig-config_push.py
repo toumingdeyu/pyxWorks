@@ -95,12 +95,10 @@ class CGI_CLI(object):
                             action = "store_true", dest = 'getpass', default = None,
                             help = "insert router password interactively getpass.getpass()")                                                        
         parser.add_argument("--pe_device",
-                            action = "store", dest = 'pe_device',
-                            default = str(),
+                            action = "store", dest = 'pe_device', default = str(),
                             help = "target pe router to check")
         parser.add_argument("--gw_device",
-                            action = "store", dest = 'gw_device',
-                            default = str(),
+                            action = "store", dest = 'gw_device', default = str(),
                             help = "target gw router to check")                    
         args = parser.parse_args()
         return args
@@ -224,7 +222,7 @@ class CGI_CLI(object):
         if CGI_CLI.cgi_active:
             try: print_string += 'CGI_args = %s' % (json.dumps(CGI_CLI.data)) 
             except: pass                 
-        else: print_string += 'CLI_args = %s' % (str(sys.argv[1:]))
+        else: print_string += 'CLI_args = %s, %s' % (str(sys.argv[1:]),str(CGI_CLI.args))
         CGI_CLI.uprint(print_string)
         return print_string
 
@@ -750,180 +748,6 @@ class LCMD(object):
         return None
 
 
-class CGI_CLI(object):
-    """
-    CGI_handle - Simple statis class for handling CGI parameters and 
-                 clean (debug) printing to HTML/CLI    
-       Notes:  - In case of cgi_parameters_error - http[500] is raised, 
-                 but at least no appache timeout occurs...
-    """ 
-    # import collections, cgi, six
-    # import cgitb; cgitb.enable()
-     
-    debug = True
-    initialized = None
-    START_EPOCH = time.time()
-    cgi_parameters_error = None
-    cgi_active = None
-
-    @staticmethod        
-    def cli_parser():
-        ######## Parse program arguments ##################################
-        parser = argparse.ArgumentParser(
-                            description = "Script %s v.%s" % (sys.argv[0], CGI_CLI.VERSION()),
-                            epilog = "e.g: \n" )
-        parser.add_argument("--version",
-                            action = 'version', version = CGI_CLI.VERSION())
-        parser.add_argument("--username",
-                            action = "store", dest = 'username', default = str(),
-                            help = "specify router user login") 
-        parser.add_argument("--password",
-                            action = "store", dest = 'password', default = str(),
-                            help = "specify router password (test only...)")
-        parser.add_argument("--getpass",
-                            action = "store_true", dest = 'getpass', default = None,
-                            help = "insert router password interactively getpass.getpass()")
-        parser.add_argument("--device",
-                            action = "store", dest = 'device',
-                            default = str(),
-                            help = "target router to check")
-        parser.add_argument("--printall",action = "store_true", default = None,
-                            help = "print all lines, changes will be coloured")                            
-        # parser.add_argument("--pe_device",
-                            # action = "store", dest = 'pe_device',
-                            # default = str(),
-                            # help = "target pe router to check")
-        # parser.add_argument("--gw_device",
-                            # action = "store", dest = 'gw_device',
-                            # default = str(),
-                            # help = "target gw router to check")                    
-        args = parser.parse_args()
-        return args
-    
-    @staticmethod        
-    def __cleanup__():
-        CGI_CLI.uprint('\nEND[script runtime = %d sec]. '%(time.time() - CGI_CLI.START_EPOCH))
-        if CGI_CLI.cgi_active: print("</body></html>")
-
-    @staticmethod
-    def register_cleanup_at_exit():
-        """
-        In static class is no constructor or destructor 
-        --> Register __cleanup__ in system
-        """
-        if not 'atexit' in sys.modules: import atexit; atexit.register(CGI_CLI.__cleanup__)
-
-    @staticmethod
-    def init_cgi(interaction = None):
-        CGI_CLI.START_EPOCH = time.time()
-        CGI_CLI.initialized = True 
-        CGI_CLI.data, CGI_CLI.submit_form, CGI_CLI.username, CGI_CLI.password = \
-            collections.OrderedDict(), '', '', ''   
-        try: form = cgi.FieldStorage()
-        except: 
-            form = collections.OrderedDict()
-            CGI_CLI.cgi_parameters_error = True
-        for key in form.keys():
-            variable = str(key)
-            try: value = str(form.getvalue(variable))
-            except: value = str(','.join(form.getlist(name)))
-            if variable and value and not variable in ["submit","username","password"]: 
-                CGI_CLI.data[variable] = value
-            if variable == "submit": CGI_CLI.submit_form = value
-            if variable == "username": CGI_CLI.username = value
-            if variable == "password": CGI_CLI.password = value
-        if CGI_CLI.submit_form or len(CGI_CLI.data)>0: CGI_CLI.cgi_active = True
-        if CGI_CLI.cgi_active:
-            if not 'cgitb' in sys.modules: import cgitb; cgitb.enable()        
-            print("Content-type:text/html\n\n")
-            print("<html><head><title>%s</title></head><body>" % 
-                (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit'))
-        if not 'atexit' in sys.modules: import atexit; atexit.register(CGI_CLI.__cleanup__)
-        ### GAIN USERNAME AND PASSWORD FROM CGI/CLI
-        CGI_CLI.args = CGI_CLI.cli_parser()               
-        try:    CGI_CLI.PASSWORD        = os.environ['NEWR_PASS']
-        except: CGI_CLI.PASSWORD        = str()
-        try:    CGI_CLI.USERNAME        = os.environ['NEWR_USER']
-        except: CGI_CLI.USERNAME        = str()
-        if CGI_CLI.args.username:        
-            CGI_CLI.USERNAME = CGI_CLI.args.username
-            CGI_CLI.PASSWORD = str()
-            if interaction or CGI_CLI.args.getpass: CGI_CLI.PASSWORD = getpass.getpass("TACACS password: ")
-            elif CGI_CLI.args.password: CGI_CLI.password = CGI_CLI.args.password                
-        if CGI_CLI.username: CGI_CLI.USERNAME = CGI_CLI.username
-        if CGI_CLI.password: CGI_CLI.PASSWORD = CGI_CLI.password
-        if CGI_CLI.cgi_active or 'WIN32' in sys.platform.upper(): bcolors = nocolors
-        CGI_CLI.uprint('USERNAME[%s], PASSWORD[%s]' % (CGI_CLI.USERNAME, 'Yes' if CGI_CLI.PASSWORD else 'No'))        
-        return CGI_CLI.USERNAME, CGI_CLI.PASSWORD
-
-    @staticmethod 
-    def oprint(text, tag = None):
-        if CGI_CLI.debug: 
-            if CGI_CLI.cgi_active:
-                if tag and 'h' in tag: print('<%s>'%(tag))
-                if tag and 'p' in tag: print('<p>')
-                if isinstance(text, six.string_types): 
-                    text = str(text.replace('\n','<br/>').replace(' ','&nbsp;'))
-                else: text = str(text)   
-            print(text)
-            if CGI_CLI.cgi_active: 
-                print('<br/>');
-                if tag and 'p' in tag: print('</p>')
-                if tag and 'h' in tag: print('</%s>'%(tag))
-
-    @staticmethod 
-    def uprint(text, tag = None, color = None, name = None, jsonprint = None):
-        """NOTE: name parameter could be True or string."""
-        print_text, print_name = copy.deepcopy(text), str()
-        if CGI_CLI.debug:
-            if jsonprint:
-                if isinstance(text, (dict,collections.OrderedDict,list,tuple)):
-                    try: print_text = json.dumps(text, indent = 4)
-                    except: pass   
-            if name==True:
-                if not 'inspect.currentframe' in sys.modules: import inspect
-                callers_local_vars = inspect.currentframe().f_back.f_locals.items()
-                var_list = [var_name for var_name, var_val in callers_local_vars if var_val is text]
-                if str(','.join(var_list)).strip(): print_name = str(','.join(var_list)) + ' = '
-            elif isinstance(name, (six.string_types)): print_name = str(name) + ' = '
-            
-            print_text = str(print_text)
-            if CGI_CLI.cgi_active:
-                if tag and 'h' in tag: print('<%s%s>'%(tag,' style="color:%s;"'%(color) if color else str()))
-                if color or tag and 'p' in tag: tag = 'p'; print('<p%s>'%(' style="color:%s;"'%(color) if color else str()))
-                if isinstance(print_text, six.string_types): 
-                    print_text = str(print_text.replace('&','&amp;').replace('<','&lt;'). \
-                        replace('>','&gt;').replace('\n','<br/>').replace(' ','&nbsp;')) 
-            print(print_name + print_text)
-            del print_text
-            if CGI_CLI.cgi_active: 
-                print('<br/>');
-                if tag and 'p' in tag: print('</p>')
-                if tag and 'h' in tag: print('</%s>'%(tag))
-
-    @staticmethod
-    def VERSION(path_to_file = str(os.path.abspath(__file__))):
-        if 'WIN32' in sys.platform.upper():
-            file_time = os.path.getmtime(path_to_file)
-        else:
-            stat = os.stat(path_to_file)
-            file_time = stat.st_mtime
-        return time.strftime("%y.%m.%d_%H:%M",time.gmtime(file_time)) 
-
-    @staticmethod
-    def print_args():
-        from platform import python_version
-        print_string = 'python[%s], ' % (str(python_version()))
-        print_string += 'file[%s], ' % (sys.argv[0])
-        print_string += 'version[%s], ' % (CGI_CLI.VERSION())
-        if CGI_CLI.cgi_active:
-            try: print_string += 'CGI_args = %s' % (json.dumps(CGI_CLI.data)) 
-            except: pass                 
-        else: print_string += 'CLI_args = %s' % (str(sys.argv[1:]))
-        CGI_CLI.uprint(print_string)
-        return print_string
-
-
 class sql_interface():
     ### import mysql.connector
     ### MARIADB - By default AUTOCOMMIT is disabled
@@ -1165,14 +989,6 @@ if not CGI_CLI.cgi_active:
     if CGI_CLI.args.gw_device:
         pe_device = CGI_CLI.args.gw_device
 
-# cmd_data = {
-    # 'cisco_ios':[],
-    # 'cisco_xr':[],
-    # 'juniper':[],
-    # 'huawei':[],
-    # 'linux':[],
-# }
-
 rcmd_data1 = {
     'cisco_ios':['show version'],
     'cisco_xr':['show version'],
@@ -1191,10 +1007,10 @@ if pe_device:
     CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'blue')
     RCMD.disconnect()
 
-# if gw_device:
-    # rcmd_outputs = RCMD.connect(gw_device, rcmd_data1, username = CGI_CLI.username, password = CGI_CLI.password)
-    # CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'green')
-    # RCMD.disconnect()
+if gw_device:
+    rcmd_outputs = RCMD.connect(gw_device, rcmd_data1, username = CGI_CLI.username, password = CGI_CLI.password)
+    CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'green')
+    RCMD.disconnect()
 
 if CGI_CLI.cgi_active:    
     sql_inst = sql_interface(host='localhost', user='cfgbuilder', \
