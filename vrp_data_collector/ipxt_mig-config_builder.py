@@ -768,10 +768,58 @@ def generate_verification_PE_router_config(dict_data = None):
     config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
      
     return config_string 
-
+    
 ###############################################################################
 
-GW_check_vrf_and_crypto_templ = """!
+
+
+###############################################################################
+### PREPARATION GW
+###############################################################################
+
+GW_preparation_interconnect_interface_templ = """interface ${''.join([ str(item.get('ipsec_int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')}
+ encapsulation dot1Q ${cgi_data.get('vlan-id','UNKNOWN')}
+ description TESTING ${cgi_data.get('customer_name','UNKNOWN')} @${cgi_data.get('pe-ip-address','UNKNOWN')} - IPX ${cgi_data.get('ld-number','UNKNOWN')} TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
+ bandwidth ${cgi_data.get('int-bw','UNKNOWN')}000
+ vrf forwarding LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
+ ip address ${cgi_data.get('gw-ip-address','UNKNOWN')} 255.255.255.254
+ no ip redirects
+ no ip proxy-arp
+!
+"""
+
+def generate_preparation_GW_router_config(data = None):
+    config_string = str()     
+
+    mytemplate = Template(GW_preparation_interconnect_interface_templ,strict_undefined=True)
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'      
+       
+    return config_string
+    
+###############################################################################
+
+    
+    
+###############################################################################
+### MIGRATON GW
+###############################################################################
+
+GW_migration_shutdown_templ = """
+router bgp 2300
+address-family ipv4 vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
+neighbor ${cgi_data.get('peer_address','UNKNOWN')} shutdown
+neighbor ${cgi_data.get('peer_address2','UNKNOWN')} shutdown
+!
+interface ${''.join([ str(item.get('ipsec_int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')}
+shutdown
+!
+bgp 2300
+ipv4-family vpn-instance ${cgi_data.get('vrf_name','UNKNOWN')}
+peer ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} ignore
+|
+"""
+
+GW_migration_check_vrf_and_crypto_templ = """!
 vrf definition LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
  description Local vrf for tunnel ${cgi_data.get('vlan-id','UNKNOWN')} - ${cgi_data.get('vpn','UNKNOWN')}
  rd 0.0.0.${''.join([ str(item.get('as_id','')) for item in private_as_test if item.get('cust_name','')==cgi_data.get('customer_name',"UNKNOWN") ])}:${cgi_data.get('vlan-id','UNKNOWN')}
@@ -802,7 +850,7 @@ crypto ipsec profile ${cgi_data.get('vpn','UNKNOWN')}
 !
 """
 
-GW_tunnel_interface_templ = """interface Tunnel${cgi_data.get('vlan-id','UNKNOWN')}
+GW_migration_tunnel_interface_templ = """interface Tunnel${cgi_data.get('vlan-id','UNKNOWN')}
  no shutdown
  description TESTING ${cgi_data.get('customer_name','UNKNOWN')} @${cgi_data.get('bgp-peer-address','UNKNOWN')} - IPX ${cgi_data.get('ld-number','UNKNOWN')} TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
  bandwidth ${cgi_data.get('int-bw','UNKNOWN')}000
@@ -820,7 +868,7 @@ GW_tunnel_interface_templ = """interface Tunnel${cgi_data.get('vlan-id','UNKNOWN
 !
 """
 
-GW_port_channel_interface_templ = """interface ${''.join([ str(item.get('ipsec_int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}
+GW_migration_port_channel_interface_templ = """interface ${''.join([ str(item.get('ipsec_int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}
  no shutdown
  description TESTING ${cgi_data.get('pe-router','UNKNOWN')} from ${cgi_data.get('ipsec-gw-router','UNKNOWN')} @${cgi_data.get('gw-ip-address','UNKNOWN')} - For IPXT over IPSEC FIB${cgi_data.get('ld-number','UNKNOWN')} - Custom
  mtu 4470
@@ -833,7 +881,7 @@ GW_port_channel_interface_templ = """interface ${''.join([ str(item.get('ipsec_i
 !
 """
 
-GW_interconnect_interface_templ = """interface ${''.join([ str(item.get('ipsec_int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')}
+GW_migration_interconnect_interface_templ = """interface ${''.join([ str(item.get('ipsec_int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')}
  encapsulation dot1Q ${cgi_data.get('vlan-id','UNKNOWN')}
  description TESTING ${cgi_data.get('customer_name','UNKNOWN')} @${cgi_data.get('pe-ip-address','UNKNOWN')} - IPX ${cgi_data.get('ld-number','UNKNOWN')} TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
  bandwidth ${cgi_data.get('int-bw','UNKNOWN')}000
@@ -844,7 +892,7 @@ GW_interconnect_interface_templ = """interface ${''.join([ str(item.get('ipsec_i
 !
 """
 
-GW_customer_router_templ = """!<% list = cgi_data.get('ipv4-acl','').split(',') %>
+GW_migration_customer_router_templ = """!<% list = cgi_data.get('ipv4-acl','').split(',') %>
 ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 0.0.0.0 0.0.0.0 ${''.join([ str(item.get('ipsec_int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('pe-ip-address','UNKNOWN')} 
 ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} 255.255.255.255 Tunnel${cgi_data.get('vlan-id','UNKNOWN')} ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} 
 % for i in range(int(len(list)/2)):
@@ -857,49 +905,38 @@ ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('ipv4-acl
 !
 """
 
-### ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}
-
-################################################################################
 def generate_migration_GW_router_config(data = None):
     config_string = str()
 
-    mytemplate = Template(GW_check_vrf_and_crypto_templ,strict_undefined=True)
+    mytemplate = Template(GW_migration_shutdown_templ,strict_undefined=True)
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n' 
+
+    mytemplate = Template(GW_migration_check_vrf_and_crypto_templ,strict_undefined=True)
     config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'  
     
-    mytemplate = Template(GW_tunnel_interface_templ,strict_undefined=True)
+    mytemplate = Template(GW_migration_tunnel_interface_templ,strict_undefined=True)
     config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'      
 
-    mytemplate = Template(GW_port_channel_interface_templ,strict_undefined=True)
+    mytemplate = Template(GW_migration_port_channel_interface_templ,strict_undefined=True)
     config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'      
     
-    mytemplate = Template(GW_interconnect_interface_templ,strict_undefined=True)
+    mytemplate = Template(GW_migration_interconnect_interface_templ,strict_undefined=True)
     config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'   
 
-    mytemplate = Template(GW_customer_router_templ,strict_undefined=True)
+    mytemplate = Template(GW_migration_customer_router_templ,strict_undefined=True)
     config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
        
     return config_string
-################################################################################
 
-# PE_vrf_config_templ = """!
-# vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')}
- # description ${cgi_data.get('vpn','UNKNOWN')}.${cgi_data.get('customer_name','UNKNOWN')}.IPXT
- # address-family ipv4 unicast
- # import route-target
-# % for item in bgp_data.get('rt_import',[]):
-  # ${item}
-# % endfor  
- # exit
- # export route-target
-# % for item in bgp_data.get('rt_export',[]): 
-  # ${item}
-# % endfor  
-  # exit
- # exit
-# !
-# """
+###############################################################################
 
-PE_vrf_config_templ = """!
+
+
+###############################################################################
+### PREPARATION PE
+###############################################################################
+
+PE_preparation_vrf_config_templ = """!
 vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')}
  description ${cgi_data.get('vpn','UNKNOWN')}.${cgi_data.get('customer_name','UNKNOWN')}.IPXT
  address-family ipv4 unicast
@@ -916,28 +953,8 @@ vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')}
  exit
 !
 """
-
-# PE_acl_config_templ = '''!<% rule_num = 10 %>
-# ipv4 access-list ${cgi_data.get('vpn','UNKNOWN')}-IN
-# % for rule in bgp_data.get('customer_prefixes_v4',{}):
- # ${rule_num} permit ipv4 ${rule.get('customer_prefix_v4','UNKNOWN')} ${rule.get('customer_subnetmask_v4','UNKNOWN')} any<% rule_num += 10 %>
-# % endfor
- # 1000 deny ipv4 any any
-# !
-# '''
-
-# PE_acl_config_templ = """!<% rule_num = 30; list = cgi_data.get('ipv4-acl','').split(',') %>
-# ipv4 access-list ${cgi_data.get('vpn','UNKNOWN')}-IN
- # 10 permit ipv4 ${cgi_data.get('pe-ip-address','')}
- # 20 permit ipv4 ${''.join([ str(item.get('ip_address_customer','')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} 0.0.0.0 any
-# % for i in range(int(len(list)/2)):
- # ${rule_num} permit ipv4 ${cgi_data.get('ipv4-acl','').split(',')[2*i]} ${cgi_data.get('ipv4-acl','').split(',')[2*i+1]} any<% rule_num += 10 %>
-# % endfor
- # 1000 deny ipv4 any any
-# !
-# """
  
-PE_acl_config_templ = """!<% rule_num = 20; list = cgi_data.get('ipv4-acl','').split(',') %>
+PE_preparation_acl_config_templ = """!<% rule_num = 20; list = cgi_data.get('ipv4-acl','').split(',') %>
 ipv4 access-list ${cgi_data.get('vpn','UNKNOWN')}-IN
  10 permit ipv4 ${cgi_data.get('pe-ip-address','')}
 % for i in range(int(len(list)/2)):
@@ -947,24 +964,7 @@ ipv4 access-list ${cgi_data.get('vpn','UNKNOWN')}-IN
 !
 """
 
-# PE_prefix_config_templ = """!<% list_count = 0; list_len = len(bgp_data.get('customer_prefixes_v4',{})) %>
-# prefix-set ${cgi_data.get('vpn','UNKNOWN')}-IN
-# % for item in bgp_data.get('customer_prefixes_v4',{}):
-# <% import ipaddress; net = ipaddress.ip_network(item.get('customer_prefix_v4','1.1.1.1')+'/'+item.get('customer_subnetmask_v4','32')); list_count += 1 %>
-# % if list_count == list_len:
-  # ${net} le 32
-# % else:
-  # ${net} le 32,
-# % endif 
-# % endfor
-# end-set
-# !
-# """
-
-
-#<% net = splitted_list[2*i]+"/32" if splitted_list[2*i+1]=="0" else ipaddress.ip_network(splitted_list[2*i]+'/'+splitted_list[2*i+1], strict=True)%>
-
-PE_prefix_config_templ = """!<% import ipaddress; splitted_list = cgi_data.get('ipv4-acl','').split(',') %>
+PE_preparation_prefix_config_templ = """!<% import ipaddress; splitted_list = cgi_data.get('ipv4-acl','').split(',') %>
 prefix-set ${cgi_data.get('vpn','UNKNOWN')}-IN
 % for i in range(1,int(len(splitted_list)/2)):
 <% 
@@ -983,7 +983,7 @@ end-set
 !
 """
 
-PE_policy_map_templ = """!
+PE_preparation_policy_map_templ = """!
 policy-map ${cgi_data.get('customer_name','UNKNOWN')}-IN
  class class-default
   service-policy ${cgi_data.get('customer_name','UNKNOWN')}-COS-IN
@@ -1028,7 +1028,7 @@ policy-map ${cgi_data.get('customer_name','UNKNOWN')}-COS-OUT
 !
 """
 
-PE_interface_description_templ = """interface ${''.join([ str(item.get('int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}
+PE_preparation_interface_description_templ = """interface ${''.join([ str(item.get('int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}
  description TESTING ${cgi_data.get('ipsec-gw-router','UNKNOWN')} from ${cgi_data.get('pe-router','UNKNOWN')} :IPXT ASN${cgi_data.get('bgp-customer-as','UNKNOWN')} @XXX.XXX.XXX.XXX - For IPXT over IPSEC FIB${cgi_data.get('ld-number','UNKNOWN')} - Custom
  no ipv4 address
  carrier-delay up 3 down 0
@@ -1036,7 +1036,7 @@ PE_interface_description_templ = """interface ${''.join([ str(item.get('int_id',
 !
 """
 
-PE_customer_interface_templ = """interface ${''.join([ str(item.get('int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')}
+PE_preparation_customer_interface_templ = """interface ${''.join([ str(item.get('int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')}
  encapsulation dot1Q ${cgi_data.get('vlan-id','UNKNOWN')}
  description TESTING ${cgi_data.get('customer_name','UNKNOWN')} :IPXT ASN${cgi_data.get('bgp-customer-as','UNKNOWN')} @${cgi_data.get('gw-ip-address','UNKNOWN')} - IPX ${cgi_data.get('ld-number','UNKNOWN')} TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
  bandwidth ${cgi_data.get('int-bw','UNKNOWN')}000
@@ -1049,7 +1049,7 @@ PE_customer_interface_templ = """interface ${''.join([ str(item.get('int_id','UN
 !
 """
 
-PE_customer_policy_templ = """!
+PE_preparation_customer_policy_templ = """!
 route-policy ${cgi_data.get('vpn','UNKNOWN')}-IN
   if not destination in ${cgi_data.get('vpn','UNKNOWN')}-IN then
    drop
@@ -1071,7 +1071,7 @@ end-policy
 !
 """
 
-PE_bgp_config_templ = """!
+PE_preparation_bgp_config_templ = """!
 router bgp 2300
  neighbor-group ${cgi_data.get('vpn','UNKNOWN')}
   remote-as ${cgi_data.get('bgp-customer-as','UNKNOWN')}
@@ -1079,9 +1079,9 @@ router bgp 2300
   advertisement-interval 0
   address-family ipv4 unicast
    send-community-ebgp
-   route-policy ${cgi_data.get('vpn','UNKNOWN')}-IN in
+   route-policy DENY-ALL in
    maximum-prefix 10 90
-   route-policy PASS-ALL out
+   route-policy DENY-ALL out
    soft-reconfiguration inbound
   !
  !
@@ -1096,46 +1096,77 @@ vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')}
 !
 """
 
-PE_static_route_config_templ = """!
+PE_preparation_static_route_config_templ = """!
 router static
  vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')} 
   address-family ipv4 unicast
   ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}/32 ${''.join([ str(item.get('int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('gw-ip-address','UNKNOWN')}
 !
+!
 """
-
-#############################################################################    
-def generate_migration_PE_router_config(dict_data = None):
+   
+def generate_preparation_PE_router_config(dict_data = None):
     config_string = str()
 
-    mytemplate = Template(PE_vrf_config_templ,strict_undefined=True)
+    mytemplate = Template(PE_preparation_vrf_config_templ,strict_undefined=True)
     config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
     
-    mytemplate = Template(PE_acl_config_templ,strict_undefined=True)
+    mytemplate = Template(PE_preparation_acl_config_templ,strict_undefined=True)
     config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
     
-    mytemplate = Template(PE_prefix_config_templ,strict_undefined=True)
+    mytemplate = Template(PE_preparation_prefix_config_templ,strict_undefined=True)
     config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
 
-    mytemplate = Template(PE_policy_map_templ,strict_undefined=True)
+    mytemplate = Template(PE_preparation_policy_map_templ,strict_undefined=True)
     config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
 
-    mytemplate = Template(PE_interface_description_templ,strict_undefined=True)
+    mytemplate = Template(PE_preparation_customer_interface_templ,strict_undefined=True)
     config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
 
-    mytemplate = Template(PE_customer_interface_templ,strict_undefined=True)
+    mytemplate = Template(PE_preparation_customer_policy_templ,strict_undefined=True)
     config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
 
-    mytemplate = Template(PE_customer_policy_templ,strict_undefined=True)
+    mytemplate = Template(PE_preparation_bgp_config_templ,strict_undefined=True)
     config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
 
-    mytemplate = Template(PE_bgp_config_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
-
-    mytemplate = Template(PE_static_route_config_templ,strict_undefined=True)
+    mytemplate = Template(PE_preparation_static_route_config_templ,strict_undefined=True)
     config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
 
     return config_string 
+
+###############################################################################
+
+
+
+###############################################################################
+### MIGRATION PE
+###############################################################################   
+
+PE_migration_bgp_config_templ = """!
+router bgp 2300
+ neighbor-group ${cgi_data.get('vpn','UNKNOWN')}
+  remote-as ${cgi_data.get('bgp-customer-as','UNKNOWN')}
+  ebgp-multihop 5
+  advertisement-interval 0
+  address-family ipv4 unicast
+   send-community-ebgp
+   route-policy ${cgi_data.get('vpn','UNKNOWN')}-IN in
+   maximum-prefix 10 90
+   route-policy PASS-ALL out
+   soft-reconfiguration inbound
+  !
+ !
+!
+"""
+
+def generate_migration_PE_router_config(dict_data = None):
+    config_string = str()
+
+    mytemplate = Template(PE_migration_bgp_config_templ,strict_undefined=True)
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
+
+    return config_string 
+    
 ################################################################################
 
 
@@ -1275,8 +1306,8 @@ if data:
     gw_verification_config_text = generate_verification_GW_router_config(data)
     pe_verification_config_text = generate_verification_PE_router_config(data)
 
-    gw_preparation_config_text = str()
-    pe_preparation_config_text = str()
+    gw_preparation_config_text = generate_preparation_GW_router_config(data)
+    pe_preparation_config_text = generate_preparation_PE_router_config(data)
 
     gw_migration_config_text = generate_migration_GW_router_config(data)
     pe_migration_config_text = generate_migration_PE_router_config(data)
