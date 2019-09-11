@@ -253,7 +253,7 @@ def ssh_raw_detect_router_type(device, debug = None):
                     last_line and last_line.endswith(actual_prompt): exit_loop = True
         return output
     # Detect function start
-    router_os = str()
+    router_os, prompt = str(), str()
     client = paramiko.SSHClient()
     #client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
