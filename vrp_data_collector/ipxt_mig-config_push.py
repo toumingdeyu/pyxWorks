@@ -901,6 +901,7 @@ class sql_interface():
         """
         dict_data = collections.OrderedDict()
         table_name_or_from_string = None
+        if not select_string: select_string = '*'
         if table_name:  table_name_or_from_string = table_name
         if from_string: table_name_or_from_string = from_string     
         columns_list = sql_inst.sql_read_all_table_columns(table_name_or_from_string)
@@ -943,6 +944,7 @@ class sql_interface():
         """
         dict_data, dict_list = collections.OrderedDict(), []
         table_name_or_from_string = None
+        if not select_string: select_string = '*'
         if table_name:  table_name_or_from_string = table_name
         if from_string: table_name_or_from_string = from_string     
         columns_list = sql_inst.sql_read_all_table_columns(table_name_or_from_string)
@@ -1017,4 +1019,7 @@ if CGI_CLI.cgi_active:
         password='cfgbuildergetdata', database='rtr_configuration')
     #CGI_CLI.uprint(CGI_CLI.data, tag = 'p', color = 'red', name = True, jsonprint = True)    
     CGI_CLI.uprint('SQL_READ (CONFIG):',tag = 'h1')    
-    CGI_CLI.uprint(sql_inst.sql_read_last_record_to_dict(from_string = 'ipxt_configurations'), jsonprint = True)    
+    #CGI_CLI.uprint(sql_inst.sql_read_last_record_to_dict(from_string = 'ipxt_configurations'), jsonprint = True)    
+    config_data = sql_inst.sql_read_records_to_dict_list(from_string = 'ipxt_configurations', \
+        where_string = "session_id = '%s'" % (CGI_CLI.data.get('session_id','')))
+    CGI_CLI.uprint(config_data, jsonprint = True)    
