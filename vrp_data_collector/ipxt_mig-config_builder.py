@@ -41,7 +41,43 @@ except: PASSWORD        = str()
 try:    USERNAME        = os.environ['NEWR_USER']
 except: USERNAME        = str()
 
+class bcolors:
+        DEFAULT    = '\033[99m'
+        WHITE      = '\033[97m'
+        CYAN       = '\033[96m'
+        MAGENTA    = '\033[95m'
+        HEADER     = '\033[95m'
+        OKBLUE     = '\033[94m'
+        BLUE       = '\033[94m'
+        YELLOW     = '\033[93m'
+        GREEN      = '\033[92m'
+        OKGREEN    = '\033[92m'
+        WARNING    = '\033[93m'
+        RED        = '\033[91m'
+        FAIL       = '\033[91m'
+        GREY       = '\033[90m'
+        ENDC       = '\033[0m'
+        BOLD       = '\033[1m'
+        UNDERLINE  = '\033[4m'
 
+class nocolors:
+        DEFAULT    = ''
+        WHITE      = ''
+        CYAN       = ''
+        MAGENTA    = ''
+        HEADER     = ''
+        OKBLUE     = ''
+        BLUE       = ''
+        YELLOW     = ''
+        GREEN      = ''
+        OKGREEN    = ''
+        WARNING    = ''
+        RED        = ''
+        FAIL       = ''
+        GREY       = ''
+        ENDC       = ''
+        BOLD       = ''
+        UNDERLINE  = ''
 
 
 
@@ -697,7 +733,7 @@ pre_GW_router_bgp_templ = """router bgp 2300
  !
 """
 ################################################################################
-def generate_pre_IPSEC_GW_router_config(data = None):
+def generate_verification_GW_router_config(data = None):
     config_string = str()
     
     mytemplate = Template(pre_GW_vrf_definition_templ,strict_undefined=True)
@@ -724,7 +760,7 @@ pre_PE_bundl_eether_interface_templ = """interface ${''.join([ str(item.get('int
 !
 """
 
-def generate_pre_PE_router_config(dict_data = None):
+def generate_verification_PE_router_config(dict_data = None):
     config_string = str()
 
     mytemplate = Template(pre_PE_bundl_eether_interface_templ,strict_undefined=True)
@@ -823,7 +859,7 @@ ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('ipv4-acl
 ### ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}
 
 ################################################################################
-def generate_post_IPSEC_GW_router_config(data = None):
+def generate_migration_GW_router_config(data = None):
     config_string = str()
 
     mytemplate = Template(GW_check_vrf_and_crypto_templ,strict_undefined=True)
@@ -1068,7 +1104,7 @@ router static
 """
 
 #############################################################################    
-def generate_post_PE_router_config(dict_data = None):
+def generate_migration_PE_router_config(dict_data = None):
     config_string = str()
 
     mytemplate = Template(PE_vrf_config_templ,strict_undefined=True)
@@ -1201,6 +1237,8 @@ def send_me_email(subject = str(), email_body = str(), file_name = None, attachm
 ##############################################################################
 if __name__ != "__main__": sys.exit(0)
 
+configtext = str() 
+
 ### CGI-BIN READ FORM ############################################
 CGI_CLI()
 CGI_CLI.init_cgi()
@@ -1230,50 +1268,75 @@ data['ipxt_data_collector'] = sql_inst.sql_read_records_to_dict_list(from_string
 
 ### PRINT OF ALL DATA IN STRUCTURE DATA
 CGI_CLI.uprint(get_json_with_variable_name(data))
+
     
 if data:
-    pre_config_text_gw = generate_pre_IPSEC_GW_router_config(data)
-    CGI_CLI.uprint('\nIPSEC GW ROUTER (%s) PRE-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()), tag = 'h1')
-    CGI_CLI.uprint(pre_config_text_gw)    
+    gw_verification_config_text = generate_verification_GW_router_config(data)
+    pe_verification_config_text = generate_verification_PE_router_config(data)
 
-    pre_config_text_pe = generate_pre_PE_router_config(data)
-    CGI_CLI.uprint('\nPE ROUTER (%s) PRE-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()), tag = 'h1')
-    CGI_CLI.uprint(pre_config_text_pe)
+    gw_preparation_config_text = str()
+    pe_preparation_config_text = str()
 
-    post_config_text_gw = generate_post_IPSEC_GW_router_config(data)
-    CGI_CLI.uprint('\nIPSEC GW ROUTER (%s) POST-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()), tag = 'h1')
-    CGI_CLI.uprint(post_config_text_gw)    
-    post_config_text_pe = generate_post_PE_router_config(data)
-    CGI_CLI.uprint('\nPE ROUTER (%s) POST-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()), tag = 'h1')
-    CGI_CLI.uprint(post_config_text_pe)
+    gw_migration_config_text = generate_migration_GW_router_config(data)
+    pe_migration_config_text = generate_migration_PE_router_config(data)
+    
+    CGI_CLI.uprint('\nGW ROUTER (%s) VERIFICATION-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()), tag = 'h1')
+    CGI_CLI.uprint(gw_verification_config_text)    
+    CGI_CLI.uprint('\nPE ROUTER (%s) VERIFICATION-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()), tag = 'h1')
+    CGI_CLI.uprint(pe_verification_config_text)
+
+    CGI_CLI.uprint('\nGW ROUTER (%s) PREPARATION-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()), tag = 'h1')
+    CGI_CLI.uprint(gw_preparation_config_text)    
+    CGI_CLI.uprint('\nPE ROUTER (%s) PREPARATION-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()), tag = 'h1')
+    CGI_CLI.uprint(pe_preparation_config_text)
+
+    CGI_CLI.uprint('\nGW ROUTER (%s) MIGRATION-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()), tag = 'h1')
+    CGI_CLI.uprint(gw_migration_config_text)    
+    CGI_CLI.uprint('\nPE ROUTER (%s) MIGRATION-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()), tag = 'h1')
+    CGI_CLI.uprint(pe_migration_config_text)
      
-    # MariaDB [rtr_configuration]> describe ipxt_config;                                              
-    # +---------------+------------------+------+-----+---------+----------------+
-    # | Field         | Type             | Null | Key | Default | Extra          |
-    # +---------------+------------------+------+-----+---------+----------------+
-    # | session_id    | int(10) unsigned | NO   |     | NULL    |                |
-    # | PE_config_old | text             | YES  |     | NULL    |                |
-    # | PE_config_new | text             | YES  |     | NULL    |                |
-    # | GW_config_old | text             | YES  |     | NULL    |                |
-    # | GW_config_new | text             | YES  |     | NULL    |                |
-    # | id            | int(11)          | NO   | PRI | NULL    | auto_increment |
-    # | username      | varchar(40)      | YES  |     | NULL    |                |
-    # | device_name   | varchar(40)      | YES  |     | NULL    |                |
-    # +---------------+------------------+------+-----+---------+----------------+
-        
+    # describe ipxt_configurations;
+    # +------------------------+--------------+------+-----+---------+----------------+
+    # | Field                  | Type         | Null | Key | Default | Extra          |
+    # +------------------------+--------------+------+-----+---------+----------------+
+    # | id                     | int(11)      | NO   | PRI | NULL    | auto_increment |
+    # | username               | varchar(20)  | NO   |     | NULL    |                |
+    # | device_name            | varchar(15)  | NO   |     | NULL    |                |
+    # | session_id             | varchar(255) | NO   |     | NULL    |                |
+    # | pe_config_preparation  | text         | YES  |     | NULL    |                |
+    # | pe_config_migration    | text         | YES  |     | NULL    |                |
+    # | pe_config_verification | text         | YES  |     | NULL    |                |
+    # | gw_config_preparation  | text         | YES  |     | NULL    |                |
+    # | gw_config_migration    | text         | YES  |     | NULL    |                |
+    # | gw_config_verification | text         | YES  |     | NULL    |                |
+    # | pe_preparation_done    | varchar(10)  | NO   |     | NULL    |                |
+    # | gw_preparation_done    | varchar(10)  | NO   |     | NULL    |                |
+    # | pe_migration_done      | varchar(10)  | NO   |     | NULL    |                |
+    # | gw_migration_done      | varchar(10)  | NO   |     | NULL    |                |
+    # +------------------------+--------------+------+-----+---------+----------------+
+    
     config_data['session_id'] = data['cgi_data'].get('session_id','UNKNOWN')
     config_data['username'] = CGI_CLI.username
-    config_data['device_name'] = data['cgi_data'].get('huawei-router','UNKNOWN')       
-    config_data['GW_config_old'] = pre_config_text_gw
-    config_data['PE_config_old'] = pre_config_text_pe
-    config_data['GW_config_new'] = post_config_text_gw
-    config_data['PE_config_new'] = post_config_text_pe        
+    config_data['device_name'] = data['cgi_data'].get('huawei-router','UNKNOWN')
     
-    sql_inst.sql_write_table_from_dict('ipxt_config', config_data) 
+    config_data['gw_preparation_done'] = 'no'
+    config_data['pe_preparation_done'] = 'no'
+    config_data['gw_migration_done'] = 'no'
+    config_data['pe_migration_done'] = 'no'    
+    
+    config_data['gw_config_verification'] = gw_verification_config_text
+    config_data['pe_config_verification'] = pe_verification_config_text     
+    
+    config_data['gw_config_preparation'] = gw_preparation_config_text
+    config_data['pe_config_preparation'] = pe_preparation_config_text        
+
+    config_data['gw_config_migration'] = gw_migration_config_text
+    config_data['pe_config_migration'] = pe_migration_config_text  
+    
+    sql_inst.sql_write_table_from_dict('ipxt_configurations', config_data) 
 
     CGI_CLI.uprint('\nCONFIGS READ FROM SQL: \n', tag = 'h1')
-    config_data_read_from_sql = sql_inst.sql_read_last_record_to_dict(from_string = 'ipxt_config')    
-
+    config_data_read_from_sql = sql_inst.sql_read_last_record_to_dict(from_string = 'ipxt_configurations')    
     CGI_CLI.uprint(config_data_read_from_sql, name = True, jsonprint = True, color = 'blue')
         
     ### MAKE LOGFILE STEP2 + SEND EMAIL    
@@ -1284,32 +1347,25 @@ if data:
             try: dummy = subprocess.check_output('rm -rf %s' % (logfilename), shell=True)
             except: pass
             with open(logfilename,"w") as fp:
-                fp.write('DATA = ' + get_json_with_variable_name(data) + "\n\n")
-                fp.write('\n\nIPSEC GW ROUTER (%s) PRE-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()) + 50*'-' + '\n')
-                fp.write(pre_config_text_gw)    
-                fp.write('\n\nPE ROUTER (%s) PRE-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()) + 50*'-'  + '\n')
-                fp.write(pre_config_text_pe)
-                fp.write('\n\nIPSEC GW ROUTER (%s) POST-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()) + 50*'-'  + '\n')
-                fp.write(post_config_text_gw)    
-                fp.write('\n\nPE ROUTER (%s) POST-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()) + 50*'-' + '\n')
-                fp.write(post_config_text_pe)
+                fp.write('DATA = ' + get_json_with_variable_name(data) + "\n\n\n")
+                configtext = 'IPSEC GW ROUTER (%s) PREPARATION-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()) + 50*'-'  + '\n'
+                configtext += gw_preparation_config_text
+                configtext += '\n\nPE ROUTER (%s) PREPARATION-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()) + 50*'-' + '\n'
+                configtext += pe_preparation_config_text 
+                configtext = 'IPSEC GW ROUTER (%s) MIGRATION-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()) + 50*'-'  + '\n'
+                configtext += gw_migration_config_text
+                configtext += '\n\nPE ROUTER (%s) MIGRATION-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()) + 50*'-' + '\n'
+                configtext += pe_migration_config_text
+                fp.write(configtext)
             ### MAKE READABLE for THE OTHERS
             try: dummy = subprocess.check_output('chmod +r %s' % (logfilename), shell=True)
             except: pass
-
-        configtext = str()            
+           
         if cfgfilename:
             try: dummy = subprocess.check_output('rm -rf %s' % (cfgfilename), shell=True)
             except: pass
             with open(cfgfilename,"w") as fp:
-                fp.write('\n\nIPSEC GW ROUTER (%s) POST-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()) + 50*'-'  + '\n')
-                fp.write(post_config_text_gw)    
-                fp.write('\n\nPE ROUTER (%s) POST-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()) + 50*'-' + '\n')
-                fp.write(post_config_text_pe)
-                configtext = '\n\nIPSEC GW ROUTER (%s) POST-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()) + 50*'-'  + '\n'
-                configtext += post_config_text_gw
-                configtext += '\n\nPE ROUTER (%s) POST-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()) + 50*'-' + '\n'
-                configtext += post_config_text_pe                
+                fp.write(configtext)
             ### MAKE READABLE for THE OTHERS
             try: dummy = subprocess.check_output('chmod +r %s' % (cfgfilename), shell=True)
             except: pass

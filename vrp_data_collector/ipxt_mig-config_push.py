@@ -21,6 +21,46 @@ import cgitb; cgitb.enable()
 import requests
 
 
+class bcolors:
+        DEFAULT    = '\033[99m'
+        WHITE      = '\033[97m'
+        CYAN       = '\033[96m'
+        MAGENTA    = '\033[95m'
+        HEADER     = '\033[95m'
+        OKBLUE     = '\033[94m'
+        BLUE       = '\033[94m'
+        YELLOW     = '\033[93m'
+        GREEN      = '\033[92m'
+        OKGREEN    = '\033[92m'
+        WARNING    = '\033[93m'
+        RED        = '\033[91m'
+        FAIL       = '\033[91m'
+        GREY       = '\033[90m'
+        ENDC       = '\033[0m'
+        BOLD       = '\033[1m'
+        UNDERLINE  = '\033[4m'
+
+class nocolors:
+        DEFAULT    = ''
+        WHITE      = ''
+        CYAN       = ''
+        MAGENTA    = ''
+        HEADER     = ''
+        OKBLUE     = ''
+        BLUE       = ''
+        YELLOW     = ''
+        GREEN      = ''
+        OKGREEN    = ''
+        WARNING    = ''
+        RED        = ''
+        FAIL       = ''
+        GREY       = ''
+        ENDC       = ''
+        BOLD       = ''
+        UNDERLINE  = ''
+
+
+
 class CGI_CLI(object):
     """
     CGI_handle - Simple statis class for handling CGI parameters and 
