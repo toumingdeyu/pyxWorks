@@ -615,6 +615,7 @@ class sql_interface():
         """
         dict_data = collections.OrderedDict()
         table_name_or_from_string = None
+        if not select_string: select_string = '*'
         if table_name:  table_name_or_from_string = table_name
         if from_string: table_name_or_from_string = from_string     
         columns_list = sql_inst.sql_read_all_table_columns(table_name_or_from_string)
@@ -657,6 +658,7 @@ class sql_interface():
         """
         dict_data, dict_list = collections.OrderedDict(), []
         table_name_or_from_string = None
+        if not select_string: select_string = '*'
         if table_name:  table_name_or_from_string = table_name
         if from_string: table_name_or_from_string = from_string     
         columns_list = sql_inst.sql_read_all_table_columns(table_name_or_from_string)
@@ -674,7 +676,6 @@ class sql_interface():
                     del dict_data[column]
                 except: pass     
         return dict_list
-
 
 
 ###############################################################################
