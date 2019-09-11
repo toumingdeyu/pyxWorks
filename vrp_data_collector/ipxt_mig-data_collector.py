@@ -101,10 +101,11 @@ CMD_IOS_XE = [
     {"eval":["bgp_data.get('vlan_id','')"]}, 
     {'if':"bgp_data.get('vlan_id','')",
         'remote_command':['show running-config interface tunnel',{'eval':"bgp_data.get('vlan_id','')"},{'output_variable':'CONFIG_IF_TEXT'}]},
-    {"eval":["bgp_data.get('CONFIG_IF_TEXT','')"]},
+    {"eval":["glob_vars.get('CONFIG_IF_TEXT','')"]},
     {'exec':'try: glob_vars["gw_vrf_forwarding"] = glob_vars.get("CONFIG_IF_TEXT","").split("vrf forwarding ")[1].splitlines()[0].strip() \
            \nexcept: pass', 
     },
+    {"eval":["glob_vars.get('gw_vrf_forwarding','')"]},
     {'if':'glob_vars.get("gw_vrf_forwarding","")', 
         'remote_command':['show bgp vrf ',{"eval":'glob_vars.get("gw_vrf_forwarding","")'},' all summary']},
     {'exec':'try: glob_vars["gw_vrf_parsed_lines"] = glob_vars.get("last_output","").split("State/PfxRcd")[1].strip().splitlines() \
@@ -123,31 +124,8 @@ CMD_IOS_XE = [
     {"eval":["return_bgp_data_json()",{'print_output':'on'}]},
 ]
 
-CMD_IOS_XR = [
-    {"eval":["bgp_data.get('vlan_id','')"]}, 
-    {'if':"bgp_data.get('vlan_id','')",
-        'remote_command':['show running-config interface tunnel',{'eval':"bgp_data.get('vlan_id','')"},{'output_variable':'CONFIG_IF_TEXT'}]},
-    {"eval":["bgp_data.get('CONFIG_IF_TEXT','')"]},
-    {'exec':'try: glob_vars["gw_vrf_forwarding"] = glob_vars.get("CONFIG_IF_TEXT","").split("vrf forwarding ")[1].splitlines()[0].strip() \
-           \nexcept: pass', 
-    },
-    {'if':'glob_vars.get("gw_vrf_forwarding","")', 
-        'remote_command':['show bgp vrf ',{"eval":'glob_vars.get("gw_vrf_forwarding","")'},' all summary']},
-    {'exec':'try: glob_vars["gw_vrf_parsed_lines"] = glob_vars.get("last_output","").split("State/PfxRcd")[1].strip().splitlines() \
-           \nexcept: pass '},     
-    {'if':'glob_vars.get("gw_vrf_parsed_lines","")',
-        'exec':'try: bgp_data["peer_address"], bgp_data["peer_as"] = read_gw_vrf_parsed_lines(glob_vars.get("gw_vrf_parsed_lines","")) \nexcept: pass'
-    },
-    {'if':'glob_vars.get("CONFIG_IF_TEXT","")', 
-        'exec':'try: bgp_data["ip_address"] = glob_vars.get("CONFIG_IF_TEXT","").split("ip address ")[1].split()[0].strip() \nexcept: pass'
-    },  
-    {'if':'glob_vars.get("CONFIG_IF_TEXT","")', 
-        'exec':'try: bgp_data["mask"] = glob_vars.get("CONFIG_IF_TEXT","").split("ip address ")[1].split()[1].strip() \nexcept: pass'
-    },
-    {"eval":["bgp_data.get('ip_address','')"]},
-    {"eval":["bgp_data.get('mask','')"]},
-    {"eval":["return_bgp_data_json()",{'print_output':'on'}]},
-]
+CMD_IOS_XR = CMD_IOS_XE
+
 
 CMD_JUNOS = []
 
