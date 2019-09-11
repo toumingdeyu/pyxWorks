@@ -807,14 +807,14 @@ def generate_preparation_GW_router_config(data = None):
 GW_migration_shutdown_templ = """
 router bgp 2300
 address-family ipv4 vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
-neighbor ${cgi_data.get('peer_address','UNKNOWN')} shutdown
+neighbor ${''.join([ str(item.get('peer_address','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} shutdown
 neighbor ${cgi_data.get('peer_address2','UNKNOWN')} shutdown
 !
-interface ${''.join([ str(item.get('ipsec_int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')}
+interface ?????.${cgi_data.get('vlan-id','UNKNOWN')}
 shutdown
 !
 bgp 2300
-ipv4-family vpn-instance ${cgi_data.get('vrf_name','UNKNOWN')}
+ipv4-family vpn-instance ${''.join([ str(item.get('vrf_name','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}
 peer ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} ignore
 |
 """
