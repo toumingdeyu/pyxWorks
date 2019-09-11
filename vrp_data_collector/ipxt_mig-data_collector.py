@@ -107,12 +107,14 @@ CMD_IOS_XE = [
     },
     {"eval":["glob_vars.get('gw_vrf_forwarding','')"]},
     {'if':'glob_vars.get("gw_vrf_forwarding","")', 
-        'remote_command':['show bgp vrf ',{"eval":'glob_vars.get("gw_vrf_forwarding","")'},' all summary']},
-    {'exec':'try: glob_vars["gw_vrf_parsed_lines"] = glob_vars.get("last_output","").split("State/PfxRcd")[1].strip().splitlines() \
-           \nexcept: pass '},     
+        'remote_command':['show bgp vrf ',{"eval":'glob_vars.get("gw_vrf_forwarding","")'},' all summary',{'output_variable':'GW_VRF_TEXT'}]},
+     {"eval":["glob_vars.get('GW_VRF_TEXT','')"]},    
+    {'exec':'try: glob_vars["gw_vrf_parsed_lines"] = glob_vars.get("GW_VRF_TEXT","").split("State/PfxRcd")[1].strip().splitlines() \
+           \nexcept: pass '},
+    {"eval":["glob_vars.get('gw_vrf_parsed_lines','')"]},           
     {'if':'glob_vars.get("gw_vrf_parsed_lines","")',
         'exec':'try: bgp_data["peer_address"], bgp_data["peer_as"] = read_gw_vrf_parsed_lines(glob_vars.get("gw_vrf_parsed_lines","")) \nexcept: pass'
-    },
+    },   
     {'if':'glob_vars.get("CONFIG_IF_TEXT","")', 
         'exec':'try: bgp_data["ip_address"] = glob_vars.get("CONFIG_IF_TEXT","").split("ip address ")[1].split()[0].strip() \nexcept: pass'
     },  
