@@ -1201,4 +1201,4 @@ if CGI_CLI.cgi_active:
         password='cfgbuildergetdata', database='rtr_configuration')
     #CGI_CLI.uprint(CGI_CLI.data, tag = 'p', color = 'red', name = True, jsonprint = True)    
     CGI_CLI.uprint('SQL_READ (CONFIG):',tag = 'h1')    
-    CGI_CLI.uprint(sql_inst.sql_read_last_record_to_dict(from_string = 'ipxt_config'), jsonprint = True)    
+    CGI_CLI.uprint(sql_inst.sql_read_last_record_to_dict(from_string = 'ipxt_configurations'), jsonprint = True)    
