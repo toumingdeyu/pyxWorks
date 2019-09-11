@@ -310,7 +310,7 @@ class RCMD(object):
             except: RCMD.DEVICE_PORT = '22'
             CGI_CLI.uprint('DEVICE %s (host=%s, port=%s) START'\
                 %(device, RCMD.DEVICE_HOST, RCMD.DEVICE_PORT)+24 * '.')
-            RCMD.router_type, RCMD.router_prompt = RCMD.ssh_raw_detect_router_type(debug = True)
+            RCMD.router_type, RCMD.router_prompt = RCMD.ssh_raw_detect_router_type(debug = None)
             if not RCMD.router_type in RCMD.KNOWN_OS_TYPES:
                 CGI_CLI.uprint('%sUNSUPPORTED DEVICE TYPE: \'%s\', BREAK!%s' % \
                     (bcolors.MAGENTA, RCMD.router_type, bcolors.ENDC))
