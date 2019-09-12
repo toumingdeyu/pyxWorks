@@ -1732,6 +1732,25 @@ if device_name:
         else: pass    
     ### END OF GATEWAY...       
 
+    CGI_CLI.uprint('\nDEVICE %s DONE. '%(device_name))
+    
+    if CGI_CLI.cgi_active and CGI_CLI.submit_form == step1_string or first_router_type == 'huawei':    
+        if first_router_type == 'huawei': 
+            sql_inst = sql_interface(host='localhost', user='cfgbuilder', \
+                password='cfgbuildergetdata', database='rtr_configuration')
+            CGI_CLI.uprint(bgp_data, tag = 'p', color = 'red', name = True, jsonprint = True)    
+            CGI_CLI.uprint('BEFORE_SQL_WRITE:',tag = 'h1')    
+            before_sql_write = sql_inst.sql_read_last_record_to_dict(from_string = 'ipxt_data_collector')   
+            CGI_CLI.uprint(before_sql_write, jsonprint = True) 
+            sql_inst.sql_write_table_from_dict('ipxt_data_collector', bgp_data)  
+            CGI_CLI.uprint('AFTER_SQL_WRITE:',tag = 'h1')
+            after_sql_write = sql_inst.sql_read_last_record_to_dict(from_string = 'ipxt_data_collector')
+            CGI_CLI.uprint(after_sql_write, jsonprint = True)
+                        
+            with open(logfilename,"a+") as fp:
+                fp.write('BEFORE_SQL_WRITE:\n' + json.dumps(before_sql_write, indent = 4) + '\n')
+                fp.write('AFTER_SQL_WRITE:\n' + json.dumps(after_sql_write, indent = 4) + '\n') 
+
     ### LOG FROM BOTH DEVICES ######################################################
     if logfilename and os.path.exists(logfilename):
         CGI_CLI.uprint('\n%s file created. ' % (logfilename))
@@ -1743,19 +1762,6 @@ if device_name:
         try: send_me_email(subject = logfilename.replace('\\','/').\
                  split('/')[-1], file_name = logfilename, username = USERNAME)
         except: pass
-    CGI_CLI.uprint('\nDEVICE %s DONE. '%(device_name))
-
-    if CGI_CLI.cgi_active and CGI_CLI.submit_form == step1_string or first_router_type == 'huawei':    
-        if first_router_type == 'huawei': 
-            sql_inst = sql_interface(host='localhost', user='cfgbuilder', \
-                password='cfgbuildergetdata', database='rtr_configuration')
-            CGI_CLI.uprint(bgp_data, tag = 'p', color = 'red', name = True, jsonprint = True)    
-            CGI_CLI.uprint('BEFORE_SQL_WRITE:',tag = 'h1')    
-            CGI_CLI.uprint(sql_inst.sql_read_last_record_to_dict(from_string = 'ipxt_data_collector'), jsonprint = True)    
-            sql_inst.sql_write_table_from_dict('ipxt_data_collector', bgp_data)  
-            CGI_CLI.uprint('AFTER_SQL_WRITE:',tag = 'h1')
-            CGI_CLI.uprint(sql_inst.sql_read_last_record_to_dict(from_string = 'ipxt_data_collector'), jsonprint = True)
-
 
 
 
