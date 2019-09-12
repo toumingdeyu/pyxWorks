@@ -1380,18 +1380,18 @@ if data:
             except: pass
             with open(logfilename,"w") as fp:
                 fp.write('DATA = ' + get_json_with_variable_name(data) + "\n\n\n")
-                fp.write('\nGW ROUTER (%s) VERIFICATION-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper())+ 50*'-'  + '\n', tag = 'h1')
+                fp.write('\nGW ROUTER (%s) VERIFICATION-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper())+ 60*'-' + '\n\n')
                 fp.write(gw_verification_config_text)    
-                fp.write('\nPE ROUTER (%s) VERIFICATION-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper())+ 50*'-'  + '\n', tag = 'h1')
+                fp.write('\nPE ROUTER (%s) VERIFICATION-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper())+ 60*'-' + '\n\n')
                 fp.write(pe_verification_config_text)
-                
-                configtext = 'IPSEC GW ROUTER (%s) PREPARATION-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()) + 50*'-'  + '\n'
+                fp.write('\n\n')
+                configtext = 'IPSEC GW ROUTER (%s) PREPARATION-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()) + 60*'-' + '\n\n'
                 configtext += gw_preparation_config_text
-                configtext += '\n\nPE ROUTER (%s) PREPARATION-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()) + 50*'-' + '\n'
+                configtext += '\n\nPE ROUTER (%s) PREPARATION-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()) + 56*'-' + '\n\n'
                 configtext += pe_preparation_config_text 
-                configtext += '\n\nIPSEC GW ROUTER (%s) MIGRATION-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()) + 50*'-'  + '\n'
+                configtext += '\n\nIPSEC GW ROUTER (%s) MIGRATION-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()) + 60*'-' + '\n'
                 configtext += gw_migration_config_text
-                configtext += '\n\nPE ROUTER (%s) MIGRATION-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()) + 50*'-' + '\n'
+                configtext += '\n\nPE ROUTER (%s) MIGRATION-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()) + 60*'-' + '\n'
                 configtext += pe_migration_config_text
                 fp.write(configtext)
             ### MAKE READABLE for THE OTHERS

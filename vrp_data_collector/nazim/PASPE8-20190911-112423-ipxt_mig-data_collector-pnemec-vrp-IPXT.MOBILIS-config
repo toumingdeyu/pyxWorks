@@ -1,0 +1,295 @@
+IPSEC GW ROUTER (PASPE4) MIGRATION-CONFIG: 
+--------------------------------------------------
+!
+vrf definition LOCAL.122
+ description Local vrf for tunnel 122 - IPXT.MOBILIS
+ rd 0.0.0.:122
+ !
+ address-family ipv4
+ exit-address-family
+ !
+ address-family ipv6
+ exit-address-family
+!
+!
+crypto keyring IPXT.MOBILIS  
+  local-address 193.251.245.107
+  pre-shared-key address dummy_value key dummy_value
+!
+crypto isakmp profile IPXT.MOBILIS
+   vrf LOCAL.122
+   keyring IPXT.MOBILIS
+   match identity address dummy_value 255.255.255.255 
+   local-address 193.251.245.107
+   keepalive 10 retry 3
+!
+crypto ipsec profile IPXT.MOBILIS
+ set security-association lifetime seconds 28800
+ set transform-set vpn-aes256-sha256
+ set pfs group1
+ set isakmp-profile IPXT.MOBILIS
+!
+interface Tunnel122
+ no shutdown
+ description TESTING MOBILIS @81.52.138.114 - IPX LD011706 TunnelIpsec122 - Custom
+ bandwidth 200000
+ vrf forwarding LOCAL.122
+ ip address 81.52.138.115 255.255.255.254
+ no ip redirects
+ no ip proxy-arp
+ ip mtu 1420
+ logging event link-status
+ load-interval 30
+ carrier-delay msec 0
+ tunnel source 193.251.245.107
+ tunnel destination dummy_value
+ tunnel protection ipsec profile IPXT.MOBILIS
+!
+interface Port-channel1
+ no shutdown
+ description TESTING PASPE3 from PASPE4 @dummy_value - For IPXT over IPSEC FIBLD011706 - Custom
+ mtu 4470
+ no ip address
+ no ip redirects
+ no ip proxy-arp
+ logging event link-status
+ load-interval 30
+ carrier-delay msec 0
+!
+interface Port-channel1.122
+ encapsulation dot1Q 122
+ description TESTING MOBILIS @dummy_value - IPX LD011706 TunnelIpsec122 - Custom
+ bandwidth 200000
+ vrf forwarding LOCAL.122
+ ip address dummy_value 255.255.255.254
+ no ip redirects
+ no ip proxy-arp
+!
+!
+ip route vrf LOCAL.122 0.0.0.0 0.0.0.0 Port-channel1.122 dummy_value 
+ip route vrf LOCAL.122 172.25.10.124 255.255.255.255 Tunnel122 172.25.10.124 
+ip route vrf LOCAL.122 172.25.10.124  Tunnel122 81.52.138.114
+ip route vrf LOCAL.122 154.121.0.224 255.255.255.255 Tunnel122 81.52.138.114
+ip route vrf LOCAL.122 154.89.0.105  Tunnel122 81.52.138.114
+ip route vrf LOCAL.122 41.110.19.64  Tunnel122 81.52.138.114
+ip route vrf LOCAL.122 41.110.19.128  Tunnel122 81.52.138.114
+ip route vrf LOCAL.122 154.121.4.0  Tunnel122 81.52.138.114
+ip route vrf LOCAL.122 154.121.4.16  Tunnel122 81.52.138.114
+ip route vrf LOCAL.122 154.121.4.48  Tunnel122 81.52.138.114
+ip route vrf LOCAL.122 154.121.4.64  Tunnel122 81.52.138.114
+ip route vrf LOCAL.122 154.121.4.80  Tunnel122 81.52.138.114
+ip route vrf LOCAL.122 154.121.4.112  Tunnel122 81.52.138.114
+ip route vrf LOCAL.122 154.121.5.0  Tunnel122 81.52.138.114
+ip route vrf LOCAL.122 213.140.59.96  Tunnel122 81.52.138.114
+ip route vrf LOCAL.122 41.110.19.0  Tunnel122 81.52.138.114
+ip route vrf LOCAL.122 41.110.19.128  Tunnel122 81.52.138.114
+ip route vrf LOCAL.122 41.110.19.136  Tunnel122 81.52.138.114
+ip route vrf LOCAL.122 41.110.19.144  Tunnel122 81.52.138.114
+ip route vrf LOCAL.122 41.110.19.152  Tunnel122 81.52.138.114
+ip route vrf LOCAL.122 154.121.4.32  Tunnel122 81.52.138.114
+ip route vrf LOCAL.122 154.121.4.48  Tunnel122 81.52.138.114
+ip route vrf LOCAL.122 154.121.4.96  Tunnel122 81.52.138.114
+ip route vrf LOCAL.122 154.121.5.24  Tunnel122 81.52.138.114
+ip route vrf LOCAL.122 154.121.5.32  Tunnel122 81.52.138.114
+ip route vrf LOCAL.122 154.121.5.64  Tunnel122 81.52.138.114
+ip route vrf LOCAL.122 154.121.6.96  Tunnel122 81.52.138.114
+ip route vrf LOCAL.122 154.121.6.64  Tunnel122 81.52.138.114
+ip route vrf LOCAL.122 154.121.0.228 255.255.255.255 Tunnel122 81.52.138.114
+ip route vrf LOCAL.122 154.121.0.230 255.255.255.255 Tunnel122 81.52.138.114
+ip route vrf LOCAL.122 154.121.13.0  Tunnel122 81.52.138.114
+!
+
+
+PE ROUTER (PASPE3) MIGRATION-CONFIG: 
+--------------------------------------------------
+!
+vrf IPXT@MOBILIS
+ description IPXT.MOBILIS.MOBILIS.IPXT
+ address-family ipv4 unicast
+ import route-target
+  2300:9025
+  2300:9001
+  2300:9005
+ exit
+ export route-target
+  2300:9026
+  2300:9001
+  2300:9006
+  exit
+ exit
+!
+!
+ipv4 access-list IPXT.MOBILIS-IN
+ 10 permit ipv4 dummy_value
+ 20 permit ipv4 172.25.10.124 0.0.0.1 any
+ 30 permit ipv4 154.121.0.224 0 any
+ 40 permit ipv4 154.89.0.105 0.36.199.148 any
+ 50 permit ipv4 41.110.19.64 0.0.0.15 any
+ 60 permit ipv4 41.110.19.128 0.0.0.63 any
+ 70 permit ipv4 154.121.4.0 0.0.0.15 any
+ 80 permit ipv4 154.121.4.16 0.0.0.15 any
+ 90 permit ipv4 154.121.4.48 0.0.0.7 any
+ 100 permit ipv4 154.121.4.64 0.0.0.15 any
+ 110 permit ipv4 154.121.4.80 0.0.0.15 any
+ 120 permit ipv4 154.121.4.112 0.0.0.7 any
+ 130 permit ipv4 154.121.5.0 0.0.0.31 any
+ 140 permit ipv4 213.140.59.96 0.0.0.15 any
+ 150 permit ipv4 41.110.19.0 0.0.0.63 any
+ 160 permit ipv4 41.110.19.128 0.0.0.7 any
+ 170 permit ipv4 41.110.19.136 0.0.0.7 any
+ 180 permit ipv4 41.110.19.144 0.0.0.7 any
+ 190 permit ipv4 41.110.19.152 0.0.0.3 any
+ 200 permit ipv4 154.121.4.32 0.0.0.31 any
+ 210 permit ipv4 154.121.4.48 0.0.0.15 any
+ 220 permit ipv4 154.121.4.96 0.0.0.31 any
+ 230 permit ipv4 154.121.5.24 0.0.0.7 any
+ 240 permit ipv4 154.121.5.32 0.0.0.15 any
+ 250 permit ipv4 154.121.5.64 0.0.0.31 any
+ 260 permit ipv4 154.121.6.96 0.0.0.15 any
+ 270 permit ipv4 154.121.6.64 0.0.0.31 any
+ 280 permit ipv4 154.121.0.228 0 any
+ 290 permit ipv4 154.121.0.230 0 any
+ 300 permit ipv4 154.121.13.0 0.0.0.63 any
+ 1000 deny ipv4 any any
+!
+!
+prefix-set IPXT.MOBILIS-IN
+  154.121.0.224/32 le 32,
+  154.89.0.105/32 le 32,
+  41.110.19.64/28 le 32,
+  41.110.19.128/26 le 32,
+  154.121.4.0/28 le 32,
+  154.121.4.16/28 le 32,
+  154.121.4.48/29 le 32,
+  154.121.4.64/28 le 32,
+  154.121.4.80/28 le 32,
+  154.121.4.112/29 le 32,
+  154.121.5.0/27 le 32,
+  213.140.59.96/28 le 32,
+  41.110.19.0/26 le 32,
+  41.110.19.128/29 le 32,
+  41.110.19.136/29 le 32,
+  41.110.19.144/29 le 32,
+  41.110.19.152/30 le 32,
+  154.121.4.32/27 le 32,
+  154.121.4.48/28 le 32,
+  154.121.4.96/27 le 32,
+  154.121.5.24/29 le 32,
+  154.121.5.32/28 le 32,
+  154.121.5.64/27 le 32,
+  154.121.6.96/28 le 32,
+  154.121.6.64/27 le 32,
+  154.121.0.228/32 le 32,
+  154.121.0.230/32 le 32,
+  154.121.13.0/26 le 32,
+end-set
+!
+!
+policy-map MOBILIS-IN
+ class class-default
+  service-policy MOBILIS-COS-IN
+  police rate 200 mbps 
+end-policy-map
+! 
+policy-map MOBILIS-OUT
+ class class-default
+  service-policy MOBILIS-COS-OUT
+  shape average 200 mbps
+  bandwidth 200 mbps 
+ ! 
+end-policy-map
+! 
+policy-map MOBILIS-COS-IN
+ class GOLD
+  police rate 200 mbps 
+  ! 
+  set mpls experimental imposition 5
+ ! 
+ class SILVER
+  set mpls experimental imposition 3
+ ! 
+ class class-default
+  set mpls experimental imposition 0
+ ! 
+ end-policy-map
+! 
+policy-map MOBILIS-COS-OUT
+ class GOLD
+  police rate 200 mbps 
+  ! 
+  priority level 1 
+ ! 
+ class SILVER
+  bandwidth remaining percent 50 
+ ! 
+ class class-default
+ ! 
+ end-policy-map
+!
+!
+interface Bundle-Ether1
+ description TESTING PASPE4 from PASPE3 :IPXT ASN327712 @XXX.XXX.XXX.XXX - For IPXT over IPSEC FIBLD011706 - Custom
+ no ipv4 address
+ carrier-delay up 3 down 0
+ load-interval 30
+!
+interface Bundle-Ether1.122
+ encapsulation dot1Q 122
+ description TESTING MOBILIS :IPXT ASN327712 @dummy_value - IPX LD011706 TunnelIpsec122 - Custom
+ bandwidth 200000
+ vrf IPXT@MOBILIS 
+ ipv4 address dummy_value 255.255.255.254
+ flow ipv4 monitor ICX sampler ICX ingress
+ ipv4 access-group IPXT.MOBILIS-IN ingress
+ service-policy input IPXT.MOBILIS-IN
+ service-policy output IPXT.MOBILIS-OUT
+!
+!
+route-policy IPXT.MOBILIS-IN
+  if not destination in IPXT.MOBILIS-IN then
+   drop
+  endif
+  if community matches-any (2300:80) then
+    set local-preference 80
+    set community (2300:11000) 
+    set community (2300:20200) additive
+  elseif community matches-any (2300:90) then
+    set local-preference 90
+    set community (2300:11000)
+    set community (2300:20200) additive
+  else
+    set local-preference 100
+    set community (2300:11000)
+    set community (2300:20200) additive
+  endif
+end-policy 
+!
+!
+router bgp 2300
+ neighbor-group IPXT.MOBILIS
+  remote-as 327712
+  ebgp-multihop 5
+  advertisement-interval 0
+  address-family ipv4 unicast
+   send-community-ebgp
+   route-policy IPXT.MOBILIS-IN in
+   maximum-prefix 10 90
+   route-policy PASS-ALL out
+   soft-reconfiguration inbound
+  !
+ !
+vrf IPXT@MOBILIS
+  rd 0.0.0.:122
+  address-family ipv4 unicast
+   redistribute connected route-policy NO-EXPORT-INTERCO
+  !
+  neighbor 172.25.10.124
+   use neighbor-group IPXT.MOBILIS
+  !
+!
+!
+router static
+ vrf IPXT@MOBILIS 
+  address-family ipv4 unicast
+  172.25.10.124/32 Bundle-Ether1.122 dummy_value
+!
