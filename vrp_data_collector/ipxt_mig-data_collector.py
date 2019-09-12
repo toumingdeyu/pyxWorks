@@ -116,7 +116,7 @@ CMD_IOS_XE = [
         'exec':'try: bgp_data["peer_address"], bgp_data["peer_as"] = read_gw_vrf_parsed_lines(glob_vars.get("gw_vrf_parsed_lines","")) \nexcept: pass'
     },   
     {'if':'glob_vars.get("gw_vrf_parsed_lines","")',
-        'exec':'try: bgp_data["peer_address2"] = read_gw_vrf_parsed_lines_and_get_peer_address2(glob_vars.get("gw_vrf_parsed_lines","")) \nexcept: pass'
+        'exec':'try: bgp_data["gw_peer_address_ibgp"] = read_gw_vrf_parsed_lines_and_get_peer_address_ibgp(glob_vars.get("gw_vrf_parsed_lines","")) \nexcept: pass'
     },
     {'if':'glob_vars.get("CONFIG_IF_TEXT","")', 
         'exec':'try: bgp_data["ip_address"] = glob_vars.get("CONFIG_IF_TEXT","").split("ip address ")[1].split()[0].strip() \nexcept: pass'
@@ -150,8 +150,7 @@ CMD_VRP = [
          'exec_2':'if glob_vars.get("CGI_ACTIVE",""): print("</body></html>")',
          'exec_3':'sys.exit(0)'
     },
-    {'exec':'try: glob_vars["INTERFACE"] = glob_vars.get("VPN_INSTANCE_IP_TEXT","").split("Interfaces :")[1].splitlines()[0].strip().replace(",","")\nexcept: pass'},
-
+    {'exec':'try: glob_vars["INTERFACE"] = glob_vars.get("VPN_INSTANCE_IP_TEXT","").split("Interfaces :")[1].splitlines()[0].strip().replace(",","")\nexcept: pass'},    
     {'exec':'try: bgp_data["customer_name"] = glob_vars.get("VPN_NAME","").split(".")[1] \
            \nexcept: bgp_data["customer_name"] = None'},
     {'exec':'bgp_data["device_name"] = device_name'},
@@ -260,6 +259,7 @@ CMD_VRP = [
               \nfor line in glob_vars.get("ACL_TEXT","").split("permit ip source")[1:]:\
               \n  bgp_data["customer_prefixes_v4"].append({"customer_prefix_v4":line.split()[0],"customer_subnetmask_v4":line.split()[1]})'
     },
+    {'exec':'bgp_data["old_pe_interface"] = glob_vars["INTERFACE"]'},
     #{"eval":["return_bgp_data_json()",{'print_output':'on'}]},
 ]
 
@@ -286,7 +286,7 @@ def read_gw_vrf_parsed_lines(text):
         if as_nr and ip_addr and as_nr != 2300 and '.' in ip_addr: ip_address = ip_addr; as_number = as_nr       
     return ip_address, str(as_number)
 
-def read_gw_vrf_parsed_lines_and_get_peer_address2(text):
+def read_gw_vrf_parsed_lines_and_get_peer_address_ibgp(text):
     ip_address, as_number = None, None
     for line in text:
         try: ip_addr = line.split()[0]; as_nr = int(line.split()[2]) 
