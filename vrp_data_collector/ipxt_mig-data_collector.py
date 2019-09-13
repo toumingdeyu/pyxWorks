@@ -126,6 +126,12 @@ CMD_IOS_XE = [
     },
     {"eval":["bgp_data.get('ip_address','')"]},
     {"eval":["bgp_data.get('mask','')"]},
+    
+    {'remote_command':['sh ip int br | i ',{'eval':"bgp_data.get('ip_address_customer','')"},{'output_variable':'IF_TEXT'}]},
+    {'if':'glob_vars.get("IF_TEXT","")', 
+        'exec':'try: bgp_data["gw_subinterface"] = glob_vars.get("IF_TEXT","").splitlines()[0].split()[0].strip() \nexcept: pass'
+    },     
+    
     {"eval":["return_bgp_data_json()",{'print_output':'on'}]},
 ]
 
