@@ -808,9 +808,9 @@ GW_migration_shutdown_templ = """
 router bgp 2300
 address-family ipv4 vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
 neighbor ${''.join([ str(item.get('peer_address','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} shutdown
-neighbor ${cgi_data.get('peer_address2','UNKNOWN')} shutdown
+neighbor ${cgi_data.get('gw_peer_address_ibgp','UNKNOWN')} shutdown
 !
-interface ?????.${cgi_data.get('vlan-id','UNKNOWN')}
+interface Tunnel${cgi_data.get('vlan-id','UNKNOWN')}
 shutdown
 !
 bgp 2300
@@ -1166,7 +1166,32 @@ def generate_migration_PE_router_config(dict_data = None):
     config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
 
     return config_string 
+
+###############################################################################
     
+    
+###############################################################################
+### MIGRATION OLD_PE
+###############################################################################   
+
+old_PE_migration_bgp_config_templ = """!
+interface ${''.join([ str(item.get('old_pe_interface','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}
+shutdown
+!
+bgp 2300
+ipv4-family vpn-instance ${''.join([ str(item.get('vrf_name','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}
+peer ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} ignore
+!
+"""
+
+def generate_migration_OLD_PE_router_config(dict_data = None):
+    config_string = str()
+
+    mytemplate = Template(old_PE_migration_bgp_config_templ,strict_undefined=True)
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
+
+    return config_string     
+        
 ################################################################################
 
 
@@ -1309,6 +1334,8 @@ if data:
     gw_preparation_config_text = generate_preparation_GW_router_config(data)
     pe_preparation_config_text = generate_preparation_PE_router_config(data)
 
+    old_pe_migration_config_text = generate_migration_OLD_PE_router_config(data)
+
     gw_migration_config_text = generate_migration_GW_router_config(data)
     pe_migration_config_text = generate_migration_PE_router_config(data)
     
@@ -1321,6 +1348,9 @@ if data:
     CGI_CLI.uprint(gw_preparation_config_text)    
     CGI_CLI.uprint('\nPE ROUTER (%s) PREPARATION-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()), tag = 'h1')
     CGI_CLI.uprint(pe_preparation_config_text)
+
+    CGI_CLI.uprint('\nOLD PE ROUTER (%s) MIGRATION-CONFIG: \n' %(data['cgi_data'].get('huawei-router','UNKNOWN').upper()), tag = 'h1')
+    CGI_CLI.uprint(old_pe_migration_config_text)  
 
     CGI_CLI.uprint('\nGW ROUTER (%s) MIGRATION-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()), tag = 'h1')
     CGI_CLI.uprint(gw_migration_config_text)    
@@ -1362,6 +1392,8 @@ if data:
     config_data['gw_config_preparation'] = gw_preparation_config_text
     config_data['pe_config_preparation'] = pe_preparation_config_text        
 
+    config_data['old_pe_config_migration'] = old_pe_migration_config_text  
+
     config_data['gw_config_migration'] = gw_migration_config_text
     config_data['pe_config_migration'] = pe_migration_config_text  
     
@@ -1387,8 +1419,10 @@ if data:
                 fp.write('\n\n')
                 configtext = 'IPSEC GW ROUTER (%s) PREPARATION-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()) + 60*'-' + '\n\n'
                 configtext += gw_preparation_config_text
-                configtext += '\n\nPE ROUTER (%s) PREPARATION-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()) + 56*'-' + '\n\n'
+                configtext += '\n\nPE ROUTER (%s) PREPARATION-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()) + 60*'-' + '\n\n'
                 configtext += pe_preparation_config_text 
+                configtext += '\nOLD PE ROUTER (%s) MIGRATION-CONFIG: \n' %(data['cgi_data'].get('huawei-router','UNKNOWN').upper()) + 60*'-' + '\n\n'
+                configtext += old_pe_migration_config_text
                 configtext += '\n\nIPSEC GW ROUTER (%s) MIGRATION-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()) + 60*'-' + '\n'
                 configtext += gw_migration_config_text
                 configtext += '\n\nPE ROUTER (%s) MIGRATION-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()) + 60*'-' + '\n'
