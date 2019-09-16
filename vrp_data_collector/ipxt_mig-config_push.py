@@ -962,6 +962,15 @@ class sql_interface():
                     del dict_data[column]
                 except: pass     
         return dict_list
+    
+    def get_first(list_of_dictionaries):
+        return_value = None
+        if isinstance(list_of_dictionaries, (dict,collections.OrderedDict)):
+            try: return_value = list_of_dictionaries[0]
+            except: return_value = {}
+
+    # def dict_deep_get(dictionary, *keys):
+    #     return reduce(lambda d, key: d.get(key, None) if isinstance(d, (dict,collections.OrderedDict) else None, keys, dictionary)
 
             
 ##############################################################################
@@ -1004,22 +1013,77 @@ lcmd_data2 = {
     'unix':['whoami'],
 }
 
-if pe_device:
-    rcmd_outputs = RCMD.connect(pe_device, rcmd_data1, username = USERNAME, password = PASSWORD)
-    CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'blue')
-    RCMD.disconnect()
+# username=mkrupa&password=Welcome0010%24&session_id=%2Fvar%2Fwww%2Fcgi-bin%2Flogs%2FHKGPE3-20190916-091722-ipxt_mig-data_collector-mkrupa-vrp-IPXT.VANUATU-Submit_step_1-log&submit=Submit+PE+preparation 
+# username=mkrupa&password=Welcome0010%24&session_id=%2Fvar%2Fwww%2Fcgi-bin%2Flogs%2FHKGPE3-20190916-091722-ipxt_mig-data_collector-mkrupa-vrp-IPXT.VANUATU-Submit_step_1-log&submit=Submit+GW+preparation
 
-if gw_device:
-    rcmd_outputs = RCMD.connect(gw_device, rcmd_data1, username = CGI_CLI.username, password = CGI_CLI.password)
-    CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'green')
-    RCMD.disconnect()
+# if pe_device:
+    # rcmd_outputs = RCMD.connect(pe_device, rcmd_data1, username = USERNAME, password = PASSWORD)
+    # CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'blue')
+    # RCMD.disconnect()
+
+# if gw_device:
+    # rcmd_outputs = RCMD.connect(gw_device, rcmd_data1, username = CGI_CLI.username, password = CGI_CLI.password)
+    # CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'green')
+    # RCMD.disconnect()
+
+new_pe_router, ipsec_gw_router, old_huawei_router, config = str(), str(), str(), str()
 
 if CGI_CLI.cgi_active:    
     sql_inst = sql_interface(host='localhost', user='cfgbuilder', \
         password='cfgbuildergetdata', database='rtr_configuration')
+
+    cgi_data = copy.deepcopy(CGI_CLI.data)        
+    data = collections.OrderedDict()    
+    data["cgi_data"] = cgi_data
+    collector_list = sql_inst.sql_read_records_to_dict_list(from_string = 'ipxt_data_collector', where_string = "session_id = '%s'" % (cgi_data.get('session_id','UNKNOWN')))
+    try: data["ipxt_data_collector"] = collector_list[0]
+    except: data["ipxt_data_collector"] = collections.OrderedDict()
+    try: old_huawei_router = data["ipxt_data_collector"].get("device_name",str())
+    except: old_huawei_router = str()
+
+    gw_pe_list = sql_inst.sql_read_records_to_dict_list(from_string = 'ipxt_gw_pe', where_string = "old_pe_router = '%s'" % (old_huawei_router))
+    try: data["ipxt_gw_pe"] = gw_pe_list[0]
+    except: data["ipxt_gw_pe"] = collections.OrderedDict()
+    
+    try: new_pe_router = data["ipxt_gw_pe"].get('new_pe_router',str())
+    except: new_pe_router = str()
+
+    try: ipsec_gw_router = data["ipxt_gw_pe"].get('ipsec_gw_router',str())
+    except: ipsec_gw_router = str()
+    
+    CGI_CLI.uprint(data, jsonprint = True, color = 'blue') 
+
     #CGI_CLI.uprint(CGI_CLI.data, tag = 'p', color = 'red', name = True, jsonprint = True)    
-    CGI_CLI.uprint('SQL_READ (CONFIG):',tag = 'h1')    
+    #CGI_CLI.uprint('SQL_READ (CONFIG):',tag = 'h1')    
     #CGI_CLI.uprint(sql_inst.sql_read_last_record_to_dict(from_string = 'ipxt_configurations'), jsonprint = True)    
-    config_data = sql_inst.sql_read_records_to_dict_list(from_string = 'ipxt_configurations', \
-        where_string = "session_id = '%s'" % (CGI_CLI.data.get('session_id','')))
-    CGI_CLI.uprint(config_data, jsonprint = True)    
+    
+    try: config_data = sql_inst.sql_read_records_to_dict_list(from_string = 'ipxt_configurations', \
+        where_string = "session_id = '%s'" % (CGI_CLI.data.get('session_id','')))[0]
+    except: config_data = collections.OrderedDict()
+    #CGI_CLI.uprint(config_data, jsonprint = True)    
+    
+device = str()    
+if CGI_CLI.submit_form == 'Submit PE preparation':
+    device = new_pe_router
+    config = config_data.get("pe_config_preparation",str())
+if CGI_CLI.submit_form == 'Submit GW preparation': 
+    device = ipsec_gw_router
+    config = config_data.get("gw_config_preparation",str())
+if CGI_CLI.submit_form == 'Submit PE migration':
+    device = new_pe_router
+    config = config_data.get("pe_config_migration",str())
+if CGI_CLI.submit_form == 'Submit GW migration': 
+    device = ipsec_gw_router
+    config = config_data.get("gw_config_migration",str())
+if CGI_CLI.submit_form == 'Submit OLD PE shutdown': 
+    device = old_huawei_router
+    config = config_data.get("old_pe_config_migration_shut",str())
+    
+CGI_CLI.uprint(str(CGI_CLI.submit_form), tag = 'h1', color = 'blue')
+
+CGI_CLI.uprint('PE = %s, GW = %s, OLD_PE = %s'%(new_pe_router,ipsec_gw_router,old_huawei_router), tag = 'h3', color = 'black')     
+
+CGI_CLI.uprint('DEVICE = %s'%(device), tag = 'h1')    
+
+CGI_CLI.uprint('CONFIG:\n------------\n\n%s'%(config))
+    
