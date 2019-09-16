@@ -1088,4 +1088,23 @@ CGI_CLI.uprint('PE = %s, GW = %s, OLD_PE = %s'%(new_pe_router,ipsec_gw_router,ol
 CGI_CLI.uprint('DEVICE = %s'%(device), tag = 'h1')    
 
 CGI_CLI.uprint('CONFIG:\n------------\n\n%s'%(config))
+
+
+### WRITE CONFIG TO ROUTER ######################################################
+if LCMD.run_command(cmd_line = 'hostname', printall = None).strip() == 'iptac5':
+    CGI_CLI.uprint('TESTLAB...')    
     
+    try: splitted_config = config.splitlines()
+    except: splitted_config = []
+    data_to_write = {
+        'cisco_ios':splitted_config,
+        'cisco_xr':splitted_config,
+        'juniper':splitted_config,
+        'huawei':splitted_config,
+        'linux':splitted_config,
+    }
+    
+    if device:
+        rcmd_outputs = RCMD.connect(gw_device, splitted_config, username = CGI_CLI.username, password = CGI_CLI.password, conf = True)
+        CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'blue')
+        RCMD.disconnect()
