@@ -909,6 +909,10 @@ GW_migration_unshut_if_templ = """!
 interface ${''.join([ str(item.get('gw_subinterface','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}
 no shut
 !
+bgp 2300
+ipv4-family vpn-instance ${''.join([ str(item.get('vrf_name','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}
+undo peer ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} ignore
+!
 """
 
 def generate_migration_GW_router_config(data = None):
@@ -1199,22 +1203,6 @@ def generate_migration_OLD_PE_router_shut_config(dict_data = None):
     mytemplate = Template(old_PE_migration_shut_if_templ,strict_undefined=True)
     config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
 
-    return config_string  
-    
-old_PE_migration_unshut_if_templ = """!
-interface ${''.join([ str(item.get('old_pe_interface','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}
-no shut
-!
-undo peer ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} ignore
-!
-"""
-
-def generate_migration_OLD_PE_router_unshut_config(dict_data = None):
-    config_string = str()
-
-    mytemplate = Template(old_PE_migration_unshut_if_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
-
     return config_string     
         
 ################################################################################
@@ -1358,12 +1346,11 @@ if data:
 
     gw_preparation_config_text = generate_preparation_GW_router_config(data)
     pe_preparation_config_text = generate_preparation_PE_router_config(data)
-
-    old_pe_migration_config_text_shut = generate_migration_OLD_PE_router_shut_config(data)
-    old_pe_migration_config_text_unshut = generate_migration_OLD_PE_router_unshut_config(data)
     
     gw_migration_config_text = generate_migration_GW_router_config(data)
     pe_migration_config_text = generate_migration_PE_router_config(data)
+
+    old_pe_migration_config_text_shut = generate_migration_OLD_PE_router_shut_config(data)
     
     CGI_CLI.uprint('\nGW ROUTER (%s) VERIFICATION-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()), tag = 'h1')
     CGI_CLI.uprint(gw_verification_config_text)    
@@ -1375,16 +1362,13 @@ if data:
     CGI_CLI.uprint('\nPE ROUTER (%s) PREPARATION-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()), tag = 'h1')
     CGI_CLI.uprint(pe_preparation_config_text)
 
-    CGI_CLI.uprint('\nOLD PE ROUTER (%s) MIGRATION-CONFIG SHUT: \n' %(data['cgi_data'].get('huawei-router','UNKNOWN').upper()), tag = 'h1')
-    CGI_CLI.uprint(old_pe_migration_config_text_shut)  
-
     CGI_CLI.uprint('\nGW ROUTER (%s) MIGRATION-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()), tag = 'h1')
     CGI_CLI.uprint(gw_migration_config_text)    
     CGI_CLI.uprint('\nPE ROUTER (%s) MIGRATION-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()), tag = 'h1')
     CGI_CLI.uprint(pe_migration_config_text)
 
-    CGI_CLI.uprint('\nOLD PE ROUTER (%s) MIGRATION-CONFIG UNSHUT: \n' %(data['cgi_data'].get('huawei-router','UNKNOWN').upper()), tag = 'h1')
-    CGI_CLI.uprint(old_pe_migration_config_text_unshut)  
+    CGI_CLI.uprint('\nOLD PE ROUTER (%s) MIGRATION-CONFIG SHUT: \n' %(data['cgi_data'].get('huawei-router','UNKNOWN').upper()), tag = 'h1')
+    CGI_CLI.uprint(old_pe_migration_config_text_shut)  
      
     # describe ipxt_configurations;
     # +------------------------+--------------+------+-----+---------+----------------+
@@ -1419,13 +1403,12 @@ if data:
     config_data['pe_config_verification'] = pe_verification_config_text     
     
     config_data['gw_config_preparation'] = gw_preparation_config_text
-    config_data['pe_config_preparation'] = pe_preparation_config_text        
-
-    config_data['old_pe_config_migration_shut'] = old_pe_migration_config_text_shut  
-    config_data['old_pe_config_migration_unshut'] = old_pe_migration_config_text_unshut  
+    config_data['pe_config_preparation'] = pe_preparation_config_text          
     
     config_data['gw_config_migration'] = gw_migration_config_text
     config_data['pe_config_migration'] = pe_migration_config_text  
+    
+    config_data['old_pe_config_migration_shut'] = old_pe_migration_config_text_shut     
     
     sql_inst.sql_write_table_from_dict('ipxt_configurations', config_data) 
 
@@ -1451,14 +1434,12 @@ if data:
                 configtext += gw_preparation_config_text
                 configtext += '\n\nPE ROUTER (%s) PREPARATION-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()) + 60*'-' + '\n\n'
                 configtext += pe_preparation_config_text 
-                configtext += '\nOLD PE ROUTER (%s) MIGRATION-CONFIG SHUT: \n' %(data['cgi_data'].get('huawei-router','UNKNOWN').upper()) + 60*'-' + '\n\n'
-                configtext += old_pe_migration_config_text_shut
                 configtext += '\n\nIPSEC GW ROUTER (%s) MIGRATION-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()) + 60*'-' + '\n'
                 configtext += gw_migration_config_text
                 configtext += '\n\nPE ROUTER (%s) MIGRATION-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()) + 60*'-' + '\n'
                 configtext += pe_migration_config_text
-                configtext += '\nOLD PE ROUTER (%s) MIGRATION-CONFIG UNSHUT: \n' %(data['cgi_data'].get('huawei-router','UNKNOWN').upper()) + 60*'-' + '\n\n'
-                configtext += old_pe_migration_config_text_unshut
+                configtext += '\nOLD PE ROUTER (%s) MIGRATION-CONFIG SHUT: \n' %(data['cgi_data'].get('huawei-router','UNKNOWN').upper()) + 60*'-' + '\n\n'
+                configtext += old_pe_migration_config_text_shut                
                 fp.write(configtext)
             ### MAKE READABLE for THE OTHERS
             try: dummy = subprocess.check_output('chmod +r %s' % (logfilename), shell=True)
