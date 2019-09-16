@@ -1092,9 +1092,9 @@ CGI_CLI.uprint('CONFIG:\n------------\n\n%s'%(config))
 
 ### WRITE CONFIG TO ROUTER ######################################################
 if LCMD.run_command(cmd_line = 'hostname', printall = None).strip() == 'iptac5':
-    CGI_CLI.uprint('TESTLAB...')    
+    CGI_CLI.uprint('TESTLAB:\n---------------\n\n', tag = 'h1')    
     
-    try: splitted_config = config.splitlines()
+    try: splitted_config = config.decode("utf-8").splitlines()
     except: splitted_config = []
     data_to_write = {
         'cisco_ios':splitted_config,
@@ -1104,7 +1104,10 @@ if LCMD.run_command(cmd_line = 'hostname', printall = None).strip() == 'iptac5':
         'linux':splitted_config,
     }
     
+    # CGI_CLI.uprint(data_to_write, jsonprint = True)
+    
     if device:
-        rcmd_outputs = RCMD.connect(gw_device, splitted_config, username = CGI_CLI.username, password = CGI_CLI.password, conf = True)
+        rcmd_outputs = RCMD.connect(device = gw_device, cmd_data = splitted_config, \
+            username = CGI_CLI.username, password = CGI_CLI.password, conf = True)
         CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'blue')
         RCMD.disconnect()
