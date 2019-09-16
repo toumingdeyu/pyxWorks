@@ -251,6 +251,7 @@ class RCMD(object):
         """
         import atexit; atexit.register(RCMD.__cleanup__)
         command_outputs = str()
+        RCMD.ssh_connection = None        
         if device:
             RCMD.CMD = []
             RCMD.output, RCMD.fp = None, None
