@@ -819,6 +819,37 @@ peer ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt
 !
 """
 
+# GW_migration_check_vrf_and_crypto_templ = """!
+# vrf definition LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
+ # description Local vrf for tunnel ${cgi_data.get('vlan-id','UNKNOWN')} - ${cgi_data.get('vpn','UNKNOWN')}
+ # rd 0.0.0.${''.join([ str(item.get('as_id','')) for item in private_as_test if item.get('cust_name','')==cgi_data.get('customer_name',"UNKNOWN") ])}:${cgi_data.get('vlan-id','UNKNOWN')}
+ # !
+ # address-family ipv4
+ # exit-address-family
+ # !
+ # address-family ipv6
+ # exit-address-family
+# !
+# !
+# crypto keyring ${cgi_data.get('vpn','UNKNOWN')}  
+  # local-address ${''.join([ str(item.get('loc_tun_addr','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}
+  # pre-shared-key address ${cgi_data.get('ipsec-tunnel-dest','UNKNOWN')} key ${cgi_data.get('ipsec-preshare-key','UNKNOWN')}
+# !
+# crypto isakmp profile ${cgi_data.get('vpn','UNKNOWN')}
+   # vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
+   # keyring ${cgi_data.get('vpn','UNKNOWN')}
+   # match identity address ${cgi_data.get('ipsec-tunnel-dest','UNKNOWN')} 255.255.255.255 
+   # local-address ${''.join([ str(item.get('loc_tun_addr','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}
+   # keepalive 10 retry 3
+# !
+# crypto ipsec profile ${cgi_data.get('vpn','UNKNOWN')}
+ # set security-association lifetime seconds 28800
+ # set transform-set ${cgi_data.get('ipsec-transf-set','UNKNOWN')}
+ # set pfs group1
+ # set isakmp-profile ${cgi_data.get('vpn','UNKNOWN')}
+# !
+# """
+
 GW_migration_check_vrf_and_crypto_templ = """!
 vrf definition LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
  description Local vrf for tunnel ${cgi_data.get('vlan-id','UNKNOWN')} - ${cgi_data.get('vpn','UNKNOWN')}
@@ -830,23 +861,6 @@ vrf definition LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
  address-family ipv6
  exit-address-family
 !
-!
-crypto keyring ${cgi_data.get('vpn','UNKNOWN')}  
-  local-address ${''.join([ str(item.get('loc_tun_addr','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}
-  pre-shared-key address ${cgi_data.get('ipsec-tunnel-dest','UNKNOWN')} key ${cgi_data.get('ipsec-preshare-key','UNKNOWN')}
-!
-crypto isakmp profile ${cgi_data.get('vpn','UNKNOWN')}
-   vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
-   keyring ${cgi_data.get('vpn','UNKNOWN')}
-   match identity address ${cgi_data.get('ipsec-tunnel-dest','UNKNOWN')} 255.255.255.255 
-   local-address ${''.join([ str(item.get('loc_tun_addr','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}
-   keepalive 10 retry 3
-!
-crypto ipsec profile ${cgi_data.get('vpn','UNKNOWN')}
- set security-association lifetime seconds 28800
- set transform-set ${cgi_data.get('ipsec-transf-set','UNKNOWN')}
- set pfs group1
- set isakmp-profile ${cgi_data.get('vpn','UNKNOWN')}
 !
 """
 
@@ -924,8 +938,8 @@ def generate_migration_GW_router_config(data = None):
     mytemplate = Template(GW_migration_check_vrf_and_crypto_templ,strict_undefined=True)
     config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'  
     
-    mytemplate = Template(GW_migration_tunnel_interface_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'      
+    # mytemplate = Template(GW_migration_tunnel_interface_templ,strict_undefined=True)
+    # config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'      
 
     mytemplate = Template(GW_migration_port_channel_interface_templ,strict_undefined=True)
     config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'      
