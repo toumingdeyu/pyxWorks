@@ -1,0 +1,44 @@
+c:\_pyxWorks\string_py2to3_diff>python string_py2to3_diff.py
+2.7.15 (v2.7.15:ca079a3ea3, Apr 30 2018, 16:30:26) [MSC v.1500 64 bit (AMD64)]
+(<type 'basestring'>,)
+
+
+bytearray(str,"utf-8")   TYPE:<type 'bytearray'>
+b        TYPE:<type 'str'>
+b.decode("utf-8")        TYPE:<type 'unicode'>
+r        TYPE:<type 'str'>
+u        TYPE:<type 'unicode'>
+six.b(str)       TYPE:<type 'str'>
+six.u(str)       TYPE:<type 'unicode'>
+c        TYPE:<type 'unicode'>
+bytearray(str,'utf-8').ascii()  PROBLEM['bytearray' object has no attribute 'ascii']
+        PROBLEM['unicode' object has no attribute 'ascii']
+u.decode("utf-8")        TYPE:<type 'unicode'>
+bytearray(str,"utf-8").decode("utf-8")   TYPE:<type 'unicode'>
+
+
+bytearray(str,"utf-8")  PROBLEM[bytearray(b'bytearray(str,"utf-8")') is not JSON serializable]
+
+===================================================================================================
+
+c:\_pyxWorks\string_py2to3_diff>python string_py2to3_diff.py
+3.7.1 (v3.7.1:260ec2c36a, Oct 20 2018, 14:57:15) [MSC v.1915 64 bit (AMD64)]
+(<class 'str'>,)
+
+
+bytearray(b'bytearray(str,"utf-8")')     TYPE:<class 'bytearray'>
+b'b'     TYPE:<class 'bytes'>
+b.decode("utf-8")        TYPE:<class 'str'>
+r        TYPE:<class 'str'>
+u        TYPE:<class 'str'>
+b'six.b(str)'    TYPE:<class 'bytes'>
+six.u(str)       TYPE:<class 'str'>
+c        TYPE:<class 'str'>
+bytearray(str,'utf-8').ascii()  PROBLEM['bytearray' object has no attribute 'ascii']
+        PROBLEM['str' object has no attribute 'ascii']
+        PROBLEM['str' object has no attribute 'decode']
+bytearray(str,"utf-8").decode("utf-8")   TYPE:<class 'str'>
+
+
+bytearray(b'bytearray(str,"utf-8")')    PROBLEM[Object of type bytearray is not JSON serializable]
+
