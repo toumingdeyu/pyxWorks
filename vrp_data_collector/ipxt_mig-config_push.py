@@ -1035,9 +1035,11 @@ if CGI_CLI.cgi_active:
     cgi_data = copy.deepcopy(CGI_CLI.data)        
     data = collections.OrderedDict()    
     data["cgi_data"] = cgi_data
+
     collector_list = sql_inst.sql_read_records_to_dict_list(from_string = 'ipxt_data_collector', where_string = "session_id = '%s'" % (cgi_data.get('session_id','UNKNOWN')))
     try: data["ipxt_data_collector"] = collector_list[0]
     except: data["ipxt_data_collector"] = collections.OrderedDict()
+    
     try: old_huawei_router = data["ipxt_data_collector"].get("device_name",str())
     except: old_huawei_router = str()
 
