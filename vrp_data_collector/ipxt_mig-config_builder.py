@@ -1205,6 +1205,8 @@ old_PE_migration_unshut_if_templ = """!
 interface ${''.join([ str(item.get('old_pe_interface','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}
 no shut
 !
+undo peer ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} ignore
+!
 """
 
 def generate_migration_OLD_PE_router_unshut_config(dict_data = None):
