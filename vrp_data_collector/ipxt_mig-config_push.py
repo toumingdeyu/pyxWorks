@@ -1101,10 +1101,16 @@ CGI_CLI.uprint('CONFIG:\n------------\n\n%s'%(config))
 
 ### WRITE CONFIG TO ROUTER ######################################################
 if LCMD.run_command(cmd_line = 'hostname', printall = None).strip() == 'iptac5':
-    CGI_CLI.uprint('TESTLAB:\n---------------\n\n', tag = 'h1')    
+    CGI_CLI.uprint('TESTLAB:\n---------------\n\n', tag = 'h1') 
+
+    ### TEST_ONLY DELETION FROM CONFIG    
+    if LCMD.run_command(cmd_line = 'hostname', printall = None).strip() == 'iptac5':
+        config = config.replace('flow ipv4 monitor ICX sampler ICX ingress','')
     
     try: splitted_config = str(config.decode("utf-8")).splitlines()
     except: splitted_config = []
+    
+    
     data_to_write = {
         'cisco_ios':splitted_config,
         'cisco_xr':splitted_config,
