@@ -808,7 +808,7 @@ GW_migration_shutdown_templ = """
 router bgp 2300
 address-family ipv4 vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
 neighbor ${''.join([ str(item.get('peer_address','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} shutdown
-neighbor ${cgi_data.get('gw_peer_address_ibgp','UNKNOWN')} shutdown
+neighbor ${''.join([ str(item.get('gw_peer_address_ibgp','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} shutdown
 !
 interface ${''.join([ str(item.get('gw_subinterface','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}
 shutdown
