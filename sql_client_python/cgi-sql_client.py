@@ -21,6 +21,45 @@ if int(sys.version_info[0]) == 3: import pymysql
 else: import mysql.connector
 
 
+class bcolors:
+        DEFAULT    = '\033[99m'
+        WHITE      = '\033[97m'
+        CYAN       = '\033[96m'
+        MAGENTA    = '\033[95m'
+        HEADER     = '\033[95m'
+        OKBLUE     = '\033[94m'
+        BLUE       = '\033[94m'
+        YELLOW     = '\033[93m'
+        GREEN      = '\033[92m'
+        OKGREEN    = '\033[92m'
+        WARNING    = '\033[93m'
+        RED        = '\033[91m'
+        FAIL       = '\033[91m'
+        GREY       = '\033[90m'
+        ENDC       = '\033[0m'
+        BOLD       = '\033[1m'
+        UNDERLINE  = '\033[4m'
+
+class nocolors:
+        DEFAULT    = ''
+        WHITE      = ''
+        CYAN       = ''
+        MAGENTA    = ''
+        HEADER     = ''
+        OKBLUE     = ''
+        BLUE       = ''
+        YELLOW     = ''
+        GREEN      = ''
+        OKGREEN    = ''
+        WARNING    = ''
+        RED        = ''
+        FAIL       = ''
+        GREY       = ''
+        ENDC       = ''
+        BOLD       = ''
+        UNDERLINE  = ''
+
+
 class CGI_CLI(object):
     """
     CGI_handle - Simple statis class for handling CGI parameters and 
@@ -236,13 +275,18 @@ class sql_interface():
         return None
         
     def sql_read_all_table_columns(self, table_name):
-        columns = None
+        columns = []
         if self.sql_is_connected():
             cursor = self.sql_connection.cursor()
             try: 
                 cursor.execute("select * from INFORMATION_SCHEMA.COLUMNS where TABLE_NAME='%s';"%(table_name))
                 records = cursor.fetchall()
-                columns = [item[3] for item in records]
+                ### 4TH COLUMN IS COLUMN NAME                
+                ### OUTPUTDATA STRUCTURE IS: '[(SQL_RESULT)]' --> records[0] = UNPACK []
+                for item in records:
+                    try: new_item = item[3].decode('utf-8')
+                    except: new_item = item[3]    
+                    columns.append(new_item) 
             except Exception as e: print(e)
             try: cursor.close()
             except: pass
@@ -250,17 +294,25 @@ class sql_interface():
 
     def sql_read_sql_command(self, sql_command):
         '''NOTE: FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE'''
-        records = None
+        columns, lines = [], []
         if self.sql_is_connected():
             cursor = self.sql_connection.cursor()
             try: 
                 cursor.execute(sql_command)
                 records = cursor.fetchall()
+                ### OUTPUTDATA STRUCTURE IS: '[(SQL_LINE1),...]' --> records[0] = UNPACK []
+                ### WORKARROUND FOR BYTEARRAYS WHICH ARE NOT JSONIZABLE
+                for line in records:
+                    for item in line:
+                        try: new_item = item.decode('utf-8')
+                        except: new_item = item    
+                        columns.append(new_item)
+                    lines.append(columns)                        
             except Exception as e: print(e)
             try: cursor.close()
             except: pass
             ### FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE
-        return records 
+        return lines 
 
     def sql_write_sql_command(self, sql_command):
         if self.sql_is_connected(): 
@@ -397,7 +449,7 @@ class sql_interface():
         columns_list = sql_inst.sql_read_all_table_columns(table_name_or_from_string)
         data_list = sql_inst.sql_read_table_records( \
             from_string = table_name_or_from_string, \
-            select_string = select_string, where_string = where_string)
+            select_string = select_string, where_string = where_string)        
         if columns_list and data_list:
             for line_list in data_list:
                 dict_data = collections.OrderedDict(zip(columns_list, line_list))
@@ -409,7 +461,7 @@ class sql_interface():
                     del dict_data[column]
                 except: pass     
         return dict_list
-
+            
             
 ##############################################################################
 #
