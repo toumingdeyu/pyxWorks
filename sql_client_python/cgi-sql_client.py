@@ -507,8 +507,8 @@ sql_inst = sql_interface(host='localhost', user='cfgbuilder', password='cfgbuild
 
 # sql_inst.sql_write_table_from_dict('ipxt_data_collector', read_data)
 
-CGI_CLI.uprint(sql_inst.sql_read_table_last_record(from_string = 'ipxt_data_collector'))
-CGI_CLI.uprint(sql_inst.sql_read_last_record_to_dict(from_string = 'ipxt_data_collector'))
+CGI_CLI.uprint(sql_inst.sql_read_table_last_record(from_string = 'ipxt_data_collector'), jsonprint = True)
+CGI_CLI.uprint(sql_inst.sql_read_last_record_to_dict(from_string = 'ipxt_data_collector'), jsonprint = True)
 
 ### DESTRUCTORS SEQUENCE
 del sql_inst
