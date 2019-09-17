@@ -983,7 +983,7 @@ vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')}
  
 PE_preparation_acl_config_templ = """!<% rule_num = 20; list = cgi_data.get('ipv4-acl','').split(',') %>
 ipv4 access-list ${cgi_data.get('vpn','UNKNOWN')}-IN
- 10 permit ipv4 ${cgi_data.get('pe-ip-address','')} any
+ 10 permit ipv4 ${cgi_data.get('pe-ip-address','')} 0.0.0.1 any
 % for i in range(int(len(list)/2)):
  ${rule_num} permit ipv4 ${cgi_data.get('ipv4-acl','').split(',')[2*i]} ${cgi_data.get('ipv4-acl','').split(',')[2*i+1] if cgi_data.get('ipv4-acl','').split(',')[2*i+1] != '0' else '0.0.0.0'} any<% rule_num += 10 %>
 % endfor
