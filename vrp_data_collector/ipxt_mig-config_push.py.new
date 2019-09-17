@@ -790,18 +790,19 @@ class sql_interface():
         return None
         
     def sql_read_all_table_columns(self, table_name):
-        columns = []
+        columns = None
         if self.sql_is_connected():
             cursor = self.sql_connection.cursor()
             try: 
                 cursor.execute("select * from INFORMATION_SCHEMA.COLUMNS where TABLE_NAME='%s';"%(table_name))
                 records = cursor.fetchall()
-                ### 4TH COLUMN IS COLUMN NAME                
-                ### OUTPUTDATA STRUCTURE IS: '[(SQL_RESULT)]' --> records[0] = UNPACK []
-                for item in records:
-                    try: new_item = item[3].decode('utf-8')
-                    except: new_item = item[3]    
-                    columns.append(new_item) 
+                ### WORKARROUND FOR READING BYTEARRAYS FROM SQL AND CONVERT TO STRING
+                if isinstance(records, (list,tuple)):
+                    try: columns = [item[3].decode("utf-8") for item in records]
+                    except: columns = [item[3] for item in records]
+                if isinstance(records, (six.string_types)):
+                    try: columns = records.decode("utf-8")
+                    except: columns = records
             except Exception as e: print(e)
             try: cursor.close()
             except: pass
@@ -809,25 +810,28 @@ class sql_interface():
 
     def sql_read_sql_command(self, sql_command):
         '''NOTE: FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE'''
-        columns, lines = [], []
+        columns = None
         if self.sql_is_connected():
             cursor = self.sql_connection.cursor()
             try: 
                 cursor.execute(sql_command)
                 records = cursor.fetchall()
-                ### OUTPUTDATA STRUCTURE IS: '[(SQL_LINE1),...]' --> records[0] = UNPACK []
-                ### WORKARROUND FOR BYTEARRAYS WHICH ARE NOT JSONIZABLE
-                for line in records:
-                    for item in line:
-                        try: new_item = item.decode('utf-8')
-                        except: new_item = item    
-                        columns.append(new_item)
-                    lines.append(columns)                        
+                print(records)
+                print('<br/>')
+                ### WORKARROUND FOR READING BYTEARRAYS FROM SQL AND CONVERT TO STRING
+                if isinstance(records, (list,tuple)):
+                    try: columns = [item[3].decode("utf-8") for item in records]
+                    except: columns = [item[3] for item in records]
+                if isinstance(records, (six.string_types)):
+                    try: columns = records.decode("utf-8")
+                    except: columns = records
             except Exception as e: print(e)
             try: cursor.close()
             except: pass
             ### FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE
-        return lines 
+            print(columns)
+            print('<br/>')
+        return columns 
 
     def sql_write_sql_command(self, sql_command):
         if self.sql_is_connected(): 
@@ -964,7 +968,7 @@ class sql_interface():
         columns_list = sql_inst.sql_read_all_table_columns(table_name_or_from_string)
         data_list = sql_inst.sql_read_table_records( \
             from_string = table_name_or_from_string, \
-            select_string = select_string, where_string = where_string)        
+            select_string = select_string, where_string = where_string)
         if columns_list and data_list:
             for line_list in data_list:
                 dict_data = collections.OrderedDict(zip(columns_list, line_list))
@@ -977,13 +981,11 @@ class sql_interface():
                 except: pass     
         return dict_list
     
-    # def get_one_from_list(list_of_dictionaries, number = None):
-        # return_value = {}
-        # if number: list_order = number
-        # else: list_order = 0
-        # try: return_value = list_of_dictionaries[list_order]
-        # except: return_value = list_of_dictionaries
-        # return return_value    
+    def get_first(list_of_dictionaries):
+        return_value = None
+        if isinstance(list_of_dictionaries, (dict,collections.OrderedDict)):
+            try: return_value = list_of_dictionaries[0]
+            except: return_value = {}
 
     # def dict_deep_get(dictionary, *keys):
     #     return reduce(lambda d, key: d.get(key, None) if isinstance(d, (dict,collections.OrderedDict) else None, keys, dictionary)
@@ -1001,6 +1003,21 @@ CGI_CLI()
 USERNAME, PASSWORD = CGI_CLI.init_cgi()
 CGI_CLI.print_args()
 
+pe_device, gw_device = None, None
+
+# if CGI_CLI.cgi_active and CGI_CLI.data.get('pe-router',None):
+    # pe_device = CGI_CLI.data.get('pe-router',None)
+
+# if CGI_CLI.cgi_active and CGI_CLI.data.get('ipsec-gw-router',None):
+    # gw_device = CGI_CLI.data.get('ipsec-gw-router',None)
+
+if not CGI_CLI.cgi_active:
+    if CGI_CLI.args.pe_device:
+        pe_device = CGI_CLI.args.pe_device
+
+    if CGI_CLI.args.gw_device:
+        pe_device = CGI_CLI.args.gw_device
+
 rcmd_data1 = {
     'cisco_ios':['show version'],
     'cisco_xr':['show version'],
@@ -1016,6 +1033,16 @@ lcmd_data2 = {
 
 # username=mkrupa&password=Welcome0010%24&session_id=%2Fvar%2Fwww%2Fcgi-bin%2Flogs%2FHKGPE3-20190916-091722-ipxt_mig-data_collector-mkrupa-vrp-IPXT.VANUATU-Submit_step_1-log&submit=Submit+PE+preparation 
 # username=mkrupa&password=Welcome0010%24&session_id=%2Fvar%2Fwww%2Fcgi-bin%2Flogs%2FHKGPE3-20190916-091722-ipxt_mig-data_collector-mkrupa-vrp-IPXT.VANUATU-Submit_step_1-log&submit=Submit+GW+preparation
+
+# if pe_device:
+    # rcmd_outputs = RCMD.connect(pe_device, rcmd_data1, username = USERNAME, password = PASSWORD)
+    # CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'blue')
+    # RCMD.disconnect()
+
+# if gw_device:
+    # rcmd_outputs = RCMD.connect(gw_device, rcmd_data1, username = CGI_CLI.username, password = CGI_CLI.password)
+    # CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'green')
+    # RCMD.disconnect()
 
 new_pe_router, ipsec_gw_router, old_huawei_router, config = str(), str(), str(), str()
 
