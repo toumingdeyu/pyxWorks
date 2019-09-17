@@ -1011,46 +1011,19 @@ end-set
 """
 
 PE_preparation_policy_map_templ = """!
-policy-map ${cgi_data.get('customer_name','UNKNOWN')}-IN
+policy-map IPXT.${cgi_data.get('customer_name','UNKNOWN')}-IN
  class class-default
-  service-policy ${cgi_data.get('customer_name','UNKNOWN')}-COS-IN
+  service-policy IPXT.COS-IN
   police rate ${cgi_data.get('int-bw','UNKNOWN')} mbps 
 end-policy-map
 ! 
-policy-map ${cgi_data.get('customer_name','UNKNOWN')}-OUT
+policy-map IPXT.${cgi_data.get('customer_name','UNKNOWN')}-OUT
  class class-default
-  service-policy ${cgi_data.get('customer_name','UNKNOWN')}-COS-OUT
+  service-policy IPXT.COS-OUT
   shape average ${cgi_data.get('int-bw','UNKNOWN')} mbps
  ! 
 end-policy-map
 ! 
-policy-map ${cgi_data.get('customer_name','UNKNOWN')}-COS-IN
- class GOLD
-  police rate ${cgi_data.get('int-bw','UNKNOWN')} mbps 
-  ! 
-  set mpls experimental imposition 5
- ! 
- class SILVER
-  set mpls experimental imposition 3
- ! 
- class class-default
-  set mpls experimental imposition 0
- ! 
- end-policy-map
-! 
-policy-map ${cgi_data.get('customer_name','UNKNOWN')}-COS-OUT
- class GOLD
-  police rate ${cgi_data.get('int-bw','UNKNOWN')} mbps 
-  ! 
-  priority level 1 
- ! 
- class SILVER
-  bandwidth remaining percent 50 
- ! 
- class class-default
- ! 
- end-policy-map
-!
 !
 """
 
