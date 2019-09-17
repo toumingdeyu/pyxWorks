@@ -1000,7 +1000,7 @@ else:
     try: net = ipaddress.ip_network(splitted_list[2*i]+'/'+splitted_list[2*i+1], strict=True)
     except: net = splitted_list[2*i] + '/32'
 %>
-% if i == range(int(len(splitted_list)/2)):
+% if i == int(len(splitted_list)/2):
   ${net} le 32
 % else:
   ${net} le 32,
