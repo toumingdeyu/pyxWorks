@@ -454,12 +454,14 @@ class RCMD(object):
                 if conf and RCMD.use_module == 'netmiko':                
                     RCMD.ssh_connection.send_config_set(cmd_list)
                 else:    
-                    ### CONFIG MODE FOR PARAMIKO ###############################    
+                    ### CONFIG MODE FOR PARAMIKO ###############################
+                    conf_output = ''                    
                     if conf and RCMD.use_module == 'paramiko':    
-                        if RCMD.router_type=='cisco_ios': RCMD.run_command('config t')
-                        elif RCMD.router_type=='cisco_xr': RCMD.run_command('config t')
-                        elif RCMD.router_type=='juniper': RCMD.run_command('configure')
-                        elif RCMD.router_type=='huawei': RCMD.run_command('system-view')
+                        if RCMD.router_type=='cisco_ios': conf_output = RCMD.run_command('config t')
+                        elif RCMD.router_type=='cisco_xr': conf_output = RCMD.run_command('config t')
+                        elif RCMD.router_type=='juniper': conf_output = RCMD.run_command('configure')
+                        elif RCMD.router_type=='huawei': conf_output = RCMD.run_command('system-view')
+                    if conf_output: command_outputs.append('CONFIG: ' + commit_output)    
                     ### PROCESS COMMANDS #######################################
                     for cmd_line in cmd_list:
                         command_outputs.append(RCMD.run_command(cmd_line))
@@ -471,7 +473,7 @@ class RCMD(object):
                         elif RCMD.router_type=='cisco_xr': commit_output = RCMD.run_command('commit')
                         elif RCMD.router_type=='juniper': commit_output = RCMD.run_command('commit')
                         elif RCMD.router_type=='huawei': commit_output = RCMD.run_command('save')
-                        CGI_CLI.uprint('COMMIT:' + commit_output)
+                        if commit_output: command_outputs.append('COMMIT: ' + commit_output)
                         ### EXIT SECTION ---------------------------------------
                         if RCMD.router_type=='cisco_ios': RCMD.run_command('exit') 
                         elif RCMD.router_type=='cisco_xr': RCMD.run_command('exit')
