@@ -1021,7 +1021,6 @@ policy-map ${cgi_data.get('customer_name','UNKNOWN')}-OUT
  class class-default
   service-policy ${cgi_data.get('customer_name','UNKNOWN')}-COS-OUT
   shape average ${cgi_data.get('int-bw','UNKNOWN')} mbps
-  bandwidth ${cgi_data.get('int-bw','UNKNOWN')} mbps 
  ! 
 end-policy-map
 ! 
@@ -1111,8 +1110,17 @@ router bgp 2300
    route-policy DENY-ALL out
    soft-reconfiguration inbound
   !
- vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')}
-  rd 0.0.0.${''.join([ str(item.get('as_id','')) for item in private_as_test if item.get('cust_name','')==cgi_data.get('customer_name',"UNKNOWN") ])}:${cgi_data.get('vlan-id','UNKNOWN')}
+ vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')} 
+<% 
+big_rd = ''.join([ str(item.get('as_id','')) for item in private_as_test if item.get('cust_name','')==cgi_data.get('customer_name',"UNKNOWN") ])
+rd3 = '0' 
+if big_rd: rd4 = str(big_rd)
+else: rd4 = '0'
+if big_rd and int(big_rd) > 256: 
+  rd3 = str(int(int(big_rd)/256)) 
+  rd4 = str(int(big_rd)%256)
+%>
+  rd 0.0.${rd3}.${rd4}:${cgi_data.get('vlan-id','UNKNOWN')}
   address-family ipv4 unicast
    redistribute connected route-policy NO-EXPORT-INTERCO
   !
