@@ -1111,7 +1111,7 @@ router bgp 2300
    route-policy DENY-ALL out
    soft-reconfiguration inbound
   !
-vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')}
+ vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')}
   rd 0.0.0.${''.join([ str(item.get('as_id','')) for item in private_as_test if item.get('cust_name','')==cgi_data.get('customer_name',"UNKNOWN") ])}:${cgi_data.get('vlan-id','UNKNOWN')}
   address-family ipv4 unicast
    redistribute connected route-policy NO-EXPORT-INTERCO
@@ -1119,6 +1119,7 @@ vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')}
   neighbor ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}
    use neighbor-group ${cgi_data.get('vpn','UNKNOWN')}
   !
+ !
 !
 """
 
