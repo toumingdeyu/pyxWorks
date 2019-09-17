@@ -1126,7 +1126,10 @@ if LCMD.run_command(cmd_line = 'hostname', printall = None).strip() == 'iptac5':
     if device:
         rcmd_outputs = RCMD.connect(device = device, cmd_data = splitted_config, \
             username = CGI_CLI.username, password = CGI_CLI.password, conf = True)
-        CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'blue')                
+        CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'blue')         
         RCMD.disconnect()
+        
+        if 'FAILED' in rcmd_outputs[-1]:
+            CGI_CLI.uprint('CONFIFURATION COMMIT FAILED!', tag = 'h1', color = 'red')
         
         
