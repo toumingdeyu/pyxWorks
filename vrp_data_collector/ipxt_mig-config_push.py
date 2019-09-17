@@ -474,6 +474,10 @@ class RCMD(object):
                         elif RCMD.router_type=='juniper': commit_output = RCMD.run_command('commit')
                         elif RCMD.router_type=='huawei': commit_output = RCMD.run_command('save')
                         if commit_output: command_outputs.append('COMMIT: ' + commit_output)
+                        if 'Failed to commit' in commit_output:
+                            if RCMD.router_type=='cisco_xr': 
+                                failed_output = RCMD.run_command('show configuration failed'),
+                                command_outputs.append('FAILED_COMMIT: ' + failed_output)
                         ### EXIT SECTION ---------------------------------------
                         if RCMD.router_type=='cisco_ios': RCMD.run_command('exit') 
                         elif RCMD.router_type=='cisco_xr': RCMD.run_command('exit')
@@ -1122,7 +1126,7 @@ if LCMD.run_command(cmd_line = 'hostname', printall = None).strip() == 'iptac5':
     if device:
         rcmd_outputs = RCMD.connect(device = device, cmd_data = splitted_config, \
             username = CGI_CLI.username, password = CGI_CLI.password, conf = True)
-        CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'blue')
+        CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'blue')                
         RCMD.disconnect()
         
         
