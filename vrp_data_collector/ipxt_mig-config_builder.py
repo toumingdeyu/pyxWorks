@@ -944,8 +944,8 @@ def generate_migration_GW_router_config(data = None):
     # mytemplate = Template(GW_migration_port_channel_interface_templ,strict_undefined=True)
     # config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'      
     
-    mytemplate = Template(GW_migration_interconnect_interface_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'   
+    # mytemplate = Template(GW_migration_interconnect_interface_templ,strict_undefined=True)
+    # config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'   
 
     mytemplate = Template(GW_migration_customer_router_templ,strict_undefined=True)
     config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
