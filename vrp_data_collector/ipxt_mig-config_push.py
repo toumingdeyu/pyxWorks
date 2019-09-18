@@ -1129,7 +1129,16 @@ if LCMD.run_command(cmd_line = 'hostname', printall = None).strip() == 'iptac5':
         CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'blue')         
         RCMD.disconnect()
         
-        if 'FAILED' in rcmd_outputs[-1]:
+        config_problem = False
+        for rcms_output in rcmd_outputs: 
+            if 'INVALID INPUT' in rcms_output.upper() or 'INCOMPLETE COMMAND' in rcms_output.upper():
+                config_problem = True
+                CGI_CLI.uprint('\nCONFIGURATION PROBLEM FOUND:', color = 'red')
+                CGI_CLI.uprint('%s' % (rcms_output), color = 'darkorchid')
+                
+        if 'FAILED' in rcmd_outputs[-1].upper() or 'ERROR' in rcmd_outputs[-1].upper() or config_problem:
             CGI_CLI.uprint('CONFIFURATION COMMIT FAILED!', tag = 'h1', color = 'red')
+            sys.exit(999)
+        else: CGI_CLI.uprint('CONFIFURATION COMMIT OK.', tag = 'h1', color = 'green')    
         
         
