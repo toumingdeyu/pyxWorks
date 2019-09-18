@@ -681,7 +681,16 @@ class sql_interface():
 ###############################################################################
 pre_GW_vrf_definition_templ = """vrf definition LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
  description Local vrf for tunnel ${cgi_data.get('vlan-id','UNKNOWN')} - ${cgi_data.get('vpn','UNKNOWN')}
- rd 0.0.0.${''.join([ str(item.get('as_id','')) for item in private_as_test if item.get('cust_name','')==cgi_data.get('customer_name',"UNKNOWN") ])}:${cgi_data.get('vlan-id','UNKNOWN')}
+<% 
+big_rd = ''.join([ str(item.get('as_id','')) for item in private_as_test if item.get('cust_name','')==cgi_data.get('customer_name',"UNKNOWN") ])
+rd3 = '0' 
+if big_rd: rd4 = str(big_rd)
+else: rd4 = '0'
+if big_rd and int(big_rd) > 256: 
+  rd3 = str(int(int(big_rd)/256)) 
+  rd4 = str(int(big_rd)%256)
+%>
+  rd 0.0.${rd3}.${rd4}:${cgi_data.get('vlan-id','UNKNOWN')}
  !
 """
 
@@ -849,7 +858,16 @@ shutdown
 GW_migration_check_vrf_and_crypto_templ = """!
 vrf definition LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
  description Local vrf for tunnel ${cgi_data.get('vlan-id','UNKNOWN')} - ${cgi_data.get('vpn','UNKNOWN')}
- rd 0.0.0.${''.join([ str(item.get('as_id','')) for item in private_as_test if item.get('cust_name','')==cgi_data.get('customer_name',"UNKNOWN") ])}:${cgi_data.get('vlan-id','UNKNOWN')}
+<% 
+big_rd = ''.join([ str(item.get('as_id','')) for item in private_as_test if item.get('cust_name','')==cgi_data.get('customer_name',"UNKNOWN") ])
+rd3 = '0' 
+if big_rd: rd4 = str(big_rd)
+else: rd4 = '0'
+if big_rd and int(big_rd) > 256: 
+  rd3 = str(int(int(big_rd)/256)) 
+  rd4 = str(int(big_rd)%256)
+%>
+ rd 0.0.${rd3}.${rd4}:${cgi_data.get('vlan-id','UNKNOWN')}
  !
  address-family ipv4
  exit-address-family
