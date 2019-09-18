@@ -813,10 +813,6 @@ neighbor ${''.join([ str(item.get('gw_peer_address_ibgp','UNKNOWN')) for item in
 interface ${''.join([ str(item.get('gw_subinterface','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}
 shutdown
 !
-bgp 2300
-ipv4-family vpn-instance ${''.join([ str(item.get('vrf_name','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}
-peer ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} ignore
-!
 """
 
 # GW_migration_check_vrf_and_crypto_templ = """!
@@ -950,8 +946,8 @@ def generate_migration_GW_router_config(data = None):
     mytemplate = Template(GW_migration_customer_router_templ,strict_undefined=True)
     config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
 
-    mytemplate = Template(GW_migration_unshut_if_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
+    # mytemplate = Template(GW_migration_unshut_if_templ,strict_undefined=True)
+    # config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
        
     return config_string
 
