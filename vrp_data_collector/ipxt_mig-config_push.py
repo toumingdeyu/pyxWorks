@@ -1137,8 +1137,8 @@ if LCMD.run_command(cmd_line = 'hostname', printall = None).strip() == 'iptac5':
                 CGI_CLI.uprint('%s' % (rcms_output), color = 'darkorchid')
                 
         if 'FAILED' in rcmd_outputs[-1].upper() or 'ERROR' in rcmd_outputs[-1].upper() or config_problem:
-            CGI_CLI.uprint('CONFIFURATION COMMIT FAILED!', tag = 'h1', color = 'red')
+            CGI_CLI.uprint('CONFIGURATION COMMIT FAILED!', tag = 'h1', color = 'red')
             sys.exit(999)
-        else: CGI_CLI.uprint('CONFIFURATION COMMIT OK.', tag = 'h1', color = 'green')    
+        else: CGI_CLI.uprint('CONFIGURATION COMMIT SUCCESSFULL.', tag = 'h1', color = 'green')    
         
         
