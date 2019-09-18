@@ -18,6 +18,45 @@ import collections
 import requests
 
 
+class bcolors:
+        DEFAULT    = '\033[99m'
+        WHITE      = '\033[97m'
+        CYAN       = '\033[96m'
+        MAGENTA    = '\033[95m'
+        HEADER     = '\033[95m'
+        OKBLUE     = '\033[94m'
+        BLUE       = '\033[94m'
+        YELLOW     = '\033[93m'
+        GREEN      = '\033[92m'
+        OKGREEN    = '\033[92m'
+        WARNING    = '\033[93m'
+        RED        = '\033[91m'
+        FAIL       = '\033[91m'
+        GREY       = '\033[90m'
+        ENDC       = '\033[0m'
+        BOLD       = '\033[1m'
+        UNDERLINE  = '\033[4m'
+
+class nocolors:
+        DEFAULT    = ''
+        WHITE      = ''
+        CYAN       = ''
+        MAGENTA    = ''
+        HEADER     = ''
+        OKBLUE     = ''
+        BLUE       = ''
+        YELLOW     = ''
+        GREEN      = ''
+        OKGREEN    = ''
+        WARNING    = ''
+        RED        = ''
+        FAIL       = ''
+        GREY       = ''
+        ENDC       = ''
+        BOLD       = ''
+        UNDERLINE  = ''
+
+
 class CGI_CLI(object):
     """
     CGI_handle - Simple statis class for handling CGI parameters and 
@@ -163,6 +202,30 @@ class CGI_CLI(object):
                 if tag and 'p' in tag: print('</p>')
                 if tag and 'h' in tag: print('</%s>'%(tag))
 
+    @staticmethod 
+    def formprint(form_data = None, submit_button = None, pyfile = None, tag = None, color = None):
+        """ print simple HTML form """
+        i_submit_button = 'Submit' if not submit_button else submit_button
+        if not pyfile: i_pyfile = sys.argv[0]
+        try: i_pyfile = i_pyfile.replace('\\','/').split('/')[-1].strip()
+        except: i_pyfile = i_pyfile.strip()
+        if CGI_CLI.cgi_active:
+            print('<br/>');
+            if tag and 'h' in tag: print('<%s%s>'%(tag,' style="color:%s;"'%(color) if color else str()))
+            if color or tag and 'p' in tag: tag = 'p'; print('<p%s>'%(' style="color:%s;"'%(color) if color else str()))
+            print('<form action = "/cgi-bin/%s" method = "post">' % (i_pyfile))
+
+
+            print('First Name: <input type = "text" name = "first_name"><br />')
+            print('<textarea type = "textcontent" name = "textcontent1" cols = "40" rows = "4"></textarea>')
+
+
+
+            print('<input id = "%s" type = "submit" name = "submit" value = "%s" />'%(i_submit_button,i_submit_button))
+            print('</form>')
+            if tag and 'p' in tag: print('</p>')
+            if tag and 'h' in tag: print('</%s>'%(tag))
+
     @staticmethod
     def VERSION(path_to_file = str(os.path.abspath(__file__))):
         if 'WIN32' in sys.platform.upper():
@@ -179,7 +242,7 @@ class CGI_CLI(object):
         print_string += 'file[%s], ' % (sys.argv[0])
         print_string += 'version[%s], ' % (CGI_CLI.VERSION())
         if CGI_CLI.cgi_active:
-            try: print_string += 'CGI_args = %s' % (json.dumps(CGI_CLI.data)) 
+            try: print_string += 'CGI_args[%s] = %s' % (str(CGI_CLI.submit_form),json.dumps(CGI_CLI.data)) 
             except: pass                 
         else: print_string += 'CLI_args = %s' % (str(sys.argv[1:]))
         CGI_CLI.uprint(print_string)
@@ -202,24 +265,38 @@ CGI_CLI.print_args()
 #print(repr(CGI_CLI))
 #print(str(CGI_CLI))
 
-CGI_CLI.uprint('aaa')
-CGI_CLI.uprint('aaa')          
-CGI_CLI.uprint(['aaa2','aaa3'])
-CGI_CLI.uprint({'aaa4':'aaa5'}, tag = 'h1' , name = True)
-CGI_CLI.uprint(CGI_CLI.data, name = True, jsonprint = True , tag = 'h1' , color = 'yellow')
+# CGI_CLI.uprint('aaa')
+# CGI_CLI.uprint('aaa')          
+# CGI_CLI.uprint(['aaa2','aaa3'])
+# CGI_CLI.uprint({'aaa4':'aaa5'}, tag = 'h1' , name = True)
+# CGI_CLI.uprint(CGI_CLI.data, name = True, jsonprint = True , tag = 'h1' , color = 'yellow')
 
-aaa = {'aaa8':'aaa9'}
-CGI_CLI.uprint(aaa, name = True)
-bbb = ['aaa8','aaa9']
-CGI_CLI.uprint(bbb, name = True)
-#cgi.print_environ()
+# aaa = {'aaa8':'aaa9'}
+# CGI_CLI.uprint(aaa, name = True)
+# bbb = ['aaa8','aaa9']
+# CGI_CLI.uprint(bbb, name = True)
+# #cgi.print_environ()
 
-CGI_CLI.uprint(123423, color = 'red')
-CGI_CLI.uprint('&<">&')
-
-
+# CGI_CLI.uprint(123423, color = 'red')
+# CGI_CLI.uprint('&<">&')
 
 
 
+# form = """
+# <br/>
+# <form action = "/cgi-bin/hello_get.py" method = "post">
+# First Name: <input type = "text" name = "first_name"><br />
+# Last Name: <input type = "text" name = "last_name" />
+# <input type = "submit" value = "Submit" />
+# </form>
+# """
 
+# print(form)
+
+
+form_data = [{'text':''}]
+
+
+CGI_CLI.formprint(submit_button = 'OK', pyfile = None, tag = None, color = None)
+CGI_CLI.formprint(submit_button = None, pyfile = None, tag = None, color = None)
 
