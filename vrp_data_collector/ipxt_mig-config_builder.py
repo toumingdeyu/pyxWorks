@@ -747,16 +747,16 @@ def generate_verification_GW_router_config(data = None):
     config_string = str()
     
     mytemplate = Template(pre_GW_vrf_definition_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'    
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'    
 
     mytemplate = Template(pre_GW_tunnel_interface_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n' 
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n' 
 
     mytemplate = Template(pre_GW_interface_tovards_huawei_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n' 
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n' 
 
     mytemplate = Template(pre_GW_router_bgp_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
         
     return config_string
 ###############################################################################
@@ -774,7 +774,7 @@ def generate_verification_PE_router_config(dict_data = None):
     config_string = str()
 
     mytemplate = Template(pre_PE_bundl_eether_interface_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
      
     return config_string 
     
@@ -801,7 +801,7 @@ def generate_preparation_GW_router_config(data = None):
     config_string = str()     
 
     mytemplate = Template(GW_preparation_interconnect_interface_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'      
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'      
        
     return config_string
     
@@ -947,10 +947,10 @@ def generate_migration_GW_router_config(data = None):
     config_string = str()
 
     mytemplate = Template(GW_migration_shutdown_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n' 
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n' 
 
     mytemplate = Template(GW_migration_check_vrf_and_crypto_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'  
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'  
     
     # mytemplate = Template(GW_migration_tunnel_interface_templ,strict_undefined=True)
     # config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'      
@@ -962,7 +962,7 @@ def generate_migration_GW_router_config(data = None):
     # config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'   
 
     mytemplate = Template(GW_migration_customer_router_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
 
     # mytemplate = Template(GW_migration_unshut_if_templ,strict_undefined=True)
     # config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
@@ -1131,28 +1131,28 @@ def generate_preparation_PE_router_config(dict_data = None):
     config_string = str()
 
     mytemplate = Template(PE_preparation_vrf_config_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
     
     mytemplate = Template(PE_preparation_acl_config_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
     
     mytemplate = Template(PE_preparation_prefix_config_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
 
     mytemplate = Template(PE_preparation_policy_map_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
 
     mytemplate = Template(PE_preparation_customer_interface_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
 
     mytemplate = Template(PE_preparation_customer_policy_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
 
     mytemplate = Template(PE_preparation_bgp_config_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
 
     mytemplate = Template(PE_preparation_static_route_config_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
 
     return config_string 
 
@@ -1185,7 +1185,7 @@ def generate_migration_PE_router_config(dict_data = None):
     config_string = str()
 
     mytemplate = Template(PE_migration_bgp_config_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
 
     return config_string 
 
@@ -1210,7 +1210,7 @@ def generate_migration_OLD_PE_router_shut_config(dict_data = None):
     config_string = str()
 
     mytemplate = Template(old_PE_migration_shut_if_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
 
     return config_string     
         
