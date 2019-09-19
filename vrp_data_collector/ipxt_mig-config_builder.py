@@ -1176,19 +1176,28 @@ def generate_preparation_PE_router_config(dict_data = None):
 ### MIGRATION PE
 ###############################################################################   
 
+# PE_migration_bgp_config_templ = """!
+# router bgp 2300
+ # neighbor-group ${cgi_data.get('vpn','UNKNOWN')}
+  # remote-as ${cgi_data.get('bgp-customer-as','UNKNOWN')}
+  # ebgp-multihop 5
+  # advertisement-interval 0
+  # address-family ipv4 unicast
+   # send-community-ebgp
+   # route-policy ${cgi_data.get('vpn','UNKNOWN')}-IN in
+   # maximum-prefix 10 90
+   # route-policy PASS-ALL out
+   # soft-reconfiguration inbound
+  # !
+ # !
+# !
+# """
+
 PE_migration_bgp_config_templ = """!
 router bgp 2300
  neighbor-group ${cgi_data.get('vpn','UNKNOWN')}
-  remote-as ${cgi_data.get('bgp-customer-as','UNKNOWN')}
-  ebgp-multihop 5
-  advertisement-interval 0
-  address-family ipv4 unicast
-   send-community-ebgp
-   route-policy ${cgi_data.get('vpn','UNKNOWN')}-IN in
-   maximum-prefix 10 90
-   route-policy PASS-ALL out
-   soft-reconfiguration inbound
-  !
+  route-policy ${cgi_data.get('vpn','UNKNOWN')}-IN in 
+  route-policy PASS-ALL out
  !
 !
 """
