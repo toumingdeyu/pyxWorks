@@ -478,6 +478,8 @@ class RCMD(object):
                             if RCMD.router_type=='cisco_xr': 
                                 failed_output = RCMD.run_command('show configuration failed'),
                                 command_outputs.append('FAILED_COMMIT: ' + failed_output)
+                                #show commit changes diff
+                                #commit show-error
                         ### EXIT SECTION ---------------------------------------
                         if RCMD.router_type=='cisco_ios': RCMD.run_command('exit') 
                         elif RCMD.router_type=='cisco_xr': RCMD.run_command('exit')
@@ -1036,8 +1038,6 @@ lcmd_data2 = {
     'unix':['whoami'],
 }
 
-# username=mkrupa&password=Welcome0010%24&session_id=%2Fvar%2Fwww%2Fcgi-bin%2Flogs%2FHKGPE3-20190916-091722-ipxt_mig-data_collector-mkrupa-vrp-IPXT.VANUATU-Submit_step_1-log&submit=Submit+PE+preparation 
-# username=mkrupa&password=Welcome0010%24&session_id=%2Fvar%2Fwww%2Fcgi-bin%2Flogs%2FHKGPE3-20190916-091722-ipxt_mig-data_collector-mkrupa-vrp-IPXT.VANUATU-Submit_step_1-log&submit=Submit+GW+preparation
 
 new_pe_router, ipsec_gw_router, old_huawei_router, config = str(), str(), str(), str()
 
@@ -1065,6 +1065,10 @@ if CGI_CLI.cgi_active:
 
     try: ipsec_gw_router = data["ipxt_gw_pe"].get('ipsec_gw_router',str())
     except: ipsec_gw_router = str()
+
+    ipsec_ipxt_table_list = sql_inst.sql_read_records_to_dict_list(from_string = 'ipsec_ipxt_table', where_string = "ipsec_rtr_name = '%s'" % (ipsec_gw_router))
+    try: data["ipsec_ipxt_table"] = ipsec_ipxt_table_list[0]
+    except: data["ipsec_ipxt_table"] = collections.OrderedDict()
     
     CGI_CLI.uprint(data, jsonprint = True, color = 'blue') 
 
@@ -1076,67 +1080,101 @@ if CGI_CLI.cgi_active:
         where_string = "session_id = '%s'" % (CGI_CLI.data.get('session_id','')))[0]
     except: config_data = collections.OrderedDict()
     #CGI_CLI.uprint(config_data, jsonprint = True)    
-    
-device = str()    
-if CGI_CLI.submit_form == 'Submit PE preparation':
-    device = new_pe_router
-    config = config_data.get("pe_config_preparation",str())
-if CGI_CLI.submit_form == 'Submit GW preparation': 
-    device = ipsec_gw_router
-    config = config_data.get("gw_config_preparation",str())
-if CGI_CLI.submit_form == 'Submit PE migration':
-    device = new_pe_router
-    config = config_data.get("pe_config_migration",str())
-if CGI_CLI.submit_form == 'Submit GW migration': 
-    device = ipsec_gw_router
-    config = config_data.get("gw_config_migration",str())
-if CGI_CLI.submit_form == 'Submit OLD PE shutdown': 
-    device = old_huawei_router
-    config = config_data.get("old_pe_config_migration_shut",str())
-    
-CGI_CLI.uprint(str(CGI_CLI.submit_form), tag = 'h1', color = 'blue')
 
-CGI_CLI.uprint('PE = %s, GW = %s, OLD_PE = %s'%(new_pe_router,ipsec_gw_router,old_huawei_router), tag = 'h3', color = 'black')     
-
-CGI_CLI.uprint('DEVICE = %s'%(device), tag = 'h1')    
-
-CGI_CLI.uprint('CONFIG:\n------------\n\n%s'%(config))
+    PE_precheck = {'cisco_xr':[\
+        'show access-list %s-IN' % (data['ipxt_data_collector'].get('vrf_name','UNKNOWN')),
+        'show vrf %s' %(data['ipxt_data_collector'].get('vrf_name','UNKNOWN').replace('.','@')),
+        'show rpl prefix-set %s-IN' % (data['ipxt_data_collector'].get('vrf_name','UNKNOWN')), 
+        'show policy-map list %s-OUT' % (data['ipxt_data_collector'].get('customer_name','UNKNOWN')),
+        'show policy-map list %s-IN' % (data['ipxt_data_collector'].get('customer_name','UNKNOWN')),
+        'show interface %s.%s' % (data['ipsec_ipxt_table'].get('int_id','UNKNOWN'),data['ipxt_data_collector'].get('vlan_id','UNKNOWN')),
+        'sh flow exporter-map ICX',
+        'show flow monitor-map ICX',
+        'show sampler-map ICX',
+        'sh run | i IPXT.COS-OUT',
+        'sh run | i IPXT.COS-IN',
+        'show class-map GOLD',
+        'show class-map SILVER',
+        'sh running-config | i route-policy %s-IN' % (data['ipxt_data_collector'].get('vrf_name','UNKNOWN')),
+        'show bgp neighbor-group %s configuration' % (data['ipxt_data_collector'].get('vrf_name','UNKNOWN')),
+        'sh running-config | i route-policy DENY-ALL',
+        'sh running-config | i route-policy NO-EXPORT-INTERCO',
+        'show static vrf %s topology' % (data['ipxt_data_collector'].get('vrf_name','UNKNOWN').replace('.','@'))
+        ]}
 
 
-### WRITE CONFIG TO ROUTER ######################################################
-iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
-CGI_CLI.uprint('SERVER: %s\n--------------------\n\n' % (iptac_server), tag = 'h1') 
+    CGI_CLI.uprint(PE_precheck, name = True, jsonprint = True)
 
-### TEST_ONLY DELETION FROM CONFIG    
-if iptac_server == 'iptac5': config = config.replace('flow ipv4 monitor ICX sampler ICX ingress','')
+        
+    device, conf = str(), None 
+    if CGI_CLI.submit_form == 'Submit PE precheck':
+        device = new_pe_router
+        config = '\n'.join(PE_precheck.get('cisco_xr',str()))
+        conf = False    
+    elif CGI_CLI.submit_form == 'Submit PE preparation':
+        device = new_pe_router
+        config = config_data.get("pe_config_preparation",str())
+        conf = True
+    elif CGI_CLI.submit_form == 'Submit GW preparation': 
+        device = ipsec_gw_router
+        config = config_data.get("gw_config_preparation",str())
+        conf = True
+    elif CGI_CLI.submit_form == 'Submit PE migration':
+        device = new_pe_router
+        config = config_data.get("pe_config_migration",str())
+        conf = True
+    elif CGI_CLI.submit_form == 'Submit GW migration': 
+        device = ipsec_gw_router
+        config = config_data.get("gw_config_migration",str())
+        conf = True
+    elif CGI_CLI.submit_form == 'Submit OLD PE shutdown': 
+        device = old_huawei_router
+        config = config_data.get("old_pe_config_migration_shut",str())
+        conf = True
+        
+    CGI_CLI.uprint(str(CGI_CLI.submit_form), tag = 'h1', color = 'blue')
 
-try: splitted_config = str(config.decode("utf-8")).splitlines()
-except: splitted_config = []
+    CGI_CLI.uprint('PE = %s, GW = %s, OLD_PE = %s'%(new_pe_router,ipsec_gw_router,old_huawei_router), tag = 'h3', color = 'black')     
 
-data_to_write = {
-    'cisco_ios':splitted_config,
-    'cisco_xr':splitted_config,
-    'juniper':splitted_config,
-    'huawei':splitted_config,
-    'linux':[],
-}
+    CGI_CLI.uprint('DEVICE = %s'%(device), tag = 'h1')    
 
-if device:
-    rcmd_outputs = RCMD.connect(device = device, cmd_data = splitted_config, \
-        username = CGI_CLI.username, password = CGI_CLI.password, conf = True)
-    CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'blue')         
-    RCMD.disconnect()
-    
-    config_problem = False
-    for rcms_output in rcmd_outputs: 
-        if 'INVALID INPUT' in rcms_output.upper() or 'INCOMPLETE COMMAND' in rcms_output.upper():
-            config_problem = True
-            CGI_CLI.uprint('\nCONFIGURATION PROBLEM FOUND:', color = 'red')
-            CGI_CLI.uprint('%s' % (rcms_output), color = 'darkorchid')
-            
-    if 'FAILED' in rcmd_outputs[-1].upper() or 'ERROR' in rcmd_outputs[-1].upper() or config_problem:
-        CGI_CLI.uprint('CONFIGURATION COMMIT FAILED!', tag = 'h1', color = 'red')
-        sys.exit(999)
-    else: CGI_CLI.uprint('CONFIGURATION COMMIT SUCCESSFULL.', tag = 'h1', color = 'green')    
-    
-    
+    CGI_CLI.uprint('CONFIG:\n------------\n\n%s'%(config))
+
+
+    ### WRITE CONFIG TO ROUTER ######################################################
+    iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
+    CGI_CLI.uprint('SERVER: %s\n--------------------\n\n' % (iptac_server), tag = 'h1') 
+
+    ### TEST_ONLY DELETION FROM CONFIG    
+    #if iptac_server == 'iptac5': config = config.replace('flow ipv4 monitor ICX sampler ICX ingress','')
+
+    try: splitted_config = str(config.decode("utf-8")).splitlines()
+    except: splitted_config = []
+
+    data_to_write = {
+        'cisco_ios':splitted_config,
+        'cisco_xr':splitted_config,
+        'juniper':splitted_config,
+        'huawei':splitted_config,
+        'linux':[],
+    }
+
+    if device:
+        rcmd_outputs = RCMD.connect(device = device, cmd_data = splitted_config, \
+            username = CGI_CLI.username, password = CGI_CLI.password, conf = conf)
+        CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'blue')         
+        RCMD.disconnect()
+        
+        config_problem = False
+        for rcms_output in rcmd_outputs: 
+            if 'INVALID INPUT' in rcms_output.upper() or 'INCOMPLETE COMMAND' in rcms_output.upper():
+                config_problem = True
+                CGI_CLI.uprint('\nCONFIGURATION PROBLEM FOUND:', color = 'red')
+                CGI_CLI.uprint('%s' % (rcms_output), color = 'darkorchid')
+        try:        
+            if 'FAILED' in rcmd_outputs[-1].upper() or 'ERROR' in rcmd_outputs[-1].upper() or config_problem:
+                CGI_CLI.uprint('CONFIGURATION COMMIT FAILED!', tag = 'h1', color = 'red')
+                sys.exit(999)
+            else: CGI_CLI.uprint('CONFIGURATION COMMIT SUCCESSFULL.', tag = 'h1', color = 'green')    
+        except: pass
+        
