@@ -1104,41 +1104,39 @@ CGI_CLI.uprint('CONFIG:\n------------\n\n%s'%(config))
 
 
 ### WRITE CONFIG TO ROUTER ######################################################
-if LCMD.run_command(cmd_line = 'hostname', printall = None).strip() == 'iptac5':
-    CGI_CLI.uprint('TESTLAB:\n---------------\n\n', tag = 'h1') 
+iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
+CGI_CLI.uprint('SERVER: %s\n--------------------\n\n' % (iptac_server), tag = 'h1') 
 
-    ### TEST_ONLY DELETION FROM CONFIG    
-    if LCMD.run_command(cmd_line = 'hostname', printall = None).strip() == 'iptac5':
-        config = config.replace('flow ipv4 monitor ICX sampler ICX ingress','')
+### TEST_ONLY DELETION FROM CONFIG    
+if iptac_server == 'iptac5': config = config.replace('flow ipv4 monitor ICX sampler ICX ingress','')
+
+try: splitted_config = str(config.decode("utf-8")).splitlines()
+except: splitted_config = []
+
+data_to_write = {
+    'cisco_ios':splitted_config,
+    'cisco_xr':splitted_config,
+    'juniper':splitted_config,
+    'huawei':splitted_config,
+    'linux':[],
+}
+
+if device:
+    rcmd_outputs = RCMD.connect(device = device, cmd_data = splitted_config, \
+        username = CGI_CLI.username, password = CGI_CLI.password, conf = True)
+    CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'blue')         
+    RCMD.disconnect()
     
-    try: splitted_config = str(config.decode("utf-8")).splitlines()
-    except: splitted_config = []
+    config_problem = False
+    for rcms_output in rcmd_outputs: 
+        if 'INVALID INPUT' in rcms_output.upper() or 'INCOMPLETE COMMAND' in rcms_output.upper():
+            config_problem = True
+            CGI_CLI.uprint('\nCONFIGURATION PROBLEM FOUND:', color = 'red')
+            CGI_CLI.uprint('%s' % (rcms_output), color = 'darkorchid')
+            
+    if 'FAILED' in rcmd_outputs[-1].upper() or 'ERROR' in rcmd_outputs[-1].upper() or config_problem:
+        CGI_CLI.uprint('CONFIGURATION COMMIT FAILED!', tag = 'h1', color = 'red')
+        sys.exit(999)
+    else: CGI_CLI.uprint('CONFIGURATION COMMIT SUCCESSFULL.', tag = 'h1', color = 'green')    
     
     
-    data_to_write = {
-        'cisco_ios':splitted_config,
-        'cisco_xr':splitted_config,
-        'juniper':splitted_config,
-        'huawei':splitted_config,
-        'linux':[],
-    }
-    
-    if device:
-        rcmd_outputs = RCMD.connect(device = device, cmd_data = splitted_config, \
-            username = CGI_CLI.username, password = CGI_CLI.password, conf = True)
-        CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'blue')         
-        RCMD.disconnect()
-        
-        config_problem = False
-        for rcms_output in rcmd_outputs: 
-            if 'INVALID INPUT' in rcms_output.upper() or 'INCOMPLETE COMMAND' in rcms_output.upper():
-                config_problem = True
-                CGI_CLI.uprint('\nCONFIGURATION PROBLEM FOUND:', color = 'red')
-                CGI_CLI.uprint('%s' % (rcms_output), color = 'darkorchid')
-                
-        if 'FAILED' in rcmd_outputs[-1].upper() or 'ERROR' in rcmd_outputs[-1].upper() or config_problem:
-            CGI_CLI.uprint('CONFIGURATION COMMIT FAILED!', tag = 'h1', color = 'red')
-            sys.exit(999)
-        else: CGI_CLI.uprint('CONFIGURATION COMMIT SUCCESSFULL.', tag = 'h1', color = 'green')    
-        
-        

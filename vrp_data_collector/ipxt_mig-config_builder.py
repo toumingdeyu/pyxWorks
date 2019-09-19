@@ -920,9 +920,33 @@ GW_migration_interconnect_interface_templ = """interface ${''.join([ str(item.ge
 !
 """
 
+# GW_migration_customer_router_templ = """!<% list = cgi_data.get('ipv4-acl','').split(',') %>
+# ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 0.0.0.0 0.0.0.0 ${''.join([ str(item.get('ipsec_int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('pe-ip-address','UNKNOWN')} 
+# ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} ${''.join([ str(item.get('peer_address','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} 255.255.255.255 Tunnel${cgi_data.get('vlan-id','UNKNOWN')} ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} 
+# % for i in range(int(len(list)/2)):
+# <%
+# input_mask = cgi_data.get('ipv4-acl','').split(',')[2*i+1]
+# if input_mask: wildchard_mask = '255.255.255.255'
+# elif input_mask == '': wildchard_mask = '255.255.255.255'
+# elif '.' in input_mask:
+  # wildchard_list = []
+  # wildchard_mask = ''
+  # for mask_part in input_mask.split('.'):    
+    # try: wildchard_list.append(str(int(mask_part)^255))
+    # except: wildchard_list.append('255')
+  # for i_order in range(4):
+    # try: wildchard_mask += wildchard_list[i_order]
+    # except: wildchard_mask += '255'
+    # if i_order<3: wildchard_mask += '.'  
+# #wildchard_mask = '.'.join([ str(int(mask_item)^255) for mask_item in cgi_data.get('ipv4-acl','').split(',')[2*i+1].split('.') if '.' in cgi_data.get('ipv4-acl','').split(',')[2*i+1] and not "" in mask_item ])}
+# %>
+# ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('ipv4-acl','').split(',')[2*i]} ${wildchard_mask} Tunnel${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('bgp-peer-address','UNKNOWN')}
+# % endfor
+# !
+# """
+
 GW_migration_customer_router_templ = """!<% list = cgi_data.get('ipv4-acl','').split(',') %>
 ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 0.0.0.0 0.0.0.0 ${''.join([ str(item.get('ipsec_int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('pe-ip-address','UNKNOWN')} 
-ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} ${''.join([ str(item.get('peer_address','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} 255.255.255.255 Tunnel${cgi_data.get('vlan-id','UNKNOWN')} ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} 
 % for i in range(int(len(list)/2)):
 <%
 input_mask = cgi_data.get('ipv4-acl','').split(',')[2*i+1]
