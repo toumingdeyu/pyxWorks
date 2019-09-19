@@ -154,9 +154,27 @@ class CGI_CLI(object):
         if CGI_CLI.username: CGI_CLI.USERNAME = CGI_CLI.username
         if CGI_CLI.password: CGI_CLI.PASSWORD = CGI_CLI.password
         if CGI_CLI.cgi_active or 'WIN32' in sys.platform.upper(): bcolors = nocolors
-        CGI_CLI.uprint('USERNAME[%s], PASSWORD[%s]' % (CGI_CLI.USERNAME, 'Yes' if CGI_CLI.PASSWORD else 'No'))        
+        CGI_CLI.uprint('USERNAME[%s], PASSWORD[%s]' % (CGI_CLI.USERNAME, 'Yes' if CGI_CLI.PASSWORD else 'No'))
+        CGI_CLI.cgi_save_files()        
         return CGI_CLI.USERNAME, CGI_CLI.PASSWORD
 
+    @staticmethod 
+    def cgi_save_files():
+        for key in CGI_CLI.data:
+            if 'file[' in key: 
+                filename = key.replace('file[','').replace(']','')
+                if filename:
+                    use_filename = filename.replace('/','\\') if 'WIN32' in sys.platform.upper() else filename
+                    dir_path = os.path.dirname(use_filename)
+                    if os.path.exists(dir_path):
+                        file_content = CGI_CLI.data.get('file[%s]'%(filename),None)
+                        if file_content:
+                            try:                        
+                                with open(use_filename, 'wb') as file:
+                                    file.write(CGI_CLI.data.get('file[%s]'%(filename)))
+                                    CGI_CLI.uprint('The file "' + use_filename + '" was uploaded.')
+                            except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']')   
+   
     @staticmethod 
     def oprint(text, tag = None):
         if CGI_CLI.debug: 
@@ -204,8 +222,41 @@ class CGI_CLI(object):
 
     @staticmethod 
     def formprint(form_data = None, submit_button = None, pyfile = None, tag = None, color = None):
-        """ print simple HTML form """
-        i_submit_button = 'Submit' if not submit_button else submit_button
+        """ formprint() - print simple HTML form
+            form_data - string, just html raw OR list or dict values = ['raw','text','checkbox','radio','submit','dropdown','textcontent']
+                      - value in dictionary means cgi variable name / printed componenet value            
+        """
+        def subformprint(data_item):
+            if isinstance(data_item, six.string_types): print(data_item)
+            elif isinstance(data_item, (dict,collections.OrderedDict)):
+                if data_item.get('raw',None): print(data_item.get('raw'))
+                elif data_item.get('textcontent',None): 
+                    print('<textarea type = "textcontent" name = "%s" cols = "40" rows = "4"></textarea>'%\
+                        (data_item.get('textcontent')))
+                elif data_item.get('text'):
+                    print('%s: <input type = "text" name = "%s"><br />'%\
+                        (data_item.get('text','').replace('_',' '),data_item.get('text')))
+                elif data_item.get('radio'):    
+                    print('<input type = "radio" name = "%s" value = "%s" /> %s'%\
+                        (data_item.get('radio'),data_item.get('radio'),data_item.get('radio','').replace('_',' ')))
+                elif data_item.get('checkbox'):
+                    print('<input type = "checkbox" name = "%s" value = "on" /> %s'%\
+                        (data_item.get('checkbox'),data_item.get('checkbox','').replace('_',' ')))
+                elif data_item.get('dropdown'):
+                    print('<select name = "dropdown[%s]">'%(data_item.get('dropdown')))
+                    for option in data_item.get('dropdown').split(','):
+                        print('<option value = "%s" selected>%s</option>')%(option,option)
+                    print('</select>')
+                elif data_item.get('file'):
+                   print('Upload file: <input type = "file" name = "file[%s]" />'%(data_item.get('file').replace('\\','/')))  
+                elif data_item.get('submit'):    
+                    print('<input id = "%s" type = "submit" name = "submit" value = "%s" />'%\
+                        (data_item.get('submit'),data_item.get('submit')))
+
+   
+        ### START OF FORMPRINT ###
+        formtypes = ['raw','text','checkbox','radio','submit','dropdown','textcontent']
+        i_submit_button = None if not submit_button else submit_button
         if not pyfile: i_pyfile = sys.argv[0]
         try: i_pyfile = i_pyfile.replace('\\','/').split('/')[-1].strip()
         except: i_pyfile = i_pyfile.strip()
@@ -213,15 +264,16 @@ class CGI_CLI(object):
             print('<br/>');
             if tag and 'h' in tag: print('<%s%s>'%(tag,' style="color:%s;"'%(color) if color else str()))
             if color or tag and 'p' in tag: tag = 'p'; print('<p%s>'%(' style="color:%s;"'%(color) if color else str()))
-            print('<form action = "/cgi-bin/%s" method = "post">' % (i_pyfile))
-
-
-            print('First Name: <input type = "text" name = "first_name"><br />')
-            print('<textarea type = "textcontent" name = "textcontent1" cols = "40" rows = "4"></textarea>')
-
-
-
-            print('<input id = "%s" type = "submit" name = "submit" value = "%s" />'%(i_submit_button,i_submit_button))
+            print('<form action = "/cgi-bin/%s" enctype = "multipart/form-data" action = "save_file.py" method = "post">'%\
+                (i_pyfile))
+            ### RAW HTML ###
+            if isinstance(form_data, six.string_types): print(form_data)
+            ### STRUCT FORM DATA = LIST ###
+            elif isinstance(form_data, (list,tuple)):
+                for data_item in form_data: subformprint(data_item)
+            ### JUST ONE DICT ###    
+            elif isinstance(form_data, (dict,collections.OrderedDict)): subformprint(form_data)               
+            if i_submit_button: subformprint({'submit':i_submit_button})
             print('</form>')
             if tag and 'p' in tag: print('</p>')
             if tag and 'h' in tag: print('</%s>'%(tag))
@@ -295,9 +347,10 @@ CGI_CLI.print_args()
 
 ### https://www.tutorialspoint.com/python/python_cgi_programming.htm
 
-form_data = [{'text':''}]
 
 
-CGI_CLI.formprint(submit_button = 'OK', pyfile = None, tag = None, color = None)
-CGI_CLI.formprint(submit_button = None, pyfile = None, tag = None, color = None)
 
+CGI_CLI.formprint([{'text':'email_address'},'<br/>',{'textcontent':'email_body'}], submit_button = 'Send_Email', pyfile = None, tag = None, color = None)
+
+
+CGI_CLI.formprint([{'file':'/var/www/cgi-bin/file_1'},{'dropdown':'aa,bb,cc_cc'},{'checkbox':'aa_ss'},{'radio':'iii_ddd'},'<br/>', {'radio':'q q'},'<br/>',{'submit':'YES'},{'submit':'NO'}],submit_button = None, pyfile = None, tag = None, color = None)
