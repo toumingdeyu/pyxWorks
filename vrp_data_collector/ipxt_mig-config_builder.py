@@ -1043,19 +1043,25 @@ ipv4 access-list ${cgi_data.get('vpn','UNKNOWN')}-IN
 
 PE_preparation_prefix_config_templ = """!<% import ipaddress; splitted_list = cgi_data.get('ipv4-acl','').split(',') %>
 prefix-set ${cgi_data.get('vpn','UNKNOWN')}-IN
-% for i in range(1,int(len(splitted_list)/2)):
-<% 
-if splitted_list[2*i+1] == "0": net = splitted_list[2*i]+"/32" 
-else:
-    try: net = ipaddress.ip_network(splitted_list[2*i]+'/'+splitted_list[2*i+1], strict=True)
-    except: net = splitted_list[2*i] + '/32'
+<%
+netlines = ''
+for i in range(int(len(splitted_list)/2)): 
+    if splitted_list[2*i] == ''.join([ str(item.get('gw_peer_address_ibgp','')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ]):
+        net = None
+    else:
+        try:    
+            if splitted_list[2*i+1] == "0": net = splitted_list[2*i]+"/32" 
+            else:
+                try: net = ipaddress.ip_network(splitted_list[2*i]+'/'+splitted_list[2*i+1], strict=True)
+                except: net = splitted_list[2*i] + '/32'
+        except: net = splitted_list[2*i]+"/32"                
+    if net: netlines.append(str(net) + ' le 32,')
+try: netlines[-1] = netlines[-1].rstrip(',')
+except: pass
 %>
-% if i + 1 == int(len(splitted_list)/2):
-  ${net} le 32
-% else:
-  ${net} le 32,
-% endif 
-% endfor
+% for item in netlines:
+${item}
+% endfor 
 end-set
 !
 """
@@ -1147,7 +1153,7 @@ if big_rd and int(big_rd) > 256:
   address-family ipv4 unicast
    redistribute connected route-policy NO-EXPORT-INTERCO
   !
-  neighbor ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}
+  neighbor ${''.join([ str(item.get('peer_address','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}
    use neighbor-group ${cgi_data.get('vpn','UNKNOWN')}
   !
  !

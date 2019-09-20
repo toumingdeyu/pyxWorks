@@ -1102,9 +1102,30 @@ if CGI_CLI.cgi_active:
         'show static vrf %s topology' % (data['ipxt_data_collector'].get('vrf_name','UNKNOWN').replace('.','@'))
         ]}
 
+    checklist_PE_precheck = {'cisco_xr':[\
+        {'contains':'No such access-list %s-IN' % (data['ipxt_data_collector'].get('vrf_name','UNKNOWN'))},
+        {'not':'%s' %(data['ipxt_data_collector'].get('vrf_name','UNKNOWN').replace('.','@'))},
+        {'contains':'The prefix-set (%s-IN) does not appear to exist' % (data['ipxt_data_collector'].get('vrf_name','UNKNOWN'))}, 
+        {'contains':'Policymap \'%s-OUT\' of type \'qos\' not found' % (data['ipxt_data_collector'].get('customer_name','UNKNOWN'))},
+        {'contains':'Policymap \'%s-IN\' of type \'qos\' not found' % (data['ipxt_data_collector'].get('customer_name','UNKNOWN'))},
+        {'contains':'Interface not found (%s.%s)' % (data['ipsec_ipxt_table'].get('int_id','UNKNOWN'),data['ipxt_data_collector'].get('vlan_id','UNKNOWN'))},
+        {'contains':'Flow Exporter Map : ICX'},
+        {'contains':'Flow Monitor Map : ICX'},
+        {'contains':'Sampler Map : ICX'},
+        {'contains':'policy-map IPXT.COS-OUT'},
+        {'contains':'policy-map IPXT.COS-IN'},
+        {'contains':'1) ClassMap: GOLD    Type: qos'},
+        {'contains':'1) ClassMap: SILVER    Type: silver'},
+        {'contains':'route-policy %s-IN' % (data['ipxt_data_collector'].get('vrf_name','UNKNOWN'))},
+        {'not':'%s' % (data['ipxt_data_collector'].get('vrf_name','UNKNOWN'))},
+        {'contains':'route-policy DENY-ALL'},
+        {'contains':'route-policy NO-EXPORT-INTERCO'},
+        {'contains':'No routes in this topology'}
+        ]}
+
 
     CGI_CLI.uprint(PE_precheck, name = True, jsonprint = True)
-
+    CGI_CLI.uprint(checklist_PE_precheck, name = True, jsonprint = True)
         
     device, conf = str(), None 
     if CGI_CLI.submit_form == 'Submit PE precheck':
@@ -1133,11 +1154,8 @@ if CGI_CLI.cgi_active:
         conf = True
         
     CGI_CLI.uprint(str(CGI_CLI.submit_form), tag = 'h1', color = 'blue')
-
     CGI_CLI.uprint('PE = %s, GW = %s, OLD_PE = %s'%(new_pe_router,ipsec_gw_router,old_huawei_router), tag = 'h3', color = 'black')     
-
-    CGI_CLI.uprint('DEVICE = %s'%(device), tag = 'h1')    
-
+    CGI_CLI.uprint('DEVICE = %s, config_mode(%s)'%(device,str(conf)), tag = 'h1')    
     CGI_CLI.uprint('CONFIG:\n------------\n\n%s'%(config))
 
 
@@ -1166,15 +1184,33 @@ if CGI_CLI.cgi_active:
         RCMD.disconnect()
         
         config_problem = False
-        for rcms_output in rcmd_outputs: 
-            if 'INVALID INPUT' in rcms_output.upper() or 'INCOMPLETE COMMAND' in rcms_output.upper():
-                config_problem = True
-                CGI_CLI.uprint('\nCONFIGURATION PROBLEM FOUND:', color = 'red')
-                CGI_CLI.uprint('%s' % (rcms_output), color = 'darkorchid')
-        try:        
-            if 'FAILED' in rcmd_outputs[-1].upper() or 'ERROR' in rcmd_outputs[-1].upper() or config_problem:
-                CGI_CLI.uprint('CONFIGURATION COMMIT FAILED!', tag = 'h1', color = 'red')
-                sys.exit(999)
-            else: CGI_CLI.uprint('CONFIGURATION COMMIT SUCCESSFULL.', tag = 'h1', color = 'green')    
-        except: pass
-        
+        if conf:
+            for rcms_output in rcmd_outputs: 
+                if 'INVALID INPUT' in rcms_output.upper() or 'INCOMPLETE COMMAND' in rcms_output.upper():
+                    config_problem = True
+                    CGI_CLI.uprint('\nCONFIGURATION PROBLEM FOUND:', color = 'red')
+                    CGI_CLI.uprint('%s' % (rcms_output), color = 'darkorchid')
+            try:        
+                if 'FAILED' in rcmd_outputs[-1].upper() or 'ERROR' in rcmd_outputs[-1].upper() or config_problem:
+                    CGI_CLI.uprint('CONFIGURATION COMMIT FAILED!', tag = 'h1', color = 'red')
+                    sys.exit(999)
+                else: CGI_CLI.uprint('CONFIGURATION COMMIT SUCCESSFULL.', tag = 'h1', color = 'green')    
+            except: pass
+        else:
+            CGI_CLI.uprint('PRECHECK:\n--------------\n',tag = 'h1')        
+            i = 0 
+            checklist = PE_precheck.get('cisco_xr',[])            
+            for output in rcmd_outputs:
+                try:
+                    if isinstance(checklist[i], (dict,collections.OrderedDict)):
+                        CGI_CLI.uprint('CHECK:'+ output)
+                        CGI_CLI.uprint(checklist[i], jsonprint = True)
+                        if checklist[i].get('contains'):
+                            if checklist[i].get('contains') in output: CGI_CLI.uprint('CHECK OK.\n')
+                            else: CGI_CLI.uprint('CHECK FAILED.\n')                           
+                        elif checklist[i].get('not_in'):
+                            if not checklist[i].get('not_in') in output: CGI_CLI.uprint('CHECK OK.\n')
+                            else: CGI_CLI.uprint('CHECK FAILED.\n')
+                except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']')
+                i += i
+                
