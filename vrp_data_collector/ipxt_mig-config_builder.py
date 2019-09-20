@@ -1041,10 +1041,12 @@ ipv4 access-list ${cgi_data.get('vpn','UNKNOWN')}-IN
 !
 """
 
-PE_preparation_prefix_config_templ = """!<% import ipaddress; splitted_list = cgi_data.get('ipv4-acl','').split(',') %>
+PE_preparation_prefix_config_templ = """!
 prefix-set ${cgi_data.get('vpn','UNKNOWN')}-IN
 <%
-netlines = ''
+import ipaddress 
+splitted_list = cgi_data.get('ipv4-acl','').split(',') 
+netlines = []
 for i in range(int(len(splitted_list)/2)): 
     if splitted_list[2*i] == ''.join([ str(item.get('gw_peer_address_ibgp','')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ]):
         net = None
@@ -1056,7 +1058,7 @@ for i in range(int(len(splitted_list)/2)):
                 except: net = splitted_list[2*i] + '/32'
         except: net = splitted_list[2*i]+"/32"                
     if net: netlines.append(str(net) + ' le 32,')
-try: netlines[-1] = netlines[-1].rstrip(',')
+try: netlines[-1] = netlines[-1].replace(',','')
 except: pass
 %>
 % for item in netlines:
