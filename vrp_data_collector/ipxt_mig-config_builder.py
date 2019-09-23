@@ -824,37 +824,6 @@ shutdown
 !
 """
 
-# GW_migration_check_vrf_and_crypto_templ = """!
-# vrf definition LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
- # description Local vrf for tunnel ${cgi_data.get('vlan-id','UNKNOWN')} - ${cgi_data.get('vpn','UNKNOWN')}
- # rd 0.0.0.${''.join([ str(item.get('as_id','')) for item in private_as_test if item.get('cust_name','')==cgi_data.get('customer_name',"UNKNOWN") ])}:${cgi_data.get('vlan-id','UNKNOWN')}
- # !
- # address-family ipv4
- # exit-address-family
- # !
- # address-family ipv6
- # exit-address-family
-# !
-# !
-# crypto keyring ${cgi_data.get('vpn','UNKNOWN')}  
-  # local-address ${''.join([ str(item.get('loc_tun_addr','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}
-  # pre-shared-key address ${cgi_data.get('ipsec-tunnel-dest','UNKNOWN')} key ${cgi_data.get('ipsec-preshare-key','UNKNOWN')}
-# !
-# crypto isakmp profile ${cgi_data.get('vpn','UNKNOWN')}
-   # vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
-   # keyring ${cgi_data.get('vpn','UNKNOWN')}
-   # match identity address ${cgi_data.get('ipsec-tunnel-dest','UNKNOWN')} 255.255.255.255 
-   # local-address ${''.join([ str(item.get('loc_tun_addr','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}
-   # keepalive 10 retry 3
-# !
-# crypto ipsec profile ${cgi_data.get('vpn','UNKNOWN')}
- # set security-association lifetime seconds 28800
- # set transform-set ${cgi_data.get('ipsec-transf-set','UNKNOWN')}
- # set pfs group1
- # set isakmp-profile ${cgi_data.get('vpn','UNKNOWN')}
-# !
-# """
-
 GW_migration_check_vrf_and_crypto_templ = """!
 vrf definition LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
  description Local vrf for tunnel ${cgi_data.get('vlan-id','UNKNOWN')} - ${cgi_data.get('vpn','UNKNOWN')}
@@ -919,31 +888,6 @@ GW_migration_interconnect_interface_templ = """interface ${''.join([ str(item.ge
  no ip proxy-arp
 !
 """
-
-# GW_migration_customer_router_templ = """!<% list = cgi_data.get('ipv4-acl','').split(',') %>
-# ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 0.0.0.0 0.0.0.0 ${''.join([ str(item.get('ipsec_int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('pe-ip-address','UNKNOWN')} 
-# ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} ${''.join([ str(item.get('peer_address','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} 255.255.255.255 Tunnel${cgi_data.get('vlan-id','UNKNOWN')} ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} 
-# % for i in range(int(len(list)/2)):
-# <%
-# input_mask = cgi_data.get('ipv4-acl','').split(',')[2*i+1]
-# if input_mask: wildchard_mask = '255.255.255.255'
-# elif input_mask == '': wildchard_mask = '255.255.255.255'
-# elif '.' in input_mask:
-  # wildchard_list = []
-  # wildchard_mask = ''
-  # for mask_part in input_mask.split('.'):    
-    # try: wildchard_list.append(str(int(mask_part)^255))
-    # except: wildchard_list.append('255')
-  # for i_order in range(4):
-    # try: wildchard_mask += wildchard_list[i_order]
-    # except: wildchard_mask += '255'
-    # if i_order<3: wildchard_mask += '.'  
-# #wildchard_mask = '.'.join([ str(int(mask_item)^255) for mask_item in cgi_data.get('ipv4-acl','').split(',')[2*i+1].split('.') if '.' in cgi_data.get('ipv4-acl','').split(',')[2*i+1] and not "" in mask_item ])}
-# %>
-# ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('ipv4-acl','').split(',')[2*i]} ${wildchard_mask} Tunnel${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('bgp-peer-address','UNKNOWN')}
-# % endfor
-# !
-# """
 
 GW_migration_customer_router_templ = """!<% list = cgi_data.get('ipv4-acl','').split(',') %>
 ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 0.0.0.0 0.0.0.0 ${''.join([ str(item.get('ipsec_int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('pe-ip-address','UNKNOWN')} 
@@ -1268,7 +1212,170 @@ def generate_migration_OLD_PE_router_shut_config(dict_data = None):
 
     return config_string     
         
-################################################################################
+###############################################################################
+
+
+
+
+###############################################################################
+### UNDO PREPARATION PE
+###############################################################################
+ 
+undo_preparation_PE_undo_templ = """!
+no vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')}
+!
+no ipv4 access-list IPXT.${cgi_data.get('customer_name','UNKNOWN').replace('.','@')}-IN
+!
+no prefix-set IPXT.${cgi_data.get('customer_name','UNKNOWN')}-IN
+!
+no policy-map IPXT.${cgi_data.get('customer_name','UNKNOWN')}-IN
+!
+no policy-map IPXT.${cgi_data.get('customer_name','UNKNOWN')}-OUT
+!
+no interface ${''.join([ str(item.get('int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')}
+!
+no route-policy IPXT.${cgi_data.get('customer_name','UNKNOWN')}-IN
+!
+router bgp 2300
+no neighbor-group IPXT.${cgi_data.get('customer_name','UNKNOWN')}
+no vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')}
+!
+router static
+no vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')}
+!
+!
+"""
+
+def generate_undo_preparation_PE_config(dict_data = None):
+    config_string = str()
+
+    mytemplate = Template(undo_preparation_PE_undo_templ, strict_undefined=True)
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
+
+    return config_string     
+        
+###############################################################################
+
+
+
+###############################################################################
+### UNDO PREPARATION GW
+###############################################################################
+
+undo_preparation_GW_undo_templ = """!
+no interface ${''.join([ str(item.get('ipsec_int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')}
+!
+"""
+
+def generate_undo_preparation_GW_config(dict_data = None):
+    config_string = str()
+
+    mytemplate = Template(undo_preparation_GW_undo_templ, strict_undefined=True)
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
+
+    return config_string     
+        
+###############################################################################
+
+
+###############################################################################
+### UNDO MIGRATION PE
+###############################################################################
+
+undo_migration_PE_undo_templ = """!
+router bgp 2300
+neighbor-group ${cgi_data.get('vpn','UNKNOWN')}
+route-policy DENY-ALL in
+route-policy DENY-ALL out
+!
+!
+"""
+
+def generate_undo_migration_PE_config(dict_data = None):
+    config_string = str()
+
+    mytemplate = Template(undo_migration_PE_undo_templ, strict_undefined=True)
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
+
+    return config_string     
+        
+###############################################################################
+
+
+###############################################################################
+### UNDO MIGRATION GW
+###############################################################################
+
+undo_migration_GW_undo_templ = """
+!
+router bgp 2300
+address-family ipv4 vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
+neighbor ${''.join([ str(item.get('peer_address','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} shutdown
+neighbor ${''.join([ str(item.get('gw_peer_address_ibgp','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} shutdown
+!
+interface ${''.join([ str(item.get('ipsec_int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')}
+no shutdown
+!
+!
+!<% list = cgi_data.get('ipv4-acl','').split(',') %>
+ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 0.0.0.0 0.0.0.0 ${''.join([ str(item.get('ipsec_int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('pe-ip-address','UNKNOWN')} 
+ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} ${''.join([ str(item.get('peer_address','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} 255.255.255.255 ${''.join([ str(item.get('ipsec_int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('pe-ip-address','UNKNOWN')} 
+% for i in range(int(len(list)/2)):
+<%
+input_mask = cgi_data.get('ipv4-acl','').split(',')[2*i+1]
+if input_mask: wildchard_mask = '255.255.255.255'
+elif input_mask == '': wildchard_mask = '255.255.255.255'
+elif '.' in input_mask:
+  wildchard_list = []
+  wildchard_mask = ''
+  for mask_part in input_mask.split('.'):    
+    try: wildchard_list.append(str(int(mask_part)^255))
+    except: wildchard_list.append('255')
+  for i_order in range(4):
+    try: wildchard_mask += wildchard_list[i_order]
+    except: wildchard_mask += '255'
+    if i_order<3: wildchard_mask += '.'  
+#wildchard_mask = '.'.join([ str(int(mask_item)^255) for mask_item in cgi_data.get('ipv4-acl','').split(',')[2*i+1].split('.') if '.' in cgi_data.get('ipv4-acl','').split(',')[2*i+1] and not "" in mask_item ])}
+%>
+no ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('ipv4-acl','').split(',')[2*i]} ${wildchard_mask} Tunnel${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('bgp-peer-address','UNKNOWN')}
+% endfor
+!
+"""
+
+def generate_undo_migration_GW_config(dict_data = None):
+    config_string = str()
+
+    mytemplate = Template(undo_migration_GW_undo_templ, strict_undefined=True)
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
+
+    return config_string     
+        
+###############################################################################
+
+
+###############################################################################
+### UNDO MIGRATION GW
+###############################################################################
+
+undo_migration_OLD_PE_undo_templ = """!
+interface ${''.join([ str(item.get('old_pe_interface','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}
+no shutdown
+!
+bgp 2300
+ipv4-family vpn-instance ${''.join([ str(item.get('vrf_name','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}
+undo peer ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} ignore
+!
+"""
+
+def generate_undo_migration_OLD_PE_config(dict_data = None):
+    config_string = str()
+
+    mytemplate = Template(undo_migration_OLD_PE_undo_templ, strict_undefined=True)
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
+
+    return config_string     
+        
+###############################################################################
 
 
 def send_me_email(subject = str(), email_body = str(), file_name = None, attachments = None, \
@@ -1414,6 +1521,13 @@ if data:
     pe_migration_config_text = generate_migration_PE_router_config(data)
 
     old_pe_migration_config_text_shut = generate_migration_OLD_PE_router_shut_config(data)
+
+    
+    undo_pe_preparation_config   = generate_undo_preparation_PE_config(data)
+    undo_gw_preparation_config   = generate_undo_preparation_GW_config(data)   
+    undo_pe_migration_config     = generate_undo_migration_PE_config(data)
+    undo_gw_migration_config     = generate_undo_migration_GW_config(data)
+    undo_old_pe_migration_config = generate_undo_migration_OLD_PE_config(data)
     
     CGI_CLI.uprint('\nGW ROUTER (%s) VERIFICATION-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()), tag = 'h1')
     CGI_CLI.uprint(gw_verification_config_text)    
@@ -1432,6 +1546,18 @@ if data:
 
     CGI_CLI.uprint('\nOLD PE ROUTER (%s) MIGRATION-CONFIG SHUT: \n' %(data['cgi_data'].get('huawei-router','UNKNOWN').upper()), tag = 'h1')
     CGI_CLI.uprint(old_pe_migration_config_text_shut)  
+
+    CGI_CLI.uprint('\nPE ROUTER (%s) ROLLBACK-PREPARATION-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()), tag = 'h1')
+    CGI_CLI.uprint(undo_pe_preparation_config)
+    CGI_CLI.uprint('\nGW ROUTER (%s) ROLLBACK-PREPARATION-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()), tag = 'h1')    
+    CGI_CLI.uprint(undo_gw_preparation_config)
+    CGI_CLI.uprint('\nPE ROUTER (%s) ROLLBACK-MIGRATION-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()), tag = 'h1')    
+    CGI_CLI.uprint(undo_pe_migration_config)
+    CGI_CLI.uprint('\nGW ROUTER (%s) ROLLBACK-MIGRATION-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()), tag = 'h1')    
+    CGI_CLI.uprint(undo_gw_migration_config)     
+    CGI_CLI.uprint('\nOLD PE ROUTER (%s) ROLLBACK-MIGRATION-CONFIG SHUT: \n' %(data['cgi_data'].get('huawei-router','UNKNOWN').upper()), tag = 'h1')
+    CGI_CLI.uprint(undo_old_pe_migration_config) 
+
      
     # describe ipxt_configurations;
     # +------------------------+--------------+------+-----+---------+----------------+
@@ -1452,6 +1578,14 @@ if data:
     # | pe_migration_done      | varchar(10)  | NO   |     | NULL    |                |
     # | gw_migration_done      | varchar(10)  | NO   |     | NULL    |                |
     # +------------------------+--------------+------+-----+---------+----------------+
+
+ 
+    # | rollback_oldpe_migration     | text         | YES  |     | NULL    |                |
+    # | rollback_gw_migration        | text         | YES  |     | NULL    |                |
+    # | rollback_pe_migration        | text         | YES  |     | NULL    |                |
+    # | rollback_gw_preparation      | text         | YES  |     | NULL    |                |
+    # | rollback_pe_preparation      | text         | YES  |     | NULL    |                | 
+
     
     config_data['session_id'] = data['cgi_data'].get('session_id','UNKNOWN')
     config_data['username'] = CGI_CLI.username
@@ -1472,6 +1606,12 @@ if data:
     config_data['pe_config_migration'] = pe_migration_config_text  
     
     config_data['old_pe_config_migration_shut'] = old_pe_migration_config_text_shut     
+
+    config_data['rollback_pe_preparation'] = undo_pe_preparation_config 
+    config_data['rollback_gw_preparation'] = undo_gw_preparation_config      
+    config_data['rollback_pe_migration'] = undo_pe_migration_config    
+    config_data['rollback_gw_migration'] = undo_gw_migration_config     
+    config_data['rollback_oldpe_migration'] = undo_old_pe_migration_config 
     
     sql_inst.sql_write_table_from_dict('ipxt_configurations', config_data) 
 
@@ -1501,8 +1641,18 @@ if data:
                 configtext += gw_migration_config_text
                 configtext += '\n\nPE ROUTER (%s) MIGRATION-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()) + 60*'-' + '\n'
                 configtext += pe_migration_config_text
-                configtext += '\nOLD PE ROUTER (%s) MIGRATION-CONFIG SHUT: \n' %(data['cgi_data'].get('huawei-router','UNKNOWN').upper()) + 60*'-' + '\n\n'
-                configtext += old_pe_migration_config_text_shut                
+                configtext += '\n\nOLD PE ROUTER (%s) MIGRATION-CONFIG SHUT: \n' %(data['cgi_data'].get('huawei-router','UNKNOWN').upper()) + 60*'-' + '\n\n'
+                configtext += old_pe_migration_config_text_shut
+                configtext += '\n\nPE ROUTER (%s) ROLLBACK-PREPARATION-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()) + 60*'-' + '\n\n'
+                configtext += undo_pe_preparation_config
+                configtext += '\n\nGW ROUTER (%s) ROLLBACK-PREPARATION-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()) + 60*'-' + '\n\n'  
+                configtext += undo_gw_preparation_config
+                configtext += '\n\nPE ROUTER (%s) ROLLBACK-MIGRATION-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()) + 60*'-' + '\n\n'    
+                configtext += undo_pe_migration_config
+                configtext += '\n\nGW ROUTER (%s) ROLLBACK-MIGRATION-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()) + 60*'-' + '\n\n'   
+                configtext += undo_gw_migration_config    
+                configtext += '\n\nOLD PE ROUTER (%s) ROLLBACK-MIGRATION-CONFIG SHUT: \n' %(data['cgi_data'].get('huawei-router','UNKNOWN').upper()) + 60*'-' + '\n\n'
+                CGI_CLI.uprint(undo_old_pe_migration_config)                 
                 fp.write(configtext)
             ### MAKE READABLE for THE OTHERS
             try: dummy = subprocess.check_output('chmod +r %s' % (logfilename), shell=True)
