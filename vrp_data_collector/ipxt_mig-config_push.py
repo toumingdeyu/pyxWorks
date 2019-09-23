@@ -155,8 +155,7 @@ class CGI_CLI(object):
             elif CGI_CLI.args.password: CGI_CLI.password = CGI_CLI.args.password                
         if CGI_CLI.username: CGI_CLI.USERNAME = CGI_CLI.username
         if CGI_CLI.password: CGI_CLI.PASSWORD = CGI_CLI.password
-        if CGI_CLI.cgi_active or 'WIN32' in sys.platform.upper(): bcolors = nocolors
-        CGI_CLI.uprint('USERNAME[%s], PASSWORD[%s]' % (CGI_CLI.USERNAME, 'Yes' if CGI_CLI.PASSWORD else 'No'))        
+        if CGI_CLI.cgi_active or 'WIN32' in sys.platform.upper(): bcolors = nocolors       
         return CGI_CLI.USERNAME, CGI_CLI.PASSWORD
 
     @staticmethod 
@@ -217,6 +216,7 @@ class CGI_CLI(object):
     @staticmethod
     def print_args():
         from platform import python_version
+        CGI_CLI.uprint('USERNAME[%s], PASSWORD[%s]' % (CGI_CLI.USERNAME, 'Yes' if CGI_CLI.PASSWORD else 'No')) 
         print_string = 'python[%s], ' % (str(python_version()))
         print_string += 'file[%s], ' % (sys.argv[0])
         print_string += 'version[%s], ' % (CGI_CLI.VERSION())
@@ -1076,7 +1076,7 @@ if __name__ != "__main__": sys.exit(0)
 ### CGI-BIN READ FORM ############################################
 CGI_CLI()
 USERNAME, PASSWORD = CGI_CLI.init_cgi()
-CGI_CLI.print_args()
+# CGI_CLI.print_args()
 
 rcmd_data1 = {
     'cisco_ios':['show version'],
@@ -1123,11 +1123,7 @@ if CGI_CLI.cgi_active:
     try: data["ipsec_ipxt_table"] = ipsec_ipxt_table_list[0]
     except: data["ipsec_ipxt_table"] = collections.OrderedDict()
     
-    CGI_CLI.uprint(data, jsonprint = True, color = 'blue') 
-
-    #CGI_CLI.uprint(CGI_CLI.data, tag = 'p', color = 'red', name = True, jsonprint = True)    
-    #CGI_CLI.uprint('SQL_READ (CONFIG):',tag = 'h1')    
-    #CGI_CLI.uprint(sql_inst.sql_read_last_record_to_dict(from_string = 'ipxt_configurations'), jsonprint = True)    
+    # CGI_CLI.uprint(data, jsonprint = True, color = 'blue')    
     
     try: config_data = sql_inst.sql_read_records_to_dict_list(from_string = 'ipxt_configurations', \
         where_string = "session_id = '%s'" % (CGI_CLI.data.get('session_id','')))[0]
@@ -1177,8 +1173,8 @@ if CGI_CLI.cgi_active:
         ]}
 
 
-    CGI_CLI.uprint(PE_precheck, name = True, jsonprint = True)
-    CGI_CLI.uprint(checklist_PE_precheck, name = True, jsonprint = True)
+    # CGI_CLI.uprint(PE_precheck, name = True, jsonprint = True)
+    # CGI_CLI.uprint(checklist_PE_precheck, name = True, jsonprint = True)
         
     device, conf = str(), None 
     if CGI_CLI.submit_form == 'Submit PE precheck':
@@ -1234,14 +1230,14 @@ if CGI_CLI.cgi_active:
 
         
     CGI_CLI.uprint(str(CGI_CLI.submit_form), tag = 'h1', color = 'blue')
-    CGI_CLI.uprint('PE = %s, GW = %s, OLD_PE = %s'%(new_pe_router,ipsec_gw_router,old_huawei_router), tag = 'h3', color = 'black')     
+    # CGI_CLI.uprint('PE = %s, GW = %s, OLD_PE = %s'%(new_pe_router,ipsec_gw_router,old_huawei_router), tag = 'h3', color = 'black')     
     CGI_CLI.uprint('DEVICE = %s, config_mode(%s)'%(device,str(conf)), tag = 'h1')    
-    CGI_CLI.uprint('CONFIG:\n------------\n\n%s'%(config))
+    # CGI_CLI.uprint('CONFIG:\n------------\n\n%s'%(config))
 
 
     ### WRITE CONFIG TO ROUTER ######################################################
     iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
-    CGI_CLI.uprint('SERVER: %s\n--------------------\n\n' % (iptac_server), tag = 'h1') 
+    # CGI_CLI.uprint('SERVER: %s\n--------------------\n\n' % (iptac_server), tag = 'h1') 
 
     ### TEST_ONLY DELETION FROM CONFIG    
     if iptac_server == 'iptac5' and conf == True: config = config.replace('flow ipv4 monitor ICX sampler ICX ingress','')
@@ -1260,7 +1256,7 @@ if CGI_CLI.cgi_active:
     if device:
         rcmd_outputs = RCMD.connect(device = device, cmd_data = splitted_config, \
             username = CGI_CLI.username, password = CGI_CLI.password, conf = conf)
-        CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'blue')         
+        # CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'blue')         
         RCMD.disconnect()
         
         config_problem = False
