@@ -161,6 +161,8 @@ class CGI_CLI(object):
         if CGI_CLI.username: CGI_CLI.USERNAME = CGI_CLI.username
         if CGI_CLI.password: CGI_CLI.PASSWORD = CGI_CLI.password
         if CGI_CLI.cgi_active or 'WIN32' in sys.platform.upper(): bcolors = nocolors
+        CGI_CLI.remote_addr =  dict(os.environ).get('REMOTE_ADDR','')
+        CGI_CLI.http_user_agent = dict(os.environ).get('HTTP_USER_AGENT','')
         CGI_CLI.uprint('USERNAME[%s], PASSWORD[%s]' % (CGI_CLI.USERNAME, 'Yes' if CGI_CLI.PASSWORD else 'No'))
         CGI_CLI.cgi_save_files()        
         return CGI_CLI.USERNAME, CGI_CLI.PASSWORD
@@ -301,6 +303,8 @@ class CGI_CLI(object):
         print_string = 'python[%s], ' % (str(python_version()))
         print_string += 'file[%s], ' % (sys.argv[0])
         print_string += 'version[%s], ' % (CGI_CLI.VERSION())
+        print_string += 'remote_addr[%s], ' % dict(os.environ).get('REMOTE_ADDR','')
+        print_string += 'browser[%s], ' % dict(os.environ).get('HTTP_USER_AGENT','')
         if CGI_CLI.cgi_active:
             try: print_string += 'CGI_args[%s] = %s' % (str(CGI_CLI.submit_form),json.dumps(CGI_CLI.data)) 
             except: pass                 
