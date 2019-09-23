@@ -121,7 +121,7 @@ class CGI_CLI(object):
         CGI_CLI.data, CGI_CLI.submit_form, CGI_CLI.username, CGI_CLI.password = \
             collections.OrderedDict(), '', '', ''   
         try: form = cgi.FieldStorage()
-        except: 
+        except:      
             form = collections.OrderedDict()
             CGI_CLI.cgi_parameters_error = True
         for key in form.keys():
@@ -210,9 +210,10 @@ class CGI_CLI(object):
             if CGI_CLI.cgi_active:
                 if tag and 'h' in tag: print('<%s%s>'%(tag,' style="color:%s;"'%(color) if color else str()))
                 if color or tag and 'p' in tag: tag = 'p'; print('<p%s>'%(' style="color:%s;"'%(color) if color else str()))
-                if isinstance(print_text, six.string_types): 
+                if isinstance(print_text, six.string_types):
                     print_text = str(print_text.replace('&','&amp;').replace('<','&lt;'). \
-                        replace('>','&gt;').replace('\n','<br/>').replace(' ','&nbsp;')) 
+                        replace('>','&gt;').replace(' ','&nbsp;').replace('"','&quot;').replace("'",'&apos;').\
+                        replace('\n','<br/>'))
             print(print_name + print_text)
             del print_text
             if CGI_CLI.cgi_active: 
