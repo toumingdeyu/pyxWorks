@@ -1013,6 +1013,58 @@ class sql_interface():
     # def dict_deep_get(dictionary, *keys):
     #     return reduce(lambda d, key: d.get(key, None) if isinstance(d, (dict,collections.OrderedDict) else None, keys, dictionary)
 
+
+def do_precheck(rcmd_outputs,checklist,cmd_list):
+    """
+    prechech fails if:
+    contains: string or list of strings(items and)
+    or
+    not_in: not_string or not_list of strings(items and)
+    """
+    precheck_problem, i = False, 0
+    for output in rcmd_outputs:
+        try:
+            if isinstance(checklist[i], (dict,collections.OrderedDict)):
+                CGI_CLI.uprint('CMD: ' + cmd_list[i] + '        CHECK IF:' + str(checklist[i]), color = 'blue')
+                CGI_CLI.uprint(output, color = 'black')
+                if checklist[i].get('contains'):
+                    contains_value = checklist[i].get('contains')
+                    if isinstance(contains_value, (list,tuple)):
+                        for item in contains_value:
+                            sub_check_ok = True
+                            if item in output.replace(str(cmd_list[i]),''): pass 
+                            else:
+                                sub_check_ok = False
+                        if sub_check_ok: CGI_CLI.uprint('CHECK OK.\n',color = 'green')
+                        else:
+                            precheck_problem = True                            
+                            CGI_CLI.uprint('CHECK FAILED.\n', color = 'red')                                         
+                    if isinstance(contains_value, six.string_types): 
+                        if checklist[i].get('contains') in output.replace(str(cmd_list[i]),''): CGI_CLI.uprint('CHECK OK.\n',color = 'green')
+                        else:
+                            precheck_problem = True                            
+                            CGI_CLI.uprint('CHECK FAILED.\n', color = 'red')                           
+                if checklist[i].get('not_in'):
+                    not_in_value = checklist[i].get('not_in')                            
+                    if isinstance(not_in_value, (list,tuple)):
+                        for item in not_in_value:
+                            sub_check_ok = True
+                            if not item in output.replace(str(cmd_list[i]),''): pass 
+                            else:
+                                sub_check_ok = False
+                        if sub_check_ok: CGI_CLI.uprint('CHECK OK.\n',color = 'green')
+                        else:
+                            precheck_problem = True                            
+                            CGI_CLI.uprint('CHECK FAILED.\n', color = 'red')                                                        
+                    if isinstance(not_in_value, six.string_types): 
+                        if not checklist[i].get('not_in') in output.replace(str(cmd_list[i]),''): CGI_CLI.uprint('CHECK OK.\n',color = 'green')
+                        else: 
+                            precheck_problem = True 
+                            CGI_CLI.uprint('CHECK FAILED.\n', color = 'red')
+        except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']')
+        i += 1
+    return precheck_problem
+
             
 ##############################################################################
 #
@@ -1119,7 +1171,7 @@ if CGI_CLI.cgi_active:
         {'contains':'1) ClassMap: SILVER    Type: silver'},
         {'contains':'route-policy %s-IN' % (data['ipxt_data_collector'].get('vrf_name','UNKNOWN'))},
         {'not_in':'%s' % (data['ipxt_data_collector'].get('vrf_name','UNKNOWN'))},
-        {'contains':'route-policy DENY-ALL'},
+        {'contains':['route-policy DENY-ALL','route-policy DENY-ALL in','route-policy DENY-ALL out']},
         {'contains':'route-policy NO-EXPORT-INTERCO'},
         {'contains':'No routes in this topology'}
         ]}
@@ -1184,7 +1236,7 @@ if CGI_CLI.cgi_active:
         CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'blue')         
         RCMD.disconnect()
         
-        config_problem, precheck_problem = False, False
+        config_problem = False
         if conf:
             for rcms_output in rcmd_outputs: 
                 if 'INVALID INPUT' in rcms_output.upper() or 'INCOMPLETE COMMAND' in rcms_output.upper():
@@ -1198,27 +1250,11 @@ if CGI_CLI.cgi_active:
                 else: CGI_CLI.uprint('CONFIGURATION COMMIT SUCCESSFULL.', tag = 'h1', color = 'green')    
             except: pass
         else:
-            CGI_CLI.uprint('\nPRECHECK:\n------------------\n',tag = 'h1')        
+            CGI_CLI.uprint('\nPRECHECK:\n------------------\n',tag = 'h1')            
             i = 0 
             checklist = checklist_PE_precheck.get('cisco_xr',[])
             cmd_list = PE_precheck.get('cisco_xr',[])             
-            for output in rcmd_outputs:
-                try:
-                    if isinstance(checklist[i], (dict,collections.OrderedDict)):
-                        CGI_CLI.uprint('CHECK IF:' + str(checklist[i]) + ' IN: ' + cmd_list[i], color = 'blue')
-                        CGI_CLI.uprint(output, color = 'black')
-                        if checklist[i].get('contains'):
-                            if checklist[i].get('contains') in output.replace(str(cmd_list[i]),''): CGI_CLI.uprint('CHECK OK.\n',color = 'green')
-                            else:
-                                precheck_problem = True                            
-                                CGI_CLI.uprint('CHECK FAILED.\n', color = 'red')                           
-                        elif checklist[i].get('not_in'):
-                            if not checklist[i].get('not_in') in output.replace(str(cmd_list[i]),''): CGI_CLI.uprint('CHECK OK.\n',color = 'green')
-                            else: 
-                                precheck_problem = True 
-                                CGI_CLI.uprint('CHECK FAILED.\n', color = 'red')
-                except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']')
-                i += 1
+            precheck_problem = do_precheck(rcmd_outputs,checklist,cmd_list)
             if precheck_problem:
                 CGI_CLI.uprint('CONFIGURATION PRECHECK FAILED!', tag = 'h1', color = 'red')
                 sys.exit(999)
