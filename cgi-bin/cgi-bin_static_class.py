@@ -301,6 +301,10 @@ class CGI_CLI(object):
         CGI_CLI.uprint(print_string)
         return print_string
 
+    @staticmethod
+    def print_env():        
+        CGI_CLI.uprint(dict(os.environ), name = 'os.environ', jsonprint = True)
+
             
 ##############################################################################
 #
@@ -314,7 +318,7 @@ if __name__ != "__main__": sys.exit(0)
 #CGI_CLI()
 CGI_CLI.init_cgi()
 CGI_CLI.print_args()
-
+CGI_CLI.print_env()
 #print(repr(CGI_CLI))
 #print(str(CGI_CLI))
 
@@ -358,9 +362,3 @@ CGI_CLI.formprint([{'file':'/var/www/cgi-bin/file_1'},{'dropdown':'aa,bb,cc_cc'}
 
 
 
-for item in os.environ:
-    CGI_CLI.uprint(item + ' = ' + str(os.environ.get(item,'')))
-    
-CGI_CLI.uprint(os.environ, name = True, jsonprint = True)
-
-#QUERY_STRING
