@@ -1168,10 +1168,10 @@ if CGI_CLI.cgi_active:
         {'contains':'policy-map IPXT.COS-OUT'},
         {'contains':'policy-map IPXT.COS-IN'},
         {'contains':'1) ClassMap: GOLD    Type: qos'},
-        {'contains':'1) ClassMap: SILVER    Type: silver'},
-        {'contains':'route-policy %s-IN' % (data['ipxt_data_collector'].get('vrf_name','UNKNOWN'))},
+        {'contains':'1) ClassMap: SILVER    Type: qos'},
+        {'not_in':'route-policy %s-IN' % (data['ipxt_data_collector'].get('vrf_name','UNKNOWN'))},
         {'not_in':'%s' % (data['ipxt_data_collector'].get('vrf_name','UNKNOWN'))},
-        {'contains':['route-policy DENY-ALL','route-policy DENY-ALL in','route-policy DENY-ALL out']},
+        {'contains':['route-policy DENY-ALL']},
         {'contains':'route-policy NO-EXPORT-INTERCO'},
         {'contains':'No routes in this topology'}
         ]}
