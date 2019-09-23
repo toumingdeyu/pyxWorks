@@ -1232,7 +1232,7 @@ if CGI_CLI.cgi_active:
     CGI_CLI.uprint(str(CGI_CLI.submit_form), tag = 'h1', color = 'blue')
     # CGI_CLI.uprint('PE = %s, GW = %s, OLD_PE = %s'%(new_pe_router,ipsec_gw_router,old_huawei_router), tag = 'h3', color = 'black')     
     CGI_CLI.uprint('DEVICE = %s, config_mode(%s)'%(device,str(conf)), tag = 'h1')    
-    # CGI_CLI.uprint('CONFIG:\n------------\n\n%s'%(config))
+    CGI_CLI.uprint('CONFIG:\n------------\n\n%s'%(config))
 
 
     ### WRITE CONFIG TO ROUTER ######################################################
@@ -1256,7 +1256,7 @@ if CGI_CLI.cgi_active:
     if device:
         rcmd_outputs = RCMD.connect(device = device, cmd_data = splitted_config, \
             username = CGI_CLI.username, password = CGI_CLI.password, conf = conf)
-        # CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'blue')         
+        CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'blue')         
         RCMD.disconnect()
         
         config_problem = False
