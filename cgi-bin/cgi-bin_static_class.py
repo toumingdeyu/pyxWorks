@@ -119,11 +119,18 @@ class CGI_CLI(object):
         CGI_CLI.START_EPOCH = time.time()
         CGI_CLI.initialized = True 
         CGI_CLI.data, CGI_CLI.submit_form, CGI_CLI.username, CGI_CLI.password = \
-            collections.OrderedDict(), '', '', ''   
-        try: form = cgi.FieldStorage()
-        except:      
+            collections.OrderedDict(), '', '', ''
+        CGI_CLI.query_string = dict(os.environ).get('QUERY_STRING','CLI_MODE')
+        ### WORKARROUND FOR VOID QUERY_STRING CAUSING HTTP500
+        if CGI_CLI.query_string != str():
+            try: form = cgi.FieldStorage()
+            except:      
+                form = collections.OrderedDict()
+                CGI_CLI.cgi_parameters_error = True
+        else:                 
             form = collections.OrderedDict()
-            CGI_CLI.cgi_parameters_error = True
+            CGI_CLI.cgi_active = True
+            CGI_CLI.data = collections.OrderedDict()
         for key in form.keys():
             variable = str(key)
             try: value = str(form.getvalue(variable))
@@ -360,5 +367,6 @@ CGI_CLI.formprint([{'text':'email_address'},'<br/>',{'textcontent':'email_body'}
 
 CGI_CLI.formprint([{'file':'/var/www/cgi-bin/file_1'},{'dropdown':'aa,bb,cc_cc'},{'checkbox':'aa_ss'},{'radio':'iii_ddd'},'<br/>', {'radio':'q q'},'<br/>',{'submit':'YES'},{'submit':'NO'}],submit_button = None, pyfile = None, tag = None, color = None)
 
+#REQUEST_URI,SCRIPT_FILENAME,QUERY_STRING
 
-
+CGI_CLI.uprint(CGI_CLI.query_string)
