@@ -299,14 +299,14 @@ class CGI_CLI(object):
     @staticmethod
     def print_args():
         from platform import python_version
-        print_string = 'python[%s], ' % (str(python_version()))
-        print_string += 'USERNAME[%s], PASSWORD[%s], ' % (CGI_CLI.USERNAME, 'Yes' if CGI_CLI.PASSWORD else 'No')
-        print_string += 'file[%s], ' % (sys.argv[0])
-        print_string += 'version[%s], ' % (CGI_CLI.VERSION())
-        print_string += 'remote_addr[%s], ' % dict(os.environ).get('REMOTE_ADDR','')
-        print_string += 'browser[%s], ' % dict(os.environ).get('HTTP_USER_AGENT','')
+        print_string = 'python[%s]\n' % (str(python_version()))
+        print_string += 'version[%s]\n' % (CGI_CLI.VERSION())
+        print_string += 'file[%s]\n' % (sys.argv[0])
+        print_string += 'USERNAME[%s], PASSWORD[%s]\n' % (CGI_CLI.USERNAME, 'Yes' if CGI_CLI.PASSWORD else 'No')
+        print_string += 'remote_addr[%s]\n' % dict(os.environ).get('REMOTE_ADDR','')
+        print_string += 'browser[%s]\n' % dict(os.environ).get('HTTP_USER_AGENT','')
         if CGI_CLI.cgi_active:
-            try: print_string += 'CGI_args[%s] = %s' % (str(CGI_CLI.submit_form),json.dumps(CGI_CLI.data)) 
+            try: print_string += 'CGI_args[%s] = %s\n' % (str(CGI_CLI.submit_form),str(json.dumps(CGI_CLI.data, indent = 4)))
             except: pass                 
         else: print_string += 'CLI_args = %s' % (str(sys.argv[1:]))
         CGI_CLI.uprint(print_string)
