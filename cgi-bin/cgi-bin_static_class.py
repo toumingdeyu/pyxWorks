@@ -163,7 +163,6 @@ class CGI_CLI(object):
         if CGI_CLI.cgi_active or 'WIN32' in sys.platform.upper(): bcolors = nocolors
         CGI_CLI.remote_addr =  dict(os.environ).get('REMOTE_ADDR','')
         CGI_CLI.http_user_agent = dict(os.environ).get('HTTP_USER_AGENT','')
-        CGI_CLI.uprint('USERNAME[%s], PASSWORD[%s]' % (CGI_CLI.USERNAME, 'Yes' if CGI_CLI.PASSWORD else 'No'))
         CGI_CLI.cgi_save_files()        
         return CGI_CLI.USERNAME, CGI_CLI.PASSWORD
 
@@ -301,6 +300,7 @@ class CGI_CLI(object):
     def print_args():
         from platform import python_version
         print_string = 'python[%s], ' % (str(python_version()))
+        print_string += 'USERNAME[%s], PASSWORD[%s], ' % (CGI_CLI.USERNAME, 'Yes' if CGI_CLI.PASSWORD else 'No')
         print_string += 'file[%s], ' % (sys.argv[0])
         print_string += 'version[%s], ' % (CGI_CLI.VERSION())
         print_string += 'remote_addr[%s], ' % dict(os.environ).get('REMOTE_ADDR','')
@@ -374,3 +374,8 @@ CGI_CLI.formprint([{'file':'/var/www/cgi-bin/file_1'},{'dropdown':'aa,bb,cc_cc'}
 #REQUEST_URI,SCRIPT_FILENAME,QUERY_STRING
 
 CGI_CLI.uprint(CGI_CLI.query_string)
+
+
+
+print('Status: 403 Forbidden\r\n\r\n')
+
