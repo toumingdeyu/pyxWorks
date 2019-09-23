@@ -355,3 +355,12 @@ CGI_CLI.formprint([{'text':'email_address'},'<br/>',{'textcontent':'email_body'}
 
 
 CGI_CLI.formprint([{'file':'/var/www/cgi-bin/file_1'},{'dropdown':'aa,bb,cc_cc'},{'checkbox':'aa_ss'},{'radio':'iii_ddd'},'<br/>', {'radio':'q q'},'<br/>',{'submit':'YES'},{'submit':'NO'}],submit_button = None, pyfile = None, tag = None, color = None)
+
+
+
+for item in os.environ:
+    CGI_CLI.uprint(item + ' = ' + str(os.environ.get(item,'')))
+    
+CGI_CLI.uprint(os.environ, name = True, jsonprint = True)
+
+#QUERY_STRING
