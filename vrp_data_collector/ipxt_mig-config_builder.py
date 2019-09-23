@@ -1652,7 +1652,7 @@ if data:
                 configtext += '\n\nGW ROUTER (%s) ROLLBACK-MIGRATION-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()) + 60*'-' + '\n\n'   
                 configtext += undo_gw_migration_config    
                 configtext += '\n\nOLD PE ROUTER (%s) ROLLBACK-MIGRATION-CONFIG SHUT: \n' %(data['cgi_data'].get('huawei-router','UNKNOWN').upper()) + 60*'-' + '\n\n'
-                CGI_CLI.uprint(undo_old_pe_migration_config)                 
+                configtext += undo_old_pe_migration_config                 
                 fp.write(configtext)
             ### MAKE READABLE for THE OTHERS
             try: dummy = subprocess.check_output('chmod +r %s' % (logfilename), shell=True)
