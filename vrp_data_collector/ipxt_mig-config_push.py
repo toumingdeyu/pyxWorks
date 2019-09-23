@@ -1204,7 +1204,34 @@ if CGI_CLI.cgi_active:
     elif CGI_CLI.submit_form == 'Submit OLD PE shutdown': 
         device = old_huawei_router
         config = config_data.get("old_pe_config_migration_shut",str())
-        conf = True
+        conf = True        
+    elif CGI_CLI.submit_form == 'Rollback GW preparation':
+        device = ipsec_gw_router
+        config = config_data.get("rollback_gw_preparation",str())
+        conf = True     
+    elif CGI_CLI.submit_form == 'Rollback PE preparation':    
+        device = new_pe_router
+        config = config_data.get("rollback_pe_preparation",str())
+        conf = True 
+    elif CGI_CLI.submit_form == 'Rollback GW migration':
+        device = ipsec_gw_router
+        config = config_data.get("rollback_gw_migration",str())
+        conf = True     
+    elif CGI_CLI.submit_form == 'Rollback PE migration':    
+        device = new_pe_router
+        config = config_data.get("rollback_pe_migration",str())
+        conf = True 
+    elif CGI_CLI.submit_form == 'Rollback OLD PE shutdown': 
+        device = old_huawei_router
+        config = config_data.get("rollback_oldpe_migration",str())
+        conf = True           
+
+    # | rollback_oldpe_migration     | text         | YES  |     | NULL    |                |
+    # | rollback_gw_migration        | text         | YES  |     | NULL    |                |
+    # | rollback_pe_migration        | text         | YES  |     | NULL    |                |
+    # | rollback_gw_preparation      | text         | YES  |     | NULL    |                |
+    # | rollback_pe_preparation      | text         | YES  |     | NULL    |                | 
+
         
     CGI_CLI.uprint(str(CGI_CLI.submit_form), tag = 'h1', color = 'blue')
     CGI_CLI.uprint('PE = %s, GW = %s, OLD_PE = %s'%(new_pe_router,ipsec_gw_router,old_huawei_router), tag = 'h3', color = 'black')     
@@ -1217,7 +1244,7 @@ if CGI_CLI.cgi_active:
     CGI_CLI.uprint('SERVER: %s\n--------------------\n\n' % (iptac_server), tag = 'h1') 
 
     ### TEST_ONLY DELETION FROM CONFIG    
-    #if iptac_server == 'iptac5': config = config.replace('flow ipv4 monitor ICX sampler ICX ingress','')
+    if iptac_server == 'iptac5' and conf == True: config = config.replace('flow ipv4 monitor ICX sampler ICX ingress','')
 
     try: splitted_config = str(config.decode("utf-8")).splitlines()
     except: splitted_config = []
