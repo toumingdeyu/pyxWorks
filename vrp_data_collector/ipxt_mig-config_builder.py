@@ -1101,27 +1101,21 @@ end-policy
 """
 
 PE_preparation_bgp_config_templ = """!
-router bgp 2300
+router bgp 2300<% try: is_number = int(cgi_data.get('bgp-hop-count',''))
+except: is_number = None %>
  neighbor-group ${cgi_data.get('vpn','UNKNOWN')}
   remote-as ${cgi_data.get('bgp-customer-as','UNKNOWN')}
 % if cgi_data.get('bgp-md5','') and cgi_data.get('bgp-md5','UNKNOWN') != 'dummy_value': 
   password clear ${cgi_data.get('bgp-md5','')}
-% endif
-<%
-try: is_number = int(cgi_data.get('bgp-hop-count',''))
-except: is_number = None
-%>   
+% endif   
 % if is_number and cgi_data.get('bgp-hop-count','') and cgi_data.get('bgp-hop-count','') != 'dummy_value': 
   ebgp-multihop ${cgi_data.get('bgp-hop-count','UNKNOWN')}
 % endif  
   advertisement-interval 0
   address-family ipv4 unicast
    send-community-ebgp
-   route-policy DENY-ALL in
-<%
-try: is_number = int(cgi_data.get('bgp-hop-count',''))
-except: is_number = None
-%>    
+   route-policy DENY-ALL in<% try: is_number = ''.join([ str(item.get('pref_limit','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])
+except: is_number = None %>    
 % if is_number and cgi_data.get('bgp-max-pref','') and cgi_data.get('bgp-max-pref','') != 'dummy_value': 
   maximum-prefix ${cgi_data.get('bgp-max-pref','')} 90
 % endif    
