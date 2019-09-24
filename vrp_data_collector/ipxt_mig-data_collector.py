@@ -203,8 +203,6 @@ CMD_VRP = [
 #     },
 #     {'exec':'try: bgp_data["Advertised_total_routes"] = glob_vars.get("VPN_PEER_TEXT","").split("Advertised total routes:")[1].splitlines()[0].strip()\nexcept: pass',
 #     },
-#     {'exec':'try: bgp_data["Maximum_allowed_route_limit"] = glob_vars.get("VPN_PEER_TEXT","").split("Maximum allowed route limit:")[1].splitlines()[0].strip()\nexcept: pass',
-#     },
     {'exec':'try: bgp_data["Import_route_policy_is"] = glob_vars.get("VPN_PEER_TEXT","").split("Import route policy is:")[1].splitlines()[0].strip()\nexcept: pass',
     },    
     {'if':'bgp_data.get("Import_route_policy_is","")',
@@ -254,7 +252,8 @@ CMD_VRP = [
 #    },
     {'exec':'bgp_data["peer_as"] = None'},
     {'exec':'bgp_data["peer_address"] = None'},
-
+    {'exec':'try: bgp_data["pref_limit"] = glob_vars.get("VPN_PEER_TEXT","").split("Maximum allowed route limit:")[1].splitlines()[0].strip()\nexcept: pass',
+    },
     {'exec':'try: bgp_data["contract_band_width"] = glob_vars.get("VPN_IF_TEXT","").split("bandwidth")[1].splitlines()[0].strip() \
            \nexcept: bgp_data["contract_band_width"] = None',
     },
