@@ -143,7 +143,7 @@ class CGI_CLI(object):
         if CGI_CLI.submit_form or len(CGI_CLI.data)>0: CGI_CLI.cgi_active = True
         if CGI_CLI.cgi_active:
             if not 'cgitb' in sys.modules: import cgitb; cgitb.enable()        
-            print("Content-type:text/html\n\n")
+            print("Content-type:text/html\r\n\r\n")
             print("<html><head><title>%s</title></head><body>" % 
                 (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit'))
         if not 'atexit' in sys.modules: import atexit; atexit.register(CGI_CLI.__cleanup__)
