@@ -918,6 +918,7 @@ GW_migration_customer_router_templ = """!<% list = cgi_data.get('ipv4-acl','').s
 ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 0.0.0.0 0.0.0.0 ${''.join([ str(item.get('ipsec_int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('pe-ip-address','UNKNOWN')} 
 % for i in range(int(len(list)/2)):
 <%
+avoid_address = ''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])
 input_mask = cgi_data.get('ipv4-acl','').split(',')[2*i+1]
 if input_mask: wildchard_mask = '255.255.255.255'
 elif input_mask == '': wildchard_mask = '255.255.255.255'
@@ -933,7 +934,9 @@ elif '.' in input_mask:
     if i_order<3: wildchard_mask += '.'  
 #wildchard_mask = '.'.join([ str(int(mask_item)^255) for mask_item in cgi_data.get('ipv4-acl','').split(',')[2*i+1].split('.') if '.' in cgi_data.get('ipv4-acl','').split(',')[2*i+1] and not "" in mask_item ])}
 %>
+% if avoid_address and avoid_address != cgi_data.get('ipv4-acl','').split(',')[2*i]:
 ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('ipv4-acl','').split(',')[2*i]} ${wildchard_mask} Tunnel${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('bgp-peer-address','UNKNOWN')}
+% endif
 % endfor
 !
 """
