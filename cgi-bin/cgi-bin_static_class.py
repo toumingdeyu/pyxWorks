@@ -115,22 +115,34 @@ class CGI_CLI(object):
         if not 'atexit' in sys.modules: import atexit; atexit.register(CGI_CLI.__cleanup__)
 
     @staticmethod
-    def init_cgi(interaction = None):
+    def init_cgi(interaction = None, os_environ_set = None):
+        """ os_environ_set - (=None/False) php/ajax bug workarround, 
+                             (=True) - http500 cgi.FieldStorage() workarround
+        """
         CGI_CLI.START_EPOCH = time.time()
         CGI_CLI.initialized = True 
         CGI_CLI.data, CGI_CLI.submit_form, CGI_CLI.username, CGI_CLI.password = \
             collections.OrderedDict(), '', '', ''
-        CGI_CLI.query_string = dict(os.environ).get('QUERY_STRING','CLI_MODE')
-        ### WORKARROUND FOR VOID QUERY_STRING CAUSING HTTP500
-        if CGI_CLI.query_string != str():
+        if os_environ_set:    
+            # WORKARROUND FOR VOID QUERY_STRING CAUSING HTTP500
+            CGI_CLI.query_string = dict(os.environ).get('QUERY_STRING','CLI_MODE')
+            if CGI_CLI.query_string != str() or \
+                ('?' in dict(os.environ).get('REQUEST_URI',None) and \
+                '=' in dict(os.environ).get('REQUEST_URI',None)):
+                try: form = cgi.FieldStorage()
+                except:      
+                    form = collections.OrderedDict()
+                    CGI_CLI.cgi_parameters_error = True
+            else:                 
+                form = collections.OrderedDict()
+                CGI_CLI.cgi_active = True
+                CGI_CLI.data = collections.OrderedDict()
+        else:        
+            ## PROBLEM - AJAX DOES NOT FILL VARIABLES QUERY_STRING, REQUEST_URI   
             try: form = cgi.FieldStorage()
             except:      
                 form = collections.OrderedDict()
-                CGI_CLI.cgi_parameters_error = True
-        else:                 
-            form = collections.OrderedDict()
-            CGI_CLI.cgi_active = True
-            CGI_CLI.data = collections.OrderedDict()
+                CGI_CLI.cgi_parameters_error = True             
         for key in form.keys():
             variable = str(key)
             try: value = str(form.getvalue(variable))
@@ -143,8 +155,10 @@ class CGI_CLI(object):
         if CGI_CLI.submit_form or len(CGI_CLI.data)>0: CGI_CLI.cgi_active = True
         if CGI_CLI.cgi_active:
             if not 'cgitb' in sys.modules: import cgitb; cgitb.enable()        
-            print("Content-type:text/html\r\n\r\n")
-            print("<html><head><title>%s</title></head><body>" % 
+            print("Content-type:text/html")
+            #print("Status: %s %s\r\n" % ('222',"afafff"))
+            #print("Retry-After: 300")
+            print("\r\n\r\n<html><head><title>%s</title></head><body>" % 
                 (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit'))
         if not 'atexit' in sys.modules: import atexit; atexit.register(CGI_CLI.__cleanup__)
         ### GAIN USERNAME AND PASSWORD FROM CGI/CLI
@@ -182,24 +196,9 @@ class CGI_CLI(object):
                                     file.write(CGI_CLI.data.get('file[%s]'%(filename)))
                                     CGI_CLI.uprint('The file "' + use_filename + '" was uploaded.')
                             except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']')   
-   
-    @staticmethod 
-    def oprint(text, tag = None):
-        if CGI_CLI.debug: 
-            if CGI_CLI.cgi_active:
-                if tag and 'h' in tag: print('<%s>'%(tag))
-                if tag and 'p' in tag: print('<p>')
-                if isinstance(text, six.string_types): 
-                    text = str(text.replace('\n','<br/>').replace(' ','&nbsp;'))
-                else: text = str(text)   
-            print(text)
-            if CGI_CLI.cgi_active: 
-                print('<br/>');
-                if tag and 'p' in tag: print('</p>')
-                if tag and 'h' in tag: print('</%s>'%(tag))
 
     @staticmethod 
-    def uprint(text, tag = None, color = None, name = None, jsonprint = None):
+    def uprint(text, tag = None, tag_id = None, color = None, name = None, jsonprint = None):
         """NOTE: name parameter could be True or string."""
         print_text, print_name = copy.deepcopy(text), str()
         if CGI_CLI.debug:
@@ -216,8 +215,9 @@ class CGI_CLI(object):
             
             print_text = str(print_text)
             if CGI_CLI.cgi_active:
-                if tag and 'h' in tag: print('<%s%s>'%(tag,' style="color:%s;"'%(color) if color else str()))
-                if color or tag and 'p' in tag: tag = 'p'; print('<p%s>'%(' style="color:%s;"'%(color) if color else str()))
+                ### WORKARROUND FOR COLORING OF SIMPLE TEXT
+                if color and not tag: tag = 'p'; 
+                if tag: print('<%s%s%s>'%(tag,' id="%s"'%(tag_id) if tag_id else str(),' style="color:%s;"'%(color) if color else 'black'))
                 if isinstance(print_text, six.string_types):
                     print_text = str(print_text.replace('&','&amp;').replace('<','&lt;'). \
                         replace('>','&gt;').replace(' ','&nbsp;').replace('"','&quot;').replace("'",'&apos;').\
@@ -225,9 +225,8 @@ class CGI_CLI(object):
             print(print_name + print_text)
             del print_text
             if CGI_CLI.cgi_active: 
-                print('<br/>');
-                if tag and 'p' in tag: print('</p>')
-                if tag and 'h' in tag: print('</%s>'%(tag))
+                if tag: print('</%s>'%(tag))
+                else: print('<br/>');
 
     @staticmethod 
     def formprint(form_data = None, submit_button = None, pyfile = None, tag = None, color = None):
@@ -316,6 +315,8 @@ class CGI_CLI(object):
     def print_env():        
         CGI_CLI.uprint(dict(os.environ), name = 'os.environ', jsonprint = True)
 
+
+
             
 ##############################################################################
 #
@@ -373,9 +374,9 @@ CGI_CLI.formprint([{'file':'/var/www/cgi-bin/file_1'},{'dropdown':'aa,bb,cc_cc'}
 
 #REQUEST_URI,SCRIPT_FILENAME,QUERY_STRING
 
-CGI_CLI.uprint(CGI_CLI.query_string)
+#CGI_CLI.uprint(CGI_CLI.query_string)
 
 
 
-print('Status: 403 Forbidden\r\n\r\n')
+#print('Status: 403 Forbidden\r\n\r\n')
 
