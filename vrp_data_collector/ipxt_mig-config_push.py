@@ -108,8 +108,10 @@ class CGI_CLI(object):
         if CGI_CLI.submit_form or len(CGI_CLI.data)>0: CGI_CLI.cgi_active = True
         if CGI_CLI.cgi_active:
             if not 'cgitb' in sys.modules: import cgitb; cgitb.enable()        
-            print("Content-type:text/html\r\n\r\n")
-            print("<html><head><title>%s</title></head><body>" % 
+            print("Content-type:text/html")
+            #print("Status: %s %s\r\n" % ('222',"afafff"))
+            #print("Retry-After: 300")
+            print("\r\n\r\n<html><head><title>%s</title></head><body>" % 
                 (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit'))
         if not 'atexit' in sys.modules: import atexit; atexit.register(CGI_CLI.__cleanup__)
         ### GAIN USERNAME AND PASSWORD FROM CGI/CLI
@@ -1116,7 +1118,6 @@ if __name__ != "__main__": sys.exit(0)
 ### CGI-BIN READ FORM ############################################
 CGI_CLI()
 USERNAME, PASSWORD = CGI_CLI.init_cgi()
-# CGI_CLI.print_args()
 
 rcmd_data1 = {
     'cisco_ios':['show version'],
@@ -1161,14 +1162,11 @@ if CGI_CLI.cgi_active:
 
     ipsec_ipxt_table_list = sql_inst.sql_read_records_to_dict_list(from_string = 'ipsec_ipxt_table', where_string = "ipsec_rtr_name = '%s'" % (ipsec_gw_router))
     try: data["ipsec_ipxt_table"] = ipsec_ipxt_table_list[0]
-    except: data["ipsec_ipxt_table"] = collections.OrderedDict()
-    
-    # CGI_CLI.uprint(data, jsonprint = True, color = 'blue')    
+    except: data["ipsec_ipxt_table"] = collections.OrderedDict()   
     
     try: config_data = sql_inst.sql_read_records_to_dict_list(from_string = 'ipxt_configurations', \
         where_string = "session_id = '%s'" % (CGI_CLI.data.get('session_id','')))[0]
-    except: config_data = collections.OrderedDict()
-    #CGI_CLI.uprint(config_data, jsonprint = True)    
+    except: config_data = collections.OrderedDict()   
 
     PE_precheck = {'cisco_xr':[\
         'show access-list %s-IN' % (data['ipxt_data_collector'].get('vrf_name','UNKNOWN')),
@@ -1211,10 +1209,6 @@ if CGI_CLI.cgi_active:
         {'contains':'route-policy NO-EXPORT-INTERCO'},
         {'contains':'No routes in this topology'}
         ]}
-
-
-    # CGI_CLI.uprint(PE_precheck, name = True, jsonprint = True)
-    # CGI_CLI.uprint(checklist_PE_precheck, name = True, jsonprint = True)
         
     device, conf = str(), None 
     if CGI_CLI.submit_form == 'Submit PE precheck':
@@ -1262,22 +1256,20 @@ if CGI_CLI.cgi_active:
         config = config_data.get("rollback_oldpe_migration",str())
         conf = True           
 
-    # | rollback_oldpe_migration     | text         | YES  |     | NULL    |                |
-    # | rollback_gw_migration        | text         | YES  |     | NULL    |                |
-    # | rollback_pe_migration        | text         | YES  |     | NULL    |                |
-    # | rollback_gw_preparation      | text         | YES  |     | NULL    |                |
-    # | rollback_pe_preparation      | text         | YES  |     | NULL    |                | 
-
-        
-    CGI_CLI.uprint(str(CGI_CLI.submit_form), tag = 'h1', color = 'blue')
-    # CGI_CLI.uprint('PE = %s, GW = %s, OLD_PE = %s'%(new_pe_router,ipsec_gw_router,old_huawei_router), tag = 'h3', color = 'black')     
-    CGI_CLI.uprint('DEVICE = %s, config_mode(%s)'%(device,str(conf)), tag = 'h1')    
-    CGI_CLI.uprint('CONFIG:\n------------\n\n%s'%(config))
-
 
     ### WRITE CONFIG TO ROUTER ######################################################
     iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
-    # CGI_CLI.uprint('SERVER: %s\n--------------------\n\n' % (iptac_server), tag = 'h1') 
+
+    CGI_CLI.print_args()
+    CGI_CLI.uprint(data, jsonprint = True, color = 'blue')
+    CGI_CLI.uprint(config_data, jsonprint = True)     
+    # CGI_CLI.uprint(PE_precheck, name = True, jsonprint = True)
+    # CGI_CLI.uprint(checklist_PE_precheck, name = True, jsonprint = True)
+    CGI_CLI.uprint(str(CGI_CLI.submit_form), tag = 'h1', color = 'blue')
+    CGI_CLI.uprint('PE = %s, GW = %s, OLD_PE = %s'%(new_pe_router,ipsec_gw_router,old_huawei_router), tag = 'h3', color = 'black')     
+    CGI_CLI.uprint('DEVICE = %s, config_mode(%s) , SERVER = %s'%(device,str(conf),str(iptac_server)), tag = 'h1')    
+    CGI_CLI.uprint('CONFIG:\n------------\n\n%s'%(config))
+
 
     ### TEST_ONLY DELETION FROM CONFIG    
     if iptac_server == 'iptac5' and conf == True: config = config.replace('flow ipv4 monitor ICX sampler ICX ingress','')
