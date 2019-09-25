@@ -1233,6 +1233,16 @@ if CGI_CLI.cgi_active:
         {'contains':'LOCAL.%s' %(data['ipxt_data_collector'].get('vlan_id','UNKNOWN'))},
         {'contains':"% Invalid input detected at '^' marker."}
         ]}        
+
+    PE_migration_precheck = {'cisco_xr':[\
+        'show bgp neighbor-group %s configuration' % (data['ipxt_data_collector'].get('vrf_name','UNKNOWN')), 
+        'sh running-config | i route-policy PASS-ALL'
+        ]}
+        
+    checklist_PE_migration_precheck = {'cisco_xr':[\
+        {'contains':'neighbor-group %s' % (data['ipxt_data_collector'].get('vrf_name','UNKNOWN'))},
+        {'contains':"route-policy PASS-ALL"}
+        ]} 
         
         
     device, conf ,config, result_str, checklist = str(), None, str(), str(), str()    
@@ -1257,8 +1267,8 @@ if CGI_CLI.cgi_active:
     elif CGI_CLI.submit_form == 'Submit PE migration precheck':
         result_str = 'PE MIGRATION CONFIGURATION PRECHECK'
         device = copy.deepcopy(new_pe_router)
-        #config = '\n'.join(PE_precheck.get('cisco_xr',str()))
-        #checklist =         
+        config = '\n'.join(PE_migration_precheck.get('cisco_xr',str()))
+        checklist = checklist_PE_migration_precheck.get('cisco_xr',[])        
         conf = False
     elif CGI_CLI.submit_form == 'Submit GW migration precheck':
         result_str = 'PE MIGRATION CONFIGURATION PRECHECK'
@@ -1322,14 +1332,15 @@ if CGI_CLI.cgi_active:
         device = copy.deepcopy(old_huawei_router)
         config = config_data.get("rollback_oldpe_migration",str())
         conf = True           
-
-
+    else:
+        CGI_CLI.uprint('SUBMIT BUTTON PROBLEM!',tag = 'h1', color = 'red')
+        
     ### WRITE CONFIG TO ROUTER ######################################################
     iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
 
     #CGI_CLI.print_args()
     #CGI_CLI.print_env()
-    CGI_CLI.uprint(data, jsonprint = True, color = 'blue')
+    #CGI_CLI.uprint(data, jsonprint = True, color = 'blue')
     # CGI_CLI.uprint(config_data, jsonprint = True)     
     # CGI_CLI.uprint(PE_precheck, name = True, jsonprint = True)
     # CGI_CLI.uprint(checklist_PE_precheck, name = True, jsonprint = True)
