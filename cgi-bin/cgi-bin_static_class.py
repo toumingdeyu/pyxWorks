@@ -90,14 +90,14 @@ class CGI_CLI(object):
         parser.add_argument("--getpass",
                             action = "store_true", dest = 'getpass', default = None,
                             help = "insert router password interactively getpass.getpass()")                                                        
-        parser.add_argument("--pe_device",
-                            action = "store", dest = 'pe_device',
-                            default = str(),
-                            help = "target pe router to check")
-        parser.add_argument("--gw_device",
-                            action = "store", dest = 'gw_device',
-                            default = str(),
-                            help = "target gw router to check")                    
+        # parser.add_argument("--pe_device",
+                            # action = "store", dest = 'pe_device',
+                            # default = str(),
+                            # help = "target pe router to check")
+        # parser.add_argument("--gw_device",
+                            # action = "store", dest = 'gw_device',
+                            # default = str(),
+                            # help = "target gw router to check")                    
         args = parser.parse_args()
         return args
     
@@ -161,8 +161,10 @@ class CGI_CLI(object):
             print("\r\n\r\n<html><head><title>%s</title></head><body>" % 
                 (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit'))
         if not 'atexit' in sys.modules: import atexit; atexit.register(CGI_CLI.__cleanup__)
-        ### GAIN USERNAME AND PASSWORD FROM CGI/CLI
-        CGI_CLI.args = CGI_CLI.cli_parser()               
+        CGI_CLI.args = CGI_CLI.cli_parser()
+        if not CGI_CLI.cgi_active:
+            CGI_CLI.data = vars(CGI_CLI.args) 
+        ### GAIN USERNAME AND PASSWORD FROM CGI/CLI       
         try:    CGI_CLI.PASSWORD        = os.environ['NEWR_PASS']
         except: CGI_CLI.PASSWORD        = str()
         try:    CGI_CLI.USERNAME        = os.environ['NEWR_USER']
@@ -299,21 +301,22 @@ class CGI_CLI(object):
     def print_args():
         from platform import python_version
         print_string = 'python[%s]\n' % (str(python_version()))
-        print_string += 'version[%s]\n' % (CGI_CLI.VERSION())
+        print_string += 'version[%s], ' % (CGI_CLI.VERSION())
         print_string += 'file[%s]\n' % (sys.argv[0])
-        print_string += 'USERNAME[%s], PASSWORD[%s]\n' % (CGI_CLI.USERNAME, 'Yes' if CGI_CLI.PASSWORD else 'No')
-        print_string += 'remote_addr[%s]\n' % dict(os.environ).get('REMOTE_ADDR','')
+        print_string += 'CGI_CLI.USERNAME[%s], CGI_CLI.PASSWORD[%s]\n' % (CGI_CLI.USERNAME, 'Yes' if CGI_CLI.PASSWORD else 'No')
+        print_string += 'remote_addr[%s], ' % dict(os.environ).get('REMOTE_ADDR','')
         print_string += 'browser[%s]\n' % dict(os.environ).get('HTTP_USER_AGENT','')
         if CGI_CLI.cgi_active:
-            try: print_string += 'CGI_args[%s] = %s\n' % (str(CGI_CLI.submit_form),str(json.dumps(CGI_CLI.data, indent = 4)))
+            try: print_string += 'CGI_CLI.data[%s] = %s\n' % (str(CGI_CLI.submit_form),str(json.dumps(CGI_CLI.data, indent = 4)))
             except: pass                 
-        else: print_string += 'CLI_args = %s' % (str(sys.argv[1:]))
+        else: print_string += 'CLI_args = %s\nCGI_CLI.data = %s' % (str(sys.argv[1:]), str(json.dumps(CGI_CLI.data,indent = 4)))
         CGI_CLI.uprint(print_string)
         return print_string
 
     @staticmethod
-    def print_env():        
-        CGI_CLI.uprint(dict(os.environ), name = 'os.environ', jsonprint = True)
+    def print_env(jsonprint = None): 
+        if jsonprint: CGI_CLI.uprint(dict(os.environ), name = 'os.environ', jsonprint = True)
+        else: cgi.print_environ()
 
 
 
@@ -330,7 +333,7 @@ if __name__ != "__main__": sys.exit(0)
 #CGI_CLI()
 CGI_CLI.init_cgi()
 CGI_CLI.print_args()
-CGI_CLI.print_env()
+#CGI_CLI.print_env(jsonprint = True)
 #print(repr(CGI_CLI))
 #print(str(CGI_CLI))
 
@@ -372,11 +375,6 @@ CGI_CLI.formprint([{'text':'email_address'},'<br/>',{'textcontent':'email_body'}
 
 CGI_CLI.formprint([{'file':'/var/www/cgi-bin/file_1'},{'dropdown':'aa,bb,cc_cc'},{'checkbox':'aa_ss'},{'radio':'iii_ddd'},'<br/>', {'radio':'q q'},'<br/>',{'submit':'YES'},{'submit':'NO'}],submit_button = None, pyfile = None, tag = None, color = None)
 
-#REQUEST_URI,SCRIPT_FILENAME,QUERY_STRING
-
-#CGI_CLI.uprint(CGI_CLI.query_string)
 
 
-
-#print('Status: 403 Forbidden\r\n\r\n')
 
