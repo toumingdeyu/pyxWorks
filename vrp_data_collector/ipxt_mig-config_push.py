@@ -1230,7 +1230,7 @@ if CGI_CLI.cgi_active:
         ]}
         
     checklist_GW_preparation_precheck = {'cisco_ios':[\
-        {'contains':'LOCAL.%s' %(data['ipxt_data_collector'].get('vlan_id','UNKNOWN'))},
+        {'contains':'LOCAL.%s' % (data['ipxt_data_collector'].get('vlan_id','UNKNOWN'))},
         {'contains':"% Invalid input detected at '^' marker."}
         ]}        
 
@@ -1243,7 +1243,14 @@ if CGI_CLI.cgi_active:
         {'contains':'neighbor-group %s' % (data['ipxt_data_collector'].get('vrf_name','UNKNOWN'))},
         {'contains':"route-policy PASS-ALL"}
         ]} 
+
+    GW_migration_precheck = {'cisco_ios':[\
+        'sh run | i ip route vrf LOCAL.%s' % (data['ipxt_data_collector'].get('vlan_id','UNKNOWN')), 
+        ]}
         
+    checklist_GW_migration_precheck = {'cisco_ios':[\
+        {'contains':'ip route vrf LOCAL.%s' % (data['ipxt_data_collector'].get('vlan_id','UNKNOWN'))},
+        ]}         
         
     device, conf ,config, result_str, checklist = str(), None, str(), str(), str()    
     if CGI_CLI.submit_form == 'Submit PE preparation precheck':
@@ -1273,8 +1280,8 @@ if CGI_CLI.cgi_active:
     elif CGI_CLI.submit_form == 'Submit GW migration precheck':
         result_str = 'PE MIGRATION CONFIGURATION PRECHECK'
         device = copy.deepcopy(ipsec_gw_router)
-        #config = '\n'.join(GW_precheck.get('cisco_ios',str()))
-        #checklist =         
+        config = '\n'.join(GW_migration_precheck.get('cisco_ios',str()))
+        checklist = checklist_GW_migration_precheck.get('cisco_ios',[])        
         conf = False
     elif CGI_CLI.submit_form == 'Submit OLD PE migration precheck':
         result_str = 'PE-OLD MIGRATION CONFIGURATION PRECHECK'
