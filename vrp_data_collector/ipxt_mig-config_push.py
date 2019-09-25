@@ -1224,8 +1224,18 @@ if CGI_CLI.cgi_active:
         {'contains':'No routes in this topology'}
         ]}
         
-    device, conf ,config, result_str, checklist = str(), None, str(), str(), str()
-    
+    GW_preparation_precheck = {'cisco_ios':[\
+        'show vrf LOCAL.%s' %(data['ipxt_data_collector'].get('vlan_id','UNKNOWN')), 
+        'show interface %s.%s' % (data['ipsec_ipxt_table'].get('ipsec_int_id','UNKNOWN'),data['ipxt_data_collector'].get('vlan_id','UNKNOWN'))
+        ]}
+        
+    checklist_GW_preparation_precheck = {'cisco_ios':[\
+        {'contains':'LOCAL.%s' %(data['ipxt_data_collector'].get('vlan_id','UNKNOWN'))},
+        {'contains':"% Invalid input detected at '^' marker."}
+        ]}        
+        
+        
+    device, conf ,config, result_str, checklist = str(), None, str(), str(), str()    
     if CGI_CLI.submit_form == 'Submit PE preparation precheck':
         result_str = 'PE PREPARATION CONFIGURATION PRECHECK'
         device = copy.deepcopy(new_pe_router)
@@ -1235,8 +1245,8 @@ if CGI_CLI.cgi_active:
     elif CGI_CLI.submit_form == 'Submit GW preparation precheck':
         result_str = 'PE PREPARATION CONFIGURATION PRECHECK'
         device = copy.deepcopy(ipsec_gw_router)
-        #config = '\n'.join(GW_precheck.get('cisco_ios',str()))
-        #checklist = 
+        config = '\n'.join(GW_preparation_precheck.get('cisco_ios',str()))
+        checklist = checklist_GW_preparation_precheck.get('cisco_ios',[])
         conf = False
     elif CGI_CLI.submit_form == 'Submit OLD PE preparation precheck':
         result_str = 'PE-OLD PREPARATION CONFIGURATION PRECHECK'
@@ -1319,7 +1329,7 @@ if CGI_CLI.cgi_active:
 
     #CGI_CLI.print_args()
     #CGI_CLI.print_env()
-    #CGI_CLI.uprint(data, jsonprint = True, color = 'blue')
+    CGI_CLI.uprint(data, jsonprint = True, color = 'blue')
     # CGI_CLI.uprint(config_data, jsonprint = True)     
     # CGI_CLI.uprint(PE_precheck, name = True, jsonprint = True)
     # CGI_CLI.uprint(checklist_PE_precheck, name = True, jsonprint = True)
