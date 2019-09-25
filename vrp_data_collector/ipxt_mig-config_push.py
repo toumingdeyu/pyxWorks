@@ -1265,12 +1265,10 @@ if CGI_CLI.cgi_active:
         config = '\n'.join(GW_preparation_precheck.get('cisco_ios',str()))
         checklist = checklist_GW_preparation_precheck.get('cisco_ios',[])
         conf = False
-    elif CGI_CLI.submit_form == 'Submit OLD PE preparation precheck':
-        result_str = 'PE-OLD PREPARATION CONFIGURATION PRECHECK'
-        device = copy.deepcopy(ipsec_gw_router)
-        #config = '\n'.join(OLDPE_precheck.get('huawei',str()))
-        #checklist = 
-        conf = False
+    # elif CGI_CLI.submit_form == 'Submit OLD PE preparation precheck':
+        # result_str = 'PE-OLD PREPARATION CONFIGURATION PRECHECK'
+        # device = copy.deepcopy(ipsec_gw_router)
+        # conf = False
     elif CGI_CLI.submit_form == 'Submit PE migration precheck':
         result_str = 'PE MIGRATION CONFIGURATION PRECHECK'
         device = copy.deepcopy(new_pe_router)
@@ -1283,12 +1281,10 @@ if CGI_CLI.cgi_active:
         config = '\n'.join(GW_migration_precheck.get('cisco_ios',str()))
         checklist = checklist_GW_migration_precheck.get('cisco_ios',[])        
         conf = False
-    elif CGI_CLI.submit_form == 'Submit OLD PE migration precheck':
-        result_str = 'PE-OLD MIGRATION CONFIGURATION PRECHECK'
-        device = copy.deepcopy(ipsec_gw_router)
-        #config = '\n'.join(OLDPE_precheck.get('huawei',str()))        
-        #checklist = 
-        conf = False        
+    # elif CGI_CLI.submit_form == 'Submit OLD PE migration precheck':
+        # result_str = 'PE-OLD MIGRATION CONFIGURATION PRECHECK'
+        # device = copy.deepcopy(ipsec_gw_router)
+        # conf = False        
     elif CGI_CLI.submit_form == 'Submit PE preparation':
         result_str = 'PE PREPARATION CONFIGURATION COMMIT'
         device = copy.deepcopy(new_pe_router)
@@ -1340,7 +1336,8 @@ if CGI_CLI.cgi_active:
         config = config_data.get("rollback_oldpe_migration",str())
         conf = True           
     else:
-        CGI_CLI.uprint('SUBMIT BUTTON PROBLEM!',tag = 'h1', color = 'red')
+        CGI_CLI.uprint('SUBMIT (%s) BUTTON NOT RECOGNIZED!' % (CGI_CLI.submit_form),tag = 'h1', color = 'red')
+        sys.exit(0)
         
     ### WRITE CONFIG TO ROUTER ######################################################
     iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
