@@ -21,45 +21,6 @@ import cgitb; cgitb.enable()
 import requests
 
 
-class bcolors:
-        DEFAULT    = '\033[99m'
-        WHITE      = '\033[97m'
-        CYAN       = '\033[96m'
-        MAGENTA    = '\033[95m'
-        HEADER     = '\033[95m'
-        OKBLUE     = '\033[94m'
-        BLUE       = '\033[94m'
-        YELLOW     = '\033[93m'
-        GREEN      = '\033[92m'
-        OKGREEN    = '\033[92m'
-        WARNING    = '\033[93m'
-        RED        = '\033[91m'
-        FAIL       = '\033[91m'
-        GREY       = '\033[90m'
-        ENDC       = '\033[0m'
-        BOLD       = '\033[1m'
-        UNDERLINE  = '\033[4m'
-
-class nocolors:
-        DEFAULT    = ''
-        WHITE      = ''
-        CYAN       = ''
-        MAGENTA    = ''
-        HEADER     = ''
-        OKBLUE     = ''
-        BLUE       = ''
-        YELLOW     = ''
-        GREEN      = ''
-        OKGREEN    = ''
-        WARNING    = ''
-        RED        = ''
-        FAIL       = ''
-        GREY       = ''
-        ENDC       = ''
-        BOLD       = ''
-        UNDERLINE  = ''
-
-
 
 class CGI_CLI(object):
     """
@@ -95,10 +56,12 @@ class CGI_CLI(object):
                             action = "store_true", dest = 'getpass', default = None,
                             help = "insert router password interactively getpass.getpass()")                                                        
         parser.add_argument("--pe_device",
-                            action = "store", dest = 'pe_device', default = str(),
+                            action = "store", dest = 'pe_device',
+                            default = str(),
                             help = "target pe router to check")
         parser.add_argument("--gw_device",
-                            action = "store", dest = 'gw_device', default = str(),
+                            action = "store", dest = 'gw_device',
+                            default = str(),
                             help = "target gw router to check")                    
         args = parser.parse_args()
         return args
@@ -121,11 +84,18 @@ class CGI_CLI(object):
         CGI_CLI.START_EPOCH = time.time()
         CGI_CLI.initialized = True 
         CGI_CLI.data, CGI_CLI.submit_form, CGI_CLI.username, CGI_CLI.password = \
-            collections.OrderedDict(), '', '', ''   
-        try: form = cgi.FieldStorage()
-        except: 
+            collections.OrderedDict(), '', '', ''
+        CGI_CLI.query_string = dict(os.environ).get('QUERY_STRING','CLI_MODE')
+        ### WORKARROUND FOR VOID QUERY_STRING CAUSING HTTP500
+        if CGI_CLI.query_string != str():
+            try: form = cgi.FieldStorage()
+            except:      
+                form = collections.OrderedDict()
+                CGI_CLI.cgi_parameters_error = True
+        else:                 
             form = collections.OrderedDict()
-            CGI_CLI.cgi_parameters_error = True
+            CGI_CLI.cgi_active = True
+            CGI_CLI.data = collections.OrderedDict()
         for key in form.keys():
             variable = str(key)
             try: value = str(form.getvalue(variable))
@@ -138,7 +108,7 @@ class CGI_CLI(object):
         if CGI_CLI.submit_form or len(CGI_CLI.data)>0: CGI_CLI.cgi_active = True
         if CGI_CLI.cgi_active:
             if not 'cgitb' in sys.modules: import cgitb; cgitb.enable()        
-            print("Content-type:text/html\n\n")
+            print("Content-type:text/html\r\n\r\n")
             print("<html><head><title>%s</title></head><body>" % 
                 (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit'))
         if not 'atexit' in sys.modules: import atexit; atexit.register(CGI_CLI.__cleanup__)
@@ -155,26 +125,31 @@ class CGI_CLI(object):
             elif CGI_CLI.args.password: CGI_CLI.password = CGI_CLI.args.password                
         if CGI_CLI.username: CGI_CLI.USERNAME = CGI_CLI.username
         if CGI_CLI.password: CGI_CLI.PASSWORD = CGI_CLI.password
-        if CGI_CLI.cgi_active or 'WIN32' in sys.platform.upper(): bcolors = nocolors       
+        if CGI_CLI.cgi_active or 'WIN32' in sys.platform.upper(): bcolors = nocolors
+        CGI_CLI.remote_addr =  dict(os.environ).get('REMOTE_ADDR','')
+        CGI_CLI.http_user_agent = dict(os.environ).get('HTTP_USER_AGENT','')
+        CGI_CLI.cgi_save_files()        
         return CGI_CLI.USERNAME, CGI_CLI.PASSWORD
 
     @staticmethod 
-    def oprint(text, tag = None):
-        if CGI_CLI.debug: 
-            if CGI_CLI.cgi_active:
-                if tag and 'h' in tag: print('<%s>'%(tag))
-                if tag and 'p' in tag: print('<p>')
-                if isinstance(text, six.string_types): 
-                    text = str(text.replace('\n','<br/>').replace(' ','&nbsp;'))
-                else: text = str(text)   
-            print(text)
-            if CGI_CLI.cgi_active: 
-                print('<br/>');
-                if tag and 'p' in tag: print('</p>')
-                if tag and 'h' in tag: print('</%s>'%(tag))
+    def cgi_save_files():
+        for key in CGI_CLI.data:
+            if 'file[' in key: 
+                filename = key.replace('file[','').replace(']','')
+                if filename:
+                    use_filename = filename.replace('/','\\') if 'WIN32' in sys.platform.upper() else filename
+                    dir_path = os.path.dirname(use_filename)
+                    if os.path.exists(dir_path):
+                        file_content = CGI_CLI.data.get('file[%s]'%(filename),None)
+                        if file_content:
+                            try:                        
+                                with open(use_filename, 'wb') as file:
+                                    file.write(CGI_CLI.data.get('file[%s]'%(filename)))
+                                    CGI_CLI.uprint('The file "' + use_filename + '" was uploaded.')
+                            except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']')   
 
     @staticmethod 
-    def uprint(text, tag = None, color = None, name = None, jsonprint = None):
+    def uprint(text, tag = None, tag_id = None, color = None, name = None, jsonprint = None):
         """NOTE: name parameter could be True or string."""
         print_text, print_name = copy.deepcopy(text), str()
         if CGI_CLI.debug:
@@ -191,18 +166,76 @@ class CGI_CLI(object):
             
             print_text = str(print_text)
             if CGI_CLI.cgi_active:
-                if tag and 'h' in tag: print('<%s%s>'%(tag,' style="color:%s;"'%(color) if color else str()))
-                if color or tag and 'p' in tag: tag = 'p'; print('<p%s>'%(' style="color:%s;"'%(color) if color else str()))
-                if isinstance(print_text, six.string_types):                   
+                ### WORKARROUND FOR COLORING OF SIMPLE TEXT
+                if color and not tag: tag = 'p'; 
+                if tag: print('<%s%s%s>'%(tag,' id="%s"'%(tag_id) if tag_id else str(),' style="color:%s;"'%(color) if color else 'black'))
+                if isinstance(print_text, six.string_types):
                     print_text = str(print_text.replace('&','&amp;').replace('<','&lt;'). \
                         replace('>','&gt;').replace(' ','&nbsp;').replace('"','&quot;').replace("'",'&apos;').\
-                        replace('\n','<br/>'))                 
+                        replace('\n','<br/>'))
             print(print_name + print_text)
             del print_text
             if CGI_CLI.cgi_active: 
                 print('<br/>');
-                if tag and 'p' in tag: print('</p>')
-                if tag and 'h' in tag: print('</%s>'%(tag))
+                if tag: print('</%s>'%(tag))
+
+    @staticmethod 
+    def formprint(form_data = None, submit_button = None, pyfile = None, tag = None, color = None):
+        """ formprint() - print simple HTML form
+            form_data - string, just html raw OR list or dict values = ['raw','text','checkbox','radio','submit','dropdown','textcontent']
+                      - value in dictionary means cgi variable name / printed componenet value            
+        """
+        def subformprint(data_item):
+            if isinstance(data_item, six.string_types): print(data_item)
+            elif isinstance(data_item, (dict,collections.OrderedDict)):
+                if data_item.get('raw',None): print(data_item.get('raw'))
+                elif data_item.get('textcontent',None): 
+                    print('<textarea type = "textcontent" name = "%s" cols = "40" rows = "4"></textarea>'%\
+                        (data_item.get('textcontent')))
+                elif data_item.get('text'):
+                    print('%s: <input type = "text" name = "%s"><br />'%\
+                        (data_item.get('text','').replace('_',' '),data_item.get('text')))
+                elif data_item.get('radio'):    
+                    print('<input type = "radio" name = "%s" value = "%s" /> %s'%\
+                        (data_item.get('radio'),data_item.get('radio'),data_item.get('radio','').replace('_',' ')))
+                elif data_item.get('checkbox'):
+                    print('<input type = "checkbox" name = "%s" value = "on" /> %s'%\
+                        (data_item.get('checkbox'),data_item.get('checkbox','').replace('_',' ')))
+                elif data_item.get('dropdown'):
+                    print('<select name = "dropdown[%s]">'%(data_item.get('dropdown')))
+                    for option in data_item.get('dropdown').split(','):
+                        print('<option value = "%s" selected>%s</option>')%(option,option)
+                    print('</select>')
+                elif data_item.get('file'):
+                   print('Upload file: <input type = "file" name = "file[%s]" />'%(data_item.get('file').replace('\\','/')))  
+                elif data_item.get('submit'):    
+                    print('<input id = "%s" type = "submit" name = "submit" value = "%s" />'%\
+                        (data_item.get('submit'),data_item.get('submit')))
+
+   
+        ### START OF FORMPRINT ###
+        formtypes = ['raw','text','checkbox','radio','submit','dropdown','textcontent']
+        i_submit_button = None if not submit_button else submit_button
+        if not pyfile: i_pyfile = sys.argv[0]
+        try: i_pyfile = i_pyfile.replace('\\','/').split('/')[-1].strip()
+        except: i_pyfile = i_pyfile.strip()
+        if CGI_CLI.cgi_active:
+            print('<br/>');
+            if tag and 'h' in tag: print('<%s%s>'%(tag,' style="color:%s;"'%(color) if color else str()))
+            if color or tag and 'p' in tag: tag = 'p'; print('<p%s>'%(' style="color:%s;"'%(color) if color else str()))
+            print('<form action = "/cgi-bin/%s" enctype = "multipart/form-data" action = "save_file.py" method = "post">'%\
+                (i_pyfile))
+            ### RAW HTML ###
+            if isinstance(form_data, six.string_types): print(form_data)
+            ### STRUCT FORM DATA = LIST ###
+            elif isinstance(form_data, (list,tuple)):
+                for data_item in form_data: subformprint(data_item)
+            ### JUST ONE DICT ###    
+            elif isinstance(form_data, (dict,collections.OrderedDict)): subformprint(form_data)               
+            if i_submit_button: subformprint({'submit':i_submit_button})
+            print('</form>')
+            if tag and 'p' in tag: print('</p>')
+            if tag and 'h' in tag: print('</%s>'%(tag))
 
     @staticmethod
     def VERSION(path_to_file = str(os.path.abspath(__file__))):
@@ -216,16 +249,23 @@ class CGI_CLI(object):
     @staticmethod
     def print_args():
         from platform import python_version
-        CGI_CLI.uprint('USERNAME[%s], PASSWORD[%s]' % (CGI_CLI.USERNAME, 'Yes' if CGI_CLI.PASSWORD else 'No')) 
-        print_string = 'python[%s], ' % (str(python_version()))
-        print_string += 'file[%s], ' % (sys.argv[0])
-        print_string += 'version[%s], ' % (CGI_CLI.VERSION())
+        print_string = 'python[%s]\n' % (str(python_version()))
+        print_string += 'version[%s]\n' % (CGI_CLI.VERSION())
+        print_string += 'file[%s]\n' % (sys.argv[0])
+        print_string += 'USERNAME[%s], PASSWORD[%s]\n' % (CGI_CLI.USERNAME, 'Yes' if CGI_CLI.PASSWORD else 'No')
+        print_string += 'remote_addr[%s]\n' % dict(os.environ).get('REMOTE_ADDR','')
+        print_string += 'browser[%s]\n' % dict(os.environ).get('HTTP_USER_AGENT','')
         if CGI_CLI.cgi_active:
-            try: print_string += 'CGI_args = %s' % (json.dumps(CGI_CLI.data)) 
+            try: print_string += 'CGI_args[%s] = %s\n' % (str(CGI_CLI.submit_form),str(json.dumps(CGI_CLI.data, indent = 4)))
             except: pass                 
-        else: print_string += 'CLI_args = %s, %s' % (str(sys.argv[1:]),str(CGI_CLI.args))
+        else: print_string += 'CLI_args = %s' % (str(sys.argv[1:]))
         CGI_CLI.uprint(print_string)
         return print_string
+
+    @staticmethod
+    def print_env():        
+        CGI_CLI.uprint(dict(os.environ), name = 'os.environ', jsonprint = True)
+
 
 
 ##############################################################################
@@ -1268,9 +1308,9 @@ if CGI_CLI.cgi_active:
                     CGI_CLI.uprint('%s' % (rcms_output), color = 'darkorchid')
             try:        
                 if 'FAILED' in rcmd_outputs[-1].upper() or 'ERROR' in rcmd_outputs[-1].upper() or config_problem:
-                    CGI_CLI.uprint('CONFIGURATION COMMIT FAILED!', tag = 'h1', color = 'red')
+                    CGI_CLI.uprint('CONFIGURATION COMMIT FAILED!', tag = 'h1', tag_id = 'submit-result', color = 'red')
                     sys.exit(999)
-                else: CGI_CLI.uprint('CONFIGURATION COMMIT SUCCESSFULL.', tag = 'h1', color = 'green')    
+                else: CGI_CLI.uprint('CONFIGURATION COMMIT SUCCESSFULL.', tag = 'h1', tag_id = 'submit-result', color = 'green')    
             except: pass
         else:
             CGI_CLI.uprint('\nPRECHECK:\n------------------\n',tag = 'h1')            
@@ -1279,6 +1319,6 @@ if CGI_CLI.cgi_active:
             cmd_list = PE_precheck.get('cisco_xr',[])             
             precheck_problem = do_precheck(rcmd_outputs,checklist,cmd_list)
             if precheck_problem:
-                CGI_CLI.uprint('CONFIGURATION PRECHECK FAILED!', tag = 'h1', color = 'red')
+                CGI_CLI.uprint('CONFIGURATION PRECHECK FAILED!', tag = 'h1', tag_id = 'submit-result', color = 'red')
                 sys.exit(999)
-            else: CGI_CLI.uprint('CONFIGURATION PRECHECK SUCCESSFULL.', tag = 'h1', color = 'green')           
+            else: CGI_CLI.uprint('CONFIGURATION PRECHECK SUCCESSFULL.', tag = 'h1', tag_id = 'submit-result', color = 'green')           
