@@ -1243,7 +1243,7 @@ if CGI_CLI.cgi_active:
         checklist = checklist_PE_preparation_precheck.get('cisco_xr',[])
         conf = False
     elif CGI_CLI.submit_form == 'Submit GW preparation precheck':
-        result_str = 'PE PREPARATION CONFIGURATION PRECHECK'
+        result_str = 'GW PREPARATION CONFIGURATION PRECHECK'
         device = copy.deepcopy(ipsec_gw_router)
         config = '\n'.join(GW_preparation_precheck.get('cisco_ios',str()))
         checklist = checklist_GW_preparation_precheck.get('cisco_ios',[])
@@ -1373,7 +1373,7 @@ if CGI_CLI.cgi_active:
                 else: CGI_CLI.uprint('%s SUCCESSFULL.' % (result_str), tag = 'h1', tag_id = 'submit-result', color = 'green')    
             except: pass
         else:
-            CGI_CLI.uprint('\nPRECHECK:\n------------------\n',tag = 'h1')            
+            CGI_CLI.uprint('\nPRECHECK:\n------------------\n',tag = 'h1', color = 'blue')            
             precheck_problem = True 
             if checklist and config:            
                 splitted_config = copy.deepcopy(config).splitlines()
