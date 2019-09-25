@@ -568,7 +568,7 @@ class RCMD(object):
         # FLUSH BUFFERS FROM PREVIOUS COMMANDS IF THEY ARE ALREADY BUFFERD
         if chan.recv_ready(): flush_buffer = chan.recv(9999)
         chan.send(send_data + '\n')
-        time.sleep(0.2)
+        time.sleep(0.3)
         while not exit_loop:
             if chan.recv_ready():
                 # workarround for discontious outputs from routers
@@ -1068,9 +1068,9 @@ class sql_interface():
     #     return reduce(lambda d, key: d.get(key, None) if isinstance(d, (dict,collections.OrderedDict) else None, keys, dictionary)
 
 
-def do_precheck(rcmd_outputs,checklist,cmd_list):
+def do_precheck(rcmd_outputs = None, checklist = None, cmd_list = None):
     """
-    prechech fails if:
+    precheck fails if:
     contains: string or list of strings(items and)
     or
     not_in: not_string or not_list of strings(items and)
@@ -1078,15 +1078,17 @@ def do_precheck(rcmd_outputs,checklist,cmd_list):
     precheck_problem, i = False, 0
     for output in rcmd_outputs:
         try:
+            try: command = str(cmd_list[i])
+            except: command = '---'
             if isinstance(checklist[i], (dict,collections.OrderedDict)):
-                CGI_CLI.uprint('CMD: ' + cmd_list[i] + '        CHECK IF:' + str(checklist[i]), color = 'blue')
+                CGI_CLI.uprint('CMD: ' + command + '        CHECK IF:' + str(checklist[i]), color = 'blue')
                 CGI_CLI.uprint(output, color = 'black')
                 if checklist[i].get('contains'):
                     contains_value = checklist[i].get('contains')
                     if isinstance(contains_value, (list,tuple)):
                         for item in contains_value:
                             sub_check_ok = True
-                            if item in output.replace(str(cmd_list[i]),''): pass 
+                            if item in output.replace(command,''): pass 
                             else:
                                 sub_check_ok = False
                         if sub_check_ok: CGI_CLI.uprint('CHECK OK.\n',color = 'green')
@@ -1094,7 +1096,7 @@ def do_precheck(rcmd_outputs,checklist,cmd_list):
                             precheck_problem = True                            
                             CGI_CLI.uprint('CHECK FAILED.\n', color = 'red')                                         
                     if isinstance(contains_value, six.string_types): 
-                        if checklist[i].get('contains') in output.replace(str(cmd_list[i]),''): CGI_CLI.uprint('CHECK OK.\n',color = 'green')
+                        if checklist[i].get('contains') in output.replace(command,''): CGI_CLI.uprint('CHECK OK.\n',color = 'green')
                         else:
                             precheck_problem = True                            
                             CGI_CLI.uprint('CHECK FAILED.\n', color = 'red')                           
@@ -1103,7 +1105,7 @@ def do_precheck(rcmd_outputs,checklist,cmd_list):
                     if isinstance(not_in_value, (list,tuple)):
                         for item in not_in_value:
                             sub_check_ok = True
-                            if not item in output.replace(str(cmd_list[i]),''): pass 
+                            if not item in output.replace(command,''): pass 
                             else:
                                 sub_check_ok = False
                         if sub_check_ok: CGI_CLI.uprint('CHECK OK.\n',color = 'green')
@@ -1111,11 +1113,11 @@ def do_precheck(rcmd_outputs,checklist,cmd_list):
                             precheck_problem = True                            
                             CGI_CLI.uprint('CHECK FAILED.\n', color = 'red')                                                        
                     if isinstance(not_in_value, six.string_types): 
-                        if not checklist[i].get('not_in') in output.replace(str(cmd_list[i]),''): CGI_CLI.uprint('CHECK OK.\n',color = 'green')
+                        if not checklist[i].get('not_in') in output.replace(command,''): CGI_CLI.uprint('CHECK OK.\n',color = 'green')
                         else: 
                             precheck_problem = True 
                             CGI_CLI.uprint('CHECK FAILED.\n', color = 'red')
-        except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']')
+        except Exception as e: CGI_CLI.uprint('PRE-CHECK_PROBLEM[' + str(e) + ']')
         i += 1
     return precheck_problem
 
@@ -1180,7 +1182,7 @@ if CGI_CLI.cgi_active:
         where_string = "session_id = '%s'" % (CGI_CLI.data.get('session_id','')))[0]
     except: config_data = collections.OrderedDict()   
 
-    PE_precheck = {'cisco_xr':[\
+    PE_preparation_precheck = {'cisco_xr':[\
         'show access-list %s-IN' % (data['ipxt_data_collector'].get('vrf_name','UNKNOWN')),
         'show vrf %s' %(data['ipxt_data_collector'].get('vrf_name','UNKNOWN').replace('.','@')),
         'show rpl prefix-set %s-IN' % (data['ipxt_data_collector'].get('vrf_name','UNKNOWN')), 
@@ -1201,7 +1203,7 @@ if CGI_CLI.cgi_active:
         'show static vrf %s topology' % (data['ipxt_data_collector'].get('vrf_name','UNKNOWN').replace('.','@'))
         ]}
 
-    checklist_PE_precheck = {'cisco_xr':[\
+    checklist_PE_preparation_precheck = {'cisco_xr':[\
         {'contains':'No such access-list %s-IN' % (data['ipxt_data_collector'].get('vrf_name','UNKNOWN'))},
         {'not_in':'%s' %(data['ipxt_data_collector'].get('vrf_name','UNKNOWN').replace('.','@'))},
         {'contains':'The prefix-set (%s-IN) does not appear to exist' % (data['ipxt_data_collector'].get('vrf_name','UNKNOWN'))}, 
@@ -1222,49 +1224,92 @@ if CGI_CLI.cgi_active:
         {'contains':'No routes in this topology'}
         ]}
         
-    device, conf = str(), None 
-    if CGI_CLI.submit_form == 'Submit PE precheck':
-        device = new_pe_router
-        config = '\n'.join(PE_precheck.get('cisco_xr',str()))
-        conf = False    
+    device, conf ,config, result_str, checklist = str(), None, str(), str(), str()
+    
+    if CGI_CLI.submit_form == 'Submit PE preparation precheck':
+        result_str = 'PE PREPARATION CONFIGURATION PRECHECK'
+        device = copy.deepcopy(new_pe_router)
+        config = '\n'.join(PE_preparation_precheck.get('cisco_xr',str()))
+        checklist = checklist_PE_preparation_precheck.get('cisco_xr',[])
+        conf = False
+    elif CGI_CLI.submit_form == 'Submit GW preparation precheck':
+        result_str = 'PE PREPARATION CONFIGURATION PRECHECK'
+        device = copy.deepcopy(ipsec_gw_router)
+        #config = '\n'.join(GW_precheck.get('cisco_ios',str()))
+        #checklist = 
+        conf = False
+    elif CGI_CLI.submit_form == 'Submit OLD PE preparation precheck':
+        result_str = 'PE-OLD PREPARATION CONFIGURATION PRECHECK'
+        device = copy.deepcopy(ipsec_gw_router)
+        #config = '\n'.join(OLDPE_precheck.get('huawei',str()))
+        #checklist = 
+        conf = False
+    elif CGI_CLI.submit_form == 'Submit PE migration precheck':
+        result_str = 'PE MIGRATION CONFIGURATION PRECHECK'
+        device = copy.deepcopy(new_pe_router)
+        #config = '\n'.join(PE_precheck.get('cisco_xr',str()))
+        #checklist =         
+        conf = False
+    elif CGI_CLI.submit_form == 'Submit GW migration precheck':
+        result_str = 'PE MIGRATION CONFIGURATION PRECHECK'
+        device = copy.deepcopy(ipsec_gw_router)
+        #config = '\n'.join(GW_precheck.get('cisco_ios',str()))
+        #checklist =         
+        conf = False
+    elif CGI_CLI.submit_form == 'Submit OLD PE migration precheck':
+        result_str = 'PE-OLD MIGRATION CONFIGURATION PRECHECK'
+        device = copy.deepcopy(ipsec_gw_router)
+        #config = '\n'.join(OLDPE_precheck.get('huawei',str()))        
+        #checklist = 
+        conf = False        
     elif CGI_CLI.submit_form == 'Submit PE preparation':
-        device = new_pe_router
+        result_str = 'PE PREPARATION CONFIGURATION COMMIT'
+        device = copy.deepcopy(new_pe_router)
         config = config_data.get("pe_config_preparation",str())
         conf = True
-    elif CGI_CLI.submit_form == 'Submit GW preparation': 
-        device = ipsec_gw_router
+    elif CGI_CLI.submit_form == 'Submit GW preparation':
+        result_str = 'GW PREPARATION CONFIGURATION COMMIT'    
+        device = copy.deepcopy(ipsec_gw_router)
         config = config_data.get("gw_config_preparation",str())
         conf = True
     elif CGI_CLI.submit_form == 'Submit PE migration':
-        device = new_pe_router
+        result_str = 'PE MIGRATION CONFIGURATION COMMIT'
+        device = copy.deepcopy(new_pe_router)
         config = config_data.get("pe_config_migration",str())
         conf = True
-    elif CGI_CLI.submit_form == 'Submit GW migration': 
-        device = ipsec_gw_router
+    elif CGI_CLI.submit_form == 'Submit GW migration':
+        result_str = 'GW MIGRATION CONFIGURATION COMMIT'    
+        device = copy.deepcopy(ipsec_gw_router)
         config = config_data.get("gw_config_migration",str())
         conf = True
-    elif CGI_CLI.submit_form == 'Submit OLD PE shutdown': 
-        device = old_huawei_router
+    elif CGI_CLI.submit_form == 'Submit OLD PE shutdown':
+        result_str = 'PE-OLD MIGRATION CONFIGURATION COMMIT'    
+        device = copy.deepcopy(old_huawei_router)
         config = config_data.get("old_pe_config_migration_shut",str())
         conf = True        
     elif CGI_CLI.submit_form == 'Rollback GW preparation':
-        device = ipsec_gw_router
+        result_str = 'GW PREPARATION ROLLBACK CONFIGURATION COMMIT'    
+        device = copy.deepcopy(ipsec_gw_router)
         config = config_data.get("rollback_gw_preparation",str())
         conf = True     
-    elif CGI_CLI.submit_form == 'Rollback PE preparation':    
-        device = new_pe_router
+    elif CGI_CLI.submit_form == 'Rollback PE preparation':
+        result_str = 'PE PREPARATION ROLLBACK CONFIGURATION COMMIT'     
+        device = copy.deepcopy(new_pe_router)
         config = config_data.get("rollback_pe_preparation",str())
         conf = True 
     elif CGI_CLI.submit_form == 'Rollback GW migration':
-        device = ipsec_gw_router
+        result_str = 'GW MIGRATION ROLLBACK CONFIGURATION COMMIT'
+        device = copy.deepcopy(ipsec_gw_router)
         config = config_data.get("rollback_gw_migration",str())
         conf = True     
-    elif CGI_CLI.submit_form == 'Rollback PE migration':    
-        device = new_pe_router
+    elif CGI_CLI.submit_form == 'Rollback PE migration':
+        result_str = 'PE MIGRATION ROLLBACK CONFIGURATION COMMIT'    
+        device = copy.deepcopy(new_pe_router)
         config = config_data.get("rollback_pe_migration",str())
         conf = True 
-    elif CGI_CLI.submit_form == 'Rollback OLD PE shutdown': 
-        device = old_huawei_router
+    elif CGI_CLI.submit_form == 'Rollback OLD PE shutdown':
+        result_str = 'PE-OLD MIGRATION ROLLBACK CONFIGURATION COMMIT'    
+        device = copy.deepcopy(old_huawei_router)
         config = config_data.get("rollback_oldpe_migration",str())
         conf = True           
 
@@ -1287,7 +1332,8 @@ if CGI_CLI.cgi_active:
     ### TEST_ONLY DELETION FROM CONFIG    
     if iptac_server == 'iptac5' and conf == True: config = config.replace('flow ipv4 monitor ICX sampler ICX ingress','')
 
-    try: splitted_config = str(config.decode("utf-8")).splitlines()
+    splitted_config = copy.deepcopy(config)
+    try: splitted_config = str(splitted_config.decode("utf-8")).splitlines()
     except: splitted_config = []
 
     data_to_write = {
@@ -1313,17 +1359,14 @@ if CGI_CLI.cgi_active:
                     CGI_CLI.uprint('%s' % (rcms_output), color = 'darkorchid')
             try:        
                 if 'FAILED' in rcmd_outputs[-1].upper() or 'ERROR' in rcmd_outputs[-1].upper() or config_problem:
-                    CGI_CLI.uprint('CONFIGURATION COMMIT FAILED!', tag = 'h1', tag_id = 'submit-result', color = 'red')
-                    sys.exit(999)
-                else: CGI_CLI.uprint('CONFIGURATION COMMIT SUCCESSFULL.', tag = 'h1', tag_id = 'submit-result', color = 'green')    
+                    CGI_CLI.uprint('%s FAILED!' % (result_str), tag = 'h1', tag_id = 'submit-result', color = 'red')
+                else: CGI_CLI.uprint('%s SUCCESSFULL.' % (result_str), tag = 'h1', tag_id = 'submit-result', color = 'green')    
             except: pass
         else:
             CGI_CLI.uprint('\nPRECHECK:\n------------------\n',tag = 'h1')            
-            i = 0 
-            checklist = checklist_PE_precheck.get('cisco_xr',[])
-            cmd_list = PE_precheck.get('cisco_xr',[])             
-            precheck_problem = do_precheck(rcmd_outputs,checklist,cmd_list)
-            if precheck_problem:
-                CGI_CLI.uprint('CONFIGURATION PRECHECK FAILED!', tag = 'h1', tag_id = 'submit-result', color = 'red')
-                sys.exit(999)
-            else: CGI_CLI.uprint('CONFIGURATION PRECHECK SUCCESSFULL.', tag = 'h1', tag_id = 'submit-result', color = 'green')           
+            precheck_problem = True 
+            if checklist and config:            
+                splitted_config = copy.deepcopy(config).splitlines()
+                precheck_problem = do_precheck(rcmd_outputs, checklist, splitted_config)
+            if precheck_problem: CGI_CLI.uprint('%s FAILED!' % (result_str), tag = 'h1', tag_id = 'submit-result', color = 'red')
+            else: CGI_CLI.uprint('%s SUCCESSFULL.' % (result_str), tag = 'h1', tag_id = 'submit-result', color = 'green')           
