@@ -85,17 +85,25 @@ class CGI_CLI(object):
         CGI_CLI.initialized = True 
         CGI_CLI.data, CGI_CLI.submit_form, CGI_CLI.username, CGI_CLI.password = \
             collections.OrderedDict(), '', '', ''
-        CGI_CLI.query_string = dict(os.environ).get('QUERY_STRING','CLI_MODE')
-        ### WORKARROUND FOR VOID QUERY_STRING CAUSING HTTP500
-        if CGI_CLI.query_string != str():
-            try: form = cgi.FieldStorage()
-            except:      
-                form = collections.OrderedDict()
-                CGI_CLI.cgi_parameters_error = True
-        else:                 
+        ## WORKARROUND FOR VOID QUERY_STRING CAUSING HTTP500
+        # CGI_CLI.query_string = dict(os.environ).get('QUERY_STRING','CLI_MODE')
+        # if CGI_CLI.query_string != str() or \
+            # ('?' in dict(os.environ).get('REQUEST_URI',None) and \
+            # '=' in dict(os.environ).get('REQUEST_URI',None)):
+            # try: form = cgi.FieldStorage()
+            # except:      
+                # form = collections.OrderedDict()
+                # CGI_CLI.cgi_parameters_error = True
+        # else:                 
+            # form = collections.OrderedDict()
+            # CGI_CLI.cgi_active = True
+            # CGI_CLI.data = collections.OrderedDict()
+        ### PROBLEM - AJAX DOES NOT FILL VARIABLES QUERY_STRING, REQUEST_URI   
+        try: form = cgi.FieldStorage()
+        except:      
             form = collections.OrderedDict()
-            CGI_CLI.cgi_active = True
-            CGI_CLI.data = collections.OrderedDict()
+            CGI_CLI.cgi_parameters_error = True 
+            
         for key in form.keys():
             variable = str(key)
             try: value = str(form.getvalue(variable))
@@ -1261,14 +1269,15 @@ if CGI_CLI.cgi_active:
     iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
 
     CGI_CLI.print_args()
+    CGI_CLI.print_env()
     CGI_CLI.uprint(data, jsonprint = True, color = 'blue')
-    CGI_CLI.uprint(config_data, jsonprint = True)     
+    # CGI_CLI.uprint(config_data, jsonprint = True)     
     # CGI_CLI.uprint(PE_precheck, name = True, jsonprint = True)
     # CGI_CLI.uprint(checklist_PE_precheck, name = True, jsonprint = True)
     CGI_CLI.uprint(str(CGI_CLI.submit_form), tag = 'h1', color = 'blue')
     CGI_CLI.uprint('PE = %s, GW = %s, OLD_PE = %s'%(new_pe_router,ipsec_gw_router,old_huawei_router), tag = 'h3', color = 'black')     
     CGI_CLI.uprint('DEVICE = %s, config_mode(%s) , SERVER = %s'%(device,str(conf),str(iptac_server)), tag = 'h1')    
-    CGI_CLI.uprint('CONFIG:\n------------\n\n%s'%(config))
+    CGI_CLI.uprint('\nCONFIG:\n------------\n\n%s'%(config))
 
 
     ### TEST_ONLY DELETION FROM CONFIG    
