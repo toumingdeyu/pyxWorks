@@ -1378,14 +1378,20 @@ def generate_migration_PE_router_config(dict_data = None):
 ### MIGRATION OLD_PE
 ###############################################################################   
 
-old_PE_migration_shut_if_templ = """!
+old_PE_migration_shut_if_templ = """#
 interface ${''.join([ str(item.get('old_pe_interface','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}
 shutdown
-!
+#
 bgp 2300
 ipv4-family vpn-instance ${''.join([ str(item.get('vrf_name','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}
 peer ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} ignore
-!
+#
+q
+#
+q
+#
+q
+#
 """
 
 def generate_migration_OLD_PE_router_shut_config(dict_data = None):
@@ -1577,14 +1583,20 @@ def generate_undo_migration_GW_config(dict_data = None):
 ### UNDO MIGRATION OLD PE
 ###############################################################################
 
-undo_migration_OLD_PE_undo_templ = """!
+undo_migration_OLD_PE_undo_templ = """#
 interface ${''.join([ str(item.get('old_pe_interface','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}
 no shutdown
-!
+#
 bgp 2300
 ipv4-family vpn-instance ${''.join([ str(item.get('vrf_name','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}
 undo peer ${''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} ignore
-!
+#
+q
+#
+q
+#
+q
+#
 """
 
 def generate_undo_migration_OLD_PE_config(dict_data = None):
