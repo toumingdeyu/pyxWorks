@@ -119,10 +119,10 @@ CMD_IOS_XE = [
         'exec':'try: bgp_data["gw_peer_address_ibgp"] = read_gw_vrf_parsed_lines_and_get_peer_address_ibgp(glob_vars.get("gw_vrf_parsed_lines","")) \nexcept: pass'
     },
     {'if':'glob_vars.get("CONFIG_IF_TEXT","")', 
-        'exec':'try: bgp_data["ip_address"] = glob_vars.get("CONFIG_IF_TEXT","").split("ip address ")[1].split()[0].strip() \nexcept: pass'
+        'exec':'try: bgp_data["ip_address"] = glob_vars.get("CONFIG_IF_TEXT","").split("ip address ")[1].split()[0].strip() if glob_vars.get("CONFIG_IF_TEXT","") else None\nexcept: pass'
     },  
     {'if':'glob_vars.get("CONFIG_IF_TEXT","")', 
-        'exec':'try: bgp_data["mask"] = glob_vars.get("CONFIG_IF_TEXT","").split("ip address ")[1].split()[1].strip() \nexcept: pass'
+        'exec':'try: bgp_data["mask"] = glob_vars.get("CONFIG_IF_TEXT","").split("ip address ")[1].split()[1].strip() if glob_vars.get("CONFIG_IF_TEXT","") else None\nexcept: pass'
     },
     {"eval":["bgp_data.get('ip_address','')"]},
     {"eval":["bgp_data.get('mask','')"]},
@@ -130,7 +130,7 @@ CMD_IOS_XE = [
     {'remote_command':['sh ip int br | i ',{'eval':"bgp_data.get('ip_address_customer','')"},{'output_variable':'IF_TEXT'}]},
     {"eval":["glob_vars.get('IF_TEXT','')"]},
     {'if':'glob_vars.get("IF_TEXT","")', 
-        'exec':'try: bgp_data["gw_subinterface"] = glob_vars.get("IF_TEXT","").splitlines()[1].split()[0].strip() \nexcept: pass'
+        'exec':'try: bgp_data["gw_subinterface"] = glob_vars.get("IF_TEXT","").splitlines()[1].split()[0].strip() if glob_vars.get("IF_TEXT","") else None \nexcept: pass'
     },     
     
     {"eval":["return_bgp_data_json()",{'print_output':'on'}]},
@@ -265,9 +265,11 @@ CMD_VRP = [
               \nfor line in glob_vars.get("ACL_TEXT","").split("permit ip source")[1:]:\
               \n  bgp_data["customer_prefixes_v4"].append({"customer_prefix_v4":line.split()[0],"customer_subnetmask_v4":line.split()[1]})'
     },
-    {'exec':'bgp_data["old_pe_interface"] = glob_vars["INTERFACE"]'},
+    {'exec':'bgp_data["old_pe_interface"] = glob_vars.get("INTERFACE",None)'},
     #{"eval":["return_bgp_data_json()",{'print_output':'on'}]},
 ]
+
+
 
 CMD_LINUX = []
 
