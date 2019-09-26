@@ -1585,7 +1585,7 @@ def generate_undo_migration_GW_config(dict_data = None):
 
 undo_migration_OLD_PE_undo_templ = """#
 interface ${''.join([ str(item.get('old_pe_interface','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}
-no shutdown
+undo shutdown
 #
 bgp 2300
 ipv4-family vpn-instance ${''.join([ str(item.get('vrf_name','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}
