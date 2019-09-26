@@ -1249,8 +1249,24 @@ if CGI_CLI.cgi_active:
         ]}
         
     checklist_GW_migration_precheck = {'cisco_ios':[\
-        {'contains':'ip route vrf LOCAL.%s' % (data['ipxt_data_collector'].get('vlan_id','UNKNOWN'))},
+        {'not_in':'ip route vrf LOCAL.%s' % (data['ipxt_data_collector'].get('vlan_id','UNKNOWN'))},
         ]}         
+
+    PE_OLD_migration_precheck = {'huawei':[
+        'display interface GigabitEthernet2/0/0.117'
+        ]}
+        
+    checklist_PE_OLD_migration_precheck = {'huawei':[
+        {'not_in':'GigabitEthernet2/0/0.117 current state : Administratively DOWN'},
+        ]} 
+
+    PE_OLD_migration_postcheck = {'huawei':[
+        'display interface GigabitEthernet2/0/0.117'
+        ]}
+        
+    checklist_PE_OLD_migration_postcheck = {'huawei':[
+        {'contains':'GigabitEthernet2/0/0.117 current state : Administratively DOWN'},
+        ]} 
         
     device, conf ,config, result_str, checklist = str(), None, str(), str(), str()    
     if CGI_CLI.submit_form == 'Submit PE preparation precheck':
@@ -1278,13 +1294,15 @@ if CGI_CLI.cgi_active:
     elif CGI_CLI.submit_form == 'Submit GW migration precheck':
         result_str = 'PE MIGRATION CONFIGURATION PRECHECK'
         device = copy.deepcopy(ipsec_gw_router)
-        config = '\n'.join(GW_migration_precheck.get('cisco_ios',str()))
-        checklist = checklist_GW_migration_precheck.get('cisco_ios',[])        
+        config = '\n'.join(PE_OLD_migration_precheck.get('cisco_ios',str()))
+        checklist = checklist_PE_OLD_migration_precheck.get('cisco_ios',[])        
         conf = False
-    # elif CGI_CLI.submit_form == 'Submit OLD PE migration precheck':
-        # result_str = 'PE-OLD MIGRATION CONFIGURATION PRECHECK'
-        # device = copy.deepcopy(ipsec_gw_router)
-        # conf = False        
+    elif CGI_CLI.submit_form == 'Submit OLD PE migration precheck':
+        result_str = 'PE-OLD MIGRATION CONFIGURATION PRECHECK'
+        device = copy.deepcopy(old_huawei_router)
+        config = '\n'.join(GW_migration_precheck.get('huawei',str()))
+        checklist = checklist_GW_migration_precheck.get('huawei',[])         
+        conf = False        
     elif CGI_CLI.submit_form == 'Submit PE preparation':
         result_str = 'PE PREPARATION CONFIGURATION COMMIT'
         device = copy.deepcopy(new_pe_router)
@@ -1342,12 +1360,12 @@ if CGI_CLI.cgi_active:
     ### WRITE CONFIG TO ROUTER ######################################################
     iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
 
-    #CGI_CLI.print_args()
+    CGI_CLI.print_args()
     #CGI_CLI.print_env()
-    #CGI_CLI.uprint(data, jsonprint = True, color = 'blue')
-    # CGI_CLI.uprint(config_data, jsonprint = True)     
-    # CGI_CLI.uprint(PE_precheck, name = True, jsonprint = True)
-    # CGI_CLI.uprint(checklist_PE_precheck, name = True, jsonprint = True)
+    CGI_CLI.uprint(data, jsonprint = True, color = 'blue')
+    CGI_CLI.uprint(config_data, jsonprint = True)     
+    #CGI_CLI.uprint(PE_precheck, name = True, jsonprint = True)
+    #CGI_CLI.uprint(checklist_PE_precheck, name = True, jsonprint = True)
     CGI_CLI.uprint(str(CGI_CLI.submit_form), tag = 'h1', color = 'blue')
     CGI_CLI.uprint('PE = %s, GW = %s, OLD_PE = %s'%(new_pe_router,ipsec_gw_router,old_huawei_router), tag = 'h3', color = 'black')     
     CGI_CLI.uprint('DEVICE = %s, config_mode(%s) , SERVER = %s'%(device,str(conf),str(iptac_server)), tag = 'h1')    
