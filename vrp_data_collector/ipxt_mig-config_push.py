@@ -1357,21 +1357,25 @@ if CGI_CLI.cgi_active:
     else:
         CGI_CLI.uprint('SUBMIT (%s) BUTTON NOT RECOGNIZED!' % (CGI_CLI.submit_form),tag = 'h1', color = 'red')
         sys.exit(0)
+
+    if not config:
+        CGI_CLI.uprint('VOID CONFIG!',tag = 'h1', color = 'red')
+        sys.exit(0)        
         
     ### WRITE CONFIG TO ROUTER ######################################################
     iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
 
     #CGI_CLI.print_args()
     #CGI_CLI.print_env()
-    CGI_CLI.uprint(data, jsonprint = True, color = 'blue')
+    CGI_CLI.uprint(data, name = 'data', jsonprint = True, color = 'blue')
     #CGI_CLI.uprint(config_data, jsonprint = True)     
     #CGI_CLI.uprint(PE_precheck, name = True, jsonprint = True)
     #CGI_CLI.uprint(checklist_PE_precheck, name = True, jsonprint = True)
     CGI_CLI.uprint(str(CGI_CLI.submit_form), tag = 'h1', color = 'blue')
     CGI_CLI.uprint('PE = %s, GW = %s, OLD_PE = %s'%(new_pe_router,ipsec_gw_router,old_huawei_router), tag = 'h3', color = 'black')     
     CGI_CLI.uprint('DEVICE = %s, config_mode(%s) , SERVER = %s'%(device,str(conf),str(iptac_server)), tag = 'h1')    
-    CGI_CLI.uprint('\nCONFIG:\n------------\n\n%s'%(config))
-
+    CGI_CLI.uprint('\nCONFIG:\n',tag = 'h2', color = 'blue')
+    CGI_CLI.uprint('%s\n'%(config))
 
     ### TEST_ONLY DELETION FROM CONFIG    
     if iptac_server == 'iptac5' and conf == True: config = config.replace('flow ipv4 monitor ICX sampler ICX ingress','')
@@ -1389,11 +1393,14 @@ if CGI_CLI.cgi_active:
     }
 
     if device:
+        CGI_CLI.uprint('\nDEVICE %s COMMUNICATION:\n\n'%(device),tag = 'h2', color = 'blue')
         rcmd_outputs = RCMD.connect(device = device, cmd_data = splitted_config, \
             username = CGI_CLI.username, password = CGI_CLI.password, conf = conf)
         CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'blue')         
         RCMD.disconnect()
         
+        CGI_CLI.uprint('\nRESULTS:\n',tag = 'h1', color = 'blue')
+
         config_problem = False
         if conf:
             for rcms_output in rcmd_outputs: 
