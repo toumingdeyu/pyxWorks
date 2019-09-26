@@ -567,8 +567,9 @@ class RCMD(object):
         timeout_counter, timeout_counter2 = 0, 0
         # FLUSH BUFFERS FROM PREVIOUS COMMANDS IF THEY ARE ALREADY BUFFERD
         if chan.recv_ready(): flush_buffer = chan.recv(9999)
+        time.sleep(0.1)
         chan.send(send_data + '\n')
-        time.sleep(0.3)
+        time.sleep(0.2)
         while not exit_loop:
             if chan.recv_ready():
                 # workarround for discontious outputs from routers
@@ -1367,10 +1368,12 @@ if CGI_CLI.cgi_active:
 
     #CGI_CLI.print_args()
     #CGI_CLI.print_env()
-    CGI_CLI.uprint(data, name = 'data', jsonprint = True, color = 'blue')
+    #CGI_CLI.uprint(data, name = 'data', jsonprint = True, color = 'blue')
     #CGI_CLI.uprint(config_data, jsonprint = True)     
     #CGI_CLI.uprint(PE_precheck, name = True, jsonprint = True)
     #CGI_CLI.uprint(checklist_PE_precheck, name = True, jsonprint = True)
+    
+    CGI_CLI.uprint('session_id = ' + data['cgi_data'].get('session_id',''))
     CGI_CLI.uprint(str(CGI_CLI.submit_form), tag = 'h1', color = 'blue')
     CGI_CLI.uprint('PE = %s, GW = %s, OLD_PE = %s'%(new_pe_router,ipsec_gw_router,old_huawei_router), tag = 'h3', color = 'black')     
     CGI_CLI.uprint('DEVICE = %s, config_mode(%s) , SERVER = %s'%(device,str(conf),str(iptac_server)), tag = 'h1')    
