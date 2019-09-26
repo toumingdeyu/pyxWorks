@@ -1356,6 +1356,7 @@ def generate_preparation_PE_router_config(dict_data = None):
 PE_migration_bgp_config_templ = """!
 router bgp 2300
  neighbor-group ${cgi_data.get('vpn','UNKNOWN')}
+  address-family ipv4 unicast
   route-policy ${cgi_data.get('vpn','UNKNOWN')}-IN in 
   route-policy PASS-ALL out
  !
@@ -1468,6 +1469,7 @@ def generate_undo_preparation_GW_config(dict_data = None):
 undo_migration_PE_undo_templ = """!
 router bgp 2300
 neighbor-group ${cgi_data.get('vpn','UNKNOWN')}
+address-family ipv4 unicast
 route-policy DENY-ALL in
 route-policy DENY-ALL out
 !
