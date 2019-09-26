@@ -1295,14 +1295,14 @@ if CGI_CLI.cgi_active:
     elif CGI_CLI.submit_form == 'Submit GW migration precheck':
         result_str = 'PE MIGRATION CONFIGURATION PRECHECK'
         device = copy.deepcopy(ipsec_gw_router)
-        config = '\n'.join(PE_OLD_migration_precheck.get('cisco_ios',str()))
-        checklist = checklist_PE_OLD_migration_precheck.get('cisco_ios',[])        
+        config = '\n'.join(GW_migration_precheck.get('cisco_ios',str()))
+        checklist = checklist_GW_migration_precheck.get('cisco_ios',[])       
         conf = False
     elif CGI_CLI.submit_form == 'Submit OLD PE migration precheck':
         result_str = 'PE-OLD MIGRATION CONFIGURATION PRECHECK'
-        device = copy.deepcopy(old_huawei_router)
-        config = '\n'.join(GW_migration_precheck.get('huawei',str()))
-        checklist = checklist_GW_migration_precheck.get('huawei',[])         
+        device = copy.deepcopy(old_huawei_router)        
+        config = '\n'.join(PE_OLD_migration_precheck.get('huawei',str()))
+        checklist = checklist_PE_OLD_migration_precheck.get('huawei',[]) 
         conf = False        
     elif CGI_CLI.submit_form == 'Submit PE preparation':
         result_str = 'PE PREPARATION CONFIGURATION COMMIT'
