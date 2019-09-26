@@ -1539,7 +1539,7 @@ no shutdown
 !
 !
 !<% list = cgi_data.get('ipv4-acl','').split(',') %>
-ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 0.0.0.0 0.0.0.0 ${''.join([ str(item.get('ipsec_int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('pe-ip-address','UNKNOWN')} 
+no ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 0.0.0.0 0.0.0.0 ${''.join([ str(item.get('ipsec_int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('pe-ip-address','UNKNOWN')} 
 % for i in range(int(len(list)/2)):
 <%
 input_mask = cgi_data.get('ipv4-acl','').split(',')[2*i+1]
@@ -1574,7 +1574,7 @@ def generate_undo_migration_GW_config(dict_data = None):
 
 
 ###############################################################################
-### UNDO MIGRATION GW
+### UNDO MIGRATION OLD PE
 ###############################################################################
 
 undo_migration_OLD_PE_undo_templ = """!
