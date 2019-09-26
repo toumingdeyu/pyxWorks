@@ -423,7 +423,7 @@ class RCMD(object):
                         elif RCMD.router_type=='cisco_xr': conf_output = RCMD.run_command('config t')
                         elif RCMD.router_type=='juniper': conf_output = RCMD.run_command('configure')
                         elif RCMD.router_type=='huawei': conf_output = RCMD.run_command('system-view')
-                    if conf_output: command_outputs.append('CONFIG: ' + conf_output)    
+                    if conf_output: command_outputs.append(conf_output)    
                     ### PROCESS COMMANDS #######################################
                     for cmd_line in cmd_list:
                         command_outputs.append(RCMD.run_command(cmd_line))
