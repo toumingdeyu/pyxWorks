@@ -1251,21 +1251,22 @@ if CGI_CLI.cgi_active:
     checklist_GW_migration_precheck = {'cisco_ios':[\
         {'not_in':'ip route vrf LOCAL.%s' % (data['ipxt_data_collector'].get('vlan_id','UNKNOWN'))},
         ]}         
+ 
 
     PE_OLD_migration_precheck = {'huawei':[
-        'display interface GigabitEthernet2/0/0.117'
+        'display interface %s' % (data['ipxt_data_collector'].get('old_pe_interface','UNKNOWN'))
         ]}
         
     checklist_PE_OLD_migration_precheck = {'huawei':[
-        {'not_in':'GigabitEthernet2/0/0.117 current state : Administratively DOWN'},
+        {'not_in':'%s current state : Administratively DOWN' % (data['ipxt_data_collector'].get('old_pe_interface','UNKNOWN'))},
         ]} 
 
     PE_OLD_migration_postcheck = {'huawei':[
-        'display interface GigabitEthernet2/0/0.117'
+        'display interface %s' % (data['ipxt_data_collector'].get('old_pe_interface','UNKNOWN'))
         ]}
         
     checklist_PE_OLD_migration_postcheck = {'huawei':[
-        {'contains':'GigabitEthernet2/0/0.117 current state : Administratively DOWN'},
+        {'contains':'%s current state : Administratively DOWN' % (data['ipxt_data_collector'].get('old_pe_interface','UNKNOWN'))},
         ]} 
         
     device, conf ,config, result_str, checklist = str(), None, str(), str(), str()    
