@@ -1361,10 +1361,10 @@ if CGI_CLI.cgi_active:
     ### WRITE CONFIG TO ROUTER ######################################################
     iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
 
-    CGI_CLI.print_args()
+    #CGI_CLI.print_args()
     #CGI_CLI.print_env()
     CGI_CLI.uprint(data, jsonprint = True, color = 'blue')
-    CGI_CLI.uprint(config_data, jsonprint = True)     
+    #CGI_CLI.uprint(config_data, jsonprint = True)     
     #CGI_CLI.uprint(PE_precheck, name = True, jsonprint = True)
     #CGI_CLI.uprint(checklist_PE_precheck, name = True, jsonprint = True)
     CGI_CLI.uprint(str(CGI_CLI.submit_form), tag = 'h1', color = 'blue')
