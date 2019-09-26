@@ -528,11 +528,11 @@ class RCMD(object):
                         elif RCMD.router_type=='cisco_xr': commit_output = RCMD.run_command('commit')
                         elif RCMD.router_type=='juniper': commit_output = RCMD.run_command('commit')
                         elif RCMD.router_type=='huawei': commit_output = RCMD.run_command('save')
-                        if commit_output: command_outputs.append('COMMIT: ' + commit_output)
+                        if commit_output: command_outputs.append(commit_output)
                         if 'Failed to commit' in commit_output:
                             if RCMD.router_type=='cisco_xr': 
                                 failed_output = RCMD.run_command('show configuration failed'),
-                                command_outputs.append('FAILED_COMMIT: ' + failed_output)
+                                command_outputs.append(failed_output)
                                 #show commit changes diff
                                 #commit show-error
                         ### EXIT SECTION ---------------------------------------
