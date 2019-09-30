@@ -1,0 +1,45 @@
+{
+  "customer_name": "Tyntec", 
+  "device_name": "auvpe3", 
+  "interface_number": "3/1/2", 
+  "vrf_name": "IPXT.Tyntec", 
+  "rd": "0.0.0.128:1501", 
+  "rt_import": [
+    "2300:9005", 
+    "2300:9001"
+  ], 
+  "rt_export": [
+    "2300:9006", 
+    "2300:9001"
+  ], 
+  "vlan_id": "65", 
+  "circuit_id": "LD012394", 
+  "ip_address": "172.25.10.24", 
+  "mask": "255.255.255.254", 
+  "ip_address_customer": "172.25.10.25", 
+  "peer_as": "2300", 
+  "peer_address": "172.25.10.25", 
+  "contract_band_width": "10", 
+  "customer_prefixes_v4": [
+    {
+      "customer_prefix_v4": "172.25.10.25", 
+      "customer_subnetmask_v4": "0"
+    }, 
+    {
+      "customer_prefix_v4": "78.110.224.70", 
+      "customer_subnetmask_v4": "0"
+    }, 
+    {
+      "customer_prefix_v4": "178.23.31.16", 
+      "customer_subnetmask_v4": "0"
+    }, 
+    {
+      "customer_prefix_v4": "178.23.31.128", 
+      "customer_subnetmask_v4": "0.0.0.127"
+    }, 
+    {
+      "customer_prefix_v4": "78.110.239.128", 
+      "customer_subnetmask_v4": "0.0.0.127"
+    }
+  ]
+}
