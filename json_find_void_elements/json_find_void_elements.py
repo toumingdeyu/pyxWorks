@@ -1,7 +1,7 @@
 ﻿#!/usr/bin/python
 
 import json, collections, six, sys, os
-from cerberus import Validator
+#from cerberus import Validator
 
 
 json_str = """
@@ -70,7 +70,7 @@ def load_json(path, file_name, dict = None):
 
 
 ### GET_XPATH_FROM_XMLSTRING ===================================================
-def get_void_json_elements(json_data):
+def get_void_json_elements(json_data, ignore_void_strings = None, ignore_void_lists = None):
     """
     FUNCTION: get_void_json_elements()
     parameters: json_data   - data structure
@@ -102,7 +102,9 @@ def get_void_json_elements(json_data):
     references.append(('',json_data))
     while len(references)>0:
         add_references=get_dictionary_subreferences(references[0])
-        if '="None"' in references[0][0] or '=""' in references[0][0] or '=[]' in references[0][0]:
+        if '="None"' in references[0][0]\
+            or not ignore_void_strings and '=""' in references[0][0]\
+            or not ignore_void_lists and '=[]' in references[0][0]:
             xpath_list.append(references[0][0])
         references.remove(references[0])
         references=add_references+references
