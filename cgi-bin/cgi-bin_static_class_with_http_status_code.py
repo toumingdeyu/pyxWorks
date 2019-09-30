@@ -263,10 +263,9 @@ class CGI_CLI(object):
                         (data_item.get('checkbox'),data_item.get('checkbox','').replace('_',' ')))
                 elif data_item.get('dropdown'):
                     if len(data_item.get('dropdown').split(','))>0:
-                        #CGI_CLI.buffprint('<select name = "dropdown[%s]">'%(data_item.get('dropdown','').replace(',','!')))
-                        CGI_CLI.buffprint('<select name = "dropdown">')
+                        CGI_CLI.buffprint('<select name = "dropdown[%s]">'%(data_item.get('dropdown','')))
                         for option in data_item.get('dropdown').split(','):
-                            CGI_CLI.buffprint('<option value = "%s">%s</option>')%(option,option)
+                            CGI_CLI.buffprint('<option value = "%s">%s</option>'%(option,option))
                         CGI_CLI.buffprint('</select>')
                 elif data_item.get('file'):
                    CGI_CLI.buffprint('Upload file: <input type = "file" name = "file[%s]" />'%(data_item.get('file').replace('\\','/')))  
@@ -382,6 +381,8 @@ CGI_CLI.print_env()
 
 CGI_CLI.formprint([{'text':'email_address'},'<br/>',{'textcontent':'email_body'},'<br/>',{'file':'/var/www/cgi-bin/file_1'},'<br/>',{'checkbox':'aa_ss'},{'radio':'iii_ddd'},{'submit':'YES'},{'submit':'NO'}], submit_button = 'Send_Email', pyfile = None, tag = None, color = None)
 
+CGI_CLI.formprint([{'text':'eemail_address'},'<br/>',{'textcontent':'email_body'},'<br/>',{'file':'/var/www/cgi-bin/file_1'},'<br/>',{'checkbox':'aa_ss'},{'radio':'iii_ddd'},{'dropdown':'aa,bb,cc'},{'submit':'YES'},{'submit':'NO'}], submit_button = 'Send_Email', pyfile = None, tag = None, color = None)
+
 ### DROPDOWN MENU DOES HTTP500 :(
 ###CGI_CLI.formprint([{'dropdown':'aa,bb,cc_cc'}])
 
@@ -389,5 +390,5 @@ CGI_CLI.formprint([{'text':'email_address'},'<br/>',{'textcontent':'email_body'}
 
 CGI_CLI.set_http_status_code(333)
 
-
+CGI_CLI.formprint([{'raw':'<select name = "dropdown"><option value = "Maths" selected>Maths</option><option value = "Physics">Physics</option></select>'}])
 
