@@ -255,7 +255,7 @@ class CGI_CLI(object):
                 elif data_item.get('dropdown'):
                     print('<select name = "dropdown[%s]">'%(data_item.get('dropdown')))
                     for option in data_item.get('dropdown').split(','):
-                        print('<option value = "%s" selected>%s</option>')%(option,option)
+                        print('<option value = "%s" selected>%s</option>'%(option,option))
                     print('</select>')
                 elif data_item.get('file'):
                    print('Upload file: <input type = "file" name = "file[%s]" />'%(data_item.get('file').replace('\\','/')))  
