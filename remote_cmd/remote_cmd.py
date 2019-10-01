@@ -473,7 +473,6 @@ class RCMD(object):
         cmd_line - string, DETECTED DEVICE TYPE DEPENDENT
         """
         last_output, sim_mark = str(), str()
-        if not printall: printall = RCMD.printall
         if RCMD.ssh_connection and cmd_line:
             if (sim_config or RCMD.sim_config) and (conf or RCMD.conf): sim_mark = '(SIM)'
             else:
@@ -483,6 +482,9 @@ class RCMD(object):
                     last_output, new_prompt = RCMD.ssh_send_command_and_read_output( \
                         RCMD.ssh_connection, RCMD.DEVICE_PROMPTS, cmd_line, printall = printall)
                     if new_prompt: RCMD.DEVICE_PROMPTS.append(new_prompt)
+            if printall or RCMD.printall: 
+                CGI_CLI.uprint('REMOTE_COMMAND' + sim_mark + ': ' + cmd_line, color = 'blue')
+                CGI_CLI.uprint(last_output, color = 'gray')                
             if RCMD.fp: RCMD.fp.write('REMOTE_COMMAND' + sim_mark + ': ' + cmd_line + '\n' + last_output + '\n')    
         return last_output 
 
@@ -496,8 +498,6 @@ class RCMD(object):
         conf     - True/False, go to config mode        
         """
         command_outputs = str()
-        if not printall: printall = RCMD.printall
-
         if cmd_data and isinstance(cmd_data, (dict,collections.OrderedDict)):
             if RCMD.router_type=='cisco_ios': cmd_list = cmd_data.get('cisco_ios',[])
             elif RCMD.router_type=='cisco_xr': cmd_list = cmd_data.get('cisco_xr',[])
@@ -516,43 +516,61 @@ class RCMD(object):
             with open(RCMD.logfilename,"a+") as RCMD.fp:
                 if RCMD.output: RCMD.fp.write(RCMD.output)
                 command_outputs, sim_mark = [], str()
-                ### CONFIG MODE FOR NETMIKO ################################
+                ### CONFIG MODE FOR NETMIKO ####################################
                 if (conf or RCMD.conf) and RCMD.use_module == 'netmiko':
                     if (sim_config or RCMD.sim_config): sim_mark, last_output = '(SIM)', str()
-                    else:                    
+                    else:
+                        ### PROCESS COMMANDS - PER COMMAND LIST! ###############                    
                         last_output = RCMD.ssh_connection.send_config_set(cmd_list)
-                        if RCMD.fp: RCMD.fp.write('REMOTE_COMMANDS' + sim_mark + ': ' + cmd_line + '\n' + str(last_output) + '\n')
-                else:    
+                        if printall or RCMD.printall: 
+                            CGI_CLI.uprint('REMOTE_COMMAND' + sim_mark + ': ' + str(cmd_list), color = 'blue')
+                            CGI_CLI.uprint(str(last_output), color = 'gray')       
+                        if RCMD.fp: RCMD.fp.write('REMOTE_COMMANDS' + sim_mark + ': ' \
+                            + str(cmd_list) + '\n' + str(last_output) + '\n')
+                elif RCMD.use_module == 'paramiko':    
                     ### CONFIG MODE FOR PARAMIKO ###############################
                     conf_output = ''                    
                     if (conf or RCMD.conf) and RCMD.use_module == 'paramiko':    
-                        if RCMD.router_type=='cisco_ios': conf_output = RCMD.run_command('config t', conf = conf, sim_config = sim_config)
-                        elif RCMD.router_type=='cisco_xr': conf_output = RCMD.run_command('config t', conf = conf, sim_config = sim_config)
-                        elif RCMD.router_type=='juniper': conf_output = RCMD.run_command('configure', conf = conf, sim_config = sim_config)
-                        elif RCMD.router_type=='huawei': conf_output = RCMD.run_command('system-view', conf = conf, sim_config = sim_config)
+                        if RCMD.router_type=='cisco_ios': conf_output = RCMD.run_command('config t', \
+                            conf = conf, sim_config = sim_config, printall = printall)
+                        elif RCMD.router_type=='cisco_xr': conf_output = RCMD.run_command('config t', \
+                            conf = conf, sim_config = sim_config, printall = printall)
+                        elif RCMD.router_type=='juniper': conf_output = RCMD.run_command('configure', \
+                            conf = conf, sim_config = sim_config , printall = printall)
+                        elif RCMD.router_type=='huawei': conf_output = RCMD.run_command('system-view', \
+                            conf = conf, sim_config = sim_config, printall = printall)
                     if conf_output: command_outputs.append(conf_output)    
-                    ### PROCESS COMMANDS #######################################
+                    ### PROCESS COMMANDS - PER COMMAND #########################
                     for cmd_line in cmd_list:
-                        command_outputs.append(RCMD.run_command(cmd_line, conf = conf, sim_config = sim_config))
+                        command_outputs.append(RCMD.run_command(cmd_line, \
+                            conf = conf, sim_config = sim_config, printall = printall))
                     ### EXIT FROM CONFIG MODE FOR PARAMIKO #####################    
                     if (conf or RCMD.conf) and RCMD.use_module == 'paramiko':
                         ### COMMIT SECTION -------------------------------------
                         commit_output = ""                    
                         if RCMD.router_type=='cisco_ios': pass
-                        elif RCMD.router_type=='cisco_xr': commit_output = RCMD.run_command('commit', conf = conf, sim_config = sim_config)
-                        elif RCMD.router_type=='juniper': commit_output = RCMD.run_command('commit', conf = conf, sim_config = sim_config)
-                        elif RCMD.router_type=='huawei': commit_output = RCMD.run_command('save', conf = conf, sim_config = sim_config)
+                        elif RCMD.router_type=='cisco_xr': commit_output = RCMD.run_command('commit', \
+                            conf = conf, sim_config = sim_config, printall = printall)
+                        elif RCMD.router_type=='juniper': commit_output = RCMD.run_command('commit', \
+                            conf = conf, sim_config = sim_config, printall = printall)
+                        elif RCMD.router_type=='huawei': commit_output = RCMD.run_command('save', \
+                            conf = conf, sim_config = sim_config, printall = printall)
                         if commit_output: command_outputs.append(commit_output)
                         if 'Failed to commit' in commit_output:
                             if RCMD.router_type=='cisco_xr': 
-                                failed_output = RCMD.run_command('show configuration failed', conf = conf, sim_config = sim_config),
+                                failed_output = RCMD.run_command('show configuration failed', \
+                                    conf = conf, sim_config = sim_config, printall = printall),
                                 command_outputs.append(failed_output)
                                 ### ALTERNATIVE COMMANDS: show commit changes diff, commit show-error
                         ### EXIT SECTION ---------------------------------------
-                        if RCMD.router_type=='cisco_ios': RCMD.run_command('exit') 
-                        elif RCMD.router_type=='cisco_xr': RCMD.run_command('exit')
-                        elif RCMD.router_type=='juniper': RCMD.run_command('exit')
-                        elif RCMD.router_type=='huawei': RCMD.run_command('return')                   
+                        if RCMD.router_type=='cisco_ios': RCMD.run_command('exit', \
+                            conf = conf, sim_config = sim_config, printall = printall) 
+                        elif RCMD.router_type=='cisco_xr': RCMD.run_command('exit', \
+                            conf = conf, sim_config = sim_config, printall = printall)
+                        elif RCMD.router_type=='juniper': RCMD.run_command('exit', \
+                            conf = conf, sim_config = sim_config, printall = printall)
+                        elif RCMD.router_type=='huawei': RCMD.run_command('return', \
+                            conf = conf, sim_config = sim_config, printall = printall)                   
         return command_outputs                   
 
     @staticmethod
@@ -893,10 +911,10 @@ lcmd_data2 = {
 # PASSWORD = 'paiiUNDO'
 
 if device:
-    rcmd_outputs = RCMD.connect(device, username = USERNAME, password = PASSWORD)
-    CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'blue')
-    rcmd_outputs = RCMD.run_commands(rcmd_data1, conf = None, sim_config = None)
-    CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'red')
+    rcmd_outputs = RCMD.connect(device, rcmd_data1, username = USERNAME, password = PASSWORD, printall = True)
+    #CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'blue')
+    rcmd_outputs = RCMD.run_commands(rcmd_data1, conf = True, sim_config = True, printall = True)
+    #CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'red')
     RCMD.disconnect()
 
 # if gw_device:
