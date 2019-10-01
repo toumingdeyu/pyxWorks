@@ -867,7 +867,8 @@ class LCMD(object):
             with open(logfilename,"a+") as LCMD.fp:
                 try:
                     if '=' in cmd_data:
-                        cmd_ex_data = 'try: %s = %s \nexcept: %s = None' % (cmd_data.split('=')[0].strip(),\
+                        cmd_ex_data = 'global %s\ntry: %s = %s \nexcept: %s = None' % \
+                            (cmd_data.split('=')[0].strip().split('[')[0],cmd_data.split('=')[0].strip(), \
                             cmd_data.split('=')[1].strip(), cmd_data.split('=')[0].strip())
                     else: cmd_ex_data = cmd_data   
                     if printall: CGI_CLI.uprint("EXEC: \n%s" % (cmd_ex_data))
@@ -977,6 +978,9 @@ LCMD.exec_command('try: b = b + 1 \nexcept: b = None', printall = True)
 LCMD.eval_command('b',printall = True)
 
 LCMD.exec_command('b = b + 1', printall = True)
+LCMD.eval_command('b',printall = True)
+
+exec('b = b + 1')
 LCMD.eval_command('b',printall = True)
 
 #CGI_CLI.uprint(CGI_CLI.args, jsonprint=True)
