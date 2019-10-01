@@ -23,10 +23,18 @@ import requests
 
 class CGI_CLI(object):
     """
-    CGI_handle - Simple statis class for handling CGI parameters and 
-                 clean (debug) printing to HTML/CLI    
-       Notes:  - In case of cgi_parameters_error - http[500] is raised, 
-                 but at least no appache timeout occurs...
+    class CGI_handle - Simple statis class for handling CGI parameters and 
+                       clean (debug) printing to HTML/CLI    
+    NOTES:  
+    - In case of cgi_parameters_error - http[500] is raised, 
+      but at least no appache timeout occurs...
+    - CGI_CLI.init_cgi(os_environ_set) - (=None/False) php/ajax bug workarround, 
+                                       - (=True) http500 cgi.FieldStorage() workarround        
+    INTERFACE FUNCTIONS:  
+    CGI_CLI.init_cgi() - init CGI_CLI class
+    CGI_CLI.print_args(), CGI_CLI.print_env() - debug printing
+    CGI_CLI.uprint() - printing CLI/HTML text 
+    CGI_CLI.formprint() - printing of HTML forms
     """ 
     # import collections, cgi, six
     # import cgitb; cgitb.enable()
@@ -54,14 +62,14 @@ class CGI_CLI(object):
         parser.add_argument("--getpass",
                             action = "store_true", dest = 'getpass', default = None,
                             help = "insert router password interactively getpass.getpass()")                                                        
-        parser.add_argument("--pe_device",
-                            action = "store", dest = 'pe_device',
-                            default = str(),
-                            help = "target pe router to check")
-        parser.add_argument("--gw_device",
-                            action = "store", dest = 'gw_device',
-                            default = str(),
-                            help = "target gw router to check")                    
+        # parser.add_argument("--pe_device",
+                            # action = "store", dest = 'pe_device',
+                            # default = str(),
+                            # help = "target pe router to check")
+        # parser.add_argument("--gw_device",
+                            # action = "store", dest = 'gw_device',
+                            # default = str(),
+                            # help = "target gw router to check")                    
         args = parser.parse_args()
         return args
     
@@ -79,15 +87,34 @@ class CGI_CLI(object):
         if not 'atexit' in sys.modules: import atexit; atexit.register(CGI_CLI.__cleanup__)
 
     @staticmethod
-    def init_cgi(interaction = None):
+    def init_cgi(interaction = None, os_environ_set = None):
+        """ os_environ_set - (=None/False) php/ajax bug workarround, 
+                             (=True) - http500 cgi.FieldStorage() workarround
+        """
         CGI_CLI.START_EPOCH = time.time()
         CGI_CLI.initialized = True 
         CGI_CLI.data, CGI_CLI.submit_form, CGI_CLI.username, CGI_CLI.password = \
-            collections.OrderedDict(), '', '', ''   
-        try: form = cgi.FieldStorage()
-        except: 
-            form = collections.OrderedDict()
-            CGI_CLI.cgi_parameters_error = True
+            collections.OrderedDict(), '', '', ''
+        if os_environ_set:    
+            # WORKARROUND FOR VOID QUERY_STRING CAUSING HTTP500
+            CGI_CLI.query_string = dict(os.environ).get('QUERY_STRING','CLI_MODE')
+            if CGI_CLI.query_string != str() or \
+                ('?' in dict(os.environ).get('REQUEST_URI',None) and \
+                '=' in dict(os.environ).get('REQUEST_URI',None)):
+                try: form = cgi.FieldStorage()
+                except:      
+                    form = collections.OrderedDict()
+                    CGI_CLI.cgi_parameters_error = True
+            else:                 
+                form = collections.OrderedDict()
+                CGI_CLI.cgi_active = True
+                CGI_CLI.data = collections.OrderedDict()
+        else:        
+            ## PROBLEM - AJAX DOES NOT FILL VARIABLES QUERY_STRING, REQUEST_URI   
+            try: form = cgi.FieldStorage()
+            except:      
+                form = collections.OrderedDict()
+                CGI_CLI.cgi_parameters_error = True             
         for key in form.keys():
             variable = str(key)
             try: value = str(form.getvalue(variable))
@@ -100,12 +127,16 @@ class CGI_CLI(object):
         if CGI_CLI.submit_form or len(CGI_CLI.data)>0: CGI_CLI.cgi_active = True
         if CGI_CLI.cgi_active:
             if not 'cgitb' in sys.modules: import cgitb; cgitb.enable()        
-            print("Content-type:text/html\n\n")
-            print("<html><head><title>%s</title></head><body>" % 
+            print("Content-type:text/html")
+            #print("Status: %s %s\r\n" % ('222',"afafff"))
+            #print("Retry-After: 300")
+            print("\r\n\r\n<html><head><title>%s</title></head><body>" % 
                 (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit'))
         if not 'atexit' in sys.modules: import atexit; atexit.register(CGI_CLI.__cleanup__)
-        ### GAIN USERNAME AND PASSWORD FROM CGI/CLI
-        CGI_CLI.args = CGI_CLI.cli_parser()               
+        CGI_CLI.args = CGI_CLI.cli_parser()
+        if not CGI_CLI.cgi_active:
+            CGI_CLI.data = vars(CGI_CLI.args) 
+        ### GAIN USERNAME AND PASSWORD FROM CGI/CLI       
         try:    CGI_CLI.PASSWORD        = os.environ['NEWR_PASS']
         except: CGI_CLI.PASSWORD        = str()
         try:    CGI_CLI.USERNAME        = os.environ['NEWR_USER']
@@ -118,26 +149,30 @@ class CGI_CLI(object):
         if CGI_CLI.username: CGI_CLI.USERNAME = CGI_CLI.username
         if CGI_CLI.password: CGI_CLI.PASSWORD = CGI_CLI.password
         if CGI_CLI.cgi_active or 'WIN32' in sys.platform.upper(): bcolors = nocolors
-        CGI_CLI.uprint('USERNAME[%s], PASSWORD[%s]' % (CGI_CLI.USERNAME, 'Yes' if CGI_CLI.PASSWORD else 'No'))        
+        CGI_CLI.remote_addr =  dict(os.environ).get('REMOTE_ADDR','')
+        CGI_CLI.http_user_agent = dict(os.environ).get('HTTP_USER_AGENT','')
+        CGI_CLI.cgi_save_files()        
         return CGI_CLI.USERNAME, CGI_CLI.PASSWORD
 
     @staticmethod 
-    def oprint(text, tag = None):
-        if CGI_CLI.debug: 
-            if CGI_CLI.cgi_active:
-                if tag and 'h' in tag: print('<%s>'%(tag))
-                if tag and 'p' in tag: print('<p>')
-                if isinstance(text, six.string_types): 
-                    text = str(text.replace('\n','<br/>').replace(' ','&nbsp;'))
-                else: text = str(text)   
-            print(text)
-            if CGI_CLI.cgi_active: 
-                print('<br/>');
-                if tag and 'p' in tag: print('</p>')
-                if tag and 'h' in tag: print('</%s>'%(tag))
+    def cgi_save_files():
+        for key in CGI_CLI.data:
+            if 'file[' in key: 
+                filename = key.replace('file[','').replace(']','')
+                if filename:
+                    use_filename = filename.replace('/','\\') if 'WIN32' in sys.platform.upper() else filename
+                    dir_path = os.path.dirname(use_filename)
+                    if os.path.exists(dir_path):
+                        file_content = CGI_CLI.data.get('file[%s]'%(filename),None)
+                        if file_content:
+                            try:                        
+                                with open(use_filename, 'wb') as file:
+                                    file.write(CGI_CLI.data.get('file[%s]'%(filename)))
+                                    CGI_CLI.uprint('The file "' + use_filename + '" was uploaded.')
+                            except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']')   
 
     @staticmethod 
-    def uprint(text, tag = None, color = None, name = None, jsonprint = None):
+    def uprint(text, tag = None, tag_id = None, color = None, name = None, jsonprint = None):
         """NOTE: name parameter could be True or string."""
         print_text, print_name = copy.deepcopy(text), str()
         if CGI_CLI.debug:
@@ -154,17 +189,76 @@ class CGI_CLI(object):
             
             print_text = str(print_text)
             if CGI_CLI.cgi_active:
-                if tag and 'h' in tag: print('<%s%s>'%(tag,' style="color:%s;"'%(color) if color else str()))
-                if color or tag and 'p' in tag: tag = 'p'; print('<p%s>'%(' style="color:%s;"'%(color) if color else str()))
-                if isinstance(print_text, six.string_types): 
+                ### WORKARROUND FOR COLORING OF SIMPLE TEXT
+                if color and not tag: tag = 'p'; 
+                if tag: print('<%s%s%s>'%(tag,' id="%s"'%(tag_id) if tag_id else str(),' style="color:%s;"'%(color) if color else 'black'))
+                if isinstance(print_text, six.string_types):
                     print_text = str(print_text.replace('&','&amp;').replace('<','&lt;'). \
-                        replace('>','&gt;').replace('\n','<br/>').replace(' ','&nbsp;')) 
+                        replace('>','&gt;').replace(' ','&nbsp;').replace('"','&quot;').replace("'",'&apos;').\
+                        replace('\n','<br/>'))
             print(print_name + print_text)
             del print_text
             if CGI_CLI.cgi_active: 
-                print('<br/>');
-                if tag and 'p' in tag: print('</p>')
-                if tag and 'h' in tag: print('</%s>'%(tag))
+                if tag: print('</%s>'%(tag))
+                else: print('<br/>');
+
+    @staticmethod 
+    def formprint(form_data = None, submit_button = None, pyfile = None, tag = None, color = None):
+        """ formprint() - print simple HTML form
+            form_data - string, just html raw OR list or dict values = ['raw','text','checkbox','radio','submit','dropdown','textcontent']
+                      - value in dictionary means cgi variable name / printed componenet value            
+        """
+        def subformprint(data_item):
+            if isinstance(data_item, six.string_types): print(data_item)
+            elif isinstance(data_item, (dict,collections.OrderedDict)):
+                if data_item.get('raw',None): print(data_item.get('raw'))
+                elif data_item.get('textcontent',None): 
+                    print('<textarea type = "textcontent" name = "%s" cols = "40" rows = "4"></textarea>'%\
+                        (data_item.get('textcontent')))
+                elif data_item.get('text'):
+                    print('%s: <input type = "text" name = "%s"><br />'%\
+                        (data_item.get('text','').replace('_',' '),data_item.get('text')))
+                elif data_item.get('radio'):    
+                    print('<input type = "radio" name = "%s" value = "%s" /> %s'%\
+                        (data_item.get('radio'),data_item.get('radio'),data_item.get('radio','').replace('_',' ')))
+                elif data_item.get('checkbox'):
+                    print('<input type = "checkbox" name = "%s" value = "on" /> %s'%\
+                        (data_item.get('checkbox'),data_item.get('checkbox','').replace('_',' ')))
+                elif data_item.get('dropdown'):
+                    print('<select name = "dropdown[%s]">'%(data_item.get('dropdown')))
+                    for option in data_item.get('dropdown').split(','):
+                        print('<option value = "%s" selected>%s</option>'%(option,option))
+                    print('</select>')
+                elif data_item.get('file'):
+                   print('Upload file: <input type = "file" name = "file[%s]" />'%(data_item.get('file').replace('\\','/')))  
+                elif data_item.get('submit'):    
+                    print('<input id = "%s" type = "submit" name = "submit" value = "%s" />'%\
+                        (data_item.get('submit'),data_item.get('submit')))
+
+   
+        ### START OF FORMPRINT ###
+        formtypes = ['raw','text','checkbox','radio','submit','dropdown','textcontent']
+        i_submit_button = None if not submit_button else submit_button
+        if not pyfile: i_pyfile = sys.argv[0]
+        try: i_pyfile = i_pyfile.replace('\\','/').split('/')[-1].strip()
+        except: i_pyfile = i_pyfile.strip()
+        if CGI_CLI.cgi_active:
+            print('<br/>');
+            if tag and 'h' in tag: print('<%s%s>'%(tag,' style="color:%s;"'%(color) if color else str()))
+            if color or tag and 'p' in tag: tag = 'p'; print('<p%s>'%(' style="color:%s;"'%(color) if color else str()))
+            print('<form action = "/cgi-bin/%s" enctype = "multipart/form-data" action = "save_file.py" method = "post">'%\
+                (i_pyfile))
+            ### RAW HTML ###
+            if isinstance(form_data, six.string_types): print(form_data)
+            ### STRUCT FORM DATA = LIST ###
+            elif isinstance(form_data, (list,tuple)):
+                for data_item in form_data: subformprint(data_item)
+            ### JUST ONE DICT ###    
+            elif isinstance(form_data, (dict,collections.OrderedDict)): subformprint(form_data)               
+            if i_submit_button: subformprint({'submit':i_submit_button})
+            print('</form>')
+            if tag and 'p' in tag: print('</p>')
+            if tag and 'h' in tag: print('</%s>'%(tag))
 
     @staticmethod
     def VERSION(path_to_file = str(os.path.abspath(__file__))):
@@ -178,15 +272,23 @@ class CGI_CLI(object):
     @staticmethod
     def print_args():
         from platform import python_version
-        print_string = 'python[%s], ' % (str(python_version()))
-        print_string += 'file[%s], ' % (sys.argv[0])
+        print_string = 'python[%s]\n' % (str(python_version()))
         print_string += 'version[%s], ' % (CGI_CLI.VERSION())
+        print_string += 'file[%s]\n' % (sys.argv[0])
+        print_string += 'CGI_CLI.USERNAME[%s], CGI_CLI.PASSWORD[%s]\n' % (CGI_CLI.USERNAME, 'Yes' if CGI_CLI.PASSWORD else 'No')
+        print_string += 'remote_addr[%s], ' % dict(os.environ).get('REMOTE_ADDR','')
+        print_string += 'browser[%s]\n' % dict(os.environ).get('HTTP_USER_AGENT','')
         if CGI_CLI.cgi_active:
-            try: print_string += 'CGI_args = %s' % (json.dumps(CGI_CLI.data)) 
+            try: print_string += 'CGI_CLI.data[%s] = %s\n' % (str(CGI_CLI.submit_form),str(json.dumps(CGI_CLI.data, indent = 4)))
             except: pass                 
-        else: print_string += 'CLI_args = %s' % (str(sys.argv[1:]))
+        else: print_string += 'CLI_args = %s\nCGI_CLI.data = %s' % (str(sys.argv[1:]), str(json.dumps(CGI_CLI.data,indent = 4)))
         CGI_CLI.uprint(print_string)
         return print_string
+
+    @staticmethod
+    def print_env(jsonprint = None): 
+        if jsonprint: CGI_CLI.uprint(dict(os.environ), name = 'os.environ', jsonprint = True)
+        else: cgi.print_environ()
 
 
 ##############################################################################
@@ -234,7 +336,7 @@ class RCMD(object):
     @staticmethod
     def connect(device = None, cmd_data = None, username = None, password = None, \
         use_module = 'paramiko', logfilename = None, timeout = 60, conf = None, \
-        disconnect = None, printall = None):
+        sim_config = None, disconnect = None, printall = None):
         """ FUNCTION: RCMD.connect(), RETURNS: list of command_outputs
         PARAMETERS:
         device     - string , device_name/ip_address/device_name:PORT_NUMBER/ip_address:PORT_NUMBER 
@@ -267,6 +369,7 @@ class RCMD(object):
             RCMD.printall = printall
             RCMD.router_type = None
             RCMD.conf = conf
+            RCMD.sim_config = sim_config
             RCMD.KNOWN_OS_TYPES = ['cisco_xr', 'cisco_ios', 'juniper', 'juniper_junos', 'huawei' ,'linux']
             try: RCMD.DEVICE_HOST = device.split(':')[0]
             except: RCMD.DEVICE_HOST = str()
@@ -365,24 +468,26 @@ class RCMD(object):
         return command_outputs        
 
     @staticmethod
-    def run_command(cmd_line = None, printall = None):
+    def run_command(cmd_line = None, printall = None, conf = None, sim_config = None):
         """
         cmd_line - string, DETECTED DEVICE TYPE DEPENDENT
         """
-        last_output = str()
+        last_output, sim_mark = str(), str()
         if not printall: printall = RCMD.printall
         if RCMD.ssh_connection and cmd_line:
-            if RCMD.use_module == 'netmiko':
-                last_output = RCMD.ssh_connection.send_command(cmd_line)
-            elif RCMD.use_module == 'paramiko':
-                last_output, new_prompt = RCMD.ssh_send_command_and_read_output( \
-                    RCMD.ssh_connection, RCMD.DEVICE_PROMPTS, cmd_line, printall = printall)
-                if new_prompt: RCMD.DEVICE_PROMPTS.append(new_prompt)
-            if RCMD.fp: RCMD.fp.write('REMOTE_COMMAND: ' + cmd_line + '\n' + last_output + '\n')    
+            if (sim_config or RCMD.sim_config) and (conf or RCMD.conf): sim_mark = '(SIM)'
+            else:
+                if RCMD.use_module == 'netmiko':
+                    last_output = RCMD.ssh_connection.send_command(cmd_line)
+                elif RCMD.use_module == 'paramiko':
+                    last_output, new_prompt = RCMD.ssh_send_command_and_read_output( \
+                        RCMD.ssh_connection, RCMD.DEVICE_PROMPTS, cmd_line, printall = printall)
+                    if new_prompt: RCMD.DEVICE_PROMPTS.append(new_prompt)
+            if RCMD.fp: RCMD.fp.write('REMOTE_COMMAND' + sim_mark + ': ' + cmd_line + '\n' + last_output + '\n')    
         return last_output 
 
     @staticmethod
-    def run_commands(cmd_data = None, printall = None, conf = None):
+    def run_commands(cmd_data = None, printall = None, conf = None, sim_config = None):
         """
         FUNCTION: run_commands(), RETURN: list of command_outputs
         PARAMETERS:
@@ -392,7 +497,6 @@ class RCMD(object):
         """
         command_outputs = str()
         if not printall: printall = RCMD.printall
-        if not conf: conf = RCMD.conf
 
         if cmd_data and isinstance(cmd_data, (dict,collections.OrderedDict)):
             if RCMD.router_type=='cisco_ios': cmd_list = cmd_data.get('cisco_ios',[])
@@ -411,37 +515,39 @@ class RCMD(object):
                 else: RCMD.logfilename = '/dev/null'
             with open(RCMD.logfilename,"a+") as RCMD.fp:
                 if RCMD.output: RCMD.fp.write(RCMD.output)
-                command_outputs = []
+                command_outputs, sim_mark = [], str()
                 ### CONFIG MODE FOR NETMIKO ################################
-                if conf and RCMD.use_module == 'netmiko':                
-                    RCMD.ssh_connection.send_config_set(cmd_list)
+                if (conf or RCMD.conf) and RCMD.use_module == 'netmiko':
+                    if (sim_config or RCMD.sim_config): sim_mark, last_output = '(SIM)', str()
+                    else:                    
+                        last_output = RCMD.ssh_connection.send_config_set(cmd_list)
+                        if RCMD.fp: RCMD.fp.write('REMOTE_COMMANDS' + sim_mark + ': ' + cmd_line + '\n' + str(last_output) + '\n')
                 else:    
                     ### CONFIG MODE FOR PARAMIKO ###############################
                     conf_output = ''                    
-                    if conf and RCMD.use_module == 'paramiko':    
-                        if RCMD.router_type=='cisco_ios': conf_output = RCMD.run_command('config t')
-                        elif RCMD.router_type=='cisco_xr': conf_output = RCMD.run_command('config t')
-                        elif RCMD.router_type=='juniper': conf_output = RCMD.run_command('configure')
-                        elif RCMD.router_type=='huawei': conf_output = RCMD.run_command('system-view')
+                    if (conf or RCMD.conf) and RCMD.use_module == 'paramiko':    
+                        if RCMD.router_type=='cisco_ios': conf_output = RCMD.run_command('config t', conf = conf, sim_config = sim_config)
+                        elif RCMD.router_type=='cisco_xr': conf_output = RCMD.run_command('config t', conf = conf, sim_config = sim_config)
+                        elif RCMD.router_type=='juniper': conf_output = RCMD.run_command('configure', conf = conf, sim_config = sim_config)
+                        elif RCMD.router_type=='huawei': conf_output = RCMD.run_command('system-view', conf = conf, sim_config = sim_config)
                     if conf_output: command_outputs.append(conf_output)    
                     ### PROCESS COMMANDS #######################################
                     for cmd_line in cmd_list:
-                        command_outputs.append(RCMD.run_command(cmd_line))
+                        command_outputs.append(RCMD.run_command(cmd_line), conf = conf, sim_config = sim_config)
                     ### EXIT FROM CONFIG MODE FOR PARAMIKO #####################    
-                    if conf and RCMD.use_module == 'paramiko':
+                    if (conf or RCMD.conf) and RCMD.use_module == 'paramiko':
                         ### COMMIT SECTION -------------------------------------
                         commit_output = ""                    
                         if RCMD.router_type=='cisco_ios': pass
-                        elif RCMD.router_type=='cisco_xr': commit_output = RCMD.run_command('commit')
-                        elif RCMD.router_type=='juniper': commit_output = RCMD.run_command('commit')
-                        elif RCMD.router_type=='huawei': commit_output = RCMD.run_command('save')
+                        elif RCMD.router_type=='cisco_xr': commit_output = RCMD.run_command('commit', conf = conf, sim_config = sim_config)
+                        elif RCMD.router_type=='juniper': commit_output = RCMD.run_command('commit', conf = conf, sim_config = sim_config)
+                        elif RCMD.router_type=='huawei': commit_output = RCMD.run_command('save', conf = conf, sim_config = sim_config)
                         if commit_output: command_outputs.append(commit_output)
                         if 'Failed to commit' in commit_output:
                             if RCMD.router_type=='cisco_xr': 
-                                failed_output = RCMD.run_command('show configuration failed'),
+                                failed_output = RCMD.run_command('show configuration failed', conf = conf, sim_config = sim_config),
                                 command_outputs.append(failed_output)
-                                #show commit changes diff
-                                #commit show-error
+                                ### ALTERNATIVE COMMANDS: show commit changes diff, commit show-error
                         ### EXIT SECTION ---------------------------------------
                         if RCMD.router_type=='cisco_ios': RCMD.run_command('exit') 
                         elif RCMD.router_type=='cisco_xr': RCMD.run_command('exit')
@@ -757,10 +863,10 @@ if CGI_CLI.cgi_active and CGI_CLI.data.get('pe-router',None):
 if CGI_CLI.cgi_active and CGI_CLI.data.get('ipsec-gw-router',None):
     gw_device = CGI_CLI.data.get('ipsec-gw-router',None)
 
-if CGI_CLI.args.pe_device:
+if CGI_CLI.data.get("pe_device"):
     pe_device = CGI_CLI.args.pe_device
 
-if CGI_CLI.args.gw_device:
+if CGI_CLI.data.get("gw_device"):
     pe_device = CGI_CLI.args.gw_device
 
 # cmd_data = {
