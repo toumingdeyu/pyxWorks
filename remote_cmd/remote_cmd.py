@@ -860,6 +860,29 @@ class LCMD(object):
         return None
 
 
+    @staticmethod
+    def exec_command_try_except(cmd_data = None, logfilename = None, printall = None):
+        logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
+        if cmd_data and isinstance(cmd_data, (six.string_types)): 
+            with open(logfilename,"a+") as LCMD.fp:
+                try:
+                    if '=' in cmd_data:
+                        cmd_ex_data = 'try: %s = %s \nexcept: %s = None' % (cmd_data.split('=')[0].strip(),\
+                            cmd_data.split('=')[1].strip(), cmd_data.split('=')[0].strip())
+                    else: cmd_ex_data = cmd_data   
+                    if printall: CGI_CLI.uprint("EXEC: \n%s" % (cmd_ex_data))
+                    LCMD.fp.write('EXEC: \n' + cmd_ex_data + '\n')                    
+                    ### EXEC CODE WORKAROUND for OLD PYTHON v2.7.5                    
+                    edict = {}; eval(compile(cmd_ex_data, '<string>', 'exec'), globals(), edict)                    
+                    #CGI_CLI.uprint("%s" % (eval(cmd_data.split('=')[0].strip())))
+                except Exception as e: 
+                    if printall:CGI_CLI.uprint('EXEC_PROBLEM[' + str(e) + ']')
+                    LCMD.fp.write('EXEC_PROBLEM[' + str(e) + ']\n')                
+        return None
+
+
+
+
             
 ##############################################################################
 #
@@ -928,9 +951,31 @@ if device:
 # LCMD.init(printall = True)
 # LCMD.run_command(lcmd_line)
 # LCMD.run_commands(lcmd_data2)
+LCMD.init(printall = True)
+LCMD.exec_command('CGI_CLI.data["aaaa"] = "aaa"')
+LCMD.eval_command('CGI_CLI.data')
+
+adata = {'xx':'cc'}
+LCMD.exec_command('adata["aaaa"] = "aaa"')
+LCMD.eval_command('adata')
+
+LCMD.exec_command_try_except('adata["bbbb"] = adata["aaa"]')
+LCMD.eval_command('adata')
+
 
 LCMD.eval_command('lcmd_data2')
 LCMD.exec_command('print(lcmd_data2)')
+
+b=-3
+LCMD.exec_command_try_except('b = b + 1', printall = True)
+LCMD.eval_command('b',printall = True)
+
+
+LCMD.exec_command('try: b = b + 1 \nexcept: b = None', printall = True)
+LCMD.eval_command('b',printall = True)
+
+LCMD.exec_command('b = b + 1', printall = True)
+LCMD.eval_command('b',printall = True)
 
 #CGI_CLI.uprint(CGI_CLI.args, jsonprint=True)
 
