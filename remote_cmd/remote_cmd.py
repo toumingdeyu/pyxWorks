@@ -862,6 +862,10 @@ class LCMD(object):
 
     @staticmethod
     def exec_command_try_except(cmd_data = None, logfilename = None, printall = None):
+        """
+        NOTE: This method can access global variable, expects '=' in expression, 
+              in case of except assign value None
+        """
         logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
         if cmd_data and isinstance(cmd_data, (six.string_types)): 
             with open(logfilename,"a+") as LCMD.fp:
