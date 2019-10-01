@@ -533,7 +533,7 @@ class RCMD(object):
                     if conf_output: command_outputs.append(conf_output)    
                     ### PROCESS COMMANDS #######################################
                     for cmd_line in cmd_list:
-                        command_outputs.append(RCMD.run_command(cmd_line), conf = conf, sim_config = sim_config)
+                        command_outputs.append(RCMD.run_command(cmd_line, conf = conf, sim_config = sim_config))
                     ### EXIT FROM CONFIG MODE FOR PARAMIKO #####################    
                     if (conf or RCMD.conf) and RCMD.use_module == 'paramiko':
                         ### COMMIT SECTION -------------------------------------
@@ -855,7 +855,7 @@ CGI_CLI()
 USERNAME, PASSWORD = CGI_CLI.init_cgi()
 CGI_CLI.print_args()
 
-pe_device, gw_device = None, None
+device, pe_device, gw_device = None, None, None
 
 if CGI_CLI.cgi_active and CGI_CLI.data.get('pe-router',None):
     pe_device = CGI_CLI.data.get('pe-router',None)
@@ -863,11 +863,9 @@ if CGI_CLI.cgi_active and CGI_CLI.data.get('pe-router',None):
 if CGI_CLI.cgi_active and CGI_CLI.data.get('ipsec-gw-router',None):
     gw_device = CGI_CLI.data.get('ipsec-gw-router',None)
 
-if CGI_CLI.data.get("pe_device"):
-    pe_device = CGI_CLI.args.pe_device
+if CGI_CLI.data.get("device"):
+    device = CGI_CLI.data.get("device")
 
-if CGI_CLI.data.get("gw_device"):
-    pe_device = CGI_CLI.args.gw_device
 
 # cmd_data = {
     # 'cisco_ios':[],
@@ -894,9 +892,11 @@ lcmd_data2 = {
 # USERNAME = 'iptac' 
 # PASSWORD = 'paiiUNDO'
 
-if pe_device:
-    rcmd_outputs = RCMD.connect(pe_device, rcmd_data1, username = USERNAME, password = PASSWORD)
+if device:
+    rcmd_outputs = RCMD.connect(device, username = USERNAME, password = PASSWORD)
     CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'blue')
+    rcmd_outputs = RCMD.run_commands(rcmd_data1, conf = None, sim_config = None)
+    CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'red')
     RCMD.disconnect()
 
 # if gw_device:
