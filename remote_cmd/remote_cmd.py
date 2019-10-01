@@ -869,7 +869,7 @@ class LCMD(object):
 if __name__ != "__main__": sys.exit(0)
 
 ### CGI-BIN READ FORM ############################################
-CGI_CLI()
+#CGI_CLI()
 USERNAME, PASSWORD = CGI_CLI.init_cgi()
 CGI_CLI.print_args()
 
@@ -911,7 +911,7 @@ lcmd_data2 = {
 # PASSWORD = 'paiiUNDO'
 
 if device:
-    rcmd_outputs = RCMD.connect(device, rcmd_data1, username = USERNAME, password = PASSWORD, printall = True)
+    rcmd_outputs = RCMD.connect(device, rcmd_data1, username = USERNAME, password = PASSWORD)
     #CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'blue')
     rcmd_outputs = RCMD.run_commands(rcmd_data1, conf = True, sim_config = True, printall = True)
     #CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'red')
