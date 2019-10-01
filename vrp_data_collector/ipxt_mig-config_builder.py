@@ -1735,7 +1735,7 @@ data['cgi_data'] = cgi_data
 
 sql_inst = sql_interface(host='localhost', user='cfgbuilder', password='cfgbuildergetdata', database='rtr_configuration')
 data['private_as_test'] = sql_inst.sql_read_records_to_dict_list(from_string = 'private_as_test' , where_string = "cust_name = '%s'" % (cgi_data.get('customer_name','UNKNOWN')))
-data['ipsec_ipxt_table'] = sql_inst.sql_read_records_to_dict_list(from_string = 'ipsec_ipxt_table', where_string = "ipsec_rtr_name = '%s'" % (cgi_data.get('ipsec-gw-router','UNKNOWN')))
+data['ipsec_ipxt_table'] = sql_inst.sql_read_records_to_dict_list(from_string = 'ipsec_ipxt_table_new', where_string = "ipsec_rtr_name = '%s'" % (cgi_data.get('ipsec-gw-router','UNKNOWN')))
 data['ipxt_data_collector'] = sql_inst.sql_read_records_to_dict_list(from_string = 'ipxt_data_collector', where_string = "session_id = '%s'" % (cgi_data.get('session_id','UNKNOWN')))
 
 ### PRINT OF ALL DATA IN STRUCTURE DATA
@@ -1790,6 +1790,16 @@ if data:
     CGI_CLI.uprint('\nOLD PE ROUTER (%s) ROLLBACK-MIGRATION-CONFIG SHUT: \n' %(data['cgi_data'].get('huawei-router','UNKNOWN').upper()), tag = 'h1')
     CGI_CLI.uprint(undo_old_pe_migration_config) 
 
+    
+    # MariaDB [rtr_configuration]> select * from ipsec_ipxt_table_new;
+    # +----+----------------+-----------------+---------------+----------+---------------+
+    # | id | ipsec_rtr_name | loc_tun_addr    | ipsec_int_id  | rtr_name | int_id        |
+    # +----+----------------+-----------------+---------------+----------+---------------+
+    # |  1 | AUVPE6         | 193.251.245.106 | Port-channel1 | AUVPE5   | Bundle-Ether1 |
+    # |  2 | PASPE4         | 193.251.245.107 | Port-channel1 | PASPE3   | Bundle-Ether1 |
+    # |  3 | HKGPE4         | 81.52.185.1     | Port-channel1 | HKGPE6   | Bundle-Ether1 |
+    # |  4 | SINPE5         | 81.52.185.5     | Port-channel1 | SINPE6   | Bundle-Ether1 |
+    # +----+----------------+-----------------+---------------+----------+---------------+ 
      
     # describe ipxt_configurations;
     # +------------------------+--------------+------+-----+---------+----------------+
