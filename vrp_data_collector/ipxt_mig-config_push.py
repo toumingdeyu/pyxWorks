@@ -1175,7 +1175,7 @@ if CGI_CLI.cgi_active:
     try: ipsec_gw_router = data["ipxt_gw_pe"].get('ipsec_gw_router',str())
     except: ipsec_gw_router = str()
 
-    ipsec_ipxt_table_list = sql_inst.sql_read_records_to_dict_list(from_string = 'ipsec_ipxt_table', where_string = "ipsec_rtr_name = '%s'" % (ipsec_gw_router))
+    ipsec_ipxt_table_list = sql_inst.sql_read_records_to_dict_list(from_string = 'ipsec_ipxt_table_new', where_string = "ipsec_rtr_name = '%s'" % (ipsec_gw_router))
     try: data["ipsec_ipxt_table"] = ipsec_ipxt_table_list[0]
     except: data["ipsec_ipxt_table"] = collections.OrderedDict()   
     
