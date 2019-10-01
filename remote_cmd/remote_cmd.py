@@ -966,6 +966,8 @@ LCMD.eval_command('adata')
 LCMD.eval_command('lcmd_data2')
 LCMD.exec_command('print(lcmd_data2)')
 
+
+#BUG: writing to global variable by exec does not work!!!
 b=-3
 LCMD.exec_command_try_except('b = b + 1', printall = True)
 LCMD.eval_command('b',printall = True)
