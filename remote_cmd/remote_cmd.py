@@ -972,13 +972,13 @@ LCMD.eval_command('lcmd_data2')
 LCMD.exec_command('print(lcmd_data2)')
 
 
-#BUG: writing to global variable by exec does not work!!!
+#BUG: writing to global variable by exec does not work without global definition
 b=-3
 LCMD.exec_command_try_except('b = b + 1', printall = True)
 LCMD.eval_command('b',printall = True)
 
 
-LCMD.exec_command('try: b = b + 1 \nexcept: b = None', printall = True)
+LCMD.exec_command('global b\ntry: b = b + 1 \nexcept: b = None', printall = True)
 LCMD.eval_command('b',printall = True)
 
 LCMD.exec_command('b = b + 1', printall = True)
