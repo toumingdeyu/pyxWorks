@@ -59,10 +59,19 @@ class nocolors:
 
 class CGI_CLI(object):
     """
-    CGI_handle - Simple statis class for handling CGI parameters and 
-                 clean (debug) printing to HTML/CLI    
-       Notes:  - In case of cgi_parameters_error - http[500] is raised, 
-                 but at least no appache timeout occurs...
+    class CGI_handle - Simple statis class for handling CGI parameters and 
+                       clean (debug) printing to HTML/CLI    
+    NOTES:  
+    - In case of cgi_parameters_error - http[500] is raised, 
+      but at least no appache timeout occurs...
+    - CGI_CLI.init_cgi(os_environ_set) - (=None/False) php/ajax bug workarround, 
+                                       - (=True) http500 cgi.FieldStorage() workarround        
+    INTERFACE FUNCTIONS:  
+    CGI_CLI.init_cgi() - init CGI_CLI class
+    CGI_CLI.print_args(), CGI_CLI.print_env() - debug printing
+    CGI_CLI.uprint() - printing CLI/HTML text 
+    CGI_CLI.formprint() - printing of HTML forms
+    CGI_CLI.set_http_status_code() - sets return http status code to decimal value
     """ 
     # import collections, cgi, six
     # import cgitb; cgitb.enable()
