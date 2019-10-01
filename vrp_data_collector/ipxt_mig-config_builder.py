@@ -846,14 +846,14 @@ pre_GW_tunnel_interface_templ = """interface Tunnel${cgi_data.get('vlan-id','UNK
  bandwidth ${cgi_data.get('int-bw','UNKNOWN')}000
  vrf forwarding LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
  ip flow monitor ICX sampler ICX input
- ip address 193.251.244.167 255.255.255.254
+ ip address ${''.join([ str(item.get('ip_address','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} 255.255.255.254
  no ip redirects
  no ip proxy-arp
  ip mtu 1420
  logging event link-status
- tunnel source 193.251.245.106
+ tunnel source ${''.join([ str(item.get('loc_tun_addr','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}
  tunnel mode ipsec ipv4
- tunnel destination 78.110.224.70
+ tunnel destination ${cgi_data.get('ipsec-tunnel-dest','UNKNOWN')}
  tunnel protection ipsec profile ${(cgi_data.get('customer_name','UNKNOWN')).upper()}-IPXT
 ! 
 """
@@ -1008,7 +1008,7 @@ GW_migration_tunnel_interface_templ = """interface Tunnel${cgi_data.get('vlan-id
  carrier-delay msec 0
  tunnel source ${''.join([ str(item.get('loc_tun_addr','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}
  tunnel destination ${cgi_data.get('ipsec-tunnel-dest','UNKNOWN')}
- tunnel protection ipsec profile ${cgi_data.get('vpn','UNKNOWN')}
+ tunnel protection ipsec profile ${(cgi_data.get('customer_name','UNKNOWN')).upper()}-IPXT
 !
 """
 
