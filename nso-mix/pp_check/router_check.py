@@ -8,7 +8,7 @@
 # Updated: 23/Mar/2019 -added new custom filediff                             #
 #          25/Mar/2019 -added vrp huawei router type, old/new filediff method #
 #          05/Apr/2019 -autod. all, new commands, new filtering, new colours  #
-#          02/Oct/2019 -vp acl filter, ignore twice tolerance                 # 
+#          02/Oct/2019 -acl filter all types, ignore twice tolerance          # 
 # TODO:                                                                       #
 # Description: Script to collect and compare output from a router before      #
 # and after a configuration change or maintenance to outline router change    #
@@ -324,7 +324,7 @@ CMD_JUNOS = [
                    ['Peer:'], [], [], False, 3),
             ('show configuration firewall',
                    'ndiff0', [], [],
-                   ['filter', 'term', 'from', 'then', 'source', 'destination', '}'], [], [], False),                   
+                   ['filter', 'term', 'from', 'then', 'source', 'destination', '{', '}'], [], [], False),                   
 #             ('show interfaces detail | match "Physical interface|Last flapped| bps"',
 #                    'ndiff0',['Administratively down'], [],
 #                    ['Physical interface:'], [], [0,1,2,3,4], False)
