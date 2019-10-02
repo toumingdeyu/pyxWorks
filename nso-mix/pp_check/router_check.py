@@ -8,7 +8,8 @@
 # Updated: 23/Mar/2019 -added new custom filediff                             #
 #          25/Mar/2019 -added vrp huawei router type, old/new filediff method #
 #          05/Apr/2019 -autod. all, new commands, new filtering, new colours  #
-# TODO: huawei vrp autodetect                                                 #
+#          02/Oct/2019 -vp acl filter, ignore twice tolerance                 # 
+# TODO:                                                                       #
 # Description: Script to collect and compare output from a router before      #
 # and after a configuration change or maintenance to outline router change    #
 # status                                                                      #
@@ -342,8 +343,8 @@ CMD_VRP = [
                       'ndiff0', [], [],
                       [], [], [], False),
             ("display acl all",
-                      'ndiff0', [], [' 0 times matched'],
-                      [], [], [0,1,2,3,4,5], False),
+                      'ndiff0', [], [],
+                      [], [], [0,2,3,4,5], False),
             ("display alarm all",
                       'ndiff0', [], [],
                       [], [], [], False),
@@ -597,7 +598,8 @@ def get_difference_string_from_string_or_list(
     print_equallines = None, \
     tolerance_percentage = None, \
     debug = None, \
-    note = True ):
+    note = True,
+    use_twice_tolerance_for_small_values = None ):
     '''
     FUNCTION get_difference_string_from_string_or_list:
     INPUT PARAMETERS:
@@ -611,6 +613,7 @@ def get_difference_string_from_string_or_list(
       - COMPARE_COLUMNS - list of columns which are intended to be different , other columns in line are ignored
       - PRINT_EQUALLINES - True/False prints all equal new file lines with '=' prefix , by default is False
       - TOLERANCE_PERCENTAGE - All numbers/selected columns in line with % tolerance. String columns must be equal.
+      - USE_TWICE_TOLERANCE_FOR_SMALL_VALUES - By default it is off , it slows down check performance
       - DEBUG - True/False, prints debug info to stdout, by default is False
       - NOTE - True/False, prints info header to stdout, by default is True
     RETURNS: string with file differencies , all_ok [True/False]
@@ -723,11 +726,11 @@ def get_difference_string_from_string_or_list(
                     try: column_is_number = float(split_column.replace(',','').replace('%','').replace('(',''))
                     except: column_is_number = None
                     if column_is_number and next_column_is_number and tolerance_percentage:
-                        if column_is_number>100:
+                        if not use_twice_tolerance_for_small_values or column_is_number>100:
                             if column_is_number <= next_column_is_number * ((100 + float(tolerance_percentage))/100)\
                                 and column_is_number >= next_column_is_number * ((100 - float(tolerance_percentage))/100):
                                     columns_are_equal += 1
-                        ### FOR SMALL VALUES UP to 100 , use TWICE TOLERANCE_PERCENTAGE
+                        ### FOR SMALL VALUES UP to 100 , use TWICE TOLERANCE_PERCENTAGE - SLOW!!!
                         else:
                             if column_is_number <= next_column_is_number * ((100 + float(2 * tolerance_percentage))/100)\
                                 and column_is_number >= next_column_is_number * ((100 - float(2 * tolerance_percentage))/100):
