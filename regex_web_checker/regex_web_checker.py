@@ -260,8 +260,8 @@ class CGI_CLI(object):
             elif isinstance(data_item, (dict,collections.OrderedDict)):
                 if data_item.get('raw',None): CGI_CLI.buffprint(data_item.get('raw'))
                 elif data_item.get('textcontent',None): 
-                    CGI_CLI.buffprint('<textarea type = "textcontent" name = "%s" cols = "40" rows = "4"></textarea>'%\
-                        (data_item.get('textcontent')))
+                    CGI_CLI.buffprint('<textarea type = "textcontent" name = "%s" cols = "40" rows = "4">%s</textarea>'%\
+                        (data_item.get('textcontent'), data_item.get('text','')))
                 elif data_item.get('text'):
                     CGI_CLI.buffprint('%s: <input type = "text" name = "%s"><br />'%\
                         (data_item.get('text','').replace('_',' '),data_item.get('text')))
@@ -355,7 +355,7 @@ CGI_CLI.print_args()
 
 
 if CGI_CLI.cgi_active:
-    CGI_CLI.formprint(['<p>REGEX:</p>',{'textcontent':'regex_string'},'<p>TEXT:</p>',{'textcontent':'text_string'}], submit_button = 'Submit')
+    CGI_CLI.formprint(['<p>REGEX:</p>',{'textcontent':'regex_string','text':CGI_CLI.data.get('regex_string','')},'<p>TEXT:</p>',{'textcontent':'text_string','text':CGI_CLI.data.get('text_string','')}], submit_button = 'Submit')
 
 regex_string = CGI_CLI.data.get('regex_string','')
 text_string  = CGI_CLI.data.get('text_string','')
