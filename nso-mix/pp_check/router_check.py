@@ -161,7 +161,9 @@ CMD_IOS_XE = [
             ('sh ip bgp vpnv4 all neighbors | i (BGP neighbor is|Prefixes )',
                    'ndiff0', [], [],
                    ['neighbor'], [], [], False, 3),
-
+            ('show access-lists',
+                   'ndiff0', ['remark'], [],
+                   ['access'], [r'^\s\d.*', r'\(\d.*', 'matches)', 'match)'], [1,2,3,4,5,6], False),
 #             ('show interfaces | include (^[A-Z].*|minute|second|Last input)',
 #                    'ndiff0', [], [' 0 bits/sec'],
 #                    [], [], [], False)
@@ -257,6 +259,9 @@ CMD_IOS_XR = [
             ('sh bgp vpnv4 unicast neighbors | i "neighbor is|refix"',
                    'ndiff0', [], [],
                    ['neighbor'], [], [], False, 3),
+            ('show access-lists',
+                   'ndiff0', ['remark'], [],
+                   ['access-list'], [r'^\s\d.*', r'\(\d.*', 'matches)', 'match)'], [1,2,3,4,5,6], False),                                     
 #             ("show interfaces | in \"^[A-Z].*|minute|second|Last input|errors|total\"",
 #                    'ndiff0', ['is administratively down,'], [],
 #                    [', line protocol is'], [], [], False)
@@ -317,6 +322,9 @@ CMD_JUNOS = [
             ('show bgp neighbor | match "^Peer:|prefixes:|damping:"',
                    'ndiff0', [], [],
                    ['Peer:'], [], [], False, 3),
+            ('show configuration firewall',
+                   'ndiff0', [], [],
+                   ['filter', 'term', 'from', 'then', 'source', 'destination', '}'], [], [], False),                   
 #             ('show interfaces detail | match "Physical interface|Last flapped| bps"',
 #                    'ndiff0',['Administratively down'], [],
 #                    ['Physical interface:'], [], [0,1,2,3,4], False)
@@ -344,7 +352,7 @@ CMD_VRP = [
                       [], [], [], False),
             ("display acl all",
                       'ndiff0', [], [],
-                      [], [], [0,2,3,4,5], False),
+                      [], [r'^\s\w.*\s\d.*', r'\(\d.*'], [0,2,3,4,5,6], False),
             ("display alarm all",
                       'ndiff0', [], [],
                       [], [], [], False),
@@ -609,7 +617,7 @@ def get_difference_string_from_string_or_list(
       - IGNORE_LIST - list of regular expressions or strings when line is ignored for file (string) comparison
       - PROBLEM_LIST - list of regular expressions or strings which detects problems, even if files are equal
       - PRINTALLLINES_LIST - list of regular expressions or strings which will be printed grey, even if files are equal
-      - LINEFILTER_LIST - list of regular expressions which filters each line (regexp results per line comparison)
+      - LINEFILTER_LIST - list of regexs/strings which are filtered-out items for comparison (deleted each item in line) 
       - COMPARE_COLUMNS - list of columns which are intended to be different , other columns in line are ignored
       - PRINT_EQUALLINES - True/False prints all equal new file lines with '=' prefix , by default is False
       - TOLERANCE_PERCENTAGE - All numbers/selected columns in line with % tolerance. String columns must be equal.
@@ -666,19 +674,19 @@ def get_difference_string_from_string_or_list(
         diff = difflib.ndiff(old_lines_unfiltered, new_lines_unfiltered)
         listdiff_nonfiltered = list(diff)
         listdiff = []
-        # FILTER DIFF LINES OUT OF '? ' AND VOID LINES -------------------------
+        # FILTER OUT - DIFF LINES OUT OF '? ' AND VOID LINES -------------------
         for line in listdiff_nonfiltered:
-            # This ignore filter is much faster
+            # IGNORE_LIST FILTER - THISONE IS MUCH FASTER ----------------------
             ignore = False
             for ignore_item in ignore_list:
                 if (re.search(ignore_item,line)) != None: ignore = True
-            if ignore: continue
+            if ignore: continue            
             try:    first_chars = line[0]+line[1]
             except: first_chars = str()
             if '+ ' in first_chars or '- ' in first_chars or '  ' in first_chars:
                 listdiff.append(line)
         del diff, listdiff_nonfiltered
-        # MAIN NDIFF0/PDIFF0 LOOP ----------------------------------------------
+        # MAIN NDIFF0/PDIFF0 LOOP PER LISTDIFF LIST ----------------------------
         previous_minus_line_is_change = False
         for line_number,line in enumerate(listdiff):
             print_color, print_line = COL_EQUAL, str()
@@ -688,7 +696,7 @@ def get_difference_string_from_string_or_list(
             except: first_chars = str()
             try:    first_chars_nextline = listdiff[line_number+1][0]+listdiff[line_number+1][1].replace('\t',' ')
             except: first_chars_nextline = str()
-            # CHECK IF ARE LINES EQUAL AFTER FILTERING (compare_columns + linefilter_list)
+            # CHECK IF ARE LINES EQUAL AFTER FILTERING -------------------------
             split_line,split_next_line,linefiltered_line,linefiltered_next_line = str(),str(),str(),str()
             ### CLEAR AUXILIARY VARIABLES WHEN NO -/+ FIRST CHARACTERS ---------
             if first_chars.strip() == str():
@@ -707,14 +715,17 @@ def get_difference_string_from_string_or_list(
                     try: temp_column = listdiff[line_number+1].split()[split_column+1]
                     except: temp_column = str()
                     split_next_line += ' ' + temp_column.replace('/',' ')
-                ### LINEFILTER -------------------------------------------------
+                ### LINEFILTER_LIST --------------------------------------------
+                linefiltered_line = line
+                try: linefiltered_next_line = listdiff[line_number+1]
+                except: linefiltered_next_line = str()
                 for linefilter_item in linefilter_list:
                     try: next_line = listdiff[line_number+1]
                     except: next_line = str()
                     if line and (re.search(linefilter_item,line)) != None:
-                        linefiltered_line = re.findall(linefilter_item,line)[0]
+                        linefiltered_line = re.sub(linefilter_item, "", linefiltered_line)
                     if next_line and (re.search(linefilter_item,next_line)) != None:
-                        linefiltered_next_line = re.findall(linefilter_item,line)[0]
+                        linefiltered_next_line = re.sub(linefilter_item, "", linefiltered_next_line)
                 ### IF SPLIT_LINE DOES not EXIST FROM COMPARE_COLUMNS DO IT ----
                 if not split_line: split_line = line.replace('/',' ')
                 if not split_next_line: split_next_line = listdiff[line_number+1].replace('/',' ')
