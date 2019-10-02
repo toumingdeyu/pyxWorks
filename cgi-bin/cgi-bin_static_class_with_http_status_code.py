@@ -128,14 +128,18 @@ class CGI_CLI(object):
         CGI_CLI.initialized = True 
         CGI_CLI.data, CGI_CLI.submit_form, CGI_CLI.username, CGI_CLI.password = \
             collections.OrderedDict(), '', '', ''
-        CGI_CLI.buffer_string, CGI_CLI.buffer_printed = str(), None    
+        CGI_CLI.buffer_string, CGI_CLI.buffer_printed = str(), None
+        CGI_CLI.http_status_code = '200'        
+        CGI_CLI.return_http_status = return_http_status
+        # WORKARROUND FOR VOID QUERY_STRING CAUSING HTTP500
+        CGI_CLI.query_string = dict(os.environ).get('QUERY_STRING','CLI_MODE')
         if os_environ_set:    
-            # WORKARROUND FOR VOID QUERY_STRING CAUSING HTTP500
-            CGI_CLI.query_string = dict(os.environ).get('QUERY_STRING','CLI_MODE')
             if CGI_CLI.query_string != str() or \
                 ('?' in dict(os.environ).get('REQUEST_URI',None) and \
                 '=' in dict(os.environ).get('REQUEST_URI',None)):
-                try: form = cgi.FieldStorage()
+                try: 
+                    form = cgi.FieldStorage()
+                    CGI_CLI.cgi_active = True
                 except:      
                     form = collections.OrderedDict()
                     CGI_CLI.cgi_parameters_error = True
@@ -145,7 +149,9 @@ class CGI_CLI(object):
                 CGI_CLI.data = collections.OrderedDict()
         else:        
             ## PROBLEM - AJAX DOES NOT FILL VARIABLES QUERY_STRING, REQUEST_URI   
-            try: form = cgi.FieldStorage()
+            try: 
+                form = cgi.FieldStorage()
+                CGI_CLI.cgi_active = True
             except:      
                 form = collections.OrderedDict()
                 CGI_CLI.cgi_parameters_error = True             
@@ -159,7 +165,6 @@ class CGI_CLI(object):
             if variable == "username": CGI_CLI.username = value
             if variable == "password": CGI_CLI.password = value
         if CGI_CLI.submit_form or len(CGI_CLI.data)>0: CGI_CLI.cgi_active = True
-        CGI_CLI.return_http_status = return_http_status
         if CGI_CLI.cgi_active:
             if not 'cgitb' in sys.modules: import cgitb; cgitb.enable()
             CGI_CLI.http_status_code = '200'
@@ -259,8 +264,8 @@ class CGI_CLI(object):
             elif isinstance(data_item, (dict,collections.OrderedDict)):
                 if data_item.get('raw',None): CGI_CLI.buffprint(data_item.get('raw'))
                 elif data_item.get('textcontent',None): 
-                    CGI_CLI.buffprint('<textarea type = "textcontent" name = "%s" cols = "40" rows = "4"></textarea>'%\
-                        (data_item.get('textcontent')))
+                    CGI_CLI.buffprint('<textarea type = "textcontent" name = "%s" cols = "40" rows = "4">%s</textarea>'%\
+                        (data_item.get('textcontent'), data_item.get('text','')))
                 elif data_item.get('text'):
                     CGI_CLI.buffprint('%s: <input type = "text" name = "%s"><br />'%\
                         (data_item.get('text','').replace('_',' '),data_item.get('text')))
@@ -325,6 +330,7 @@ class CGI_CLI(object):
         print_string += 'CGI_CLI.USERNAME[%s], CGI_CLI.PASSWORD[%s]\n' % (CGI_CLI.USERNAME, 'Yes' if CGI_CLI.PASSWORD else 'No')
         print_string += 'remote_addr[%s], ' % dict(os.environ).get('REMOTE_ADDR','')
         print_string += 'browser[%s]\n' % dict(os.environ).get('HTTP_USER_AGENT','')
+        print_string += 'os.environ(QUERY_STRING)[%s]\n' % (CGI_CLI.query_string)
         if CGI_CLI.cgi_active:
             try: print_string += 'CGI_CLI.data[%s] = %s\n' % (str(CGI_CLI.submit_form),str(json.dumps(CGI_CLI.data, indent = 4)))
             except: pass                 
@@ -335,7 +341,6 @@ class CGI_CLI(object):
     @staticmethod
     def print_env(): 
         CGI_CLI.uprint(dict(os.environ), name = 'os.environ', jsonprint = True)
-
 
 
             
