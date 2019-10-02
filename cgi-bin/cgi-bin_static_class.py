@@ -131,9 +131,9 @@ class CGI_CLI(object):
         CGI_CLI.initialized = True 
         CGI_CLI.data, CGI_CLI.submit_form, CGI_CLI.username, CGI_CLI.password = \
             collections.OrderedDict(), '', '', ''
+        ### WORKARROUND FOR VOID QUERY_STRING CAUSING HTTP500
+        CGI_CLI.query_string = dict(os.environ).get('QUERY_STRING','CLI_MODE')    
         if os_environ_set:    
-            # WORKARROUND FOR VOID QUERY_STRING CAUSING HTTP500
-            CGI_CLI.query_string = dict(os.environ).get('QUERY_STRING','CLI_MODE')
             if CGI_CLI.query_string != str() or \
                 ('?' in dict(os.environ).get('REQUEST_URI',None) and \
                 '=' in dict(os.environ).get('REQUEST_URI',None)):
@@ -249,8 +249,8 @@ class CGI_CLI(object):
             elif isinstance(data_item, (dict,collections.OrderedDict)):
                 if data_item.get('raw',None): print(data_item.get('raw'))
                 elif data_item.get('textcontent',None): 
-                    print('<textarea type = "textcontent" name = "%s" cols = "40" rows = "4"></textarea>'%\
-                        (data_item.get('textcontent')))
+                    print('<textarea type = "textcontent" name = "%s" cols = "40" rows = "4">%s</textarea>'%\
+                        (data_item.get('textcontent'), data_item.get('text','')))                            
                 elif data_item.get('text'):
                     print('%s: <input type = "text" name = "%s"><br />'%\
                         (data_item.get('text','').replace('_',' '),data_item.get('text')))
