@@ -343,7 +343,7 @@ CGI_CLI.uprint('REGEX[%s], SUB[%s], TEXT[%s]' % (regex_string,sub_string,text_st
 
 try:
     result = text_string.replace(regex_string, sub_string)
-    CGI_CLI.uprint("TEXT.replace(REGEX, SUB, TEXT)        # Delete/Substitude pattern",tag = 'h1', color = 'blue')
+    CGI_CLI.uprint("TEXT.replace(REGEX, SUB)        # Delete/Substitude pattern",tag = 'h1', color = 'blue')
     CGI_CLI.uprint(str(result) ,tag = 'h1', color = 'green')
 except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']')
 
