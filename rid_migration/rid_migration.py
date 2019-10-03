@@ -891,12 +891,17 @@ ${item}
 !
 !
 interface Loopback0
+ no ipv4 address
+ no ipv6 address 
 % for item in loopback_200_config:
 ${item}
 % endfor
 !
+!
 no interface Loopback200
 !
+!
+no logging source-interface Loopback0
 logging source-interface Loopback10
 !
 domain lookup source-interface Loopback10
@@ -927,6 +932,7 @@ router isis PAII
   !
   address-family ipv6 unicast
   !
+  no interface Loopback200
  !
 !
 router bgp 5511
@@ -985,7 +991,7 @@ if device:
         try: splitted_config = str(splitted_config.decode("utf-8")).splitlines()
         except: splitted_config = [] 
 
-        rcmd_outputs = RCMD.run_commands(cmd_data = splitted_config, conf = True)        
+        rcmd_outputs = RCMD.run_commands(cmd_data = splitted_config, conf = True, printall = True)        
 
         for rcms_output in rcmd_outputs: 
             if 'INVALID INPUT' in rcms_output.upper() or 'INCOMPLETE COMMAND' in rcms_output.upper():
