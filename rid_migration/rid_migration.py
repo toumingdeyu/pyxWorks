@@ -61,7 +61,11 @@ class CGI_CLI(object):
         parser.add_argument("--rollback",
                             action = "store_true", dest = 'rollback',
                             default = None,
-                            help = "do rollback")                            
+                            help = "do rollback")    
+        parser.add_argument("--sim",
+                            action = "store_true", dest = 'sim',
+                            default = None,
+                            help = "config simulation mode")                             
         args = parser.parse_args()
         return args
 
@@ -1095,7 +1099,7 @@ if device:
         try: splitted_config = str(splitted_config.decode("utf-8")).splitlines()
         except: splitted_config = [] 
 
-        rcmd_outputs = RCMD.run_commands(cmd_data = splitted_config, conf = True, printall = True)        
+        rcmd_outputs = RCMD.run_commands(cmd_data = splitted_config, conf = True, printall = True, sim_config = CGI_CLI.data.get('sim',None))        
         
         config_problem = None
         for rcmd_output in rcmd_outputs: 
