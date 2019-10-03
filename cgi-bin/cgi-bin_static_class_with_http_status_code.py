@@ -87,7 +87,7 @@ class CGI_CLI(object):
                             help = "specify router password (test only...)")
         parser.add_argument("--getpass",
                             action = "store_true", dest = 'getpass', default = None,
-                            help = "insert router password interactively getpass.getpass()")                                                                            
+                            help = "insert router password interactively getpass.getpass()")
         args = parser.parse_args()
         return args
     
@@ -95,7 +95,7 @@ class CGI_CLI(object):
     def __cleanup__():
         if not CGI_CLI.buffer_printed:
             if CGI_CLI.cgi_active and CGI_CLI.return_http_status: print("Status: %s %s\r\n" % (str(CGI_CLI.http_status_code),''))
-            print(CGI_CLI.buffer_string)                        
+            print(CGI_CLI.buffer_string)
             print('%sEND[script runtime = %d sec]. '%('<br/>' if CGI_CLI.cgi_active else '\n',time.time() - CGI_CLI.START_EPOCH))
             if CGI_CLI.cgi_active: print("</body></html>")
         CGI_CLI.buffer_printed = True
@@ -119,35 +119,34 @@ class CGI_CLI(object):
         CGI_CLI.http_status_code = '200'        
         CGI_CLI.return_http_status = return_http_status
         form, CGI_CLI.data = collections.OrderedDict(), collections.OrderedDict()
-        try: 
-            form = cgi.FieldStorage()
-        except: pass               
+        try: form = cgi.FieldStorage()
+        except: pass
         for key in form.keys():
             variable = str(key)
             try: value = str(form.getvalue(variable))
             except: value = str(','.join(form.getlist(name)))
-            if variable and value and not variable in ["submit","username","password"]: 
+            if variable and value and not variable in ["submit","username","password"]:
                 CGI_CLI.data[variable] = value
             if variable == "submit": CGI_CLI.submit_form = value
             if variable == "username": CGI_CLI.username = value
             if variable == "password": CGI_CLI.password = value
-        ### DECIDE - CLI OR CGI MODE #######################################   
+        ### DECIDE - CLI OR CGI MODE #######################################
         CGI_CLI.remote_addr =  dict(os.environ).get('REMOTE_ADDR','')
-        CGI_CLI.http_user_agent = dict(os.environ).get('HTTP_USER_AGENT','')        
+        CGI_CLI.http_user_agent = dict(os.environ).get('HTTP_USER_AGENT','')
         if CGI_CLI.remote_addr and CGI_CLI.http_user_agent:
             CGI_CLI.cgi_active = True
         CGI_CLI.args = CGI_CLI.cli_parser()
-        if not CGI_CLI.cgi_active: CGI_CLI.data = vars(CGI_CLI.args)        
+        if not CGI_CLI.cgi_active: CGI_CLI.data = vars(CGI_CLI.args)
         if CGI_CLI.cgi_active:
             #if not 'cgitb' in sys.modules: import cgitb; cgitb.enable()
             CGI_CLI.http_status_code = '200'
             print("Content-type:text/html")
-            if CGI_CLI.return_http_status: print("Retry-After: 300")            
+            if CGI_CLI.return_http_status: print("Retry-After: 300")
             CGI_CLI.buffprint('\r\n\r\n')    
             CGI_CLI.buffprint("<html><head><title>%s</title></head><body>" % 
                 (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit'))
-        import atexit; atexit.register(CGI_CLI.__cleanup__) 
-        ### GAIN USERNAME AND PASSWORD FROM CGI/CLI       
+        import atexit; atexit.register(CGI_CLI.__cleanup__)
+        ### GAIN USERNAME AND PASSWORD FROM CGI/CLI
         try:    CGI_CLI.PASSWORD        = os.environ['NEWR_PASS']
         except: CGI_CLI.PASSWORD        = str()
         try:    CGI_CLI.USERNAME        = os.environ['NEWR_USER']
@@ -156,11 +155,11 @@ class CGI_CLI(object):
             CGI_CLI.USERNAME = CGI_CLI.args.username
             CGI_CLI.PASSWORD = str()
             if interaction or CGI_CLI.args.getpass: CGI_CLI.PASSWORD = getpass.getpass("TACACS password: ")
-            elif CGI_CLI.args.password: CGI_CLI.password = CGI_CLI.args.password                
+            elif CGI_CLI.args.password: CGI_CLI.password = CGI_CLI.args.password
         if CGI_CLI.username: CGI_CLI.USERNAME = CGI_CLI.username
         if CGI_CLI.password: CGI_CLI.PASSWORD = CGI_CLI.password
         if CGI_CLI.cgi_active or 'WIN32' in sys.platform.upper(): bcolors = nocolors
-        CGI_CLI.cgi_save_files()        
+        CGI_CLI.cgi_save_files()
         return CGI_CLI.USERNAME, CGI_CLI.PASSWORD
 
     @staticmethod
@@ -180,7 +179,7 @@ class CGI_CLI(object):
                     if os.path.exists(dir_path):
                         file_content = CGI_CLI.data.get('file[%s]'%(filename),None)
                         if file_content:
-                            try:                        
+                            try:
                                 with open(use_filename, 'wb') as file:
                                     file.write(CGI_CLI.data.get('file[%s]'%(filename)))
                                     CGI_CLI.uprint('The file "' + use_filename + '" was uploaded.')

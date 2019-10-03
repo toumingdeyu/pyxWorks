@@ -60,12 +60,7 @@ class nocolors:
 class CGI_CLI(object):
     """
     class CGI_handle - Simple statis class for handling CGI parameters and 
-                       clean (debug) printing to HTML/CLI    
-    NOTES:  
-    - In case of cgi_parameters_error - http[500] is raised, 
-      but at least no appache timeout occurs...
-    - CGI_CLI.init_cgi(os_environ_set) - (=None/False) php/ajax bug workarround, 
-                                       - (=True) http500 cgi.FieldStorage() workarround        
+                       clean (debug) printing to HTML/CLI         
     INTERFACE FUNCTIONS:  
     CGI_CLI.init_cgi() - init CGI_CLI class
     CGI_CLI.print_args(), CGI_CLI.print_env() - debug printing
@@ -75,13 +70,7 @@ class CGI_CLI(object):
     # import collections, cgi, six
     # import cgitb; cgitb.enable()
      
-    debug = True
-    initialized = None
-    START_EPOCH = time.time()
-    cgi_parameters_error = None
-    cgi_active = None
-
-    @staticmethod        
+    @staticmethod
     def cli_parser():
         ######## Parse program arguments ##################################
         parser = argparse.ArgumentParser(
@@ -97,7 +86,7 @@ class CGI_CLI(object):
                             help = "specify router password (test only...)")
         parser.add_argument("--getpass",
                             action = "store_true", dest = 'getpass', default = None,
-                            help = "insert router password interactively getpass.getpass()")                                                        
+                            help = "insert router password interactively getpass.getpass()")
         # parser.add_argument("--pe_device",
                             # action = "store", dest = 'pe_device',
                             # default = str(),
@@ -105,7 +94,7 @@ class CGI_CLI(object):
         # parser.add_argument("--gw_device",
                             # action = "store", dest = 'gw_device',
                             # default = str(),
-                            # help = "target gw router to check")                    
+                            # help = "target gw router to check")
         args = parser.parse_args()
         return args
     
@@ -120,59 +109,41 @@ class CGI_CLI(object):
         In static class is no constructor or destructor 
         --> Register __cleanup__ in system
         """
-        if not 'atexit' in sys.modules: import atexit; atexit.register(CGI_CLI.__cleanup__)
+        import atexit; atexit.register(CGI_CLI.__cleanup__)
 
     @staticmethod
-    def init_cgi(interaction = None, os_environ_set = None):
-        """ os_environ_set - (=None/False) php/ajax bug workarround, 
-                             (=True) - http500 cgi.FieldStorage() workarround
-        """
+    def init_cgi(interaction = None):
         CGI_CLI.START_EPOCH = time.time()
+        CGI_CLI.cgi_active = None
         CGI_CLI.initialized = True 
         CGI_CLI.data, CGI_CLI.submit_form, CGI_CLI.username, CGI_CLI.password = \
             collections.OrderedDict(), '', '', ''
-        ### WORKARROUND FOR VOID QUERY_STRING CAUSING HTTP500
-        CGI_CLI.query_string = dict(os.environ).get('QUERY_STRING','CLI_MODE')    
-        if os_environ_set:    
-            if CGI_CLI.query_string != str() or \
-                ('?' in dict(os.environ).get('REQUEST_URI',None) and \
-                '=' in dict(os.environ).get('REQUEST_URI',None)):
-                try: form = cgi.FieldStorage()
-                except:      
-                    form = collections.OrderedDict()
-                    CGI_CLI.cgi_parameters_error = True
-            else:                 
-                form = collections.OrderedDict()
-                CGI_CLI.cgi_active = True
-                CGI_CLI.data = collections.OrderedDict()
-        else:        
-            ## PROBLEM - AJAX DOES NOT FILL VARIABLES QUERY_STRING, REQUEST_URI   
-            try: form = cgi.FieldStorage()
-            except:      
-                form = collections.OrderedDict()
-                CGI_CLI.cgi_parameters_error = True             
+        form, CGI_CLI.data = collections.OrderedDict(), collections.OrderedDict()
+        try: 
+            form = cgi.FieldStorage()
+        except: pass
         for key in form.keys():
             variable = str(key)
             try: value = str(form.getvalue(variable))
             except: value = str(','.join(form.getlist(name)))
-            if variable and value and not variable in ["submit","username","password"]: 
+            if variable and value and not variable in ["submit","username","password"]:
                 CGI_CLI.data[variable] = value
             if variable == "submit": CGI_CLI.submit_form = value
             if variable == "username": CGI_CLI.username = value
             if variable == "password": CGI_CLI.password = value
-        if CGI_CLI.submit_form or len(CGI_CLI.data)>0: CGI_CLI.cgi_active = True
+        ### DECIDE - CLI OR CGI MODE #######################################
+        CGI_CLI.remote_addr =  dict(os.environ).get('REMOTE_ADDR','')
+        CGI_CLI.http_user_agent = dict(os.environ).get('HTTP_USER_AGENT','')
+        if CGI_CLI.remote_addr and CGI_CLI.http_user_agent:
+            CGI_CLI.cgi_active = True
+        CGI_CLI.args = CGI_CLI.cli_parser()
+        if not CGI_CLI.cgi_active: CGI_CLI.data = vars(CGI_CLI.args)
         if CGI_CLI.cgi_active:
-            if not 'cgitb' in sys.modules: import cgitb; cgitb.enable()        
             print("Content-type:text/html")
-            #print("Status: %s %s\r\n" % ('222',"afafff"))
-            #print("Retry-After: 300")
             print("\r\n\r\n<html><head><title>%s</title></head><body>" % 
                 (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit'))
-        if not 'atexit' in sys.modules: import atexit; atexit.register(CGI_CLI.__cleanup__)
-        CGI_CLI.args = CGI_CLI.cli_parser()
-        if not CGI_CLI.cgi_active:
-            CGI_CLI.data = vars(CGI_CLI.args) 
-        ### GAIN USERNAME AND PASSWORD FROM CGI/CLI       
+        import atexit; atexit.register(CGI_CLI.__cleanup__)
+        ### GAIN USERNAME AND PASSWORD FROM CGI/CLI
         try:    CGI_CLI.PASSWORD        = os.environ['NEWR_PASS']
         except: CGI_CLI.PASSWORD        = str()
         try:    CGI_CLI.USERNAME        = os.environ['NEWR_USER']
@@ -181,13 +152,11 @@ class CGI_CLI(object):
             CGI_CLI.USERNAME = CGI_CLI.args.username
             CGI_CLI.PASSWORD = str()
             if interaction or CGI_CLI.args.getpass: CGI_CLI.PASSWORD = getpass.getpass("TACACS password: ")
-            elif CGI_CLI.args.password: CGI_CLI.password = CGI_CLI.args.password                
+            elif CGI_CLI.args.password: CGI_CLI.password = CGI_CLI.args.password
         if CGI_CLI.username: CGI_CLI.USERNAME = CGI_CLI.username
         if CGI_CLI.password: CGI_CLI.PASSWORD = CGI_CLI.password
         if CGI_CLI.cgi_active or 'WIN32' in sys.platform.upper(): bcolors = nocolors
-        CGI_CLI.remote_addr =  dict(os.environ).get('REMOTE_ADDR','')
-        CGI_CLI.http_user_agent = dict(os.environ).get('HTTP_USER_AGENT','')
-        CGI_CLI.cgi_save_files()        
+        CGI_CLI.cgi_save_files()
         return CGI_CLI.USERNAME, CGI_CLI.PASSWORD
 
     @staticmethod 
@@ -211,32 +180,31 @@ class CGI_CLI(object):
     def uprint(text, tag = None, tag_id = None, color = None, name = None, jsonprint = None):
         """NOTE: name parameter could be True or string."""
         print_text, print_name = copy.deepcopy(text), str()
-        if CGI_CLI.debug:
-            if jsonprint:
-                if isinstance(text, (dict,collections.OrderedDict,list,tuple)):
-                    try: print_text = json.dumps(text, indent = 4)
-                    except: pass   
-            if name==True:
-                if not 'inspect.currentframe' in sys.modules: import inspect
-                callers_local_vars = inspect.currentframe().f_back.f_locals.items()
-                var_list = [var_name for var_name, var_val in callers_local_vars if var_val is text]
-                if str(','.join(var_list)).strip(): print_name = str(','.join(var_list)) + ' = '
-            elif isinstance(name, (six.string_types)): print_name = str(name) + ' = '
-            
-            print_text = str(print_text)
-            if CGI_CLI.cgi_active:
-                ### WORKARROUND FOR COLORING OF SIMPLE TEXT
-                if color and not tag: tag = 'p'; 
-                if tag: print('<%s%s%s>'%(tag,' id="%s"'%(tag_id) if tag_id else str(),' style="color:%s;"'%(color) if color else 'black'))
-                if isinstance(print_text, six.string_types):
-                    print_text = str(print_text.replace('&','&amp;').replace('<','&lt;'). \
-                        replace('>','&gt;').replace(' ','&nbsp;').replace('"','&quot;').replace("'",'&apos;').\
-                        replace('\n','<br/>'))
-            print(print_name + print_text)
-            del print_text
-            if CGI_CLI.cgi_active: 
-                if tag: print('</%s>'%(tag))
-                else: print('<br/>');
+        if jsonprint:
+            if isinstance(text, (dict,collections.OrderedDict,list,tuple)):
+                try: print_text = json.dumps(text, indent = 4)
+                except: pass   
+        if name==True:
+            if not 'inspect.currentframe' in sys.modules: import inspect
+            callers_local_vars = inspect.currentframe().f_back.f_locals.items()
+            var_list = [var_name for var_name, var_val in callers_local_vars if var_val is text]
+            if str(','.join(var_list)).strip(): print_name = str(','.join(var_list)) + ' = '
+        elif isinstance(name, (six.string_types)): print_name = str(name) + ' = '
+        
+        print_text = str(print_text)
+        if CGI_CLI.cgi_active:
+            ### WORKARROUND FOR COLORING OF SIMPLE TEXT
+            if color and not tag: tag = 'p'; 
+            if tag: print('<%s%s%s>'%(tag,' id="%s"'%(tag_id) if tag_id else str(),' style="color:%s;"'%(color) if color else 'black'))
+            if isinstance(print_text, six.string_types):
+                print_text = str(print_text.replace('&','&amp;').replace('<','&lt;'). \
+                    replace('>','&gt;').replace(' ','&nbsp;').replace('"','&quot;').replace("'",'&apos;').\
+                    replace('\n','<br/>'))
+        print(print_name + print_text)
+        del print_text
+        if CGI_CLI.cgi_active: 
+            if tag: print('</%s>'%(tag))
+            else: print('<br/>');
 
     @staticmethod 
     def formprint(form_data = None, submit_button = None, pyfile = None, tag = None, color = None):
@@ -314,6 +282,7 @@ class CGI_CLI(object):
         print_string += 'CGI_CLI.USERNAME[%s], CGI_CLI.PASSWORD[%s]\n' % (CGI_CLI.USERNAME, 'Yes' if CGI_CLI.PASSWORD else 'No')
         print_string += 'remote_addr[%s], ' % dict(os.environ).get('REMOTE_ADDR','')
         print_string += 'browser[%s]\n' % dict(os.environ).get('HTTP_USER_AGENT','')
+        print_string += 'CGI_CLI.cgi_active[%s]\n' % (str(CGI_CLI.cgi_active))        
         if CGI_CLI.cgi_active:
             try: print_string += 'CGI_CLI.data[%s] = %s\n' % (str(CGI_CLI.submit_form),str(json.dumps(CGI_CLI.data, indent = 4)))
             except: pass                 
@@ -322,9 +291,8 @@ class CGI_CLI(object):
         return print_string
 
     @staticmethod
-    def print_env(jsonprint = None): 
-        if jsonprint: CGI_CLI.uprint(dict(os.environ), name = 'os.environ', jsonprint = True)
-        else: cgi.print_environ()
+    def print_env(): 
+        CGI_CLI.uprint(dict(os.environ), name = 'os.environ', jsonprint = True)
 
 
 
