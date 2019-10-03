@@ -58,6 +58,10 @@ class CGI_CLI(object):
                             action = "store", dest = 'device',
                             default = str(),
                             help = "target router to access")
+        parser.add_argument("--rollback",
+                            action = "store_true", dest = 'rollback',
+                            default = None,
+                            help = "do rollback")                            
         args = parser.parse_args()
         return args
 
@@ -953,37 +957,137 @@ router bgp 5511
 ! 
 """
 
+undo_xr_config = """!
+interface Loopback0 
+% for item in loopback_0_config:
+${item}
+% endfor
+!
+!
+!
+interface Loopback200
+% for item in loopback_200_config:
+${item}
+% endfor
+!
+!
+no interface Loopback10
+!
+no logging source-interface Loopback10
+logging source-interface Loopback0
+!
+domain lookup source-interface Loopback0
+!
+tacacs source-interface Loopback0 vrf default
+!
+snmp-server trap-source Loopback0
+!
+ftp client source-interface Loopback0
+!
+ntp
+ source Loopback0
+!
+flow exporter-map ICX
+ source Loopback0
+!
+tftp client source-interface Loopback0
+!
+ssh client source-interface Loopback0
+!
+!
+router isis PAII
+!
+no interface Loopback10
+ !
+ interface Loopback200
+  passive
+  address-family ipv4 unicast
+  !
+  address-family ipv6 unicast
+  !
+ !
+!
+router bgp 5511
+% for item in neighbor_groups:
+neighbor-group ${item}
+ update-source Loopback0 
+% endfor
+!
+!
+router isis PAII
+ address-family ipv4 unicast
+  mpls traffic-eng router-id Loopback0
+!
+!
+!
+router bgp 5511
+ bgp router-id ${loopback_200_address}
+!
+"""
+
 if device:
     rcmd_outputs = RCMD.connect(device, username = USERNAME, password = PASSWORD)
-
-    collector_cmd = {'cisco_xr':['sh run interface loopback 0','sh run interface loopback 200',
-    "show running-config router bgp | utility egrep 'neighbor-group|update-source' | exclude use neighbor-group"]}
-
-    rcmd_outputs = RCMD.run_commands(collector_cmd, printall = True)
     
     if RCMD.router_type == 'cisco_xr':
-        loopback_0_config    = (rcmd_outputs[0].replace('\r','').split('interface Loopback0\n')[1].replace('Loopback0','Loopback10').strip().split('!')[0] + '!').splitlines()
-        loopback_200_config  = (rcmd_outputs[1].replace('\r','').split('interface Loopback200\n')[1].replace('Loopback200','Loopback0').strip().split('!')[0] + '!').splitlines()
-        try:    loopback_200_address = rcmd_outputs[1].split('ipv4 address')[1].split()[0].strip()
-        except: loopback_200_address = str()
-        try: 
-            neighbor_groups = re.findall(r'neighbor-group\s+[0-9a-zA-Z\-\.\@\_]+$\s+update-source Loopback0', rcmd_outputs[2], re.MULTILINE)
-            neighbor_groups = [ item.splitlines()[0].replace('neighbor-group','').strip() for item in neighbor_groups ] 
-        except: neighbor_groups = []
+        if not CGI_CLI.data.get('rollback'):
+            collector_cmd = {'cisco_xr':['sh run interface loopback 0','sh run interface loopback 200',
+            "show running-config router bgp | utility egrep 'neighbor-group|update-source' | exclude use neighbor-group"]}
 
-        data = {}        
-        data['loopback_0_config']    = loopback_0_config
-        data['loopback_200_config']  = loopback_200_config
-        data['neighbor_groups']      = neighbor_groups
-        data['loopback_200_address'] = loopback_200_address
+            rcmd_outputs = RCMD.run_commands(collector_cmd, printall = True)
+    
+            loopback_0_config    = (rcmd_outputs[0].replace('\r','').split('interface Loopback0\n')[1].replace('Loopback0','Loopback10').strip().split('!')[0] + '!').splitlines()
+            loopback_200_config  = (rcmd_outputs[1].replace('\r','').split('interface Loopback200\n')[1].replace('Loopback200','Loopback0').strip().split('!')[0] + '!').splitlines()
+            try:    loopback_200_address = rcmd_outputs[1].split('ipv4 address')[1].split()[0].strip()
+            except: loopback_200_address = str()
+            try: 
+                neighbor_groups = re.findall(r'neighbor-group\s+[0-9a-zA-Z\-\.\@\_]+$\s+update-source Loopback0', rcmd_outputs[2], re.MULTILINE)
+                neighbor_groups = [ item.splitlines()[0].replace('neighbor-group','').strip() for item in neighbor_groups ] 
+            except: neighbor_groups = []
 
-        CGI_CLI.uprint(data, name = True, jsonprint = True, color = 'blue')
-        CGI_CLI.uprint('\n\n')
+            data = {}        
+            data['loopback_0_config']    = loopback_0_config
+            data['loopback_200_config']  = loopback_200_config
+            data['neighbor_groups']      = neighbor_groups
+            data['loopback_200_address'] = loopback_200_address
 
-        config_string = str()
-        mytemplate = Template(xr_config,strict_undefined=True)
-        config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
-     
+            CGI_CLI.uprint(data, name = True, jsonprint = True, color = 'blue')
+            CGI_CLI.uprint('\n\n')
+
+            config_string = str()
+            mytemplate = Template(xr_config,strict_undefined=True)
+            config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
+        else:
+            ### UNDO/ROLLBACK ###
+            collector_cmd = {'cisco_xr':['sh run interface loopback 10','sh run interface loopback 0',
+            "show running-config router bgp | utility egrep 'neighbor-group|update-source' | exclude use neighbor-group"]}
+
+            rcmd_outputs = RCMD.run_commands(collector_cmd, printall = True)
+            
+            loopback_0_config    = (rcmd_outputs[0].replace('\r','').split('interface Loopback10\n')[1].replace('Loopback10','Loopback0').strip().split('!')[0] + '!').splitlines()
+            loopback_200_config  = (rcmd_outputs[1].replace('\r','').split('interface Loopback0\n')[1].replace('Loopback0','Loopback200').strip().split('!')[0] + '!').splitlines()
+            try:    loopback_200_address = rcmd_outputs[1].split('ipv4 address')[1].split()[0].strip()
+            except: loopback_200_address = str()
+            try: 
+                neighbor_groups = re.findall(r'neighbor-group\s+[0-9a-zA-Z\-\.\@\_]+$\s+update-source Loopback10', rcmd_outputs[2], re.MULTILINE)
+                neighbor_groups = [ item.splitlines()[0].replace('neighbor-group','').strip() for item in neighbor_groups ] 
+            except: neighbor_groups = []
+
+            data = {}        
+            data['loopback_0_config']    = loopback_0_config
+            data['loopback_200_config']  = loopback_200_config
+            data['neighbor_groups']      = neighbor_groups
+            data['loopback_200_address'] = loopback_200_address
+
+            CGI_CLI.uprint(data, name = True, jsonprint = True, color = 'blue')
+            CGI_CLI.uprint('\n\n')
+
+            config_string = str()
+            mytemplate = Template(undo_xr_config,strict_undefined=True)
+            config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'        
+
+
+
+        ### PUSH CONFIG TO DEVICE ##########################################################
         CGI_CLI.uprint('CONFIG:\n', tag = 'h1', color = 'blue') 
         CGI_CLI.uprint(config_string)    
 
