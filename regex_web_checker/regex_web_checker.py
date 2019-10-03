@@ -342,6 +342,12 @@ raw_text     = CGI_CLI.data.get('text_string','').encode('unicode_escape')
 CGI_CLI.uprint('REGEX[%s], SUB[%s], TEXT[%s]' % (regex_string,sub_string,text_string))
 
 try:
+    result = text_string.replace(regex_string, sub_string)
+    CGI_CLI.uprint("TEXT.replace(REGEX, SUB, TEXT)        # Delete/Substitude pattern",tag = 'h1', color = 'blue')
+    CGI_CLI.uprint(str(result) ,tag = 'h1', color = 'green')
+except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']')
+
+try:
     result = re.sub(regex_string, "", text_string)
     CGI_CLI.uprint("re.sub(REGEX, '', TEXT)        # Delete pattern",tag = 'h1', color = 'blue')
     CGI_CLI.uprint(str(result) ,tag = 'h1', color = 'green')
