@@ -992,12 +992,13 @@ if device:
         except: splitted_config = [] 
 
         rcmd_outputs = RCMD.run_commands(cmd_data = splitted_config, conf = True, printall = True)        
-
-        for rcms_output in rcmd_outputs: 
-            if 'INVALID INPUT' in rcms_output.upper() or 'INCOMPLETE COMMAND' in rcms_output.upper():
+        
+        config_problem = None
+        for rcmd_output in rcmd_outputs: 
+            if 'INVALID INPUT' in rcmd_output.upper() or 'INCOMPLETE COMMAND' in rcmd_output.upper():
                 config_problem = True
                 CGI_CLI.uprint('\nCONFIGURATION PROBLEM FOUND:', color = 'red')
-                CGI_CLI.uprint('%s' % (rcms_output), color = 'darkorchid')
+                CGI_CLI.uprint('%s' % (rcmd_output), color = 'darkorchid')
         try:        
             if 'FAILED' in rcmd_outputs[-1].upper() or 'ERROR' in rcmd_outputs[-1].upper() or config_problem:
                 CGI_CLI.uprint('COMMIT FAILED!' , tag = 'h1', tag_id = 'submit-result', color = 'red')
