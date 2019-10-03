@@ -1081,9 +1081,11 @@ if device:
             "show running-config router bgp | utility egrep 'neighbor-group|update-source' | exclude use neighbor-group"]}
 
             rcmd_outputs = RCMD.run_commands(collector_cmd, printall = True)
-    
-            loopback_0_config    = (rcmd_outputs[0].replace('\r','').split('interface Loopback0\n')[1].replace('Loopback0','Loopback10').strip().split('!')[0] + '!').splitlines()
-            loopback_200_config  = (rcmd_outputs[1].replace('\r','').split('interface Loopback200\n')[1].replace('Loopback200','Loopback0').strip().split('!')[0] + '!').splitlines()
+            
+            try: loopback_0_config    = (rcmd_outputs[0].replace('\r','').split('interface Loopback0\n')[1].replace('Loopback0','Loopback10').strip().split('!')[0] + '!').splitlines()
+            except: loopback_0_config = []
+            try: loopback_200_config  = (rcmd_outputs[1].replace('\r','').split('interface Loopback200\n')[1].replace('Loopback200','Loopback0').strip().split('!')[0] + '!').splitlines()
+            except: loopback_200_config = []
             try:    loopback_200_address = rcmd_outputs[1].split('ipv4 address')[1].split()[0].strip()
             except: loopback_200_address = str()
             try: 
@@ -1117,8 +1119,10 @@ if device:
 
             rcmd_outputs = RCMD.run_commands(collector_cmd, printall = True)
             
-            loopback_0_config    = (rcmd_outputs[0].replace('\r','').split('interface Loopback10\n')[1].replace('Loopback10','Loopback0').strip().split('!')[0] + '!').splitlines()
-            loopback_200_config  = (rcmd_outputs[1].replace('\r','').split('interface Loopback0\n')[1].replace('Loopback0','Loopback200').strip().split('!')[0] + '!').splitlines()
+            try: loopback_0_config    = (rcmd_outputs[0].replace('\r','').split('interface Loopback10\n')[1].replace('Loopback10','Loopback0').strip().split('!')[0] + '!').splitlines()
+            except: loopback_0_config = []
+            try:loopback_200_config  = (rcmd_outputs[1].replace('\r','').split('interface Loopback0\n')[1].replace('Loopback0','Loopback200').strip().split('!')[0] + '!').splitlines()
+            except: loopback_200_config = []
             try:    loopback_200_address = rcmd_outputs[1].split('ipv4 address')[1].split()[0].strip()
             except: loopback_200_address = str()
             try: 
