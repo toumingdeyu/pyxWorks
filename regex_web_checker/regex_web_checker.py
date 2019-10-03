@@ -64,7 +64,7 @@ class CGI_CLI(object):
     NOTES:  
     - In case of cgi_parameters_error - http[500] is raised, 
       but at least no appache timeout occurs...
-    - CGI_CLI.init_cgi(os_environ_set) - (=None/False) php/ajax bug workarround, 
+    - CGI_CLI.init_cgi(os_environ_query_string_set) - (=None/False) php/ajax bug workarround, 
                                        - (=True) http500 cgi.FieldStorage() workarround        
     INTERFACE FUNCTIONS:  
     CGI_CLI.init_cgi() - init CGI_CLI class
@@ -76,12 +76,6 @@ class CGI_CLI(object):
     # import collections, cgi, six
     # import cgitb; cgitb.enable()
      
-    debug = True
-    initialized = None
-    START_EPOCH = time.time()
-    cgi_parameters_error = None
-    cgi_active = None
-
     @staticmethod        
     def cli_parser():
         ######## Parse program arguments ##################################
@@ -105,7 +99,7 @@ class CGI_CLI(object):
     @staticmethod        
     def __cleanup__():
         if not CGI_CLI.buffer_printed:
-            if CGI_CLI.return_http_status: print("Status: %s %s\r\n" % (str(CGI_CLI.http_status_code),''))
+            if CGI_CLI.cgi_active and CGI_CLI.return_http_status: print("Status: %s %s\r\n" % (str(CGI_CLI.http_status_code),''))
             print(CGI_CLI.buffer_string)                        
             print('%sEND[script runtime = %d sec]. '%('<br/>' if CGI_CLI.cgi_active else '\n',time.time() - CGI_CLI.START_EPOCH))
             if CGI_CLI.cgi_active: print("</body></html>")
@@ -120,41 +114,34 @@ class CGI_CLI(object):
         import atexit; atexit.register(CGI_CLI.__cleanup__)
 
     @staticmethod
-    def init_cgi(interaction = None, os_environ_set = None, return_http_status = None):
-        """ os_environ_set - (=None/False) php/ajax bug workarround, 
+    def init_cgi(interaction = None, os_environ_query_string_set = None, return_http_status = None):
+        """ os_environ_query_string_set - (=None/False) php/ajax bug workarround, 
                              (=True) - http500 cgi.FieldStorage() workarround
         """
         CGI_CLI.START_EPOCH = time.time()
+        CGI_CLI.cgi_active = None
         CGI_CLI.initialized = True 
         CGI_CLI.data, CGI_CLI.submit_form, CGI_CLI.username, CGI_CLI.password = \
             collections.OrderedDict(), '', '', ''
         CGI_CLI.buffer_string, CGI_CLI.buffer_printed = str(), None
         CGI_CLI.http_status_code = '200'        
         CGI_CLI.return_http_status = return_http_status
-        # WORKARROUND FOR VOID QUERY_STRING CAUSING HTTP500
-        CGI_CLI.query_string = dict(os.environ).get('QUERY_STRING','CLI_MODE')
-        if os_environ_set:    
+        ### WORKARROUND FOR VOID QUERY_STRING CAUSING HTTP500
+        form, CGI_CLI.data = collections.OrderedDict(), collections.OrderedDict()
+        CGI_CLI.query_string = dict(os.environ).get('QUERY_STRING','')
+        if os_environ_query_string_set:
+            ### PROBLEM IS THAT NEXT CGI CALL DOES NOT PROVIDE 'QUERY_STRING'        
             if CGI_CLI.query_string != str() or \
-                ('?' in dict(os.environ).get('REQUEST_URI',None) and \
-                '=' in dict(os.environ).get('REQUEST_URI',None)):
+                ('?' in dict(os.environ).get('REQUEST_URI','') and \
+                '=' in dict(os.environ).get('REQUEST_URI','')):
                 try: 
                     form = cgi.FieldStorage()
-                    CGI_CLI.cgi_active = True
-                except:      
-                    form = collections.OrderedDict()
-                    CGI_CLI.cgi_parameters_error = True
-            else:                 
-                form = collections.OrderedDict()
-                CGI_CLI.cgi_active = True
-                CGI_CLI.data = collections.OrderedDict()
+                except: pass     
         else:        
-            ## PROBLEM - AJAX DOES NOT FILL VARIABLES QUERY_STRING, REQUEST_URI   
+            ### PROBLEM - AJAX DOES NOT FILL VARIABLES QUERY_STRING, REQUEST_URI   
             try: 
                 form = cgi.FieldStorage()
-                CGI_CLI.cgi_active = True
-            except:      
-                form = collections.OrderedDict()
-                CGI_CLI.cgi_parameters_error = True             
+            except: pass               
         for key in form.keys():
             variable = str(key)
             try: value = str(form.getvalue(variable))
@@ -164,7 +151,13 @@ class CGI_CLI(object):
             if variable == "submit": CGI_CLI.submit_form = value
             if variable == "username": CGI_CLI.username = value
             if variable == "password": CGI_CLI.password = value
-        if CGI_CLI.submit_form or len(CGI_CLI.data)>0: CGI_CLI.cgi_active = True
+        ### DECIDE - CLI OR CGI MODE    
+        CGI_CLI.remote_addr =  dict(os.environ).get('REMOTE_ADDR','')
+        CGI_CLI.http_user_agent = dict(os.environ).get('HTTP_USER_AGENT','')        
+        if CGI_CLI.remote_addr and CGI_CLI.http_user_agent:
+            CGI_CLI.cgi_active = True
+        CGI_CLI.args = CGI_CLI.cli_parser()
+        if not CGI_CLI.cgi_active: CGI_CLI.data = vars(CGI_CLI.args)        
         if CGI_CLI.cgi_active:
             if not 'cgitb' in sys.modules: import cgitb; cgitb.enable()
             CGI_CLI.http_status_code = '200'
@@ -173,10 +166,7 @@ class CGI_CLI(object):
             CGI_CLI.buffprint('\r\n\r\n')    
             CGI_CLI.buffprint("<html><head><title>%s</title></head><body>" % 
                 (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit'))
-        import atexit; atexit.register(CGI_CLI.__cleanup__)
-        CGI_CLI.args = CGI_CLI.cli_parser()
-        if not CGI_CLI.cgi_active:
-            CGI_CLI.data = vars(CGI_CLI.args) 
+        import atexit; atexit.register(CGI_CLI.__cleanup__) 
         ### GAIN USERNAME AND PASSWORD FROM CGI/CLI       
         try:    CGI_CLI.PASSWORD        = os.environ['NEWR_PASS']
         except: CGI_CLI.PASSWORD        = str()
@@ -190,8 +180,6 @@ class CGI_CLI(object):
         if CGI_CLI.username: CGI_CLI.USERNAME = CGI_CLI.username
         if CGI_CLI.password: CGI_CLI.PASSWORD = CGI_CLI.password
         if CGI_CLI.cgi_active or 'WIN32' in sys.platform.upper(): bcolors = nocolors
-        CGI_CLI.remote_addr =  dict(os.environ).get('REMOTE_ADDR','')
-        CGI_CLI.http_user_agent = dict(os.environ).get('HTTP_USER_AGENT','')
         CGI_CLI.cgi_save_files()        
         return CGI_CLI.USERNAME, CGI_CLI.PASSWORD
 
@@ -226,32 +214,31 @@ class CGI_CLI(object):
     def uprint(text, tag = None, tag_id = None, color = None, name = None, jsonprint = None):
         """NOTE: name parameter could be True or string."""
         print_text, print_name = copy.deepcopy(text), str()
-        if CGI_CLI.debug:
-            if jsonprint:
-                if isinstance(text, (dict,collections.OrderedDict,list,tuple)):
-                    try: print_text = json.dumps(text, indent = 4)
-                    except: pass   
-            if name==True:
-                if not 'inspect.currentframe' in sys.modules: import inspect
-                callers_local_vars = inspect.currentframe().f_back.f_locals.items()
-                var_list = [var_name for var_name, var_val in callers_local_vars if var_val is text]
-                if str(','.join(var_list)).strip(): print_name = str(','.join(var_list)) + ' = '
-            elif isinstance(name, (six.string_types)): print_name = str(name) + ' = '
-            
-            print_text = str(print_text)
-            if CGI_CLI.cgi_active:
-                ### WORKARROUND FOR COLORING OF SIMPLE TEXT
-                if color and not tag: tag = 'p'; 
-                if tag: CGI_CLI.buffprint('<%s%s%s>'%(tag,' id="%s"'%(tag_id) if tag_id else str(),' style="color:%s;"'%(color) if color else 'black'))
-                if isinstance(print_text, six.string_types):
-                    print_text = str(print_text.replace('&','&amp;').replace('<','&lt;'). \
-                        replace('>','&gt;').replace(' ','&nbsp;').replace('"','&quot;').replace("'",'&apos;').\
-                        replace('\n','<br/>'))
-            CGI_CLI.buffprint(print_name + print_text)
-            del print_text
-            if CGI_CLI.cgi_active: 
-                if tag: CGI_CLI.buffprint('</%s>'%(tag))
-                else: CGI_CLI.buffprint('<br/>');
+        if jsonprint:
+            if isinstance(text, (dict,collections.OrderedDict,list,tuple)):
+                try: print_text = json.dumps(text, indent = 4)
+                except: pass   
+        if name==True:
+            if not 'inspect.currentframe' in sys.modules: import inspect
+            callers_local_vars = inspect.currentframe().f_back.f_locals.items()
+            var_list = [var_name for var_name, var_val in callers_local_vars if var_val is text]
+            if str(','.join(var_list)).strip(): print_name = str(','.join(var_list)) + ' = '
+        elif isinstance(name, (six.string_types)): print_name = str(name) + ' = '
+        
+        print_text = str(print_text)
+        if CGI_CLI.cgi_active:
+            ### WORKARROUND FOR COLORING OF SIMPLE TEXT
+            if color and not tag: tag = 'p'; 
+            if tag: CGI_CLI.buffprint('<%s%s%s>'%(tag,' id="%s"'%(tag_id) if tag_id else str(),' style="color:%s;"'%(color) if color else 'black'))
+            if isinstance(print_text, six.string_types):
+                print_text = str(print_text.replace('&','&amp;').replace('<','&lt;'). \
+                    replace('>','&gt;').replace(' ','&nbsp;').replace('"','&quot;').replace("'",'&apos;').\
+                    replace('\n','<br/>'))
+        CGI_CLI.buffprint(print_name + print_text)
+        del print_text
+        if CGI_CLI.cgi_active: 
+            if tag: CGI_CLI.buffprint('</%s>'%(tag))
+            else: CGI_CLI.buffprint('<br/>');
 
     @staticmethod 
     def formprint(form_data = None, submit_button = None, pyfile = None, tag = None, color = None):
@@ -331,6 +318,7 @@ class CGI_CLI(object):
         print_string += 'remote_addr[%s], ' % dict(os.environ).get('REMOTE_ADDR','')
         print_string += 'browser[%s]\n' % dict(os.environ).get('HTTP_USER_AGENT','')
         print_string += 'os.environ(QUERY_STRING)[%s]\n' % (CGI_CLI.query_string)
+        print_string += 'CGI_CLI.cgi_active[%s]\n' % (str(CGI_CLI.cgi_active))
         if CGI_CLI.cgi_active:
             try: print_string += 'CGI_CLI.data[%s] = %s\n' % (str(CGI_CLI.submit_form),str(json.dumps(CGI_CLI.data, indent = 4)))
             except: pass                 
@@ -354,23 +342,51 @@ class CGI_CLI(object):
 if __name__ != "__main__": sys.exit(0)
 
 ### CGI-BIN READ FORM ############################################
-CGI_CLI.init_cgi(os_environ_set = None, return_http_status = True)
+CGI_CLI.init_cgi(os_environ_query_string_set = None, return_http_status = True)
 CGI_CLI.print_args()
 #CGI_CLI.print_env()
 
 
 if CGI_CLI.cgi_active:
-    CGI_CLI.formprint(['<p>REGEX:</p>',{'textcontent':'regex_string','text':CGI_CLI.data.get('regex_string','')},'<p>TEXT:</p>',{'textcontent':'text_string','text':CGI_CLI.data.get('text_string','')}], submit_button = 'Submit')
+    CGI_CLI.formprint(\
+        ['REGEX:',{'textcontent':'regex_string','text':CGI_CLI.data.get('regex_string','')},\
+        'SUB:',{'textcontent':'sub_string','text':CGI_CLI.data.get('sub_string','')},\
+        'TEXT:',{'textcontent':'text_string','text':CGI_CLI.data.get('text_string','')}],\
+        submit_button = 'Submit')
 
 regex_string = CGI_CLI.data.get('regex_string','')
 text_string  = CGI_CLI.data.get('text_string','')
+sub_string   = CGI_CLI.data.get('sub_string','')
 
 raw_regex    = CGI_CLI.data.get('regex_string','').encode('unicode_escape')
 raw_text     = CGI_CLI.data.get('text_string','').encode('unicode_escape')
 
 
-CGI_CLI.uprint('REGEX: ' + regex_string)
-CGI_CLI.uprint('TEXT: ' + text_string)
+CGI_CLI.uprint('REGEX[%s], SUB[%s], TEXT[%s]' % (regex_string,sub_string,text_string))
+
+try: 
+    result = re.sub(regex_string, "", text_string)        
+    CGI_CLI.uprint('re.sub(REGEX, "", TEXT)        # Delete pattern',tag = 'h1', color = 'blue')
+    CGI_CLI.uprint(str(result) ,tag = 'h1', color = 'green')
+except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']') 
+
+try: 
+    result = re.sub(regex_string, "", text_string)        
+    CGI_CLI.uprint('\nre.sub(REGEX, SUB, TEXT)       # Replace pattern by SUB',tag = 'h1', color = 'blue')
+    CGI_CLI.uprint(str(result) ,tag = 'h1', color = 'green')
+except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']') 
+
+try: 
+    result = re.sub(r'\s+', "", text_string)        
+    CGI_CLI.uprint("\nre.sub(r'\s+', ' ', TEXT)      # Eliminate duplicate whitespaces",tag = 'h1', color = 'blue')
+    CGI_CLI.uprint(str(result) ,tag = 'h1', color = 'green')
+except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']')
+
+try: 
+    result = re.sub('abc(def)ghi', r'\1', text_string)        
+    CGI_CLI.uprint("\nre.sub('abc(def)ghi', r'\1', TEXT)     # Replace a string with a part of itself",tag = 'h1', color = 'blue')
+    CGI_CLI.uprint(str(result) ,tag = 'h1', color = 'green')
+except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']')
 
 try: 
     result = re.search(regex_string,text_string) 
@@ -402,11 +418,6 @@ try:
     CGI_CLI.uprint(str(result) ,tag = 'h1', color = 'green')
 except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']') 
 
-try: 
-    result = re.sub(regex_string, "", text_string)        
-    CGI_CLI.uprint('\nre.sub(REGEX, "", TEXT)',tag = 'h1', color = 'blue')
-    CGI_CLI.uprint(str(result) ,tag = 'h1', color = 'green')
-except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']') 
 
 # try: 
     # result = re.match(regex_string, text_string).groups()
@@ -415,4 +426,4 @@ except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']')
     # CGI_CLI.uprint('z.groups(): ' + str(result2) ,tag = 'h1', color = 'blue')
 # except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']') 
     
-CGI_CLI.set_http_status_code(200)    
+#CGI_CLI.set_http_status_code(200)    
