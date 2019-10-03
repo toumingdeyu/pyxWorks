@@ -163,7 +163,7 @@ CMD_IOS_XE = [
                    ['neighbor'], [], [], False, 3),
             ('show access-lists',
                    'ndiff0', ['remark'], [],
-                   ['access'], [r'^\s\d.*', r'\(\d.*', r'matches\)', r'match\)'], [1,2,3,4,5,6], False),
+                   ['access'], [r'^\s+\d+', r'\(\d+', r'matches\)', r'match\)'], [1,2,3,4,5,6], False),
 #             ('show interfaces | include (^[A-Z].*|minute|second|Last input)',
 #                    'ndiff0', [], [' 0 bits/sec'],
 #                    [], [], [], False)
@@ -261,7 +261,7 @@ CMD_IOS_XR = [
                    ['neighbor'], [], [], False, 3),
             ('show access-lists',
                    'ndiff0', ['remark'], [],
-                   ['access-list'], [r'^\s\d.*', r'\(\d.*', r'matches\)', r'match\)'], [1,2,3,4,5,6], False),
+                   ['access-list'], [r'^\s+\d+', r'\(\d+', r'matches\)', r'match\)'], [1,2,3,4,5,6], False),
 #             ("show interfaces | in \"^[A-Z].*|minute|second|Last input|errors|total\"",
 #                    'ndiff0', ['is administratively down,'], [],
 #                    [', line protocol is'], [], [], False)
@@ -352,7 +352,7 @@ CMD_VRP = [
                       [], [], [], False),
             ("display acl all",
                       'ndiff0', [], [],
-                      [], [r'^\s\w.*\s\d.*', r'\(\d.*', r'matched\)'], [0,2,3,4,5,6], False),
+                      [], [r'^\s+\w+\s+\d+', r'\(\d+', r'matched\)'], [0,2,3,4,5,6], False),
             ("display alarm all",
                       'ndiff0', [], [],
                       [], [], [], False),
