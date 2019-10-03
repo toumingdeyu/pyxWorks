@@ -716,17 +716,19 @@ def get_difference_string_from_string_or_list(
                     except: temp_column = str()
                     split_next_line += ' ' + temp_column.replace('/',' ')
                 ### LINEFILTER_LIST --------------------------------------------
-                linefiltered_line = line
-                try: linefiltered_next_line = listdiff[line_number+1]
-                except: linefiltered_next_line = str()
+                try: next_line = listdiff[line_number+1]
+                except: next_line = str()
+                try:
+                    linefiltered_next_line = re.sub(r'^[+-] ', '', next_line)
+                    linefiltered_line = re.sub(r'^[+-] ', '', line)
+                except:
+                    linefiltered_next_line, linefiltered_line = str(), str()
                 for linefilter_item in linefilter_list:
-                    try: next_line = listdiff[line_number+1]
-                    except: next_line = str()
-                    if line and (re.search(linefilter_item,line)) != None:
-                        try: linefiltered_line = re.sub(linefilter_item, "", linefiltered_line)
+                    if linefiltered_line:
+                        try: linefiltered_line = re.sub(linefilter_item, '', linefiltered_line)
                         except: pass
-                    if next_line and (re.search(linefilter_item,next_line)) != None:
-                        try: linefiltered_next_line = re.sub(linefilter_item, "", linefiltered_next_line)
+                    if linefiltered_next_line:
+                        try: linefiltered_next_line = re.sub(linefilter_item, '', linefiltered_next_line)
                         except: pass
                 ### IF SPLIT_LINE DOES not EXIST FROM COMPARE_COLUMNS DO IT ----
                 if not split_line: split_line = line.replace('/',' ')
