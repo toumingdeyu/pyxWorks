@@ -862,6 +862,49 @@ class LCMD(object):
 
 
 
+### GET_XPATH_FROM_XMLSTRING ===================================================
+def get_void_json_elements(json_data, ignore_void_strings = None, ignore_void_lists = None):
+    """
+    FUNCTION: get_void_json_elements()
+    parameters: json_data   - data structure
+    returns:    xpath_list  - lists of all void xpaths found in json_data
+    """
+    ### SUBFUNCTION --------------------------------------------------------------
+    def get_dictionary_subreferences(tuple_data):
+        json_deeper_references = []
+        parrent_xpath = tuple_data[0]
+        json_data = tuple_data[1]
+        if isinstance(json_data, (dict,collections.OrderedDict)):
+            for key in json_data.keys():
+                key_content=json_data.get(key)
+                if isinstance(key_content, (dict,collections.OrderedDict)): json_deeper_references.append((parrent_xpath+'/'+key,key_content))
+                elif isinstance(key_content, (list,tuple)):
+                    if len(key_content)==0:
+                        json_deeper_references.append((parrent_xpath+'/'+key+'=[]',key_content))
+                    for ii,sub_xml in enumerate(key_content,start=0):
+                        if type(sub_xml) in [dict,collections.OrderedDict]: json_deeper_references.append((parrent_xpath+'/'+key+'['+str(ii)+']',sub_xml))
+                elif isinstance(key_content, (six.string_types,six.integer_types,float,bool,bytearray)):
+                      if '#text' in key: json_deeper_references.append((parrent_xpath+'="'+key_content+'"',key_content))
+                      elif str(key)[0]=='@': json_deeper_references.append((parrent_xpath+'['+key+'="'+key_content+'"]',key_content))
+                      else: json_deeper_references.append((parrent_xpath+'/'+key+'="'+str(key_content)+'"',key_content))               
+                elif key_content == None: 
+                    json_deeper_references.append((parrent_xpath+'/'+key+'="'+str(key_content)+'"',key_content))    
+        return json_deeper_references
+    ### FUNCTION -----------------------------------------------------------------
+    references,xpath_list = [], []
+    references.append(('',json_data))
+    while len(references)>0:
+        add_references=get_dictionary_subreferences(references[0])
+        if '="None"' in references[0][0]\
+            or not ignore_void_strings and '=""' in references[0][0]\
+            or not ignore_void_lists and '=[]' in references[0][0]:
+            xpath_list.append(references[0][0])
+        references.remove(references[0])
+        references=add_references+references
+    del references
+    return xpath_list
+### ----------------------------------------------------------------------------
+
 
             
 ##############################################################################
@@ -1054,6 +1097,13 @@ if device:
             data['neighbor_groups']      = neighbor_groups
             data['loopback_200_address'] = loopback_200_address
 
+            if data: 
+               None_elements = get_void_json_elements(data)
+               print(None_elements)
+               if len(None_elements)>0: 
+                  CGI_CLI.uprint('\nVOID DATA PROBLEM FOUND!', color = 'red')
+                  sys.exit(0)
+
             CGI_CLI.uprint(data, name = True, jsonprint = True, color = 'blue')
             CGI_CLI.uprint('\n\n')
 
@@ -1081,6 +1131,13 @@ if device:
             data['loopback_200_config']  = loopback_200_config
             data['neighbor_groups']      = neighbor_groups
             data['loopback_200_address'] = loopback_200_address
+
+            if data: 
+               None_elements = get_void_json_elements(data)
+               print(None_elements)
+               if len(None_elements)>0: 
+                  CGI_CLI.uprint('\nVOID DATA PROBLEM FOUND!', color = 'red')
+                  sys.exit(0)
 
             CGI_CLI.uprint(data, name = True, jsonprint = True, color = 'blue')
             CGI_CLI.uprint('\n\n')
