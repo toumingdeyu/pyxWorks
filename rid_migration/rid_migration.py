@@ -937,8 +937,9 @@ neighbor-group ${item}
 !
 !
 router isis PAII
- mpls traffic-eng router-id Loopback10
-!
+ address-family ipv4 unicast
+  mpls traffic-eng router-id Loopback0
+ !
 !
 !
 router bgp 5511
