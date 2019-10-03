@@ -8,7 +8,7 @@
 # Updated: 23/Mar/2019 -added new custom filediff                             #
 #          25/Mar/2019 -added vrp huawei router type, old/new filediff method #
 #          05/Apr/2019 -autod. all, new commands, new filtering, new colours  #
-#          02/Oct/2019 -acl filter all types, ignore twice tolerance          # 
+#          03/Oct/2019 -acl filter all types, ignore twice tolerance          #
 # TODO:                                                                       #
 # Description: Script to collect and compare output from a router before      #
 # and after a configuration change or maintenance to outline router change    #
@@ -17,7 +17,7 @@
 
 import sys, os, paramiko
 import getopt
-import getpass 
+import getpass
 import telnetlib
 import time, datetime
 import difflib
@@ -124,7 +124,7 @@ default_printalllines_list = []
 # 7-printall
 # 8-tolerance_percentage (number)
 
-# IOS-XE is only for IPsec GW 
+# IOS-XE is only for IPsec GW
 CMD_IOS_XE = [
             ("show version",
                    'ndiff0', ['uptime','Uptime'], [],
@@ -163,7 +163,7 @@ CMD_IOS_XE = [
                    ['neighbor'], [], [], False, 3),
             ('show access-lists',
                    'ndiff0', ['remark'], [],
-                   ['access'], [r'^\s\d.*', r'\(\d.*', 'matches)', 'match)'], [1,2,3,4,5,6], False),
+                   ['access'], [r'^\s\d.*', r'\(\d.*', r'matches\)', r'match\)'], [1,2,3,4,5,6], False),
 #             ('show interfaces | include (^[A-Z].*|minute|second|Last input)',
 #                    'ndiff0', [], [' 0 bits/sec'],
 #                    [], [], [], False)
@@ -213,7 +213,7 @@ CMD_IOS_XR = [
                    [], [], [0,1,2,5,6,7,9,10], False,3),
             ("show bgp summary",
                    'ndiff0', [], [],
-                   [], [], [0,1,9,10], False,3),            
+                   [], [], [0,1,9,10], False,3),
             ("show bgp vrf all sum | exc \"BGP|ID|stop|Process|Speaker\"",
                    'ndiff0', ['Speaker'], [],
                    [], [], [0,1,2,3,4,5], False),
@@ -261,13 +261,13 @@ CMD_IOS_XR = [
                    ['neighbor'], [], [], False, 3),
             ('show access-lists',
                    'ndiff0', ['remark'], [],
-                   ['access-list'], [r'^\s\d.*', r'\(\d.*', 'matches)', 'match)'], [1,2,3,4,5,6], False),                                     
+                   ['access-list'], [r'^\s\d.*', r'\(\d.*', r'matches\)', r'match\)'], [1,2,3,4,5,6], False),
 #             ("show interfaces | in \"^[A-Z].*|minute|second|Last input|errors|total\"",
 #                    'ndiff0', ['is administratively down,'], [],
 #                    [', line protocol is'], [], [], False)
              ]
-             
-### JUNOS ACCEPTS ONLY 60 CHARs LONG LINE, WITH NO CONTRACTIONS !!!             
+
+### JUNOS ACCEPTS ONLY 60 CHARs LONG LINE, WITH NO CONTRACTIONS !!!
 CMD_JUNOS = [
             ("show system software",
                    'ndiff0', ['uptime','Uptime'], [],
@@ -324,7 +324,7 @@ CMD_JUNOS = [
                    ['Peer:'], [], [], False, 3),
             ('show configuration firewall',
                    'ndiff0', [], [],
-                   ['filter', 'term', 'from', 'then', 'source', 'destination', '{', '}'], [], [], False),                   
+                   ['filter', 'term', 'from', 'then', 'source', 'destination', '{', '}'], [], [], False),
 #             ('show interfaces detail | match "Physical interface|Last flapped| bps"',
 #                    'ndiff0',['Administratively down'], [],
 #                    ['Physical interface:'], [], [0,1,2,3,4], False)
@@ -352,7 +352,7 @@ CMD_VRP = [
                       [], [], [], False),
             ("display acl all",
                       'ndiff0', [], [],
-                      [], [r'^\s\w.*\s\d.*', r'\(\d.*'], [0,2,3,4,5,6], False),
+                      [], [r'^\s\w.*\s\d.*', r'\(\d.*', r'matched\)'], [0,2,3,4,5,6], False),
             ("display alarm all",
                       'ndiff0', [], [],
                       [], [], [], False),
@@ -617,7 +617,7 @@ def get_difference_string_from_string_or_list(
       - IGNORE_LIST - list of regular expressions or strings when line is ignored for file (string) comparison
       - PROBLEM_LIST - list of regular expressions or strings which detects problems, even if files are equal
       - PRINTALLLINES_LIST - list of regular expressions or strings which will be printed grey, even if files are equal
-      - LINEFILTER_LIST - list of regexs/strings which are filtered-out items for comparison (deleted each item in line) 
+      - LINEFILTER_LIST - list of REGEXs! which are filtered-out items for comparison (deleted each item in line)
       - COMPARE_COLUMNS - list of columns which are intended to be different , other columns in line are ignored
       - PRINT_EQUALLINES - True/False prints all equal new file lines with '=' prefix , by default is False
       - TOLERANCE_PERCENTAGE - All numbers/selected columns in line with % tolerance. String columns must be equal.
@@ -680,7 +680,7 @@ def get_difference_string_from_string_or_list(
             ignore = False
             for ignore_item in ignore_list:
                 if (re.search(ignore_item,line)) != None: ignore = True
-            if ignore: continue            
+            if ignore: continue
             try:    first_chars = line[0]+line[1]
             except: first_chars = str()
             if '+ ' in first_chars or '- ' in first_chars or '  ' in first_chars:
@@ -723,9 +723,11 @@ def get_difference_string_from_string_or_list(
                     try: next_line = listdiff[line_number+1]
                     except: next_line = str()
                     if line and (re.search(linefilter_item,line)) != None:
-                        linefiltered_line = re.sub(linefilter_item, "", linefiltered_line)
+                        try: linefiltered_line = re.sub(linefilter_item, "", linefiltered_line)
+                        except: pass
                     if next_line and (re.search(linefilter_item,next_line)) != None:
-                        linefiltered_next_line = re.sub(linefilter_item, "", linefiltered_next_line)
+                        try: linefiltered_next_line = re.sub(linefilter_item, "", linefiltered_next_line)
+                        except: pass
                 ### IF SPLIT_LINE DOES not EXIST FROM COMPARE_COLUMNS DO IT ----
                 if not split_line: split_line = line.replace('/',' ')
                 if not split_next_line: split_next_line = listdiff[line_number+1].replace('/',' ')
@@ -969,10 +971,10 @@ else:
     router_type = args.router_type
     print('FORCED ROUTER_TYPE: ' + router_type)
 
-######## Create logs directory if not existing  ######### 
+######## Create logs directory if not existing  #########
 if not os.path.exists(WORKDIR): os.makedirs(WORKDIR)
 
-####### Find necessary pre and post check files if needed 
+####### Find necessary pre and post check files if needed
 if args.precheck_file:
     if not os.path.isfile(args.precheck_file):
         if os.path.isfile(os.path.join(WORKDIR,args.precheck_file)):
@@ -1161,7 +1163,7 @@ else:
     last_output = subprocess.check_output('chmod +r %s' % (filename),shell=True)
     print(" ... Collection is completed\n")
 
-# Post Check treatment 
+# Post Check treatment
 if pre_post == "post" or args.recheck or args.postcheck_file:
     print(" ==> COMPARING PRECHECK & POSTCHECK ...\n")
 
