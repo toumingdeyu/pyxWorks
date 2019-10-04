@@ -514,7 +514,7 @@ class RCMD(object):
                             conf = conf, sim_config = sim_config, printall = printall)
                         elif RCMD.router_type=='cisco_xr': conf_output = RCMD.run_command('config t', \
                             conf = conf, sim_config = sim_config, printall = printall)
-                        elif RCMD.router_type=='juniper': conf_output = RCMD.run_command('configure', \
+                        elif RCMD.router_type=='juniper': conf_output = RCMD.run_command('configure private', \
                             conf = conf, sim_config = sim_config , printall = printall)
                         elif RCMD.router_type=='huawei': conf_output = RCMD.run_command('system-view', \
                             conf = conf, sim_config = sim_config, printall = printall)
@@ -977,11 +977,9 @@ router isis PAII
 !
 """
 ############################################################################
-junos_config = """set interfaces lo0 unit 0 family inet6 address ${converted_ipv4}/128
-exit"""
+junos_config = """set interfaces lo0 unit 0 family inet6 address ${converted_ipv4}/128"""
 
-undo_junos_config = """delete interfaces lo0 unit 0 family inet6 address ${converted_ipv4}/128
-exit"""
+undo_junos_config = """delete interfaces lo0 unit 0 family inet6 address ${converted_ipv4}/128"""
 
 
 
