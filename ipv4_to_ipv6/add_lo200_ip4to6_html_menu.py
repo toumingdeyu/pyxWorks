@@ -976,6 +976,15 @@ router isis PAII
  ! 
 !
 """
+############################################################################
+junos_config = """set interfaces lo0 unit 0 family inet6 address ${converted_ipv4}/128
+exit"""
+
+undo_junos_config = """delete interfaces lo0 unit 0 family inet6 address ${converted_ipv4}/128
+exit"""
+
+
+
 
 ############################################################################
 CGI_CLI.print_args()
@@ -1033,7 +1042,56 @@ if device:
             mytemplate = Template(undo_xr_config,strict_undefined=True)
             config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
 
-    ### XR/XE #####################################################################
+    ### JUNOS #####################################################################
+    if RCMD.router_type == 'juniper':
+        collector_cmd = {'juniper':['show configuration interfaces lo0 | match /128',\
+            'show configuration interfaces lo0 | display set | match 128',\
+            'show configuration interfaces lo0 | match 172.25.4']}
+        rcmd_outputs = RCMD.run_commands(collector_cmd, printall = True)
+ 
+        try: ipv6 = rcmd_outputs[0].split('address')[1].split()[0].replace(';','')
+        except: ipv6 = str()
+        try: ipv6two = rcmd_outputs[0].split('address')[2].split()[0].replace(';','')
+        except: ipv6two = str()
+
+        if not CGI_CLI.data.get('rollback') and ipv6 and ipv6two:
+              CGI_CLI.uprint('\n2x Ipv6(%s, %s) ALREADY EXISTS!' %(ipv6, ipv6two), tag = 'h1', color = 'red')
+              RCMD.disconnect()
+              sys.exit(0)
+
+        try: set_text = rcmd_outputs[1].split('set')[1].split('\n')[0]
+        except: set_text = str()
+        if set_text: primary_ipv6 = 'set' + set_text + ' primary\n'
+        else: primary_ipv6 = str()
+
+        try: ipv4 = rcmd_outputs[2].split('address')[1].split()[0].replace(';','')
+        except: ipv4 = str()
+
+        converted_ipv4 = ipv4_to_ipv6_obs(ipv4)[0]
+
+        data = {}        
+        data['converted_ipv4'] = converted_ipv4
+        data['primary_ipv6'] = primary_ipv6
+        
+        CGI_CLI.uprint(data, name = True, jsonprint = True, color = 'blue')
+        CGI_CLI.uprint('\n\n')
+
+        if data: 
+           None_elements = get_void_json_elements(data)
+           print(None_elements)
+           if len(None_elements)>0: 
+              CGI_CLI.uprint('\nVOID DATA PROBLEM FOUND!', tag = 'h1', color = 'red')
+              RCMD.disconnect()
+              sys.exit(0)
+              
+        if not CGI_CLI.data.get('rollback'):
+            config_string = str()
+            mytemplate = Template(junos_config,strict_undefined=True)
+            config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
+        else:
+            config_string = str()
+            mytemplate = Template(undo_junos_config,strict_undefined=True)
+            config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
 
 
 
