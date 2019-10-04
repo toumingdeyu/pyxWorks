@@ -977,12 +977,22 @@ router isis PAII
 !
 """
 ############################################################################
-junos_config = """set interfaces lo0 unit 0 family inet6 address ${converted_ipv4}/128"""
+junos_config = """set interfaces lo0 unit 0 family inet6 address ${converted_ipv4}/128 primary"""
 
-undo_junos_config = """delete interfaces lo0 unit 0 family inet6 address ${converted_ipv4}/128"""
+undo_junos_config = """delete interfaces lo0 unit 0 family inet6 address ${converted_ipv4}/128 primary"""
 
+############################################################################
+huawei_config = """interface loopback 200
+ipv6 enable
+ipv6 address ${converted_ipv4}/128
+isis ipv6 enable 5511
+#"""
 
-
+undo_huawei_config = """interface loopback 200
+undo ipv6 enable
+undo ipv6 address ${converted_ipv4}/128
+undo isis ipv6 enable 5511
+#"""
 
 ############################################################################
 CGI_CLI.print_args()
@@ -1001,7 +1011,8 @@ if device:
 
     ### XR/XE #####################################################################
     if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_xe':
-        collector_cmd = {'cisco_xr':['sh run int loopback 200 | i /128','sh run int loopback 200 | i 172']}
+        collector_cmd = {'cisco_xr':['sh run int loopback 200 | i /128','sh run int loopback 200 | i 172'],
+                         'cisco_xe':['sh run int loopback 200 | i /128','sh run int loopback 200 | i 172']}
         rcmd_outputs = RCMD.run_commands(collector_cmd, printall = True)
  
         try: converted_ipv6_exists = rcmd_outputs[0].split('address')[1].split()[0].replace(';','')
@@ -1089,6 +1100,49 @@ if device:
         else:
             config_string = str()
             mytemplate = Template(undo_junos_config,strict_undefined=True)
+            config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
+
+    ### HUAWEI #####################################################################
+    if RCMD.router_type == 'huawei':
+        collector_cmd = {'huawei':['disp current-configuration interface LoopBack 200 | include /128',
+                                   'disp current-configuration interface LoopBack 200 | include 172']}
+        
+        rcmd_outputs = RCMD.run_commands(collector_cmd, printall = True)
+ 
+        try: converted_ipv6_exists = rcmd_outputs[0].split('address')[1].split()[0].replace(';','')
+        except: converted_ipv6_exists = str()
+
+        if not CGI_CLI.data.get('rollback') and converted_ipv6_exists:
+              CGI_CLI.uprint('\nIpv6(%s) ALREADY EXISTS!' %(converted_ipv6_exists), tag = 'h1', color = 'red')
+              RCMD.disconnect()
+              sys.exit(0)
+
+        try: ipv4 = rcmd_outputs[1].split('address')[1].split()[0].replace(';','')
+        except: ipv4 = str()
+
+        converted_ipv4 = ipv4_to_ipv6_obs(ipv4)[0]
+
+        data = {}        
+        data['converted_ipv4'] = converted_ipv4
+        
+        CGI_CLI.uprint(data, name = True, jsonprint = True, color = 'blue')
+        CGI_CLI.uprint('\n\n')
+
+        if data: 
+           None_elements = get_void_json_elements(data)
+           print(None_elements)
+           if len(None_elements)>0: 
+              CGI_CLI.uprint('\nVOID DATA PROBLEM FOUND!', tag = 'h1', color = 'red')
+              RCMD.disconnect()
+              sys.exit(0)
+              
+        if not CGI_CLI.data.get('rollback'):
+            config_string = str()
+            mytemplate = Template(huawei_config,strict_undefined=True)
+            config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
+        else:
+            config_string = str()
+            mytemplate = Template(undo_huawei_config,strict_undefined=True)
             config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
 
 
