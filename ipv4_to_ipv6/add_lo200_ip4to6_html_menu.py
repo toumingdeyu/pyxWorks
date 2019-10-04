@@ -955,15 +955,26 @@ if CGI_CLI.data.get("device"):
 
 xr_config = """!
 interface loopback 200
- ipv6 address ${converted_ipv4'}/128
+ ipv6 address ${converted_ipv4}/128
+!
+router isis PAII
+ interface Loopback200
+  !
+  address-family ipv6 unicast
+ ! 
 !
 """
 
 undo_xr_config = """!
 interface loopback 200
- no ipv6 address ${converted_ipv4'}/128
+ no ipv6 address ${converted_ipv4}/128
 !
-
+router isis PAII
+ interface Loopback200
+  !
+  no address-family ipv6 unicast
+ ! 
+!
 """
 
 ############################################################################
@@ -980,45 +991,55 @@ if CGI_CLI.cgi_active and not CGI_CLI.submit_form:
 
 if device:
     rcmd_outputs = RCMD.connect(device, username = USERNAME, password = PASSWORD)
-    if not CGI_CLI.data.get('rollback'):
-        ### XR/XE ###
-        if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_xe':
-            collector_cmd = {'cisco_xr':['sh run int loopback 200 | i /128','sh run int loopback 200 | i 172']}
-            rcmd_outputs = RCMD.run_commands(collector_cmd, printall = True)
-     
-            try: converted_ipv6_exists = rcmd_outputs[0].split('address')[1].split()[0].replace(';','')
-            except: converted_ipv6_exists = str()
-    
-            if converted_ipv6_exists:
-                  CGI_CLI.uprint('\nIpv6(%s) ALREADY EXISTS!' %(converted_ipv6_exists), tag = 'h1', color = 'red')
-                  RCMD.disconnect()
-                  sys.exit(0)
+
+    ### XR/XE #####################################################################
+    if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_xe':
+        collector_cmd = {'cisco_xr':['sh run int loopback 200 | i /128','sh run int loopback 200 | i 172']}
+        rcmd_outputs = RCMD.run_commands(collector_cmd, printall = True)
  
-            try: ipv4 = rcmd_outputs[1].split('address')[1].split()[0].replace(';','')
-            except: ipv4 = str()
+        try: converted_ipv6_exists = rcmd_outputs[0].split('address')[1].split()[0].replace(';','')
+        except: converted_ipv6_exists = str()
 
-            converted_ipv4 = ipv4_to_ipv6_obs(ipv4)[0]
+        if not CGI_CLI.data.get('rollback') and converted_ipv6_exists:
+              CGI_CLI.uprint('\nIpv6(%s) ALREADY EXISTS!' %(converted_ipv6_exists), tag = 'h1', color = 'red')
+              RCMD.disconnect()
+              sys.exit(0)
 
-            data = {}        
-            data['converted_ipv4'] = converted_ipv4
-            
-            CGI_CLI.uprint(data, name = True, jsonprint = True, color = 'blue')
-            CGI_CLI.uprint('\n\n')
+        try: ipv4 = rcmd_outputs[1].split('address')[1].split()[0].replace(';','')
+        except: ipv4 = str()
 
-            if data: 
-               None_elements = get_void_json_elements(data)
-               print(None_elements)
-               if len(None_elements)>0: 
-                  CGI_CLI.uprint('\nVOID DATA PROBLEM FOUND!', tag = 'h1', color = 'red')
-                  RCMD.disconnect()
-                  sys.exit(0)
+        converted_ipv4 = ipv4_to_ipv6_obs(ipv4)[0]
 
+        data = {}        
+        data['converted_ipv4'] = converted_ipv4
+        
+        CGI_CLI.uprint(data, name = True, jsonprint = True, color = 'blue')
+        CGI_CLI.uprint('\n\n')
+
+        if data: 
+           None_elements = get_void_json_elements(data)
+           print(None_elements)
+           if len(None_elements)>0: 
+              CGI_CLI.uprint('\nVOID DATA PROBLEM FOUND!', tag = 'h1', color = 'red')
+              RCMD.disconnect()
+              sys.exit(0)
+              
+        if not CGI_CLI.data.get('rollback'):
             config_string = str()
             mytemplate = Template(xr_config,strict_undefined=True)
             config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
+        else:
+            config_string = str()
+            mytemplate = Template(undo_xr_config,strict_undefined=True)
+            config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
+
+    ### XR/XE #####################################################################
 
 
-    ### PRINT CONFIG ###
+
+
+
+    ### PRINT CONFIG ################################################################
     CGI_CLI.uprint('CONFIG:\n', tag = 'h1', color = 'blue') 
     CGI_CLI.uprint(config_string)    
 
