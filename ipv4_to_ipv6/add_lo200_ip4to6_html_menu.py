@@ -349,6 +349,7 @@ class RCMD(object):
             RCMD.router_type = None
             RCMD.conf = conf
             RCMD.sim_config = sim_config
+            RCMD.huawei_version = 0
             RCMD.KNOWN_OS_TYPES = ['cisco_xr', 'cisco_ios', 'juniper', 'juniper_junos', 'huawei' ,'linux']
             try: RCMD.DEVICE_HOST = device.split(':')[0]
             except: RCMD.DEVICE_HOST = str()
@@ -516,8 +517,13 @@ class RCMD(object):
                             conf = conf, sim_config = sim_config, printall = printall)
                         elif RCMD.router_type=='juniper': conf_output = RCMD.run_command('configure private', \
                             conf = conf, sim_config = sim_config , printall = printall)
-                        elif RCMD.router_type=='huawei': conf_output = RCMD.run_command('system-view', \
-                            conf = conf, sim_config = sim_config, printall = printall)
+                        elif RCMD.router_type=='huawei':
+                            version_output = RCMD.run_command('display version', \
+                                conf = False, sim_config = sim_config, printall = printall)
+                            try: RCMD.huawei_version = float(version_output.split('VRP (R) software, Version')[1].split()[0].strip())
+                            except: RCMD.huawei_version = 0    
+                            conf_output = RCMD.run_command('system-view', \
+                                conf = conf, sim_config = sim_config, printall = printall)
                     if conf_output: command_outputs.append(conf_output)    
                     ### PROCESS COMMANDS - PER COMMAND #########################
                     for cmd_line in cmd_list:
@@ -532,8 +538,10 @@ class RCMD(object):
                             conf = conf, sim_config = sim_config, printall = printall)
                         elif RCMD.router_type=='juniper': commit_output = RCMD.run_command('commit', \
                             conf = conf, sim_config = sim_config, printall = printall)
-                        elif RCMD.router_type=='huawei': commit_output = RCMD.run_command('save', \
-                            conf = conf, sim_config = sim_config, printall = printall)
+                        elif RCMD.router_type=='huawei':
+                            if RCMD.huawei_version >= 7:
+                                commit_output = RCMD.run_command('commit', \
+                                    conf = conf, sim_config = sim_config, printall = printall)
                         if commit_output: command_outputs.append(commit_output)
                         if 'Failed to commit' in commit_output:
                             if RCMD.router_type=='cisco_xr': 
@@ -548,8 +556,15 @@ class RCMD(object):
                             conf = conf, sim_config = sim_config, printall = printall)
                         elif RCMD.router_type=='juniper': RCMD.run_command('exit', \
                             conf = conf, sim_config = sim_config, printall = printall)
-                        elif RCMD.router_type=='huawei': RCMD.run_command('return', \
-                            conf = conf, sim_config = sim_config, printall = printall)                   
+                        elif RCMD.router_type=='huawei': #return or quit?
+                            RCMD.run_command('guit', conf = conf, sim_config = sim_config, printall = printall) 
+                        ### NVRAM WRITE/SAVE SECTION ---------------------------
+                        if RCMD.router_type=='cisco_ios': 
+                            RCMD.run_command('write', conf = conf, sim_config = sim_config, printall = printall)
+                        elif RCMD.router_type=='huawei': 
+                            if RCMD.huawei_version < 7: 
+                                RCMD.run_command('save', conf = False, sim_config = sim_config, printall = printall)
+                                RCMD.run_command('yes', conf = False, sim_config = sim_config, printall = printall)
         return command_outputs                   
 
     @staticmethod
@@ -1010,9 +1025,9 @@ if device:
     rcmd_outputs = RCMD.connect(device, username = USERNAME, password = PASSWORD)
 
     ### XR/XE #####################################################################
-    if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_xe':
+    if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
         collector_cmd = {'cisco_xr':['sh run int loopback 200 | i /128','sh run int loopback 200 | i 172'],
-                         'cisco_xe':['sh run int loopback 200 | i /128','sh run int loopback 200 | i 172']}
+                         'cisco_ios':['sh run int loopback 200 | i /128','sh run int loopback 200 | i 172']}
         rcmd_outputs = RCMD.run_commands(collector_cmd, printall = True)
  
         try: converted_ipv6_exists = rcmd_outputs[0].split('address')[1].split()[0].replace(';','')
