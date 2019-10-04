@@ -65,7 +65,11 @@ class CGI_CLI(object):
         parser.add_argument("--sim",
                             action = "store_true", dest = 'sim',
                             default = None,
-                            help = "config simulation mode")                             
+                            help = "config simulation mode")
+        parser.add_argument("--cfg",
+                            action = "store_true", dest = 'show_config_only',
+                            default = None,
+                            help = "show config only, do not push data to device")                            
         args = parser.parse_args()
         return args
 
@@ -1099,15 +1103,15 @@ if device:
             data['neighbor_groups']      = neighbor_groups
             data['loopback_200_address'] = loopback_200_address
 
+            CGI_CLI.uprint(data, name = True, jsonprint = True, color = 'blue')
+            CGI_CLI.uprint('\n\n')
+
             if data: 
                None_elements = get_void_json_elements(data)
                print(None_elements)
                if len(None_elements)>0: 
                   CGI_CLI.uprint('\nVOID DATA PROBLEM FOUND!', color = 'red')
                   sys.exit(0)
-
-            CGI_CLI.uprint(data, name = True, jsonprint = True, color = 'blue')
-            CGI_CLI.uprint('\n\n')
 
             config_string = str()
             mytemplate = Template(xr_config,strict_undefined=True)
@@ -1136,6 +1140,9 @@ if device:
             data['neighbor_groups']      = neighbor_groups
             data['loopback_200_address'] = loopback_200_address
 
+            CGI_CLI.uprint(data, name = True, jsonprint = True, color = 'blue')
+            CGI_CLI.uprint('\n\n')
+
             if data: 
                None_elements = get_void_json_elements(data)
                print(None_elements)
@@ -1143,18 +1150,18 @@ if device:
                   CGI_CLI.uprint('\nVOID DATA PROBLEM FOUND!', color = 'red')
                   sys.exit(0)
 
-            CGI_CLI.uprint(data, name = True, jsonprint = True, color = 'blue')
-            CGI_CLI.uprint('\n\n')
-
             config_string = str()
             mytemplate = Template(undo_xr_config,strict_undefined=True)
             config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'        
 
 
-
         ### PUSH CONFIG TO DEVICE ##########################################################
         CGI_CLI.uprint('CONFIG:\n', tag = 'h1', color = 'blue') 
         CGI_CLI.uprint(config_string)    
+
+        if CGI_CLI.cgi_active and CGI_CLI.data.get('show_config_only'): 
+            RCMD.disconnect()
+            sys.exit(0)
 
         splitted_config = copy.deepcopy(config_string)
         try: splitted_config = str(splitted_config.decode("utf-8")).splitlines()

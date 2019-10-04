@@ -65,7 +65,11 @@ class CGI_CLI(object):
         parser.add_argument("--sim",
                             action = "store_true", dest = 'sim',
                             default = None,
-                            help = "config simulation mode")                             
+                            help = "config simulation mode") 
+        parser.add_argument("--cfg",
+                            action = "store_true", dest = 'show_config_only',
+                            default = None,
+                            help = "show config only, do not push data to device")                            
         args = parser.parse_args()
         return args
 
