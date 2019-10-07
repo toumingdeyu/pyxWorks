@@ -555,9 +555,9 @@ class RCMD(object):
                     ### EXIT FROM CONFIG MODE FOR PARAMIKO #####################    
                     if (conf or RCMD.conf) and RCMD.use_module == 'paramiko':
                         ### GO TO CONFIG TOP LEVEL SECTION ---------------------
-                        if RCMD.router_type=='cisco_ios': command_outputs.append(RCMD.run_command('end', \
-                            conf = conf, sim_config = sim_config, printall = printall)) 
-                        elif RCMD.router_type=='cisco_xr':
+                        #if RCMD.router_type=='cisco_ios': command_outputs.append(RCMD.run_command('end', \
+                        #    conf = conf, sim_config = sim_config, printall = printall)) 
+                        if RCMD.router_type=='cisco_xr' or RCMD.router_type=='cisco_ios':
                             for repeat_times in range(10):
                                 if '(config-' in command_outputs[-1:]: 
                                     command_outputs.append(RCMD.run_command('exit', \
