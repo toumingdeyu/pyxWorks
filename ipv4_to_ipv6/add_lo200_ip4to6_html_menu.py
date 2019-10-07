@@ -350,6 +350,7 @@ class RCMD(object):
             RCMD.conf = conf
             RCMD.sim_config = sim_config
             RCMD.huawei_version = 0
+            RCMD.config_problem = None
             RCMD.KNOWN_OS_TYPES = ['cisco_xr', 'cisco_ios', 'juniper', 'juniper_junos', 'huawei' ,'linux']
             try: RCMD.DEVICE_HOST = device.split(':')[0]
             except: RCMD.DEVICE_HOST = str()
@@ -506,7 +507,8 @@ class RCMD(object):
                             CGI_CLI.uprint('REMOTE_COMMAND' + sim_mark + ': ' + str(cmd_list), color = 'blue')
                             CGI_CLI.uprint(str(last_output), color = 'gray')       
                         if RCMD.fp: RCMD.fp.write('REMOTE_COMMANDS' + sim_mark + ': ' \
-                            + str(cmd_list) + '\n' + str(last_output) + '\n')
+                            + str(cmd_list) + '\n' + str(last_output) + '\n')                            
+                        command_outputs = [last_output]     
                 elif RCMD.use_module == 'paramiko':    
                     ### CONFIG MODE FOR PARAMIKO ###############################
                     conf_output = ''                    
@@ -534,37 +536,52 @@ class RCMD(object):
                         ### COMMIT SECTION -------------------------------------
                         commit_output = ""                    
                         if RCMD.router_type=='cisco_ios': pass
-                        elif RCMD.router_type=='cisco_xr': commit_output = RCMD.run_command('commit', \
-                            conf = conf, sim_config = sim_config, printall = printall)
-                        elif RCMD.router_type=='juniper': commit_output = RCMD.run_command('commit', \
-                            conf = conf, sim_config = sim_config, printall = printall)
-                        elif RCMD.router_type=='huawei':
-                            if RCMD.huawei_version >= 7:
-                                commit_output = RCMD.run_command('commit', \
-                                    conf = conf, sim_config = sim_config, printall = printall)
-                        if commit_output: command_outputs.append(commit_output)
-                        if 'Failed to commit' in commit_output:
-                            if RCMD.router_type=='cisco_xr': 
-                                failed_output = RCMD.run_command('show configuration failed', \
-                                    conf = conf, sim_config = sim_config, printall = printall),
-                                command_outputs.append(failed_output)
+                        elif RCMD.router_type=='cisco_xr': 
+                            command_outputs.append(RCMD.run_command('commit', \
+                                conf = conf, sim_config = sim_config, printall = printall))
+                            if 'Failed to commit' in command_outputs[-1:]:
                                 ### ALTERNATIVE COMMANDS: show commit changes diff, commit show-error
+                                command_outputs.append(RCMD.run_command('show configuration failed', \
+                                    conf = conf, sim_config = sim_config, printall = printall))                                    
+                        elif RCMD.router_type=='juniper': command_outputs.append(RCMD.run_command('commit', \
+                            conf = conf, sim_config = sim_config, printall = printall))
+                        elif RCMD.router_type=='huawei' and RCMD.huawei_version >= 7:
+                            commit_output = command_outputs.append(RCMD.run_command('commit', \
+                                conf = conf, sim_config = sim_config, printall = printall))
                         ### EXIT SECTION ---------------------------------------
-                        if RCMD.router_type=='cisco_ios': RCMD.run_command('exit', \
-                            conf = conf, sim_config = sim_config, printall = printall) 
-                        elif RCMD.router_type=='cisco_xr': RCMD.run_command('exit', \
-                            conf = conf, sim_config = sim_config, printall = printall)
-                        elif RCMD.router_type=='juniper': RCMD.run_command('exit', \
-                            conf = conf, sim_config = sim_config, printall = printall)
-                        elif RCMD.router_type=='huawei': #return or quit?
-                            RCMD.run_command('guit', conf = conf, sim_config = sim_config, printall = printall) 
-                        ### NVRAM WRITE/SAVE SECTION ---------------------------
-                        if RCMD.router_type=='cisco_ios': 
-                            RCMD.run_command('write', conf = conf, sim_config = sim_config, printall = printall)
+                        if RCMD.router_type=='cisco_ios': command_outputs.append(RCMD.run_command('exit', \
+                            conf = conf, sim_config = sim_config, printall = printall)) 
+                        elif RCMD.router_type=='cisco_xr': command_outputs.append(RCMD.run_command('exit', \
+                            conf = conf, sim_config = sim_config, printall = printall))
+                        elif RCMD.router_type=='juniper': command_outputs.append(RCMD.run_command('exit', \
+                            conf = conf, sim_config = sim_config, printall = printall))
                         elif RCMD.router_type=='huawei': 
-                            if RCMD.huawei_version < 7: 
-                                RCMD.run_command('save', conf = False, sim_config = sim_config, printall = printall)
-                                RCMD.run_command('yes', conf = False, sim_config = sim_config, printall = printall)
+                            command_outputs.append(RCMD.run_command('quit', conf = conf, \
+                                sim_config = sim_config, printall = printall)) 
+                        ### NVRAM WRITE/SAVE SECTION - NO CONFIG MODE! ---------
+                        if RCMD.router_type=='cisco_ios': 
+                            command_outputs.append(RCMD.run_command('write', conf = False, \
+                                sim_config = sim_config, printall = printall))
+                        elif RCMD.router_type=='huawei':
+                            ### ALL HUAWEI VERSIONS NEED SAVE !!! ###                        
+                            command_outputs.append(RCMD.run_command('save', conf = False, \
+                                sim_config = sim_config, printall = printall))
+                            command_outputs.append(RCMD.run_command('yes', conf = False, \
+                                sim_config = sim_config, printall = printall))
+                ### CHECK CONF OUTPUTS #########################################               
+                if (conf or RCMD.conf): 
+                    RCMD.config_problem = None
+                    for rcmd_output in command_outputs: 
+                        if 'INVALID INPUT' in rcmd_output.upper() \
+                            or 'INCOMPLETE COMMAND' in rcmd_output.upper() \
+                            or 'FAILED TO COMMIT' in rcmd_output.upper() \
+                            or 'UNRECOGNIZED COMMAND' in rcmd_output.upper():
+                            RCMD.config_problem = True
+                            CGI_CLI.uprint('\nCONFIGURATION PROBLEM FOUND:', color = 'red')
+                            CGI_CLI.uprint('%s' % (rcmd_output), color = 'darkorchid')           
+                    if RCMD.config_problem:
+                        CGI_CLI.uprint('COMMIT FAILED!' , tag = 'h1', tag_id = 'submit-result', color = 'red')
+                    else: CGI_CLI.uprint('COMMIT SUCCESSFULL.' , tag = 'h1', tag_id = 'submit-result', color = 'green')        
         return command_outputs                   
 
     @staticmethod
@@ -1178,19 +1195,7 @@ if device:
     except: splitted_config = [] 
 
     rcmd_outputs = RCMD.run_commands(cmd_data = splitted_config, conf = True, printall = True, sim_config = CGI_CLI.data.get('sim',None))        
-    
-    config_problem = None
-    for rcmd_output in rcmd_outputs: 
-        if 'INVALID INPUT' in rcmd_output.upper() or 'INCOMPLETE COMMAND' in rcmd_output.upper():
-            config_problem = True
-            CGI_CLI.uprint('\nCONFIGURATION PROBLEM FOUND:', color = 'red')
-            CGI_CLI.uprint('%s' % (rcmd_output), color = 'darkorchid')
-    try:        
-        if 'FAILED' in rcmd_outputs[-1].upper() or 'ERROR' in rcmd_outputs[-1].upper() or config_problem:
-            CGI_CLI.uprint('COMMIT FAILED!' , tag = 'h1', tag_id = 'submit-result', color = 'red')
-        else: CGI_CLI.uprint('COMMIT SUCCESSFULL.' , tag = 'h1', tag_id = 'submit-result', color = 'green')    
-    except: pass
-            
+                
     RCMD.disconnect()
 else: 
     if CGI_CLI.cgi_active and CGI_CLI.submit_form:
