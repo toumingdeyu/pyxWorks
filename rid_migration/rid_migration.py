@@ -80,7 +80,7 @@ class CGI_CLI(object):
         ######## Parse program arguments ##################################
         parser = argparse.ArgumentParser(
                             description = "Script %s v.%s" % (sys.argv[0], CGI_CLI.VERSION()),
-                            epilog = "e.g: \n" )
+                            epilog = "\n" )
         parser.add_argument("--version",
                             action = 'version', version = CGI_CLI.VERSION())
         parser.add_argument("--username",
