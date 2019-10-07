@@ -36,7 +36,45 @@ class CGI_CLI(object):
     """
     # import collections, cgi, six
     # import cgitb; cgitb.enable()
+    
+    class bcolors:
+            DEFAULT    = '\033[99m'
+            WHITE      = '\033[97m'
+            CYAN       = '\033[96m'
+            MAGENTA    = '\033[95m'
+            HEADER     = '\033[95m'
+            OKBLUE     = '\033[94m'
+            BLUE       = '\033[94m'
+            YELLOW     = '\033[93m'
+            GREEN      = '\033[92m'
+            OKGREEN    = '\033[92m'
+            WARNING    = '\033[93m'
+            RED        = '\033[91m'
+            FAIL       = '\033[91m'
+            GREY       = '\033[90m'
+            ENDC       = '\033[0m'
+            BOLD       = '\033[1m'
+            UNDERLINE  = '\033[4m'
 
+    class nocolors:
+            DEFAULT    = ''
+            WHITE      = ''
+            CYAN       = ''
+            MAGENTA    = ''
+            HEADER     = ''
+            OKBLUE     = ''
+            BLUE       = ''
+            YELLOW     = ''
+            GREEN      = ''
+            OKGREEN    = ''
+            WARNING    = ''
+            RED        = ''
+            FAIL       = ''
+            GREY       = ''
+            ENDC       = ''
+            BOLD       = ''
+            UNDERLINE  = ''
+        
     @staticmethod
     def cli_parser():
         ######## Parse program arguments ##################################
@@ -136,7 +174,7 @@ class CGI_CLI(object):
         ### GAIN/OVERWRITE USERNAME AND PASSWORD FROM CGI ###   
         if CGI_CLI.username: CGI_CLI.USERNAME = CGI_CLI.username
         if CGI_CLI.password: CGI_CLI.PASSWORD = CGI_CLI.password
-        if CGI_CLI.cgi_active or 'WIN32' in sys.platform.upper(): bcolors = nocolors
+        if CGI_CLI.cgi_active or 'WIN32' in sys.platform.upper(): CGI_CLI.bcolors = CGI_CLI.nocolors
         CGI_CLI.cgi_save_files()
         return CGI_CLI.USERNAME, CGI_CLI.PASSWORD
 
@@ -181,7 +219,18 @@ class CGI_CLI(object):
                 print_text = str(print_text.replace('&','&amp;').replace('<','&lt;'). \
                     replace('>','&gt;').replace(' ','&nbsp;').replace('"','&quot;').replace("'",'&apos;').\
                     replace('\n','<br/>'))
-        print(print_name + print_text)
+            print(print_name + print_text)        
+        else:                 
+            text_color = str()
+            if color: 
+                if 'RED' in color.upper():       text_color = CGI_CLI.bcolors.RED
+                elif 'MAGENTA' in color.upper(): text_color = CGI_CLI.bcolors.MAGENTA
+                elif 'GREEN' in color.upper():   text_color = CGI_CLI.bcolors.GREEN
+                elif 'BLUE' in color.upper():    text_color = CGI_CLI.bcolors.BLUE                
+                elif 'CYAN' in color.upper():    text_color = CGI_CLI.bcolors.CYAN
+                elif 'GREY' in color.upper():    text_color = CGI_CLI.bcolors.GREY
+                elif 'YELLOW' in color.upper():  text_color = CGI_CLI.bcolors.YELLOW                
+            print(text_color + print_name + print_text + CGI_CLI.bcolors.ENDC)
         del print_text
         if CGI_CLI.cgi_active:
             if tag: print('</%s>'%(tag))
@@ -278,43 +327,6 @@ class CGI_CLI(object):
 
 
 ##############################################################################
-class bcolors:
-        DEFAULT    = '\033[99m'
-        WHITE      = '\033[97m'
-        CYAN       = '\033[96m'
-        MAGENTA    = '\033[95m'
-        HEADER     = '\033[95m'
-        OKBLUE     = '\033[94m'
-        BLUE       = '\033[94m'
-        YELLOW     = '\033[93m'
-        GREEN      = '\033[92m'
-        OKGREEN    = '\033[92m'
-        WARNING    = '\033[93m'
-        RED        = '\033[91m'
-        FAIL       = '\033[91m'
-        GREY       = '\033[90m'
-        ENDC       = '\033[0m'
-        BOLD       = '\033[1m'
-        UNDERLINE  = '\033[4m'
-
-class nocolors:
-        DEFAULT    = ''
-        WHITE      = ''
-        CYAN       = ''
-        MAGENTA    = ''
-        HEADER     = ''
-        OKBLUE     = ''
-        BLUE       = ''
-        YELLOW     = ''
-        GREEN      = ''
-        OKGREEN    = ''
-        WARNING    = ''
-        RED        = ''
-        FAIL       = ''
-        GREY       = ''
-        ENDC       = ''
-        BOLD       = ''
-        UNDERLINE  = ''
 
 
 class RCMD(object):
@@ -367,8 +379,7 @@ class RCMD(object):
                 %(device, RCMD.DEVICE_HOST, RCMD.DEVICE_PORT)+24 * '.')
             RCMD.router_type, RCMD.router_prompt = RCMD.ssh_raw_detect_router_type(debug = None)
             if not RCMD.router_type in RCMD.KNOWN_OS_TYPES:
-                CGI_CLI.uprint('%sUNSUPPORTED DEVICE TYPE: \'%s\', BREAK!%s' % \
-                    (bcolors.MAGENTA, RCMD.router_type, bcolors.ENDC))
+                CGI_CLI.uprint('UNSUPPORTED DEVICE TYPE: \'%s\', BREAK!' % (RCMD.router_type), color = 'magenta')
             else: CGI_CLI.uprint('DETECTED DEVICE_TYPE: %s' % (RCMD.router_type))
             ####################################################################
             if RCMD.router_type == 'cisco_ios':
@@ -667,7 +678,7 @@ class RCMD(object):
                         try: new_last_line = output2.splitlines()[-1].strip()
                         except: new_last_line = str()
                         if last_line_orig and new_last_line and last_line_orig == new_last_line:
-                            if printall: print('%sNEW_PROMPT: %s%s' % (bcolors.CYAN,last_line_orig,bcolors.ENDC))
+                            if printall: CGI_CLI.uprint('NEW_PROMPT: %s' % (last_line_orig), color = 'cyan')
                             new_prompt = last_line_orig; exit_loop=True;exit_loop2=True; break
                         # WAIT UP TO 5 SECONDS
                         if (timeout_counter2) > 5*10: exit_loop2 = True; break
@@ -755,7 +766,7 @@ class RCMD(object):
                 output = ssh_raw_read_until_prompt(chan, command, [prompt], debug=debug)
                 if 'LINUX' in output.upper(): router_os = 'linux'
             if not router_os:
-                CGI_CLI.uprint(bcolors.MAGENTA + "\nCannot find recognizable OS in %s" % (output) + bcolors.ENDC)
+                CGI_CLI.uprint("\nCannot find recognizable OS in %s" % (output), color = 'magenta')
         except Exception as e: CGI_CLI.uprint('CONNECTION_PROBLEM[' + str(e) + ']')
         finally: client.close()
         netmiko_os = str()
