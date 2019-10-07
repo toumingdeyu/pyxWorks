@@ -1045,7 +1045,7 @@ undo isis ipv6 enable 5511
 #"""
 
 ############################################################################
-CGI_CLI.print_args()
+#CGI_CLI.print_args()
 ### HTML MENU SHOWS ONLY IN CGI MODE ###
 if CGI_CLI.cgi_active and not CGI_CLI.submit_form:
     CGI_CLI.uprint('ADD Loopback200 ipv4 to ipv6 TOOL:\n', tag = 'h1', color = 'blue') 
