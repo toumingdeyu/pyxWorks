@@ -53,7 +53,7 @@ class CGI_CLI(object):
                             help = "specify router password (test only...)")
         parser.add_argument("--getpass",
                             action = "store_true", dest = 'getpass', default = None,
-                            help = "insert router password interactively getpass.getpass()")
+                            help = "forced to insert router password interactively getpass.getpass()")
         parser.add_argument("--device",
                             action = "store", dest = 'device',
                             default = str(),
@@ -87,10 +87,11 @@ class CGI_CLI(object):
         import atexit; atexit.register(CGI_CLI.__cleanup__)
 
     @staticmethod
-    def init_cgi(interaction = None):
+    def init_cgi():
         CGI_CLI.START_EPOCH = time.time()
         CGI_CLI.cgi_active = None
         CGI_CLI.initialized = True
+        getpass_done = None
         CGI_CLI.data, CGI_CLI.submit_form, CGI_CLI.username, CGI_CLI.password = \
             collections.OrderedDict(), '', '', ''
         form, CGI_CLI.data = collections.OrderedDict(), collections.OrderedDict()
@@ -117,16 +118,22 @@ class CGI_CLI(object):
             print("\r\n\r\n<html><head><title>%s</title></head><body>" %
                 (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit'))
         import atexit; atexit.register(CGI_CLI.__cleanup__)
-        ### GAIN USERNAME AND PASSWORD FROM CGI/CLI
+        ### GAIN USERNAME AND PASSWORD FROM ENVIRONMENT BY DEFAULT ###
         try:    CGI_CLI.PASSWORD        = os.environ['NEWR_PASS']
         except: CGI_CLI.PASSWORD        = str()
         try:    CGI_CLI.USERNAME        = os.environ['NEWR_USER']
         except: CGI_CLI.USERNAME        = str()
+        ### GAIN/OVERWRITE USERNAME AND PASSWORD FROM CLI ###
+        if CGI_CLI.args.password: CGI_CLI.password = CGI_CLI.args.password
         if CGI_CLI.args.username:
             CGI_CLI.USERNAME = CGI_CLI.args.username
-            CGI_CLI.PASSWORD = str()
-            if interaction or CGI_CLI.args.getpass: CGI_CLI.PASSWORD = getpass.getpass("TACACS password: ")
-            elif CGI_CLI.args.password: CGI_CLI.password = CGI_CLI.args.password
+            if not CGI_CLI.args.password: 
+                CGI_CLI.PASSWORD = getpass.getpass("TACACS password: ")
+                getpass_done = True
+        ### FORCE GAIN/OVERWRITE USERNAME AND PASSWORD FROM CLI GETPASS ###   
+        if CGI_CLI.args.getpass and not getpass_done: 
+            CGI_CLI.PASSWORD = getpass.getpass("TACACS password: ")
+        ### GAIN/OVERWRITE USERNAME AND PASSWORD FROM CGI ###   
         if CGI_CLI.username: CGI_CLI.USERNAME = CGI_CLI.username
         if CGI_CLI.password: CGI_CLI.PASSWORD = CGI_CLI.password
         if CGI_CLI.cgi_active or 'WIN32' in sys.platform.upper(): bcolors = nocolors
@@ -1036,7 +1043,7 @@ if CGI_CLI.cgi_active and not CGI_CLI.submit_form:
         {'radio':'rollback'},'<br/>',{'radio':'show_config_only'},'<br/>'], \
         submit_button = 'OK', pyfile = None, tag = None, color = None)
 
-
+config_string = str()
 
 if device:
     rcmd_outputs = RCMD.connect(device, username = USERNAME, password = PASSWORD)
@@ -1176,9 +1183,6 @@ if device:
             config_string = str()
             mytemplate = Template(undo_huawei_config,strict_undefined=True)
             config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
-
-
-
 
 
     ### PRINT CONFIG ################################################################
