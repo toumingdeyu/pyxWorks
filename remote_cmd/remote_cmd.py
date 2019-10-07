@@ -916,65 +916,6 @@ class LCMD(object):
 
 
 
-### GET_XPATH_FROM_XMLSTRING ===================================================
-def get_void_json_elements(json_data, ignore_void_strings = None, ignore_void_lists = None):
-    """
-    FUNCTION: get_void_json_elements()
-    parameters: json_data   - data structure
-    returns:    xpath_list  - lists of all void xpaths found in json_data
-    """
-    ### SUBFUNCTION --------------------------------------------------------------
-    def get_dictionary_subreferences(tuple_data):
-        json_deeper_references = []
-        parrent_xpath = tuple_data[0]
-        json_data = tuple_data[1]
-        if isinstance(json_data, (dict,collections.OrderedDict)):
-            for key in json_data.keys():
-                key_content=json_data.get(key)
-                if isinstance(key_content, (dict,collections.OrderedDict)): json_deeper_references.append((parrent_xpath+'/'+key,key_content))
-                elif isinstance(key_content, (list,tuple)):
-                    if len(key_content)==0:
-                        json_deeper_references.append((parrent_xpath+'/'+key+'=[]',key_content))
-                    for ii,sub_xml in enumerate(key_content,start=0):
-                        if type(sub_xml) in [dict,collections.OrderedDict]: json_deeper_references.append((parrent_xpath+'/'+key+'['+str(ii)+']',sub_xml))
-                elif isinstance(key_content, (six.string_types,six.integer_types,float,bool,bytearray)):
-                      if '#text' in key: json_deeper_references.append((parrent_xpath+'="'+key_content+'"',key_content))
-                      elif str(key)[0]=='@': json_deeper_references.append((parrent_xpath+'['+key+'="'+key_content+'"]',key_content))
-                      else: json_deeper_references.append((parrent_xpath+'/'+key+'="'+str(key_content)+'"',key_content))               
-                elif key_content == None: 
-                    json_deeper_references.append((parrent_xpath+'/'+key+'="'+str(key_content)+'"',key_content))    
-        return json_deeper_references
-    ### FUNCTION -----------------------------------------------------------------
-    references,xpath_list = [], []
-    references.append(('',json_data))
-    while len(references)>0:
-        add_references=get_dictionary_subreferences(references[0])
-        if '="None"' in references[0][0]\
-            or not ignore_void_strings and '=""' in references[0][0]\
-            or not ignore_void_lists and '=[]' in references[0][0]:
-            xpath_list.append(references[0][0])
-        references.remove(references[0])
-        references=add_references+references
-    del references
-    return xpath_list
-### ----------------------------------------------------------------------------
-
-
-def ipv4_to_ipv6_obs(ipv4address):
-    ip4to6, ip6to4 = str(), str()
-    try: v4list = ipv4address.split('/')[0].split('.')
-    except: v4list = []
-    if len(v4list) == 4:
-        try:
-            if int(v4list[0])<256 and int(v4list[1])<256 and int(v4list[2])<256 \
-                and int(v4list[3])<256 and int(v4list[0])>=0 and \
-                int(v4list[1])>=0 and int(v4list[2])>=0 and int(v4list[3])>=0:
-                ip4to6 = 'fd00:0:0:5511::%02x%02x:%02x%02x' % \
-                    (int(v4list[0]),int(v4list[1]),int(v4list[2]),int(v4list[3]))
-                ip6to4 = '2002:%02x%02x:%02x%02x:0:0:0:0:0' % \
-                    (int(v4list[0]),int(v4list[1]),int(v4list[2]),int(v4list[3]))
-        except: pass
-    return ip4to6, ip6to4
             
 ##############################################################################
 #
