@@ -554,6 +554,19 @@ class RCMD(object):
                             conf = conf, sim_config = sim_config, printall = printall))
                     ### EXIT FROM CONFIG MODE FOR PARAMIKO #####################    
                     if (conf or RCMD.conf) and RCMD.use_module == 'paramiko':
+                        ### GO TO CONFIG TOP LEVEL SECTION ---------------------
+                        if RCMD.router_type=='cisco_ios': command_outputs.append(RCMD.run_command('end', \
+                            conf = conf, sim_config = sim_config, printall = printall)) 
+                        elif RCMD.router_type=='cisco_xr':
+                            for repeat_times in range(10):
+                                if '(config-' in command_outputs[-1:]: 
+                                    command_outputs.append(RCMD.run_command('exit', \
+                                        conf = conf, sim_config = sim_config, printall = printall))
+                                else: break                                   
+                        ### JUNOS - HAS NO CONFIG LEVELS ###        
+                        # elif RCMD.router_type=='huawei': 
+                            # command_outputs.append(RCMD.run_command('#', conf = conf, \
+                                # sim_config = sim_config, printall = printall))                     
                         ### COMMIT SECTION -------------------------------------
                         commit_output = ""                    
                         if RCMD.router_type=='cisco_ios': pass
@@ -568,7 +581,7 @@ class RCMD(object):
                             conf = conf, sim_config = sim_config, printall = printall))
                         elif RCMD.router_type=='huawei' and RCMD.huawei_version >= 7:
                             commit_output = command_outputs.append(RCMD.run_command('commit', \
-                                conf = conf, sim_config = sim_config, printall = printall))
+                                conf = conf, sim_config = sim_config, printall = printall)) 
                         ### EXIT SECTION ---------------------------------------
                         if RCMD.router_type=='cisco_ios': command_outputs.append(RCMD.run_command('exit', \
                             conf = conf, sim_config = sim_config, printall = printall)) 
@@ -583,7 +596,7 @@ class RCMD(object):
                         if RCMD.router_type=='cisco_ios': 
                             command_outputs.append(RCMD.run_command('write', conf = False, \
                                 sim_config = sim_config, printall = printall))
-                        elif RCMD.router_type=='huawei':
+                        elif RCMD.router_type=='huawei' and RCMD.huawei_version < 7:
                             ### ALL HUAWEI VERSIONS NEED SAVE !!! ###                        
                             command_outputs.append(RCMD.run_command('save', conf = False, \
                                 sim_config = sim_config, printall = printall))
