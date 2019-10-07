@@ -1220,7 +1220,7 @@ if device:
         CGI_CLI.uprint('CONFIG:\n', tag = 'h1', color = 'blue') 
         CGI_CLI.uprint(config_string)    
 
-        if CGI_CLI.cgi_active and CGI_CLI.data.get('show_config_only'): 
+        if CGI_CLI.data.get('show_config_only'): 
             RCMD.disconnect()
             sys.exit(0)
         
