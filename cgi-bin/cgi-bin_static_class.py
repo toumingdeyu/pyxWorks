@@ -18,44 +18,6 @@ import collections
 import requests
 
 
-class bcolors:
-        DEFAULT    = '\033[99m'
-        WHITE      = '\033[97m'
-        CYAN       = '\033[96m'
-        MAGENTA    = '\033[95m'
-        HEADER     = '\033[95m'
-        OKBLUE     = '\033[94m'
-        BLUE       = '\033[94m'
-        YELLOW     = '\033[93m'
-        GREEN      = '\033[92m'
-        OKGREEN    = '\033[92m'
-        WARNING    = '\033[93m'
-        RED        = '\033[91m'
-        FAIL       = '\033[91m'
-        GREY       = '\033[90m'
-        ENDC       = '\033[0m'
-        BOLD       = '\033[1m'
-        UNDERLINE  = '\033[4m'
-
-class nocolors:
-        DEFAULT    = ''
-        WHITE      = ''
-        CYAN       = ''
-        MAGENTA    = ''
-        HEADER     = ''
-        OKBLUE     = ''
-        BLUE       = ''
-        YELLOW     = ''
-        GREEN      = ''
-        OKGREEN    = ''
-        WARNING    = ''
-        RED        = ''
-        FAIL       = ''
-        GREY       = ''
-        ENDC       = ''
-        BOLD       = ''
-        UNDERLINE  = ''
-
 
 class CGI_CLI(object):
     """
@@ -69,7 +31,45 @@ class CGI_CLI(object):
     """
     # import collections, cgi, six
     # import cgitb; cgitb.enable()
+    
+    class bcolors:
+            DEFAULT    = '\033[99m'
+            WHITE      = '\033[97m'
+            CYAN       = '\033[96m'
+            MAGENTA    = '\033[95m'
+            HEADER     = '\033[95m'
+            OKBLUE     = '\033[94m'
+            BLUE       = '\033[94m'
+            YELLOW     = '\033[93m'
+            GREEN      = '\033[92m'
+            OKGREEN    = '\033[92m'
+            WARNING    = '\033[93m'
+            RED        = '\033[91m'
+            FAIL       = '\033[91m'
+            GREY       = '\033[90m'
+            ENDC       = '\033[0m'
+            BOLD       = '\033[1m'
+            UNDERLINE  = '\033[4m'
 
+    class nocolors:
+            DEFAULT    = ''
+            WHITE      = ''
+            CYAN       = ''
+            MAGENTA    = ''
+            HEADER     = ''
+            OKBLUE     = ''
+            BLUE       = ''
+            YELLOW     = ''
+            GREEN      = ''
+            OKGREEN    = ''
+            WARNING    = ''
+            RED        = ''
+            FAIL       = ''
+            GREY       = ''
+            ENDC       = ''
+            BOLD       = ''
+            UNDERLINE  = ''
+        
     @staticmethod
     def cli_parser():
         ######## Parse program arguments ##################################
@@ -86,21 +86,29 @@ class CGI_CLI(object):
                             help = "specify router password (test only...)")
         parser.add_argument("--getpass",
                             action = "store_true", dest = 'getpass', default = None,
-                            help = "insert router password interactively getpass.getpass()")
-        # parser.add_argument("--pe_device",
-                            # action = "store", dest = 'pe_device',
-                            # default = str(),
-                            # help = "target pe router to check")
-        # parser.add_argument("--gw_device",
-                            # action = "store", dest = 'gw_device',
-                            # default = str(),
-                            # help = "target gw router to check")
+                            help = "forced to insert router password interactively getpass.getpass()")
+        parser.add_argument("--device",
+                            action = "store", dest = 'device',
+                            default = str(),
+                            help = "target router to access")
+        parser.add_argument("--rollback",
+                            action = "store_true", dest = 'rollback',
+                            default = None,
+                            help = "do rollback")    
+        parser.add_argument("--sim",
+                            action = "store_true", dest = 'sim',
+                            default = None,
+                            help = "config simulation mode")
+        parser.add_argument("--cfg",
+                            action = "store_true", dest = 'show_config_only',
+                            default = None,
+                            help = "show config only, do not push data to device")                                
         args = parser.parse_args()
         return args
 
     @staticmethod
     def __cleanup__():
-        CGI_CLI.uprint('\nEND[script runtime = %d sec]. '%(time.time() - CGI_CLI.START_EPOCH))
+        ### CGI_CLI.uprint('\nEND[script runtime = %d sec]. '%(time.time() - CGI_CLI.START_EPOCH))
         if CGI_CLI.cgi_active: print("</body></html>")
 
     @staticmethod
@@ -112,10 +120,11 @@ class CGI_CLI(object):
         import atexit; atexit.register(CGI_CLI.__cleanup__)
 
     @staticmethod
-    def init_cgi(interaction = None):
+    def init_cgi():
         CGI_CLI.START_EPOCH = time.time()
         CGI_CLI.cgi_active = None
         CGI_CLI.initialized = True
+        getpass_done = None
         CGI_CLI.data, CGI_CLI.submit_form, CGI_CLI.username, CGI_CLI.password = \
             collections.OrderedDict(), '', '', ''
         form, CGI_CLI.data = collections.OrderedDict(), collections.OrderedDict()
@@ -142,19 +151,25 @@ class CGI_CLI(object):
             print("\r\n\r\n<html><head><title>%s</title></head><body>" %
                 (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit'))
         import atexit; atexit.register(CGI_CLI.__cleanup__)
-        ### GAIN USERNAME AND PASSWORD FROM CGI/CLI
+        ### GAIN USERNAME AND PASSWORD FROM ENVIRONMENT BY DEFAULT ###
         try:    CGI_CLI.PASSWORD        = os.environ['NEWR_PASS']
         except: CGI_CLI.PASSWORD        = str()
         try:    CGI_CLI.USERNAME        = os.environ['NEWR_USER']
         except: CGI_CLI.USERNAME        = str()
+        ### GAIN/OVERWRITE USERNAME AND PASSWORD FROM CLI ###
+        if CGI_CLI.args.password: CGI_CLI.password = CGI_CLI.args.password
         if CGI_CLI.args.username:
             CGI_CLI.USERNAME = CGI_CLI.args.username
-            CGI_CLI.PASSWORD = str()
-            if interaction or CGI_CLI.args.getpass: CGI_CLI.PASSWORD = getpass.getpass("TACACS password: ")
-            elif CGI_CLI.args.password: CGI_CLI.password = CGI_CLI.args.password
+            if not CGI_CLI.args.password: 
+                CGI_CLI.PASSWORD = getpass.getpass("TACACS password: ")
+                getpass_done = True
+        ### FORCE GAIN/OVERWRITE USERNAME AND PASSWORD FROM CLI GETPASS ###   
+        if CGI_CLI.args.getpass and not getpass_done: 
+            CGI_CLI.PASSWORD = getpass.getpass("TACACS password: ")
+        ### GAIN/OVERWRITE USERNAME AND PASSWORD FROM CGI ###   
         if CGI_CLI.username: CGI_CLI.USERNAME = CGI_CLI.username
         if CGI_CLI.password: CGI_CLI.PASSWORD = CGI_CLI.password
-        if CGI_CLI.cgi_active or 'WIN32' in sys.platform.upper(): bcolors = nocolors
+        if CGI_CLI.cgi_active or 'WIN32' in sys.platform.upper(): CGI_CLI.bcolors = CGI_CLI.nocolors
         CGI_CLI.cgi_save_files()
         return CGI_CLI.USERNAME, CGI_CLI.PASSWORD
 
@@ -199,7 +214,18 @@ class CGI_CLI(object):
                 print_text = str(print_text.replace('&','&amp;').replace('<','&lt;'). \
                     replace('>','&gt;').replace(' ','&nbsp;').replace('"','&quot;').replace("'",'&apos;').\
                     replace('\n','<br/>'))
-        print(print_name + print_text)
+            print(print_name + print_text)        
+        else:                 
+            text_color = str()
+            if color: 
+                if 'RED' in color.upper():       text_color = CGI_CLI.bcolors.RED
+                elif 'MAGENTA' in color.upper(): text_color = CGI_CLI.bcolors.MAGENTA
+                elif 'GREEN' in color.upper():   text_color = CGI_CLI.bcolors.GREEN
+                elif 'BLUE' in color.upper():    text_color = CGI_CLI.bcolors.BLUE                
+                elif 'CYAN' in color.upper():    text_color = CGI_CLI.bcolors.CYAN
+                elif 'GREY' in color.upper():    text_color = CGI_CLI.bcolors.GREY
+                elif 'YELLOW' in color.upper():  text_color = CGI_CLI.bcolors.YELLOW                
+            print(text_color + print_name + print_text + CGI_CLI.bcolors.ENDC)
         del print_text
         if CGI_CLI.cgi_active:
             if tag: print('</%s>'%(tag))
