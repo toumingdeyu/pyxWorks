@@ -36,7 +36,45 @@ class CGI_CLI(object):
     """
     # import collections, cgi, six
     # import cgitb; cgitb.enable()
+    
+    class bcolors:
+            DEFAULT    = '\033[99m'
+            WHITE      = '\033[97m'
+            CYAN       = '\033[96m'
+            MAGENTA    = '\033[95m'
+            HEADER     = '\033[95m'
+            OKBLUE     = '\033[94m'
+            BLUE       = '\033[94m'
+            YELLOW     = '\033[93m'
+            GREEN      = '\033[92m'
+            OKGREEN    = '\033[92m'
+            WARNING    = '\033[93m'
+            RED        = '\033[91m'
+            FAIL       = '\033[91m'
+            GREY       = '\033[90m'
+            ENDC       = '\033[0m'
+            BOLD       = '\033[1m'
+            UNDERLINE  = '\033[4m'
 
+    class nocolors:
+            DEFAULT    = ''
+            WHITE      = ''
+            CYAN       = ''
+            MAGENTA    = ''
+            HEADER     = ''
+            OKBLUE     = ''
+            BLUE       = ''
+            YELLOW     = ''
+            GREEN      = ''
+            OKGREEN    = ''
+            WARNING    = ''
+            RED        = ''
+            FAIL       = ''
+            GREY       = ''
+            ENDC       = ''
+            BOLD       = ''
+            UNDERLINE  = ''
+        
     @staticmethod
     def cli_parser():
         ######## Parse program arguments ##################################
@@ -65,7 +103,7 @@ class CGI_CLI(object):
         parser.add_argument("--sim",
                             action = "store_true", dest = 'sim',
                             default = None,
-                            help = "config simulation mode") 
+                            help = "config simulation mode")
         parser.add_argument("--cfg",
                             action = "store_true", dest = 'show_config_only',
                             default = None,
@@ -87,10 +125,11 @@ class CGI_CLI(object):
         import atexit; atexit.register(CGI_CLI.__cleanup__)
 
     @staticmethod
-    def init_cgi(interaction = None):
+    def init_cgi():
         CGI_CLI.START_EPOCH = time.time()
         CGI_CLI.cgi_active = None
         CGI_CLI.initialized = True
+        getpass_done = None
         CGI_CLI.data, CGI_CLI.submit_form, CGI_CLI.username, CGI_CLI.password = \
             collections.OrderedDict(), '', '', ''
         form, CGI_CLI.data = collections.OrderedDict(), collections.OrderedDict()
@@ -117,19 +156,25 @@ class CGI_CLI(object):
             print("\r\n\r\n<html><head><title>%s</title></head><body>" %
                 (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit'))
         import atexit; atexit.register(CGI_CLI.__cleanup__)
-        ### GAIN USERNAME AND PASSWORD FROM CGI/CLI
+        ### GAIN USERNAME AND PASSWORD FROM ENVIRONMENT BY DEFAULT ###
         try:    CGI_CLI.PASSWORD        = os.environ['NEWR_PASS']
         except: CGI_CLI.PASSWORD        = str()
         try:    CGI_CLI.USERNAME        = os.environ['NEWR_USER']
         except: CGI_CLI.USERNAME        = str()
+        ### GAIN/OVERWRITE USERNAME AND PASSWORD FROM CLI ###
+        if CGI_CLI.args.password: CGI_CLI.password = CGI_CLI.args.password
         if CGI_CLI.args.username:
             CGI_CLI.USERNAME = CGI_CLI.args.username
-            CGI_CLI.PASSWORD = str()
-            if interaction or CGI_CLI.args.getpass: CGI_CLI.PASSWORD = getpass.getpass("TACACS password: ")
-            elif CGI_CLI.args.password: CGI_CLI.password = CGI_CLI.args.password
+            if not CGI_CLI.args.password: 
+                CGI_CLI.PASSWORD = getpass.getpass("TACACS password: ")
+                getpass_done = True
+        ### FORCE GAIN/OVERWRITE USERNAME AND PASSWORD FROM CLI GETPASS ###   
+        if CGI_CLI.args.getpass and not getpass_done: 
+            CGI_CLI.PASSWORD = getpass.getpass("TACACS password: ")
+        ### GAIN/OVERWRITE USERNAME AND PASSWORD FROM CGI ###   
         if CGI_CLI.username: CGI_CLI.USERNAME = CGI_CLI.username
         if CGI_CLI.password: CGI_CLI.PASSWORD = CGI_CLI.password
-        if CGI_CLI.cgi_active or 'WIN32' in sys.platform.upper(): bcolors = nocolors
+        if CGI_CLI.cgi_active or 'WIN32' in sys.platform.upper(): CGI_CLI.bcolors = CGI_CLI.nocolors
         CGI_CLI.cgi_save_files()
         return CGI_CLI.USERNAME, CGI_CLI.PASSWORD
 
@@ -174,7 +219,18 @@ class CGI_CLI(object):
                 print_text = str(print_text.replace('&','&amp;').replace('<','&lt;'). \
                     replace('>','&gt;').replace(' ','&nbsp;').replace('"','&quot;').replace("'",'&apos;').\
                     replace('\n','<br/>'))
-        print(print_name + print_text)
+            print(print_name + print_text)        
+        else:                 
+            text_color = str()
+            if color: 
+                if 'RED' in color.upper():       text_color = CGI_CLI.bcolors.RED
+                elif 'MAGENTA' in color.upper(): text_color = CGI_CLI.bcolors.MAGENTA
+                elif 'GREEN' in color.upper():   text_color = CGI_CLI.bcolors.GREEN
+                elif 'BLUE' in color.upper():    text_color = CGI_CLI.bcolors.BLUE                
+                elif 'CYAN' in color.upper():    text_color = CGI_CLI.bcolors.CYAN
+                elif 'GREY' in color.upper():    text_color = CGI_CLI.bcolors.GREY
+                elif 'YELLOW' in color.upper():  text_color = CGI_CLI.bcolors.YELLOW                
+            print(text_color + print_name + print_text + CGI_CLI.bcolors.ENDC)
         del print_text
         if CGI_CLI.cgi_active:
             if tag: print('</%s>'%(tag))
@@ -271,43 +327,6 @@ class CGI_CLI(object):
 
 
 ##############################################################################
-class bcolors:
-        DEFAULT    = '\033[99m'
-        WHITE      = '\033[97m'
-        CYAN       = '\033[96m'
-        MAGENTA    = '\033[95m'
-        HEADER     = '\033[95m'
-        OKBLUE     = '\033[94m'
-        BLUE       = '\033[94m'
-        YELLOW     = '\033[93m'
-        GREEN      = '\033[92m'
-        OKGREEN    = '\033[92m'
-        WARNING    = '\033[93m'
-        RED        = '\033[91m'
-        FAIL       = '\033[91m'
-        GREY       = '\033[90m'
-        ENDC       = '\033[0m'
-        BOLD       = '\033[1m'
-        UNDERLINE  = '\033[4m'
-
-class nocolors:
-        DEFAULT    = ''
-        WHITE      = ''
-        CYAN       = ''
-        MAGENTA    = ''
-        HEADER     = ''
-        OKBLUE     = ''
-        BLUE       = ''
-        YELLOW     = ''
-        GREEN      = ''
-        OKGREEN    = ''
-        WARNING    = ''
-        RED        = ''
-        FAIL       = ''
-        GREY       = ''
-        ENDC       = ''
-        BOLD       = ''
-        UNDERLINE  = ''
 
 
 class RCMD(object):
@@ -349,6 +368,8 @@ class RCMD(object):
             RCMD.router_type = None
             RCMD.conf = conf
             RCMD.sim_config = sim_config
+            RCMD.huawei_version = 0
+            RCMD.config_problem = None
             RCMD.KNOWN_OS_TYPES = ['cisco_xr', 'cisco_ios', 'juniper', 'juniper_junos', 'huawei' ,'linux']
             try: RCMD.DEVICE_HOST = device.split(':')[0]
             except: RCMD.DEVICE_HOST = str()
@@ -358,8 +379,7 @@ class RCMD(object):
                 %(device, RCMD.DEVICE_HOST, RCMD.DEVICE_PORT)+24 * '.')
             RCMD.router_type, RCMD.router_prompt = RCMD.ssh_raw_detect_router_type(debug = None)
             if not RCMD.router_type in RCMD.KNOWN_OS_TYPES:
-                CGI_CLI.uprint('%sUNSUPPORTED DEVICE TYPE: \'%s\', BREAK!%s' % \
-                    (bcolors.MAGENTA, RCMD.router_type, bcolors.ENDC))
+                CGI_CLI.uprint('UNSUPPORTED DEVICE TYPE: \'%s\', BREAK!' % (RCMD.router_type), color = 'magenta')
             else: CGI_CLI.uprint('DETECTED DEVICE_TYPE: %s' % (RCMD.router_type))
             ####################################################################
             if RCMD.router_type == 'cisco_ios':
@@ -505,7 +525,8 @@ class RCMD(object):
                             CGI_CLI.uprint('REMOTE_COMMAND' + sim_mark + ': ' + str(cmd_list), color = 'blue')
                             CGI_CLI.uprint(str(last_output), color = 'gray')       
                         if RCMD.fp: RCMD.fp.write('REMOTE_COMMANDS' + sim_mark + ': ' \
-                            + str(cmd_list) + '\n' + str(last_output) + '\n')
+                            + str(cmd_list) + '\n' + str(last_output) + '\n')                            
+                        command_outputs = [last_output]     
                 elif RCMD.use_module == 'paramiko':    
                     ### CONFIG MODE FOR PARAMIKO ###############################
                     conf_output = ''                    
@@ -516,8 +537,13 @@ class RCMD(object):
                             conf = conf, sim_config = sim_config, printall = printall)
                         elif RCMD.router_type=='juniper': conf_output = RCMD.run_command('configure private', \
                             conf = conf, sim_config = sim_config , printall = printall)
-                        elif RCMD.router_type=='huawei': conf_output = RCMD.run_command('system-view', \
-                            conf = conf, sim_config = sim_config, printall = printall)
+                        elif RCMD.router_type=='huawei':
+                            version_output = RCMD.run_command('display version', \
+                                conf = False, sim_config = sim_config, printall = printall)
+                            try: RCMD.huawei_version = float(version_output.split('VRP (R) software, Version')[1].split()[0].strip())
+                            except: RCMD.huawei_version = 0    
+                            conf_output = RCMD.run_command('system-view', \
+                                conf = conf, sim_config = sim_config, printall = printall)
                     if conf_output: command_outputs.append(conf_output)    
                     ### PROCESS COMMANDS - PER COMMAND #########################
                     for cmd_line in cmd_list:
@@ -528,28 +554,52 @@ class RCMD(object):
                         ### COMMIT SECTION -------------------------------------
                         commit_output = ""                    
                         if RCMD.router_type=='cisco_ios': pass
-                        elif RCMD.router_type=='cisco_xr': commit_output = RCMD.run_command('commit', \
-                            conf = conf, sim_config = sim_config, printall = printall)
-                        elif RCMD.router_type=='juniper': commit_output = RCMD.run_command('commit', \
-                            conf = conf, sim_config = sim_config, printall = printall)
-                        elif RCMD.router_type=='huawei': commit_output = RCMD.run_command('save', \
-                            conf = conf, sim_config = sim_config, printall = printall)
-                        if commit_output: command_outputs.append(commit_output)
-                        if 'Failed to commit' in commit_output:
-                            if RCMD.router_type=='cisco_xr': 
-                                failed_output = RCMD.run_command('show configuration failed', \
-                                    conf = conf, sim_config = sim_config, printall = printall),
-                                command_outputs.append(failed_output)
+                        elif RCMD.router_type=='cisco_xr': 
+                            command_outputs.append(RCMD.run_command('commit', \
+                                conf = conf, sim_config = sim_config, printall = printall))
+                            if 'Failed to commit' in command_outputs[-1:]:
                                 ### ALTERNATIVE COMMANDS: show commit changes diff, commit show-error
+                                command_outputs.append(RCMD.run_command('show configuration failed', \
+                                    conf = conf, sim_config = sim_config, printall = printall))                                    
+                        elif RCMD.router_type=='juniper': command_outputs.append(RCMD.run_command('commit', \
+                            conf = conf, sim_config = sim_config, printall = printall))
+                        elif RCMD.router_type=='huawei' and RCMD.huawei_version >= 7:
+                            commit_output = command_outputs.append(RCMD.run_command('commit', \
+                                conf = conf, sim_config = sim_config, printall = printall))
                         ### EXIT SECTION ---------------------------------------
-                        if RCMD.router_type=='cisco_ios': RCMD.run_command('exit', \
-                            conf = conf, sim_config = sim_config, printall = printall) 
-                        elif RCMD.router_type=='cisco_xr': RCMD.run_command('exit', \
-                            conf = conf, sim_config = sim_config, printall = printall)
-                        elif RCMD.router_type=='juniper': RCMD.run_command('exit', \
-                            conf = conf, sim_config = sim_config, printall = printall)
-                        elif RCMD.router_type=='huawei': RCMD.run_command('return', \
-                            conf = conf, sim_config = sim_config, printall = printall)                   
+                        if RCMD.router_type=='cisco_ios': command_outputs.append(RCMD.run_command('exit', \
+                            conf = conf, sim_config = sim_config, printall = printall)) 
+                        elif RCMD.router_type=='cisco_xr': command_outputs.append(RCMD.run_command('exit', \
+                            conf = conf, sim_config = sim_config, printall = printall))
+                        elif RCMD.router_type=='juniper': command_outputs.append(RCMD.run_command('exit', \
+                            conf = conf, sim_config = sim_config, printall = printall))
+                        elif RCMD.router_type=='huawei': 
+                            command_outputs.append(RCMD.run_command('quit', conf = conf, \
+                                sim_config = sim_config, printall = printall)) 
+                        ### NVRAM WRITE/SAVE SECTION - NO CONFIG MODE! ---------
+                        if RCMD.router_type=='cisco_ios': 
+                            command_outputs.append(RCMD.run_command('write', conf = False, \
+                                sim_config = sim_config, printall = printall))
+                        elif RCMD.router_type=='huawei':
+                            ### ALL HUAWEI VERSIONS NEED SAVE !!! ###                        
+                            command_outputs.append(RCMD.run_command('save', conf = False, \
+                                sim_config = sim_config, printall = printall))
+                            command_outputs.append(RCMD.run_command('yes', conf = False, \
+                                sim_config = sim_config, printall = printall))
+                ### CHECK CONF OUTPUTS #########################################               
+                if (conf or RCMD.conf): 
+                    RCMD.config_problem = None
+                    for rcmd_output in command_outputs: 
+                        if 'INVALID INPUT' in rcmd_output.upper() \
+                            or 'INCOMPLETE COMMAND' in rcmd_output.upper() \
+                            or 'FAILED TO COMMIT' in rcmd_output.upper() \
+                            or 'UNRECOGNIZED COMMAND' in rcmd_output.upper():
+                            RCMD.config_problem = True
+                            CGI_CLI.uprint('\nCONFIGURATION PROBLEM FOUND:', color = 'red')
+                            CGI_CLI.uprint('%s' % (rcmd_output), color = 'darkorchid')           
+                    if RCMD.config_problem:
+                        CGI_CLI.uprint('COMMIT FAILED!' , tag = 'h1', tag_id = 'submit-result', color = 'red')
+                    else: CGI_CLI.uprint('COMMIT SUCCESSFULL.' , tag = 'h1', tag_id = 'submit-result', color = 'green')        
         return command_outputs                   
 
     @staticmethod
@@ -628,7 +678,7 @@ class RCMD(object):
                         try: new_last_line = output2.splitlines()[-1].strip()
                         except: new_last_line = str()
                         if last_line_orig and new_last_line and last_line_orig == new_last_line:
-                            if printall: print('%sNEW_PROMPT: %s%s' % (bcolors.CYAN,last_line_orig,bcolors.ENDC))
+                            if printall: CGI_CLI.uprint('NEW_PROMPT: %s' % (last_line_orig), color = 'cyan')
                             new_prompt = last_line_orig; exit_loop=True;exit_loop2=True; break
                         # WAIT UP TO 5 SECONDS
                         if (timeout_counter2) > 5*10: exit_loop2 = True; break
@@ -716,7 +766,7 @@ class RCMD(object):
                 output = ssh_raw_read_until_prompt(chan, command, [prompt], debug=debug)
                 if 'LINUX' in output.upper(): router_os = 'linux'
             if not router_os:
-                CGI_CLI.uprint(bcolors.MAGENTA + "\nCannot find recognizable OS in %s" % (output) + bcolors.ENDC)
+                CGI_CLI.uprint("\nCannot find recognizable OS in %s" % (output), color = 'magenta')
         except Exception as e: CGI_CLI.uprint('CONNECTION_PROBLEM[' + str(e) + ']')
         finally: client.close()
         netmiko_os = str()
