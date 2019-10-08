@@ -1340,7 +1340,7 @@ if device:
             data['loopback_200_address'] = loopback_200_address
             data['bgp_as'] = '5511'
             ### TEST_ONLY DELETION FROM CONFIG    
-            if iptac_server == 'iptac5' and conf == True: data['bgp_as'] = '2300'
+            if iptac_server == 'iptac5': data['bgp_as'] = '2300'
             
             CGI_CLI.uprint(data, name = True, jsonprint = True, color = 'blue')
             CGI_CLI.uprint('\n\n')            
@@ -1383,7 +1383,7 @@ if device:
             data['loopback_200_address'] = loopback_200_address
             data['bgp_as'] = '5511'
             ### TEST_ONLY DELETION FROM CONFIG    
-            if iptac_server == 'iptac5' and conf == True: data['bgp_as'] = '2300'
+            if iptac_server == 'iptac5': data['bgp_as'] = '2300'
             
             CGI_CLI.uprint(data, name = True, jsonprint = True, color = 'blue')
             CGI_CLI.uprint('\n\n')            
