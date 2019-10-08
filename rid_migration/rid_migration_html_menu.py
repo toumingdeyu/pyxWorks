@@ -614,7 +614,8 @@ class RCMD(object):
                         if 'INVALID INPUT' in rcmd_output.upper() \
                             or 'INCOMPLETE COMMAND' in rcmd_output.upper() \
                             or 'FAILED TO COMMIT' in rcmd_output.upper() \
-                            or 'UNRECOGNIZED COMMAND' in rcmd_output.upper():
+                            or 'UNRECOGNIZED COMMAND' in rcmd_output.upper() \
+                            or 'ERROR:' in rcmd_output.upper():
                             RCMD.config_problem = True
                             CGI_CLI.uprint('\nCONFIGURATION PROBLEM FOUND:', color = 'red')
                             CGI_CLI.uprint('%s' % (rcmd_output), color = 'darkorchid')
@@ -1157,8 +1158,9 @@ huawei_config = """#
 undo interface Loopback200
 #
 interface LoopBack0
+ undo ipv6 address
 % for item in loopback_200_config:
-${item}
+ ${item}
 % endfor
 #
 interface LoopBack10
@@ -1189,8 +1191,9 @@ undo_huawei_config = """#
 undo interface Loopback10
 #
 interface LoopBack200
+ undo ipv6 address
 % for item in loopback_200_config:
-${item}
+ ${item}
 % endfor
 #
 interface LoopBack0
