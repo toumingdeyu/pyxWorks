@@ -598,7 +598,7 @@ class RCMD(object):
                         if RCMD.router_type=='cisco_ios': 
                             command_outputs.append(RCMD.run_command('write', conf = False, \
                                 sim_config = sim_config, printall = printall))
-                        elif RCMD.router_type=='huawei' and RCMD.huawei_version < 7:
+                        elif RCMD.router_type=='huawei':
                             ### ALL HUAWEI VERSIONS NEED SAVE !!! ###                        
                             command_outputs.append(RCMD.run_command('save', conf = False, \
                                 sim_config = sim_config, printall = printall))
