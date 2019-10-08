@@ -80,7 +80,7 @@ class CGI_CLI(object):
         ######## Parse program arguments ##################################
         parser = argparse.ArgumentParser(
                             description = "Script %s v.%s" % (sys.argv[0], CGI_CLI.VERSION()),
-                            epilog = "\n" )
+                            epilog = "e.g: \n" )
         parser.add_argument("--version",
                             action = 'version', version = CGI_CLI.VERSION())
         parser.add_argument("--username",
@@ -91,7 +91,7 @@ class CGI_CLI(object):
                             help = "specify router password (test only...)")
         parser.add_argument("--getpass",
                             action = "store_true", dest = 'getpass', default = None,
-                            help = "insert router password interactively getpass.getpass()")
+                            help = "forced to insert router password interactively getpass.getpass()")
         parser.add_argument("--device",
                             action = "store", dest = 'device',
                             default = str(),
@@ -107,7 +107,7 @@ class CGI_CLI(object):
         parser.add_argument("--cfg",
                             action = "store_true", dest = 'show_config_only',
                             default = None,
-                            help = "show config only, do not push data to device")                            
+                            help = "show config only, do not push data to device")                                
         args = parser.parse_args()
         return args
 
@@ -334,7 +334,8 @@ class RCMD(object):
     @staticmethod
     def connect(device = None, cmd_data = None, username = None, password = None, \
         use_module = 'paramiko', logfilename = None, timeout = 60, conf = None, \
-        sim_config = None, disconnect = None, printall = None):
+        sim_config = None, disconnect = None, printall = None, \
+        do_not_final_print = None, commit_text = None):
         """ FUNCTION: RCMD.connect(), RETURNS: list of command_outputs
         PARAMETERS:
         device     - string , device_name/ip_address/device_name:PORT_NUMBER/ip_address:PORT_NUMBER 
@@ -370,6 +371,8 @@ class RCMD(object):
             RCMD.sim_config = sim_config
             RCMD.huawei_version = 0
             RCMD.config_problem = None
+            RCMD.commit_text = commit_text
+            RCMD.do_not_final_print = do_not_final_print
             RCMD.KNOWN_OS_TYPES = ['cisco_xr', 'cisco_ios', 'juniper', 'juniper_junos', 'huawei' ,'linux']
             try: RCMD.DEVICE_HOST = device.split(':')[0]
             except: RCMD.DEVICE_HOST = str()
@@ -488,7 +491,8 @@ class RCMD(object):
         return last_output 
 
     @staticmethod
-    def run_commands(cmd_data = None, printall = None, conf = None, sim_config = None):
+    def run_commands(cmd_data = None, printall = None, conf = None, sim_config = None, \
+        do_not_final_print = None , commit_text = None):
         """
         FUNCTION: run_commands(), RETURN: list of command_outputs
         PARAMETERS:
@@ -551,13 +555,28 @@ class RCMD(object):
                             conf = conf, sim_config = sim_config, printall = printall))
                     ### EXIT FROM CONFIG MODE FOR PARAMIKO #####################    
                     if (conf or RCMD.conf) and RCMD.use_module == 'paramiko':
+                        ### GO TO CONFIG TOP LEVEL SECTION ---------------------
+                        ### CISCO_IOS/XE has end command exiting from config ###
+                        if RCMD.router_type=='cisco_xr':
+                            for repeat_times in range(10):
+                                if '(config-' in ''.join(command_outputs[-1]):                               
+                                    command_outputs.append(RCMD.run_command('exit', \
+                                        conf = conf, sim_config = sim_config, printall = printall))
+                                else: break                                   
+                        ### JUNOS - HAS (HOPEFULLY) NO CONFIG LEVELS ###        
+                        elif RCMD.router_type=='huawei': 
+                            for repeat_times in range(10):
+                                if re.search(r'\[[0-9a-zA-Z]+\-[0-9a-zA-Z\-\.\@\_]+\]', ''.join(command_outputs[-1:])):                             
+                                    command_outputs.append(RCMD.run_command('quit', \
+                                        conf = conf, sim_config = sim_config, printall = printall))
+                                else: break                    
                         ### COMMIT SECTION -------------------------------------
                         commit_output = ""                    
                         if RCMD.router_type=='cisco_ios': pass
                         elif RCMD.router_type=='cisco_xr': 
                             command_outputs.append(RCMD.run_command('commit', \
                                 conf = conf, sim_config = sim_config, printall = printall))
-                            if 'Failed to commit' in command_outputs[-1:]:
+                            if 'Failed to commit' in ''.join(command_outputs[-1:]):
                                 ### ALTERNATIVE COMMANDS: show commit changes diff, commit show-error
                                 command_outputs.append(RCMD.run_command('show configuration failed', \
                                     conf = conf, sim_config = sim_config, printall = printall))                                    
@@ -565,9 +584,9 @@ class RCMD(object):
                             conf = conf, sim_config = sim_config, printall = printall))
                         elif RCMD.router_type=='huawei' and RCMD.huawei_version >= 7:
                             commit_output = command_outputs.append(RCMD.run_command('commit', \
-                                conf = conf, sim_config = sim_config, printall = printall))
-                        ### EXIT SECTION ---------------------------------------
-                        if RCMD.router_type=='cisco_ios': command_outputs.append(RCMD.run_command('exit', \
+                                conf = conf, sim_config = sim_config, printall = printall)) 
+                        ### EXIT CONFIG SECTION --------------------------------
+                        if RCMD.router_type=='cisco_ios': command_outputs.append(RCMD.run_command('end', \
                             conf = conf, sim_config = sim_config, printall = printall)) 
                         elif RCMD.router_type=='cisco_xr': command_outputs.append(RCMD.run_command('exit', \
                             conf = conf, sim_config = sim_config, printall = printall))
@@ -596,10 +615,16 @@ class RCMD(object):
                             or 'UNRECOGNIZED COMMAND' in rcmd_output.upper():
                             RCMD.config_problem = True
                             CGI_CLI.uprint('\nCONFIGURATION PROBLEM FOUND:', color = 'red')
-                            CGI_CLI.uprint('%s' % (rcmd_output), color = 'darkorchid')           
-                    if RCMD.config_problem:
-                        CGI_CLI.uprint('COMMIT FAILED!' , tag = 'h1', tag_id = 'submit-result', color = 'red')
-                    else: CGI_CLI.uprint('COMMIT SUCCESSFULL.' , tag = 'h1', tag_id = 'submit-result', color = 'green')        
+                            CGI_CLI.uprint('%s' % (rcmd_output), color = 'darkorchid')
+                    ### COMMIT TEXT ###
+                    if not (do_not_final_print or RCMD.do_not_final_print):
+                        text_to_commit = str()
+                        if not commit_text and not RCMD.commit_text: text_to_commit = 'COMMIT'
+                        elif commit_text: text_to_commit = commit_text
+                        elif RCMD.commit_text: text_to_commit = RCMD.commit_text                        
+                        if RCMD.config_problem:
+                            CGI_CLI.uprint('%s FAILED!' % (text_to_commit), tag = 'h1', tag_id = 'submit-result', color = 'red')
+                        else: CGI_CLI.uprint('%s SUCCESSFULL.' % (text_to_commit), tag = 'h1', tag_id = 'submit-result', color = 'green')        
         return command_outputs                   
 
     @staticmethod
@@ -913,6 +938,7 @@ class LCMD(object):
                     if printall:CGI_CLI.uprint('EXEC_PROBLEM[' + str(e) + ']')
                     LCMD.fp.write('EXEC_PROBLEM[' + str(e) + ']\n')                
         return None
+
 
 
 
