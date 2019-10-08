@@ -1362,8 +1362,8 @@ if device:
         else:
             ### UNDO/ROLLBACK CONFIG GENERATION ###        
             collector_cmd = {'huawei':[
+                'disp current-configuration interface LoopBack 10',
                 'disp current-configuration interface LoopBack 0',
-                'disp current-configuration interface LoopBack 200',
                 'display current-configuration configuration bgp | include connect-interface']}
 
             rcmd_outputs = RCMD.run_commands(collector_cmd, printall = True)
