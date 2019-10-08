@@ -1256,7 +1256,7 @@ if device:
 
             if data: 
                None_elements = get_void_json_elements(data)
-               print(None_elements)
+               CGI_CLI.uprint('VOID ELEMENTS CHECK: %s\n' % (str(None_elements) if len(None_elements)>0 else 'OK') )
                if len(None_elements)>0: 
                   CGI_CLI.uprint('\nVOID DATA PROBLEM FOUND!', tag = 'h1', color = 'red')
                   RCMD.disconnect()
@@ -1294,7 +1294,7 @@ if device:
 
             if data: 
                None_elements = get_void_json_elements(data)
-               print(None_elements)
+               CGI_CLI.uprint('VOID ELEMENTS CHECK: %s\n' % (str(None_elements) if len(None_elements)>0 else 'OK') )
                if len(None_elements)>0: 
                   CGI_CLI.uprint('\nVOID DATA PROBLEM FOUND!', tag = 'h1', color = 'red')
                   RCMD.disconnect()
@@ -1336,7 +1336,7 @@ if device:
                 
             if data: 
                None_elements = get_void_json_elements(data)
-               print(None_elements)
+               CGI_CLI.uprint('VOID ELEMENTS CHECK: %s\n' % (str(None_elements) if len(None_elements)>0 else 'OK') )
                if len(None_elements)>0: 
                   CGI_CLI.uprint('\nVOID DATA PROBLEM FOUND!', tag = 'h1', color = 'red')
                   RCMD.disconnect()
@@ -1376,7 +1376,7 @@ if device:
                 
             if data: 
                None_elements = get_void_json_elements(data)
-               print(None_elements)
+               CGI_CLI.uprint('VOID ELEMENTS CHECK: %s\n' % (str(None_elements) if len(None_elements)>0 else 'OK') )
                if len(None_elements)>0: 
                   CGI_CLI.uprint('\nVOID DATA PROBLEM FOUND!', tag = 'h1', color = 'red')
                   RCMD.disconnect()
