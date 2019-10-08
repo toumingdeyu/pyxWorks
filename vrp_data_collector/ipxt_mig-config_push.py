@@ -555,23 +555,27 @@ class RCMD(object):
                     ### EXIT FROM CONFIG MODE FOR PARAMIKO #####################    
                     if (conf or RCMD.conf) and RCMD.use_module == 'paramiko':
                         ### GO TO CONFIG TOP LEVEL SECTION ---------------------
+                        ### CISCO_IOS/XE has end command exiting from config ###
                         if RCMD.router_type=='cisco_xr':
                             for repeat_times in range(10):
-                                if '(config-' in command_outputs[-1:]: 
+                                if '(config-' in ''.join(command_outputs[-1]):                               
                                     command_outputs.append(RCMD.run_command('exit', \
                                         conf = conf, sim_config = sim_config, printall = printall))
                                 else: break                                   
-                        ### JUNOS - HAS NO CONFIG LEVELS ###        
-                        # elif RCMD.router_type=='huawei': 
-                            # command_outputs.append(RCMD.run_command('#', conf = conf, \
-                                # sim_config = sim_config, printall = printall))                     
+                        ### JUNOS - HAS (HOPEFULLY) NO CONFIG LEVELS ###        
+                        elif RCMD.router_type=='huawei': 
+                            for repeat_times in range(10):
+                                if re.search(r'\[[0-9a-zA-Z]+\-[0-9a-zA-Z\-\.\@\_]+\]', ''.join(command_outputs[-1:])):                             
+                                    command_outputs.append(RCMD.run_command('quit', \
+                                        conf = conf, sim_config = sim_config, printall = printall))
+                                else: break                    
                         ### COMMIT SECTION -------------------------------------
                         commit_output = ""                    
                         if RCMD.router_type=='cisco_ios': pass
                         elif RCMD.router_type=='cisco_xr': 
                             command_outputs.append(RCMD.run_command('commit', \
                                 conf = conf, sim_config = sim_config, printall = printall))
-                            if 'Failed to commit' in command_outputs[-1:]:
+                            if 'Failed to commit' in ''.join(command_outputs[-1:]):
                                 ### ALTERNATIVE COMMANDS: show commit changes diff, commit show-error
                                 command_outputs.append(RCMD.run_command('show configuration failed', \
                                     conf = conf, sim_config = sim_config, printall = printall))                                    
