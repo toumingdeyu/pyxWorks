@@ -1318,7 +1318,7 @@ if device:
             collector_cmd = {'huawei':[
                 'disp current-configuration interface LoopBack 0',
                 'disp current-configuration interface LoopBack 200',
-                'display current-configuration configuration bgp | include (group|connect-interface) | exclude (\d)']}
+                'display current-configuration configuration bgp | include connect-interface']}
 
             rcmd_outputs = RCMD.run_commands(collector_cmd, printall = True)
 
@@ -1361,7 +1361,7 @@ if device:
             collector_cmd = {'huawei':[
                 'disp current-configuration interface LoopBack 0',
                 'disp current-configuration interface LoopBack 200',
-                'display current-configuration configuration bgp | include (group|connect-interface) | exclude (\d)']}
+                'display current-configuration configuration bgp | include connect-interface']}
 
             rcmd_outputs = RCMD.run_commands(collector_cmd, printall = True)
 
