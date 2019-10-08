@@ -1,4 +1,0 @@
-EVAL_COMMAND: "SIM = "+glob_vars.get("SIM_CMD","")
-SIM = OFF
-IF_CONDITION(not glob_vars.get("SHUT","") and not glob_vars.get("NOSHUT","")):  --> TRUE
-EXEC_COMMAND: print("%sPlease specify --shut or --noshut ... %s"%(bcolors.RED,bcolors.ENDC))
