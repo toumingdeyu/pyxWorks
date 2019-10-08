@@ -1154,19 +1154,19 @@ router bgp 5511
 """
 
 huawei_config = """#
-interface LoopBack10
-% for item in loopback_0_config:
-${item}
-% endfor
+undo interface Loopback200
 #
 interface LoopBack0
 % for item in loopback_200_config:
 ${item}
 % endfor
 #
-quit
+interface LoopBack10
+% for item in loopback_0_config:
+${item}
+% endfor
 #
-undo interface Loopback200
+quit
 #
 info-center loghost source LoopBack10
 ntp-service source-interface LoopBack10
@@ -1186,19 +1186,19 @@ bgp ${bgp_as}
 """
 
 undo_huawei_config = """#
-interface LoopBack0
-% for item in loopback_0_config:
-${item}
-% endfor
+undo interface Loopback10
 #
 interface LoopBack200
 % for item in loopback_200_config:
 ${item}
 % endfor
 #
-quit
+interface LoopBack0
+% for item in loopback_0_config:
+${item}
+% endfor
 #
-undo interface Loopback10
+quit
 #
 info-center loghost source LoopBack0
 ntp-service source-interface LoopBack0
