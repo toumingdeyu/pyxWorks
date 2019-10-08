@@ -1103,6 +1103,9 @@ parser.add_argument("--sim",
                     #default = True,
                     default = None,
                     help = "simulate critical command runs")
+parser.add_argument("--getpass",
+                    action = "store_true", dest = 'getpass', default = None,
+                    help = "forced to insert router password interactively getpass.getpass()")                    
 args = parser.parse_args()
 
 if args.nocolors or 'WIN32' in sys.platform.upper(): bcolors = nocolors
@@ -1163,7 +1166,7 @@ if remote_connect:
         sys.exit(0)
 
     # SSH (default)
-    if not PASSWORD:
+    if not PASSWORD or args.getpass:
 #         if args.password: PASSWORD = args.password
 #         else:
             PASSWORD = getpass.getpass("TACACS password: ")
