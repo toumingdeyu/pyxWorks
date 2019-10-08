@@ -987,6 +987,21 @@ def get_void_json_elements(json_data, ignore_void_strings = None, ignore_void_li
     return xpath_list
 ### ----------------------------------------------------------------------------
 
+def ipv4_to_ipv6_obs(ipv4address):
+    ip4to6, ip6to4 = str(), str()
+    try: v4list = ipv4address.split('/')[0].split('.')
+    except: v4list = []
+    if len(v4list) == 4:
+        try:
+            if int(v4list[0])<256 and int(v4list[1])<256 and int(v4list[2])<256 \
+                and int(v4list[3])<256 and int(v4list[0])>=0 and \
+                int(v4list[1])>=0 and int(v4list[2])>=0 and int(v4list[3])>=0:
+                ip4to6 = 'fd00:0:0:5511::%02x%02x:%02x%02x' % \
+                    (int(v4list[0]),int(v4list[1]),int(v4list[2]),int(v4list[3]))
+                ip6to4 = '2002:%02x%02x:%02x%02x:0:0:0:0:0' % \
+                    (int(v4list[0]),int(v4list[1]),int(v4list[2]),int(v4list[3]))
+        except: pass
+    return ip4to6, ip6to4
 
             
 ##############################################################################
@@ -1224,6 +1239,17 @@ ${router_id_line}
 #
 """
 
+juniper_config = """
+delete interfaces lo0 unit 0 family inet address ${loopback_0_ipv4_address}/32 primary
+set interfaces lo0 unit 0 family inet address ${loopback_0_ipv4_address}/32
+set interfaces lo0 unit 0 family inet address ${loopback_200_ipv4_address}/32 primary
+set interfaces lo0 unit 0 family inet6 address ${loopback_0_ipv6_address}/128
+set interfaces lo0 unit 0 family inet6 address ${loopback_200_ipv6_address}/128 primary
+set routing-options router-id ${loopback_200_ipv4_address}
+set protocols ldp transport-address ${loopback_200_ipv4_address}
+"""
+
+
 ### HTML MENU SHOWS ONLY IN CGI MODE ###
 if CGI_CLI.cgi_active and not CGI_CLI.submit_form:
     CGI_CLI.uprint('ROUTER ID MIGRATION TOOL:\n', tag = 'h1', color = 'blue') 
@@ -1396,7 +1422,6 @@ if device:
                 router_id_line = 'router id ' + loopback_0_address
             else: router_id_line = '#'
                 
-
             data = {}  
             data['loopback_0_config']    = loopback_0_config
             data['loopback_200_config']  = loopback_200_config
@@ -1423,7 +1448,46 @@ if device:
             config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'             
 
 
+    ### JUNIPER #####################################################################
+    if RCMD.router_type == 'juniper':
+        if not CGI_CLI.data.get('rollback'):
+            collector_cmd = {'juniper':[ 'show configuration interfaces lo0 | display set']}
 
+            rcmd_outputs = RCMD.run_commands(collector_cmd, printall = True)
+            
+            loopback_0_ipv4_address = 'address 193.251.245.' + rcmd_outputs[0].split('address 193.251.245.')[1].split()[0] if 'address 193.251.245.' in rcmd_outputs[0] else str()
+            loopback_200_ipv4_address = 'address 172.25.4.' + rcmd_outputs[0].split('address 172.25.4.')[1].split()[0] if 'address 172.25.4.' in rcmd_outputs[0] else str()
+            loopback_0_ipv6_address = 'address 2001:688:0:1:' + rcmd_outputs[0].split('address 2001:688:0:1:')[1].split()[0] if 'address 2001:688:0:1:' in rcmd_outputs[0] else str()
+            loopback_200_ipv6_address = ipv4_to_ipv6_obs(loopback_0_ipv4_address)[0] if loopback_0_ipv4_address else str()
+
+            data = {}  
+            data['loopback_0_ipv4_address']    = loopback_0_ipv4_address
+            data['loopback_200_ipv4_address']  = loopback_200_ipv4_address
+            data['loopback_0_ipv6_address']    = loopback_0_ipv6_address
+            data['loopback_200_ipv6_address']  = loopback_200_ipv6_address
+            data['bgp_as']               = '5511'            
+            
+            CGI_CLI.uprint(data, name = True, jsonprint = True, color = 'blue')
+            CGI_CLI.uprint('\n\n')            
+                
+            if data: 
+               None_elements = get_void_json_elements(data)
+               CGI_CLI.uprint('VOID ELEMENTS CHECK: %s\n' % (str(None_elements) if len(None_elements)>0 else 'OK') )
+               if len(None_elements)>0: 
+                  CGI_CLI.uprint('\nVOID DATA PROBLEM FOUND!', tag = 'h1', color = 'red')
+                  RCMD.disconnect()
+                  sys.exit(0)
+                      
+            config_string = str()
+            mytemplate = Template(juniper_config,strict_undefined=True)
+            config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'              
+            
+            
+        else:
+            ### UNDO/ROLLBACK CONFIG GENERATION ###
+            collector_cmd = {'juniper':[ 'show configuration interfaces lo0 | display set']}            
+
+            rcmd_outputs = RCMD.run_commands(collector_cmd, printall = True)
 
 
 
