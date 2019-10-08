@@ -536,7 +536,7 @@ def detect_router_by_ssh(device, debug = False):
                         last_but_one_line = output.splitlines()[-3].strip().replace('\x20','')
                 except: last_but_one_line = 'dummyline2'
         prompt = output.splitlines()[-1].strip()
-        if debug: CGI_CLI.uprint('DETECTED PROMPT: \'' + prompt + '\'')
+        if debug: print('DETECTED PROMPT: \'' + prompt + '\'')
         return prompt
     # bullet-proof read-until function , even in case of ---more---
     def ssh_raw_read_until_prompt(chan,command,prompts,debug = debug):
@@ -566,10 +566,10 @@ def detect_router_by_ssh(device, debug = False):
     #client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     try:
-        client.connect(RCMD.DEVICE_HOST, port = int(RCMD.DEVICE_PORT), \
-            username = RCMD.USERNAME, password = RCMD.PASSWORD)
+        client.connect(DEVICE_HOST, port = int(DEVICE_PORT), \
+            username = USERNAME, password = PASSWORD)
         chan = client.invoke_shell()
-        chan.settimeout(RCMD.TIMEOUT)
+        chan.settimeout(TIMEOUT)
         # prevent --More-- in log banner (space=page, enter=1line,tab=esc)
         # \n\n get prompt as last line
         prompt = ssh_raw_detect_prompt(chan, debug=debug)
@@ -590,8 +590,8 @@ def detect_router_by_ssh(device, debug = False):
             output = ssh_raw_read_until_prompt(chan, command, [prompt], debug=debug)
             if 'LINUX' in output.upper(): router_os = 'linux'
         if not router_os:
-            CGI_CLI.uprint("\nCannot find recognizable OS in %s" % (output), color = 'magenta')
-    except Exception as e: CGI_CLI.uprint('CONNECTION_PROBLEM[' + str(e) + ']')
+            print("\nCannot find recognizable OS in %s" % (output))
+    except Exception as e: print('CONNECTION_PROBLEM[' + str(e) + ']')
     finally: client.close()
     netmiko_os = str()
     if router_os == 'ios-xe': netmiko_os = 'cisco_ios'
@@ -627,14 +627,14 @@ def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True)
         try: last_line, last_line_orig = output.splitlines()[-1].strip(), output.splitlines()[-1].strip()
         except: last_line, last_line_orig = str(), str()
         # FILTER-OUT '(...)' FROM PROMPT IOS-XR/IOS-XE
-        if RCMD.router_type in ["ios-xr","ios-xe",'cisco_ios','cisco_xr']:
+        if router_type in ["ios-xr","ios-xe",'cisco_ios','cisco_xr']:
             try:
                 last_line_part1 = last_line.split('(')[0]
                 last_line_part2 = last_line.split(')')[1]
                 last_line = last_line_part1 + last_line_part2
             except: last_line = last_line
         # FILTER-OUT '[*','[~','-...]' FROM VRP
-        elif RCMD.router_type in ["vrp",'huawei']:
+        elif router_type in ["vrp",'huawei']:
             try:
                 last_line_part1 = '[' + last_line.replace('[~','[').replace('[*','[').split('[')[1].split('-')[0]
                 last_line_part2 = ']' + last_line.replace('[~','[').replace('[*','[').split('[')[1].split(']')[1]
@@ -662,7 +662,7 @@ def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True)
                     try: new_last_line = output2.splitlines()[-1].strip()
                     except: new_last_line = str()
                     if last_line_orig and new_last_line and last_line_orig == new_last_line:
-                        if printall: CGI_CLI.uprint('NEW_PROMPT: %s' % (last_line_orig), color = 'cyan')
+                        if printall: print('NEW_PROMPT: %s' % (last_line_orig))
                         new_prompt = last_line_orig; exit_loop=True;exit_loop2=True; break
                     # WAIT UP TO 5 SECONDS
                     if (timeout_counter2) > 5*10: exit_loop2 = True; break
