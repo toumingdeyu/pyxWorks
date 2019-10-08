@@ -1175,12 +1175,12 @@ sftp client-source -i LoopBack10
 snmp-agent trap source LoopBack10
 #
 #
-bgp 5511
+bgp ${bgp_as}
 % for item in neighbor_groups:
 peer ${item} connect-interface LoopBack10
 % endfor
 #
-bgp 5511
+bgp ${bgp_as}
  router-id ${loopback_200_address}
 #
 """
@@ -1207,12 +1207,12 @@ sftp client-source -i LoopBack0
 snmp-agent trap source LoopBack0
 #
 #
-bgp 5511
+bgp ${bgp_as}
 % for item in neighbor_groups:
 peer ${item} connect-interface LoopBack0
 % endfor
 #
-bgp 5511
+bgp ${bgp_as}
  router-id ${loopback_200_address}
 #
 """
@@ -1227,7 +1227,8 @@ if CGI_CLI.cgi_active and not CGI_CLI.submit_form:
 
 
 config_string = str()
-
+iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
+    
 if device:
     rcmd_outputs = RCMD.connect(device, username = USERNAME, password = PASSWORD)
     
@@ -1254,6 +1255,8 @@ if device:
             data['loopback_200_config']  = loopback_200_config
             data['neighbor_groups']      = neighbor_groups
             data['loopback_200_address'] = loopback_200_address
+            data['bgp_as'] = '5511'
+
 
             CGI_CLI.uprint(data, name = True, jsonprint = True, color = 'blue')
             CGI_CLI.uprint('\n\n')
@@ -1292,6 +1295,7 @@ if device:
             data['loopback_200_config']  = loopback_200_config
             data['neighbor_groups']      = neighbor_groups
             data['loopback_200_address'] = loopback_200_address
+            data['bgp_as'] = '5511'
 
             CGI_CLI.uprint(data, name = True, jsonprint = True, color = 'blue')
             CGI_CLI.uprint('\n\n')
@@ -1334,6 +1338,9 @@ if device:
             data['loopback_200_config']  = loopback_200_config
             data['neighbor_groups']      = neighbor_groups
             data['loopback_200_address'] = loopback_200_address
+            data['bgp_as'] = '5511'
+            ### TEST_ONLY DELETION FROM CONFIG    
+            if iptac_server == 'iptac5' and conf == True: data['bgp_as'] = '2300'
             
             CGI_CLI.uprint(data, name = True, jsonprint = True, color = 'blue')
             CGI_CLI.uprint('\n\n')            
@@ -1374,6 +1381,9 @@ if device:
             data['loopback_200_config']  = loopback_200_config
             data['neighbor_groups']      = neighbor_groups
             data['loopback_200_address'] = loopback_200_address
+            data['bgp_as'] = '5511'
+            ### TEST_ONLY DELETION FROM CONFIG    
+            if iptac_server == 'iptac5' and conf == True: data['bgp_as'] = '2300'
             
             CGI_CLI.uprint(data, name = True, jsonprint = True, color = 'blue')
             CGI_CLI.uprint('\n\n')            
