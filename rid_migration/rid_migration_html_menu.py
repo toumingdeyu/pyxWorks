@@ -1188,7 +1188,9 @@ bgp ${bgp_as}
 """
 
 undo_huawei_config = """#
-undo interface Loopback10
+undo interface LoopBack 10
+undo interface LoopBack 0
+undo interface LoopBack 200
 #
 interface LoopBack200
  undo ipv6 address
