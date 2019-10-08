@@ -28,10 +28,11 @@ class CGI_CLI(object):
     CGI_CLI.print_args(), CGI_CLI.print_env() - debug printing
     CGI_CLI.uprint() - printing CLI/HTML text
     CGI_CLI.formprint() - printing of HTML forms
+    CGI_CLI.set_http_status_code() - sets return http status code to decimal value
     """
     # import collections, cgi, six
     # import cgitb; cgitb.enable()
-    
+
     class bcolors:
             DEFAULT    = '\033[99m'
             WHITE      = '\033[97m'
@@ -69,7 +70,7 @@ class CGI_CLI(object):
             ENDC       = ''
             BOLD       = ''
             UNDERLINE  = ''
-        
+
     @staticmethod
     def cli_parser():
         ######## Parse program arguments ##################################
@@ -94,7 +95,7 @@ class CGI_CLI(object):
         parser.add_argument("--rollback",
                             action = "store_true", dest = 'rollback',
                             default = None,
-                            help = "do rollback")    
+                            help = "do rollback")
         parser.add_argument("--sim",
                             action = "store_true", dest = 'sim',
                             default = None,
@@ -102,14 +103,18 @@ class CGI_CLI(object):
         parser.add_argument("--cfg",
                             action = "store_true", dest = 'show_config_only',
                             default = None,
-                            help = "show config only, do not push data to device")                                
+                            help = "show config only, do not push data to device")
         args = parser.parse_args()
         return args
 
     @staticmethod
     def __cleanup__():
-        ### CGI_CLI.uprint('\nEND[script runtime = %d sec]. '%(time.time() - CGI_CLI.START_EPOCH))
-        if CGI_CLI.cgi_active: print("</body></html>")
+        if not CGI_CLI.buffer_printed:
+            if CGI_CLI.cgi_active: print("Status: %s %s\r\n" % (str(CGI_CLI.http_status_code),''))
+            print(CGI_CLI.buffer_string)
+            print('%sEND[script runtime = %d sec]. '%('<br/>' if CGI_CLI.cgi_active else '\n',time.time() - CGI_CLI.START_EPOCH))
+            if CGI_CLI.cgi_active: print("</body></html>")
+        CGI_CLI.buffer_printed = True
 
     @staticmethod
     def register_cleanup_at_exit():
@@ -127,6 +132,8 @@ class CGI_CLI(object):
         getpass_done = None
         CGI_CLI.data, CGI_CLI.submit_form, CGI_CLI.username, CGI_CLI.password = \
             collections.OrderedDict(), '', '', ''
+        CGI_CLI.buffer_string, CGI_CLI.buffer_printed = str(), None
+        CGI_CLI.http_status_code = '200'
         form, CGI_CLI.data = collections.OrderedDict(), collections.OrderedDict()
         try: form = cgi.FieldStorage()
         except: pass
@@ -147,8 +154,12 @@ class CGI_CLI(object):
         CGI_CLI.args = CGI_CLI.cli_parser()
         if not CGI_CLI.cgi_active: CGI_CLI.data = vars(CGI_CLI.args)
         if CGI_CLI.cgi_active:
+            #if not 'cgitb' in sys.modules: import cgitb; cgitb.enable()
+            CGI_CLI.http_status_code = '200'
             print("Content-type:text/html")
-            print("\r\n\r\n<html><head><title>%s</title></head><body>" %
+            print("Retry-After: 300")
+            CGI_CLI.buffprint('\r\n\r\n')
+            CGI_CLI.buffprint("<html><head><title>%s</title></head><body>" %
                 (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit'))
         import atexit; atexit.register(CGI_CLI.__cleanup__)
         ### GAIN USERNAME AND PASSWORD FROM ENVIRONMENT BY DEFAULT ###
@@ -160,18 +171,24 @@ class CGI_CLI(object):
         if CGI_CLI.args.password: CGI_CLI.password = CGI_CLI.args.password
         if CGI_CLI.args.username:
             CGI_CLI.USERNAME = CGI_CLI.args.username
-            if not CGI_CLI.args.password: 
+            if not CGI_CLI.args.password:
                 CGI_CLI.PASSWORD = getpass.getpass("TACACS password: ")
                 getpass_done = True
-        ### FORCE GAIN/OVERWRITE USERNAME AND PASSWORD FROM CLI GETPASS ###   
-        if CGI_CLI.args.getpass and not getpass_done: 
+        ### FORCE GAIN/OVERWRITE USERNAME AND PASSWORD FROM CLI GETPASS ###
+        if CGI_CLI.args.getpass and not getpass_done:
             CGI_CLI.PASSWORD = getpass.getpass("TACACS password: ")
-        ### GAIN/OVERWRITE USERNAME AND PASSWORD FROM CGI ###   
+        ### GAIN/OVERWRITE USERNAME AND PASSWORD FROM CGI ###
         if CGI_CLI.username: CGI_CLI.USERNAME = CGI_CLI.username
         if CGI_CLI.password: CGI_CLI.PASSWORD = CGI_CLI.password
         if CGI_CLI.cgi_active or 'WIN32' in sys.platform.upper(): CGI_CLI.bcolors = CGI_CLI.nocolors
         CGI_CLI.cgi_save_files()
         return CGI_CLI.USERNAME, CGI_CLI.PASSWORD
+
+    @staticmethod
+    def set_http_status_code(http_status_code = None):
+        if http_status_code:
+            try: CGI_CLI.http_status_code = str(http_status_code)
+            except: pass
 
     @staticmethod
     def cgi_save_files():
@@ -189,6 +206,10 @@ class CGI_CLI(object):
                                     file.write(CGI_CLI.data.get('file[%s]'%(filename)))
                                     CGI_CLI.uprint('The file "' + use_filename + '" was uploaded.')
                             except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']')
+
+    @staticmethod
+    def buffprint(text):
+        CGI_CLI.buffer_string += str(text) + '\n'
 
     @staticmethod
     def uprint(text, tag = None, tag_id = None, color = None, name = None, jsonprint = None):
@@ -209,27 +230,27 @@ class CGI_CLI(object):
         if CGI_CLI.cgi_active:
             ### WORKARROUND FOR COLORING OF SIMPLE TEXT
             if color and not tag: tag = 'p';
-            if tag: print('<%s%s%s>'%(tag,' id="%s"'%(tag_id) if tag_id else str(),' style="color:%s;"'%(color) if color else 'black'))
+            if tag: CGI_CLI.buffprint('<%s%s%s>'%(tag,' id="%s"'%(tag_id) if tag_id else str(),' style="color:%s;"'%(color) if color else 'black'))
             if isinstance(print_text, six.string_types):
                 print_text = str(print_text.replace('&','&amp;').replace('<','&lt;'). \
                     replace('>','&gt;').replace(' ','&nbsp;').replace('"','&quot;').replace("'",'&apos;').\
                     replace('\n','<br/>'))
-            print(print_name + print_text)        
-        else:                 
+            CGI_CLI.buffprint(print_name + print_text)
+        else:
             text_color = str()
-            if color: 
+            if color:
                 if 'RED' in color.upper():       text_color = CGI_CLI.bcolors.RED
                 elif 'MAGENTA' in color.upper(): text_color = CGI_CLI.bcolors.MAGENTA
                 elif 'GREEN' in color.upper():   text_color = CGI_CLI.bcolors.GREEN
-                elif 'BLUE' in color.upper():    text_color = CGI_CLI.bcolors.BLUE                
+                elif 'BLUE' in color.upper():    text_color = CGI_CLI.bcolors.BLUE
                 elif 'CYAN' in color.upper():    text_color = CGI_CLI.bcolors.CYAN
                 elif 'GREY' in color.upper():    text_color = CGI_CLI.bcolors.GREY
-                elif 'YELLOW' in color.upper():  text_color = CGI_CLI.bcolors.YELLOW                
-            print(text_color + print_name + print_text + CGI_CLI.bcolors.ENDC)
+                elif 'YELLOW' in color.upper():  text_color = CGI_CLI.bcolors.YELLOW
+            CGI_CLI.buffprint(text_color + print_name + print_text + CGI_CLI.bcolors.ENDC)
         del print_text
         if CGI_CLI.cgi_active:
-            if tag: print('</%s>'%(tag))
-            else: print('<br/>');
+            if tag: CGI_CLI.buffprint('</%s>'%(tag))
+            else: CGI_CLI.buffprint('<br/>');
 
     @staticmethod
     def formprint(form_data = None, submit_button = None, pyfile = None, tag = None, color = None):
@@ -238,30 +259,31 @@ class CGI_CLI(object):
                       - value in dictionary means cgi variable name / printed componenet value
         """
         def subformprint(data_item):
-            if isinstance(data_item, six.string_types): print(data_item)
+            if isinstance(data_item, six.string_types): CGI_CLI.buffprint(data_item)
             elif isinstance(data_item, (dict,collections.OrderedDict)):
-                if data_item.get('raw',None): print(data_item.get('raw'))
+                if data_item.get('raw',None): CGI_CLI.buffprint(data_item.get('raw'))
                 elif data_item.get('textcontent',None):
-                    print('<textarea type = "textcontent" name = "%s" cols = "40" rows = "4">%s</textarea>'%\
+                    CGI_CLI.buffprint('<textarea type = "textcontent" name = "%s" cols = "40" rows = "4">%s</textarea>'%\
                         (data_item.get('textcontent'), data_item.get('text','')))
                 elif data_item.get('text'):
-                    print('%s: <input type = "text" name = "%s"><br />'%\
+                    CGI_CLI.buffprint('%s: <input type = "text" name = "%s"><br />'%\
                         (data_item.get('text','').replace('_',' '),data_item.get('text')))
                 elif data_item.get('radio'):
-                    print('<input type = "radio" name = "%s" value = "%s" /> %s'%\
+                    CGI_CLI.buffprint('<input type = "radio" name = "%s" value = "%s" /> %s'%\
                         (data_item.get('radio'),data_item.get('radio'),data_item.get('radio','').replace('_',' ')))
                 elif data_item.get('checkbox'):
-                    print('<input type = "checkbox" name = "%s" value = "on" /> %s'%\
+                    CGI_CLI.buffprint('<input type = "checkbox" name = "%s" value = "on" /> %s'%\
                         (data_item.get('checkbox'),data_item.get('checkbox','').replace('_',' ')))
                 elif data_item.get('dropdown'):
-                    print('<select name = "dropdown[%s]">'%(data_item.get('dropdown')))
-                    for option in data_item.get('dropdown').split(','):
-                        print('<option value = "%s" selected>%s</option>'%(option,option))
-                    print('</select>')
+                    if len(data_item.get('dropdown').split(','))>0:
+                        CGI_CLI.buffprint('<select name = "dropdown[%s]">'%(data_item.get('dropdown')))
+                        for option in data_item.get('dropdown').split(','):
+                            CGI_CLI.buffprint('<option value = "%s">%s</option>'%(option,option))
+                        CGI_CLI.buffprint('</select>')
                 elif data_item.get('file'):
-                   print('Upload file: <input type = "file" name = "file[%s]" />'%(data_item.get('file').replace('\\','/')))
+                   CGI_CLI.buffprint('Upload file: <input type = "file" name = "file[%s]" />'%(data_item.get('file').replace('\\','/')))
                 elif data_item.get('submit'):
-                    print('<input id = "%s" type = "submit" name = "submit" value = "%s" />'%\
+                    CGI_CLI.buffprint('<input id = "%s" type = "submit" name = "submit" value = "%s" />'%\
                         (data_item.get('submit'),data_item.get('submit')))
 
 
@@ -272,22 +294,22 @@ class CGI_CLI(object):
         try: i_pyfile = i_pyfile.replace('\\','/').split('/')[-1].strip()
         except: i_pyfile = i_pyfile.strip()
         if CGI_CLI.cgi_active:
-            print('<br/>');
-            if tag and 'h' in tag: print('<%s%s>'%(tag,' style="color:%s;"'%(color) if color else str()))
-            if color or tag and 'p' in tag: tag = 'p'; print('<p%s>'%(' style="color:%s;"'%(color) if color else str()))
-            print('<form action = "/cgi-bin/%s" enctype = "multipart/form-data" action = "save_file.py" method = "post">'%\
+            CGI_CLI.buffprint('<br/>');
+            if color and not tag: tag = 'p';
+            if tag: CGI_CLI.buffprint('<%s%s%s>'%(tag,' id="%s"'%(tag_id) if tag_id else str(),' style="color:%s;"'%(color) if color else 'black'))
+            CGI_CLI.buffprint('<form action = "/cgi-bin/%s" enctype = "multipart/form-data" action = "save_file.py" method = "post">'%\
                 (i_pyfile))
             ### RAW HTML ###
-            if isinstance(form_data, six.string_types): print(form_data)
+            if isinstance(form_data, six.string_types): CGI_CLI.buffprint(form_data)
             ### STRUCT FORM DATA = LIST ###
             elif isinstance(form_data, (list,tuple)):
                 for data_item in form_data: subformprint(data_item)
             ### JUST ONE DICT ###
             elif isinstance(form_data, (dict,collections.OrderedDict)): subformprint(form_data)
             if i_submit_button: subformprint({'submit':i_submit_button})
-            print('</form>')
-            if tag and 'p' in tag: print('</p>')
-            if tag and 'h' in tag: print('</%s>'%(tag))
+            CGI_CLI.buffprint('</form>')
+            if tag: CGI_CLI.buffprint('</%s>'%(tag))
+            else: CGI_CLI.buffprint('<br/>');
 
     @staticmethod
     def VERSION(path_to_file = str(os.path.abspath(__file__))):
@@ -332,7 +354,7 @@ if __name__ != "__main__": sys.exit(0)
 
 ### CGI-BIN READ FORM ############################################
 #CGI_CLI()
-CGI_CLI.init_cgi(return_http_status = True)
+CGI_CLI.init_cgi()
 CGI_CLI.print_args()
 CGI_CLI.print_env()
 #print(repr(CGI_CLI))
@@ -384,3 +406,5 @@ CGI_CLI.set_http_status_code(333)
 
 CGI_CLI.formprint([{'raw':'<select name = "dropdown"><option value = "Maths" selected>Maths</option><option value = "Physics">Physics</option></select>'}])
 
+CGI_CLI.uprint('RED LINE.', color='red')
+CGI_CLI.uprint('DEFAULT LINE.')

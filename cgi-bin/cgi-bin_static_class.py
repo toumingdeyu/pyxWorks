@@ -31,7 +31,7 @@ class CGI_CLI(object):
     """
     # import collections, cgi, six
     # import cgitb; cgitb.enable()
-    
+
     class bcolors:
             DEFAULT    = '\033[99m'
             WHITE      = '\033[97m'
@@ -69,7 +69,7 @@ class CGI_CLI(object):
             ENDC       = ''
             BOLD       = ''
             UNDERLINE  = ''
-        
+
     @staticmethod
     def cli_parser():
         ######## Parse program arguments ##################################
@@ -94,7 +94,7 @@ class CGI_CLI(object):
         parser.add_argument("--rollback",
                             action = "store_true", dest = 'rollback',
                             default = None,
-                            help = "do rollback")    
+                            help = "do rollback")
         parser.add_argument("--sim",
                             action = "store_true", dest = 'sim',
                             default = None,
@@ -102,7 +102,7 @@ class CGI_CLI(object):
         parser.add_argument("--cfg",
                             action = "store_true", dest = 'show_config_only',
                             default = None,
-                            help = "show config only, do not push data to device")                                
+                            help = "show config only, do not push data to device")
         args = parser.parse_args()
         return args
 
@@ -160,13 +160,13 @@ class CGI_CLI(object):
         if CGI_CLI.args.password: CGI_CLI.password = CGI_CLI.args.password
         if CGI_CLI.args.username:
             CGI_CLI.USERNAME = CGI_CLI.args.username
-            if not CGI_CLI.args.password: 
+            if not CGI_CLI.args.password:
                 CGI_CLI.PASSWORD = getpass.getpass("TACACS password: ")
                 getpass_done = True
-        ### FORCE GAIN/OVERWRITE USERNAME AND PASSWORD FROM CLI GETPASS ###   
-        if CGI_CLI.args.getpass and not getpass_done: 
+        ### FORCE GAIN/OVERWRITE USERNAME AND PASSWORD FROM CLI GETPASS ###
+        if CGI_CLI.args.getpass and not getpass_done:
             CGI_CLI.PASSWORD = getpass.getpass("TACACS password: ")
-        ### GAIN/OVERWRITE USERNAME AND PASSWORD FROM CGI ###   
+        ### GAIN/OVERWRITE USERNAME AND PASSWORD FROM CGI ###
         if CGI_CLI.username: CGI_CLI.USERNAME = CGI_CLI.username
         if CGI_CLI.password: CGI_CLI.PASSWORD = CGI_CLI.password
         if CGI_CLI.cgi_active or 'WIN32' in sys.platform.upper(): CGI_CLI.bcolors = CGI_CLI.nocolors
@@ -214,17 +214,17 @@ class CGI_CLI(object):
                 print_text = str(print_text.replace('&','&amp;').replace('<','&lt;'). \
                     replace('>','&gt;').replace(' ','&nbsp;').replace('"','&quot;').replace("'",'&apos;').\
                     replace('\n','<br/>'))
-            print(print_name + print_text)        
-        else:                 
+            print(print_name + print_text)
+        else:
             text_color = str()
-            if color: 
+            if color:
                 if 'RED' in color.upper():       text_color = CGI_CLI.bcolors.RED
                 elif 'MAGENTA' in color.upper(): text_color = CGI_CLI.bcolors.MAGENTA
                 elif 'GREEN' in color.upper():   text_color = CGI_CLI.bcolors.GREEN
-                elif 'BLUE' in color.upper():    text_color = CGI_CLI.bcolors.BLUE                
+                elif 'BLUE' in color.upper():    text_color = CGI_CLI.bcolors.BLUE
                 elif 'CYAN' in color.upper():    text_color = CGI_CLI.bcolors.CYAN
                 elif 'GREY' in color.upper():    text_color = CGI_CLI.bcolors.GREY
-                elif 'YELLOW' in color.upper():  text_color = CGI_CLI.bcolors.YELLOW                
+                elif 'YELLOW' in color.upper():  text_color = CGI_CLI.bcolors.YELLOW
             print(text_color + print_name + print_text + CGI_CLI.bcolors.ENDC)
         del print_text
         if CGI_CLI.cgi_active:
@@ -254,10 +254,11 @@ class CGI_CLI(object):
                     print('<input type = "checkbox" name = "%s" value = "on" /> %s'%\
                         (data_item.get('checkbox'),data_item.get('checkbox','').replace('_',' ')))
                 elif data_item.get('dropdown'):
-                    print('<select name = "dropdown[%s]">'%(data_item.get('dropdown')))
-                    for option in data_item.get('dropdown').split(','):
-                        print('<option value = "%s" selected>%s</option>'%(option,option))
-                    print('</select>')
+                    if len(data_item.get('dropdown').split(','))>0:
+                        print('<select name = "dropdown[%s]">'%(data_item.get('dropdown')))
+                        for option in data_item.get('dropdown').split(','):
+                            print('<option value = "%s">%s</option>'%(option,option))
+                        print('</select>')
                 elif data_item.get('file'):
                    print('Upload file: <input type = "file" name = "file[%s]" />'%(data_item.get('file').replace('\\','/')))
                 elif data_item.get('submit'):
@@ -334,7 +335,7 @@ if __name__ != "__main__": sys.exit(0)
 #CGI_CLI()
 CGI_CLI.init_cgi()
 CGI_CLI.print_args()
-#CGI_CLI.print_env(jsonprint = True)
+CGI_CLI.print_env()
 #print(repr(CGI_CLI))
 #print(str(CGI_CLI))
 
@@ -371,11 +372,18 @@ CGI_CLI.print_args()
 
 
 
-CGI_CLI.formprint([{'text':'email_address'},'<br/>',{'textcontent':'email_body'}], submit_button = 'Send_Email', pyfile = None, tag = None, color = None)
+CGI_CLI.formprint([{'text':'email_address'},'<br/>',{'textcontent':'email_body'},'<br/>',{'file':'/var/www/cgi-bin/file_1'},'<br/>',{'checkbox':'aa_ss'},{'radio':'iii_ddd'},{'submit':'YES'},{'submit':'NO'}], submit_button = 'Send_Email', pyfile = None, tag = None, color = None)
+
+CGI_CLI.formprint([{'text':'eemail_address'},'<br/>',{'textcontent':'email_body'},'<br/>',{'file':'/var/www/cgi-bin/file_1'},'<br/>',{'checkbox':'aa_ss'},{'radio':'iii_ddd'},{'dropdown':'aa,bb,cc'},{'submit':'YES'},{'submit':'NO'}], submit_button = 'Send_Email', pyfile = None, tag = None, color = None)
+
+### DROPDOWN MENU DOES HTTP500 :(
+###CGI_CLI.formprint([{'dropdown':'aa,bb,cc_cc'}])
+
+#CGI_CLI.formprint([{'file':'/var/www/cgi-bin/file_1'},{'dropdown':'aa,bb,cc_cc'},{'checkbox':'aa_ss'},{'radio':'iii_ddd'},'<br/>', {'radio':'q q'},'<br/>',{'submit':'YES'},{'submit':'NO'}],submit_button = None, pyfile = None, tag = None, color = None)
 
 
-CGI_CLI.formprint([{'file':'/var/www/cgi-bin/file_1'},{'dropdown':'aa,bb,cc_cc'},{'checkbox':'aa_ss'},{'radio':'iii_ddd'},'<br/>', {'radio':'q q'},'<br/>',{'submit':'YES'},{'submit':'NO'}],submit_button = None, pyfile = None, tag = None, color = None)
 
+CGI_CLI.formprint([{'raw':'<select name = "dropdown"><option value = "Maths" selected>Maths</option><option value = "Physics">Physics</option></select>'}])
 
-
-
+CGI_CLI.uprint('RED LINE.', color='red')
+CGI_CLI.uprint('DEFAULT LINE.')
