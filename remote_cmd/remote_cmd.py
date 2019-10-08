@@ -1021,14 +1021,13 @@ LCMD.eval_command('b',printall = True)
 # 127.0.1.1   iptac5
 # 10.253.58.126   iptac5 iptac5.oakhill.lab
 
-
 # # Oak Hill Lab
 # 192.168.122.2   NSO2_HOST
 # 192.168.122.3   NSO_SERVER
 # 192.168.122.4   pronghong
 
 # # vASR9K's
-# 192.168.122.140 PARTR0
+# 192.168.122.140 PARTR0  - XR
 # 192.168.122.141 NYKTR0
 
 # # vMX-x's
@@ -1036,10 +1035,10 @@ LCMD.eval_command('b',printall = True)
 # 192.168.122.151 NYKCR0
 
 # # vASR1K's
-# 192.168.122.160 PARPE0
+# 192.168.122.160 PARPE0  - XE
 # 192.168.122.161 NYKPE0
 # 192.168.122.170 PARCE0
 # 192.168.122.171 NYKCE0
 
 # 192.168.122.253 LABSW1
-# 192.168.122.252 OAKPE0
+# 192.168.122.252 OAKPE0  - HUAWEI
