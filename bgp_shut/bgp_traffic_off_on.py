@@ -510,31 +510,39 @@ def read_bgp_data_json_from_logfile(filename = None, printall = None):
 
 
 def detect_router_by_ssh(device, debug = False):
-    # detect device prompt
-    def ssh_detect_prompt(chan, debug = False):
+    ### DETECT DEVICE PROMPT FIRST
+    def ssh_raw_detect_prompt(chan, debug = debug):
         output, buff, last_line, last_but_one_line = str(), str(), 'dummyline1', 'dummyline2'
+        flush_buffer = chan.recv(9999)
+        del flush_buffer
         chan.send('\t \n\n')
+        time.sleep(0.3)
         while not (last_line and last_but_one_line and last_line == last_but_one_line):
-            if debug: print('FIND_PROMPT:',last_but_one_line,last_line)
             buff = chan.recv(9999)
-            output += buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
-                      replace('\x1b[K','').replace('\n{master}\n','')
-            if '--More--' or '---(more' in buff.strip(): chan.send('\x20')
-            if debug: print('BUFFER:' + buff)
-            try: last_line = output.splitlines()[-1].strip().replace('\x20','')
-            except: last_line = 'dummyline1'
-            try: last_but_one_line = output.splitlines()[-2].strip().replace('\x20','')
-            except: last_but_one_line = 'dummyline2'
+            if len(buff)>0:
+                if debug: print('LOOKING_FOR_PROMPT:',last_but_one_line,last_line)                
+                output += buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
+                          replace('\x1b[K','').replace('\n{master}\n','')
+                if '--More--' or '---(more' in buff.strip(): 
+                    chan.send('\x20')
+                    if debug: print('SPACE_SENT.')
+                    time.sleep(0.3)
+                try: last_line = output.splitlines()[-1].strip().replace('\x20','')
+                except: last_line = 'dummyline1'
+                try: 
+                    last_but_one_line = output.splitlines()[-2].strip().replace('\x20','')
+                    if len(last_but_one_line) == 0:
+                        ### vJunos '\x20' --> '\n\nprompt' workarround
+                        last_but_one_line = output.splitlines()[-3].strip().replace('\x20','')
+                except: last_but_one_line = 'dummyline2'
         prompt = output.splitlines()[-1].strip()
-        if debug: print('DETECTED PROMPT: \'' + prompt + '\'')
+        if debug: CGI_CLI.uprint('DETECTED PROMPT: \'' + prompt + '\'')
         return prompt
-
     # bullet-proof read-until function , even in case of ---more---
-    def ssh_read_until_prompt_bulletproof(chan,command,prompts,debug = False):
+    def ssh_raw_read_until_prompt(chan,command,prompts,debug = debug):
         output, buff, last_line, exit_loop = str(), str(), 'dummyline1', False
         # avoid of echoing commands on ios-xe by timeout 1 second
         flush_buffer = chan.recv(9999)
-        time.sleep(0.1)
         del flush_buffer
         chan.send(command)
         time.sleep(0.3)
@@ -553,62 +561,48 @@ def detect_router_by_ssh(device, debug = False):
                     last_line and last_line.endswith(actual_prompt): exit_loop = True
         return output
     # Detect function start
-    router_os = str()
+    router_os, prompt = str(), str()
     client = paramiko.SSHClient()
-    client.load_system_host_keys()
+    #client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-    try: DEVICE_HOST = device.split(':')[0]
-    except: DEVICE_HOST = str()
-    try: DEVICE_PORT = device.split(':')[1]
-    except: DEVICE_PORT = '22'
-
     try:
-        #connect(self, hostname, port=22, username=None, password=None, pkey=None, key_filename=None, timeout=None, allow_agent=True, look_for_keys=True, compress=False)
-        client.connect(DEVICE_HOST, port=int(DEVICE_PORT), username=USERNAME, password=PASSWORD)
+        client.connect(RCMD.DEVICE_HOST, port = int(RCMD.DEVICE_PORT), \
+            username = RCMD.USERNAME, password = RCMD.PASSWORD)
         chan = client.invoke_shell()
-        chan.settimeout(TIMEOUT)
+        chan.settimeout(RCMD.TIMEOUT)
         # prevent --More-- in log banner (space=page, enter=1line,tab=esc)
         # \n\n get prompt as last line
-        prompt = ssh_detect_prompt(chan, debug=False)
-
+        prompt = ssh_raw_detect_prompt(chan, debug=debug)
         #test if this is HUAWEI VRP
         if prompt and not router_os:
             command = 'display version | include (Huawei)\n'
-            output = ssh_read_until_prompt_bulletproof(chan, command, [prompt], debug=debug)
+            output = ssh_raw_read_until_prompt(chan, command, [prompt], debug=debug)
             if 'Huawei Versatile Routing Platform Software' in output: router_os = 'vrp'
-
         #test if this is CISCO IOS-XR, IOS-XE or JUNOS
         if prompt and not router_os:
             command = 'show version\n'
-            output = ssh_read_until_prompt_bulletproof(chan, command, [prompt], debug=debug)
+            output = ssh_raw_read_until_prompt(chan, command, [prompt], debug=debug)
             if 'iosxr-' in output or 'Cisco IOS XR Software' in output: router_os = 'ios-xr'
             elif 'Cisco IOS-XE software' in output: router_os = 'ios-xe'
             elif 'JUNOS OS' in output: router_os = 'junos'
-
         if prompt and not router_os:
             command = 'uname -a\n'
-            output = ssh_read_until_prompt_bulletproof(chan, command, [prompt], debug=debug)
+            output = ssh_raw_read_until_prompt(chan, command, [prompt], debug=debug)
             if 'LINUX' in output.upper(): router_os = 'linux'
-
         if not router_os:
-            print(bcolors.MAGENTA + "\nCannot find recognizable OS in %s" % (output) + bcolors.ENDC)
-
-    except (socket.timeout, paramiko.AuthenticationException) as e:
-        print(bcolors.MAGENTA + " ... Connection closed: %s " % (e) + bcolors.ENDC )
-        sys.exit()
-    finally:
-        client.close()
-
+            CGI_CLI.uprint("\nCannot find recognizable OS in %s" % (output), color = 'magenta')
+    except Exception as e: CGI_CLI.uprint('CONNECTION_PROBLEM[' + str(e) + ']')
+    finally: client.close()
     netmiko_os = str()
     if router_os == 'ios-xe': netmiko_os = 'cisco_ios'
     if router_os == 'ios-xr': netmiko_os = 'cisco_xr'
     if router_os == 'junos': netmiko_os = 'juniper'
     if router_os == 'linux': netmiko_os = 'linux'
     if router_os == 'vrp': netmiko_os = 'huawei'
-    #return netmiko_os
-    #return router_os, prompt
     return netmiko_os, prompt
+
+
+
 
 
 def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True):
@@ -633,14 +627,14 @@ def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True)
         try: last_line, last_line_orig = output.splitlines()[-1].strip(), output.splitlines()[-1].strip()
         except: last_line, last_line_orig = str(), str()
         # FILTER-OUT '(...)' FROM PROMPT IOS-XR/IOS-XE
-        if router_type in ["ios-xr","ios-xe",'cisco_ios','cisco_xr']:
+        if RCMD.router_type in ["ios-xr","ios-xe",'cisco_ios','cisco_xr']:
             try:
                 last_line_part1 = last_line.split('(')[0]
                 last_line_part2 = last_line.split(')')[1]
                 last_line = last_line_part1 + last_line_part2
             except: last_line = last_line
         # FILTER-OUT '[*','[~','-...]' FROM VRP
-        elif router_type in ["vrp",'huawei']:
+        elif RCMD.router_type in ["vrp",'huawei']:
             try:
                 last_line_part1 = '[' + last_line.replace('[~','[').replace('[*','[').split('[')[1].split('-')[0]
                 last_line_part2 = ']' + last_line.replace('[~','[').replace('[*','[').split('[')[1].split(']')[1]
@@ -668,12 +662,11 @@ def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True)
                     try: new_last_line = output2.splitlines()[-1].strip()
                     except: new_last_line = str()
                     if last_line_orig and new_last_line and last_line_orig == new_last_line:
-                        if printall: print('%sNEW_PROMPT: %s%s' % (bcolors.CYAN,last_line_orig,bcolors.ENDC))
+                        if printall: CGI_CLI.uprint('NEW_PROMPT: %s' % (last_line_orig), color = 'cyan')
                         new_prompt = last_line_orig; exit_loop=True;exit_loop2=True; break
                     # WAIT UP TO 5 SECONDS
                     if (timeout_counter2) > 5*10: exit_loop2 = True; break
     return output, new_prompt
-
 
 
 def parse_json_file_and_get_oti_routers_list():
