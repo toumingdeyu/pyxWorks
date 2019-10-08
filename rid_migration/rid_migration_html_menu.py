@@ -1164,6 +1164,8 @@ interface LoopBack0
 ${item}
 % endfor
 #
+quit
+#
 undo interface Loopback200
 #
 info-center loghost source LoopBack10
@@ -1193,6 +1195,8 @@ interface LoopBack200
 % for item in loopback_200_config:
 ${item}
 % endfor
+#
+quit
 #
 undo interface Loopback10
 #
