@@ -1185,6 +1185,8 @@ peer ${item} connect-interface LoopBack10
 bgp ${bgp_as}
  router-id ${loopback_200_address}
 #
+${router_id_line}
+#
 """
 
 undo_huawei_config = """#
@@ -1219,6 +1221,8 @@ peer ${item} connect-interface LoopBack0
 #
 bgp ${bgp_as}
  router-id ${loopback_200_address}
+#
+${router_id_line}
 #
 """
 
@@ -1323,7 +1327,8 @@ if device:
             collector_cmd = {'huawei':[
                 'disp current-configuration interface LoopBack 0',
                 'disp current-configuration interface LoopBack 200',
-                'display current-configuration configuration bgp | include connect-interface']}
+                'display current-configuration configuration bgp | include connect-interface',
+                'disp current-configuration | include router id']}
 
             rcmd_outputs = RCMD.run_commands(collector_cmd, printall = True)
 
@@ -1338,12 +1343,17 @@ if device:
                 neighbor_groups = [ item.splitlines()[0].replace('peer','').replace('connect-interface LoopBack0','').strip() for item in neighbor_groups ] 
             except: neighbor_groups = []
 
+            if 'router id 193.251.245.' in rcmd_outputs[3] and loopback_200_address: 
+                router_id_line = 'router id ' + loopback_200_address
+            else: router_id_line = '#'
+
             data = {}  
             data['loopback_0_config']    = loopback_0_config
             data['loopback_200_config']  = loopback_200_config
             data['neighbor_groups']      = neighbor_groups
             data['loopback_200_address'] = loopback_200_address
-            data['bgp_as'] = '5511'
+            data['bgp_as']               = '5511'
+            data['router_id_line']       = router_id_line
             ### TEST_ONLY DELETION FROM CONFIG    
             if iptac_server == 'iptac5': data['bgp_as'] = '2300'
             
@@ -1366,7 +1376,8 @@ if device:
             collector_cmd = {'huawei':[
                 'disp current-configuration interface LoopBack 10',
                 'disp current-configuration interface LoopBack 0',
-                'display current-configuration configuration bgp | include connect-interface']}
+                'display current-configuration configuration bgp | include connect-interface',
+                'disp current-configuration | include router id']}
 
             rcmd_outputs = RCMD.run_commands(collector_cmd, printall = True)
 
@@ -1376,17 +1387,25 @@ if device:
             except: loopback_200_config = []
             try:    loopback_200_address = rcmd_outputs[1].split('ip address')[1].split()[0].strip()
             except: loopback_200_address = str()
+            try:    loopback_0_address = rcmd_outputs[0].split('ip address')[1].split()[0].strip()
+            except: loopback_0_address = str()
             try: 
                 neighbor_groups = re.findall(r'peer\s+[0-9a-zA-Z\-\.\@\_]+ connect-interface LoopBack10', rcmd_outputs[2], re.MULTILINE)
                 neighbor_groups = [ item.splitlines()[0].replace('peer','').replace('connect-interface LoopBack10','').strip() for item in neighbor_groups ] 
             except: neighbor_groups = []
+
+            if 'router id 193.251.245.' in rcmd_outputs[3] and loopback_0_address: 
+                router_id_line = 'router id ' + loopback_0_address
+            else: router_id_line = '#'
+                
 
             data = {}  
             data['loopback_0_config']    = loopback_0_config
             data['loopback_200_config']  = loopback_200_config
             data['neighbor_groups']      = neighbor_groups
             data['loopback_200_address'] = loopback_200_address
-            data['bgp_as'] = '5511'
+            data['bgp_as']               = '5511'
+            data['router_id_line']       = router_id_line
             ### TEST_ONLY DELETION FROM CONFIG    
             if iptac_server == 'iptac5': data['bgp_as'] = '2300'
             
