@@ -1192,10 +1192,8 @@ ${router_id_line}
 undo_huawei_config = """#
 undo interface LoopBack 10
 undo interface LoopBack 0
-undo interface LoopBack 200
 #
 interface LoopBack200
- undo ipv6 address
 % for item in loopback_200_config:
  ${item}
 % endfor
