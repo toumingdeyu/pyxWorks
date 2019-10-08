@@ -213,28 +213,28 @@ CMD_IOS_XR = [
         'remote_command_3':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
 
-    {'if':'glob_vars.get("SHUT","")',
-        'exec':'print("eBGP peers have been shut down, waiting 200sec...")',
-        'exec_2':'time.sleep(200)',
-    },
+    # {'if':'glob_vars.get("SHUT","")',
+        # 'exec':'print("eBGP peers have been shut down, waiting 200sec...")',
+        # 'exec_2':'time.sleep(200)',
+    # },
 
-    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_INT_IPS_V4","") or glob_vars.get("OTI_INT_IPS_V6",""))',
-        'pre_loop_remote_command':['conf',{'sim':'glob_vars.get("SIM_CMD","")'}],
-        'pre_loop_remote_command_2':['router bgp 5511',{'sim':'glob_vars.get("SIM_CMD","")'}],
-    },
-    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_INT_IPS_V4","")',
-        'loop_glob_var':"OTI_INT_IPS_V4",
-            'remote_command':['neighbor ',{'eval':'loop_item[0]'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}],
-    },
-    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_INT_IPS_V6","")',
-        'loop_glob_var':"OTI_INT_IPS_V6",
-            'remote_command':['neighbor ',{'eval':'loop_item[0]'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}],
-    },
-    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_INT_IPS_V4","") or glob_vars.get("OTI_INT_IPS_V6",""))',
-        'remote_command':['Commit',{'sim':'glob_vars.get("SIM_CMD","")'}],
-        'remote_command_2':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}],
-        'remote_command_3':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}]
-    },
+    # {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_INT_IPS_V4","") or glob_vars.get("OTI_INT_IPS_V6",""))',
+        # 'pre_loop_remote_command':['conf',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        # 'pre_loop_remote_command_2':['router bgp 5511',{'sim':'glob_vars.get("SIM_CMD","")'}],
+    # },
+    # {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_INT_IPS_V4","")',
+        # 'loop_glob_var':"OTI_INT_IPS_V4",
+            # 'remote_command':['neighbor ',{'eval':'loop_item[0]'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}],
+    # },
+    # {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_INT_IPS_V6","")',
+        # 'loop_glob_var':"OTI_INT_IPS_V6",
+            # 'remote_command':['neighbor ',{'eval':'loop_item[0]'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}],
+    # },
+    # {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_INT_IPS_V4","") or glob_vars.get("OTI_INT_IPS_V6",""))',
+        # 'remote_command':['Commit',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        # 'remote_command_2':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        # 'remote_command_3':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}]
+    # },
 
     ### NOSHUT -----------------------------------------------------------------
     {'if':'glob_vars.get("NOSHUT","")',
@@ -247,30 +247,30 @@ CMD_IOS_XR = [
          'exec':'sys.exit(0)'
     },
 
-    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_INT_IPS_V4","") or glob_vars.get("OTI_INT_IPS_V6",""))',
-        'pre_loop_remote_command':['conf',{'sim':'glob_vars.get("SIM_CMD","")'}],
-        'pre_loop_remote_command_2':['router bgp 5511',{'sim':'glob_vars.get("SIM_CMD","")'}],
-    },
-    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_INT_IPS_V4","")',
-        'loop_glob_var':"OTI_INT_IPS_V4",
-            'if':'not "ADMIN" in str(loop_item[1]).upper()',
-                'remote_command':['no neighbor ',{'eval':'loop_item[0]'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}]
-    },
-    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_INT_IPS_V6","")',
-        'loop_glob_var':"OTI_INT_IPS_V6",
-            'if':'not "ADMIN" in str(loop_item[1]).upper()',
-                'remote_command':['no neighbor ',{'eval':'loop_item[0]'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}]
-    },
-    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_INT_IPS_V4","") or glob_vars.get("OTI_INT_IPS_V6",""))',
-        'remote_command':['Commit',{'sim':'glob_vars.get("SIM_CMD","")'}],
-        'remote_command_2':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}],
-        'remote_command_3':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}]
-    },
+    # {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_INT_IPS_V4","") or glob_vars.get("OTI_INT_IPS_V6",""))',
+        # 'pre_loop_remote_command':['conf',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        # 'pre_loop_remote_command_2':['router bgp 5511',{'sim':'glob_vars.get("SIM_CMD","")'}],
+    # },
+    # {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_INT_IPS_V4","")',
+        # 'loop_glob_var':"OTI_INT_IPS_V4",
+            # 'if':'not "ADMIN" in str(loop_item[1]).upper()',
+                # 'remote_command':['no neighbor ',{'eval':'loop_item[0]'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}]
+    # },
+    # {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_INT_IPS_V6","")',
+        # 'loop_glob_var':"OTI_INT_IPS_V6",
+            # 'if':'not "ADMIN" in str(loop_item[1]).upper()',
+                # 'remote_command':['no neighbor ',{'eval':'loop_item[0]'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}]
+    # },
+    # {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_INT_IPS_V4","") or glob_vars.get("OTI_INT_IPS_V6",""))',
+        # 'remote_command':['Commit',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        # 'remote_command_2':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        # 'remote_command_3':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}]
+    # },
 
-    {'if':'glob_vars.get("NOSHUT","")',
-        'exec':'print("iBGP peers have been unshut, waiting 200sec...")',
-        'exec_2':'time.sleep(200)',
-    },
+    # {'if':'glob_vars.get("NOSHUT","")',
+        # 'exec':'print("iBGP peers have been unshut, waiting 200sec...")',
+        # 'exec_2':'time.sleep(200)',
+    # },
 
     {'if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","")',
         'remote_command':['show bgp summary'],
@@ -534,6 +534,7 @@ def detect_router_by_ssh(device, debug = False):
         output, buff, last_line, exit_loop = str(), str(), 'dummyline1', False
         # avoid of echoing commands on ios-xe by timeout 1 second
         flush_buffer = chan.recv(9999)
+        time.sleep(0.1)
         del flush_buffer
         chan.send(command)
         time.sleep(0.3)
@@ -616,6 +617,7 @@ def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True)
     timeout_counter, timeout_counter2 = 0, 0
     # FLUSH BUFFERS FROM PREVIOUS COMMANDS IF THEY ARE ALREADY BUFFERD
     if chan.recv_ready(): flush_buffer = chan.recv(9999)
+    time.sleep(0.1)
     chan.send(send_data + '\n')
     time.sleep(0.2)
     while not exit_loop:
