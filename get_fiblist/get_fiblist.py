@@ -382,12 +382,12 @@ class RCMD(object):
             except: RCMD.DEVICE_HOST = str()
             try: RCMD.DEVICE_PORT = device.split(':')[1]
             except: RCMD.DEVICE_PORT = '22'
-            CGI_CLI.uprint('DEVICE %s (host=%s, port=%s) START'\
+            if RCMD.printall: CGI_CLI.uprint('DEVICE %s (host=%s, port=%s) START'\
                 %(device, RCMD.DEVICE_HOST, RCMD.DEVICE_PORT)+24 * '.')
             RCMD.router_type, RCMD.router_prompt = RCMD.ssh_raw_detect_router_type(debug = None)
             if not RCMD.router_type in RCMD.KNOWN_OS_TYPES:
                 CGI_CLI.uprint('UNSUPPORTED DEVICE TYPE: \'%s\', BREAK!' % (RCMD.router_type), color = 'magenta')
-            else: CGI_CLI.uprint('DETECTED DEVICE_TYPE: %s' % (RCMD.router_type))
+            elif RCMD.printall: CGI_CLI.uprint('DETECTED DEVICE_TYPE: %s' % (RCMD.router_type))
             ####################################################################
             if RCMD.router_type == 'cisco_ios':
                 if cmd_data: 
@@ -639,7 +639,7 @@ class RCMD(object):
         if RCMD.ssh_connection:
             if RCMD.use_module == 'netmiko': RCMD.ssh_connection.disconnect()
             elif RCMD.use_module == 'paramiko': RCMD.client.close()
-            CGI_CLI.uprint('DEVICE %s:%s DONE.' % (RCMD.DEVICE_HOST, RCMD.DEVICE_PORT))
+            if RCMD.printall: CGI_CLI.uprint('DEVICE %s:%s DONE.' % (RCMD.DEVICE_HOST, RCMD.DEVICE_PORT))
             RCMD.ssh_connection = None
             
     @staticmethod
@@ -648,7 +648,7 @@ class RCMD(object):
         if RCMD.ssh_connection:
             if RCMD.use_module == 'netmiko': RCMD.ssh_connection.disconnect()
             elif RCMD.use_module == 'paramiko': RCMD.client.close()
-            CGI_CLI.uprint('DEVICE %s:%s DISCONNECTED.' % (RCMD.DEVICE_HOST, RCMD.DEVICE_PORT))
+            if RCMD.printall: CGI_CLI.uprint('DEVICE %s:%s DISCONNECTED.' % (RCMD.DEVICE_HOST, RCMD.DEVICE_PORT))
             RCMD.ssh_connection = None
 
     @staticmethod
@@ -988,7 +988,7 @@ if device:
     if len(rcmd_outputs)>0:
         fib_list = re.findall(r'LD[0-9]+|FIB[0-9]+|LDA[0-9]+', str(rcmd_outputs[0]))
         fib_list.sort()  
-        CGI_CLI.uprint('FIB LIST:\n', tag = 'h1', color = 'blue')    
+        #CGI_CLI.uprint('FIB LIST:\n', tag = 'h1', color = 'blue')    
         CGI_CLI.uprint('%s\n' % (';\n'.join(fib_list) + ';' if len(fib_list)>0 else str())) 
 
     
