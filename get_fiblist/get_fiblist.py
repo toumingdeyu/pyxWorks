@@ -36,7 +36,7 @@ class CGI_CLI(object):
     """
     # import collections, cgi, six
     # import cgitb; cgitb.enable()
-    
+
     class bcolors:
             DEFAULT    = '\033[99m'
             WHITE      = '\033[97m'
@@ -74,7 +74,7 @@ class CGI_CLI(object):
             ENDC       = ''
             BOLD       = ''
             UNDERLINE  = ''
-        
+
     @staticmethod
     def cli_parser():
         ######## Parse program arguments ##################################
@@ -99,7 +99,7 @@ class CGI_CLI(object):
         parser.add_argument("--rollback",
                             action = "store_true", dest = 'rollback',
                             default = None,
-                            help = "do rollback")    
+                            help = "do rollback")
         parser.add_argument("--sim",
                             action = "store_true", dest = 'sim',
                             default = None,
@@ -107,11 +107,7 @@ class CGI_CLI(object):
         parser.add_argument("--cfg",
                             action = "store_true", dest = 'show_config_only',
                             default = None,
-                            help = "show config only, do not push data to device") 
-        parser.add_argument("--email",
-                            action = "store_true", dest = 'send_email',
-                            default = None,
-                            help = "show config only, do not push data to device")                             
+                            help = "show config only, do not push data to device")
         args = parser.parse_args()
         return args
 
@@ -135,7 +131,7 @@ class CGI_CLI(object):
         CGI_CLI.initialized = True
         getpass_done = None
         CGI_CLI.data, CGI_CLI.submit_form, CGI_CLI.username, CGI_CLI.password = \
-            collections.OrderedDict(), '', '', ''
+            collections.OrderedDict(), str(), str(), str()
         form, CGI_CLI.data = collections.OrderedDict(), collections.OrderedDict()
         try: form = cgi.FieldStorage()
         except: pass
@@ -169,13 +165,13 @@ class CGI_CLI(object):
         if CGI_CLI.args.password: CGI_CLI.password = CGI_CLI.args.password
         if CGI_CLI.args.username:
             CGI_CLI.USERNAME = CGI_CLI.args.username
-            if not CGI_CLI.args.password: 
+            if not CGI_CLI.args.password:
                 CGI_CLI.PASSWORD = getpass.getpass("TACACS password: ")
                 getpass_done = True
-        ### FORCE GAIN/OVERWRITE USERNAME AND PASSWORD FROM CLI GETPASS ###   
-        if CGI_CLI.args.getpass and not getpass_done: 
+        ### FORCE GAIN/OVERWRITE USERNAME AND PASSWORD FROM CLI GETPASS ###
+        if CGI_CLI.args.getpass and not getpass_done:
             CGI_CLI.PASSWORD = getpass.getpass("TACACS password: ")
-        ### GAIN/OVERWRITE USERNAME AND PASSWORD FROM CGI ###   
+        ### GAIN/OVERWRITE USERNAME AND PASSWORD FROM CGI ###
         if CGI_CLI.username: CGI_CLI.USERNAME = CGI_CLI.username
         if CGI_CLI.password: CGI_CLI.PASSWORD = CGI_CLI.password
         if CGI_CLI.cgi_active or 'WIN32' in sys.platform.upper(): CGI_CLI.bcolors = CGI_CLI.nocolors
@@ -223,17 +219,17 @@ class CGI_CLI(object):
                 print_text = str(print_text.replace('&','&amp;').replace('<','&lt;'). \
                     replace('>','&gt;').replace(' ','&nbsp;').replace('"','&quot;').replace("'",'&apos;').\
                     replace('\n','<br/>'))
-            print(print_name + print_text)        
-        else:                 
+            print(print_name + print_text)
+        else:
             text_color = str()
-            if color: 
+            if color:
                 if 'RED' in color.upper():       text_color = CGI_CLI.bcolors.RED
                 elif 'MAGENTA' in color.upper(): text_color = CGI_CLI.bcolors.MAGENTA
                 elif 'GREEN' in color.upper():   text_color = CGI_CLI.bcolors.GREEN
-                elif 'BLUE' in color.upper():    text_color = CGI_CLI.bcolors.BLUE                
+                elif 'BLUE' in color.upper():    text_color = CGI_CLI.bcolors.BLUE
                 elif 'CYAN' in color.upper():    text_color = CGI_CLI.bcolors.CYAN
                 elif 'GREY' in color.upper():    text_color = CGI_CLI.bcolors.GREY
-                elif 'YELLOW' in color.upper():  text_color = CGI_CLI.bcolors.YELLOW                
+                elif 'YELLOW' in color.upper():  text_color = CGI_CLI.bcolors.YELLOW
             print(text_color + print_name + print_text + CGI_CLI.bcolors.ENDC)
         del print_text
         if CGI_CLI.cgi_active:
@@ -256,6 +252,9 @@ class CGI_CLI(object):
                 elif data_item.get('text'):
                     print('%s: <input type = "text" name = "%s"><br />'%\
                         (data_item.get('text','').replace('_',' '),data_item.get('text')))
+                elif data_item.get('password'):
+                    print('%s: <input type = "password" name = "%s"><br />'%\
+                        (data_item.get('password','').replace('_',' '),data_item.get('password')))
                 elif data_item.get('radio'):
                     print('<input type = "radio" name = "%s" value = "%s" /> %s'%\
                         (data_item.get('radio'),data_item.get('radio'),data_item.get('radio','').replace('_',' ')))
@@ -263,16 +262,16 @@ class CGI_CLI(object):
                     print('<input type = "checkbox" name = "%s" value = "on" /> %s'%\
                         (data_item.get('checkbox'),data_item.get('checkbox','').replace('_',' ')))
                 elif data_item.get('dropdown'):
-                    print('<select name = "dropdown[%s]">'%(data_item.get('dropdown')))
-                    for option in data_item.get('dropdown').split(','):
-                        print('<option value = "%s" selected>%s</option>'%(option,option))
-                    print('</select>')
+                    if len(data_item.get('dropdown').split(','))>0:
+                        print('<select name = "dropdown[%s]">'%(data_item.get('dropdown')))
+                        for option in data_item.get('dropdown').split(','):
+                            print('<option value = "%s">%s</option>'%(option,option))
+                        print('</select>')
                 elif data_item.get('file'):
                    print('Upload file: <input type = "file" name = "file[%s]" />'%(data_item.get('file').replace('\\','/')))
                 elif data_item.get('submit'):
                     print('<input id = "%s" type = "submit" name = "submit" value = "%s" />'%\
                         (data_item.get('submit'),data_item.get('submit')))
-
 
         ### START OF FORMPRINT ###
         formtypes = ['raw','text','checkbox','radio','submit','dropdown','textcontent']
@@ -297,6 +296,14 @@ class CGI_CLI(object):
             print('</form>')
             if tag and 'p' in tag: print('</p>')
             if tag and 'h' in tag: print('</%s>'%(tag))
+
+    @staticmethod
+    def html_selflink(submit_button = None):
+        if (submit_button and str(submit_button) == str(CGI_CLI.submit_form)) or not CGI_CLI.submit_form:
+            i_pyfile = sys.argv[0]
+            try: pyfile = i_pyfile.replace('\\','/').split('/')[-1].strip()
+            except: pyfile = i_pyfile.strip()
+            if CGI_CLI.cgi_active: print('<br/><a href = "./%s">RELOAD</a>' % (pyfile))
 
     @staticmethod
     def VERSION(path_to_file = str(os.path.abspath(__file__))):
@@ -975,7 +982,7 @@ cmd_data = {
 if CGI_CLI.cgi_active and not CGI_CLI.submit_form:
     CGI_CLI.uprint('GET CUSTOMER LINK LIST TOOL:\n', tag = 'h1', color = 'blue') 
     CGI_CLI.formprint([{'text':'device'},'<br/>',{'text':'username'},'<br/>',\
-        {'text':'password'},
+        {'password':'password'},
         #'<br/>',{'checkbox':'send_email'},
         '<br/>','<br/>'], \
         submit_button = 'OK', pyfile = None, tag = None, color = None)

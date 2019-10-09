@@ -131,7 +131,7 @@ class CGI_CLI(object):
         CGI_CLI.initialized = True
         getpass_done = None
         CGI_CLI.data, CGI_CLI.submit_form, CGI_CLI.username, CGI_CLI.password = \
-            collections.OrderedDict(), '', '', ''
+            collections.OrderedDict(), str(), str(), str()
         form, CGI_CLI.data = collections.OrderedDict(), collections.OrderedDict()
         try: form = cgi.FieldStorage()
         except: pass
@@ -273,7 +273,6 @@ class CGI_CLI(object):
                     print('<input id = "%s" type = "submit" name = "submit" value = "%s" />'%\
                         (data_item.get('submit'),data_item.get('submit')))
 
-
         ### START OF FORMPRINT ###
         formtypes = ['raw','text','checkbox','radio','submit','dropdown','textcontent']
         i_submit_button = None if not submit_button else submit_button
@@ -297,6 +296,14 @@ class CGI_CLI(object):
             print('</form>')
             if tag and 'p' in tag: print('</p>')
             if tag and 'h' in tag: print('</%s>'%(tag))
+
+    @staticmethod
+    def html_selflink(submit_button = None):
+        if (submit_button and str(submit_button) == str(CGI_CLI.submit_form)) or not CGI_CLI.submit_form:
+            i_pyfile = sys.argv[0]
+            try: pyfile = i_pyfile.replace('\\','/').split('/')[-1].strip()
+            except: pyfile = i_pyfile.strip()
+            if CGI_CLI.cgi_active: print('<br/><a href = "./%s">RELOAD</a>' % (pyfile))
 
     @staticmethod
     def VERSION(path_to_file = str(os.path.abspath(__file__))):
@@ -1045,6 +1052,9 @@ LCMD.eval_command('b',printall = True)
 exec('b = b + 1')
 LCMD.eval_command('b',printall = True)
 
+CGI_CLI.html_selflink('OK')
+
+
 #CGI_CLI.uprint(CGI_CLI.args, jsonprint=True)
 
 # 127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
@@ -1073,3 +1083,5 @@ LCMD.eval_command('b',printall = True)
 
 # 192.168.122.253 LABSW1
 # 192.168.122.252 OAKPE0  - HUAWEI
+
+
