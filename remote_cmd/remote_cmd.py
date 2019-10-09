@@ -114,6 +114,7 @@ class CGI_CLI(object):
     @staticmethod
     def __cleanup__():
         ### CGI_CLI.uprint('\nEND[script runtime = %d sec]. '%(time.time() - CGI_CLI.START_EPOCH))
+        CGI_CLI.html_selflink('OK')
         if CGI_CLI.cgi_active: print("</body></html>")
 
     @staticmethod
@@ -1052,7 +1053,6 @@ LCMD.eval_command('b',printall = True)
 exec('b = b + 1')
 LCMD.eval_command('b',printall = True)
 
-CGI_CLI.html_selflink('OK')
 
 
 #CGI_CLI.uprint(CGI_CLI.args, jsonprint=True)

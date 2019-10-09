@@ -113,6 +113,7 @@ class CGI_CLI(object):
             if CGI_CLI.cgi_active: print("Status: %s %s\r\n" % (str(CGI_CLI.http_status_code),''))
             print(CGI_CLI.buffer_string)
             print('%sEND[script runtime = %d sec]. '%('<br/>' if CGI_CLI.cgi_active else '\n',time.time() - CGI_CLI.START_EPOCH))
+            CGI_CLI.html_selflink('OK')
             if CGI_CLI.cgi_active: print("</body></html>")
         CGI_CLI.buffer_printed = True
 
@@ -420,4 +421,4 @@ CGI_CLI.formprint([{'raw':'<select name = "dropdown"><option value = "Maths" sel
 CGI_CLI.uprint('RED LINE.', color='red')
 CGI_CLI.uprint('DEFAULT LINE.')
 
-CGI_CLI.html_selflink('OK')
+

@@ -109,6 +109,7 @@ class CGI_CLI(object):
     @staticmethod
     def __cleanup__():
         ### CGI_CLI.uprint('\nEND[script runtime = %d sec]. '%(time.time() - CGI_CLI.START_EPOCH))
+        CGI_CLI.html_selflink('OK')
         if CGI_CLI.cgi_active: print("</body></html>")
 
     @staticmethod
@@ -399,4 +400,3 @@ CGI_CLI.uprint('RED LINE.', color='red')
 CGI_CLI.uprint('DEFAULT LINE.')
 
 
-CGI_CLI.html_selflink('OK')

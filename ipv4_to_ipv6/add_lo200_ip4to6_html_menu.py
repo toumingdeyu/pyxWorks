@@ -114,6 +114,7 @@ class CGI_CLI(object):
     @staticmethod
     def __cleanup__():
         ### CGI_CLI.uprint('\nEND[script runtime = %d sec]. '%(time.time() - CGI_CLI.START_EPOCH))
+        CGI_CLI.html_selflink('OK')
         if CGI_CLI.cgi_active: print("</body></html>")
 
     @staticmethod
@@ -1255,4 +1256,4 @@ else:
     if CGI_CLI.cgi_active and CGI_CLI.submit_form:
         CGI_CLI.uprint('DEVICE NAME NOT INSERTED!', tag = 'h1', color = 'red') 
         
-CGI_CLI.html_selflink('OK')        
+      
