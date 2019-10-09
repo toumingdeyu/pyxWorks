@@ -612,7 +612,9 @@ class RCMD(object):
                         if 'INVALID INPUT' in rcmd_output.upper() \
                             or 'INCOMPLETE COMMAND' in rcmd_output.upper() \
                             or 'FAILED TO COMMIT' in rcmd_output.upper() \
-                            or 'UNRECOGNIZED COMMAND' in rcmd_output.upper():
+                            or 'UNRECOGNIZED COMMAND' in rcmd_output.upper() \
+                            or 'ERROR:' in rcmd_output.upper() \
+                            or 'SYNTAX ERROR' in rcmd_output.upper():                                                        
                             RCMD.config_problem = True
                             CGI_CLI.uprint('\nCONFIGURATION PROBLEM FOUND:', color = 'red')
                             CGI_CLI.uprint('%s' % (rcmd_output), color = 'darkorchid')
