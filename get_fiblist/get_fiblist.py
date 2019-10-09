@@ -987,9 +987,23 @@ if device:
     
     if len(rcmd_outputs)>0:
         fib_list = re.findall(r'LD[0-9]+|FIB[0-9]+|LDA[0-9]+', str(rcmd_outputs[0]))
-        fib_list.sort()  
+        fib_dash_list = re.findall(r'LD[0-9]+\-LDA[0-9]+', str(rcmd_outputs[0]))
+        fib_set = set(fib_list)
+        fib_list = list(fib_set)
+        fib_list.sort()
+        
+        fib_dash_set = set(fib_dash_list)
+        fib_dash_list = list(fib_dash_set)
+        fib_dash_list.sort()
+        
+        for dash_line in fib_dash_list:
+            for line in fib_list:
+                if line in dash_line:
+                    fib_list.remove(line)
+                
+                
         #CGI_CLI.uprint('FIB LIST:\n', tag = 'h1', color = 'blue')    
-        CGI_CLI.uprint('%s\n' % (';\n'.join(fib_list) + ';' if len(fib_list)>0 else str())) 
+        CGI_CLI.uprint('%s\n' % (';\n'.join(fib_list + fib_dash_list) + ';' if len(fib_list)>0 else str())) 
 
     
 
