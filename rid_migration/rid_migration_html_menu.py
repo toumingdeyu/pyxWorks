@@ -1457,9 +1457,9 @@ if device:
             look_for = ['inet address 193.251.245.','inet address 172.25.4.','inet6 address 2001:688:0:1:']
             for line in rcmd_outputs[0].splitlines(): 
                 if look_for[0] in line and 'primary' in line:
-                    loopback_0_ipv4_address = look_for[0] + line.split(look_for[0])[1].split()[0].split('/')[0]
+                    loopback_0_ipv4_address = look_for[0] + line.split(look_for[0])[1].split()[0].split('/')[0].replace('inet address ','')
                 if look_for[1] in line and not 'primary' in line:
-                    loopback_200_ipv4_address = look_for[1] + line.split(look_for[1])[1].split()[0].split('/')[0]
+                    loopback_200_ipv4_address = look_for[1] + line.split(look_for[1])[1].split()[0].split('/')[0].replace('inet address ','')
                 # if look_for[2] in line and 'primary' in line:
                     # loopback_0_ipv6_address = look_for[2] + line.split(look_for[2])[1].split()[0].split('/')[0]                        
             # loopback_200_ipv6_address = ipv4_to_ipv6_obs(loopback_0_ipv4_address)[0] if loopback_0_ipv4_address else str()
