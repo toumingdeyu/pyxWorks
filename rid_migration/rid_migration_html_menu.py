@@ -1249,10 +1249,10 @@ set protocols ldp transport-address ${loopback_200_ipv4_address}
 """
 
 undo_juniper_config = """
-set interfaces lo0 unit 0 family inet address inet address ${loopback_0_ipv4_address}/32 primary
-delete interfaces lo0 unit 0 family inet address inet address ${loopback_200_ipv4_address}/32 primary
-set routing-options router-id inet address ${loopback_0_ipv4_address}
-set protocols ldp transport-address inet address ${loopback_0_ipv4_address} 
+set interfaces lo0 unit 0 family inet address ${loopback_0_ipv4_address}/32 primary
+delete interfaces lo0 unit 0 family inet address ${loopback_200_ipv4_address}/32 primary
+set routing-options router-id ${loopback_0_ipv4_address}
+set protocols ldp transport-address ${loopback_0_ipv4_address} 
 """
 
 ### HTML MENU SHOWS ONLY IN CGI MODE ###
