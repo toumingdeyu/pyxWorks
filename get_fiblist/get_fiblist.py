@@ -968,12 +968,12 @@ cmd_data = {
     'cisco_ios':['sh interfaces description | exc Backbone| exc admin-down | inc @'],
     'cisco_xr':['sh interfaces description | exc Backbone | exc admin-down | inc @'],
     'juniper':['show interfaces description | except "Backbone" | except "admin-down" | match "@"'],
-    'huawei':['display interfaces description | exclude (Backbone|admin-down) | include @'],
+    'huawei':['display interface description | exclude Backbone'],
 }
 
 ### HTML MENU SHOWS ONLY IN CGI MODE ###
 if CGI_CLI.cgi_active and not CGI_CLI.submit_form:
-    CGI_CLI.uprint('GET FIB LIST TOOL:\n', tag = 'h1', color = 'blue') 
+    CGI_CLI.uprint('GET CUSTOMER LINK LIST TOOL:\n', tag = 'h1', color = 'blue') 
     CGI_CLI.formprint([{'text':'device'},'<br/>',{'text':'username'},'<br/>',\
         {'text':'password'},
         #'<br/>',{'checkbox':'send_email'},
@@ -982,13 +982,14 @@ if CGI_CLI.cgi_active and not CGI_CLI.submit_form:
 
 if device:
     rcmd_outputs = RCMD.connect(device, username = USERNAME, password = PASSWORD)
-    rcmd_outputs = RCMD.run_commands(cmd_data, printall = True)
+    rcmd_outputs = RCMD.run_commands(cmd_data)
     RCMD.disconnect()
     
-    fib_list = re.findall(r'LD[0-9]+|FIB[0-9]+|LDA[0-9]+', str(rcmd_outputs[0]))
-    fib_list.sort()  
-    CGI_CLI.uprint('FIB LIST:\n', tag = 'h1', color = 'blue')    
-    CGI_CLI.uprint('%s\n' % (';\n'.join(fib_list) + ';' if len(fib_list)>0 else str())) 
+    if len(rcmd_outputs)>0:
+        fib_list = re.findall(r'LD[0-9]+|FIB[0-9]+|LDA[0-9]+', str(rcmd_outputs[0]))
+        fib_list.sort()  
+        CGI_CLI.uprint('FIB LIST:\n', tag = 'h1', color = 'blue')    
+        CGI_CLI.uprint('%s\n' % (';\n'.join(fib_list) + ';' if len(fib_list)>0 else str())) 
 
     
 
