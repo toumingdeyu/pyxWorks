@@ -986,8 +986,19 @@ if device:
     RCMD.disconnect()
     
     if len(rcmd_outputs)>0:
-        fib_list = re.findall(r'LD[0-9]+|FIB[0-9]+|LDA[0-9]+', str(rcmd_outputs[0]))
-        fib_dash_list = re.findall(r'LD[0-9]+\-LDA[0-9]+', str(rcmd_outputs[0]))
+        outputs = str()
+        for line in rcmd_outputs[0].splitlines():
+            if not '*down' in line or not 'OLD ' in line.upper() \
+                or 'TESTING' in line.upper() or 'HUAWEI' in line.upper():
+                outputs += line + '\n'
+    
+    
+        #fib_list = re.findall(r'LD[0-9]+|FIB[0-9]+|LDA[0-9]+', str(outputs))
+        #fib_dash_list = re.findall(r'LD[0-9]+\-LDA[0-9]+', str(outputs))
+
+        fib_list = re.findall(r'LD[0-9]{5,6}|FIB[0-9]{5,6}|LDA[0-9]{5,6}', str(outputs))
+        fib_dash_list = re.findall(r'LD[0-9]{5,6}\-LDA[0-9]{5,6}', str(outputs))
+
         fib_set = set(fib_list)
         fib_list = list(fib_set)
         fib_list.sort()
