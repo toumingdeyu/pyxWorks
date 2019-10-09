@@ -337,7 +337,6 @@ class CGI_CLI(object):
 
 
 
-
 ##############################################################################
 
 
@@ -390,12 +389,12 @@ class RCMD(object):
             except: RCMD.DEVICE_HOST = str()
             try: RCMD.DEVICE_PORT = device.split(':')[1]
             except: RCMD.DEVICE_PORT = '22'
-            CGI_CLI.uprint('DEVICE %s (host=%s, port=%s) START'\
+            if printall: CGI_CLI.uprint('DEVICE %s (host=%s, port=%s) START'\
                 %(device, RCMD.DEVICE_HOST, RCMD.DEVICE_PORT)+24 * '.')
             RCMD.router_type, RCMD.router_prompt = RCMD.ssh_raw_detect_router_type(debug = None)
             if not RCMD.router_type in RCMD.KNOWN_OS_TYPES:
                 CGI_CLI.uprint('UNSUPPORTED DEVICE TYPE: \'%s\', BREAK!' % (RCMD.router_type), color = 'magenta')
-            else: CGI_CLI.uprint('DETECTED DEVICE_TYPE: %s' % (RCMD.router_type))
+            elif printall: CGI_CLI.uprint('DETECTED DEVICE_TYPE: %s' % (RCMD.router_type))
             ####################################################################
             if RCMD.router_type == 'cisco_ios':
                 if cmd_data: 
@@ -475,10 +474,10 @@ class RCMD(object):
                 ### WORK REMOTE  =============================================
                 command_outputs = RCMD.run_commands(RCMD.CMD)
                 ### ==========================================================  
-            except Exception as e: CGI_CLI.uprint('CONNECTION_PROBLEM[' + str(e) + ']')    
+            except Exception as e: CGI_CLI.uprint('CONNECTION_PROBLEM[' + str(e) + ']', color = 'magenta')    
             finally:
                 if disconnect: RCMD.disconnect()
-        else: CGI_CLI.uprint('DEVICE NOT INSERTED!')
+        else: CGI_CLI.uprint('DEVICE NOT INSERTED!', color = 'magenta')
         return command_outputs        
 
     @staticmethod
@@ -626,7 +625,7 @@ class RCMD(object):
                             or 'FAILED TO COMMIT' in rcmd_output.upper() \
                             or 'UNRECOGNIZED COMMAND' in rcmd_output.upper() \
                             or 'ERROR:' in rcmd_output.upper() \
-                            or 'SYNTAX ERROR' in rcmd_output.upper():
+                            or 'SYNTAX ERROR' in rcmd_output.upper():                                                        
                             RCMD.config_problem = True
                             CGI_CLI.uprint('\nCONFIGURATION PROBLEM FOUND:', color = 'red')
                             CGI_CLI.uprint('%s' % (rcmd_output), color = 'darkorchid')
@@ -647,7 +646,7 @@ class RCMD(object):
         if RCMD.ssh_connection:
             if RCMD.use_module == 'netmiko': RCMD.ssh_connection.disconnect()
             elif RCMD.use_module == 'paramiko': RCMD.client.close()
-            CGI_CLI.uprint('DEVICE %s:%s DONE.' % (RCMD.DEVICE_HOST, RCMD.DEVICE_PORT))
+            if RCMD.printall: CGI_CLI.uprint('DEVICE %s:%s DONE.' % (RCMD.DEVICE_HOST, RCMD.DEVICE_PORT))
             RCMD.ssh_connection = None
             
     @staticmethod
@@ -656,7 +655,7 @@ class RCMD(object):
         if RCMD.ssh_connection:
             if RCMD.use_module == 'netmiko': RCMD.ssh_connection.disconnect()
             elif RCMD.use_module == 'paramiko': RCMD.client.close()
-            CGI_CLI.uprint('DEVICE %s:%s DISCONNECTED.' % (RCMD.DEVICE_HOST, RCMD.DEVICE_PORT))
+            if RCMD.printall: CGI_CLI.uprint('DEVICE %s:%s DISCONNECTED.' % (RCMD.DEVICE_HOST, RCMD.DEVICE_PORT))
             RCMD.ssh_connection = None
 
     @staticmethod
@@ -952,6 +951,7 @@ class LCMD(object):
                     if printall:CGI_CLI.uprint('EXEC_PROBLEM[' + str(e) + ']')
                     LCMD.fp.write('EXEC_PROBLEM[' + str(e) + ']\n')                
         return None
+
 
 
 
