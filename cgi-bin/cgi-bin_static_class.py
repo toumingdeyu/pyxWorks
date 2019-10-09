@@ -247,6 +247,9 @@ class CGI_CLI(object):
                 elif data_item.get('text'):
                     print('%s: <input type = "text" name = "%s"><br />'%\
                         (data_item.get('text','').replace('_',' '),data_item.get('text')))
+                elif data_item.get('password'):
+                    print('%s: <input type = "password" name = "%s"><br />'%\
+                        (data_item.get('password','').replace('_',' '),data_item.get('password')))
                 elif data_item.get('radio'):
                     print('<input type = "radio" name = "%s" value = "%s" /> %s'%\
                         (data_item.get('radio'),data_item.get('radio'),data_item.get('radio','').replace('_',' ')))
@@ -374,7 +377,7 @@ CGI_CLI.print_env()
 
 CGI_CLI.formprint([{'text':'email_address'},'<br/>',{'textcontent':'email_body'},'<br/>',{'file':'/var/www/cgi-bin/file_1'},'<br/>',{'checkbox':'aa_ss'},{'radio':'iii_ddd'},{'submit':'YES'},{'submit':'NO'}], submit_button = 'Send_Email', pyfile = None, tag = None, color = None)
 
-CGI_CLI.formprint([{'text':'eemail_address'},'<br/>',{'textcontent':'email_body'},'<br/>',{'file':'/var/www/cgi-bin/file_1'},'<br/>',{'checkbox':'aa_ss'},{'radio':'iii_ddd'},{'dropdown':'aa,bb,cc'},{'submit':'YES'},{'submit':'NO'}], submit_button = 'Send_Email', pyfile = None, tag = None, color = None)
+CGI_CLI.formprint([{'password':'password'},'<br/>',{'textcontent':'email_body'},'<br/>',{'file':'/var/www/cgi-bin/file_1'},'<br/>',{'checkbox':'aa_ss'},{'radio':'iii_ddd'},{'dropdown':'aa,bb,cc'},{'submit':'YES'},{'submit':'NO'}], submit_button = 'Send_Email', pyfile = None, tag = None, color = None)
 
 ### DROPDOWN MENU DOES HTTP500 :(
 ###CGI_CLI.formprint([{'dropdown':'aa,bb,cc_cc'}])
