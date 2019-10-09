@@ -252,6 +252,9 @@ class CGI_CLI(object):
                 elif data_item.get('text'):
                     print('%s: <input type = "text" name = "%s"><br />'%\
                         (data_item.get('text','').replace('_',' '),data_item.get('text')))
+                elif data_item.get('password'):
+                    print('%s: <input type = "password" name = "%s"><br />'%\
+                        (data_item.get('password','').replace('_',' '),data_item.get('password')))
                 elif data_item.get('radio'):
                     print('<input type = "radio" name = "%s" value = "%s" /> %s'%\
                         (data_item.get('radio'),data_item.get('radio'),data_item.get('radio','').replace('_',' ')))
@@ -1078,8 +1081,8 @@ undo isis ipv6 enable 5511
 if CGI_CLI.cgi_active and not CGI_CLI.submit_form:
     CGI_CLI.uprint('ADD Loopback200 ipv4 to ipv6 TOOL:\n', tag = 'h1', color = 'blue') 
     CGI_CLI.formprint([{'text':'device'},'<br/>',{'text':'username'},'<br/>',\
-        {'text':'password'},'<br/>',{'radio':'sim'},'<br/>',\
-        {'radio':'rollback'},'<br/>',{'radio':'show_config_only'},'<br/>'], \
+        {'password':'password'},'<br/>',{'checkbox':'sim'},'<br/>',\
+        {'checkbox':'rollback'},'<br/>',{'checkbox':'show_config_only'},'<br/>'], \
         submit_button = 'OK', pyfile = None, tag = None, color = None)
 
 config_string = str()
