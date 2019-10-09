@@ -131,7 +131,7 @@ class CGI_CLI(object):
         CGI_CLI.initialized = True
         getpass_done = None
         CGI_CLI.data, CGI_CLI.submit_form, CGI_CLI.username, CGI_CLI.password = \
-            collections.OrderedDict(), '', '', ''
+            collections.OrderedDict(), str(), str(), str()
         CGI_CLI.buffer_string, CGI_CLI.buffer_printed = str(), None
         CGI_CLI.http_status_code = '200'
         form, CGI_CLI.data = collections.OrderedDict(), collections.OrderedDict()
@@ -270,7 +270,7 @@ class CGI_CLI(object):
                         (data_item.get('text','').replace('_',' '),data_item.get('text')))
                 elif data_item.get('password'):
                     CGI_CLI.buffprint('%s: <input type = "password" name = "%s"><br />'%\
-                        (data_item.get('password','').replace('_',' '),data_item.get('password')))                        
+                        (data_item.get('password','').replace('_',' '),data_item.get('password')))
                 elif data_item.get('radio'):
                     CGI_CLI.buffprint('<input type = "radio" name = "%s" value = "%s" /> %s'%\
                         (data_item.get('radio'),data_item.get('radio'),data_item.get('radio','').replace('_',' ')))
@@ -288,7 +288,6 @@ class CGI_CLI(object):
                 elif data_item.get('submit'):
                     CGI_CLI.buffprint('<input id = "%s" type = "submit" name = "submit" value = "%s" />'%\
                         (data_item.get('submit'),data_item.get('submit')))
-
 
         ### START OF FORMPRINT ###
         formtypes = ['raw','text','checkbox','radio','submit','dropdown','textcontent']
@@ -313,6 +312,15 @@ class CGI_CLI(object):
             CGI_CLI.buffprint('</form>')
             if tag: CGI_CLI.buffprint('</%s>'%(tag))
             else: CGI_CLI.buffprint('<br/>');
+
+    @staticmethod
+    def html_selflink(submit_button = None):
+        if (submit_button and str(submit_button) == str(CGI_CLI.submit_form)) or not CGI_CLI.submit_form:
+            i_pyfile = sys.argv[0]
+            try: pyfile = i_pyfile.replace('\\','/').split('/')[-1].strip()
+            except: pyfile = i_pyfile.strip()
+            if CGI_CLI.cgi_active: print('<br/><a href = "./%s">RELOAD</a>' % (pyfile))
+
 
     @staticmethod
     def VERSION(path_to_file = str(os.path.abspath(__file__))):
@@ -411,3 +419,5 @@ CGI_CLI.formprint([{'raw':'<select name = "dropdown"><option value = "Maths" sel
 
 CGI_CLI.uprint('RED LINE.', color='red')
 CGI_CLI.uprint('DEFAULT LINE.')
+
+CGI_CLI.html_selflink('OK')
