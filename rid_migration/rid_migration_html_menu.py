@@ -1455,9 +1455,20 @@ if device:
 
             rcmd_outputs = RCMD.run_commands(collector_cmd, printall = True)
             
-            loopback_0_ipv4_address = 'address 193.251.245.' + rcmd_outputs[0].split('address 193.251.245.')[1].split()[0] if 'address 193.251.245.' in rcmd_outputs[0] else str()
-            loopback_200_ipv4_address = 'address 172.25.4.' + rcmd_outputs[0].split('address 172.25.4.')[1].split()[0] if 'address 172.25.4.' in rcmd_outputs[0] else str()
-            loopback_0_ipv6_address = 'address 2001:688:0:1:' + rcmd_outputs[0].split('address 2001:688:0:1:')[1].split()[0] if 'address 2001:688:0:1:' in rcmd_outputs[0] else str()
+            # loopback_0_ipv4_address = 'inet address 193.251.245.' + rcmd_outputs[0].split('inet address 193.251.245.')[1].split()[0] if 'inet address 193.251.245.' in rcmd_outputs[0] else str()
+            # loopback_200_ipv4_address = 'inet address 172.25.4.' + rcmd_outputs[0].split('inet address 172.25.4.')[1].split()[0] if 'inet address 172.25.4.' in rcmd_outputs[0] else str()
+            # loopback_0_ipv6_address = 'inet6 address 2001:688:0:1:' + rcmd_outputs[0].split('inet6 address 2001:688:0:1:')[1].split()[0] if 'inet6 address 2001:688:0:1:' in rcmd_outputs[0] else str()
+            # loopback_200_ipv6_address = ipv4_to_ipv6_obs(loopback_0_ipv4_address)[0] if loopback_0_ipv4_address else str()
+
+            loopback_0_ipv4_address, loopback_200_ipv4_address, loopback_0_ipv6_address = str(), str(), str()
+            look_for = ['inet address 193.251.245.','inet address 172.25.4.','inet6 address 2001:688:0:1:']
+            for line in rcmd_outputs[0].splitlines(): 
+                if look_for[0] in line and 'primary' in line:
+                    loopback_0_ipv4_address = look_for[0] + line.split(look_for[0])[1].split()[0]
+                if look_for[1] in line and not 'primary' in line:
+                    loopback_200_ipv4_address = look_for[1] + line.split(look_for[1])[1].split()[0]
+                if look_for[2] in line and 'primary' in line:
+                    loopback_0_ipv6_address = look_for[2] + line.split(look_for[2])[1].split()[0]                        
             loopback_200_ipv6_address = ipv4_to_ipv6_obs(loopback_0_ipv4_address)[0] if loopback_0_ipv4_address else str()
 
             data = {}  
