@@ -421,8 +421,6 @@ CMD_JUNOS = [
      'exec_4':'bgp_data["JUNOS_INT_GROUPS"] = glob_vars.get("JUNOS_INT_GROUPS",[])',
     },
 
-
-
     ### SET OVERLOAD BIT ------------------------------------------------------
     {'if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","")',
         'remote_command':['configure private',{'sim':'glob_vars.get("SIM_CMD","")'}],
@@ -447,12 +445,6 @@ CMD_JUNOS = [
         'remote_command_2':['exit',{'sim':'glob_vars.get("SIM_CMD","")'}],
     },
 
-
-
-
-
-
-
     ### NOSHUT -----------------------------------------------------------------
     {'if':'glob_vars.get("NOSHUT","")',
          'exec':'print("%sYou are about to switch-on all the BGP sessions on %s do you want to continue? (Y/N) [Enter]%s:"%(bcolors.RED,device,bcolors.ENDC))',
@@ -462,14 +454,15 @@ CMD_JUNOS = [
     },
     {'if':'glob_vars.get("NOSHUT","") and glob_vars.get("CONTINUE_OR_NOT2","").upper() != "Y"',
          'exec':'sys.exit(0)'
-    },    
-    {'if':'glob_vars.get("NOSHUT","") and len(bgp_data.get("JUNOS_EXT_GROUPS",""))>0',
-        'exec':'glob_vars["JUNOS_EXT_GROUPS"] = bgp_data["JUNOS_EXT_GROUPS"]'},
-    {'if':'glob_vars.get("NOSHUT","") and len(bgp_data.get("JUNOS_INT_GROUPS",""))>0',
-        'exec':'glob_vars["JUNOS_INT_GROUPS"] = bgp_data["JUNOS_INT_GROUPS"]'},
-    {'if':'glob_vars.get("NOSHUT","")',
-        "eval":"return_bgp_data_json()"
     },
+    ### DATA ALLWAYS READ FROM ROUTER ------------------------------------------    
+    # {'if':'glob_vars.get("NOSHUT","") and len(bgp_data.get("JUNOS_EXT_GROUPS",""))>0',
+        # 'exec':'glob_vars["JUNOS_EXT_GROUPS"] = bgp_data["JUNOS_EXT_GROUPS"]'},
+    # {'if':'glob_vars.get("NOSHUT","") and len(bgp_data.get("JUNOS_INT_GROUPS",""))>0',
+        # 'exec':'glob_vars["JUNOS_INT_GROUPS"] = bgp_data["JUNOS_INT_GROUPS"]'},
+    # {'if':'glob_vars.get("NOSHUT","")',
+        # "eval":"return_bgp_data_json()"
+    # },
 
     ### DO UNSHUT --------------------------------------------------------------
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("JUNOS_EXT_GROUPS","")',
