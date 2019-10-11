@@ -385,6 +385,16 @@ CMD_JUNOS = [
          'exec':'print("%sPlease specify --shut or --noshut ... %s"%(bcolors.RED,bcolors.ENDC))',
          'exec_2':'sys.exit(0)'
     },
+    ### SHUT -------------------------------------------------------------------
+    {'if':'glob_vars.get("NOSHUT","")',
+         'exec':'print("%sYou are about to switch-on all the BGP sessions on %s do you want to continue? (Y/N) [Enter]%s:"%(bcolors.RED,device,bcolors.ENDC))',
+    },
+    {'if':'glob_vars.get("NOSHUT","")',
+         'local_command_2':['read var;echo $var',{"output_variable":"CONTINUE_OR_NOT2"}],
+    },
+    {'if':'glob_vars.get("NOSHUT","") and glob_vars.get("CONTINUE_OR_NOT2","").upper() != "Y"',
+         'exec':'sys.exit(0)'
+    },    
     {'if':'glob_vars.get("SHUT","")',
          'exec':'print("%sYou are about to shut down all the BGP sessions on %s do you want to continue? (Y/N) [Enter]%s:"%(bcolors.RED,device,bcolors.ENDC))',
     },
@@ -406,17 +416,24 @@ CMD_JUNOS = [
 
 
 
-    ### NOSHUT ###
+    {'if':'glob_vars.get("SHUT","")',
+        "eval":"return_bgp_data_json()"
+    },
+    ### NOSHUT -----------------------------------------------------------------
+    {'if':'glob_vars.get("NOSHUT","")',
+         'exec':'print("%sYou are about to switch-on all the BGP sessions on %s do you want to continue? (Y/N) [Enter]%s:"%(bcolors.RED,device,bcolors.ENDC))',
+    },
+    {'if':'glob_vars.get("NOSHUT","")',
+         'local_command_2':['read var;echo $var',{"output_variable":"CONTINUE_OR_NOT2"}],
+    },
+    {'if':'glob_vars.get("NOSHUT","") and glob_vars.get("CONTINUE_OR_NOT2","").upper() != "Y"',
+         'exec':'sys.exit(0)'
+    },    
     {'if':'glob_vars.get("NOSHUT","") and len(bgp_data.get("JUNOS_EXT_GROUPS",""))>0',
         'exec':'glob_vars["JUNOS_EXT_GROUPS"] = bgp_data["JUNOS_EXT_GROUPS"]'},
     {'if':'glob_vars.get("NOSHUT","") and len(bgp_data.get("JUNOS_INT_GROUPS",""))>0',
         'exec':'glob_vars["JUNOS_INT_GROUPS"] = bgp_data["JUNOS_INT_GROUPS"]'},
     {'if':'glob_vars.get("NOSHUT","")',
-        "eval":"return_bgp_data_json()"
-    },
-
-
-    {'if':'glob_vars.get("SHUT","")',
         "eval":"return_bgp_data_json()"
     },
 ]
