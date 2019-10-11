@@ -385,7 +385,13 @@ CMD_JUNOS = [
          'exec':'print("%sPlease specify --shut or --noshut ... %s"%(bcolors.RED,bcolors.ENDC))',
          'exec_2':'sys.exit(0)'
     },
-    ### SHUT -------------------------------------------------------------------
+       
+    ### AS 5511 CHECK ----------------------------------------------------------
+    {'remote_command':['show bgp neighbor | match "Group:|Peer:" | except "NLRI|Restart"',{'output_variable':'show_bgp_neighbor'}]},    
+    {'eval':['True if "AS 5511" in glob_vars.get("show_bgp_neighbor","") else None',{'output_variable':'OTI_5511'}]},
+    {'eval':'glob_vars.get("OTI_5511","")'},   
+    
+    ### ASK IF NOSHUT OR QUIT --------------------------------------------------
     {'if':'glob_vars.get("NOSHUT","")',
          'exec':'print("%sYou are about to switch-on all the BGP sessions on %s do you want to continue? (Y/N) [Enter]%s:"%(bcolors.RED,device,bcolors.ENDC))',
     },
@@ -394,7 +400,9 @@ CMD_JUNOS = [
     },
     {'if':'glob_vars.get("NOSHUT","") and glob_vars.get("CONTINUE_OR_NOT2","").upper() != "Y"',
          'exec':'sys.exit(0)'
-    },    
+    },  
+
+    ### ASK IF SHUT OR QUIT ----------------------------------------------------    
     {'if':'glob_vars.get("SHUT","")',
          'exec':'print("%sYou are about to shut down all the BGP sessions on %s do you want to continue? (Y/N) [Enter]%s:"%(bcolors.RED,device,bcolors.ENDC))',
     },
@@ -405,10 +413,38 @@ CMD_JUNOS = [
          'exec':'sys.exit(0)'
     },
 
-    {'if':'glob_vars.get("SHUT","")',
-        'remote_command':['show bgp group summary',{'output_variable':'router_bgp_text'}],
-        'exec_1':'try: bgp_data["JUNOS_EXT_GROUPS"] = [ group.split()[-1].strip() for group in glob_vars.get("router_bgp_text","").split("External ")[0:-1] ]\nexcept: pass',
-        'exec_2':'try: bgp_data["JUNOS_INT_GROUPS"] = [ group.split()[-1].strip() for group in glob_vars.get("router_bgp_text","").split("Internal ")[0:-1] ]\nexcept: pass',
+    ### COLLECT DATA -----------------------------------------------------------
+    {'remote_command':['show bgp group summary',{'output_variable':'router_bgp_text'}],
+     'exec_1':'try: glob_vars["JUNOS_EXT_GROUPS"] = [ group.split()[-1].strip() for group in glob_vars.get("router_bgp_text","").split("External ")[0:-1] ]\nexcept: pass',
+     'exec_2':'try: glob_vars["JUNOS_INT_GROUPS"] = [ group.split()[-1].strip() for group in glob_vars.get("router_bgp_text","").split("Internal ")[0:-1] ]\nexcept: pass',
+     'exec_3':'bgp_data["JUNOS_EXT_GROUPS"] = glob_vars.get("JUNOS_EXT_GROUPS",[])',
+     'exec_4':'bgp_data["JUNOS_INT_GROUPS"] = glob_vars.get("JUNOS_INT_GROUPS",[])',
+    },
+
+
+
+    ### SET OVERLOAD BIT ------------------------------------------------------
+    {'if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","")',
+        'remote_command':['configure private',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'remote_command_2':['delete protocols isis overload timeout 240',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'remote_command_3':['set protocol isis overload',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'remote_command_4':['commit',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'remote_command_5':['exit',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'exec_1':'print("ISIS overload bit set, waiting 120sec...")',
+        'exec_2':'time.sleep(120)',
+    },
+
+    ### DO SHUT ---------------------------------------------------------------
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("JUNOS_EXT_GROUPS","")',
+        'pre_loop_remote_command':['configure private',{'sim':'glob_vars.get("SIM_CMD","")'}],
+    },
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","")',
+        'loop_glob_var':"JUNOS_EXT_GROUPS",
+            'remote_command':['deactivate protocols bgp group ',{'eval':'loop_item[0]'},{'sim':'glob_vars.get("SIM_CMD","")'}]
+    },
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("JUNOS_EXT_GROUPS","")',
+        'remote_command':['commit',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'remote_command_2':['exit',{'sim':'glob_vars.get("SIM_CMD","")'}],
     },
 
 
@@ -416,9 +452,7 @@ CMD_JUNOS = [
 
 
 
-    {'if':'glob_vars.get("SHUT","")',
-        "eval":"return_bgp_data_json()"
-    },
+
     ### NOSHUT -----------------------------------------------------------------
     {'if':'glob_vars.get("NOSHUT","")',
          'exec':'print("%sYou are about to switch-on all the BGP sessions on %s do you want to continue? (Y/N) [Enter]%s:"%(bcolors.RED,device,bcolors.ENDC))',
@@ -436,6 +470,35 @@ CMD_JUNOS = [
     {'if':'glob_vars.get("NOSHUT","")',
         "eval":"return_bgp_data_json()"
     },
+
+    ### DO UNSHUT --------------------------------------------------------------
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("JUNOS_EXT_GROUPS","")',
+        'pre_loop_remote_command':['configure private',{'sim':'glob_vars.get("SIM_CMD","")'}],
+    },
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","")',
+        'loop_glob_var':"JUNOS_EXT_GROUPS",
+            'remote_command':['activate protocols bgp group ',{'eval':'loop_item[0]'},{'sim':'glob_vars.get("SIM_CMD","")'}]
+    },
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("JUNOS_EXT_GROUPS","")',
+        'remote_command':['commit',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'remote_command_2':['exit',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'exec':'time.sleep(120)',
+    },
+
+    ### UNSET OVERLOAD BIT ------------------------------------------------------
+    {'if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","")',
+        'remote_command':['configure private',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'remote_command_2':['deactivate protocols isis overload ',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'remote_command_3':['protocols isis overload timeout 240',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'remote_command_4':['commit',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'remote_command_5':['exit',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'exec_1':'print("ISIS overload bit unset.")',
+    },
+
+    ### EVAL MUST BE LAST -------------------------------------------------------    
+    {'if':'glob_vars.get("SHUT","")',
+        "eval":"return_bgp_data_json()"
+    },    
 ]
 
 CMD_VRP = []
