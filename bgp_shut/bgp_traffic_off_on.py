@@ -379,56 +379,53 @@ CMD_IOS_XR = [
     },
 ]
 
-CMD_JUNOS = []
-
-CMD_VRP = []
-
-CMD_LINUX = [
-    {"local_command":'hostname'},
-    {"remote_command":'hostname'},
-#     {'if':'True',
-#          'exec':'print("WARNING: Possible problem in internal BGP! Please manually check status of iBGP.")',
-#          'exec_2':'glob_vars["CONTINUE_AFTER_IBGP_PROBLEM"] = raw_input("Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:")',
-#     },
-#     {'remote_command':['echo "WARNING: Possible problem in internal BGP! Please manually check status of iBGP."',{'print_output':'on'}],
-#      'remote_command_1':['echo "Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:"',{'print_output':'on'}],
-#      'remote_command_2':['read var;echo $var',{"output_variable":"CONTINUE_AFTER_IBGP_PROBLEM"}],
-#      'eval':['"YOUR_CHOISE_IS: " + glob_vars.get("CONTINUE_AFTER_IBGP_PROBLEM","")',{'print_output':'on'}],
-#     },
-]
-
-CMD_LOCAL = [
-    {'eval':['"SIM = "+glob_vars.get("SIM_CMD","")',{'print_output':'on'}]},
-#     {"local_command":['hostname', {"output_variable":"hostname"},{'sim':'glob_vars.get("SIM_CMD","")'}]
-#     },
-#     {'if':'True',
-#          'exec':'print("WARNING: Possible problem in internal BGP! Please manually check status of iBGP.")',
-#          'exec_2':'glob_vars["CONTINUE_AFTER_IBGP_PROBLEM"] = raw_input("Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:")',
-#     },
-#     {'if':'True',
-#          'local_command':['echo "WARNING: Possible problem in internal BGP! Please manually check status of iBGP."',{'print_output':'on'}],
-#          'local_command_1':['echo "Do you want to proceed with eBGP UNSHUT? (Y/N) [Enter]:"',{'print_output':'on'}],
-#          'local_command_2':['read var;echo $var',{"output_variable":"CONTINUE_AFTER_IBGP_PROBLEM"}],
-#          'eval':['"YOUR_CHOISE_IS: " + glob_vars.get("CONTINUE_AFTER_IBGP_PROBLEM","")',{'print_output':'on'}],
-#     },
-
+### JUNOS ################################################################################
+CMD_JUNOS = [
     {'if':'not glob_vars.get("SHUT","") and not glob_vars.get("NOSHUT","")',
          'exec':'print("%sPlease specify --shut or --noshut ... %s"%(bcolors.RED,bcolors.ENDC))',
          'exec_2':'sys.exit(0)'
     },
-    {'if':'device',
+    {'if':'glob_vars.get("SHUT","")',
          'exec':'print("%sYou are about to shut down all the BGP sessions on %s do you want to continue? (Y/N) [Enter]%s:"%(bcolors.RED,device,bcolors.ENDC))',
     },
-    {'if':'device',
+    {'if':'glob_vars.get("SHUT","")',
          'local_command_2':['read var;echo $var',{"output_variable":"CONTINUE_OR_NOT"}],
     },
-    {'if':'glob_vars.get("CONTINUE_OR_NOT","").upper() != "Y"',
+    {'if':'glob_vars.get("SHUT","") and glob_vars.get("CONTINUE_OR_NOT","").upper() != "Y"',
          'exec':'sys.exit(0)'
     },
 
-    {"local_command":['hostname', {"output_variable":"hostname"},{'sim':'glob_vars.get("SIM_CMD","")'},{'print_output':'on'}]
+    {'if':'glob_vars.get("SHUT","")',
+        'remote_command':['show bgp group summary',{'output_variable':'router_bgp_text'}],
+        'exec_1':'try: bgp_data["JUNOS_EXT_GROUPS"] = [ group.split()[-1].strip() for group in glob_vars.get("router_bgp_text","").split("External ")[0:-1] ]\nexcept: pass',
+        'exec_2':'try: bgp_data["JUNOS_INT_GROUPS"] = [ group.split()[-1].strip() for group in glob_vars.get("router_bgp_text","").split("Internal ")[0:-1] ]\nexcept: pass',
+    },
+
+
+
+
+
+
+    ### NOSHUT ###
+    {'if':'glob_vars.get("NOSHUT","") and len(bgp_data.get("JUNOS_EXT_GROUPS",""))>0',
+        'exec':'glob_vars["JUNOS_EXT_GROUPS"] = bgp_data["JUNOS_EXT_GROUPS"]'},
+    {'if':'glob_vars.get("NOSHUT","") and len(bgp_data.get("JUNOS_INT_GROUPS",""))>0',
+        'exec':'glob_vars["JUNOS_INT_GROUPS"] = bgp_data["JUNOS_INT_GROUPS"]'},
+    {'if':'glob_vars.get("NOSHUT","")',
+        "eval":"return_bgp_data_json()"
+    },
+
+
+    {'if':'glob_vars.get("SHUT","")',
+        "eval":"return_bgp_data_json()"
     },
 ]
+
+CMD_VRP = []
+
+CMD_LINUX = []
+
+CMD_LOCAL = []
 
 #
 # ################################################################################
@@ -440,7 +437,9 @@ bgp_json_txt_template = '''
       "OTI_EXT_IPS_V4": [],
       "OTI_EXT_IPS_V6": [],
       "OTI_INT_IPS_V4": [],
-      "OTI_INT_IPS_V6": []
+      "OTI_INT_IPS_V6": [],
+      "JUNOS_EXT_GROUPS":[],
+      "JUNOS_INT_GROUPS":[]
  }
 '''
 ### End of BASIC STRUCTURES OF JSON
@@ -905,7 +904,7 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
         if not logfilename:
             if 'WIN32' in sys.platform.upper(): logfilename = 'nul'
             else: logfilename = '/dev/null'
-        with open(logfilename,"w") as fp:
+        with open(logfilename,"a+") as fp:
             if output and not printcmdtologfile: fp.write(output)
             for cmd_line_items in CMD:
                 if debug: print('----> ',cmd_line_items)
@@ -1102,7 +1101,7 @@ parser.add_argument("--sim",
                     action = 'store_true', dest = "sim",
                     #default = True,
                     default = None,
-                    help = "simulate critical command runs")
+                    help = "simulate config commands")
 parser.add_argument("--getpass",
                     action = "store_true", dest = 'getpass', default = None,
                     help = "forced to insert router password interactively getpass.getpass()")                    
@@ -1266,9 +1265,13 @@ for device in device_list:
         # ADD PROMPT TO PROMPTS LIST
         if router_prompt: DEVICE_PROMPTS.append(router_prompt)
 
+        with open(logfilename,"w+") as fp:
+            fp.write(('DEVICE: %s\n- DETECTED DEVICE_TYPE: %s\n- BINFILE: %s, v%s\n- LOGFILE: %s\n\n' \
+                % (str(device), str(router_type), str(os.path.realpath(__file__)), str(VERSION), str(logfilename))))
+
         run_remote_and_local_commands(CMD, logfilename, printall = args.printall , \
             printcmdtologfile = True)
-
+            
         if logfilename and os.path.exists(logfilename):
             print('%s file created.' % (logfilename))
             ### MAKE READABLE for THE OTHERS
