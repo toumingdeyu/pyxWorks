@@ -18,6 +18,11 @@ import collections
 #python 2.7 problem - hack 'pip install esptool'
 import netmiko
 
+#SLEEP120SEC = 'time.sleep(120)'
+SLEEP120SEC = 'time.sleep(1)'
+
+
+
 class bcolors:
         DEFAULT    = '\033[99m'
         WHITE      = '\033[97m'
@@ -138,7 +143,7 @@ CMD_IOS_XR = [
         'remote_command_5':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'remote_command_6':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'exec':'print("ISIS overload bit set, waiting 120sec...")',
-        'exec_2':'time.sleep(120)',
+        'exec_2':SLEEP120SEC,
     },
 
     {'if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","")',
@@ -357,7 +362,7 @@ CMD_IOS_XR = [
 
     {'if':'glob_vars.get("NOSHUT","")',
         'exec':'print("eBGP peers have been unshut, waiting 120sec...")',
-        'exec_2':'time.sleep(120)',
+        'exec_2':SLEEP120SEC,
     },
 
     {'if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","")',
@@ -422,24 +427,28 @@ CMD_JUNOS = [
     },
 
     ### SET OVERLOAD BIT ------------------------------------------------------
-    {'if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","")',
+    {'if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'remote_command':['configure exclusive',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'remote_command_2':['delete protocols isis overload timeout 240',{'sim':'glob_vars.get("SIM_CMD","")'}],
-        'remote_command_3':['set protocol isis overload',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'remote_command_3':['set protocols isis overload',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'remote_command_4':['commit and-quit',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'exec_1':'print("ISIS overload bit set, waiting 120sec...")',
-        'exec_2':'time.sleep(120)',
+        'exec_2':SLEEP120SEC,
     },
 
     ### DO SHUT ---------------------------------------------------------------
-    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","")',
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'pre_loop_remote_command':['configure exclusive',{'sim':'glob_vars.get("SIM_CMD","")'}],
     },
-    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","")',
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'loop_glob_var':"JUNOS_EXT_GROUPS",
             'remote_command':['deactivate protocols bgp group ',{'eval':'loop_item[0]'},{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
-    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","")',
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and glob_vars.get("SHOW_CONFIG_ONLY","")',
+        'loop_glob_var':"JUNOS_EXT_GROUPS",
+            'exec':'print("deactivate protocols bgp group %s" % (loop_item[0]))'
+    },    
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'remote_command':['commit and-quit',{'sim':'glob_vars.get("SIM_CMD","")'}],
     },
 
@@ -463,23 +472,27 @@ CMD_JUNOS = [
     # },
 
     ### DO UNSHUT --------------------------------------------------------------
-    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","")',
+    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'pre_loop_remote_command':['configure exclusive',{'sim':'glob_vars.get("SIM_CMD","")'}],
     },
-    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","")',
+    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'loop_glob_var':"JUNOS_EXT_GROUPS",
             'remote_command':['activate protocols bgp group ',{'eval':'loop_item[0]'},{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
-    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","")',
+    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and glob_vars.get("SHOW_CONFIG_ONLY","")',
+        'loop_glob_var':"JUNOS_EXT_GROUPS",
+             'exec':'print("deactivate protocols bgp group %s" % (loop_item[0]))'
+    },        
+    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'remote_command':['commit and-quit',{'sim':'glob_vars.get("SIM_CMD","")'}],
-        'exec':'time.sleep(120)',
+        'exec':SLEEP120SEC,
     },
 
     ### UNSET OVERLOAD BIT ------------------------------------------------------
-    {'if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","")',
+    {'if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'remote_command':['configure exclusive',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'remote_command_2':['deactivate protocols isis overload ',{'sim':'glob_vars.get("SIM_CMD","")'}],
-        'remote_command_3':['protocols isis overload timeout 240',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'remote_command_3':['set protocols isis overload timeout 240',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'remote_command_4':['commit and-quit',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'exec_1':'print("ISIS overload bit unset.")',
     },
@@ -1173,7 +1186,11 @@ parser.add_argument("--sim",
                     help = "simulate config commands")
 parser.add_argument("--getpass",
                     action = "store_true", dest = 'getpass', default = None,
-                    help = "forced to insert router password interactively getpass.getpass()")                    
+                    help = "forced to insert router password interactively getpass.getpass()")
+parser.add_argument("--cfg",
+                    action = "store_true", dest = 'show_config_only',
+                    default = None,
+                    help = "show config only, do not push data to device")                    
 args = parser.parse_args()
 
 if args.nocolors or 'WIN32' in sys.platform.upper(): bcolors = nocolors
@@ -1205,6 +1222,9 @@ if args.noshut: glob_vars["NOSHUT"] = True
 
 if args.sim: glob_vars["SIM_CMD"] = 'ON'
 else: glob_vars["SIM_CMD"] = 'OFF'
+
+if args.show_config_only: glob_vars["SHOW_CONFIG_ONLY"] = True
+else: glob_vars["SHOW_CONFIG_ONLY"] = False
 
 if args.device == str():
     remote_connect = None
