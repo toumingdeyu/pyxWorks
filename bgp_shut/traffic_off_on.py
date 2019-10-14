@@ -456,7 +456,7 @@ CMD_JUNOS = [
         'remote_command_2':['delete protocols isis overload timeout 240',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'remote_command_3':['set protocols isis overload',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'remote_command_4':['commit and-quit',{'sim':'glob_vars.get("SIM_CMD","")'}],
-        'exec_1':'print("ISIS overload bit set, waiting 120sec...")',
+        'exec_1':'print("ISIS overload bit set, Waiting...")',
         'exec_2':SLEEP120SEC,
     },
 
@@ -465,6 +465,7 @@ CMD_JUNOS = [
         'pre_loop_remote_command':['configure exclusive',{'sim':'glob_vars.get("SIM_CMD","")'}],
     },
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
+        'pre_if_exec':'print("SHUTTING eBGP GROUPS...")',
         'loop_glob_var':"JUNOS_EXT_GROUPS",
             'remote_command':['deactivate protocols bgp group ',{'eval':'loop_item'},{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
@@ -511,6 +512,7 @@ CMD_JUNOS = [
         'pre_loop_remote_command':['configure exclusive',{'sim':'glob_vars.get("SIM_CMD","")'}],
     },
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
+        'pre_if_exec':'print("UNSHUTTING eBGP GROUPS...")',
         'loop_glob_var':"JUNOS_EXT_GROUPS",
             'remote_command':['activate protocols bgp group ',{'eval':'loop_item'},{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
@@ -523,13 +525,14 @@ CMD_JUNOS = [
     },        
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'remote_command':['commit and-quit',{'sim':'glob_vars.get("SIM_CMD","")'}],
-        'exec':SLEEP120SEC,
+        'exec':'print("Waiting...")',
+        'exec_2':SLEEP120SEC,
     },
 
     ### UNSET OVERLOAD BIT ------------------------------------------------------
     {'if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'remote_command':['configure exclusive',{'sim':'glob_vars.get("SIM_CMD","")'}],
-        'remote_command_2':['deactivate protocols isis overload ',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'remote_command_2':['delete protocols isis overload ',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'remote_command_3':['set protocols isis overload timeout 240',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'remote_command_4':['commit and-quit',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'exec_1':'print("ISIS overload bit unset.")',
