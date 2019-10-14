@@ -423,26 +423,24 @@ CMD_JUNOS = [
 
     ### SET OVERLOAD BIT ------------------------------------------------------
     {'if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","")',
-        'remote_command':['configure private',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'remote_command':['configure exclusive',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'remote_command_2':['delete protocols isis overload timeout 240',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'remote_command_3':['set protocol isis overload',{'sim':'glob_vars.get("SIM_CMD","")'}],
-        'remote_command_4':['commit',{'sim':'glob_vars.get("SIM_CMD","")'}],
-        'remote_command_5':['exit',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'remote_command_4':['commit and-quit',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'exec_1':'print("ISIS overload bit set, waiting 120sec...")',
         'exec_2':'time.sleep(120)',
     },
 
     ### DO SHUT ---------------------------------------------------------------
-    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("JUNOS_EXT_GROUPS","")',
-        'pre_loop_remote_command':['configure private',{'sim':'glob_vars.get("SIM_CMD","")'}],
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","")',
+        'pre_loop_remote_command':['configure exclusive',{'sim':'glob_vars.get("SIM_CMD","")'}],
     },
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","")',
         'loop_glob_var':"JUNOS_EXT_GROUPS",
             'remote_command':['deactivate protocols bgp group ',{'eval':'loop_item[0]'},{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
-    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("JUNOS_EXT_GROUPS","")',
-        'remote_command':['commit',{'sim':'glob_vars.get("SIM_CMD","")'}],
-        'remote_command_2':['exit',{'sim':'glob_vars.get("SIM_CMD","")'}],
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","")',
+        'remote_command':['commit and-quit',{'sim':'glob_vars.get("SIM_CMD","")'}],
     },
 
     ### NOSHUT -----------------------------------------------------------------
@@ -465,26 +463,24 @@ CMD_JUNOS = [
     # },
 
     ### DO UNSHUT --------------------------------------------------------------
-    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("JUNOS_EXT_GROUPS","")',
-        'pre_loop_remote_command':['configure private',{'sim':'glob_vars.get("SIM_CMD","")'}],
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","")',
+        'pre_loop_remote_command':['configure exclusive',{'sim':'glob_vars.get("SIM_CMD","")'}],
     },
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","")',
         'loop_glob_var':"JUNOS_EXT_GROUPS",
             'remote_command':['activate protocols bgp group ',{'eval':'loop_item[0]'},{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
-    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("JUNOS_EXT_GROUPS","")',
-        'remote_command':['commit',{'sim':'glob_vars.get("SIM_CMD","")'}],
-        'remote_command_2':['exit',{'sim':'glob_vars.get("SIM_CMD","")'}],
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","")',
+        'remote_command':['commit and-quit',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'exec':'time.sleep(120)',
     },
 
     ### UNSET OVERLOAD BIT ------------------------------------------------------
     {'if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","")',
-        'remote_command':['configure private',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'remote_command':['configure exclusive',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'remote_command_2':['deactivate protocols isis overload ',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'remote_command_3':['protocols isis overload timeout 240',{'sim':'glob_vars.get("SIM_CMD","")'}],
-        'remote_command_4':['commit',{'sim':'glob_vars.get("SIM_CMD","")'}],
-        'remote_command_5':['exit',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'remote_command_4':['commit and-quit',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'exec_1':'print("ISIS overload bit unset.")',
     },
 
