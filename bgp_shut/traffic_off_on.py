@@ -216,13 +216,14 @@ CMD_IOS_XR = [
 
     ### SHOW CONFIG ONLY - JUST PRINT ###    
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V4","") and glob_vars.get("SHOW_CONFIG_ONLY","")',
-        'pre_if_exec':'print("SHUT CONFIG:\n------------\n\n")',
+        'pre_if_exec':'print("SHUT CONFIG:")',
+        'pre_if_exec_2':'print("--------------")',
         'loop_glob_var':"OTI_EXT_IPS_V4",
-            'exec':'print("neighbor %s shutdown" % (loop_item[0]))'
+            'exec':['print("neighbor %s shutdown" % ("',{'eval':'loop_item[0]'},'"))'],
     },
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V6","") and glob_vars.get("SHOW_CONFIG_ONLY","")',
         'loop_glob_var':"OTI_EXT_IPS_V6",
-            'exec':'print("neighbor %s shutdown" % (loop_item[0]))'
+            'exec':['print("neighbor %s shutdown" % ("',{'eval':'loop_item[0]'},'"))'],
     },        
     
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6","")) and not glob_vars.get("SHOW_CONFIG_ONLY","")',
@@ -371,15 +372,16 @@ CMD_IOS_XR = [
     
     ### SHOW CONFIG ONLY - JUST PRINT ###
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V4","") and glob_vars.get("SHOW_CONFIG_ONLY","")',
-        'pre_if_exec':'print("NOSHUT CONFIG:\n--------------\n\n")',
+        'pre_if_exec':'print("NOSHUT CONFIG:")',
+        'pre_if_exec_2':'print("--------------")',
         'loop_glob_var':"OTI_EXT_IPS_V4",
             'if':'not "ADMIN" in str(loop_item[1]).upper()',
-                'exec':'print("no neighbor %s shutdown" % (loop_item[0]))'
+                'exec':['print("no neighbor %s shutdown" % ("',{'eval':'loop_item[0]'},'"))'],
     },
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V6","") and glob_vars.get("SHOW_CONFIG_ONLY","")',
         'loop_glob_var':"OTI_EXT_IPS_V6",
             'if':'not "ADMIN" in str(loop_item[1]).upper()',
-                'exec':'print("no neighbor %s shutdown" % (loop_item[0]))'
+                'exec':['print("no neighbor %s shutdown" % ("',{'eval':'loop_item[0]'},'"))'],
     },    
     
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6","")) and not glob_vars.get("SHOW_CONFIG_ONLY","")',
@@ -412,6 +414,9 @@ CMD_IOS_XR = [
     },
 ]
 
+
+
+
 ### JUNOS ################################################################################
 CMD_JUNOS = [
     {'if':'not glob_vars.get("SHUT","") and not glob_vars.get("NOSHUT","")',
@@ -425,8 +430,8 @@ CMD_JUNOS = [
     {'eval':'glob_vars.get("OTI_5511","")'},   
     
     ### ASK IF NOSHUT OR QUIT --------------------------------------------------
-    {'if':'glob_vars.get("NOSHUT","")',
-         'exec':'print("%sYou are about to switch-on all the BGP sessions on %s do you want to continue? (Y/N) [Enter]%s:"%(bcolors.RED,device,bcolors.ENDC))',
+    {'if':'glob_vars.get("SHUT","")',
+         'exec':'print("%sYou are about to switch-off all the BGP sessions on %s do you want to continue? (Y/N) [Enter]%s:"%(bcolors.RED,device,bcolors.ENDC))',
     },
     {'if':'glob_vars.get("NOSHUT","")',
          'local_command_2':['read var;echo $var',{"output_variable":"CONTINUE_OR_NOT2"}],
@@ -447,11 +452,17 @@ CMD_JUNOS = [
     },
 
     ### COLLECT DATA -----------------------------------------------------------
-    {'remote_command':['show bgp group summary',{'output_variable':'router_bgp_text'}],
-     'exec_1':'try: glob_vars["JUNOS_EXT_GROUPS"] = [ group.split()[-1].strip() for group in glob_vars.get("router_bgp_text","").split("External ")[0:-1] ]\nexcept: pass',
-     'exec_2':'try: glob_vars["JUNOS_INT_GROUPS"] = [ group.split()[-1].strip() for group in glob_vars.get("router_bgp_text","").split("Internal ")[0:-1] ]\nexcept: pass',
-     'exec_3':'bgp_data["JUNOS_EXT_GROUPS"] = glob_vars.get("JUNOS_EXT_GROUPS",[])',
-     'exec_4':'bgp_data["JUNOS_INT_GROUPS"] = glob_vars.get("JUNOS_INT_GROUPS",[])',
+    {'if':'glob_vars.get("SHUT","")',
+         'remote_command':['show bgp group summary',{'output_variable':'router_bgp_text'}],
+         'exec_1':'try: glob_vars["JUNOS_EXT_GROUPS"] = [ group.split()[-1].strip().encode(encoding="UTF-8") for group in glob_vars.get("router_bgp_text","").split("External ")[0:-1] ]\nexcept: pass',
+         'exec_2':'try: glob_vars["JUNOS_INT_GROUPS"] = [ group.split()[-1].strip().encode(encoding="UTF-8") for group in glob_vars.get("router_bgp_text","").split("Internal ")[0:-1] ]\nexcept: pass',
+         'exec_3':'bgp_data["JUNOS_EXT_GROUPS"] = glob_vars.get("JUNOS_EXT_GROUPS",[])',
+         'exec_4':'bgp_data["JUNOS_INT_GROUPS"] = glob_vars.get("JUNOS_INT_GROUPS",[])',
+         ### PRINT GROUPS ###
+         "exec_5":'print("INTERNAL GROUPS:")',
+         "exec_6":'print(glob_vars.get("JUNOS_INT_GROUPS",[]))',
+         "exec_7":'print("EXTERNAL GROUPS:")',
+         "exec_8":'print(glob_vars.get("JUNOS_EXT_GROUPS",[]))',             
     },
 
     ### SET OVERLOAD BIT ------------------------------------------------------
@@ -470,13 +481,14 @@ CMD_JUNOS = [
     },
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'loop_glob_var':"JUNOS_EXT_GROUPS",
-            'remote_command':['deactivate protocols bgp group ',{'eval':'loop_item[0]'},{'sim':'glob_vars.get("SIM_CMD","")'}]
+            'remote_command':['deactivate protocols bgp group ',{'eval':'loop_item'},{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
     ### SHOW CONFIG ONLY - JUST PRINT ###
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and glob_vars.get("SHOW_CONFIG_ONLY","")',
-        'pre_if_exec':'print("SHUT CONFIG:\n------------\n\n")',
+        'pre_if_exec':'print("SHUT CONFIG:")',
+        'pre_if_exec_2':'print("--------------")',
         'loop_glob_var':"JUNOS_EXT_GROUPS",
-            'exec':'print("deactivate protocols bgp group %s" % (loop_item[0]))'
+            'exec':['print("deactivate protocols bgp group %s" % ("',{'eval':'loop_item'},'"))'],
     },    
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'remote_command':['commit and-quit',{'sim':'glob_vars.get("SIM_CMD","")'}],
@@ -492,15 +504,23 @@ CMD_JUNOS = [
     {'if':'glob_vars.get("NOSHUT","") and glob_vars.get("CONTINUE_OR_NOT2","").upper() != "Y"',
          'exec':'sys.exit(0)'
     },
-    ### DATA ALLWAYS READ FROM ROUTER ------------------------------------------    
-    # {'if':'glob_vars.get("NOSHUT","") and len(bgp_data.get("JUNOS_EXT_GROUPS",""))>0',
-        # 'exec':'glob_vars["JUNOS_EXT_GROUPS"] = bgp_data["JUNOS_EXT_GROUPS"]'},
-    # {'if':'glob_vars.get("NOSHUT","") and len(bgp_data.get("JUNOS_INT_GROUPS",""))>0',
-        # 'exec':'glob_vars["JUNOS_INT_GROUPS"] = bgp_data["JUNOS_INT_GROUPS"]'},
-    # {'if':'glob_vars.get("NOSHUT","")',
-        # "eval":"return_bgp_data_json()"
-    # },
+    ## DATA READ FROM FILE ------------------------------------------    
+    {'if':'glob_vars.get("NOSHUT","") and len(bgp_data.get("JUNOS_EXT_GROUPS",""))>0',
+        'exec':'glob_vars["JUNOS_EXT_GROUPS"] = bgp_data["JUNOS_EXT_GROUPS"]'},
+    {'if':'glob_vars.get("NOSHUT","") and len(bgp_data.get("JUNOS_INT_GROUPS",""))>0',
+        'exec':'glob_vars["JUNOS_INT_GROUPS"] = bgp_data["JUNOS_INT_GROUPS"]'},
+    {'if':'glob_vars.get("NOSHUT","")',
+        "eval":"return_bgp_data_json()"
+    },
 
+    {'if':'glob_vars.get("NOSHUT","")',
+         ### PRINT GROUPS ###
+         "exec_1":'print("INTERNAL GROUPS:")',
+         "exec_2":'print(glob_vars.get("JUNOS_INT_GROUPS",[]))',
+         "exec_3":'print("EXTERNAL GROUPS:")',
+         "exec_4":'print(glob_vars.get("JUNOS_EXT_GROUPS",[]))',  
+    },
+    
     ### DO UNSHUT --------------------------------------------------------------
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'pre_loop_remote_command':['configure exclusive',{'sim':'glob_vars.get("SIM_CMD","")'}],
@@ -511,9 +531,10 @@ CMD_JUNOS = [
     },
     ### SHOW CONFIG ONLY - JUST PRINT ###
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and glob_vars.get("SHOW_CONFIG_ONLY","")',
-        'pre_if_exec':'print("NOSHUT CONFIG:\n--------------\n\n")',
+        'pre_if_exec':'print("NOSHUT CONFIG:")',
+        'pre_if_exec_2':'print("--------------")',
         'loop_glob_var':"JUNOS_EXT_GROUPS",
-             'exec':'print("deactivate protocols bgp group %s" % (loop_item[0]))'
+             'exec':['print("activate protocols bgp group %s" % ("',{'eval':'loop_item[0]'},'"))'],  
     },        
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'remote_command':['commit and-quit',{'sim':'glob_vars.get("SIM_CMD","")'}],
