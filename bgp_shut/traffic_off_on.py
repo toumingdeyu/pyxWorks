@@ -18,10 +18,7 @@ import collections
 #python 2.7 problem - hack 'pip install esptool'
 import netmiko
 
-#SLEEP120SEC = 'time.sleep(120)'
-SLEEP120SEC = 'time.sleep(1)'
-
-
+SLEEP120SEC = 'time.sleep(120)'
 
 class bcolors:
         DEFAULT    = '\033[99m'
@@ -1235,7 +1232,11 @@ parser.add_argument("--getpass",
 parser.add_argument("--cfg",
                     action = "store_true", dest = 'show_config_only',
                     default = None,
-                    help = "show config only, do not push data to device")                    
+                    help = "show config only, do not push data to device")
+parser.add_argument("--wait",
+                    action = "store", dest = 'delay',
+                    default = '120',
+                    help = "delay in seconds [between overload bit set and bgp off / between bgp on overload bit clean], 120sec by default")                     
 args = parser.parse_args()
 
 if args.nocolors or 'WIN32' in sys.platform.upper(): bcolors = nocolors
@@ -1267,6 +1268,11 @@ if args.noshut: glob_vars["NOSHUT"] = True
 
 if args.sim: glob_vars["SIM_CMD"] = 'ON'
 else: glob_vars["SIM_CMD"] = 'OFF'
+
+
+if args.delay: 
+    try: SLEEP120SEC = 'time.sleep(%s)' % (str(int(args.delay)))
+    except : pass
 
 if args.show_config_only: glob_vars["SHOW_CONFIG_ONLY"] = True
 else: glob_vars["SHOW_CONFIG_ONLY"] = False
