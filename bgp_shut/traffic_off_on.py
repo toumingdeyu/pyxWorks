@@ -18,7 +18,7 @@ import collections
 #python 2.7 problem - hack 'pip install esptool'
 import netmiko
 
-SLEEP120SEC = 'time.sleep(120)'
+SLEEPSEC = '120'
 
 class bcolors:
         DEFAULT    = '\033[99m'
@@ -139,8 +139,8 @@ CMD_IOS_XR = [
         'remote_command_4':['Commit',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'remote_command_5':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'remote_command_6':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}],
-        'exec':'print("ISIS overload bit set, waiting 120sec...")',
-        'exec_2':SLEEP120SEC,
+        'exec':'print("ISIS overload bit set, Waiting...")',
+        'exec_2':['time.sleep(',{'eval':'SLEEPSEC'},')'],
     },
 
     {'if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","")',
@@ -202,6 +202,9 @@ CMD_IOS_XR = [
         'pre_loop_remote_command_2':['router bgp 5511',{'sim':'glob_vars.get("SIM_CMD","")'}],
     },
 
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6","")) and not glob_vars.get("SHOW_CONFIG_ONLY","")',
+        'exec_1':'print("SHUTTING eBGP SESSIONS...")'
+    },
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V4","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'loop_glob_var':"OTI_EXT_IPS_V4",
             'remote_command':['neighbor ',{'eval':'loop_item[0]'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}]
@@ -213,8 +216,10 @@ CMD_IOS_XR = [
 
     ### SHOW CONFIG ONLY - JUST PRINT ###    
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V4","") and glob_vars.get("SHOW_CONFIG_ONLY","")',
-        'pre_if_exec':'print("SHUT CONFIG:")',
-        'pre_if_exec_2':'print("--------------")',
+        'exec_1':'print("SHUT CONFIG:")',
+        'exec_2':'print("------------")',
+    },    
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V4","") and glob_vars.get("SHOW_CONFIG_ONLY","")',        
         'loop_glob_var':"OTI_EXT_IPS_V4",
             'exec':['print("neighbor %s shutdown" % ("',{'eval':'loop_item[0]'},'"))'],
     },
@@ -355,7 +360,9 @@ CMD_IOS_XR = [
         'pre_loop_remote_command':['conf',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'pre_loop_remote_command_2':['router bgp 5511',{'sim':'glob_vars.get("SIM_CMD","")'}],
     },
-
+    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6","")) and not glob_vars.get("SHOW_CONFIG_ONLY","")',
+        'exec_1':'print("SHUTTING eBGP SESSIONS...")'
+    },
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V4","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'loop_glob_var':"OTI_EXT_IPS_V4",
             'if':'not "ADMIN" in str(loop_item[1]).upper()',
@@ -369,8 +376,10 @@ CMD_IOS_XR = [
     
     ### SHOW CONFIG ONLY - JUST PRINT ###
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V4","") and glob_vars.get("SHOW_CONFIG_ONLY","")',
-        'pre_if_exec':'print("NOSHUT CONFIG:")',
-        'pre_if_exec_2':'print("--------------")',
+        'exec_1':'print("NOSHUT CONFIG:")',
+        'exec_2':'print("--------------")',
+    },    
+    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V4","") and glob_vars.get("SHOW_CONFIG_ONLY","")',        
         'loop_glob_var':"OTI_EXT_IPS_V4",
             'if':'not "ADMIN" in str(loop_item[1]).upper()',
                 'exec':['print("no neighbor %s shutdown" % ("',{'eval':'loop_item[0]'},'"))'],
@@ -388,8 +397,8 @@ CMD_IOS_XR = [
     },
 
     {'if':'glob_vars.get("NOSHUT","")',
-        'exec':'print("eBGP peers have been unshut, waiting 120sec...")',
-        'exec_2':SLEEP120SEC,
+        'exec':'print("eBGP peers have been unshut, Waiting...")',
+        'exec_2':['time.sleep(',{'eval':'SLEEPSEC'},')'],
     },
 
     {'if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
@@ -457,7 +466,7 @@ CMD_JUNOS = [
         'remote_command_3':['set protocols isis overload',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'remote_command_4':['commit and-quit',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'exec_1':'print("ISIS overload bit set, Waiting...")',
-        'exec_2':SLEEP120SEC,
+        'exec_2':['time.sleep(',{'eval':'SLEEPSEC'},')'],
     },
 
     ### DO SHUT ---------------------------------------------------------------
@@ -466,13 +475,17 @@ CMD_JUNOS = [
     },
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'pre_if_exec':'print("SHUTTING eBGP GROUPS...")',
+    },    
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',        
         'loop_glob_var':"JUNOS_EXT_GROUPS",
             'remote_command':['deactivate protocols bgp group ',{'eval':'loop_item'},{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
     ### SHOW CONFIG ONLY - JUST PRINT ###
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and glob_vars.get("SHOW_CONFIG_ONLY","")',
-        'pre_if_exec':'print("SHUT CONFIG:")',
-        'pre_if_exec_2':'print("--------------")',
+        'exec_1':'print("SHUT CONFIG:")',
+        'exec_2':'print("------------")',
+    },    
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and glob_vars.get("SHOW_CONFIG_ONLY","")',        
         'loop_glob_var':"JUNOS_EXT_GROUPS",
             'exec':['print("deactivate protocols bgp group %s" % ("',{'eval':'loop_item'},'"))'],
     },    
@@ -513,20 +526,24 @@ CMD_JUNOS = [
     },
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'pre_if_exec':'print("UNSHUTTING eBGP GROUPS...")',
+    },
+    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',    
         'loop_glob_var':"JUNOS_EXT_GROUPS",
             'remote_command':['activate protocols bgp group ',{'eval':'loop_item'},{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
     ### SHOW CONFIG ONLY - JUST PRINT ###
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and glob_vars.get("SHOW_CONFIG_ONLY","")',
-        'pre_if_exec':'print("NOSHUT CONFIG:")',
-        'pre_if_exec_2':'print("--------------")',
+        'exec_1':'print("NOSHUT CONFIG:")',
+        'exec_2':'print("--------------")',
+    },
+    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and glob_vars.get("SHOW_CONFIG_ONLY","")',    
         'loop_glob_var':"JUNOS_EXT_GROUPS",
              'exec':['print("activate protocols bgp group %s" % ("',{'eval':'loop_item'},'"))'],  
     },        
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'remote_command':['commit and-quit',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'exec':'print("Waiting...")',
-        'exec_2':SLEEP120SEC,
+        'exec_2':['time.sleep(',{'eval':'SLEEPSEC'},')'],
     },
 
     ### UNSET OVERLOAD BIT ------------------------------------------------------
@@ -1274,8 +1291,8 @@ else: glob_vars["SIM_CMD"] = 'OFF'
 
 
 if args.delay: 
-    try: SLEEP120SEC = 'time.sleep(%s)' % (str(int(args.delay)))
-    except : pass
+    try: SLEEPSEC = (str(int(args.delay)))
+    except : SLEEPSEC = '120'
 
 if args.show_config_only: glob_vars["SHOW_CONFIG_ONLY"] = True
 else: glob_vars["SHOW_CONFIG_ONLY"] = False
