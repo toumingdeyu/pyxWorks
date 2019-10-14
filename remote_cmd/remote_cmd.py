@@ -551,7 +551,7 @@ class RCMD(object):
                             conf = conf, sim_config = sim_config, printall = printall)
                         elif RCMD.router_type=='cisco_xr': conf_output = RCMD.run_command('config t', \
                             conf = conf, sim_config = sim_config, printall = printall)
-                        elif RCMD.router_type=='juniper': conf_output = RCMD.run_command('configure private', \
+                        elif RCMD.router_type=='juniper': conf_output = RCMD.run_command('configure exclusive', \
                             conf = conf, sim_config = sim_config , printall = printall)
                         elif RCMD.router_type=='huawei':
                             version_output = RCMD.run_command('display version', \
@@ -592,7 +592,7 @@ class RCMD(object):
                                 ### ALTERNATIVE COMMANDS: show commit changes diff, commit show-error
                                 command_outputs.append(RCMD.run_command('show configuration failed', \
                                     conf = conf, sim_config = sim_config, printall = printall))
-                        elif RCMD.router_type=='juniper': command_outputs.append(RCMD.run_command('commit', \
+                        elif RCMD.router_type=='juniper': command_outputs.append(RCMD.run_command('commit and-quit', \
                             conf = conf, sim_config = sim_config, printall = printall))
                         elif RCMD.router_type=='huawei' and RCMD.huawei_version >= 7:
                             commit_output = command_outputs.append(RCMD.run_command('commit', \
@@ -602,8 +602,7 @@ class RCMD(object):
                             conf = conf, sim_config = sim_config, printall = printall))
                         elif RCMD.router_type=='cisco_xr': command_outputs.append(RCMD.run_command('exit', \
                             conf = conf, sim_config = sim_config, printall = printall))
-                        elif RCMD.router_type=='juniper': command_outputs.append(RCMD.run_command('exit', \
-                            conf = conf, sim_config = sim_config, printall = printall))
+                        ### JUNOS IS ALREADY OUT OF CONFIG ###
                         elif RCMD.router_type=='huawei':
                             command_outputs.append(RCMD.run_command('quit', conf = conf, \
                                 sim_config = sim_config, printall = printall))
@@ -968,12 +967,6 @@ USERNAME, PASSWORD = CGI_CLI.init_cgi()
 CGI_CLI.print_args()
 
 device, pe_device, gw_device = None, None, None
-
-if CGI_CLI.cgi_active and CGI_CLI.data.get('pe-router',None):
-    pe_device = CGI_CLI.data.get('pe-router',None)
-
-if CGI_CLI.cgi_active and CGI_CLI.data.get('ipsec-gw-router',None):
-    gw_device = CGI_CLI.data.get('ipsec-gw-router',None)
 
 if CGI_CLI.data.get("device"):
     device = CGI_CLI.data.get("device")
