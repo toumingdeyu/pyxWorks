@@ -423,24 +423,8 @@ CMD_JUNOS = [
          'exec':'print("%sPlease specify --shut or --noshut ... %s"%(bcolors.RED,bcolors.ENDC))',
          'exec_2':'sys.exit(0)'
     },
-       
-    ### AS 5511 CHECK ----------------------------------------------------------
-    {'remote_command':['show bgp neighbor | match "Group:|Peer:" | except "NLRI|Restart"',{'output_variable':'show_bgp_neighbor'}]},    
-    {'eval':['True if "AS 5511" in glob_vars.get("show_bgp_neighbor","") else None',{'output_variable':'OTI_5511'}]},
-    {'eval':'glob_vars.get("OTI_5511","")'},   
     
-    ### ASK IF NOSHUT OR QUIT --------------------------------------------------
-    {'if':'glob_vars.get("SHUT","")',
-         'exec':'print("%sYou are about to switch-off all the BGP sessions on %s do you want to continue? (Y/N) [Enter]%s:"%(bcolors.RED,device,bcolors.ENDC))',
-    },
-    {'if':'glob_vars.get("NOSHUT","")',
-         'local_command_2':['read var;echo $var',{"output_variable":"CONTINUE_OR_NOT2"}],
-    },
-    {'if':'glob_vars.get("NOSHUT","") and glob_vars.get("CONTINUE_OR_NOT2","").upper() != "Y"',
-         'exec':'sys.exit(0)'
-    },  
-
-    ### ASK IF SHUT OR QUIT ----------------------------------------------------    
+    ### ASK IF SHUT OR QUIT --------------------------------------------------
     {'if':'glob_vars.get("SHUT","")',
          'exec':'print("%sYou are about to shut down all the BGP sessions on %s do you want to continue? (Y/N) [Enter]%s:"%(bcolors.RED,device,bcolors.ENDC))',
     },
@@ -450,6 +434,11 @@ CMD_JUNOS = [
     {'if':'glob_vars.get("SHUT","") and glob_vars.get("CONTINUE_OR_NOT","").upper() != "Y"',
          'exec':'sys.exit(0)'
     },
+       
+    ### AS 5511 CHECK ----------------------------------------------------------
+    {'remote_command':['show bgp neighbor | match "Group:|Peer:" | except "NLRI|Restart"',{'output_variable':'show_bgp_neighbor'}]},    
+    {'eval':['True if "AS 5511" in glob_vars.get("show_bgp_neighbor","") else None',{'output_variable':'OTI_5511'}]},
+    {'eval':'glob_vars.get("OTI_5511","")'},       
 
     ### COLLECT DATA -----------------------------------------------------------
     {'if':'glob_vars.get("SHUT","")',
@@ -459,10 +448,9 @@ CMD_JUNOS = [
          'exec_3':'bgp_data["JUNOS_EXT_GROUPS"] = glob_vars.get("JUNOS_EXT_GROUPS",[])',
          'exec_4':'bgp_data["JUNOS_INT_GROUPS"] = glob_vars.get("JUNOS_INT_GROUPS",[])',
          ### PRINT GROUPS ###
-         "exec_5":'print("INTERNAL GROUPS:")',
-         "exec_6":'print(glob_vars.get("JUNOS_INT_GROUPS",[]))',
-         "exec_7":'print("EXTERNAL GROUPS:")',
-         "exec_8":'print(glob_vars.get("JUNOS_EXT_GROUPS",[]))',             
+         "exec_5":'print("iBGP GROUPS: [%s]" % (", ".join(glob_vars.get("JUNOS_INT_GROUPS",[]))))',
+         "exec_6":'print("eBGP GROUPS: [%s]" % (", ".join(glob_vars.get("JUNOS_EXT_GROUPS",[]))))',
+         "exec_7":'print(" ")',              
     },
 
     ### SET OVERLOAD BIT ------------------------------------------------------
@@ -504,6 +492,7 @@ CMD_JUNOS = [
     {'if':'glob_vars.get("NOSHUT","") and glob_vars.get("CONTINUE_OR_NOT2","").upper() != "Y"',
          'exec':'sys.exit(0)'
     },
+    
     ## DATA READ FROM FILE ------------------------------------------    
     {'if':'glob_vars.get("NOSHUT","") and len(bgp_data.get("JUNOS_EXT_GROUPS",""))>0',
         'exec':'glob_vars["JUNOS_EXT_GROUPS"] = bgp_data["JUNOS_EXT_GROUPS"]'},
@@ -515,10 +504,9 @@ CMD_JUNOS = [
 
     {'if':'glob_vars.get("NOSHUT","")',
          ### PRINT GROUPS ###
-         "exec_1":'print("INTERNAL GROUPS:")',
-         "exec_2":'print(glob_vars.get("JUNOS_INT_GROUPS",[]))',
-         "exec_3":'print("EXTERNAL GROUPS:")',
-         "exec_4":'print(glob_vars.get("JUNOS_EXT_GROUPS",[]))',  
+         "exec_1":'print("iBGP GROUPS: [%s]" % (", ".join(glob_vars.get("JUNOS_INT_GROUPS",[]))))',
+         "exec_2":'print("eBGP GROUPS: [%s]" % (", ".join(glob_vars.get("JUNOS_EXT_GROUPS",[]))))',
+         "exec_3":'print(" ")',         
     },
     
     ### DO UNSHUT --------------------------------------------------------------
