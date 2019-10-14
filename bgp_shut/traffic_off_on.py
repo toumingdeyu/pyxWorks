@@ -227,7 +227,10 @@ CMD_IOS_XR = [
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V6","") and glob_vars.get("SHOW_CONFIG_ONLY","")',
         'loop_glob_var':"OTI_EXT_IPS_V6",
             'exec':['print("neighbor %s shutdown" % ("',{'eval':'loop_item[0]'},'"))'],
+            'exec_2':['glob_vars["CONFIG"].append("neighbor %s shutdown" % ("',{'eval':'loop_item[0]'},'"))'],
     },        
+
+    {'exec':'print(" ")',},
     
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6","")) and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'remote_command':['Commit',{'sim':'glob_vars.get("SIM_CMD","")'}],
@@ -390,7 +393,10 @@ CMD_IOS_XR = [
         'loop_glob_var':"OTI_EXT_IPS_V6",
             'if':'not "ADMIN" in str(loop_item[1]).upper()',
                 'exec':['print("no neighbor %s shutdown" % ("',{'eval':'loop_item[0]'},'"))'],
+                'exec_2':['glob_vars["CONFIG"].append("no neighbor %s shutdown" % ("',{'eval':'loop_item[0]'},'"))'],
     },    
+
+    {'exec':'print(" ")',},
     
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6","")) and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'remote_command':['Commit',{'sim':'glob_vars.get("SIM_CMD","")'}],
@@ -412,13 +418,13 @@ CMD_IOS_XR = [
         'remote_command_6':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
 
-    {'eval':'"\\n".join(glob_vars.get("CONFIG",""))',
-    },
-
     {'exec':'print("show bgp summary")'},
     {'remote_command':['show bgp summary',{'print_output':'on'}]},
     {'exec':'print("show bgp ipv6 unicast summary")'},
     {'remote_command':['show bgp ipv6 unicast summary',{'print_output':'on'}]},
+
+    {'eval':'"\\n".join(glob_vars.get("CONFIG",""))',
+    },
 
     {'if':'glob_vars.get("SHUT","")',
         "eval":"return_bgp_data_json()"
@@ -572,9 +578,6 @@ CMD_JUNOS = [
         'remote_command_4':['commit and-quit',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'exec_1':'print("ISIS overload bit unset.")',
     },
-
-    {'eval':'"\\n".join(glob_vars.get("CONFIG",""))',
-    },
     
     ### PRINT BGP STATE ###
     {'if':'not glob_vars.get("SHOW_CONFIG_ONLY","")',
@@ -582,6 +585,9 @@ CMD_JUNOS = [
     },
     {'if':'not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'remote_command':['show bgp group summary',{'print_output':'on'}],
+    },
+
+    {'eval':'"\\n".join(glob_vars.get("CONFIG",""))',
     },
 
     ### EVAL MUST BE LAST -------------------------------------------------------    
