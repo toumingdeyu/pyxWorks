@@ -102,13 +102,13 @@ CMD_IOS_XR = [
          'exec_2':'sys.exit(0)'
     },
 
-    {'if':'glob_vars.get("SHUT","")',
+    {'if':'glob_vars.get("SHUT","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
          'exec':'print("%sYou are about to shut down all the BGP sessions on %s do you want to continue? (Y/N) [Enter]%s:"%(bcolors.RED,device,bcolors.ENDC))',
     },
-    {'if':'glob_vars.get("SHUT","")',
+    {'if':'glob_vars.get("SHUT","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
          'local_command_2':['read var;echo $var',{"output_variable":"CONTINUE_OR_NOT"}],
     },
-    {'if':'glob_vars.get("SHUT","") and glob_vars.get("CONTINUE_OR_NOT","").upper() != "Y"',
+    {'if':'glob_vars.get("SHUT","") and glob_vars.get("CONTINUE_OR_NOT","").upper() != "Y" and not glob_vars.get("SHOW_CONFIG_ONLY","")',
          'exec':'sys.exit(0)'
     },
 
@@ -258,13 +258,13 @@ CMD_IOS_XR = [
     # },
 
     ### NOSHUT -----------------------------------------------------------------
-    {'if':'glob_vars.get("NOSHUT","")',
+    {'if':'glob_vars.get("NOSHUT","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
          'exec':'print("%sYou are about to switch-on all the BGP sessions on %s do you want to continue? (Y/N) [Enter]%s:"%(bcolors.RED,device,bcolors.ENDC))',
     },
-    {'if':'glob_vars.get("NOSHUT","")',
+    {'if':'glob_vars.get("NOSHUT","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
          'local_command_2':['read var;echo $var',{"output_variable":"CONTINUE_OR_NOT2"}],
     },
-    {'if':'glob_vars.get("NOSHUT","") and glob_vars.get("CONTINUE_OR_NOT2","").upper() != "Y"',
+    {'if':'glob_vars.get("NOSHUT","") and glob_vars.get("CONTINUE_OR_NOT2","").upper() != "Y" and not glob_vars.get("SHOW_CONFIG_ONLY","")',
          'exec':'sys.exit(0)'
     },
 
@@ -431,13 +431,13 @@ CMD_JUNOS = [
     },
     
     ### ASK IF SHUT OR QUIT --------------------------------------------------
-    {'if':'glob_vars.get("SHUT","")',
+    {'if':'glob_vars.get("SHUT","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
          'exec':'print("%sYou are about to shut down all the BGP sessions on %s do you want to continue? (Y/N) [Enter]%s:"%(bcolors.RED,device,bcolors.ENDC))',
     },
-    {'if':'glob_vars.get("SHUT","")',
+    {'if':'glob_vars.get("SHUT","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
          'local_command_2':['read var;echo $var',{"output_variable":"CONTINUE_OR_NOT"}],
     },
-    {'if':'glob_vars.get("SHUT","") and glob_vars.get("CONTINUE_OR_NOT","").upper() != "Y"',
+    {'if':'glob_vars.get("SHUT","") and glob_vars.get("CONTINUE_OR_NOT","").upper() != "Y" and not glob_vars.get("SHOW_CONFIG_ONLY","")',
          'exec':'sys.exit(0)'
     },
        
@@ -499,13 +499,13 @@ CMD_JUNOS = [
     },
 
     ### NOSHUT -----------------------------------------------------------------
-    {'if':'glob_vars.get("NOSHUT","")',
+    {'if':'glob_vars.get("NOSHUT","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
          'exec':'print("%sYou are about to switch-on all the BGP sessions on %s do you want to continue? (Y/N) [Enter]%s:"%(bcolors.RED,device,bcolors.ENDC))',
     },
-    {'if':'glob_vars.get("NOSHUT","")',
+    {'if':'glob_vars.get("NOSHUT","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
          'local_command_2':['read var;echo $var',{"output_variable":"CONTINUE_OR_NOT2"}],
     },
-    {'if':'glob_vars.get("NOSHUT","") and glob_vars.get("CONTINUE_OR_NOT2","").upper() != "Y"',
+    {'if':'glob_vars.get("NOSHUT","") and glob_vars.get("CONTINUE_OR_NOT2","").upper() != "Y" and not glob_vars.get("SHOW_CONFIG_ONLY","")',
          'exec':'sys.exit(0)'
     },
     
