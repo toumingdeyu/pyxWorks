@@ -515,14 +515,14 @@ CMD_JUNOS = [
     },
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'loop_glob_var':"JUNOS_EXT_GROUPS",
-            'remote_command':['activate protocols bgp group ',{'eval':'loop_item[0]'},{'sim':'glob_vars.get("SIM_CMD","")'}]
+            'remote_command':['activate protocols bgp group ',{'eval':'loop_item'},{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
     ### SHOW CONFIG ONLY - JUST PRINT ###
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and glob_vars.get("SHOW_CONFIG_ONLY","")',
         'pre_if_exec':'print("NOSHUT CONFIG:")',
         'pre_if_exec_2':'print("--------------")',
         'loop_glob_var':"JUNOS_EXT_GROUPS",
-             'exec':['print("activate protocols bgp group %s" % ("',{'eval':'loop_item[0]'},'"))'],  
+             'exec':['print("activate protocols bgp group %s" % ("',{'eval':'loop_item'},'"))'],  
     },        
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'remote_command':['commit and-quit',{'sim':'glob_vars.get("SIM_CMD","")'}],
@@ -537,6 +537,10 @@ CMD_JUNOS = [
         'remote_command_4':['commit and-quit',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'exec_1':'print("ISIS overload bit unset.")',
     },
+
+    ### PRINT BGP STATE ###
+    {'exec':'print("show bgp group summary")'},
+    {'remote_command':['show bgp group summary',{'print_output':'on'}]},
 
     ### EVAL MUST BE LAST -------------------------------------------------------    
     {'if':'glob_vars.get("SHUT","")',
