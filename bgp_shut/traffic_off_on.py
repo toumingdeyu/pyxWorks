@@ -221,7 +221,8 @@ CMD_IOS_XR = [
     },    
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V4","") and glob_vars.get("SHOW_CONFIG_ONLY","")',        
         'loop_glob_var':"OTI_EXT_IPS_V4",
-            'exec':['print("neighbor %s shutdown" % ("',{'eval':'loop_item[0]'},'"))'],
+            'exec_1':['print("neighbor %s shutdown" % ("',{'eval':'loop_item[0]'},'"))'],
+            'exec_2':['glob_vars["CONFIG"].append("neighbor %s shutdown" % ("',{'eval':'loop_item[0]'},'"))'],
     },
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V6","") and glob_vars.get("SHOW_CONFIG_ONLY","")',
         'loop_glob_var':"OTI_EXT_IPS_V6",
@@ -383,6 +384,7 @@ CMD_IOS_XR = [
         'loop_glob_var':"OTI_EXT_IPS_V4",
             'if':'not "ADMIN" in str(loop_item[1]).upper()',
                 'exec':['print("no neighbor %s shutdown" % ("',{'eval':'loop_item[0]'},'"))'],
+                'exec_2':['glob_vars["CONFIG"].append("no neighbor %s shutdown" % ("',{'eval':'loop_item[0]'},'"))'],
     },
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V6","") and glob_vars.get("SHOW_CONFIG_ONLY","")',
         'loop_glob_var':"OTI_EXT_IPS_V6",
@@ -408,6 +410,9 @@ CMD_IOS_XR = [
         'remote_command_4':['Commit',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'remote_command_5':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'remote_command_6':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}]
+    },
+
+    {'eval':'"\\n".join(glob_vars.get("CONFIG",""))',
     },
 
     {'exec':'print("show bgp summary")'},
@@ -490,6 +495,7 @@ CMD_JUNOS = [
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and glob_vars.get("SHOW_CONFIG_ONLY","")',        
         'loop_glob_var':"JUNOS_EXT_GROUPS",
             'exec':['print("deactivate protocols bgp group %s" % ("',{'eval':'loop_item'},'"))'],
+            'exec_2':['glob_vars["CONFIG"].append("deactivate protocols bgp group %s" % ("',{'eval':'loop_item'},'"))'],
     },    
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and glob_vars.get("SHOW_CONFIG_ONLY","")',
         'exec_1':'print(" ")',
@@ -543,7 +549,8 @@ CMD_JUNOS = [
     },
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and glob_vars.get("SHOW_CONFIG_ONLY","")',    
         'loop_glob_var':"JUNOS_EXT_GROUPS",
-             'exec':['print("activate protocols bgp group %s" % ("',{'eval':'loop_item'},'"))'],  
+             'exec':['print("activate protocols bgp group %s" % ("',{'eval':'loop_item'},'"))'],
+             'exec_2':['glob_vars["CONFIG"].append("activate protocols bgp group %s" % ("',{'eval':'loop_item'},'"))'],             
     },        
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and glob_vars.get("SHOW_CONFIG_ONLY","")',
         'exec_1':'print(" ")',
@@ -566,6 +573,9 @@ CMD_JUNOS = [
         'exec_1':'print("ISIS overload bit unset.")',
     },
 
+    {'eval':'"\\n".join(glob_vars.get("CONFIG",""))',
+    },
+    
     ### PRINT BGP STATE ###
     {'if':'not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'exec':'print("COMMAND: show bgp group summary")',
@@ -978,6 +988,7 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
             # for item in eval('dir()'): local_env[item] = eval(item)
             # exec(code_object,global_env,local_env)
             ### EXEC CODE WORKAROUND for OLD PYTHON v2.7.5
+            ### edict = {}; eval(compile(cli_line.replace('\\n', '\n'), '<string>', 'exec'), globals(), edict)
             edict = {}; eval(compile(cli_line, '<string>', 'exec'), globals(), edict)
             if printcmdtologfile: fp.write('EXEC_COMMAND: ' + cli_line + '\n')
         return None
@@ -1316,6 +1327,8 @@ if args.device == str():
     remote_connect = None
     local_hostname = str(subprocess.check_output('hostname',shell=True).decode('utf8')).strip().replace('\\','').replace('/','')
     device_list = [local_hostname]
+
+glob_vars["CONFIG"] = []
 
 
 if args.readlog:
