@@ -94,7 +94,9 @@ print('LOGDIR: ' + LOGDIR)
 
 
 # IOS-XE is only for IPsec GW
-CMD_IOS_XE = []
+CMD_IOS_XE = [
+    {'exec':'print("\\nCISCO-IOS IS NOT SUPPORTED TILL NOW.\\n")',},
+]
 
 CMD_IOS_XR = [
     {'if':'not glob_vars.get("SHUT","") and not glob_vars.get("NOSHUT","")',
