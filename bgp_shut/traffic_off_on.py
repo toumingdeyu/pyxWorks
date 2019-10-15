@@ -99,11 +99,13 @@ CMD_IOS_XE = [
 ]
 
 CMD_IOS_XR = [
+    ### SHUT or NOSTUT ###
     {'if':'not glob_vars.get("SHUT","") and not glob_vars.get("NOSHUT","")',
          'exec':'print("%sPlease specify --shut or --noshut ... %s"%(bcolors.RED,bcolors.ENDC))',
          'exec_2':'sys.exit(0)'
     },
-
+    
+    ### CONFIRM ###
     {'if':'glob_vars.get("SHUT","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
          'exec':'print("%sYou are about to shut down all the BGP sessions on %s do you want to continue? (Y/N) [Enter]%s:"%(bcolors.RED,device,bcolors.ENDC))',
     },
@@ -114,11 +116,20 @@ CMD_IOS_XR = [
          'exec':'sys.exit(0)'
     },
 
-    {'remote_command':['sh run | in "router bgp"',{'output_variable':'router_bgp_text'}]
+    ### FIND AS ###
+    {'remote_command':['show bgp summary', {'output_variable':'SHOW_BGP_SUMMARY'}],
+     'exec':'try: glob_vars["AS_NUMBER"] = glob_vars.get("SHOW_BGP_SUMMARY","").split("local AS number")[1].split()[0].strip()\nexcept: bgp_data["AS_NUMBER"] = ""',
+    },    
+    {
+     'eval':'glob_vars.get("AS_NUMBER","")',
+     'exec':'print("\\nAS_NUMBER = %s\\n" % (glob_vars.get("AS_NUMBER","")))', 
     },
-    {'eval':['True if "router bgp 5511" in glob_vars.get("router_bgp_text","") else None',{'output_variable':'OTI_5511'}]
-    },
-    {'eval':'glob_vars.get("OTI_5511","")',},
+        
+    # {'remote_command':['sh run | in "router bgp"',{'output_variable':'router_bgp_text'}]
+    # },
+    # {'eval':['True if "router bgp 5511" in glob_vars.get("router_bgp_text","") else None',{'output_variable':'AS_NUMBER'}]
+    # },
+    # {'eval':'glob_vars.get("AS_NUMBER","")',},
 
     {'if':'glob_vars.get("NOSHUT","")',
         "eval":"return_bgp_data_json()"
@@ -134,7 +145,7 @@ CMD_IOS_XR = [
     {'if':'glob_vars.get("NOSHUT","") and len(bgp_data.get("OTI_INT_IPS_V6",""))>0',
         'exec':'glob_vars["OTI_INT_IPS_V6"] = bgp_data["OTI_INT_IPS_V6"]'},
 
-    {'if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
+    {'if':'glob_vars.get("SHUT","") and glob_vars.get("AS_NUMBER","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'remote_command':['conf',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'remote_command_2':['router isis PAII',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'remote_command_3':['set-overload-bit',{'sim':'glob_vars.get("SIM_CMD","")'}],
@@ -144,12 +155,12 @@ CMD_IOS_XR = [
         'exec':'print("ISIS overload bit set, Waiting...")',
 
     },
-    {'if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and not glob_vars.get("SHOW_CONFIG_ONLY","") and glob_vars.get("SIM_CMD","")!="ON"',
+    {'if':'glob_vars.get("SHUT","") and glob_vars.get("AS_NUMBER","") and not glob_vars.get("SHOW_CONFIG_ONLY","") and glob_vars.get("SIM_CMD","")!="ON"',
         'exec_2':['time.sleep(',{'eval':'SLEEPSEC'},')'],
     },    
 
 
-    {'if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","")',
+    {'if':'glob_vars.get("SHUT","") and glob_vars.get("AS_NUMBER","")',
         'remote_command':['show bgp summary'],
         'exec':['try: \
             \n  temp_ipv4 = glob_vars.get("last_output","").split("St/PfxRcd")[1].strip().splitlines() \
@@ -160,14 +171,14 @@ CMD_IOS_XR = [
             \n    try: column10 = line.split()[10] \
             \n    except: column10 = ""\
             \n    try: \
-            \n      if "5511" in line.split()[2] and "." in line.split()[0]: int_list.append([line.split()[0],line.split()[9]+column10]) \
+            \n      if glob_vars.get("AS_NUMBER","") in line.split()[2] and "." in line.split()[0]: int_list.append([line.split()[0],line.split()[9]+column10]) \
             \n      elif "." in line.split()[0]: ext_list.append([line.split()[0],line.split()[9]+column10]) \
             \n    except: pass \
             \n  glob_vars["OTI_INT_IPS_V4"] = int_list; glob_vars["OTI_EXT_IPS_V4"] = ext_list \
             \nexcept: pass' \
                ],
     },
-    {'if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","")',
+    {'if':'glob_vars.get("SHUT","") and glob_vars.get("AS_NUMBER","")',
         'remote_command':['show bgp ipv6 unicast summary'],
         'exec':['try: \
             \n  temp_ipv6 = glob_vars.get("last_output","").split("St/PfxRcd")[1].strip().splitlines() \
@@ -178,13 +189,15 @@ CMD_IOS_XR = [
             \n    try: column10 = line.split()[10] \
             \n    except: column10 = ""\
             \n    try: \
-            \n      if "5511" in line.split()[2] and ":" in line.split()[0]: int_list.append([line.split()[0],line.split()[9]+column10]) \
+            \n      if glob_vars.get("AS_NUMBER","") in line.split()[2] and ":" in line.split()[0]: int_list.append([line.split()[0],line.split()[9]+column10]) \
             \n      elif ":" in line.split()[0]: ext_list.append([line.split()[0],line.split()[9]+column10]) \
             \n    except: pass \
             \n  glob_vars["OTI_INT_IPS_V6"] = int_list; glob_vars["OTI_EXT_IPS_V6"] = ext_list \
             \nexcept: pass' \
                ],
     },
+
+
 
     {'eval':'glob_vars.get("OTI_EXT_IPS_V4","")'},
     {'eval':'glob_vars.get("OTI_EXT_IPS_V6","")'},
@@ -209,19 +222,19 @@ CMD_IOS_XR = [
     },
     
     ### DO SHUT ----------------------------------------------------------------
-    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6","")) and not glob_vars.get("SHOW_CONFIG_ONLY","")',
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("AS_NUMBER","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6","")) and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'pre_loop_remote_command':['conf',{'sim':'glob_vars.get("SIM_CMD","")'}],
-        'pre_loop_remote_command_2':['router bgp 5511',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'pre_loop_remote_command_2':['router bgp ',{'eval':'glob_vars.get("AS_NUMBER","")'},{'sim':'glob_vars.get("SIM_CMD","")'}],
     },
 
-    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6","")) and not glob_vars.get("SHOW_CONFIG_ONLY","")',
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("AS_NUMBER","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6","")) and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'exec_1':'print("SHUTTING eBGP SESSIONS...")'
     },
-    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V4","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("AS_NUMBER","") and glob_vars.get("OTI_EXT_IPS_V4","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'loop_glob_var':"OTI_EXT_IPS_V4",
             'remote_command':['neighbor ',{'eval':'loop_item[0]'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
-    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V6","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("AS_NUMBER","") and glob_vars.get("OTI_EXT_IPS_V6","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'loop_glob_var':"OTI_EXT_IPS_V6",
             'remote_command':['neighbor ',{'eval':'loop_item[0]'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
@@ -237,12 +250,12 @@ CMD_IOS_XR = [
         'exec_1':'print("SHUT CONFIG:")',
         'exec_2':'print("------------")',
     },
-    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V4","")',
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("AS_NUMBER","") and glob_vars.get("OTI_EXT_IPS_V4","")',
         'loop_glob_var':"OTI_EXT_IPS_V4",
             'exec_1':['print("neighbor %s shutdown" % ("',{'eval':'loop_item[0]'},'"))'],
             'exec_2':['glob_vars["CONFIG"].append("neighbor %s shutdown" % ("',{'eval':'loop_item[0]'},'"))'],
     },
-    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V6","")',
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("AS_NUMBER","") and glob_vars.get("OTI_EXT_IPS_V6","")',
         'loop_glob_var':"OTI_EXT_IPS_V6",
             'exec':['print("neighbor %s shutdown" % ("',{'eval':'loop_item[0]'},'"))'],
             'exec_2':['glob_vars["CONFIG"].append("neighbor %s shutdown" % ("',{'eval':'loop_item[0]'},'"))'],
@@ -251,7 +264,7 @@ CMD_IOS_XR = [
     {'pre_loop_if':'glob_vars.get("SHUT","")',
         'exec':'print(" ")',},
 
-    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6","")) and not glob_vars.get("SHOW_CONFIG_ONLY","")',
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("AS_NUMBER","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6","")) and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'remote_command':['Commit',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'remote_command_2':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'remote_command_3':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}]
@@ -262,19 +275,19 @@ CMD_IOS_XR = [
         # 'exec_2':'time.sleep(200)',
     # },
 
-    # {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_INT_IPS_V4","") or glob_vars.get("OTI_INT_IPS_V6",""))',
+    # {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("AS_NUMBER","") and (glob_vars.get("OTI_INT_IPS_V4","") or glob_vars.get("OTI_INT_IPS_V6",""))',
         # 'pre_loop_remote_command':['conf',{'sim':'glob_vars.get("SIM_CMD","")'}],
         # 'pre_loop_remote_command_2':['router bgp 5511',{'sim':'glob_vars.get("SIM_CMD","")'}],
     # },
-    # {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_INT_IPS_V4","")',
+    # {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("AS_NUMBER","") and glob_vars.get("OTI_INT_IPS_V4","")',
         # 'loop_glob_var':"OTI_INT_IPS_V4",
             # 'remote_command':['neighbor ',{'eval':'loop_item[0]'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}],
     # },
-    # {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_INT_IPS_V6","")',
+    # {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("AS_NUMBER","") and glob_vars.get("OTI_INT_IPS_V6","")',
         # 'loop_glob_var':"OTI_INT_IPS_V6",
             # 'remote_command':['neighbor ',{'eval':'loop_item[0]'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}],
     # },
-    # {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_INT_IPS_V4","") or glob_vars.get("OTI_INT_IPS_V6",""))',
+    # {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("AS_NUMBER","") and (glob_vars.get("OTI_INT_IPS_V4","") or glob_vars.get("OTI_INT_IPS_V6",""))',
         # 'remote_command':['Commit',{'sim':'glob_vars.get("SIM_CMD","")'}],
         # 'remote_command_2':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}],
         # 'remote_command_3':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}]
@@ -291,21 +304,21 @@ CMD_IOS_XR = [
          'exec':'sys.exit(0)'
     },
 
-    # {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_INT_IPS_V4","") or glob_vars.get("OTI_INT_IPS_V6",""))',
+    # {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("AS_NUMBER","") and (glob_vars.get("OTI_INT_IPS_V4","") or glob_vars.get("OTI_INT_IPS_V6",""))',
         # 'pre_loop_remote_command':['conf',{'sim':'glob_vars.get("SIM_CMD","")'}],
         # 'pre_loop_remote_command_2':['router bgp 5511',{'sim':'glob_vars.get("SIM_CMD","")'}],
     # },
-    # {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_INT_IPS_V4","")',
+    # {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("AS_NUMBER","") and glob_vars.get("OTI_INT_IPS_V4","")',
         # 'loop_glob_var':"OTI_INT_IPS_V4",
             # 'if':'not "ADMIN" in str(loop_item[1]).upper()',
                 # 'remote_command':['no neighbor ',{'eval':'loop_item[0]'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}]
     # },
-    # {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_INT_IPS_V6","")',
+    # {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("AS_NUMBER","") and glob_vars.get("OTI_INT_IPS_V6","")',
         # 'loop_glob_var':"OTI_INT_IPS_V6",
             # 'if':'not "ADMIN" in str(loop_item[1]).upper()',
                 # 'remote_command':['no neighbor ',{'eval':'loop_item[0]'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}]
     # },
-    # {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_INT_IPS_V4","") or glob_vars.get("OTI_INT_IPS_V6",""))',
+    # {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("AS_NUMBER","") and (glob_vars.get("OTI_INT_IPS_V4","") or glob_vars.get("OTI_INT_IPS_V6",""))',
         # 'remote_command':['Commit',{'sim':'glob_vars.get("SIM_CMD","")'}],
         # 'remote_command_2':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}],
         # 'remote_command_3':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}]
@@ -316,7 +329,7 @@ CMD_IOS_XR = [
         # 'exec_2':'time.sleep(200)',
     # },
 
-    {'if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","")',
+    {'if':'glob_vars.get("NOSHUT","") and glob_vars.get("AS_NUMBER","")',
         'remote_command':['show bgp summary'],
         'exec':['try: \
             \n  temp_ipv4 = glob_vars.get("last_output","").split("St/PfxRcd")[1].strip().splitlines() \
@@ -325,7 +338,7 @@ CMD_IOS_XR = [
             \n    if len(line.split())==1: previous_line = line; continue \
             \n    if previous_line: line = previous_line + line; previous_line = None \
             \n    try: \
-            \n      if "5511" in line.split()[2] and "." in line.split()[0]: \
+            \n      if glob_vars.get("AS_NUMBER","") in line.split()[2] and "." in line.split()[0]: \
             \n          try: dummy = int(line.split()[9]) \
             \n          except: \
             \n              partial_error = True \
@@ -340,7 +353,7 @@ CMD_IOS_XR = [
             \nexcept: pass' \
                ],
     },
-    {'if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","")',
+    {'if':'glob_vars.get("NOSHUT","") and glob_vars.get("AS_NUMBER","")',
         'remote_command':['show bgp ipv6 unicast summary'],
         'exec':['try: \
             \n  temp_ipv6 = glob_vars.get("last_output","").split("St/PfxRcd")[1].strip().splitlines() \
@@ -349,7 +362,7 @@ CMD_IOS_XR = [
             \n    if len(line.split())==1: previous_line = line; continue \
             \n    if previous_line: line = previous_line + line; previous_line = None \
             \n    try: \
-            \n      if "5511" in line.split()[2] and "." in line.split()[0]: \
+            \n      if glob_vars.get("AS_NUMBER","") in line.split()[2] and "." in line.split()[0]: \
             \n          try: dummy = int(line.split()[9]) \
             \n          except: \
             \n              partial_error = True \
@@ -379,19 +392,19 @@ CMD_IOS_XR = [
     },
 
     ### DO UNSHUT ###
-    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6","")) and not glob_vars.get("SHOW_CONFIG_ONLY","")',
+    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("AS_NUMBER","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6","")) and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'pre_loop_remote_command':['conf',{'sim':'glob_vars.get("SIM_CMD","")'}],
-        'pre_loop_remote_command_2':['router bgp 5511',{'sim':'glob_vars.get("SIM_CMD","")'}],
+        'pre_loop_remote_command_2':['router bgp ',{'eval':'glob_vars.get("AS_NUMBER","")'},{'sim':'glob_vars.get("SIM_CMD","")'}],
     },
-    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6","")) and not glob_vars.get("SHOW_CONFIG_ONLY","")',
+    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("AS_NUMBER","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6","")) and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'exec_1':'print("SHUTTING eBGP SESSIONS...")'
     },
-    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V4","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
+    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("AS_NUMBER","") and glob_vars.get("OTI_EXT_IPS_V4","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'loop_glob_var':"OTI_EXT_IPS_V4",
             'if':'not "ADMIN" in str(loop_item[1]).upper()',
                 'remote_command':['no neighbor ',{'eval':'loop_item[0]'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
-    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V6","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
+    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("AS_NUMBER","") and glob_vars.get("OTI_EXT_IPS_V6","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'loop_glob_var':"OTI_EXT_IPS_V6",
             'if':'not "ADMIN" in str(loop_item[1]).upper()',
                 'remote_command':['no neighbor ',{'eval':'loop_item[0]'},' shutdown',{'sim':'glob_vars.get("SIM_CMD","")'}]
@@ -408,13 +421,13 @@ CMD_IOS_XR = [
         'exec_1':'print("NOSHUT CONFIG:")',
         'exec_2':'print("--------------")',
     },
-    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V4","")',
+    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("AS_NUMBER","") and glob_vars.get("OTI_EXT_IPS_V4","")',
         'loop_glob_var':"OTI_EXT_IPS_V4",
             'if':'not "ADMIN" in str(loop_item[1]).upper()',
                 'exec':['print("no neighbor %s shutdown" % ("',{'eval':'loop_item[0]'},'"))'],
                 'exec_2':['glob_vars["CONFIG"].append("no neighbor %s shutdown" % ("',{'eval':'loop_item[0]'},'"))'],
     },
-    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V6","")',
+    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("AS_NUMBER","") and glob_vars.get("OTI_EXT_IPS_V6","")',
         'loop_glob_var':"OTI_EXT_IPS_V6",
             'if':'not "ADMIN" in str(loop_item[1]).upper()',
                 'exec':['print("no neighbor %s shutdown" % ("',{'eval':'loop_item[0]'},'"))'],
@@ -424,7 +437,7 @@ CMD_IOS_XR = [
     {'pre_loop_if':'glob_vars.get("NOSHUT","")',
         'exec':'print(" ")',},
 
-    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6","")) and not glob_vars.get("SHOW_CONFIG_ONLY","")',
+    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("AS_NUMBER","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6","")) and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'remote_command':['Commit',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'remote_command_2':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'remote_command_3':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}]
@@ -438,7 +451,7 @@ CMD_IOS_XR = [
     },
 
 
-    {'if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
+    {'if':'glob_vars.get("NOSHUT","") and glob_vars.get("AS_NUMBER","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'remote_command':['conf',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'remote_command_2':['router isis PAII',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'remote_command_3':['no set-overload-bit',{'sim':'glob_vars.get("SIM_CMD","")'}],
@@ -447,13 +460,13 @@ CMD_IOS_XR = [
         'remote_command_6':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
 
-    {'if':'not glob_vars.get("SHOW_CONFIG_ONLY","")',
+    {'if':'not glob_vars.get("SHOW_CONFIG_ONLY","") or not (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6",""))',
         'exec':'print("COMMAND: show bgp summary")'},
-    {'if':'not glob_vars.get("SHOW_CONFIG_ONLY","")',
+    {'if':'not glob_vars.get("SHOW_CONFIG_ONLY","") or not (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6",""))',
         'remote_command':['show bgp summary',{'print_output':'on'}]},
-    {'if':'not glob_vars.get("SHOW_CONFIG_ONLY","")',
+    {'if':'not glob_vars.get("SHOW_CONFIG_ONLY","") or not (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6",""))',
         'exec':'print("COMMAND: show bgp ipv6 unicast summary")'},
-    {'if':'not glob_vars.get("SHOW_CONFIG_ONLY","")',
+    {'if':'not glob_vars.get("SHOW_CONFIG_ONLY","") or not (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6",""))',
         'remote_command':['show bgp ipv6 unicast summary',{'print_output':'on'}]},
 
     {'eval':'"\\nCONFIG:\\n-------\\n"+"\\n".join(glob_vars.get("CONFIG",""))+"\\n"',
@@ -487,8 +500,8 @@ CMD_JUNOS = [
 
     ### AS 5511 CHECK ----------------------------------------------------------
     {'remote_command':['show bgp neighbor | match "Group:|Peer:" | except "NLRI|Restart"',{'output_variable':'show_bgp_neighbor'}]},
-    {'eval':['True if "AS 5511" in glob_vars.get("show_bgp_neighbor","") else None',{'output_variable':'OTI_5511'}]},
-    {'eval':'glob_vars.get("OTI_5511","")'},
+    {'eval':['True if "AS 5511" in glob_vars.get("show_bgp_neighbor","") else None',{'output_variable':'AS_NUMBER'}]},
+    {'eval':'glob_vars.get("AS_NUMBER","")'},
 
     ### COLLECT DATA -----------------------------------------------------------
     {'if':'glob_vars.get("SHUT","")',
@@ -504,25 +517,25 @@ CMD_JUNOS = [
     },
 
     ### SET OVERLOAD BIT ------------------------------------------------------
-    {'if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
+    {'if':'glob_vars.get("SHUT","") and glob_vars.get("AS_NUMBER","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'remote_command':['configure exclusive',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'remote_command_2':['delete protocols isis overload timeout 240',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'remote_command_3':['set protocols isis overload',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'remote_command_4':['commit and-quit',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'exec_1':'print("ISIS overload bit set, Waiting...")',
     },
-    {'if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and not glob_vars.get("SHOW_CONFIG_ONLY","") and glob_vars.get("SIM_CMD","")!="ON"',
+    {'if':'glob_vars.get("SHUT","") and glob_vars.get("AS_NUMBER","") and not glob_vars.get("SHOW_CONFIG_ONLY","") and glob_vars.get("SIM_CMD","")!="ON"',
          'exec_2':['time.sleep(',{'eval':'SLEEPSEC'},')'],
     },
 
     ### DO SHUT ---------------------------------------------------------------
-    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("AS_NUMBER","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'pre_loop_remote_command':['configure exclusive',{'sim':'glob_vars.get("SIM_CMD","")'}],
     },
-    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("AS_NUMBER","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'pre_if_exec':'print("SHUTTING eBGP GROUPS...")',
     },
-    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("AS_NUMBER","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'loop_glob_var':"JUNOS_EXT_GROUPS",
             'remote_command':['deactivate protocols bgp group ',{'eval':'loop_item'},{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
@@ -538,7 +551,7 @@ CMD_JUNOS = [
         'exec_1':'print("SHUT CONFIG:")',
         'exec_2':'print("------------")',
     },
-    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","")',
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("AS_NUMBER","") and glob_vars.get("JUNOS_EXT_GROUPS","")',
         'loop_glob_var':"JUNOS_EXT_GROUPS",
             'exec':['print("deactivate protocols bgp group %s" % ("',{'eval':'loop_item'},'"))'],
             'exec_2':['glob_vars["CONFIG"].append("deactivate protocols bgp group %s" % ("',{'eval':'loop_item'},'"))'],
@@ -547,7 +560,7 @@ CMD_JUNOS = [
     {'pre_loop_if':'glob_vars.get("SHUT","")',
         'exec':'print(" ")',},
 
-    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("AS_NUMBER","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'remote_command':['commit and-quit',{'sim':'glob_vars.get("SIM_CMD","")'}],
     },
 
@@ -579,13 +592,13 @@ CMD_JUNOS = [
     },
 
     ### DO UNSHUT --------------------------------------------------------------
-    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
+    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("AS_NUMBER","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'pre_loop_remote_command':['configure exclusive',{'sim':'glob_vars.get("SIM_CMD","")'}],
     },
-    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
+    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("AS_NUMBER","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'pre_if_exec':'print("UNSHUTTING eBGP GROUPS...")',
     },
-    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
+    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("AS_NUMBER","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'loop_glob_var':"JUNOS_EXT_GROUPS",
             'remote_command':['activate protocols bgp group ',{'eval':'loop_item'},{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
@@ -601,7 +614,7 @@ CMD_JUNOS = [
         'exec_1':'print("NOSHUT CONFIG:")',
         'exec_2':'print("--------------")',
     },
-    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","")',
+    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("AS_NUMBER","") and glob_vars.get("JUNOS_EXT_GROUPS","")',
         'loop_glob_var':"JUNOS_EXT_GROUPS",
              'exec':['print("activate protocols bgp group %s" % ("',{'eval':'loop_item'},'"))'],
              'exec_2':['glob_vars["CONFIG"].append("activate protocols bgp group %s" % ("',{'eval':'loop_item'},'"))'],
@@ -610,17 +623,17 @@ CMD_JUNOS = [
     {'pre_loop_if':'glob_vars.get("NOSHUT","")',
         'exec':'print(" ")',},
 
-    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
+    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("AS_NUMBER","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'remote_command':['commit and-quit',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'exec':'print("Waiting...")',
     },
 
-    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","") and glob_vars.get("SIM_CMD","")!="ON"',
+    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("AS_NUMBER","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","") and glob_vars.get("SIM_CMD","")!="ON"',
         'exec_2':['time.sleep(',{'eval':'SLEEPSEC'},')'],
     },
 
     ### UNSET OVERLOAD BIT ------------------------------------------------------
-    {'if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
+    {'if':'glob_vars.get("NOSHUT","") and glob_vars.get("AS_NUMBER","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'remote_command':['configure exclusive',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'remote_command_2':['delete protocols isis overload ',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'remote_command_3':['set protocols isis overload timeout 240',{'sim':'glob_vars.get("SIM_CMD","")'}],
