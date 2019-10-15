@@ -635,9 +635,9 @@ CMD_VRP = []
 CMD_LINUX = []
 
 CMD_LOCAL = [
-    # {'exec':'print("OLDLINE\nNEWLINE")',},
-    # {'exec':['print("',{'eval':'"\\n".join(["OLDLINE2", "NEWLINE2"])'},'")'],
-    # },
+    {'exec':'print("OLDLINE\\nNEWLINE")',},
+    {'exec':['print("""',{'eval':'"\\n".join(["OLDLINE2", "NEWLINE2"])'},'""")'],
+    },
 ]
 
 
@@ -1026,13 +1026,13 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
                             print_output = True if str(cli_item.get('print_output','')).upper()=='ON' else None
                     else: cli_line += str(cli_item)
             if printall or print_output: print(bcolors.CYAN + "EXEC_COMMAND: %s" % (cli_line) + bcolors.ENDC )
-            ### EXEC CODE for PYTHON>v2.7.9, ("\n" WORKARROUND: .replace('\\n', '\n'))
-            # code_object = compile(cli_line.replace('\\n', '\n'), 'sumstring', 'exec')
+            ### EXEC CODE for PYTHON>v2.7.9, 
+            # code_object = compile(cli_line, 'sumstring', 'exec')
             # local_env = {}
             # for item in eval('dir()'): local_env[item] = eval(item)
             # exec(code_object,global_env,local_env)
-            ### EXEC CODE WORKAROUND for OLD PYTHON v2.7.5, ("\n" WORKARROUND: .replace('\n', '\\n'))
-            edict = {}; eval(compile(cli_line.replace('\n', '\\n'), '<string>', 'exec'), globals(), edict)
+            ### EXEC CODE WORKAROUND for OLD PYTHON v2.7.5, 
+            edict = {}; eval(compile(cli_line, '<string>', 'exec'), globals(), edict)
             if printcmdtologfile: fp.write('EXEC_COMMAND: ' + cli_line + '\n')
         return None
     ### IF_FUNCTION (simple eval) ----------------------------------------------
