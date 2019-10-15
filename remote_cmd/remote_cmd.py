@@ -194,7 +194,7 @@ class CGI_CLI(object):
                                 with open(use_filename, 'wb') as file:
                                     file.write(CGI_CLI.data.get('file[%s]'%(filename)))
                                     CGI_CLI.uprint('The file "' + use_filename + '" was uploaded.')
-                            except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']')
+                            except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']', color = 'magenta')
 
     @staticmethod
     def uprint(text, tag = None, tag_id = None, color = None, name = None, jsonprint = None):
@@ -853,7 +853,7 @@ class LCMD(object):
                     LCMD.fp.write(str(e) + '\n')
                 except:
                     exc_text = traceback.format_exc()
-                    CGI_CLI.uprint(exc_text)
+                    CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
                     LCMD.fp.write(exc_text + '\n')
                 if os_output and printall: CGI_CLI.uprint(os_output)
                 LCMD.fp.write(os_output + '\n')
@@ -888,7 +888,7 @@ class LCMD(object):
                         LCMD.fp.write(str(e) + '\n')
                     except:
                         exc_text = traceback.format_exc()
-                        CGI_CLI.uprint(exc_text)
+                        CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
                         LCMD.fp.write(exc_text + '\n')
                     if os_output and printall: CGI_CLI.uprint(os_output)
                     LCMD.fp.write(os_output + '\n')
@@ -897,6 +897,9 @@ class LCMD(object):
 
     @staticmethod
     def eval_command(cmd_data = None, logfilename = None, printall = None):
+        """
+        NOTE: by default - '\\n' = insert newline to text, '\n' = interpreted line
+        """
         local_output = None
         logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
         if cmd_data and isinstance(cmd_data, (six.string_types)):
@@ -908,11 +911,16 @@ class LCMD(object):
                     LCMD.fp.write('EVAL: ' + cmd_data + '\n' + str(local_output) + '\n')
                 except Exception as e:
                     if printall:CGI_CLI.uprint('EVAL_PROBLEM[' + str(e) + ']')
-                    LCMD.fp.write('EVAL_PROBLEM[' + str(e) + ']\n')
+                    LCMD.fp.write('EVAL_PROBLEM[' + str(e) + ']\n', color = 'magenta')
         return local_output
 
     @staticmethod
-    def exec_command(cmd_data = None, logfilename = None, printall = None):
+    def exec_command(cmd_data = None, logfilename = None, printall = None, escape_newline = None):
+        """
+        NOTE:
+              escape_newline = None, ==> '\\n' = insert newline to text, '\n' = interpreted line
+              escape_newline = True, ==> '\n' = insert newline to text
+        """
         logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
         if cmd_data and isinstance(cmd_data, (six.string_types)):
             with open(logfilename,"a+") as LCMD.fp:
@@ -920,27 +928,37 @@ class LCMD(object):
                 LCMD.fp.write('EXEC: ' + cmd_data + '\n')
                 ### EXEC CODE WORKAROUND for OLD PYTHON v2.7.5
                 try:
-                    edict = {}; eval(compile(cmd_data, '<string>', 'exec'), globals(), edict)
+                    if escape_newline:
+                        edict = {}; eval(compile(cmd_data.replace('\n', '\\n'), '<string>', 'exec'), globals(), edict)
+                    else: edict = {}; eval(compile(cmd_data, '<string>', 'exec'), globals(), edict)                    
                 except Exception as e:
-                    if printall:CGI_CLI.uprint('EXEC_PROBLEM[' + str(e) + ']')
+                    if printall:CGI_CLI.uprint('EXEC_PROBLEM[' + str(e) + ']', color = 'magenta')
                     LCMD.fp.write('EXEC_PROBLEM[' + str(e) + ']\n')
         return None
 
 
     @staticmethod
-    def exec_command_try_except(cmd_data = None, logfilename = None, printall = None):
+    def exec_command_try_except(cmd_data = None, logfilename = None, printall = None, escape_newline = None):
         """
         NOTE: This method can access global variable, expects '=' in expression,
               in case of except assign value None
+                     
+              escape_newline = None, ==> '\\n' = insert newline to text, '\n' = interpreted line
+              escape_newline = True, ==> '\n' = insert newline to text
         """
         logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
         if cmd_data and isinstance(cmd_data, (six.string_types)):
             with open(logfilename,"a+") as LCMD.fp:
                 try:
                     if '=' in cmd_data:
-                        cmd_ex_data = 'global %s\ntry: %s = %s \nexcept: %s = None' % \
-                            (cmd_data.split('=')[0].strip().split('[')[0],cmd_data.split('=')[0].strip(), \
-                            cmd_data.split('=')[1].strip(), cmd_data.split('=')[0].strip())
+                        if escape_newline:
+                            cmd_ex_data = 'global %s\ntry: %s = %s \nexcept: %s = None' % \
+                                (cmd_data.replace('\n', '\\n').split('=')[0].strip().split('[')[0],cmd_data.split('=')[0].strip(), \
+                                cmd_data.replace('\n', '\\n').split('=')[1].strip(), cmd_data.split('=')[0].strip())
+                        else:
+                            cmd_ex_data = 'global %s\ntry: %s = %s \nexcept: %s = None' % \
+                                (cmd_data.split('=')[0].strip().split('[')[0],cmd_data.split('=')[0].strip(), \
+                                cmd_data.split('=')[1].strip(), cmd_data.split('=')[0].strip())                        
                     else: cmd_ex_data = cmd_data
                     if printall: CGI_CLI.uprint("EXEC: \n%s" % (cmd_ex_data))
                     LCMD.fp.write('EXEC: \n' + cmd_ex_data + '\n')
@@ -948,7 +966,7 @@ class LCMD(object):
                     edict = {}; eval(compile(cmd_ex_data, '<string>', 'exec'), globals(), edict)
                     #CGI_CLI.uprint("%s" % (eval(cmd_data.split('=')[0].strip())))
                 except Exception as e:
-                    if printall:CGI_CLI.uprint('EXEC_PROBLEM[' + str(e) + ']')
+                    if printall:CGI_CLI.uprint('EXEC_PROBLEM[' + str(e) + ']', color = 'magenta')
                     LCMD.fp.write('EXEC_PROBLEM[' + str(e) + ']\n')
         return None
 
@@ -961,24 +979,26 @@ class LCMD(object):
 #
 ##############################################################################
 if __name__ != "__main__": sys.exit(0)
-
 ##############################################################################
-USERNAME, PASSWORD = CGI_CLI.init_cgi()
-CGI_CLI.print_args()
 
-device, pe_device, gw_device = None, None, None
-
-if CGI_CLI.data.get("device"):
-    device = CGI_CLI.data.get("device")
-
-
-# cmd_data = {
+# rcmd_data = {
     # 'cisco_ios':[],
     # 'cisco_xr':[],
     # 'juniper':[],
     # 'huawei':[],
     # 'linux':[],
 # }
+# lcmd_data = {
+    # 'windows':['whoami'],
+    # 'unix':['whoami'],
+# }
+##############################################################################
+
+USERNAME, PASSWORD = CGI_CLI.init_cgi()
+CGI_CLI.print_args()
+device = CGI_CLI.data.get("device",None)
+
+
 
 rcmd_data1 = {
     'cisco_ios':['show version'],
@@ -993,9 +1013,6 @@ lcmd_data2 = {
     'unix':['whoami'],
 }
 
-# pe_device = 'partr0'
-# USERNAME = 'iptac'
-# PASSWORD = 'paiiUNDO'
 
 if device:
     rcmd_outputs = RCMD.connect(device, rcmd_data1, username = USERNAME, password = PASSWORD)
@@ -1004,10 +1021,7 @@ if device:
     #CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'red')
     RCMD.disconnect()
 
-# if gw_device:
-    # rcmd_outputs = RCMD.connect(gw_device, rcmd_data1, username = CGI_CLI.username, password = CGI_CLI.password)
-    # CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'green')
-    # RCMD.disconnect()
+
 
 
 
@@ -1045,6 +1059,14 @@ LCMD.eval_command('b',printall = True)
 
 exec('b = b + 1')
 LCMD.eval_command('b',printall = True)
+
+
+LCMD.exec_command('print("1line\n2line")', escape_newline = True)
+LCMD.exec_command('print("11line\\n22line")')
+print(LCMD.eval_command('"111line\\n222line"'))
+
+
+
 
 
 
