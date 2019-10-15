@@ -534,7 +534,7 @@ CMD_JUNOS = [
         'exec':'print("NO eBGP SESSIONS TO SHUT.")',},
 
     ### SHOW CONFIG ONLY - JUST PRINT ###
-    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("JUNOS_EXT_GROUPS","") and glob_vars.get("SHOW_CONFIG_ONLY","")',
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("JUNOS_EXT_GROUPS","")',
         'exec_1':'print("SHUT CONFIG:")',
         'exec_2':'print("------------")',
     },
