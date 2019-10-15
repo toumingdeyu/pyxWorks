@@ -418,7 +418,7 @@ CMD_IOS_XR = [
         'remote_command_3':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
 
-    {'if':'glob_vars.get("NOSHUT","")',
+    {'if':'glob_vars.get("NOSHUT","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6",""))',
         'exec':'print("eBGP peers have been unshut, Waiting...")',
         'exec_2':['time.sleep(',{'eval':'SLEEPSEC'},')'],
     },
@@ -441,7 +441,7 @@ CMD_IOS_XR = [
     {'if':'not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'remote_command':['show bgp ipv6 unicast summary',{'print_output':'on'}]},
 
-    {'eval':'"\\n".join(glob_vars.get("CONFIG",""))',
+    {'eval':'+"\\nCONFIG:\\n\\n"+"\\n".join(glob_vars.get("CONFIG",""))+"\\n"',
     },
 
     {'if':'glob_vars.get("SHUT","")',
@@ -621,7 +621,7 @@ CMD_JUNOS = [
         'remote_command':['show bgp group summary',{'print_output':'on'}],
     },
 
-    {'eval':'"\\n".join(glob_vars.get("CONFIG",""))',
+    {'eval':'+"\\nCONFIG:\\n\\n"+"\\n".join(glob_vars.get("CONFIG",""))+"\\n"',
     },
 
     ### EVAL MUST BE LAST -------------------------------------------------------
@@ -630,14 +630,19 @@ CMD_JUNOS = [
     },
 ]
 
-CMD_VRP = []
+CMD_VRP = [
+    {'exec':'print("\\nHUAWEI IS NOT SUPPORTED TILL NOW.\\n")',},
+]
 
-CMD_LINUX = []
+CMD_LINUX = [
+    {'exec':'print("\\nTHIS SCRIPT DOES NOT RUN on LINUX.\\n")',},
+]
 
 CMD_LOCAL = [
-    {'exec':'print("OLDLINE\\nNEWLINE")',},
-    {'exec':['print("""',{'eval':'"\\n".join(["OLDLINE2", "NEWLINE2"])'},'""")'],
-    },
+    {'exec':'print("\\nPLEASE SPECIFY --device and --shut or --noshut.\\n")',},
+    # {'exec':'print("OLDLINE\\nNEWLINE")',},
+    # {'exec':['print("""',{'eval':'"\\n".join(["OLDLINE2", "NEWLINE2"])'},'""")'],
+    # },
 ]
 
 
