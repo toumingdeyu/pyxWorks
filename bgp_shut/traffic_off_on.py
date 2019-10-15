@@ -220,12 +220,12 @@ CMD_IOS_XR = [
     {'pre_loop_if':'glob_vars.get("SHUT","") and not (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6",""))',
         'exec':'print("NO eBGP SESSIONS TO SHUT.")',},
 
-    ### SHOW CONFIG ONLY - JUST PRINT ###    
+    ### SHOW CONFIG ONLY - JUST PRINT ###
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_EXT_IPS_V4","") and glob_vars.get("SHOW_CONFIG_ONLY","")',
         'exec_1':'print("SHUT CONFIG:")',
         'exec_2':'print("------------")',
-    },    
-    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V4","") and glob_vars.get("SHOW_CONFIG_ONLY","")',        
+    },
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V4","") and glob_vars.get("SHOW_CONFIG_ONLY","")',
         'loop_glob_var':"OTI_EXT_IPS_V4",
             'exec_1':['print("neighbor %s shutdown" % ("',{'eval':'loop_item[0]'},'"))'],
             'exec_2':['glob_vars["CONFIG"].append("neighbor %s shutdown" % ("',{'eval':'loop_item[0]'},'"))'],
@@ -234,11 +234,11 @@ CMD_IOS_XR = [
         'loop_glob_var':"OTI_EXT_IPS_V6",
             'exec':['print("neighbor %s shutdown" % ("',{'eval':'loop_item[0]'},'"))'],
             'exec_2':['glob_vars["CONFIG"].append("neighbor %s shutdown" % ("',{'eval':'loop_item[0]'},'"))'],
-    },        
+    },
 
     {'pre_loop_if':'glob_vars.get("SHUT","")',
         'exec':'print(" ")',},
-    
+
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6","")) and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'remote_command':['Commit',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'remote_command_2':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}],
@@ -390,13 +390,13 @@ CMD_IOS_XR = [
 
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and not (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6",""))',
         'exec':'print("NO eBGP SESSIONS TO UNSHUT.")',},
-    
+
     ### SHOW CONFIG ONLY - JUST PRINT ###
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_EXT_IPS_V4","") and glob_vars.get("SHOW_CONFIG_ONLY","")',
         'exec_1':'print("NOSHUT CONFIG:")',
         'exec_2':'print("--------------")',
-    },    
-    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V4","") and glob_vars.get("SHOW_CONFIG_ONLY","")',        
+    },
+    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("OTI_EXT_IPS_V4","") and glob_vars.get("SHOW_CONFIG_ONLY","")',
         'loop_glob_var':"OTI_EXT_IPS_V4",
             'if':'not "ADMIN" in str(loop_item[1]).upper()',
                 'exec':['print("no neighbor %s shutdown" % ("',{'eval':'loop_item[0]'},'"))'],
@@ -407,11 +407,11 @@ CMD_IOS_XR = [
             'if':'not "ADMIN" in str(loop_item[1]).upper()',
                 'exec':['print("no neighbor %s shutdown" % ("',{'eval':'loop_item[0]'},'"))'],
                 'exec_2':['glob_vars["CONFIG"].append("no neighbor %s shutdown" % ("',{'eval':'loop_item[0]'},'"))'],
-    },    
+    },
 
     {'pre_loop_if':'glob_vars.get("NOSHUT","")',
         'exec':'print(" ")',},
-    
+
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and (glob_vars.get("OTI_EXT_IPS_V4","") or glob_vars.get("OTI_EXT_IPS_V6","")) and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'remote_command':['Commit',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'remote_command_2':['Exit',{'sim':'glob_vars.get("SIM_CMD","")'}],
@@ -458,7 +458,7 @@ CMD_JUNOS = [
          'exec':'print("%sPlease specify --shut or --noshut ... %s"%(bcolors.RED,bcolors.ENDC))',
          'exec_2':'sys.exit(0)'
     },
-    
+
     ### ASK IF SHUT OR QUIT --------------------------------------------------
     {'if':'glob_vars.get("SHUT","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
          'exec':'print("%sYou are about to shut down all the BGP sessions on %s do you want to continue? (Y/N) [Enter]%s:"%(bcolors.RED,device,bcolors.ENDC))',
@@ -469,11 +469,11 @@ CMD_JUNOS = [
     {'if':'glob_vars.get("SHUT","") and glob_vars.get("CONTINUE_OR_NOT","").upper() != "Y" and not glob_vars.get("SHOW_CONFIG_ONLY","")',
          'exec':'sys.exit(0)'
     },
-       
+
     ### AS 5511 CHECK ----------------------------------------------------------
-    {'remote_command':['show bgp neighbor | match "Group:|Peer:" | except "NLRI|Restart"',{'output_variable':'show_bgp_neighbor'}]},    
+    {'remote_command':['show bgp neighbor | match "Group:|Peer:" | except "NLRI|Restart"',{'output_variable':'show_bgp_neighbor'}]},
     {'eval':['True if "AS 5511" in glob_vars.get("show_bgp_neighbor","") else None',{'output_variable':'OTI_5511'}]},
-    {'eval':'glob_vars.get("OTI_5511","")'},       
+    {'eval':'glob_vars.get("OTI_5511","")'},
 
     ### COLLECT DATA -----------------------------------------------------------
     {'if':'glob_vars.get("SHUT","")',
@@ -485,7 +485,7 @@ CMD_JUNOS = [
          ### PRINT GROUPS ###
          "exec_5":'print("iBGP GROUPS: [%s]" % (", ".join(glob_vars.get("JUNOS_INT_GROUPS",[]))))',
          "exec_6":'print("eBGP GROUPS: [%s]" % (", ".join(glob_vars.get("JUNOS_EXT_GROUPS",[]))))',
-         "exec_7":'print(" ")',              
+         "exec_7":'print(" ")',
     },
 
     ### SET OVERLOAD BIT ------------------------------------------------------
@@ -499,39 +499,39 @@ CMD_JUNOS = [
     {'if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and not glob_vars.get("SHOW_CONFIG_ONLY","") and glob_vars.get("SIM_CMD","")!="ON"',
          'exec_2':['time.sleep(',{'eval':'SLEEPSEC'},')'],
     },
-    
+
     ### DO SHUT ---------------------------------------------------------------
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'pre_loop_remote_command':['configure exclusive',{'sim':'glob_vars.get("SIM_CMD","")'}],
     },
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'pre_if_exec':'print("SHUTTING eBGP GROUPS...")',
-    },    
-    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',        
+    },
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'loop_glob_var':"JUNOS_EXT_GROUPS",
             'remote_command':['deactivate protocols bgp group ',{'eval':'loop_item'},{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
-    
+
     {'pre_loop_if':'glob_vars.get("SHUT","")',
         'exec':'print(" ")',},
 
     {'pre_loop_if':'glob_vars.get("SHUT","") and not glob_vars.get("JUNOS_EXT_GROUPS","")',
         'exec':'print("NO eBGP SESSIONS TO SHUT.")',},
-    
+
     ### SHOW CONFIG ONLY - JUST PRINT ###
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("JUNOS_EXT_GROUPS","") and glob_vars.get("SHOW_CONFIG_ONLY","")',
         'exec_1':'print("SHUT CONFIG:")',
         'exec_2':'print("------------")',
-    },    
-    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and glob_vars.get("SHOW_CONFIG_ONLY","")',        
+    },
+    {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and glob_vars.get("SHOW_CONFIG_ONLY","")',
         'loop_glob_var':"JUNOS_EXT_GROUPS",
             'exec':['print("deactivate protocols bgp group %s" % ("',{'eval':'loop_item'},'"))'],
             'exec_2':['glob_vars["CONFIG"].append("deactivate protocols bgp group %s" % ("',{'eval':'loop_item'},'"))'],
-    },    
+    },
 
     {'pre_loop_if':'glob_vars.get("SHUT","")',
         'exec':'print(" ")',},
-        
+
     {'pre_loop_if':'glob_vars.get("SHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'remote_command':['commit and-quit',{'sim':'glob_vars.get("SIM_CMD","")'}],
     },
@@ -546,8 +546,8 @@ CMD_JUNOS = [
     {'if':'glob_vars.get("NOSHUT","") and glob_vars.get("CONTINUE_OR_NOT2","").upper() != "Y" and not glob_vars.get("SHOW_CONFIG_ONLY","")',
          'exec':'sys.exit(0)'
     },
-    
-    ## DATA READ FROM FILE ------------------------------------------    
+
+    ## DATA READ FROM FILE ------------------------------------------
     {'if':'glob_vars.get("NOSHUT","") and len(bgp_data.get("JUNOS_EXT_GROUPS",""))>0',
         'exec':'glob_vars["JUNOS_EXT_GROUPS"] = bgp_data["JUNOS_EXT_GROUPS"]'},
     {'if':'glob_vars.get("NOSHUT","") and len(bgp_data.get("JUNOS_INT_GROUPS",""))>0',
@@ -560,9 +560,9 @@ CMD_JUNOS = [
          ### PRINT GROUPS ###
          "exec_1":'print("iBGP GROUPS: [%s]" % (", ".join(glob_vars.get("JUNOS_INT_GROUPS",[]))))',
          "exec_2":'print("eBGP GROUPS: [%s]" % (", ".join(glob_vars.get("JUNOS_EXT_GROUPS",[]))))',
-         "exec_3":'print(" ")',         
+         "exec_3":'print(" ")',
     },
-    
+
     ### DO UNSHUT --------------------------------------------------------------
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'pre_loop_remote_command':['configure exclusive',{'sim':'glob_vars.get("SIM_CMD","")'}],
@@ -570,31 +570,31 @@ CMD_JUNOS = [
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'pre_if_exec':'print("UNSHUTTING eBGP GROUPS...")',
     },
-    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',    
+    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'loop_glob_var':"JUNOS_EXT_GROUPS",
             'remote_command':['activate protocols bgp group ',{'eval':'loop_item'},{'sim':'glob_vars.get("SIM_CMD","")'}]
     },
-    
+
     {'pre_loop_if':'glob_vars.get("NOSHUT","")',
         'exec':'print(" ")',},
 
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and not glob_vars.get("JUNOS_EXT_GROUPS","")',
         'exec':'print("NO eBGP SESSIONS TO UNSHUT.")',},
-        
+
     ### SHOW CONFIG ONLY - JUST PRINT ###
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("JUNOS_EXT_GROUPS","") and glob_vars.get("SHOW_CONFIG_ONLY","")',
         'exec_1':'print("NOSHUT CONFIG:")',
         'exec_2':'print("--------------")',
     },
-    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and glob_vars.get("SHOW_CONFIG_ONLY","")',    
+    {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and glob_vars.get("SHOW_CONFIG_ONLY","")',
         'loop_glob_var':"JUNOS_EXT_GROUPS",
              'exec':['print("activate protocols bgp group %s" % ("',{'eval':'loop_item'},'"))'],
-             'exec_2':['glob_vars["CONFIG"].append("activate protocols bgp group %s" % ("',{'eval':'loop_item'},'"))'],             
-    },  
-    
+             'exec_2':['glob_vars["CONFIG"].append("activate protocols bgp group %s" % ("',{'eval':'loop_item'},'"))'],
+    },
+
     {'pre_loop_if':'glob_vars.get("NOSHUT","")',
         'exec':'print(" ")',},
-        
+
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'remote_command':['commit and-quit',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'exec':'print("Waiting...")',
@@ -602,7 +602,7 @@ CMD_JUNOS = [
 
     {'pre_loop_if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and glob_vars.get("JUNOS_EXT_GROUPS","") and not glob_vars.get("SHOW_CONFIG_ONLY","") and glob_vars.get("SIM_CMD","")!="ON"',
         'exec_2':['time.sleep(',{'eval':'SLEEPSEC'},')'],
-    },    
+    },
 
     ### UNSET OVERLOAD BIT ------------------------------------------------------
     {'if':'glob_vars.get("NOSHUT","") and glob_vars.get("OTI_5511","") and not glob_vars.get("SHOW_CONFIG_ONLY","")',
@@ -612,7 +612,7 @@ CMD_JUNOS = [
         'remote_command_4':['commit and-quit',{'sim':'glob_vars.get("SIM_CMD","")'}],
         'exec_1':'print("ISIS overload bit unset.")',
     },
-    
+
     ### PRINT BGP STATE ###
     {'if':'not glob_vars.get("SHOW_CONFIG_ONLY","")',
         'exec':'print("COMMAND: show bgp group summary")',
@@ -624,20 +624,24 @@ CMD_JUNOS = [
     {'eval':'"\\n".join(glob_vars.get("CONFIG",""))',
     },
 
-    ### EVAL MUST BE LAST -------------------------------------------------------    
+    ### EVAL MUST BE LAST -------------------------------------------------------
     {'if':'glob_vars.get("SHUT","")',
         "eval":"return_bgp_data_json()"
-    },    
+    },
 ]
 
 CMD_VRP = []
 
 CMD_LINUX = []
 
-CMD_LOCAL = []
+CMD_LOCAL = [
+    # {'exec':'print("OLDLINE\nNEWLINE")',},
+    # {'exec':['print("',{'eval':'"\\n".join(["OLDLINE2", "NEWLINE2"])'},'")'],
+    # },
+]
 
-#
-# ################################################################################
+
+#################################################################################
 bgp_data = collections.OrderedDict()
 
 ### Start of BASIC STRUCTURES OF JSON
@@ -728,16 +732,16 @@ def detect_router_by_ssh(device, debug = False):
         while not (last_line and last_but_one_line and last_line == last_but_one_line):
             buff = chan.recv(9999)
             if len(buff)>0:
-                if debug: print('LOOKING_FOR_PROMPT:',last_but_one_line,last_line)                
+                if debug: print('LOOKING_FOR_PROMPT:',last_but_one_line,last_line)
                 output += buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
                           replace('\x1b[K','').replace('\n{master}\n','')
-                if '--More--' or '---(more' in buff.strip(): 
+                if '--More--' or '---(more' in buff.strip():
                     chan.send('\x20')
                     if debug: print('SPACE_SENT.')
                     time.sleep(0.3)
                 try: last_line = output.splitlines()[-1].strip().replace('\x20','')
                 except: last_line = 'dummyline1'
-                try: 
+                try:
                     last_but_one_line = output.splitlines()[-2].strip().replace('\x20','')
                     if len(last_but_one_line) == 0:
                         ### vJunos '\x20' --> '\n\nprompt' workarround
@@ -1022,14 +1026,13 @@ def run_remote_and_local_commands(CMD, logfilename = None, printall = None, \
                             print_output = True if str(cli_item.get('print_output','')).upper()=='ON' else None
                     else: cli_line += str(cli_item)
             if printall or print_output: print(bcolors.CYAN + "EXEC_COMMAND: %s" % (cli_line) + bcolors.ENDC )
-            ### EXEC CODE for PYTHON>v2.7.9
-            # code_object = compile(cli_line, 'sumstring', 'exec')
+            ### EXEC CODE for PYTHON>v2.7.9, ("\n" WORKARROUND: .replace('\\n', '\n'))
+            # code_object = compile(cli_line.replace('\\n', '\n'), 'sumstring', 'exec')
             # local_env = {}
             # for item in eval('dir()'): local_env[item] = eval(item)
             # exec(code_object,global_env,local_env)
-            ### EXEC CODE WORKAROUND for OLD PYTHON v2.7.5
-            ### edict = {}; eval(compile(cli_line.replace('\\n', '\n'), '<string>', 'exec'), globals(), edict)
-            edict = {}; eval(compile(cli_line, '<string>', 'exec'), globals(), edict)
+            ### EXEC CODE WORKAROUND for OLD PYTHON v2.7.5, ("\n" WORKARROUND: .replace('\n', '\\n'))
+            edict = {}; eval(compile(cli_line.replace('\n', '\\n'), '<string>', 'exec'), globals(), edict)
             if printcmdtologfile: fp.write('EXEC_COMMAND: ' + cli_line + '\n')
         return None
     ### IF_FUNCTION (simple eval) ----------------------------------------------
@@ -1322,7 +1325,7 @@ parser.add_argument("--cfg",
 parser.add_argument("--wait",
                     action = "store", dest = 'delay',
                     default = '120',
-                    help = "delay in seconds [between overload bit set and bgp off / between bgp on overload bit clean], 120sec by default")                     
+                    help = "delay in seconds [between overload bit set and bgp off / between bgp on overload bit clean], 120sec by default")
 args = parser.parse_args()
 
 if args.nocolors or 'WIN32' in sys.platform.upper(): bcolors = nocolors
@@ -1356,7 +1359,7 @@ if args.sim: glob_vars["SIM_CMD"] = 'ON'
 else: glob_vars["SIM_CMD"] = 'OFF'
 
 
-if args.delay: 
+if args.delay:
     try: SLEEPSEC = (str(int(args.delay)))
     except : SLEEPSEC = '120'
 
@@ -1499,7 +1502,7 @@ for device in device_list:
 
         run_remote_and_local_commands(CMD, logfilename, printall = args.printall , \
             printcmdtologfile = True)
-            
+
         if logfilename and os.path.exists(logfilename):
             print('%s file created.' % (logfilename))
             ### MAKE READABLE for THE OTHERS
