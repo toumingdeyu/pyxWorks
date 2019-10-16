@@ -257,8 +257,13 @@ class CGI_CLI(object):
                     print('%s: <input type = "password" name = "%s"><br />'%\
                         (data_item.get('password','').replace('_',' '),data_item.get('password')))
                 elif data_item.get('radio'):
-                    print('<input type = "radio" name = "%s" value = "%s" /> %s'%\
-                        (data_item.get('radio'),data_item.get('radio'),data_item.get('radio','').replace('_',' ')))
+                    if isinstance(data_item.get('radio'), (list,tuple)):
+                        for radiobutton in data_item.get('radio'):
+                            print('<input type = "radio" name = "%s" value = "%s" /> %s'%\
+                                ('script_action',radiobutton,radiobutton.replace('_',' ')))                        
+                    else:                    
+                        print('<input type = "radio" name = "%s" value = "%s" /> %s'%\
+                            (data_item.get('radio'),data_item.get('radio'),data_item.get('radio','').replace('_',' ')))                
                 elif data_item.get('checkbox'):
                     print('<input type = "checkbox" name = "%s" value = "on" /> %s'%\
                         (data_item.get('checkbox'),data_item.get('checkbox','').replace('_',' ')))
