@@ -97,11 +97,11 @@ class CGI_CLI(object):
                             default = str(),
                             help = "target router to access")
         parser.add_argument("--shut",
-                            action = 'store_true', dest = "shut", 
+                            action = 'store_true', dest = "shut",
                             default = None,
                             help = "switch-off bgp traffic")
         parser.add_argument("--noshut",
-                            action = 'store_true', dest = "noshut", 
+                            action = 'store_true', dest = "noshut",
                             default = None,
                             help = "switch-on bgp traffic")
         parser.add_argument("--sim",
@@ -116,10 +116,10 @@ class CGI_CLI(object):
                             action = "store", dest = 'delay',
                             default = '120',
                             help = "delay in seconds [between overload bit set and bgp off / between bgp on overload bit clean], 120sec by default")
-        parser.add_argument("--printall", 
+        parser.add_argument("--printall",
                             action = "store_true", dest = 'printall',
                             default = None,
-                            help = "print all lines, changes will be coloured")                                    
+                            help = "print all lines, changes will be coloured")
         args = parser.parse_args()
         return args
 
@@ -212,23 +212,23 @@ class CGI_CLI(object):
     @staticmethod
     def set_logfile(logfilename = None):
         """
-        set_logfile()            - uses LCMD.logfilename or RCMD.logfilename, 
+        set_logfile()            - uses LCMD.logfilename or RCMD.logfilename,
         set_logfile(logfilename) - uses inserted logfilename
-        """        
+        """
         actual_logfilename, CGI_CLI.logfilename = None, None
         try:
-            if not (LCMD.logfilenam == 'nul' or LCMD.logfilename == '/dev/null'): 
+            if not (LCMD.logfilenam == 'nul' or LCMD.logfilename == '/dev/null'):
                 actual_logfilename = LCMD.logfilename
-        except: pass        
+        except: pass
         try:
-            if not (RCMD.logfilenam == 'nul' or RCMD.logfilename == '/dev/null'): 
+            if not (RCMD.logfilenam == 'nul' or RCMD.logfilename == '/dev/null'):
                actual_logfilename = RCMD.logfilename
         except: pass
         if logfilename: actual_logfilename = logfilename
         if actual_logfilename == 'nul' or actual_logfilename == '/dev/null' \
             or not actual_logfilename: pass
         else: CGI_CLI.logfilename = actual_logfilename
-        
+
     @staticmethod
     def uprint(text, tag = None, tag_id = None, color = None, name = None, jsonprint = None, log = None):
         """NOTE: name parameter could be True or string."""
@@ -270,12 +270,12 @@ class CGI_CLI(object):
         if CGI_CLI.cgi_active:
             if tag: print('</%s>'%(tag))
             else: print('<br/>');
-        ### LOGGING ###    
-        if CGI_CLI.logfilename and log:        
+        ### LOGGING ###
+        if CGI_CLI.logfilename and log:
             with open(CGI_CLI.logfilename,"a+") as CGI_CLI.fp:
                 CGI_CLI.fp.write(print_name + log_text + '\n')
                 del log_text
-            
+
 
     @staticmethod
     def formprint(form_data = None, submit_button = None, pyfile = None, tag = None, color = None):
@@ -300,8 +300,8 @@ class CGI_CLI(object):
                     if isinstance(data_item.get('radio'), (list,tuple)):
                         for radiobutton in data_item.get('radio'):
                             print('<input type = "radio" name = "%s" value = "%s" /> %s'%\
-                                ('script_action',radiobutton,radiobutton.replace('_',' ')))                        
-                    else:                    
+                                ('script_action',radiobutton,radiobutton.replace('_',' ')))
+                    else:
                         print('<input type = "radio" name = "%s" value = "%s" /> %s'%\
                             (data_item.get('radio'),data_item.get('radio'),data_item.get('radio','').replace('_',' ')))
                 elif data_item.get('checkbox'):
@@ -850,7 +850,7 @@ class RCMD(object):
                 if 'LINUX' in output.upper(): router_os = 'linux'
             if not router_os:
                 CGI_CLI.uprint("\nCannot find recognizable OS in %s" % (output), color = 'magenta')
-        except Exception as e: CGI_CLI.uprint('CONNECTION_PROBLEM[' + str(e) + ']')
+        except Exception as e: CGI_CLI.uprint('CONNECTION_PROBLEM[' + str(e) + ']' , color = 'magenta')
         finally: client.close()
         netmiko_os = str()
         if router_os == 'ios-xe': netmiko_os = 'cisco_ios'
@@ -975,7 +975,7 @@ class LCMD(object):
                 try:
                     if escape_newline:
                         edict = {}; eval(compile(cmd_data.replace('\n', '\\n'), '<string>', 'exec'), globals(), edict)
-                    else: edict = {}; eval(compile(cmd_data, '<string>', 'exec'), globals(), edict)                    
+                    else: edict = {}; eval(compile(cmd_data, '<string>', 'exec'), globals(), edict)
                 except Exception as e:
                     if printall:CGI_CLI.uprint('EXEC_PROBLEM[' + str(e) + ']', color = 'magenta')
                     LCMD.fp.write('EXEC_PROBLEM[' + str(e) + ']\n')
@@ -987,7 +987,7 @@ class LCMD(object):
         """
         NOTE: This method can access global variable, expects '=' in expression,
               in case of except assign value None
-                     
+
               escape_newline = None, ==> '\\n' = insert newline to text, '\n' = interpreted line
               escape_newline = True, ==> '\n' = insert newline to text
         """
@@ -1003,7 +1003,7 @@ class LCMD(object):
                         else:
                             cmd_ex_data = 'global %s\ntry: %s = %s \nexcept: %s = None' % \
                                 (cmd_data.split('=')[0].strip().split('[')[0],cmd_data.split('=')[0].strip(), \
-                                cmd_data.split('=')[1].strip(), cmd_data.split('=')[0].strip())                        
+                                cmd_data.split('=')[1].strip(), cmd_data.split('=')[0].strip())
                     else: cmd_ex_data = cmd_data
                     if printall: CGI_CLI.uprint("EXEC: \n%s" % (cmd_ex_data))
                     LCMD.fp.write('EXEC: \n' + cmd_ex_data + '\n')
@@ -1016,7 +1016,7 @@ class LCMD(object):
         return None
 
 def generate_file_name(prefix = None, USERNAME = None, suffix = None , directory = None):
-    filenamewithpath = None    
+    filenamewithpath = None
     if not directory:
         try:    DIR         = os.environ['HOME']
         except: DIR         = str(os.path.dirname(os.path.abspath(__file__)))
@@ -1060,6 +1060,29 @@ def find_last_shut_logfile(prefix = None, suffix = None,directory = None):
     return shut_file
 
 
+def cisco_xr_parse_bgp_summary(text, LOCAL_AS_NUMBER):
+    previous_line, ext_v4_list, ext_v6_list = None, [], []
+    try:
+        temp_splited = (copy.deepcopy(text)).split("St/PfxRcd")[1].strip().splitlines()
+        for line in temp_splited:
+            if len(line.split()) == 1 and ('.' in line.split[0] or ':' in line.split[0]): 
+                previous_line = line; continue
+            if previous_line: line, previous_line = previous_line + line, None
+            ### COLUMN10 IS DE FACTO SECOND WORD OF COLUMN9
+            try: column10 = line.split()[10]
+            except: column10 = ""
+            try:
+                if not LOCAL_AS_NUMBER in line.split()[2] and "." in line.split()[0]:
+                    ext_v4_list.append([line.split()[0],line.split()[9] + column10])
+                if not LOCAL_AS_NUMBER in line.split()[2] and ":" in line.split()[0]:
+                    ext_v6_list.append([line.split()[0],line.split()[9] + column10])
+            except: pass
+        del temp_splited    
+    except: pass
+    ### RETURNS LIST IN LISTS [PEER,STATUS] ###
+    return ext_v4_list, ext_v6_list
+
+
 ##############################################################################
 #
 # BEGIN MAIN
@@ -1085,7 +1108,7 @@ USERNAME, PASSWORD = CGI_CLI.init_cgi()
 CGI_CLI.print_args()
 device = CGI_CLI.data.get("device")
 
-SCRIPT_ACTION = str()
+SCRIPT_ACTION, bgp_data = str(), {}
 
 ### TEST WORKARROUND ###
 if CGI_CLI.cgi_active and not (USERNAME and PASSWORD):
@@ -1095,7 +1118,7 @@ if CGI_CLI.cgi_active and not (USERNAME and PASSWORD):
 
 ### HTML MENU SHOWS ONLY IN CGI MODE ###
 if CGI_CLI.cgi_active and not CGI_CLI.submit_form:
-    CGI_CLI.uprint('TRAFFIC OFF/ON TOOL:\n', tag = 'h1', color = 'blue') 
+    CGI_CLI.uprint('TRAFFIC OFF/ON TOOL:\n', tag = 'h1', color = 'blue')
     CGI_CLI.formprint([{'text':'device'},'<br/>',{'text':'username'},'<br/>',\
         {'password':'password'},'<br/>',\
         {'radio':['shut','noshut']},'<br/>',\
@@ -1107,9 +1130,9 @@ else:
     if (CGI_CLI.data.get("script_action") or CGI_CLI.data.get("shut") or CGI_CLI.data.get("noshut")):
         if CGI_CLI.data.get("script_action"): SCRIPT_ACTION = CGI_CLI.data.get("script_action")
         elif CGI_CLI.data.get("shut"):        SCRIPT_ACTION = 'shut'
-        elif  CGI_CLI.data.get("noshut"):     SCRIPT_ACTION = 'noshut'    
+        elif  CGI_CLI.data.get("noshut"):     SCRIPT_ACTION = 'noshut'
     else:
-        CGI_CLI.uprint('Please specify --shut or --noshut ... ', color = 'magenta')                      
+        CGI_CLI.uprint('Please specify --shut or --noshut ... ', color = 'magenta')
         sys.exit(0)
 
 #logfilename = generate_file_name(prefix = device, USERNAME = USERNAME, suffix = SCRIPT_ACTION + '-log')
@@ -1120,46 +1143,110 @@ if device:
     rcmd_outputs = RCMD.connect(device, username = USERNAME, password = PASSWORD, logfilename = logfilename)
     CGI_CLI.set_logfile()
     
+    if not RCMD.router_type:
+        RCMD.disconnect()
+        sys.exit(0)
+        
+    CGI_CLI.uprint("ROUTER_TYPE: %s" % (RCMD.router_type), color = 'blue',  log = True)
+
     ### FIND LOCAL AS ###
     collector_cmds = {
         'cisco_ios':['show bgp summary',
-                     'show bgp ipv6 unicast summary',        
+                     'show bgp ipv6 unicast summary',
                      'show bgp vpnv4 unicast summary',
                      'show bgp vrf all summary'
                     ],
-                    
+
         'cisco_xr': ['show bgp summary',
-                     'show bgp ipv6 unicast summary',        
-                     'show bgp vpnv4 unicast summary',        
+                     'show bgp ipv6 unicast summary',
+                     'show bgp vpnv4 unicast summary',
                      'show bgp vrf all summary'
                     ],
-                    
+
         'juniper':  ['show bgp neighbor | match "Group:|Peer:" | except "NLRI|Restart"',
                      'show configuration protocols bgp | display set | match neighbor',
                      'show configuration protocols bgp | display set | match deactivate'
                     ],
-                    
+
         'huawei':   ['display bgp peer',
                      'display bgp ipv6 peer'
                     ]
     }
-    
+
     rcmd_outputs = RCMD.run_commands(collector_cmds, printall = CGI_CLI.data.get("printall"))
 
     LOCAL_AS_NUMBER, BGP_SUMMARY_OUTPUT = None, rcmd_outputs[0]
-    
+
     if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
         try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("local AS number")[1].splitlines()[0].strip()
         except: pass
-    elif RCMD.router_type == 'juniper':    
+    elif RCMD.router_type == 'juniper':
         try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("Local:")[1].splitlines()[0].split('AS')[1].strip()
-        except: pass     
+        except: pass
     elif RCMD.router_type == 'huawei':
         try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("Local AS number :")[1].splitlines()[0].strip()
         except: pass
 
-    CGI_CLI.uprint(LOCAL_AS_NUMBER, name = True , color = 'blue', log = True)
-    
+    if LOCAL_AS_NUMBER:
+        CGI_CLI.uprint(LOCAL_AS_NUMBER, name = True , color = 'blue', log = True)
+    else:
+        CGI_CLI.uprint("PROBLEM TO PARSE LOCAL AS NUMBER!" , color = 'red', tag = 'h1',  log = True)
+        RCMD.disconnect()
+        sys.exit(0)
+
+
+    ### GET eBGP PEERS + VPNs or GROUPS + PEERs ###
+    config = []
+    if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
+        #if LOCAL_AS_NUMBER == '5511':
+           ipv4_list, dummy = cisco_xr_parse_bgp_summary(rcmd_outputs[0],LOCAL_AS_NUMBER)
+           dummy, ipv6_list = cisco_xr_parse_bgp_summary(rcmd_outputs[1],LOCAL_AS_NUMBER)
+           
+           if SCRIPT_ACTION == 'shut':
+               bgp_data["OTI_EXT_IPS_V4"] = ipv4_list
+               bgp_data["OTI_EXT_IPS_V6"] = ipv6_list
+               for neighbor,status in bgp_data.get("OTI_EXT_IPS_V4",[]):
+                   config.append('neighbor %s shutdown' % neighbor)
+               for neighbor,status in bgp_data.get("OTI_EXT_IPS_V6",[]):
+                   config.append('neighbor %s shutdown' % neighbor)
+               CGI_CLI.uprint('\nSHUT CONFIG:\n\n%s\n\n' % '\n'.join(config), color = 'blue', log = True)
+           elif SCRIPT_ACTION == 'noshut':
+               for neighbor,status in bgp_data.get("OTI_EXT_IPS_V4",[]):
+                   config.append('no neighbor %s shutdown' % neighbor)
+               for neighbor,status in bgp_data.get("OTI_EXT_IPS_V6",[]):
+                   config.append('no neighbor %s shutdown' % neighbor)
+               CGI_CLI.uprint('\nNOSHUT CONFIG:\n\n%s\n\n' % '\n'.join(config), color = 'blue', log = True)
+
+           if CGI_CLI.data.get("show_config_only"):
+               RCMD.disconnect()
+               sys.exit(0)
+           #else:
+           #    RCMD.run_commands(config, conf = True, printall = CGI_CLI.data.get("printall"))
+
+
+
+
+    elif RCMD.router_type == 'juniper':
+        try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("Local:")[1].splitlines()[0].split('AS')[1].strip()
+        except: pass
+    elif RCMD.router_type == 'huawei':
+        try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("Local AS number :")[1].splitlines()[0].strip()
+        except: pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
