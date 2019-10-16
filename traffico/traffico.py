@@ -1259,6 +1259,12 @@ if device:
                 RCMD.disconnect()
                 sys.exit(0) 
             
+            if not (bgp_data.get("OTI_EXT_IPS_V4") or bgp_data.get("OTI_EXT_IPS_V6")):
+                CGI_CLI.uprint('VOID CONFIG, END!', tag = 'h1' , color = 'red', log = True)
+                LCMD.eval_command('return_bgp_data_json()', logfilename = logfilename)                
+                RCMD.disconnect()
+                sys.exit(0)             
+            
             overload_bit_set_config   = ['router isis PAII','set-overload-bit']
             overload_bit_unset_config = ['router isis PAII','no set-overload-bit']
 
@@ -1281,16 +1287,16 @@ if device:
                 CGI_CLI.uprint('Clearing overload bit...', log = True)
                 RCMD.run_commands(overload_bit_unset_config, conf = True, sim_config = CGI_CLI.data.get("sim"), printall = CGI_CLI.data.get("printall"))
             ### FINAL_CHECK ###
-            CGI_CLI.uprint('\nFINAL CHECK:', tag = 'h1', log = True)           
+            CGI_CLI.uprint('\nFINAL CHECK:', tag = 'h1', color = 'blue', log = True)           
             rcmd_outputs = RCMD.run_commands(['show bgp summary','show bgp ipv6 unicast summary'], printall = True)            
         if LOCAL_AS_NUMBER == '2300': 
-            pass
-        ### WITE JSON TO FILE ###    
+            CGI_CLI.uprint('NOT IMPLEMENTED!', tag ='h1', color = 'red', log = True)
+        ### WRITE JSON TO FILE ###    
         LCMD.eval_command('return_bgp_data_json()', logfilename = logfilename)
     elif RCMD.router_type == 'juniper':
-        pass
+        CGI_CLI.uprint('NOT IMPLEMENTED!', tag ='h1', color = 'red', log = True)
     elif RCMD.router_type == 'huawei':
-        pass
+        CGI_CLI.uprint('NOT IMPLEMENTED!', tag ='h1', color = 'red', log = True)
 
 
 
