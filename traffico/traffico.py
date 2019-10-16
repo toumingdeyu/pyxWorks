@@ -1243,9 +1243,9 @@ if device:
                 bgp_data["OTI_EXT_IPS_V4"] = ipv4_list
                 bgp_data["OTI_EXT_IPS_V6"] = ipv6_list
                 for neighbor,status in bgp_data.get("OTI_EXT_IPS_V4",[]):
-                    config.append('neighbor %s shutdown' % neighbor)
+                    if not "ADMIN" in status.upper(): config.append('neighbor %s shutdown' % neighbor)
                 for neighbor,status in bgp_data.get("OTI_EXT_IPS_V6",[]):
-                    config.append('neighbor %s shutdown' % neighbor)
+                    if not "ADMIN" in status.upper(): config.append('neighbor %s shutdown' % neighbor)
                 CGI_CLI.uprint('\nSHUT CONFIG:\n\n%s\n\n' % ('\n'.join(config)), color = 'blue', log = True)
             elif SCRIPT_ACTION == 'noshut':
                 for neighbor,status in bgp_data.get("OTI_EXT_IPS_V4",[]):
