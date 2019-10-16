@@ -1038,16 +1038,22 @@ def generate_file_name(prefix = None, USERNAME = None, suffix = None , directory
     return filenamewithpath
 
 
-def find_last_shut_logfile(prefix = None, suffix = None,directory = None):
+def find_last_shut_logfile(prefix = None, USERNAME = None, suffix = None, directory = None, latest = None):
     if not directory:
         try:    DIR         = os.environ['HOME']
         except: DIR         = str(os.path.dirname(os.path.abspath(__file__)))
     else: DIR = str(directory)
     if DIR: LOGDIR      = os.path.join(DIR,'logs')
-    if args.latest:
-        list_shut_files = glob.glob(os.path.join(LOGDIR,prefix.replace(':','_').replace('.','_')) + '*' + '-' + suffix)
+    if not prefix: use_prefix = str()
+    else: use_prefix = prefix
+    if latest:
+        list_shut_files = glob.glob(os.path.join(LOGDIR, use_prefix.replace(':','_').replace('.','_')) \
+            + '*' + sys.argv[0].replace('.py','').replace('./','').replace(':','_').replace('.','_').replace('\\','/').split('/')[-1] \
+            + '*' + '-' + suffix)
     else:
-        list_shut_files = glob.glob(os.path.join(LOGDIR,prefix.replace(':','_').replace('.','_')) + '*' + USERNAME + '-' + suffix)
+        list_shut_files = glob.glob(os.path.join(LOGDIR, use_prefix.replace(':','_').replace('.','_')) \
+            + '*' + sys.argv[0].replace('.py','').replace('./','').replace(':','_').replace('.','_').replace('\\','/').split('/')[-1] \
+            + '*' + USERNAME + '-' + suffix)
     if len(list_shut_files) == 0:
         print(bcolors.MAGENTA + " ... Can't find any shut file." + bcolors.ENDC)
         sys.exit()
@@ -1065,7 +1071,7 @@ def cisco_xr_parse_bgp_summary(text, LOCAL_AS_NUMBER):
     try:
         temp_splited = (copy.deepcopy(text)).split("St/PfxRcd")[1].strip().splitlines()
         for line in temp_splited:
-            if len(line.split()) == 1 and ('.' in line.split[0] or ':' in line.split[0]): 
+            if len(line.split()) == 1 and ('.' in line.split[0] or ':' in line.split[0]):
                 previous_line = line; continue
             if previous_line: line, previous_line = previous_line + line, None
             ### COLUMN10 IS DE FACTO SECOND WORD OF COLUMN9
@@ -1077,10 +1083,31 @@ def cisco_xr_parse_bgp_summary(text, LOCAL_AS_NUMBER):
                 if not LOCAL_AS_NUMBER in line.split()[2] and ":" in line.split()[0]:
                     ext_v6_list.append([line.split()[0],line.split()[9] + column10])
             except: pass
-        del temp_splited    
+        del temp_splited
     except: pass
     ### RETURNS LIST IN LISTS [PEER,STATUS] ###
     return ext_v4_list, ext_v6_list
+
+
+def return_bgp_data_json():
+    return json.dumps(bgp_data, indent=2)
+
+
+def read_bgp_data_json_from_logfile(filename = None, printall = None):
+    bgp_data_loaded, text = None, None
+    with open(filename,"r") as fp:
+        text = fp.read()
+    if text:
+        try: bgp_data_json_text = text.split('EVAL: return_bgp_data_json()')[1]
+        except: bgp_data_json_text = str()
+        if bgp_data_json_text:
+            try:
+                bgp_data_loaded = json.loads(bgp_data_json_text, object_pairs_hook = collections.OrderedDict)
+            except: pass
+            #print("LOADED_BGP_DATA: ",bgp_data_loaded)
+            if printall: CGI_CLI.uprint("\nLOADED JSON BGP_DATA: ")
+            if printall: CGI_CLI.uprint(json.dumps(bgp_data_loaded, indent=2))
+    return bgp_data_loaded
 
 
 ##############################################################################
@@ -1106,9 +1133,12 @@ if __name__ != "__main__": sys.exit(0)
 
 USERNAME, PASSWORD = CGI_CLI.init_cgi()
 CGI_CLI.print_args()
+LCMD.init()
 device = CGI_CLI.data.get("device")
 
 SCRIPT_ACTION, bgp_data = str(), {}
+
+SLEEPSEC = 1
 
 ### TEST WORKARROUND ###
 if CGI_CLI.cgi_active and not (USERNAME and PASSWORD):
@@ -1135,18 +1165,24 @@ else:
         CGI_CLI.uprint('Please specify --shut or --noshut ... ', color = 'magenta')
         sys.exit(0)
 
-#logfilename = generate_file_name(prefix = device, USERNAME = USERNAME, suffix = SCRIPT_ACTION + '-log')
-logfilename = None
+logfilename = generate_file_name(prefix = device, USERNAME = USERNAME, suffix = SCRIPT_ACTION + '-log')
+if logfilename and SCRIPT_ACTION == 'noshut':
+    last_shut_file = find_last_shut_logfile(prefix = device, USERNAME = USERNAME, suffix = 'shut-log')
+    bgp_data = read_bgp_data_json_from_logfile(last_shut_file)
+    if not bgp_data:
+        CGI_CLI.uprint( " ... Please insert valid shut session log! \nFile " + last_shut_file + \
+            " \ndoes not contain return_bgp_data_json !", color = 'red', tag = 'h1', log = True)
+        sys.exit(0)
 
 ### DEVICE ACCESS #############################################################
 if device:
     rcmd_outputs = RCMD.connect(device, username = USERNAME, password = PASSWORD, logfilename = logfilename)
     CGI_CLI.set_logfile()
-    
+
     if not RCMD.router_type:
         RCMD.disconnect()
         sys.exit(0)
-        
+
     CGI_CLI.uprint("ROUTER_TYPE: %s" % (RCMD.router_type), color = 'blue',  log = True)
 
     ### FIND LOCAL AS ###
@@ -1201,7 +1237,7 @@ if device:
         #if LOCAL_AS_NUMBER == '5511':
            ipv4_list, dummy = cisco_xr_parse_bgp_summary(rcmd_outputs[0],LOCAL_AS_NUMBER)
            dummy, ipv6_list = cisco_xr_parse_bgp_summary(rcmd_outputs[1],LOCAL_AS_NUMBER)
-           
+
            if SCRIPT_ACTION == 'shut':
                bgp_data["OTI_EXT_IPS_V4"] = ipv4_list
                bgp_data["OTI_EXT_IPS_V6"] = ipv6_list
@@ -1212,16 +1248,43 @@ if device:
                CGI_CLI.uprint('\nSHUT CONFIG:\n\n%s\n\n' % '\n'.join(config), color = 'blue', log = True)
            elif SCRIPT_ACTION == 'noshut':
                for neighbor,status in bgp_data.get("OTI_EXT_IPS_V4",[]):
-                   config.append('no neighbor %s shutdown' % neighbor)
+                   if not "ADMIN" in status.upper(): config.append('no neighbor %s shutdown' % neighbor)
                for neighbor,status in bgp_data.get("OTI_EXT_IPS_V6",[]):
-                   config.append('no neighbor %s shutdown' % neighbor)
+                   if not "ADMIN" in status.upper(): config.append('no neighbor %s shutdown' % neighbor)
                CGI_CLI.uprint('\nNOSHUT CONFIG:\n\n%s\n\n' % '\n'.join(config), color = 'blue', log = True)
 
            if CGI_CLI.data.get("show_config_only"):
+               LCMD.eval_command('return_bgp_data_json()', logfilename = logfilename)
                RCMD.disconnect()
                sys.exit(0)
-           #else:
-           #    RCMD.run_commands(config, conf = True, printall = CGI_CLI.data.get("printall"))
+
+           if len(config) == 0:
+               CGI_CLI.uprint('\nVOID CONFIG!', color = 'red', tag = 'h1', log = True)
+               RCMD.disconnect()
+               sys.exit(0)
+
+           overload_bit_set_config   = ['router isis PAII','set-overload-bit']
+           overload_bit_unset_config = ['router isis PAII','no set-overload-bit']
+
+           if SCRIPT_ACTION == 'shut':
+               CGI_CLI.uprint('Setting overload bit...', log = True)
+               RCMD.run_commands(overload_bit_set_config, conf = True, printall = CGI_CLI.data.get("printall"))
+               if not CGI_CLI.data.get("sim"):
+                   CGI_CLI.uprint('Waiting...', log = True)
+                   try: time.sleep(int(CGI_CLI.data.get("delay") if CGI_CLI.data.get("delay") else SLEEPSEC))
+                   except: pass
+               CGI_CLI.uprint('Writing config...', log = True)
+               RCMD.run_commands(config, conf = True, printall = CGI_CLI.data.get("printall"))
+               LCMD.eval_command('return_bgp_data_json()', logfilename = logfilename)
+           elif SCRIPT_ACTION == 'noshut':
+               CGI_CLI.uprint('Writing config...', log = True)
+               RCMD.run_commands(config, conf = True, printall = CGI_CLI.data.get("printall"))
+               if not CGI_CLI.data.get("sim"):
+                   CGI_CLI.uprint('Waiting...', log = True)
+                   try: time.sleep(int(CGI_CLI.data.get("delay") if CGI_CLI.data.get("delay") else SLEEPSEC))
+                   except: pass
+               CGI_CLI.uprint('Clearing overload bit...', log = True)
+               RCMD.run_commands(overload_bit_unset_config, conf = True, printall = CGI_CLI.data.get("printall"))
 
 
 
