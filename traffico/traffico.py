@@ -1237,7 +1237,8 @@ if device:
         #if LOCAL_AS_NUMBER == '5511':
            ipv4_list, dummy = cisco_xr_parse_bgp_summary(rcmd_outputs[0],LOCAL_AS_NUMBER)
            dummy, ipv6_list = cisco_xr_parse_bgp_summary(rcmd_outputs[1],LOCAL_AS_NUMBER)
-
+           config.append('router bgp %s' % (LOCAL_AS_NUMBER))
+               
            if SCRIPT_ACTION == 'shut':
                bgp_data["OTI_EXT_IPS_V4"] = ipv4_list
                bgp_data["OTI_EXT_IPS_V6"] = ipv6_list
@@ -1245,24 +1246,21 @@ if device:
                    config.append('neighbor %s shutdown' % neighbor)
                for neighbor,status in bgp_data.get("OTI_EXT_IPS_V6",[]):
                    config.append('neighbor %s shutdown' % neighbor)
-               CGI_CLI.uprint('\nSHUT CONFIG:\n\n%s\n\n' % '\n'.join(config), color = 'blue', log = True)
+               CGI_CLI.uprint('\nSHUT CONFIG:\n\n%s\n\n' % ('\n'.join(config)), color = 'blue', log = True)
            elif SCRIPT_ACTION == 'noshut':
                for neighbor,status in bgp_data.get("OTI_EXT_IPS_V4",[]):
                    if not "ADMIN" in status.upper(): config.append('no neighbor %s shutdown' % neighbor)
                for neighbor,status in bgp_data.get("OTI_EXT_IPS_V6",[]):
                    if not "ADMIN" in status.upper(): config.append('no neighbor %s shutdown' % neighbor)
-               CGI_CLI.uprint('\nNOSHUT CONFIG:\n\n%s\n\n' % '\n'.join(config), color = 'blue', log = True)
+                   
+    
+               CGI_CLI.uprint('\nNOSHUT CONFIG:\n\n%s\n\n' % ('\n'.join(config)), color = 'blue', log = True)
 
            if CGI_CLI.data.get("show_config_only"):
                LCMD.eval_command('return_bgp_data_json()', logfilename = logfilename)
                RCMD.disconnect()
-               sys.exit(0)
-
-           if len(config) == 0:
-               CGI_CLI.uprint('\nVOID CONFIG!', color = 'red', tag = 'h1', log = True)
-               RCMD.disconnect()
-               sys.exit(0)
-
+               sys.exit(0) 
+           
            overload_bit_set_config   = ['router isis PAII','set-overload-bit']
            overload_bit_unset_config = ['router isis PAII','no set-overload-bit']
 
