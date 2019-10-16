@@ -1289,8 +1289,47 @@ if device:
             ### FINAL_CHECK ###
             CGI_CLI.uprint('\nFINAL CHECK:', tag = 'h1', color = 'blue', log = True)           
             rcmd_outputs = RCMD.run_commands(['show bgp summary','show bgp ipv6 unicast summary'], printall = True)            
-        if LOCAL_AS_NUMBER == '2300': 
-            CGI_CLI.uprint('NOT IMPLEMENTED!', tag ='h1', color = 'red', log = True)
+        ### IMN ###
+        if LOCAL_AS_NUMBER == '2300':
+            vrf_name, ipv4_struct = str(), []
+            try:
+                for vrf_part in rcmd_outputs[2].split('VRF: ')[1:]:        
+                    vrf_name = vrf_part.splitlines()[0].split[0]  
+                    ipv4_list, dummy = cisco_xr_parse_bgp_summary(vrf_part,LOCAL_AS_NUMBER)
+                ipv4_struct.append([vrf_name,ipv4_list]) 
+            except: pass
+                        
+            vrf_name, ipv6_struct = str(), []            
+            try:        
+                for vrf_part in rcmd_outputs[3].split('VRF: ')[1:]:
+                    vrf_name = vrf_part.splitlines()[0].split[0]            
+                    dummy, ipv6_list = cisco_xr_parse_bgp_summary(vrf_part,LOCAL_AS_NUMBER)
+                ipv6_struct.append([vrf_name,ipv4_list])    
+            except: pass
+            
+            if SCRIPT_ACTION == 'shut':
+                bgp_data["OTI_EXT_IPS_V4"] = ipv4_struct
+                bgp_data["OTI_EXT_IPS_V6"] = ipv6_struct            
+            elif SCRIPT_ACTION == 'noshut':
+                pass
+                
+            if CGI_CLI.data.get("show_config_only"):
+                LCMD.eval_command('return_bgp_data_json()', logfilename = logfilename)
+                RCMD.disconnect()
+                sys.exit(0) 
+            
+            if not (bgp_data.get("OTI_EXT_IPS_V4") or bgp_data.get("OTI_EXT_IPS_V6")):
+                CGI_CLI.uprint('VOID CONFIG, END!', tag = 'h1' , color = 'red', log = True)
+                LCMD.eval_command('return_bgp_data_json()', logfilename = logfilename)                
+                RCMD.disconnect()
+                sys.exit(0)
+            
+            
+            CGI_CLI.uprint('NOT FINISHED!', tag ='h1', color = 'red', log = True)
+
+            
+            
+            
         ### WRITE JSON TO FILE ###    
         LCMD.eval_command('return_bgp_data_json()', logfilename = logfilename)
     elif RCMD.router_type == 'juniper':
