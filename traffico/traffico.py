@@ -1251,9 +1251,7 @@ if device:
                for neighbor,status in bgp_data.get("OTI_EXT_IPS_V4",[]):
                    if not "ADMIN" in status.upper(): config.append('no neighbor %s shutdown' % neighbor)
                for neighbor,status in bgp_data.get("OTI_EXT_IPS_V6",[]):
-                   if not "ADMIN" in status.upper(): config.append('no neighbor %s shutdown' % neighbor)
-                   
-    
+                   if not "ADMIN" in status.upper(): config.append('no neighbor %s shutdown' % neighbor)                   
                CGI_CLI.uprint('\nNOSHUT CONFIG:\n\n%s\n\n' % ('\n'.join(config)), color = 'blue', log = True)
 
            if CGI_CLI.data.get("show_config_only"):
@@ -1266,24 +1264,26 @@ if device:
 
            if SCRIPT_ACTION == 'shut':
                CGI_CLI.uprint('Setting overload bit...', log = True)
-               RCMD.run_commands(overload_bit_set_config, conf = True, printall = CGI_CLI.data.get("printall"))
+               RCMD.run_commands(overload_bit_set_config, conf = True, sim_config = CGI_CLI.data.get("sim"), printall = CGI_CLI.data.get("printall"))
                if not CGI_CLI.data.get("sim"):
                    CGI_CLI.uprint('Waiting...', log = True)
                    try: time.sleep(int(CGI_CLI.data.get("delay") if CGI_CLI.data.get("delay") else SLEEPSEC))
                    except: pass
                CGI_CLI.uprint('Writing config...', log = True)
-               RCMD.run_commands(config, conf = True, printall = CGI_CLI.data.get("printall"))
-               LCMD.eval_command('return_bgp_data_json()', logfilename = logfilename)
+               RCMD.run_commands(config, conf = True, sim_config = CGI_CLI.data.get("sim"), printall = CGI_CLI.data.get("printall"))
            elif SCRIPT_ACTION == 'noshut':
                CGI_CLI.uprint('Writing config...', log = True)
-               RCMD.run_commands(config, conf = True, printall = CGI_CLI.data.get("printall"))
+               RCMD.run_commands(config, conf = True, sim_config = CGI_CLI.data.get("sim"), printall = CGI_CLI.data.get("printall"))
                if not CGI_CLI.data.get("sim"):
                    CGI_CLI.uprint('Waiting...', log = True)
                    try: time.sleep(int(CGI_CLI.data.get("delay") if CGI_CLI.data.get("delay") else SLEEPSEC))
                    except: pass
                CGI_CLI.uprint('Clearing overload bit...', log = True)
-               RCMD.run_commands(overload_bit_unset_config, conf = True, printall = CGI_CLI.data.get("printall"))
-
+               RCMD.run_commands(overload_bit_unset_config, conf = True, sim_config = CGI_CLI.data.get("sim"), printall = CGI_CLI.data.get("printall"))
+           ### FINAL_CHECK ###
+           CGI_CLI.uprint('\nFINAL CHECK:', tag = 'h1', log = True)           
+           rcmd_outputs = RCMD.run_commands(['show bgp summary','show bgp ipv6 unicast summary'], printall = True)
+           LCMD.eval_command('return_bgp_data_json()', logfilename = logfilename)
 
 
 
