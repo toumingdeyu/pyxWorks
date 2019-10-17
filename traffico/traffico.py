@@ -1227,6 +1227,7 @@ if device:
                     ],
 
         'juniper':  ['show bgp neighbor | match "Group:|Peer:" | except "NLRI|Restart"',
+                     'show bgp group summary',
                      'show configuration protocols bgp | display set | match neighbor',
                      'show configuration protocols bgp | display set | match deactivate'
                     ],
@@ -1313,7 +1314,30 @@ if device:
 
     ### JUNOS ###
     elif RCMD.router_type == 'juniper':
-        CGI_CLI.uprint('NOT IMPLEMENTED!', tag ='h1', color = 'red', log = True)
+        try: junos_ext_groups = [ group.split()[-1].strip().encode(encoding="UTF-8") for group in rcmd_outputs[1].split("External ")[0:-1] ]
+        except: junos_ext_groups = []
+
+        ### OTI ###
+        if LOCAL_AS_NUMBER == '5511':
+            if SCRIPT_ACTION == 'shut':
+                active_junos_ext_groups = []
+                for group in junos_ext_groups:
+                    for line in rcmd_outputs[2].splitlines():
+                        if group in line and 'deactivate' not in line:
+                            try: neighbor = line.split('neighbor')[1].strip()
+                            except: neighbor = str()
+                            if neighbor: active_junos_ext_groups.append([group,neighbor])
+                bgp_data["JUNOS_EXT_GROUP_NEIGHBORS"] = active_junos_ext_groups    
+                for group,neighbor in bgp_data.get("JUNOS_EXT_GROUP_NEIGHBORS",[]):
+                    bgp_config.append('deactivate protocols bgp group %s neighbor %s' % (group, neighbor))
+            elif SCRIPT_ACTION == 'noshut':
+                for group,neighbor in bgp_data.get("JUNOS_EXT_GROUP_NEIGHBORS",[]):
+                    bgp_config.append('activate protocols bgp group %s neighbor %s' % (group, neighbor))
+        ### IMN ###
+        if LOCAL_AS_NUMBER == '2300':    
+            CGI_CLI.uprint('NOT IMPLEMENTED YET!', tag ='h1', color = 'red', log = True)
+    
+            
 
     ### HUAWEI ###
     elif RCMD.router_type == 'huawei':
@@ -1339,7 +1363,7 @@ if device:
 
         ### IMN ###
         if LOCAL_AS_NUMBER == '2300':
-            CGI_CLI.uprint('NOT IMPLEMENTED!', tag ='h1', color = 'red', log = True)
+            CGI_CLI.uprint('NOT IMPLEMENTED YET!', tag ='h1', color = 'red', log = True)
 
 
     ### VOID CONFIG END #######################################################
@@ -1408,6 +1432,7 @@ if device:
         CGI_CLI.uprint('Writing config...', log = True)
         RCMD.run_commands(bgp_config, conf = True, sim_config = CGI_CLI.data.get("sim"), \
             printall = CGI_CLI.data.get("printall"))
+
 
     ### NOSHUT ACTION #########################################################
     elif SCRIPT_ACTION == 'noshut':
