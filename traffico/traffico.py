@@ -1040,6 +1040,7 @@ def generate_file_name(prefix = None, USERNAME = None, suffix = None , directory
 
 def find_last_shut_logfile(prefix = None, USERNAME = None, suffix = None, directory = None, \
     latest = None , printall = None):
+    shut_file = str()
     if not directory:
         try:    DIR         = os.environ['HOME']
         except: DIR         = str(os.path.dirname(os.path.abspath(__file__)))
@@ -1056,15 +1057,14 @@ def find_last_shut_logfile(prefix = None, USERNAME = None, suffix = None, direct
             + '*' + sys.argv[0].replace('.py','').replace('./','').replace(':','_').replace('.','_').replace('\\','/').split('/')[-1] \
             + '*' + USERNAME + '-' + suffix)
     if len(list_shut_files) == 0:
-        print(bcolors.MAGENTA + " ... Can't find any shut file." + bcolors.ENDC)
-        sys.exit()
+        CGI_CLI.uprint( " ... Can't find any shut session log file!", color = 'magenta')
     most_recent_shut = list_shut_files[0]
     for item in list_shut_files:
         filecreation = os.path.getctime(item)
         if filecreation > (os.path.getctime(most_recent_shut)):
             most_recent_shut = item
     shut_file = most_recent_shut
-    if printall: CGI_CLI.uprint('FOUND LAST SHUT LOGFILE: %s' % (str(shut_file)), color = 'blue')
+    if printall and shut_file: CGI_CLI.uprint('FOUND LAST SHUT LOGFILE: %s' % (str(shut_file)), color = 'blue')
     return shut_file
 
 
@@ -1166,6 +1166,9 @@ else:
         CGI_CLI.uprint('Please specify --shut or --noshut ... ', color = 'magenta')
         sys.exit(0)
 
+### LOGFILENAME GENERATION ###
+logfilename = generate_file_name(prefix = device, USERNAME = USERNAME, suffix = SCRIPT_ACTION + '-log')
+
 
 ### DEVICE ACCESS #############################################################
 if device:
@@ -1181,11 +1184,13 @@ if device:
         RCMD.disconnect()
         sys.exit(0)
 
-    ### LOGFILENAME + READ SHUT LOGFILE###
-    logfilename = generate_file_name(prefix = device, USERNAME = USERNAME, suffix = SCRIPT_ACTION + '-log')
+    ### READ SHUT LOGFILE ###
     if logfilename and SCRIPT_ACTION == 'noshut':
         last_shut_file = find_last_shut_logfile(prefix = device, USERNAME = USERNAME, suffix = 'shut-log', \
             printall = CGI_CLI.data.get("printall"))
+        if not last_shut_file:
+            RCMD.disconnect()
+            sys.exit(0)        
         bgp_data = read_bgp_data_json_from_logfile(last_shut_file, printall = CGI_CLI.data.get("printall"))
         if not bgp_data:
             CGI_CLI.uprint( " ... Please insert valid shut session log! \nFile " + last_shut_file + \
