@@ -1352,19 +1352,6 @@ if device:
         CGI_CLI.uprint(bgp_data, name = 'bgp_data', jsonprint = True, log = True)
 
 
-    ### PRINT CONFIG ##########################################################
-    CGI_CLI.uprint('\n%s CONFIG:\n' % (SCRIPT_ACTION.upper()), color = 'blue', \
-        tag = 'h1', log = True)
-    CGI_CLI.uprint('%s\n\n' % ('\n'.join(bgp_config)), color = 'blue', log = True)
-
-
-    ### SHOW CONFIG ONLY END ##################################################
-    if CGI_CLI.data.get("show_config_only"):
-        LCMD.eval_command('return_bgp_data_json()', logfilename = logfilename)
-        RCMD.disconnect()
-        sys.exit(0)
-
-
     ### OVERLOAD BIT SET/UNSET CONFIGS ########################################
     overload_bit_set_config   = {'cisco_ios':['router isis PAII', 'set-overload-bit'],
                                  'cisco_xr' :['router isis PAII', 'set-overload-bit'],
@@ -1376,6 +1363,36 @@ if device:
                                  'huawei'   :['isis %s' % (LOCAL_AS_NUMBER), 'undo set-overload', 
                                      'set-overload on-startup 240']                                 
                                 }
+
+
+    ### PRINT SET OVERLOAD BIT CONFIG #########################################
+    if SCRIPT_ACTION == 'shut':
+        CGI_CLI.uprint('\n%s CONFIG:\n' % ('SET OVERLOAD BIT'), color = 'blue', \
+        tag = 'h1', log = True)
+        CGI_CLI.uprint('%s\n\n' % ('\n'.join(overload_bit_set_config)), \
+            color = 'blue', log = True)
+
+
+    ### PRINT CONFIG ##########################################################
+    CGI_CLI.uprint('\n%s CONFIG:\n' % (SCRIPT_ACTION.upper()), color = 'blue', \
+        tag = 'h1', log = True)
+    CGI_CLI.uprint('%s\n\n' % ('\n'.join(bgp_config)), color = 'blue', log = True)
+
+
+    ### PRINT CLEAR OVERLOAD BIT CONFIG #######################################
+    if SCRIPT_ACTION == 'noshut':
+        CGI_CLI.uprint('\n%s CONFIG:\n' % ('CLEAR OVERLOAD BIT'), color = 'blue', \
+        tag = 'h1', log = True)
+        CGI_CLI.uprint('%s\n\n' % ('\n'.join(overload_bit_unset_config)), \
+            color = 'blue', log = True)                                
+
+
+    ### SHOW CONFIG ONLY END ##################################################
+    if CGI_CLI.data.get("show_config_only"):
+        LCMD.eval_command('return_bgp_data_json()', logfilename = logfilename)
+        RCMD.disconnect()
+        sys.exit(0)
+
 
     ### SHUT ACTION ###########################################################
     if SCRIPT_ACTION == 'shut':
