@@ -1148,7 +1148,7 @@ USERNAME, PASSWORD = CGI_CLI.init_cgi()
 LCMD.init()
 device = CGI_CLI.data.get("device")
 
-SCRIPT_ACTION, bgp_data = str(), {}
+SCRIPT_ACTION, bgp_data, bgp_config = str(), {}, []
 
 SLEEPSEC = 1
 
@@ -1260,10 +1260,14 @@ if device:
 
 
     ### GET eBGP PEERS + VPNs or GROUPS + PEERs ###############################
-    bgp_config = []
 
-    ### CISCO_XR, CISCO_IOS ###################################################
-    if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
+
+    ### CISCO_IOS #############################################################
+    if RCMD.router_type == 'cisco_ios':
+        CGI_CLI.uprint('NOT IMPLEMENTED YET !', tag ='h1', color = 'red', log = True)
+        
+    ### CISCO_XR ##############################################################
+    elif RCMD.router_type == 'cisco_xr':
         bgp_config.append('router bgp %s' % (LOCAL_AS_NUMBER))
 
         ### OTI ###
