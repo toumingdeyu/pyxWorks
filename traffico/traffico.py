@@ -1038,7 +1038,8 @@ def generate_file_name(prefix = None, USERNAME = None, suffix = None , directory
     return filenamewithpath
 
 
-def find_last_shut_logfile(prefix = None, USERNAME = None, suffix = None, directory = None, latest = None):
+def find_last_shut_logfile(prefix = None, USERNAME = None, suffix = None, directory = None, \
+    latest = None , printall = None):
     if not directory:
         try:    DIR         = os.environ['HOME']
         except: DIR         = str(os.path.dirname(os.path.abspath(__file__)))
@@ -1063,6 +1064,7 @@ def find_last_shut_logfile(prefix = None, USERNAME = None, suffix = None, direct
         if filecreation > (os.path.getctime(most_recent_shut)):
             most_recent_shut = item
     shut_file = most_recent_shut
+    if printall: CGI_CLI.uprint('FOUND LAST SHUT LOGFILE: %s' % (str(shut_file)), color = 'blue')
     return shut_file
 
 
@@ -1132,7 +1134,7 @@ if __name__ != "__main__": sys.exit(0)
 ##############################################################################
 
 USERNAME, PASSWORD = CGI_CLI.init_cgi()
-CGI_CLI.print_args()
+#CGI_CLI.print_args()
 LCMD.init()
 device = CGI_CLI.data.get("device")
 
@@ -1144,7 +1146,6 @@ SLEEPSEC = 1
 if CGI_CLI.cgi_active and not (USERNAME and PASSWORD):
     iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
     if iptac_server == 'iptac5': USERNAME, PASSWORD = 'iptac', 'paiiUNDO'
-
 
 ### HTML MENU SHOWS ONLY IN CGI MODE ###
 if CGI_CLI.cgi_active and not CGI_CLI.submit_form:
@@ -1165,28 +1166,38 @@ else:
         CGI_CLI.uprint('Please specify --shut or --noshut ... ', color = 'magenta')
         sys.exit(0)
 
-logfilename = generate_file_name(prefix = device, USERNAME = USERNAME, suffix = SCRIPT_ACTION + '-log')
-if logfilename and SCRIPT_ACTION == 'noshut':
-    last_shut_file = find_last_shut_logfile(prefix = device, USERNAME = USERNAME, suffix = 'shut-log')
-    bgp_data = read_bgp_data_json_from_logfile(last_shut_file)
-    if not bgp_data:
-        CGI_CLI.uprint( " ... Please insert valid shut session log! \nFile " + last_shut_file + \
-            " \ndoes not contain return_bgp_data_json !", color = 'red', tag = 'h1', log = True)
-        sys.exit(0)
-
 
 ### DEVICE ACCESS #############################################################
 if device:
-    rcmd_outputs = RCMD.connect(device, username = USERNAME, password = PASSWORD, logfilename = logfilename)
+    CGI_CLI.uprint('DEVICE = %s' % (str(device)), tag = 'h1', color = 'blue')
+
+    ### DEVICE AUTODETECT + CONNECT TO DEVICE ###
+    rcmd_outputs = RCMD.connect(device, username = USERNAME, password = PASSWORD, \
+        logfilename = logfilename)
     CGI_CLI.set_logfile()
 
+    ### END IF NO ROUTER TYPE ###
     if not RCMD.router_type:
         RCMD.disconnect()
         sys.exit(0)
 
-    CGI_CLI.uprint("ROUTER_TYPE: %s" % (RCMD.router_type), color = 'blue',  log = True)
+    ### LOGFILENAME + READ SHUT LOGFILE###
+    logfilename = generate_file_name(prefix = device, USERNAME = USERNAME, suffix = SCRIPT_ACTION + '-log')
+    if logfilename and SCRIPT_ACTION == 'noshut':
+        last_shut_file = find_last_shut_logfile(prefix = device, USERNAME = USERNAME, suffix = 'shut-log', \
+            printall = CGI_CLI.data.get("printall"))
+        bgp_data = read_bgp_data_json_from_logfile(last_shut_file, printall = CGI_CLI.data.get("printall"))
+        if not bgp_data:
+            CGI_CLI.uprint( " ... Please insert valid shut session log! \nFile " + last_shut_file + \
+                " \ndoes not contain return_bgp_data_json !", color = 'red', tag = 'h1', log = True)
+            RCMD.disconnect()
+            sys.exit(0)
 
-    ### FIND LOCAL AS ###
+    ### ROUTER TYPE + SIM PRINT ###
+    CGI_CLI.uprint("ROUTER_TYPE: %s %s" % (RCMD.router_type, \
+        '\nSIMULATION MODE = ON' if CGI_CLI.data.get("sim") else str()), color = 'blue', log = True)
+
+    ### COLLECTOR CONFIG ###
     collector_cmds = {
         'cisco_ios':['show bgp summary',
                      'show bgp ipv6 unicast summary',
@@ -1210,10 +1221,11 @@ if device:
                     ]
     }
 
+    ### RUN START COLLETING OF DATA ###
     rcmd_outputs = RCMD.run_commands(collector_cmds, printall = CGI_CLI.data.get("printall"))
 
-    LOCAL_AS_NUMBER, BGP_SUMMARY_OUTPUT = None, rcmd_outputs[0]
-
+    ### FIND LOCAL AS NUMBER ###
+    LOCAL_AS_NUMBER = None
     if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
         try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("local AS number")[1].splitlines()[0].strip()
         except: pass
@@ -1234,16 +1246,16 @@ if device:
 
     ### GET eBGP PEERS + VPNs or GROUPS + PEERs ###############################
     bgp_config = []
-    
+
     ### CISCO_XR, CISCO_IOS ###
     if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
-        bgp_config.append('router bgp %s' % (LOCAL_AS_NUMBER)) 
-        
+        bgp_config.append('router bgp %s' % (LOCAL_AS_NUMBER))
+
         ### OTI ###
         if LOCAL_AS_NUMBER == '5511':
             ipv4_list, dummy = cisco_xr_parse_bgp_summary(rcmd_outputs[0],LOCAL_AS_NUMBER)
             dummy, ipv6_list = cisco_xr_parse_bgp_summary(rcmd_outputs[1],LOCAL_AS_NUMBER)
-            
+
             if SCRIPT_ACTION == 'shut':
                 bgp_data["OTI_EXT_IPS_V4"] = ipv4_list
                 bgp_data["OTI_EXT_IPS_V6"] = ipv6_list
@@ -1251,7 +1263,7 @@ if device:
                     if not "ADMIN" in status.upper(): bgp_config.append('neighbor %s shutdown' % neighbor)
                 for neighbor,status in bgp_data.get("OTI_EXT_IPS_V6",[]):
                     if not "ADMIN" in status.upper(): bgp_config.append('neighbor %s shutdown' % neighbor)
-                
+
             elif SCRIPT_ACTION == 'noshut':
                 for neighbor,status in bgp_data.get("OTI_EXT_IPS_V4",[]):
                     if not "ADMIN" in status.upper(): bgp_config.append('no neighbor %s shutdown' % neighbor)
@@ -1281,14 +1293,14 @@ if device:
                 bgp_data["OTI_EXT_IPS_V6"] = ipv6_struct
             elif SCRIPT_ACTION == 'noshut':
                 pass
-                
+
             CGI_CLI.uprint('NOT FINISHED!', tag ='h1', color = 'red', log = True)
 
     ### JUNOS ###
     elif RCMD.router_type == 'juniper':
         CGI_CLI.uprint('NOT IMPLEMENTED!', tag ='h1', color = 'red', log = True)
 
-    ### HUAWEI ###    
+    ### HUAWEI ###
     elif RCMD.router_type == 'huawei':
         CGI_CLI.uprint('NOT IMPLEMENTED!', tag ='h1', color = 'red', log = True)
 
@@ -1299,12 +1311,12 @@ if device:
         LCMD.eval_command('return_bgp_data_json()', logfilename = logfilename)
         RCMD.disconnect()
         sys.exit(0)
-    elif CGI_CLI.data.get("printall"):    
-        CGI_CLI.uprint(bgp_data, name = 'bgp_data', jsonprit = True, log = True)
+    elif CGI_CLI.data.get("printall"):
+        CGI_CLI.uprint(bgp_data, name = 'bgp_data', jsonprint = True, log = True)
 
 
-    ### PRINT CONFIG ##########################################################        
-    CGI_CLI.uprint('\n%s CONFIG:\n)' % (SCRIPT_ACTION.upper()), color = 'blue', \
+    ### PRINT CONFIG ##########################################################
+    CGI_CLI.uprint('\n%s CONFIG:\n' % (SCRIPT_ACTION.upper()), color = 'blue', \
         tag = 'h1', log = True)
     CGI_CLI.uprint('%s\n\n' % ('\n'.join(bgp_config)), color = 'blue', log = True)
 
@@ -1316,7 +1328,7 @@ if device:
         sys.exit(0)
 
 
-    ### COMMIT TO DEVICE ######################################################
+    ### OVERLOAD BIT SET/UNSET CONFIGS ########################################
     overload_bit_set_config   = {'cisco_ios':['router isis PAII','set-overload-bit'],
                                  'cisco_xr':['router isis PAII','set-overload-bit']
                                 }
@@ -1325,12 +1337,12 @@ if device:
                                  'cisco_xr':['router isis PAII','no set-overload-bit']
                                 }
 
-    ### SHUT ##################################################################
+    ### SHUT ACTION ###########################################################
     if SCRIPT_ACTION == 'shut':
         CGI_CLI.uprint('Setting overload bit...', log = True)
         RCMD.run_commands(overload_bit_set_config, conf = True, sim_config = CGI_CLI.data.get("sim"), \
             printall = CGI_CLI.data.get("printall"))
-            
+
         if not CGI_CLI.data.get("sim"):
             CGI_CLI.uprint('Waiting...', log = True)
             try: time.sleep(int(CGI_CLI.data.get("delay") if CGI_CLI.data.get("delay") else SLEEPSEC))
@@ -1340,7 +1352,7 @@ if device:
         RCMD.run_commands(bgp_config, conf = True, sim_config = CGI_CLI.data.get("sim"), \
             printall = CGI_CLI.data.get("printall"))
 
-    ### NOSHUT ################################################################
+    ### NOSHUT ACTION #########################################################
     elif SCRIPT_ACTION == 'noshut':
         CGI_CLI.uprint('Writing config...', log = True)
         RCMD.run_commands(bgp_config, conf = True, sim_config = CGI_CLI.data.get("sim"), \
@@ -1377,17 +1389,4 @@ if device:
     ### DISCONNECT ###
     if logfilename and os.path.exists(logfilename): CGI_CLI.uprint('%s file created.' % (logfilename))
     RCMD.disconnect()
-
-
-
-
-
-
-
-
-
-
-
-
-
 
