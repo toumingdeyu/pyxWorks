@@ -1070,16 +1070,17 @@ def find_last_shut_logfile(prefix = None, USERNAME = None, suffix = None, direct
 
 
 def cisco_xr_parse_bgp_summary(text, LOCAL_AS_NUMBER):
-    previous_line, ext_v4_list, ext_v6_list = None, [], []
+    previous_line, ext_v4_list, ext_v6_list = str(), [], []
     try:
         temp_splited = (copy.deepcopy(text)).split("St/PfxRcd")[1].strip().splitlines()
         for line in temp_splited:
-            if len(line.split()) == 1 and ('.' in line.split[0] or ':' in line.split[0]):
+            if line.strip() == str(): continue
+            if len(line.split()) == 1 and ('.' in line or ':' in line):
                 previous_line = line; continue
             if previous_line: line, previous_line = previous_line + line, str()
             ### COLUMN10 IS DE FACTO SECOND WORD OF COLUMN9
             try: column10 = line.split()[10]
-            except: column10 = ""
+            except: column10 = str()
             try:
                 if not LOCAL_AS_NUMBER in line.split()[2] and "." in line.split()[0]:
                     ext_v4_list.append([line.split()[0],line.split()[9] + column10])
@@ -1093,7 +1094,7 @@ def cisco_xr_parse_bgp_summary(text, LOCAL_AS_NUMBER):
 
 
 def huawei_parse_bgp_summary(text, LOCAL_AS_NUMBER):
-    previous_line, ext_v4_list, ext_v6_list = None, [], []
+    previous_line, ext_v4_list, ext_v6_list = str(), [], []
     try:
         temp_splited = (copy.deepcopy(text)).split("PrefRcv")[1].strip().splitlines()
         for line in temp_splited:
