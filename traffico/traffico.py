@@ -1058,12 +1058,13 @@ def find_last_shut_logfile(prefix = None, USERNAME = None, suffix = None, direct
             + '*' + USERNAME + '-' + suffix)
     if len(list_shut_files) == 0:
         CGI_CLI.uprint( " ... Can't find any shut session log file!", color = 'magenta')
-    most_recent_shut = list_shut_files[0]
-    for item in list_shut_files:
-        filecreation = os.path.getctime(item)
-        if filecreation > (os.path.getctime(most_recent_shut)):
-            most_recent_shut = item
-    shut_file = most_recent_shut
+    else:    
+        most_recent_shut = list_shut_files[0]
+        for item in list_shut_files:
+            filecreation = os.path.getctime(item)
+            if filecreation > (os.path.getctime(most_recent_shut)):
+                most_recent_shut = item
+        shut_file = most_recent_shut
     if printall and shut_file: CGI_CLI.uprint('FOUND LAST SHUT LOGFILE: %s' % (str(shut_file)), color = 'blue')
     return shut_file
 
