@@ -1174,6 +1174,7 @@ if logfilename and SCRIPT_ACTION == 'noshut':
             " \ndoes not contain return_bgp_data_json !", color = 'red', tag = 'h1', log = True)
         sys.exit(0)
 
+
 ### DEVICE ACCESS #############################################################
 if device:
     rcmd_outputs = RCMD.connect(device, username = USERNAME, password = PASSWORD, logfilename = logfilename)
@@ -1231,116 +1232,150 @@ if device:
         sys.exit(0)
 
 
-    ### GET eBGP PEERS + VPNs or GROUPS + PEERs ###
-    config = []
+    ### GET eBGP PEERS + VPNs or GROUPS + PEERs ###############################
+    bgp_config = []
+    
+    ### CISCO_XR, CISCO_IOS ###
     if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
+        bgp_config.append('router bgp %s' % (LOCAL_AS_NUMBER)) 
+        
+        ### OTI ###
         if LOCAL_AS_NUMBER == '5511':
             ipv4_list, dummy = cisco_xr_parse_bgp_summary(rcmd_outputs[0],LOCAL_AS_NUMBER)
             dummy, ipv6_list = cisco_xr_parse_bgp_summary(rcmd_outputs[1],LOCAL_AS_NUMBER)
-            config.append('router bgp %s' % (LOCAL_AS_NUMBER))
-               
+            
             if SCRIPT_ACTION == 'shut':
                 bgp_data["OTI_EXT_IPS_V4"] = ipv4_list
                 bgp_data["OTI_EXT_IPS_V6"] = ipv6_list
                 for neighbor,status in bgp_data.get("OTI_EXT_IPS_V4",[]):
-                    if not "ADMIN" in status.upper(): config.append('neighbor %s shutdown' % neighbor)
+                    if not "ADMIN" in status.upper(): bgp_config.append('neighbor %s shutdown' % neighbor)
                 for neighbor,status in bgp_data.get("OTI_EXT_IPS_V6",[]):
-                    if not "ADMIN" in status.upper(): config.append('neighbor %s shutdown' % neighbor)
-                CGI_CLI.uprint('\nSHUT CONFIG:\n\n%s\n\n' % ('\n'.join(config)), color = 'blue', log = True)
+                    if not "ADMIN" in status.upper(): bgp_config.append('neighbor %s shutdown' % neighbor)
+                
             elif SCRIPT_ACTION == 'noshut':
                 for neighbor,status in bgp_data.get("OTI_EXT_IPS_V4",[]):
-                    if not "ADMIN" in status.upper(): config.append('no neighbor %s shutdown' % neighbor)
+                    if not "ADMIN" in status.upper(): bgp_config.append('no neighbor %s shutdown' % neighbor)
                 for neighbor,status in bgp_data.get("OTI_EXT_IPS_V6",[]):
-                    if not "ADMIN" in status.upper(): config.append('no neighbor %s shutdown' % neighbor)                   
-                CGI_CLI.uprint('\nNOSHUT CONFIG:\n\n%s\n\n' % ('\n'.join(config)), color = 'blue', log = True)
+                    if not "ADMIN" in status.upper(): bgp_config.append('no neighbor %s shutdown' % neighbor)
 
-            if CGI_CLI.data.get("show_config_only"):
-                LCMD.eval_command('return_bgp_data_json()', logfilename = logfilename)
-                RCMD.disconnect()
-                sys.exit(0) 
-            
-            if not (bgp_data.get("OTI_EXT_IPS_V4") or bgp_data.get("OTI_EXT_IPS_V6")):
-                CGI_CLI.uprint('VOID CONFIG, END!', tag = 'h1' , color = 'red', log = True)
-                LCMD.eval_command('return_bgp_data_json()', logfilename = logfilename)                
-                RCMD.disconnect()
-                sys.exit(0)             
-            
-            overload_bit_set_config   = ['router isis PAII','set-overload-bit']
-            overload_bit_unset_config = ['router isis PAII','no set-overload-bit']
-
-            if SCRIPT_ACTION == 'shut':
-                CGI_CLI.uprint('Setting overload bit...', log = True)
-                RCMD.run_commands(overload_bit_set_config, conf = True, sim_config = CGI_CLI.data.get("sim"), printall = CGI_CLI.data.get("printall"))
-                if not CGI_CLI.data.get("sim"):
-                    CGI_CLI.uprint('Waiting...', log = True)
-                    try: time.sleep(int(CGI_CLI.data.get("delay") if CGI_CLI.data.get("delay") else SLEEPSEC))
-                    except: pass
-                CGI_CLI.uprint('Writing config...', log = True)
-                RCMD.run_commands(config, conf = True, sim_config = CGI_CLI.data.get("sim"), printall = CGI_CLI.data.get("printall"))
-            elif SCRIPT_ACTION == 'noshut':
-                CGI_CLI.uprint('Writing config...', log = True)
-                RCMD.run_commands(config, conf = True, sim_config = CGI_CLI.data.get("sim"), printall = CGI_CLI.data.get("printall"))
-                if not CGI_CLI.data.get("sim"):
-                    CGI_CLI.uprint('Waiting...', log = True)
-                    try: time.sleep(int(CGI_CLI.data.get("delay") if CGI_CLI.data.get("delay") else SLEEPSEC))
-                    except: pass
-                CGI_CLI.uprint('Clearing overload bit...', log = True)
-                RCMD.run_commands(overload_bit_unset_config, conf = True, sim_config = CGI_CLI.data.get("sim"), printall = CGI_CLI.data.get("printall"))
-            ### FINAL_CHECK ###
-            CGI_CLI.uprint('\nFINAL CHECK:', tag = 'h1', color = 'blue', log = True)           
-            rcmd_outputs = RCMD.run_commands(['show bgp summary','show bgp ipv6 unicast summary'], printall = True)            
         ### IMN ###
         if LOCAL_AS_NUMBER == '2300':
             vrf_name, ipv4_struct = str(), []
             try:
-                for vrf_part in rcmd_outputs[2].split('VRF: ')[1:]:        
-                    vrf_name = vrf_part.splitlines()[0].split[0]  
+                for vrf_part in rcmd_outputs[2].split('VRF: ')[1:]:
+                    vrf_name = vrf_part.splitlines()[0].split[0]
                     ipv4_list, dummy = cisco_xr_parse_bgp_summary(vrf_part,LOCAL_AS_NUMBER)
-                ipv4_struct.append([vrf_name,ipv4_list]) 
+                ipv4_struct.append([vrf_name,ipv4_list])
             except: pass
-                        
-            vrf_name, ipv6_struct = str(), []            
-            try:        
+
+            vrf_name, ipv6_struct = str(), []
+            try:
                 for vrf_part in rcmd_outputs[3].split('VRF: ')[1:]:
-                    vrf_name = vrf_part.splitlines()[0].split[0]            
+                    vrf_name = vrf_part.splitlines()[0].split[0]
                     dummy, ipv6_list = cisco_xr_parse_bgp_summary(vrf_part,LOCAL_AS_NUMBER)
-                ipv6_struct.append([vrf_name,ipv4_list])    
+                ipv6_struct.append([vrf_name,ipv4_list])
             except: pass
-            
+
             if SCRIPT_ACTION == 'shut':
                 bgp_data["OTI_EXT_IPS_V4"] = ipv4_struct
-                bgp_data["OTI_EXT_IPS_V6"] = ipv6_struct            
+                bgp_data["OTI_EXT_IPS_V6"] = ipv6_struct
             elif SCRIPT_ACTION == 'noshut':
                 pass
                 
-            if CGI_CLI.data.get("show_config_only"):
-                LCMD.eval_command('return_bgp_data_json()', logfilename = logfilename)
-                RCMD.disconnect()
-                sys.exit(0) 
-            
-            if not (bgp_data.get("OTI_EXT_IPS_V4") or bgp_data.get("OTI_EXT_IPS_V6")):
-                CGI_CLI.uprint('VOID CONFIG, END!', tag = 'h1' , color = 'red', log = True)
-                LCMD.eval_command('return_bgp_data_json()', logfilename = logfilename)                
-                RCMD.disconnect()
-                sys.exit(0)
-            
-            
             CGI_CLI.uprint('NOT FINISHED!', tag ='h1', color = 'red', log = True)
 
-            
-            
-            
-        ### WRITE JSON TO FILE ###    
-        LCMD.eval_command('return_bgp_data_json()', logfilename = logfilename)
+    ### JUNOS ###
     elif RCMD.router_type == 'juniper':
         CGI_CLI.uprint('NOT IMPLEMENTED!', tag ='h1', color = 'red', log = True)
+
+    ### HUAWEI ###    
     elif RCMD.router_type == 'huawei':
         CGI_CLI.uprint('NOT IMPLEMENTED!', tag ='h1', color = 'red', log = True)
 
 
+    ### VOID CONFIG END #######################################################
+    if bgp_config == [] or bgp_data == {}:
+        CGI_CLI.uprint('VOID CONFIG, END!', tag = 'h1' , color = 'red', log = True)
+        LCMD.eval_command('return_bgp_data_json()', logfilename = logfilename)
+        RCMD.disconnect()
+        sys.exit(0)
+    elif CGI_CLI.data.get("printall"):    
+        CGI_CLI.uprint(bgp_data, name = 'bgp_data', jsonprit = True, log = True)
 
-    if logfilename and os.path.exists(logfilename): CGI_CLI.uprint('%s file created.' % (logfilename))
+
+    ### PRINT CONFIG ##########################################################        
+    CGI_CLI.uprint('\n%s CONFIG:\n)' % (SCRIPT_ACTION.upper()), color = 'blue', \
+        tag = 'h1', log = True)
+    CGI_CLI.uprint('%s\n\n' % ('\n'.join(bgp_config)), color = 'blue', log = True)
+
+
+    ### SHOW CONFIG ONLY END ##################################################
+    if CGI_CLI.data.get("show_config_only"):
+        LCMD.eval_command('return_bgp_data_json()', logfilename = logfilename)
+        RCMD.disconnect()
+        sys.exit(0)
+
+
+    ### COMMIT TO DEVICE ######################################################
+    overload_bit_set_config   = {'cisco_ios':['router isis PAII','set-overload-bit'],
+                                 'cisco_xr':['router isis PAII','set-overload-bit']
+                                }
+
+    overload_bit_unset_config = {'cisco_ios':['router isis PAII','no set-overload-bit'],
+                                 'cisco_xr':['router isis PAII','no set-overload-bit']
+                                }
+
+    ### SHUT ##################################################################
+    if SCRIPT_ACTION == 'shut':
+        CGI_CLI.uprint('Setting overload bit...', log = True)
+        RCMD.run_commands(overload_bit_set_config, conf = True, sim_config = CGI_CLI.data.get("sim"), \
+            printall = CGI_CLI.data.get("printall"))
+            
+        if not CGI_CLI.data.get("sim"):
+            CGI_CLI.uprint('Waiting...', log = True)
+            try: time.sleep(int(CGI_CLI.data.get("delay") if CGI_CLI.data.get("delay") else SLEEPSEC))
+            except: pass
+
+        CGI_CLI.uprint('Writing config...', log = True)
+        RCMD.run_commands(bgp_config, conf = True, sim_config = CGI_CLI.data.get("sim"), \
+            printall = CGI_CLI.data.get("printall"))
+
+    ### NOSHUT ################################################################
+    elif SCRIPT_ACTION == 'noshut':
+        CGI_CLI.uprint('Writing config...', log = True)
+        RCMD.run_commands(bgp_config, conf = True, sim_config = CGI_CLI.data.get("sim"), \
+            printall = CGI_CLI.data.get("printall"))
+
+        if not CGI_CLI.data.get("sim"):
+            CGI_CLI.uprint('Waiting...', log = True)
+            try: time.sleep(int(CGI_CLI.data.get("delay") if CGI_CLI.data.get("delay") else SLEEPSEC))
+            except: pass
+
+        CGI_CLI.uprint('Clearing overload bit...', log = True)
+        RCMD.run_commands(overload_bit_unset_config, conf = True, sim_config = CGI_CLI.data.get("sim"), \
+            printall = CGI_CLI.data.get("printall"))
+
+
+    ### FINAL_CHECK ###########################################################
+    if LOCAL_AS_NUMBER == '5511':
+        check_config = {'cisco_ios':['show bgp summary','show bgp ipv6 unicast summary'],
+                        'cisco_xr':['show bgp summary','show bgp ipv6 unicast summary'],
+                       }
+    elif LOCAL_AS_NUMBER == '2300':
+        check_config = {'cisco_ios':['show bgp summary','show bgp ipv6 unicast summary'],
+                        'cisco_xr':['show bgp summary','show bgp ipv6 unicast summary'],
+                       }
+
+    CGI_CLI.uprint('\nFINAL CHECK:', tag = 'h1', color = 'blue', log = True)
+    rcmd_outputs = RCMD.run_commands(check_config, printall = True)
+
+
+    ### WRITE JSON TO END OF FILE #############################################
+    LCMD.eval_command('return_bgp_data_json()', logfilename = logfilename)
+
+
     ### DISCONNECT ###
+    if logfilename and os.path.exists(logfilename): CGI_CLI.uprint('%s file created.' % (logfilename))
     RCMD.disconnect()
 
 
