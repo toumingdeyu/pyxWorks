@@ -1414,7 +1414,7 @@ if device:
     if SCRIPT_ACTION == 'shut':
         CGI_CLI.uprint('\n%s CONFIG:\n' % ('SET OVERLOAD BIT'), color = 'blue', \
         tag = 'h1', log = True)
-        CGI_CLI.uprint('%s\n\n' % ('\n'.join(overload_bit_set_config)), \
+        CGI_CLI.uprint('%s\n\n' % ('\n'.join(overload_bit_set_config.get(RCMD.router_type,[]))), \
             color = 'blue', log = True)
 
 
@@ -1428,7 +1428,7 @@ if device:
     if SCRIPT_ACTION == 'noshut':
         CGI_CLI.uprint('\n%s CONFIG:\n' % ('CLEAR OVERLOAD BIT'), color = 'blue', \
         tag = 'h1', log = True)
-        CGI_CLI.uprint('%s\n\n' % ('\n'.join(overload_bit_unset_config)), \
+        CGI_CLI.uprint('%s\n\n' % ('\n'.join(overload_bit_unset_config.get(RCMD.router_type,[]))), \
             color = 'blue', log = True)                                
 
 
