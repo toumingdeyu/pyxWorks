@@ -1229,7 +1229,6 @@ if device:
         'juniper':  ['show bgp neighbor | match "Group:|Peer:" | except "NLRI|Restart"',
                      'show bgp group summary',
                      'show configuration protocols bgp | display set | match neighbor',
-                     'show configuration protocols bgp | display set | match deactivate'
                     ],
 
         'huawei':   ['display bgp peer',
@@ -1263,7 +1262,7 @@ if device:
     ### GET eBGP PEERS + VPNs or GROUPS + PEERs ###############################
     bgp_config = []
 
-    ### CISCO_XR, CISCO_IOS ###
+    ### CISCO_XR, CISCO_IOS ###################################################
     if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
         bgp_config.append('router bgp %s' % (LOCAL_AS_NUMBER))
 
@@ -1288,31 +1287,50 @@ if device:
 
         ### IMN ###
         if LOCAL_AS_NUMBER == '2300':
-            vrf_name, ipv4_struct = str(), []
-            try:
-                for vrf_part in rcmd_outputs[2].split('VRF: ')[1:]:
-                    vrf_name = vrf_part.splitlines()[0].split[0]
-                    ipv4_list, dummy = cisco_xr_parse_bgp_summary(vrf_part,LOCAL_AS_NUMBER)
-                ipv4_struct.append([vrf_name,ipv4_list])
-            except: pass
-
-            vrf_name, ipv6_struct = str(), []
-            try:
-                for vrf_part in rcmd_outputs[3].split('VRF: ')[1:]:
-                    vrf_name = vrf_part.splitlines()[0].split[0]
-                    dummy, ipv6_list = cisco_xr_parse_bgp_summary(vrf_part,LOCAL_AS_NUMBER)
-                ipv6_struct.append([vrf_name,ipv4_list])
-            except: pass
-
             if SCRIPT_ACTION == 'shut':
-                bgp_data["OTI_EXT_IPS_V4"] = ipv4_struct
-                bgp_data["OTI_EXT_IPS_V6"] = ipv6_struct
+                vrf_name, ipv4_struct = str(), []
+                try:
+                    for vrf_part in rcmd_outputs[2].split('VRF: ')[1:]:
+                        vrf_name = vrf_part.splitlines()[0].split[0]
+                        ipv4_list, dummy = cisco_xr_parse_bgp_summary(vrf_part,LOCAL_AS_NUMBER)
+                    ipv4_struct.append([vrf_name,ipv4_list])
+                except: pass
+
+                vrf_name, ipv6_struct = str(), []
+                try:
+                    for vrf_part in rcmd_outputs[3].split('VRF: ')[1:]:
+                        vrf_name = vrf_part.splitlines()[0].split[0]
+                        dummy, ipv6_list = cisco_xr_parse_bgp_summary(vrf_part,LOCAL_AS_NUMBER)
+                    ipv6_struct.append([vrf_name,ipv6_list])
+                except: pass
+
+                if SCRIPT_ACTION == 'shut':
+                    bgp_data["OTI_EXT_GROUP_IPS_V4"] = ipv4_struct
+                    bgp_data["OTI_EXT_GROUP_IPS_V6"] = ipv6_struct
+                elif SCRIPT_ACTION == 'noshut':
+                    pass
+
+                for group,neighbor_status in bgp_data.get("OTI_EXT_GROUP_IPS_V4",[]):
+                    bgp_config.append('vrf %s' %(group))
+                    for  neighbor, status in neighbor_status:
+                        if not "ADMIN" in status.upper(): bgp_config.append('neighbor %s shutdown' % neighbor)
+                for group,neighbor_status in bgp_data.get("OTI_EXT_GROUP_IPS_V6",[]):
+                    bgp_config.append('vrf %s' %(group))                
+                    for  neighbor, status in neighbor_status:
+                        if not "ADMIN" in status.upper(): bgp_config.append('neighbor %s shutdown' % neighbor)
+
             elif SCRIPT_ACTION == 'noshut':
-                pass
+                for group,neighbor_status in bgp_data.get("OTI_EXT_GROUP_IPS_V4",[]):
+                    bgp_config.append('vrf %s' %(group))
+                    for  neighbor, status in neighbor_status:
+                        if not "ADMIN" in status.upper(): bgp_config.append('no neighbor %s shutdown' % neighbor)
+                for group,neighbor_status in bgp_data.get("OTI_EXT_GROUP_IPS_V6",[]):
+                    bgp_config.append('vrf %s' %(group))
+                    for  neighbor, status in neighbor_status:
+                        if not "ADMIN" in status.upper(): bgp_config.append('no neighbor %s shutdown' % neighbor)
 
-            CGI_CLI.uprint('NOT FINISHED!', tag ='h1', color = 'red', log = True)
 
-    ### JUNOS ###
+    ### JUNOS #################################################################
     elif RCMD.router_type == 'juniper':
         try: junos_ext_groups = [ group.split()[-1].strip().encode(encoding="UTF-8") for group in rcmd_outputs[1].split("External ")[0:-1] ]
         except: junos_ext_groups = []
@@ -1335,11 +1353,10 @@ if device:
                     bgp_config.append('activate protocols bgp group %s neighbor %s' % (group, neighbor))
         ### IMN ###
         if LOCAL_AS_NUMBER == '2300':    
-            CGI_CLI.uprint('NOT IMPLEMENTED YET!', tag ='h1', color = 'red', log = True)
-    
-            
+            CGI_CLI.uprint('NOT IMPLEMENTED YET !', tag ='h1', color = 'red', log = True)
 
-    ### HUAWEI ###
+    
+    ### HUAWEI ################################################################
     elif RCMD.router_type == 'huawei':
         ipv4_list, dummy = huawei_parse_bgp_summary(rcmd_outputs[0], LOCAL_AS_NUMBER)
         dummy, ipv6_list = huawei_parse_bgp_summary(rcmd_outputs[1], LOCAL_AS_NUMBER)
@@ -1363,7 +1380,7 @@ if device:
 
         ### IMN ###
         if LOCAL_AS_NUMBER == '2300':
-            CGI_CLI.uprint('NOT IMPLEMENTED YET!', tag ='h1', color = 'red', log = True)
+            CGI_CLI.uprint('NOT IMPLEMENTED YET !', tag ='h1', color = 'red', log = True)
 
 
     ### VOID CONFIG END #######################################################
