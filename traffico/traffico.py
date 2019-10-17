@@ -1365,12 +1365,15 @@ if device:
 
 
     ### OVERLOAD BIT SET/UNSET CONFIGS ########################################
-    overload_bit_set_config   = {'cisco_ios':['router isis PAII','set-overload-bit'],
-                                 'cisco_xr':['router isis PAII','set-overload-bit']
+    overload_bit_set_config   = {'cisco_ios':['router isis PAII', 'set-overload-bit'],
+                                 'cisco_xr' :['router isis PAII', 'set-overload-bit'],
+                                 'huawei'   :['isis %s' % (LOCAL_AS_NUMBER), 'set-overload','Y'] 
                                 }
 
-    overload_bit_unset_config = {'cisco_ios':['router isis PAII','no set-overload-bit'],
-                                 'cisco_xr':['router isis PAII','no set-overload-bit']
+    overload_bit_unset_config = {'cisco_ios':['router isis PAII', 'no set-overload-bit'],
+                                 'cisco_xr' :['router isis PAII', 'no set-overload-bit'],
+                                 'huawei'   :['isis %s' % (LOCAL_AS_NUMBER), 'undo set-overload', 
+                                     'set-overload on-startup 240']                                 
                                 }
 
     ### SHUT ACTION ###########################################################
@@ -1407,14 +1410,16 @@ if device:
     ### FINAL_CHECK ###########################################################
     if LOCAL_AS_NUMBER == '5511':
         check_config = {'cisco_ios':['show bgp summary','show bgp ipv6 unicast summary'],
-                        'cisco_xr':['show bgp summary','show bgp ipv6 unicast summary'],
+                        'cisco_xr': ['show bgp summary','show bgp ipv6 unicast summary'],
+                        'huawei':   ['display bgp peer','display bgp ipv6 peer']
                        }
+                       
     elif LOCAL_AS_NUMBER == '2300':
-        check_config = {'cisco_ios':['show bgp summary','show bgp ipv6 unicast summary'],
-                        'cisco_xr':['show bgp summary','show bgp ipv6 unicast summary'],
+        check_config = {'cisco_ios':['show bgp vpnv4 unicast summary','show bgp vrf all summary'],
+                        'cisco_xr': ['show bgp vpnv4 unicast summary','show bgp vrf all summary'],
                        }
 
-    CGI_CLI.uprint('\nFINAL CHECK:', tag = 'h1', color = 'blue', log = True)
+    CGI_CLI.uprint('\nFINAL MANUAL CHECK:', tag = 'h1', color = 'blue', log = True)
     rcmd_outputs = RCMD.run_commands(check_config, printall = True)
 
 
