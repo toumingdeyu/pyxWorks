@@ -1058,7 +1058,7 @@ def find_last_shut_logfile(prefix = None, USERNAME = None, suffix = None, direct
             + '*' + USERNAME + '-' + suffix)
     if len(list_shut_files) == 0:
         CGI_CLI.uprint( " ... Can't find any shut session log file!", color = 'magenta')
-    else:    
+    else:
         most_recent_shut = list_shut_files[0]
         for item in list_shut_files:
             filecreation = os.path.getctime(item)
@@ -1085,6 +1085,27 @@ def cisco_xr_parse_bgp_summary(text, LOCAL_AS_NUMBER):
                     ext_v4_list.append([line.split()[0],line.split()[9] + column10])
                 if not LOCAL_AS_NUMBER in line.split()[2] and ":" in line.split()[0]:
                     ext_v6_list.append([line.split()[0],line.split()[9] + column10])
+            except: pass
+        del temp_splited
+    except: pass
+    ### RETURNS LIST IN LISTS [PEER,STATUS] ###
+    return ext_v4_list, ext_v6_list
+
+
+def huawei_parse_bgp_summary(text, LOCAL_AS_NUMBER):
+    previous_line, ext_v4_list, ext_v6_list = None, [], []
+    try:
+        temp_splited = (copy.deepcopy(text)).split("PrefRcv")[1].strip().splitlines()
+        for line in temp_splited:
+            if line.strip() == str(): continue
+            if len(line.split()) == 1 and ('.' in line.split[0] or ':' in line.split[0]):
+                previous_line = line; continue
+            if previous_line: line, previous_line = previous_line + line, None
+            try:
+                if not LOCAL_AS_NUMBER in line.split()[2] and "." in line.split()[0]:
+                    ext_v4_list.append([line.split()[0], line.split()[7]])
+                if not LOCAL_AS_NUMBER in line.split()[2] and ":" in line.split()[0]:
+                    ext_v6_list.append([line.split()[0], line.split()[7]])
             except: pass
         del temp_splited
     except: pass
@@ -1119,19 +1140,6 @@ def read_bgp_data_json_from_logfile(filename = None, printall = None):
 #
 ##############################################################################
 if __name__ != "__main__": sys.exit(0)
-##############################################################################
-
-# rcmd_data = {
-    # 'cisco_ios':[],
-    # 'cisco_xr':[],
-    # 'juniper':[],
-    # 'huawei':[],
-    # 'linux':[],
-# }
-# lcmd_data = {
-    # 'windows':['whoami'],
-    # 'unix':['whoami'],
-# }
 ##############################################################################
 
 USERNAME, PASSWORD = CGI_CLI.init_cgi()
@@ -1191,7 +1199,7 @@ if device:
             printall = CGI_CLI.data.get("printall"))
         if not last_shut_file:
             RCMD.disconnect()
-            sys.exit(0)        
+            sys.exit(0)
         bgp_data = read_bgp_data_json_from_logfile(last_shut_file, printall = CGI_CLI.data.get("printall"))
         if not bgp_data:
             CGI_CLI.uprint( " ... Please insert valid shut session log! \nFile " + last_shut_file + \
@@ -1263,8 +1271,8 @@ if device:
             dummy, ipv6_list = cisco_xr_parse_bgp_summary(rcmd_outputs[1],LOCAL_AS_NUMBER)
 
             if SCRIPT_ACTION == 'shut':
-                bgp_data["OTI_EXT_IPS_V4"] = ipv4_list
-                bgp_data["OTI_EXT_IPS_V6"] = ipv6_list
+                if len(ipv4_list)>0: bgp_data["OTI_EXT_IPS_V4"] = ipv4_list
+                if len(ipv6_list)>0: bgp_data["OTI_EXT_IPS_V6"] = ipv6_list
                 for neighbor,status in bgp_data.get("OTI_EXT_IPS_V4",[]):
                     if not "ADMIN" in status.upper(): bgp_config.append('neighbor %s shutdown' % neighbor)
                 for neighbor,status in bgp_data.get("OTI_EXT_IPS_V6",[]):
@@ -1308,7 +1316,29 @@ if device:
 
     ### HUAWEI ###
     elif RCMD.router_type == 'huawei':
-        CGI_CLI.uprint('NOT IMPLEMENTED!', tag ='h1', color = 'red', log = True)
+        ipv4_list, dummy = huawei_parse_bgp_summary(rcmd_outputs[0],LOCAL_AS_NUMBER)
+        dummy, ipv6_list = huawei_parse_bgp_summary(rcmd_outputs[1],LOCAL_AS_NUMBER)
+        bgp_config.append('bgp %s' % (LOCAL_AS_NUMBER))
+
+        ### OTI ###
+        if LOCAL_AS_NUMBER == '5511':
+            if SCRIPT_ACTION == 'shut':
+                if len(ipv4_list)>0: bgp_data["OTI_EXT_IPS_V4"] = ipv4_list
+                if len(ipv6_list)>0: bgp_data["OTI_EXT_IPS_V6"] = ipv6_list
+                for neighbor,status in bgp_data.get("OTI_EXT_IPS_V4",[]):
+                    if not "ADMIN" in status.upper(): bgp_config.append('peer %s ignore' % neighbor)
+                for neighbor,status in bgp_data.get("OTI_EXT_IPS_V6",[]):
+                    if not "ADMIN" in status.upper(): bgp_config.append('peer %s ignore' % neighbor)
+
+            elif SCRIPT_ACTION == 'noshut':
+                for neighbor,status in bgp_data.get("OTI_EXT_IPS_V4",[]):
+                    if not "ADMIN" in status.upper(): bgp_config.append('undo peer %s ignore' % neighbor)
+                for neighbor,status in bgp_data.get("OTI_EXT_IPS_V6",[]):
+                    if not "ADMIN" in status.upper(): bgp_config.append('undo peer %s ignore' % neighbor)
+
+        ### IMN ###
+        if LOCAL_AS_NUMBER == '2300':
+            CGI_CLI.uprint('NOT IMPLEMENTED!', tag ='h1', color = 'red', log = True)
 
 
     ### VOID CONFIG END #######################################################
