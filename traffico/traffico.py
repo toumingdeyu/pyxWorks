@@ -1241,12 +1241,17 @@ if device:
 
     ### FIND LOCAL AS NUMBER ###
     LOCAL_AS_NUMBER = None
-    if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
+    if RCMD.router_type == 'cisco_ios':
+        pass
+    if RCMD.router_type == 'cisco_xr':
         try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("local AS number")[1].splitlines()[0].strip()
         except: pass
+        if not LOCAL_AS_NUMBER:
+            try: LOCAL_AS_NUMBER = rcmd_outputs[2].split("local AS number")[1].splitlines()[0].strip()
+            except: pass        
     elif RCMD.router_type == 'juniper':
         try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("Local:")[1].splitlines()[0].split('AS')[1].strip()
-        except: pass
+        except: pass       
     elif RCMD.router_type == 'huawei':
         try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("Local AS number :")[1].splitlines()[0].strip()
         except: pass
