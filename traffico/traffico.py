@@ -599,7 +599,7 @@ class RCMD(object):
                         elif RCMD.router_type=='juniper': conf_output = RCMD.run_command('configure exclusive', \
                             conf = conf, sim_config = sim_config , printall = printall)
                         elif RCMD.router_type=='huawei':
-                            version_output = RCMD.run_command('display version', \
+                            version_output = RCMD.run_command('display version | include software', \
                                 conf = False, sim_config = sim_config, printall = printall)
                             try: RCMD.huawei_version = float(version_output.split('VRP (R) software, Version')[1].split()[0].strip())
                             except: RCMD.huawei_version = 0
