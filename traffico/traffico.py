@@ -1076,7 +1076,7 @@ def cisco_xr_parse_bgp_summary(text, LOCAL_AS_NUMBER):
         for line in temp_splited:
             if len(line.split()) == 1 and ('.' in line.split[0] or ':' in line.split[0]):
                 previous_line = line; continue
-            if previous_line: line, previous_line = previous_line + line, None
+            if previous_line: line, previous_line = previous_line + line, str()
             ### COLUMN10 IS DE FACTO SECOND WORD OF COLUMN9
             try: column10 = line.split()[10]
             except: column10 = ""
@@ -1098,14 +1098,14 @@ def huawei_parse_bgp_summary(text, LOCAL_AS_NUMBER):
         temp_splited = (copy.deepcopy(text)).split("PrefRcv")[1].strip().splitlines()
         for line in temp_splited:
             if line.strip() == str(): continue
-            if len(line.split()) == 1 and ('.' in line.split[0] or ':' in line.split[0]):
+            if len(line.split()) == 1 and ('.' in line or ':' in line):
                 previous_line = line; continue
-            if previous_line: line, previous_line = previous_line + line, None
+            if previous_line: line, previous_line = previous_line + line, str()
             try:
                 if not LOCAL_AS_NUMBER in line.split()[2] and "." in line.split()[0]:
                     ext_v4_list.append([line.split()[0], line.split()[7]])
                 if not LOCAL_AS_NUMBER in line.split()[2] and ":" in line.split()[0]:
-                    ext_v6_list.append([line.split()[0], line.split()[7]])
+                    ext_v6_list.append([line.split()[0], line.split()[7]])   
             except: pass
         del temp_splited
     except: pass
@@ -1267,8 +1267,8 @@ if device:
 
         ### OTI ###
         if LOCAL_AS_NUMBER == '5511':
-            ipv4_list, dummy = cisco_xr_parse_bgp_summary(rcmd_outputs[0],LOCAL_AS_NUMBER)
-            dummy, ipv6_list = cisco_xr_parse_bgp_summary(rcmd_outputs[1],LOCAL_AS_NUMBER)
+            ipv4_list, dummy = cisco_xr_parse_bgp_summary(rcmd_outputs[0], LOCAL_AS_NUMBER)
+            dummy, ipv6_list = cisco_xr_parse_bgp_summary(rcmd_outputs[1], LOCAL_AS_NUMBER)
 
             if SCRIPT_ACTION == 'shut':
                 if len(ipv4_list)>0: bgp_data["OTI_EXT_IPS_V4"] = ipv4_list
@@ -1316,8 +1316,8 @@ if device:
 
     ### HUAWEI ###
     elif RCMD.router_type == 'huawei':
-        ipv4_list, dummy = huawei_parse_bgp_summary(rcmd_outputs[0],LOCAL_AS_NUMBER)
-        dummy, ipv6_list = huawei_parse_bgp_summary(rcmd_outputs[1],LOCAL_AS_NUMBER)
+        ipv4_list, dummy = huawei_parse_bgp_summary(rcmd_outputs[0], LOCAL_AS_NUMBER)
+        dummy, ipv6_list = huawei_parse_bgp_summary(rcmd_outputs[1], LOCAL_AS_NUMBER)
         bgp_config.append('bgp %s' % (LOCAL_AS_NUMBER))
 
         ### OTI ###
