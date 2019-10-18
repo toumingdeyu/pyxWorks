@@ -166,7 +166,9 @@ class CGI_CLI(object):
         CGI_CLI.args = CGI_CLI.cli_parser()
         if not CGI_CLI.cgi_active: CGI_CLI.data = vars(CGI_CLI.args)
         if CGI_CLI.cgi_active:
+            print("Connection: Keep-Alive")
             print("Content-type:text/html")
+            print("Keep-Alive: timeout=1, max=300")
             print("\r\n\r\n<html><head><title>%s</title></head><body>" %
                 (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit'))
         import atexit; atexit.register(CGI_CLI.__cleanup__)
@@ -526,13 +528,16 @@ class RCMD(object):
         return command_outputs
 
     @staticmethod
-    def run_command(cmd_line = None, printall = None, conf = None, sim_config = None):
+    def run_command(cmd_line = None, printall = None, conf = None, sim_config = None, sim_all = None):
         """
         cmd_line - string, DETECTED DEVICE TYPE DEPENDENT
+        sim_all  - simulate execution of all commands, not only config commands
+                   used for ommit save/write in normal mode
+        sim_config - simulate config commands
         """
         last_output, sim_mark = str(), str()
         if RCMD.ssh_connection and cmd_line:
-            if (sim_config or RCMD.sim_config) and (conf or RCMD.conf): sim_mark = '(SIM)'
+            if ((sim_config or RCMD.sim_config) and (conf or RCMD.conf)) or sim_all: sim_mark = '(SIM)'
             else:
                 if RCMD.use_module == 'netmiko':
                     last_output = RCMD.ssh_connection.send_command(cmd_line)
@@ -555,6 +560,7 @@ class RCMD(object):
         cmd_data - dict, OS TYPE INDEPENDENT,
                  - list of strings or string, OS TYPE DEPENDENT
         conf     - True/False, go to config mode
+        sim_config - simulate config commands
         """
         command_outputs = str()
         if cmd_data and isinstance(cmd_data, (dict,collections.OrderedDict)):
@@ -653,13 +659,13 @@ class RCMD(object):
                         ### NVRAM WRITE/SAVE SECTION - NO CONFIG MODE! ---------
                         if RCMD.router_type=='cisco_ios':
                             command_outputs.append(RCMD.run_command('write', conf = False, \
-                                sim_config = sim_config, printall = printall))
+                                sim_all = sim_config, printall = printall))
                         elif RCMD.router_type=='huawei':
                             ### ALL HUAWEI VERSIONS NEED SAVE !!! ###
                             command_outputs.append(RCMD.run_command('save', conf = False, \
-                                sim_config = sim_config, printall = printall))
+                                sim_all = sim_config, printall = printall))
                             command_outputs.append(RCMD.run_command('yes', conf = False, \
-                                sim_config = sim_config, printall = printall))
+                                sim_all = sim_config, printall = printall))
                 ### CHECK CONF OUTPUTS #########################################
                 if (conf or RCMD.conf):
                     RCMD.config_problem = None
