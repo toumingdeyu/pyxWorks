@@ -1193,7 +1193,7 @@ else:
 logfilename = generate_file_name(prefix = device, USERNAME = USERNAME, suffix = SCRIPT_ACTION + '-log')
 
 
-lcmd_data = {'unix':['read var;echo $var']}
+
 
 ### LAST RED ASKING MESSAGE BEFORE ACTION ###
 if CGI_CLI.cgi_active or CGI_CLI.data.get("show_config_only"): pass
@@ -1201,13 +1201,13 @@ else:
     if CGI_CLI.data.get("shut"):
         if not 'WIN32' in sys.platform.upper():
             CGI_CLI.uprint("You are about to shut down all the BGP sessions on %s do you want to continue? (Y/N) [Enter]:", color = 'red')
-            continue_or_not = LCMD.run_commands(lcmd_data)
-            if continue_or_not[0].upper() != "Y": sys.exit(0)
+            continue_or_not = LCMD.run_command('read var;echo $var')
+            if continue_or_not.strip().upper() != "Y": sys.exit(0)
     elif CGI_CLI.data.get("noshut"):
         if not 'WIN32' in sys.platform.upper():
             CGI_CLI.uprint("You are about to switch-on all the BGP sessions on %s do you want to continue? (Y/N) [Enter]:", color = 'red')
-            continue_or_not = LCMD.run_commands(lcmd_data)
-            if continue_or_not[0].upper() != "Y": sys.exit(0)
+            continue_or_not = LCMD.run_command('read var;echo $var')
+            if continue_or_not.strip().upper() != "Y": sys.exit(0)
 
 
 ### DEVICE ACCESS #############################################################
