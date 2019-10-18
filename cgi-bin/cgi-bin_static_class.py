@@ -91,10 +91,14 @@ class CGI_CLI(object):
                             action = "store", dest = 'device',
                             default = str(),
                             help = "target router to access")
-        parser.add_argument("--rollback",
-                            action = "store_true", dest = 'rollback',
+        parser.add_argument("--shut",
+                            action = 'store_true', dest = "shut",
                             default = None,
-                            help = "do rollback")
+                            help = "switch-off bgp traffic")
+        parser.add_argument("--noshut",
+                            action = 'store_true', dest = "noshut",
+                            default = None,
+                            help = "switch-on bgp traffic")
         parser.add_argument("--sim",
                             action = "store_true", dest = 'sim',
                             default = None,
@@ -103,6 +107,14 @@ class CGI_CLI(object):
                             action = "store_true", dest = 'show_config_only',
                             default = None,
                             help = "show config only, do not push data to device")
+        parser.add_argument("--wait",
+                            action = "store", dest = 'delay',
+                            default = '120',
+                            help = "delay in seconds [between overload bit set and bgp off / between bgp on overload bit clean], 120sec by default")
+        parser.add_argument("--printall",
+                            action = "store_true", dest = 'printall',
+                            default = None,
+                            help = "print all lines, changes will be coloured")
         args = parser.parse_args()
         return args
 
@@ -129,6 +141,7 @@ class CGI_CLI(object):
         CGI_CLI.data, CGI_CLI.submit_form, CGI_CLI.username, CGI_CLI.password = \
             collections.OrderedDict(), str(), str(), str()
         form, CGI_CLI.data = collections.OrderedDict(), collections.OrderedDict()
+        CGI_CLI.logfilename = None
         try: form = cgi.FieldStorage()
         except: pass
         for key in form.keys():
@@ -189,10 +202,30 @@ class CGI_CLI(object):
                                 with open(use_filename, 'wb') as file:
                                     file.write(CGI_CLI.data.get('file[%s]'%(filename)))
                                     CGI_CLI.uprint('The file "' + use_filename + '" was uploaded.')
-                            except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']')
+                            except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']', color = 'magenta')
 
     @staticmethod
-    def uprint(text, tag = None, tag_id = None, color = None, name = None, jsonprint = None):
+    def set_logfile(logfilename = None):
+        """
+        set_logfile()            - uses LCMD.logfilename or RCMD.logfilename,
+        set_logfile(logfilename) - uses inserted logfilename
+        """
+        actual_logfilename, CGI_CLI.logfilename = None, None
+        try:
+            if not (LCMD.logfilenam == 'nul' or LCMD.logfilename == '/dev/null'):
+                actual_logfilename = LCMD.logfilename
+        except: pass
+        try:
+            if not (RCMD.logfilenam == 'nul' or RCMD.logfilename == '/dev/null'):
+               actual_logfilename = RCMD.logfilename
+        except: pass
+        if logfilename: actual_logfilename = logfilename
+        if actual_logfilename == 'nul' or actual_logfilename == '/dev/null' \
+            or not actual_logfilename: pass
+        else: CGI_CLI.logfilename = actual_logfilename
+
+    @staticmethod
+    def uprint(text, tag = None, tag_id = None, color = None, name = None, jsonprint = None, log = None):
         """NOTE: name parameter could be True or string."""
         print_text, print_name = copy.deepcopy(text), str()
         if jsonprint:
@@ -207,6 +240,7 @@ class CGI_CLI(object):
         elif isinstance(name, (six.string_types)): print_name = str(name) + ' = '
 
         print_text = str(print_text)
+        log_text   = str(copy.deepcopy((print_text)))
         if CGI_CLI.cgi_active:
             ### WORKARROUND FOR COLORING OF SIMPLE TEXT
             if color and not tag: tag = 'p';
@@ -231,6 +265,12 @@ class CGI_CLI(object):
         if CGI_CLI.cgi_active:
             if tag: print('</%s>'%(tag))
             else: print('<br/>');
+        ### LOGGING ###
+        if CGI_CLI.logfilename and log:
+            with open(CGI_CLI.logfilename,"a+") as CGI_CLI.fp:
+                CGI_CLI.fp.write(print_name + log_text + '\n')
+                del log_text
+
 
     @staticmethod
     def formprint(form_data = None, submit_button = None, pyfile = None, tag = None, color = None):
@@ -255,8 +295,8 @@ class CGI_CLI(object):
                     if isinstance(data_item.get('radio'), (list,tuple)):
                         for radiobutton in data_item.get('radio'):
                             print('<input type = "radio" name = "%s" value = "%s" /> %s'%\
-                                ('script_action',radiobutton,radiobutton.replace('_',' ')))                        
-                    else:                    
+                                ('script_action',radiobutton,radiobutton.replace('_',' ')))
+                    else:
                         print('<input type = "radio" name = "%s" value = "%s" /> %s'%\
                             (data_item.get('radio'),data_item.get('radio'),data_item.get('radio','').replace('_',' ')))
                 elif data_item.get('checkbox'):
