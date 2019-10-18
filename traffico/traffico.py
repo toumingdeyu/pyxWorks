@@ -168,7 +168,8 @@ class CGI_CLI(object):
         if CGI_CLI.cgi_active:
             #print("Connection: Keep-Alive")
             print("Content-type:text/html")
-            #print("Keep-Alive: timeout=3, max=1000")
+            #print("Transfer-Encoding: chunked")
+            #print("Keep-Alive: timeout=1, max=300")
             print("\r\n\r\n<html><head><title>%s</title></head><body>" %
                 (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit'))
         import atexit; atexit.register(CGI_CLI.__cleanup__)
