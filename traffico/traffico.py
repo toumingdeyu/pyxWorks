@@ -22,6 +22,9 @@ import requests
 from mako.template import Template
 from mako.lookup import TemplateLookup
 
+### DELAY BETWEEN OVERLOAD BIT AND BGP SHUT ###
+SLEEPSEC = 120
+
 
 
 class CGI_CLI(object):
@@ -167,7 +170,7 @@ class CGI_CLI(object):
         if not CGI_CLI.cgi_active: CGI_CLI.data = vars(CGI_CLI.args)
         if CGI_CLI.cgi_active:
             #print("Connection: Keep-Alive")
-            print("Content-type:text/html")
+            print("Content-Type:text/html")
             #print("Transfer-Encoding: chunked")
             #print("Keep-Alive: timeout=1, max=300")
             print("\r\n\r\n<html><head><title>%s</title></head><body>" %
@@ -1160,8 +1163,6 @@ device = CGI_CLI.data.get("device")
 
 SCRIPT_ACTION, bgp_data, bgp_config = str(), {}, []
 
-SLEEPSEC = 1
-
 ### TEST WORKARROUND ###
 if CGI_CLI.cgi_active and not (USERNAME and PASSWORD):
     iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
@@ -1190,6 +1191,23 @@ else:
 
 ### LOGFILENAME GENERATION ###
 logfilename = generate_file_name(prefix = device, USERNAME = USERNAME, suffix = SCRIPT_ACTION + '-log')
+
+
+lcmd_data = {'unix':['read var;echo $var']}
+
+### LAST RED ASKING MESSAGE BEFORE ACTION ###
+if CGI_CLI.cgi_active or CGI_CLI.data.get("show_config_only"): pass
+else: 
+    if CGI_CLI.data.get("shut"):
+        if not 'WIN32' in sys.platform.upper():
+            CGI_CLI.uprint("You are about to shut down all the BGP sessions on %s do you want to continue? (Y/N) [Enter]:", color = 'red')
+            continue_or_not = LCMD.run_commands(lcmd_data)
+            if continue_or_not[0].upper() != "Y": sys.exit(0)
+    elif CGI_CLI.data.get("noshut"):
+        if not 'WIN32' in sys.platform.upper():
+            CGI_CLI.uprint("You are about to switch-on all the BGP sessions on %s do you want to continue? (Y/N) [Enter]:", color = 'red')
+            continue_or_not = LCMD.run_commands(lcmd_data)
+            if continue_or_not[0].upper() != "Y": sys.exit(0)
 
 
 ### DEVICE ACCESS #############################################################
