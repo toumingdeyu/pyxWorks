@@ -438,9 +438,8 @@ class RCMD(object):
             if printall: CGI_CLI.uprint('DEVICE %s (host=%s, port=%s) START'\
                 %(device, RCMD.DEVICE_HOST, RCMD.DEVICE_PORT)+24 * '.')
             RCMD.router_type, RCMD.router_prompt = RCMD.ssh_raw_detect_router_type(debug = None)
-            if not RCMD.router_type in RCMD.KNOWN_OS_TYPES:
-                CGI_CLI.uprint('UNSUPPORTED DEVICE TYPE: \'%s\', BREAK!' % (RCMD.router_type), color = 'magenta')
-            elif printall: CGI_CLI.uprint('DETECTED DEVICE_TYPE: %s' % (RCMD.router_type))
+            if RCMD.router_type in RCMD.KNOWN_OS_TYPES and printall:
+                CGI_CLI.uprint('DETECTED DEVICE_TYPE: %s' % (RCMD.router_type))
             ####################################################################
             if RCMD.router_type == 'cisco_ios':
                 if cmd_data:
@@ -1106,7 +1105,7 @@ def huawei_parse_bgp_summary(text, LOCAL_AS_NUMBER):
                 if not LOCAL_AS_NUMBER in line.split()[2] and "." in line.split()[0]:
                     ext_v4_list.append([line.split()[0], line.split()[7]])
                 if not LOCAL_AS_NUMBER in line.split()[2] and ":" in line.split()[0]:
-                    ext_v6_list.append([line.split()[0], line.split()[7]])   
+                    ext_v6_list.append([line.split()[0], line.split()[7]])
             except: pass
         del temp_splited
     except: pass
@@ -1166,7 +1165,7 @@ if CGI_CLI.cgi_active and not CGI_CLI.submit_form:
         {'checkbox':'sim'},'<br/>',{'checkbox':'printall'},'<br/>',\
         {'checkbox':'show_config_only'},'<br/>','<br/>'], \
         submit_button = 'OK', pyfile = None, tag = None, color = None)
-    ### NOT NEEDED TO DO ANY MORE ###    
+    ### NOT NEEDED TO DO ANY MORE ###
     sys.exit(0)
 else:
     ### READ SCRIPT ACTION ###
@@ -1250,10 +1249,10 @@ if device:
         except: pass
         if not LOCAL_AS_NUMBER:
             try: LOCAL_AS_NUMBER = rcmd_outputs[2].split("local AS number")[1].splitlines()[0].strip()
-            except: pass        
+            except: pass
     elif RCMD.router_type == 'juniper':
         try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("Local:")[1].splitlines()[0].split('AS')[1].strip()
-        except: pass       
+        except: pass
     elif RCMD.router_type == 'huawei':
         try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("Local AS number :")[1].splitlines()[0].strip()
         except: pass
@@ -1272,7 +1271,7 @@ if device:
     ### CISCO_IOS #############################################################
     if RCMD.router_type == 'cisco_ios':
         CGI_CLI.uprint('NOT IMPLEMENTED YET !', tag ='h1', color = 'red', log = True)
-        
+
     ### CISCO_XR ##############################################################
     elif RCMD.router_type == 'cisco_xr':
         bgp_config.append('router bgp %s' % (LOCAL_AS_NUMBER))
@@ -1309,12 +1308,12 @@ if device:
 
                 # vrf_name, ipv6_struct = str(), []
                 # try:
-                    # for vrf_part in rcmd_outputs[3].split('VRF: ')[1:]:                        
+                    # for vrf_part in rcmd_outputs[3].split('VRF: ')[1:]:
                         # vrf_name = vrf_part.splitlines()[0].split()[0]
                         # dummy, ipv6_list = cisco_xr_parse_bgp_summary(vrf_part,LOCAL_AS_NUMBER)
                         # if ipv6_list: ipv6_struct.append([vrf_name,ipv6_list])
                 # except: pass
-                                
+
                 if SCRIPT_ACTION == 'shut':
                     if ipv4_struct: bgp_data["OTI_EXT_GROUP_IPS_V4"] = ipv4_struct
                     #if ipv6_struct: bgp_data["OTI_EXT_GROUP_IPS_V6"] = ipv6_struct
@@ -1326,7 +1325,7 @@ if device:
                     for  neighbor, status in neighbor_status:
                         if not "ADMIN" in status.upper(): bgp_config.append('neighbor %s shutdown' % neighbor)
                 # for group,neighbor_status in bgp_data.get("OTI_EXT_GROUP_IPS_V6",[]):
-                    # bgp_config.append('vrf %s' %(group))                
+                    # bgp_config.append('vrf %s' %(group))
                     # for  neighbor, status in neighbor_status:
                         # if not "ADMIN" in status.upper(): bgp_config.append('neighbor %s shutdown' % neighbor)
 
@@ -1356,17 +1355,17 @@ if device:
                             try: neighbor = line.split('neighbor')[1].strip()
                             except: neighbor = str()
                             if neighbor: active_junos_ext_groups.append([group,neighbor])
-                bgp_data["JUNOS_EXT_GROUP_NEIGHBORS"] = active_junos_ext_groups    
+                bgp_data["JUNOS_EXT_GROUP_NEIGHBORS"] = active_junos_ext_groups
                 for group,neighbor in bgp_data.get("JUNOS_EXT_GROUP_NEIGHBORS",[]):
                     bgp_config.append('deactivate protocols bgp group %s neighbor %s' % (group, neighbor))
             elif SCRIPT_ACTION == 'noshut':
                 for group,neighbor in bgp_data.get("JUNOS_EXT_GROUP_NEIGHBORS",[]):
                     bgp_config.append('activate protocols bgp group %s neighbor %s' % (group, neighbor))
         ### IMN ###
-        if LOCAL_AS_NUMBER == '2300':    
+        if LOCAL_AS_NUMBER == '2300':
             CGI_CLI.uprint('NOT IMPLEMENTED YET !', tag ='h1', color = 'red', log = True)
 
-    
+
     ### HUAWEI ################################################################
     elif RCMD.router_type == 'huawei':
         ipv4_list, dummy = huawei_parse_bgp_summary(rcmd_outputs[0], LOCAL_AS_NUMBER)
@@ -1409,15 +1408,15 @@ if device:
                                  'cisco_xr' :['router isis PAII', 'set-overload-bit'],
                                  'huawei'   :['isis %s' % (LOCAL_AS_NUMBER), 'set-overload','Y'],
                                  'juniper'  :['delete protocols isis overload timeout 240',
-                                     'set protocols isis overload']                                 
+                                     'set protocols isis overload']
                                 }
 
     overload_bit_unset_config = {'cisco_ios':['router isis PAII', 'no set-overload-bit'],
                                  'cisco_xr' :['router isis PAII', 'no set-overload-bit'],
-                                 'huawei'   :['isis %s' % (LOCAL_AS_NUMBER), 'undo set-overload', 
+                                 'huawei'   :['isis %s' % (LOCAL_AS_NUMBER), 'undo set-overload',
                                      'set-overload on-startup 240'],
                                  'juniper'  :['delete protocols isis overload',
-                                     'set protocols isis overload timeout 240']                                     
+                                     'set protocols isis overload timeout 240']
                                 }
 
 
@@ -1440,7 +1439,7 @@ if device:
         CGI_CLI.uprint('\n%s CONFIG:\n' % ('CLEAR OVERLOAD BIT'), color = 'blue', \
         tag = 'h1', log = True)
         CGI_CLI.uprint('%s\n\n' % ('\n'.join(overload_bit_unset_config.get(RCMD.router_type,[]))), \
-            color = 'blue', log = True)                                
+            color = 'blue', log = True)
 
 
     ### SHOW CONFIG ONLY END ##################################################
@@ -1489,7 +1488,7 @@ if device:
                         'huawei'   :['display bgp peer','display bgp ipv6 peer'],
                         'juniper'  :['show configuration protocols bgp']
                        }
-                       
+
     elif LOCAL_AS_NUMBER == '2300':
         check_config = {'cisco_ios':['show bgp vpnv4 unicast summary','show bgp vrf all summary'],
                         'cisco_xr': ['show bgp vpnv4 unicast summary','show bgp vrf all summary'],
@@ -1506,5 +1505,5 @@ if device:
     ### DISCONNECT + END ###
     if logfilename and os.path.exists(logfilename): CGI_CLI.uprint('%s file created.' % (logfilename))
     RCMD.disconnect()
-else: CGI_CLI.uprint('DEVICE NAME NOT INSERTED!', tag = 'h1', color = 'red')     
+else: CGI_CLI.uprint('DEVICE NAME NOT INSERTED!', tag = 'h1', color = 'red')
 
