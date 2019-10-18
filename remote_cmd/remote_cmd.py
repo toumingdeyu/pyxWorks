@@ -96,10 +96,14 @@ class CGI_CLI(object):
                             action = "store", dest = 'device',
                             default = str(),
                             help = "target router to access")
-        parser.add_argument("--rollback",
-                            action = "store_true", dest = 'rollback',
+        parser.add_argument("--shut",
+                            action = 'store_true', dest = "shut",
                             default = None,
-                            help = "do rollback")
+                            help = "switch-off bgp traffic")
+        parser.add_argument("--noshut",
+                            action = 'store_true', dest = "noshut",
+                            default = None,
+                            help = "switch-on bgp traffic")
         parser.add_argument("--sim",
                             action = "store_true", dest = 'sim',
                             default = None,
@@ -108,6 +112,14 @@ class CGI_CLI(object):
                             action = "store_true", dest = 'show_config_only',
                             default = None,
                             help = "show config only, do not push data to device")
+        parser.add_argument("--wait",
+                            action = "store", dest = 'delay',
+                            default = '120',
+                            help = "delay in seconds [between overload bit set and bgp off / between bgp on overload bit clean], 120sec by default")
+        parser.add_argument("--printall",
+                            action = "store_true", dest = 'printall',
+                            default = None,
+                            help = "print all lines, changes will be coloured")
         args = parser.parse_args()
         return args
 
@@ -134,6 +146,7 @@ class CGI_CLI(object):
         CGI_CLI.data, CGI_CLI.submit_form, CGI_CLI.username, CGI_CLI.password = \
             collections.OrderedDict(), str(), str(), str()
         form, CGI_CLI.data = collections.OrderedDict(), collections.OrderedDict()
+        CGI_CLI.logfilename = None
         try: form = cgi.FieldStorage()
         except: pass
         for key in form.keys():
@@ -197,7 +210,27 @@ class CGI_CLI(object):
                             except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']', color = 'magenta')
 
     @staticmethod
-    def uprint(text, tag = None, tag_id = None, color = None, name = None, jsonprint = None):
+    def set_logfile(logfilename = None):
+        """
+        set_logfile()            - uses LCMD.logfilename or RCMD.logfilename,
+        set_logfile(logfilename) - uses inserted logfilename
+        """
+        actual_logfilename, CGI_CLI.logfilename = None, None
+        try:
+            if not (LCMD.logfilenam == 'nul' or LCMD.logfilename == '/dev/null'):
+                actual_logfilename = LCMD.logfilename
+        except: pass
+        try:
+            if not (RCMD.logfilenam == 'nul' or RCMD.logfilename == '/dev/null'):
+               actual_logfilename = RCMD.logfilename
+        except: pass
+        if logfilename: actual_logfilename = logfilename
+        if actual_logfilename == 'nul' or actual_logfilename == '/dev/null' \
+            or not actual_logfilename: pass
+        else: CGI_CLI.logfilename = actual_logfilename
+
+    @staticmethod
+    def uprint(text, tag = None, tag_id = None, color = None, name = None, jsonprint = None, log = None):
         """NOTE: name parameter could be True or string."""
         print_text, print_name = copy.deepcopy(text), str()
         if jsonprint:
@@ -212,6 +245,7 @@ class CGI_CLI(object):
         elif isinstance(name, (six.string_types)): print_name = str(name) + ' = '
 
         print_text = str(print_text)
+        log_text   = str(copy.deepcopy((print_text)))
         if CGI_CLI.cgi_active:
             ### WORKARROUND FOR COLORING OF SIMPLE TEXT
             if color and not tag: tag = 'p';
@@ -236,6 +270,12 @@ class CGI_CLI(object):
         if CGI_CLI.cgi_active:
             if tag: print('</%s>'%(tag))
             else: print('<br/>');
+        ### LOGGING ###
+        if CGI_CLI.logfilename and log:
+            with open(CGI_CLI.logfilename,"a+") as CGI_CLI.fp:
+                CGI_CLI.fp.write(print_name + log_text + '\n')
+                del log_text
+
 
     @staticmethod
     def formprint(form_data = None, submit_button = None, pyfile = None, tag = None, color = None):
@@ -260,10 +300,10 @@ class CGI_CLI(object):
                     if isinstance(data_item.get('radio'), (list,tuple)):
                         for radiobutton in data_item.get('radio'):
                             print('<input type = "radio" name = "%s" value = "%s" /> %s'%\
-                                ('script_action',radiobutton,radiobutton.replace('_',' ')))                        
-                    else:                    
+                                ('script_action',radiobutton,radiobutton.replace('_',' ')))
+                    else:
                         print('<input type = "radio" name = "%s" value = "%s" /> %s'%\
-                            (data_item.get('radio'),data_item.get('radio'),data_item.get('radio','').replace('_',' ')))                
+                            (data_item.get('radio'),data_item.get('radio'),data_item.get('radio','').replace('_',' ')))
                 elif data_item.get('checkbox'):
                     print('<input type = "checkbox" name = "%s" value = "on" /> %s'%\
                         (data_item.get('checkbox'),data_item.get('checkbox','').replace('_',' ')))
@@ -398,9 +438,8 @@ class RCMD(object):
             if printall: CGI_CLI.uprint('DEVICE %s (host=%s, port=%s) START'\
                 %(device, RCMD.DEVICE_HOST, RCMD.DEVICE_PORT)+24 * '.')
             RCMD.router_type, RCMD.router_prompt = RCMD.ssh_raw_detect_router_type(debug = None)
-            if not RCMD.router_type in RCMD.KNOWN_OS_TYPES:
-                CGI_CLI.uprint('UNSUPPORTED DEVICE TYPE: \'%s\', BREAK!' % (RCMD.router_type), color = 'magenta')
-            elif printall: CGI_CLI.uprint('DETECTED DEVICE_TYPE: %s' % (RCMD.router_type))
+            if RCMD.router_type in RCMD.KNOWN_OS_TYPES and printall:
+                CGI_CLI.uprint('DETECTED DEVICE_TYPE: %s' % (RCMD.router_type))
             ####################################################################
             if RCMD.router_type == 'cisco_ios':
                 if cmd_data:
@@ -559,7 +598,7 @@ class RCMD(object):
                         elif RCMD.router_type=='juniper': conf_output = RCMD.run_command('configure exclusive', \
                             conf = conf, sim_config = sim_config , printall = printall)
                         elif RCMD.router_type=='huawei':
-                            version_output = RCMD.run_command('display version', \
+                            version_output = RCMD.run_command('display version | include software', \
                                 conf = False, sim_config = sim_config, printall = printall)
                             try: RCMD.huawei_version = float(version_output.split('VRP (R) software, Version')[1].split()[0].strip())
                             except: RCMD.huawei_version = 0
@@ -810,7 +849,7 @@ class RCMD(object):
                 if 'LINUX' in output.upper(): router_os = 'linux'
             if not router_os:
                 CGI_CLI.uprint("\nCannot find recognizable OS in %s" % (output), color = 'magenta')
-        except Exception as e: CGI_CLI.uprint('CONNECTION_PROBLEM[' + str(e) + ']')
+        except Exception as e: CGI_CLI.uprint('CONNECTION_PROBLEM[' + str(e) + ']' , color = 'magenta')
         finally: client.close()
         netmiko_os = str()
         if router_os == 'ios-xe': netmiko_os = 'cisco_ios'
@@ -935,7 +974,7 @@ class LCMD(object):
                 try:
                     if escape_newline:
                         edict = {}; eval(compile(cmd_data.replace('\n', '\\n'), '<string>', 'exec'), globals(), edict)
-                    else: edict = {}; eval(compile(cmd_data, '<string>', 'exec'), globals(), edict)                    
+                    else: edict = {}; eval(compile(cmd_data, '<string>', 'exec'), globals(), edict)
                 except Exception as e:
                     if printall:CGI_CLI.uprint('EXEC_PROBLEM[' + str(e) + ']', color = 'magenta')
                     LCMD.fp.write('EXEC_PROBLEM[' + str(e) + ']\n')
@@ -947,7 +986,7 @@ class LCMD(object):
         """
         NOTE: This method can access global variable, expects '=' in expression,
               in case of except assign value None
-                     
+
               escape_newline = None, ==> '\\n' = insert newline to text, '\n' = interpreted line
               escape_newline = True, ==> '\n' = insert newline to text
         """
@@ -963,7 +1002,7 @@ class LCMD(object):
                         else:
                             cmd_ex_data = 'global %s\ntry: %s = %s \nexcept: %s = None' % \
                                 (cmd_data.split('=')[0].strip().split('[')[0],cmd_data.split('=')[0].strip(), \
-                                cmd_data.split('=')[1].strip(), cmd_data.split('=')[0].strip())                        
+                                cmd_data.split('=')[1].strip(), cmd_data.split('=')[0].strip())
                     else: cmd_ex_data = cmd_data
                     if printall: CGI_CLI.uprint("EXEC: \n%s" % (cmd_ex_data))
                     LCMD.fp.write('EXEC: \n' + cmd_ex_data + '\n')
@@ -974,7 +1013,6 @@ class LCMD(object):
                     if printall:CGI_CLI.uprint('EXEC_PROBLEM[' + str(e) + ']', color = 'magenta')
                     LCMD.fp.write('EXEC_PROBLEM[' + str(e) + ']\n')
         return None
-
 
 
 
