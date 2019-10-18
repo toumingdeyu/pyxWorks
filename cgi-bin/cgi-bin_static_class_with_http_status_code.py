@@ -136,6 +136,7 @@ class CGI_CLI(object):
         CGI_CLI.buffer_string, CGI_CLI.buffer_printed = str(), None
         CGI_CLI.http_status_code = '200'
         form, CGI_CLI.data = collections.OrderedDict(), collections.OrderedDict()
+        CGI_CLI.logfilename = None
         try: form = cgi.FieldStorage()
         except: pass
         for key in form.keys():
@@ -206,14 +207,34 @@ class CGI_CLI(object):
                                 with open(use_filename, 'wb') as file:
                                     file.write(CGI_CLI.data.get('file[%s]'%(filename)))
                                     CGI_CLI.uprint('The file "' + use_filename + '" was uploaded.')
-                            except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']')
+                            except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']', color = 'magenta')
 
     @staticmethod
     def buffprint(text):
         CGI_CLI.buffer_string += str(text) + '\n'
 
     @staticmethod
-    def uprint(text, tag = None, tag_id = None, color = None, name = None, jsonprint = None):
+    def set_logfile(logfilename = None):
+        """
+        set_logfile()            - uses LCMD.logfilename or RCMD.logfilename,
+        set_logfile(logfilename) - uses inserted logfilename
+        """
+        actual_logfilename, CGI_CLI.logfilename = None, None
+        try:
+            if not (LCMD.logfilenam == 'nul' or LCMD.logfilename == '/dev/null'):
+                actual_logfilename = LCMD.logfilename
+        except: pass
+        try:
+            if not (RCMD.logfilenam == 'nul' or RCMD.logfilename == '/dev/null'):
+               actual_logfilename = RCMD.logfilename
+        except: pass
+        if logfilename: actual_logfilename = logfilename
+        if actual_logfilename == 'nul' or actual_logfilename == '/dev/null' \
+            or not actual_logfilename: pass
+        else: CGI_CLI.logfilename = actual_logfilename
+
+    @staticmethod
+    def uprint(text, tag = None, tag_id = None, color = None, name = None, jsonprint = None, log = None):
         """NOTE: name parameter could be True or string."""
         print_text, print_name = copy.deepcopy(text), str()
         if jsonprint:
@@ -228,6 +249,7 @@ class CGI_CLI(object):
         elif isinstance(name, (six.string_types)): print_name = str(name) + ' = '
 
         print_text = str(print_text)
+        log_text   = str(copy.deepcopy((print_text)))
         if CGI_CLI.cgi_active:
             ### WORKARROUND FOR COLORING OF SIMPLE TEXT
             if color and not tag: tag = 'p';
@@ -252,6 +274,11 @@ class CGI_CLI(object):
         if CGI_CLI.cgi_active:
             if tag: CGI_CLI.buffprint('</%s>'%(tag))
             else: CGI_CLI.buffprint('<br/>');
+        ### LOGGING ###
+        if CGI_CLI.logfilename and log:
+            with open(CGI_CLI.logfilename,"a+") as CGI_CLI.fp:
+                CGI_CLI.fp.write(print_name + log_text + '\n')
+                del log_text
 
     @staticmethod
     def formprint(form_data = None, submit_button = None, pyfile = None, tag = None, color = None):
@@ -276,10 +303,10 @@ class CGI_CLI(object):
                     if isinstance(data_item.get('radio'), (list,tuple)):
                         for radiobutton in data_item.get('radio'):
                             CGI_CLI.buffprint('<input type = "radio" name = "%s" value = "%s" /> %s'%\
-                                ('script_action',radiobutton,radiobutton.replace('_',' ')))                        
-                    else:                    
+                                ('script_action',radiobutton,radiobutton.replace('_',' ')))
+                    else:
                         CGI_CLI.buffprint('<input type = "radio" name = "%s" value = "%s" /> %s'%\
-                            (data_item.get('radio'),data_item.get('radio'),data_item.get('radio','').replace('_',' ')))                
+                            (data_item.get('radio'),data_item.get('radio'),data_item.get('radio','').replace('_',' ')))
                 elif data_item.get('checkbox'):
                     CGI_CLI.buffprint('<input type = "checkbox" name = "%s" value = "on" /> %s'%\
                         (data_item.get('checkbox'),data_item.get('checkbox','').replace('_',' ')))
