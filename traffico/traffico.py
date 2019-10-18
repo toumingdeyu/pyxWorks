@@ -1166,6 +1166,8 @@ if CGI_CLI.cgi_active and not CGI_CLI.submit_form:
         {'checkbox':'sim'},'<br/>',{'checkbox':'printall'},'<br/>',\
         {'checkbox':'show_config_only'},'<br/>','<br/>'], \
         submit_button = 'OK', pyfile = None, tag = None, color = None)
+    ### NOT NEEDED TO DO ANY MORE ###    
+    sys.exit(0)
 else:
     ### READ SCRIPT ACTION ###
     if (CGI_CLI.data.get("script_action") or CGI_CLI.data.get("shut") or CGI_CLI.data.get("noshut")):
@@ -1501,7 +1503,8 @@ if device:
     LCMD.eval_command('return_bgp_data_json()', logfilename = logfilename)
 
 
-    ### DISCONNECT ###
+    ### DISCONNECT + END ###
     if logfilename and os.path.exists(logfilename): CGI_CLI.uprint('%s file created.' % (logfilename))
     RCMD.disconnect()
+else: CGI_CLI.uprint('DEVICE NAME NOT INSERTED!', tag = 'h1', color = 'red')     
 
