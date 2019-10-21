@@ -7,10 +7,11 @@ def chunk(msg=""):
 
 sys.stdout.write("Transfer-Encoding: chunked\r\n")
 sys.stdout.write("Content-Type: text/html\r\n")
+sys.stdout.write(chunk("\r\n\r\n<html><head><title>%s</title></head><body>" % ('No submit')))
 
-for i in range(0,1000):
+for i in range(0,10):
     time.sleep(1)
-    sys.stdout.write( chunk( "%s\n" % ( i ) ) )
+    sys.stdout.write( chunk( "%s<br/>" % ( i ) ) )
     sys.stdout.flush()
 
-sys.stdout.write(chunk() + '\r\n')
+sys.stdout.write(chunk("</body></html>" % ('No submit')))
