@@ -363,10 +363,10 @@ class CGI_CLI(object):
             if isinstance(form_data, six.string_types): print_per_tag += form_data
             ### STRUCT FORM DATA = LIST ###
             elif isinstance(form_data, (list,tuple)):
-                for data_item in form_data: subformprint(data_item)
+                for data_item in form_data: print_per_tag += subformprint(data_item)
             ### JUST ONE DICT ###
-            elif isinstance(form_data, (dict,collections.OrderedDict)): subformprint(form_data)
-            if i_submit_button: subformprint({'submit':i_submit_button})
+            elif isinstance(form_data, (dict,collections.OrderedDict)): print_per_tag += subformprint(form_data)
+            if i_submit_button: print_per_tag += subformprint({'submit':i_submit_button})
             print_per_tag += ('</form>')
             if tag and 'p' in tag: print_per_tag += ('</p>')
             if tag and 'h' in tag: print_per_tag += ('</%s>'%(tag))
