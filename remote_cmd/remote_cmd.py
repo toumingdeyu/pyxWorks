@@ -39,9 +39,6 @@ class CGI_CLI(object):
 
     ### TO BE PLACED - IN BODY ###
     js_reload_button = """<input type="button" value="Reload Page" onClick="document.location.reload(true)">"""
-    ### TO BE PLACED - BEFORE HEADER ###
-    chunked_transfer_encoding_string = "Transfer-Encoding: chunked\r\n"
-
 
     class bcolors:
             DEFAULT    = '\033[99m'
@@ -146,7 +143,9 @@ class CGI_CLI(object):
     @staticmethod
     def init_cgi(chunked = None):
         CGI_CLI.START_EPOCH = time.time()
-        CGI_CLI.chunked = chunked
+        CGI_CLI.chunked = None
+        ### TO BE PLACED - BEFORE HEADER ###
+        CGI_CLI.chunked_transfer_encoding_string = "Transfer-Encoding: chunked\r\n"
         CGI_CLI.cgi_active = None
         CGI_CLI.initialized = True
         getpass_done = None
@@ -173,8 +172,9 @@ class CGI_CLI(object):
         CGI_CLI.args = CGI_CLI.cli_parser()
         if not CGI_CLI.cgi_active: CGI_CLI.data = vars(CGI_CLI.args)
         if CGI_CLI.cgi_active:
-            print("%sContent-type:text/html\r\n" % 
-                (chunked_transfer_encoding_string if CGI_CLI.chunked else str()))
+            CGI_CLI.chunked = chunked
+            sys.stdout.write("%sContent-type:text/html\r\n" % 
+                (CGI_CLI.chunked_transfer_encoding_string if CGI_CLI.chunked else str()))
             CGI_CLI.print_chunk("\r\n\r\n<html><head><title>%s</title></head><body>" %
                 (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit'))
         import atexit; atexit.register(CGI_CLI.__cleanup__)
@@ -240,14 +240,18 @@ class CGI_CLI(object):
     @staticmethod
     def print_chunk(msg=""):
         ### sys.stdout.write is printing without \n , print adds \n == +1BYTE ###
-        if CGI_CLI.chunked and CGI_CLI.cgi_active: sys.stdout.write("\r\n%X\r\n%s" % (len(msg), msg))
+        if CGI_CLI.chunked and CGI_CLI.cgi_active:
+            if len(msg)>0:        
+                sys.stdout.write("\r\n%X\r\n%s" % (len(msg), msg))
+                sys.stdout.flush()
+                #time.sleep(0.5)
         ### CLI MODE ###
         else: print(msg)        
 
     @staticmethod
     def uprint(text, tag = None, tag_id = None, color = None, name = None, jsonprint = None, log = None):
         """NOTE: name parameter could be True or string."""
-        print_text, print_name = copy.deepcopy(text), str()
+        print_text, print_name, print_per_tag = copy.deepcopy(text), str(), str()
         if jsonprint:
             if isinstance(text, (dict,collections.OrderedDict,list,tuple)):
                 try: print_text = json.dumps(text, indent = 4)
@@ -264,12 +268,12 @@ class CGI_CLI(object):
         if CGI_CLI.cgi_active:
             ### WORKARROUND FOR COLORING OF SIMPLE TEXT
             if color and not tag: tag = 'p';
-            if tag: CGI_CLI.print_chunk('<%s%s%s>'%(tag,' id="%s"'%(tag_id) if tag_id else str(),' style="color:%s;"'%(color) if color else 'black'))
+            if tag: print_per_tag += ('<%s%s%s>'%(tag,' id="%s"'%(tag_id) if tag_id else str(),' style="color:%s;"'%(color) if color else 'black'))
             if isinstance(print_text, six.string_types):
                 print_text = str(print_text.replace('&','&amp;').replace('<','&lt;'). \
                     replace('>','&gt;').replace(' ','&nbsp;').replace('"','&quot;').replace("'",'&apos;').\
                     replace('\n','<br/>'))
-            CGI_CLI.print_chunk(print_name + print_text)
+            print_per_tag += (print_name + print_text)
         else:
             text_color = str()
             if color:
@@ -284,8 +288,10 @@ class CGI_CLI(object):
             print(text_color + print_name + print_text + CGI_CLI.bcolors.ENDC)
         del print_text
         if CGI_CLI.cgi_active:
-            if tag: CGI_CLI.print_chunk('</%s>'%(tag))
-            else: CGI_CLI.print_chunk('<br/>');
+            if tag: print_per_tag += ('</%s>'%(tag))
+            else: print_per_tag += ('<br/>');
+            ### PRINT PER TAG ###
+            CGI_CLI.print_chunk(print_per_tag)    
         ### LOGGING ###
         if CGI_CLI.logfilename and log:
             with open(CGI_CLI.logfilename,"a+") as CGI_CLI.fp:
@@ -300,40 +306,42 @@ class CGI_CLI(object):
                       - value in dictionary means cgi variable name / printed componenet value
         """
         def subformprint(data_item):
-            if isinstance(data_item, six.string_types): CGI_CLI.print_chunk(data_item)
+            print_per_tag = str()
+            if isinstance(data_item, six.string_types): print_per_tag += (data_item)
             elif isinstance(data_item, (dict,collections.OrderedDict)):
-                if data_item.get('raw',None): CGI_CLI.print_chunk(data_item.get('raw'))
+                if data_item.get('raw',None): print_per_tag += (data_item.get('raw'))
                 elif data_item.get('textcontent',None):
-                    CGI_CLI.print_chunk('<textarea type = "textcontent" name = "%s" cols = "40" rows = "4">%s</textarea>'%\
+                    print_per_tag += ('<textarea type = "textcontent" name = "%s" cols = "40" rows = "4">%s</textarea>'%\
                         (data_item.get('textcontent'), data_item.get('text','')))
                 elif data_item.get('text'):
-                    CGI_CLI.print_chunk('%s: <input type = "text" name = "%s"><br />'%\
+                    print_per_tag += ('%s: <input type = "text" name = "%s"><br />'%\
                         (data_item.get('text','').replace('_',' '),data_item.get('text')))
                 elif data_item.get('password'):
-                    CGI_CLI.print_chunk('%s: <input type = "password" name = "%s"><br />'%\
+                    print_per_tag += ('%s: <input type = "password" name = "%s"><br />'%\
                         (data_item.get('password','').replace('_',' '),data_item.get('password')))
                 elif data_item.get('radio'):
                     if isinstance(data_item.get('radio'), (list,tuple)):
                         for radiobutton in data_item.get('radio'):
-                            CGI_CLI.print_chunk('<input type = "radio" name = "%s" value = "%s" /> %s'%\
+                            print_per_tag += ('<input type = "radio" name = "%s" value = "%s" /> %s'%\
                                 ('script_action',radiobutton,radiobutton.replace('_',' ')))
                     else:
-                        CGI_CLI.print_chunk('<input type = "radio" name = "%s" value = "%s" /> %s'%\
+                        print_per_tag += ('<input type = "radio" name = "%s" value = "%s" /> %s'%\
                             (data_item.get('radio'),data_item.get('radio'),data_item.get('radio','').replace('_',' ')))
                 elif data_item.get('checkbox'):
-                    CGI_CLI.print_chunk('<input type = "checkbox" name = "%s" value = "on" /> %s'%\
+                    print_per_tag += ('<input type = "checkbox" name = "%s" value = "on" /> %s'%\
                         (data_item.get('checkbox'),data_item.get('checkbox','').replace('_',' ')))
                 elif data_item.get('dropdown'):
                     if len(data_item.get('dropdown').split(','))>0:
-                        CGI_CLI.print_chunk('<select name = "dropdown[%s]">'%(data_item.get('dropdown')))
+                        print_per_tag += ('<select name = "dropdown[%s]">'%(data_item.get('dropdown')))
                         for option in data_item.get('dropdown').split(','):
-                            CGI_CLI.print_chunk('<option value = "%s">%s</option>'%(option,option))
-                        CGI_CLI.print_chunk('</select>')
+                            print_per_tag += ('<option value = "%s">%s</option>'%(option,option))
+                        print_per_tag += ('</select>')
                 elif data_item.get('file'):
-                   CGI_CLI.print_chunk('Upload file: <input type = "file" name = "file[%s]" />'%(data_item.get('file').replace('\\','/')))
+                   print_per_tag += ('Upload file: <input type = "file" name = "file[%s]" />'%(data_item.get('file').replace('\\','/')))
                 elif data_item.get('submit'):
-                    CGI_CLI.print_chunk('<input id = "%s" type = "submit" name = "submit" value = "%s" />'%\
+                    print_per_tag += ('<input id = "%s" type = "submit" name = "submit" value = "%s" />'%\
                         (data_item.get('submit'),data_item.get('submit')))
+            return print_per_tag        
 
         ### START OF FORMPRINT ###
         formtypes = ['raw','text','checkbox','radio','submit','dropdown','textcontent']
@@ -341,23 +349,26 @@ class CGI_CLI(object):
         if not pyfile: i_pyfile = sys.argv[0]
         try: i_pyfile = i_pyfile.replace('\\','/').split('/')[-1].strip()
         except: i_pyfile = i_pyfile.strip()
+        print_per_tag = str()
         if CGI_CLI.cgi_active:
-            CGI_CLI.print_chunk('<br/>');
-            if tag and 'h' in tag: CGI_CLI.print_chunk('<%s%s>'%(tag,' style="color:%s;"'%(color) if color else str()))
-            if color or tag and 'p' in tag: tag = 'p'; CGI_CLI.print_chunk('<p%s>'%(' style="color:%s;"'%(color) if color else str()))
-            CGI_CLI.print_chunk('<form action = "/cgi-bin/%s" enctype = "multipart/form-data" action = "save_file.py" method = "post">'%\
+            print_per_tag += '<br/>';
+            if tag and 'h' in tag: print_per_tag += ('<%s%s>'%(tag,' style="color:%s;"'%(color) if color else str()))
+            if color or tag and 'p' in tag: tag = 'p'; print_per_tag += ('<p%s>'%(' style="color:%s;"'%(color) if color else str()))
+            print_per_tag += ('<form action = "/cgi-bin/%s" enctype = "multipart/form-data" action = "save_file.py" method = "post">'%\
                 (i_pyfile))
             ### RAW HTML ###
-            if isinstance(form_data, six.string_types): CGI_CLI.print_chunk(form_data)
+            if isinstance(form_data, six.string_types): print_per_tag += form_data
             ### STRUCT FORM DATA = LIST ###
             elif isinstance(form_data, (list,tuple)):
                 for data_item in form_data: subformprint(data_item)
             ### JUST ONE DICT ###
             elif isinstance(form_data, (dict,collections.OrderedDict)): subformprint(form_data)
             if i_submit_button: subformprint({'submit':i_submit_button})
-            CGI_CLI.print_chunk('</form>')
-            if tag and 'p' in tag: CGI_CLI.print_chunk('</p>')
-            if tag and 'h' in tag: CGI_CLI.print_chunk('</%s>'%(tag))
+            print_per_tag += ('</form>')
+            if tag and 'p' in tag: print_per_tag += ('</p>')
+            if tag and 'h' in tag: print_per_tag += ('</%s>'%(tag))
+            ### PRINT PER TAG ###
+            CGI_CLI.print_chunk(print_per_tag)
 
     @staticmethod
     def html_selflink(submit_button = None):
@@ -1057,7 +1068,7 @@ if __name__ != "__main__": sys.exit(0)
 # }
 ##############################################################################
 
-USERNAME, PASSWORD = CGI_CLI.init_cgi()
+USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True)
 CGI_CLI.print_args()
 device = CGI_CLI.data.get("device",None)
 
@@ -1079,19 +1090,18 @@ lcmd_data2 = {
 
 if device:
     rcmd_outputs = RCMD.connect(device, rcmd_data1, username = USERNAME, password = PASSWORD)
-    #CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'blue')
+    CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'blue')
     rcmd_outputs = RCMD.run_commands(rcmd_data1, conf = True, sim_config = True, printall = True)
-    #CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'red')
     RCMD.disconnect()
 
 
 
 
 
-# lcmd_line = """exit 1"""
-# LCMD.init(printall = True)
-# LCMD.run_command(lcmd_line)
-# LCMD.run_commands(lcmd_data2)
+lcmd_line = """exit 1"""
+LCMD.init(printall = True)
+LCMD.run_command(lcmd_line)
+LCMD.run_commands(lcmd_data2)
 LCMD.init(printall = True)
 LCMD.exec_command('CGI_CLI.data["aaaa"] = "aaa"')
 LCMD.eval_command('CGI_CLI.data')
@@ -1105,7 +1115,7 @@ LCMD.eval_command('adata')
 
 
 LCMD.eval_command('lcmd_data2')
-LCMD.exec_command('print(lcmd_data2)')
+#LCMD.exec_command('print(lcmd_data2)')
 
 
 #BUG: writing to global variable by exec does not work without global definition
@@ -1124,14 +1134,13 @@ exec('b = b + 1')
 LCMD.eval_command('b',printall = True)
 
 
-LCMD.exec_command('print("1line\n2line")', escape_newline = True)
-LCMD.exec_command('print("11line\\n22line")')
-print(LCMD.eval_command('"111line\\n222line"'))
+#LCMD.exec_command('print("1line\n2line")', escape_newline = True)
+#LCMD.exec_command('print("11line\\n22line")')
+#print(LCMD.eval_command('"111line\\n222line"'))
 
-
-
-
-
+for i in range(0,20):
+    time.sleep(1)
+    CGI_CLI.uprint( "%s" % ( i ) ) 
 
 #CGI_CLI.uprint(CGI_CLI.args, jsonprint=True)
 
