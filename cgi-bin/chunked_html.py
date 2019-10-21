@@ -2,16 +2,18 @@
 import time
 import sys
 
-def chunk(msg=""):
-    return "\r\n%X\r\n%s" % ( len( msg ) , msg )
+def print_chunk(msg=""):
+    sys.stdout.write("\r\n%X\r\n%s" % (len(msg), msg))
+    sys.stdout.flush()
+
 
 sys.stdout.write("Transfer-Encoding: chunked\r\n")
 sys.stdout.write("Content-Type: text/html\r\n")
-sys.stdout.write(chunk("\r\n\r\n<html><head><title>%s</title></head><body>" % ('No submit')))
+print_chunk("\r\n\r\n<html><head><title>%s</title></head><body>" % ('No submit'))
 
-for i in range(0,10):
-    time.sleep(1)
-    sys.stdout.write( chunk( "%s<br/>" % ( i ) ) )
-    sys.stdout.flush()
+for i in range(0,100):
+    time.sleep(0.1)
+    print_chunk("<h1>%s<br/></h1>" % (i))
+    print_chunk("%s" % (70*"="))
 
-sys.stdout.write(chunk("</body></html>" % ('No submit')))
+print_chunk("</body></html>")
