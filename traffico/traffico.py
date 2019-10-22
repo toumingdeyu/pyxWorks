@@ -1512,9 +1512,8 @@ if device:
         if not CGI_CLI.data.get("sim"):
             CGI_CLI.uprint('Waiting...', log = True)
             for i in range(int(int(CGI_CLI.data.get("delay") if CGI_CLI.data.get("delay") else int(SLEEPSEC))/10)):
-                CGI_CLI.uprint('%s0 sec...' % (str(i+1)), log = True)
                 time.sleep(10)
-
+                CGI_CLI.uprint('%s0 sec...' % (str(i+1)), log = True)
 
 
         CGI_CLI.uprint('Writing config...', log = True)
@@ -1531,8 +1530,8 @@ if device:
         if not CGI_CLI.data.get("sim"):
             CGI_CLI.uprint('Waiting...', log = True)
             for i in range(int(int(CGI_CLI.data.get("delay") if CGI_CLI.data.get("delay") else int(SLEEPSEC))/10)):
-                CGI_CLI.uprint('%s0 sec...' % (str(i+1)), log = True)
                 time.sleep(10)
+                CGI_CLI.uprint('%s0 sec...' % (str(i+1)), log = True)
 
         CGI_CLI.uprint('Clearing overload bit...', log = True)
         RCMD.run_commands(overload_bit_unset_config, conf = True, sim_config = CGI_CLI.data.get("sim"), \
