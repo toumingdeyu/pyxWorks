@@ -1469,11 +1469,11 @@ if device:
             if SCRIPT_ACTION == 'shut':
                 vpn_list = []
                 try: 
-                     for vpn_part in rcmd_outputs[2].split('VPN-Instance')[1:]:
-                         vpn = vpn_part.split()[0].replace(',','').strip().encode(encoding="UTF-8")
-                         ipv4_list, dummy = huawei_parse_bgp_summary_parts(vpn_part, LOCAL_AS_NUMBER)
-                         vpn_list.append([vpn,ipv4_list]) 
-                     bgp_data['OTI_EXT_VPN_IPS_V4'] = vpn_list                        
+                    for vpn_part in rcmd_outputs[2].split('VPN-Instance')[1:]:
+                        vpn = vpn_part.split()[0].replace(',','').strip().encode(encoding="UTF-8")
+                        ipv4_list, dummy = huawei_parse_bgp_summary_parts(vpn_part, LOCAL_AS_NUMBER)
+                        vpn_list.append([vpn,ipv4_list]) 
+                    bgp_data['OTI_EXT_GROUP_IPS_V4'] = vpn_list                        
                 except: pass
                 
                 for vpn,neighbor_status in bgp_data.get("OTI_EXT_GROUP_IPS_V4",[]):
@@ -1491,8 +1491,7 @@ if device:
                         if not "ADMIN" in status.upper(): 
                             bgp_config.append('ipv4-family vpn-instance %s' % vpn)
                             bgp_config.append('undo peer %s ignore' % neighbor)            
-                            bgp_config.append('#')
-            
+                            bgp_config.append('#')            
 
 
     ### VOID CONFIG END #######################################################
