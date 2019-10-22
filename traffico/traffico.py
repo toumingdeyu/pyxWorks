@@ -1477,19 +1477,17 @@ if device:
                 except: pass
                 
                 for vpn,neighbor_status in bgp_data.get("OTI_EXT_GROUP_IPS_V4",[]):
-                    bgp_config.append('vrf %s' %(vpn))
+                    bgp_config.append('ipv4-family vpn-instance %s' % vpn)
                     for  neighbor, status in neighbor_status:
                         if not "ADMIN" in status.upper(): 
-                            bgp_config.append('ipv4-family vpn-instance %s' % vpn)
                             bgp_config.append('peer %s ignore' % neighbor)            
                             bgp_config.append('#')
             ### IMN ###                
             elif SCRIPT_ACTION == 'noshut':
                 for vpn,neighbor_status in bgp_data.get("OTI_EXT_GROUP_IPS_V4",[]):
-                    bgp_config.append('vrf %s' %(vpn))
+                    bgp_config.append('ipv4-family vpn-instance %s' % vpn)
                     for  neighbor, status in neighbor_status:
                         if not "ADMIN" in status.upper(): 
-                            bgp_config.append('ipv4-family vpn-instance %s' % vpn)
                             bgp_config.append('undo peer %s ignore' % neighbor)            
                             bgp_config.append('#')            
 
@@ -1596,6 +1594,7 @@ if device:
     elif LOCAL_AS_NUMBER == '2300':
         check_config = {'cisco_ios':['show bgp vpnv4 unicast summary','show bgp vrf all summary'],
                         'cisco_xr': ['show bgp vpnv4 unicast summary','show bgp vrf all summary'],
+                        'huawei':   ['disp bgp vpnv4 all peer | exclude 2300']
                        }
 
     CGI_CLI.uprint('\nFINAL MANUAL CHECK:', tag = 'h1', color = 'blue', log = True)
