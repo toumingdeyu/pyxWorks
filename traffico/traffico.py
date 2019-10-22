@@ -1152,6 +1152,27 @@ def huawei_parse_bgp_summary(text, LOCAL_AS_NUMBER):
     return ext_v4_list, ext_v6_list
 
 
+def huawei_parse_bgp_summary_parts(text, LOCAL_AS_NUMBER):
+    previous_line, ext_v4_list, ext_v6_list = str(), [], []
+    try:
+        temp_splited = (copy.deepcopy(text)).strip().splitlines()
+        for line in temp_splited:
+            if line.strip() == str(): continue
+            if len(line.split()) == 1 and ('.' in line or ':' in line):
+                previous_line = line; continue
+            if previous_line: line, previous_line = previous_line + line, str()
+            try:
+                if not LOCAL_AS_NUMBER in line.split()[2] and "." in line.split()[0]:
+                    ext_v4_list.append([line.split()[0], line.split()[7]])
+                if not LOCAL_AS_NUMBER in line.split()[2] and ":" in line.split()[0]:
+                    ext_v6_list.append([line.split()[0], line.split()[7]])
+            except: pass
+        del temp_splited
+    except: pass
+    ### RETURNS LIST IN LISTS [PEER,STATUS] ###
+    return ext_v4_list, ext_v6_list
+
+
 def return_bgp_data_json():
     return json.dumps(bgp_data, indent=2)
 
@@ -1287,7 +1308,8 @@ if device:
                     ],
 
         'huawei':   ['display bgp peer',
-                     'display bgp ipv6 peer'
+                     'display bgp ipv6 peer',
+                     'disp bgp vpnv4 all peer | exclude 2300'                     
                     ]
     }
 
@@ -1444,7 +1466,33 @@ if device:
 
         ### IMN ###
         if LOCAL_AS_NUMBER == '2300':
-            CGI_CLI.uprint('NOT IMPLEMENTED YET !', tag ='h1', color = 'red', log = True)
+            if SCRIPT_ACTION == 'shut':
+                vpn_list = []
+                try: 
+                     for vpn_part in rcmd_outputs[2].split('VPN-Instance')[1:]:
+                         vpn = vpn_part.split()[0].replace(',','').strip().encode(encoding="UTF-8")
+                         ipv4_list, dummy = huawei_parse_bgp_summary_parts(vpn_part, LOCAL_AS_NUMBER)
+                         vpn_list.append([vpn,ipv4_list]) 
+                     bgp_data['OTI_EXT_VPN_IPS_V4'] = vpn_list                        
+                except: pass
+                
+                for vpn,neighbor_status in bgp_data.get("OTI_EXT_GROUP_IPS_V4",[]):
+                    bgp_config.append('vrf %s' %(vpn))
+                    for  neighbor, status in neighbor_status:
+                        if not "ADMIN" in status.upper(): 
+                            bgp_config.append('ipv4-family vpn-instance %s' % vpn)
+                            bgp_config.append('peer %s ignore' % neighbor)            
+                            bgp_config.append('#')
+            ### IMN ###                
+            elif SCRIPT_ACTION == 'noshut':
+                for vpn,neighbor_status in bgp_data.get("OTI_EXT_GROUP_IPS_V4",[]):
+                    bgp_config.append('vrf %s' %(vpn))
+                    for  neighbor, status in neighbor_status:
+                        if not "ADMIN" in status.upper(): 
+                            bgp_config.append('ipv4-family vpn-instance %s' % vpn)
+                            bgp_config.append('undo peer %s ignore' % neighbor)            
+                            bgp_config.append('#')
+            
 
 
     ### VOID CONFIG END #######################################################
