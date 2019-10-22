@@ -1215,7 +1215,7 @@ else:
         sys.exit(0)
 
 ### LOGFILENAME GENERATION ###
-logfilename = generate_file_name(prefix = device, USERNAME = USERNAME, suffix = SCRIPT_ACTION + '-log')
+logfilename = generate_file_name(prefix = device.upper(), USERNAME = USERNAME, suffix = SCRIPT_ACTION + '.log')
 
 
 
@@ -1251,7 +1251,7 @@ if device:
 
     ### READ SHUT LOGFILE ###
     if logfilename and SCRIPT_ACTION == 'noshut':
-        last_shut_file = find_last_shut_logfile(prefix = device, USERNAME = USERNAME, suffix = 'shut-log', \
+        last_shut_file = find_last_shut_logfile(prefix = device.upper(), USERNAME = USERNAME, suffix = 'shut.log', \
             printall = CGI_CLI.data.get("printall"))
         if not last_shut_file:
             RCMD.disconnect()
