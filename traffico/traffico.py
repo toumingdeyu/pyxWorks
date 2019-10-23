@@ -1568,7 +1568,7 @@ if device:
                 time.sleep(10)
                 CGI_CLI.uprint(' %s0sec ' % (str(i+1)), no_newlines = True, log = True)
 
-        CGI_CLI.uprint('\nWriting config... ', log = True)
+        CGI_CLI.uprint('\n\nWriting config... ', log = True)
         RCMD.run_commands(bgp_config, conf = True, sim_config = CGI_CLI.data.get("sim"), \
             printall = CGI_CLI.data.get("printall"))
 
@@ -1585,7 +1585,7 @@ if device:
                 time.sleep(10)
                 CGI_CLI.uprint(' %s0sec ' % (str(i+1)), no_newlines = True, log = True)
 
-        CGI_CLI.uprint('\nClearing overload bit... ', log = True)
+        CGI_CLI.uprint('\n\nClearing overload bit... ', log = True)
         RCMD.run_commands(overload_bit_unset_config, conf = True, sim_config = CGI_CLI.data.get("sim"), \
             printall = CGI_CLI.data.get("printall"))
 
