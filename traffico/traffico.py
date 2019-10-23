@@ -178,6 +178,7 @@ class CGI_CLI(object):
             CGI_CLI.chunked = chunked
             sys.stdout.write("%sContent-type:text/html\r\n" % 
                 (CGI_CLI.chunked_transfer_encoding_string if CGI_CLI.chunked else str()))
+            sys.stdout.flush()    
             CGI_CLI.print_chunk("\r\n\r\n<html><head><title>%s</title></head><body>" %
                 (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit'))
         import atexit; atexit.register(CGI_CLI.__cleanup__)
@@ -247,12 +248,12 @@ class CGI_CLI(object):
             if len(msg)>0:        
                 sys.stdout.write("\r\n%X\r\n%s" % (len(msg), msg))
                 sys.stdout.flush()
-                #time.sleep(0.5)
         ### CLI MODE ###
         else: print(msg)        
 
     @staticmethod
-    def uprint(text, tag = None, tag_id = None, color = None, name = None, jsonprint = None, log = None):
+    def uprint(text, tag = None, tag_id = None, color = None, name = None, jsonprint = None, \
+        log = None, no_newlines = None):
         """NOTE: name parameter could be True or string."""
         print_text, print_name, print_per_tag = copy.deepcopy(text), str(), str()
         if jsonprint:
@@ -288,11 +289,15 @@ class CGI_CLI(object):
                 elif 'GREY' in color.upper():    text_color = CGI_CLI.bcolors.GREY
                 elif 'YELLOW' in color.upper():  text_color = CGI_CLI.bcolors.YELLOW
             ### CLI_MODE ###    
-            print(text_color + print_name + print_text + CGI_CLI.bcolors.ENDC)
+            if no_newlines:
+                sys.stdout.write(text_color + print_name + print_text + CGI_CLI.bcolors.ENDC)
+                sys.stdout.flush()
+            else:
+                print(text_color + print_name + print_text + CGI_CLI.bcolors.ENDC)
         del print_text
         if CGI_CLI.cgi_active:
             if tag: CGI_CLI.print_chunk('</%s>'%(tag))
-            else: CGI_CLI.print_chunk('<br/>');
+            elif not no_newlines: CGI_CLI.print_chunk('<br/>');
             ### PRINT PER TAG ###
             CGI_CLI.print_chunk(print_per_tag)    
         ### LOGGING ###
@@ -572,6 +577,7 @@ class RCMD(object):
             if printall or RCMD.printall:
                 CGI_CLI.uprint('REMOTE_COMMAND' + sim_mark + ': ' + cmd_line, color = 'blue')
                 CGI_CLI.uprint(last_output, color = 'gray')
+            else: CGI_CLI.uprint(' . ', no_newlines = True)    
             if RCMD.fp: RCMD.fp.write('REMOTE_COMMAND' + sim_mark + ': ' + cmd_line + '\n' + last_output + '\n')
         return last_output
 
@@ -692,8 +698,10 @@ class RCMD(object):
                                 sim_all = sim_config, printall = printall))
                 ### CHECK CONF OUTPUTS #########################################
                 if (conf or RCMD.conf):
+                    CGI_CLI.uprint('\nCHECKING COMMIT ERRORS...', tag = 'h1', color = 'blue')
                     RCMD.config_problem = None
                     for rcmd_output in command_outputs:
+                        CGI_CLI.uprint(' . ', no_newlines = True)
                         if 'INVALID INPUT' in rcmd_output.upper() \
                             or 'INCOMPLETE COMMAND' in rcmd_output.upper() \
                             or 'FAILED TO COMMIT' in rcmd_output.upper() \
@@ -1550,35 +1558,34 @@ if device:
 
     ### SHUT ACTION ###########################################################
     if SCRIPT_ACTION == 'shut':
-        CGI_CLI.uprint('Setting overload bit...', log = True)
+        CGI_CLI.uprint('Setting overload bit... ', log = True)
         RCMD.run_commands(overload_bit_set_config, conf = True, sim_config = CGI_CLI.data.get("sim"), \
             printall = CGI_CLI.data.get("printall"))
 
         if not CGI_CLI.data.get("sim"):
-            CGI_CLI.uprint('Waiting...', log = True)
+            CGI_CLI.uprint('Waiting... ', no_newlines = True, log = True)
             for i in range(int(int(CGI_CLI.data.get("delay") if CGI_CLI.data.get("delay") else int(SLEEPSEC))/10)):
                 time.sleep(10)
-                CGI_CLI.uprint('%s0 sec...' % (str(i+1)), log = True)
+                CGI_CLI.uprint(' %s0sec ' % (str(i+1)), no_newlines = True, log = True)
 
-
-        CGI_CLI.uprint('Writing config...', log = True)
+        CGI_CLI.uprint('\nWriting config... ', log = True)
         RCMD.run_commands(bgp_config, conf = True, sim_config = CGI_CLI.data.get("sim"), \
             printall = CGI_CLI.data.get("printall"))
 
 
     ### NOSHUT ACTION #########################################################
     elif SCRIPT_ACTION == 'noshut':
-        CGI_CLI.uprint('Writing config...', log = True)
+        CGI_CLI.uprint('Writing config... ', log = True)
         RCMD.run_commands(bgp_config, conf = True, sim_config = CGI_CLI.data.get("sim"), \
             printall = CGI_CLI.data.get("printall"))
 
         if not CGI_CLI.data.get("sim"):
-            CGI_CLI.uprint('Waiting...', log = True)
+            CGI_CLI.uprint('Waiting... ', no_newlines = True, log = True)
             for i in range(int(int(CGI_CLI.data.get("delay") if CGI_CLI.data.get("delay") else int(SLEEPSEC))/10)):
                 time.sleep(10)
-                CGI_CLI.uprint('%s0 sec...' % (str(i+1)), log = True)
+                CGI_CLI.uprint(' %s0sec ' % (str(i+1)), no_newlines = True, log = True)
 
-        CGI_CLI.uprint('Clearing overload bit...', log = True)
+        CGI_CLI.uprint('\nClearing overload bit... ', log = True)
         RCMD.run_commands(overload_bit_unset_config, conf = True, sim_config = CGI_CLI.data.get("sim"), \
             printall = CGI_CLI.data.get("printall"))
 
