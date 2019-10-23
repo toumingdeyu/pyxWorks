@@ -1446,7 +1446,7 @@ if device:
             data['bgp_as']               = '5511'
             data['router_id_line']       = router_id_line
             ### TEST_ONLY DELETION FROM CONFIG    
-            if iptac_server == 'iptac5': data['bgp_as'] = '2300'
+            #if iptac_server == 'iptac5': data['bgp_as'] = '2300'
             
             CGI_CLI.uprint(data, name = True, jsonprint = True, color = 'blue')
             CGI_CLI.uprint('\n\n')            
