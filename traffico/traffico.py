@@ -1513,15 +1513,18 @@ if device:
     ### OVERLOAD BIT SET/UNSET CONFIGS ########################################
     overload_bit_set_config   = {'cisco_ios':['router isis PAII', 'set-overload-bit'],
                                  'cisco_xr' :['router isis PAII', 'set-overload-bit'],
-                                 'huawei'   :['isis %s' % (LOCAL_AS_NUMBER), 'set-overload','Y'],
+                                 #'huawei'   :['isis %s' % (LOCAL_AS_NUMBER), 'set-overload','Y'],
+                                 'huawei'   :['isis 5511', 'set-overload','Y'],
                                  'juniper'  :['delete protocols isis overload timeout 240',
                                      'set protocols isis overload']
                                 }
 
     overload_bit_unset_config = {'cisco_ios':['router isis PAII', 'no set-overload-bit'],
                                  'cisco_xr' :['router isis PAII', 'no set-overload-bit'],
-                                 'huawei'   :['isis %s' % (LOCAL_AS_NUMBER), 'undo set-overload',
-                                     'set-overload on-startup 240'],
+                                 'huawei'   :['isis 5511', 'undo set-overload',
+                                     'set-overload on-startup 240'],                                 
+                                 #'huawei'   :['isis %s' % (LOCAL_AS_NUMBER), 'undo set-overload',
+                                 #    'set-overload on-startup 240'],
                                  'juniper'  :['delete protocols isis overload',
                                      'set protocols isis overload timeout 240']
                                 }
