@@ -1,4 +1,3 @@
-@echo off
 git init
 git config --global user.name "Peter Nemec"
 git config --global user.email peteneme@centrum.sk
@@ -7,4 +6,5 @@ rem git branch --set-upstream-to=origin/master master
 git pull origin master --force
 git remote -v
 git config --list
+git pull origin master --force
 git push --set-upstream origin master
