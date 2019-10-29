@@ -59,7 +59,7 @@ results = subprocess.check_output(command, shell=True).decode('UTF-8')
 print(results)
 
 for package in packages_string.splitlines():
-    command = "pip install --no-cache-dir %s" % (package)
+    command = "pip install --no-cache-dir --no-color %s" % (package)
     print("\nCOMMAND: " + command)
     if package.strip():
         try:
