@@ -9,7 +9,7 @@ REM Please locate such BAT files for more versions into Folter which is in perma
 SET PYTHONPATHS=%PYTHONPATH%;%PYTHONPATH%\Scripts
 REM ECHO %PATH% | FIND /I "%PYTHONPATHS%" >Nul && ( Echo Path is already set. ) || ( set PATH=%PYTHONPATH%;%PATH% )
 set PATH=%PYTHONPATHS%;%PATH%
+echo PATH=%PATH%
 @echo on
-echo %PATH%
 python --version
 @echo off
