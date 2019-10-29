@@ -12,12 +12,12 @@
             <WordsStyle name="OPERATOR" styleID="10" fgColor="00FF00" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="VERBATIM" styleID="13" fgColor="F8F8F2" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="REGEX" styleID="14" fgColor="8BE9FD" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT" styleID="1" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT LINE" styleID="2" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT DOC" styleID="3" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT LINE DOC" styleID="15" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT DOC KEYWORD" styleID="17" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT DOC KEYWORD ERROR" styleID="18" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT" styleID="1" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT LINE" styleID="2" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT DOC" styleID="3" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT LINE DOC" styleID="15" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT DOC KEYWORD" styleID="17" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT DOC KEYWORD ERROR" styleID="18" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
         </LexerType>
         <LexerType name="cpp" desc="C++" ext="">
             <WordsStyle name="PREPROCESSOR" styleID="9" fgColor="FF007F" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
@@ -30,20 +30,20 @@
             <WordsStyle name="OPERATOR" styleID="10" fgColor="00FF00" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="VERBATIM" styleID="13" fgColor="F8F8F2" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="REGEX" styleID="14" fgColor="8BE9FD" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT" styleID="1" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT LINE" styleID="2" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT DOC" styleID="3" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT LINE DOC" styleID="15" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT DOC KEYWORD" styleID="17" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT DOC KEYWORD ERROR" styleID="18" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="PREPROCESSOR COMMENT" styleID="23" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="PREPROCESSOR COMMENT DOC" styleID="24" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT" styleID="1" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT LINE" styleID="2" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT DOC" styleID="3" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT LINE DOC" styleID="15" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT DOC KEYWORD" styleID="17" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT DOC KEYWORD ERROR" styleID="18" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="PREPROCESSOR COMMENT" styleID="23" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="PREPROCESSOR COMMENT DOC" styleID="24" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
         </LexerType>
         <LexerType name="xml" desc="XML" ext="xaml svg xul vcxproj csproj vbproj fsproj lsxtproj shproj xproj ccproj jsproj sqlproj dbproj msbuildproj props">
             <WordsStyle name="XMLSTART" styleID="12" fgColor="FF007F" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="XMLEND" styleID="13" fgColor="FF007F" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="DEFAULT" styleID="0" fgColor="F8F8F2" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT" styleID="9" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT" styleID="9" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="NUMBER" styleID="5" fgColor="FF3333" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="DOUBLESTRING" styleID="6" fgColor="F8F8F2" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="SINGLESTRING" styleID="7" fgColor="F8F8F2" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
@@ -57,7 +57,7 @@
         </LexerType>
         <LexerType name="html" desc="HTML" ext="">
             <WordsStyle name="DEFAULT" styleID="0" fgColor="F8F8F2" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT" styleID="9" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT" styleID="9" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="NUMBER" styleID="5" fgColor="FF3333" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="DOUBLESTRING" styleID="6" fgColor="F8F8F2" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="SINGLESTRING" styleID="7" fgColor="F8F8F2" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
@@ -81,7 +81,7 @@
             <WordsStyle name="IDENTIFIER" styleID="6" fgColor="F8F8F2" bgColor="202020" fontName="" fontStyle="1" fontSize="" keywordClass="instre1" />
             <WordsStyle name="UNKNOWN_IDENTIFIER" styleID="7" fgColor="F8F8F2" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="VALUE" styleID="8" fgColor="F8F8F2" bgColor="202020" fontName="" fontStyle="1" fontSize="" />
-            <WordsStyle name="COMMENT" styleID="9" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT" styleID="9" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="ID" styleID="10" fgColor="F0F0F0" bgColor="202020" fontName="" fontStyle="1" fontSize="" />
             <WordsStyle name="IMPORTANT" styleID="11" fgColor="F0F0F0" bgColor="202020" fontName="" fontStyle="1" fontSize="" />
             <WordsStyle name="DIRECTIVE" styleID="12" fgColor="F0F0F0" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
@@ -97,12 +97,12 @@
             <WordsStyle name="OPERATOR" styleID="10" fgColor="00FF00" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="VERBATIM" styleID="13" fgColor="F8F8F2" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="REGEX" styleID="14" fgColor="8BE9FD" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT" styleID="1" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT LINE" styleID="2" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT DOC" styleID="3" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT LINE DOC" styleID="15" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT DOC KEYWORD" styleID="17" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT DOC KEYWORD ERROR" styleID="18" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT" styleID="1" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT LINE" styleID="2" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT DOC" styleID="3" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT LINE DOC" styleID="15" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT DOC KEYWORD" styleID="17" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT DOC KEYWORD ERROR" styleID="18" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
         </LexerType>   
         <LexerType name="cs" desc="C#" ext="vala">
             <WordsStyle name="PREPROCESSOR" styleID="9" fgColor="FF007F" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
@@ -115,12 +115,12 @@
             <WordsStyle name="OPERATOR" styleID="10" fgColor="00FF00" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="VERBATIM" styleID="13" fgColor="F8F8F2" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="REGEX" styleID="14" fgColor="8BE9FD" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT" styleID="1" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT LINE" styleID="2" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT DOC" styleID="3" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT LINE DOC" styleID="15" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT DOC KEYWORD" styleID="17" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT DOC KEYWORD ERROR" styleID="18" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT" styleID="1" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT LINE" styleID="2" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT DOC" styleID="3" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT LINE DOC" styleID="15" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT DOC KEYWORD" styleID="17" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT DOC KEYWORD ERROR" styleID="18" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
         </LexerType>
         <LexerType name="sql" desc="SQL" ext="">
             <WordsStyle name="KEYWORD" styleID="5" fgColor="FF007F" bgColor="202020" fontName="" fontStyle="0" fontSize="" keywordClass="instre1" />
@@ -128,10 +128,10 @@
             <WordsStyle name="STRING" styleID="6" fgColor="FFFF00" bgColor="202020" fontName="" fontStyle="0" fontSize="">ooooo</WordsStyle>
             <WordsStyle name="STRING2" styleID="7" fgColor="FFFF00" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="OPERATOR" styleID="10" fgColor="00FF00" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT" styleID="1" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT LINE" styleID="2" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT DOC" styleID="3" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT LINE DOC" styleID="15" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT" styleID="1" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT LINE" styleID="2" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT DOC" styleID="3" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT LINE DOC" styleID="15" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
         </LexerType>
         <LexerType name="json" desc="JSON" ext="">
             <WordsStyle name="DEFAULT" styleID="11" fgColor="F8F8F2" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
@@ -150,13 +150,13 @@
             <WordsStyle name="SINGLESTRING" styleID="49" fgColor="FFFF00" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="SYMBOLS" styleID="50" fgColor="F8F8F2" bgColor="202020" fontName="" fontStyle="1" fontSize="" />
             <WordsStyle name="REGEX" styleID="52" fgColor="8BE9FD" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT" styleID="42" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENTLINE" styleID="43" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENTDOC" styleID="44" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT" styleID="42" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENTLINE" styleID="43" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENTDOC" styleID="44" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
         </LexerType>
         <LexerType name="python" desc="Python" ext="">
             <WordsStyle name="DEFAULT" styleID="0" fgColor="F8F8F2" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENTLINE" styleID="1" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENTLINE" styleID="1" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="NUMBER" styleID="2" fgColor="FF3333" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="STRING" styleID="3" fgColor="FFFF00" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="CHARACTER" styleID="4" fgColor="FFFF00" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
@@ -167,12 +167,12 @@
             <WordsStyle name="DEFNAME" styleID="9" fgColor="F0F0F0" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="OPERATOR" styleID="10" fgColor="00FF00" bgColor="202020" fontName="" fontStyle="1" fontSize="" />
             <WordsStyle name="IDENTIFIER" styleID="11" fgColor="F0F0F0" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENTBLOCK" styleID="12" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENTBLOCK" styleID="12" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="DECORATOR" styleID="15" fgColor="9933FF" bgColor="202020" fontName="" fontStyle="2" fontSize="" />
         </LexerType>
         <LexerType name="batch" desc="Batch" ext="">
             <WordsStyle name="DEFAULT" styleID="0" fgColor="F8F8F2" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT" styleID="1" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT" styleID="1" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="KEYWORDS" styleID="2" fgColor="FF007F" bgColor="202020" fontName="" fontStyle="0" fontSize="" keywordClass="instre1" />
             <WordsStyle name="LABEL" styleID="3" fgColor="F0F0F0" bgColor="202020" fontName="" fontStyle="0" fontSize="">import</WordsStyle>
             <WordsStyle name="HIDE SYBOL" styleID="4" fgColor="FF007F" bgColor="202020" fontName="" fontStyle="0" fontSize="">import</WordsStyle>
@@ -182,7 +182,7 @@
         </LexerType>
         <LexerType name="ini" desc="ini file" ext="cfg conf">
             <WordsStyle name="DEFAULT" styleID="0" fgColor="F8F8F2" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT" styleID="1" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT" styleID="1" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="SECTION" styleID="2" fgColor="FF007F" bgColor="202020" fontName="" fontStyle="1" fontSize="" />
             <WordsStyle name="ASSIGNMENT" styleID="3" fgColor="FF007F" bgColor="202020" fontName="" fontStyle="1" fontSize="" />
             <WordsStyle name="DEFVAL" styleID="4" fgColor="FF007F" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
@@ -190,8 +190,8 @@
         <LexerType name="ruby" desc="Ruby" ext="">
             <WordsStyle name="DEFAULT" styleID="0" fgColor="F8F8F2" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="ERROR" styleID="1" fgColor="F1FA8C" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENTLINE" styleID="2" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="POD" styleID="3" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENTLINE" styleID="2" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="POD" styleID="3" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="NUMBER" styleID="4" fgColor="FF3333" bgColor="202020" fontName="" fontStyle="0" fontSize="">if else for while</WordsStyle>
             <WordsStyle name="INSTRUCTION" styleID="5" fgColor="FF007F" bgColor="202020" fontName="" fontStyle="1" fontSize="" keywordClass="instre1">bool long int char</WordsStyle>
             <WordsStyle name="STRING" styleID="6" fgColor="FFFF00" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
@@ -220,7 +220,7 @@
             <WordsStyle name="OPERATOR" styleID="7" fgColor="00FF00" bgColor="202020" fontName="" fontStyle="1" fontSize="" />
             <WordsStyle name="IDENTIFIER" styleID="8" fgColor="F0F0F0" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="SCALAR" styleID="9" fgColor="F0F0F0" bgColor="202020" fontName="" fontStyle="1" fontSize="" />
-            <WordsStyle name="COMMENT LINE" styleID="2" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT LINE" styleID="2" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="PARAM" styleID="10" fgColor="F0F0F0" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="BACKTICKS" styleID="11" fgColor="FF007F" bgColor="202020" fontName="" fontStyle="1" fontSize="" />
             <WordsStyle name="HERE DELIM" styleID="12" fgColor="FF007F" bgColor="202020" fontName="" fontStyle="1" fontSize="" />
@@ -240,16 +240,16 @@
             <WordsStyle name="IMPORT" styleID="10" fgColor="FF007F" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="OPERATOR" styleID="11" fgColor="FF007F" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="INSTANCE" styleID="12" fgColor="FF007F" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENTLINE" styleID="13" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENTBLOCK" styleID="14" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENTBLOCK2" styleID="15" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENTBLOCK3" styleID="16" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENTLINE" styleID="13" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENTBLOCK" styleID="14" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENTBLOCK2" styleID="15" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENTBLOCK3" styleID="16" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
         </LexerType>
         <LexerType name="lua" desc="Lua" ext="">
             <WordsStyle name="DEFAULT" styleID="0" fgColor="F8F8F2" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT" styleID="1" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT LINE" styleID="2" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT DOC" styleID="3" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT" styleID="1" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT LINE" styleID="2" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT DOC" styleID="3" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="LITERALSTRING" styleID="8" fgColor="FFFF00" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="PREPROCESSOR" styleID="9" fgColor="FF007F" bgColor="FFFFFF" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="INSTRUCTION WORD" styleID="5" fgColor="FF007F" bgColor="202020" fontName="" fontStyle="1" fontSize="" keywordClass="instre1" />
@@ -266,7 +266,7 @@
         <LexerType name="yaml" desc="YAML" ext="">
             <WordsStyle name="DEFAULT" styleID="0" fgColor="F8F8F2" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="IDENTIFIER" styleID="2" fgColor="F0F0F0" bgColor="202020" fontName="" fontStyle="1" fontSize="" />
-            <WordsStyle name="COMMENT" styleID="1" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT" styleID="1" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="INSTRUCTION WORD" styleID="3" fgColor="FF007F" bgColor="202020" fontName="" fontStyle="1" fontSize="" keywordClass="instre1" />
             <WordsStyle name="NUMBER" styleID="4" fgColor="FF3333" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="REFERENCE" styleID="5" fgColor="FF007F" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
@@ -276,7 +276,7 @@
         </LexerType>
         <LexerType name="props" desc="Properties file" ext="">
             <WordsStyle name="DEFAULT" styleID="0" fgColor="F8F8F2" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT" styleID="1" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT" styleID="1" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="SECTION" styleID="2" fgColor="FF007F" bgColor="202020" fontName="" fontStyle="1" fontSize="" />
             <WordsStyle name="ASSIGNMENT" styleID="3" fgColor="FF007F" bgColor="202020" fontName="" fontStyle="1" fontSize="" />
             <WordsStyle name="DEFVAL" styleID="4" fgColor="FF007F" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
@@ -290,13 +290,13 @@
             <WordsStyle name="WORD" styleID="121" fgColor="FF007F" bgColor="202020" fontName="" fontStyle="1" fontSize="" keywordClass="instre1" />
             <WordsStyle name="NUMBER" styleID="122" fgColor="FF3333" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="VARIABLE" styleID="123" fgColor="F0F0F0" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT" styleID="124" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENTLINE" styleID="125" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT" styleID="124" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENTLINE" styleID="125" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="OPERATOR" styleID="127" fgColor="00FF00" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
         </LexerType>
         <LexerType name="makefile" desc="Makefile" ext="">
             <WordsStyle name="DEFAULT" styleID="0" fgColor="F8F8F2" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT" styleID="1" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT" styleID="1" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="PREPROCESSOR" styleID="2" fgColor="804000" bgColor="202020" fontName="" fontStyle="1" fontSize="" />
             <WordsStyle name="IDENTIFIER" styleID="3" fgColor="F0F0F0" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="OPERATOR" styleID="4" fgColor="FF007F" bgColor="202020" fontName="" fontStyle="1" fontSize="" />
@@ -305,7 +305,7 @@
         </LexerType>
         <LexerType name="powershell" desc="PowerShell" ext="">
             <WordsStyle name="DEFAULT" styleID="0" fgColor="F8F8F2" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT" styleID="1" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT" styleID="1" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="STRING" styleID="2" fgColor="FFFF00" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="CHARACTER" styleID="3" fgColor="FFFF00" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="NUMBER" styleID="4" fgColor="FF3333" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
@@ -314,14 +314,14 @@
             <WordsStyle name="INSTRUCTION WORD" styleID="8" fgColor="FF007F" bgColor="202020" fontName="" fontStyle="1" fontSize="" keywordClass="instre1" />
             <WordsStyle name="CMDLET" styleID="9" fgColor="BD93F9" bgColor="202020" fontName="" fontStyle="0" fontSize="" keywordClass="instre2" />
             <WordsStyle name="ALIAS" styleID="10" fgColor="BD93F9" bgColor="202020" fontName="" fontStyle="0" fontSize="" keywordClass="type1" />
-            <WordsStyle name="COMMENT STREAM" styleID="13" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT STREAM" styleID="13" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="HERE STRING" styleID="14" fgColor="FFFF00" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="HERE CHARACTER" styleID="15" fgColor="FFFF00" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT DOC KEYWORD" styleID="16" fgColor="606060" bgColor="202020" fontName="" fontStyle="1" fontSize="" keywordClass="type4" />
+            <WordsStyle name="COMMENT DOC KEYWORD" styleID="16" fgColor="006666" bgColor="202020" fontName="" fontStyle="1" fontSize="" keywordClass="type4" />
         </LexerType>
         <LexerType name="matlab" desc="Matlab" ext="">
             <WordsStyle name="DEFAULT" styleID="0" fgColor="F8F8F2" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT" styleID="1" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT" styleID="1" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="COMMAND" styleID="2" fgColor="BD93F9" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="NUMBER" styleID="3" fgColor="FF3333" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="INSTRUCTION WORD" styleID="4" fgColor="FF007F" bgColor="202020" fontName="" fontStyle="1" fontSize="" keywordClass="instre1" />
@@ -332,7 +332,7 @@
         </LexerType>
         <LexerType name="lisp" desc="LISP" ext="">
             <WordsStyle name="DEFAULT" styleID="0" fgColor="F8F8F2" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENTLINE" styleID="1" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENTLINE" styleID="1" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="NUMBER" styleID="2" fgColor="FF3333" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="FUNCTION WORD" styleID="3" fgColor="F0F0F0" bgColor="202020" fontName="" fontStyle="1" fontSize="" keywordClass="instre1" />
             <WordsStyle name="FUNCTION WORD2" styleID="4" fgColor="F0F0F0" bgColor="202020" fontName="" fontStyle="1" fontSize="" keywordClass="instre2" />
@@ -341,7 +341,7 @@
             <WordsStyle name="IDENTIFIER" styleID="9" fgColor="F0F0F0" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
             <WordsStyle name="OPERATOR" styleID="10" fgColor="00FF00" bgColor="202020" fontName="" fontStyle="1" fontSize="" keywordClass="type1" />
             <WordsStyle name="SPECIAL" styleID="11" fgColor="BD93F9" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
-            <WordsStyle name="COMMENT" styleID="12" fgColor="606060" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
+            <WordsStyle name="COMMENT" styleID="12" fgColor="006666" bgColor="202020" fontName="" fontStyle="0" fontSize="" />
         </LexerType>
     </LexerStyles>
     <GlobalStyles>
