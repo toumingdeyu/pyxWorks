@@ -1,3 +1,4 @@
+@echo off
 git init
 git config --global user.name "Peter Nemec"
 git config --global user.email peteneme@centrum.sk
