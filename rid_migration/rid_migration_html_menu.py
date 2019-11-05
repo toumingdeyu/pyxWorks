@@ -1215,6 +1215,22 @@ bgp ${bgp_as}
 #
 ${router_id_line}
 #
+mpls lsr-id ${loopback_200_address}
+#
+#
+mpls
+mpls te
+mpls rsvp-te
+mpls te cspf
+lsp-trigger ip-prefix TAG-ADVERTISE-FILTER
+#
+mpls l2vpn
+mpls l2vpn default martini
+#
+mpls ldp
+#
+ipv4-family
+#
 """
 
 undo_huawei_config = """#
