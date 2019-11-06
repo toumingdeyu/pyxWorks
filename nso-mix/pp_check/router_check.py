@@ -5,7 +5,10 @@
 # Author: Philippe Marcais (philippe.marcais@orange.com)                      #
 #         Peter Nemec      (peter.nemec@orange.com)                           #
 # Created: 06/01/2015                                                         #
-# Updated: 23/Mar/2019 -added new custom filediff                             #
+# Updated: 09/Nov/2019 -device name used allways UPPERCASE                    #
+#          03/Oct/2019 -added acl commands for all router types.Linefilter ok.#
+#          25/Jun/2019 -line numbers %tolerance.                              #
+#          23/Mar/2019 -added new custom filediff                             #
 #          25/Mar/2019 -added vrp huawei router type, old/new filediff method #
 #          05/Apr/2019 -autod. all, new commands, new filtering, new colours  #
 #          03/Oct/2019 -acl filter all types, ignore twice tolerance          #
@@ -959,15 +962,15 @@ if not USERNAME:
 if not PASSWORD or args.fgetpass: PASSWORD = getpass.getpass("TACACS password: ")
 
 router_prompt = None
-try: PARAMIKO_HOST = args.device.split(':')[0]
+try: PARAMIKO_HOST = args.device.upper().split(':')[0]
 except: PARAMIKO_HOST = str()
-try: PARAMIKO_PORT = args.device.split(':')[1]
+try: PARAMIKO_PORT = args.device.upper().split(':')[1]
 except: PARAMIKO_PORT = '22'
 
 ####### Figure out type of router OS
 if not args.router_type:
-    #router_type = find_router_type(args.device)
-    router_type, router_prompt = detect_router_by_ssh(args.device,debug = False)
+    #router_type = find_router_type(args.device.upper())
+    router_type, router_prompt = detect_router_by_ssh(args.device.upper(),debug = False)
     print('DETECTED ROUTER_TYPE: ' + router_type)
 else:
     router_type = args.router_type
@@ -991,9 +994,9 @@ if args.precheck_file:
 else:
     if pre_post == 'post' or args.recheck or args.postcheck_file:
         if args.latest:
-            list_precheck_files = glob.glob(os.path.join(WORKDIR,args.device.replace(':','_').replace('.','_')) + '*' + 'pre')
+            list_precheck_files = glob.glob(os.path.join(WORKDIR,args.device.upper().replace(':','_').replace('.','_')) + '*' + 'pre')
         else:
-            list_precheck_files = glob.glob(os.path.join(WORKDIR,args.device.replace(':','_').replace('.','_')) + '*' + USERNAME + '-pre')
+            list_precheck_files = glob.glob(os.path.join(WORKDIR,args.device.upper().replace(':','_').replace('.','_')) + '*' + USERNAME + '-pre')
 
         if len(list_precheck_files) == 0:
             print(bcolors.MAGENTA + " ... Can't find any precheck file." + bcolors.ENDC)
@@ -1021,9 +1024,9 @@ if args.recheck or args.postcheck_file:
             pre_post = 'post'
     else:
         if args.latest:
-            list_postcheck_files = glob.glob(os.path.join(WORKDIR,args.device.replace(':','_').replace('.','_')) + '*' + 'post')
+            list_postcheck_files = glob.glob(os.path.join(WORKDIR,args.device.upper().replace(':','_').replace('.','_')) + '*' + 'post')
         else:
-            list_postcheck_files = glob.glob(os.path.join(WORKDIR,args.device.replace(':','_').replace('.','_')) + '*' + USERNAME + '-post')
+            list_postcheck_files = glob.glob(os.path.join(WORKDIR,args.device.upper().replace(':','_').replace('.','_')) + '*' + USERNAME + '-post')
 
         if len(list_postcheck_files) == 0:
             print(bcolors.MAGENTA + " ... Can't find any postcheck file." + bcolors.ENDC)
@@ -1050,7 +1053,7 @@ if args.cmd_file:
             list_cmd.append([fp_cmd.readline().strip()])
         fp_cmd.close
 
-filename_prefix = os.path.join(WORKDIR,args.device.replace(':','_').replace('.','_'))
+filename_prefix = os.path.join(WORKDIR,args.device.upper().replace(':','_').replace('.','_'))
 filename_suffix = pre_post
 now = datetime.datetime.now()
 filename_generated = "%s-%.2i%.2i%.2i-%.2i%.2i%.2i-%s-%s" % \
@@ -1131,7 +1134,7 @@ print_cmd_list(CMD)
 if args.recheck or args.postcheck_file: pass
 else:
     # SSH (default)
-    print(" ... Connecting (SSH) to %s" % (args.device))
+    print(" ... Connecting (SSH) to %s" % (args.device.upper()))
     client = paramiko.SSHClient()
     #client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
