@@ -1436,7 +1436,7 @@ if device:
                 for group in junos_ext_groups:
                     for line in rcmd_outputs[2].splitlines():
                         if group in line and 'deactivate' not in line:
-                            try: neighbor = line.split('neighbor')[1].strip()
+                            try: neighbor = line.split('neighbor')[1].split()[0].strip()
                             except: neighbor = str()
                             if neighbor: active_junos_ext_groups.append([group,neighbor])
                 bgp_data["JUNOS_EXT_GROUP_NEIGHBORS"] = active_junos_ext_groups
