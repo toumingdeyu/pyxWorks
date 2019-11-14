@@ -48,6 +48,7 @@ pandas
 numpy
 matplotlib.pyplot
 cerberus
+dynamic
 """
 
 ### MAIN ######################################################################
