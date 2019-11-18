@@ -349,7 +349,7 @@ class RCMD(object):
         do_not_final_print = None, commit_text = None):
         """ FUNCTION: RCMD.connect(), RETURNS: list of command_outputs
         PARAMETERS:
-        device     - string , device_name/ip_address/device_name:PORT_NUMBER/ip_address:PORT_NUMBER 
+        device     - string , device_name/ip_address/device_name:PORT_NUMBER/ip_address:PORT_NUMBER
         cmd_data  - dict, {'cisco_ios':[..], 'cisco_xr':[..], 'juniper':[..], 'huawei':[], 'linux':[..]}
         username   - string, remote username
         password   - string, remote password
@@ -357,7 +357,7 @@ class RCMD(object):
         disconnect - True/False, immediate disconnect after RCMD.connect and processing of cmd_data
         logfilename - strng, name of logging file
         conf        - True/False, go to config mode
-        NOTES: 
+        NOTES:
         1. cmd_data is DEVICE TYPE INDEPENDENT and will be processed after device detection
         2. only 1 instance of static class RCMD could exists
         """
@@ -389,17 +389,16 @@ class RCMD(object):
             except: RCMD.DEVICE_HOST = str()
             try: RCMD.DEVICE_PORT = device.split(':')[1]
             except: RCMD.DEVICE_PORT = '22'
-            CGI_CLI.uprint('DEVICE %s (host=%s, port=%s) START'\
+            if printall: CGI_CLI.uprint('DEVICE %s (host=%s, port=%s) START'\
                 %(device, RCMD.DEVICE_HOST, RCMD.DEVICE_PORT)+24 * '.')
             RCMD.router_type, RCMD.router_prompt = RCMD.ssh_raw_detect_router_type(debug = None)
-            if not RCMD.router_type in RCMD.KNOWN_OS_TYPES:
-                CGI_CLI.uprint('UNSUPPORTED DEVICE TYPE: \'%s\', BREAK!' % (RCMD.router_type), color = 'magenta')
-            else: CGI_CLI.uprint('DETECTED DEVICE_TYPE: %s' % (RCMD.router_type))
+            if RCMD.router_type in RCMD.KNOWN_OS_TYPES and printall:
+                CGI_CLI.uprint('DETECTED DEVICE_TYPE: %s' % (RCMD.router_type))
             ####################################################################
             if RCMD.router_type == 'cisco_ios':
-                if cmd_data: 
+                if cmd_data:
                     try: RCMD.CMD = cmd_data.get('cisco_ios',[])
-                    except: 
+                    except:
                         if isinstance(cmd_data,(list,tuple)): RCMD.CMD = cmd_data
                 RCMD.DEVICE_PROMPTS = [ \
                     '%s%s#'%(RCMD.device.upper(),''), \
@@ -410,9 +409,9 @@ class RCMD(object):
                 RCMD.TERM_LEN_0 = "terminal length 0"
                 RCMD.EXIT = "exit"
             elif RCMD.router_type == 'cisco_xr':
-                if cmd_data: 
+                if cmd_data:
                     try: RCMD.CMD = cmd_data.get('cisco_xr',[])
-                    except: 
+                    except:
                         if isinstance(cmd_data,(list,tuple)): RCMD.CMD = cmd_data
                 RCMD.DEVICE_PROMPTS = [ \
                     '%s%s#'%(RCMD.device.upper(),''), \
@@ -423,9 +422,9 @@ class RCMD(object):
                 RCMD.TERM_LEN_0 = "terminal length 0"
                 RCMD.EXIT = "exit"
             elif RCMD.router_type == 'juniper':
-                if cmd_data: 
+                if cmd_data:
                     try: RCMD.CMD = cmd_data.get('juniper',[])
-                    except: 
+                    except:
                         if isinstance(cmd_data,(list,tuple)): RCMD.CMD = cmd_data
                 RCMD.DEVICE_PROMPTS = [ \
                      USERNAME + '@' + RCMD.device.upper() + '> ', # !! Need the space after >
@@ -435,7 +434,7 @@ class RCMD(object):
             elif RCMD.router_type == 'huawei':
                 if cmd_data:
                     try: RCMD.CMD = cmd_data.get('huawei',[])
-                    except: 
+                    except:
                         if isinstance(cmd_data,(list,tuple)): RCMD.CMD = cmd_data
                 RCMD.DEVICE_PROMPTS = [ \
                     '<' + RCMD.device.upper() + '>',
@@ -445,9 +444,9 @@ class RCMD(object):
                 RCMD.TERM_LEN_0 = "screen-length 0 temporary"     #"screen-length disable"
                 RCMD.EXIT = "quit"
             elif RCMD.router_type == 'linux':
-                if cmd_data: 
+                if cmd_data:
                     try: RCMD.CMD = cmd_data.get('linux',[])
-                    except: 
+                    except:
                         if isinstance(cmd_data,(list,tuple)): RCMD.CMD = cmd_data
                 RCMD.DEVICE_PROMPTS = [ ]
                 RCMD.TERM_LEN_0 = ''     #"screen-length disable"
@@ -473,21 +472,24 @@ class RCMD(object):
                     RCMD.output += RCMD.output2
                 ### WORK REMOTE  =============================================
                 command_outputs = RCMD.run_commands(RCMD.CMD)
-                ### ==========================================================  
-            except Exception as e: CGI_CLI.uprint('CONNECTION_PROBLEM[' + str(e) + ']')    
+                ### ==========================================================
+            except Exception as e: CGI_CLI.uprint('CONNECTION_PROBLEM[' + str(e) + ']', color = 'magenta')
             finally:
                 if disconnect: RCMD.disconnect()
-        else: CGI_CLI.uprint('DEVICE NOT INSERTED!')
-        return command_outputs        
+        else: CGI_CLI.uprint('DEVICE NOT INSERTED!', color = 'magenta')
+        return command_outputs
 
     @staticmethod
-    def run_command(cmd_line = None, printall = None, conf = None, sim_config = None):
+    def run_command(cmd_line = None, printall = None, conf = None, sim_config = None, sim_all = None):
         """
         cmd_line - string, DETECTED DEVICE TYPE DEPENDENT
+        sim_all  - simulate execution of all commands, not only config commands
+                   used for ommit save/write in normal mode
+        sim_config - simulate config commands
         """
         last_output, sim_mark = str(), str()
         if RCMD.ssh_connection and cmd_line:
-            if (sim_config or RCMD.sim_config) and (conf or RCMD.conf): sim_mark = '(SIM)'
+            if ((sim_config or RCMD.sim_config) and (conf or RCMD.conf)) or sim_all: sim_mark = '(SIM)'
             else:
                 if RCMD.use_module == 'netmiko':
                     last_output = RCMD.ssh_connection.send_command(cmd_line)
@@ -495,11 +497,11 @@ class RCMD(object):
                     last_output, new_prompt = RCMD.ssh_send_command_and_read_output( \
                         RCMD.ssh_connection, RCMD.DEVICE_PROMPTS, cmd_line, printall = printall)
                     if new_prompt: RCMD.DEVICE_PROMPTS.append(new_prompt)
-            if printall or RCMD.printall: 
+            if printall or RCMD.printall:
                 CGI_CLI.uprint('REMOTE_COMMAND' + sim_mark + ': ' + cmd_line, color = 'blue')
-                CGI_CLI.uprint(last_output, color = 'gray')                
-            if RCMD.fp: RCMD.fp.write('REMOTE_COMMAND' + sim_mark + ': ' + cmd_line + '\n' + last_output + '\n')    
-        return last_output 
+                CGI_CLI.uprint(last_output, color = 'gray')
+            if RCMD.fp: RCMD.fp.write('REMOTE_COMMAND' + sim_mark + ': ' + cmd_line + '\n' + last_output + '\n')
+        return last_output
 
     @staticmethod
     def run_commands(cmd_data = None, printall = None, conf = None, sim_config = None, \
@@ -507,21 +509,22 @@ class RCMD(object):
         """
         FUNCTION: run_commands(), RETURN: list of command_outputs
         PARAMETERS:
-        cmd_data - dict, OS TYPE INDEPENDENT, 
-                 - list of strings or string, OS TYPE DEPENDENT    
-        conf     - True/False, go to config mode        
+        cmd_data - dict, OS TYPE INDEPENDENT,
+                 - list of strings or string, OS TYPE DEPENDENT
+        conf     - True/False, go to config mode
+        sim_config - simulate config commands
         """
         command_outputs = str()
         if cmd_data and isinstance(cmd_data, (dict,collections.OrderedDict)):
             if RCMD.router_type=='cisco_ios': cmd_list = cmd_data.get('cisco_ios',[])
             elif RCMD.router_type=='cisco_xr': cmd_list = cmd_data.get('cisco_xr',[])
             elif RCMD.router_type=='juniper': cmd_list = cmd_data.get('juniper',[])
-            elif RCMD.router_type=='huawei': cmd_list = cmd_data.get('huawei',[]) 
-            elif RCMD.router_type=='linux': cmd_list = cmd_data.get('linux',[]) 
+            elif RCMD.router_type=='huawei': cmd_list = cmd_data.get('huawei',[])
+            elif RCMD.router_type=='linux': cmd_list = cmd_data.get('linux',[])
         elif cmd_data and isinstance(cmd_data, (list,tuple)): cmd_list = cmd_data
         elif cmd_data and isinstance(cmd_data, (six.string_types)): cmd_list = [cmd_data]
         else: cmd_list = []
-        
+
         if RCMD.ssh_connection and len(cmd_list)>0:
             ### WORK REMOTE ================================================
             if not RCMD.logfilename:
@@ -534,99 +537,98 @@ class RCMD(object):
                 if (conf or RCMD.conf) and RCMD.use_module == 'netmiko':
                     if (sim_config or RCMD.sim_config): sim_mark, last_output = '(SIM)', str()
                     else:
-                        ### PROCESS COMMANDS - PER COMMAND LIST! ###############                    
+                        ### PROCESS COMMANDS - PER COMMAND LIST! ###############
                         last_output = RCMD.ssh_connection.send_config_set(cmd_list)
-                        if printall or RCMD.printall: 
+                        if printall or RCMD.printall:
                             CGI_CLI.uprint('REMOTE_COMMAND' + sim_mark + ': ' + str(cmd_list), color = 'blue')
-                            CGI_CLI.uprint(str(last_output), color = 'gray')       
+                            CGI_CLI.uprint(str(last_output), color = 'gray')
                         if RCMD.fp: RCMD.fp.write('REMOTE_COMMANDS' + sim_mark + ': ' \
-                            + str(cmd_list) + '\n' + str(last_output) + '\n')                            
-                        command_outputs = [last_output]     
-                elif RCMD.use_module == 'paramiko':    
+                            + str(cmd_list) + '\n' + str(last_output) + '\n')
+                        command_outputs = [last_output]
+                elif RCMD.use_module == 'paramiko':
                     ### CONFIG MODE FOR PARAMIKO ###############################
-                    conf_output = ''                    
-                    if (conf or RCMD.conf) and RCMD.use_module == 'paramiko':    
+                    conf_output = ''
+                    if (conf or RCMD.conf) and RCMD.use_module == 'paramiko':
                         if RCMD.router_type=='cisco_ios': conf_output = RCMD.run_command('config t', \
                             conf = conf, sim_config = sim_config, printall = printall)
                         elif RCMD.router_type=='cisco_xr': conf_output = RCMD.run_command('config t', \
                             conf = conf, sim_config = sim_config, printall = printall)
-                        elif RCMD.router_type=='juniper': conf_output = RCMD.run_command('configure private', \
+                        elif RCMD.router_type=='juniper': conf_output = RCMD.run_command('configure exclusive', \
                             conf = conf, sim_config = sim_config , printall = printall)
                         elif RCMD.router_type=='huawei':
-                            version_output = RCMD.run_command('display version', \
+                            version_output = RCMD.run_command('display version | include software', \
                                 conf = False, sim_config = sim_config, printall = printall)
                             try: RCMD.huawei_version = float(version_output.split('VRP (R) software, Version')[1].split()[0].strip())
-                            except: RCMD.huawei_version = 0    
+                            except: RCMD.huawei_version = 0
                             conf_output = RCMD.run_command('system-view', \
                                 conf = conf, sim_config = sim_config, printall = printall)
-                    if conf_output: command_outputs.append(conf_output)    
+                    if conf_output: command_outputs.append(conf_output)
                     ### PROCESS COMMANDS - PER COMMAND #########################
                     for cmd_line in cmd_list:
                         command_outputs.append(RCMD.run_command(cmd_line, \
                             conf = conf, sim_config = sim_config, printall = printall))
-                    ### EXIT FROM CONFIG MODE FOR PARAMIKO #####################    
+                    ### EXIT FROM CONFIG MODE FOR PARAMIKO #####################
                     if (conf or RCMD.conf) and RCMD.use_module == 'paramiko':
                         ### GO TO CONFIG TOP LEVEL SECTION ---------------------
                         ### CISCO_IOS/XE has end command exiting from config ###
                         if RCMD.router_type=='cisco_xr':
                             for repeat_times in range(10):
-                                if '(config-' in ''.join(command_outputs[-1]):                               
+                                if '(config-' in ''.join(command_outputs[-1]):
                                     command_outputs.append(RCMD.run_command('exit', \
                                         conf = conf, sim_config = sim_config, printall = printall))
-                                else: break                                   
-                        ### JUNOS - HAS (HOPEFULLY) NO CONFIG LEVELS ###        
-                        elif RCMD.router_type=='huawei': 
+                                else: break
+                        ### JUNOS - HAS (HOPEFULLY) NO CONFIG LEVELS ###
+                        elif RCMD.router_type=='huawei':
                             for repeat_times in range(10):
-                                if re.search(r'\[[0-9a-zA-Z]+\-[0-9a-zA-Z\-\.\@\_]+\]', ''.join(command_outputs[-1:])):                             
+                                ### NEW HUAWEI has [~ or [* in config mode ###
+                                if re.search(r'\[[0-9a-zA-Z\~\*]+\-[0-9a-zA-Z\-\.\@\_]+\]', ''.join(command_outputs[-1:])):
                                     command_outputs.append(RCMD.run_command('quit', \
                                         conf = conf, sim_config = sim_config, printall = printall))
-                                else: break                    
+                                else: break
                         ### COMMIT SECTION -------------------------------------
-                        commit_output = ""                    
+                        commit_output = ""
                         if RCMD.router_type=='cisco_ios': pass
-                        elif RCMD.router_type=='cisco_xr': 
+                        elif RCMD.router_type=='cisco_xr':
                             command_outputs.append(RCMD.run_command('commit', \
                                 conf = conf, sim_config = sim_config, printall = printall))
                             if 'Failed to commit' in ''.join(command_outputs[-1:]):
                                 ### ALTERNATIVE COMMANDS: show commit changes diff, commit show-error
                                 command_outputs.append(RCMD.run_command('show configuration failed', \
-                                    conf = conf, sim_config = sim_config, printall = printall))                                    
-                        elif RCMD.router_type=='juniper': command_outputs.append(RCMD.run_command('commit', \
+                                    conf = conf, sim_config = sim_config, printall = printall))
+                        elif RCMD.router_type=='juniper': command_outputs.append(RCMD.run_command('commit and-quit', \
                             conf = conf, sim_config = sim_config, printall = printall))
                         elif RCMD.router_type=='huawei' and RCMD.huawei_version >= 7:
                             commit_output = command_outputs.append(RCMD.run_command('commit', \
-                                conf = conf, sim_config = sim_config, printall = printall)) 
+                                conf = conf, sim_config = sim_config, printall = printall))
                         ### EXIT CONFIG SECTION --------------------------------
                         if RCMD.router_type=='cisco_ios': command_outputs.append(RCMD.run_command('end', \
-                            conf = conf, sim_config = sim_config, printall = printall)) 
+                            conf = conf, sim_config = sim_config, printall = printall))
                         elif RCMD.router_type=='cisco_xr': command_outputs.append(RCMD.run_command('exit', \
                             conf = conf, sim_config = sim_config, printall = printall))
-                        elif RCMD.router_type=='juniper': command_outputs.append(RCMD.run_command('exit', \
-                            conf = conf, sim_config = sim_config, printall = printall))
-                        elif RCMD.router_type=='huawei': 
-                            command_outputs.append(RCMD.run_command('quit', conf = conf, \
-                                sim_config = sim_config, printall = printall)) 
-                        ### NVRAM WRITE/SAVE SECTION - NO CONFIG MODE! ---------
-                        if RCMD.router_type=='cisco_ios': 
-                            command_outputs.append(RCMD.run_command('write', conf = False, \
-                                sim_config = sim_config, printall = printall))
+                        ### JUNOS IS ALREADY OUT OF CONFIG ###
                         elif RCMD.router_type=='huawei':
-                            if RCMD.huawei_version >= 7:
-                                pass
-                            else:    
-                                ### OLDER HUAWEI VERSIONS NEED SAVE !!! ###
-                                command_outputs.append(RCMD.run_command('save', conf = False, \
-                                    sim_all = sim_config, printall = printall))
-                                command_outputs.append(RCMD.run_command('yes', conf = False, \
-                                    sim_all = sim_config, printall = printall))
-                ### CHECK CONF OUTPUTS #########################################               
-                if (conf or RCMD.conf): 
+                            command_outputs.append(RCMD.run_command('quit', conf = conf, \
+                                sim_config = sim_config, printall = printall))
+                        ### NVRAM WRITE/SAVE SECTION - NO CONFIG MODE! ---------
+                        if RCMD.router_type=='cisco_ios':
+                            command_outputs.append(RCMD.run_command('write', conf = False, \
+                                sim_all = sim_config, printall = printall))
+                        elif RCMD.router_type=='huawei':
+                            ### ALL HUAWEI ROUTERS NEED SAVE ###
+                            command_outputs.append(RCMD.run_command('save', conf = False, \
+                                sim_all = sim_config, printall = printall))
+                            command_outputs.append(RCMD.run_command('yes', conf = False, \
+                                sim_all = sim_config, printall = printall))
+                ### CHECK CONF OUTPUTS #########################################
+                if (conf or RCMD.conf):
                     RCMD.config_problem = None
-                    for rcmd_output in command_outputs: 
+                    for rcmd_output in command_outputs:
                         if 'INVALID INPUT' in rcmd_output.upper() \
                             or 'INCOMPLETE COMMAND' in rcmd_output.upper() \
                             or 'FAILED TO COMMIT' in rcmd_output.upper() \
-                            or 'UNRECOGNIZED COMMAND' in rcmd_output.upper():
+                            or 'UNRECOGNIZED COMMAND' in rcmd_output.upper() \
+                            or 'ERROR:' in rcmd_output.upper() \
+                            or 'SYNTAX ERROR' in rcmd_output.upper():
                             RCMD.config_problem = True
                             CGI_CLI.uprint('\nCONFIGURATION PROBLEM FOUND:', color = 'red')
                             CGI_CLI.uprint('%s' % (rcmd_output), color = 'darkorchid')
@@ -635,11 +637,11 @@ class RCMD(object):
                         text_to_commit = str()
                         if not commit_text and not RCMD.commit_text: text_to_commit = 'COMMIT'
                         elif commit_text: text_to_commit = commit_text
-                        elif RCMD.commit_text: text_to_commit = RCMD.commit_text                        
+                        elif RCMD.commit_text: text_to_commit = RCMD.commit_text
                         if RCMD.config_problem:
                             CGI_CLI.uprint('%s FAILED!' % (text_to_commit), tag = 'h1', tag_id = 'submit-result', color = 'red')
-                        else: CGI_CLI.uprint('%s SUCCESSFULL.' % (text_to_commit), tag = 'h1', tag_id = 'submit-result', color = 'green')        
-        return command_outputs                   
+                        else: CGI_CLI.uprint('%s SUCCESSFULL.' % (text_to_commit), tag = 'h1', tag_id = 'submit-result', color = 'green')
+        return command_outputs
 
     @staticmethod
     def __cleanup__():
@@ -647,16 +649,16 @@ class RCMD(object):
         if RCMD.ssh_connection:
             if RCMD.use_module == 'netmiko': RCMD.ssh_connection.disconnect()
             elif RCMD.use_module == 'paramiko': RCMD.client.close()
-            CGI_CLI.uprint('DEVICE %s:%s DONE.' % (RCMD.DEVICE_HOST, RCMD.DEVICE_PORT))
+            if RCMD.printall: CGI_CLI.uprint('DEVICE %s:%s DONE.' % (RCMD.DEVICE_HOST, RCMD.DEVICE_PORT))
             RCMD.ssh_connection = None
-            
+
     @staticmethod
     def disconnect():
         RCMD.output, RCMD.fp = None, None
         if RCMD.ssh_connection:
             if RCMD.use_module == 'netmiko': RCMD.ssh_connection.disconnect()
             elif RCMD.use_module == 'paramiko': RCMD.client.close()
-            CGI_CLI.uprint('DEVICE %s:%s DISCONNECTED.' % (RCMD.DEVICE_HOST, RCMD.DEVICE_PORT))
+            if RCMD.printall: CGI_CLI.uprint('DEVICE %s:%s DISCONNECTED.' % (RCMD.DEVICE_HOST, RCMD.DEVICE_PORT))
             RCMD.ssh_connection = None
 
     @staticmethod
@@ -735,16 +737,16 @@ class RCMD(object):
             while not (last_line and last_but_one_line and last_line == last_but_one_line):
                 buff = chan.recv(9999)
                 if len(buff)>0:
-                    if debug: print('LOOKING_FOR_PROMPT:',last_but_one_line,last_line)                
+                    if debug: CGI_CLI.uprint('LOOKING_FOR_PROMPT:',last_but_one_line,last_line)
                     output += buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
                               replace('\x1b[K','').replace('\n{master}\n','')
-                    if '--More--' or '---(more' in buff.strip(): 
+                    if '--More--' or '---(more' in buff.strip():
                         chan.send('\x20')
-                        if debug: print('SPACE_SENT.')
+                        if debug: CGI_CLI.uprint('SPACE_SENT.')
                         time.sleep(0.3)
                     try: last_line = output.splitlines()[-1].strip().replace('\x20','')
                     except: last_line = 'dummyline1'
-                    try: 
+                    try:
                         last_but_one_line = output.splitlines()[-2].strip().replace('\x20','')
                         if len(last_but_one_line) == 0:
                             ### vJunos '\x20' --> '\n\nprompt' workarround
@@ -763,12 +765,12 @@ class RCMD(object):
             time.sleep(0.3)
             output, exit_loop = '', False
             while not exit_loop:
-                if debug: print('LAST_LINE:',prompts,last_line)
+                if debug: CGI_CLI.uprint('LAST_LINE:',prompts,last_line)
                 buff = chan.recv(9999)
                 output += buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
                           replace('\x1b[K','').replace('\n{master}\n','')
                 if '--More--' or '---(more' in buff.strip(): chan.send('\x20')
-                if debug: print('BUFFER:' + buff)
+                if debug: CGI_CLI.uprint('BUFFER:' + buff)
                 try: last_line = output.splitlines()[-1].strip()
                 except: last_line = str()
                 for actual_prompt in prompts:
@@ -806,7 +808,7 @@ class RCMD(object):
                 if 'LINUX' in output.upper(): router_os = 'linux'
             if not router_os:
                 CGI_CLI.uprint("\nCannot find recognizable OS in %s" % (output), color = 'magenta')
-        except Exception as e: CGI_CLI.uprint('CONNECTION_PROBLEM[' + str(e) + ']')
+        except Exception as e: CGI_CLI.uprint('CONNECTION_PROBLEM[' + str(e) + ']' , color = 'magenta')
         finally: client.close()
         netmiko_os = str()
         if router_os == 'ios-xe': netmiko_os = 'cisco_ios'
@@ -839,23 +841,23 @@ class LCMD(object):
         if not printall: printall = LCMD.printall
         if not logfilename: logfilename = LCMD.logfilename
         return logfilename, printall
-         
+
     @staticmethod
     def run_command(cmd_line = None, logfilename = None, printall = None):
         os_output, cmd_list = str(), None
         logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
-        if cmd_line:      
-            with open(logfilename,"a+") as LCMD.fp:      
+        if cmd_line:
+            with open(logfilename,"a+") as LCMD.fp:
                 if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line))
                 LCMD.fp.write('LOCAL_COMMAND: ' + cmd_line + '\n')
-                try: os_output = subprocess.check_output(str(cmd_line), shell=True).decode("utf-8") 
-                except (subprocess.CalledProcessError) as e: 
+                try: os_output = subprocess.check_output(str(cmd_line), shell=True).decode("utf-8")
+                except (subprocess.CalledProcessError) as e:
                     if printall: CGI_CLI.uprint(str(e))
                     LCMD.fp.write(str(e) + '\n')
-                except: 
+                except:
                     exc_text = traceback.format_exc()
                     CGI_CLI.uprint(exc_text)
-                    LCMD.fp.write(exc_text + '\n')                
+                    LCMD.fp.write(exc_text + '\n')
                 if os_output and printall: CGI_CLI.uprint(os_output)
                 LCMD.fp.write(os_output + '\n')
         return os_output
@@ -865,8 +867,8 @@ class LCMD(object):
         """
         FUNCTION: LCMD.run_commands(), RETURN: list of command_outputs
         PARAMETERS:
-        cmd_data - dict, OS TYPE INDEPENDENT, 
-                 - list of strings or string, OS TYPE DEPENDENT       
+        cmd_data - dict, OS TYPE INDEPENDENT,
+                 - list of strings or string, OS TYPE DEPENDENT
         """
         os_outputs =  None
         logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
@@ -876,21 +878,21 @@ class LCMD(object):
         elif cmd_data and isinstance(cmd_data, (list,tuple)): cmd_list = cmd_data
         elif cmd_data and isinstance(cmd_data, (six.string_types)): cmd_list = [cmd_data]
         else: cmd_list = []
-        if len(cmd_list)>0: 
-            os_outputs = []        
+        if len(cmd_list)>0:
+            os_outputs = []
             with open(logfilename,"a+") as LCMD.fp:
                 for cmd_line in cmd_list:
                     os_output = str()
                     if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line))
                     LCMD.fp.write('LOCAL_COMMAND: ' + cmd_line + '\n')
-                    try: os_output = subprocess.check_output(str(cmd_line), shell=True).decode("utf-8") 
-                    except (subprocess.CalledProcessError) as e: 
+                    try: os_output = subprocess.check_output(str(cmd_line), shell=True).decode("utf-8")
+                    except (subprocess.CalledProcessError) as e:
                         if printall: CGI_CLI.uprint(str(e))
                         LCMD.fp.write(str(e) + '\n')
-                    except: 
+                    except:
                         exc_text = traceback.format_exc()
                         CGI_CLI.uprint(exc_text)
-                        LCMD.fp.write(exc_text + '\n')                
+                        LCMD.fp.write(exc_text + '\n')
                     if os_output and printall: CGI_CLI.uprint(os_output)
                     LCMD.fp.write(os_output + '\n')
                     os_outputs.append(os_output)
@@ -903,67 +905,67 @@ class LCMD(object):
         if cmd_data and isinstance(cmd_data, (six.string_types)):
             with open(logfilename,"a+") as LCMD.fp:
                 if printall: CGI_CLI.uprint("EVAL: %s" % (cmd_data))
-                try: 
+                try:
                     local_output = eval(cmd_data)
                     if printall: CGI_CLI.uprint(str(local_output))
                     LCMD.fp.write('EVAL: ' + cmd_data + '\n' + str(local_output) + '\n')
-                except Exception as e: 
+                except Exception as e:
                     if printall:CGI_CLI.uprint('EVAL_PROBLEM[' + str(e) + ']')
                     LCMD.fp.write('EVAL_PROBLEM[' + str(e) + ']\n')
         return local_output
-        
+
     @staticmethod
     def exec_command(cmd_data = None, logfilename = None, printall = None):
         logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
-        if cmd_data and isinstance(cmd_data, (six.string_types)): 
+        if cmd_data and isinstance(cmd_data, (six.string_types)):
             with open(logfilename,"a+") as LCMD.fp:
                 if printall: CGI_CLI.uprint("EXEC: %s" % (cmd_data))
                 LCMD.fp.write('EXEC: ' + cmd_data + '\n')
                 ### EXEC CODE WORKAROUND for OLD PYTHON v2.7.5
                 try:
                     edict = {}; eval(compile(cmd_data, '<string>', 'exec'), globals(), edict)
-                except Exception as e: 
+                except Exception as e:
                     if printall:CGI_CLI.uprint('EXEC_PROBLEM[' + str(e) + ']')
-                    LCMD.fp.write('EXEC_PROBLEM[' + str(e) + ']\n')                    
+                    LCMD.fp.write('EXEC_PROBLEM[' + str(e) + ']\n')
         return None
 
 
     @staticmethod
     def exec_command_try_except(cmd_data = None, logfilename = None, printall = None):
         """
-        NOTE: This method can access global variable, expects '=' in expression, 
+        NOTE: This method can access global variable, expects '=' in expression,
               in case of except assign value None
         """
         logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
-        if cmd_data and isinstance(cmd_data, (six.string_types)): 
+        if cmd_data and isinstance(cmd_data, (six.string_types)):
             with open(logfilename,"a+") as LCMD.fp:
                 try:
                     if '=' in cmd_data:
                         cmd_ex_data = 'global %s\ntry: %s = %s \nexcept: %s = None' % \
                             (cmd_data.split('=')[0].strip().split('[')[0],cmd_data.split('=')[0].strip(), \
                             cmd_data.split('=')[1].strip(), cmd_data.split('=')[0].strip())
-                    else: cmd_ex_data = cmd_data   
+                    else: cmd_ex_data = cmd_data
                     if printall: CGI_CLI.uprint("EXEC: \n%s" % (cmd_ex_data))
-                    LCMD.fp.write('EXEC: \n' + cmd_ex_data + '\n')                    
-                    ### EXEC CODE WORKAROUND for OLD PYTHON v2.7.5                    
-                    edict = {}; eval(compile(cmd_ex_data, '<string>', 'exec'), globals(), edict)                    
+                    LCMD.fp.write('EXEC: \n' + cmd_ex_data + '\n')
+                    ### EXEC CODE WORKAROUND for OLD PYTHON v2.7.5
+                    edict = {}; eval(compile(cmd_ex_data, '<string>', 'exec'), globals(), edict)
                     #CGI_CLI.uprint("%s" % (eval(cmd_data.split('=')[0].strip())))
-                except Exception as e: 
+                except Exception as e:
                     if printall:CGI_CLI.uprint('EXEC_PROBLEM[' + str(e) + ']')
-                    LCMD.fp.write('EXEC_PROBLEM[' + str(e) + ']\n')                
+                    LCMD.fp.write('EXEC_PROBLEM[' + str(e) + ']\n')
         return None
 
 
 class sql_interface():
     ### import mysql.connector
     ### MARIADB - By default AUTOCOMMIT is disabled
-                    
-    def __init__(self, host = None, user = None, password = None, database = None):    
+
+    def __init__(self, host = None, user = None, password = None, database = None):
         if int(sys.version_info[0]) == 3 and not 'pymysql.connect' in sys.modules: import pymysql
         elif int(sys.version_info[0]) == 2 and not 'mysql.connector' in sys.modules: import mysql.connector
         default_ipxt_data_collector_delete_columns = ['id','last_updated']
         self.sql_connection = None
-        try: 
+        try:
             if CGI_CLI.initialized: pass
             else: CGI_CLI.init_cgi(); CGI_CLI.print_args()
         except: pass
@@ -973,51 +975,51 @@ class sql_interface():
                 self.sql_connection = pymysql.connect( \
                     host = host, user = user, password = password, \
                     database = database, autocommit = True)
-            else: 
+            else:
                 self.sql_connection = mysql.connector.connect( \
                     host = host, user = user, password = password,\
                     database = database, autocommit = True)
-                       
-            #CGI_CLI.uprint("SQL connection is open.")    
-        except Exception as e: print(e)           
-    
+
+            #CGI_CLI.uprint("SQL connection is open.")
+        except Exception as e: print(e)
+
     def __del__(self):
         if self.sql_connection and self.sql_connection.is_connected():
-            self.sql_connection.close()            
+            self.sql_connection.close()
             #CGI_CLI.uprint("SQL connection is closed.")
 
     def sql_is_connected(self):
-        if self.sql_connection: 
+        if self.sql_connection:
             if int(sys.version_info[0]) == 3 and self.sql_connection.open:
                 return True
             elif int(sys.version_info[0]) == 2 and self.sql_connection.is_connected():
                 return True
         return None
-        
+
     def sql_read_all_table_columns(self, table_name):
         columns = []
         if self.sql_is_connected():
             cursor = self.sql_connection.cursor()
-            try: 
+            try:
                 cursor.execute("select * from INFORMATION_SCHEMA.COLUMNS where TABLE_NAME='%s';"%(table_name))
                 records = cursor.fetchall()
-                ### 4TH COLUMN IS COLUMN NAME                
+                ### 4TH COLUMN IS COLUMN NAME
                 ### OUTPUTDATA STRUCTURE IS: '[(SQL_RESULT)]' --> records[0] = UNPACK []
                 for item in records:
                     try: new_item = item[3].decode('utf-8')
-                    except: new_item = item[3]    
-                    columns.append(new_item) 
+                    except: new_item = item[3]
+                    columns.append(new_item)
             except Exception as e: print(e)
             try: cursor.close()
             except: pass
-        return columns 
+        return columns
 
     def sql_read_sql_command(self, sql_command):
         '''NOTE: FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE'''
         columns, lines = [], []
         if self.sql_is_connected():
             cursor = self.sql_connection.cursor()
-            try: 
+            try:
                 cursor.execute(sql_command)
                 records = cursor.fetchall()
                 ### OUTPUTDATA STRUCTURE IS: '[(SQL_LINE1),...]' --> records[0] = UNPACK []
@@ -1025,24 +1027,24 @@ class sql_interface():
                 for line in records:
                     for item in line:
                         try: new_item = item.decode('utf-8')
-                        except: new_item = item    
+                        except: new_item = item
                         columns.append(new_item)
-                    lines.append(columns)                        
+                    lines.append(columns)
             except Exception as e: print(e)
             try: cursor.close()
             except: pass
             ### FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE
-        return lines 
+        return lines
 
     def sql_write_sql_command(self, sql_command):
-        if self.sql_is_connected(): 
+        if self.sql_is_connected():
             if int(sys.version_info[0]) == 3:
                 cursor = self.sql_connection.cursor()
-            elif int(sys.version_info[0]) == 2:        
+            elif int(sys.version_info[0]) == 2:
                 cursor = self.sql_connection.cursor(prepared=True)
-            try: 
+            try:
                 cursor.execute(sql_command)
-                ### DO NOT COMMIT IF AUTOCOMMIT IS SET 
+                ### DO NOT COMMIT IF AUTOCOMMIT IS SET
                 if not self.sql_connection.autocommit: self.sql_connection.commit()
             except Exception as e: print(e)
             try: cursor.close()
@@ -1051,7 +1053,7 @@ class sql_interface():
 
     def sql_write_table_from_dict(self, table_name, dict_data, update = None):  ###'ipxt_data_collector'
        if self.sql_is_connected():
-           existing_sql_table_columns = self.sql_read_all_table_columns(table_name) 
+           existing_sql_table_columns = self.sql_read_all_table_columns(table_name)
            if existing_sql_table_columns:
                columns_string, values_string = str(), str()
                ### ASSUMPTION: LIST OF COLUMNS HAS CORRECT ORDER!!!
@@ -1069,7 +1071,7 @@ class sql_interface():
                                 if isinstance(item, (six.string_types)):
                                     if len(item_string) > 0: item_string += ','
                                     item_string += item
-                                ### DICTIONARY TO COMMA SEPARATED STRING    
+                                ### DICTIONARY TO COMMA SEPARATED STRING
                                 elif isinstance(item, (dict,collections.OrderedDict)):
                                     for i in item:
                                         if len(item_string) > 0: item_string += ','
@@ -1082,24 +1084,24 @@ class sql_interface():
                ### FINALIZE SQL_STRING - INSERT
                if not update:
                    sql_string = """INSERT INTO `%s` (%s) VALUES (%s);""" \
-                       % (table_name,columns_string,values_string)   
+                       % (table_name,columns_string,values_string)
                    if columns_string:
                        self.sql_write_sql_command("""INSERT INTO `%s`
                            (%s) VALUES (%s);""" %(table_name,columns_string,values_string))
                else:
                    sql_string = """UPDATE `%s` (%s) VALUES (%s);""" \
-                       % (table_name,columns_string,values_string)   
+                       % (table_name,columns_string,values_string)
                    if columns_string:
                        self.sql_write_sql_command("""UPDATE `%s`
-                           (%s) VALUES (%s);""" %(table_name,columns_string,values_string))                        
-       return None                
-   
+                           (%s) VALUES (%s);""" %(table_name,columns_string,values_string))
+       return None
+
     def sql_read_table_last_record(self, select_string = None, from_string = None, where_string = None):
         """NOTE: FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE"""
         check_data = None
         if not select_string: select_string = '*'
         #SELECT vlan_id FROM ipxt_data_collector WHERE id=(SELECT max(id) FROM ipxt_data_collector \
-        #WHERE username='mkrupa' AND device_name='AUVPE3'); 
+        #WHERE username='mkrupa' AND device_name='AUVPE3');
         if self.sql_is_connected():
             if from_string:
                 if where_string:
@@ -1108,41 +1110,41 @@ class sql_interface():
                 else:
                     sql_string = "SELECT %s FROM %s WHERE id=(SELECT max(id) FROM %s);" \
                         %(select_string, from_string, from_string)
-                check_data = self.sql_read_sql_command(sql_string)                          
+                check_data = self.sql_read_sql_command(sql_string)
         return check_data
 
     def sql_read_last_record_to_dict(table_name = None, from_string = None, \
         select_string = None, where_string = None, delete_columns = None):
-        """sql_read_last_record_to_dict - MAKE DICTIONARY FROM LAST TABLE RECORD 
+        """sql_read_last_record_to_dict - MAKE DICTIONARY FROM LAST TABLE RECORD
            NOTES: -'table_name' is alternative name to 'from_string'
                   - it always read last record dependent on 'where_string'
-                    which contains(=filters by) username,device_name,vpn_name                  
+                    which contains(=filters by) username,device_name,vpn_name
         """
         dict_data = collections.OrderedDict()
         table_name_or_from_string = None
         if not select_string: select_string = '*'
         if table_name:  table_name_or_from_string = table_name
-        if from_string: table_name_or_from_string = from_string     
+        if from_string: table_name_or_from_string = from_string
         columns_list = sql_inst.sql_read_all_table_columns(table_name_or_from_string)
         data_list = sql_inst.sql_read_table_last_record( \
             from_string = table_name_or_from_string, \
             select_string = select_string, where_string = where_string)
-        if columns_list and data_list: 
+        if columns_list and data_list:
             dict_data = collections.OrderedDict(zip(columns_list, data_list[0]))
         if delete_columns:
-            for column in delete_columns:   
+            for column in delete_columns:
                 try:
                     ### DELETE NOT VALID (AUXILIARY) TABLE COLUMNS
                     del dict_data[column]
-                except: pass  
-        return dict_data      
+                except: pass
+        return dict_data
 
     def sql_read_table_records(self, select_string = None, from_string = None, where_string = None):
         """NOTE: FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE"""
         check_data = None
         if not select_string: select_string = '*'
         #SELECT vlan_id FROM ipxt_data_collector WHERE id=(SELECT max(id) FROM ipxt_data_collector \
-        #WHERE username='mkrupa' AND device_name='AUVPE3'); 
+        #WHERE username='mkrupa' AND device_name='AUVPE3');
         if self.sql_is_connected():
             if from_string:
                 if where_string:
@@ -1151,44 +1153,44 @@ class sql_interface():
                 else:
                     sql_string = "SELECT %s FROM %s;" \
                         %(select_string, from_string )
-                check_data = self.sql_read_sql_command(sql_string)                          
+                check_data = self.sql_read_sql_command(sql_string)
         return check_data
 
     def sql_read_records_to_dict_list(table_name = None, from_string = None, \
         select_string = None, where_string = None, delete_columns = None):
-        """sql_read_last_record_to_dict - MAKE DICTIONARY FROM LAST TABLE RECORD 
+        """sql_read_last_record_to_dict - MAKE DICTIONARY FROM LAST TABLE RECORD
            NOTES: -'table_name' is alternative name to 'from_string'
                   - it always read last record dependent on 'where_string'
-                    which contains(=filters by) username,device_name,vpn_name                  
+                    which contains(=filters by) username,device_name,vpn_name
         """
         dict_data, dict_list = collections.OrderedDict(), []
         table_name_or_from_string = None
         if not select_string: select_string = '*'
         if table_name:  table_name_or_from_string = table_name
-        if from_string: table_name_or_from_string = from_string     
+        if from_string: table_name_or_from_string = from_string
         columns_list = sql_inst.sql_read_all_table_columns(table_name_or_from_string)
         data_list = sql_inst.sql_read_table_records( \
             from_string = table_name_or_from_string, \
-            select_string = select_string, where_string = where_string)        
+            select_string = select_string, where_string = where_string)
         if columns_list and data_list:
             for line_list in data_list:
                 dict_data = collections.OrderedDict(zip(columns_list, line_list))
                 dict_list.append(dict_data)
         if delete_columns:
-            for column in delete_columns:   
+            for column in delete_columns:
                 try:
                     ### DELETE NOT VALID (AUXILIARY) TABLE COLUMNS
                     del dict_data[column]
-                except: pass     
+                except: pass
         return dict_list
-    
+
     # def get_one_from_list(list_of_dictionaries, number = None):
         # return_value = {}
         # if number: list_order = number
         # else: list_order = 0
         # try: return_value = list_of_dictionaries[list_order]
         # except: return_value = list_of_dictionaries
-        # return return_value    
+        # return return_value
 
     # def dict_deep_get(dictionary, *keys):
     #     return reduce(lambda d, key: d.get(key, None) if isinstance(d, (dict,collections.OrderedDict) else None, keys, dictionary)
@@ -1214,40 +1216,40 @@ def do_precheck(rcmd_outputs = None, checklist = None, cmd_list = None):
                     if isinstance(contains_value, (list,tuple)):
                         for item in contains_value:
                             sub_check_ok = True
-                            if item in output.replace(command,''): pass 
+                            if item in output.replace(command,''): pass
                             else:
                                 sub_check_ok = False
                         if sub_check_ok: CGI_CLI.uprint('CHECK OK.\n',color = 'green')
                         else:
-                            precheck_problem = True                            
-                            CGI_CLI.uprint('CHECK FAILED.\n', color = 'red')                                         
-                    if isinstance(contains_value, six.string_types): 
+                            precheck_problem = True
+                            CGI_CLI.uprint('CHECK FAILED.\n', color = 'red')
+                    if isinstance(contains_value, six.string_types):
                         if checklist[i].get('contains') in output.replace(command,''): CGI_CLI.uprint('CHECK OK.\n',color = 'green')
                         else:
-                            precheck_problem = True                            
-                            CGI_CLI.uprint('CHECK FAILED.\n', color = 'red')                           
+                            precheck_problem = True
+                            CGI_CLI.uprint('CHECK FAILED.\n', color = 'red')
                 if checklist[i].get('not_in'):
-                    not_in_value = checklist[i].get('not_in')                            
+                    not_in_value = checklist[i].get('not_in')
                     if isinstance(not_in_value, (list,tuple)):
                         for item in not_in_value:
                             sub_check_ok = True
-                            if not item in output.replace(command,''): pass 
+                            if not item in output.replace(command,''): pass
                             else:
                                 sub_check_ok = False
                         if sub_check_ok: CGI_CLI.uprint('CHECK OK.\n',color = 'green')
                         else:
-                            precheck_problem = True                            
-                            CGI_CLI.uprint('CHECK FAILED.\n', color = 'red')                                                        
-                    if isinstance(not_in_value, six.string_types): 
+                            precheck_problem = True
+                            CGI_CLI.uprint('CHECK FAILED.\n', color = 'red')
+                    if isinstance(not_in_value, six.string_types):
                         if not checklist[i].get('not_in') in output.replace(command,''): CGI_CLI.uprint('CHECK OK.\n',color = 'green')
-                        else: 
-                            precheck_problem = True 
+                        else:
+                            precheck_problem = True
                             CGI_CLI.uprint('CHECK FAILED.\n', color = 'red')
         except Exception as e: CGI_CLI.uprint('PRE-CHECK_PROBLEM[' + str(e) + ']')
         i += 1
     return precheck_problem
 
-            
+
 ##############################################################################
 #
 # BEGIN MAIN
@@ -1275,25 +1277,25 @@ lcmd_data2 = {
 
 new_pe_router, ipsec_gw_router, old_huawei_router, config = str(), str(), str(), str()
 
-if CGI_CLI.cgi_active:    
+if CGI_CLI.cgi_active:
     sql_inst = sql_interface(host='localhost', user='cfgbuilder', \
         password='cfgbuildergetdata', database='rtr_configuration')
 
-    cgi_data = copy.deepcopy(CGI_CLI.data)        
-    data = collections.OrderedDict()    
+    cgi_data = copy.deepcopy(CGI_CLI.data)
+    data = collections.OrderedDict()
     data["cgi_data"] = cgi_data
 
     collector_list = sql_inst.sql_read_records_to_dict_list(from_string = 'ipxt_data_collector', where_string = "session_id = '%s'" % (cgi_data.get('session_id','UNKNOWN')))
     try: data["ipxt_data_collector"] = collector_list[0]
     except: data["ipxt_data_collector"] = collections.OrderedDict()
-    
+
     try: old_huawei_router = data["ipxt_data_collector"].get("device_name",str())
     except: old_huawei_router = str()
 
     gw_pe_list = sql_inst.sql_read_records_to_dict_list(from_string = 'ipxt_gw_pe', where_string = "old_pe_router = '%s'" % (old_huawei_router))
     try: data["ipxt_gw_pe"] = gw_pe_list[0]
     except: data["ipxt_gw_pe"] = collections.OrderedDict()
-    
+
     try: new_pe_router = data["ipxt_gw_pe"].get('new_pe_router',str())
     except: new_pe_router = str()
 
@@ -1302,16 +1304,16 @@ if CGI_CLI.cgi_active:
 
     ipsec_ipxt_table_list = sql_inst.sql_read_records_to_dict_list(from_string = 'ipsec_ipxt_table_new', where_string = "ipsec_rtr_name = '%s'" % (ipsec_gw_router))
     try: data["ipsec_ipxt_table"] = ipsec_ipxt_table_list[0]
-    except: data["ipsec_ipxt_table"] = collections.OrderedDict()   
-    
+    except: data["ipsec_ipxt_table"] = collections.OrderedDict()
+
     try: config_data = sql_inst.sql_read_records_to_dict_list(from_string = 'ipxt_configurations', \
         where_string = "session_id = '%s'" % (CGI_CLI.data.get('session_id','')))[0]
-    except: config_data = collections.OrderedDict()   
+    except: config_data = collections.OrderedDict()
 
     PE_preparation_precheck = {'cisco_xr':[\
         'show access-list %s-IN' % (data['ipxt_data_collector'].get('vrf_name','UNKNOWN')),
         'show vrf %s' %(data['ipxt_data_collector'].get('vrf_name','UNKNOWN').replace('.','@')),
-        'show rpl prefix-set %s-IN' % (data['ipxt_data_collector'].get('vrf_name','UNKNOWN')), 
+        'show rpl prefix-set %s-IN' % (data['ipxt_data_collector'].get('vrf_name','UNKNOWN')),
         'show policy-map list %s-OUT' % (data['ipxt_data_collector'].get('customer_name','UNKNOWN')),
         'show policy-map list %s-IN' % (data['ipxt_data_collector'].get('customer_name','UNKNOWN')),
         'show interface %s.%s' % (data['ipsec_ipxt_table'].get('int_id','UNKNOWN'),data['ipxt_data_collector'].get('vlan_id','UNKNOWN')),
@@ -1332,7 +1334,7 @@ if CGI_CLI.cgi_active:
     checklist_PE_preparation_precheck = {'cisco_xr':[\
         {'contains':'No such access-list %s-IN' % (data['ipxt_data_collector'].get('vrf_name','UNKNOWN'))},
         {'not_in':'%s' %(data['ipxt_data_collector'].get('vrf_name','UNKNOWN').replace('.','@'))},
-        {'contains':'The prefix-set (%s-IN) does not appear to exist' % (data['ipxt_data_collector'].get('vrf_name','UNKNOWN'))}, 
+        {'contains':'The prefix-set (%s-IN) does not appear to exist' % (data['ipxt_data_collector'].get('vrf_name','UNKNOWN'))},
         {'contains':'Policymap \'%s-OUT\' of type \'qos\' not found' % (data['ipxt_data_collector'].get('customer_name','UNKNOWN'))},
         {'contains':'Policymap \'%s-IN\' of type \'qos\' not found' % (data['ipxt_data_collector'].get('customer_name','UNKNOWN'))},
         {'contains':'Interface not found (%s.%s)' % (data['ipsec_ipxt_table'].get('int_id','UNKNOWN'),data['ipxt_data_collector'].get('vlan_id','UNKNOWN'))},
@@ -1349,53 +1351,53 @@ if CGI_CLI.cgi_active:
         {'contains':'route-policy NO-EXPORT-INTERCO'},
         {'contains':'No routes in this topology'}
         ]}
-        
+
     GW_preparation_precheck = {'cisco_ios':[\
-        'show vrf LOCAL.%s' %(data['ipxt_data_collector'].get('vlan_id','UNKNOWN')), 
+        'show vrf LOCAL.%s' %(data['ipxt_data_collector'].get('vlan_id','UNKNOWN')),
         'show interface %s.%s' % (data['ipsec_ipxt_table'].get('ipsec_int_id','UNKNOWN'),data['ipxt_data_collector'].get('vlan_id','UNKNOWN'))
         ]}
-        
+
     checklist_GW_preparation_precheck = {'cisco_ios':[\
         {'contains':'LOCAL.%s' % (data['ipxt_data_collector'].get('vlan_id','UNKNOWN'))},
         {'contains':"% Invalid input detected at '^' marker."}
-        ]}        
+        ]}
 
     PE_migration_precheck = {'cisco_xr':[\
-        'show bgp neighbor-group %s configuration' % (data['ipxt_data_collector'].get('vrf_name','UNKNOWN')), 
+        'show bgp neighbor-group %s configuration' % (data['ipxt_data_collector'].get('vrf_name','UNKNOWN')),
         'sh running-config | i route-policy PASS-ALL'
         ]}
-        
+
     checklist_PE_migration_precheck = {'cisco_xr':[\
         {'contains':'neighbor-group %s' % (data['ipxt_data_collector'].get('vrf_name','UNKNOWN'))},
         {'contains':"route-policy PASS-ALL"}
-        ]} 
+        ]}
 
     GW_migration_precheck = {'cisco_ios':[\
-        'sh run | i ip route vrf LOCAL.%s' % (data['ipxt_data_collector'].get('vlan_id','UNKNOWN')), 
+        'sh run | i ip route vrf LOCAL.%s' % (data['ipxt_data_collector'].get('vlan_id','UNKNOWN')),
         ]}
-        
+
     checklist_GW_migration_precheck = {'cisco_ios':[\
         {'not_in':'ip route vrf LOCAL.%s' % (data['ipxt_data_collector'].get('vlan_id','UNKNOWN'))},
-        ]}         
- 
+        ]}
+
 
     PE_OLD_migration_precheck = {'huawei':[
         'display interface %s' % (data['ipxt_data_collector'].get('old_pe_interface','UNKNOWN'))
         ]}
-        
+
     checklist_PE_OLD_migration_precheck = {'huawei':[
         {'not_in':'%s current state : Administratively DOWN' % (data['ipxt_data_collector'].get('old_pe_interface','UNKNOWN'))},
-        ]} 
+        ]}
 
     PE_OLD_migration_postcheck = {'huawei':[
         'display interface %s' % (data['ipxt_data_collector'].get('old_pe_interface','UNKNOWN'))
         ]}
-        
+
     checklist_PE_OLD_migration_postcheck = {'huawei':[
         {'contains':'%s current state : Administratively DOWN' % (data['ipxt_data_collector'].get('old_pe_interface','UNKNOWN'))},
-        ]} 
-        
-    device, conf ,config, result_str, checklist = str(), None, str(), str(), str()    
+        ]}
+
+    device, conf ,config, result_str, checklist = str(), None, str(), str(), str()
     if CGI_CLI.submit_form == 'Submit PE preparation precheck':
         result_str = 'PE PREPARATION CONFIGURATION PRECHECK'
         device = copy.deepcopy(new_pe_router)
@@ -1416,27 +1418,27 @@ if CGI_CLI.cgi_active:
         result_str = 'PE MIGRATION CONFIGURATION PRECHECK'
         device = copy.deepcopy(new_pe_router)
         config = '\n'.join(PE_migration_precheck.get('cisco_xr',str()))
-        checklist = checklist_PE_migration_precheck.get('cisco_xr',[])        
+        checklist = checklist_PE_migration_precheck.get('cisco_xr',[])
         conf = False
     elif CGI_CLI.submit_form == 'Submit GW migration precheck':
         result_str = 'GW MIGRATION CONFIGURATION PRECHECK'
         device = copy.deepcopy(ipsec_gw_router)
         config = '\n'.join(GW_migration_precheck.get('cisco_ios',str()))
-        checklist = checklist_GW_migration_precheck.get('cisco_ios',[])       
+        checklist = checklist_GW_migration_precheck.get('cisco_ios',[])
         conf = False
     elif CGI_CLI.submit_form == 'Submit OLD PE migration precheck':
         result_str = 'PE-OLD MIGRATION CONFIGURATION PRECHECK'
-        device = copy.deepcopy(old_huawei_router)        
+        device = copy.deepcopy(old_huawei_router)
         config = '\n'.join(PE_OLD_migration_precheck.get('huawei',str()))
-        checklist = checklist_PE_OLD_migration_precheck.get('huawei',[]) 
-        conf = False        
+        checklist = checklist_PE_OLD_migration_precheck.get('huawei',[])
+        conf = False
     elif CGI_CLI.submit_form == 'Submit PE preparation':
         result_str = 'PE PREPARATION CONFIGURATION COMMIT'
         device = copy.deepcopy(new_pe_router)
         config = config_data.get("pe_config_preparation",str())
         conf = True
     elif CGI_CLI.submit_form == 'Submit GW preparation':
-        result_str = 'GW PREPARATION CONFIGURATION COMMIT'    
+        result_str = 'GW PREPARATION CONFIGURATION COMMIT'
         device = copy.deepcopy(ipsec_gw_router)
         config = config_data.get("gw_config_preparation",str())
         conf = True
@@ -1446,66 +1448,66 @@ if CGI_CLI.cgi_active:
         config = config_data.get("pe_config_migration",str())
         conf = True
     elif CGI_CLI.submit_form == 'Submit GW migration':
-        result_str = 'GW MIGRATION CONFIGURATION COMMIT'    
+        result_str = 'GW MIGRATION CONFIGURATION COMMIT'
         device = copy.deepcopy(ipsec_gw_router)
         config = config_data.get("gw_config_migration",str())
         conf = True
     elif CGI_CLI.submit_form == 'Submit OLD PE shutdown':
-        result_str = 'PE-OLD MIGRATION CONFIGURATION COMMIT'    
+        result_str = 'PE-OLD MIGRATION CONFIGURATION COMMIT'
         device = copy.deepcopy(old_huawei_router)
         config = config_data.get("old_pe_config_migration_shut",str())
-        conf = True        
+        conf = True
     elif CGI_CLI.submit_form == 'Rollback GW preparation':
-        result_str = 'GW PREPARATION ROLLBACK CONFIGURATION COMMIT'    
+        result_str = 'GW PREPARATION ROLLBACK CONFIGURATION COMMIT'
         device = copy.deepcopy(ipsec_gw_router)
         config = config_data.get("rollback_gw_preparation",str())
-        conf = True     
+        conf = True
     elif CGI_CLI.submit_form == 'Rollback PE preparation':
-        result_str = 'PE PREPARATION ROLLBACK CONFIGURATION COMMIT'     
+        result_str = 'PE PREPARATION ROLLBACK CONFIGURATION COMMIT'
         device = copy.deepcopy(new_pe_router)
         config = config_data.get("rollback_pe_preparation",str())
-        conf = True 
+        conf = True
     elif CGI_CLI.submit_form == 'Rollback GW migration':
         result_str = 'GW MIGRATION ROLLBACK CONFIGURATION COMMIT'
         device = copy.deepcopy(ipsec_gw_router)
         config = config_data.get("rollback_gw_migration",str())
-        conf = True     
+        conf = True
     elif CGI_CLI.submit_form == 'Rollback PE migration':
-        result_str = 'PE MIGRATION ROLLBACK CONFIGURATION COMMIT'    
+        result_str = 'PE MIGRATION ROLLBACK CONFIGURATION COMMIT'
         device = copy.deepcopy(new_pe_router)
         config = config_data.get("rollback_pe_migration",str())
-        conf = True 
+        conf = True
     elif CGI_CLI.submit_form == 'Rollback OLD PE shutdown':
-        result_str = 'PE-OLD MIGRATION ROLLBACK CONFIGURATION COMMIT'    
+        result_str = 'PE-OLD MIGRATION ROLLBACK CONFIGURATION COMMIT'
         device = copy.deepcopy(old_huawei_router)
         config = config_data.get("rollback_oldpe_migration",str())
-        conf = True           
+        conf = True
     else:
         CGI_CLI.uprint('SUBMIT (%s) BUTTON NOT RECOGNIZED!' % (CGI_CLI.submit_form),tag = 'h1', color = 'red')
         sys.exit(0)
 
     if not config:
         CGI_CLI.uprint('VOID CONFIG!',tag = 'h1', color = 'red')
-        sys.exit(0)        
-        
+        sys.exit(0)
+
     ### WRITE CONFIG TO ROUTER ######################################################
     iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
 
     #CGI_CLI.print_args()
     #CGI_CLI.print_env()
     #CGI_CLI.uprint(data, name = 'data', jsonprint = True, color = 'blue')
-    #CGI_CLI.uprint(config_data, jsonprint = True)     
+    #CGI_CLI.uprint(config_data, jsonprint = True)
     #CGI_CLI.uprint(PE_precheck, name = True, jsonprint = True)
     #CGI_CLI.uprint(checklist_PE_precheck, name = True, jsonprint = True)
-    
+
     CGI_CLI.uprint('session_id = ' + data['cgi_data'].get('session_id',''))
     CGI_CLI.uprint(str(CGI_CLI.submit_form), tag = 'h1', color = 'blue')
-    CGI_CLI.uprint('PE = %s, GW = %s, OLD_PE = %s'%(new_pe_router,ipsec_gw_router,old_huawei_router), tag = 'h3', color = 'black')     
-    CGI_CLI.uprint('DEVICE = %s, config_mode(%s) , SERVER = %s'%(device,str(conf),str(iptac_server)), tag = 'h1')    
+    CGI_CLI.uprint('PE = %s, GW = %s, OLD_PE = %s'%(new_pe_router,ipsec_gw_router,old_huawei_router), tag = 'h3', color = 'black')
+    CGI_CLI.uprint('DEVICE = %s, config_mode(%s) , SERVER = %s'%(device,str(conf),str(iptac_server)), tag = 'h1')
     CGI_CLI.uprint('\nCONFIG:\n',tag = 'h2', color = 'blue')
     CGI_CLI.uprint('%s\n'%(config))
 
-    ### TEST_ONLY DELETION FROM CONFIG    
+    ### TEST_ONLY DELETION FROM CONFIG
     if iptac_server == 'iptac5' and conf == True: config = config.replace('flow ipv4 monitor ICX sampler ICX ingress','')
 
     splitted_config = copy.deepcopy(config)
@@ -1524,14 +1526,14 @@ if CGI_CLI.cgi_active:
         CGI_CLI.uprint('\nDEVICE %s COMMUNICATION:\n\n'%(device),tag = 'h2', color = 'blue')
         rcmd_outputs = RCMD.connect(device = device, cmd_data = splitted_config, \
             username = CGI_CLI.username, password = CGI_CLI.password, conf = conf, \
-            commit_text = result_str, printall = True)       
+            commit_text = result_str, printall = True)
         RCMD.disconnect()
 
-        if not conf:       
-            CGI_CLI.uprint('\nPRECHECK:\n------------------\n',tag = 'h1', color = 'blue')            
-            precheck_problem = True 
-            if checklist and config:            
+        if not conf:
+            CGI_CLI.uprint('\nPRECHECK:\n------------------\n',tag = 'h1', color = 'blue')
+            precheck_problem = True
+            if checklist and config:
                 splitted_config = copy.deepcopy(config).splitlines()
                 precheck_problem = do_precheck(rcmd_outputs, checklist, splitted_config)
             if precheck_problem: CGI_CLI.uprint('%s FAILED!' % (result_str), tag = 'h1', tag_id = 'submit-result', color = 'red')
-            else: CGI_CLI.uprint('%s SUCCESSFULL.' % (result_str), tag = 'h1', tag_id = 'submit-result', color = 'green')           
+            else: CGI_CLI.uprint('%s SUCCESSFULL.' % (result_str), tag = 'h1', tag_id = 'submit-result', color = 'green')
