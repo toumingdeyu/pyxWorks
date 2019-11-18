@@ -173,7 +173,7 @@ class CGI_CLI(object):
         if not CGI_CLI.cgi_active: CGI_CLI.data = vars(CGI_CLI.args)
         if CGI_CLI.cgi_active:
             CGI_CLI.chunked = chunked
-            sys.stdout.write("%sContent-type:text/html\r\n" % 
+            sys.stdout.write("%sContent-type:text/html\r\n" %
                 (CGI_CLI.chunked_transfer_encoding_string if CGI_CLI.chunked else str()))
             CGI_CLI.print_chunk("\r\n\r\n<html><head><title>%s</title></head><body>" %
                 (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit'))
@@ -241,12 +241,12 @@ class CGI_CLI(object):
     def print_chunk(msg=""):
         ### sys.stdout.write is printing without \n , print adds \n == +1BYTE ###
         if CGI_CLI.chunked and CGI_CLI.cgi_active:
-            if len(msg)>0:        
+            if len(msg)>0:
                 sys.stdout.write("\r\n%X\r\n%s" % (len(msg), msg))
                 sys.stdout.flush()
                 #time.sleep(0.5)
         ### CLI MODE ###
-        else: print(msg)        
+        else: print(msg)
 
     @staticmethod
     def uprint(text, tag = None, tag_id = None, color = None, name = None, jsonprint = None, log = None):
@@ -284,14 +284,14 @@ class CGI_CLI(object):
                 elif 'CYAN' in color.upper():    text_color = CGI_CLI.bcolors.CYAN
                 elif 'GREY' in color.upper():    text_color = CGI_CLI.bcolors.GREY
                 elif 'YELLOW' in color.upper():  text_color = CGI_CLI.bcolors.YELLOW
-            ### CLI_MODE ###    
+            ### CLI_MODE ###
             print(text_color + print_name + print_text + CGI_CLI.bcolors.ENDC)
         del print_text
         if CGI_CLI.cgi_active:
             if tag: print_per_tag += ('</%s>'%(tag))
             else: print_per_tag += ('<br/>');
             ### PRINT PER TAG ###
-            CGI_CLI.print_chunk(print_per_tag)    
+            CGI_CLI.print_chunk(print_per_tag)
         ### LOGGING ###
         if CGI_CLI.logfilename and log:
             with open(CGI_CLI.logfilename,"a+") as CGI_CLI.fp:
@@ -341,7 +341,7 @@ class CGI_CLI(object):
                 elif data_item.get('submit'):
                     print_per_tag += ('<input id = "%s" type = "submit" name = "submit" value = "%s" />'%\
                         (data_item.get('submit'),data_item.get('submit')))
-            return print_per_tag        
+            return print_per_tag
 
         ### START OF FORMPRINT ###
         formtypes = ['raw','text','checkbox','radio','submit','dropdown','textcontent']
@@ -573,12 +573,13 @@ class RCMD(object):
             if printall or RCMD.printall:
                 CGI_CLI.uprint('REMOTE_COMMAND' + sim_mark + ': ' + cmd_line, color = 'blue')
                 CGI_CLI.uprint(last_output, color = 'gray')
+            else: CGI_CLI.uprint(' . ', no_newlines = True)
             if RCMD.fp: RCMD.fp.write('REMOTE_COMMAND' + sim_mark + ': ' + cmd_line + '\n' + last_output + '\n')
         return last_output
 
     @staticmethod
     def run_commands(cmd_data = None, printall = None, conf = None, sim_config = None, \
-        do_not_final_print = None , commit_text = None):
+        do_not_final_print = None , commit_text = None, submit_result = None):
         """
         FUNCTION: run_commands(), RETURN: list of command_outputs
         PARAMETERS:
@@ -687,7 +688,7 @@ class RCMD(object):
                             command_outputs.append(RCMD.run_command('write', conf = False, \
                                 sim_all = sim_config, printall = printall))
                         elif RCMD.router_type=='huawei':
-                            ### ALL HUAWEI ROUTERS NEED SAVE ### 
+                            ### ALL HUAWEI ROUTERS NEED SAVE ###
                             command_outputs.append(RCMD.run_command('save', conf = False, \
                                 sim_all = sim_config, printall = printall))
                             command_outputs.append(RCMD.run_command('yes', conf = False, \
@@ -695,7 +696,9 @@ class RCMD(object):
                 ### CHECK CONF OUTPUTS #########################################
                 if (conf or RCMD.conf):
                     RCMD.config_problem = None
+                    CGI_CLI.uprint('\nCHECKING COMMIT ERRORS...', tag = 'h1', color = 'blue')
                     for rcmd_output in command_outputs:
+                        CGI_CLI.uprint(' . ', no_newlines = True)
                         if 'INVALID INPUT' in rcmd_output.upper() \
                             or 'INCOMPLETE COMMAND' in rcmd_output.upper() \
                             or 'FAILED TO COMMIT' in rcmd_output.upper() \
@@ -711,9 +714,14 @@ class RCMD(object):
                         if not commit_text and not RCMD.commit_text: text_to_commit = 'COMMIT'
                         elif commit_text: text_to_commit = commit_text
                         elif RCMD.commit_text: text_to_commit = RCMD.commit_text
-                        if RCMD.config_problem:
-                            CGI_CLI.uprint('%s FAILED!' % (text_to_commit), tag = 'h1', tag_id = 'submit-result', color = 'red')
-                        else: CGI_CLI.uprint('%s SUCCESSFULL.' % (text_to_commit), tag = 'h1', tag_id = 'submit-result', color = 'green')
+                        if submit_result:
+                            if RCMD.config_problem:
+                                CGI_CLI.uprint('%s FAILED!' % (text_to_commit), tag = 'h1', tag_id = 'submit-result', color = 'red')
+                            else: CGI_CLI.uprint('%s SUCCESSFULL.' % (text_to_commit), tag = 'h1', tag_id = 'submit-result', color = 'green')
+                        else:
+                            if RCMD.config_problem:
+                                CGI_CLI.uprint('%s FAILED!' % (text_to_commit), tag = 'h1', color = 'red')
+                            else: CGI_CLI.uprint('%s SUCCESSFULL.' % (text_to_commit), tag = 'h1', color = 'green')
         return command_outputs
 
     @staticmethod
@@ -1141,7 +1149,7 @@ LCMD.eval_command('b',printall = True)
 
 for i in range(0,20):
     time.sleep(1)
-    CGI_CLI.uprint( "%s" % ( i ) ) 
+    CGI_CLI.uprint( "%s" % ( i ) )
 
 #CGI_CLI.uprint(CGI_CLI.args, jsonprint=True)
 
