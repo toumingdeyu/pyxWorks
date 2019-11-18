@@ -577,12 +577,13 @@ class RCMD(object):
             if printall or RCMD.printall:
                 CGI_CLI.uprint('REMOTE_COMMAND' + sim_mark + ': ' + cmd_line, color = 'blue')
                 CGI_CLI.uprint(last_output, color = 'gray')
+            else: CGI_CLI.uprint(' . ', no_newlines = True)
             if RCMD.fp: RCMD.fp.write('REMOTE_COMMAND' + sim_mark + ': ' + cmd_line + '\n' + last_output + '\n')
         return last_output
 
     @staticmethod
     def run_commands(cmd_data = None, printall = None, conf = None, sim_config = None, \
-        do_not_final_print = None , commit_text = None):
+        do_not_final_print = None , commit_text = None, submit_result = None):
         """
         FUNCTION: run_commands(), RETURN: list of command_outputs
         PARAMETERS:
@@ -699,7 +700,9 @@ class RCMD(object):
                 ### CHECK CONF OUTPUTS #########################################
                 if (conf or RCMD.conf):
                     RCMD.config_problem = None
+                    CGI_CLI.uprint('\nCHECKING COMMIT ERRORS...', tag = 'h1', color = 'blue')
                     for rcmd_output in command_outputs:
+                        CGI_CLI.uprint(' . ', no_newlines = True)
                         if 'INVALID INPUT' in rcmd_output.upper() \
                             or 'INCOMPLETE COMMAND' in rcmd_output.upper() \
                             or 'FAILED TO COMMIT' in rcmd_output.upper() \
@@ -715,9 +718,14 @@ class RCMD(object):
                         if not commit_text and not RCMD.commit_text: text_to_commit = 'COMMIT'
                         elif commit_text: text_to_commit = commit_text
                         elif RCMD.commit_text: text_to_commit = RCMD.commit_text
-                        if RCMD.config_problem:
-                            CGI_CLI.uprint('%s FAILED!' % (text_to_commit), tag = 'h1', tag_id = 'submit-result', color = 'red')
-                        else: CGI_CLI.uprint('%s SUCCESSFULL.' % (text_to_commit), tag = 'h1', tag_id = 'submit-result', color = 'green')
+                        if submit_result:
+                            if RCMD.config_problem:
+                                CGI_CLI.uprint('%s FAILED!' % (text_to_commit), tag = 'h1', tag_id = 'submit-result', color = 'red')
+                            else: CGI_CLI.uprint('%s SUCCESSFULL.' % (text_to_commit), tag = 'h1', tag_id = 'submit-result', color = 'green')
+                        else:
+                            if RCMD.config_problem:
+                                CGI_CLI.uprint('%s FAILED!' % (text_to_commit), tag = 'h1', color = 'red')
+                            else: CGI_CLI.uprint('%s SUCCESSFULL.' % (text_to_commit), tag = 'h1', color = 'green')
         return command_outputs
 
     @staticmethod
