@@ -686,11 +686,14 @@ class RCMD(object):
                             command_outputs.append(RCMD.run_command('write', conf = False, \
                                 sim_all = sim_config, printall = printall))
                         elif RCMD.router_type=='huawei':
-                            ### ALL HUAWEI VERSIONS NEED SAVE !!! ###
-                            command_outputs.append(RCMD.run_command('save', conf = False, \
-                                sim_all = sim_config, printall = printall))
-                            command_outputs.append(RCMD.run_command('yes', conf = False, \
-                                sim_all = sim_config, printall = printall))
+                            if RCMD.huawei_version >= 7:
+                                pass
+                            else:    
+                                ### OLDER HUAWEI VERSIONS NEED SAVE !!! ###
+                                command_outputs.append(RCMD.run_command('save', conf = False, \
+                                    sim_all = sim_config, printall = printall))
+                                command_outputs.append(RCMD.run_command('yes', conf = False, \
+                                    sim_all = sim_config, printall = printall))
                 ### CHECK CONF OUTPUTS #########################################
                 if (conf or RCMD.conf):
                     RCMD.config_problem = None
