@@ -1415,10 +1415,17 @@ router bgp 5511
 !
 """
 
-huawei_config = """#
+huawei_config = []
+
+huawei_config_part_1 = """#
 undo mpls lsr-id
 Y
 #
+undo interface Loopback200
+undo interface LoopBack0
+#"""
+
+huawei_config_part_2 = """#
 undo interface Loopback200
 #
 interface LoopBack0
@@ -1431,7 +1438,9 @@ interface LoopBack10
 % for item in loopback_0_config:
 ${item}
 % endfor
-#
+#"""
+
+huawei_config_part_3 = """#
 info-center loghost source LoopBack10
 ntp-service source-interface LoopBack10
 ntp-service ipv6 source-interface LoopBack10
@@ -1466,6 +1475,10 @@ mpls ldp
 ipv4-family
 #
 """
+
+huawei_config.append(huawei_config_part_1)
+huawei_config.append(huawei_config_part_2)
+huawei_config.append(huawei_config_part_3)
 
 undo_huawei_config = """#
 undo interface LoopBack 10
@@ -1524,7 +1537,7 @@ if CGI_CLI.cgi_active and not CGI_CLI.submit_form:
         submit_button = 'OK', pyfile = None, tag = None, color = None)
 
 
-config_string = str()
+config_to_apply = str()
 iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
 
 if device:
@@ -1567,9 +1580,9 @@ if device:
                   RCMD.disconnect()
                   sys.exit(0)
 
-            config_string = str()
+            config_to_apply = str()
             mytemplate = Template(xr_config,strict_undefined=True)
-            config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
+            config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
         else:
             ### UNDO/ROLLBACK CONFIG GENERATION ###
             collector_cmd = {'cisco_xr':['sh run interface loopback 10','sh run interface loopback 0',
@@ -1606,9 +1619,9 @@ if device:
                   RCMD.disconnect()
                   sys.exit(0)
 
-            config_string = str()
+            config_to_apply = str()
             mytemplate = Template(undo_xr_config,strict_undefined=True)
-            config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
+            config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
 
     ### HUAWEI #####################################################################
     if RCMD.router_type == 'huawei':
@@ -1654,10 +1667,17 @@ if device:
                   CGI_CLI.uprint('\nVOID DATA PROBLEM FOUND!', tag = 'h1', color = 'red')
                   RCMD.disconnect()
                   sys.exit(0)
-
-            config_string = str()
-            mytemplate = Template(huawei_config,strict_undefined=True)
-            config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
+                  
+            ### HUAWEI CONFIG SHOULD HAVE MORE PARTS ###
+            if isinstance(huawei_config, (list,tuple)):
+                config_to_apply = []            
+                for config_item in huawei_config:
+                    mytemplate = Template(config_item,strict_undefined=True)
+                    config_to_apply.append(str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n')            
+            else:            
+                config_to_apply = str()
+                mytemplate = Template(huawei_config,strict_undefined=True)
+                config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
         else:
             ### UNDO/ROLLBACK CONFIG GENERATION ###
             collector_cmd = {'huawei':[
@@ -1704,9 +1724,9 @@ if device:
                   RCMD.disconnect()
                   sys.exit(0)
 
-            config_string = str()
+            config_to_apply = str()
             mytemplate = Template(undo_huawei_config,strict_undefined=True)
-            config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
+            config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
 
 
     ### JUNIPER #####################################################################
@@ -1745,9 +1765,9 @@ if device:
                   RCMD.disconnect()
                   sys.exit(0)
 
-            config_string = str()
+            config_to_apply = str()
             mytemplate = Template(juniper_config,strict_undefined=True)
-            config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
+            config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
 
 
         else:
@@ -1785,27 +1805,38 @@ if device:
                   RCMD.disconnect()
                   sys.exit(0)
 
-            config_string = str()
+            config_to_apply = str()
             mytemplate = Template(undo_juniper_config,strict_undefined=True)
-            config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
+            config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
 
 
 
 
     ### PRINT CONFIG ################################################################
     CGI_CLI.uprint('CONFIG:\n', tag = 'h1', color = 'blue')
-    CGI_CLI.uprint(config_string)
+    
+    if isinstance(config_to_apply, (list,tuple)):
+        for config_item in config_to_apply: CGI_CLI.uprint(config_item + "\n\n\n")
+    else: CGI_CLI.uprint(config_to_apply)
 
     if CGI_CLI.data.get('show_config_only'):
         RCMD.disconnect()
         sys.exit(0)
 
-    ### PUSH CONFIG TO DEVICE #######################################################
-    splitted_config = copy.deepcopy(config_string)
-    try: splitted_config = str(splitted_config.decode("utf-8")).splitlines()
-    except: splitted_config = []
+    ### PUSH CONFIG TO DEVICE #######################################################    
+    if isinstance(config_to_apply, (list,tuple)):
+        for config_item in config_to_apply:
+            splitted_config = copy.deepcopy(config_item)
+            try: splitted_config = str(splitted_config.decode("utf-8")).splitlines()
+            except: splitted_config = []
 
-    rcmd_outputs = RCMD.run_commands(cmd_data = splitted_config, conf = True, printall = True, sim_config = CGI_CLI.data.get('sim',None))
+            rcmd_outputs = RCMD.run_commands(cmd_data = splitted_config, conf = True, printall = True, sim_config = CGI_CLI.data.get('sim',None))
+    else:                     
+        splitted_config = copy.deepcopy(config_to_apply)
+        try: splitted_config = str(splitted_config.decode("utf-8")).splitlines()
+        except: splitted_config = []
+
+        rcmd_outputs = RCMD.run_commands(cmd_data = splitted_config, conf = True, printall = True, sim_config = CGI_CLI.data.get('sim',None))
 
     RCMD.disconnect()
 else:
