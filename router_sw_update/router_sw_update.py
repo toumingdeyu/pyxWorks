@@ -1104,6 +1104,7 @@ device_free_space = 0
 SCRIPT_ACTION = None
 ACTION_ITEM_FOUND = None
 type_subdir = str()
+remote_sw_release_dir_exists = None
 
 ##############################################################################
 
@@ -1121,6 +1122,7 @@ if CGI_CLI.cgi_active and not CGI_CLI.submit_form:
     CGI_CLI.uprint('ROUTER SW UPGRADE TOOL:\n', tag = 'h1', color = 'blue')
     CGI_CLI.formprint([{'text':'device'}, '<br/>', {'text':'sw_release'}, '<br/>',\
         {'text':'username'}, '<br/>', {'password':'password'}, \
+        '<br/>', {'checkbox':'printall'},'<br/>','<br/>',\
         {'radio':SCRIPT_ACTIONS_LIST},'<br/>', '<br/>'],\
         submit_button = 'OK', pyfile = None, tag = None, color = None)
 else:
@@ -1132,8 +1134,9 @@ else:
     else:
         if CGI_CLI.data.get("script_action"): SCRIPT_ACTION = CGI_CLI.data.get("script_action")
     ### HEADER TEXT PRINT ###
-    CGI_CLI.uprint('ROUTER SW UPGRADE TOOL \n\ndevice=%s, sw_release=%s, script_action=%s\n' % \
-        (device, sw_release, SCRIPT_ACTION), tag = 'h1', color = 'blue')
+    CGI_CLI.uprint('ROUTER SW UPGRADE TOOL \n', tag = 'h1', color = 'blue')
+    CGI_CLI.uprint('DEVICE=%s, SW_RELEASE=%s, SCRIPT_ACTION=%s\n' % \
+        (device, sw_release, SCRIPT_ACTION), color = 'blue')    
 
 
 ###############################################################################
@@ -1148,7 +1151,7 @@ logfilename = None
 ### REMOTE DEVICE OPERATIONS ##################################################
 if device:
     RCMD.connect(device, username = USERNAME, password = PASSWORD, \
-        printall = True, logfilename = logfilename)
+        printall = CGI_CLI.data.get("printall"), logfilename = logfilename)
 
     asr1k_detection_string = 'CSR1000'
     asr9k_detection_string = 'ASR9K|IOS-XRv 9000'
@@ -1156,11 +1159,12 @@ if device:
     ### RUN INITIAL DATA COLLECTION ###########################################
     collector_cmds = {
         'cisco_ios':['show bootflash:','show version | in (%s)' % (asr1k_detection_string)],
-        'cisco_xr':['show filesystem','show version | in "%s"' % (asr9k_detection_string)],
+        'cisco_xr':['show filesystem','show version | in "%s"' % (asr9k_detection_string),'dir harddisk:/IOS-XR/%s' % (sw_release)],
         'juniper':['show system storage'],
         'huawei':['display device | include PhyDisk','display disk information']
     }
-    rcmd_outputs = RCMD.run_commands(collector_cmds, printall = True)
+    CGI_CLI.uprint('DEVICE DATA COLLECTION:', no_newlines = True)
+    rcmd_outputs = RCMD.run_commands(collector_cmds)
 
 
     ### CHECK HDD/FLASH SPACE ON DEVICE #######################################
@@ -1174,17 +1178,19 @@ if device:
         if asr9k_detection_string in rcmd_outputs[1]: type_subdir = 'ASR9K'
         try: device_free_space = float(rcmd_outputs[0].split('harddisk:')[0].splitlines()[-1].split()[1].strip())
         except: pass
+        if 'Path does not exist'.upper() in rcmd_outputs[2].upper(): remote_sw_release_dir_exists = False
+        else: remote_sw_release_dir_exists = True
     elif RCMD.router_type == 'juniper': brand_subdir, type_subdir = 'JUNIPER', ''
     elif RCMD.router_type == 'huawei': brand_subdir, type_subdir = 'HUAWEI', 'V8R10'
 
-    CGI_CLI.uprint('\nDEVICE %s FREE SPACE = %s bytes\n' % (device, str(device_free_space)) , color = 'blue')
+    CGI_CLI.uprint('DEVICE %s FREE SPACE = %s bytes\n' % (device, str(device_free_space)) , color = 'blue')
 
     ### CCA 100MB FREE EXPECTED ###
     if device_free_space < 100000000:
         CGI_CLI.uprint('LOW HDD SPACE ON %s ROUTER DRIVE...' % (device), color = 'red')
         RCMD.disconnect()
         sys.exit(0)
-    else: CGI_CLI.uprint('CHECK HDD SPACE ON %s ROUTER - OK.' % (device))   
+    else: CGI_CLI.uprint('CHECK HDD SPACE ON %s ROUTER - OK.' % (device), color = 'blue')   
 
 
     ### CHECK LOCAL SW DIRECTORIES ############################################
@@ -1206,11 +1212,9 @@ if device:
 
 
     ### CHECK DEVICE HDD FILES ################################################
-    if RCMD.router_type == 'cisco_xr':
+    if remote_sw_release_dir_exists:
         pass
 
-        #'dir harddisk:/IOS-XR/%s' % (sw_release)
-        # 'Path does not exist'.upper()
 
 
 
