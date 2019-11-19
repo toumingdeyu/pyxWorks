@@ -1426,8 +1426,6 @@ undo interface LoopBack0
 #"""
 
 huawei_config_part_2 = """#
-undo interface Loopback200
-#
 interface LoopBack0
  undo ipv6 address
 % for item in loopback_200_config:
@@ -1816,7 +1814,7 @@ if device:
     CGI_CLI.uprint('CONFIG:\n', tag = 'h1', color = 'blue')
     
     if isinstance(config_to_apply, (list,tuple)):
-        for config_item in config_to_apply: CGI_CLI.uprint(config_item + "\n\n\n")
+        for config_item in config_to_apply: CGI_CLI.uprint('CONFIG PART:\n\n' + config_item + "\n\n")
     else: CGI_CLI.uprint(config_to_apply)
 
     if CGI_CLI.data.get('show_config_only'):
