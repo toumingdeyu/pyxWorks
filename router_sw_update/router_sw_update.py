@@ -1158,6 +1158,7 @@ if device:
 
     ### RUN INITIAL DATA COLLECTION ###########################################
     collector_cmds = {
+        ### some ios = enable, ask password, 'show bootflash:' , exit
         'cisco_ios':['show bootflash:','show version | in (%s)' % (asr1k_detection_string)],
         'cisco_xr':['show filesystem','show version | in "%s"' % (asr9k_detection_string),'dir harddisk:/IOS-XR/%s' % (sw_release)],
         'juniper':['show system storage'],
@@ -1185,8 +1186,8 @@ if device:
 
     CGI_CLI.uprint('DEVICE %s FREE SPACE = %s bytes\n' % (device, str(device_free_space)) , color = 'blue')
 
-    ### CCA 100MB FREE EXPECTED ###
-    if device_free_space < 100000000:
+    ### CCA 1G FREE EXPECTED ###
+    if device_free_space < 1000000000:
         CGI_CLI.uprint('LOW HDD SPACE ON %s ROUTER DRIVE...' % (device), color = 'red')
         RCMD.disconnect()
         sys.exit(0)
@@ -1214,6 +1215,13 @@ if device:
     ### CHECK DEVICE HDD FILES ################################################
     if remote_sw_release_dir_exists:
         pass
+        
+    tar_file = '%s-iosxr-px-k9-%s.tar' % (type_subdir,'.'.join([ char for char in sw_release.encode() ]))
+    tar_oti_file = '%s-iosxr-px-k9-%s.OTI.tar' % (type_subdir.lower(),'.'.join([ char for char in sw_release.encode() ]))
+    SMU_tar_file = '%s-px-%s.*.tar' % (type_subdir.lower(),'.'.join([ char for char in sw_release.encode() ]))
+    CGI_CLI.uprint(tar_file)
+    CGI_CLI.uprint(tar_oti_file)
+    CGI_CLI.uprint(SMU_tar_file)    
 
 
 
