@@ -932,7 +932,7 @@ class LCMD(object):
     def run_command(cmd_line = None, logfilename = None, printall = None):
         os_output, cmd_list = str(), None
         logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
-        if cmd_line:        
+        if cmd_line:
             with open(logfilename,"a+") as LCMD.fp:
                 if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line))
                 LCMD.fp.write('LOCAL_COMMAND: ' + cmd_line + '\n')
@@ -1123,17 +1123,17 @@ if CGI_CLI.cgi_active and not CGI_CLI.submit_form:
         {'text':'username'}, '<br/>', {'password':'password'}, \
         {'radio':SCRIPT_ACTIONS_LIST},'<br/>', '<br/>'],\
         submit_button = 'OK', pyfile = None, tag = None, color = None)
-else:        
-    ### READ SCRIPT ACTION ###    
+else:
+    ### READ SCRIPT ACTION ###
     for item in SCRIPT_ACTIONS_LIST:
-        if CGI_CLI.data.get(item): 
+        if CGI_CLI.data.get(item):
             SCRIPT_ACTION = copy.deepcopy(item)
             break
-    else:        
+    else:
         if CGI_CLI.data.get("script_action"): SCRIPT_ACTION = CGI_CLI.data.get("script_action")
-    ### HEADER TEXT PRINT ###    
+    ### HEADER TEXT PRINT ###
     CGI_CLI.uprint('ROUTER SW UPGRADE TOOL \n\ndevice=%s, sw_release=%s, script_action=%s\n' % \
-        (device, sw_release, SCRIPT_ACTION), tag = 'h1', color = 'blue') 
+        (device, sw_release, SCRIPT_ACTION), tag = 'h1', color = 'blue')
 
 
 ###############################################################################
@@ -1159,7 +1159,7 @@ if device:
         'cisco_xr':['show filesystem','show version | in "%s"' % (asr9k_detection_string)],
         'juniper':['show system storage'],
         'huawei':['display device | include PhyDisk','display disk information']
-    }    
+    }
     rcmd_outputs = RCMD.run_commands(collector_cmds, printall = True)
 
 
@@ -1179,23 +1179,32 @@ if device:
 
     CGI_CLI.uprint('\nDEVICE %s FREE SPACE = %s bytes\n' % (device, str(device_free_space)) , color = 'blue')
 
+    ### CCA 100MB FREE EXPECTED ###
+    if device_free_space < 100000000:
+        CGI_CLI.uprint('LOW HDD SPACE ON %s ROUTER DRIVE...' % (device), color = 'red')
+        RCMD.disconnect()
+        sys.exit(0)
+    else: CGI_CLI.uprint('CHECK HDD SPACE ON %s ROUTER - OK.' % (device))   
+
 
     ### CHECK LOCAL SW DIRECTORIES ############################################
     LOCAL_SW_RELEASE_DIR = os.path.abspath(os.path.join(os.sep,'home','tftpboot',brand_subdir, type_subdir, sw_release))
     LOCAL_SW_RELEASE_SMU_DIR = os.path.abspath(os.path.join(os.sep,'home','tftpboot',brand_subdir, type_subdir, sw_release, 'SMU'))
-    
+
     directory_list = [LOCAL_SW_RELEASE_DIR, LOCAL_SW_RELEASE_SMU_DIR]
     nonexistent_directories = ', '.join([ directory for directory in directory_list if not os.path.exists(directory) ])
-    
+
     CGI_CLI.uprint('CHECKING EXISTENCY[%s]...' % (', '.join(directory_list)))
-    
-    if nonexistent_directories: 
+
+    if nonexistent_directories:
         CGI_CLI.uprint('MISSING[%s]\nDirectories EXISTENCY CHECK FAIL!' % \
             (nonexistent_directories) if nonexistent_directories else str(), \
-            color = 'red')    
-    else: CGI_CLI.uprint('Directories EXISTENCY CHECK OK.\n', color = 'blue')           
-    
-    
+            color = 'red')
+        RCMD.disconnect()
+        sys.exit(0)
+    else: CGI_CLI.uprint('Directories EXISTENCY CHECK OK.\n', color = 'blue')
+
+
     ### CHECK DEVICE HDD FILES ################################################
     if RCMD.router_type == 'cisco_xr':
         pass
