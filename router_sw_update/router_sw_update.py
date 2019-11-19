@@ -99,6 +99,10 @@ class CGI_CLI(object):
                             action = "store", dest = 'device',
                             default = str(),
                             help = "target router to access")
+        parser.add_argument("--sw_release",
+                            action = "store", dest = 'sw_release',
+                            default = str(),
+                            help = "sw release number without dots, i.e 653")
         parser.add_argument("--shut",
                             action = 'store_true', dest = "shut",
                             default = None,
@@ -928,14 +932,15 @@ class LCMD(object):
     def run_command(cmd_line = None, logfilename = None, printall = None):
         os_output, cmd_list = str(), None
         logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
-        if cmd_line:
+        if cmd_line:        
             with open(logfilename,"a+") as LCMD.fp:
                 if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line))
                 LCMD.fp.write('LOCAL_COMMAND: ' + cmd_line + '\n')
-                try: os_output = subprocess.check_output(str(cmd_line), shell=True).decode("utf-8")
+                try: os_output = subprocess.check_output(str(cmd_line), stderr=subprocess.STDOUT, shell=True).decode("utf-8")
                 except (subprocess.CalledProcessError) as e:
-                    if printall: CGI_CLI.uprint(str(e))
-                    LCMD.fp.write(str(e) + '\n')
+                    os_output = str(e.output.decode("utf-8"))
+                    if printall: CGI_CLI.uprint('EXITCODE: %s' % (str(e.returncode)))
+                    LCMD.fp.write('EXITCODE: %s\n' % (str(e.returncode)))
                 except:
                     exc_text = traceback.format_exc()
                     CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
@@ -967,10 +972,11 @@ class LCMD(object):
                     os_output = str()
                     if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line))
                     LCMD.fp.write('LOCAL_COMMAND: ' + cmd_line + '\n')
-                    try: os_output = subprocess.check_output(str(cmd_line), shell=True).decode("utf-8")
+                    try: os_output = subprocess.check_output(str(cmd_line), stderr=subprocess.STDOUT, shell=True).decode("utf-8")
                     except (subprocess.CalledProcessError) as e:
-                        if printall: CGI_CLI.uprint(str(e))
-                        LCMD.fp.write(str(e) + '\n')
+                        os_output = str(e.output.decode("utf-8"))
+                        if printall: CGI_CLI.uprint('EXITCODE: %s' % (str(e.returncode)))
+                        LCMD.fp.write('EXITCODE: %s\n' % (str(e.returncode)))
                     except:
                         exc_text = traceback.format_exc()
                         CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
@@ -1057,6 +1063,31 @@ class LCMD(object):
 
 
 
+###############################################################################
+
+def generate_logfilename(prefix = None, USERNAME = None, suffix = None , directory = None):
+    filenamewithpath = None
+    if not directory:
+        try:    DIR         = os.environ['HOME']
+        except: DIR         = str(os.path.dirname(os.path.abspath(__file__)))
+    else: DIR = str(directory)
+    if DIR: LOGDIR      = os.path.join(DIR,'logs')
+    if not os.path.exists(LOGDIR): os.makedirs(LOGDIR)
+    if os.path.exists(LOGDIR):
+        if not prefix: filename_prefix = os.path.join(LOGDIR,'device')
+        else: filename_prefix = prefix
+        if not suffix: filename_suffix = 'log'
+        else: filename_suffix = suffix
+        now = datetime.datetime.now()
+        filename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s-%s-%s" % \
+            (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,\
+            now.second,sys.argv[0].replace('.py','').replace('./','').\
+            replace(':','_').replace('.','_').replace('\\','/')\
+            .split('/')[-1],USERNAME,filename_suffix)
+        filenamewithpath = str(os.path.join(LOGDIR,filename))
+    return filenamewithpath
+
+
 ##############################################################################
 #
 # BEGIN MAIN
@@ -1064,60 +1095,119 @@ class LCMD(object):
 ##############################################################################
 if __name__ != "__main__": sys.exit(0)
 ##############################################################################
-# lcmd_data = {
-    # 'windows':['whoami'],
-    # 'unix':['whoami'],
-# }
+
+SCRIPT_ACTIONS_LIST = ['load_files_only','do_sw_upgrade','check_sw_release']
+
+##############################################################################
+
+device_free_space = 0
+SCRIPT_ACTION = None
+ACTION_ITEM_FOUND = None
+type_subdir = str()
+
 ##############################################################################
 
 USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True)
-#CGI_CLI.print_args()
 device = CGI_CLI.data.get("device",None)
 if device: device = device.upper()
-config_string = str()
+sw_release = CGI_CLI.data.get('sw_release',None)
 iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
-device_free_space = 0
-
-
-collector_cmd = {
-    'cisco_ios':['show flash:', 'show bootflash:'],
-    'cisco_xr':['show filesystem'],
-    'juniper':['show system storage'],
-    'huawei':['display device | include PhyDisk','display disk information']
-}
+if CGI_CLI.cgi_active and not (USERNAME and PASSWORD):
+    if iptac_server == 'iptac5': USERNAME, PASSWORD = 'iptac', 'paiiUNDO'
 
 
 ### HTML MENU SHOWS ONLY IN CGI MODE ###
 if CGI_CLI.cgi_active and not CGI_CLI.submit_form:
     CGI_CLI.uprint('ROUTER SW UPGRADE TOOL:\n', tag = 'h1', color = 'blue')
-    CGI_CLI.formprint([{'text':'device'},'<br/>', {'text':'username'}, '<br/>',\
-        {'password':'password'}, '<br/>',{'checkbox':'sim'}, '<br/>', '<br/>'], \
+    CGI_CLI.formprint([{'text':'device'}, '<br/>', {'text':'sw_release'}, '<br/>',\
+        {'text':'username'}, '<br/>', {'password':'password'}, \
+        {'radio':SCRIPT_ACTIONS_LIST},'<br/>', '<br/>'],\
         submit_button = 'OK', pyfile = None, tag = None, color = None)
+else:        
+    ### READ SCRIPT ACTION ###    
+    for item in SCRIPT_ACTIONS_LIST:
+        if CGI_CLI.data.get(item): 
+            SCRIPT_ACTION = copy.deepcopy(item)
+            break
+    else:        
+        if CGI_CLI.data.get("script_action"): SCRIPT_ACTION = CGI_CLI.data.get("script_action")
+    ### HEADER TEXT PRINT ###    
+    CGI_CLI.uprint('ROUTER SW UPGRADE TOOL \n\ndevice=%s, sw_release=%s, script_action=%s\n' % \
+        (device, sw_release, SCRIPT_ACTION), tag = 'h1', color = 'blue') 
 
 
-### REMOTE DEVICE OPERATIONS ###
+###############################################################################
+### LOGFILENAME GENERATION ###
+logfilename = generate_logfilename(prefix = device.upper(), \
+    USERNAME = USERNAME, suffix = str(SCRIPT_ACTION) + '.log')
+logfilename = None
+###############################################################################
+
+
+
+### REMOTE DEVICE OPERATIONS ##################################################
 if device:
-    rcmd_outputs = RCMD.connect(device, username = USERNAME, password = PASSWORD, printall = True)
-    CGI_CLI.uprint('\n'.join(rcmd_outputs) , color = 'blue') 
+    RCMD.connect(device, username = USERNAME, password = PASSWORD, \
+        printall = True, logfilename = logfilename)
 
-    ### DATA COLLECTOR ###    
-    rcmd_outputs = RCMD.run_commands(collector_cmd, printall = True)
-    
+    asr1k_detection_string = 'CSR1000'
+    asr9k_detection_string = 'ASR9K|IOS-XRv 9000'
+
+    ### RUN INITIAL DATA COLLECTION ###########################################
+    collector_cmds = {
+        'cisco_ios':['show bootflash:','show version | in (%s)' % (asr1k_detection_string)],
+        'cisco_xr':['show filesystem','show version | in "%s"' % (asr9k_detection_string)],
+        'juniper':['show system storage'],
+        'huawei':['display device | include PhyDisk','display disk information']
+    }    
+    rcmd_outputs = RCMD.run_commands(collector_cmds, printall = True)
+
+
+    ### CHECK HDD/FLASH SPACE ON DEVICE #######################################
     if RCMD.router_type == 'cisco_ios':
+        brand_subdir = 'CISCO'
+        if asr1k_detection_string in rcmd_outputs[1]: type_subdir = 'ASR1K'
         try: device_free_space = float(rcmd_outputs[0].split('bytes available')[0].splitlines()[-1].strip())
-        except: pass  
-    if RCMD.router_type == 'cisco_xr': 
+        except: pass
+    elif RCMD.router_type == 'cisco_xr':
+        brand_subdir = 'CISCO'
+        if asr9k_detection_string in rcmd_outputs[1]: type_subdir = 'ASR9K'
         try: device_free_space = float(rcmd_outputs[0].split('harddisk:')[0].splitlines()[-1].split()[1].strip())
-        except: pass         
-    if RCMD.router_type == 'juniper': pass
-    if RCMD.router_type == 'huawei': pass
+        except: pass
+    elif RCMD.router_type == 'juniper': brand_subdir, type_subdir = 'JUNIPER', ''
+    elif RCMD.router_type == 'huawei': brand_subdir, type_subdir = 'HUAWEI', 'V8R10'
 
-    CGI_CLI.uprint('\nDEVICE %s FREE SPACE = %s bytes\n' % (device, str(device_free_space)) , color = 'blue') 
+    CGI_CLI.uprint('\nDEVICE %s FREE SPACE = %s bytes\n' % (device, str(device_free_space)) , color = 'blue')
 
+
+    ### CHECK LOCAL SW DIRECTORIES ############################################
+    LOCAL_SW_RELEASE_DIR = os.path.abspath(os.path.join(os.sep,'home','tftpboot',brand_subdir, type_subdir, sw_release))
+    LOCAL_SW_RELEASE_SMU_DIR = os.path.abspath(os.path.join(os.sep,'home','tftpboot',brand_subdir, type_subdir, sw_release, 'SMU'))
+    
+    directory_list = [LOCAL_SW_RELEASE_DIR, LOCAL_SW_RELEASE_SMU_DIR]
+    nonexistent_directories = ', '.join([ directory for directory in directory_list if not os.path.exists(directory) ])
+    
+    CGI_CLI.uprint('CHECKING EXISTENCY[%s]...' % (', '.join(directory_list)))
+    
+    if nonexistent_directories: 
+        CGI_CLI.uprint('MISSING[%s]\nDirectories EXISTENCY CHECK FAIL!' % \
+            (nonexistent_directories) if nonexistent_directories else str(), \
+            color = 'red')    
+    else: CGI_CLI.uprint('Directories EXISTENCY CHECK OK.\n', color = 'blue')           
     
     
-    
-    
+    ### CHECK DEVICE HDD FILES ################################################
+    if RCMD.router_type == 'cisco_xr':
+        pass
+
+        #'dir harddisk:/IOS-XR/%s' % (sw_release)
+        # 'Path does not exist'.upper()
+
+
+
+
+
+
     RCMD.disconnect()
 else:
     if CGI_CLI.cgi_active and CGI_CLI.submit_form:
