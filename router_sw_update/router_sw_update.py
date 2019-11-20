@@ -1210,26 +1210,6 @@ if device:
         OTI_tar_file = '%s-iosxr-px-k9-%s.OTI.tar' % (type_subdir.lower(),'.'.join([ char for char in sw_release.encode() ]))
         SMU_tar_files = '%s-px-%s.' % (type_subdir.lower(),'.'.join([ char for char in sw_release.encode() ]))
 
-        ### CHECK DEVICE HDD FILES EXISTENCY ##################################            
-        ### ELIMINATE PROBLEM = POSSIBLE ERROR CASE-MIX IN FILE NAMES #########
-        ### GET DEVICE CASE-CORRECT FILE NAMES ################################
-        true_OTI_tar_file_on_device, true_SMU_tar_files_on_device = None, []
-        for line in rcmd_outputs[2].splitlines():
-            if OTI_tar_file.upper() in line.upper():
-                true_OTI_tar_file_on_device = line.split()[-1].strip()
-                break
-        for line in rcmd_outputs[3].splitlines():
-            if SMU_tar_files.upper() in line.upper() and '.tar'.upper() in line.upper():
-                true_SMU_tar_files_on_device.append(line.split()[-1].strip())
-            
-        CGI_CLI.uprint('DEVICE OTI.tar FILE %s' % \
-            (true_OTI_tar_file_on_device + ' FOUND.' if true_OTI_tar_file_on_device else 'NOT FOUND!'),\
-            color = ('blue' if true_OTI_tar_file_on_device else 'red'))
-        CGI_CLI.uprint('DEVICE SMU.tar FILES %s' % \
-            (', '.join(true_SMU_tar_files_on_device) + ' FOUND.' if len(true_SMU_tar_files_on_device)>0 else 'NOT FOUND!'),\
-            color = ('blue' if len(true_SMU_tar_files_on_device)>0 else 'red'))           
-
-
         ### CHECK LOCAL SW DIRECTORIES ########################################
         LOCAL_SW_RELEASE_DIR = os.path.abspath(os.path.join(os.sep,'home','tftpboot',brand_subdir, type_subdir, sw_release))
         LOCAL_SW_RELEASE_SMU_DIR = os.path.abspath(os.path.join(os.sep,'home','tftpboot',brand_subdir, type_subdir, sw_release, 'SMU'))
@@ -1269,7 +1249,31 @@ if device:
             (', '.join(true_SMU_tar_files_on_server) + ' FOUND.' if len(true_SMU_tar_files_on_server)>0 else 'NOT FOUND!'),\
             color = ('blue' if len(true_SMU_tar_files_on_server)>0 else 'red'))  
 
+        if true_OTI_tar_file_on_server and len(true_SMU_tar_files_on_server) > 0:
+            pass
+        else:    
+            RCMD.disconnect()
+            sys.exit(0)        
 
+
+        ### CHECK DEVICE HDD FILES EXISTENCY ##################################            
+        ### ELIMINATE PROBLEM = POSSIBLE ERROR CASE-MIX IN FILE NAMES #########
+        ### GET DEVICE CASE-CORRECT FILE NAMES ################################
+        true_OTI_tar_file_on_device, true_SMU_tar_files_on_device = None, []
+        for line in rcmd_outputs[2].splitlines():
+            if OTI_tar_file.upper() in line.upper():
+                true_OTI_tar_file_on_device = line.split()[-1].strip()
+                break
+        for line in rcmd_outputs[3].splitlines():
+            if SMU_tar_files.upper() in line.upper() and '.tar'.upper() in line.upper():
+                true_SMU_tar_files_on_device.append(line.split()[-1].strip())
+            
+        CGI_CLI.uprint('DEVICE OTI.tar FILE %s' % \
+            (true_OTI_tar_file_on_device + ' FOUND.' if true_OTI_tar_file_on_device else 'NOT FOUND!'),\
+            color = ('blue' if true_OTI_tar_file_on_device else 'red'))
+        CGI_CLI.uprint('DEVICE SMU.tar FILES %s' % \
+            (', '.join(true_SMU_tar_files_on_device) + ' FOUND.' if len(true_SMU_tar_files_on_device)>0 else 'NOT FOUND!'),\
+            color = ('blue' if len(true_SMU_tar_files_on_device)>0 else 'red'))  
 
 
 
