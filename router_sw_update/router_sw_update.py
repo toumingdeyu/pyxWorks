@@ -1096,6 +1096,7 @@ def generate_logfilename(prefix = None, USERNAME = None, suffix = None , directo
 if __name__ != "__main__": sys.exit(0)
 ##############################################################################
 
+device_expected_GB_free = 1
 SCRIPT_ACTIONS_LIST = ['load_files_only','do_sw_upgrade','check_sw_release']
 
 ##############################################################################
@@ -1175,19 +1176,19 @@ if device:
         'huawei':['display device | include PhyDisk','display disk information']
     }
     CGI_CLI.uprint('DEVICE DATA COLLECTION:', no_newlines = True)
-    rcmd_outputs = RCMD.run_commands(collector_cmds)
+    rcmd_collector_outputs = RCMD.run_commands(collector_cmds)
 
 
     ### CHECK HDD/FLASH SPACE ON DEVICE #######################################
     if RCMD.router_type == 'cisco_ios':
         brand_subdir = 'CISCO'
-        if asr1k_detection_string in rcmd_outputs[1]: type_subdir = 'ASR1K'
-        try: device_free_space = float(rcmd_outputs[0].split('bytes available')[0].splitlines()[-1].strip())
+        if asr1k_detection_string in rcmd_collector_outputs[1]: type_subdir = 'ASR1K'
+        try: device_free_space = float(rcmd_collector_outputs[0].split('bytes available')[0].splitlines()[-1].strip())
         except: pass
     elif RCMD.router_type == 'cisco_xr':
         brand_subdir = 'CISCO'
-        if asr9k_detection_string in rcmd_outputs[1]: type_subdir = 'ASR9K'
-        try: device_free_space = float(rcmd_outputs[0].split('harddisk:')[0].splitlines()[-1].split()[1].strip())
+        if asr9k_detection_string in rcmd_collector_outputs[1]: type_subdir = 'ASR9K'
+        try: device_free_space = float(rcmd_collector_outputs[0].split('harddisk:')[0].splitlines()[-1].split()[1].strip())
         except: pass
     elif RCMD.router_type == 'juniper': brand_subdir, type_subdir = 'JUNIPER', ''
     elif RCMD.router_type == 'huawei': brand_subdir, type_subdir = 'HUAWEI', 'V8R10'
@@ -1195,12 +1196,11 @@ if device:
     CGI_CLI.uprint('DEVICE %s FREE SPACE = %s bytes\n' % (device, str(device_free_space)) , color = 'blue')
 
     ### SOME GB FREE EXPECTED (1MB=1048576, 1GB=1073741824) ###
-    expected_GB = 1
-    if device_free_space < (expected_GB*1073741824):
-        CGI_CLI.uprint('LOW HDD SPACE ON %s ROUTER DRIVE...' % (device), color = 'red')
+    if device_free_space < (device_expected_GB_free * 1073741824):
+        CGI_CLI.uprint('LOW DISK SPACE ON %s ROUTER DRIVE...' % (device), color = 'red')
         RCMD.disconnect()
         sys.exit(0)
-    else: CGI_CLI.uprint('CHECK HDD SPACE ON %s ROUTER - OK.' % (device), color = 'blue')   
+    else: CGI_CLI.uprint('DISK SPACE ON %s ROUTER - CHECK OK.' % (device), color = 'blue')   
 
 
     ### CHECK LOCAL SERVER AND DEVICE HDD FILES ###############################
@@ -1217,15 +1217,15 @@ if device:
         directory_list = [LOCAL_SW_RELEASE_DIR, LOCAL_SW_RELEASE_SMU_DIR]
         nonexistent_directories = ', '.join([ directory for directory in directory_list if not os.path.exists(directory) ])
 
-        CGI_CLI.uprint('CHECKING DIR EXISTENCY[%s]...' % (', '.join(directory_list)))
+        CGI_CLI.uprint('DIR EXISTENCY CHECK[%s]...' % (', '.join(directory_list)))
 
         if nonexistent_directories:
-            CGI_CLI.uprint('MISSING[%s]\n%s directories EXISTENCY CHECK FAIL!' % \
+            CGI_CLI.uprint('MISSING[%s]\n%s directories EXISTENCY - CHECK FAIL!' % \
                 ((nonexistent_directories) if nonexistent_directories else str(), iptac_server.upper()), \
                 color = 'red')
             RCMD.disconnect()
             sys.exit(0)
-        else: CGI_CLI.uprint('%s directories EXISTENCY CHECK OK.\n' % (iptac_server.upper()), color = 'blue')
+        else: CGI_CLI.uprint('%s directories EXISTENCY - CHECK OK.\n' % (iptac_server.upper()), color = 'blue')
 
 
         ### CHECK LOCAL SERVER FILES EXISTENCY ################################
@@ -1256,15 +1256,33 @@ if device:
             sys.exit(0)        
 
 
+        ### SERVER MD5 CHECKS #################################################
+        local_oti_checkum_string = LCMD.run_commands({'unix':['md5sum %s' % \
+            (os.path.join(LOCAL_SW_RELEASE_DIR,true_OTI_tar_file_on_server))]})
+        md5_true_OTI_tar_file_on_server = local_oti_checkum_string.split()[0].strip()
+        md5_true_SMU_tar_files_on_server = []
+        for file in true_SMU_tar_files_on_server:
+            checkum_string = LCMD.run_commands({'unix':['md5sum %s' % \
+                (os.path.join(LOCAL_SW_RELEASE_SMU_DIR,file))]})
+            md5_true_SMU_tar_files_on_server.append(local_oti_checkum_string.split()[0].strip())        
+
+        CGI_CLI.uprint('SERVER OTI.tar FILE MD5 %s' % \
+            (md5_true_OTI_tar_file_on_server + ' FOUND.' if md5_true_OTI_tar_file_on_server else 'NOT FOUND!'),\
+            color = ('blue' if md5_true_OTI_tar_file_on_server else 'red'))
+        CGI_CLI.uprint('SERVER SMU.tar FILES MD5 %s' % \
+            (', '.join(md5_true_SMU_tar_files_on_server) + ' FOUND.' if len(md5_true_SMU_tar_files_on_server)>0 else 'NOT FOUND!'),\
+            color = ('blue' if len(md5_true_SMU_tar_files_on_server)>0 else 'red'))  
+
+
         ### CHECK DEVICE HDD FILES EXISTENCY ##################################            
         ### ELIMINATE PROBLEM = POSSIBLE ERROR CASE-MIX IN FILE NAMES #########
         ### GET DEVICE CASE-CORRECT FILE NAMES ################################
         true_OTI_tar_file_on_device, true_SMU_tar_files_on_device = None, []
-        for line in rcmd_outputs[2].splitlines():
+        for line in rcmd_collector_outputs[2].splitlines():
             if OTI_tar_file.upper() in line.upper():
                 true_OTI_tar_file_on_device = line.split()[-1].strip()
                 break
-        for line in rcmd_outputs[3].splitlines():
+        for line in rcmd_collector_outputs[3].splitlines():
             if SMU_tar_files.upper() in line.upper() and '.tar'.upper() in line.upper():
                 true_SMU_tar_files_on_device.append(line.split()[-1].strip())
             
