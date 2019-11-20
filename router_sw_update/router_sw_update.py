@@ -1171,7 +1171,10 @@ if device:
             ### NOTHING DIR HAPPENS IF EXISTS - 'mkdir: cannot create directory 'harddisk:/aaa': directory exists'
             ### CREATE DIR: 'Created dir harddisk:/aaa/bbb'
             'mkdir harddisk:/IOS-XR/%s' % (sw_release),
+            ### ENTER IS INSTEAD OF YES ###
+            ' ',
             'mkdir harddisk:/IOS-XR/%s/SMU' % (sw_release)],
+            ' '
         'juniper':['show system storage'],
         'huawei':['display device | include PhyDisk','display disk information']
     }
