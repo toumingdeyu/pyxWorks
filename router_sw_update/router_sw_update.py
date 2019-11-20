@@ -1208,18 +1208,26 @@ if device:
         ### GENERATE FILE NAMES ###
         tar_file = '%s-iosxr-px-k9-%s.tar' % (type_subdir,'.'.join([ char for char in sw_release.encode() ]))
         OTI_tar_file = '%s-iosxr-px-k9-%s.OTI.tar' % (type_subdir.lower(),'.'.join([ char for char in sw_release.encode() ]))
-        SMU_tar_file = '%s-px-%s.*.tar' % (type_subdir.lower(),'.'.join([ char for char in sw_release.encode() ]))
+        SMU_tar_files = '%s-px-%s.' % (type_subdir.lower(),'.'.join([ char for char in sw_release.encode() ]))
 
-        ### CHECK DEVICE HDD FILES ############################################            
+        ### CHECK DEVICE HDD FILES EXISTENCY ##################################            
         ### ELIMINATE PROBLEM = POSSIBLE ERROR CASE-MIX IN FILE NAMES #########
-        if OTI_tar_file.upper() in rcmd_outputs[2].upper(): OTI_tar_file_exists_on_device = True
-        else: OTI_tar_file_exists_on_device = False
-        if SMU_tar_file.upper() in rcmd_outputs[3].upper(): SMU_tar_file_exists_on_device = True
-        else: SMU_tar_file_exists_on_device = False
-
         ### GET DEVICE CASE-CORRECT FILE NAMES ################################
-
-
+        true_OTI_tar_file_on_device, true_SMU_tar_files_on_device = None, []
+        for line in rcmd_outputs[2].splitlines():
+            if OTI_tar_file.upper() in line.upper():
+                true_OTI_tar_file_on_device = line.split()[-1].strip()
+                break
+        for line in rcmd_outputs[3].splitlines():
+            if SMU_tar_files.upper() in line.upper() and '.tar'.upper() in line.upper():
+                true_SMU_tar_files_on_device.append(line.split()[-1].strip())
+            
+        CGI_CLI.uprint('DEVICE OTI.tar FILE %s' % \
+            (true_OTI_tar_file_on_device + ' FOUND.' if true_OTI_tar_file_on_device else 'NOT FOUND!'),\
+            color = ('blue' if true_OTI_tar_file_on_device else 'red'))
+        CGI_CLI.uprint('DEVICE SMU.tar FILES %s' % \
+            (', '.join(true_SMU_tar_files_on_device) + ' FOUND.' if len(true_SMU_tar_files_on_device)>0 else 'NOT FOUND!'),\
+            color = ('blue' if len(true_SMU_tar_files_on_device)>0 else 'red'))           
 
 
         ### CHECK LOCAL SW DIRECTORIES ########################################
@@ -1229,7 +1237,7 @@ if device:
         directory_list = [LOCAL_SW_RELEASE_DIR, LOCAL_SW_RELEASE_SMU_DIR]
         nonexistent_directories = ', '.join([ directory for directory in directory_list if not os.path.exists(directory) ])
 
-        CGI_CLI.uprint('CHECKING EXISTENCY[%s]...' % (', '.join(directory_list)))
+        CGI_CLI.uprint('CHECKING DIR EXISTENCY[%s]...' % (', '.join(directory_list)))
 
         if nonexistent_directories:
             CGI_CLI.uprint('MISSING[%s]\n%s directories EXISTENCY CHECK FAIL!' % \
@@ -1239,18 +1247,27 @@ if device:
             sys.exit(0)
         else: CGI_CLI.uprint('%s directories EXISTENCY CHECK OK.\n' % (iptac_server.upper()), color = 'blue')
 
-        ### CHECK LOCAL SERVER FILES ##########################################
+
+        ### CHECK LOCAL SERVER FILES EXISTENCY ################################
         local_results = LCMD.run_commands({'unix':['ls -l %s' % (LOCAL_SW_RELEASE_DIR), \
                                                    'ls -l %s' % (LOCAL_SW_RELEASE_SMU_DIR)]})
-         
         ### ELIMINATE PROBLEM = POSSIBLE ERROR CASE-MIX IN FILE NAMES #########
-        if OTI_tar_file.upper() in local_results[0].upper(): OTI_tar_file_exists_on_server = True
-        else: OTI_tar_file_exists_on_server = False
-        if SMU_tar_file.upper() in local_results[1].upper(): SMU_tar_file_exists_on_server = True
-        else: SMU_tar_file_exists_on_server = False
+        ### GET DEVICE CASE-CORRECT FILE NAMES ################################
+        true_OTI_tar_file_on_server, true_SMU_tar_files_on_server = None, []
+        for line in local_results[0].splitlines():
+            if OTI_tar_file.upper() in line.upper():
+                true_OTI_tar_file_on_server = line.split()[-1].strip()
+                break
+        for line in local_results[1].splitlines():
+            if SMU_tar_files.upper() in line.upper() and '.tar'.upper() in line.upper():
+                true_SMU_tar_files_on_server.append(line.split()[-1].strip())
 
-
-
+        CGI_CLI.uprint('SERVER OTI.tar FILE %s' % \
+            (true_OTI_tar_file_on_server + ' FOUND.' if true_OTI_tar_file_on_server else 'NOT FOUND!'),\
+            color = ('blue' if true_OTI_tar_file_on_server else 'red'))
+        CGI_CLI.uprint('SERVER SMU.tar FILES %s' % \
+            (', '.join(true_SMU_tar_files_on_server) + ' FOUND.' if len(true_SMU_tar_files_on_server)>0 else 'NOT FOUND!'),\
+            color = ('blue' if len(true_SMU_tar_files_on_server)>0 else 'red'))  
 
 
 
