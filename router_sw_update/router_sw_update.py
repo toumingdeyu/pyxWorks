@@ -1259,12 +1259,12 @@ if device:
         ### SERVER MD5 CHECKS #################################################
         local_oti_checkum_string = LCMD.run_commands({'unix':['md5sum %s' % \
             (os.path.join(LOCAL_SW_RELEASE_DIR,true_OTI_tar_file_on_server))]})
-        md5_true_OTI_tar_file_on_server = local_oti_checkum_string.split()[0].strip()
+        md5_true_OTI_tar_file_on_server = local_oti_checkum_string[0].split()[0].strip()
         md5_true_SMU_tar_files_on_server = []
         for file in true_SMU_tar_files_on_server:
             checkum_string = LCMD.run_commands({'unix':['md5sum %s' % \
                 (os.path.join(LOCAL_SW_RELEASE_SMU_DIR,file))]})
-            md5_true_SMU_tar_files_on_server.append(local_oti_checkum_string.split()[0].strip())        
+            md5_true_SMU_tar_files_on_server.append(checkum_string[0].split()[0].strip())        
 
         CGI_CLI.uprint('SERVER OTI.tar FILE MD5 %s' % \
             (md5_true_OTI_tar_file_on_server + ' FOUND.' if md5_true_OTI_tar_file_on_server else 'NOT FOUND!'),\
