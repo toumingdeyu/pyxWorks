@@ -1160,7 +1160,17 @@ if device:
     collector_cmds = {
         ### some ios = enable, ask password, 'show bootflash:' , exit
         'cisco_ios':['show bootflash:','show version | in (%s)' % (asr1k_detection_string)],
-        'cisco_xr':['show filesystem','show version | in "%s"' % (asr9k_detection_string),'dir harddisk:/IOS-XR/%s' % (sw_release)],
+        'cisco_xr':['show filesystem',
+            'show version | in "%s"' % (asr9k_detection_string),
+            ### DIR NOT EXISTS: 'dir : harddisk:/aaaa : Path does not exist'
+            ### VOID DIR: 'No files in directory'
+            ### SUBDIR EXISTS: '441 drw-r--r-- 2 4096 Nov 20 08:43 bbb'
+            'dir harddisk:/IOS-XR/%s' % (sw_release),            
+            'dir harddisk:/IOS-XR/%s/SMU' % (sw_release),
+            ### NOTHING DIR HAPPENS IF EXISTS - 'mkdir: cannot create directory 'harddisk:/aaa': directory exists'
+            ### CREATE DIR: 'Created dir harddisk:/aaa/bbb'
+            'mkdir harddisk:/IOS-XR/%s' % (sw_release),
+            'mkdir harddisk:/IOS-XR/%s/SMU' % (sw_release)],
         'juniper':['show system storage'],
         'huawei':['display device | include PhyDisk','display disk information']
     }
@@ -1179,49 +1189,74 @@ if device:
         if asr9k_detection_string in rcmd_outputs[1]: type_subdir = 'ASR9K'
         try: device_free_space = float(rcmd_outputs[0].split('harddisk:')[0].splitlines()[-1].split()[1].strip())
         except: pass
-        if 'Path does not exist'.upper() in rcmd_outputs[2].upper(): remote_sw_release_dir_exists = False
-        else: remote_sw_release_dir_exists = True
     elif RCMD.router_type == 'juniper': brand_subdir, type_subdir = 'JUNIPER', ''
     elif RCMD.router_type == 'huawei': brand_subdir, type_subdir = 'HUAWEI', 'V8R10'
 
     CGI_CLI.uprint('DEVICE %s FREE SPACE = %s bytes\n' % (device, str(device_free_space)) , color = 'blue')
 
-    ### CCA 1G FREE EXPECTED ###
-    if device_free_space < 1000000000:
+    ### SOME GB FREE EXPECTED (1MB=1048576, 1GB=1073741824) ###
+    expected_GB = 1
+    if device_free_space < (expected_GB*1073741824):
         CGI_CLI.uprint('LOW HDD SPACE ON %s ROUTER DRIVE...' % (device), color = 'red')
         RCMD.disconnect()
         sys.exit(0)
     else: CGI_CLI.uprint('CHECK HDD SPACE ON %s ROUTER - OK.' % (device), color = 'blue')   
 
 
-    ### CHECK LOCAL SW DIRECTORIES ############################################
-    LOCAL_SW_RELEASE_DIR = os.path.abspath(os.path.join(os.sep,'home','tftpboot',brand_subdir, type_subdir, sw_release))
-    LOCAL_SW_RELEASE_SMU_DIR = os.path.abspath(os.path.join(os.sep,'home','tftpboot',brand_subdir, type_subdir, sw_release, 'SMU'))
+    ### CHECK LOCAL SERVER AND DEVICE HDD FILES ###############################
+    if RCMD.router_type == 'cisco_xr':
+        ### GENERATE FILE NAMES ###
+        tar_file = '%s-iosxr-px-k9-%s.tar' % (type_subdir,'.'.join([ char for char in sw_release.encode() ]))
+        OTI_tar_file = '%s-iosxr-px-k9-%s.OTI.tar' % (type_subdir.lower(),'.'.join([ char for char in sw_release.encode() ]))
+        SMU_tar_file = '%s-px-%s.*.tar' % (type_subdir.lower(),'.'.join([ char for char in sw_release.encode() ]))
 
-    directory_list = [LOCAL_SW_RELEASE_DIR, LOCAL_SW_RELEASE_SMU_DIR]
-    nonexistent_directories = ', '.join([ directory for directory in directory_list if not os.path.exists(directory) ])
+        ### CHECK DEVICE HDD FILES ############################################            
+        ### ELIMINATE PROBLEM = POSSIBLE ERROR CASE-MIX IN FILE NAMES #########
+        if OTI_tar_file.upper() in rcmd_outputs[2].upper(): OTI_tar_file_exists_on_device = True
+        else: OTI_tar_file_exists_on_device = False
+        if SMU_tar_file.upper() in rcmd_outputs[3].upper(): SMU_tar_file_exists_on_device = True
+        else: SMU_tar_file_exists_on_device = False
 
-    CGI_CLI.uprint('CHECKING EXISTENCY[%s]...' % (', '.join(directory_list)))
-
-    if nonexistent_directories:
-        CGI_CLI.uprint('MISSING[%s]\nDirectories EXISTENCY CHECK FAIL!' % \
-            (nonexistent_directories) if nonexistent_directories else str(), \
-            color = 'red')
-        RCMD.disconnect()
-        sys.exit(0)
-    else: CGI_CLI.uprint('Directories EXISTENCY CHECK OK.\n', color = 'blue')
+        ### GET DEVICE CASE-CORRECT FILE NAMES ################################
 
 
-    ### CHECK DEVICE HDD FILES ################################################
-    if remote_sw_release_dir_exists:
-        pass
-        
-    tar_file = '%s-iosxr-px-k9-%s.tar' % (type_subdir,'.'.join([ char for char in sw_release.encode() ]))
-    tar_oti_file = '%s-iosxr-px-k9-%s.OTI.tar' % (type_subdir.lower(),'.'.join([ char for char in sw_release.encode() ]))
-    SMU_tar_file = '%s-px-%s.*.tar' % (type_subdir.lower(),'.'.join([ char for char in sw_release.encode() ]))
-    CGI_CLI.uprint(tar_file)
-    CGI_CLI.uprint(tar_oti_file)
-    CGI_CLI.uprint(SMU_tar_file)    
+
+
+        ### CHECK LOCAL SW DIRECTORIES ########################################
+        LOCAL_SW_RELEASE_DIR = os.path.abspath(os.path.join(os.sep,'home','tftpboot',brand_subdir, type_subdir, sw_release))
+        LOCAL_SW_RELEASE_SMU_DIR = os.path.abspath(os.path.join(os.sep,'home','tftpboot',brand_subdir, type_subdir, sw_release, 'SMU'))
+
+        directory_list = [LOCAL_SW_RELEASE_DIR, LOCAL_SW_RELEASE_SMU_DIR]
+        nonexistent_directories = ', '.join([ directory for directory in directory_list if not os.path.exists(directory) ])
+
+        CGI_CLI.uprint('CHECKING EXISTENCY[%s]...' % (', '.join(directory_list)))
+
+        if nonexistent_directories:
+            CGI_CLI.uprint('MISSING[%s]\n%s directories EXISTENCY CHECK FAIL!' % \
+                ((nonexistent_directories) if nonexistent_directories else str(), iptac_server.upper()), \
+                color = 'red')
+            RCMD.disconnect()
+            sys.exit(0)
+        else: CGI_CLI.uprint('%s directories EXISTENCY CHECK OK.\n' % (iptac_server.upper()), color = 'blue')
+
+        ### CHECK LOCAL SERVER FILES ##########################################
+        local_results = LCMD.run_commands({'unix':['ls -l %s' % (LOCAL_SW_RELEASE_DIR), \
+                                                   'ls -l %s' % (LOCAL_SW_RELEASE_SMU_DIR)]})
+         
+        ### ELIMINATE PROBLEM = POSSIBLE ERROR CASE-MIX IN FILE NAMES #########
+        if OTI_tar_file.upper() in local_results[0].upper(): OTI_tar_file_exists_on_server = True
+        else: OTI_tar_file_exists_on_server = False
+        if SMU_tar_file.upper() in local_results[1].upper(): SMU_tar_file_exists_on_server = True
+        else: SMU_tar_file_exists_on_server = False
+
+
+
+
+
+
+
+
+
 
 
 
