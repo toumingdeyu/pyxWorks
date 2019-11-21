@@ -675,7 +675,8 @@ def get_difference_string_from_string_or_list(
                     if (re.search(item,line)) != None: print_line = True
                 if print_line:
                     print_string += COL_EQUAL + line + bcolors.ENDC + '\n'
-        return print_string
+        if print_string: all_ok = False   
+        return print_string, all_ok 
 
     # NDIFF0 COMPARISON METHOD--------------------------------------------------
     if diff_method == 'ndiff0' or diff_method == 'pdiff0':
