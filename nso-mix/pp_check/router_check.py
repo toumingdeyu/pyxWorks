@@ -276,7 +276,7 @@ CMD_JUNOS = [
             ("show system software",
                    'ndiff0', ['uptime','Uptime'], [],
                    [], [], [], False),
-            ("show configuration",
+            ("show configuration | display set",
                    "ndiff"),
             ("show interfaces terse",
                    'ndiff0', [], [],
@@ -326,7 +326,7 @@ CMD_JUNOS = [
             ('show bgp neighbor | match "^Peer:|prefixes:|damping:"',
                    'ndiff0', [], [],
                    ['Peer:'], [], [], False, 3),
-            ('show configuration firewall',
+            ('show configuration firewall | display set',
                    'ndiff0', [], [],
                    ['filter', 'term', 'from', 'then', 'source', 'destination', '{', '}'], [], [], False),
 #             ('show interfaces detail | match "Physical interface|Last flapped| bps"',
@@ -883,31 +883,26 @@ parser.add_argument("--version",
 parser.add_argument("--device",
                     action = "store", dest = 'device', default = None,
                     help = "target router to check")
-parser.add_argument("--os",
-                    action = "store", dest="router_type",
-                    choices = ["ios-xr", "ios-xe", "junos", "vrp", "linux"],
-                    help = "router operating system type")
 parser.add_argument("--post", action = "store_true",
                     help = "run Postcheck")
+parser.add_argument("--emailaddr",
+                    action = "store", dest = 'emailaddr', default = '',
+                    help = "insert your email address once if is different than name.surname@orange.com,\
+                    it will do NEWR_EMAIL variable record in your bashrc file and you do not need to insert it any more.")                    
+parser.add_argument("--printall",action = "store_true", default = False,
+                    help = "print all lines, changes will be coloured")                    
 parser.add_argument("--prefile",
                     action = 'store', dest = "precheck_file", default = str(),
                     help = "run postcheck against a specific precheck file")
 parser.add_argument("--postfile",
                     action = 'store', dest = "postcheck_file", default = str(),
                     help = "specify your postcheck file")
-parser.add_argument("--cmdfile", action = 'store', dest = "cmd_file", default = str(),
-                    help = "specify a file with a list of commands to execute")
 parser.add_argument("--user", default = str(),
                     action = "store", dest = 'username',
                     help = "specify router user login")
-parser.add_argument("--noslice",
-                    action = "store_true",
-                    default = False,
-                    help = "postcheck with no end of line cut")
-parser.add_argument("--olddiff",action = "store_true", default = False,
-                    help = "force old diff method")
-parser.add_argument("--printall",action = "store_true", default = False,
-                    help = "print all lines, changes will be coloured")
+parser.add_argument("--fgetpass",
+                    action = 'store_true', dest = "fgetpass", default = False,
+                    help = "force getpass.getpass() call even if NEWR_PASS is set.")                    
 parser.add_argument("--recheck",action = "store_true", default = False,
                     help = "recheck last or specified diff pre/post files per inserted device")
 parser.add_argument("--cmdlist",
@@ -916,20 +911,25 @@ parser.add_argument("--cmdlist",
 parser.add_argument("--logfile",
                     action = 'store_true', dest = "log_file", default = False,
                     help = "do file-diff logfile (name will be generated and printed)")
-parser.add_argument("--nocolors",
-                    action = 'store_true', dest = "nocolors", default = False,
-                    help = "print mode with no colors.")
-parser.add_argument("--fgetpass",
-                    action = 'store_true', dest = "fgetpass", default = False,
-                    help = "force getpass.getpass() call even if NEWR_PASS is set.")
 parser.add_argument("--latest",
                     action = 'store_true', dest = "latest", default = False,
                     help = "look for really latest pre/postcheck files (also from somebody else),\
-                    otherwise your own last pre/postcheck files will be used by default")
-parser.add_argument("--emailaddr",
-                    action = "store", dest = 'emailaddr', default = '',
-                    help = "insert your email address once if is different than name.surname@orange.com,\
-                    it will do NEWR_EMAIL variable record in your bashrc file and you do not need to insert it any more.")
+                    otherwise your own last pre/postcheck files will be used by default")                    
+parser.add_argument("--nocolors",
+                    action = 'store_true', dest = "nocolors", default = False,
+                    help = "print mode with no colors.")                    
+parser.add_argument("--os",
+                    action = "store", dest="router_type",
+                    choices = ["ios-xr", "ios-xe", "junos", "vrp", "linux"],
+                    help = "router operating system type")
+parser.add_argument("--cmdfile", action = 'store', dest = "cmd_file", default = str(),
+                    help = "specify a file with a list of custom commands to execute, instead of built-in commands")                    
+parser.add_argument("--olddiff",action = "store_true", default = False,
+                    help = "force old diff method")                    
+parser.add_argument("--noslice",
+                    action = "store_true",
+                    default = False,
+                    help = "postcheck with no end of line cut used with --olddiff")                    
 args = parser.parse_args()
 
 if args.emailaddr:
