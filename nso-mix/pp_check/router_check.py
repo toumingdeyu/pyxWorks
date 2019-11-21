@@ -5,7 +5,8 @@
 # Author: Philippe Marcais (philippe.marcais@orange.com)                      #
 #         Peter Nemec      (peter.nemec@orange.com)                           #
 # Created: 06/01/2015                                                         #
-# Updated: 09/Nov/2019 -device name used allways UPPERCASE                    #
+# Updated: 21/Nov/2019 -junos name in prompt bugfix                           #
+#          09/Nov/2019 -device name used allways UPPERCASE                    #
 #          03/Oct/2019 -added acl commands for all router types.Linefilter ok.#
 #          25/Jun/2019 -line numbers %tolerance.                              #
 #          23/Mar/2019 -added new custom filediff                             #
@@ -276,7 +277,7 @@ CMD_JUNOS = [
                    'ndiff0', ['uptime','Uptime'], [],
                    [], [], [], False),
             ("show configuration",
-                   "ndiff0"),
+                   "ndiff"),
             ("show interfaces terse",
                    'ndiff0', [], [],
                    [], [], [], False),
@@ -569,25 +570,30 @@ def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True)
 
 
 # Find a section of text betwwen "cli" variable from upper block and "prompt
-def find_section(text, prompts,cli_index, cli , file_name = str(),debug = False):
+def find_section(text, prompts, cli_index, cli, file_name = str(),debug = False):
     look_end = 0
     b_index, e_index, c_index = None, None, -1
     for index,item in enumerate(text):
         for prompt in prompts:
-            if prompt.rstrip() in text[index].rstrip():
+            ### JUNOS HAS USERNAME IN PROMPT!!! ###
+            use_prompt = str(prompt.replace(USERNAME,'').rstrip().decode())
+            use_text   = str(text[index].replace(USERNAME,'').rstrip().decode())
+            use_cli    = str(cli.rstrip().decode())
+            if use_prompt in use_text:
                 c_index = c_index+1
                 # beginning section found ... or (c_index == cli_index):
                 # + workarround for long commands shortened in router echoed line
-                try: cmd_text_short = text[index].rstrip()[0:73].split(prompt)[1]
+                try: cmd_text_short = str((use_text[0:73].split(use_prompt)[1]).decode())
                 except: cmd_text_short = str()
-                if debug: print('@@@@@@@@@@',cli_index,c_index,cmd_text_short,cli)
-                if (prompt+cli.rstrip()) in text[index].rstrip() or \
-                    (c_index == cli_index and cmd_text_short and cmd_text_short in cli.rstrip()):
+                if debug: print('@@@@@@@@@@',use_prompt,use_cli,use_text,cli_index,c_index,cmd_text_short)
+                if (use_prompt in use_text and use_cli in use_text) or \
+                    (c_index == cli_index and cmd_text_short and cmd_text_short in use_cli):
                     b_index = index
                     look_end = 1                       # look for end of section now
+                    if debug: print('==========',use_text,use_cli)
                     break #continue
                 if look_end == 1:
-                    if prompt.rstrip() in text[index]:
+                    if use_prompt in use_text:
                         e_index = index
                         look_end = 0
     if not(b_index and e_index):
