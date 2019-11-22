@@ -751,7 +751,7 @@ class RCMD(object):
     def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True):
         output, output2, new_prompt = str(), str(), str()
         exit_loop, exit_loop2 = False, False
-        timeout_counter, timeout_counter2 = 0, 0
+        timeout_counter_100msec, timeout_counter_100msec_2 = 0, 0
         # FLUSH BUFFERS FROM PREVIOUS COMMANDS IF THEY ARE ALREADY BUFFERD
         if chan.recv_ready(): flush_buffer = chan.recv(9999)
         time.sleep(0.1)
@@ -759,13 +759,13 @@ class RCMD(object):
         time.sleep(0.2)
         while not exit_loop:
             if chan.recv_ready():
-                # workarround for discontious outputs from routers
-                timeout_counter = 0
+                ### WORKARROUND FOR DISCONTINIOUS OUTPUT FROM ROUTERS ###
+                timeout_counter_100msec = 0
                 buff = chan.recv(9999)
                 buff_read = buff.decode("utf-8").replace('\x0d','').replace('\x07','').\
                     replace('\x08','').replace(' \x1b[1D','')
                 output += buff_read
-            else: time.sleep(0.1); timeout_counter += 1
+            else: time.sleep(0.1); timeout_counter_100msec += 1
             # FIND LAST LINE, THIS COULD BE PROMPT
             try: last_line, last_line_orig = output.splitlines()[-1].strip(), output.splitlines()[-1].strip()
             except: last_line, last_line_orig = str(), str()
@@ -789,10 +789,12 @@ class RCMD(object):
                     last_line and last_line.endswith(actual_prompt):
                         exit_loop=True; break
             else:
-                # 30 SECONDS COMMAND TIMEOUT
-                if (timeout_counter) > 30*10: exit_loop=True; break
-                # 10 SECONDS --> This could be a new PROMPT
-                elif (timeout_counter) > 10*10 and not exit_loop2:
+                ### INTERACTIVE QUESTION --> GO AWAY FAST !!! ### 
+                if last_line.strip().endswith('?'): exit_loop = True; break
+                ### 30 SECONDS COMMAND TIMEOUT
+                elif (timeout_counter_100msec) > 30*10: exit_loop = True; break
+                ### 10 SECONDS --> This could be a new PROMPT
+                elif (timeout_counter_100msec) > 10*10 and not exit_loop2:
                     chan.send('\n')
                     time.sleep(0.1)
                     while(not exit_loop2):
@@ -801,14 +803,14 @@ class RCMD(object):
                             buff_read = buff.decode("utf-8").replace('\x0d','')\
                                .replace('\x07','').replace('\x08','').replace(' \x1b[1D','')
                             output2 += buff_read
-                        else: time.sleep(0.1); timeout_counter2 += 1
+                        else: time.sleep(0.1); timeout_counter_100msec_2 += 1
                         try: new_last_line = output2.splitlines()[-1].strip()
                         except: new_last_line = str()
                         if last_line_orig and new_last_line and last_line_orig == new_last_line:
                             if printall: CGI_CLI.uprint('NEW_PROMPT: %s' % (last_line_orig), color = 'cyan')
                             new_prompt = last_line_orig; exit_loop=True;exit_loop2=True; break
                         # WAIT UP TO 5 SECONDS
-                        if (timeout_counter2) > 5*10: exit_loop2 = True; break
+                        if (timeout_counter_100msec_2) > 5*10: exit_loop2 = True; break                      
         return output, new_prompt
 
     @staticmethod
@@ -1153,7 +1155,12 @@ logfilename = None
 if device:
     RCMD.connect(device, username = USERNAME, password = PASSWORD, \
         printall = CGI_CLI.data.get("printall"), logfilename = logfilename)
-
+        
+    if not RCMD.ssh_connection: 
+        CGI_CLI.uprint('PROBLEM TO CONNECT TO %s ROUTER.' % (device), color = 'red')
+        RCMD.disconnect()
+        sys.exit(0)
+    
     asr1k_detection_string = 'CSR1000'
     asr9k_detection_string = 'ASR9K|IOS-XRv 9000'
 
@@ -1171,8 +1178,13 @@ if device:
             ### NOTHING DIR HAPPENS IF EXISTS - 'mkdir: cannot create directory 'harddisk:/aaa': directory exists'
             ### CREATE DIR: 'Created dir harddisk:/aaa/bbb'
             ### 'mkdir' - ENTER IS INSTEAD OF YES ###
-            'mkdir harddisk:/IOS-XR/%s\n' % (sw_release),
-            'mkdir harddisk:/IOS-XR/%s/SMU\n' % (sw_release)],
+            'mkdir harddisk:/IOS-XR',
+            '\r\n',            
+            'mkdir harddisk:/IOS-XR/%s' % (sw_release),
+            '\r\n',
+            'mkdir harddisk:/IOS-XR/%s/SMU\n' % (sw_release),
+            '\r\n',
+            ],
         'juniper':['show system storage'],
         'huawei':['display device | include PhyDisk','display disk information']
     }
