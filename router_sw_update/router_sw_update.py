@@ -795,6 +795,8 @@ class RCMD(object):
                 elif (timeout_counter_100msec) > 30*10: exit_loop = True; break
                 ### 10 SECONDS --> This could be a new PROMPT
                 elif (timeout_counter_100msec) > 10*10 and not exit_loop2:
+                    ### TRICK IS IF NEW PROMPT OCCURS, HIT ENTER ... ###
+                    ### ... AND IF OCCURS THE SAME LINE --> IT IS NEW PROMPT!!! ### 
                     chan.send('\n')
                     time.sleep(0.1)
                     while(not exit_loop2):
