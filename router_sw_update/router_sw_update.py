@@ -933,14 +933,40 @@ class LCMD(object):
         return logfilename, printall
 
     @staticmethod
-    def run_command(cmd_line = None, logfilename = None, printall = None):
-        os_output, cmd_list = str(), None
+    def run_command(cmd_line = None, logfilename = None, printall = None, 
+        chunked = None, timeout_sec = 500):
+        os_output, cmd_list, timer_counter_100ms = str(), None, 0
         logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
         if cmd_line:
             with open(logfilename,"a+") as LCMD.fp:
                 if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line))
                 LCMD.fp.write('LOCAL_COMMAND: ' + cmd_line + '\n')
-                try: os_output = subprocess.check_output(str(cmd_line), stderr=subprocess.STDOUT, shell=True).decode("utf-8")
+                try:
+                    if chunked:
+                        os_output, timer_counter_100ms = str(), 0
+                        CommandObject = subprocess.Popen(cmd_line,
+                                                   stdout=subprocess.PIPE,
+                                                   stderr=subprocess.PIPE, shell=True)
+                        while CommandObject.poll() is None:
+                            stdoutput = str(CommandObject.stdout.readline())
+                            erroutput = str(CommandObject.stdout.readline())
+                            while stdoutput or erroutput:
+                                if stdoutput: 
+                                    os_output += copy.deepcopy(stdoutput) + '\n'
+                                    CGI_CLI.uprint(stdoutput.strip())
+                                if erroutput: 
+                                    os_output += copy.deepcopy(erroutput) + '\n'
+                                    CGI_CLI.uprint(erroutput.strip())
+                                stdoutput = str(CommandObject.stdout.readline())
+                                erroutput = str(CommandObject.stdout.readline())
+                            time.sleep(0.1)
+                            timer_counter_100ms += 1
+                            if timer_counter_100ms > timeout_sec * 10:                               
+                                CommandObject.terminate()
+                                break                    
+                    else:                    
+                        os_output = subprocess.check_output(str(cmd_line), \
+                            stderr=subprocess.STDOUT, shell=True).decode("utf-8")
                 except (subprocess.CalledProcessError) as e:
                     os_output = str(e.output.decode("utf-8"))
                     if printall: CGI_CLI.uprint('EXITCODE: %s' % (str(e.returncode)))
@@ -949,22 +975,21 @@ class LCMD(object):
                     exc_text = traceback.format_exc()
                     CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
                     LCMD.fp.write(exc_text + '\n')
-                if os_output and printall: CGI_CLI.uprint(os_output)
+                if not chunked and os_output and printall: CGI_CLI.uprint(os_output)
                 LCMD.fp.write(os_output + '\n')
         return os_output
 
-
     @staticmethod
-    def run_command_chunked(cmd_line = None, logfilename = None, printall = None):
-        timeoutinsec = 60
-        os_output, cmd_list = str(), None
+    def run_command_chunked(cmd_line = None, logfilename = None, 
+        printall = None, timeout_sec = 500):
+        os_output, cmd_list, timer_counter_100ms = str(), None, 0
         logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
         if cmd_line:
             with open(logfilename,"a+") as LCMD.fp:
                 if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line))
                 LCMD.fp.write('LOCAL_COMMAND: ' + cmd_line + '\n')
                 try:               
-                    os_output, timercounter100ms = str(), 0
+                    os_output, timer_counter_100ms = str(), 0
                     CommandObject = subprocess.Popen(cmd_line,
                                                stdout=subprocess.PIPE,
                                                stderr=subprocess.PIPE, shell=True)
@@ -981,8 +1006,8 @@ class LCMD(object):
                             stdoutput = str(CommandObject.stdout.readline())
                             erroutput = str(CommandObject.stdout.readline())
                         time.sleep(0.1)
-                        timercounter100ms += 1
-                        if timercounter100ms>timeoutinsec*10:                               
+                        timer_counter_100ms += 1
+                        if timer_counter_100ms > timeout_sec * 10:                               
                             CommandObject.terminate()
                             break
                                         
@@ -1144,10 +1169,9 @@ def do_scp_command(USERNAME = None, PASSWORD = None, file_to_copy = None, \
         os.environ['SSHPASS'] = PASSWORD
         device_file = '%s/%s' % (device_path, file_to_copy)
         local_file = os.path.join(local_path, file_to_copy)
-        #return 'scp %s %s@%s:/%s' % (local_file, USERNAME, device, device_file)
-        #return 'SSHPASS='%s' sshpass -e scp %s %s@%s:/%s' % (PASSWORD,local_file, USERNAME, device, device_file)
         local_command = 'sshpass -e scp %s %s@%s:/%s' % (local_file, USERNAME, device, device_file)
-        scp_result = LCMD.run_command(cmd_line = local_command, printall = printall)
+        scp_result = LCMD.run_command(cmd_line = local_command, 
+            printall = printall, chunked = True)
         return scp_result
     else: return str()
 
