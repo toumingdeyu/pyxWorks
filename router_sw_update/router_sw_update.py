@@ -933,7 +933,7 @@ class LCMD(object):
         return logfilename, printall
 
     @staticmethod
-    def run_command(cmd_line = None, logfilename = None, printall = None, 
+    def run_command(cmd_line = None, logfilename = None, printall = None,
         chunked = None, timeout_sec = 500):
         os_output, cmd_list, timer_counter_100ms = str(), None, 0
         logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
@@ -951,20 +951,20 @@ class LCMD(object):
                             stdoutput = str(CommandObject.stdout.readline())
                             erroutput = str(CommandObject.stdout.readline())
                             while stdoutput or erroutput:
-                                if stdoutput: 
+                                if stdoutput:
                                     os_output += copy.deepcopy(stdoutput) + '\n'
                                     CGI_CLI.uprint(stdoutput.strip())
-                                if erroutput: 
+                                if erroutput:
                                     os_output += copy.deepcopy(erroutput) + '\n'
                                     CGI_CLI.uprint(erroutput.strip())
                                 stdoutput = str(CommandObject.stdout.readline())
                                 erroutput = str(CommandObject.stdout.readline())
                             time.sleep(0.1)
                             timer_counter_100ms += 1
-                            if timer_counter_100ms > timeout_sec * 10:                               
+                            if timer_counter_100ms > timeout_sec * 10:
                                 CommandObject.terminate()
-                                break                    
-                    else:                    
+                                break
+                    else:
                         os_output = subprocess.check_output(str(cmd_line), \
                             stderr=subprocess.STDOUT, shell=True).decode("utf-8")
                 except (subprocess.CalledProcessError) as e:
@@ -1126,7 +1126,7 @@ def do_scp_command(USERNAME = None, PASSWORD = None, file_to_copy = None, \
         device_file = '%s/%s' % (device_path, file_to_copy)
         local_file = os.path.join(local_path, file_to_copy)
         local_command = 'sshpass -e scp %s %s@%s:/%s' % (local_file, USERNAME, device, device_file)
-        scp_result = LCMD.run_command(cmd_line = local_command, 
+        scp_result = LCMD.run_command(cmd_line = local_command,
             printall = printall, chunked = True)
         return scp_result
     else: return str()
@@ -1299,34 +1299,40 @@ if device:
 
         CGI_CLI.uprint('SERVER OTI.tar FILE %s' % \
             (true_OTI_tar_file_on_server + ' FOUND.' if true_OTI_tar_file_on_server else 'NOT FOUND!'),\
-            color = ('blue' if true_OTI_tar_file_on_server else 'red'))
+            color = ('blue' if true_OTI_tar_file_on_server else 'blue'))
         CGI_CLI.uprint('SERVER SMU.tar FILES %s' % \
             (', '.join(true_SMU_tar_files_on_server) + ' FOUND.' if len(true_SMU_tar_files_on_server)>0 else 'NOT FOUND!'),\
-            color = ('blue' if len(true_SMU_tar_files_on_server)>0 else 'red'))
+            color = ('blue' if len(true_SMU_tar_files_on_server)>0 else 'blue'))
 
-        if true_OTI_tar_file_on_server and len(true_SMU_tar_files_on_server) > 0:
+        if true_OTI_tar_file_on_server or len(true_SMU_tar_files_on_server) > 0:
             pass
         else:
+            CGI_CLI.uprint('SERVER OTI.tar or SMU FILES NOT FOUND!', color = 'red')
             RCMD.disconnect()
             sys.exit(0)
 
 
         ### SERVER MD5 CHECKS #################################################
-        local_oti_checkum_string = LCMD.run_commands({'unix':['md5sum %s' % \
-            (os.path.join(LOCAL_SW_RELEASE_DIR,true_OTI_tar_file_on_server))]})
-        md5_true_OTI_tar_file_on_server = local_oti_checkum_string[0].split()[0].strip()
+        if true_OTI_tar_file_on_server:
+            local_oti_checkum_string = LCMD.run_commands({'unix':['md5sum %s' % \
+                (os.path.join(LOCAL_SW_RELEASE_DIR,true_OTI_tar_file_on_server))]})
+            md5_true_OTI_tar_file_on_server = local_oti_checkum_string[0].split()[0].strip()
+
+        else: md5_true_OTI_tar_file_on_server = str()
+
         md5_true_SMU_tar_files_on_server = []
-        for file in true_SMU_tar_files_on_server:
-            checkum_string = LCMD.run_commands({'unix':['md5sum %s' % \
-                (os.path.join(LOCAL_SW_RELEASE_SMU_DIR,file))]})
-            md5_true_SMU_tar_files_on_server.append(checkum_string[0].split()[0].strip())
+        if len(true_SMU_tar_files_on_server) > 0:
+            for file in true_SMU_tar_files_on_server:
+                checkum_string = LCMD.run_commands({'unix':['md5sum %s' % \
+                    (os.path.join(LOCAL_SW_RELEASE_SMU_DIR,file))]})
+                md5_true_SMU_tar_files_on_server.append(checkum_string[0].split()[0].strip())
 
         CGI_CLI.uprint('SERVER OTI.tar FILE MD5 %s' % \
             (md5_true_OTI_tar_file_on_server + ' FOUND.' if md5_true_OTI_tar_file_on_server else 'NOT FOUND!'),\
-            color = ('blue' if md5_true_OTI_tar_file_on_server else 'red'))
+            color = ('blue' if md5_true_OTI_tar_file_on_server else 'blue'))
         CGI_CLI.uprint('SERVER SMU.tar FILES MD5 %s' % \
             (', '.join(md5_true_SMU_tar_files_on_server) + ' FOUND.' if len(md5_true_SMU_tar_files_on_server)>0 else 'NOT FOUND!'),\
-            color = ('blue' if len(md5_true_SMU_tar_files_on_server)>0 else 'red'))
+            color = ('blue' if len(md5_true_SMU_tar_files_on_server)>0 else 'blue'))
 
 
         ### CHECK DEVICE HDD FILES EXISTENCY ##################################
@@ -1341,26 +1347,64 @@ if device:
             if SMU_tar_files.upper() in line.upper() and '.tar'.upper() in line.upper():
                 true_SMU_tar_files_on_device.append(line.split()[-1].strip())
 
-        if not true_OTI_tar_file_on_device:          
+
+        ### COPY/SCP FILES TO ROUTER ##########################################
+        if not true_OTI_tar_file_on_device:
             scp_cmd = do_scp_command(USERNAME, PASSWORD, true_OTI_tar_file_on_server,
-                'harddisk:/IOS-XR/%s' % (sw_release),LOCAL_SW_RELEASE_DIR) 
-            CGI_CLI.uprint(scp_cmd) 
+                'harddisk:/IOS-XR/%s' % (sw_release),LOCAL_SW_RELEASE_DIR,
+                printall = CGI_CLI.data.get("printall"))
+            CGI_CLI.uprint(scp_cmd)
 
         if len(true_SMU_tar_files_on_device)==0:
-            for smu_file in true_SMU_tar_files_on_server:       
+            for smu_file in true_SMU_tar_files_on_server:
                 scp_cmd = do_scp_command(USERNAME, PASSWORD, smu_file,
-                    'harddisk:/IOS-XR/%s/SMU' % (sw_release),LOCAL_SW_RELEASE_SMU_DIR) 
-                CGI_CLI.uprint(scp_cmd) 
+                    'harddisk:/IOS-XR/%s/SMU' % (sw_release),LOCAL_SW_RELEASE_SMU_DIR,
+                    printall = CGI_CLI.data.get("printall"))
+                CGI_CLI.uprint(scp_cmd)
 
 
+        ### READ EXISTING FILES ON DEVICE - AFTER COPYING TO DEVICE ###########
+        read2_cmds = {
+            'cisco_xr':[
+                'dir harddisk:/IOS-XR/%s' % (sw_release),
+                'dir harddisk:/IOS-XR/%s/SMU' % (sw_release),
+                ],
+        }
+        CGI_CLI.uprint('CHECK FILES ON DEVICE:', no_newlines = True)
+        rcmd_read2_outputs = RCMD.run_commands(read2_cmds)
 
+
+        ### GET DEVICE CASE-CORRECT FILE NAMES - AFTER COPYING TO DEVICE ######
+        true_OTI_tar_file_on_device, true_SMU_tar_files_on_device = None, []
+        for line in rcmd_read2_outputs[0].splitlines():
+            if OTI_tar_file.upper() in line.upper():
+                true_OTI_tar_file_on_device = line.split()[-1].strip()
+                break
+        for line in rcmd_read2_outputs[1].splitlines():
+            if SMU_tar_files.upper() in line.upper() and '.tar'.upper() in line.upper():
+                true_SMU_tar_files_on_device.append(line.split()[-1].strip())
 
         CGI_CLI.uprint('DEVICE OTI.tar FILE %s' % \
             (true_OTI_tar_file_on_device + ' FOUND.' if true_OTI_tar_file_on_device else 'NOT FOUND!'),\
-            color = ('blue' if true_OTI_tar_file_on_device else 'red'))
+            color = ('blue' if true_OTI_tar_file_on_device else 'blue'))
         CGI_CLI.uprint('DEVICE SMU.tar FILES %s' % \
             (', '.join(true_SMU_tar_files_on_device) + ' FOUND.' if len(true_SMU_tar_files_on_device)>0 else 'NOT FOUND!'),\
-            color = ('blue' if len(true_SMU_tar_files_on_device)>0 else 'red'))
+            color = ('blue' if len(true_SMU_tar_files_on_device)>0 else 'blue'))
+
+        if true_OTI_tar_file_on_device or len(true_SMU_tar_files_on_device) > 0:
+            pass
+        else:
+            CGI_CLI.uprint('DEVICE OTI.tar or SMU FILES NOT FOUND!', color = 'red')
+            RCMD.disconnect()
+            sys.exit(0)
+
+            
+        ### MD5 CHECKS ON DEVICE/ROUTER #######################################
+
+
+
+
+
 
 
 
