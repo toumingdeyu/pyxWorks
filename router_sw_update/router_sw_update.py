@@ -980,50 +980,6 @@ class LCMD(object):
         return os_output
 
     @staticmethod
-    def run_command_chunked(cmd_line = None, logfilename = None, 
-        printall = None, timeout_sec = 500):
-        os_output, cmd_list, timer_counter_100ms = str(), None, 0
-        logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
-        if cmd_line:
-            with open(logfilename,"a+") as LCMD.fp:
-                if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line))
-                LCMD.fp.write('LOCAL_COMMAND: ' + cmd_line + '\n')
-                try:               
-                    os_output, timer_counter_100ms = str(), 0
-                    CommandObject = subprocess.Popen(cmd_line,
-                                               stdout=subprocess.PIPE,
-                                               stderr=subprocess.PIPE, shell=True)
-                    while CommandObject.poll() is None:
-                        stdoutput = str(CommandObject.stdout.readline())
-                        erroutput = str(CommandObject.stdout.readline())
-                        while stdoutput or erroutput:
-                            if stdoutput: 
-                                os_output += copy.deepcopy(stdoutput) + '\n'
-                                CGI_CLI.uprint(stdoutput.strip())
-                            if erroutput: 
-                                os_output += copy.deepcopy(erroutput) + '\n'
-                                CGI_CLI.uprint(erroutput.strip())
-                            stdoutput = str(CommandObject.stdout.readline())
-                            erroutput = str(CommandObject.stdout.readline())
-                        time.sleep(0.1)
-                        timer_counter_100ms += 1
-                        if timer_counter_100ms > timeout_sec * 10:                               
-                            CommandObject.terminate()
-                            break
-                                        
-                except (subprocess.CalledProcessError) as e:
-                    os_output = str(e.output.decode("utf-8"))
-                    if printall: CGI_CLI.uprint('EXITCODE: %s' % (str(e.returncode)))
-                    LCMD.fp.write('EXITCODE: %s\n' % (str(e.returncode)))
-                except:
-                    exc_text = traceback.format_exc()
-                    CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
-                    LCMD.fp.write(exc_text + '\n')
-                #if os_output and printall: CGI_CLI.uprint(os_output)
-                LCMD.fp.write(os_output + '\n')
-        return os_output
-
-    @staticmethod
     def run_commands(cmd_data = None, logfilename = None, printall = None):
         """
         FUNCTION: LCMD.run_commands(), RETURN: list of command_outputs
@@ -1227,9 +1183,6 @@ else:
     CGI_CLI.uprint('DEVICE=%s, SW_RELEASE=%s, SCRIPT_ACTION=%s\n' % \
         (device, sw_release, SCRIPT_ACTION), color = 'blue')
 
-
-LCMD.run_command_chunked('ping -c 20 127.0.0.1', printall = True)
-sys.exit(0)
 
 ###############################################################################
 ### LOGFILENAME GENERATION ###
