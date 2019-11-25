@@ -789,14 +789,14 @@ class RCMD(object):
                     last_line and last_line.endswith(actual_prompt):
                         exit_loop=True; break
             else:
-                ### INTERACTIVE QUESTION --> GO AWAY FAST !!! ### 
+                ### INTERACTIVE QUESTION --> GO AWAY FAST !!! ###
                 if last_line.strip().endswith('?'): exit_loop = True; break
                 ### 30 SECONDS COMMAND TIMEOUT
                 elif (timeout_counter_100msec) > 30*10: exit_loop = True; break
                 ### 10 SECONDS --> This could be a new PROMPT
                 elif (timeout_counter_100msec) > 10*10 and not exit_loop2:
                     ### TRICK IS IF NEW PROMPT OCCURS, HIT ENTER ... ###
-                    ### ... AND IF OCCURS THE SAME LINE --> IT IS NEW PROMPT!!! ### 
+                    ### ... AND IF OCCURS THE SAME LINE --> IT IS NEW PROMPT!!! ###
                     chan.send('\n')
                     time.sleep(0.1)
                     while(not exit_loop2):
@@ -812,7 +812,7 @@ class RCMD(object):
                             if printall: CGI_CLI.uprint('NEW_PROMPT: %s' % (last_line_orig), color = 'cyan')
                             new_prompt = last_line_orig; exit_loop=True;exit_loop2=True; break
                         # WAIT UP TO 5 SECONDS
-                        if (timeout_counter_100msec_2) > 5*10: exit_loop2 = True; break                      
+                        if (timeout_counter_100msec_2) > 5*10: exit_loop2 = True; break
         return output, new_prompt
 
     @staticmethod
@@ -1091,6 +1091,15 @@ def generate_logfilename(prefix = None, USERNAME = None, suffix = None , directo
         filenamewithpath = str(os.path.join(LOGDIR,filename))
     return filenamewithpath
 
+##############################################################################
+
+def get_scp_command(file_to_copy = None, device_path = None ,local_path = None):
+    if file_to_copy and device_path and local_path:
+        device_file = '%s/%s' % (device_path, file_to_copy)
+        local_file = os.path.join(local_path, file_to_copy)
+        return 'scp %s %s@%s:/%s' % (local_file, USERNAME, device, device_file)
+    else: return str()
+
 
 ##############################################################################
 #
@@ -1141,7 +1150,7 @@ else:
     ### HEADER TEXT PRINT ###
     CGI_CLI.uprint('ROUTER SW UPGRADE TOOL \n', tag = 'h1', color = 'blue')
     CGI_CLI.uprint('DEVICE=%s, SW_RELEASE=%s, SCRIPT_ACTION=%s\n' % \
-        (device, sw_release, SCRIPT_ACTION), color = 'blue')    
+        (device, sw_release, SCRIPT_ACTION), color = 'blue')
 
 
 ###############################################################################
@@ -1157,12 +1166,12 @@ logfilename = None
 if device:
     RCMD.connect(device, username = USERNAME, password = PASSWORD, \
         printall = CGI_CLI.data.get("printall"), logfilename = logfilename)
-        
-    if not RCMD.ssh_connection: 
+
+    if not RCMD.ssh_connection:
         CGI_CLI.uprint('PROBLEM TO CONNECT TO %s ROUTER.' % (device), color = 'red')
         RCMD.disconnect()
         sys.exit(0)
-    
+
     asr1k_detection_string = 'CSR1000'
     asr9k_detection_string = 'ASR9K|IOS-XRv 9000'
 
@@ -1175,13 +1184,13 @@ if device:
             ### DIR NOT EXISTS: 'dir : harddisk:/aaaa : Path does not exist'
             ### VOID DIR: 'No files in directory'
             ### SUBDIR EXISTS: '441 drw-r--r-- 2 4096 Nov 20 08:43 bbb'
-            'dir harddisk:/IOS-XR/%s' % (sw_release),            
+            'dir harddisk:/IOS-XR/%s' % (sw_release),
             'dir harddisk:/IOS-XR/%s/SMU' % (sw_release),
             ### NOTHING DIR HAPPENS IF EXISTS - 'mkdir: cannot create directory 'harddisk:/aaa': directory exists'
             ### CREATE DIR: 'Created dir harddisk:/aaa/bbb'
             ### 'mkdir' - ENTER IS INSTEAD OF YES ###
             'mkdir harddisk:/IOS-XR',
-            '\r\n',            
+            '\r\n',
             'mkdir harddisk:/IOS-XR/%s' % (sw_release),
             '\r\n',
             'mkdir harddisk:/IOS-XR/%s/SMU\n' % (sw_release),
@@ -1215,7 +1224,7 @@ if device:
         CGI_CLI.uprint('LOW DISK SPACE ON %s ROUTER DRIVE...' % (device), color = 'red')
         RCMD.disconnect()
         sys.exit(0)
-    else: CGI_CLI.uprint('DISK SPACE ON %s ROUTER - CHECK OK.' % (device), color = 'blue')   
+    else: CGI_CLI.uprint('DISK SPACE ON %s ROUTER - CHECK OK.' % (device), color = 'blue')
 
 
     ### CHECK LOCAL SERVER AND DEVICE HDD FILES ###############################
@@ -1262,13 +1271,13 @@ if device:
             color = ('blue' if true_OTI_tar_file_on_server else 'red'))
         CGI_CLI.uprint('SERVER SMU.tar FILES %s' % \
             (', '.join(true_SMU_tar_files_on_server) + ' FOUND.' if len(true_SMU_tar_files_on_server)>0 else 'NOT FOUND!'),\
-            color = ('blue' if len(true_SMU_tar_files_on_server)>0 else 'red'))  
+            color = ('blue' if len(true_SMU_tar_files_on_server)>0 else 'red'))
 
         if true_OTI_tar_file_on_server and len(true_SMU_tar_files_on_server) > 0:
             pass
-        else:    
+        else:
             RCMD.disconnect()
-            sys.exit(0)        
+            sys.exit(0)
 
 
         ### SERVER MD5 CHECKS #################################################
@@ -1279,17 +1288,17 @@ if device:
         for file in true_SMU_tar_files_on_server:
             checkum_string = LCMD.run_commands({'unix':['md5sum %s' % \
                 (os.path.join(LOCAL_SW_RELEASE_SMU_DIR,file))]})
-            md5_true_SMU_tar_files_on_server.append(checkum_string[0].split()[0].strip())        
+            md5_true_SMU_tar_files_on_server.append(checkum_string[0].split()[0].strip())
 
         CGI_CLI.uprint('SERVER OTI.tar FILE MD5 %s' % \
             (md5_true_OTI_tar_file_on_server + ' FOUND.' if md5_true_OTI_tar_file_on_server else 'NOT FOUND!'),\
             color = ('blue' if md5_true_OTI_tar_file_on_server else 'red'))
         CGI_CLI.uprint('SERVER SMU.tar FILES MD5 %s' % \
             (', '.join(md5_true_SMU_tar_files_on_server) + ' FOUND.' if len(md5_true_SMU_tar_files_on_server)>0 else 'NOT FOUND!'),\
-            color = ('blue' if len(md5_true_SMU_tar_files_on_server)>0 else 'red'))  
+            color = ('blue' if len(md5_true_SMU_tar_files_on_server)>0 else 'red'))
 
 
-        ### CHECK DEVICE HDD FILES EXISTENCY ##################################            
+        ### CHECK DEVICE HDD FILES EXISTENCY ##################################
         ### ELIMINATE PROBLEM = POSSIBLE ERROR CASE-MIX IN FILE NAMES #########
         ### GET DEVICE CASE-CORRECT FILE NAMES ################################
         true_OTI_tar_file_on_device, true_SMU_tar_files_on_device = None, []
@@ -1300,14 +1309,25 @@ if device:
         for line in rcmd_collector_outputs[3].splitlines():
             if SMU_tar_files.upper() in line.upper() and '.tar'.upper() in line.upper():
                 true_SMU_tar_files_on_device.append(line.split()[-1].strip())
-            
+
+        if not true_OTI_tar_file_on_device:          
+            scp_cmd = get_scp_command(true_OTI_tar_file_on_server,'harddisk:/IOS-XR/%s' % (sw_release),LOCAL_SW_RELEASE_DIR) 
+            CGI_CLI.uprint(scp_cmd) 
+
+        if len(true_SMU_tar_files_on_device)==0:
+            for smu_file in true_SMU_tar_files_on_server:       
+                scp_cmd = get_scp_command(smu_file,'harddisk:/IOS-XR/%s/SMU' % (sw_release),LOCAL_SW_RELEASE_SMU_DIR) 
+                CGI_CLI.uprint(scp_cmd) 
+
+
+
+
         CGI_CLI.uprint('DEVICE OTI.tar FILE %s' % \
             (true_OTI_tar_file_on_device + ' FOUND.' if true_OTI_tar_file_on_device else 'NOT FOUND!'),\
             color = ('blue' if true_OTI_tar_file_on_device else 'red'))
         CGI_CLI.uprint('DEVICE SMU.tar FILES %s' % \
             (', '.join(true_SMU_tar_files_on_device) + ' FOUND.' if len(true_SMU_tar_files_on_device)>0 else 'NOT FOUND!'),\
-            color = ('blue' if len(true_SMU_tar_files_on_device)>0 else 'red'))  
-
+            color = ('blue' if len(true_SMU_tar_files_on_device)>0 else 'red'))
 
 
 
