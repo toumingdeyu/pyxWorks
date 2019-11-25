@@ -1230,7 +1230,7 @@ if device:
         'juniper':['show system storage'],
         'huawei':['display device | include PhyDisk','display disk information']
     }
-    CGI_CLI.uprint('DEVICE DATA COLLECTION:', no_newlines = True)
+    CGI_CLI.uprint('DEVICE DATA COLLECTION:', no_newlines = None if CGI_CLI.data.get("printall") else True)
     rcmd_collector_outputs = RCMD.run_commands(collector_cmds)
 
 
@@ -1370,7 +1370,7 @@ if device:
                 'dir harddisk:/IOS-XR/%s/SMU' % (sw_release),
                 ],
         }
-        CGI_CLI.uprint('CHECK FILES ON DEVICE:', no_newlines = True)
+        CGI_CLI.uprint('CHECK FILES ON DEVICE:', no_newlines = None if CGI_CLI.data.get("printall") else True)
         rcmd_read2_outputs = RCMD.run_commands(read2_cmds)
 
 
@@ -1400,20 +1400,41 @@ if device:
 
             
         ### MD5 CHECKS ON DEVICE/ROUTER #######################################
+        ### READ EXISTING FILES ON DEVICE - AFTER COPYING TO DEVICE ###########
+        read3_cmds = {'cisco_xr':[]}
+        if true_OTI_tar_file_on_device:
+            read3_cmds = {
+                'cisco_xr':['show md5 file /harddisk:/IOS-XR/%s' % (sw_release,true_OTI_tar_file_on_device)]}
+                    
+        for file in true_SMU_tar_files_on_device:
+            read3_cmds['cisco_xr'].append('show md5 file /harddisk:/IOS-XR/%s/SMU/%s' % (sw_release,file))
+                
+        CGI_CLI.uprint('CHECK MD5 ON DEVICE:', no_newlines = None if CGI_CLI.data.get("printall") else True)
+        rcmd_read3_outputs = RCMD.run_commands(read3_cmds)
+        
+        ### MD5 CHECKSUM IS 32BYTES LONG ###        
+        md5_true_OTI_tar_file_on_device = str()
+        md5_true_SMU_tar_files_on_device = []
+        if not true_OTI_tar_file_on_device:
+            for output in rcmd_read3_outputs:
+                find_list = re.findall(r'[0-9a-fA-F]{32}', output.strip()) 
+                if len(find_list)==1:
+                    md5_true_SMU_tar_files_on_device.append(find_list[0])
+        else:            
+            for output in rcmd_read3_outputs[1:]:
+                find_list = re.findall(r'[0-9a-fA-F]{32}', output.strip()) 
+                if len(find_list)==1:
+                    md5_true_SMU_tar_files_on_device.append(find_list[0])
+                    
+        if true_OTI_tar_file_on_device and md5_true_SMU_tar_files_on_device and \
+            true_OTI_tar_file_on_device == true_OTI_tar_file_on_server and \
+            md5_true_SMU_tar_files_on_device == md5_true_SMU_tar_files_on_server:            
+            CGI_CLI.uprint('MD5 OTI.tar - CHECK OK.', color = 'blue')
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+        for md5_on_server, md5_on_device in zip(md5_true_SMU_tar_files_on_device,md5_true_SMU_tar_files_on_server):
+            if md5_on_server and md5_on_device and md5_on_server == md5_on_device:
+                CGI_CLI.uprint('MD5 SMU - CHECK OK.', color = 'blue')            
+            
 
     RCMD.disconnect()
 else:
