@@ -2,7 +2,7 @@
 
 ###!/usr/bin/python36
 
-import sys, os, io, paramiko, json, copy, html
+import sys, os, io, paramiko, json, copy, html, traceback
 import getopt
 import getpass
 import telnetlib
@@ -953,6 +953,51 @@ class LCMD(object):
                 LCMD.fp.write(os_output + '\n')
         return os_output
 
+
+    @staticmethod
+    def run_command_chunked(cmd_line = None, logfilename = None, printall = None):
+        timeoutinsec = 60
+        os_output, cmd_list = str(), None
+        logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
+        if cmd_line:
+            with open(logfilename,"a+") as LCMD.fp:
+                if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line))
+                LCMD.fp.write('LOCAL_COMMAND: ' + cmd_line + '\n')
+                try:               
+                    os_output, timercounter100ms = str(), 0
+                    CommandObject = subprocess.Popen(cmd_line,
+                                               stdout=subprocess.PIPE,
+                                               stderr=subprocess.PIPE, shell=True)
+                    while CommandObject.poll() is None:
+                        stdoutput = str(CommandObject.stdout.readline())
+                        erroutput = str(CommandObject.stdout.readline())
+                        while stdoutput or erroutput:
+                            if stdoutput: 
+                                os_output += copy.deepcopy(stdoutput) + '\n'
+                                CGI_CLI.uprint(stdoutput.strip())
+                            if erroutput: 
+                                os_output += copy.deepcopy(erroutput) + '\n'
+                                CGI_CLI.uprint(erroutput.strip())
+                            stdoutput = str(CommandObject.stdout.readline())
+                            erroutput = str(CommandObject.stdout.readline())
+                        time.sleep(0.1)
+                        timercounter100ms += 1
+                        if timercounter100ms>timeoutinsec*10:                               
+                            CommandObject.terminate()
+                            break
+                                        
+                except (subprocess.CalledProcessError) as e:
+                    os_output = str(e.output.decode("utf-8"))
+                    if printall: CGI_CLI.uprint('EXITCODE: %s' % (str(e.returncode)))
+                    LCMD.fp.write('EXITCODE: %s\n' % (str(e.returncode)))
+                except:
+                    exc_text = traceback.format_exc()
+                    CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
+                    LCMD.fp.write(exc_text + '\n')
+                #if os_output and printall: CGI_CLI.uprint(os_output)
+                LCMD.fp.write(os_output + '\n')
+        return os_output
+
     @staticmethod
     def run_commands(cmd_data = None, logfilename = None, printall = None):
         """
@@ -1093,11 +1138,17 @@ def generate_logfilename(prefix = None, USERNAME = None, suffix = None , directo
 
 ##############################################################################
 
-def get_scp_command(file_to_copy = None, device_path = None ,local_path = None):
-    if file_to_copy and device_path and local_path:
+def do_scp_command(USERNAME = None, PASSWORD = None, file_to_copy = None, \
+    device_path = None ,local_path = None, printall = None):
+    if USERNAME and PASSWORD and file_to_copy and device_path and local_path:
+        os.environ['SSHPASS'] = PASSWORD
         device_file = '%s/%s' % (device_path, file_to_copy)
         local_file = os.path.join(local_path, file_to_copy)
-        return 'scp %s %s@%s:/%s' % (local_file, USERNAME, device, device_file)
+        #return 'scp %s %s@%s:/%s' % (local_file, USERNAME, device, device_file)
+        #return 'SSHPASS='%s' sshpass -e scp %s %s@%s:/%s' % (PASSWORD,local_file, USERNAME, device, device_file)
+        local_command = 'sshpass -e scp %s %s@%s:/%s' % (local_file, USERNAME, device, device_file)
+        scp_result = LCMD.run_command(cmd_line = local_command, printall = printall)
+        return scp_result
     else: return str()
 
 
@@ -1153,6 +1204,9 @@ else:
         (device, sw_release, SCRIPT_ACTION), color = 'blue')
 
 
+LCMD.run_command_chunked('ping -c 20 127.0.0.1', printall = True)
+sys.exit(0)
+
 ###############################################################################
 ### LOGFILENAME GENERATION ###
 logfilename = generate_logfilename(prefix = device.upper(), \
@@ -1193,7 +1247,7 @@ if device:
             '\r\n',
             'mkdir harddisk:/IOS-XR/%s' % (sw_release),
             '\r\n',
-            'mkdir harddisk:/IOS-XR/%s/SMU\n' % (sw_release),
+            'mkdir harddisk:/IOS-XR/%s/SMU' % (sw_release),
             '\r\n',
             ],
         'juniper':['show system storage'],
@@ -1311,12 +1365,14 @@ if device:
                 true_SMU_tar_files_on_device.append(line.split()[-1].strip())
 
         if not true_OTI_tar_file_on_device:          
-            scp_cmd = get_scp_command(true_OTI_tar_file_on_server,'harddisk:/IOS-XR/%s' % (sw_release),LOCAL_SW_RELEASE_DIR) 
+            scp_cmd = do_scp_command(USERNAME, PASSWORD, true_OTI_tar_file_on_server,
+                'harddisk:/IOS-XR/%s' % (sw_release),LOCAL_SW_RELEASE_DIR) 
             CGI_CLI.uprint(scp_cmd) 
 
         if len(true_SMU_tar_files_on_device)==0:
             for smu_file in true_SMU_tar_files_on_server:       
-                scp_cmd = get_scp_command(smu_file,'harddisk:/IOS-XR/%s/SMU' % (sw_release),LOCAL_SW_RELEASE_SMU_DIR) 
+                scp_cmd = do_scp_command(USERNAME, PASSWORD, smu_file,
+                    'harddisk:/IOS-XR/%s/SMU' % (sw_release),LOCAL_SW_RELEASE_SMU_DIR) 
                 CGI_CLI.uprint(scp_cmd) 
 
 
