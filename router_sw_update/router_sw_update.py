@@ -280,6 +280,7 @@ class CGI_CLI(object):
                 elif 'BLUE' in color.upper():    text_color = CGI_CLI.bcolors.BLUE
                 elif 'CYAN' in color.upper():    text_color = CGI_CLI.bcolors.CYAN
                 elif 'GREY' in color.upper():    text_color = CGI_CLI.bcolors.GREY
+                elif 'GRAY' in color.upper():    text_color = CGI_CLI.bcolors.GREY
                 elif 'YELLOW' in color.upper():  text_color = CGI_CLI.bcolors.YELLOW
             ### CLI_MODE ###
             if no_newlines:
@@ -931,7 +932,8 @@ class LCMD(object):
         logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
         if cmd_line:
             with open(logfilename,"a+") as LCMD.fp:
-                if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line))
+                if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line),\
+                                 color = 'blue')
                 LCMD.fp.write('LOCAL_COMMAND: ' + cmd_line + '\n')
                 try:
                     if chunked:
@@ -945,10 +947,10 @@ class LCMD(object):
                             while stdoutput or erroutput:
                                 if stdoutput:
                                     os_output += copy.deepcopy(stdoutput) + '\n'
-                                    CGI_CLI.uprint(stdoutput.strip())
+                                    CGI_CLI.uprint(stdoutput.strip(), color = 'gray')
                                 if erroutput:
                                     os_output += copy.deepcopy(erroutput) + '\n'
-                                    CGI_CLI.uprint(erroutput.strip())
+                                    CGI_CLI.uprint(erroutput.strip(), color = 'gray')
                                 stdoutput = str(CommandObject.stdout.readline())
                                 erroutput = str(CommandObject.stdout.readline())
                             time.sleep(0.1)
@@ -967,7 +969,7 @@ class LCMD(object):
                     exc_text = traceback.format_exc()
                     CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
                     LCMD.fp.write(exc_text + '\n')
-                if not chunked and os_output and printall: CGI_CLI.uprint(os_output)
+                if not chunked and os_output and printall: CGI_CLI.uprint(os_output, color = 'gray')
                 LCMD.fp.write(os_output + '\n')
         return os_output
 
@@ -1468,7 +1470,7 @@ if device:
         read3_cmds = {'cisco_xr':[]}
         if true_OTI_tar_file_on_device:
             read3_cmds = {
-                'cisco_xr':['show md5 file /harddisk:/IOS-XR/%s' % \
+                'cisco_xr':['show md5 file /harddisk:/IOS-XR/%s/%s' % \
                 (sw_release,true_OTI_tar_file_on_device)]}
                     
         for file in true_SMU_tar_files_on_device:
