@@ -1211,7 +1211,7 @@ else:
     ### HEADER TEXT PRINT ###
     CGI_CLI.uprint('ROUTER SW UPGRADE TOOL \n', tag = 'h1', color = 'blue')
     CGI_CLI.uprint('DEVICE=%s, SW_RELEASE=%s, SCRIPT_ACTION=%s\n' % \
-        (device, sw_release, SCRIPT_ACTION), color = 'blue')
+        (device, sw_release, SCRIPT_ACTION))
 
 
 ###############################################################################
@@ -1286,10 +1286,10 @@ if device:
 
     ### SOME GB FREE EXPECTED (1MB=1048576, 1GB=1073741824) ###
     if device_free_space < (device_expected_GB_free * 1073741824):
-        CGI_CLI.uprint('LOW DISK SPACE ON %s ROUTER DRIVE...' % (device), color = 'red')
+        CGI_CLI.uprint('DEVICE %s DISK SPACE - CHECK FAIL!' % (device), color = 'red')
         RCMD.disconnect()
         sys.exit(0)
-    else: CGI_CLI.uprint('DISK SPACE ON %s ROUTER - CHECK OK.' % (device), color = 'green')
+    else: CGI_CLI.uprint('DEVICE %s DISK SPACE - CHECK OK.' % (device), color = 'green')
 
 
     ### CHECK LOCAL SERVER AND DEVICE HDD FILES ###############################
@@ -1311,7 +1311,8 @@ if device:
         directory_list = [LOCAL_SW_RELEASE_DIR, LOCAL_SW_RELEASE_SMU_DIR]
         nonexistent_directories = ', '.join([ directory for directory in directory_list if not os.path.exists(directory) ])
 
-        CGI_CLI.uprint('SERVER DIRs EXISTENCY CHECK[%s]...' % (', '.join(directory_list)))
+        CGI_CLI.uprint('SERVER %s DIRs EXISTENCY CHECK[%s]...' % \
+            (iptac_server.upper(),', '.join(directory_list)))
 
         if nonexistent_directories:
             CGI_CLI.uprint('MISSING[%s]\nSERVER %s directories EXISTENCY - CHECK FAIL!' % \
