@@ -465,6 +465,7 @@ class RCMD(object):
             RCMD.router_prompt = None
             RCMD.printall = printall
             RCMD.router_type = None
+            RCMD.router_version = None
             RCMD.conf = conf
             RCMD.sim_config = sim_config
             RCMD.huawei_version = 0
@@ -877,6 +878,8 @@ class RCMD(object):
                         last_line and last_line.endswith(actual_prompt): exit_loop = True
             return output
         # Detect function start
+        #asr1k_detection_string = 'CSR1000'
+        #asr9k_detection_string = 'ASR9K|IOS-XRv 9000'
         router_os, prompt = str(), str()
         client = paramiko.SSHClient()
         #client.load_system_host_keys()
@@ -898,8 +901,12 @@ class RCMD(object):
             if prompt and not router_os:
                 command = 'show version\n'
                 output = ssh_raw_read_until_prompt(chan, command, [prompt], debug=debug)
-                if 'iosxr-' in output or 'Cisco IOS XR Software' in output: router_os = 'ios-xr'
-                elif 'Cisco IOS-XE software' in output: router_os = 'ios-xe'
+                if 'iosxr-' in output or 'Cisco IOS XR Software' in output: 
+                    router_os = 'ios-xr'
+                    if 'ASR9K' in output or 'IOS-XRv 9000' in output: RCMD.router_version = 'ASR9K'
+                elif 'Cisco IOS-XE software' in output: 
+                    router_os = 'ios-xe'
+                    if 'CSR1000' in outputs: RCMD.router_version = 'ASR1K'
                 elif 'JUNOS OS' in output: router_os = 'junos'
             if prompt and not router_os:
                 command = 'uname -a\n'
@@ -1232,8 +1239,8 @@ else:
         if CGI_CLI.data.get("script_action"): SCRIPT_ACTION = CGI_CLI.data.get("script_action")
     ### HEADER TEXT PRINT ###
     CGI_CLI.uprint('ROUTER SW UPGRADE TOOL \n', tag = 'h1', color = 'blue')
-    CGI_CLI.uprint('DEVICE=%s\nSW_RELEASE=%s\nSCRIPT_ACTION=%s\n' % \
-        (device, sw_release, SCRIPT_ACTION))
+    CGI_CLI.uprint('device = %s\nserver = %s\nsw_release = %s\n' % \
+        (device, iptac_server, sw_release))
 
 
 ###############################################################################
@@ -1251,6 +1258,7 @@ if not sw_release:
     CGI_CLI.uprint('PLEASE SPECIFY SW_RELEASE.', color = 'red')
     sys.exit(0)
 
+
 ### REMOTE DEVICE OPERATIONS ##################################################
 if device:
     RCMD.connect(device, username = USERNAME, password = PASSWORD, \
@@ -1261,7 +1269,111 @@ if device:
         RCMD.disconnect()
         sys.exit(0)
 
+    ### DEFINE SERVER SUBDIRECTORIES ##########################################
+    if RCMD.router_type == 'cisco_ios':
+        brand_subdir = 'CISCO'
+        type_subdir = RCMD.router_version
+    elif RCMD.router_type == 'cisco_xr':
+        brand_subdir = 'CISCO'
+        type_subdir = RCMD.router_version
+    elif RCMD.router_type == 'juniper': brand_subdir, type_subdir = 'JUNIPER', ''
+    elif RCMD.router_type == 'huawei': brand_subdir, type_subdir = 'HUAWEI', 'V8R10'
 
+    CGI_CLI.uprint('SERVER %s CHECKS:\n' % (iptac_server), tag = 'h2')
+    ### GENERATE FILE NAMES ###################################################
+    tar_file = '%s-iosxr-px-k9-%s.tar' % \
+        (type_subdir,'.'.join([ char for char in sw_release.encode() ]))
+    OTI_tar_file = '%s-iosxr-px-k9-%s.OTI.tar' % \
+        (type_subdir.lower(),'.'.join([ char for char in sw_release.encode() ]))
+    SMU_tar_files = '%s-px-%s.' % \
+        (type_subdir.lower(),'.'.join([ char for char in sw_release.encode() ]))
+
+    ### CHECK LOCAL SW DIRECTORIES ############################################
+    LOCAL_SW_RELEASE_DIR = os.path.abspath(os.path.join(os.sep,'home',\
+        'tftpboot',brand_subdir, type_subdir, sw_release))
+    LOCAL_SW_RELEASE_SMU_DIR = os.path.abspath(os.path.join(os.sep,'home',\
+        'tftpboot',brand_subdir, type_subdir, sw_release, 'SMU'))
+
+    directory_list = [LOCAL_SW_RELEASE_DIR, LOCAL_SW_RELEASE_SMU_DIR]
+    nonexistent_directories = ', '.join([ directory for directory in directory_list if not os.path.exists(directory) ])
+
+    CGI_CLI.uprint('checking directories [%s]' % (', '.join(directory_list)))
+
+    if nonexistent_directories:
+        CGI_CLI.uprint('missing[%s]\ndirectories - CHECK FAIL!' % \
+            ((nonexistent_directories) if nonexistent_directories else str()), color = 'red')
+        RCMD.disconnect()
+        sys.exit(0)
+    else: CGI_CLI.uprint('directories - CHECK OK.', color = 'green')
+
+
+    ### CHECK LOCAL SERVER FILES EXISTENCY ####################################
+    local_results = LCMD.run_commands({'unix':['ls -l %s' % (LOCAL_SW_RELEASE_DIR), \
+                                               'ls -l %s' % (LOCAL_SW_RELEASE_SMU_DIR)]})
+    ### ELIMINATE PROBLEM = POSSIBLE ERROR CASE-MIX IN FILE NAMES #############
+    ### GET DEVICE CASE-CORRECT FILE NAMES ####################################
+    true_OTI_tar_file_on_server, true_SMU_tar_files_on_server = None, []
+    for line in local_results[0].splitlines():
+        if OTI_tar_file.upper() in line.upper():
+            true_OTI_tar_file_on_server = line.split()[-1].strip()
+            break
+    for line in local_results[1].splitlines():
+        if SMU_tar_files.upper() in line.upper() and '.tar'.upper() in line.upper():
+            true_SMU_tar_files_on_server.append(line.split()[-1].strip())
+
+    if CGI_CLI.data.get('OTI.tar_file'):
+        if not true_OTI_tar_file_on_server:
+            CGI_CLI.uprint('OTI.tar file NOT FOUND!', color = 'red')
+            RCMD.disconnect()
+            sys.exit(0)
+        else:
+            CGI_CLI.uprint('OTI.tar file %s' % \
+                (true_OTI_tar_file_on_server + \
+                ' FOUND.' if true_OTI_tar_file_on_server else 'NOT FOUND.'),\
+                color = ('green' if true_OTI_tar_file_on_server else 'red'))
+
+    if CGI_CLI.data.get('SMU.tar_files'):
+        if len(true_SMU_tar_files_on_server)==0:
+            CGI_CLI.uprint('SMU files NOT FOUND!', color = 'red')
+            RCMD.disconnect()
+            sys.exit(0)
+        else:
+            CGI_CLI.uprint('SMU.tar files %s' % \
+                (', '.join(true_SMU_tar_files_on_server) + \
+                ' FOUND.' if len(true_SMU_tar_files_on_server)>0 else 'NOT FOUND.'),\
+                color = ('green' if len(true_SMU_tar_files_on_server)>0 else 'red'))
+
+
+    ### SERVER MD5 CHECKS #####################################################
+    if true_OTI_tar_file_on_server:
+        local_oti_checkum_string = LCMD.run_commands({'unix':['md5sum %s' % \
+            (os.path.join(LOCAL_SW_RELEASE_DIR,true_OTI_tar_file_on_server))]})
+        md5_true_OTI_tar_file_on_server = local_oti_checkum_string[0].split()[0].strip()
+
+    else: md5_true_OTI_tar_file_on_server = str()
+
+    md5_true_SMU_tar_files_on_server = []
+    if len(true_SMU_tar_files_on_server) > 0:
+        for file in true_SMU_tar_files_on_server:
+            checkum_string = LCMD.run_commands({'unix':['md5sum %s' % \
+                (os.path.join(LOCAL_SW_RELEASE_SMU_DIR,file))]})
+            md5_true_SMU_tar_files_on_server.append(checkum_string[0].split()[0].strip())
+
+    if CGI_CLI.data.get('OTI.tar_file'):
+        CGI_CLI.uprint('OTI.tar file MD5 %s' % \
+            (md5_true_OTI_tar_file_on_server + \
+            ' FOUND.' if md5_true_OTI_tar_file_on_server else 'NOT FOUND.'),\
+            color = ('green' if md5_true_OTI_tar_file_on_server else 'red'))
+
+    if CGI_CLI.data.get('SMU.tar_files'):
+        CGI_CLI.uprint('SMU.tar files MD5 %s' % \
+            (', '.join(md5_true_SMU_tar_files_on_server) + \
+            ' FOUND.' if len(md5_true_SMU_tar_files_on_server)>0 else 'NOT FOUND.'),\
+            color = ('green' if len(md5_true_SMU_tar_files_on_server)>0 else 'red'))
+
+
+    ### CHECK HDD/FLASH SPACE ON DEVICE #######################################
+    CGI_CLI.uprint('\nDEVICE %s CHECKS:\n' % (device), tag = 'h2')
     ### RUN INITIAL DATA COLLECTION ###########################################
     collector_cmds = {
         ### some ios = enable, ask password, 'show bootflash:' , exit
@@ -1286,133 +1398,35 @@ if device:
         'juniper':['show system storage'],
         'huawei':['display device | include PhyDisk','display disk information']
     }
-    CGI_CLI.uprint('DEVICE DATA COLLECTION:', \
+    CGI_CLI.uprint('collecting data', \
         no_newlines = None if CGI_CLI.data.get("printall") else True)
     rcmd_collector_outputs = RCMD.run_commands(collector_cmds)
-
-
-    ### CHECK HDD/FLASH SPACE ON DEVICE #######################################
+    CGI_CLI.uprint(' ', no_newlines = True if CGI_CLI.data.get("printall") else None)
+    
     if RCMD.router_type == 'cisco_ios':
-        brand_subdir = 'CISCO'
-        if asr1k_detection_string in rcmd_collector_outputs[1]: type_subdir = 'ASR1K'
         try: device_free_space = float(rcmd_collector_outputs[0].\
                  split('bytes available')[0].splitlines()[-1].strip())
         except: pass
     elif RCMD.router_type == 'cisco_xr':
-        brand_subdir = 'CISCO'
-        if asr9k_detection_string in rcmd_collector_outputs[1]: type_subdir = 'ASR9K'
         try: device_free_space = float(rcmd_collector_outputs[0].\
                  split('harddisk:')[0].splitlines()[-1].split()[1].strip())
         except: pass
-    elif RCMD.router_type == 'juniper': brand_subdir, type_subdir = 'JUNIPER', ''
-    elif RCMD.router_type == 'huawei': brand_subdir, type_subdir = 'HUAWEI', 'V8R10'
-
-    CGI_CLI.uprint('DEVICE %s FREE SPACE = %s bytes\n' % \
-        (device, str(device_free_space)) , color = 'blue')
+    elif RCMD.router_type == 'juniper': pass
+    elif RCMD.router_type == 'huawei': pass
+    
+    CGI_CLI.uprint('disk free space = %s bytes' % (str(device_free_space)) , color = 'blue')
 
     ### SOME GB FREE EXPECTED (1MB=1048576, 1GB=1073741824) ###
     if device_free_space < (device_expected_GB_free * 1073741824):
-        CGI_CLI.uprint('DEVICE %s DISK SPACE - CHECK FAIL!' % (device), color = 'red')
+        CGI_CLI.uprint('disk space - CHECK FAIL!', color = 'red')
         RCMD.disconnect()
         sys.exit(0)
-    else: CGI_CLI.uprint('DEVICE %s DISK SPACE - CHECK OK.' % (device), color = 'green')
+    else: CGI_CLI.uprint('disk space - CHECK OK.', color = 'green')
 
 
     ### CHECK LOCAL SERVER AND DEVICE HDD FILES ###############################
     if RCMD.router_type == 'cisco_xr':
-        ### GENERATE FILE NAMES ###
-        tar_file = '%s-iosxr-px-k9-%s.tar' % \
-            (type_subdir,'.'.join([ char for char in sw_release.encode() ]))
-        OTI_tar_file = '%s-iosxr-px-k9-%s.OTI.tar' % \
-            (type_subdir.lower(),'.'.join([ char for char in sw_release.encode() ]))
-        SMU_tar_files = '%s-px-%s.' % \
-            (type_subdir.lower(),'.'.join([ char for char in sw_release.encode() ]))
 
-        ### CHECK LOCAL SW DIRECTORIES ########################################
-        LOCAL_SW_RELEASE_DIR = os.path.abspath(os.path.join(os.sep,'home',\
-            'tftpboot',brand_subdir, type_subdir, sw_release))
-        LOCAL_SW_RELEASE_SMU_DIR = os.path.abspath(os.path.join(os.sep,'home',\
-            'tftpboot',brand_subdir, type_subdir, sw_release, 'SMU'))
-
-        directory_list = [LOCAL_SW_RELEASE_DIR, LOCAL_SW_RELEASE_SMU_DIR]
-        nonexistent_directories = ', '.join([ directory for directory in directory_list if not os.path.exists(directory) ])
-
-        CGI_CLI.uprint('SERVER %s DIRs EXISTENCY CHECK [%s]...' % \
-            (iptac_server.upper(),', '.join(directory_list)))
-
-        if nonexistent_directories:
-            CGI_CLI.uprint('MISSING[%s]\nSERVER %s directories EXISTENCY - CHECK FAIL!' % \
-                ((nonexistent_directories) if nonexistent_directories else str(), \
-                iptac_server.upper()), color = 'red')
-            RCMD.disconnect()
-            sys.exit(0)
-        else: CGI_CLI.uprint('SERVER %s directories EXISTENCY - CHECK OK.\n' % \
-                  (iptac_server.upper()), color = 'green')
-
-
-        ### CHECK LOCAL SERVER FILES EXISTENCY ################################
-        local_results = LCMD.run_commands({'unix':['ls -l %s' % (LOCAL_SW_RELEASE_DIR), \
-                                                   'ls -l %s' % (LOCAL_SW_RELEASE_SMU_DIR)]})
-        ### ELIMINATE PROBLEM = POSSIBLE ERROR CASE-MIX IN FILE NAMES #########
-        ### GET DEVICE CASE-CORRECT FILE NAMES ################################
-        true_OTI_tar_file_on_server, true_SMU_tar_files_on_server = None, []
-        for line in local_results[0].splitlines():
-            if OTI_tar_file.upper() in line.upper():
-                true_OTI_tar_file_on_server = line.split()[-1].strip()
-                break
-        for line in local_results[1].splitlines():
-            if SMU_tar_files.upper() in line.upper() and '.tar'.upper() in line.upper():
-                true_SMU_tar_files_on_server.append(line.split()[-1].strip())
-
-        if CGI_CLI.data.get('OTI.tar_file'):
-            if not true_OTI_tar_file_on_server:
-                CGI_CLI.uprint('SERVER OTI.tar FILE NOT FOUND!', color = 'red')
-                RCMD.disconnect()
-                sys.exit(0)
-            else:
-                CGI_CLI.uprint('SERVER OTI.tar FILE %s' % \
-                    (true_OTI_tar_file_on_server + \
-                    ' FOUND.' if true_OTI_tar_file_on_server else 'NOT FOUND.'),\
-                    color = ('green' if true_OTI_tar_file_on_server else 'red'))
-
-        if CGI_CLI.data.get('SMU.tar_files'):
-            if len(true_SMU_tar_files_on_server)==0:
-                CGI_CLI.uprint('SERVER SMU FILES NOT FOUND!', color = 'red')
-                RCMD.disconnect()
-                sys.exit(0)
-            else:
-                CGI_CLI.uprint('SERVER SMU.tar FILES %s' % \
-                    (', '.join(true_SMU_tar_files_on_server) + \
-                    ' FOUND.' if len(true_SMU_tar_files_on_server)>0 else 'NOT FOUND.'),\
-                    color = ('green' if len(true_SMU_tar_files_on_server)>0 else 'red'))
-
-
-        ### SERVER MD5 CHECKS #################################################
-        if true_OTI_tar_file_on_server:
-            local_oti_checkum_string = LCMD.run_commands({'unix':['md5sum %s' % \
-                (os.path.join(LOCAL_SW_RELEASE_DIR,true_OTI_tar_file_on_server))]})
-            md5_true_OTI_tar_file_on_server = local_oti_checkum_string[0].split()[0].strip()
-
-        else: md5_true_OTI_tar_file_on_server = str()
-
-        md5_true_SMU_tar_files_on_server = []
-        if len(true_SMU_tar_files_on_server) > 0:
-            for file in true_SMU_tar_files_on_server:
-                checkum_string = LCMD.run_commands({'unix':['md5sum %s' % \
-                    (os.path.join(LOCAL_SW_RELEASE_SMU_DIR,file))]})
-                md5_true_SMU_tar_files_on_server.append(checkum_string[0].split()[0].strip())
-
-        if CGI_CLI.data.get('OTI.tar_file'):
-            CGI_CLI.uprint('SERVER OTI.tar FILE MD5 %s' % \
-                (md5_true_OTI_tar_file_on_server + \
-                ' FOUND.' if md5_true_OTI_tar_file_on_server else 'NOT FOUND.'),\
-                color = ('green' if md5_true_OTI_tar_file_on_server else 'red'))
-
-        if CGI_CLI.data.get('SMU.tar_files'):
-            CGI_CLI.uprint('SERVER SMU.tar FILES MD5 %s' % \
-                (', '.join(md5_true_SMU_tar_files_on_server) + \
-                ' FOUND.' if len(md5_true_SMU_tar_files_on_server)>0 else 'NOT FOUND.'),\
-                color = ('green' if len(md5_true_SMU_tar_files_on_server)>0 else 'red'))
 
 
         ### CHECK DEVICE HDD FILES EXISTENCY ##################################
@@ -1421,7 +1435,7 @@ if device:
         ### COPY/SCP FILES TO ROUTER ##########################################
         if not CGI_CLI.data.get('check_device_tar_files_only') or \
             CGI_CLI.data.get('force_rewrite_tar_files_on_device'):
-            CGI_CLI.uprint('COPY TAR FILE(S) TO DEVICE:', no_newlines = \
+            CGI_CLI.uprint('copy tar file(s)', no_newlines = \
                 None if CGI_CLI.data.get("printall") else True)
 
             if CGI_CLI.data.get('OTI.tar_file'):
@@ -1456,10 +1470,8 @@ if device:
                 'dir harddisk:/IOS-XR/%s/SMU' % (sw_release),
                 ],
         }
-        CGI_CLI.uprint('DEVICE FILES CHECK.', no_newlines = \
-            None if CGI_CLI.data.get("printall") else True)
         rcmd_read2_outputs = RCMD.run_commands(read2_cmds)
-
+        CGI_CLI.uprint(' ', no_newlines = True if CGI_CLI.data.get("printall") else None)
 
         ### GET DEVICE CASE-CORRECT FILE NAMES - AFTER COPYING TO DEVICE ######
         true_OTI_tar_file_on_device, true_SMU_tar_files_on_device = None, []
@@ -1473,22 +1485,22 @@ if device:
 
         if CGI_CLI.data.get('OTI.tar_file'):
             if not true_OTI_tar_file_on_device:
-                CGI_CLI.uprint('DEVICE OTI.tar FILE NOT FOUND!', color = 'red')
+                CGI_CLI.uprint('OTI.tar file NOT FOUND!', color = 'red')
                 RCMD.disconnect()
                 sys.exit(0)
             else:
-                CGI_CLI.uprint('DEVICE OTI.tar FILE %s' % \
+                CGI_CLI.uprint('OTI.tar file %s' % \
                     (true_OTI_tar_file_on_device + \
                     ' FOUND.' if true_OTI_tar_file_on_device else 'NOT FOUND.'),\
                     color = ('green' if true_OTI_tar_file_on_device else 'red'))
 
         if CGI_CLI.data.get('SMU.tar_files'):
             if len(true_SMU_tar_files_on_device)==0:
-                CGI_CLI.uprint('DEVICE SMU FILES NOT FOUND!', color = 'red')
+                CGI_CLI.uprint('SMU files NOT FOUND!', color = 'red')
                 RCMD.disconnect()
                 sys.exit(0)
             else:
-                CGI_CLI.uprint('DEVICE SMU.tar FILES %s' % \
+                CGI_CLI.uprint('SMU.tar files %s' % \
                     (', '.join(true_SMU_tar_files_on_device) + \
                     ' FOUND.' if len(true_SMU_tar_files_on_device)>0 else 'NOT FOUND.'),\
                     color = ('green' if len(true_SMU_tar_files_on_device)>0 else 'red'))
@@ -1506,10 +1518,11 @@ if device:
             read3_cmds['cisco_xr'].append('show md5 file /harddisk:/IOS-XR/%s/SMU/%s' % \
                 (sw_release,file))
 
-        CGI_CLI.uprint('DEVICE MD5 CHECK.', no_newlines = \
+        CGI_CLI.uprint('checking md5', no_newlines = \
             None if CGI_CLI.data.get("printall") else True)
         rcmd_read3_outputs = RCMD.run_commands(read3_cmds)
-
+        CGI_CLI.uprint(' ', no_newlines = True if CGI_CLI.data.get("printall") else None)
+            
         ### MD5 CHECKSUM IS 32BYTES LONG ###
         md5_true_OTI_tar_file_on_device = str()
         md5_true_SMU_tar_files_on_device = []
@@ -1536,20 +1549,20 @@ if device:
             for md5_on_server, md5_on_device in \
                 zip(md5_true_SMU_tar_files_on_device,md5_true_SMU_tar_files_on_server):
                 if md5_on_server and md5_on_device and md5_on_server == md5_on_device:
-                    CGI_CLI.uprint('MD5 SMU.tar files - CHECK OK.', color = 'green')
+                    CGI_CLI.uprint('SMU.tar MD5 files - CHECK OK.', color = 'green')
                     SMU_tar_md5_check_OK = True
 
         if CGI_CLI.data.get('OTI.tar_file') and not OTI_tar_md5_check_OK:
-            CGI_CLI.uprint('MD5 OTI.tar file - CHECK FAIL!', color = 'red')
+            CGI_CLI.uprint('OTI.tar MD5 file - CHECK FAIL!', color = 'red')
             RCMD.disconnect()
             sys.exit(0)
 
         if CGI_CLI.data.get('SMU.tar_files') and not SMU_tar_md5_check_OK:
-            CGI_CLI.uprint('MD5 SMU.tar files - CHECK FAIL!', color = 'red')
+            CGI_CLI.uprint('SMU.tar MD5 files - CHECK FAIL!', color = 'red')
             RCMD.disconnect()
             sys.exit(0)
 
-        CGI_CLI.uprint('DEVICE TAR FILES - CHECK OK.', tag='h1', color = 'green')
+        CGI_CLI.uprint('tar files - CHECK OK.', tag='h1', color = 'green')
         if CGI_CLI.data.get('check_device_tar_files_only'):
             RCMD.disconnect()
             sys.exit(0)
@@ -1566,7 +1579,7 @@ if device:
             '\n',
             'exit'
             ]}
-            CGI_CLI.uprint('DEVICE CONFIGS BACKUP.', no_newlines = \
+            CGI_CLI.uprint('backup configs', no_newlines = \
                 None if CGI_CLI.data.get("printall") else True)
             forget_it = RCMD.run_commands(backup_config_rcmds)
 
@@ -1588,7 +1601,7 @@ if device:
             del_files_cmds['cisco_xr'].append('dir harddisk:/IOS-XR/%s' % (sw_release))
             del_files_cmds['cisco_xr'].append('dir harddisk:/IOS-XR/%s/SMU' % (sw_release))
 
-            CGI_CLI.uprint('DEVICE DELETE TAR FILES.', no_newlines = \
+            CGI_CLI.uprint('deleting tar files', no_newlines = \
                 None if CGI_CLI.data.get("printall") else True)
             forget_it = RCMD.run_commands(del_files_cmds)
 
