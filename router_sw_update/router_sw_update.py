@@ -115,6 +115,10 @@ class CGI_CLI(object):
                             action = 'store_true', dest = "delete_tar_files_on_end",
                             default = None,
                             help = "delete tar files on end")
+        parser.add_argument("--check_files_only",
+                            action = 'store_true', dest = "check_device_tar_files_only",
+                            default = None,
+                            help = "check existing device tar files only, do not copy new tar files")
         # parser.add_argument("--sim",
                             # action = "store_true", dest = 'sim',
                             # default = None,
@@ -1149,7 +1153,7 @@ if __name__ != "__main__": sys.exit(0)
 
 device_expected_GB_free = 0.2
 
-SCRIPT_ACTIONS_LIST = [ 'check_device_tar_files_only',
+SCRIPT_ACTIONS_LIST = [ 'do_sw_upgrade',
 ]
 
 # SMU_file_list_on_server = [
@@ -1201,9 +1205,10 @@ if CGI_CLI.cgi_active and not CGI_CLI.submit_form:
     CGI_CLI.uprint('ROUTER SW UPGRADE TOOL:\n', tag = 'h1', color = 'blue')
     CGI_CLI.formprint([{'text':'device'}, '<br/>', {'text':'sw_release'}, '<br/>',\
         {'text':'username'}, '<br/>', {'password':'password'}, '<br/>',\
+        '<br/>',{'radio':SCRIPT_ACTIONS_LIST}, '<br/>',\
         '<br/>',{'checkbox':'OTI.tar_file'}, \
         '<br/>', {'checkbox':'SMU.tar_files'},'<br/>',\
-        '<br/>',{'radio':SCRIPT_ACTIONS_LIST}, '<br/>',\
+        '<br/>', {'checkbox':'check_device_tar_files_only'},'<br/>',\
         '<br/>', {'checkbox':'delete_tar_files_on_end'},'<br/>',\
         '<br/>', {'checkbox':'printall'},'<br/>','<br/>'],
         submit_button = 'OK', pyfile = None, tag = None, color = None)
@@ -1404,32 +1409,33 @@ if device:
         ### ELIMINATE PROBLEM = POSSIBLE ERROR CASE-MIX IN FILE NAMES #########
         ### GET DEVICE CASE-CORRECT FILE NAMES ################################
         ### COPY/SCP FILES TO ROUTER ##########################################
-        CGI_CLI.uprint('COPY TAR FILE(S) TO DEVICE:', no_newlines = \
-            None if CGI_CLI.data.get("printall") else True)
+        if not CGI_CLI.data.get('check_device_tar_files_only'):
+            CGI_CLI.uprint('COPY TAR FILE(S) TO DEVICE:', no_newlines = \
+                None if CGI_CLI.data.get("printall") else True)
 
-        if CGI_CLI.data.get('OTI.tar_file'):
-            true_OTI_tar_file_on_device, true_SMU_tar_files_on_device = None, []
-            for line in rcmd_collector_outputs[2].splitlines():
-                if OTI_tar_file.upper() in line.upper():
-                    true_OTI_tar_file_on_device = line.split()[-1].strip()
-                    break
-            if not true_OTI_tar_file_on_device:
-                scp_cmd = do_scp_command(USERNAME, PASSWORD, true_OTI_tar_file_on_server,
-                    'harddisk:/IOS-XR/%s' % (sw_release),LOCAL_SW_RELEASE_DIR,
-                    printall = CGI_CLI.data.get("printall"))
-                CGI_CLI.uprint(scp_cmd)
-
-        if CGI_CLI.data.get('SMU.tar_files'):
-            true_OTI_tar_file_on_device, true_SMU_tar_files_on_device = None, []
-            for line in rcmd_collector_outputs[3].splitlines():
-                if SMU_tar_files.upper() in line.upper() and '.tar'.upper() in line.upper():
-                    true_SMU_tar_files_on_device.append(line.split()[-1].strip())
-            if len(true_SMU_tar_files_on_device)==0:
-                for smu_file in true_SMU_tar_files_on_server:
-                    scp_cmd = do_scp_command(USERNAME, PASSWORD, smu_file,
-                        'harddisk:/IOS-XR/%s/SMU' % (sw_release),LOCAL_SW_RELEASE_SMU_DIR,
+            if CGI_CLI.data.get('OTI.tar_file'):
+                true_OTI_tar_file_on_device, true_SMU_tar_files_on_device = None, []
+                for line in rcmd_collector_outputs[2].splitlines():
+                    if OTI_tar_file.upper() in line.upper():
+                        true_OTI_tar_file_on_device = line.split()[-1].strip()
+                        break
+                if not true_OTI_tar_file_on_device:
+                    scp_cmd = do_scp_command(USERNAME, PASSWORD, true_OTI_tar_file_on_server,
+                        'harddisk:/IOS-XR/%s' % (sw_release),LOCAL_SW_RELEASE_DIR,
                         printall = CGI_CLI.data.get("printall"))
                     CGI_CLI.uprint(scp_cmd)
+
+            if CGI_CLI.data.get('SMU.tar_files'):
+                true_OTI_tar_file_on_device, true_SMU_tar_files_on_device = None, []
+                for line in rcmd_collector_outputs[3].splitlines():
+                    if SMU_tar_files.upper() in line.upper() and '.tar'.upper() in line.upper():
+                        true_SMU_tar_files_on_device.append(line.split()[-1].strip())
+                if len(true_SMU_tar_files_on_device)==0:
+                    for smu_file in true_SMU_tar_files_on_server:
+                        scp_cmd = do_scp_command(USERNAME, PASSWORD, smu_file,
+                            'harddisk:/IOS-XR/%s/SMU' % (sw_release),LOCAL_SW_RELEASE_SMU_DIR,
+                            printall = CGI_CLI.data.get("printall"))
+                        CGI_CLI.uprint(scp_cmd)
 
 
         ### READ EXISTING FILES ON DEVICE - AFTER COPYING TO DEVICE ###########
@@ -1532,6 +1538,11 @@ if device:
             RCMD.disconnect()
             sys.exit(0)
 
+        if CGI_CLI.data.get('check_device_tar_files_only'):
+            CGI_CLI.uprint('DEVICE TAR FILES - CHECK OK.', tag='h1', color = 'green')
+            RCMD.disconnect()
+            sys.exit(0)
+
 
         ## BACKUP NORMAL AND ADMIN CONFIG ####################################
         actual_date_string = time.strftime("%Y-%m%d-%H:%M",time.gmtime(time.time()))
@@ -1561,6 +1572,9 @@ if device:
                     del_files_cmds['cisco_xr'].append('del /harddisk:/IOS-XR/%s/SMU/%s' % \
                         (sw_release,file))
                     del_files_cmds['cisco_xr'].append('\n')
+
+            del_files_cmds['cisco_xr'].append('dir harddisk:/IOS-XR/%s' % (sw_release))
+            del_files_cmds['cisco_xr'].append('dir harddisk:/IOS-XR/%s/SMU' % (sw_release))
 
             CGI_CLI.uprint('DEVICE - DELETE TAR FILES.', no_newlines = \
                 None if CGI_CLI.data.get("printall") else True)
