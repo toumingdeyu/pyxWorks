@@ -112,9 +112,9 @@ class CGI_CLI(object):
                             default = None,
                             help = "copy/check SMU.tar files")
         parser.add_argument("--delete_files",
-                            action = 'store_true', dest = "delete_tar_files_on_end",
+                            action = 'store_true', dest = "delete_device_tar_files_on_end",
                             default = None,
-                            help = "delete tar files on end")
+                            help = "delete device tar files on end")
         parser.add_argument("--check_files_only",
                             action = 'store_true', dest = "check_device_tar_files_only",
                             default = None,
@@ -1209,7 +1209,7 @@ if CGI_CLI.cgi_active and not CGI_CLI.submit_form:
         '<br/>',{'checkbox':'OTI.tar_file'}, \
         '<br/>', {'checkbox':'SMU.tar_files'},'<br/>',\
         '<br/>', {'checkbox':'check_device_tar_files_only'},'<br/>',\
-        '<br/>', {'checkbox':'delete_tar_files_on_end'},'<br/>',\
+        {'checkbox':'delete_device_tar_files_on_end'},'<br/>',\
         '<br/>', {'checkbox':'printall'},'<br/>','<br/>'],
         submit_button = 'OK', pyfile = None, tag = None, color = None)
 else:
@@ -1560,7 +1560,7 @@ if device:
 
 
         ### DELETE TAR FILES ON END ###########################################
-        if CGI_CLI.data.get('delete_tar_files_on_end'):
+        if CGI_CLI.data.get('delete_device_tar_files_on_end'):
             del_files_cmds = {'cisco_xr':[]}
 
             if CGI_CLI.data.get('OTI.tar_file') and true_OTI_tar_file_on_device:
