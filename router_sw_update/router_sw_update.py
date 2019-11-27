@@ -1542,7 +1542,7 @@ if device:
             if true_OTI_tar_file_on_device and md5_true_SMU_tar_files_on_device and \
                 true_OTI_tar_file_on_device == true_OTI_tar_file_on_server and \
                 md5_true_SMU_tar_files_on_device == md5_true_SMU_tar_files_on_server:
-                CGI_CLI.uprint('MD5 OTI.tar file - CHECK OK.', color = 'green')
+                CGI_CLI.uprint('OTI.tar MD5 file - CHECK OK.', color = 'green')
                 OTI_tar_md5_check_OK = True
 
         if CGI_CLI.data.get('SMU.tar_files'):
@@ -1582,7 +1582,7 @@ if device:
             CGI_CLI.uprint('backup configs', no_newlines = \
                 None if CGI_CLI.data.get("printall") else True)
             forget_it = RCMD.run_commands(backup_config_rcmds)
-
+            CGI_CLI.uprint(' ', no_newlines = True if CGI_CLI.data.get("printall") else None)
 
         ### DELETE TAR FILES ON END ###########################################
         if CGI_CLI.data.get('delete_device_tar_files_on_end'):
@@ -1604,6 +1604,7 @@ if device:
             CGI_CLI.uprint('deleting tar files', no_newlines = \
                 None if CGI_CLI.data.get("printall") else True)
             forget_it = RCMD.run_commands(del_files_cmds)
+            CGI_CLI.uprint(' ', no_newlines = True if CGI_CLI.data.get("printall") else None)
 
     ### DISCONNECT ############################################################
     RCMD.disconnect()
