@@ -103,14 +103,18 @@ class CGI_CLI(object):
                             action = "store", dest = 'sw_release',
                             default = str(),
                             help = "sw release number without dots, i.e 653")
-        parser.add_argument("--OTI.tar_file",
+        parser.add_argument("--OTI_tar",
                             action = 'store_true', dest = "OTI.tar_file",
                             default = None,
                             help = "copy/check OTI.tar file")
-        parser.add_argument("--SMU.tar_files",
+        parser.add_argument("--SMU_tar",
                             action = 'store_true', dest = "SMU.tar_files",
                             default = None,
                             help = "copy/check SMU.tar files")
+        parser.add_argument("--delete_files",
+                            action = 'store_true', dest = "delete_tar_files_on_end",
+                            default = None,
+                            help = "delete tar files on end")                            
         # parser.add_argument("--sim",
                             # action = "store_true", dest = 'sim',
                             # default = None,
@@ -783,7 +787,7 @@ class RCMD(object):
                         exit_loop=True; break
             else:
                 ### INTERACTIVE QUESTION --> GO AWAY FAST !!! ###
-                if last_line.strip().endswith('?'): exit_loop = True; break
+                if last_line.strip().endswith('?') or last_line.strip().endswith('[confirm]'): exit_loop = True; break
                 ### 30 SECONDS COMMAND TIMEOUT
                 elif (timeout_counter_100msec) > 30*10: exit_loop = True; break
                 ### 10 SECONDS --> This could be a new PROMPT
@@ -1127,7 +1131,7 @@ def do_scp_command(USERNAME = None, PASSWORD = None, file_to_copy = None, \
         os.environ['SSHPASS'] = PASSWORD
         device_file = '%s/%s' % (device_path, file_to_copy)
         local_file = os.path.join(local_path, file_to_copy)
-        local_command = 'sshpass -e scp %s %s@%s:/%s' % (local_file, USERNAME,\
+        local_command = 'sshpass -e scp -v %s %s@%s:/%s' % (local_file, USERNAME,\
             device, device_file)
         scp_result = LCMD.run_command(cmd_line = local_command,
             printall = printall, chunked = True)
@@ -1143,9 +1147,9 @@ def do_scp_command(USERNAME = None, PASSWORD = None, file_to_copy = None, \
 if __name__ != "__main__": sys.exit(0)
 ##############################################################################
 
-device_expected_GB_free = 1
+device_expected_GB_free = 0.2
 
-SCRIPT_ACTIONS_LIST = [ 'check_device_tar_only',  
+SCRIPT_ACTIONS_LIST = [ 'check_device_tar_files_only',  
 ]
 
 # SMU_file_list_on_server = [
@@ -1200,6 +1204,7 @@ if CGI_CLI.cgi_active and not CGI_CLI.submit_form:
         '<br/>',{'checkbox':'OTI.tar_file'}, \
         '<br/>', {'checkbox':'SMU.tar_files'},'<br/>',\
         '<br/>',{'radio':SCRIPT_ACTIONS_LIST}, '<br/>',\
+        '<br/>', {'checkbox':'delete_tar_files_on_end'},'<br/>',\
         '<br/>', {'checkbox':'printall'},'<br/>','<br/>'],
         submit_button = 'OK', pyfile = None, tag = None, color = None)
 else:
@@ -1226,6 +1231,10 @@ logfilename = None
 if not (CGI_CLI.data.get('OTI.tar_file') or CGI_CLI.data.get('SMU.tar_files')): 
     CGI_CLI.uprint('PLEASE SPECIFY TAR FILE(s) TO COPY.', color = 'red')
     sys.exit(0)
+    
+if not sw_release: 
+    CGI_CLI.uprint('PLEASE SPECIFY SW_RELEASE.', color = 'red')
+    sys.exit(0)    
 
 ### REMOTE DEVICE OPERATIONS ##################################################
 if device:
@@ -1538,9 +1547,23 @@ if device:
         # forget_it = RCMD.run_commands(backup_config_rcmds)
 
 
+        ### DELETE TAR FILES ON END ###########################################
+        if CGI_CLI.data.get('delete_tar_files_on_end'):
+            del_files_cmds = {'cisco_xr':[]}
+            
+            if CGI_CLI.data.get('OTI.tar_file') and true_OTI_tar_file_on_device:
+                del_files_cmds = {'cisco_xr':['del /harddisk:/IOS-XR/%s/%s' % \
+                    (sw_release,true_OTI_tar_file_on_device),'\n']}
 
+            if CGI_CLI.data.get('SMU.tar_files'):
+                for file in true_SMU_tar_files_on_device:
+                    del_files_cmds['cisco_xr'].append('del /harddisk:/IOS-XR/%s/SMU/%s' % \
+                        (sw_release,file))
+                    del_files_cmds['cisco_xr'].append('\n')   
 
-
+            CGI_CLI.uprint('DEVICE - DELETE TAR FILES.', no_newlines = \
+                None if CGI_CLI.data.get("printall") else True)
+            forget_it = RCMD.run_commands(del_files_cmds)
 
     ### DISCONNECT ############################################################
     RCMD.disconnect()
