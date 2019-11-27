@@ -119,6 +119,14 @@ class CGI_CLI(object):
                             action = 'store_true', dest = "check_device_tar_files_only",
                             default = None,
                             help = "check existing device tar files only, do not copy new tar files")
+        parser.add_argument("--backup_configs",
+                            action = 'store_true', dest = "backup_configs_to_device_disk",
+                            default = None,
+                            help = "backup configs to device hdd")
+        parser.add_argument("--force_rewrite",
+                            action = 'store_true', dest = "force_rewrite_tar_files_on_device",
+                            default = None,
+                            help = "force rewrite tar files on device hdd")                            
         # parser.add_argument("--sim",
                             # action = "store_true", dest = 'sim',
                             # default = None,
@@ -1135,7 +1143,7 @@ def do_scp_command(USERNAME = None, PASSWORD = None, file_to_copy = None, \
         os.environ['SSHPASS'] = PASSWORD
         device_file = '%s/%s' % (device_path, file_to_copy)
         local_file = os.path.join(local_path, file_to_copy)
-        local_command = 'sshpass -e scp -v %s %s@%s:/%s' % (local_file, USERNAME,\
+        local_command = 'sshpass -e scp -v -o StrictHostKeyChecking=no %s %s@%s:/%s' % (local_file, USERNAME,\
             device, device_file)
         scp_result = LCMD.run_command(cmd_line = local_command,
             printall = printall, chunked = True)
@@ -1209,6 +1217,8 @@ if CGI_CLI.cgi_active and not CGI_CLI.submit_form:
         '<br/>',{'checkbox':'OTI.tar_file'}, \
         '<br/>', {'checkbox':'SMU.tar_files'},'<br/>',\
         '<br/>', {'checkbox':'check_device_tar_files_only'},'<br/>',\
+        {'checkbox':'force_rewrite_tar_files_on_device'},'<br/>',\
+        {'checkbox':'backup_configs_to_device_disk'},'<br/>',\
         {'checkbox':'delete_device_tar_files_on_end'},'<br/>',\
         '<br/>', {'checkbox':'printall'},'<br/>','<br/>'],
         submit_button = 'OK', pyfile = None, tag = None, color = None)
@@ -1222,7 +1232,7 @@ else:
         if CGI_CLI.data.get("script_action"): SCRIPT_ACTION = CGI_CLI.data.get("script_action")
     ### HEADER TEXT PRINT ###
     CGI_CLI.uprint('ROUTER SW UPGRADE TOOL \n', tag = 'h1', color = 'blue')
-    CGI_CLI.uprint('DEVICE=%s, SW_RELEASE=%s, SCRIPT_ACTION=%s\n' % \
+    CGI_CLI.uprint('DEVICE=%s\nSW_RELEASE=%s\nSCRIPT_ACTION=%s\n' % \
         (device, sw_release, SCRIPT_ACTION))
 
 
@@ -1327,7 +1337,7 @@ if device:
         directory_list = [LOCAL_SW_RELEASE_DIR, LOCAL_SW_RELEASE_SMU_DIR]
         nonexistent_directories = ', '.join([ directory for directory in directory_list if not os.path.exists(directory) ])
 
-        CGI_CLI.uprint('SERVER %s DIRs EXISTENCY CHECK[%s]...' % \
+        CGI_CLI.uprint('SERVER %s DIRs EXISTENCY CHECK [%s]...' % \
             (iptac_server.upper(),', '.join(directory_list)))
 
         if nonexistent_directories:
@@ -1409,7 +1419,8 @@ if device:
         ### ELIMINATE PROBLEM = POSSIBLE ERROR CASE-MIX IN FILE NAMES #########
         ### GET DEVICE CASE-CORRECT FILE NAMES ################################
         ### COPY/SCP FILES TO ROUTER ##########################################
-        if not CGI_CLI.data.get('check_device_tar_files_only'):
+        if not CGI_CLI.data.get('check_device_tar_files_only') or \
+            CGI_CLI.data.get('force_rewrite_tar_files_on_device'):
             CGI_CLI.uprint('COPY TAR FILE(S) TO DEVICE:', no_newlines = \
                 None if CGI_CLI.data.get("printall") else True)
 
@@ -1445,7 +1456,7 @@ if device:
                 'dir harddisk:/IOS-XR/%s/SMU' % (sw_release),
                 ],
         }
-        CGI_CLI.uprint('CHECK FILES ON DEVICE:', no_newlines = \
+        CGI_CLI.uprint('DEVICE FILES CHECK.', no_newlines = \
             None if CGI_CLI.data.get("printall") else True)
         rcmd_read2_outputs = RCMD.run_commands(read2_cmds)
 
@@ -1495,7 +1506,7 @@ if device:
             read3_cmds['cisco_xr'].append('show md5 file /harddisk:/IOS-XR/%s/SMU/%s' % \
                 (sw_release,file))
 
-        CGI_CLI.uprint('CHECK MD5 ON DEVICE:', no_newlines = \
+        CGI_CLI.uprint('DEVICE MD5 CHECK.', no_newlines = \
             None if CGI_CLI.data.get("printall") else True)
         rcmd_read3_outputs = RCMD.run_commands(read3_cmds)
 
@@ -1538,25 +1549,26 @@ if device:
             RCMD.disconnect()
             sys.exit(0)
 
+        CGI_CLI.uprint('DEVICE TAR FILES - CHECK OK.', tag='h1', color = 'green')
         if CGI_CLI.data.get('check_device_tar_files_only'):
-            CGI_CLI.uprint('DEVICE TAR FILES - CHECK OK.', tag='h1', color = 'green')
             RCMD.disconnect()
             sys.exit(0)
 
 
         ## BACKUP NORMAL AND ADMIN CONFIG ####################################
-        actual_date_string = time.strftime("%Y-%m%d-%H:%M",time.gmtime(time.time()))
-        backup_config_rcmds = {'cisco_xr':[
-        'copy running-config harddisk:%s-config.txt' % (actual_date_string),
-        '\n',
-        'admin',
-        'copy running-config harddisk:admin-%s-config.txt' %(actual_date_string),
-        '\n',
-        'exit'
-        ]}
-        CGI_CLI.uprint('BACKUP CONFIGS ON DEVICE:', no_newlines = \
-            None if CGI_CLI.data.get("printall") else True)
-        forget_it = RCMD.run_commands(backup_config_rcmds)
+        if CGI_CLI.data.get('backup_configs_to_device_disk'):
+            actual_date_string = time.strftime("%Y-%m%d-%H:%M",time.gmtime(time.time()))
+            backup_config_rcmds = {'cisco_xr':[
+            'copy running-config harddisk:%s-config.txt' % (actual_date_string),
+            '\n',
+            'admin',
+            'copy running-config harddisk:admin-%s-config.txt' %(actual_date_string),
+            '\n',
+            'exit'
+            ]}
+            CGI_CLI.uprint('DEVICE CONFIGS BACKUP.', no_newlines = \
+                None if CGI_CLI.data.get("printall") else True)
+            forget_it = RCMD.run_commands(backup_config_rcmds)
 
 
         ### DELETE TAR FILES ON END ###########################################
@@ -1576,7 +1588,7 @@ if device:
             del_files_cmds['cisco_xr'].append('dir harddisk:/IOS-XR/%s' % (sw_release))
             del_files_cmds['cisco_xr'].append('dir harddisk:/IOS-XR/%s/SMU' % (sw_release))
 
-            CGI_CLI.uprint('DEVICE - DELETE TAR FILES.', no_newlines = \
+            CGI_CLI.uprint('DEVICE DELETE TAR FILES.', no_newlines = \
                 None if CGI_CLI.data.get("printall") else True)
             forget_it = RCMD.run_commands(del_files_cmds)
 
