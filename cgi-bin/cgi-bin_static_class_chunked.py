@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import sys, os, io, paramiko, json, copy, html
+import sys, os, io, paramiko, json, copy, html, traceback
 import cgi
 import cgitb; cgitb.enable()
 import getopt
@@ -94,26 +94,38 @@ class CGI_CLI(object):
                             action = "store", dest = 'device',
                             default = str(),
                             help = "target router to access")
-        parser.add_argument("--shut",
-                            action = 'store_true', dest = "shut",
+        parser.add_argument("--sw_release",
+                            action = "store", dest = 'sw_release',
+                            default = str(),
+                            help = "sw release number without dots, i.e 653")
+        parser.add_argument("--OTI_tar",
+                            action = 'store_true', dest = "OTI.tar_file",
                             default = None,
-                            help = "switch-off bgp traffic")
-        parser.add_argument("--noshut",
-                            action = 'store_true', dest = "noshut",
+                            help = "copy/check OTI.tar file")
+        parser.add_argument("--SMU_tar",
+                            action = 'store_true', dest = "SMU.tar_files",
                             default = None,
-                            help = "switch-on bgp traffic")
-        parser.add_argument("--sim",
-                            action = "store_true", dest = 'sim',
+                            help = "copy/check SMU.tar files")
+        parser.add_argument("--delete_files",
+                            action = 'store_true', dest = "delete_device_tar_files_on_end",
                             default = None,
-                            help = "config simulation mode")
-        parser.add_argument("--cfg",
-                            action = "store_true", dest = 'show_config_only',
+                            help = "delete device tar files on end")
+        parser.add_argument("--check_files_only",
+                            action = 'store_true', dest = "check_device_tar_files_only",
                             default = None,
-                            help = "show config only, do not push data to device")
-        parser.add_argument("--wait",
-                            action = "store", dest = 'delay',
-                            default = '120',
-                            help = "delay in seconds [between overload bit set and bgp off / between bgp on overload bit clean], 120sec by default")
+                            help = "check existing device tar files only, do not copy new tar files")
+        parser.add_argument("--backup_configs",
+                            action = 'store_true', dest = "backup_configs_to_device_disk",
+                            default = None,
+                            help = "backup configs to device hdd")
+        parser.add_argument("--force_rewrite",
+                            action = 'store_true', dest = "force_rewrite_tar_files_on_device",
+                            default = None,
+                            help = "force rewrite tar files on device hdd")
+        # parser.add_argument("--sim",
+                            # action = "store_true", dest = 'sim',
+                            # default = None,
+                            # help = "config simulation mode")
         parser.add_argument("--printall",
                             action = "store_true", dest = 'printall',
                             default = None,
@@ -251,7 +263,7 @@ class CGI_CLI(object):
         if jsonprint:
             if isinstance(text, (dict,collections.OrderedDict,list,tuple)):
                 try: print_text = json.dumps(text, indent = 4)
-                except: pass
+                except Exception as e: CGI_CLI.print_chunk('JSON_PROBLEM[' + str(e) + ']')
         if name==True:
             if not 'inspect.currentframe' in sys.modules: import inspect
             callers_local_vars = inspect.currentframe().f_back.f_locals.items()
@@ -279,6 +291,7 @@ class CGI_CLI(object):
                 elif 'BLUE' in color.upper():    text_color = CGI_CLI.bcolors.BLUE
                 elif 'CYAN' in color.upper():    text_color = CGI_CLI.bcolors.CYAN
                 elif 'GREY' in color.upper():    text_color = CGI_CLI.bcolors.GREY
+                elif 'GRAY' in color.upper():    text_color = CGI_CLI.bcolors.GREY
                 elif 'YELLOW' in color.upper():  text_color = CGI_CLI.bcolors.YELLOW
             ### CLI_MODE ###
             if no_newlines:

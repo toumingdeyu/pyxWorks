@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import sys, os, io, paramiko, json, copy, html
+import sys, os, io, paramiko, json, copy, html, traceback
 import cgi
 import cgitb; cgitb.enable()
 import getopt
