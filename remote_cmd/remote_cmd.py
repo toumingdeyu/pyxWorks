@@ -2,7 +2,7 @@
 
 ###!/usr/bin/python36
 
-import sys, os, io, paramiko, json, copy, html
+import sys, os, io, paramiko, json, copy, html, traceback
 import getopt
 import getpass
 import telnetlib
@@ -99,26 +99,38 @@ class CGI_CLI(object):
                             action = "store", dest = 'device',
                             default = str(),
                             help = "target router to access")
-        parser.add_argument("--shut",
-                            action = 'store_true', dest = "shut",
+        parser.add_argument("--sw_release",
+                            action = "store", dest = 'sw_release',
+                            default = str(),
+                            help = "sw release number without dots, i.e 653")
+        parser.add_argument("--OTI_tar",
+                            action = 'store_true', dest = "OTI.tar_file",
                             default = None,
-                            help = "switch-off bgp traffic")
-        parser.add_argument("--noshut",
-                            action = 'store_true', dest = "noshut",
+                            help = "copy/check OTI.tar file")
+        parser.add_argument("--SMU_tar",
+                            action = 'store_true', dest = "SMU.tar_files",
                             default = None,
-                            help = "switch-on bgp traffic")
-        parser.add_argument("--sim",
-                            action = "store_true", dest = 'sim',
+                            help = "copy/check SMU.tar files")
+        parser.add_argument("--delete_files",
+                            action = 'store_true', dest = "delete_device_tar_files_on_end",
                             default = None,
-                            help = "config simulation mode")
-        parser.add_argument("--cfg",
-                            action = "store_true", dest = 'show_config_only',
+                            help = "delete device tar files on end")
+        parser.add_argument("--check_files_only",
+                            action = 'store_true', dest = "check_device_tar_files_only",
                             default = None,
-                            help = "show config only, do not push data to device")
-        parser.add_argument("--wait",
-                            action = "store", dest = 'delay',
-                            default = '120',
-                            help = "delay in seconds [between overload bit set and bgp off / between bgp on overload bit clean], 120sec by default")
+                            help = "check existing device tar files only, do not copy new tar files")
+        parser.add_argument("--backup_configs",
+                            action = 'store_true', dest = "backup_configs_to_device_disk",
+                            default = None,
+                            help = "backup configs to device hdd")
+        parser.add_argument("--force_rewrite",
+                            action = 'store_true', dest = "force_rewrite_tar_files_on_device",
+                            default = None,
+                            help = "force rewrite tar files on device hdd")
+        # parser.add_argument("--sim",
+                            # action = "store_true", dest = 'sim',
+                            # default = None,
+                            # help = "config simulation mode")
         parser.add_argument("--printall",
                             action = "store_true", dest = 'printall',
                             default = None,
@@ -256,7 +268,7 @@ class CGI_CLI(object):
         if jsonprint:
             if isinstance(text, (dict,collections.OrderedDict,list,tuple)):
                 try: print_text = json.dumps(text, indent = 4)
-                except: pass
+                except Exception as e: CGI_CLI.print_chunk('JSON_PROBLEM[' + str(e) + ']')
         if name==True:
             if not 'inspect.currentframe' in sys.modules: import inspect
             callers_local_vars = inspect.currentframe().f_back.f_locals.items()
@@ -284,6 +296,7 @@ class CGI_CLI(object):
                 elif 'BLUE' in color.upper():    text_color = CGI_CLI.bcolors.BLUE
                 elif 'CYAN' in color.upper():    text_color = CGI_CLI.bcolors.CYAN
                 elif 'GREY' in color.upper():    text_color = CGI_CLI.bcolors.GREY
+                elif 'GRAY' in color.upper():    text_color = CGI_CLI.bcolors.GREY
                 elif 'YELLOW' in color.upper():  text_color = CGI_CLI.bcolors.YELLOW
             ### CLI_MODE ###
             if no_newlines:
@@ -452,6 +465,7 @@ class RCMD(object):
             RCMD.router_prompt = None
             RCMD.printall = printall
             RCMD.router_type = None
+            RCMD.router_version = None
             RCMD.conf = conf
             RCMD.sim_config = sim_config
             RCMD.huawei_version = 0
@@ -747,7 +761,7 @@ class RCMD(object):
     def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True):
         output, output2, new_prompt = str(), str(), str()
         exit_loop, exit_loop2 = False, False
-        timeout_counter, timeout_counter2 = 0, 0
+        timeout_counter_100msec, timeout_counter_100msec_2 = 0, 0
         # FLUSH BUFFERS FROM PREVIOUS COMMANDS IF THEY ARE ALREADY BUFFERD
         if chan.recv_ready(): flush_buffer = chan.recv(9999)
         time.sleep(0.1)
@@ -755,13 +769,13 @@ class RCMD(object):
         time.sleep(0.2)
         while not exit_loop:
             if chan.recv_ready():
-                # workarround for discontious outputs from routers
-                timeout_counter = 0
+                ### WORKARROUND FOR DISCONTINIOUS OUTPUT FROM ROUTERS ###
+                timeout_counter_100msec = 0
                 buff = chan.recv(9999)
                 buff_read = buff.decode("utf-8").replace('\x0d','').replace('\x07','').\
                     replace('\x08','').replace(' \x1b[1D','')
                 output += buff_read
-            else: time.sleep(0.1); timeout_counter += 1
+            else: time.sleep(0.1); timeout_counter_100msec += 1
             # FIND LAST LINE, THIS COULD BE PROMPT
             try: last_line, last_line_orig = output.splitlines()[-1].strip(), output.splitlines()[-1].strip()
             except: last_line, last_line_orig = str(), str()
@@ -785,10 +799,14 @@ class RCMD(object):
                     last_line and last_line.endswith(actual_prompt):
                         exit_loop=True; break
             else:
-                # 30 SECONDS COMMAND TIMEOUT
-                if (timeout_counter) > 30*10: exit_loop=True; break
-                # 10 SECONDS --> This could be a new PROMPT
-                elif (timeout_counter) > 10*10 and not exit_loop2:
+                ### INTERACTIVE QUESTION --> GO AWAY FAST !!! ###
+                if last_line.strip().endswith('?') or last_line.strip().endswith('[confirm]'): exit_loop = True; break
+                ### 30 SECONDS COMMAND TIMEOUT
+                elif (timeout_counter_100msec) > 30*10: exit_loop = True; break
+                ### 10 SECONDS --> This could be a new PROMPT
+                elif (timeout_counter_100msec) > 10*10 and not exit_loop2:
+                    ### TRICK IS IF NEW PROMPT OCCURS, HIT ENTER ... ###
+                    ### ... AND IF OCCURS THE SAME LINE --> IT IS NEW PROMPT!!! ###
                     chan.send('\n')
                     time.sleep(0.1)
                     while(not exit_loop2):
@@ -797,14 +815,14 @@ class RCMD(object):
                             buff_read = buff.decode("utf-8").replace('\x0d','')\
                                .replace('\x07','').replace('\x08','').replace(' \x1b[1D','')
                             output2 += buff_read
-                        else: time.sleep(0.1); timeout_counter2 += 1
+                        else: time.sleep(0.1); timeout_counter_100msec_2 += 1
                         try: new_last_line = output2.splitlines()[-1].strip()
                         except: new_last_line = str()
                         if last_line_orig and new_last_line and last_line_orig == new_last_line:
                             if printall: CGI_CLI.uprint('NEW_PROMPT: %s' % (last_line_orig), color = 'cyan')
                             new_prompt = last_line_orig; exit_loop=True;exit_loop2=True; break
                         # WAIT UP TO 5 SECONDS
-                        if (timeout_counter2) > 5*10: exit_loop2 = True; break
+                        if (timeout_counter_100msec_2) > 5*10: exit_loop2 = True; break
         return output, new_prompt
 
     @staticmethod
@@ -860,6 +878,8 @@ class RCMD(object):
                         last_line and last_line.endswith(actual_prompt): exit_loop = True
             return output
         # Detect function start
+        #asr1k_detection_string = 'CSR1000'
+        #asr9k_detection_string = 'ASR9K|IOS-XRv 9000'
         router_os, prompt = str(), str()
         client = paramiko.SSHClient()
         #client.load_system_host_keys()
@@ -881,8 +901,12 @@ class RCMD(object):
             if prompt and not router_os:
                 command = 'show version\n'
                 output = ssh_raw_read_until_prompt(chan, command, [prompt], debug=debug)
-                if 'iosxr-' in output or 'Cisco IOS XR Software' in output: router_os = 'ios-xr'
-                elif 'Cisco IOS-XE software' in output: router_os = 'ios-xe'
+                if 'iosxr-' in output or 'Cisco IOS XR Software' in output:
+                    router_os = 'ios-xr'
+                    if 'ASR9K' in output or 'IOS-XRv 9000' in output: RCMD.router_version = 'ASR9K'
+                elif 'Cisco IOS-XE software' in output:
+                    router_os = 'ios-xe'
+                    if 'CSR1000' in outputs: RCMD.router_version = 'ASR1K'
                 elif 'JUNOS OS' in output: router_os = 'junos'
             if prompt and not router_os:
                 command = 'uname -a\n'
@@ -925,22 +949,50 @@ class LCMD(object):
         return logfilename, printall
 
     @staticmethod
-    def run_command(cmd_line = None, logfilename = None, printall = None):
-        os_output, cmd_list = str(), None
+    def run_command(cmd_line = None, logfilename = None, printall = None,
+        chunked = None, timeout_sec = 500):
+        os_output, cmd_list, timer_counter_100ms = str(), None, 0
         logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
         if cmd_line:
             with open(logfilename,"a+") as LCMD.fp:
-                if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line))
+                if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line),\
+                                 color = 'blue')
                 LCMD.fp.write('LOCAL_COMMAND: ' + cmd_line + '\n')
-                try: os_output = subprocess.check_output(str(cmd_line), shell=True).decode("utf-8")
+                try:
+                    if chunked:
+                        os_output, timer_counter_100ms = str(), 0
+                        CommandObject = subprocess.Popen(cmd_line,
+                                                   stdout=subprocess.PIPE,
+                                                   stderr=subprocess.PIPE, shell=True)
+                        while CommandObject.poll() is None:
+                            stdoutput = str(CommandObject.stdout.readline())
+                            erroutput = str(CommandObject.stdout.readline())
+                            while stdoutput or erroutput:
+                                if stdoutput:
+                                    os_output += copy.deepcopy(stdoutput) + '\n'
+                                    CGI_CLI.uprint(stdoutput.strip(), color = 'gray')
+                                if erroutput:
+                                    os_output += copy.deepcopy(erroutput) + '\n'
+                                    CGI_CLI.uprint(erroutput.strip(), color = 'gray')
+                                stdoutput = str(CommandObject.stdout.readline())
+                                erroutput = str(CommandObject.stdout.readline())
+                            time.sleep(0.1)
+                            timer_counter_100ms += 1
+                            if timer_counter_100ms > timeout_sec * 10:
+                                CommandObject.terminate()
+                                break
+                    else:
+                        os_output = subprocess.check_output(str(cmd_line), \
+                            stderr=subprocess.STDOUT, shell=True).decode("utf-8")
                 except (subprocess.CalledProcessError) as e:
-                    if printall: CGI_CLI.uprint(str(e))
-                    LCMD.fp.write(str(e) + '\n')
+                    os_output = str(e.output.decode("utf-8"))
+                    if printall: CGI_CLI.uprint('EXITCODE: %s' % (str(e.returncode)))
+                    LCMD.fp.write('EXITCODE: %s\n' % (str(e.returncode)))
                 except:
                     exc_text = traceback.format_exc()
                     CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
                     LCMD.fp.write(exc_text + '\n')
-                if os_output and printall: CGI_CLI.uprint(os_output)
+                if not chunked and os_output and printall: CGI_CLI.uprint(os_output, color = 'gray')
                 LCMD.fp.write(os_output + '\n')
         return os_output
 
@@ -967,10 +1019,11 @@ class LCMD(object):
                     os_output = str()
                     if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line))
                     LCMD.fp.write('LOCAL_COMMAND: ' + cmd_line + '\n')
-                    try: os_output = subprocess.check_output(str(cmd_line), shell=True).decode("utf-8")
+                    try: os_output = subprocess.check_output(str(cmd_line), stderr=subprocess.STDOUT, shell=True).decode("utf-8")
                     except (subprocess.CalledProcessError) as e:
-                        if printall: CGI_CLI.uprint(str(e))
-                        LCMD.fp.write(str(e) + '\n')
+                        os_output = str(e.output.decode("utf-8"))
+                        if printall: CGI_CLI.uprint('EXITCODE: %s' % (str(e.returncode)))
+                        LCMD.fp.write('EXITCODE: %s\n' % (str(e.returncode)))
                     except:
                         exc_text = traceback.format_exc()
                         CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
@@ -1014,7 +1067,8 @@ class LCMD(object):
                 ### EXEC CODE WORKAROUND for OLD PYTHON v2.7.5
                 try:
                     if escape_newline:
-                        edict = {}; eval(compile(cmd_data.replace('\n', '\\n'), '<string>', 'exec'), globals(), edict)
+                        edict = {}; eval(compile(cmd_data.replace('\n', '\\n'),\
+                            '<string>', 'exec'), globals(), edict)
                     else: edict = {}; eval(compile(cmd_data, '<string>', 'exec'), globals(), edict)
                 except Exception as e:
                     if printall:CGI_CLI.uprint('EXEC_PROBLEM[' + str(e) + ']', color = 'magenta')
@@ -1023,7 +1077,8 @@ class LCMD(object):
 
 
     @staticmethod
-    def exec_command_try_except(cmd_data = None, logfilename = None, printall = None, escape_newline = None):
+    def exec_command_try_except(cmd_data = None, logfilename = None, \
+        printall = None, escape_newline = None):
         """
         NOTE: This method can access global variable, expects '=' in expression,
               in case of except assign value None
@@ -1038,12 +1093,16 @@ class LCMD(object):
                     if '=' in cmd_data:
                         if escape_newline:
                             cmd_ex_data = 'global %s\ntry: %s = %s \nexcept: %s = None' % \
-                                (cmd_data.replace('\n', '\\n').split('=')[0].strip().split('[')[0],cmd_data.split('=')[0].strip(), \
-                                cmd_data.replace('\n', '\\n').split('=')[1].strip(), cmd_data.split('=')[0].strip())
+                                (cmd_data.replace('\n', '\\n').split('=')[0].\
+                                strip().split('[')[0],cmd_data.split('=')[0].strip(), \
+                                cmd_data.replace('\n', '\\n').split('=')[1].strip(), \
+                                cmd_data.split('=')[0].strip())
                         else:
                             cmd_ex_data = 'global %s\ntry: %s = %s \nexcept: %s = None' % \
-                                (cmd_data.split('=')[0].strip().split('[')[0],cmd_data.split('=')[0].strip(), \
-                                cmd_data.split('=')[1].strip(), cmd_data.split('=')[0].strip())
+                                (cmd_data.split('=')[0].strip().split('[')[0], \
+                                cmd_data.split('=')[0].strip(), \
+                                cmd_data.split('=')[1].strip(), \
+                                cmd_data.split('=')[0].strip())
                     else: cmd_ex_data = cmd_data
                     if printall: CGI_CLI.uprint("EXEC: \n%s" % (cmd_ex_data))
                     LCMD.fp.write('EXEC: \n' + cmd_ex_data + '\n')
@@ -1051,7 +1110,8 @@ class LCMD(object):
                     edict = {}; eval(compile(cmd_ex_data, '<string>', 'exec'), globals(), edict)
                     #CGI_CLI.uprint("%s" % (eval(cmd_data.split('=')[0].strip())))
                 except Exception as e:
-                    if printall:CGI_CLI.uprint('EXEC_PROBLEM[' + str(e) + ']', color = 'magenta')
+                    if printall: CGI_CLI.uprint('EXEC_PROBLEM[' + str(e) + ']', \
+                                     color = 'magenta')
                     LCMD.fp.write('EXEC_PROBLEM[' + str(e) + ']\n')
         return None
 
