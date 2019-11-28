@@ -126,7 +126,7 @@ class CGI_CLI(object):
         parser.add_argument("--force_rewrite",
                             action = 'store_true', dest = "force_rewrite_tar_files_on_device",
                             default = None,
-                            help = "force rewrite tar files on device hdd")                            
+                            help = "force rewrite tar files on device hdd")
         # parser.add_argument("--sim",
                             # action = "store_true", dest = 'sim',
                             # default = None,
@@ -268,7 +268,7 @@ class CGI_CLI(object):
         if jsonprint:
             if isinstance(text, (dict,collections.OrderedDict,list,tuple)):
                 try: print_text = json.dumps(text, indent = 4)
-                except: pass
+                except Exception as e: CGI_CLI.print_chunk('JSON_PROBLEM[' + str(e) + ']')
         if name==True:
             if not 'inspect.currentframe' in sys.modules: import inspect
             callers_local_vars = inspect.currentframe().f_back.f_locals.items()
@@ -901,10 +901,10 @@ class RCMD(object):
             if prompt and not router_os:
                 command = 'show version\n'
                 output = ssh_raw_read_until_prompt(chan, command, [prompt], debug=debug)
-                if 'iosxr-' in output or 'Cisco IOS XR Software' in output: 
+                if 'iosxr-' in output or 'Cisco IOS XR Software' in output:
                     router_os = 'ios-xr'
                     if 'ASR9K' in output or 'IOS-XRv 9000' in output: RCMD.router_version = 'ASR9K'
-                elif 'Cisco IOS-XE software' in output: 
+                elif 'Cisco IOS-XE software' in output:
                     router_os = 'ios-xe'
                     if 'CSR1000' in outputs: RCMD.router_version = 'ASR1K'
                 elif 'JUNOS OS' in output: router_os = 'junos'
@@ -1116,6 +1116,243 @@ class LCMD(object):
         return None
 
 
+class sql_interface():
+    ### import mysql.connector
+    ### MARIADB - By default AUTOCOMMIT is disabled
+
+    def __init__(self, host = None, user = None, password = None, database = None):
+        if int(sys.version_info[0]) == 3 and not 'pymysql.connect' in sys.modules: import pymysql
+        elif int(sys.version_info[0]) == 2 and not 'mysql.connector' in sys.modules: import mysql.connector
+        default_ipxt_data_collector_delete_columns = ['id','last_updated']
+        self.sql_connection = None
+        try:
+            if CGI_CLI.initialized: pass
+            else: CGI_CLI.init_cgi(); CGI_CLI.print_args()
+        except: pass
+        try:
+            if int(sys.version_info[0]) == 3:
+                ### PYMYSQL DISABLE AUTOCOMMIT BY DEFAULT !!!
+                self.sql_connection = pymysql.connect( \
+                    host = host, user = user, password = password, \
+                    database = database, autocommit = True)
+            else:
+                self.sql_connection = mysql.connector.connect( \
+                    host = host, user = user, password = password,\
+                    database = database, autocommit = True)
+
+            #CGI_CLI.uprint("SQL connection is open.")
+        except Exception as e: print(e)
+
+    def __del__(self):
+        if self.sql_connection and self.sql_connection.is_connected():
+            self.sql_connection.close()
+            #CGI_CLI.uprint("SQL connection is closed.")
+
+    def sql_is_connected(self):
+        if self.sql_connection:
+            if int(sys.version_info[0]) == 3 and self.sql_connection.open:
+                return True
+            elif int(sys.version_info[0]) == 2 and self.sql_connection.is_connected():
+                return True
+        return None
+
+    def sql_read_all_table_columns(self, table_name):
+        columns = []
+        if self.sql_is_connected():
+            cursor = self.sql_connection.cursor()
+            try:
+                cursor.execute("select * from INFORMATION_SCHEMA.COLUMNS where TABLE_NAME='%s';"%(table_name))
+                records = cursor.fetchall()
+                ### 4TH COLUMN IS COLUMN NAME
+                ### OUTPUTDATA STRUCTURE IS: '[(SQL_RESULT)]' --> records[0] = UNPACK []
+                for item in records:
+                    try: new_item = item[3].decode('utf-8')
+                    except: new_item = item[3]
+                    columns.append(new_item)
+            except Exception as e: print(e)
+            try: cursor.close()
+            except: pass
+        return columns
+
+    def sql_read_sql_command(self, sql_command):
+        '''NOTE: FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE'''
+        lines = []
+        if self.sql_is_connected():
+            cursor = self.sql_connection.cursor()
+            try:
+                cursor.execute(sql_command)
+                records = cursor.fetchall()
+                ### OUTPUTDATA STRUCTURE IS: '[(SQL_LINE1),...]' --> records[0] = UNPACK []
+                ### WORKARROUND FOR BYTEARRAYS WHICH ARE NOT JSONIZABLE
+                for line in records:
+                    columns = []
+                    for item in line:
+                        try: new_item = item.decode('utf-8')
+                        except: 
+                           try: new_item = str(item)
+                           except: new_item = item
+                        columns.append(new_item)
+                    lines.append(columns)
+            except Exception as e: print(e)
+            try: cursor.close()
+            except: pass
+            ### FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE
+        return lines
+
+    def sql_write_sql_command(self, sql_command):
+        if self.sql_is_connected():
+            if int(sys.version_info[0]) == 3:
+                cursor = self.sql_connection.cursor()
+            elif int(sys.version_info[0]) == 2:
+                cursor = self.sql_connection.cursor(prepared=True)
+            try:
+                cursor.execute(sql_command)
+                ### DO NOT COMMIT IF AUTOCOMMIT IS SET
+                if not self.sql_connection.autocommit: self.sql_connection.commit()
+            except Exception as e: print(e)
+            try: cursor.close()
+            except: pass
+        return None
+
+    def sql_write_table_from_dict(self, table_name, dict_data, update = None):  ###'ipxt_data_collector'
+       if self.sql_is_connected():
+           existing_sql_table_columns = self.sql_read_all_table_columns(table_name)
+           if existing_sql_table_columns:
+               columns_string, values_string = str(), str()
+               ### ASSUMPTION: LIST OF COLUMNS HAS CORRECT ORDER!!!
+               for key in existing_sql_table_columns:
+                   if key in list(dict_data.keys()):
+                        if len(columns_string) > 0: columns_string += ','
+                        if len(values_string) > 0: values_string += ','
+                        ### WRITE KEY/COLUMNS_STRING
+                        columns_string += '`' + key + '`'
+                        ### BE AWARE OF DATA TYPE
+                        if isinstance(dict_data.get(key,""), (list,tuple)):
+                            item_string = str()
+                            for item in dict_data.get(key,""):
+                                ### LIST TO COMMA SEPARATED STRING
+                                if isinstance(item, (six.string_types)):
+                                    if len(item_string) > 0: item_string += ','
+                                    item_string += item
+                                ### DICTIONARY TO COMMA SEPARATED STRING
+                                elif isinstance(item, (dict,collections.OrderedDict)):
+                                    for i in item:
+                                        if len(item_string) > 0: item_string += ','
+                                        item_string += item.get(i,"")
+                            values_string += "'" + item_string + "'"
+                        elif isinstance(dict_data.get(key,""), (six.string_types)):
+                            values_string += "'" + str(dict_data.get(key,"")) + "'"
+                        else:
+                            values_string += "'" + str(dict_data.get(key,"")) + "'"
+               ### FINALIZE SQL_STRING - INSERT
+               if not update:
+                   sql_string = """INSERT INTO `%s` (%s) VALUES (%s);""" \
+                       % (table_name,columns_string,values_string)
+                   if columns_string:
+                       self.sql_write_sql_command("""INSERT INTO `%s`
+                           (%s) VALUES (%s);""" %(table_name,columns_string,values_string))
+               else:
+                   sql_string = """UPDATE `%s` (%s) VALUES (%s);""" \
+                       % (table_name,columns_string,values_string)
+                   if columns_string:
+                       self.sql_write_sql_command("""UPDATE `%s`
+                           (%s) VALUES (%s);""" %(table_name,columns_string,values_string))
+       return None
+
+    def sql_read_table_last_record(self, select_string = None, from_string = None, where_string = None):
+        """NOTE: FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE"""
+        check_data = None
+        if not select_string: select_string = '*'
+        #SELECT vlan_id FROM ipxt_data_collector WHERE id=(SELECT max(id) FROM ipxt_data_collector \
+        #WHERE username='mkrupa' AND device_name='AUVPE3');
+        if self.sql_is_connected():
+            if from_string:
+                if where_string:
+                    sql_string = "SELECT %s FROM %s WHERE id=(SELECT max(id) FROM %s WHERE %s);" \
+                        %(select_string, from_string, from_string, where_string)
+                else:
+                    sql_string = "SELECT %s FROM %s WHERE id=(SELECT max(id) FROM %s);" \
+                        %(select_string, from_string, from_string)
+                check_data = self.sql_read_sql_command(sql_string)
+        return check_data
+
+    def sql_read_last_record_to_dict(table_name = None, from_string = None, \
+        select_string = None, where_string = None, delete_columns = None):
+        """sql_read_last_record_to_dict - MAKE DICTIONARY FROM LAST TABLE RECORD
+           NOTES: -'table_name' is alternative name to 'from_string'
+                  - it always read last record dependent on 'where_string'
+                    which contains(=filters by) username,device_name,vpn_name
+        """
+        dict_data = collections.OrderedDict()
+        table_name_or_from_string = None
+        if not select_string: select_string = '*'
+        if table_name:  table_name_or_from_string = table_name
+        if from_string: table_name_or_from_string = from_string
+        columns_list = sql_inst.sql_read_all_table_columns(table_name_or_from_string)
+        data_list = sql_inst.sql_read_table_last_record( \
+            from_string = table_name_or_from_string, \
+            select_string = select_string, where_string = where_string)
+        if columns_list and data_list:
+            dict_data = collections.OrderedDict(zip(columns_list, data_list[0]))
+        if delete_columns:
+            for column in delete_columns:
+                try:
+                    ### DELETE NOT VALID (AUXILIARY) TABLE COLUMNS
+                    del dict_data[column]
+                except: pass
+        return dict_data
+
+    def sql_read_table_records(self, select_string = None, from_string = None, \
+        where_string = None, order_by = None):
+        """NOTES: - FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE
+                  - order_by - needed to append ASC|DESC on end of string"""
+        check_data = None
+        if not select_string: select_string = '*'
+        #SELECT vlan_id FROM ipxt_data_collector WHERE id=(SELECT max(id) FROM ipxt_data_collector \
+        #WHERE username='mkrupa' AND device_name='AUVPE3');
+        if self.sql_is_connected():
+            if from_string:
+                sql_string = "SELECT %s FROM %s%s%s;" % (select_string, from_string, \
+                    ' WHERE %s' % (where_string) if where_string else str(), \
+                    ' ORDER BY %s' % (order_by) if order_by else str() \
+                    )
+                check_data = self.sql_read_sql_command(sql_string)
+        return check_data
+
+    def sql_read_records_to_dict_list(table_name = None, from_string = None, \
+        select_string = None, where_string = None, order_by = None, \
+        delete_columns = None):
+        """sql_read_last_record_to_dict - MAKE DICTIONARY FROM LAST TABLE RECORD
+           NOTES: -'table_name' is alternative name to 'from_string'
+                  - it always read last record dependent on 'where_string'
+                    which contains(=filters by) username,device_name,vpn_name
+                  - order_by - needed to append ASC|DESC on end of string
+        """
+        dict_data, dict_list = collections.OrderedDict(), []
+        table_name_or_from_string = None
+        if not select_string: select_string = '*'
+        if table_name:  table_name_or_from_string = table_name
+        if from_string: table_name_or_from_string = from_string
+        columns_list = sql_inst.sql_read_all_table_columns(table_name_or_from_string)
+        data_list = sql_inst.sql_read_table_records( \
+            from_string = table_name_or_from_string, \
+            select_string = select_string, where_string = where_string,
+            order_by = order_by)      
+        ### COLUMNS ARE IN SELECT STRING IF SELECT STRING EXISTS ##############    
+        if select_string != '*': 
+            columns_list = [ column.strip() for column in select_string.split(',') ]   
+        if columns_list and data_list:
+            for line_list in data_list:            
+                dict_data = collections.OrderedDict(zip(columns_list, line_list))
+                dict_list.append(dict_data)
+        if delete_columns:
+            for column in delete_columns:
+                try:
+                    ### DELETE NOT VALID (AUXILIARY) TABLE COLUMNS
+                    del dict_data[column]
+                except: pass
+        return dict_list
+
 
 ###############################################################################
 
@@ -1214,8 +1451,22 @@ iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
 if CGI_CLI.cgi_active and not (USERNAME and PASSWORD):
     if iptac_server == 'iptac5': USERNAME, PASSWORD = 'iptac', 'paiiUNDO'
 
+##############################################################################
 
-### HTML MENU SHOWS ONLY IN CGI MODE ###
+sql_inst = sql_interface(host='localhost', user='cfgbuilder', \
+    password='cfgbuildergetdata', database='rtr_configuration')
+
+#data = collections.OrderedDict()
+data={}
+data['oti_all_table'] = sql_inst.sql_read_records_to_dict_list( \
+    select_string = 'vendor, hardware, software, rtr_name, network',
+    from_string = 'oti_all_table',\
+    order_by = 'vendor, hardware, rtr_name ASC')
+CGI_CLI.uprint(text = data, name = True, jsonprint = True)
+sys.exit(0)
+
+
+### HTML MENU SHOWS ONLY IN CGI MODE ##########################################
 if CGI_CLI.cgi_active and not CGI_CLI.submit_form:
     CGI_CLI.uprint('ROUTER SW UPGRADE TOOL:\n', tag = 'h1', color = 'blue')
     CGI_CLI.formprint([{'text':'device'}, '<br/>', {'text':'sw_release'}, '<br/>',\
@@ -1402,7 +1653,7 @@ if device:
         no_newlines = None if CGI_CLI.data.get("printall") else True)
     rcmd_collector_outputs = RCMD.run_commands(collector_cmds)
     CGI_CLI.uprint(' ', no_newlines = True if CGI_CLI.data.get("printall") else None)
-    
+
     if RCMD.router_type == 'cisco_ios':
         try: device_free_space = float(rcmd_collector_outputs[0].\
                  split('bytes available')[0].splitlines()[-1].strip())
@@ -1413,7 +1664,7 @@ if device:
         except: pass
     elif RCMD.router_type == 'juniper': pass
     elif RCMD.router_type == 'huawei': pass
-    
+
     CGI_CLI.uprint('disk free space = %s bytes' % (str(device_free_space)) , color = 'blue')
 
     ### SOME GB FREE EXPECTED (1MB=1048576, 1GB=1073741824) ###
@@ -1522,7 +1773,7 @@ if device:
             None if CGI_CLI.data.get("printall") else True)
         rcmd_read3_outputs = RCMD.run_commands(read3_cmds)
         CGI_CLI.uprint(' ', no_newlines = True if CGI_CLI.data.get("printall") else None)
-            
+
         ### MD5 CHECKSUM IS 32BYTES LONG ###
         md5_true_OTI_tar_file_on_device = str()
         md5_true_SMU_tar_files_on_device = []
@@ -1612,7 +1863,7 @@ else:
     if CGI_CLI.cgi_active and CGI_CLI.submit_form:
         CGI_CLI.uprint('DEVICE NAME NOT INSERTED!', tag = 'h1', color = 'red')
 
-
+del sql_inst
 
 
 
