@@ -1188,7 +1188,7 @@ class sql_interface():
                     columns = []
                     for item in line:
                         try: new_item = item.decode('utf-8')
-                        except: 
+                        except:
                            try: new_item = str(item)
                            except: new_item = item
                         columns.append(new_item)
@@ -1337,12 +1337,12 @@ class sql_interface():
         data_list = sql_inst.sql_read_table_records( \
             from_string = table_name_or_from_string, \
             select_string = select_string, where_string = where_string,
-            order_by = order_by)      
-        ### COLUMNS ARE IN SELECT STRING IF SELECT STRING EXISTS ##############    
-        if select_string != '*': 
-            columns_list = [ column.strip() for column in select_string.split(',') ]   
+            order_by = order_by)
+        ### COLUMNS ARE IN SELECT STRING IF SELECT STRING EXISTS ##############
+        if select_string != '*':
+            columns_list = [ column.strip() for column in select_string.split(',') ]
         if columns_list and data_list:
-            for line_list in data_list:            
+            for line_list in data_list:
                 dict_data = collections.OrderedDict(zip(columns_list, line_list))
                 dict_list.append(dict_data)
         if delete_columns:
@@ -1459,7 +1459,7 @@ sql_inst = sql_interface(host='localhost', user='cfgbuilder', \
 #data = collections.OrderedDict()
 data={}
 data['oti_all_table'] = sql_inst.sql_read_records_to_dict_list( \
-    select_string = 'vendor, hardware, software, rtr_name, network',
+    #select_string = 'vendor, hardware, software, rtr_name, network',\
     from_string = 'oti_all_table',\
     order_by = 'vendor, hardware, rtr_name ASC')
 CGI_CLI.uprint(text = data, name = True, jsonprint = True)
