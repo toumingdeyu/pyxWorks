@@ -1451,26 +1451,29 @@ iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
 if CGI_CLI.cgi_active and not (USERNAME and PASSWORD):
     if iptac_server == 'iptac5': USERNAME, PASSWORD = 'iptac', 'paiiUNDO'
 
-##############################################################################
-
+### SQL READ ##################################################################
 sql_inst = sql_interface(host='localhost', user='cfgbuilder', \
     password='cfgbuildergetdata', database='rtr_configuration')
 
-#data = collections.OrderedDict()
-data={}
+data = collections.OrderedDict()
 data['oti_all_table'] = sql_inst.sql_read_records_to_dict_list( \
-    #select_string = 'vendor, hardware, software, rtr_name, network',\
+    select_string = 'vendor, hardware, software, rtr_name, network',\
     from_string = 'oti_all_table',\
     order_by = 'vendor, hardware, rtr_name ASC')
-CGI_CLI.uprint(text = data, name = True, jsonprint = True)
-sys.exit(0)
+
+menu_list = []
+for router_dict in data['oti_all_table']:
+    if 'ASR9K' in router_dict.get('hardware',str()):
+        menu_list.append({'checkbox':'_%s_' % (router_dict.get('rtr_name',str()))})
+        menu_list.append('<br/>')
+
 
 
 ### HTML MENU SHOWS ONLY IN CGI MODE ##########################################
 if CGI_CLI.cgi_active and not CGI_CLI.submit_form:
     CGI_CLI.uprint('ROUTER SW UPGRADE TOOL:\n', tag = 'h1', color = 'blue')
-    CGI_CLI.formprint([{'text':'device'}, '<br/>', {'text':'sw_release'}, '<br/>',\
-        {'text':'username'}, '<br/>', {'password':'password'}, '<br/>',\
+    CGI_CLI.formprint(menu_list+['<br/>',{'text':'device'}, '<br/>', {'text':'sw_release'}, '<br/>',\
+        '<br/>',{'text':'username'}, '<br/>', {'password':'password'}, '<br/>',\
         '<br/>',{'radio':SCRIPT_ACTIONS_LIST}, '<br/>',\
         '<br/>',{'checkbox':'OTI.tar_file'}, \
         '<br/>', {'checkbox':'SMU.tar_files'},'<br/>',\
