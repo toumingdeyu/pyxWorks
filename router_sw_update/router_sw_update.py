@@ -1528,11 +1528,6 @@ CGI_CLI.uprint('device(s) = %s\nserver = %s\nsw_release = %s\n' % \
 
 
 ###############################################################################
-### LOGFILENAME GENERATION ###
-logfilename = generate_logfilename(prefix = device.upper(), \
-    USERNAME = USERNAME, suffix = str(SCRIPT_ACTION) + '.log')
-logfilename = None
-###############################################################################
 
 if not (CGI_CLI.data.get('OTI.tar_file') or CGI_CLI.data.get('SMU.tar_files')):
     CGI_CLI.uprint('PLEASE SPECIFY TAR FILE(s) TO COPY.', color = 'red')
@@ -1542,7 +1537,15 @@ if not sw_release:
     CGI_CLI.uprint('PLEASE SPECIFY SW_RELEASE.', color = 'red')
     sys.exit(0)
 
+
+
+### FOR LOOP PER DEVICE #######################################################
 for device in device_list:
+    ### LOGFILENAME GENERATION ################################################
+    logfilename = generate_logfilename(prefix = device.upper(), \
+        USERNAME = USERNAME, suffix = str(SCRIPT_ACTION) + '.log')
+    logfilename = None
+    
     ### REMOTE DEVICE OPERATIONS ##############################################
     if device:
         RCMD.connect(device, username = USERNAME, password = PASSWORD, \
@@ -1551,7 +1554,8 @@ for device in device_list:
         if not RCMD.ssh_connection:
             CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), color = 'red')
             RCMD.disconnect()
-            sys.exit(0)
+            if len(device_list) > 1: continue 
+            else: sys.exit(0)
 
         ### DEFINE SERVER SUBDIRECTORIES ######################################
         if RCMD.router_type == 'cisco_ios':
@@ -1704,7 +1708,8 @@ for device in device_list:
         if device_free_space < (device_expected_GB_free * 1073741824):
             CGI_CLI.uprint('disk space - CHECK FAIL!', color = 'red')
             RCMD.disconnect()
-            sys.exit(0)
+            if len(device_list) > 1: continue 
+            else: sys.exit(0)
         else: CGI_CLI.uprint('disk space - CHECK OK.', color = 'green')
 
 
@@ -1837,17 +1842,20 @@ for device in device_list:
             if CGI_CLI.data.get('OTI.tar_file') and not OTI_tar_md5_check_OK:
                 CGI_CLI.uprint('OTI.tar MD5 file - CHECK FAIL!', color = 'red')
                 RCMD.disconnect()
-                sys.exit(0)
+                if len(device_list) > 1: continue 
+                else: sys.exit(0)
 
             if CGI_CLI.data.get('SMU.tar_files') and not SMU_tar_md5_check_OK:
                 CGI_CLI.uprint('SMU.tar MD5 files - CHECK FAIL!', color = 'red')
                 RCMD.disconnect()
-                sys.exit(0)
+                if len(device_list) > 1: continue 
+                else: sys.exit(0)
 
             CGI_CLI.uprint('tar files - CHECK OK.', tag='h1', color = 'green')
             if CGI_CLI.data.get('check_device_tar_files_only'):
                 RCMD.disconnect()
-                sys.exit(0)
+                if len(device_list) > 1: continue 
+                else: sys.exit(0)
 
 
             ## BACKUP NORMAL AND ADMIN CONFIG ################################
