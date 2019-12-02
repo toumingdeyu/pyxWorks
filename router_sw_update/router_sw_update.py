@@ -1516,7 +1516,7 @@ if CGI_CLI.cgi_active and (not CGI_CLI.submit_form or active_menu == 2):
     CGI_CLI.uprint('ROUTER SW UPGRADE TOOL:', tag = 'h1', color = 'blue')
 
     if active_menu == 2:
-        main_menu_list = router_menu_list + ['<h3>Additional device (optional):</h3>',\
+        main_menu_list = router_menu_list + ['<p>Additional device (optional):</p>',\
         {'text':'device'}, '<br/>', \
         '<h3>SW RELEASE (required):</h3>', {'text':'sw_release'}, '<br/>',\
         '<h3>Tar files (required):</h3>',{'checkbox':'OTI.tar_file'}, \
