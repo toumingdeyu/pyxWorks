@@ -1422,7 +1422,6 @@ undo mpls lsr-id
 Y
 #
 undo interface Loopback200
-undo interface LoopBack0
 #"""
 
 huawei_config_part_2 = """#
@@ -1435,9 +1434,8 @@ interface LoopBack10
 % for item in loopback_0_config:
 ${item}
 % endfor
-#"""
-
-huawei_config_part_3 = """#
+#
+#
 info-center loghost source LoopBack10
 ntp-service source-interface LoopBack10
 ntp-service ipv6 source-interface LoopBack10
@@ -1452,6 +1450,9 @@ peer ${item} connect-interface LoopBack10
 #
 bgp ${bgp_as}
  router-id ${loopback_200_address}
+Y
+#
+#
 #
 ${router_id_line}
 #
@@ -1468,14 +1469,13 @@ mpls l2vpn
 mpls l2vpn default martini
 #
 mpls ldp
-#
 ipv4-family
 #
 """
 
 huawei_config.append(huawei_config_part_1)
 huawei_config.append(huawei_config_part_2)
-huawei_config.append(huawei_config_part_3)
+
 
 undo_huawei_config = """#
 undo interface LoopBack 10
