@@ -1405,16 +1405,12 @@ if __name__ != "__main__": sys.exit(0)
 
 device_expected_GB_free = 0.2
 
-SCRIPT_ACTIONS_LIST = [ 'do_sw_upgrade',
+SCRIPT_ACTIONS_LIST = [ 
+'copy_tar_files','do_sw_upgrade',
 ]
 
-# SMU_file_list_on_server = [
-    # 'asr9k-px-6.5.3.CSCvj03523.tar', 'asr9k-px-6.5.3.CSCvo92519.tar',
-    # 'asr9k-px-6.5.3.CSCvo93241.tar', 'asr9k-px-6.5.3.CSCvp04114.tar',
-    # 'asr9k-px-6.5.3.CSCvp30916.tar', 'asr9k-px-6.5.3.CSCvp38239.tar',
-    # 'asr9k-px-6.5.3.CSCvp53808.tar', 'asr9k-px-6.5.3.CSCvp62840.tar',
-    # 'asr9k-px-6.5.3.CSCvq45118.tar', 'asr9k-px-6.5.3.CSCvr00757.tar'
-# ]
+active_menu_list, active_menu = [ None,'select_router_type','select_routers'], 0
+
 
 filter_SMU_file_on_server = '.CSC'
 
@@ -1441,6 +1437,7 @@ remote_sw_release_dir_exists = None
 asr1k_detection_string = 'CSR1000'
 asr9k_detection_string = 'ASR9K|IOS-XRv 9000'
 
+
 ##############################################################################
 
 USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True)
@@ -1452,20 +1449,16 @@ iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
 if CGI_CLI.cgi_active and not (USERNAME and PASSWORD):
     if iptac_server == 'iptac5': USERNAME, PASSWORD = 'iptac', 'paiiUNDO'
 
-### SQL READ ##################################################################
-### SQL READ ALL HARDVARE TYPES ###############################################
+
+### SQL INIT ##################################################################
 sql_inst = sql_interface(host='localhost', user='cfgbuilder', \
     password='cfgbuildergetdata', database='rtr_configuration')
 
+### SQL READ ALL HARDVARE TYPES ###############################################
 device_types_list_in_list = sql_inst.sql_read_table_records( \
     select_string = 'hardware',\
     from_string = 'oti_all_table',\
     order_by = 'hardware')
-
-if device_types_list_in_list:
-    device_types_set = set([ dev_type[0] for dev_type in device_types_list_in_list ])
-    device_types = list(device_types_set)
-    device_types.sort()
 
 ### SQL READ ALL DEVICES IN NETWORK ###########################################
 data = collections.OrderedDict()
@@ -1473,35 +1466,75 @@ data['oti_all_table'] = sql_inst.sql_read_records_to_dict_list( \
     select_string = 'vendor, hardware, software, rtr_name, network',\
     from_string = 'oti_all_table',\
     order_by = 'vendor, hardware, rtr_name ASC')
-###############################################################################
+    
+    
+### DO DEVICE TYPE LIST #######################################################
+device_types = []
+if device_types_list_in_list:
+    device_types_set = set([ dev_type[0] for dev_type in device_types_list_in_list ])
+    device_types = list(device_types_set)
+    device_types.sort()
 
-menu_list, counter = ['<h2>ASR9K routers:</h2>'], 0
+### SELECTED DEVICE TYPE ######################################################        
+router_type_id_string, router_id_string = "___", '__'
+selected_device_type = str()
+for key in CGI_CLI.data.keys():
+    ### DEVICE NAME IS IN '____KEY' ###
+    try: value = str(key)
+    except: value = str()
+    if router_type_id_string in value: 
+        selected_device_type = value.replace('_','')
+        active_menu = 2
+
+
+### ROUTER TYPE MENU ##########################################################
+router_type_menu_list, counter = ['<h2>Select router type:</h2>'], 0
+for router_type in device_types:
+    router_type_menu_list.append({'radio':'%s%s' % (router_type_id_string,router_type)})
+    counter += 1
+    router_type_menu_list.append('&emsp;')
+    if counter > 4:
+        router_type_menu_list.append('<br/>')
+        counter = 0
+
+### ROUTER MENU ###############################################################
+router_menu_list, counter = ['<h2>%s routers:</h2>'% (selected_device_type)], 0
 for router_dict in data['oti_all_table']:
-    if 'ASR9K' in router_dict.get('hardware',str()):
-        menu_list.append({'checkbox':'___%s' % (router_dict.get('rtr_name',str()))})
+    if selected_device_type and \
+        selected_device_type in router_dict.get('hardware',str()):
+        router_menu_list.append({'checkbox':'%s%s' % \
+            (router_id_string,router_dict.get('rtr_name',str()))})
         counter += 1
-        menu_list.append('&emsp;')
+        router_menu_list.append('&emsp;')
         if counter > 4:
-            menu_list.append('<br/>')
+            router_menu_list.append('<br/>')
             counter = 0
 
 
 ### HTML MENU SHOWS ONLY IN CGI MODE ##########################################
-if CGI_CLI.cgi_active and not CGI_CLI.submit_form:
-    CGI_CLI.uprint('ROUTER SW UPGRADE TOOL:\n', tag = 'h1', color = 'blue')
-    CGI_CLI.formprint(menu_list+['<h3>Additional device (optional):</h3>',\
+if CGI_CLI.cgi_active and (not CGI_CLI.submit_form or active_menu == 2):
+    CGI_CLI.uprint('ROUTER SW UPGRADE TOOL:', tag = 'h1', color = 'blue')
+    
+    if active_menu == 2:
+        main_menu_list = router_menu_list + ['<h3>Additional device (optional):</h3>',\
         {'text':'device'}, '<br/>', \
         '<h3>SW RELEASE (required):</h3>', {'text':'sw_release'}, '<br/>',\
-        '<br/>',{'text':'username'}, '<br/>', {'password':'password'}, '<br/>',\
-        '<br/>',{'radio':SCRIPT_ACTIONS_LIST}, '<br/>',\
-        '<br/>',{'checkbox':'OTI.tar_file'}, \
+        '<h3>Tar files (required):</h3>',{'checkbox':'OTI.tar_file'}, \
         '<br/>', {'checkbox':'SMU.tar_files'},'<br/>',\
-        '<br/>', {'checkbox':'check_device_tar_files_only'},'<br/>',\
-        {'checkbox':'force_rewrite_tar_files_on_device'},'<br/>',\
-        {'checkbox':'backup_configs_to_device_disk'},'<br/>',\
-        {'checkbox':'delete_device_tar_files_on_end'},'<br/>',\
-        '<br/>', {'checkbox':'printall'},'<br/>','<br/>'],
-        submit_button = 'OK', pyfile = None, tag = None, color = None)
+        '<h3>LDAP authentication (required):</h3>',{'text':'username'}, \
+        '<br/>', {'password':'password'}, '<br/>','<br/>']
+        
+        if len(SCRIPT_ACTIONS_LIST)>0: main_menu_list.append({'radio':SCRIPT_ACTIONS_LIST}) 
+        
+        main_menu_list += ['<br/>', '<br/>', {'checkbox':'check_device_tar_files_only'},\
+            '<br/>', {'checkbox':'force_rewrite_tar_files_on_device'},'<br/>',\
+            {'checkbox':'backup_configs_to_device_disk'},'<br/>',\
+            {'checkbox':'delete_device_tar_files_on_end'},'<br/>',\
+            '<br/>', {'checkbox':'printall'}]
+    else: main_menu_list = router_type_menu_list
+        
+    CGI_CLI.formprint( main_menu_list + ['<br/>','<br/>'], submit_button = 'OK', \
+        pyfile = None, tag = None, color = None)
     sys.exit(0)
 else:
     ### READ SCRIPT ACTION ###
@@ -1519,14 +1552,45 @@ else:
 device_list = []
 if device: device_list.append(device)
 for key in CGI_CLI.data.keys():
-    ### DEVICE NAME IS IN '___KEY' ###
+    ### DEVICE NAME IS IN '__KEY' ###
     try: value = str(key)
     except: value = str()
-    if '___' in value: device_list.append(value.replace('_',''))
+    if router_id_string in value: device_list.append(value.replace('_',''))
 
 CGI_CLI.uprint('device(s) = %s\nserver = %s\nsw_release = %s\n' % \
     (', '.join(device_list) if device_list else device, iptac_server, sw_release))
 
+
+### GAIN VENDOR + HARDWARE FROM DEVICE LIST ###################################
+brand_raw, type_raw = str(), str()
+if len(device_list)>0: 
+    for router_dict in data['oti_all_table']:
+        if device_list[0] and device_list[0].upper() == router_dict.get('rtr_name',str()).upper():
+            brand_raw = router_dict.get('vendor',str())    
+            type_raw  = router_dict.get('hardware',str())
+
+if brand_raw and type_raw:
+    brand_subdir = brand_raw.upper()
+    if 'ASR9K' in type_raw.upper(): type_subdir = 'ASR9K'
+    elif 'NCS' in type_raw.upper(): type_subdir = 'NCS'
+    elif 'ASR1001' in type_raw.upper(): type_subdir = 'ASR1K/ASR1001X'
+    elif 'ASR1002-X' in type_raw.upper(): type_subdir = 'ASR1K/ASR1002X'
+    elif 'ASR1002-HX' in type_raw.upper(): type_subdir = 'ASR1K/ASR1002HX'
+    elif 'CRS' in type_raw.upper(): type_subdir = 'CRS'
+    elif 'C29' in type_raw.upper(): type_subdir = 'C2900'
+    elif 'C35' in type_raw.upper(): type_subdir = 'C3500'
+    elif 'C36' in type_raw.upper(): type_subdir = 'C3600'
+    elif 'C37' in type_raw.upper(): type_subdir = 'C3700'    
+    elif 'C38' in type_raw.upper(): type_subdir = 'C3800'
+    elif 'C4321' in type_raw.upper(): type_subdir = 'C4321'    
+    elif 'C45' in type_raw.upper(): type_subdir = 'C4500'
+    elif 'MX480' in type_raw.upper(): type_subdir = 'MX/MX480'
+    elif 'NE40' in type_raw.upper(): type_subdir = 'V8R10'
+
+CGI_CLI.uprint('RAW: %s, %s\nRES: %s, %s' % (brand_raw,type_raw, brand_subdir, type_subdir))    
+
+
+sys.exit(0)
 
 ###############################################################################
 
@@ -1539,10 +1603,9 @@ if not sw_release:
     sys.exit(0)
 
 ###############################################################################
-brand_subdir = 'CISCO'
-type_subdir = 'ASR9K'
 
-if type_subdir:
+
+if type_subdir and brand_subdir:
     CGI_CLI.uprint('SERVER %s CHECKS:\n' % (iptac_server), tag = 'h2', color = 'blue')
     ### GENERATE FILE NAMES ###############################################
     tar_file = '%s-iosxr-px-k9-%s.tar' % \
