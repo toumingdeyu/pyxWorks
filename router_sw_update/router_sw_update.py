@@ -1526,7 +1526,9 @@ if selected_device_type:
     ### CHECK LOCAL SW VERSIONS DIRECTORIES ###################################
     LOCAL_SW_SUBTYPE_DIR = os.path.abspath(os.path.join(os.sep,'home',\
         'tftpboot',brand_subdir, type_subdir))
-    sw_release_list = [ str(subdir) for subdir in os.listdir(LOCAL_SW_SUBTYPE_DIR) ]
+    try:    
+        sw_release_list = [ str(subdir) for subdir in os.listdir(LOCAL_SW_SUBTYPE_DIR) ]
+    except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']', color = 'magenta')
     if len(sw_release_list) > 0:
         sw_release_list.sort(reverse = True)
         default_sw_release = sw_release_list[0]
@@ -1598,7 +1600,8 @@ if len(device_list)>0:
     ### CHECK LOCAL SW VERSIONS DIRECTORIES ###################################
     LOCAL_SW_SUBTYPE_DIR = os.path.abspath(os.path.join(os.sep,'home',\
         'tftpboot',brand_subdir, type_subdir))
-    sw_release_list = [ str(subdir) for subdir in os.listdir(LOCAL_SW_SUBTYPE_DIR) ]
+    try: sw_release_list = [ str(subdir) for subdir in os.listdir(LOCAL_SW_SUBTYPE_DIR) ]
+    except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']', color = 'magenta')
     if len(sw_release_list) > 0:
         sw_release_list.sort(reverse = True)
         default_sw_release = sw_release_list[0]
