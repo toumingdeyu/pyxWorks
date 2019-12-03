@@ -126,7 +126,7 @@ class CGI_CLI(object):
         parser.add_argument("--delete_files",
                             action = 'store_true', dest = "delete_device_sw_files_on_end",
                             default = None,
-                            help = "delete device sw release files on end after sw upgrade")                            
+                            help = "delete device sw release files on end after sw upgrade")
         # parser.add_argument("--sim",
                             # action = "store_true", dest = 'sim',
                             # default = None,
@@ -965,11 +965,11 @@ class LCMD(object):
                                                    stdout=subprocess.PIPE,
                                                    stderr=subprocess.STDOUT, shell=True)
                         while CommandObject.poll() is None:
-                            stdoutput = str(CommandObject.stdout.readline())                           
+                            stdoutput = str(CommandObject.stdout.readline())
                             while stdoutput:
                                 if stdoutput:
                                     os_output += copy.deepcopy(stdoutput) + '\n'
-                                    if printall: 
+                                    if printall:
                                         CGI_CLI.uprint(stdoutput.strip(), color = 'gray')
                                 stdoutput = str(CommandObject.stdout.readline())
                             time.sleep(0.1)
@@ -1388,15 +1388,35 @@ def do_scp_command(USERNAME = None, PASSWORD = None, file_to_copy = None, \
         local_command = 'sshpass -e scp -v -o StrictHostKeyChecking=no %s %s@%s:/%s%s' \
             % (local_file, USERNAME, device, device_file, show_progress_string)
         scp_result = LCMD.run_command(cmd_line = local_command,
-            printall = printall, chunked = True)   
+            printall = printall, chunked = True)
         ### SECURITY REASONS ###
-        os.environ['SSHPASS'] = '-'            
+        os.environ['SSHPASS'] = '-'
         return scp_result
     else: return str()
 
 ##############################################################################
 
-
+def get_local_subdirectories(brand_raw = None, type_raw = None):
+    brand_subdir, type_subdir = str(), str()
+    if brand_raw and type_raw:
+        brand_subdir = brand_raw.upper()
+        if 'ASR9K' in type_raw.upper(): type_subdir = 'ASR9K'
+        elif 'NCS' in type_raw.upper(): type_subdir = 'NCS'
+        elif 'ASR1001' in type_raw.upper(): type_subdir = 'ASR1K/ASR1001X'
+        elif 'ASR1002-X' in type_raw.upper(): type_subdir = 'ASR1K/ASR1002X'
+        elif 'ASR1002-HX' in type_raw.upper(): type_subdir = 'ASR1K/ASR1002HX'
+        elif 'CRS' in type_raw.upper(): type_subdir = 'CRS'
+        elif 'C29' in type_raw.upper(): type_subdir = 'C2900'
+        elif '2901' in type_raw.upper(): type_subdir = 'C2900'
+        elif 'C35' in type_raw.upper(): type_subdir = 'C3500'
+        elif 'C36' in type_raw.upper(): type_subdir = 'C3600'
+        elif 'C37' in type_raw.upper(): type_subdir = 'C3700'
+        elif 'C38' in type_raw.upper(): type_subdir = 'C3800'
+        elif 'ISR43' in type_raw.upper(): type_subdir = 'C4321'
+        elif 'C45' in type_raw.upper(): type_subdir = 'C4500'
+        elif 'MX480' in type_raw.upper(): type_subdir = 'MX/MX480'
+        elif 'NE40' in type_raw.upper(): type_subdir = 'V8R10'
+    return brand_subdir,type_subdir
 
 ##############################################################################
 #
@@ -1491,6 +1511,27 @@ for key in CGI_CLI.data.keys():
         active_menu = 2
 
 
+### GAIN SUBDIRS FROM OTI_ALL_TABLE WHERE HARDWARE = SELECTED_DEVICE_TYPE ###
+brand_raw, type_raw , brand_subdir, type_subdir = str(), str() , str(), str()
+sw_release_list, default_sw_release = [], str()
+if selected_device_type:
+    for router_dict in data['oti_all_table']:
+        if selected_device_type == router_dict.get('hardware',str()):
+            brand_raw = router_dict.get('vendor',str())
+            type_raw  = router_dict.get('hardware',str())
+            brand_subdir, type_subdir = get_local_subdirectories(\
+                brand_raw = brand_raw, type_raw = type_raw)
+            break
+
+    ### CHECK LOCAL SW VERSIONS DIRECTORIES ###################################
+    LOCAL_SW_SUBTYPE_DIR = os.path.abspath(os.path.join(os.sep,'home',\
+        'tftpboot',brand_subdir, type_subdir))
+    sw_release_list = [ str(subdir) for subdir in os.listdir(LOCAL_SW_SUBTYPE_DIR) ]
+    if len(sw_release_list) > 0:
+        sw_release_list.sort(reverse = True)
+        default_sw_release = sw_release_list[0]
+
+
 ### ROUTER-TYPE MENU PART #####################################################
 table_rows = 5
 counter = 0
@@ -1545,34 +1586,25 @@ if device:
 del device
 
 ### GAIN VENDOR + HARDWARE FROM DEVICE LIST "AGAIN" ###########################
-brand_raw, type_raw = str(), str()
 if len(device_list)>0:
     for router_dict in data['oti_all_table']:
         if device_list[0] and device_list[0].upper() == router_dict.get('rtr_name',str()).upper():
             brand_raw = router_dict.get('vendor',str())
             type_raw  = router_dict.get('hardware',str())
-
-### SPECIFY IPTAC SERVER SUBDIRECTORIES PER DEVICE TYPE #######################
-if brand_raw and type_raw:
-    brand_subdir = brand_raw.upper()
-    if 'ASR9K' in type_raw.upper(): type_subdir = 'ASR9K'
-    elif 'NCS' in type_raw.upper(): type_subdir = 'NCS'
-    elif 'ASR1001' in type_raw.upper(): type_subdir = 'ASR1K/ASR1001X'
-    elif 'ASR1002-X' in type_raw.upper(): type_subdir = 'ASR1K/ASR1002X'
-    elif 'ASR1002-HX' in type_raw.upper(): type_subdir = 'ASR1K/ASR1002HX'
-    elif 'CRS' in type_raw.upper(): type_subdir = 'CRS'
-    elif 'C29' in type_raw.upper(): type_subdir = 'C2900'
-    elif '2901' in type_raw.upper(): type_subdir = 'C2900'
-    elif 'C35' in type_raw.upper(): type_subdir = 'C3500'
-    elif 'C36' in type_raw.upper(): type_subdir = 'C3600'
-    elif 'C37' in type_raw.upper(): type_subdir = 'C3700'
-    elif 'C38' in type_raw.upper(): type_subdir = 'C3800'
-    elif 'ISR43' in type_raw.upper(): type_subdir = 'C4321'
-    elif 'C45' in type_raw.upper(): type_subdir = 'C4500'
-    elif 'MX480' in type_raw.upper(): type_subdir = 'MX/MX480'
-    elif 'NE40' in type_raw.upper(): type_subdir = 'V8R10'
-
+            brand_subdir, type_subdir = get_local_subdirectories(\
+                brand_raw = brand_raw, type_raw = type_raw)
+            break
+            
+    ### CHECK LOCAL SW VERSIONS DIRECTORIES ###################################
+    LOCAL_SW_SUBTYPE_DIR = os.path.abspath(os.path.join(os.sep,'home',\
+        'tftpboot',brand_subdir, type_subdir))
+    sw_release_list = [ str(subdir) for subdir in os.listdir(LOCAL_SW_SUBTYPE_DIR) ]
+    if len(sw_release_list) > 0:
+        sw_release_list.sort(reverse = True)
+        default_sw_release = sw_release_list[0]
 ###############################################################################
+
+
 
 
 ### SHOW HTML MENU SHOWS ONLY IN CGI/HTML MODE ################################
@@ -1582,7 +1614,7 @@ if CGI_CLI.cgi_active and (not CGI_CLI.submit_form or active_menu == 2):
         main_menu_list = router_menu_list + \
         ['<p>Additional device(s) (optional) [list separator=,]:</p>',\
         {'text':'device'}, '<br/>', \
-        '<h3>SW RELEASE (required):</h3>', {'text':'sw_release'}, '<br/>',\
+        '<h3>SW RELEASE (required) [default=%s]:</h3>' % (default_sw_release), {'text':'sw_release'}, '<br/>',\
         '<h3>FILES TO COPY (required):</h3>',{'checkbox':'OTI.tar_file'}, \
         '<br/>', {'checkbox':'SMU.tar_files'},'<br/>',\
         '<h3>DEVICE DISK FREE (optional) [default &gt %.2f GB]:</h3>'%(device_expected_GB_free),\
@@ -1614,6 +1646,8 @@ else:
         if CGI_CLI.data.get("script_action"):
             SCRIPT_ACTION = CGI_CLI.data.get("script_action")
 
+### SET DEFAULT (HIGHEST) SW RELEASE IF NOT SET ###############################
+if not sw_release and default_sw_release: sw_release = default_sw_release
 
 ### PRINT BASIC INFO ##########################################################
 CGI_CLI.uprint('server = %s\ndevice(s) = %s\nsw_release = %s\nexpected_disk_free_GB = %s' % \
@@ -1632,8 +1666,8 @@ if not sw_release:
 
 if len(device_list) == 0:
     CGI_CLI.uprint('DEVICE NAME(S) NOT INSERTED!', tag = 'h1', color = 'red')
-    sys.exit(0)  
-    
+    sys.exit(0)
+
 ###############################################################################
 
 
@@ -1664,7 +1698,6 @@ if type_subdir and brand_subdir:
         RCMD.disconnect()
         sys.exit(0)
     else: CGI_CLI.uprint('directories - CHECK OK.', color = 'green')
-
 
     ### CHECK LOCAL SERVER FILES EXISTENCY ################################
     local_results = LCMD.run_commands({'unix':['ls -l %s' % (LOCAL_SW_RELEASE_DIR), \
@@ -1827,7 +1860,7 @@ for device in device_list:
                         scp_cmd = do_scp_command(USERNAME, PASSWORD, true_OTI_tar_file_on_server,
                             'harddisk:/IOS-XR/%s' % (sw_release),LOCAL_SW_RELEASE_DIR,
                             printall = CGI_CLI.data.get("printall"))
-                        
+
 
                 if CGI_CLI.data.get('SMU.tar_files'):
                     true_OTI_tar_file_on_device, true_SMU_tar_files_on_device = None, []
@@ -1840,7 +1873,7 @@ for device in device_list:
                             scp_cmd = do_scp_command(USERNAME, PASSWORD, smu_file,
                                 'harddisk:/IOS-XR/%s/SMU' % (sw_release),LOCAL_SW_RELEASE_SMU_DIR,
                                 printall = CGI_CLI.data.get("printall"))
-                            
+
 
 
             ### READ EXISTING FILES ON DEVICE - AFTER COPYING TO DEVICE #######
