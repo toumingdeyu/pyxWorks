@@ -1444,7 +1444,9 @@ USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True)
 #CGI_CLI.print_args()
 device = CGI_CLI.data.get("device",None)
 if device: device = device.upper()
-sw_release = CGI_CLI.data.get('sw_release',None)
+sw_release = CGI_CLI.data.get('sw_release',str()).replace('.','')
+try: device_expected_GB_free = float(CGI_CLI.data.get('device_disk_free_GB',device_expected_GB_free))
+except: pass
 iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
 if CGI_CLI.cgi_active and not (USERNAME and PASSWORD):
     if iptac_server == 'iptac5': USERNAME, PASSWORD = 'iptac', 'paiiUNDO'
@@ -1468,14 +1470,14 @@ data['oti_all_table'] = sql_inst.sql_read_records_to_dict_list( \
     order_by = 'vendor, hardware, rtr_name ASC')
 
 
-### DO DEVICE TYPE LIST #######################################################
+### DO SORTED DEVICE TYPE LIST ################################################
 device_types = []
 if device_types_list_in_list:
     device_types_set = set([ dev_type[0] for dev_type in device_types_list_in_list ])
     device_types = list(device_types_set)
     device_types.sort()
 
-### SELECTED DEVICE TYPE ######################################################
+### FIND SELECTED DEVICE TYPE #################################################
 router_type_id_string, router_id_string = "___", '__'
 selected_device_type = str()
 for key in CGI_CLI.data.keys():
@@ -1487,7 +1489,7 @@ for key in CGI_CLI.data.keys():
         active_menu = 2
 
 
-### ROUTER TYPE MENU ##########################################################
+### ROUTER-TYPE MENU PART #####################################################
 table_rows = 5
 counter = 0
 router_type_menu_list = ['<h2>Select router type:</h2>',
@@ -1505,7 +1507,7 @@ if counter != 0: router_type_menu_list.append('</tr>')
 router_type_menu_list.append('</table>')
 router_type_menu_list.append('</div>')
 
-### ROUTER MENU ###############################################################
+### ROUTER MENU PART ##########################################################
 table_rows = 5
 counter = 0
 router_menu_list = ['<h2>%s routers:</h2>'% (selected_device_type),
@@ -1526,57 +1528,21 @@ if counter != 0: router_menu_list.append('</tr>')
 router_menu_list.append('</table>')
 router_menu_list.append('</div>')
 
-### HTML MENU SHOWS ONLY IN CGI MODE ##########################################
-if CGI_CLI.cgi_active and (not CGI_CLI.submit_form or active_menu == 2):
-    CGI_CLI.uprint('ROUTER SW UPGRADE TOOL:', tag = 'h1', color = 'blue')
-
-    if active_menu == 2:
-        main_menu_list = router_menu_list + ['<p>Additional device (optional):</p>',\
-        {'text':'device'}, '<br/>', \
-        '<h3>SW RELEASE (required):</h3>', {'text':'sw_release'}, '<br/>',\
-        '<h3>Tar files (required):</h3>',{'checkbox':'OTI.tar_file'}, \
-        '<br/>', {'checkbox':'SMU.tar_files'},'<br/>',\
-        '<h3>LDAP authentication (required):</h3>',{'text':'username'}, \
-        '<br/>', {'password':'password'}, '<br/>','<br/>']
-
-        if len(SCRIPT_ACTIONS_LIST)>0: main_menu_list.append({'radio':SCRIPT_ACTIONS_LIST})
-
-        main_menu_list += ['<br/>', '<br/>', {'checkbox':'check_device_tar_files_only'},\
-            '<br/>', {'checkbox':'force_rewrite_tar_files_on_device'},'<br/>',\
-            {'checkbox':'backup_configs_to_device_disk'},'<br/>',\
-            {'checkbox':'delete_device_tar_files_on_end'},'<br/>',\
-            '<br/>', {'checkbox':'printall'}]
-    else: main_menu_list = router_type_menu_list
-
-    CGI_CLI.formprint( main_menu_list + ['<br/>','<br/>'], submit_button = 'OK', \
-        pyfile = None, tag = None, color = None)
-    sys.exit(0)
-else:
-    ### READ SCRIPT ACTION ###
-    for item in SCRIPT_ACTIONS_LIST:
-        if CGI_CLI.data.get(item):
-            SCRIPT_ACTION = copy.deepcopy(item)
-            break
-    else:
-        if CGI_CLI.data.get("script_action"): SCRIPT_ACTION = CGI_CLI.data.get("script_action")
-    ### HEADER TEXT PRINT ###
-    CGI_CLI.uprint('ROUTER SW UPGRADE TOOL \n', tag = 'h1', color = 'blue')
-
-
-###############################################################################
+### APPEND DEVICE LIST ########################################################
 device_list = []
-if device: device_list.append(device)
 for key in CGI_CLI.data.keys():
     ### DEVICE NAME IS IN '__KEY' ###
     try: value = str(key)
     except: value = str()
     if router_id_string in value: device_list.append(value.replace('_',''))
+if device:
+    if ',' in device:
+        added_device_list = [ splitted_device.strip() for splitted_device in device.split(',') ]
+        if len(added_device_list) > 0: device_list += added_device_list
+    else: device_list.append(device)
+del device
 
-CGI_CLI.uprint('device(s) = %s\nserver = %s\nsw_release = %s\n' % \
-    (', '.join(device_list) if device_list else device, iptac_server, sw_release))
-
-
-### GAIN VENDOR + HARDWARE FROM DEVICE LIST ###################################
+### GAIN VENDOR + HARDWARE FROM DEVICE LIST "AGAIN" ###########################
 brand_raw, type_raw = str(), str()
 if len(device_list)>0:
     for router_dict in data['oti_all_table']:
@@ -1584,7 +1550,7 @@ if len(device_list)>0:
             brand_raw = router_dict.get('vendor',str())
             type_raw  = router_dict.get('hardware',str())
 
-### SPECIFY IPTAC SERVER SUBDIRECTORIES #######################################
+### SPECIFY IPTAC SERVER SUBDIRECTORIES PER DEVICE TYPE #######################
 if brand_raw and type_raw:
     brand_subdir = brand_raw.upper()
     if 'ASR9K' in type_raw.upper(): type_subdir = 'ASR9K'
@@ -1604,8 +1570,53 @@ if brand_raw and type_raw:
     elif 'MX480' in type_raw.upper(): type_subdir = 'MX/MX480'
     elif 'NE40' in type_raw.upper(): type_subdir = 'V8R10'
 
-#CGI_CLI.uprint('RAW: %s, %s\nRES: %s, %s' % (brand_raw,type_raw, brand_subdir, type_subdir))
-#sys.exit(0)
+###############################################################################
+
+
+### SHOW HTML MENU SHOWS ONLY IN CGI/HTML MODE ################################
+CGI_CLI.uprint('ROUTER SW UPGRADE TOOL', tag = 'h1', color = 'blue')
+if CGI_CLI.cgi_active and (not CGI_CLI.submit_form or active_menu == 2):
+    if active_menu == 2:
+        main_menu_list = router_menu_list + \
+        ['<p>Additional device(s) (optional) [list separator=,]:</p>',\
+        {'text':'device'}, '<br/>', \
+        '<h3>SW RELEASE (required):</h3>', {'text':'sw_release'}, '<br/>',\
+        '<h3>FILES TO COPY (required):</h3>',{'checkbox':'OTI.tar_file'}, \
+        '<br/>', {'checkbox':'SMU.tar_files'},'<br/>',\
+        '<h3>DEVICE DISK FREE (optional) [default &gt %.2f GB]:</h3>'%(device_expected_GB_free),\
+        {'text':'device_disk_free_GB'}, '<br/>',\
+        '<h3>LDAP authentication (required):</h3>',{'text':'username'}, \
+        '<br/>', {'password':'password'}, '<br/>','<br/>']
+
+        if len(SCRIPT_ACTIONS_LIST)>0: main_menu_list.append({'radio':SCRIPT_ACTIONS_LIST})
+
+        main_menu_list += ['<br/>','<h3>Options:</h3>', \
+            {'checkbox':'check_device_tar_files_only'},\
+            '<br/>', {'checkbox':'force_rewrite_tar_files_on_device'},'<br/>',\
+            {'checkbox':'backup_configs_to_device_disk'},'<br/>',\
+            {'checkbox':'delete_device_tar_files_on_end'},'<br/>',\
+            '<br/>', {'checkbox':'printall'}]
+    else: main_menu_list = router_type_menu_list
+
+    CGI_CLI.formprint( main_menu_list + ['<br/>','<br/>'], submit_button = 'OK', \
+        pyfile = None, tag = None, color = None)
+    ### SHOW HTML MENU AND EXIT ###############################################
+    sys.exit(0)
+else:
+    ### READ SCRIPT ACTION ###
+    for item in SCRIPT_ACTIONS_LIST:
+        if CGI_CLI.data.get(item):
+            SCRIPT_ACTION = copy.deepcopy(item)
+            break
+    else:
+        if CGI_CLI.data.get("script_action"):
+            SCRIPT_ACTION = CGI_CLI.data.get("script_action")
+
+
+### PRINT BASIC INFO ##########################################################
+CGI_CLI.uprint('server = %s\ndevice(s) = %s\nsw_release = %s\nexpected_disk_free_GB = %s' % \
+    (iptac_server, ', '.join(device_list) , sw_release, device_expected_GB_free))
+
 
 ###############################################################################
 
@@ -1725,6 +1736,7 @@ for device in device_list:
 
     ### REMOTE DEVICE OPERATIONS ##############################################
     if device:
+        CGI_CLI.uprint('\nDEVICE %s CHECKS:\n' % (device), tag = 'h2', color = 'blue')
         RCMD.connect(device, username = USERNAME, password = PASSWORD, \
             printall = CGI_CLI.data.get("printall"), logfilename = logfilename)
 
@@ -1734,18 +1746,7 @@ for device in device_list:
             if len(device_list) > 1: continue
             else: sys.exit(0)
 
-        ### DEFINE SERVER SUBDIRECTORIES ######################################
-        # if RCMD.router_type == 'cisco_ios':
-            # brand_subdir = 'CISCO'
-            # type_subdir = RCMD.router_version
-        # elif RCMD.router_type == 'cisco_xr':
-            # brand_subdir = 'CISCO'
-            # type_subdir = RCMD.router_version
-        # elif RCMD.router_type == 'juniper': brand_subdir, type_subdir = 'JUNIPER', ''
-        # elif RCMD.router_type == 'huawei': brand_subdir, type_subdir = 'HUAWEI', 'V8R10'
-
         ### CHECK HDD/FLASH SPACE ON DEVICE ###################################
-        CGI_CLI.uprint('\nDEVICE %s CHECKS:\n' % (device), tag = 'h2', color = 'blue')
         ### RUN INITIAL DATA COLLECTION #######################################
         collector_cmds = {
             ### some ios = enable, ask password, 'show bootflash:' , exit
