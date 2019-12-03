@@ -98,11 +98,11 @@ class CGI_CLI(object):
         parser.add_argument("--device",
                             action = "store", dest = 'device',
                             default = str(),
-                            help = "target router to access")
+                            help = "Target router to access. (Optionable device list separated ba comma, i.e. --device DEVICE1,DEVICE2)")
         parser.add_argument("--sw_release",
                             action = "store", dest = 'sw_release',
                             default = str(),
-                            help = "sw release number without dots, i.e 653")
+                            help = "sw release number with or without dots, i.e. 653 or 6.5.3")
         parser.add_argument("--OTI_tar",
                             action = 'store_true', dest = "OTI.tar_file",
                             default = None,
@@ -111,22 +111,22 @@ class CGI_CLI(object):
                             action = 'store_true', dest = "SMU.tar_files",
                             default = None,
                             help = "copy/check SMU.tar files")
-        parser.add_argument("--delete_files",
-                            action = 'store_true', dest = "delete_device_tar_files_on_end",
-                            default = None,
-                            help = "delete device tar files on end")
         parser.add_argument("--check_files_only",
-                            action = 'store_true', dest = "check_device_tar_files_only",
+                            action = 'store_true', dest = "check_device_sw_files_only",
                             default = None,
-                            help = "check existing device tar files only, do not copy new tar files")
+                            help = "check existing device sw release files only, do not copy new tar files")
         parser.add_argument("--backup_configs",
                             action = 'store_true', dest = "backup_configs_to_device_disk",
                             default = None,
                             help = "backup configs to device hdd")
         parser.add_argument("--force_rewrite",
-                            action = 'store_true', dest = "force_rewrite_tar_files_on_device",
+                            action = 'store_true', dest = "force_rewrite_sw_files_on_device",
                             default = None,
-                            help = "force rewrite tar files on device hdd")
+                            help = "force rewrite sw release files on device disk")
+        parser.add_argument("--delete_files",
+                            action = 'store_true', dest = "delete_device_sw_files_on_end",
+                            default = None,
+                            help = "delete device sw release files on end after sw upgrade")                            
         # parser.add_argument("--sim",
                             # action = "store_true", dest = 'sim',
                             # default = None,
@@ -1591,10 +1591,10 @@ if CGI_CLI.cgi_active and (not CGI_CLI.submit_form or active_menu == 2):
         if len(SCRIPT_ACTIONS_LIST)>0: main_menu_list.append({'radio':SCRIPT_ACTIONS_LIST})
 
         main_menu_list += ['<br/>','<h3>Options:</h3>', \
-            {'checkbox':'check_device_tar_files_only'},\
-            '<br/>', {'checkbox':'force_rewrite_tar_files_on_device'},'<br/>',\
+            {'checkbox':'check_device_sw_files_only'},\
+            '<br/>', {'checkbox':'force_rewrite_sw_files_on_device'},'<br/>',\
             {'checkbox':'backup_configs_to_device_disk'},'<br/>',\
-            {'checkbox':'delete_device_tar_files_on_end'},'<br/>',\
+            {'checkbox':'delete_device_sw_files_on_end'},'<br/>',\
             '<br/>', {'checkbox':'printall'}]
     else: main_menu_list = router_type_menu_list
 
@@ -1805,8 +1805,8 @@ for device in device_list:
             ### ELIMINATE PROBLEM = POSSIBLE ERROR CASE-MIX IN FILE NAMES #####
             ### GET DEVICE CASE-CORRECT FILE NAMES ############################
             ### COPY/SCP FILES TO ROUTER ######################################
-            if not CGI_CLI.data.get('check_device_tar_files_only') or \
-                CGI_CLI.data.get('force_rewrite_tar_files_on_device'):
+            if not CGI_CLI.data.get('check_device_sw_files_only') or \
+                CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
                 CGI_CLI.uprint('copy tar file(s)', no_newlines = \
                     None if CGI_CLI.data.get("printall") else True)
 
@@ -1937,7 +1937,7 @@ for device in device_list:
                 else: sys.exit(0)
 
             CGI_CLI.uprint('tar files - CHECK OK.', tag='h1', color = 'green')
-            if CGI_CLI.data.get('check_device_tar_files_only'):
+            if CGI_CLI.data.get('check_device_sw_files_only'):
                 RCMD.disconnect()
                 if len(device_list) > 1: continue
                 else: sys.exit(0)
@@ -1960,7 +1960,7 @@ for device in device_list:
                 CGI_CLI.uprint(' ', no_newlines = True if CGI_CLI.data.get("printall") else None)
 
             ### DELETE TAR FILES ON END #######################################
-            if CGI_CLI.data.get('delete_device_tar_files_on_end'):
+            if CGI_CLI.data.get('delete_device_sw_files_on_end'):
                 del_files_cmds = {'cisco_xr':[]}
 
                 if CGI_CLI.data.get('OTI.tar_file') and true_OTI_tar_file_on_device:
