@@ -1630,6 +1630,10 @@ if not sw_release:
     CGI_CLI.uprint('PLEASE SPECIFY SW_RELEASE.', color = 'red')
     sys.exit(0)
 
+if len(device_list) == 0:
+    CGI_CLI.uprint('DEVICE NAME(S) NOT INSERTED!', tag = 'h1', color = 'red')
+    sys.exit(0)  
+    
 ###############################################################################
 
 
