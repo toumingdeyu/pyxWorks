@@ -1383,12 +1383,12 @@ def do_scp_command(USERNAME = None, PASSWORD = None, file_to_copy = None, \
         os.environ['SSHPASS'] = PASSWORD
         device_file = '%s/%s' % (device_path, file_to_copy)
         local_file = os.path.join(local_path, file_to_copy)
-        #show_progress_string = ' 2>&1 | grep -v debug1'
+        if not printall: CGI_CLI.uprint('  %s  ' % (file_to_copy), no_newlines = True)
         show_progress_string = ''
         local_command = 'sshpass -e scp -v -o StrictHostKeyChecking=no %s %s@%s:/%s%s' \
             % (local_file, USERNAME, device, device_file, show_progress_string)
         scp_result = LCMD.run_command(cmd_line = local_command,
-            printall = printall, chunked = True)
+            printall = printall, chunked = True)   
         ### SECURITY REASONS ###
         os.environ['SSHPASS'] = '-'            
         return scp_result
@@ -1813,7 +1813,7 @@ for device in device_list:
             ### COPY/SCP FILES TO ROUTER ######################################
             if not CGI_CLI.data.get('check_device_sw_files_only') or \
                 CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
-                CGI_CLI.uprint('copy sw release file(s), WARNING: IT COULD TAKE LONGER TIME!', no_newlines = \
+                CGI_CLI.uprint('copy sw release file(s), (WARNING: IT COULD TAKE LONGER TIME!)', no_newlines = \
                     None if CGI_CLI.data.get("printall") else True)
 
                 if CGI_CLI.data.get('OTI.tar_file'):
@@ -1822,7 +1822,8 @@ for device in device_list:
                         if OTI_tar_file.upper() in line.upper():
                             true_OTI_tar_file_on_device = line.split()[-1].strip()
                             break
-                    if not true_OTI_tar_file_on_device:
+                    if not true_OTI_tar_file_on_device or \
+                        CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
                         scp_cmd = do_scp_command(USERNAME, PASSWORD, true_OTI_tar_file_on_server,
                             'harddisk:/IOS-XR/%s' % (sw_release),LOCAL_SW_RELEASE_DIR,
                             printall = CGI_CLI.data.get("printall"))
@@ -1833,7 +1834,8 @@ for device in device_list:
                     for line in rcmd_collector_outputs[3].splitlines():
                         if SMU_tar_files.upper() in line.upper() and '.tar'.upper() in line.upper():
                             true_SMU_tar_files_on_device.append(line.split()[-1].strip())
-                    if len(true_SMU_tar_files_on_device)==0:
+                    if len(true_SMU_tar_files_on_device)==0 or \
+                        CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
                         for smu_file in true_SMU_tar_files_on_server:
                             scp_cmd = do_scp_command(USERNAME, PASSWORD, smu_file,
                                 'harddisk:/IOS-XR/%s/SMU' % (sw_release),LOCAL_SW_RELEASE_SMU_DIR,
