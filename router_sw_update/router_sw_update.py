@@ -970,10 +970,10 @@ class LCMD(object):
                             while stdoutput or erroutput:
                                 if stdoutput:
                                     os_output += copy.deepcopy(stdoutput) + '\n'
-                                    CGI_CLI.uprint(stdoutput.strip(), color = 'gray')
+                                    if printall: CGI_CLI.uprint(stdoutput.strip(), color = 'gray')
                                 if erroutput:
                                     os_output += copy.deepcopy(erroutput) + '\n'
-                                    CGI_CLI.uprint(erroutput.strip(), color = 'gray')
+                                    if printall: CGI_CLI.uprint(erroutput.strip(), color = 'gray')
                                 stdoutput = str(CommandObject.stdout.readline())
                                 erroutput = str(CommandObject.stdout.readline())
                             time.sleep(0.1)
@@ -1387,12 +1387,18 @@ def do_scp_command(USERNAME = None, PASSWORD = None, file_to_copy = None, \
         os.environ['SSHPASS'] = PASSWORD
         device_file = '%s/%s' % (device_path, file_to_copy)
         local_file = os.path.join(local_path, file_to_copy)
+        #show_progress_string = ' 2>&1 | grep -v debug1'
         local_command = 'sshpass -e scp -v -o StrictHostKeyChecking=no %s %s@%s:/%s' % (local_file, USERNAME,\
             device, device_file)
         scp_result = LCMD.run_command(cmd_line = local_command,
             printall = printall, chunked = True)
+        ### SECURITY REASONS ###
+        os.environ['SSHPASS'] = '-'            
         return scp_result
     else: return str()
+
+##############################################################################
+
 
 
 ##############################################################################
@@ -1401,6 +1407,8 @@ def do_scp_command(USERNAME = None, PASSWORD = None, file_to_copy = None, \
 #
 ##############################################################################
 if __name__ != "__main__": sys.exit(0)
+USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True)
+#CGI_CLI.print_args()
 ##############################################################################
 
 device_expected_GB_free = 0.2
@@ -1437,11 +1445,8 @@ remote_sw_release_dir_exists = None
 asr1k_detection_string = 'CSR1000'
 asr9k_detection_string = 'ASR9K|IOS-XRv 9000'
 
+#############################################################################
 
-##############################################################################
-
-USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True)
-#CGI_CLI.print_args()
 device = CGI_CLI.data.get("device",None)
 if device: device = device.upper()
 sw_release = CGI_CLI.data.get('sw_release',str()).replace('.','')
@@ -1807,7 +1812,7 @@ for device in device_list:
             ### COPY/SCP FILES TO ROUTER ######################################
             if not CGI_CLI.data.get('check_device_sw_files_only') or \
                 CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
-                CGI_CLI.uprint('copy tar file(s)', no_newlines = \
+                CGI_CLI.uprint('copy sw release file(s), WARNING: IT COULD TAKE LONGER TIME!', no_newlines = \
                     None if CGI_CLI.data.get("printall") else True)
 
                 if CGI_CLI.data.get('OTI.tar_file'):
@@ -1976,7 +1981,7 @@ for device in device_list:
                 del_files_cmds['cisco_xr'].append('dir harddisk:/IOS-XR/%s' % (sw_release))
                 del_files_cmds['cisco_xr'].append('dir harddisk:/IOS-XR/%s/SMU' % (sw_release))
 
-                CGI_CLI.uprint('deleting tar files', no_newlines = \
+                CGI_CLI.uprint('deleting sw release files', no_newlines = \
                     None if CGI_CLI.data.get("printall") else True)
                 forget_it = RCMD.run_commands(del_files_cmds)
                 CGI_CLI.uprint(' ', no_newlines = True if CGI_CLI.data.get("printall") else None)
