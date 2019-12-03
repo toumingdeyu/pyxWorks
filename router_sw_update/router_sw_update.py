@@ -1406,7 +1406,7 @@ if __name__ != "__main__": sys.exit(0)
 device_expected_GB_free = 0.2
 
 SCRIPT_ACTIONS_LIST = [
-'copy_tar_files','do_sw_upgrade',
+#'copy_tar_files','do_sw_upgrade',
 ]
 
 active_menu_list, active_menu = [ None,'select_router_type','select_routers'], 0
@@ -1488,28 +1488,43 @@ for key in CGI_CLI.data.keys():
 
 
 ### ROUTER TYPE MENU ##########################################################
-router_type_menu_list, counter = ['<h2>Select router type:</h2>'], 0
+table_rows = 5
+counter = 0
+router_type_menu_list = ['<h2>Select router type:</h2>',
+    '<div align="left">', '<table style="width:70%">']
 for router_type in device_types:
+    if counter == 0: router_type_menu_list.append('<tr>')
+    router_type_menu_list.append('<td>')
     router_type_menu_list.append({'radio':'%s%s' % (router_type_id_string,router_type)})
     counter += 1
-    router_type_menu_list.append('&emsp;')
-    if counter > 4:
-        router_type_menu_list.append('<br/>')
+    router_type_menu_list.append('</td>')
+    if counter + 1 > table_rows:
+        router_type_menu_list.append('</tr>')
         counter = 0
+if counter != 0: router_type_menu_list.append('</tr>')
+router_type_menu_list.append('</table>')
+router_type_menu_list.append('</div>')
 
 ### ROUTER MENU ###############################################################
-router_menu_list, counter = ['<h2>%s routers:</h2>'% (selected_device_type)], 0
+table_rows = 5
+counter = 0
+router_menu_list = ['<h2>%s routers:</h2>'% (selected_device_type),
+    '<div align="left">', '<table style="width:70%">']
 for router_dict in data['oti_all_table']:
     if selected_device_type and \
         selected_device_type in router_dict.get('hardware',str()):
+        if counter == 0: router_menu_list.append('<tr>')
+        router_menu_list.append('<td>')
         router_menu_list.append({'checkbox':'%s%s' % \
             (router_id_string,router_dict.get('rtr_name',str()))})
         counter += 1
-        router_menu_list.append('&emsp;')
-        if counter > 4:
-            router_menu_list.append('<br/>')
+        router_menu_list.append('</td>')
+        if counter + 1 > table_rows:
+            router_menu_list.append('</tr>')
             counter = 0
-
+if counter != 0: router_menu_list.append('</tr>')
+router_menu_list.append('</table>')
+router_menu_list.append('</div>')
 
 ### HTML MENU SHOWS ONLY IN CGI MODE ##########################################
 if CGI_CLI.cgi_active and (not CGI_CLI.submit_form or active_menu == 2):
