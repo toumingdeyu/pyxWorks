@@ -963,19 +963,15 @@ class LCMD(object):
                         os_output, timer_counter_100ms = str(), 0
                         CommandObject = subprocess.Popen(cmd_line,
                                                    stdout=subprocess.PIPE,
-                                                   stderr=subprocess.PIPE, shell=True)
+                                                   stderr=subprocess.STDOUT, shell=True)
                         while CommandObject.poll() is None:
-                            stdoutput = str(CommandObject.stdout.readline())
-                            erroutput = str(CommandObject.stdout.readline())
-                            while stdoutput or erroutput:
+                            stdoutput = str(CommandObject.stdout.readline())                           
+                            while stdoutput:
                                 if stdoutput:
                                     os_output += copy.deepcopy(stdoutput) + '\n'
-                                    if printall: CGI_CLI.uprint(stdoutput.strip(), color = 'gray')
-                                if erroutput:
-                                    os_output += copy.deepcopy(erroutput) + '\n'
-                                    if printall: CGI_CLI.uprint(erroutput.strip(), color = 'gray')
+                                    if printall: 
+                                        CGI_CLI.uprint(stdoutput.strip(), color = 'gray')
                                 stdoutput = str(CommandObject.stdout.readline())
-                                erroutput = str(CommandObject.stdout.readline())
                             time.sleep(0.1)
                             timer_counter_100ms += 1
                             if timer_counter_100ms > timeout_sec * 10:
@@ -1388,8 +1384,9 @@ def do_scp_command(USERNAME = None, PASSWORD = None, file_to_copy = None, \
         device_file = '%s/%s' % (device_path, file_to_copy)
         local_file = os.path.join(local_path, file_to_copy)
         #show_progress_string = ' 2>&1 | grep -v debug1'
-        local_command = 'sshpass -e scp -v -o StrictHostKeyChecking=no %s %s@%s:/%s' % (local_file, USERNAME,\
-            device, device_file)
+        show_progress_string = ''
+        local_command = 'sshpass -e scp -v -o StrictHostKeyChecking=no %s %s@%s:/%s%s' \
+            % (local_file, USERNAME, device, device_file, show_progress_string)
         scp_result = LCMD.run_command(cmd_line = local_command,
             printall = printall, chunked = True)
         ### SECURITY REASONS ###
@@ -1825,7 +1822,7 @@ for device in device_list:
                         scp_cmd = do_scp_command(USERNAME, PASSWORD, true_OTI_tar_file_on_server,
                             'harddisk:/IOS-XR/%s' % (sw_release),LOCAL_SW_RELEASE_DIR,
                             printall = CGI_CLI.data.get("printall"))
-                        CGI_CLI.uprint(scp_cmd)
+                        
 
                 if CGI_CLI.data.get('SMU.tar_files'):
                     true_OTI_tar_file_on_device, true_SMU_tar_files_on_device = None, []
@@ -1837,7 +1834,7 @@ for device in device_list:
                             scp_cmd = do_scp_command(USERNAME, PASSWORD, smu_file,
                                 'harddisk:/IOS-XR/%s/SMU' % (sw_release),LOCAL_SW_RELEASE_SMU_DIR,
                                 printall = CGI_CLI.data.get("printall"))
-                            CGI_CLI.uprint(scp_cmd)
+                            
 
 
             ### READ EXISTING FILES ON DEVICE - AFTER COPYING TO DEVICE #######
