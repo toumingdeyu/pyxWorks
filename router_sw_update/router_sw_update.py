@@ -1529,6 +1529,8 @@ if selected_device_type:
     try:    
         sw_release_list = [ str(subdir) for subdir in os.listdir(LOCAL_SW_SUBTYPE_DIR) ]
     except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']', color = 'magenta')
+    try: sw_release_list.remove('LICENSES')
+    except: pass
     if len(sw_release_list) > 0:
         sw_release_list.sort(reverse = True)
         default_sw_release = sw_release_list[0]
@@ -1602,6 +1604,8 @@ if len(device_list)>0:
         'tftpboot',brand_subdir, type_subdir))
     try: sw_release_list = [ str(subdir) for subdir in os.listdir(LOCAL_SW_SUBTYPE_DIR) ]
     except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']', color = 'magenta')
+    try: sw_release_list.remove('LICENSES')
+    except: pass
     if len(sw_release_list) > 0:
         sw_release_list.sort(reverse = True)
         default_sw_release = sw_release_list[0]
