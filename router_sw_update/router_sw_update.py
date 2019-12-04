@@ -1407,52 +1407,52 @@ def get_local_subdirectories(brand_raw = None, type_raw = None):
     brand_subdir, type_subdir, file_types = str(), str(), []
     if brand_raw and type_raw:
         brand_subdir = brand_raw.upper()
-        if 'ASR9K' in type_raw.upper(): 
+        if 'ASR9K' in type_raw.upper():
             type_subdir = 'ASR9K'
             file_types = ['asr9k*OTI.tar', 'SMU/*.tar']
-        elif 'NCS' in type_raw.upper(): 
+        elif 'NCS' in type_raw.upper():
             type_subdir = 'NCS'
             file_types = ['*OTI.tar', 'SMU/*.tar']
-        elif 'ASR1001' in type_raw.upper(): 
+        elif 'ASR1001' in type_raw.upper():
             type_subdir = 'ASR1K/ASR1001X/IOS_XE'
             file_types = ['asr1001x*.bin']
-        elif 'ASR1002-X' in type_raw.upper(): 
+        elif 'ASR1002-X' in type_raw.upper():
             type_subdir = 'ASR1K/ASR1002X/IOS_XE'
             file_types = ['asr1002x*.bin']
-        elif 'ASR1002-HX' in type_raw.upper(): 
+        elif 'ASR1002-HX' in type_raw.upper():
             type_subdir = 'ASR1K/ASR1002HX/IOS_XE'
             file_types = ['asr100*.bin']
-        elif 'CRS' in type_raw.upper(): 
+        elif 'CRS' in type_raw.upper():
             type_subdir = 'CRS'
             file_types = ['*OTI.tar', 'SMU/*.tar']
-        elif 'C29' in type_raw.upper(): 
+        elif 'C29' in type_raw.upper():
             type_subdir = 'C2900'
             file_types = ['c2900*.bin']
-        elif '2901' in type_raw.upper(): 
+        elif '2901' in type_raw.upper():
             type_subdir = 'C2900'
             file_types = ['c2900*.bin']
-        elif 'C35' in type_raw.upper(): 
+        elif 'C35' in type_raw.upper():
             type_subdir = 'C3500'
             file_types = ['c35*.bin']
-        elif 'C36' in type_raw.upper(): 
+        elif 'C36' in type_raw.upper():
             type_subdir = 'C3600'
             file_types = ['c36*.bin']
-        elif 'C37' in type_raw.upper(): 
+        elif 'C37' in type_raw.upper():
             type_subdir = 'C3700'
             file_types = ['c37*.bin']
-        elif 'C38' in type_raw.upper(): 
+        elif 'C38' in type_raw.upper():
             type_subdir = 'C3800'
             file_types = ['c38*.bin']
-        elif 'ISR43' in type_raw.upper(): 
+        elif 'ISR43' in type_raw.upper():
             type_subdir = 'C4321'
             file_types = ['isr43*.bin']
-        elif 'C45' in type_raw.upper(): 
+        elif 'C45' in type_raw.upper():
             type_subdir = 'C4500'
             file_types = ['cat45*.bin']
-        elif 'MX480' in type_raw.upper(): 
+        elif 'MX480' in type_raw.upper():
             type_subdir = 'MX/MX480'
             file_types = ['junos*.img.gz']
-        elif 'NE40' in type_raw.upper(): 
+        elif 'NE40' in type_raw.upper():
             type_subdir = 'V8R10'
             file_types = []
     return brand_subdir, type_subdir, file_types
@@ -1502,24 +1502,24 @@ if CGI_CLI.cgi_active and not (USERNAME and PASSWORD):
 
 ### GENERATE selected_sw_file_types_list ######################################
 selected_sw_file_types_list = []
-selected_files_types_string = '_file(s)'    
+selected_files_types_string = '_file(s)'
 for key in CGI_CLI.data.keys():
     try: value = str(key)
     except: value = str()
     if selected_files_types_string in value:
         selected_sw_file_types_list.append(value.replace(selected_files_types_string,str()))
         active_menu = 3
-        
+
 ### GET sw_release FROM CGI ###################################################
 selected_release_string = 'release_'
-if not sw_release:  
+if not sw_release:
     for key in CGI_CLI.data.keys():
         try: value = str(key)
         except: value = str()
         if selected_release_string in value:
             sw_release = value.replace(selected_release_string,str())
             active_menu = 3
-            break              
+            break
 
 
 ### SQL INIT ##################################################################
@@ -1574,16 +1574,16 @@ if selected_device_type:
     ### CHECK LOCAL SW VERSIONS DIRECTORIES ###################################
     LOCAL_SW_SUBTYPE_DIR = os.path.abspath(os.path.join(os.sep,'home',\
         'tftpboot',brand_subdir, type_subdir))
-    try:    
+    try:
         sw_release_list_raw = [ str(subdir) for subdir in os.listdir(LOCAL_SW_SUBTYPE_DIR) ]
-    except: pass 
+    except: pass
     #except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']', color = 'magenta')
     ### TRICK = DIRECTORY (with or without dots) MUST BE A NUMBER ###
     for release in sw_release_list_raw:
-        try: 
+        try:
             forget_it = int(release.replace('.',''))
             sw_release_list.append(release)
-        except: pass    
+        except: pass
     if len(sw_release_list) > 0:
         sw_release_list.sort(reverse = True)
         default_sw_release = sw_release_list[0]
@@ -1651,24 +1651,25 @@ if len(device_list)>0:
             brand_subdir, type_subdir, sw_file_types_list = get_local_subdirectories(\
                 brand_raw = brand_raw, type_raw = type_raw)
             break
-                    
+
     ### CHECK LOCAL SW VERSIONS DIRECTORIES ###################################
     LOCAL_SW_SUBTYPE_DIR = os.path.abspath(os.path.join(os.sep,'home',\
         'tftpboot',brand_subdir, type_subdir))
-    try:    
+    try:
         sw_release_list_raw = [ str(subdir) for subdir in os.listdir(LOCAL_SW_SUBTYPE_DIR) ]
-    except: pass    
+    except: pass
     #except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']', color = 'magenta')
     ### TRICK = DIRECTORY (with or without dots) MUST BE A NUMBER ###
-    for release in sw_release_list_raw:
-        try: 
-            forget_it = int(release.replace('.',''))
-            sw_release_list.append(release)
-        except: pass    
-    if len(sw_release_list) > 0:
-        sw_release_list.sort(reverse = True)
-        default_sw_release = sw_release_list[0]        
-        
+    if len(sw_release_list) == 0:
+        for release in sw_release_list_raw:
+            try:
+                forget_it = int(release.replace('.',''))
+                sw_release_list.append(release)
+            except: pass
+        if len(sw_release_list) > 0:
+            sw_release_list.sort(reverse = True)
+            default_sw_release = sw_release_list[0]
+
 ###############################################################################
 
 
@@ -1678,9 +1679,9 @@ if len(device_list)>0:
 CGI_CLI.uprint('ROUTER SW UPGRADE TOOL', tag = 'h1', color = 'blue')
 if CGI_CLI.cgi_active and (not CGI_CLI.submit_form or active_menu == 2):
     ### DISPLAY ROUTER-TYPE MENU ##############################################
-    if active_menu == 0: 
+    if active_menu == 0:
         main_menu_list = router_type_menu_list
-    ### DISPLAY SELEDT ROUTER MENU ############################################    
+    ### DISPLAY SELEDT ROUTER MENU ############################################
     elif active_menu == 2:
         main_menu_list = router_menu_list + \
         ['<p>Additional device(s) (optional) [list separator=,]:</p>',\
@@ -1688,19 +1689,19 @@ if CGI_CLI.cgi_active and (not CGI_CLI.submit_form or active_menu == 2):
         '<h3>SW RELEASE (required) [default=%s]:</h3>' % (default_sw_release)]
 
         release_sw_release_list = [ selected_release_string + release for release in sw_release_list ]
-        
-        if len(release_sw_release_list) > 0: 
+
+        if len(release_sw_release_list) > 0:
             main_menu_list.append({'radio':release_sw_release_list})
-        else:    
+        else:
             main_menu_list.append('<h3 style="color:red">NO SW RELEASE VERSIONS AVAILABLE on server %s!</h3>' % (iptac_server))
-            
+
         main_menu_list.append('<h3>FILES TO COPY (required):</h3>')
         for sw_file in sw_file_types_list:
             main_menu_list.append({'checkbox':sw_file + '_file(s)'})
             main_menu_list.append('<br/>')
         if len(sw_file_types_list) == 0:
-            main_menu_list.append('<h3 style="color:red">NO FILE TYPES SPECIFIED!</h3>')        
-        
+            main_menu_list.append('<h3 style="color:red">NO FILE TYPES SPECIFIED!</h3>')
+
         main_menu_list += ['<h3>DEVICE DISK FREE (optional) [default &gt %.2f GB]:</h3>'%(device_expected_GB_free),\
         {'text':'device_disk_free_GB'}, '<br/>',\
         '<h3>LDAP authentication (required):</h3>',{'text':'username'}, \
@@ -1755,33 +1756,40 @@ if len(device_list) == 0:
 
 ###############################################################################
 
-
-
 if type_subdir and brand_subdir:
     CGI_CLI.uprint('SERVER %s CHECKS:\n' % (iptac_server), tag = 'h2', color = 'blue')
-    ### GENERATE FILE NAMES ###############################################
-    tar_file = '%s-iosxr-px-k9-%s.tar' % \
-        (type_subdir,'.'.join([ char for char in sw_release.encode() ]))
-    OTI_tar_file = '%s-iosxr-px-k9-%s.OTI.tar' % \
-        (type_subdir.lower(),'.'.join([ char for char in sw_release.encode() ]))
-    SMU_tar_files = '%s-px-%s.' % \
-        (type_subdir.lower(),'.'.join([ char for char in sw_release.encode() ]))
+
+    # ### GENERATE FILE NAMES ###############################################
+    # tar_file = '%s-iosxr-px-k9-%s.tar' % \
+        # (type_subdir,'.'.join([ char for char in sw_release.encode() ]))
+    # OTI_tar_file = '%s-iosxr-px-k9-%s.OTI.tar' % \
+        # (type_subdir.lower(),'.'.join([ char for char in sw_release.encode() ]))
+    # SMU_tar_files = '%s-px-%s.' % \
+        # (type_subdir.lower(),'.'.join([ char for char in sw_release.encode() ]))
+
+    # ### CHECK LOCAL SW DIRECTORIES ########################################
+    # LOCAL_SW_RELEASE_DIR = os.path.abspath(os.path.join(os.sep,'home',\
+        # 'tftpboot',brand_subdir, type_subdir, sw_release))
+    # LOCAL_SW_RELEASE_SMU_DIR = os.path.abspath(os.path.join(os.sep,'home',\
+        # 'tftpboot',brand_subdir, type_subdir, sw_release, 'SMU'))
+
+    #directory_list = [LOCAL_SW_RELEASE_DIR, LOCAL_SW_RELEASE_SMU_DIR]
 
     ### CHECK LOCAL SW DIRECTORIES ########################################
-    LOCAL_SW_RELEASE_DIR = os.path.abspath(os.path.join(os.sep,'home',\
-        'tftpboot',brand_subdir, type_subdir, sw_release))
-    LOCAL_SW_RELEASE_SMU_DIR = os.path.abspath(os.path.join(os.sep,'home',\
-        'tftpboot',brand_subdir, type_subdir, sw_release, 'SMU'))
+    directory_list = []
+    for actual_file_type in selected_sw_file_types_list:
+        actual_file_type_subdir, forget_it = os.path.split(actual_file_type)
+        directory_list.append(os.path.abspath(os.path.join(os.sep,'home',\
+        'tftpboot',brand_subdir, type_subdir, sw_release, actual_file_type_subdir)))
 
-    directory_list = [LOCAL_SW_RELEASE_DIR, LOCAL_SW_RELEASE_SMU_DIR]
     nonexistent_directories = ', '.join([ directory for directory in directory_list if not os.path.exists(directory) ])
 
-    CGI_CLI.uprint('checking directories [%s]' % (', '.join(directory_list)))
+    CGI_CLI.uprint('checking[%s]' % (', '.join(directory_list)))
 
     if nonexistent_directories:
-        CGI_CLI.uprint('missing[%s]\ndirectories - CHECK FAIL!' % \
-            ((nonexistent_directories) if nonexistent_directories else str()), color = 'red')
-        RCMD.disconnect()
+        CGI_CLI.uprint('missing[%s]' % \
+            (nonexistent_directories if nonexistent_directories else str()), color = 'red')
+        CGI_CLI.uprint('directories - CHECK FAIL!', tag='h2', color = 'red')
         sys.exit(0)
     else: CGI_CLI.uprint('directories - CHECK OK.', color = 'green')
 
@@ -1790,6 +1798,9 @@ if type_subdir and brand_subdir:
                                                'ls -l %s' % (LOCAL_SW_RELEASE_SMU_DIR)]})
     ### ELIMINATE PROBLEM = POSSIBLE ERROR CASE-MIX IN FILE NAMES #########
     ### GET DEVICE CASE-CORRECT FILE NAMES ################################
+
+    sys.exit(0)
+
     true_OTI_tar_file_on_server, true_SMU_tar_files_on_server = None, []
     for line in local_results[0].splitlines():
         if OTI_tar_file.upper() in line.upper():
@@ -1802,7 +1813,6 @@ if type_subdir and brand_subdir:
     if CGI_CLI.data.get('OTI.tar_file'):
         if not true_OTI_tar_file_on_server:
             CGI_CLI.uprint('OTI.tar file NOT FOUND!', color = 'red')
-            RCMD.disconnect()
             sys.exit(0)
         else:
             CGI_CLI.uprint('OTI.tar file %s' % \
@@ -1813,7 +1823,6 @@ if type_subdir and brand_subdir:
     if CGI_CLI.data.get('SMU.tar_files'):
         if len(true_SMU_tar_files_on_server)==0:
             CGI_CLI.uprint('SMU files NOT FOUND!', color = 'red')
-            RCMD.disconnect()
             sys.exit(0)
         else:
             CGI_CLI.uprint('SMU.tar files %s' % \
