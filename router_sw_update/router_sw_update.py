@@ -318,7 +318,8 @@ class CGI_CLI(object):
 
 
     @staticmethod
-    def formprint(form_data = None, submit_button = None, pyfile = None, tag = None, color = None):
+    def formprint(form_data = None, submit_button = None, pyfile = None, tag = None, \
+        color = None, list_separator = None):
         """ formprint() - print simple HTML form
             form_data - string, just html raw OR list or dict values = ['raw','text','checkbox','radio','submit','dropdown','textcontent']
                       - value in dictionary means cgi variable name / printed componenet value
@@ -337,10 +338,16 @@ class CGI_CLI(object):
                     CGI_CLI.print_chunk('%s: <input type = "password" name = "%s"><br />'%\
                         (data_item.get('password','').replace('_',' '),data_item.get('password')))
                 elif data_item.get('radio'):
-                    if isinstance(data_item.get('radio'), (list,tuple)):
+                    if isinstance(data_item.get('radio_script_action'), (list,tuple)):
                         for radiobutton in data_item.get('radio'):
-                            CGI_CLI.print_chunk('<input type = "radio" name = "%s" value = "%s" /> %s'%\
-                                ('script_action',radiobutton,radiobutton.replace('_',' ')))
+                            CGI_CLI.print_chunk('<input type = "radio" name = "%s" value = "%s" /> %s %s'%\
+                                ('script_action',radiobutton,radiobutton.replace('_',' '), \
+                                list_separator if list_separator else str()))
+                    elif isinstance(data_item.get('radio'), (list,tuple)):
+                        for radiobutton in data_item.get('radio'):
+                            CGI_CLI.print_chunk('<input type = "radio" name = "%s" value = "%s" /> %s %s'%\
+                                (radiobutton,radiobutton,radiobutton.replace('_',' '), \
+                                list_separator if list_separator else str()))
                     else:
                         CGI_CLI.print_chunk('<input type = "radio" name = "%s" value = "%s" /> %s'%\
                             (data_item.get('radio'),data_item.get('radio'),data_item.get('radio','').replace('_',' ')))
@@ -1397,26 +1404,58 @@ def do_scp_command(USERNAME = None, PASSWORD = None, file_to_copy = None, \
 ##############################################################################
 
 def get_local_subdirectories(brand_raw = None, type_raw = None):
-    brand_subdir, type_subdir = str(), str()
+    brand_subdir, type_subdir, file_types = str(), str(), []
     if brand_raw and type_raw:
         brand_subdir = brand_raw.upper()
-        if 'ASR9K' in type_raw.upper(): type_subdir = 'ASR9K'
-        elif 'NCS' in type_raw.upper(): type_subdir = 'NCS'
-        elif 'ASR1001' in type_raw.upper(): type_subdir = 'ASR1K/ASR1001X'
-        elif 'ASR1002-X' in type_raw.upper(): type_subdir = 'ASR1K/ASR1002X'
-        elif 'ASR1002-HX' in type_raw.upper(): type_subdir = 'ASR1K/ASR1002HX'
-        elif 'CRS' in type_raw.upper(): type_subdir = 'CRS'
-        elif 'C29' in type_raw.upper(): type_subdir = 'C2900'
-        elif '2901' in type_raw.upper(): type_subdir = 'C2900'
-        elif 'C35' in type_raw.upper(): type_subdir = 'C3500'
-        elif 'C36' in type_raw.upper(): type_subdir = 'C3600'
-        elif 'C37' in type_raw.upper(): type_subdir = 'C3700'
-        elif 'C38' in type_raw.upper(): type_subdir = 'C3800'
-        elif 'ISR43' in type_raw.upper(): type_subdir = 'C4321'
-        elif 'C45' in type_raw.upper(): type_subdir = 'C4500'
-        elif 'MX480' in type_raw.upper(): type_subdir = 'MX/MX480'
-        elif 'NE40' in type_raw.upper(): type_subdir = 'V8R10'
-    return brand_subdir,type_subdir
+        if 'ASR9K' in type_raw.upper(): 
+            type_subdir = 'ASR9K'
+            file_types = ['asr9k*OTI.tar', 'SMU/*.tar']
+        elif 'NCS' in type_raw.upper(): 
+            type_subdir = 'NCS'
+            file_types = ['*OTI.tar', 'SMU/*.tar']
+        elif 'ASR1001' in type_raw.upper(): 
+            type_subdir = 'ASR1K/ASR1001X/IOS_XE'
+            file_types = ['asr1001x*.bin']
+        elif 'ASR1002-X' in type_raw.upper(): 
+            type_subdir = 'ASR1K/ASR1002X/IOS_XE'
+            file_types = ['asr1002x*.bin']
+        elif 'ASR1002-HX' in type_raw.upper(): 
+            type_subdir = 'ASR1K/ASR1002HX/IOS_XE'
+            file_types = ['asr100*.bin']
+        elif 'CRS' in type_raw.upper(): 
+            type_subdir = 'CRS'
+            file_types = ['*OTI.tar', 'SMU/*.tar']
+        elif 'C29' in type_raw.upper(): 
+            type_subdir = 'C2900'
+            file_types = ['c2900*.bin']
+        elif '2901' in type_raw.upper(): 
+            type_subdir = 'C2900'
+            file_types = ['c2900*.bin']
+        elif 'C35' in type_raw.upper(): 
+            type_subdir = 'C3500'
+            file_types = ['c35*.bin']
+        elif 'C36' in type_raw.upper(): 
+            type_subdir = 'C3600'
+            file_types = ['c36*.bin']
+        elif 'C37' in type_raw.upper(): 
+            type_subdir = 'C3700'
+            file_types = ['c37*.bin']
+        elif 'C38' in type_raw.upper(): 
+            type_subdir = 'C3800'
+            file_types = ['c38*.bin']
+        elif 'ISR43' in type_raw.upper(): 
+            type_subdir = 'C4321'
+            file_types = ['isr43*.bin']
+        elif 'C45' in type_raw.upper(): 
+            type_subdir = 'C4500'
+            file_types = ['cat45*.bin']
+        elif 'MX480' in type_raw.upper(): 
+            type_subdir = 'MX/MX480'
+            file_types = ['junos*.img.gz']
+        elif 'NE40' in type_raw.upper(): 
+            type_subdir = 'V8R10'
+            file_types = []
+    return brand_subdir, type_subdir, file_types
 
 ##############################################################################
 #
@@ -1425,7 +1464,7 @@ def get_local_subdirectories(brand_raw = None, type_raw = None):
 ##############################################################################
 if __name__ != "__main__": sys.exit(0)
 USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True)
-#CGI_CLI.print_args()
+CGI_CLI.print_args()
 ##############################################################################
 
 device_expected_GB_free = 0.2
@@ -1434,22 +1473,7 @@ SCRIPT_ACTIONS_LIST = [
 #'copy_tar_files','do_sw_upgrade',
 ]
 
-active_menu_list, active_menu = [ None,'select_router_type','select_routers'], 0
-
-
-filter_SMU_file_on_server = '.CSC'
-
-filter_PIE_file_list = [
-    'comp-hfr-mini.pie-',
-    'hfr-diags-p.pie-',
-    'hfr-k9sec-p.pie-',
-    'hfr-mcast-p.pie-',
-    'hfr-mgbl-p.pie-',
-    'hfr-mpls-p.pie-',
-    'hfr-doc.pie-',
-    'hfr-fpd.pie-',
-    'comp-hfr-mini.vm-'
-]
+active_menu_list, active_menu = [ None,'select_router_type','select_routers','copy_to_routers'], 0
 
 ##############################################################################
 
@@ -1462,16 +1486,40 @@ remote_sw_release_dir_exists = None
 asr1k_detection_string = 'CSR1000'
 asr9k_detection_string = 'ASR9K|IOS-XRv 9000'
 
-#############################################################################
+###############################################################################
 
 device = CGI_CLI.data.get("device",None)
 if device: device = device.upper()
+
+### GET sw_release FROM cli ###################################################
 sw_release = CGI_CLI.data.get('sw_release',str()).replace('.','')
+
 try: device_expected_GB_free = float(CGI_CLI.data.get('device_disk_free_GB',device_expected_GB_free))
 except: pass
 iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
 if CGI_CLI.cgi_active and not (USERNAME and PASSWORD):
     if iptac_server == 'iptac5': USERNAME, PASSWORD = 'iptac', 'paiiUNDO'
+
+### GENERATE selected_sw_file_types_list ######################################
+selected_sw_file_types_list = []
+selected_files_types_string = '_file(s)'    
+for key in CGI_CLI.data.keys():
+    try: value = str(key)
+    except: value = str()
+    if selected_files_types_string in value:
+        selected_sw_file_types_list.append(value.replace(selected_files_types_string,str()))
+        active_menu = 3
+        
+### GET sw_release FROM CGI ###################################################
+selected_release_string = 'release_'
+if not sw_release:  
+    for key in CGI_CLI.data.keys():
+        try: value = str(key)
+        except: value = str()
+        if selected_release_string in value:
+            sw_release = value.replace(selected_release_string,str())
+            active_menu = 3
+            break              
 
 
 ### SQL INIT ##################################################################
@@ -1513,13 +1561,13 @@ for key in CGI_CLI.data.keys():
 
 ### GAIN SUBDIRS FROM OTI_ALL_TABLE WHERE HARDWARE = SELECTED_DEVICE_TYPE ###
 brand_raw, type_raw , brand_subdir, type_subdir = str(), str() , str(), str()
-sw_release_list, default_sw_release = [], str()
+sw_release_list, default_sw_release, sw_file_types_list = [], str(), []
 if selected_device_type:
     for router_dict in data['oti_all_table']:
         if selected_device_type == router_dict.get('hardware',str()):
             brand_raw = router_dict.get('vendor',str())
             type_raw  = router_dict.get('hardware',str())
-            brand_subdir, type_subdir = get_local_subdirectories(\
+            brand_subdir, type_subdir, sw_file_types_list = get_local_subdirectories(\
                 brand_raw = brand_raw, type_raw = type_raw)
             break
 
@@ -1527,10 +1575,15 @@ if selected_device_type:
     LOCAL_SW_SUBTYPE_DIR = os.path.abspath(os.path.join(os.sep,'home',\
         'tftpboot',brand_subdir, type_subdir))
     try:    
-        sw_release_list = [ str(subdir) for subdir in os.listdir(LOCAL_SW_SUBTYPE_DIR) ]
-    except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']', color = 'magenta')
-    try: sw_release_list.remove('LICENSES')
-    except: pass
+        sw_release_list_raw = [ str(subdir) for subdir in os.listdir(LOCAL_SW_SUBTYPE_DIR) ]
+    except: pass 
+    #except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']', color = 'magenta')
+    ### TRICK = DIRECTORY (with or without dots) MUST BE A NUMBER ###
+    for release in sw_release_list_raw:
+        try: 
+            forget_it = int(release.replace('.',''))
+            sw_release_list.append(release)
+        except: pass    
     if len(sw_release_list) > 0:
         sw_release_list.sort(reverse = True)
         default_sw_release = sw_release_list[0]
@@ -1595,20 +1648,27 @@ if len(device_list)>0:
         if device_list[0] and device_list[0].upper() == router_dict.get('rtr_name',str()).upper():
             brand_raw = router_dict.get('vendor',str())
             type_raw  = router_dict.get('hardware',str())
-            brand_subdir, type_subdir = get_local_subdirectories(\
+            brand_subdir, type_subdir, sw_file_types_list = get_local_subdirectories(\
                 brand_raw = brand_raw, type_raw = type_raw)
             break
-            
+                    
     ### CHECK LOCAL SW VERSIONS DIRECTORIES ###################################
     LOCAL_SW_SUBTYPE_DIR = os.path.abspath(os.path.join(os.sep,'home',\
         'tftpboot',brand_subdir, type_subdir))
-    try: sw_release_list = [ str(subdir) for subdir in os.listdir(LOCAL_SW_SUBTYPE_DIR) ]
-    except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']', color = 'magenta')
-    try: sw_release_list.remove('LICENSES')
-    except: pass
+    try:    
+        sw_release_list_raw = [ str(subdir) for subdir in os.listdir(LOCAL_SW_SUBTYPE_DIR) ]
+    except: pass    
+    #except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']', color = 'magenta')
+    ### TRICK = DIRECTORY (with or without dots) MUST BE A NUMBER ###
+    for release in sw_release_list_raw:
+        try: 
+            forget_it = int(release.replace('.',''))
+            sw_release_list.append(release)
+        except: pass    
     if len(sw_release_list) > 0:
         sw_release_list.sort(reverse = True)
-        default_sw_release = sw_release_list[0]
+        default_sw_release = sw_release_list[0]        
+        
 ###############################################################################
 
 
@@ -1617,14 +1677,31 @@ if len(device_list)>0:
 ### SHOW HTML MENU SHOWS ONLY IN CGI/HTML MODE ################################
 CGI_CLI.uprint('ROUTER SW UPGRADE TOOL', tag = 'h1', color = 'blue')
 if CGI_CLI.cgi_active and (not CGI_CLI.submit_form or active_menu == 2):
-    if active_menu == 2:
+    ### DISPLAY ROUTER-TYPE MENU ##############################################
+    if active_menu == 0: 
+        main_menu_list = router_type_menu_list
+    ### DISPLAY SELEDT ROUTER MENU ############################################    
+    elif active_menu == 2:
         main_menu_list = router_menu_list + \
         ['<p>Additional device(s) (optional) [list separator=,]:</p>',\
         {'text':'device'}, '<br/>', \
-        '<h3>SW RELEASE (required) [default=%s]:</h3>' % (default_sw_release), {'text':'sw_release'}, '<br/>',\
-        '<h3>FILES TO COPY (required):</h3>',{'checkbox':'OTI.tar_file'}, \
-        '<br/>', {'checkbox':'SMU.tar_files'},'<br/>',\
-        '<h3>DEVICE DISK FREE (optional) [default &gt %.2f GB]:</h3>'%(device_expected_GB_free),\
+        '<h3>SW RELEASE (required) [default=%s]:</h3>' % (default_sw_release)]
+
+        release_sw_release_list = [ selected_release_string + release for release in sw_release_list ]
+        
+        if len(release_sw_release_list) > 0: 
+            main_menu_list.append({'radio':release_sw_release_list})
+        else:    
+            main_menu_list.append('<h3 style="color:red">NO SW RELEASE VERSIONS AVAILABLE on server %s!</h3>' % (iptac_server))
+            
+        main_menu_list.append('<h3>FILES TO COPY (required):</h3>')
+        for sw_file in sw_file_types_list:
+            main_menu_list.append({'checkbox':sw_file + '_file(s)'})
+            main_menu_list.append('<br/>')
+        if len(sw_file_types_list) == 0:
+            main_menu_list.append('<h3 style="color:red">NO FILE TYPES SPECIFIED!</h3>')        
+        
+        main_menu_list += ['<h3>DEVICE DISK FREE (optional) [default &gt %.2f GB]:</h3>'%(device_expected_GB_free),\
         {'text':'device_disk_free_GB'}, '<br/>',\
         '<h3>LDAP authentication (required):</h3>',{'text':'username'}, \
         '<br/>', {'password':'password'}, '<br/>','<br/>']
@@ -1637,10 +1714,9 @@ if CGI_CLI.cgi_active and (not CGI_CLI.submit_form or active_menu == 2):
             {'checkbox':'backup_configs_to_device_disk'},'<br/>',\
             {'checkbox':'delete_device_sw_files_on_end'},'<br/>',\
             '<br/>', {'checkbox':'printall'}]
-    else: main_menu_list = router_type_menu_list
 
     CGI_CLI.formprint( main_menu_list + ['<br/>','<br/>'], submit_button = 'OK', \
-        pyfile = None, tag = None, color = None)
+        pyfile = None, tag = None, color = None , list_separator = '&emsp;')
     ### SHOW HTML MENU AND EXIT ###############################################
     sys.exit(0)
 else:
@@ -1657,14 +1733,16 @@ else:
 if not sw_release and default_sw_release: sw_release = default_sw_release
 
 ### PRINT BASIC INFO ##########################################################
-CGI_CLI.uprint('server = %s\ndevice(s) = %s\nsw_release = %s\nexpected_disk_free_GB = %s' % \
-    (iptac_server, ', '.join(device_list) , sw_release, device_expected_GB_free))
+CGI_CLI.uprint('server = %s\ndevice(s) = %s\nsw_release = %s\nexpected_disk_free_GB = %s\nsw_file_types = %s' % \
+    (iptac_server, ', '.join(device_list) , sw_release, device_expected_GB_free, \
+    ', '.join(selected_sw_file_types_list) if len(selected_sw_file_types_list)>0 else str()
+    ))
 
 
 ###############################################################################
 
-if not (CGI_CLI.data.get('OTI.tar_file') or CGI_CLI.data.get('SMU.tar_files')):
-    CGI_CLI.uprint('PLEASE SPECIFY TAR FILE(s) TO COPY.', color = 'red')
+if len(selected_sw_file_types_list) == 0:
+    CGI_CLI.uprint('PLEASE SPECIFY SW FILE TYPE(s) TO COPY.', color = 'red')
     sys.exit(0)
 
 if not sw_release:
@@ -1676,6 +1754,7 @@ if len(device_list) == 0:
     sys.exit(0)
 
 ###############################################################################
+
 
 
 if type_subdir and brand_subdir:
