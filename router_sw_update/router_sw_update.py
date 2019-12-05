@@ -1464,7 +1464,7 @@ def get_local_subdirectories(brand_raw = None, type_raw = None):
 ##############################################################################
 if __name__ != "__main__": sys.exit(0)
 USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True)
-CGI_CLI.print_args()
+#CGI_CLI.print_args()
 ##############################################################################
 
 device_expected_GB_free = 0.2
@@ -1794,41 +1794,37 @@ if type_subdir and brand_subdir:
     else: CGI_CLI.uprint('directories - CHECK OK.', color = 'green')
 
     ### CHECK LOCAL SERVER FILES EXISTENCY ################################
-    local_results = LCMD.run_commands({'unix':['ls -l %s' % (LOCAL_SW_RELEASE_DIR), \
-                                               'ls -l %s' % (LOCAL_SW_RELEASE_SMU_DIR)]})
-    ### ELIMINATE PROBLEM = POSSIBLE ERROR CASE-MIX IN FILE NAMES #########
-    ### GET DEVICE CASE-CORRECT FILE NAMES ################################
+    true_sw_release_files_on_server = []
+    for directory,actual_file_type in zip(directory_list,selected_sw_file_types_list):
+        forget_it, actual_file_name = os.path.split(actual_file_type)
+        local_results = LCMD.run_commands({'unix':['ls -l %s' % (directory)]})
+        no_such_files_in_directory = True
+        for line in local_results[0].splitlines():
+            ### PROBLEM ARE '*' IN FILE NAME ###
+            all_file_name_parts_found = True
+            for part_of_name in actual_file_name.split('*'):
+                if part_of_name.upper() in line.upper(): pass
+                else: all_file_name_parts_found = False                
+            if all_file_name_parts_found:
+                no_such_files_in_directory = False
+                true_file_name = line.split()[-1].strip()
+                local_oti_checkum_string = LCMD.run_commands({'unix':['md5sum %s' % \
+                    (os.path.join(directory,true_file_name))]})
+                md5_sum = local_oti_checkum_string[0].split()[0].strip()                
+                true_sw_release_files_on_server.append([directory,true_file_name,md5_sum])
+        if no_such_files_in_directory:         
+            CGI_CLI.uprint('%s file(s) NOT FOUND in %s!' % (actual_file_name,directory), color = 'red')
+            sys.exit(0)            
+    CGI_CLI.uprint('File(s) FOUND:\n%s' % \
+        ('\n'.join([ str(directory+file+4*' '+md5) for directory,file,md5 in true_sw_release_files_on_server ])))        
+    sys.exit(0)            
 
-    sys.exit(0)
 
-    true_OTI_tar_file_on_server, true_SMU_tar_files_on_server = None, []
-    for line in local_results[0].splitlines():
-        if OTI_tar_file.upper() in line.upper():
-            true_OTI_tar_file_on_server = line.split()[-1].strip()
-            break
-    for line in local_results[1].splitlines():
-        if SMU_tar_files.upper() in line.upper() and '.tar'.upper() in line.upper():
-            true_SMU_tar_files_on_server.append(line.split()[-1].strip())
 
-    if CGI_CLI.data.get('OTI.tar_file'):
-        if not true_OTI_tar_file_on_server:
-            CGI_CLI.uprint('OTI.tar file NOT FOUND!', color = 'red')
-            sys.exit(0)
-        else:
-            CGI_CLI.uprint('OTI.tar file %s' % \
-                (true_OTI_tar_file_on_server + \
-                ' FOUND.' if true_OTI_tar_file_on_server else 'NOT FOUND.'),\
-                color = ('green' if true_OTI_tar_file_on_server else 'red'))
 
-    if CGI_CLI.data.get('SMU.tar_files'):
-        if len(true_SMU_tar_files_on_server)==0:
-            CGI_CLI.uprint('SMU files NOT FOUND!', color = 'red')
-            sys.exit(0)
-        else:
-            CGI_CLI.uprint('SMU.tar files %s' % \
-                (', '.join(true_SMU_tar_files_on_server) + \
-                ' FOUND.' if len(true_SMU_tar_files_on_server)>0 else 'NOT FOUND.'),\
-                color = ('green' if len(true_SMU_tar_files_on_server)>0 else 'red'))
+
+
+
 
 
     ### SERVER MD5 CHECKS #################################################
