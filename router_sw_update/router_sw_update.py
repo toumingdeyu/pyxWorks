@@ -1779,9 +1779,9 @@ if type_subdir and brand_subdir:
     ### CHECK LOCAL SERVER FILES EXISTENCY ################################
     true_sw_release_files_on_server = []
     for directory,actual_file_type in zip(directory_list,selected_sw_file_types_list):
-        forget_it, actual_file_name = os.path.split(actual_file_type)        
+        forget_it, actual_file_name = os.path.split(actual_file_type)
         actual_file_type_subdir, forget_it = os.path.split(actual_file_type)
-        device_directory = os.path.abspath(os.path.join(os.sep,type_subdir_on_device, sw_release, actual_file_type_subdir))        
+        device_directory = os.path.abspath(os.path.join(os.sep,type_subdir_on_device, sw_release, actual_file_type_subdir))
         local_results = LCMD.run_commands({'unix':['ls -l %s' % (directory)]})
         no_such_files_in_directory = True
         for line in local_results[0].splitlines():
@@ -1789,19 +1789,19 @@ if type_subdir and brand_subdir:
             all_file_name_parts_found = True
             for part_of_name in actual_file_name.split('*'):
                 if part_of_name.upper() in line.upper(): pass
-                else: all_file_name_parts_found = False                
+                else: all_file_name_parts_found = False
             if all_file_name_parts_found:
                 no_such_files_in_directory = False
                 true_file_name = line.split()[-1].strip()
                 local_oti_checkum_string = LCMD.run_commands({'unix':['md5sum %s' % \
                     (os.path.join(directory,true_file_name))]})
-                md5_sum = local_oti_checkum_string[0].split()[0].strip()                
+                md5_sum = local_oti_checkum_string[0].split()[0].strip()
                 true_sw_release_files_on_server.append([directory,device_directory,true_file_name,md5_sum])
-        if no_such_files_in_directory:         
+        if no_such_files_in_directory:
             CGI_CLI.uprint('%s file(s) NOT FOUND in %s!' % (actual_file_name,directory), color = 'red')
-            sys.exit(0)            
+            sys.exit(0)
     CGI_CLI.uprint('File(s) md5 checksum(s):\n%s' % \
-        ('\n'.join([ str(directory+'/'+file+4*' '+md5+4*' '+dev_dir) for directory,dev_dir,file,md5 in true_sw_release_files_on_server ])))                   
+        ('\n'.join([ str(directory+'/'+file+4*' '+md5+4*' '+dev_dir) for directory,dev_dir,file,md5 in true_sw_release_files_on_server ])))
 
 
 ### FOR LOOP PER DEVICE #######################################################
@@ -1860,81 +1860,119 @@ for device in device_list:
             else: sys.exit(0)
         else: CGI_CLI.uprint('disk space - CHECK OK.', color = 'green')
 
+        ### DEVICE DRIVE STRING #################################################
+        drive_string = str()
+        if RCMD.router_type == 'cisco_xr': drive_string = 'harddisk:'
+
+
+
+
+
+
+        # ### RUN INITIAL DATA COLLECTION #######################################
+        # collector_cmds = {
+            # ### some ios = enable, ask password, 'show bootflash:' , exit
+            # 'cisco_ios':['show bootflash:','show version | in (%s)' % (asr1k_detection_string)],
+            # 'cisco_xr':['show filesystem',
+                # 'show version | in "%s"' % (asr9k_detection_string),
+                # ### DIR NOT EXISTS: 'dir : harddisk:/aaaa : Path does not exist'
+                # ### VOID DIR: 'No files in directory'
+                # ### SUBDIR EXISTS: '441 drw-r--r-- 2 4096 Nov 20 08:43 bbb'
+                # 'dir harddisk:/%s/%s' % (type_subdir_on_device, sw_release),
+                # 'dir harddisk:/%s/%s/SMU' % (type_subdir_on_device, sw_release),
+                # ### NOTHING DIR HAPPENS IF EXISTS - 'mkdir: cannot create directory 'harddisk:/aaa': directory exists'
+                # ### CREATE DIR: 'Created dir harddisk:/aaa/bbb'
+                # ### 'mkdir' - ENTER IS INSTEAD OF YES ###
+                # 'mkdir harddisk:/%s' % (type_subdir_on_device),
+                # '\r\n',
+                # 'mkdir harddisk:/%s/%s' % (type_subdir_on_device, sw_release),
+                # '\r\n',
+                # 'mkdir harddisk:/%s/%s/SMU' % (type_subdir_on_device, sw_release),
+                # '\r\n',
+                # ],
+            # 'juniper':['show system storage'],
+            # 'huawei':['display device | include PhyDisk','display disk information']
+        # }
+
+        # CGI_CLI.uprint('collecting data', \
+            # no_newlines = None if CGI_CLI.data.get("printall") else True)
+        # rcmd_check_disk_space_outputs = RCMD.run_commands(collector_cmds)
+        # CGI_CLI.uprint(' ', no_newlines = True if CGI_CLI.data.get("printall") else None)
+
+
+
+        ### MAKE ALL SUB-DIRECTORIES ONE BY ONE ###############################
+        redundant_dev_dir_list = [ dev_dir for directory,dev_dir,file,md5 in true_sw_release_files_on_server ]
+        dev_dir_set = set(redundant_dev_dir_list)
+        unique_dev_dir_set = list(dev_dir_set)
+
+        xr_device_mkdir_list = []
+        for dev_dir in unique_dev_dir_set:
+            up_path = str()
+            for dev_sub_dir in dev_dir.split('/'):
+                if dev_sub_dir:
+                    xr_device_mkdir_list.append('mkdir %s%s' % (drive_string, '%s/%s' % (up_path,dev_sub_dir)))
+                    xr_device_mkdir_list.append('\r\n')
+                    up_path = up_path + '/' + dev_sub_dir
+
+        mkdir_device_cmds = {
+            'cisco_ios':[],
+            'cisco_xr':xr_device_mkdir_list,
+            'juniper':[],
+            'huawei':[]
+        }
+
+        CGI_CLI.uprint('make directories', \
+            no_newlines = None if CGI_CLI.data.get("printall") else True)
+        forget_it = RCMD.run_commands(mkdir_device_cmds)
+        CGI_CLI.uprint('\n')
+
+
+
+        ### SHOW DEVICE DIRECTORY #############################################
+        redundant_dev_dir_list = [ dev_dir for directory,dev_dir,file,md5 in true_sw_release_files_on_server ]
+        dev_dir_set = set(redundant_dev_dir_list)
+        unique_dev_dir_set = list(dev_dir_set)
+
+        xr_device_dir_list = [ 'dir %s%s' % (drive_string, dev_dir) for dev_dir in unique_dev_dir_set ]
+
+        dir_device_cmds = {
+            'cisco_ios':[],
+            'cisco_xr':xr_device_dir_list,
+            'juniper':[],
+            'huawei':[]
+        }
+        CGI_CLI.uprint('checking files', \
+            no_newlines = None if CGI_CLI.data.get("printall") else True)
+        rcmd_dir_outputs = RCMD.run_commands(dir_device_cmds)
+        CGI_CLI.uprint('\n')
+
+        for unique_dir,unique_dir_outputs in zip(unique_dev_dir_set,rcmd_dir_outputs):
+            for directory, dev_dir, file, md5 in true_sw_release_files_on_server:
+                if unique_dir == dev_dir:
+                    file_not_found = True
+                    for line in unique_dir_outputs.splitlines():
+                        try: possible_file_name = line.split()[-1].strip()
+                        except: possible_file_name = str()
+                        if file == possible_file_name:
+                            file_not_found = False
+                    CGI_CLI.uprint('File %s%s/%s %s' % (drive_string, dev_dir, file, 'NOT FOUND!' if file_not_found else 'FOUND.'))
+                    if (file_not_found \
+                        and not CGI_CLI.data.get('check_device_sw_files_only')) \
+                        or CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
+                            pass
+                        #scp_cmd = do_scp_command(USERNAME, PASSWORD, '%s/%s' % (directory, file),
+                        #    '%s%s/%s' % (drive_string, dev_dir, file), printall = CGI_CLI.data.get("printall"))
+
 
         RCMD.disconnect()
-        sys.exit(0)  
-
-
-        ### RUN INITIAL DATA COLLECTION #######################################
-        collector_cmds = {
-            ### some ios = enable, ask password, 'show bootflash:' , exit
-            'cisco_ios':['show bootflash:','show version | in (%s)' % (asr1k_detection_string)],
-            'cisco_xr':['show filesystem',
-                'show version | in "%s"' % (asr9k_detection_string),
-                ### DIR NOT EXISTS: 'dir : harddisk:/aaaa : Path does not exist'
-                ### VOID DIR: 'No files in directory'
-                ### SUBDIR EXISTS: '441 drw-r--r-- 2 4096 Nov 20 08:43 bbb'
-                'dir harddisk:/%s/%s' % (type_subdir_on_device, sw_release),
-                'dir harddisk:/%s/%s/SMU' % (type_subdir_on_device, sw_release),
-                ### NOTHING DIR HAPPENS IF EXISTS - 'mkdir: cannot create directory 'harddisk:/aaa': directory exists'
-                ### CREATE DIR: 'Created dir harddisk:/aaa/bbb'
-                ### 'mkdir' - ENTER IS INSTEAD OF YES ###
-                'mkdir harddisk:/%s' % (type_subdir_on_device),
-                '\r\n',
-                'mkdir harddisk:/%s/%s' % (type_subdir_on_device, sw_release),
-                '\r\n',
-                'mkdir harddisk:/%s/%s/SMU' % (type_subdir_on_device, sw_release),
-                '\r\n',
-                ],
-            'juniper':['show system storage'],
-            'huawei':['display device | include PhyDisk','display disk information']
-        }
-        
-        CGI_CLI.uprint('collecting data', \
-            no_newlines = None if CGI_CLI.data.get("printall") else True)
-        rcmd_check_disk_space_outputs = RCMD.run_commands(collector_cmds)
-        CGI_CLI.uprint(' ', no_newlines = True if CGI_CLI.data.get("printall") else None)
-
-
-
+        sys.exit(0)
 
 
         ### CHECK LOCAL SERVER AND DEVICE HDD FILES ###########################
         if RCMD.router_type == 'cisco_xr':
 
-            ### CHECK DEVICE HDD FILES EXISTENCY ##############################
-            ### ELIMINATE PROBLEM = POSSIBLE ERROR CASE-MIX IN FILE NAMES #####
-            ### GET DEVICE CASE-CORRECT FILE NAMES ############################
-            ### COPY/SCP FILES TO ROUTER ######################################
-            if not CGI_CLI.data.get('check_device_sw_files_only') or \
-                CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
-                CGI_CLI.uprint('copy sw release file(s), (WARNING: IT COULD TAKE LONGER TIME!)', no_newlines = \
-                    None if CGI_CLI.data.get("printall") else True)
 
-                if CGI_CLI.data.get('OTI.tar_file'):
-                    true_OTI_tar_file_on_device, true_SMU_tar_files_on_device = None, []
-                    for line in rcmd_check_disk_space_outputs[2].splitlines():
-                        if OTI_tar_file.upper() in line.upper():
-                            true_OTI_tar_file_on_device = line.split()[-1].strip()
-                            break
-                    if not true_OTI_tar_file_on_device or \
-                        CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
-                        scp_cmd = do_scp_command(USERNAME, PASSWORD, true_OTI_tar_file_on_server,
-                            'harddisk:/%s/%s' % (type_subdir_on_device, sw_release),LOCAL_SW_RELEASE_DIR,
-                            printall = CGI_CLI.data.get("printall"))
-
-
-                if CGI_CLI.data.get('SMU.tar_files'):
-                    true_OTI_tar_file_on_device, true_SMU_tar_files_on_device = None, []
-                    for line in rcmd_check_disk_space_outputs[3].splitlines():
-                        if SMU_tar_files.upper() in line.upper() and '.tar'.upper() in line.upper():
-                            true_SMU_tar_files_on_device.append(line.split()[-1].strip())
-                    if len(true_SMU_tar_files_on_device)==0 or \
-                        CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
-                        for smu_file in true_SMU_tar_files_on_server:
-                            scp_cmd = do_scp_command(USERNAME, PASSWORD, smu_file,
-                                'harddisk:/%s/%s/SMU' % (type_subdir_on_device, sw_release),LOCAL_SW_RELEASE_SMU_DIR,
-                                printall = CGI_CLI.data.get("printall"))
 
 
 
