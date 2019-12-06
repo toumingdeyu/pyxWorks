@@ -1404,58 +1404,60 @@ def do_scp_command(USERNAME = None, PASSWORD = None, file_to_copy = None, \
 ##############################################################################
 
 def get_local_subdirectories(brand_raw = None, type_raw = None):
-    brand_subdir, type_subdir, file_types = str(), str(), []
+    brand_subdir, type_subdir_on_server, file_types = str(), str(), []
+    type_subdir_on_device = str()
     if brand_raw and type_raw:
         brand_subdir = brand_raw.upper()
         if 'ASR9K' in type_raw.upper():
-            type_subdir = 'ASR9K'
+            type_subdir_on_server = 'ASR9K'
+            type_subdir_on_device = 'IOS-XR'
             file_types = ['asr9k*OTI.tar', 'SMU/*.tar']
         elif 'NCS' in type_raw.upper():
-            type_subdir = 'NCS'
+            type_subdir_on_server = 'NCS'
             file_types = ['*OTI.tar', 'SMU/*.tar']
         elif 'ASR1001' in type_raw.upper():
-            type_subdir = 'ASR1K/ASR1001X/IOS_XE'
+            type_subdir_on_server = 'ASR1K/ASR1001X/IOS_XE'
             file_types = ['asr1001x*.bin']
         elif 'ASR1002-X' in type_raw.upper():
-            type_subdir = 'ASR1K/ASR1002X/IOS_XE'
+            type_subdir_on_server = 'ASR1K/ASR1002X/IOS_XE'
             file_types = ['asr1002x*.bin']
         elif 'ASR1002-HX' in type_raw.upper():
-            type_subdir = 'ASR1K/ASR1002HX/IOS_XE'
+            type_subdir_on_server = 'ASR1K/ASR1002HX/IOS_XE'
             file_types = ['asr100*.bin']
         elif 'CRS' in type_raw.upper():
-            type_subdir = 'CRS'
+            type_subdir_on_server = 'CRS'
             file_types = ['*OTI.tar', 'SMU/*.tar']
         elif 'C29' in type_raw.upper():
-            type_subdir = 'C2900'
+            type_subdir_on_server = 'C2900'
             file_types = ['c2900*.bin']
         elif '2901' in type_raw.upper():
-            type_subdir = 'C2900'
+            type_subdir_on_server = 'C2900'
             file_types = ['c2900*.bin']
         elif 'C35' in type_raw.upper():
-            type_subdir = 'C3500'
+            type_subdir_on_server = 'C3500'
             file_types = ['c35*.bin']
         elif 'C36' in type_raw.upper():
-            type_subdir = 'C3600'
+            type_subdir_on_server = 'C3600'
             file_types = ['c36*.bin']
         elif 'C37' in type_raw.upper():
-            type_subdir = 'C3700'
+            type_subdir_on_server = 'C3700'
             file_types = ['c37*.bin']
         elif 'C38' in type_raw.upper():
-            type_subdir = 'C3800'
+            type_subdir_on_server = 'C3800'
             file_types = ['c38*.bin']
         elif 'ISR43' in type_raw.upper():
-            type_subdir = 'C4321'
+            type_subdir_on_server = 'C4321'
             file_types = ['isr43*.bin']
         elif 'C45' in type_raw.upper():
-            type_subdir = 'C4500'
+            type_subdir_on_server = 'C4500'
             file_types = ['cat45*.bin']
         elif 'MX480' in type_raw.upper():
-            type_subdir = 'MX/MX480'
+            type_subdir_on_server = 'MX/MX480'
             file_types = ['junos*.img.gz']
         elif 'NE40' in type_raw.upper():
-            type_subdir = 'V8R10'
+            type_subdir_on_server = 'V8R10'
             file_types = []
-    return brand_subdir, type_subdir, file_types
+    return brand_subdir, type_subdir_on_server, type_subdir_on_device, file_types
 
 ##############################################################################
 #
@@ -1562,13 +1564,14 @@ for key in CGI_CLI.data.keys():
 ### GAIN SUBDIRS FROM OTI_ALL_TABLE WHERE HARDWARE = SELECTED_DEVICE_TYPE ###
 brand_raw, type_raw , brand_subdir, type_subdir = str(), str() , str(), str()
 sw_release_list, default_sw_release, sw_file_types_list = [], str(), []
+type_subdir_on_device = str()
 if selected_device_type:
     for router_dict in data['oti_all_table']:
         if selected_device_type == router_dict.get('hardware',str()):
             brand_raw = router_dict.get('vendor',str())
             type_raw  = router_dict.get('hardware',str())
-            brand_subdir, type_subdir, sw_file_types_list = get_local_subdirectories(\
-                brand_raw = brand_raw, type_raw = type_raw)
+            brand_subdir, type_subdir,type_subdir_on_device, sw_file_types_list = \
+                get_local_subdirectories(brand_raw = brand_raw, type_raw = type_raw)
             break
 
     ### CHECK LOCAL SW VERSIONS DIRECTORIES ###################################
@@ -1648,8 +1651,8 @@ if len(device_list)>0:
         if device_list[0] and device_list[0].upper() == router_dict.get('rtr_name',str()).upper():
             brand_raw = router_dict.get('vendor',str())
             type_raw  = router_dict.get('hardware',str())
-            brand_subdir, type_subdir, sw_file_types_list = get_local_subdirectories(\
-                brand_raw = brand_raw, type_raw = type_raw)
+            brand_subdir, type_subdir, type_subdir_on_device, sw_file_types_list = \
+                get_local_subdirectories(brand_raw = brand_raw, type_raw = type_raw)
             break
 
     ### CHECK LOCAL SW VERSIONS DIRECTORIES ###################################
@@ -1658,7 +1661,6 @@ if len(device_list)>0:
     try:
         sw_release_list_raw = [ str(subdir) for subdir in os.listdir(LOCAL_SW_SUBTYPE_DIR) ]
     except: pass
-    #except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']', color = 'magenta')
     ### TRICK = DIRECTORY (with or without dots) MUST BE A NUMBER ###
     if len(sw_release_list) == 0:
         for release in sw_release_list_raw:
@@ -1734,8 +1736,10 @@ else:
 if not sw_release and default_sw_release: sw_release = default_sw_release
 
 ### PRINT BASIC INFO ##########################################################
-CGI_CLI.uprint('server = %s\ndevice(s) = %s\nsw_release = %s\nexpected_disk_free_GB = %s\nsw_file_types = %s' % \
-    (iptac_server, ', '.join(device_list) , sw_release, device_expected_GB_free, \
+CGI_CLI.uprint('server = %s\ndevice(s) = %s\nsw_release = %s' % \
+    (iptac_server, ', '.join(device_list) , sw_release))
+CGI_CLI.uprint('expected_disk_free_GB = %s\nsw_file_types = %s' % \
+    (device_expected_GB_free, \
     ', '.join(selected_sw_file_types_list) if len(selected_sw_file_types_list)>0 else str()
     ))
 
@@ -1765,7 +1769,6 @@ if type_subdir and brand_subdir:
         actual_file_type_subdir, forget_it = os.path.split(actual_file_type)
         directory_list.append(os.path.abspath(os.path.join(os.sep,'home',\
         'tftpboot',brand_subdir, type_subdir, sw_release, actual_file_type_subdir)))
-
     nonexistent_directories = ', '.join([ directory for directory in directory_list if not os.path.exists(directory) ])
 
     if nonexistent_directories:
@@ -1776,7 +1779,9 @@ if type_subdir and brand_subdir:
     ### CHECK LOCAL SERVER FILES EXISTENCY ################################
     true_sw_release_files_on_server = []
     for directory,actual_file_type in zip(directory_list,selected_sw_file_types_list):
-        forget_it, actual_file_name = os.path.split(actual_file_type)
+        forget_it, actual_file_name = os.path.split(actual_file_type)        
+        actual_file_type_subdir, forget_it = os.path.split(actual_file_type)
+        device_directory = os.path.abspath(os.path.join(os.sep,type_subdir_on_device, sw_release, actual_file_type_subdir))        
         local_results = LCMD.run_commands({'unix':['ls -l %s' % (directory)]})
         no_such_files_in_directory = True
         for line in local_results[0].splitlines():
@@ -1791,12 +1796,12 @@ if type_subdir and brand_subdir:
                 local_oti_checkum_string = LCMD.run_commands({'unix':['md5sum %s' % \
                     (os.path.join(directory,true_file_name))]})
                 md5_sum = local_oti_checkum_string[0].split()[0].strip()                
-                true_sw_release_files_on_server.append([directory,true_file_name,md5_sum])
+                true_sw_release_files_on_server.append([directory,device_directory,true_file_name,md5_sum])
         if no_such_files_in_directory:         
             CGI_CLI.uprint('%s file(s) NOT FOUND in %s!' % (actual_file_name,directory), color = 'red')
             sys.exit(0)            
-    CGI_CLI.uprint('File(s) md5 checksums:\n%s' % \
-        ('\n'.join([ str(directory+'/'+file+4*' '+md5) for directory,file,md5 in true_sw_release_files_on_server ])))        
+    CGI_CLI.uprint('File(s) md5 checksum(s):\n%s' % \
+        ('\n'.join([ str(directory+'/'+file+4*' '+md5+4*' '+dev_dir) for directory,dev_dir,file,md5 in true_sw_release_files_on_server ])))        
     sys.exit(0)            
 
 ### FOR LOOP PER DEVICE #######################################################
@@ -1828,16 +1833,16 @@ for device in device_list:
                 ### DIR NOT EXISTS: 'dir : harddisk:/aaaa : Path does not exist'
                 ### VOID DIR: 'No files in directory'
                 ### SUBDIR EXISTS: '441 drw-r--r-- 2 4096 Nov 20 08:43 bbb'
-                'dir harddisk:/IOS-XR/%s' % (sw_release),
-                'dir harddisk:/IOS-XR/%s/SMU' % (sw_release),
+                'dir harddisk:/%s/%s' % (type_subdir_on_device, sw_release),
+                'dir harddisk:/%s/%s/SMU' % (type_subdir_on_device, sw_release),
                 ### NOTHING DIR HAPPENS IF EXISTS - 'mkdir: cannot create directory 'harddisk:/aaa': directory exists'
                 ### CREATE DIR: 'Created dir harddisk:/aaa/bbb'
                 ### 'mkdir' - ENTER IS INSTEAD OF YES ###
-                'mkdir harddisk:/IOS-XR',
+                'mkdir harddisk:/%s' % (type_subdir_on_device),
                 '\r\n',
-                'mkdir harddisk:/IOS-XR/%s' % (sw_release),
+                'mkdir harddisk:/%s/%s' % (type_subdir_on_device, sw_release),
                 '\r\n',
-                'mkdir harddisk:/IOS-XR/%s/SMU' % (sw_release),
+                'mkdir harddisk:/%s/%s/SMU' % (type_subdir_on_device, sw_release),
                 '\r\n',
                 ],
             'juniper':['show system storage'],
@@ -1891,7 +1896,7 @@ for device in device_list:
                     if not true_OTI_tar_file_on_device or \
                         CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
                         scp_cmd = do_scp_command(USERNAME, PASSWORD, true_OTI_tar_file_on_server,
-                            'harddisk:/IOS-XR/%s' % (sw_release),LOCAL_SW_RELEASE_DIR,
+                            'harddisk:/%s/%s' % (type_subdir_on_device, sw_release),LOCAL_SW_RELEASE_DIR,
                             printall = CGI_CLI.data.get("printall"))
 
 
@@ -1904,7 +1909,7 @@ for device in device_list:
                         CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
                         for smu_file in true_SMU_tar_files_on_server:
                             scp_cmd = do_scp_command(USERNAME, PASSWORD, smu_file,
-                                'harddisk:/IOS-XR/%s/SMU' % (sw_release),LOCAL_SW_RELEASE_SMU_DIR,
+                                'harddisk:/%s/%s/SMU' % (type_subdir_on_device, sw_release),LOCAL_SW_RELEASE_SMU_DIR,
                                 printall = CGI_CLI.data.get("printall"))
 
 
@@ -1912,8 +1917,8 @@ for device in device_list:
             ### READ EXISTING FILES ON DEVICE - AFTER COPYING TO DEVICE #######
             read2_cmds = {
                 'cisco_xr':[
-                    'dir harddisk:/IOS-XR/%s' % (sw_release),
-                    'dir harddisk:/IOS-XR/%s/SMU' % (sw_release),
+                    'dir harddisk:/%s/%s' % (type_subdir_on_device, sw_release),
+                    'dir harddisk:/%s/%s/SMU' % (type_subdir_on_device, sw_release),
                     ],
             }
             rcmd_read2_outputs = RCMD.run_commands(read2_cmds)
