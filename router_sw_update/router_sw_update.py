@@ -1414,18 +1414,23 @@ def get_local_subdirectories(brand_raw = None, type_raw = None):
             file_types = ['asr9k*OTI.tar', 'SMU/*.tar']
         elif 'NCS' in type_raw.upper():
             type_subdir_on_server = 'NCS'
+            type_subdir_on_device = 'IOS-XR'
             file_types = ['*OTI.tar', 'SMU/*.tar']
         elif 'ASR1001' in type_raw.upper():
             type_subdir_on_server = 'ASR1K/ASR1001X/IOS_XE'
+            type_subdir_on_device = 'IOS-XE'
             file_types = ['asr1001x*.bin']
         elif 'ASR1002-X' in type_raw.upper():
             type_subdir_on_server = 'ASR1K/ASR1002X/IOS_XE'
+            type_subdir_on_device = 'IOS-XE'
             file_types = ['asr1002x*.bin']
         elif 'ASR1002-HX' in type_raw.upper():
             type_subdir_on_server = 'ASR1K/ASR1002HX/IOS_XE'
+            type_subdir_on_device = 'IOS-XE'
             file_types = ['asr100*.bin']
         elif 'CRS' in type_raw.upper():
             type_subdir_on_server = 'CRS'
+            type_subdir_on_device = 'IOS-XR'
             file_types = ['*OTI.tar', 'SMU/*.tar']
         elif 'C29' in type_raw.upper():
             type_subdir_on_server = 'C2900'
@@ -1743,6 +1748,13 @@ CGI_CLI.uprint('expected_disk_free_GB = %s\nsw_file_types = %s' % \
     ', '.join(selected_sw_file_types_list) if len(selected_sw_file_types_list)>0 else str()
     ))
 
+###############################################################################
+
+if CGI_CLI.data.get('OTI.tar_file'):
+    selected_sw_file_types_list += [ filetype for filetype in sw_file_types_list if 'OTI.tar' in filetype ]
+
+if CGI_CLI.data.get('SMU.tar_files'):
+    selected_sw_file_types_list += [ filetype for filetype in sw_file_types_list if 'SMU' in filetype ]
 
 ###############################################################################
 
@@ -1824,10 +1836,14 @@ for device in device_list:
             if len(device_list) > 1: continue
             else: sys.exit(0)
 
+        ### DEVICE DRIVE STRING ###############################################
+        drive_string = str()
+        if RCMD.router_type == 'cisco_xr': drive_string = 'harddisk:'
+
         ### CHECK HDD/FLASH SPACE ON DEVICE ###################################
         check_disk_space_cmds = {
             ### some ios = enable, ask password, 'show bootflash:' , exit
-            'cisco_ios':['show bootflash:','show version | in (%s)' % (asr1k_detection_string)],
+            'cisco_ios':[' ','show bootflash:',' ','show version | in (%s)' % (asr1k_detection_string)],
             'cisco_xr':['show filesystem',
                 'show version | in "%s"' % (asr9k_detection_string),
                 ],
@@ -1840,7 +1856,7 @@ for device in device_list:
         CGI_CLI.uprint(' ', no_newlines = True if CGI_CLI.data.get("printall") else None)
 
         if RCMD.router_type == 'cisco_ios':
-            try: device_free_space = float(rcmd_check_disk_space_outputs[0].\
+            try: device_free_space = float(rcmd_check_disk_space_outputs[1].\
                      split('bytes available')[0].splitlines()[-1].strip())
             except: pass
         elif RCMD.router_type == 'cisco_xr':
@@ -1860,46 +1876,6 @@ for device in device_list:
             else: sys.exit(0)
         else: CGI_CLI.uprint('disk space - CHECK OK.', color = 'green')
 
-        ### DEVICE DRIVE STRING #################################################
-        drive_string = str()
-        if RCMD.router_type == 'cisco_xr': drive_string = 'harddisk:'
-
-
-
-
-
-
-        # ### RUN INITIAL DATA COLLECTION #######################################
-        # collector_cmds = {
-            # ### some ios = enable, ask password, 'show bootflash:' , exit
-            # 'cisco_ios':['show bootflash:','show version | in (%s)' % (asr1k_detection_string)],
-            # 'cisco_xr':['show filesystem',
-                # 'show version | in "%s"' % (asr9k_detection_string),
-                # ### DIR NOT EXISTS: 'dir : harddisk:/aaaa : Path does not exist'
-                # ### VOID DIR: 'No files in directory'
-                # ### SUBDIR EXISTS: '441 drw-r--r-- 2 4096 Nov 20 08:43 bbb'
-                # 'dir harddisk:/%s/%s' % (type_subdir_on_device, sw_release),
-                # 'dir harddisk:/%s/%s/SMU' % (type_subdir_on_device, sw_release),
-                # ### NOTHING DIR HAPPENS IF EXISTS - 'mkdir: cannot create directory 'harddisk:/aaa': directory exists'
-                # ### CREATE DIR: 'Created dir harddisk:/aaa/bbb'
-                # ### 'mkdir' - ENTER IS INSTEAD OF YES ###
-                # 'mkdir harddisk:/%s' % (type_subdir_on_device),
-                # '\r\n',
-                # 'mkdir harddisk:/%s/%s' % (type_subdir_on_device, sw_release),
-                # '\r\n',
-                # 'mkdir harddisk:/%s/%s/SMU' % (type_subdir_on_device, sw_release),
-                # '\r\n',
-                # ],
-            # 'juniper':['show system storage'],
-            # 'huawei':['display device | include PhyDisk','display disk information']
-        # }
-
-        # CGI_CLI.uprint('collecting data', \
-            # no_newlines = None if CGI_CLI.data.get("printall") else True)
-        # rcmd_check_disk_space_outputs = RCMD.run_commands(collector_cmds)
-        # CGI_CLI.uprint(' ', no_newlines = True if CGI_CLI.data.get("printall") else None)
-
-
 
         ### MAKE ALL SUB-DIRECTORIES ONE BY ONE ###############################
         redundant_dev_dir_list = [ dev_dir for directory,dev_dir,file,md5 in true_sw_release_files_on_server ]
@@ -1911,7 +1887,8 @@ for device in device_list:
             up_path = str()
             for dev_sub_dir in dev_dir.split('/'):
                 if dev_sub_dir:
-                    xr_device_mkdir_list.append('mkdir %s%s' % (drive_string, '%s/%s' % (up_path,dev_sub_dir)))
+                    xr_device_mkdir_list.append('mkdir %s%s' % \
+                        (drive_string, '%s/%s' % (up_path,dev_sub_dir)))
                     xr_device_mkdir_list.append('\r\n')
                     up_path = up_path + '/' + dev_sub_dir
 
@@ -1928,6 +1905,32 @@ for device in device_list:
         CGI_CLI.uprint('\n')
 
 
+        ### FORCE REWRITE FILES ON DEVICE #####################################
+        if CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
+            CGI_CLI.uprint('copy file(s)', \
+                no_newlines = None if CGI_CLI.data.get("printall") else True)        
+            for directory, dev_dir, file, md5 in true_sw_release_files_on_server:
+                scp_cmd = do_scp_command(USERNAME, PASSWORD, '%s/%s' % (directory, file),
+                    '%s%s/%s' % (drive_string, dev_dir, file), printall = CGI_CLI.data.get("printall"))
+        CGI_CLI.uprint('\n')
+        
+
+        ### CHECK MD5 FIRST ###################################################
+        md5_cmds = []
+        for directory, dev_dir, file, md5 in true_sw_release_files_on_server:
+            md5_cmds.append('show md5 file /%s%s/%s' % (drive_string, dev_dir, file))
+        CGI_CLI.uprint('checking md5(s)', \
+            no_newlines = None if CGI_CLI.data.get("printall") else True)    
+        rcmd_md5_outputs = RCMD.run_commands({'cisco_xr':md5_cmds})
+        for files_list,rcmd_md5_output in zip(true_sw_release_files_on_server,rcmd_md5_outputs):        
+            directory, dev_dir, file, md5 = files_list
+            find_list = re.findall(r'[0-9a-fA-F]{32}', rcmd_md5_output.strip())
+            if len(find_list) == 1:
+                md5_on_device = find_list[0]
+                if md5_on_device == md5:
+                    md5_ok = True
+        CGI_CLI.uprint('\n')
+        
 
         ### SHOW DEVICE DIRECTORY #############################################
         redundant_dev_dir_list = [ dev_dir for directory,dev_dir,file,md5 in true_sw_release_files_on_server ]
@@ -1942,13 +1945,14 @@ for device in device_list:
             'juniper':[],
             'huawei':[]
         }
-        CGI_CLI.uprint('checking files', \
+        CGI_CLI.uprint('checking file(s)', \
             no_newlines = None if CGI_CLI.data.get("printall") else True)
         rcmd_dir_outputs = RCMD.run_commands(dir_device_cmds)
         CGI_CLI.uprint('\n')
 
         for unique_dir,unique_dir_outputs in zip(unique_dev_dir_set,rcmd_dir_outputs):
-            for directory, dev_dir, file, md5 in true_sw_release_files_on_server:
+            for files_list,rcmd_md5_output in zip(true_sw_release_files_on_server,rcmd_md5_outputs):        
+                directory, dev_dir, file, md5 = files_list           
                 if unique_dir == dev_dir:
                     file_not_found = True
                     for line in unique_dir_outputs.splitlines():
@@ -1956,134 +1960,34 @@ for device in device_list:
                         except: possible_file_name = str()
                         if file == possible_file_name:
                             file_not_found = False
-                    CGI_CLI.uprint('File %s%s/%s %s' % (drive_string, dev_dir, file, 'NOT FOUND!' if file_not_found else 'FOUND.'))
-                    if (file_not_found \
-                        and not CGI_CLI.data.get('check_device_sw_files_only')) \
-                        or CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
-                            pass
-                        #scp_cmd = do_scp_command(USERNAME, PASSWORD, '%s/%s' % (directory, file),
-                        #    '%s%s/%s' % (drive_string, dev_dir, file), printall = CGI_CLI.data.get("printall"))
+                    ### FILE EXIST OR NOT, CHECK ALSO MD5 IF FILE EXISTS ######                    
+                    md5_ok = False
+                    if not file_not_found:
+                        find_list = re.findall(r'[0-9a-fA-F]{32}', rcmd_md5_output.strip())
+                        if len(find_list) == 1:
+                            md5_on_device = find_list[0]
+                            if md5_on_device == md5:
+                                md5_ok = True
+                    ### COPY MISSING OF REWRITE CORRUPTED FILE ################
+                    if CGI_CLI.data.get('check_device_sw_files_only'): pass                    
+                    elif file_not_found or not md5_ok:     
+                        scp_cmd = do_scp_command(USERNAME, PASSWORD, '%s/%s' % (directory, file),
+                            '%s%s/%s' % (drive_string, dev_dir, file), printall = CGI_CLI.data.get("printall"))   
+                        rcmd_md5_one_output = RCMD.run_commands('show md5 file /%s%s/%s' % (drive_string, dev_dir, file))
+                        ### CHECK MD5 AGAIN ###################################
+                        md5_ok = False                        
+                        find_list = re.findall(r'[0-9a-fA-F]{32}', rcmd_md5_one_output[0].strip())
+                        if len(find_list) == 1:
+                            md5_on_device = find_list[0]
+                            if md5_on_device == md5:
+                                md5_ok = True                                         
+                    CGI_CLI.uprint('File=%s%s/%s    MD5 CHECK=%s' % (drive_string, dev_dir, file, str(md5_ok)))
 
 
-        RCMD.disconnect()
-        sys.exit(0)
-
+                    
 
         ### CHECK LOCAL SERVER AND DEVICE HDD FILES ###########################
         if RCMD.router_type == 'cisco_xr':
-
-
-
-
-
-            ### READ EXISTING FILES ON DEVICE - AFTER COPYING TO DEVICE #######
-            read2_cmds = {
-                'cisco_xr':[
-                    'dir harddisk:/%s/%s' % (type_subdir_on_device, sw_release),
-                    'dir harddisk:/%s/%s/SMU' % (type_subdir_on_device, sw_release),
-                    ],
-            }
-            rcmd_read2_outputs = RCMD.run_commands(read2_cmds)
-            CGI_CLI.uprint(' ', no_newlines = True if CGI_CLI.data.get("printall") else None)
-
-            ### GET DEVICE CASE-CORRECT FILE NAMES - AFTER COPYING TO DEVICE ##
-            true_OTI_tar_file_on_device, true_SMU_tar_files_on_device = None, []
-            for line in rcmd_read2_outputs[0].splitlines():
-                if OTI_tar_file.upper() in line.upper():
-                    true_OTI_tar_file_on_device = line.split()[-1].strip()
-                    break
-            for line in rcmd_read2_outputs[1].splitlines():
-                if SMU_tar_files.upper() in line.upper() and '.tar'.upper() in line.upper():
-                    true_SMU_tar_files_on_device.append(line.split()[-1].strip())
-
-            if CGI_CLI.data.get('OTI.tar_file'):
-                if not true_OTI_tar_file_on_device:
-                    CGI_CLI.uprint('OTI.tar file NOT FOUND!', color = 'red')
-                    RCMD.disconnect()
-                    sys.exit(0)
-                else:
-                    CGI_CLI.uprint('OTI.tar file %s' % \
-                        (true_OTI_tar_file_on_device + \
-                        ' FOUND.' if true_OTI_tar_file_on_device else 'NOT FOUND.'),\
-                        color = ('green' if true_OTI_tar_file_on_device else 'red'))
-
-            if CGI_CLI.data.get('SMU.tar_files'):
-                if len(true_SMU_tar_files_on_device)==0:
-                    CGI_CLI.uprint('SMU files NOT FOUND!', color = 'red')
-                    RCMD.disconnect()
-                    sys.exit(0)
-                else:
-                    CGI_CLI.uprint('SMU.tar files %s' % \
-                        (', '.join(true_SMU_tar_files_on_device) + \
-                        ' FOUND.' if len(true_SMU_tar_files_on_device)>0 else 'NOT FOUND.'),\
-                        color = ('green' if len(true_SMU_tar_files_on_device)>0 else 'red'))
-
-
-            ### MD5 CHECKS ON DEVICE/ROUTER ###################################
-            ### READ EXISTING FILES ON DEVICE - AFTER COPYING TO DEVICE #######
-            read3_cmds = {'cisco_xr':[]}
-            if true_OTI_tar_file_on_device:
-                read3_cmds = {
-                    'cisco_xr':['show md5 file /harddisk:/IOS-XR/%s/%s' % \
-                    (sw_release,true_OTI_tar_file_on_device)]}
-
-            for file in true_SMU_tar_files_on_device:
-                read3_cmds['cisco_xr'].append('show md5 file /harddisk:/IOS-XR/%s/SMU/%s' % \
-                    (sw_release,file))
-
-            CGI_CLI.uprint('checking md5', no_newlines = \
-                None if CGI_CLI.data.get("printall") else True)
-            rcmd_read3_outputs = RCMD.run_commands(read3_cmds)
-            CGI_CLI.uprint(' ', no_newlines = True if CGI_CLI.data.get("printall") else None)
-
-            ### MD5 CHECKSUM IS 32BYTES LONG ###
-            md5_true_OTI_tar_file_on_device = str()
-            md5_true_SMU_tar_files_on_device = []
-            if not true_OTI_tar_file_on_device:
-                for output in rcmd_read3_outputs:
-                    find_list = re.findall(r'[0-9a-fA-F]{32}', output.strip())
-                    if len(find_list)==1:
-                        md5_true_SMU_tar_files_on_device.append(find_list[0])
-            else:
-                for output in rcmd_read3_outputs[1:]:
-                    find_list = re.findall(r'[0-9a-fA-F]{32}', output.strip())
-                    if len(find_list)==1:
-                        md5_true_SMU_tar_files_on_device.append(find_list[0])
-
-            OTI_tar_md5_check_OK, SMU_tar_md5_check_OK = None, None
-            if CGI_CLI.data.get('OTI.tar_file'):
-                if true_OTI_tar_file_on_device and md5_true_SMU_tar_files_on_device and \
-                    true_OTI_tar_file_on_device == true_OTI_tar_file_on_server and \
-                    md5_true_SMU_tar_files_on_device == md5_true_SMU_tar_files_on_server:
-                    CGI_CLI.uprint('OTI.tar MD5 file - CHECK OK.', color = 'green')
-                    OTI_tar_md5_check_OK = True
-
-            if CGI_CLI.data.get('SMU.tar_files'):
-                for md5_on_server, md5_on_device in \
-                    zip(md5_true_SMU_tar_files_on_device,md5_true_SMU_tar_files_on_server):
-                    if md5_on_server and md5_on_device and md5_on_server == md5_on_device:
-                        CGI_CLI.uprint('SMU.tar MD5 files - CHECK OK.', color = 'green')
-                        SMU_tar_md5_check_OK = True
-
-            if CGI_CLI.data.get('OTI.tar_file') and not OTI_tar_md5_check_OK:
-                CGI_CLI.uprint('OTI.tar MD5 file - CHECK FAIL!', color = 'red')
-                RCMD.disconnect()
-                if len(device_list) > 1: continue
-                else: sys.exit(0)
-
-            if CGI_CLI.data.get('SMU.tar_files') and not SMU_tar_md5_check_OK:
-                CGI_CLI.uprint('SMU.tar MD5 files - CHECK FAIL!', color = 'red')
-                RCMD.disconnect()
-                if len(device_list) > 1: continue
-                else: sys.exit(0)
-
-            CGI_CLI.uprint('tar files - CHECK OK.', tag='h1', color = 'green')
-            if CGI_CLI.data.get('check_device_sw_files_only'):
-                RCMD.disconnect()
-                if len(device_list) > 1: continue
-                else: sys.exit(0)
-
-
             ## BACKUP NORMAL AND ADMIN CONFIG ################################
             if CGI_CLI.data.get('backup_configs_to_device_disk'):
                 actual_date_string = time.strftime("%Y-%m%d-%H:%M",time.gmtime(time.time()))
