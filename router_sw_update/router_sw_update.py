@@ -1801,11 +1801,12 @@ if type_subdir and brand_subdir:
             CGI_CLI.uprint('%s file(s) NOT FOUND in %s!' % (actual_file_name,directory), color = 'red')
             sys.exit(0)            
     CGI_CLI.uprint('File(s) md5 checksum(s):\n%s' % \
-        ('\n'.join([ str(directory+'/'+file+4*' '+md5+4*' '+dev_dir) for directory,dev_dir,file,md5 in true_sw_release_files_on_server ])))        
-    sys.exit(0)            
+        ('\n'.join([ str(directory+'/'+file+4*' '+md5+4*' '+dev_dir) for directory,dev_dir,file,md5 in true_sw_release_files_on_server ])))                   
+
 
 ### FOR LOOP PER DEVICE #######################################################
 for device in device_list:
+
     ### LOGFILENAME GENERATION ################################################
     logfilename = generate_logfilename(prefix = device.upper(), \
         USERNAME = USERNAME, suffix = str(SCRIPT_ACTION) + '.log')
@@ -1824,6 +1825,46 @@ for device in device_list:
             else: sys.exit(0)
 
         ### CHECK HDD/FLASH SPACE ON DEVICE ###################################
+        check_disk_space_cmds = {
+            ### some ios = enable, ask password, 'show bootflash:' , exit
+            'cisco_ios':['show bootflash:','show version | in (%s)' % (asr1k_detection_string)],
+            'cisco_xr':['show filesystem',
+                'show version | in "%s"' % (asr9k_detection_string),
+                ],
+            'juniper':['show system storage'],
+            'huawei':['display device | include PhyDisk','display disk information']
+        }
+        CGI_CLI.uprint('checking disk', \
+            no_newlines = None if CGI_CLI.data.get("printall") else True)
+        rcmd_check_disk_space_outputs = RCMD.run_commands(check_disk_space_cmds)
+        CGI_CLI.uprint(' ', no_newlines = True if CGI_CLI.data.get("printall") else None)
+
+        if RCMD.router_type == 'cisco_ios':
+            try: device_free_space = float(rcmd_check_disk_space_outputs[0].\
+                     split('bytes available')[0].splitlines()[-1].strip())
+            except: pass
+        elif RCMD.router_type == 'cisco_xr':
+            try: device_free_space = float(rcmd_check_disk_space_outputs[0].\
+                     split('harddisk:')[0].splitlines()[-1].split()[1].strip())
+            except: pass
+        elif RCMD.router_type == 'juniper': pass
+        elif RCMD.router_type == 'huawei': pass
+
+        CGI_CLI.uprint('disk free space = %s bytes' % (str(device_free_space)) , color = 'blue')
+
+        ### SOME GB FREE EXPECTED (1MB=1048576, 1GB=1073741824) ###
+        if device_free_space < (device_expected_GB_free * 1073741824):
+            CGI_CLI.uprint('disk space - CHECK FAIL!', color = 'red')
+            RCMD.disconnect()
+            if len(device_list) > 1: continue
+            else: sys.exit(0)
+        else: CGI_CLI.uprint('disk space - CHECK OK.', color = 'green')
+
+
+        RCMD.disconnect()
+        sys.exit(0)  
+
+
         ### RUN INITIAL DATA COLLECTION #######################################
         collector_cmds = {
             ### some ios = enable, ask password, 'show bootflash:' , exit
@@ -1848,31 +1889,14 @@ for device in device_list:
             'juniper':['show system storage'],
             'huawei':['display device | include PhyDisk','display disk information']
         }
+        
         CGI_CLI.uprint('collecting data', \
             no_newlines = None if CGI_CLI.data.get("printall") else True)
-        rcmd_collector_outputs = RCMD.run_commands(collector_cmds)
+        rcmd_check_disk_space_outputs = RCMD.run_commands(collector_cmds)
         CGI_CLI.uprint(' ', no_newlines = True if CGI_CLI.data.get("printall") else None)
 
-        if RCMD.router_type == 'cisco_ios':
-            try: device_free_space = float(rcmd_collector_outputs[0].\
-                     split('bytes available')[0].splitlines()[-1].strip())
-            except: pass
-        elif RCMD.router_type == 'cisco_xr':
-            try: device_free_space = float(rcmd_collector_outputs[0].\
-                     split('harddisk:')[0].splitlines()[-1].split()[1].strip())
-            except: pass
-        elif RCMD.router_type == 'juniper': pass
-        elif RCMD.router_type == 'huawei': pass
 
-        CGI_CLI.uprint('disk free space = %s bytes' % (str(device_free_space)) , color = 'blue')
 
-        ### SOME GB FREE EXPECTED (1MB=1048576, 1GB=1073741824) ###
-        if device_free_space < (device_expected_GB_free * 1073741824):
-            CGI_CLI.uprint('disk space - CHECK FAIL!', color = 'red')
-            RCMD.disconnect()
-            if len(device_list) > 1: continue
-            else: sys.exit(0)
-        else: CGI_CLI.uprint('disk space - CHECK OK.', color = 'green')
 
 
         ### CHECK LOCAL SERVER AND DEVICE HDD FILES ###########################
@@ -1889,7 +1913,7 @@ for device in device_list:
 
                 if CGI_CLI.data.get('OTI.tar_file'):
                     true_OTI_tar_file_on_device, true_SMU_tar_files_on_device = None, []
-                    for line in rcmd_collector_outputs[2].splitlines():
+                    for line in rcmd_check_disk_space_outputs[2].splitlines():
                         if OTI_tar_file.upper() in line.upper():
                             true_OTI_tar_file_on_device = line.split()[-1].strip()
                             break
@@ -1902,7 +1926,7 @@ for device in device_list:
 
                 if CGI_CLI.data.get('SMU.tar_files'):
                     true_OTI_tar_file_on_device, true_SMU_tar_files_on_device = None, []
-                    for line in rcmd_collector_outputs[3].splitlines():
+                    for line in rcmd_check_disk_space_outputs[3].splitlines():
                         if SMU_tar_files.upper() in line.upper() and '.tar'.upper() in line.upper():
                             true_SMU_tar_files_on_device.append(line.split()[-1].strip())
                     if len(true_SMU_tar_files_on_device)==0 or \
