@@ -1402,6 +1402,18 @@ def do_scp_command(USERNAME = None, PASSWORD = None, \
         return scp_result
     else: return str()
 
+###############################################################################
+
+sftp_cmd = '''
+sftp -o StrictHostKeyChecking=no  user@ftpsite.com << !
+ progress
+ cd offload
+ put /media/*/*.tgz |zenity --progress --auto-close
+ bye
+'''
+
+
+
 ##############################################################################
 
 def get_existing_sw_release_list(brand_subdir = None, type_subdir = None):
