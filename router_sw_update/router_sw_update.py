@@ -338,10 +338,10 @@ class CGI_CLI(object):
                     CGI_CLI.print_chunk('%s: <input type = "password" name = "%s"><br />'%\
                         (data_item.get('password','').replace('_',' '),data_item.get('password')))
                 elif data_item.get('radio'):
-                    ### 'RADIO':'NAME__VALUE' ###           
+                    ### 'RADIO':'NAME__VALUE' ###
                     if isinstance(data_item.get('radio'), (list,tuple)):
                         for radiobutton in data_item.get('radio'):
-                            try: 
+                            try:
                                 value = radiobutton.split('__')[1]
                                 name = radiobutton.split('__')[0]
                             except: value, name = radiobutton, 'radio'
@@ -349,7 +349,7 @@ class CGI_CLI(object):
                                 (name,value,value.replace('_',' '), \
                                 list_separator if list_separator else str()))
                     else:
-                        try: 
+                        try:
                             value = data_item.get('radio').split('__')[1]
                             name = data_item.get('radio').split('__')[0]
                         except: value, name = data_item.get('radio'), 'radio'
@@ -1407,6 +1407,42 @@ def do_scp_command(USERNAME = None, PASSWORD = None, file_to_copy = None, \
 
 ##############################################################################
 
+def get_existing_sw_release_list(brand_subdir = None, type_subdir = None):
+    sw_release_list, sw_release_list_raw, default_sw_release = [], [], str()
+
+    if brand_subdir and type_subdir:
+        ### CHECK LOCAL SW VERSIONS DIRECTORIES ###################################
+        LOCAL_SW_SUBTYPE_DIR = os.path.abspath(os.path.join(os.sep,'home',\
+            'tftpboot',brand_subdir, type_subdir))
+        try:
+            sw_release_list_raw = [ str(subdir) for subdir in os.listdir(LOCAL_SW_SUBTYPE_DIR) ]
+        except: pass
+        for release in sw_release_list_raw:
+            try:
+                ### TRICK:DIRECTORY (with or without dots) MUST BE A NUMBER ###
+                if os.path.isdir(os.path.join(LOCAL_SW_SUBTYPE_DIR,release)):
+                    forget_it = int(release.replace('.',''))
+                    sw_release_list.append(release)
+                ### MAYBE DIRECTORIES ARE NOT DONE, SO CHECK FILES ###
+                elif os.path.isfile(os.path.join(LOCAL_SW_SUBTYPE_DIR,release)):
+                    for actual_file_type_with_subdir in sw_file_types_list:
+                        actual_file_type_subdir, actual_file_name = os.path.split(actual_file_type_with_subdir)
+                        ### PROBLEM ARE '*' IN FILE NAME ###
+                        for part_of_name in actual_file_name.split('*'):
+                            if part_of_name.upper() in release.upper():
+                                sw_release_list.append(release)
+            except: pass
+        if len(sw_release_list) > 0:
+            sw_release_set = set(sw_release_list)
+            del sw_release_list
+            sw_release_list = list(sw_release_set)
+            del sw_release_set
+            sw_release_list.sort(reverse = True)
+            default_sw_release = sw_release_list[0]
+    return sw_release_list, default_sw_release
+
+##############################################################################
+
 def get_local_subdirectories(brand_raw = None, type_raw = None):
     brand_subdir, type_subdir_on_server, file_types = str(), str(), []
     type_subdir_on_device = str()
@@ -1522,7 +1558,7 @@ for key in CGI_CLI.data.keys():
         active_menu = 3
 
 ### GET sw_release FROM CGI ###################################################
-selected_release_string = 'sw_release'
+selected_release_string = 'soft_release'
 if not sw_release:
     for key in CGI_CLI.data.keys():
         try: value = CGI_CLI.data.get(key)
@@ -1582,21 +1618,8 @@ if selected_device_type:
             break
 
     ### CHECK LOCAL SW VERSIONS DIRECTORIES ###################################
-    LOCAL_SW_SUBTYPE_DIR = os.path.abspath(os.path.join(os.sep,'home',\
-        'tftpboot',brand_subdir, type_subdir))
-    try:
-        sw_release_list_raw = [ str(subdir) for subdir in os.listdir(LOCAL_SW_SUBTYPE_DIR) ]
-    except: pass
-    #except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']', color = 'magenta')
-    ### TRICK = DIRECTORY (with or without dots) MUST BE A NUMBER ###
-    for release in sw_release_list_raw:
-        try:
-            forget_it = int(release.replace('.',''))
-            sw_release_list.append(release)
-        except: pass
-    if len(sw_release_list) > 0:
-        sw_release_list.sort(reverse = True)
-        default_sw_release = sw_release_list[0]
+    sw_release_list, default_sw_release = get_existing_sw_release_list(brand_subdir, type_subdir)
+
 
 ### ROUTER-TYPE MENU PART #####################################################
 table_rows = 5
@@ -1662,21 +1685,8 @@ if len(device_list)>0:
             break
 
     ### CHECK LOCAL SW VERSIONS DIRECTORIES ###################################
-    LOCAL_SW_SUBTYPE_DIR = os.path.abspath(os.path.join(os.sep,'home',\
-        'tftpboot',brand_subdir, type_subdir))
-    try:
-        sw_release_list_raw = [ str(subdir) for subdir in os.listdir(LOCAL_SW_SUBTYPE_DIR) ]
-    except: pass
-    ### TRICK = DIRECTORY (with or without dots) MUST BE A NUMBER ###
-    if len(sw_release_list) == 0:
-        for release in sw_release_list_raw:
-            try:
-                forget_it = int(release.replace('.',''))
-                sw_release_list.append(release)
-            except: pass
-        if len(sw_release_list) > 0:
-            sw_release_list.sort(reverse = True)
-            default_sw_release = sw_release_list[0]
+    if len(sw_release_list) == 9:
+        sw_release_list, default_sw_release = get_existing_sw_release_list(brand_subdir, type_subdir)
 
 ###############################################################################
 
@@ -1697,7 +1707,7 @@ if CGI_CLI.cgi_active and (not CGI_CLI.submit_form or active_menu == 2):
         '<h3>SW RELEASE (required) [default=%s]:</h3>' % (default_sw_release)]
 
         if len(sw_release_list) > 0:
-            release_sw_release_list = [ "%s__%s" % (selected_release_string, release) for release in sw_release_list ]        
+            release_sw_release_list = [ "%s__%s" % (selected_release_string, release) for release in sw_release_list ]
             main_menu_list.append({'radio':release_sw_release_list})
         else:
             main_menu_list.append('<h3 style="color:red">NO SW RELEASE VERSIONS AVAILABLE on server %s!</h3>' % (iptac_server))
@@ -1750,8 +1760,6 @@ CGI_CLI.uprint('expected_disk_free_GB = %s\nsw_file_types = %s' % \
     ))
 #CGI_CLI.uprint('active_menu = %s' % (str(active_menu)))
 
-#sys.exit(0)
-
 ###############################################################################
 
 if CGI_CLI.data.get('OTI.tar_file'):
@@ -1776,21 +1784,34 @@ if len(device_list) == 0:
 
 ###############################################################################
 
-if type_subdir and brand_subdir:
+if type_subdir and brand_subdir and sw_release:
     CGI_CLI.uprint('Server %s checks:\n' % (iptac_server), tag = 'h2', color = 'blue')
 
     ### CHECK LOCAL SW DIRECTORIES ########################################
     directory_list = []
     for actual_file_type in selected_sw_file_types_list:
         actual_file_type_subdir, forget_it = os.path.split(actual_file_type)
-        directory_list.append(os.path.abspath(os.path.join(os.sep,'home',\
-        'tftpboot',brand_subdir, type_subdir, sw_release, actual_file_type_subdir)))
-    nonexistent_directories = ', '.join([ directory for directory in directory_list if not os.path.exists(directory) ])
 
-    if nonexistent_directories:
-        CGI_CLI.uprint('Path(s) %s NOT FOUND!' % \
-            (nonexistent_directories if nonexistent_directories else str()), color = 'red')
-        sys.exit(0)
+        dir_version_subdir = os.path.abspath(os.path.join(os.sep,'home',\
+            'tftpboot',brand_subdir, type_subdir, sw_release, actual_file_type_subdir)).strip()
+
+        dir_without_version_subdir = os.path.abspath(os.path.join(os.sep,'home',\
+            'tftpboot',brand_subdir, type_subdir, actual_file_type_subdir)).strip()
+
+        ### BUG: os.path.exists RETURNS ALLWAYS FALSE, SO I USE OS ls -l ######
+        ls_all_results = LCMD.run_commands({'unix':['ls -l %s' % (dir_version_subdir), 
+            'ls -l %s' % (dir_without_version_subdir)]})
+        if 'No such file or directory' in ls_all_results[0] \
+            and 'No such file or directory' in ls_all_results[1]:
+            CGI_CLI.uprint('Path for %s NOT FOUND!' % (actual_file_type), color = 'red')
+            sys.exit(0)
+
+        if 'No such file or directory' in ls_all_results[0]: 
+            ### ASSUME DIR WITHOUT VERSION ONLY IF VERSION SUBDIR DOES NOT EXISTS ###
+            if 'No such file or directory' in ls_all_results[1]: pass
+            else: directory_list.append(dir_without_version_subdir)
+        else: directory_list.append(dir_version_subdir)
+        
 
     ### CHECK LOCAL SERVER FILES EXISTENCY ################################
     true_sw_release_files_on_server = []
@@ -1813,12 +1834,18 @@ if type_subdir and brand_subdir:
                     (os.path.join(directory,true_file_name))]})
                 md5_sum = local_oti_checkum_string[0].split()[0].strip()
                 true_sw_release_files_on_server.append([directory,device_directory,true_file_name,md5_sum])
+        ### IF NO FILES FOUND, LOOK DIRECTLY IN
+        if no_such_files_in_directory:
+           pass
+
+
         if no_such_files_in_directory:
             CGI_CLI.uprint('%s file(s) NOT FOUND in %s!' % (actual_file_name,directory), color = 'red')
             sys.exit(0)
     CGI_CLI.uprint('File(s) md5 checksum(s):\n%s' % \
         ('\n'.join([ str(directory+'/'+file+4*' '+md5+4*' '+dev_dir) for directory,dev_dir,file,md5 in true_sw_release_files_on_server ])))
 
+sys.exit(0)
 
 ### FOR LOOP PER DEVICE #######################################################
 for device in device_list:
@@ -1912,21 +1939,21 @@ for device in device_list:
         ### FORCE REWRITE FILES ON DEVICE #####################################
         if CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
             CGI_CLI.uprint('copy file(s)', \
-                no_newlines = None if CGI_CLI.data.get("printall") else True)        
+                no_newlines = None if CGI_CLI.data.get("printall") else True)
             for directory, dev_dir, file, md5 in true_sw_release_files_on_server:
                 scp_cmd = do_scp_command(USERNAME, PASSWORD, '%s/%s' % (directory, file),
                     '%s%s/%s' % (drive_string, dev_dir, file), printall = CGI_CLI.data.get("printall"))
         CGI_CLI.uprint('\n')
-        
+
 
         ### CHECK MD5 FIRST ###################################################
         md5_cmds = []
         for directory, dev_dir, file, md5 in true_sw_release_files_on_server:
             md5_cmds.append('show md5 file /%s%s/%s' % (drive_string, dev_dir, file))
         CGI_CLI.uprint('checking md5(s)', \
-            no_newlines = None if CGI_CLI.data.get("printall") else True)    
+            no_newlines = None if CGI_CLI.data.get("printall") else True)
         rcmd_md5_outputs = RCMD.run_commands({'cisco_xr':md5_cmds})
-        for files_list,rcmd_md5_output in zip(true_sw_release_files_on_server,rcmd_md5_outputs):        
+        for files_list,rcmd_md5_output in zip(true_sw_release_files_on_server,rcmd_md5_outputs):
             directory, dev_dir, file, md5 = files_list
             find_list = re.findall(r'[0-9a-fA-F]{32}', rcmd_md5_output.strip())
             if len(find_list) == 1:
@@ -1934,7 +1961,7 @@ for device in device_list:
                 if md5_on_device == md5:
                     md5_ok = True
         CGI_CLI.uprint('\n')
-        
+
 
         ### SHOW DEVICE DIRECTORY #############################################
         redundant_dev_dir_list = [ dev_dir for directory,dev_dir,file,md5 in true_sw_release_files_on_server ]
@@ -1955,8 +1982,8 @@ for device in device_list:
         CGI_CLI.uprint('\n')
 
         for unique_dir,unique_dir_outputs in zip(unique_dev_dir_set,rcmd_dir_outputs):
-            for files_list,rcmd_md5_output in zip(true_sw_release_files_on_server,rcmd_md5_outputs):        
-                directory, dev_dir, file, md5 = files_list           
+            for files_list,rcmd_md5_output in zip(true_sw_release_files_on_server,rcmd_md5_outputs):
+                directory, dev_dir, file, md5 = files_list
                 if unique_dir == dev_dir:
                     file_not_found = True
                     for line in unique_dir_outputs.splitlines():
@@ -1964,7 +1991,7 @@ for device in device_list:
                         except: possible_file_name = str()
                         if file == possible_file_name:
                             file_not_found = False
-                    ### FILE EXIST OR NOT, CHECK ALSO MD5 IF FILE EXISTS ######                    
+                    ### FILE EXIST OR NOT, CHECK ALSO MD5 IF FILE EXISTS ######
                     md5_ok = False
                     if not file_not_found:
                         find_list = re.findall(r'[0-9a-fA-F]{32}', rcmd_md5_output.strip())
@@ -1973,22 +2000,22 @@ for device in device_list:
                             if md5_on_device == md5:
                                 md5_ok = True
                     ### COPY MISSING OF REWRITE CORRUPTED FILE ################
-                    if CGI_CLI.data.get('check_device_sw_files_only'): pass                    
-                    elif file_not_found or not md5_ok:     
+                    if CGI_CLI.data.get('check_device_sw_files_only'): pass
+                    elif file_not_found or not md5_ok:
                         scp_cmd = do_scp_command(USERNAME, PASSWORD, '%s/%s' % (directory, file),
-                            '%s%s/%s' % (drive_string, dev_dir, file), printall = CGI_CLI.data.get("printall"))   
+                            '%s%s/%s' % (drive_string, dev_dir, file), printall = CGI_CLI.data.get("printall"))
                         rcmd_md5_one_output = RCMD.run_commands('show md5 file /%s%s/%s' % (drive_string, dev_dir, file))
                         ### CHECK MD5 AGAIN ###################################
-                        md5_ok = False                        
+                        md5_ok = False
                         find_list = re.findall(r'[0-9a-fA-F]{32}', rcmd_md5_one_output[0].strip())
                         if len(find_list) == 1:
                             md5_on_device = find_list[0]
                             if md5_on_device == md5:
-                                md5_ok = True                                         
+                                md5_ok = True
                     CGI_CLI.uprint('File=%s%s/%s    MD5 CHECK=%s' % (drive_string, dev_dir, file, str(md5_ok)))
 
 
-                    
+
 
         ### CHECK LOCAL SERVER AND DEVICE HDD FILES ###########################
         if RCMD.router_type == 'cisco_xr':
