@@ -338,11 +338,6 @@ class CGI_CLI(object):
                     CGI_CLI.print_chunk('%s: <input type = "password" name = "%s"><br />'%\
                         (data_item.get('password','').replace('_',' '),data_item.get('password')))
                 elif data_item.get('radio'):
-                    # if isinstance(data_item.get('radio_script_action'), (list,tuple)):
-                        # for radiobutton in data_item.get('radio'):
-                            # CGI_CLI.print_chunk('<input type = "radio" name = "%s" value = "%s" /> %s %s'%\
-                                # ('script_action',radiobutton,radiobutton.replace('_',' '), \
-                                # list_separator if list_separator else str()))
                     ### 'RADIO':'NAME__VALUE' ###           
                     if isinstance(data_item.get('radio'), (list,tuple)):
                         for radiobutton in data_item.get('radio'):
@@ -1527,15 +1522,16 @@ for key in CGI_CLI.data.keys():
         active_menu = 3
 
 ### GET sw_release FROM CGI ###################################################
-selected_release_string = 'release_'
+selected_release_string = 'sw_release'
 if not sw_release:
     for key in CGI_CLI.data.keys():
-        try: value = str(key)
-        except: value = str()
-        if selected_release_string in value:
-            sw_release = value.replace(selected_release_string,str())
+        try: value = CGI_CLI.data.get(key)
+        except: value = None
+        if selected_release_string == key and value:
+            sw_release = value
             active_menu = 3
             break
+
 
 
 ### SQL INIT ##################################################################
@@ -1704,7 +1700,7 @@ if CGI_CLI.cgi_active and (not CGI_CLI.submit_form or active_menu == 2):
         {'text':'device'}, '<br/>', \
         '<h3>SW RELEASE (required) [default=%s]:</h3>' % (default_sw_release)]
 
-        release_sw_release_list = [ selected_release_string + release for release in sw_release_list ]
+        release_sw_release_list = [ "%s__%s" % (selected_release_string, release) for release in sw_release_list ]
 
         if len(release_sw_release_list) > 0:
             main_menu_list.append({'radio':release_sw_release_list})
@@ -1723,7 +1719,7 @@ if CGI_CLI.cgi_active and (not CGI_CLI.submit_form or active_menu == 2):
         '<h3>LDAP authentication (required):</h3>',{'text':'username'}, \
         '<br/>', {'password':'password'}, '<br/>','<br/>']
 
-        if len(SCRIPT_ACTIONS_LIST)>0: main_menu_list.append({'radio':SCRIPT_ACTIONS_LIST})
+        if len(SCRIPT_ACTIONS_LIST)>0: main_menu_list.append({'radio':[ 'script_action__' + action for action in SCRIPT_ACTIONS_LIST ]})
 
         main_menu_list += ['<br/>','<h3>Options:</h3>', \
             {'checkbox':'check_device_sw_files_only'},\
@@ -1757,6 +1753,8 @@ CGI_CLI.uprint('expected_disk_free_GB = %s\nsw_file_types = %s' % \
     ', '.join(selected_sw_file_types_list) if len(selected_sw_file_types_list)>0 else str()
     ))
 CGI_CLI.uprint('active_menu = %s' % (str(active_menu)))
+
+sys.exit(0)
 ###############################################################################
 
 if CGI_CLI.data.get('OTI.tar_file'):
