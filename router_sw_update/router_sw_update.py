@@ -338,19 +338,28 @@ class CGI_CLI(object):
                     CGI_CLI.print_chunk('%s: <input type = "password" name = "%s"><br />'%\
                         (data_item.get('password','').replace('_',' '),data_item.get('password')))
                 elif data_item.get('radio'):
-                    if isinstance(data_item.get('radio_script_action'), (list,tuple)):
+                    # if isinstance(data_item.get('radio_script_action'), (list,tuple)):
+                        # for radiobutton in data_item.get('radio'):
+                            # CGI_CLI.print_chunk('<input type = "radio" name = "%s" value = "%s" /> %s %s'%\
+                                # ('script_action',radiobutton,radiobutton.replace('_',' '), \
+                                # list_separator if list_separator else str()))
+                    ### 'RADIO':'NAME__VALUE' ###           
+                    if isinstance(data_item.get('radio'), (list,tuple)):
                         for radiobutton in data_item.get('radio'):
+                            try: 
+                                value = radiobutton.split('__')[1]
+                                name = radiobutton.split('__')[0]
+                            except: value, name = radiobutton, 'radio'
                             CGI_CLI.print_chunk('<input type = "radio" name = "%s" value = "%s" /> %s %s'%\
-                                ('script_action',radiobutton,radiobutton.replace('_',' '), \
-                                list_separator if list_separator else str()))
-                    elif isinstance(data_item.get('radio'), (list,tuple)):
-                        for radiobutton in data_item.get('radio'):
-                            CGI_CLI.print_chunk('<input type = "radio" name = "%s" value = "%s" /> %s %s'%\
-                                (radiobutton,radiobutton,radiobutton.replace('_',' '), \
+                                (name,value,value.replace('_',' '), \
                                 list_separator if list_separator else str()))
                     else:
+                        try: 
+                            value = data_item.get('radio').split('__')[1]
+                            name = data_item.get('radio').split('__')[0]
+                        except: value, name = data_item.get('radio'), 'radio'
                         CGI_CLI.print_chunk('<input type = "radio" name = "%s" value = "%s" /> %s'%\
-                            (data_item.get('radio'),data_item.get('radio'),data_item.get('radio','').replace('_',' ')))
+                            (name,value,value.replace('_',' ')))
                 elif data_item.get('checkbox'):
                     CGI_CLI.print_chunk('<input type = "checkbox" name = "%s" value = "on" /> %s'%\
                         (data_item.get('checkbox'),data_item.get('checkbox','').replace('_',' ')))
@@ -1471,7 +1480,7 @@ def get_local_subdirectories(brand_raw = None, type_raw = None):
 ##############################################################################
 if __name__ != "__main__": sys.exit(0)
 USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True)
-#CGI_CLI.print_args()
+CGI_CLI.print_args()
 ##############################################################################
 
 device_expected_GB_free = 0.2
@@ -1555,13 +1564,13 @@ if device_types_list_in_list:
     device_types.sort()
 
 ### FIND SELECTED DEVICE TYPE #################################################
-router_type_id_string, router_id_string = "___", '__'
+router_type_id_string, router_id_string = "router_type", '__'
 selected_device_type = str()
 for key in CGI_CLI.data.keys():
-    ### DEVICE NAME IS IN '____KEY' ###
-    try: value = str(key)
-    except: value = str()
-    if router_type_id_string in value:
+    ### DEVICE NAME IS IN 'router_type__VALUE' ###
+    try: value = CGI_CLI.data.get(key)
+    except: value = None
+    if router_type_id_string == key and value:
         selected_device_type = value.replace('_','')
         active_menu = 2
 
@@ -1605,7 +1614,7 @@ router_type_menu_list = ['<h2>Select router type:</h2>',
 for router_type in device_types:
     if counter == 0: router_type_menu_list.append('<tr>')
     router_type_menu_list.append('<td>')
-    router_type_menu_list.append({'radio':'%s%s' % (router_type_id_string,router_type)})
+    router_type_menu_list.append({'radio':'%s__%s' % (router_type_id_string,router_type)})
     counter += 1
     router_type_menu_list.append('</td>')
     if counter + 1 > table_rows:
@@ -1747,7 +1756,7 @@ CGI_CLI.uprint('expected_disk_free_GB = %s\nsw_file_types = %s' % \
     (device_expected_GB_free, \
     ', '.join(selected_sw_file_types_list) if len(selected_sw_file_types_list)>0 else str()
     ))
-
+CGI_CLI.uprint('active_menu = %s' % (str(active_menu)))
 ###############################################################################
 
 if CGI_CLI.data.get('OTI.tar_file'):
