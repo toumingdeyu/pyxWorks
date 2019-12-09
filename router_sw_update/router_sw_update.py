@@ -1448,7 +1448,7 @@ def does_dir_exists_by_ls_l(directory):
     ls_all_result = LCMD.run_commands({'unix':['ls -l %s' % (directory)]})
     if 'No such file or directory' in ls_all_result[0] \
         or not 'total ' in ls_all_result[0]:
-        return False    
+        return False
     return True
 
 ##############################################################################
@@ -1811,17 +1811,13 @@ if type_subdir and brand_subdir and sw_release:
         ### BUG: os.path.exists RETURNS ALLWAYS FALSE, SO I USE OS ls -l ######
         dir_version_subdir_exists = does_dir_exists_by_ls_l(dir_version_subdir)
         dir_without_version_subdir_exists = does_dir_exists_by_ls_l(dir_without_version_subdir)
-                
+
         if not dir_version_subdir_exists and not dir_without_version_subdir_exists:
             CGI_CLI.uprint('Path for %s NOT FOUND!' % (actual_file_type), color = 'red')
             sys.exit(0)
 
         if dir_version_subdir_exists: directory_list.append(dir_version_subdir)
         elif dir_without_version_subdir_exists: directory_list.append(dir_without_version_subdir)
-
-    
-    CGI_CLI.uprint(directory_list)
-    CGI_CLI.uprint(selected_sw_file_types_list)    
 
     ### CHECK LOCAL SERVER FILES EXISTENCY ################################
     true_sw_release_files_on_server = []
@@ -1848,21 +1844,12 @@ if type_subdir and brand_subdir and sw_release:
                     (os.path.join(directory,true_file_name))]})
                 md5_sum = local_oti_checkum_string[0].split()[0].strip()
                 true_sw_release_files_on_server.append([directory,device_directory,true_file_name,md5_sum])
-        ### IF NO FILES FOUND, LOOK DIRECTLY IN
-        if no_such_files_in_directory:
-           pass
-
-
         if no_such_files_in_directory:
             CGI_CLI.uprint('%s file(s) NOT FOUND in %s!' % (actual_file_name,directory), color = 'red')
             sys.exit(0)
-    CGI_CLI.uprint('File(s) md5 checksum(s):\n%s' % \
+    CGI_CLI.uprint('File(s), md5 checksum(s), device folder(s) to copy:\n%s' % \
         ('\n'.join([ str(directory+'/'+file+4*' '+md5+4*' '+dev_dir) for directory,dev_dir,file,md5 in true_sw_release_files_on_server ])))
 
-
-    CGI_CLI.uprint(true_sw_release_files_on_server)
-
-sys.exit(0)
 
 ### FOR LOOP PER DEVICE #######################################################
 for device in device_list:
@@ -1887,6 +1874,7 @@ for device in device_list:
         ### DEVICE DRIVE STRING ###############################################
         drive_string = str()
         if RCMD.router_type == 'cisco_xr': drive_string = 'harddisk:'
+        if RCMD.router_type == 'cisco_xe': drive_string = 'bootflash:'
 
         ### CHECK HDD/FLASH SPACE ON DEVICE ###################################
         check_disk_space_cmds = {
@@ -1941,7 +1929,7 @@ for device in device_list:
                     up_path = up_path + '/' + dev_sub_dir
 
         mkdir_device_cmds = {
-            'cisco_ios':[],
+            'cisco_ios':[xr_device_mkdir_list],
             'cisco_xr':xr_device_mkdir_list,
             'juniper':[],
             'huawei':[]
@@ -1951,6 +1939,7 @@ for device in device_list:
             no_newlines = None if CGI_CLI.data.get("printall") else True)
         forget_it = RCMD.run_commands(mkdir_device_cmds)
         CGI_CLI.uprint('\n')
+
 
 
         ### FORCE REWRITE FILES ON DEVICE #####################################
@@ -1964,12 +1953,13 @@ for device in device_list:
 
 
         ### CHECK MD5 FIRST ###################################################
-        md5_cmds = []
+        xr_md5_cmds, xe_md5_cmds = [], []
         for directory, dev_dir, file, md5 in true_sw_release_files_on_server:
-            md5_cmds.append('show md5 file /%s%s/%s' % (drive_string, dev_dir, file))
+            xr_md5_cmds.append('show md5 file /%s%s/%s' % (drive_string, dev_dir, file))
+            xe_md5_cmds.append('verify /md5 %s%s/%s' % (drive_string, dev_dir, file))
         CGI_CLI.uprint('checking md5(s)', \
             no_newlines = None if CGI_CLI.data.get("printall") else True)
-        rcmd_md5_outputs = RCMD.run_commands({'cisco_xr':md5_cmds})
+        rcmd_md5_outputs = RCMD.run_commands({'cisco_xe':xe_md5_cmds,'cisco_xr':xr_md5_cmds})
         for files_list,rcmd_md5_output in zip(true_sw_release_files_on_server,rcmd_md5_outputs):
             directory, dev_dir, file, md5 = files_list
             find_list = re.findall(r'[0-9a-fA-F]{32}', rcmd_md5_output.strip())
@@ -1988,7 +1978,7 @@ for device in device_list:
         xr_device_dir_list = [ 'dir %s%s' % (drive_string, dev_dir) for dev_dir in unique_dev_dir_set ]
 
         dir_device_cmds = {
-            'cisco_ios':[],
+            'cisco_ios':[xr_device_dir_list],
             'cisco_xr':xr_device_dir_list,
             'juniper':[],
             'huawei':[]
@@ -2021,7 +2011,9 @@ for device in device_list:
                     elif file_not_found or not md5_ok:
                         scp_cmd = do_scp_command(USERNAME, PASSWORD, '%s/%s' % (directory, file),
                             '%s%s/%s' % (drive_string, dev_dir, file), printall = CGI_CLI.data.get("printall"))
-                        rcmd_md5_one_output = RCMD.run_commands('show md5 file /%s%s/%s' % (drive_string, dev_dir, file))
+                        xr_md5_cmd = 'show md5 file /%s%s/%s' % (drive_string, dev_dir, file)
+                        xe_md5_cmd = 'verify /md5 %s%s/%s' % (drive_string, dev_dir, file)
+                        rcmd_md5_one_output = RCMD.run_commands({'cisco_xe':xe_md5_cmd,'cisco_xr':xr_md5_cmd})
                         ### CHECK MD5 AGAIN ###################################
                         md5_ok = False
                         find_list = re.findall(r'[0-9a-fA-F]{32}', rcmd_md5_one_output[0].strip())
@@ -2035,18 +2027,24 @@ for device in device_list:
 
 
         ### CHECK LOCAL SERVER AND DEVICE HDD FILES ###########################
-        if RCMD.router_type == 'cisco_xr':
+        if RCMD.router_type == 'cisco_xr' \
+            or RCMD.router_type == 'cisco_xe':
             ## BACKUP NORMAL AND ADMIN CONFIG ################################
             if CGI_CLI.data.get('backup_configs_to_device_disk'):
                 actual_date_string = time.strftime("%Y-%m%d-%H:%M",time.gmtime(time.time()))
-                backup_config_rcmds = {'cisco_xr':[
-                'copy running-config harddisk:%s-config.txt' % (actual_date_string),
-                '\n',
-                'admin',
-                'copy running-config harddisk:admin-%s-config.txt' %(actual_date_string),
-                '\n',
-                'exit'
-                ]}
+                backup_config_rcmds = {
+                    'cisco_xe':[
+                    'copy running-config %s%s-config.txt' % (drive_string, actual_date_string),
+                    '\n',
+                    ],
+                    'cisco_xr':[
+                    'copy running-config %s%s-config.txt' % (drive_string, actual_date_string),
+                    '\n',
+                    'admin',
+                    'copy running-config %sadmin-%s-config.txt' %(drive_string, actual_date_string),
+                    '\n',
+                    'exit']
+                }
                 CGI_CLI.uprint('backup configs', no_newlines = \
                     None if CGI_CLI.data.get("printall") else True)
                 forget_it = RCMD.run_commands(backup_config_rcmds)
@@ -2054,25 +2052,25 @@ for device in device_list:
 
             ### DELETE TAR FILES ON END #######################################
             if CGI_CLI.data.get('delete_device_sw_files_on_end'):
-                del_files_cmds = {'cisco_xr':[]}
+                del_files_cmds = {'cisco_xr':[],'cisco_xe':[]}
 
-                if CGI_CLI.data.get('OTI.tar_file') and true_OTI_tar_file_on_device:
-                    del_files_cmds = {'cisco_xr':['del /harddisk:/IOS-XR/%s/%s' % \
-                        (sw_release,true_OTI_tar_file_on_device),'\n']}
-
-                if CGI_CLI.data.get('SMU.tar_files'):
-                    for file in true_SMU_tar_files_on_device:
-                        del_files_cmds['cisco_xr'].append('del /harddisk:/IOS-XR/%s/SMU/%s' % \
-                            (sw_release,file))
-                        del_files_cmds['cisco_xr'].append('\n')
-
-                del_files_cmds['cisco_xr'].append('dir harddisk:/IOS-XR/%s' % (sw_release))
-                del_files_cmds['cisco_xr'].append('dir harddisk:/IOS-XR/%s/SMU' % (sw_release))
+                for unique_dir,unique_dir_outputs in zip(unique_dev_dir_set,rcmd_dir_outputs):
+                    for files_list,rcmd_md5_output in zip(true_sw_release_files_on_server,rcmd_md5_outputs):
+                        directory, dev_dir, file, md5 = files_list
+                        if unique_dir == dev_dir:
+                            del_files_cmds['cisco_xr'].append( \
+                                'del /%s%s/%s' % (drive_string, dev_dir, file))
+                            del_files_cmds['cisco_xr'].append('\n')
+                            del_files_cmds['cisco_xr'].append('\n')
+                            del_files_cmds['cisco_xe'].append( \
+                                'del %s%s/%s' % (drive_string, dev_dir, file))
+                            del_files_cmds['cisco_xe'].append('\n')
+                            del_files_cmds['cisco_xe'].append('\n')
 
                 CGI_CLI.uprint('deleting sw release files', no_newlines = \
                     None if CGI_CLI.data.get("printall") else True)
                 forget_it = RCMD.run_commands(del_files_cmds)
-                CGI_CLI.uprint(' ', no_newlines = True if CGI_CLI.data.get("printall") else None)
+                CGI_CLI.uprint('\n')
 
         ### DISCONNECT ########################################################
         RCMD.disconnect()
