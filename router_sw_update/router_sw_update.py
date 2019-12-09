@@ -1452,9 +1452,9 @@ def get_existing_sw_release_list(brand_subdir = None, type_subdir = None):
 
 ##############################################################################
 
-def does_dir_exists_by_ls_l(directory):
+def does_dir_exists_by_ls_l(directory, printall = None):
     ### BUG: os.path.exists RETURNS ALLWAYS FALSE, SO I USE OS ls -l ######
-    ls_all_result = LCMD.run_commands({'unix':['ls -l %s' % (directory)]})
+    ls_all_result = LCMD.run_commands({'unix':['ls -l %s' % (directory)]}, printall = printall)
     if 'No such file or directory' in ls_all_result[0] \
         or not 'total ' in ls_all_result[0]:
         return False
@@ -1530,7 +1530,8 @@ def get_local_subdirectories(brand_raw = None, type_raw = None):
 ##############################################################################
 if __name__ != "__main__": sys.exit(0)
 USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True)
-#CGI_CLI.print_args()
+printall = CGI_CLI.data.get("printall")
+if printall: CGI_CLI.print_args()
 ##############################################################################
 
 device_expected_GB_free = 0.2
@@ -1553,7 +1554,6 @@ asr1k_detection_string = 'CSR1000'
 asr9k_detection_string = 'ASR9K|IOS-XRv 9000'
 
 ###############################################################################
-printall = CGI_CLI.data.get("printall")
 device = CGI_CLI.data.get("device",None)
 if device: device = device.upper()
 
@@ -1701,6 +1701,7 @@ if len(device_list)>0:
             type_raw  = router_dict.get('hardware',str())
             brand_subdir, type_subdir, type_subdir_on_device, sw_file_types_list = \
                 get_local_subdirectories(brand_raw = brand_raw, type_raw = type_raw)
+            if printall: CGI_CLI.uprint('READ_FROM_DB: [router=%s, vendor=%s, hardware=%s]' %(device_list[0], brand_raw, type_raw))    
             break
 
     ### CHECK LOCAL SW VERSIONS DIRECTORIES ###################################
@@ -1717,7 +1718,7 @@ CGI_CLI.uprint('ROUTER SW UPGRADE TOOL', tag = 'h1', color = 'blue')
 if CGI_CLI.cgi_active and (not CGI_CLI.submit_form or active_menu == 2):
     ### DISPLAY ROUTER-TYPE MENU ##############################################
     if active_menu == 0:
-        main_menu_list = router_type_menu_list
+        main_menu_list = router_type_menu_list + ['<br/>', {'checkbox':'printall'} ]
     ### DISPLAY SELEDT ROUTER MENU ############################################
     elif active_menu == 2:
         main_menu_list = router_menu_list + \
@@ -1817,8 +1818,8 @@ if type_subdir and brand_subdir and sw_release:
             'tftpboot',brand_subdir, type_subdir, actual_file_type_subdir)).strip()
 
         ### BUG: os.path.exists RETURNS ALLWAYS FALSE, SO I USE OS ls -l ######
-        dir_version_subdir_exists = does_dir_exists_by_ls_l(dir_version_subdir)
-        dir_without_version_subdir_exists = does_dir_exists_by_ls_l(dir_without_version_subdir)
+        dir_version_subdir_exists = does_dir_exists_by_ls_l(dir_version_subdir, printall = printall)
+        dir_without_version_subdir_exists = does_dir_exists_by_ls_l(dir_without_version_subdir, printall = printall)
 
         if not dir_version_subdir_exists and not dir_without_version_subdir_exists:
             CGI_CLI.uprint('Path for %s NOT FOUND!' % (actual_file_type), color = 'red')
@@ -1837,7 +1838,7 @@ if type_subdir and brand_subdir and sw_release:
         else:
             ### FILES ON DEVICE WILL BE IN DIRECTORY WITHOUT SW_RELEASE IF SW_RELEASE SUDBIR DOES NOT EXISTS ON SERVER, BECAUSE THEN SW_RELEASE IS FILENAME ###
             device_directory = os.path.abspath(os.path.join(os.sep,type_subdir_on_device, actual_file_type_subdir))
-        local_results = LCMD.run_commands({'unix':['ls -l %s' % (directory)]})
+        local_results = LCMD.run_commands({'unix':['ls -l %s' % (directory)]}, printall = printall)
         no_such_files_in_directory = True
         for line in local_results[0].splitlines():
             ### PROBLEM ARE '*' IN FILE NAME ###
@@ -1849,7 +1850,7 @@ if type_subdir and brand_subdir and sw_release:
                 no_such_files_in_directory = False
                 true_file_name = line.split()[-1].strip()
                 local_oti_checkum_string = LCMD.run_commands({'unix':['md5sum %s' % \
-                    (os.path.join(directory,true_file_name))]})
+                    (os.path.join(directory,true_file_name))]}, printall = printall)
                 md5_sum = local_oti_checkum_string[0].split()[0].strip()
                 true_sw_release_files_on_server.append([directory,device_directory,true_file_name,md5_sum])
         if no_such_files_in_directory:
