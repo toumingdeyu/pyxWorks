@@ -1768,7 +1768,6 @@ CGI_CLI.uprint('expected_disk_free_GB = %s\nsw_file_types = %s' % \
     (device_expected_GB_free, \
     ', '.join(selected_sw_file_types_list) if len(selected_sw_file_types_list)>0 else str()
     ))
-#CGI_CLI.uprint('active_menu = %s' % (str(active_menu)))
 
 ###############################################################################
 
@@ -1886,7 +1885,7 @@ for device in device_list:
             'juniper':['show system storage'],
             'huawei':['display device | include PhyDisk','display disk information']
         }
-        CGI_CLI.uprint('checking disk', \
+        CGI_CLI.uprint('checking disk space', \
             no_newlines = None if CGI_CLI.data.get("printall") else True)
         rcmd_check_disk_space_outputs = RCMD.run_commands(check_disk_space_cmds)
         CGI_CLI.uprint(' ', no_newlines = True if CGI_CLI.data.get("printall") else None)
@@ -1987,8 +1986,10 @@ for device in device_list:
             no_newlines = None if CGI_CLI.data.get("printall") else True)
         rcmd_dir_outputs = RCMD.run_commands(dir_device_cmds)
         CGI_CLI.uprint('\n')
-
+        
+        all_md5_ok = None
         for unique_dir,unique_dir_outputs in zip(unique_dev_dir_set,rcmd_dir_outputs):
+            all_md5_ok = True
             for files_list,rcmd_md5_output in zip(true_sw_release_files_on_server,rcmd_md5_outputs):
                 directory, dev_dir, file, md5 = files_list
                 if unique_dir == dev_dir:
@@ -2021,10 +2022,13 @@ for device in device_list:
                             md5_on_device = find_list[0]
                             if md5_on_device == md5:
                                 md5_ok = True
+                    if not md5_ok: all_md5_ok = False            
                     CGI_CLI.uprint('File=%s%s/%s    MD5 CHECK=%s' % (drive_string, dev_dir, file, str(md5_ok)))
 
-
-
+        if all_md5_ok: 
+            CGI_CLI.uprint('DEVICE FILES - CHECK OK.', tag = 'h1', color = 'green' )
+        else:
+            CGI_CLI.uprint('DEVICE FILES - CHECK FAIL!', tag = 'h1', color = 'red' )        
 
         ### CHECK LOCAL SERVER AND DEVICE HDD FILES ###########################
         if RCMD.router_type == 'cisco_xr' \
