@@ -1443,6 +1443,16 @@ def get_existing_sw_release_list(brand_subdir = None, type_subdir = None):
 
 ##############################################################################
 
+def does_dir_exists_by_ls_l(directory):
+    ### BUG: os.path.exists RETURNS ALLWAYS FALSE, SO I USE OS ls -l ######
+    ls_all_result = LCMD.run_commands({'unix':['ls -l %s' % (directory)]})
+    if 'No such file or directory' in ls_all_result[0] \
+        or not 'total ' in ls_all_result[0]:
+        return False    
+    return True
+
+##############################################################################
+
 def get_local_subdirectories(brand_raw = None, type_raw = None):
     brand_subdir, type_subdir_on_server, file_types = str(), str(), []
     type_subdir_on_device = str()
@@ -1799,26 +1809,30 @@ if type_subdir and brand_subdir and sw_release:
             'tftpboot',brand_subdir, type_subdir, actual_file_type_subdir)).strip()
 
         ### BUG: os.path.exists RETURNS ALLWAYS FALSE, SO I USE OS ls -l ######
-        ls_all_results = LCMD.run_commands({'unix':['ls -l %s' % (dir_version_subdir), 
-            'ls -l %s' % (dir_without_version_subdir)]})
-        if 'No such file or directory' in ls_all_results[0] \
-            and 'No such file or directory' in ls_all_results[1]:
+        dir_version_subdir_exists = does_dir_exists_by_ls_l(dir_version_subdir)
+        dir_without_version_subdir_exists = does_dir_exists_by_ls_l(dir_without_version_subdir)
+                
+        if not dir_version_subdir_exists and not dir_without_version_subdir_exists:
             CGI_CLI.uprint('Path for %s NOT FOUND!' % (actual_file_type), color = 'red')
             sys.exit(0)
 
-        if 'No such file or directory' in ls_all_results[0]: 
-            ### ASSUME DIR WITHOUT VERSION ONLY IF VERSION SUBDIR DOES NOT EXISTS ###
-            if 'No such file or directory' in ls_all_results[1]: pass
-            else: directory_list.append(dir_without_version_subdir)
-        else: directory_list.append(dir_version_subdir)
-        
+        if dir_version_subdir_exists: directory_list.append(dir_version_subdir)
+        elif dir_without_version_subdir_exists: directory_list.append(dir_without_version_subdir)
+
+    
+    CGI_CLI.uprint(directory_list)
+    CGI_CLI.uprint(selected_sw_file_types_list)    
 
     ### CHECK LOCAL SERVER FILES EXISTENCY ################################
     true_sw_release_files_on_server = []
     for directory,actual_file_type in zip(directory_list,selected_sw_file_types_list):
         forget_it, actual_file_name = os.path.split(actual_file_type)
         actual_file_type_subdir, forget_it = os.path.split(actual_file_type)
-        device_directory = os.path.abspath(os.path.join(os.sep,type_subdir_on_device, sw_release, actual_file_type_subdir))
+        if sw_release in directory:
+            device_directory = os.path.abspath(os.path.join(os.sep,type_subdir_on_device, sw_release, actual_file_type_subdir))
+        else:
+            ### FILES ON DEVICE WILL BE IN DIRECTORY WITHOUT SW_RELEASE IF SW_RELEASE SUDBIR DOES NOT EXISTS ON SERVER, BECAUSE THEN SW_RELEASE IS FILENAME ###
+            device_directory = os.path.abspath(os.path.join(os.sep,type_subdir_on_device, actual_file_type_subdir))
         local_results = LCMD.run_commands({'unix':['ls -l %s' % (directory)]})
         no_such_files_in_directory = True
         for line in local_results[0].splitlines():
@@ -1844,6 +1858,9 @@ if type_subdir and brand_subdir and sw_release:
             sys.exit(0)
     CGI_CLI.uprint('File(s) md5 checksum(s):\n%s' % \
         ('\n'.join([ str(directory+'/'+file+4*' '+md5+4*' '+dev_dir) for directory,dev_dir,file,md5 in true_sw_release_files_on_server ])))
+
+
+    CGI_CLI.uprint(true_sw_release_files_on_server)
 
 sys.exit(0)
 
