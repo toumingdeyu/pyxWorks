@@ -1475,7 +1475,7 @@ def get_local_subdirectories(brand_raw = None, type_raw = None):
 ##############################################################################
 if __name__ != "__main__": sys.exit(0)
 USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True)
-CGI_CLI.print_args()
+#CGI_CLI.print_args()
 ##############################################################################
 
 device_expected_GB_free = 0.2
@@ -1532,8 +1532,6 @@ if not sw_release:
             active_menu = 3
             break
 
-
-
 ### SQL INIT ##################################################################
 sql_inst = sql_interface(host='localhost', user='cfgbuilder', \
     password='cfgbuildergetdata', database='rtr_configuration')
@@ -1570,11 +1568,10 @@ for key in CGI_CLI.data.keys():
         selected_device_type = value.replace('_','')
         active_menu = 2
 
-
 ### GAIN SUBDIRS FROM OTI_ALL_TABLE WHERE HARDWARE = SELECTED_DEVICE_TYPE ###
 brand_raw, type_raw , brand_subdir, type_subdir = str(), str() , str(), str()
 sw_release_list, default_sw_release, sw_file_types_list = [], str(), []
-type_subdir_on_device = str()
+type_subdir_on_device, sw_release_list_raw = str(), []
 if selected_device_type:
     for router_dict in data['oti_all_table']:
         if selected_device_type == router_dict.get('hardware',str()):
@@ -1600,7 +1597,6 @@ if selected_device_type:
     if len(sw_release_list) > 0:
         sw_release_list.sort(reverse = True)
         default_sw_release = sw_release_list[0]
-
 
 ### ROUTER-TYPE MENU PART #####################################################
 table_rows = 5
@@ -1700,9 +1696,8 @@ if CGI_CLI.cgi_active and (not CGI_CLI.submit_form or active_menu == 2):
         {'text':'device'}, '<br/>', \
         '<h3>SW RELEASE (required) [default=%s]:</h3>' % (default_sw_release)]
 
-        release_sw_release_list = [ "%s__%s" % (selected_release_string, release) for release in sw_release_list ]
-
-        if len(release_sw_release_list) > 0:
+        if len(sw_release_list) > 0:
+            release_sw_release_list = [ "%s__%s" % (selected_release_string, release) for release in sw_release_list ]        
             main_menu_list.append({'radio':release_sw_release_list})
         else:
             main_menu_list.append('<h3 style="color:red">NO SW RELEASE VERSIONS AVAILABLE on server %s!</h3>' % (iptac_server))
@@ -1746,15 +1741,17 @@ else:
 if not sw_release and default_sw_release: sw_release = default_sw_release
 
 ### PRINT BASIC INFO ##########################################################
+
 CGI_CLI.uprint('server = %s\ndevice(s) = %s\nsw_release = %s' % \
     (iptac_server, ', '.join(device_list) , sw_release))
 CGI_CLI.uprint('expected_disk_free_GB = %s\nsw_file_types = %s' % \
     (device_expected_GB_free, \
     ', '.join(selected_sw_file_types_list) if len(selected_sw_file_types_list)>0 else str()
     ))
-CGI_CLI.uprint('active_menu = %s' % (str(active_menu)))
+#CGI_CLI.uprint('active_menu = %s' % (str(active_menu)))
 
-sys.exit(0)
+#sys.exit(0)
+
 ###############################################################################
 
 if CGI_CLI.data.get('OTI.tar_file'):
@@ -1906,7 +1903,7 @@ for device in device_list:
             'huawei':[]
         }
 
-        CGI_CLI.uprint('make directories', \
+        CGI_CLI.uprint('making directories', \
             no_newlines = None if CGI_CLI.data.get("printall") else True)
         forget_it = RCMD.run_commands(mkdir_device_cmds)
         CGI_CLI.uprint('\n')
