@@ -1003,6 +1003,66 @@ class LCMD(object):
         return os_output
 
     @staticmethod
+    def run_paralel_commands(cmd_data = None, logfilename = None, printall = None, timeout_sec = 1000):
+        logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
+        commands_ok = None
+        if cmd_data and isinstance(cmd_data, (dict,collections.OrderedDict)):
+            if 'WIN32' in sys.platform.upper(): cmd_list = cmd_data.get('windows',[])
+            else: cmd_list = cmd_data.get('unix',[])
+        elif cmd_data and isinstance(cmd_data, (list,tuple)): cmd_list = cmd_data
+        elif cmd_data and isinstance(cmd_data, (six.string_types)): cmd_list = [cmd_data]
+        else: cmd_list = []
+        if len(cmd_list)>0:
+            commands_ok = True
+            with open(logfilename,"a+") as LCMD.fp:
+                ### START LOOP ###
+                CommandObjectList = []
+                for cmd_line in cmd_list:
+                    os_output = str()
+                    try:                    
+                        actual_CommandObject = subprocess.Popen(cmd_line, \
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+                        CommandObjectList.append(actual_CommandObject)       
+                        if printall: CGI_CLI.uprint("LOCAL_COMMAND_(START)[%s]: %s" % (str(actual_CommandObject), str(cmd_line)), color = 'blue')
+                        LCMD.fp.write('LOCAL_COMMAND_(START)[%s]: %s' % (str(actual_CommandObject), str(cmd_line)) + '\n')                    
+                    except (subprocess.CalledProcessError) as e:
+                        os_output = str(e.output.decode("utf-8"))
+                        if printall: CGI_CLI.uprint('EXITCODE: %s' % (str(e.returncode)))
+                        LCMD.fp.write('EXITCODE: %s\n' % (str(e.returncode)))
+                        commands_ok = False
+                    except:
+                        exc_text = traceback.format_exc()
+                        CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
+                        LCMD.fp.write(exc_text + '\n')
+                        commands_ok = False                        
+                ### LOOP WAITING END ###                
+                timer_counter_100ms = 0
+                while len(CommandObjectList)>0:
+                    for actual_CommandObject in CommandObjectList:
+                        timer_counter_100ms += 1
+                        time.sleep(0.1)
+                        outputs = str()                        
+                        actual_poll = actual_CommandObject.poll()
+                        if actual_poll is None: pass
+                        else:
+                            StdOutText, StdErrText = actual_CommandObject.communicate()
+                            outputs = '\n'.join([StdOutText.decode(), StdErrText.decode()])
+                            ExitCode = actual_CommandObject.returncode 
+                            if ExitCode != 0: commands_ok = False                       
+                            if printall: CGI_CLI.uprint("LOCAL_COMMAND_(END)[%s]: %s\n%s" % (str(actual_CommandObject), str(cmd_line), outputs))
+                            LCMD.fp.write('LOCAL_COMMAND_(END)[%s]: %s\n%s\n' % (str(actual_CommandObject), str(cmd_line), outputs))
+                            CommandObjectList.remove(actual_CommandObject)
+                            continue
+                        if timer_counter_100ms % 10 == 0: CGI_CLI.uprint("%d LOCAL_COMMAND(S) RUNNING." % (len(CommandObjectList)))   
+                        if timer_counter_100ms > timeout_sec * 10:
+                            if printall: CGI_CLI.uprint("LOCAL_COMMAND_(TIMEOUT)[%s]: %s\n%s" % (str(actual_CommandObject), str(cmd_line), outputs))
+                            LCMD.fp.write('LOCAL_COMMAND_(TIMEOUT)[%s]: %s\n%s\n' % (str(actual_CommandObject), str(cmd_line), outputs))
+                            actual_CommandObject.terminate()
+                            CommandObjectList.remove(actual_CommandObject)
+                            commands_ok = False                    
+        return commands_ok
+
+    @staticmethod
     def run_commands(cmd_data = None, logfilename = None, printall = None):
         """
         FUNCTION: LCMD.run_commands(), RETURN: list of command_outputs
@@ -1566,7 +1626,12 @@ if printall: CGI_CLI.print_args()
 
 #do_scp_command = do_sftp_command
 ##############################################################################
+cmd_data = {'windows':['ping -n 3 127.0.0.1', 'ping -n 5 127.0.0.1', 'ping -n 9 127.0.0.1'], 'unix':['ping -c 3 127.0.0.1', 'ping -c 5 127.0.0.1', 'ping -c 9 127.0.0.1']}
+CGI_CLI.uprint(LCMD.run_paralel_commands(cmd_data, printall = True))
 
+sys.exit(0)
+
+##############################################################################
 device_expected_GB_free = 0.2
 
 SCRIPT_ACTIONS_LIST = [
