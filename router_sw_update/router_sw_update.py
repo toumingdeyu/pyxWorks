@@ -1387,7 +1387,7 @@ def generate_logfilename(prefix = None, USERNAME = None, suffix = None, \
 
 ##############################################################################
 
-def do_scp_command(USERNAME = None, PASSWORD = None, \
+def do_scp_command(USERNAME = None, PASSWORD = None, device = None, \
     local_file = None, device_file = None , printall = None):
     if USERNAME and PASSWORD and local_file and device_file:
         os.environ['SSHPASS'] = PASSWORD
@@ -1403,7 +1403,32 @@ def do_scp_command(USERNAME = None, PASSWORD = None, \
 
 ###############################################################################
 
-sftp_cmd = '''
+def do_sftp_command(USERNAME = None, PASSWORD = None, device = None,\
+    local_file = None, device_file = None , printall = None):
+    if USERNAME and PASSWORD and local_file and device_file:
+        os.environ['SSHPASS'] = PASSWORD
+        if not printall: CGI_CLI.uprint(' copying %s    ' % (device_file), no_newlines = True)
+
+        local_path, forget_it = os.path.split(local_file)
+        remote_path, filename = os.path.split(device_file)
+
+        local_command = '''cd %s
+sshpass -e sftp -oStrictHostKeyChecking=no %s@%s << !
+progress
+cd %s
+put %s | zenity --progress --auto-close
+bye
+!
+''' % (local_path, USERNAME, device, remote_path, filename)
+
+        sftp_result = LCMD.run_command(cmd_line = local_command,
+            printall = printall, chunked = True)
+        ### SECURITY REASONS ###
+        os.environ['SSHPASS'] = '-'
+        return sftp_result
+    else: return str()
+
+sftp_sx1 = '''
 sftp -o StrictHostKeyChecking=no  user@ftpsite.com << !
  progress
  cd offload
@@ -1411,7 +1436,14 @@ sftp -o StrictHostKeyChecking=no  user@ftpsite.com << !
  bye
 '''
 
-
+sftp_ex2 = '''
+export SSHPASS=your-password-here
+sshpass -e sftp -oBatchMode=no -b - sftp-user@remote-host << !
+   cd incoming
+   put your-log-file.log
+   bye
+!
+'''
 
 ##############################################################################
 
@@ -1531,6 +1563,8 @@ if __name__ != "__main__": sys.exit(0)
 USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True)
 printall = CGI_CLI.data.get("printall")
 if printall: CGI_CLI.print_args()
+
+#do_scp_command = do_sftp_command
 ##############################################################################
 
 device_expected_GB_free = 0.2
@@ -1700,7 +1734,7 @@ if len(device_list)>0:
             type_raw  = router_dict.get('hardware',str())
             brand_subdir, type_subdir, type_subdir_on_device, sw_file_types_list = \
                 get_local_subdirectories(brand_raw = brand_raw, type_raw = type_raw)
-            if printall: CGI_CLI.uprint('READ_FROM_DB: [router=%s, vendor=%s, hardware=%s]' %(device_list[0], brand_raw, type_raw))    
+            if printall: CGI_CLI.uprint('READ_FROM_DB: [router=%s, vendor=%s, hardware=%s]' %(device_list[0], brand_raw, type_raw))
             break
 
     ### CHECK LOCAL SW VERSIONS DIRECTORIES ###################################
@@ -1949,14 +1983,15 @@ for device in device_list:
         CGI_CLI.uprint('\n')
 
 
-
         ### FORCE REWRITE FILES ON DEVICE #####################################
         if CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
             CGI_CLI.uprint('copy file(s)', \
                 no_newlines = None if printall else True)
             for directory, dev_dir, file, md5 in true_sw_release_files_on_server:
-                scp_cmd = do_scp_command(USERNAME, PASSWORD, '%s' % (os.path.join(directory, file)),
+                ### REMOTE COPYING ############################################
+                scp_cmd = do_scp_command(USERNAME, PASSWORD, device, '%s' % (os.path.join(directory, file)),
                     '%s%s' % (drive_string, os.path.join(dev_dir, file)), printall = printall)
+                ###############################################################    
         CGI_CLI.uprint('\n')
 
 
@@ -1996,22 +2031,22 @@ for device in device_list:
             no_newlines = None if printall else True)
         rcmd_dir_outputs = RCMD.run_commands(dir_device_cmds, printall = printall)
         CGI_CLI.uprint('\n')
-        
-        all_md5_ok = None
+
+        all_md5_ok, all_files_ok = None, None
         for unique_dir,unique_dir_outputs in zip(unique_dev_dir_set,rcmd_dir_outputs):
-            all_md5_ok = True
+            all_md5_ok, all_files_ok = True, True
             for files_list,rcmd_md5_output in zip(true_sw_release_files_on_server,rcmd_md5_outputs):
                 directory, dev_dir, file, md5 = files_list
                 if unique_dir == dev_dir:
-                    file_not_found = True
+                    file_found = False
                     for line in unique_dir_outputs.splitlines():
                         try: possible_file_name = line.split()[-1].strip()
                         except: possible_file_name = str()
                         if file == possible_file_name:
-                            file_not_found = False
+                            file_found = True
                     ### FILE EXIST OR NOT, CHECK ALSO MD5 IF FILE EXISTS ######
                     md5_ok = False
-                    if not file_not_found:
+                    if file_found:
                         find_list = re.findall(r'[0-9a-fA-F]{32}', rcmd_md5_output.strip())
                         if len(find_list) == 1:
                             md5_on_device = find_list[0]
@@ -2019,12 +2054,16 @@ for device in device_list:
                                 md5_ok = True
                     ### COPY MISSING OF REWRITE CORRUPTED FILE ################
                     if CGI_CLI.data.get('check_device_sw_files_only'): pass
-                    elif file_not_found or not md5_ok:
-                        scp_cmd = do_scp_command(USERNAME, PASSWORD, '%s' % (os.path.join(directory, file)),
+                    elif not file_found or not md5_ok:
+                        ### REMOTE COPYING ####################################
+                        scp_cmd = do_scp_command(USERNAME, PASSWORD, device, '%s' % (os.path.join(directory, file)),
                             '%s%s' % (drive_string, os.path.join(dev_dir, file)), printall = printall)
+                        #######################################################                                
                         xr_md5_cmd = 'show md5 file /%s%s' % (drive_string, os.path.join(dev_dir, file))
                         xe_md5_cmd = 'verify /md5 %s%s' % (drive_string, os.path.join(dev_dir, file))
+                        xr_xe_dir_cmd = 'dir %s%s' % (drive_string, dev_dir) 
                         rcmd_md5_one_output = RCMD.run_commands({'cisco_ios':[xe_md5_cmd],'cisco_xr':[xr_md5_cmd]}, printall = printall)
+                        rcmd_dir_one_output = RCMD.run_commands({'cisco_ios':[xr_xe_dir_cmd],'cisco_xr':[xr_xe_dir_cmd]}, printall = printall)
                         ### CHECK MD5 AGAIN ###################################
                         md5_ok = False
                         find_list = re.findall(r'[0-9a-fA-F]{32}', rcmd_md5_one_output[0].strip())
@@ -2032,13 +2071,23 @@ for device in device_list:
                             md5_on_device = find_list[0]
                             if md5_on_device == md5:
                                 md5_ok = True
-                    if not md5_ok: all_md5_ok = False            
-                    CGI_CLI.uprint('File=%s%s    MD5 CHECK=%s' % (drive_string, os.path.join(dev_dir, file), str(md5_ok)))
-
-        if all_md5_ok: 
+                        ### FILE EXISTENCY CHECK AGAIN ########################
+                        file_found = False
+                        for line in rcmd_dir_one_output.splitlines():
+                            try: possible_file_name = line.split()[-1].strip()
+                            except: possible_file_name = str()
+                            if file == possible_file_name:
+                                file_found = True
+                        #######################################################
+                    if not file_found: all_files_ok = False                        
+                    if not md5_ok: all_md5_ok = False
+                    CGI_CLI.uprint('File %s%s CHECK=%s,   MD5 CHECK=%s' % (drive_string, os.path.join(dev_dir, file), str(file_found), str(md5_ok)))
+                    
+        ### ALL FILES CHECK ###################################################
+        if all_md5_ok and all_files_ok:
             CGI_CLI.uprint('DEVICE FILES - CHECK OK.', tag = 'h1', color = 'green' )
         else:
-            CGI_CLI.uprint('DEVICE FILES - CHECK FAIL!', tag = 'h1', color = 'red' )        
+            CGI_CLI.uprint('DEVICE FILES - CHECK FAIL!', tag = 'h1', color = 'red' )
 
         ### CHECK LOCAL SERVER AND DEVICE HDD FILES ###########################
         if RCMD.router_type == 'cisco_xr' \
@@ -2076,10 +2125,15 @@ for device in device_list:
                                 'del /%s%s' % (drive_string, os.path.join(dev_dir, file)))
                             del_files_cmds['cisco_xr'].append('\n')
                             del_files_cmds['cisco_xr'].append('\n')
+                            del_files_cmds['cisco_xr'].append( \
+                                'dir /%s%s' % (drive_string, dev_dir))
+
                             del_files_cmds['cisco_ios'].append( \
                                 'del %s%s' % (drive_string, os.path.join(dev_dir, file)))
                             del_files_cmds['cisco_ios'].append('\n')
                             del_files_cmds['cisco_ios'].append('\n')
+                            del_files_cmds['cisco_ios'].append( \
+                                'dir %s%s' % (drive_string, dev_dir))                            
 
                 CGI_CLI.uprint('deleting sw release files', no_newlines = \
                     None if printall else True)
