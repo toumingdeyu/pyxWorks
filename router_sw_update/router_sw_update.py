@@ -1020,12 +1020,12 @@ class LCMD(object):
                 CommandObjectList = []
                 for cmd_line in cmd_list:
                     os_output = str()
-                    try:                    
+                    try:
                         actual_CommandObject = subprocess.Popen(cmd_line, \
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-                        CommandObjectList.append(actual_CommandObject)       
+                        CommandObjectList.append(actual_CommandObject)
                         if printall: CGI_CLI.uprint("LOCAL_COMMAND_(START)[%s]: %s" % (str(actual_CommandObject), str(cmd_line)), color = 'blue')
-                        LCMD.fp.write('LOCAL_COMMAND_(START)[%s]: %s' % (str(actual_CommandObject), str(cmd_line)) + '\n')                    
+                        LCMD.fp.write('LOCAL_COMMAND_(START)[%s]: %s' % (str(actual_CommandObject), str(cmd_line)) + '\n')
                     except (subprocess.CalledProcessError) as e:
                         os_output = str(e.output.decode("utf-8"))
                         if printall: CGI_CLI.uprint('EXITCODE: %s' % (str(e.returncode)))
@@ -1035,29 +1035,29 @@ class LCMD(object):
                         exc_text = traceback.format_exc()
                         CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
                         LCMD.fp.write(exc_text + '\n')
-                        commands_ok = False 
-                if not printall: 
-                    CGI_CLI.uprint("%s: %d   " % (str(custom_text) if custom_text else "RUNNING LOCAL_COMMANDS", len(CommandObjectList)), no_newlines = True)                          
-                ### LOOP WAITING END ###                
+                        commands_ok = False
+                if not printall:
+                    CGI_CLI.uprint("%s: %d   " % (str(custom_text) if custom_text else "RUNNING LOCAL_COMMANDS", len(CommandObjectList)), no_newlines = True)
+                ### LOOP WAITING END ###
                 timer_counter_100ms = 0
                 while len(CommandObjectList)>0:
                     for actual_CommandObject in CommandObjectList:
                         timer_counter_100ms += 1
                         time.sleep(0.1)
-                        outputs = str()                        
+                        outputs = str()
                         actual_poll = actual_CommandObject.poll()
                         if actual_poll is None: pass
                         else:
                             StdOutText, StdErrText = actual_CommandObject.communicate()
                             outputs = '\n'.join([StdOutText.decode(), StdErrText.decode()])
-                            ExitCode = actual_CommandObject.returncode 
-                            if ExitCode != 0: commands_ok = False                       
+                            ExitCode = actual_CommandObject.returncode
+                            if ExitCode != 0: commands_ok = False
                             if printall: CGI_CLI.uprint("LOCAL_COMMAND_(END)[%s]: %s\n%s" % (str(actual_CommandObject), str(cmd_line), outputs))
                             LCMD.fp.write('LOCAL_COMMAND_(END)[%s]: %s\n%s\n' % (str(actual_CommandObject), str(cmd_line), outputs))
                             CommandObjectList.remove(actual_CommandObject)
                             continue
-                        if timer_counter_100ms % 10 == 0: 
-                            if printall: CGI_CLI.uprint("%d LOCAL_COMMAND%s RUNNING." % (len(CommandObjectList), 'S are' if len(CommandObjectList) > 1 else ' is'))   
+                        if timer_counter_100ms % 10 == 0:
+                            if printall: CGI_CLI.uprint("%d LOCAL_COMMAND%s RUNNING." % (len(CommandObjectList), 'S are' if len(CommandObjectList) > 1 else ' is'))
                             else: CGI_CLI.uprint(" %d   " % (len(CommandObjectList)), no_newlines = True)
                         if timer_counter_100ms > timeout_sec * 10:
                             if printall: CGI_CLI.uprint("LOCAL_COMMAND_(TIMEOUT)[%s]: %s\n%s" % (str(actual_CommandObject), str(cmd_line), outputs))
@@ -1065,7 +1065,7 @@ class LCMD(object):
                             actual_CommandObject.terminate()
                             CommandObjectList.remove(actual_CommandObject)
                             commands_ok = False
-            if not printall: CGI_CLI.uprint("\n")                            
+            if not printall: CGI_CLI.uprint("\n")
         return commands_ok
 
     @staticmethod
@@ -1469,6 +1469,27 @@ def do_scp_command(USERNAME = None, PASSWORD = None, device = None, \
 
 ###############################################################################
 
+def do_scp_all_files(true_sw_release_files_on_server = None, device_list = None, \
+    USERNAME = None, PASSWORD = None , drive_string = None, printall = None):
+    cp_cmd_list = []
+    for device in device_list:
+        for directory,dev_dir,file,md5 in true_sw_release_files_on_server:
+            local_command = 'sshpass -e scp -v -o StrictHostKeyChecking=no %s %s@%s:/%s' \
+                % (os.path.join(directory, file), USERNAME, device, \
+                '%s%s' % (drive_string, os.path.join(dev_dir, file)))
+            cp_cmd_list.append(local_command)
+    ### COPYING ###
+    #CGI_CLI.uprint('\n'.join(cp_cmd_list))
+    os.environ['SSHPASS'] = PASSWORD
+    copy_commands = {'unix':cp_cmd_list}
+    #if printall: CGI_CLI.uprint(copy_commands, jsonprint = True)
+    result = LCMD.run_paralel_commands(copy_commands, custom_text='copying files', printall=True)
+    ### SECURITY REASONS ###
+    os.environ['SSHPASS'] = '-'
+    return result
+
+###############################################################################
+
 def do_sftp_command(USERNAME = None, PASSWORD = None, device = None,\
     local_file = None, device_file = None , printall = None):
     if USERNAME and PASSWORD and local_file and device_file:
@@ -1632,10 +1653,9 @@ if printall: CGI_CLI.print_args()
 
 #do_scp_command = do_sftp_command
 ##############################################################################
-cmd_data = {'windows':['ping -n 3 127.0.0.1', 'ping -n 5 127.0.0.1', 'ping -n 9 127.0.0.1'], 'unix':['ping -c 3 127.0.0.1', 'ping -c 5 127.0.0.1', 'ping -c 9 127.0.0.1']}
-CGI_CLI.uprint(LCMD.run_paralel_commands(cmd_data, custom_text='copying files' ))
-
-sys.exit(0)
+# cmd_data = {'windows':['ping -n 3 127.0.0.1', 'ping -n 5 127.0.0.1', 'ping -n 9 127.0.0.1'], 'unix':['ping -c 3 127.0.0.1', 'ping -c 5 127.0.0.1', 'ping -c 9 127.0.0.1']}
+# CGI_CLI.uprint(LCMD.run_paralel_commands(cmd_data, custom_text='copying files' ))
+# sys.exit(0)
 
 ##############################################################################
 device_expected_GB_free = 0.2
@@ -2052,18 +2072,40 @@ for device in device_list:
             no_newlines = None if printall else True)
         forget_it = RCMD.run_commands(mkdir_device_cmds)
         CGI_CLI.uprint('\n')
+        RCMD.disconnect()
+
+### FORCE REWRITE FILES ON DEVICE #####################################
+if CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
+    if do_scp_all_files(true_sw_release_files_on_server, device_list, \
+        USERNAME, PASSWORD, drive_string = drive_string, printall = printall):
+        CGI_CLI.uprint('COPYING COPY OK\n', tag = 'h1', color = 'green')
+    else: CGI_CLI.uprint('COPYING NOT OK\n', tag = 'h1', color = 'red')
 
 
-        ### FORCE REWRITE FILES ON DEVICE #####################################
-        if CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
-            CGI_CLI.uprint('copy file(s)', \
-                no_newlines = None if printall else True)
-            for directory, dev_dir, file, md5 in true_sw_release_files_on_server:
-                ### REMOTE COPYING ############################################
-                scp_cmd = do_scp_command(USERNAME, PASSWORD, device, '%s' % (os.path.join(directory, file)),
-                    '%s%s' % (drive_string, os.path.join(dev_dir, file)), printall = printall)
-                ###############################################################    
-        CGI_CLI.uprint('\n')
+
+for device in device_list:
+
+    ### LOGFILENAME GENERATION ################################################
+    logfilename = generate_logfilename(prefix = device.upper(), \
+        USERNAME = USERNAME, suffix = str(SCRIPT_ACTION) + '.log')
+    logfilename = None
+
+    ### REMOTE DEVICE OPERATIONS ##############################################
+    if device:
+        CGI_CLI.uprint('\nContinue device %s checks:\n' % (device), tag = 'h2', color = 'blue')
+        RCMD.connect(device, username = USERNAME, password = PASSWORD, \
+            printall = printall, logfilename = logfilename)
+
+        if not RCMD.ssh_connection:
+            CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), color = 'red')
+            RCMD.disconnect()
+            if len(device_list) > 1: continue
+            else: sys.exit(0)
+
+        ### DEVICE DRIVE STRING ###############################################
+        drive_string = str()
+        if RCMD.router_type == 'cisco_xr': drive_string = 'harddisk:'
+        if RCMD.router_type == 'cisco_ios': drive_string = 'bootflash:'
 
 
         ### CHECK MD5 FIRST ###################################################
@@ -2125,14 +2167,15 @@ for device in device_list:
                                 md5_ok = True
                     ### COPY MISSING OF REWRITE CORRUPTED FILE ################
                     if CGI_CLI.data.get('check_device_sw_files_only'): pass
+                    elif CGI_CLI.data.get('force_rewrite_sw_files_on_device'): pass
                     elif not file_found or not md5_ok:
                         ### REMOTE COPYING ####################################
                         scp_cmd = do_scp_command(USERNAME, PASSWORD, device, '%s' % (os.path.join(directory, file)),
                             '%s%s' % (drive_string, os.path.join(dev_dir, file)), printall = printall)
-                        #######################################################                                
+                        #######################################################
                         xr_md5_cmd = 'show md5 file /%s%s' % (drive_string, os.path.join(dev_dir, file))
                         xe_md5_cmd = 'verify /md5 %s%s' % (drive_string, os.path.join(dev_dir, file))
-                        xr_xe_dir_cmd = 'dir %s%s' % (drive_string, dev_dir) 
+                        xr_xe_dir_cmd = 'dir %s%s' % (drive_string, dev_dir)
                         rcmd_md5_one_output = RCMD.run_commands({'cisco_ios':[xe_md5_cmd],'cisco_xr':[xr_md5_cmd]}, printall = printall)
                         rcmd_dir_one_output = RCMD.run_commands({'cisco_ios':[xr_xe_dir_cmd],'cisco_xr':[xr_xe_dir_cmd]}, printall = printall)
                         ### CHECK MD5 AGAIN ###################################
@@ -2150,10 +2193,10 @@ for device in device_list:
                             if file == possible_file_name:
                                 file_found = True
                         #######################################################
-                    if not file_found: all_files_ok = False                        
+                    if not file_found: all_files_ok = False
                     if not md5_ok: all_md5_ok = False
                     CGI_CLI.uprint('File %s%s CHECK=%s,   MD5 CHECK=%s' % (drive_string, os.path.join(dev_dir, file), str(file_found), str(md5_ok)))
-                    
+
         ### ALL FILES CHECK ###################################################
         if all_md5_ok and all_files_ok:
             CGI_CLI.uprint('DEVICE FILES - CHECK OK.', tag = 'h1', color = 'green' )
@@ -2204,7 +2247,7 @@ for device in device_list:
                             del_files_cmds['cisco_ios'].append('\n')
                             del_files_cmds['cisco_ios'].append('\n')
                             del_files_cmds['cisco_ios'].append( \
-                                'dir %s%s' % (drive_string, dev_dir))                            
+                                'dir %s%s' % (drive_string, dev_dir))
 
                 CGI_CLI.uprint('deleting sw release files', no_newlines = \
                     None if printall else True)
