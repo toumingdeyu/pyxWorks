@@ -1003,7 +1003,8 @@ class LCMD(object):
         return os_output
 
     @staticmethod
-    def run_paralel_commands(cmd_data = None, logfilename = None, printall = None, timeout_sec = 1000):
+    def run_paralel_commands(cmd_data = None, logfilename = None, printall = None, \
+        timeout_sec = 1000, custom_text = None):
         logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
         commands_ok = None
         if cmd_data and isinstance(cmd_data, (dict,collections.OrderedDict)):
@@ -1034,7 +1035,9 @@ class LCMD(object):
                         exc_text = traceback.format_exc()
                         CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
                         LCMD.fp.write(exc_text + '\n')
-                        commands_ok = False                        
+                        commands_ok = False 
+                if not printall: 
+                    CGI_CLI.uprint("%s: %d   " % (str(custom_text) if custom_text else "RUNNING LOCAL_COMMANDS", len(CommandObjectList)), no_newlines = True)                          
                 ### LOOP WAITING END ###                
                 timer_counter_100ms = 0
                 while len(CommandObjectList)>0:
@@ -1053,13 +1056,16 @@ class LCMD(object):
                             LCMD.fp.write('LOCAL_COMMAND_(END)[%s]: %s\n%s\n' % (str(actual_CommandObject), str(cmd_line), outputs))
                             CommandObjectList.remove(actual_CommandObject)
                             continue
-                        if timer_counter_100ms % 10 == 0: CGI_CLI.uprint("%d LOCAL_COMMAND(S) RUNNING." % (len(CommandObjectList)))   
+                        if timer_counter_100ms % 10 == 0: 
+                            if printall: CGI_CLI.uprint("%d LOCAL_COMMAND%s RUNNING." % (len(CommandObjectList), 'S are' if len(CommandObjectList) > 1 else ' is'))   
+                            else: CGI_CLI.uprint(" %d   " % (len(CommandObjectList)), no_newlines = True)
                         if timer_counter_100ms > timeout_sec * 10:
                             if printall: CGI_CLI.uprint("LOCAL_COMMAND_(TIMEOUT)[%s]: %s\n%s" % (str(actual_CommandObject), str(cmd_line), outputs))
                             LCMD.fp.write('LOCAL_COMMAND_(TIMEOUT)[%s]: %s\n%s\n' % (str(actual_CommandObject), str(cmd_line), outputs))
                             actual_CommandObject.terminate()
                             CommandObjectList.remove(actual_CommandObject)
-                            commands_ok = False                    
+                            commands_ok = False
+            if not printall: CGI_CLI.uprint("\n")                            
         return commands_ok
 
     @staticmethod
@@ -1627,7 +1633,7 @@ if printall: CGI_CLI.print_args()
 #do_scp_command = do_sftp_command
 ##############################################################################
 cmd_data = {'windows':['ping -n 3 127.0.0.1', 'ping -n 5 127.0.0.1', 'ping -n 9 127.0.0.1'], 'unix':['ping -c 3 127.0.0.1', 'ping -c 5 127.0.0.1', 'ping -c 9 127.0.0.1']}
-CGI_CLI.uprint(LCMD.run_paralel_commands(cmd_data, printall = True))
+CGI_CLI.uprint(LCMD.run_paralel_commands(cmd_data, custom_text='copying files' ))
 
 sys.exit(0)
 
