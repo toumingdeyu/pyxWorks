@@ -917,7 +917,7 @@ class RCMD(object):
                     if 'ASR9K' in output or 'IOS-XRv 9000' in output: RCMD.router_version = 'ASR9K'
                 elif 'Cisco IOS-XE software' in output:
                     router_os = 'ios-xe'
-                    if 'CSR1000' in outputs: RCMD.router_version = 'ASR1K'
+                    if 'CSR1000' in output: RCMD.router_version = 'ASR1K'
                 elif 'JUNOS OS' in output: router_os = 'junos'
             if prompt and not router_os:
                 command = 'uname -a\n'
@@ -966,9 +966,8 @@ class LCMD(object):
         logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
         if cmd_line:
             with open(logfilename,"a+") as LCMD.fp:
-                if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line),\
-                                 color = 'blue')
-                LCMD.fp.write('LOCAL_COMMAND: ' + cmd_line + '\n')
+                if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line), color = 'blue')
+                LCMD.fp.write('LOCAL_COMMAND: ' + str(cmd_line) + '\n')
                 try:
                     if chunked:
                         os_output, timer_counter_100ms = str(), 0
@@ -1024,8 +1023,8 @@ class LCMD(object):
             with open(logfilename,"a+") as LCMD.fp:
                 for cmd_line in cmd_list:
                     os_output = str()
-                    if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line))
-                    LCMD.fp.write('LOCAL_COMMAND: ' + cmd_line + '\n')
+                    if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line), color = 'blue')
+                    LCMD.fp.write('LOCAL_COMMAND: ' + str(cmd_line) + '\n')
                     try: os_output = subprocess.check_output(str(cmd_line), stderr=subprocess.STDOUT, shell=True).decode("utf-8")
                     except (subprocess.CalledProcessError) as e:
                         os_output = str(e.output.decode("utf-8"))
@@ -1035,7 +1034,7 @@ class LCMD(object):
                         exc_text = traceback.format_exc()
                         CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
                         LCMD.fp.write(exc_text + '\n')
-                    if os_output and printall: CGI_CLI.uprint(os_output)
+                    if os_output and printall: CGI_CLI.uprint(os_output, color = 'gray')
                     LCMD.fp.write(os_output + '\n')
                     os_outputs.append(os_output)
         return os_outputs
@@ -1478,11 +1477,11 @@ def get_local_subdirectories(brand_raw = None, type_raw = None):
         elif 'ASR1001' in type_raw.upper():
             type_subdir_on_server = 'ASR1K/ASR1001X/IOS_XE'
             type_subdir_on_device = 'IOS-XE'
-            file_types = ['asr1001x*.bin']
+            file_types = ['asr1001x*.bin','asr100*.pkg']
         elif 'ASR1002-X' in type_raw.upper():
             type_subdir_on_server = 'ASR1K/ASR1002X/IOS_XE'
             type_subdir_on_device = 'IOS-XE'
-            file_types = ['asr1002x*.bin']
+            file_types = ['asr1002x*.bin','asr100*.pkg']
         elif 'ASR1002-HX' in type_raw.upper():
             type_subdir_on_server = 'ASR1K/ASR1002HX/IOS_XE'
             type_subdir_on_device = 'IOS-XE'
@@ -1883,7 +1882,7 @@ for device in device_list:
         ### DEVICE DRIVE STRING ###############################################
         drive_string = str()
         if RCMD.router_type == 'cisco_xr': drive_string = 'harddisk:'
-        if RCMD.router_type == 'cisco_xe': drive_string = 'bootflash:'
+        if RCMD.router_type == 'cisco_ios': drive_string = 'bootflash:'
 
         ### CHECK HDD/FLASH SPACE ON DEVICE ###################################
         check_disk_space_cmds = {
@@ -1938,7 +1937,7 @@ for device in device_list:
                     up_path = os.path.join(up_path, dev_sub_dir)
 
         mkdir_device_cmds = {
-            'cisco_ios':[xr_device_mkdir_list],
+            'cisco_ios':xr_device_mkdir_list,
             'cisco_xr':xr_device_mkdir_list,
             'juniper':[],
             'huawei':[]
@@ -1968,7 +1967,7 @@ for device in device_list:
             xe_md5_cmds.append('verify /md5 %s%s' % (drive_string, os.path.join(dev_dir, file)))
         CGI_CLI.uprint('checking md5(s)', \
             no_newlines = None if printall else True)
-        rcmd_md5_outputs = RCMD.run_commands({'cisco_xe':xe_md5_cmds,'cisco_xr':xr_md5_cmds})
+        rcmd_md5_outputs = RCMD.run_commands({'cisco_ios':xe_md5_cmds,'cisco_xr':xr_md5_cmds}, printall = printall)
         for files_list,rcmd_md5_output in zip(true_sw_release_files_on_server,rcmd_md5_outputs):
             directory, dev_dir, file, md5 = files_list
             find_list = re.findall(r'[0-9a-fA-F]{32}', rcmd_md5_output.strip())
@@ -1984,10 +1983,11 @@ for device in device_list:
         dev_dir_set = set(redundant_dev_dir_list)
         unique_dev_dir_set = list(dev_dir_set)
 
+        xe_device_dir_list = [ 'dir %s%s' % (drive_string, dev_dir) for dev_dir in unique_dev_dir_set ]
         xr_device_dir_list = [ 'dir %s%s' % (drive_string, dev_dir) for dev_dir in unique_dev_dir_set ]
 
         dir_device_cmds = {
-            'cisco_ios':[xr_device_dir_list],
+            'cisco_ios':xe_device_dir_list,
             'cisco_xr':xr_device_dir_list,
             'juniper':[],
             'huawei':[]
@@ -2024,7 +2024,7 @@ for device in device_list:
                             '%s%s' % (drive_string, os.path.join(dev_dir, file)), printall = printall)
                         xr_md5_cmd = 'show md5 file /%s%s' % (drive_string, os.path.join(dev_dir, file))
                         xe_md5_cmd = 'verify /md5 %s%s' % (drive_string, os.path.join(dev_dir, file))
-                        rcmd_md5_one_output = RCMD.run_commands({'cisco_xe':xe_md5_cmd,'cisco_xr':xr_md5_cmd}, printall = printall)
+                        rcmd_md5_one_output = RCMD.run_commands({'cisco_ios':[xe_md5_cmd],'cisco_xr':[xr_md5_cmd]}, printall = printall)
                         ### CHECK MD5 AGAIN ###################################
                         md5_ok = False
                         find_list = re.findall(r'[0-9a-fA-F]{32}', rcmd_md5_one_output[0].strip())
@@ -2042,12 +2042,12 @@ for device in device_list:
 
         ### CHECK LOCAL SERVER AND DEVICE HDD FILES ###########################
         if RCMD.router_type == 'cisco_xr' \
-            or RCMD.router_type == 'cisco_xe':
+            or RCMD.router_type == 'cisco_ios':
             ## BACKUP NORMAL AND ADMIN CONFIG ################################
             if CGI_CLI.data.get('backup_configs_to_device_disk'):
                 actual_date_string = time.strftime("%Y-%m%d-%H:%M",time.gmtime(time.time()))
                 backup_config_rcmds = {
-                    'cisco_xe':[
+                    'cisco_ios':[
                     'copy running-config %s%s-config.txt' % (drive_string, actual_date_string),
                     '\n',
                     ],
@@ -2066,7 +2066,7 @@ for device in device_list:
 
             ### DELETE TAR FILES ON END #######################################
             if CGI_CLI.data.get('delete_device_sw_files_on_end'):
-                del_files_cmds = {'cisco_xr':[],'cisco_xe':[]}
+                del_files_cmds = {'cisco_xr':[],'cisco_ios':[]}
 
                 for unique_dir,unique_dir_outputs in zip(unique_dev_dir_set,rcmd_dir_outputs):
                     for files_list,rcmd_md5_output in zip(true_sw_release_files_on_server,rcmd_md5_outputs):
@@ -2076,10 +2076,10 @@ for device in device_list:
                                 'del /%s%s' % (drive_string, os.path.join(dev_dir, file)))
                             del_files_cmds['cisco_xr'].append('\n')
                             del_files_cmds['cisco_xr'].append('\n')
-                            del_files_cmds['cisco_xe'].append( \
+                            del_files_cmds['cisco_ios'].append( \
                                 'del %s%s' % (drive_string, os.path.join(dev_dir, file)))
-                            del_files_cmds['cisco_xe'].append('\n')
-                            del_files_cmds['cisco_xe'].append('\n')
+                            del_files_cmds['cisco_ios'].append('\n')
+                            del_files_cmds['cisco_ios'].append('\n')
 
                 CGI_CLI.uprint('deleting sw release files', no_newlines = \
                     None if printall else True)
