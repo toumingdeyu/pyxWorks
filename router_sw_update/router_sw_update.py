@@ -1000,7 +1000,7 @@ class LCMD(object):
 
     @staticmethod
     def run_paralel_commands(cmd_data = None, logfilename = None, printall = None, \
-        timeout_sec = 1000, custom_text = None):
+        timeout_sec = 1000, custom_text = None, check_exitcode = None):
         logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
         commands_ok = None
         if cmd_data and isinstance(cmd_data, (dict,collections.OrderedDict)):
@@ -1047,8 +1047,8 @@ class LCMD(object):
                             StdOutText, StdErrText = actual_CommandObject.communicate()
                             outputs = '\n'.join([StdOutText.decode(), StdErrText.decode()])
                             ExitCode = actual_CommandObject.returncode
-                            if ExitCode != 0: commands_ok = False
-                            if printall: CGI_CLI.uprint("LOCAL_COMMAND_(END)[%s]: %s\n%s" % (str(actual_CommandObject), str(cmd_line), outputs))
+                            if check_exitcode and ExitCode != 0: commands_ok = False
+                            if printall: CGI_CLI.uprint("LOCAL_COMMAND_(END)[%s]: %s\n%s" % (str(actual_CommandObject), str(cmd_line), outputs), color = 'gray')
                             LCMD.fp.write('LOCAL_COMMAND_(END)[%s]: %s\n%s\n' % (str(actual_CommandObject), str(cmd_line), outputs))
                             CommandObjectList.remove(actual_CommandObject)
                             continue
@@ -1056,7 +1056,7 @@ class LCMD(object):
                             if printall: CGI_CLI.uprint("%d LOCAL_COMMAND%s RUNNING." % (len(CommandObjectList), 'S are' if len(CommandObjectList) > 1 else ' is'))
                             else: CGI_CLI.uprint(" %d   " % (len(CommandObjectList)), no_newlines = True)
                         if timer_counter_100ms > timeout_sec * 10:
-                            if printall: CGI_CLI.uprint("LOCAL_COMMAND_(TIMEOUT)[%s]: %s\n%s" % (str(actual_CommandObject), str(cmd_line), outputs))
+                            if printall: CGI_CLI.uprint("LOCAL_COMMAND_(TIMEOUT)[%s]: %s\n%s" % (str(actual_CommandObject), str(cmd_line), outputs), color = 'red')
                             LCMD.fp.write('LOCAL_COMMAND_(TIMEOUT)[%s]: %s\n%s\n' % (str(actual_CommandObject), str(cmd_line), outputs))
                             actual_CommandObject.terminate()
                             CommandObjectList.remove(actual_CommandObject)
@@ -1477,10 +1477,11 @@ def do_scp_all_files(true_sw_release_files_on_server = None, device_list = None,
                 % (os.path.join(directory, file), USERNAME, device, \
                 '%s%s' % (drive_string, os.path.join(dev_dir, file)))
             cp_cmd_list.append(local_command)
-        if printall: CGI_CLI.uprint("SCP COMMANDS:\n"+'\n'.join(cp_cmd_list))
+        #if printall: CGI_CLI.uprint("SCP COMMANDS:\n"+'\n'.join(cp_cmd_list))
         os.environ['SSHPASS'] = PASSWORD
         copy_commands = {'unix':cp_cmd_list}
-        partial_result = LCMD.run_paralel_commands(copy_commands, custom_text='copying files', printall=True)
+        partial_result = LCMD.run_paralel_commands(copy_commands, \
+            custom_text='copying file(s) %s to device(s) %s' % (file, ','.join(device_list)) , printall = printall)
         if not partial_result: result = False
         time.sleep(1)
     ### SECURITY REASONS ###
@@ -2043,11 +2044,11 @@ for device in device_list:
 
         ### SOME GB FREE EXPECTED (1MB=1048576, 1GB=1073741824) ###
         if device_free_space < (device_expected_GB_free * 1073741824):
-            CGI_CLI.uprint('disk space - CHECK FAIL!', color = 'red')
+            CGI_CLI.uprint('Disk space - CHECK FAIL!', color = 'red')
             RCMD.disconnect()
             if len(device_list) > 1: continue
             else: sys.exit(0)
-        else: CGI_CLI.uprint('disk space - CHECK OK.', color = 'green')
+        else: CGI_CLI.uprint('Disk space - CHECK OK.', color = 'green')
 
 
         ### MAKE ALL SUB-DIRECTORIES ONE BY ONE ###############################
@@ -2084,8 +2085,8 @@ for device in device_list:
 if CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
     if do_scp_all_files(true_sw_release_files_on_server, device_list, \
         USERNAME, PASSWORD, drive_string = drive_string, printall = printall):
-        CGI_CLI.uprint('COPYING COPY OK\n', tag = 'h1', color = 'green')
-    else: CGI_CLI.uprint('COPYING NOT OK\n', tag = 'h1', color = 'red')
+        CGI_CLI.uprint('Copy file(s) - CHECK OK\n', tag = 'h1', color = 'green')
+    else: CGI_CLI.uprint('Copy file(s) - PROBLEM\n', tag = 'h1', color = 'red')
     time.sleep(1)
 
 
@@ -2205,9 +2206,9 @@ for device in device_list:
 
         ### ALL FILES CHECK ###################################################
         if all_md5_ok and all_files_ok:
-            CGI_CLI.uprint('DEVICE FILES - CHECK OK.', tag = 'h1', color = 'green' )
+            CGI_CLI.uprint('Device file(s) - CHECK OK.', tag = 'h1', color = 'green' )
         else:
-            CGI_CLI.uprint('DEVICE FILES - CHECK FAIL!', tag = 'h1', color = 'red' )
+            CGI_CLI.uprint('Device file(s) - CHECK FAIL!', tag = 'h1', color = 'red' )
 
         ### CHECK LOCAL SERVER AND DEVICE HDD FILES ###########################
         if RCMD.router_type == 'cisco_xr' \
@@ -2277,7 +2278,7 @@ for device in device_list:
                                 CGI_CLI.uprint(dir_outputs_after_deletion[3], color = 'blue')
                                 file_not_deleted = True                            
                 if file_not_deleted: CGI_CLI.uprint('DELETE PROBLEM!', color = 'red')
-                else: CGI_CLI.uprint('DELETE - CHECK OK.', color = 'green')
+                else: CGI_CLI.uprint('Delete file(s) - CHECK OK.', color = 'green')
 
         ### DISCONNECT ########################################################
         RCMD.disconnect()
