@@ -102,7 +102,7 @@ class CGI_CLI(object):
         parser.add_argument("--sw_release",
                             action = "store", dest = 'sw_release',
                             default = str(),
-                            help = "sw release number with or without dots, i.e. 653 or 6.5.3")
+                            help = "sw release number with or without dots, i.e. 653 or 6.5.3, or alternatively sw release filename")
         parser.add_argument("--files",
                             action = "store", dest = 'sw_files',
                             default = str(),
@@ -1055,6 +1055,7 @@ class LCMD(object):
                         if timer_counter_100ms % 10 == 0:
                             if printall: CGI_CLI.uprint("%d LOCAL_COMMAND%s RUNNING." % (len(CommandObjectList), 'S are' if len(CommandObjectList) > 1 else ' is'))
                             else: CGI_CLI.uprint(" %d   " % (len(CommandObjectList)), no_newlines = True)
+                        if timer_counter_100ms % 300 == 0: CGI_CLI.uprint('\n')    
                         if timer_counter_100ms > timeout_sec * 10:
                             if printall: CGI_CLI.uprint("LOCAL_COMMAND_(TIMEOUT)[%s]: %s\n%s" % (str(actual_CommandObject), str(cmd_line), outputs), color = 'red')
                             LCMD.fp.write('LOCAL_COMMAND_(TIMEOUT)[%s]: %s\n%s\n' % (str(actual_CommandObject), str(cmd_line), outputs))
@@ -1596,46 +1597,46 @@ def get_local_subdirectories(brand_raw = None, type_raw = None):
         elif 'ASR1001' in type_raw.upper():
             type_subdir_on_server = 'ASR1K/ASR1001X/IOS_XE'
             type_subdir_on_device = 'IOS-XE'
-            file_types = ['asr1001x*.bin','asr100*.pkg']
+            file_types = ['asr1001x*.bin','asr100*.pkg','ROMMON/*.pkg']
         elif 'ASR1002-X' in type_raw.upper():
             type_subdir_on_server = 'ASR1K/ASR1002X/IOS_XE'
             type_subdir_on_device = 'IOS-XE'
-            file_types = ['asr1002x*.bin','asr100*.pkg']
+            file_types = ['asr1002x*.bin','asr100*.pkg','ROMMON/*.pkg']
         elif 'ASR1002-HX' in type_raw.upper():
             type_subdir_on_server = 'ASR1K/ASR1002HX/IOS_XE'
             type_subdir_on_device = 'IOS-XE'
-            file_types = ['asr100*.bin','asr100*.pkg']
+            file_types = ['asr100*.bin','asr100*.pkg','ROMMON/*.pkg']
         elif 'CRS' in type_raw.upper():
             type_subdir_on_server = 'CRS'
             type_subdir_on_device = 'IOS-XR'
             file_types = ['*OTI.tar', 'SMU/*.tar']
         elif 'C29' in type_raw.upper():
             type_subdir_on_server = 'C2900'
-            file_types = ['c2900*.bin','*.pkg']
+            file_types = ['c2900*.bin']
         elif '2901' in type_raw.upper():
             type_subdir_on_server = 'C2900'
-            file_types = ['c2900*.bin','*.pkg']
+            file_types = ['c2900*.bin']
         elif 'C35' in type_raw.upper():
             type_subdir_on_server = 'C3500'
-            file_types = ['c35*.bin','*.pkg']
+            file_types = ['c35*.bin']
         elif 'C36' in type_raw.upper():
             type_subdir_on_server = 'C3600'
-            file_types = ['c36*.bin','*.pkg']
+            file_types = ['c36*.bin']
         elif 'C37' in type_raw.upper():
             type_subdir_on_server = 'C3700'
-            file_types = ['c37*.bin','*.pkg']
+            file_types = ['c37*.bin']
         elif 'C38' in type_raw.upper():
             type_subdir_on_server = 'C3800'
-            file_types = ['c38*.bin','*.pkg']
+            file_types = ['c38*.bin']
         elif 'ISR43' in type_raw.upper():
             type_subdir_on_server = 'C4321'
-            file_types = ['isr43*.bin','*.pkg']
+            file_types = ['isr43*.bin']
         elif 'C45' in type_raw.upper():
             type_subdir_on_server = 'C4500'
-            file_types = ['cat45*.bin','*.pkg']
+            file_types = ['cat45*.bin']
         elif 'MX480' in type_raw.upper():
             type_subdir_on_server = 'MX/MX480'
-            file_types = ['junos*.img.gz']
+            file_types = ['junos*.img.gz', '*.tgz']
         elif 'NE40' in type_raw.upper():
             type_subdir_on_server = 'V8R10'
             file_types = []
@@ -1653,9 +1654,7 @@ if printall: CGI_CLI.print_args()
 
 #do_scp_command = do_sftp_command
 ##############################################################################
-# cmd_data = {'windows':['ping -n 3 127.0.0.1', 'ping -n 5 127.0.0.1', 'ping -n 9 127.0.0.1'], 'unix':['ping -c 3 127.0.0.1', 'ping -c 5 127.0.0.1', 'ping -c 9 127.0.0.1']}
-# CGI_CLI.uprint(LCMD.run_paralel_commands(cmd_data, custom_text='copying files' ))
-# sys.exit(0)
+
 
 ##############################################################################
 device_expected_GB_free = 0.2
@@ -1683,7 +1682,6 @@ if device: device = device.upper()
 
 ### GET sw_release FROM cli ###################################################
 sw_release = CGI_CLI.data.get('sw_release',str())
-
 try: device_expected_GB_free = float(CGI_CLI.data.get('device_disk_free_GB',device_expected_GB_free))
 except: pass
 iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
