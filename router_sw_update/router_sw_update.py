@@ -2081,15 +2081,16 @@ for device in device_list:
         time.sleep(1)  
 
 
-### FORCE REWRITE FILES ON DEVICE #####################################
+### FORCE REWRITE FILES ON DEVICE #############################################
 if CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
     if do_scp_all_files(true_sw_release_files_on_server, device_list, \
         USERNAME, PASSWORD, drive_string = drive_string, printall = printall):
-        CGI_CLI.uprint('Copy file(s) - CHECK OK\n', tag = 'h1', color = 'green')
+        CGI_CLI.uprint('Copy file(s) - CHECK OK\n', color = 'green')
     else: CGI_CLI.uprint('Copy file(s) - PROBLEM\n', tag = 'h1', color = 'red')
     time.sleep(1)
 
 
+### CONNECT TO DEVICE AGAIN ###################################################
 for device in device_list:
 
     ### LOGFILENAME GENERATION ################################################
@@ -2209,82 +2210,110 @@ for device in device_list:
             CGI_CLI.uprint('Device file(s) - CHECK OK.', tag = 'h1', color = 'green' )
         else:
             CGI_CLI.uprint('Device file(s) - CHECK FAIL!', tag = 'h1', color = 'red' )
-
-        ### CHECK LOCAL SERVER AND DEVICE HDD FILES ###########################
-        if RCMD.router_type == 'cisco_xr' \
-            or RCMD.router_type == 'cisco_ios':
-            ## BACKUP NORMAL AND ADMIN CONFIG ################################
-            if CGI_CLI.data.get('backup_configs_to_device_disk'):
-                actual_date_string = time.strftime("%Y-%m%d-%H:%M",time.gmtime(time.time()))
-                backup_config_rcmds = {
-                    'cisco_ios':[
-                    'copy running-config %s%s-config.txt' % (drive_string, actual_date_string),
-                    '\n',
-                    ],
-                    'cisco_xr':[
-                    'copy running-config %s%s-config.txt' % (drive_string, actual_date_string),
-                    '\n',
-                    'admin',
-                    'copy running-config %sadmin-%s-config.txt' %(drive_string, actual_date_string),
-                    '\n',
-                    'exit']
-                }
-                CGI_CLI.uprint('backup configs', no_newlines = \
-                    None if printall else True)
-                forget_it = RCMD.run_commands(backup_config_rcmds, printall = printall)
-                CGI_CLI.uprint('\n')
-
-            ### DELETE TAR FILES ON END #######################################
-            if CGI_CLI.data.get('delete_device_sw_files_on_end'):
-                del_files_cmds = {'cisco_xr':[],'cisco_ios':[]}
-
-                for unique_dir in unique_device_directory_list:
-                    for directory, dev_dir, file, md5 in true_sw_release_files_on_server:
-                        if unique_dir == dev_dir:
-                            del_files_cmds['cisco_xr'].append( \
-                                'del /%s%s' % (drive_string, os.path.join(dev_dir, file)))
-                            del_files_cmds['cisco_xr'].append('\n')
-                            del_files_cmds['cisco_xr'].append('\n')
-
-                            del_files_cmds['cisco_ios'].append( \
-                                'del %s%s' % (drive_string, os.path.join(dev_dir, file)))
-                            del_files_cmds['cisco_ios'].append('\n')
-                            del_files_cmds['cisco_ios'].append('\n')
-
-                CGI_CLI.uprint('deleting sw release files', no_newlines = \
-                    None if printall else True)
-                forget_it = RCMD.run_commands(del_files_cmds, printall = printall)
-               
-                ### CHECK FILES DELETION ######################################
-                check_dir_files_cmds = {'cisco_xr':[],'cisco_ios':[]}
-                for unique_dir in unique_device_directory_list:
-                    for directory, dev_dir, file, md5 in true_sw_release_files_on_server:
-                        if unique_dir == dev_dir:
-                            check_dir_files_cmds['cisco_xr'].append( \
-                                'dir /%s%s' % (drive_string, dev_dir))
-
-                            check_dir_files_cmds['cisco_ios'].append( \
-                                'dir %s%s' % (drive_string, dev_dir))
-                time.sleep(0.5)                
-                dir_outputs_after_deletion = RCMD.run_commands(check_dir_files_cmds, \
-                    printall = printall)
-                CGI_CLI.uprint('\n')
-                file_not_deleted = False
-                for unique_dir in unique_device_directory_list:
-                    for directory, dev_dir, file, md5 in true_sw_release_files_on_server:
-                        if unique_dir == dev_dir:
-                            if file in dir_outputs_after_deletion[0]:
-                                CGI_CLI.uprint(file, color = 'red')
-                                CGI_CLI.uprint(dir_outputs_after_deletion[3], color = 'blue')
-                                file_not_deleted = True                            
-                if file_not_deleted: CGI_CLI.uprint('DELETE PROBLEM!', color = 'red')
-                else: CGI_CLI.uprint('Delete file(s) - CHECK OK.', color = 'green')
-
-        ### DISCONNECT ########################################################
         RCMD.disconnect()
-    else:
-        if CGI_CLI.cgi_active and CGI_CLI.submit_form:
-            CGI_CLI.uprint('DEVICE NAME NOT INSERTED!', tag = 'h1', color = 'red')
+        time.sleep(1) 
+
+
+### ADITIONAL DEVICE ACTIONS ######################################################
+if CGI_CLI.data.get('backup_configs_to_device_disk') \
+    or CGI_CLI.data.get('delete_device_sw_files_on_end'):
+    for device in device_list:
+
+        ### LOGFILENAME GENERATION ################################################
+        logfilename = generate_logfilename(prefix = device.upper(), \
+            USERNAME = USERNAME, suffix = str(SCRIPT_ACTION) + '.log')
+        logfilename = None
+
+        ### REMOTE DEVICE OPERATIONS ##############################################
+        if device:
+            CGI_CLI.uprint('\nFinal device %s actions:\n' % (device), tag = 'h2', color = 'blue')
+            RCMD.connect(device, username = USERNAME, password = PASSWORD, \
+                printall = printall, logfilename = logfilename)
+
+            if not RCMD.ssh_connection:
+                CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), color = 'red')
+                RCMD.disconnect()
+                if len(device_list) > 1: continue
+                else: sys.exit(0)
+
+            ### DEVICE DRIVE STRING ###############################################
+            drive_string = str()
+            if RCMD.router_type == 'cisco_xr': drive_string = 'harddisk:'
+            if RCMD.router_type == 'cisco_ios': drive_string = 'bootflash:'
+
+
+            ### CHECK LOCAL SERVER AND DEVICE HDD FILES ###########################
+            if RCMD.router_type == 'cisco_xr' \
+                or RCMD.router_type == 'cisco_ios':
+                ## BACKUP NORMAL AND ADMIN CONFIG ################################
+                if CGI_CLI.data.get('backup_configs_to_device_disk'):
+                    actual_date_string = time.strftime("%Y-%m%d-%H:%M",time.gmtime(time.time()))
+                    backup_config_rcmds = {
+                        'cisco_ios':[
+                        'copy running-config %s%s-config.txt' % (drive_string, actual_date_string),
+                        '\n',
+                        ],
+                        'cisco_xr':[
+                        'copy running-config %s%s-config.txt' % (drive_string, actual_date_string),
+                        '\n',
+                        'admin',
+                        'copy running-config %sadmin-%s-config.txt' %(drive_string, actual_date_string),
+                        '\n',
+                        'exit']
+                    }
+                    CGI_CLI.uprint('backup configs', no_newlines = \
+                        None if printall else True)
+                    forget_it = RCMD.run_commands(backup_config_rcmds, printall = printall)
+                    CGI_CLI.uprint('\n')
+
+                ### DELETE TAR FILES ON END #######################################
+                if CGI_CLI.data.get('delete_device_sw_files_on_end'):
+                    del_files_cmds = {'cisco_xr':[],'cisco_ios':[]}
+
+                    for unique_dir in unique_device_directory_list:
+                        for directory, dev_dir, file, md5 in true_sw_release_files_on_server:
+                            if unique_dir == dev_dir:
+                                del_files_cmds['cisco_xr'].append( \
+                                    'del /%s%s' % (drive_string, os.path.join(dev_dir, file)))
+                                del_files_cmds['cisco_xr'].append('\n')
+                                del_files_cmds['cisco_xr'].append('\n')
+
+                                del_files_cmds['cisco_ios'].append( \
+                                    'del %s%s' % (drive_string, os.path.join(dev_dir, file)))
+                                del_files_cmds['cisco_ios'].append('\n')
+                                del_files_cmds['cisco_ios'].append('\n')
+
+                    CGI_CLI.uprint('deleting sw release files', no_newlines = \
+                        None if printall else True)
+                    forget_it = RCMD.run_commands(del_files_cmds, printall = printall)
+                   
+                    ### CHECK FILES DELETION ######################################
+                    check_dir_files_cmds = {'cisco_xr':[],'cisco_ios':[]}
+                    for unique_dir in unique_device_directory_list:
+                        for directory, dev_dir, file, md5 in true_sw_release_files_on_server:
+                            if unique_dir == dev_dir:
+                                check_dir_files_cmds['cisco_xr'].append( \
+                                    'dir /%s%s' % (drive_string, dev_dir))
+
+                                check_dir_files_cmds['cisco_ios'].append( \
+                                    'dir %s%s' % (drive_string, dev_dir))
+                    time.sleep(0.5)                
+                    dir_outputs_after_deletion = RCMD.run_commands(check_dir_files_cmds, \
+                        printall = printall)
+                    CGI_CLI.uprint('\n')
+                    file_not_deleted = False
+                    for unique_dir in unique_device_directory_list:
+                        for directory, dev_dir, file, md5 in true_sw_release_files_on_server:
+                            if unique_dir == dev_dir:
+                                if file in dir_outputs_after_deletion[0]:
+                                    CGI_CLI.uprint(file, color = 'red')
+                                    CGI_CLI.uprint(dir_outputs_after_deletion[3], color = 'blue')
+                                    file_not_deleted = True                            
+                    if file_not_deleted: CGI_CLI.uprint('DELETE PROBLEM!', color = 'red')
+                    else: CGI_CLI.uprint('Delete file(s) - CHECK OK.', color = 'green')
+
+            ### DISCONNECT ########################################################
+            RCMD.disconnect()
 
 del sql_inst
 
