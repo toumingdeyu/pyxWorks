@@ -103,14 +103,10 @@ class CGI_CLI(object):
                             action = "store", dest = 'sw_release',
                             default = str(),
                             help = "sw release number with or without dots, i.e. 653 or 6.5.3")
-        parser.add_argument("--OTI_tar",
-                            action = 'store_true', dest = "OTI.tar_file",
-                            default = None,
-                            help = "copy/check OTI.tar file")
-        parser.add_argument("--SMU_tar",
-                            action = 'store_true', dest = "SMU.tar_files",
-                            default = None,
-                            help = "copy/check SMU.tar files")
+        parser.add_argument("--files",
+                            action = "store", dest = 'sw_files',
+                            default = str(),
+                            help = "--files OTI.tar,SMU,pkg,bin")
         parser.add_argument("--check_files_only",
                             action = 'store_true', dest = "check_device_sw_files_only",
                             default = None,
@@ -123,7 +119,7 @@ class CGI_CLI(object):
                             action = 'store_true', dest = "force_rewrite_sw_files_on_device",
                             default = None,
                             help = "force rewrite sw release files on device disk")
-        parser.add_argument("--delete_files",
+        parser.add_argument("--delete",
                             action = 'store_true', dest = "delete_device_sw_files_on_end",
                             default = None,
                             help = "delete device sw release files on end after sw upgrade")
@@ -1471,21 +1467,24 @@ def do_scp_command(USERNAME = None, PASSWORD = None, device = None, \
 
 def do_scp_all_files(true_sw_release_files_on_server = None, device_list = None, \
     USERNAME = None, PASSWORD = None , drive_string = None, printall = None):
-    cp_cmd_list = []
-    for device in device_list:
-        for directory,dev_dir,file,md5 in true_sw_release_files_on_server:
+    result = True
+    os.environ['SSHPASS'] = PASSWORD    
+    for directory,dev_dir,file,md5 in true_sw_release_files_on_server:
+        cp_cmd_list = []
+        ### ONLY 1 SCP CONNECTION PER ROUTER ###
+        for device in device_list:
             local_command = 'sshpass -e scp -v -o StrictHostKeyChecking=no %s %s@%s:/%s' \
                 % (os.path.join(directory, file), USERNAME, device, \
                 '%s%s' % (drive_string, os.path.join(dev_dir, file)))
             cp_cmd_list.append(local_command)
-    ### COPYING ###
-    #CGI_CLI.uprint('\n'.join(cp_cmd_list))
-    os.environ['SSHPASS'] = PASSWORD
-    copy_commands = {'unix':cp_cmd_list}
-    #if printall: CGI_CLI.uprint(copy_commands, jsonprint = True)
-    result = LCMD.run_paralel_commands(copy_commands, custom_text='copying files', printall=True)
+        if printall: CGI_CLI.uprint("SCP COMMANDS:\n"+'\n'.join(cp_cmd_list))
+        os.environ['SSHPASS'] = PASSWORD
+        copy_commands = {'unix':cp_cmd_list}
+        partial_result = LCMD.run_paralel_commands(copy_commands, custom_text='copying files', printall=True)
+        if not partial_result: result = False
+        time.sleep(1)
     ### SECURITY REASONS ###
-    os.environ['SSHPASS'] = '-'
+    os.environ['SSHPASS'] = '-'    
     return result
 
 ###############################################################################
@@ -1604,35 +1603,35 @@ def get_local_subdirectories(brand_raw = None, type_raw = None):
         elif 'ASR1002-HX' in type_raw.upper():
             type_subdir_on_server = 'ASR1K/ASR1002HX/IOS_XE'
             type_subdir_on_device = 'IOS-XE'
-            file_types = ['asr100*.bin']
+            file_types = ['asr100*.bin','asr100*.pkg']
         elif 'CRS' in type_raw.upper():
             type_subdir_on_server = 'CRS'
             type_subdir_on_device = 'IOS-XR'
             file_types = ['*OTI.tar', 'SMU/*.tar']
         elif 'C29' in type_raw.upper():
             type_subdir_on_server = 'C2900'
-            file_types = ['c2900*.bin']
+            file_types = ['c2900*.bin','*.pkg']
         elif '2901' in type_raw.upper():
             type_subdir_on_server = 'C2900'
-            file_types = ['c2900*.bin']
+            file_types = ['c2900*.bin','*.pkg']
         elif 'C35' in type_raw.upper():
             type_subdir_on_server = 'C3500'
-            file_types = ['c35*.bin']
+            file_types = ['c35*.bin','*.pkg']
         elif 'C36' in type_raw.upper():
             type_subdir_on_server = 'C3600'
-            file_types = ['c36*.bin']
+            file_types = ['c36*.bin','*.pkg']
         elif 'C37' in type_raw.upper():
             type_subdir_on_server = 'C3700'
-            file_types = ['c37*.bin']
+            file_types = ['c37*.bin','*.pkg']
         elif 'C38' in type_raw.upper():
             type_subdir_on_server = 'C3800'
-            file_types = ['c38*.bin']
+            file_types = ['c38*.bin','*.pkg']
         elif 'ISR43' in type_raw.upper():
             type_subdir_on_server = 'C4321'
-            file_types = ['isr43*.bin']
+            file_types = ['isr43*.bin','*.pkg']
         elif 'C45' in type_raw.upper():
             type_subdir_on_server = 'C4500'
-            file_types = ['cat45*.bin']
+            file_types = ['cat45*.bin','*.pkg']
         elif 'MX480' in type_raw.upper():
             type_subdir_on_server = 'MX/MX480'
             file_types = ['junos*.img.gz']
@@ -1682,7 +1681,7 @@ device = CGI_CLI.data.get("device",None)
 if device: device = device.upper()
 
 ### GET sw_release FROM cli ###################################################
-sw_release = CGI_CLI.data.get('sw_release',str()).replace('.','')
+sw_release = CGI_CLI.data.get('sw_release',str())
 
 try: device_expected_GB_free = float(CGI_CLI.data.get('device_disk_free_GB',device_expected_GB_free))
 except: pass
@@ -1904,12 +1903,12 @@ CGI_CLI.uprint('expected_disk_free_GB = %s\nsw_file_types = %s' % \
     ))
 
 ###############################################################################
+if CGI_CLI.data.get('sw_files'):
+    ft_string = CGI_CLI.data.get('sw_files') 
+    ft_list = ft_string.split(',') if ',' in ft_string else [ft_string]
 
-if CGI_CLI.data.get('OTI.tar_file'):
-    selected_sw_file_types_list += [ filetype for filetype in sw_file_types_list if 'OTI.tar' in filetype ]
-
-if CGI_CLI.data.get('SMU.tar_files'):
-    selected_sw_file_types_list += [ filetype for filetype in sw_file_types_list if 'SMU' in filetype ]
+    for ft_item in ft_list:
+        selected_sw_file_types_list += [ filetype for filetype in sw_file_types_list if ft_item in filetype ]
 
 ###############################################################################
 
@@ -1935,22 +1934,27 @@ if type_subdir and brand_subdir and sw_release:
     for actual_file_type in selected_sw_file_types_list:
         actual_file_type_subdir, forget_it = os.path.split(actual_file_type)
 
-        dir_version_subdir = os.path.abspath(os.path.join(os.sep,'home',\
+        dir_sw_version_subdir = os.path.abspath(os.path.join(os.sep,'home',\
+            'tftpboot',brand_subdir, type_subdir, sw_release.replace('.',''), actual_file_type_subdir)).strip()
+
+        dir_sw_version_subdir_dotted = os.path.abspath(os.path.join(os.sep,'home',\
             'tftpboot',brand_subdir, type_subdir, sw_release, actual_file_type_subdir)).strip()
 
-        dir_without_version_subdir = os.path.abspath(os.path.join(os.sep,'home',\
+        dir_without_sw_version_subdir = os.path.abspath(os.path.join(os.sep,'home',\
             'tftpboot',brand_subdir, type_subdir, actual_file_type_subdir)).strip()
 
         ### BUG: os.path.exists RETURNS ALLWAYS FALSE, SO I USE OS ls -l ######
-        dir_version_subdir_exists = does_dir_exists_by_ls_l(dir_version_subdir, printall = printall)
-        dir_without_version_subdir_exists = does_dir_exists_by_ls_l(dir_without_version_subdir, printall = printall)
+        dir_sw_version_subdir_exists = does_dir_exists_by_ls_l(dir_sw_version_subdir, printall = printall)
+        dir_sw_version_subdir_dotted_exists = does_dir_exists_by_ls_l(dir_sw_version_subdir_dotted, printall = printall)
+        dir_without_sw_version_subdir_exists = does_dir_exists_by_ls_l(dir_without_sw_version_subdir, printall = printall)
 
-        if not dir_version_subdir_exists and not dir_without_version_subdir_exists:
+        if not dir_sw_version_subdir_exists and not dir_without_sw_version_subdir_exists:
             CGI_CLI.uprint('Path for %s NOT FOUND!' % (actual_file_type), color = 'red')
             sys.exit(0)
 
-        if dir_version_subdir_exists: directory_list.append(dir_version_subdir)
-        elif dir_without_version_subdir_exists: directory_list.append(dir_without_version_subdir)
+        if dir_sw_version_subdir_exists: directory_list.append(dir_sw_version_subdir)
+        elif dir_sw_version_subdir_dotted_exists: directory_list.append(dir_sw_version_subdir_dotted)
+        elif dir_without_sw_version_subdir_exists: directory_list.append(dir_without_sw_version_subdir)
 
     ### CHECK LOCAL SERVER FILES EXISTENCY ################################
     true_sw_release_files_on_server = []
@@ -1958,7 +1962,7 @@ if type_subdir and brand_subdir and sw_release:
         forget_it, actual_file_name = os.path.split(actual_file_type)
         actual_file_type_subdir, forget_it = os.path.split(actual_file_type)
         if sw_release in directory:
-            device_directory = os.path.abspath(os.path.join(os.sep,type_subdir_on_device, sw_release, actual_file_type_subdir))
+            device_directory = os.path.abspath(os.path.join(os.sep,type_subdir_on_device, sw_release.replace('.',''), actual_file_type_subdir))
         else:
             ### FILES ON DEVICE WILL BE IN DIRECTORY WITHOUT SW_RELEASE IF SW_RELEASE SUDBIR DOES NOT EXISTS ON SERVER, BECAUSE THEN SW_RELEASE IS FILENAME ###
             device_directory = os.path.abspath(os.path.join(os.sep,type_subdir_on_device, actual_file_type_subdir))
@@ -2049,10 +2053,10 @@ for device in device_list:
         ### MAKE ALL SUB-DIRECTORIES ONE BY ONE ###############################
         redundant_dev_dir_list = [ dev_dir for directory,dev_dir,file,md5 in true_sw_release_files_on_server ]
         dev_dir_set = set(redundant_dev_dir_list)
-        unique_dev_dir_set = list(dev_dir_set)
+        unique_device_directory_list = list(dev_dir_set)
 
         xr_device_mkdir_list = []
-        for dev_dir in unique_dev_dir_set:
+        for dev_dir in unique_device_directory_list:
             up_path = str()
             for dev_sub_dir in dev_dir.split('/'):
                 if dev_sub_dir:
@@ -2073,6 +2077,8 @@ for device in device_list:
         forget_it = RCMD.run_commands(mkdir_device_cmds)
         CGI_CLI.uprint('\n')
         RCMD.disconnect()
+        time.sleep(1)  
+
 
 ### FORCE REWRITE FILES ON DEVICE #####################################
 if CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
@@ -2080,7 +2086,7 @@ if CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
         USERNAME, PASSWORD, drive_string = drive_string, printall = printall):
         CGI_CLI.uprint('COPYING COPY OK\n', tag = 'h1', color = 'green')
     else: CGI_CLI.uprint('COPYING NOT OK\n', tag = 'h1', color = 'red')
-
+    time.sleep(1)
 
 
 for device in device_list:
@@ -2129,10 +2135,10 @@ for device in device_list:
         ### SHOW DEVICE DIRECTORY #############################################
         redundant_dev_dir_list = [ dev_dir for directory,dev_dir,file,md5 in true_sw_release_files_on_server ]
         dev_dir_set = set(redundant_dev_dir_list)
-        unique_dev_dir_set = list(dev_dir_set)
+        unique_device_directory_list = list(dev_dir_set)
 
-        xe_device_dir_list = [ 'dir %s%s' % (drive_string, dev_dir) for dev_dir in unique_dev_dir_set ]
-        xr_device_dir_list = [ 'dir %s%s' % (drive_string, dev_dir) for dev_dir in unique_dev_dir_set ]
+        xe_device_dir_list = [ 'dir %s%s' % (drive_string, dev_dir) for dev_dir in unique_device_directory_list ]
+        xr_device_dir_list = [ 'dir %s%s' % (drive_string, dev_dir) for dev_dir in unique_device_directory_list ]
 
         dir_device_cmds = {
             'cisco_ios':xe_device_dir_list,
@@ -2146,7 +2152,7 @@ for device in device_list:
         CGI_CLI.uprint('\n')
 
         all_md5_ok, all_files_ok = None, None
-        for unique_dir,unique_dir_outputs in zip(unique_dev_dir_set,rcmd_dir_outputs):
+        for unique_dir,unique_dir_outputs in zip(unique_device_directory_list,rcmd_dir_outputs):
             all_md5_ok, all_files_ok = True, True
             for files_list,rcmd_md5_output in zip(true_sw_release_files_on_server,rcmd_md5_outputs):
                 directory, dev_dir, file, md5 = files_list
@@ -2187,7 +2193,7 @@ for device in device_list:
                                 md5_ok = True
                         ### FILE EXISTENCY CHECK AGAIN ########################
                         file_found = False
-                        for line in rcmd_dir_one_output.splitlines():
+                        for line in rcmd_dir_one_output[0].splitlines():
                             try: possible_file_name = line.split()[-1].strip()
                             except: possible_file_name = str()
                             if file == possible_file_name:
@@ -2231,28 +2237,47 @@ for device in device_list:
             if CGI_CLI.data.get('delete_device_sw_files_on_end'):
                 del_files_cmds = {'cisco_xr':[],'cisco_ios':[]}
 
-                for unique_dir,unique_dir_outputs in zip(unique_dev_dir_set,rcmd_dir_outputs):
-                    for files_list,rcmd_md5_output in zip(true_sw_release_files_on_server,rcmd_md5_outputs):
-                        directory, dev_dir, file, md5 = files_list
+                for unique_dir in unique_device_directory_list:
+                    for directory, dev_dir, file, md5 in true_sw_release_files_on_server:
                         if unique_dir == dev_dir:
                             del_files_cmds['cisco_xr'].append( \
                                 'del /%s%s' % (drive_string, os.path.join(dev_dir, file)))
                             del_files_cmds['cisco_xr'].append('\n')
                             del_files_cmds['cisco_xr'].append('\n')
-                            del_files_cmds['cisco_xr'].append( \
-                                'dir /%s%s' % (drive_string, dev_dir))
 
                             del_files_cmds['cisco_ios'].append( \
                                 'del %s%s' % (drive_string, os.path.join(dev_dir, file)))
                             del_files_cmds['cisco_ios'].append('\n')
                             del_files_cmds['cisco_ios'].append('\n')
-                            del_files_cmds['cisco_ios'].append( \
-                                'dir %s%s' % (drive_string, dev_dir))
 
                 CGI_CLI.uprint('deleting sw release files', no_newlines = \
                     None if printall else True)
                 forget_it = RCMD.run_commands(del_files_cmds, printall = printall)
+               
+                ### CHECK FILES DELETION ######################################
+                check_dir_files_cmds = {'cisco_xr':[],'cisco_ios':[]}
+                for unique_dir in unique_device_directory_list:
+                    for directory, dev_dir, file, md5 in true_sw_release_files_on_server:
+                        if unique_dir == dev_dir:
+                            check_dir_files_cmds['cisco_xr'].append( \
+                                'dir /%s%s' % (drive_string, dev_dir))
+
+                            check_dir_files_cmds['cisco_ios'].append( \
+                                'dir %s%s' % (drive_string, dev_dir))
+                time.sleep(0.5)                
+                dir_outputs_after_deletion = RCMD.run_commands(check_dir_files_cmds, \
+                    printall = printall)
                 CGI_CLI.uprint('\n')
+                file_not_deleted = False
+                for unique_dir in unique_device_directory_list:
+                    for directory, dev_dir, file, md5 in true_sw_release_files_on_server:
+                        if unique_dir == dev_dir:
+                            if file in dir_outputs_after_deletion[0]:
+                                CGI_CLI.uprint(file, color = 'red')
+                                CGI_CLI.uprint(dir_outputs_after_deletion[3], color = 'blue')
+                                file_not_deleted = True                            
+                if file_not_deleted: CGI_CLI.uprint('DELETE PROBLEM!', color = 'red')
+                else: CGI_CLI.uprint('DELETE - CHECK OK.', color = 'green')
 
         ### DISCONNECT ########################################################
         RCMD.disconnect()
