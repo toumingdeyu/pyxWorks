@@ -1470,7 +1470,7 @@ def do_scp_all_files(true_sw_release_files_on_server = None, device_list = None,
     USERNAME = None, PASSWORD = None , drive_string = None, printall = None):
     result = True
     os.environ['SSHPASS'] = PASSWORD    
-    for directory,dev_dir,file,md5 in true_sw_release_files_on_server:
+    for directory,dev_dir,file,md5,fsize in true_sw_release_files_on_server:
         cp_cmd_list = []
         ### ONLY 1 SCP CONNECTION PER ROUTER ###
         for device in device_list:
@@ -1482,7 +1482,7 @@ def do_scp_all_files(true_sw_release_files_on_server = None, device_list = None,
         os.environ['SSHPASS'] = PASSWORD
         copy_commands = {'unix':cp_cmd_list}
         partial_result = LCMD.run_paralel_commands(copy_commands, \
-            custom_text='copying file(s) %s to device(s) %s' % (file, ','.join(device_list)) , printall = printall)
+            custom_text='copying file(s) %s, (file size %.2fMB) to device(s) %s' % (file, float(fsize)/1048576, ','.join(device_list)) , printall = printall)
         if not partial_result: result = False
         time.sleep(1)
     ### SECURITY REASONS ###
@@ -1672,6 +1672,7 @@ SCRIPT_ACTION = None
 ACTION_ITEM_FOUND = None
 type_subdir = str()
 remote_sw_release_dir_exists = None
+total_size_of_files_in_bytes = 0
 
 asr1k_detection_string = 'CSR1000'
 asr9k_detection_string = 'ASR9K|IOS-XRv 9000'
@@ -1836,7 +1837,7 @@ if len(device_list)>0:
 
 
 ### SHOW HTML MENU SHOWS ONLY IN CGI/HTML MODE ################################
-CGI_CLI.uprint('ROUTER SW UPGRADE TOOL', tag = 'h1', color = 'blue')
+CGI_CLI.uprint('ROUTER SW UPGRADE TOOL (v.%s)' % (CGI_CLI.VERSION()), tag = 'h1', color = 'blue')
 if CGI_CLI.cgi_active and (not CGI_CLI.submit_form or active_menu == 2):
     ### DISPLAY ROUTER-TYPE MENU ##############################################
     if active_menu == 0:
@@ -1961,7 +1962,8 @@ if type_subdir and brand_subdir and sw_release:
         forget_it, actual_file_name = os.path.split(actual_file_type)
         actual_file_type_subdir, forget_it = os.path.split(actual_file_type)
         if sw_release in directory:
-            device_directory = os.path.abspath(os.path.join(os.sep,type_subdir_on_device, sw_release.replace('.',''), actual_file_type_subdir))
+            device_directory = os.path.abspath(os.path.join(os.sep, \
+                type_subdir_on_device, sw_release.replace('.',''), actual_file_type_subdir))
         else:
             ### FILES ON DEVICE WILL BE IN DIRECTORY WITHOUT SW_RELEASE IF SW_RELEASE SUDBIR DOES NOT EXISTS ON SERVER, BECAUSE THEN SW_RELEASE IS FILENAME ###
             device_directory = os.path.abspath(os.path.join(os.sep,type_subdir_on_device, actual_file_type_subdir))
@@ -1979,14 +1981,21 @@ if type_subdir and brand_subdir and sw_release:
                 local_oti_checkum_string = LCMD.run_commands({'unix':['md5sum %s' % \
                     (os.path.join(directory,true_file_name))]}, printall = printall)
                 md5_sum = local_oti_checkum_string[0].split()[0].strip()
-                true_sw_release_files_on_server.append([directory,device_directory,true_file_name,md5_sum])
+                filesize_in_bytes = os.stat(os.path.join(directory,true_file_name)).st_size
+                ### MAKE TRUE FILE LIST ###
+                true_sw_release_files_on_server.append([directory,device_directory,true_file_name,md5_sum,filesize_in_bytes])
         if no_such_files_in_directory:
             CGI_CLI.uprint('%s file(s) NOT FOUND in %s!' % (actual_file_name,directory), color = 'red')
             sys.exit(0)
-    CGI_CLI.uprint('File(s), md5 checksum(s), device folder(s) to copy:\n%s' % \
-        ('\n'.join([ str(directory+'/'+file+4*' '+md5+4*' '+dev_dir) for directory,dev_dir,file,md5 in true_sw_release_files_on_server ])))
+    CGI_CLI.uprint('File(s),    md5 checksum(s),    device folder(s),    filesize:\n%s' % \
+        ('\n'.join([ '%s/%s    %s    %s    %.2fMB' % (directory,file,md5,dev_dir,float(fsize)/1048576) for directory,dev_dir,file,md5,fsize in true_sw_release_files_on_server ])))
 
-
+    ### CALCULATE NEEDED DISK SPACE ###########################################
+    for directory,dev_dir,file,md5,fsize in true_sw_release_files_on_server:
+        total_size_of_files_in_bytes += fsize
+    CGI_CLI.uprint('\ndisk space needed = %.2F MB' % (float(total_size_of_files_in_bytes)/1048576), color = 'blue')    
+        
+    
 ### FOR LOOP PER DEVICE #######################################################
 for device in device_list:
 
@@ -2038,7 +2047,7 @@ for device in device_list:
         elif RCMD.router_type == 'juniper': pass
         elif RCMD.router_type == 'huawei': pass
 
-        CGI_CLI.uprint('disk free space = %s bytes' % (str(device_free_space)) , color = 'blue')
+        CGI_CLI.uprint('disk free space = %.2f MB' % (float(device_free_space)/1048576) , color = 'blue')
 
         ### SOME GB FREE EXPECTED (1MB=1048576, 1GB=1073741824) ###
         if device_free_space < (device_expected_GB_free * 1073741824):
@@ -2050,7 +2059,7 @@ for device in device_list:
 
 
         ### MAKE ALL SUB-DIRECTORIES ONE BY ONE ###############################
-        redundant_dev_dir_list = [ dev_dir for directory,dev_dir,file,md5 in true_sw_release_files_on_server ]
+        redundant_dev_dir_list = [ dev_dir for directory,dev_dir,file,md5,fsize in true_sw_release_files_on_server ]
         dev_dir_set = set(redundant_dev_dir_list)
         unique_device_directory_list = list(dev_dir_set)
 
@@ -2116,14 +2125,14 @@ for device in device_list:
 
         ### CHECK MD5 FIRST ###################################################
         xr_md5_cmds, xe_md5_cmds = [], []
-        for directory, dev_dir, file, md5 in true_sw_release_files_on_server:
+        for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
             xr_md5_cmds.append('show md5 file /%s%s' % (drive_string, os.path.join(dev_dir, file)))
             xe_md5_cmds.append('verify /md5 %s%s' % (drive_string, os.path.join(dev_dir, file)))
         CGI_CLI.uprint('checking md5(s)', \
             no_newlines = None if printall else True)
         rcmd_md5_outputs = RCMD.run_commands({'cisco_ios':xe_md5_cmds,'cisco_xr':xr_md5_cmds}, printall = printall)
         for files_list,rcmd_md5_output in zip(true_sw_release_files_on_server,rcmd_md5_outputs):
-            directory, dev_dir, file, md5 = files_list
+            directory, dev_dir, file, md5, fsize = files_list
             find_list = re.findall(r'[0-9a-fA-F]{32}', rcmd_md5_output.strip())
             if len(find_list) == 1:
                 md5_on_device = find_list[0]
@@ -2133,7 +2142,7 @@ for device in device_list:
 
 
         ### SHOW DEVICE DIRECTORY #############################################
-        redundant_dev_dir_list = [ dev_dir for directory,dev_dir,file,md5 in true_sw_release_files_on_server ]
+        redundant_dev_dir_list = [ dev_dir for directory,dev_dir,file,md5,fsize in true_sw_release_files_on_server ]
         dev_dir_set = set(redundant_dev_dir_list)
         unique_device_directory_list = list(dev_dir_set)
 
@@ -2155,7 +2164,7 @@ for device in device_list:
         for unique_dir,unique_dir_outputs in zip(unique_device_directory_list,rcmd_dir_outputs):
             all_md5_ok, all_files_ok = True, True
             for files_list,rcmd_md5_output in zip(true_sw_release_files_on_server,rcmd_md5_outputs):
-                directory, dev_dir, file, md5 = files_list
+                directory, dev_dir, file, md5, fsize = files_list
                 if unique_dir == dev_dir:
                     file_found = False
                     for line in unique_dir_outputs.splitlines():
@@ -2269,7 +2278,7 @@ if CGI_CLI.data.get('backup_configs_to_device_disk') \
                     del_files_cmds = {'cisco_xr':[],'cisco_ios':[]}
 
                     for unique_dir in unique_device_directory_list:
-                        for directory, dev_dir, file, md5 in true_sw_release_files_on_server:
+                        for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
                             if unique_dir == dev_dir:
                                 del_files_cmds['cisco_xr'].append( \
                                     'del /%s%s' % (drive_string, os.path.join(dev_dir, file)))
@@ -2288,7 +2297,7 @@ if CGI_CLI.data.get('backup_configs_to_device_disk') \
                     ### CHECK FILES DELETION ######################################
                     check_dir_files_cmds = {'cisco_xr':[],'cisco_ios':[]}
                     for unique_dir in unique_device_directory_list:
-                        for directory, dev_dir, file, md5 in true_sw_release_files_on_server:
+                        for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
                             if unique_dir == dev_dir:
                                 check_dir_files_cmds['cisco_xr'].append( \
                                     'dir /%s%s' % (drive_string, dev_dir))
@@ -2301,7 +2310,7 @@ if CGI_CLI.data.get('backup_configs_to_device_disk') \
                     CGI_CLI.uprint('\n')
                     file_not_deleted = False
                     for unique_dir in unique_device_directory_list:
-                        for directory, dev_dir, file, md5 in true_sw_release_files_on_server:
+                        for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
                             if unique_dir == dev_dir:
                                 if file in dir_outputs_after_deletion[0]:
                                     CGI_CLI.uprint(file, color = 'red')
