@@ -957,7 +957,7 @@ class LCMD(object):
 
     @staticmethod
     def run_command(cmd_line = None, logfilename = None, printall = None,
-        chunked = None, timeout_sec = 500):
+        chunked = None, timeout_sec = 5000):
         os_output, cmd_list, timer_counter_100ms = str(), None, 0
         logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
         if cmd_line:
@@ -1000,7 +1000,7 @@ class LCMD(object):
 
     @staticmethod
     def run_paralel_commands(cmd_data = None, logfilename = None, printall = None, \
-        timeout_sec = 1000, custom_text = None, check_exitcode = None):
+        timeout_sec = 5000, custom_text = None, check_exitcode = None):
         logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
         commands_ok = None
         if cmd_data and isinstance(cmd_data, (dict,collections.OrderedDict)):
@@ -1055,7 +1055,7 @@ class LCMD(object):
                         if timer_counter_100ms % 10 == 0:
                             if printall: CGI_CLI.uprint("%d LOCAL_COMMAND%s RUNNING." % (len(CommandObjectList), 'S are' if len(CommandObjectList) > 1 else ' is'))
                             else: CGI_CLI.uprint(" %d   " % (len(CommandObjectList)), no_newlines = True)
-                        if timer_counter_100ms % 300 == 0: CGI_CLI.uprint('\n')    
+                        if timer_counter_100ms % 300 == 0: CGI_CLI.uprint('\n')
                         if timer_counter_100ms > timeout_sec * 10:
                             if printall: CGI_CLI.uprint("LOCAL_COMMAND_(TIMEOUT)[%s]: %s\n%s" % (str(actual_CommandObject), str(cmd_line), outputs), color = 'red')
                             LCMD.fp.write('LOCAL_COMMAND_(TIMEOUT)[%s]: %s\n%s\n' % (str(actual_CommandObject), str(cmd_line), outputs))
@@ -1469,7 +1469,7 @@ def do_scp_command(USERNAME = None, PASSWORD = None, device = None, \
 def do_scp_all_files(true_sw_release_files_on_server = None, device_list = None, \
     USERNAME = None, PASSWORD = None , drive_string = None, printall = None):
     result = True
-    os.environ['SSHPASS'] = PASSWORD    
+    os.environ['SSHPASS'] = PASSWORD
     for directory,dev_dir,file,md5,fsize in true_sw_release_files_on_server:
         cp_cmd_list = []
         ### ONLY 1 SCP CONNECTION PER ROUTER ###
@@ -1486,8 +1486,29 @@ def do_scp_all_files(true_sw_release_files_on_server = None, device_list = None,
         if not partial_result: result = False
         time.sleep(1)
     ### SECURITY REASONS ###
-    os.environ['SSHPASS'] = '-'    
+    os.environ['SSHPASS'] = '-'
     return result
+
+###############################################################################
+
+def do_scp_one_file_to_more_devices(true_sw_release_file_on_server = None, \
+    device_list = None, USERNAME = None, PASSWORD = None , drive_string = None, \
+    printall = None):
+    if true_sw_release_file_on_server and len(device_list)>0:
+        os.environ['SSHPASS'] = PASSWORD
+        directory,dev_dir,file,md5,fsize = true_sw_release_file_on_server
+        cp_cmd_list = []
+        ### ONLY 1 SCP CONNECTION PER ROUTER ###
+        for device in device_list:
+            local_command = 'sshpass -e scp -v -o StrictHostKeyChecking=no %s %s@%s:/%s &' \
+                % (os.path.join(directory, file), USERNAME, device, \
+                '%s%s' % (drive_string, os.path.join(dev_dir, file)))
+            os.system(local_command)
+            CGI_CLI.uprint('scp start file %s, (file size %.2fMB) to device %s' % \
+                (file, float(fsize)/1048576, device))
+        ### SECURITY REASONS ###
+        os.environ['SSHPASS'] = '-'
+    return None
 
 ###############################################################################
 
@@ -1571,7 +1592,7 @@ def get_existing_sw_release_list(brand_subdir = None, type_subdir = None):
 
 ##############################################################################
 
-def does_dir_exists_by_ls_l(directory, printall = None):
+def does_directory_exist_by_ls_l(directory, printall = None):
     ### BUG: os.path.exists RETURNS ALLWAYS FALSE, SO I USE OS ls -l ######
     ls_all_result = LCMD.run_commands({'unix':['ls -l %s' % (directory)]}, printall = printall)
     if 'No such file or directory' in ls_all_result[0] \
@@ -1643,16 +1664,34 @@ def get_local_subdirectories(brand_raw = None, type_raw = None):
     return brand_subdir, type_subdir_on_server, type_subdir_on_device, file_types
 
 ##############################################################################
+
+# def does_run_scp_processes(printall = None):
+    # my_pid = os.getpid()
+    # CGI_CLI.uprint('Your PID is:%s ' % (str(my_pid)), color = 'blue')
+    # my_ps_result = LCMD.run_commands({'unix':["ps -ef | grep `whoami`"]}, printall = True)
+    # for line in my_ps_result[0].splitlines()
+        # try: uid, pid, ppid = line.split()[0], line.split()[1], line.split()[2]
+        # except: pass
+
+
+
+##############################################################################
 #
 # BEGIN MAIN
 #
 ##############################################################################
+
 if __name__ != "__main__": sys.exit(0)
 USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True)
 printall = CGI_CLI.data.get("printall")
 if printall: CGI_CLI.print_args()
 
-#do_scp_command = do_sftp_command
+##############################################################################
+
+CGI_CLI.uprint('ROUTER SW UPGRADE TOOL (v.%s)' % (CGI_CLI.VERSION()), tag = 'h1', color = 'blue')
+my_pid = os.getpid()
+CGI_CLI.uprint('PID=%s ' % (str(my_pid)), color = 'blue')
+
 ##############################################################################
 
 
@@ -1837,7 +1876,6 @@ if len(device_list)>0:
 
 
 ### SHOW HTML MENU SHOWS ONLY IN CGI/HTML MODE ################################
-CGI_CLI.uprint('ROUTER SW UPGRADE TOOL (v.%s)' % (CGI_CLI.VERSION()), tag = 'h1', color = 'blue')
 if CGI_CLI.cgi_active and (not CGI_CLI.submit_form or active_menu == 2):
     ### DISPLAY ROUTER-TYPE MENU ##############################################
     if active_menu == 0:
@@ -1870,8 +1908,9 @@ if CGI_CLI.cgi_active and (not CGI_CLI.submit_form or active_menu == 2):
         if len(SCRIPT_ACTIONS_LIST)>0: main_menu_list.append({'radio':[ 'script_action__' + action for action in SCRIPT_ACTIONS_LIST ]})
 
         main_menu_list += ['<br/>','<h3>Options:</h3>', \
-            {'checkbox':'check_device_sw_files_only'},\
-            '<br/>', {'checkbox':'force_rewrite_sw_files_on_device'},'<br/>',\
+            {'checkbox':'check_device_sw_files_only'},'<br/>',\
+            {'checkbox':'slow_scp_mode'},'<br/>',\
+            {'checkbox':'force_rewrite_sw_files_on_device'},'<br/>',\
             {'checkbox':'backup_configs_to_device_disk'},'<br/>',\
             {'checkbox':'delete_device_sw_files_on_end'},'<br/>',\
             '<br/>', {'checkbox':'printall'}]
@@ -1904,7 +1943,7 @@ CGI_CLI.uprint('expected_disk_free_GB = %s\nsw_file_types = %s' % \
 
 ###############################################################################
 if CGI_CLI.data.get('sw_files'):
-    ft_string = CGI_CLI.data.get('sw_files') 
+    ft_string = CGI_CLI.data.get('sw_files')
     ft_list = ft_string.split(',') if ',' in ft_string else [ft_string]
 
     for ft_item in ft_list:
@@ -1944,9 +1983,9 @@ if type_subdir and brand_subdir and sw_release:
             'tftpboot',brand_subdir, type_subdir, actual_file_type_subdir)).strip()
 
         ### BUG: os.path.exists RETURNS ALLWAYS FALSE, SO I USE OS ls -l ######
-        dir_sw_version_subdir_exists = does_dir_exists_by_ls_l(dir_sw_version_subdir, printall = printall)
-        dir_sw_version_subdir_dotted_exists = does_dir_exists_by_ls_l(dir_sw_version_subdir_dotted, printall = printall)
-        dir_without_sw_version_subdir_exists = does_dir_exists_by_ls_l(dir_without_sw_version_subdir, printall = printall)
+        dir_sw_version_subdir_exists = does_directory_exist_by_ls_l(dir_sw_version_subdir, printall = printall)
+        dir_sw_version_subdir_dotted_exists = does_directory_exist_by_ls_l(dir_sw_version_subdir_dotted, printall = printall)
+        dir_without_sw_version_subdir_exists = does_directory_exist_by_ls_l(dir_without_sw_version_subdir, printall = printall)
 
         if not dir_sw_version_subdir_exists and not dir_without_sw_version_subdir_exists:
             CGI_CLI.uprint('Path for %s NOT FOUND!' % (actual_file_type), color = 'red')
@@ -1993,9 +2032,9 @@ if type_subdir and brand_subdir and sw_release:
     ### CALCULATE NEEDED DISK SPACE ###########################################
     for directory,dev_dir,file,md5,fsize in true_sw_release_files_on_server:
         total_size_of_files_in_bytes += fsize
-    CGI_CLI.uprint('\ndisk space needed = %.2F MB' % (float(total_size_of_files_in_bytes)/1048576), color = 'blue')    
-        
-    
+    CGI_CLI.uprint('\ndisk space needed = %.2F MB' % (float(total_size_of_files_in_bytes)/1048576), color = 'blue')
+
+
 ### FOR LOOP PER DEVICE #######################################################
 for device in device_list:
 
@@ -2085,7 +2124,14 @@ for device in device_list:
         forget_it = RCMD.run_commands(mkdir_device_cmds)
         CGI_CLI.uprint('\n')
         RCMD.disconnect()
-        time.sleep(1)  
+        time.sleep(1)
+
+
+### def SLOW SCP MODE #########################################################
+if CGI_CLI.data.get('slow_scp_mode'):
+    do_scp_one_file_to_more_devices(true_sw_release_file_on_server[0], device_list, \
+        USERNAME, PASSWORD, drive_string = drive_string, printall = printall)
+    sys.exit(0)    
 
 
 ### FORCE REWRITE FILES ON DEVICE #############################################
@@ -2218,7 +2264,7 @@ for device in device_list:
         else:
             CGI_CLI.uprint('Device file(s) - CHECK FAIL!', tag = 'h1', color = 'red' )
         RCMD.disconnect()
-        time.sleep(1) 
+        time.sleep(1)
 
 
 ### ADITIONAL DEVICE ACTIONS ######################################################
@@ -2293,7 +2339,7 @@ if CGI_CLI.data.get('backup_configs_to_device_disk') \
                     CGI_CLI.uprint('deleting sw release files', no_newlines = \
                         None if printall else True)
                     forget_it = RCMD.run_commands(del_files_cmds, printall = printall)
-                   
+
                     ### CHECK FILES DELETION ######################################
                     check_dir_files_cmds = {'cisco_xr':[],'cisco_ios':[]}
                     for unique_dir in unique_device_directory_list:
@@ -2304,7 +2350,7 @@ if CGI_CLI.data.get('backup_configs_to_device_disk') \
 
                                 check_dir_files_cmds['cisco_ios'].append( \
                                     'dir %s%s' % (drive_string, dev_dir))
-                    time.sleep(0.5)                
+                    time.sleep(0.5)
                     dir_outputs_after_deletion = RCMD.run_commands(check_dir_files_cmds, \
                         printall = printall)
                     CGI_CLI.uprint('\n')
@@ -2315,7 +2361,7 @@ if CGI_CLI.data.get('backup_configs_to_device_disk') \
                                 if file in dir_outputs_after_deletion[0]:
                                     CGI_CLI.uprint(file, color = 'red')
                                     CGI_CLI.uprint(dir_outputs_after_deletion[3], color = 'blue')
-                                    file_not_deleted = True                            
+                                    file_not_deleted = True
                     if file_not_deleted: CGI_CLI.uprint('DELETE PROBLEM!', color = 'red')
                     else: CGI_CLI.uprint('Delete file(s) - CHECK OK.', color = 'green')
 
