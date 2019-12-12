@@ -2,7 +2,7 @@
 
 ###!/usr/bin/python36
 
-import sys, os, io, paramiko, json, copy, html, traceback
+import sys, os, io, paramiko, json, copy, html, traceback, logging
 import getopt
 import getpass
 import telnetlib
@@ -127,6 +127,10 @@ class CGI_CLI(object):
                             # action = "store_true", dest = 'sim',
                             # default = None,
                             # help = "config simulation mode")
+        parser.add_argument("--slow",
+                            action = 'store_true', dest = "slow_scp_mode",
+                            default = None,
+                            help = "slow_scp_mode")                                                       
         parser.add_argument("--printall",
                             action = "store_true", dest = 'printall',
                             default = None,
@@ -1500,7 +1504,7 @@ def do_scp_one_file_to_more_devices(true_sw_release_file_on_server = None, \
         cp_cmd_list = []
         ### ONLY 1 SCP CONNECTION PER ROUTER ###
         for device in device_list:
-            local_command = 'sshpass -e scp -v -o StrictHostKeyChecking=no %s %s@%s:/%s &' \
+            local_command = 'sshpass -e scp -v -o StrictHostKeyChecking=no %s %s@%s:/%s 1>/dev/null 2>/dev/null &' \
                 % (os.path.join(directory, file), USERNAME, device, \
                 '%s%s' % (drive_string, os.path.join(dev_dir, file)))
             os.system(local_command)
@@ -1665,15 +1669,22 @@ def get_local_subdirectories(brand_raw = None, type_raw = None):
 
 ##############################################################################
 
-# def does_run_scp_processes(printall = None):
-    # my_pid = os.getpid()
-    # CGI_CLI.uprint('Your PID is:%s ' % (str(my_pid)), color = 'blue')
-    # my_ps_result = LCMD.run_commands({'unix':["ps -ef | grep `whoami`"]}, printall = True)
-    # for line in my_ps_result[0].splitlines()
-        # try: uid, pid, ppid = line.split()[0], line.split()[1], line.split()[2]
-        # except: pass
-
-
+def does_run_scp_processes(my_pid_only = None, printall = None):
+    scp_list = []
+    split_string = 'scp -v -o StrictHostKeyChecking=no'
+    my_ps_result = LCMD.run_commands({'unix':["ps -ef | grep `whoami`"]}, 
+        printall = printall)
+    for line in my_ps_result[0].splitlines():
+        if split_string in line and not 'sshpass' in line:       
+            try: 
+                files_string = line.split(split_string)[1].strip()
+                server_file = files_string.split()[0]
+                device_user = files_string.split()[1].split('@')[0]
+                device = files_string.split()[1].split('@')[1].split(':')[0]
+                device_file = files_string.split()[1].split(device+':/')[1]
+                scp_list.append([server_file, device_file, device, device_user])
+            except: pass       
+    return scp_list
 
 ##############################################################################
 #
@@ -1682,6 +1693,7 @@ def get_local_subdirectories(brand_raw = None, type_raw = None):
 ##############################################################################
 
 if __name__ != "__main__": sys.exit(0)
+logging.raiseExceptions=False
 USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True)
 printall = CGI_CLI.data.get("printall")
 if printall: CGI_CLI.print_args()
@@ -1696,7 +1708,7 @@ CGI_CLI.uprint('PID=%s ' % (str(my_pid)), color = 'blue')
 
 
 ##############################################################################
-device_expected_GB_free = 0.2
+device_expected_GB_free = 0
 
 SCRIPT_ACTIONS_LIST = [
 #'copy_tar_files','do_sw_upgrade',
@@ -2129,9 +2141,40 @@ for device in device_list:
 
 ### def SLOW SCP MODE #########################################################
 if CGI_CLI.data.get('slow_scp_mode'):
-    do_scp_one_file_to_more_devices(true_sw_release_file_on_server[0], device_list, \
+    do_scp_one_file_to_more_devices(true_sw_release_files_on_server[0], device_list, \
         USERNAME, PASSWORD, drive_string = drive_string, printall = printall)
+    scp_list = does_run_scp_processes(printall = False)
+    CGI_CLI.uprint(scp_list)
+    time.sleep(1)
+    for server_file, device_file, device, device_user in scp_list:
+        if device:
+            CGI_CLI.uprint('%s %s %s %s' % (server_file, device_file, device, device_user))
+            RCMD.connect(device, username = USERNAME, password = PASSWORD, \
+                printall = printall, logfilename = logfilename)
+
+            if not RCMD.ssh_connection:
+                RCMD.disconnect()
+                if len(scp_list) > 1: continue
+                else: sys.exit(0)
+
+            dir_device_cmd = {
+                'cisco_ios':['dir %s' % (device_file)],
+                'cisco_xr':['dir %s' % (device_file)],
+                'juniper':[],
+                'huawei':[]
+            }            
+            
+            dir_one_output = RCMD.run_commands(dir_device_cmd, printall = printall)
+            device_filesize_in_bytes = 0
+            for line in dir_one_output[0].splitlines():
+                if device_file in line:
+                    try: device_filesize_in_bytes = float(line.split()[3])
+                    except: pass
+            server_filesize_in_bytes = float(os.stat(server_file).st_size)
+            CGI_CLI.uprint('%s%s %.2f%%' % (device, device_file, device_filesize_in_bytes/server_filesize_in_bytes))            
+            time.sleep(1)
     sys.exit(0)    
+
 
 
 ### FORCE REWRITE FILES ON DEVICE #############################################
