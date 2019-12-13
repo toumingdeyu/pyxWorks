@@ -444,7 +444,7 @@ class RCMD(object):
     def connect(device = None, cmd_data = None, username = None, password = None, \
         use_module = 'paramiko', logfilename = None, timeout = 60, conf = None, \
         sim_config = None, disconnect = None, printall = None, \
-        do_not_final_print = None, commit_text = None):
+        do_not_final_print = None, commit_text = None, silent_fail = None):
         """ FUNCTION: RCMD.connect(), RETURNS: list of command_outputs
         PARAMETERS:
         device     - string , device_name/ip_address/device_name:PORT_NUMBER/ip_address:PORT_NUMBER
@@ -572,7 +572,8 @@ class RCMD(object):
                 ### WORK REMOTE  =============================================
                 command_outputs = RCMD.run_commands(RCMD.CMD)
                 ### ==========================================================
-            except Exception as e: CGI_CLI.uprint('CONNECTION_PROBLEM[' + str(e) + ']', color = 'magenta')
+            except Exception as e:
+                if not silent_fail: CGI_CLI.uprint('CONNECTION_PROBLEM[' + str(e) + ']', color = 'magenta')
             finally:
                 if disconnect: RCMD.disconnect()
         else: CGI_CLI.uprint('DEVICE NOT INSERTED!', color = 'magenta')
@@ -1675,31 +1676,32 @@ def does_run_scp_processes(my_pid_only = None, printall = None):
     #my_ps_result = LCMD.run_commands({'unix':["ps -ef | grep `whoami`"]},
     #    printall = printall)
     my_ps_result = LCMD.run_commands({'unix':["ps -ef"]},
-        printall = printall)    
-    for line in my_ps_result[0].splitlines():
-        if split_string in line and not 'sshpass' in line:
-            try:
-                files_string = line.split(split_string)[1].strip()
-                server_file = files_string.split()[0]
-                device_user = files_string.split()[1].split('@')[0]
-                device = files_string.split()[1].split('@')[1].split(':')[0]
-                device_file = files_string.split()[1].split(device+':/')[1]
-                scp_list.append([server_file, device_file, device, device_user])
-            except: pass
+        printall = printall)
+    if my_ps_result:   
+        for line in str(my_ps_result[0]).splitlines():
+            if split_string in line and not 'sshpass' in line:
+                try:
+                    files_string = line.split(split_string)[1].strip()
+                    server_file = files_string.split()[0]
+                    device_user = files_string.split()[1].split('@')[0]
+                    device = files_string.split()[1].split('@')[1].split(':')[0]
+                    device_file = files_string.split()[1].split(device+':/')[1]
+                    scp_list.append([server_file, device_file, device, device_user])
+                except: pass
     return scp_list
 
 ###############################################################################
 
-def check_percentage_of_copied_files(scp_list = None, USERNAME = None, \
+def check_percentage_of_copied_files(scp_list = [], USERNAME = None, \
     PASSWORD = None, printall = None):
     for server_file, device_file, device, device_user in scp_list:
         if device:
-            #CGI_CLI.uprint('%s %s %s %s' % (server_file, device_file, device, device_user))
-            for i in range(15):
+            time.sleep(2)
+            for i in range(3):
                 RCMD.connect(device, username = USERNAME, password = PASSWORD, \
-                    printall = printall, logfilename = None)
+                    printall = printall, logfilename = None, silent_fail = True)
                 if not RCMD.ssh_connection:
-                    time.sleep(1)
+                    time.sleep(2)
                     continue
                 else:
                     dir_device_cmd = {
@@ -1745,13 +1747,13 @@ CGI_CLI.uprint('ROUTER SW UPGRADE TOOL (v.%s)' % (CGI_CLI.VERSION()), tag = 'h1'
 #my_pid = os.getpid()
 #CGI_CLI.uprint('PID=%s ' % (str(my_pid)), color = 'blue')
 
-scp_list = does_run_scp_processes(printall = False) 
+scp_list = does_run_scp_processes(printall = False)
 if len(scp_list)>0:
     CGI_CLI.uprint('WARNING: Running scp copy...', tag = 'h2', color = 'red')
     for server_file, device_file, device, device_user in scp_list:
         if device:
             CGI_CLI.uprint('USER=%s, DEVICE=%s, FILE=%s, COPYING_TO=%s' % \
-                (device_user, device, server_file, device_file))
+                (device_user, device, server_file, device_file), color = 'red')
 
 ##############################################################################
 
@@ -1978,10 +1980,7 @@ if CGI_CLI.cgi_active and (not CGI_CLI.submit_form or active_menu == 2):
 
     CGI_CLI.formprint( main_menu_list + ['<br/>','<br/>'], submit_button = 'OK', \
         pyfile = None, tag = None, color = None , list_separator = '&emsp;')
-        
-    scp_list = does_run_scp_processes(printall = False) 
-    if len(scp_list)>0:
-        check_percentage_of_copied_files(scp_list, USERNAME, PASSWORD, printall)    
+
     ### SHOW HTML MENU AND EXIT ###############################################
     sys.exit(0)
 else:
@@ -1993,6 +1992,11 @@ else:
     else:
         if CGI_CLI.data.get("script_action"):
             SCRIPT_ACTION = CGI_CLI.data.get("script_action")
+
+### def DISPLAY PERCENTAGE OF SCP #############################################
+scp_list = does_run_scp_processes(printall = False)
+if len(scp_list)>0 and USERNAME and PASSWORD:
+    check_percentage_of_copied_files(scp_list, USERNAME, PASSWORD, printall)
 
 ### SET DEFAULT (HIGHEST) SW RELEASE IF NOT SET ###############################
 if not sw_release and default_sw_release: sw_release = default_sw_release
@@ -2100,7 +2104,7 @@ if type_subdir and brand_subdir and sw_release:
     CGI_CLI.uprint('\ndisk space needed = %.2F MB' % (float(total_size_of_files_in_bytes)/1048576), color = 'blue')
 
 
-### FOR LOOP PER DEVICE #######################################################
+### def FOR LOOP PER DEVICE ###################################################
 for device in device_list:
 
     ### LOGFILENAME GENERATION ################################################
