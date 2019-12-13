@@ -1698,46 +1698,42 @@ def check_percentage_of_copied_files(scp_list = [], USERNAME = None, \
     for server_file, device_file, device, device_user in scp_list:
         if device:
             time.sleep(2)
-            for number_of_errors in range(3):
-                RCMD.connect(device, username = USERNAME, password = PASSWORD, \
-                    printall = printall, logfilename = None, silent_fail = True)
-                if not RCMD.ssh_connection:
-                    time.sleep(2)
-                    continue
-                else:
-                    dir_device_cmd = {
-                        'cisco_ios':['dir %s' % (device_file)],
-                        'cisco_xr':['dir %s' % (device_file)],
-                        'juniper':[],
-                        'huawei':[]
-                    }
-                    dir_one_output = RCMD.run_commands(dir_device_cmd, printall = printall)
-                    CGI_CLI.uprint('\n')
-                    device_filesize_in_bytes = 0
-                    if RCMD.router_type == 'cisco_xr':
-                        ### dir file gets output without 'harddisk:/'!!! ###
-                        for line in dir_one_output[0].splitlines():
-                            try:
-                                if device_file.split(':/')[1] in line:
-                                    try: device_filesize_in_bytes = float(line.split()[3])
-                                    except: pass
-                            except: pass
-                    if RCMD.router_type == 'cisco_ios':
-                        ### dir file gets output without any path ###
-                        for line in dir_one_output[0].splitlines():
-                            try:
-                                if device_file.split('/')[-1] in line:
-                                    try: device_filesize_in_bytes = float(line.split()[2])
-                                    except: pass
-                            except: pass
-                    server_filesize_in_bytes = float(os.stat(server_file).st_size)
-                    CGI_CLI.uprint('Device %s file %s    %.2f%% copied.' % (device, device_file, \
-                        float(100*device_filesize_in_bytes/server_filesize_in_bytes)), color = 'blue')
-                    break
-            else: 
-                CGI_CLI.uprint('Device %s file %s still copying...' % (device, device_file) , color = 'blue')       
+            RCMD.connect(device, username = USERNAME, password = PASSWORD, \
+                printall = printall, logfilename = None, silent_fail = True)
+            if RCMD.ssh_connection:
+                dir_device_cmd = {
+                    'cisco_ios':['dir %s' % (device_file)],
+                    'cisco_xr':['dir %s' % (device_file)],
+                    'juniper':[],
+                    'huawei':[]
+                }
+                dir_one_output = RCMD.run_commands(dir_device_cmd, printall = printall)
+                CGI_CLI.uprint('\n')
+                device_filesize_in_bytes = 0
+                if RCMD.router_type == 'cisco_xr':
+                    ### dir file gets output without 'harddisk:/'!!! ###
+                    for line in dir_one_output[0].splitlines():
+                        try:
+                            if device_file.split(':/')[1] in line:
+                                try: device_filesize_in_bytes = float(line.split()[3])
+                                except: pass
+                        except: pass
+                if RCMD.router_type == 'cisco_ios':
+                    ### dir file gets output without any path ###
+                    for line in dir_one_output[0].splitlines():
+                        try:
+                            if device_file.split('/')[-1] in line:
+                                try: device_filesize_in_bytes = float(line.split()[2])
+                                except: pass
+                        except: pass
+                server_filesize_in_bytes = float(os.stat(server_file).st_size)
+                CGI_CLI.uprint('Device %s file %s    %.2f%% copied.' % (device, device_file, \
+                    float(100*device_filesize_in_bytes/server_filesize_in_bytes)), color = 'blue')
+                RCMD.disconnect()
+            else:
+                CGI_CLI.uprint('Device %s file %s still copying...' % (device, device_file) , color = 'blue')
                 problem_to_connect_list.append(device)
-        return problem_to_connect_list        
+    return problem_to_connect_list
 ##############################################################################
 
 
@@ -2216,39 +2212,42 @@ for device in device_list:
 ### def SLOW SCP MODE #########################################################
 if CGI_CLI.data.get('slow_scp_mode'):
     time.sleep(2)
+    CGI_CLI.uprint('Slow scp mode selected.', tag = 'h2', color = 'blue')
     scp_list = does_run_scp_processes(printall = False)
     for true_sw_release_file_on_server in true_sw_release_files_on_server:
         directory,dev_dir,file,md5,fsize = true_sw_release_file_on_server
-        ### IF SCP_LIST IS NOT VOID CHECK AND COPY ONLY NOT RUNNING ###   
-        for server_file, device_file, device, device_user in scp_list:
-            if device in device_list and device_file==os.path.join(dev_dir, file):
+        ### IF SCP_LIST IS VOID COPY ALL ###
+        if len(scp_list) == 0:
+            do_scp_one_file_to_more_devices(true_sw_release_file_on_server, device_list, \
+                USERNAME, PASSWORD, drive_string = drive_string, printall = printall)
+            time.sleep(3)
+        ### IF SCP_LIST IS NOT VOID CHECK AND COPY ONLY NOT RUNNING ###
+        for server_file, device_file, scp_device, device_user in scp_list:
+            CGI_CLI.uprint('%s=%s, %s=%s' %(scp_device, device_list, device_file, os.path.join(dev_dir, file)))
+            if scp_device in device_list and device_file == os.path.join(dev_dir, file):
                 CGI_CLI.uprint('FILE %s is already copying to device %s, ommiting new scp copying!' % \
                     (device_file, device))
             else:
                 do_scp_one_file_to_more_devices(true_sw_release_file_on_server, device_list, \
                     USERNAME, PASSWORD, drive_string = drive_string, printall = printall)
                 time.sleep(2)
-        ### IF SCP_LIST IS VOID COPY ALL ###        
-        if len(scp_list) == 0:
-            do_scp_one_file_to_more_devices(true_sw_release_file_on_server, device_list, \
-                USERNAME, PASSWORD, drive_string = drive_string, printall = printall)
-            time.sleep(3)    
-        ### DO SCP LIST AGAIN ###
-        actual_scp_devices_not_in_problem_list = True
+        ### DO SCP LIST AGAIN AND WAIT TILL END OF YOUR SCP SESSIONS ###
+        actual_scp_devices_in_scp_list = True
         scp_list = does_run_scp_processes(printall = False)
-        while len(scp_list)>0 and actual_scp_devices_not_in_problem_list:
+        while actual_scp_devices_in_scp_list:
+            actual_scp_devices_in_scp_list = False
             scp_list = does_run_scp_processes(printall = False)
-            actual_scp_devices_not_in_problem_list = True
+            for server_file, device_file, scp_device, device_user in scp_list:
+                if scp_device in device_list: actual_scp_devices_in_scp_list = True
             if len(scp_list) > 0:
-                problem_to_connect_list = check_percentage_of_copied_files(scp_list, USERNAME, PASSWORD, printall)
-                for problem_device in problem_to_connect_list:
-                    if problem_device in device_list: actual_scp_devices_not_in_problem_list = False
+                check_percentage_of_copied_files(scp_list, USERNAME, PASSWORD, printall)
             else: break
             time.sleep(5)
 
 
 ### FORCE REWRITE FILES ON DEVICE #############################################
 if CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
+    CGI_CLI.uprint('Force rewrite scp mode selected.', tag = 'h2', color = 'blue')
     if do_scp_all_files(true_sw_release_files_on_server, device_list, \
         USERNAME, PASSWORD, drive_string = drive_string, printall = printall):
         CGI_CLI.uprint('Copy file(s) - CHECK OK\n', color = 'green')
@@ -2342,6 +2341,7 @@ for device in device_list:
                     ### COPY MISSING OF REWRITE CORRUPTED FILE ################
                     if CGI_CLI.data.get('check_device_sw_files_only'): pass
                     elif CGI_CLI.data.get('force_rewrite_sw_files_on_device'): pass
+                    elif CGI_CLI.data.get('slow_scp_mode'): pass
                     elif not file_found or not md5_ok:
                         ### REMOTE COPYING ####################################
                         scp_cmd = do_scp_command(USERNAME, PASSWORD, device, '%s' % (os.path.join(directory, file)),
