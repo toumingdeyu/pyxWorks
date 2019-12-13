@@ -49,6 +49,7 @@ numpy
 matplotlib.pyplot
 cerberus
 dynamic
+pexpect
 """
 
 ### MAIN ######################################################################
