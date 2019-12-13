@@ -130,7 +130,7 @@ class CGI_CLI(object):
         parser.add_argument("--slow",
                             action = 'store_true', dest = "slow_scp_mode",
                             default = None,
-                            help = "slow_scp_mode")                                                       
+                            help = "slow_scp_mode")
         parser.add_argument("--printall",
                             action = "store_true", dest = 'printall',
                             default = None,
@@ -1672,23 +1672,64 @@ def get_local_subdirectories(brand_raw = None, type_raw = None):
 def does_run_scp_processes(my_pid_only = None, printall = None):
     scp_list = []
     split_string = 'scp -v -o StrictHostKeyChecking=no'
-    my_ps_result = LCMD.run_commands({'unix':["ps -ef | grep `whoami`"]}, 
-        printall = printall)
+    #my_ps_result = LCMD.run_commands({'unix':["ps -ef | grep `whoami`"]},
+    #    printall = printall)
+    my_ps_result = LCMD.run_commands({'unix':["ps -ef"]},
+        printall = printall)    
     for line in my_ps_result[0].splitlines():
-        if split_string in line and not 'sshpass' in line:       
-            try: 
+        if split_string in line and not 'sshpass' in line:
+            try:
                 files_string = line.split(split_string)[1].strip()
                 server_file = files_string.split()[0]
                 device_user = files_string.split()[1].split('@')[0]
                 device = files_string.split()[1].split('@')[1].split(':')[0]
                 device_file = files_string.split()[1].split(device+':/')[1]
                 scp_list.append([server_file, device_file, device, device_user])
-            except: pass       
+            except: pass
     return scp_list
+
+###############################################################################
+
+def check_percentage_of_copied_files(scp_list = None, USERNAME = None, \
+    PASSWORD = None, printall = None):
+    for server_file, device_file, device, device_user in scp_list:
+        if device:
+            #CGI_CLI.uprint('%s %s %s %s' % (server_file, device_file, device, device_user))
+            for i in range(15):
+                RCMD.connect(device, username = USERNAME, password = PASSWORD, \
+                    printall = printall, logfilename = None)
+                if not RCMD.ssh_connection:
+                    time.sleep(1)
+                    continue
+                else:
+                    dir_device_cmd = {
+                        'cisco_ios':['dir %s' % (device_file)],
+                        'cisco_xr':['dir %s' % (device_file)],
+                        'juniper':[],
+                        'huawei':[]
+                    }
+                    dir_one_output = RCMD.run_commands(dir_device_cmd, printall = printall)
+                    CGI_CLI.uprint('\n')
+                    device_filesize_in_bytes = 0
+                    ### dir file gets output without 'harddisk:/'!!! ###
+                    for line in dir_one_output[0].splitlines():
+                        try:
+                            if device_file.split(':/')[1] in line:
+                                try: device_filesize_in_bytes = float(line.split()[3])
+                                except: pass
+                        except: pass
+                    server_filesize_in_bytes = float(os.stat(server_file).st_size)
+                    CGI_CLI.uprint('Device %s file %s    %.2f%% copied.' % (device, device_file, \
+                        float(100*device_filesize_in_bytes/server_filesize_in_bytes)), color = 'blue')
+                    break
+
+##############################################################################
+
+
 
 ##############################################################################
 #
-# BEGIN MAIN
+# def BEGIN MAIN
 #
 ##############################################################################
 
@@ -1701,8 +1742,16 @@ if printall: CGI_CLI.print_args()
 ##############################################################################
 
 CGI_CLI.uprint('ROUTER SW UPGRADE TOOL (v.%s)' % (CGI_CLI.VERSION()), tag = 'h1', color = 'blue')
-my_pid = os.getpid()
-CGI_CLI.uprint('PID=%s ' % (str(my_pid)), color = 'blue')
+#my_pid = os.getpid()
+#CGI_CLI.uprint('PID=%s ' % (str(my_pid)), color = 'blue')
+
+scp_list = does_run_scp_processes(printall = False) 
+if len(scp_list)>0:
+    CGI_CLI.uprint('WARNING: Running scp copy...', tag = 'h2', color = 'red')
+    for server_file, device_file, device, device_user in scp_list:
+        if device:
+            CGI_CLI.uprint('USER=%s, DEVICE=%s, FILE=%s, COPYING_TO=%s' % \
+                (device_user, device, server_file, device_file))
 
 ##############################################################################
 
@@ -1892,7 +1941,7 @@ if CGI_CLI.cgi_active and (not CGI_CLI.submit_form or active_menu == 2):
     ### DISPLAY ROUTER-TYPE MENU ##############################################
     if active_menu == 0:
         main_menu_list = router_type_menu_list + ['<br/>', {'checkbox':'printall'} ]
-    ### DISPLAY SELEDT ROUTER MENU ############################################
+    ### def DISPLAY SELECT ROUTER MENU ########################################
     elif active_menu == 2:
         main_menu_list = router_menu_list + \
         ['<p>Additional device(s) (optional) [list separator=,]:</p>',\
@@ -1929,6 +1978,10 @@ if CGI_CLI.cgi_active and (not CGI_CLI.submit_form or active_menu == 2):
 
     CGI_CLI.formprint( main_menu_list + ['<br/>','<br/>'], submit_button = 'OK', \
         pyfile = None, tag = None, color = None , list_separator = '&emsp;')
+        
+    scp_list = does_run_scp_processes(printall = False) 
+    if len(scp_list)>0:
+        check_percentage_of_copied_files(scp_list, USERNAME, PASSWORD, printall)    
     ### SHOW HTML MENU AND EXIT ###############################################
     sys.exit(0)
 else:
@@ -1980,7 +2033,7 @@ if len(device_list) == 0:
 if type_subdir and brand_subdir and sw_release:
     CGI_CLI.uprint('Server %s checks:\n' % (iptac_server), tag = 'h2', color = 'blue')
 
-    ### CHECK LOCAL SW DIRECTORIES ########################################
+    ### def CHECK LOCAL SW DIRECTORIES ########################################
     directory_list = []
     for actual_file_type in selected_sw_file_types_list:
         actual_file_type_subdir, forget_it = os.path.split(actual_file_type)
@@ -2143,39 +2196,12 @@ for device in device_list:
 if CGI_CLI.data.get('slow_scp_mode'):
     do_scp_one_file_to_more_devices(true_sw_release_files_on_server[0], device_list, \
         USERNAME, PASSWORD, drive_string = drive_string, printall = printall)
-    scp_list = does_run_scp_processes(printall = False)
-    #CGI_CLI.uprint(scp_list)
     time.sleep(2)
-    for server_file, device_file, device, device_user in scp_list:
-        if device:
-            CGI_CLI.uprint('%s %s %s %s' % (server_file, device_file, device, device_user))
-            for i in range(15):
-                RCMD.connect(device, username = USERNAME, password = PASSWORD, \
-                    printall = printall, logfilename = logfilename)
-                if not RCMD.ssh_connection:
-                    time.sleep(1)                
-                    continue
-                else:     
-                    dir_device_cmd = {
-                        'cisco_ios':['dir %s' % (device_file)],
-                        'cisco_xr':['dir %s' % (device_file)],
-                        'juniper':[],
-                        'huawei':[]
-                    }                               
-                    dir_one_output = RCMD.run_commands(dir_device_cmd, printall = True)
-                    device_filesize_in_bytes = 0
-                    ### dir file gets otuput without 'harddisk:/'!!! ###
-                    for line in dir_one_output[0].splitlines():
-                        try:
-                            if device_file.split(':/')[1] in line:
-                                try: device_filesize_in_bytes = float(line.split()[3])
-                                except: pass
-                        except: pass    
-                    server_filesize_in_bytes = float(os.stat(server_file).st_size)
-                    CGI_CLI.uprint("--- %f , %f" % (device_filesize_in_bytes, server_filesize_in_bytes))
-                    CGI_CLI.uprint('%s %s %.2f%% copied.' % (device, device_file, float(100*device_filesize_in_bytes/server_filesize_in_bytes)))            
-                    break
-    sys.exit(0)    
+
+    scp_list = does_run_scp_processes(printall = False)
+    if len(scp_list)>0:
+        check_percentage_of_copied_files(scp_list, USERNAME, PASSWORD, printall)
+    sys.exit(0)
 
 
 
