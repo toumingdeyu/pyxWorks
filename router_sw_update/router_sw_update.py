@@ -1712,14 +1712,23 @@ def check_percentage_of_copied_files(scp_list = [], USERNAME = None, \
                     }
                     dir_one_output = RCMD.run_commands(dir_device_cmd, printall = printall)
                     CGI_CLI.uprint('\n')
-                    device_filesize_in_bytes = 0
-                    ### dir file gets output without 'harddisk:/'!!! ###
-                    for line in dir_one_output[0].splitlines():
-                        try:
-                            if device_file.split(':/')[1] in line:
-                                try: device_filesize_in_bytes = float(line.split()[3])
-                                except: pass
-                        except: pass
+                    device_filesize_in_bytes = 0                    
+                    if RCMD.router_type == 'cisco_xr':                      
+                        ### dir file gets output without 'harddisk:/'!!! ###
+                        for line in dir_one_output[0].splitlines():
+                            try:
+                                if device_file.split(':/')[1] in line:
+                                    try: device_filesize_in_bytes = float(line.split()[3])
+                                    except: pass
+                            except: pass                        
+                    if RCMD.router_type == 'cisco_ios': 
+                        ### dir file gets output without any path ###
+                        for line in dir_one_output[0].splitlines():
+                            try:
+                                if device_file.split('/')[-1] in line:
+                                    try: device_filesize_in_bytes = float(line.split()[2])
+                                    except: pass
+                            except: pass                    
                     server_filesize_in_bytes = float(os.stat(server_file).st_size)
                     CGI_CLI.uprint('Device %s file %s    %.2f%% copied.' % (device, device_file, \
                         float(100*device_filesize_in_bytes/server_filesize_in_bytes)), color = 'blue')
