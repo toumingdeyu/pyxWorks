@@ -1690,6 +1690,26 @@ def does_run_scp_processes(my_pid_only = None, printall = None):
                 except: pass
     return scp_list
 
+##############################################################################
+
+def does_run_router_update_processes(my_pid_only = None, printall = None):
+    scp_list = []
+    try:
+        split_string = sys.argv[0].split('/')[-1]
+    except: split_string = None    
+    my_pid = str(os.getpid())
+    my_ps_result = LCMD.run_commands({'unix':["ps -ef | grep -v grep"]},
+        printall = printall)
+    if my_ps_result:
+        for line in str(my_ps_result[0]).splitlines():
+            if split_string and split_string in line:
+                try:
+                    if my_pid != line.split()[1]:
+                        CGI_CLI.uprint('WARNING: Running %s process PID = %s !' % \
+                            (split_string, line.split()[1]), color = 'red')
+                except: pass
+    return scp_list
+
 ###############################################################################
 
 def check_percentage_of_copied_files(scp_list = [], USERNAME = None, \
@@ -1755,6 +1775,8 @@ if printall: CGI_CLI.print_args()
 CGI_CLI.uprint('ROUTER SW UPGRADE TOOL (v.%s)' % (CGI_CLI.VERSION()), tag = 'h1', color = 'blue')
 #my_pid = os.getpid()
 #CGI_CLI.uprint('PID=%s ' % (str(my_pid)), color = 'blue')
+
+does_run_router_update_processes()
 
 scp_list = does_run_scp_processes(printall = False)
 if len(scp_list)>0:
