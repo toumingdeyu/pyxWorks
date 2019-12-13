@@ -2144,35 +2144,37 @@ if CGI_CLI.data.get('slow_scp_mode'):
     do_scp_one_file_to_more_devices(true_sw_release_files_on_server[0], device_list, \
         USERNAME, PASSWORD, drive_string = drive_string, printall = printall)
     scp_list = does_run_scp_processes(printall = False)
-    CGI_CLI.uprint(scp_list)
-    time.sleep(1)
+    #CGI_CLI.uprint(scp_list)
+    time.sleep(2)
     for server_file, device_file, device, device_user in scp_list:
         if device:
             CGI_CLI.uprint('%s %s %s %s' % (server_file, device_file, device, device_user))
-            RCMD.connect(device, username = USERNAME, password = PASSWORD, \
-                printall = printall, logfilename = logfilename)
-
-            if not RCMD.ssh_connection:
-                RCMD.disconnect()
-                if len(scp_list) > 1: continue
-                else: sys.exit(0)
-
-            dir_device_cmd = {
-                'cisco_ios':['dir %s' % (device_file)],
-                'cisco_xr':['dir %s' % (device_file)],
-                'juniper':[],
-                'huawei':[]
-            }            
-            
-            dir_one_output = RCMD.run_commands(dir_device_cmd, printall = printall)
-            device_filesize_in_bytes = 0
-            for line in dir_one_output[0].splitlines():
-                if device_file in line:
-                    try: device_filesize_in_bytes = float(line.split()[3])
-                    except: pass
-            server_filesize_in_bytes = float(os.stat(server_file).st_size)
-            CGI_CLI.uprint('%s%s %.2f%%' % (device, device_file, device_filesize_in_bytes/server_filesize_in_bytes))            
-            time.sleep(1)
+            for i in range(15):
+                RCMD.connect(device, username = USERNAME, password = PASSWORD, \
+                    printall = printall, logfilename = logfilename)
+                if not RCMD.ssh_connection:
+                    time.sleep(1)                
+                    continue
+                else:     
+                    dir_device_cmd = {
+                        'cisco_ios':['dir %s' % (device_file)],
+                        'cisco_xr':['dir %s' % (device_file)],
+                        'juniper':[],
+                        'huawei':[]
+                    }                               
+                    dir_one_output = RCMD.run_commands(dir_device_cmd, printall = True)
+                    device_filesize_in_bytes = 0
+                    ### dir file gets otuput without 'harddisk:/'!!! ###
+                    for line in dir_one_output[0].splitlines():
+                        try:
+                            if device_file.split(':/')[1] in line:
+                                try: device_filesize_in_bytes = float(line.split()[3])
+                                except: pass
+                        except: pass    
+                    server_filesize_in_bytes = float(os.stat(server_file).st_size)
+                    CGI_CLI.uprint("--- %f , %f" % (device_filesize_in_bytes, server_filesize_in_bytes))
+                    CGI_CLI.uprint('%s %s %.2f%% copied.' % (device, device_file, float(100*device_filesize_in_bytes/server_filesize_in_bytes)))            
+                    break
     sys.exit(0)    
 
 
