@@ -1694,10 +1694,11 @@ def does_run_scp_processes(my_pid_only = None, printall = None):
 
 def check_percentage_of_copied_files(scp_list = [], USERNAME = None, \
     PASSWORD = None, printall = None):
+    problem_to_connect_list = []
     for server_file, device_file, device, device_user in scp_list:
         if device:
             time.sleep(2)
-            for i in range(3):
+            for number_of_errors in range(3):
                 RCMD.connect(device, username = USERNAME, password = PASSWORD, \
                     printall = printall, logfilename = None, silent_fail = True)
                 if not RCMD.ssh_connection:
@@ -1733,7 +1734,10 @@ def check_percentage_of_copied_files(scp_list = [], USERNAME = None, \
                     CGI_CLI.uprint('Device %s file %s    %.2f%% copied.' % (device, device_file, \
                         float(100*device_filesize_in_bytes/server_filesize_in_bytes)), color = 'blue')
                     break
-
+            else: 
+                CGI_CLI.uprint('Device %s file %s still copying...' % (device, device_file) , color = 'blue')       
+                problem_to_connect_list.append(device)
+        return problem_to_connect_list        
 ##############################################################################
 
 
@@ -2032,6 +2036,7 @@ if CGI_CLI.data.get('sw_files'):
 
 ###############################################################################
 
+
 if len(selected_sw_file_types_list) == 0:
     CGI_CLI.uprint('PLEASE SPECIFY SW FILE TYPE(s) TO COPY.', color = 'red')
     sys.exit(0)
@@ -2212,28 +2217,34 @@ for device in device_list:
 if CGI_CLI.data.get('slow_scp_mode'):
     time.sleep(2)
     scp_list = does_run_scp_processes(printall = False)
-    directory,dev_dir,file,md5,fsize = true_sw_release_files_on_server[0]
-    ### IF SCP_LIST IS NOT VOID CHECK AND COPY ONLY NOT RUNNING ###   
-    for server_file, device_file, device, device_user in scp_list:
-        if device in device_list and device_file==os.path.join(dev_dir, file):
-            CGI_CLI.uprint('FILE %s is already copying to device %s, ommiting new scp copying!' % \
-                (device_file, device))
-        else:
-            do_scp_one_file_to_more_devices(true_sw_release_files_on_server[0], device_list, \
+    for true_sw_release_file_on_server in true_sw_release_files_on_server:
+        directory,dev_dir,file,md5,fsize = true_sw_release_file_on_server
+        ### IF SCP_LIST IS NOT VOID CHECK AND COPY ONLY NOT RUNNING ###   
+        for server_file, device_file, device, device_user in scp_list:
+            if device in device_list and device_file==os.path.join(dev_dir, file):
+                CGI_CLI.uprint('FILE %s is already copying to device %s, ommiting new scp copying!' % \
+                    (device_file, device))
+            else:
+                do_scp_one_file_to_more_devices(true_sw_release_file_on_server, device_list, \
+                    USERNAME, PASSWORD, drive_string = drive_string, printall = printall)
+                time.sleep(2)
+        ### IF SCP_LIST IS VOID COPY ALL ###        
+        if len(scp_list) == 0:
+            do_scp_one_file_to_more_devices(true_sw_release_file_on_server, device_list, \
                 USERNAME, PASSWORD, drive_string = drive_string, printall = printall)
-            time.sleep(2)
-    ### IF SCP_LIST IS VOID COPY ALL ###        
-    if len(scp_list)==0:
-        do_scp_one_file_to_more_devices(true_sw_release_files_on_server[0], device_list, \
-            USERNAME, PASSWORD, drive_string = drive_string, printall = printall)
-        time.sleep(2)    
-    ### DO SCP LIST AGAIN ###
-    while True:
+            time.sleep(3)    
+        ### DO SCP LIST AGAIN ###
+        actual_scp_devices_not_in_problem_list = True
         scp_list = does_run_scp_processes(printall = False)
-        if len(scp_list) > 0:
-            check_percentage_of_copied_files(scp_list, USERNAME, PASSWORD, printall)
-        else: break
-        time.sleep(5)
+        while len(scp_list)>0 and actual_scp_devices_not_in_problem_list:
+            scp_list = does_run_scp_processes(printall = False)
+            actual_scp_devices_not_in_problem_list = True
+            if len(scp_list) > 0:
+                problem_to_connect_list = check_percentage_of_copied_files(scp_list, USERNAME, PASSWORD, printall)
+                for problem_device in problem_to_connect_list:
+                    if problem_device in device_list: actual_scp_devices_not_in_problem_list = False
+            else: break
+            time.sleep(5)
 
 
 ### FORCE REWRITE FILES ON DEVICE #############################################
@@ -2247,7 +2258,7 @@ if CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
 
 ### CONNECT TO DEVICE AGAIN ###################################################
 for device in device_list:
-
+    time.sleep(3)
     ### LOGFILENAME GENERATION ################################################
     logfilename = generate_logfilename(prefix = device.upper(), \
         USERNAME = USERNAME, suffix = str(SCRIPT_ACTION) + '.log')
