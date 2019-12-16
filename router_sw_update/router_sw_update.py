@@ -1721,7 +1721,7 @@ def does_run_script_processes(my_pid_only = None, printall = None):
 
 def check_percentage_of_copied_files(scp_list = [], USERNAME = None, \
     PASSWORD = None, printall = None):
-    problem_to_connect_list = []
+    device_file_percentage_list = []
     for server_file, device_file, device, device_user, pid, ppid in scp_list:
         if device:
             time.sleep(2)
@@ -1754,14 +1754,15 @@ def check_percentage_of_copied_files(scp_list = [], USERNAME = None, \
                                 except: pass
                         except: pass
                 server_filesize_in_bytes = float(os.stat(server_file).st_size)
+                percentage = float(100*device_filesize_in_bytes/server_filesize_in_bytes)
                 CGI_CLI.uprint('Device %s file %s    %.2f%% copied.' % (device, device_file, \
-                    float(100*device_filesize_in_bytes/server_filesize_in_bytes)), color = 'blue')
+                    percentage), color = 'blue')
+                device_file_percentage_list.append([device, device_file, percentage])    
                 RCMD.disconnect()
                 time.sleep(2)
             else:
                 CGI_CLI.uprint('Device %s file %s still copying...' % (device, device_file) , color = 'blue')
-                problem_to_connect_list.append(device)
-    return problem_to_connect_list
+    return device_file_percentage_list
     
 ##############################################################################
 
@@ -2347,7 +2348,10 @@ elif not all_files_on_all_devices_ok:
 if CGI_CLI.data.get('check_device_sw_files_only'): pass
 elif not all_files_on_all_devices_ok:
     time.sleep(2)
-    #CGI_CLI.uprint('Slow scp mode selected.', tag = 'h2', color = 'blue')
+
+    #### !!! needed_to_copy_files_per_device_list
+    old_files_status = []
+    files_status = []
     scp_list = does_run_scp_processes(printall = False)
     for true_sw_release_file_on_server in true_sw_release_files_on_server:
         directory,dev_dir,file,md5,fsize = true_sw_release_file_on_server
@@ -2375,7 +2379,14 @@ elif not all_files_on_all_devices_ok:
             for server_file, device_file, scp_device, device_user, pid, ppid in scp_list:
                 if scp_device in device_list: actual_scp_devices_in_scp_list = True
             if len(scp_list) > 0:
-                check_percentage_of_copied_files(scp_list, USERNAME, PASSWORD, printall)
+                old_files_status = files_status
+                files_status = check_percentage_of_copied_files(scp_list, USERNAME, PASSWORD, printall)
+                ### CHECKED STALLED COPYING ###
+                for old_file_status in old_files_status:
+                    if old_file_status in files_status:
+                        device, device_file, percentage = old_file_status
+                        CGI_CLI.uprint('WARNING: Device=%s, File=%s, Percent copied=%.2f HAS STALLED!' % \
+                            (device, device_file, percentage))
             else: break
             time.sleep(5)
 
