@@ -1686,17 +1686,19 @@ def does_run_scp_processes(my_pid_only = None, printall = None):
                     device_user = files_string.split()[1].split('@')[0]
                     device = files_string.split()[1].split('@')[1].split(':')[0]
                     device_file = files_string.split()[1].split(device+':/')[1]
-                    scp_list.append([server_file, device_file, device, device_user])
+                    pid = line.split()[1]
+                    ppid = line.split()[2]
+                    scp_list.append([server_file, device_file, device, device_user, pid, ppid])
                 except: pass
     return scp_list
 
 ##############################################################################
 
-def does_run_router_update_processes(my_pid_only = None, printall = None):
-    scp_list = []
+def does_run_script_processes(my_pid_only = None, printall = None):
+    running_pid_list = []
     try:
         split_string = sys.argv[0].split('/')[-1]
-    except: split_string = None    
+    except: split_string = None
     my_pid = str(os.getpid())
     my_ps_result = LCMD.run_commands({'unix':["ps -ef | grep -v grep"]},
         printall = printall)
@@ -1705,17 +1707,18 @@ def does_run_router_update_processes(my_pid_only = None, printall = None):
             if split_string and split_string in line:
                 try:
                     if my_pid != line.split()[1]:
+                        running_pid_list.append(line.split()[1])
                         CGI_CLI.uprint('WARNING: Running %s process PID = %s !' % \
-                            (split_string, line.split()[1]), color = 'red')
+                            (split_string, line.split()[1]), tag = 'h2', color = 'magenta')
                 except: pass
-    return scp_list
+    return running_pid_list
 
 ###############################################################################
 
 def check_percentage_of_copied_files(scp_list = [], USERNAME = None, \
     PASSWORD = None, printall = None):
     problem_to_connect_list = []
-    for server_file, device_file, device, device_user in scp_list:
+    for server_file, device_file, device, device_user, pid, ppid in scp_list:
         if device:
             time.sleep(2)
             RCMD.connect(device, username = USERNAME, password = PASSWORD, \
@@ -1773,23 +1776,22 @@ if printall: CGI_CLI.print_args()
 ##############################################################################
 
 CGI_CLI.uprint('ROUTER SW UPGRADE TOOL (v.%s)' % (CGI_CLI.VERSION()), tag = 'h1', color = 'blue')
-#my_pid = os.getpid()
-#CGI_CLI.uprint('PID=%s ' % (str(my_pid)), color = 'blue')
+CGI_CLI.uprint('PID=%s ' % (os.getpid()), color = 'blue')
 
-does_run_router_update_processes()
+does_run_script_processes()
 
 scp_list = does_run_scp_processes(printall = False)
 if len(scp_list)>0:
-    CGI_CLI.uprint('WARNING: Running scp copy...', tag = 'h2', color = 'red')
-    for server_file, device_file, device, device_user in scp_list:
+    CGI_CLI.uprint('WARNING: Running scp copy...', tag = 'h2', color = 'magenta')
+    for server_file, device_file, device, device_user, pid, ppid in scp_list:
         if device:
-            CGI_CLI.uprint('USER=%s, DEVICE=%s, FILE=%s, COPYING_TO=%s' % \
-                (device_user, device, server_file, device_file), color = 'red')
+            CGI_CLI.uprint('USER=%s, DEVICE=%s, FILE=%s, COPYING_TO=%s, PID=%s, PPID=%s' % \
+                (device_user, device, server_file, device_file, pid, ppid), color = 'magenta')
 
 ##############################################################################
 
 
-##############################################################################
+### def GLOBAL CONSTANTS #####################################################
 device_expected_GB_free = 0
 
 SCRIPT_ACTIONS_LIST = [
@@ -1798,7 +1800,10 @@ SCRIPT_ACTIONS_LIST = [
 
 active_menu_list, active_menu = [ None,'select_router_type','select_routers','copy_to_routers'], 0
 
-##############################################################################
+asr1k_detection_string = 'CSR1000'
+asr9k_detection_string = 'ASR9K|IOS-XRv 9000'
+
+### GLOBAL VARIABLES ##########################################################
 
 device_free_space = 0
 SCRIPT_ACTION = None
@@ -1806,13 +1811,15 @@ ACTION_ITEM_FOUND = None
 type_subdir = str()
 remote_sw_release_dir_exists = None
 total_size_of_files_in_bytes = 0
-
-asr1k_detection_string = 'CSR1000'
-asr9k_detection_string = 'ASR9K|IOS-XRv 9000'
+device_list = []
+device_types = []
 
 ###############################################################################
-device = CGI_CLI.data.get("device",None)
-if device: device = device.upper()
+devices_string = CGI_CLI.data.get("device",str())
+if devices_string:
+    if ',' in devices_string:
+        device_list = [ dev_mix_case.upper() for dev_mix_case in devices_string.split(',') ]
+    else: device_list = devices_string.upper()
 
 ### GET sw_release FROM cli ###################################################
 sw_release = CGI_CLI.data.get('sw_release',str())
@@ -1862,7 +1869,6 @@ data['oti_all_table'] = sql_inst.sql_read_records_to_dict_list( \
 
 
 ### DO SORTED DEVICE TYPE LIST ################################################
-device_types = []
 if device_types_list_in_list:
     device_types_set = set([ dev_type[0] for dev_type in device_types_list_in_list ])
     device_types = list(device_types_set)
@@ -1936,18 +1942,11 @@ router_menu_list.append('</table>')
 router_menu_list.append('</div>')
 
 ### APPEND DEVICE LIST ########################################################
-device_list = []
 for key in CGI_CLI.data.keys():
     ### DEVICE NAME IS IN '__KEY' ###
     try: value = str(key)
     except: value = str()
     if router_id_string in value: device_list.append(value.replace('_',''))
-if device:
-    if ',' in device:
-        added_device_list = [ splitted_device.strip() for splitted_device in device.split(',') ]
-        if len(added_device_list) > 0: device_list += added_device_list
-    else: device_list.append(device)
-del device
 
 ### GAIN VENDOR + HARDWARE FROM DEVICE LIST "AGAIN" ###########################
 if len(device_list)>0:
@@ -1957,7 +1956,8 @@ if len(device_list)>0:
             type_raw  = router_dict.get('hardware',str())
             brand_subdir, type_subdir, type_subdir_on_device, sw_file_types_list = \
                 get_local_subdirectories(brand_raw = brand_raw, type_raw = type_raw)
-            if printall: CGI_CLI.uprint('READ_FROM_DB: [router=%s, vendor=%s, hardware=%s]' %(device_list[0], brand_raw, type_raw))
+            if printall: CGI_CLI.uprint('READ_FROM_DB: [router=%s, vendor=%s, hardware=%s]' % \
+                (device_list[0], brand_raw, type_raw))
             break
 
     ### CHECK LOCAL SW VERSIONS DIRECTORIES ###################################
@@ -2035,14 +2035,20 @@ if CGI_CLI.data.get('display_scp_percentage_only'):
 ### SET DEFAULT (HIGHEST) SW RELEASE IF NOT SET ###############################
 if not sw_release and default_sw_release: sw_release = default_sw_release
 
-### PRINT BASIC INFO ##########################################################
+### def LOGFILENAME GENERATION ################################################
+logfilename = generate_logfilename(prefix = ('_'.join(device_list)).upper(), \
+    USERNAME = USERNAME, suffix = str(SCRIPT_ACTION) + '.log')
+logfilename = None
 
-CGI_CLI.uprint('server = %s\ndevice(s) = %s\nsw_release = %s' % \
-    (iptac_server, ', '.join(device_list) , sw_release))
-CGI_CLI.uprint('expected_disk_free_GB = %s\nsw_file_types = %s' % \
-    (device_expected_GB_free, \
-    ', '.join(selected_sw_file_types_list) if len(selected_sw_file_types_list)>0 else str()
-    ))
+### def PRINT BASIC INFO ##########################################################
+CGI_CLI.uprint('server = %s' % (iptac_server))
+if len(device_list) > 0: CGI_CLI.uprint('device(s) = %s' % (', '.join(device_list)))
+if sw_release: CGI_CLI.uprint('sw release = %s' % (sw_release))
+if device_expected_GB_free: 
+    CGI_CLI.uprint('expected disk free = %s GB' % (device_expected_GB_free))
+if len(selected_sw_file_types_list)>0: 
+    CGI_CLI.uprint('sw file types = %s' % (', '.join(selected_sw_file_types_list) ))
+if logfilename: CGI_CLI.uprint('logfile=%s' % (logfilename))    
 
 ###############################################################################
 if CGI_CLI.data.get('sw_files'):
@@ -2056,15 +2062,15 @@ if CGI_CLI.data.get('sw_files'):
 
 
 if len(selected_sw_file_types_list) == 0:
-    CGI_CLI.uprint('PLEASE SPECIFY SW FILE TYPE(s) TO COPY.', color = 'red')
+    CGI_CLI.uprint('PLEASE SPECIFY SW FILE TYPE(S) TO COPY.', tag = 'h2', color = 'red')
     sys.exit(0)
 
 if not sw_release:
-    CGI_CLI.uprint('PLEASE SPECIFY SW_RELEASE.', color = 'red')
+    CGI_CLI.uprint('PLEASE SPECIFY SW_RELEASE.', tag = 'h2',color = 'red')
     sys.exit(0)
 
 if len(device_list) == 0:
-    CGI_CLI.uprint('DEVICE NAME(S) NOT INSERTED!', tag = 'h1', color = 'red')
+    CGI_CLI.uprint('DEVICE NAME(S) NOT INSERTED!', tag = 'h2', color = 'red')
     sys.exit(0)
 
 ###############################################################################
@@ -2141,11 +2147,6 @@ if type_subdir and brand_subdir and sw_release:
 
 ### def FOR LOOP PER DEVICE ###################################################
 for device in device_list:
-
-    ### LOGFILENAME GENERATION ################################################
-    logfilename = generate_logfilename(prefix = device.upper(), \
-        USERNAME = USERNAME, suffix = str(SCRIPT_ACTION) + '.log')
-    logfilename = None
 
     ### REMOTE DEVICE OPERATIONS ##############################################
     if device:
@@ -2244,7 +2245,7 @@ if CGI_CLI.data.get('slow_scp_mode'):
                 USERNAME, PASSWORD, drive_string = drive_string, printall = printall)
             time.sleep(3)
         ### IF SCP_LIST IS NOT VOID CHECK AND COPY ONLY NOT RUNNING ###
-        for server_file, device_file, scp_device, device_user in scp_list:
+        for server_file, device_file, scp_device, device_user, pid, ppid in scp_list:
             CGI_CLI.uprint('%s=%s, %s=%s' %(scp_device, device_list, device_file, os.path.join(dev_dir, file)))
             if scp_device in device_list and device_file == os.path.join(dev_dir, file):
                 CGI_CLI.uprint('FILE %s is already copying to device %s, ommiting new scp copying!' % \
@@ -2259,7 +2260,7 @@ if CGI_CLI.data.get('slow_scp_mode'):
         while actual_scp_devices_in_scp_list:
             actual_scp_devices_in_scp_list = False
             scp_list = does_run_scp_processes(printall = False)
-            for server_file, device_file, scp_device, device_user in scp_list:
+            for server_file, device_file, scp_device, device_user, pid, ppid in scp_list:
                 if scp_device in device_list: actual_scp_devices_in_scp_list = True
             if len(scp_list) > 0:
                 check_percentage_of_copied_files(scp_list, USERNAME, PASSWORD, printall)
@@ -2277,13 +2278,9 @@ if CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
     time.sleep(1)
 
 
-### CONNECT TO DEVICE AGAIN ###################################################
+### def CONNECT TO DEVICE AGAIN ###############################################
 for device in device_list:
     time.sleep(3)
-    ### LOGFILENAME GENERATION ################################################
-    logfilename = generate_logfilename(prefix = device.upper(), \
-        USERNAME = USERNAME, suffix = str(SCRIPT_ACTION) + '.log')
-    logfilename = None
 
     ### REMOTE DEVICE OPERATIONS ##############################################
     if device:
@@ -2407,11 +2404,6 @@ if CGI_CLI.data.get('backup_configs_to_device_disk') \
     or CGI_CLI.data.get('delete_device_sw_files_on_end'):
     for device in device_list:
 
-        ### LOGFILENAME GENERATION ################################################
-        logfilename = generate_logfilename(prefix = device.upper(), \
-            USERNAME = USERNAME, suffix = str(SCRIPT_ACTION) + '.log')
-        logfilename = None
-
         ### REMOTE DEVICE OPERATIONS ##############################################
         if device:
             CGI_CLI.uprint('\nFinal device %s actions:\n' % (device), tag = 'h2', color = 'blue')
@@ -2430,10 +2422,9 @@ if CGI_CLI.data.get('backup_configs_to_device_disk') \
             if RCMD.router_type == 'cisco_ios': drive_string = 'bootflash:'
 
 
-            ### CHECK LOCAL SERVER AND DEVICE HDD FILES ###########################
-            if RCMD.router_type == 'cisco_xr' \
-                or RCMD.router_type == 'cisco_ios':
-                ## BACKUP NORMAL AND ADMIN CONFIG ################################
+            ### CHECK LOCAL SERVER AND DEVICE HDD FILES #######################
+            if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
+                ### def BACKUP NORMAL AND ADMIN CONFIG ########################
                 if CGI_CLI.data.get('backup_configs_to_device_disk'):
                     actual_date_string = time.strftime("%Y-%m%d-%H:%M",time.gmtime(time.time()))
                     backup_config_rcmds = {
@@ -2454,7 +2445,7 @@ if CGI_CLI.data.get('backup_configs_to_device_disk') \
                     forget_it = RCMD.run_commands(backup_config_rcmds, printall = printall)
                     CGI_CLI.uprint('\n')
 
-                ### DELETE TAR FILES ON END #######################################
+                ### def DELETE TAR FILES ON END ###############################
                 if CGI_CLI.data.get('delete_device_sw_files_on_end'):
                     del_files_cmds = {'cisco_xr':[],'cisco_ios':[]}
 
@@ -2475,7 +2466,7 @@ if CGI_CLI.data.get('backup_configs_to_device_disk') \
                         None if printall else True)
                     forget_it = RCMD.run_commands(del_files_cmds, printall = printall)
 
-                    ### CHECK FILES DELETION ######################################
+                    ### CHECK FILES DELETION ##################################
                     check_dir_files_cmds = {'cisco_xr':[],'cisco_ios':[]}
                     for unique_dir in unique_device_directory_list:
                         for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
@@ -2500,7 +2491,7 @@ if CGI_CLI.data.get('backup_configs_to_device_disk') \
                     if file_not_deleted: CGI_CLI.uprint('DELETE PROBLEM!', color = 'red')
                     else: CGI_CLI.uprint('Delete file(s) - CHECK OK.', color = 'green')
 
-            ### DISCONNECT ########################################################
+            ### DISCONNECT ####################################################
             RCMD.disconnect()
 
 del sql_inst
