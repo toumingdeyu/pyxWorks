@@ -483,6 +483,7 @@ class RCMD(object):
             RCMD.config_problem = None
             RCMD.commit_text = commit_text
             RCMD.do_not_final_print = do_not_final_print
+            RCMD.drive_string = str()
             RCMD.KNOWN_OS_TYPES = ['cisco_xr', 'cisco_ios', 'juniper', 'juniper_junos', 'huawei' ,'linux']
             try: RCMD.DEVICE_HOST = device.split(':')[0]
             except: RCMD.DEVICE_HOST = str()
@@ -507,6 +508,7 @@ class RCMD(object):
                     '%s%s#'%(RCMD.device.upper(),'(config-router)')  ]
                 RCMD.TERM_LEN_0 = "terminal length 0"
                 RCMD.EXIT = "exit"
+                RCMD.drive_string = 'bootflash:'
             elif RCMD.router_type == 'cisco_xr':
                 if cmd_data:
                     try: RCMD.CMD = cmd_data.get('cisco_xr',[])
@@ -520,6 +522,7 @@ class RCMD(object):
                     '%s%s#'%(RCMD.device.upper(),'(config-router)')  ]
                 RCMD.TERM_LEN_0 = "terminal length 0"
                 RCMD.EXIT = "exit"
+                RCMD.drive_string = 'harddisk:'
             elif RCMD.router_type == 'juniper':
                 if cmd_data:
                     try: RCMD.CMD = cmd_data.get('juniper',[])
@@ -542,6 +545,7 @@ class RCMD(object):
                     '[*' + RCMD.device.upper() + ']' ]
                 RCMD.TERM_LEN_0 = "screen-length 0 temporary"     #"screen-length disable"
                 RCMD.EXIT = "quit"
+                RCMD.drive_string = 'cfcard:'
             elif RCMD.router_type == 'linux':
                 if cmd_data:
                     try: RCMD.CMD = cmd_data.get('linux',[])
@@ -1472,7 +1476,7 @@ def do_scp_command(USERNAME = None, PASSWORD = None, device = None, \
 ###############################################################################
 
 def do_scp_all_files(true_sw_release_files_on_server = None, device_list = None, \
-    USERNAME = None, PASSWORD = None , drive_string = None, printall = None):
+    USERNAME = None, PASSWORD = None , device_drive_string = None, printall = None):
     result = True
     os.environ['SSHPASS'] = PASSWORD
     for directory,dev_dir,file,md5,fsize in true_sw_release_files_on_server:
@@ -1481,7 +1485,7 @@ def do_scp_all_files(true_sw_release_files_on_server = None, device_list = None,
         for device in device_list:
             local_command = 'sshpass -e scp -v -o StrictHostKeyChecking=no %s %s@%s:/%s' \
                 % (os.path.join(directory, file), USERNAME, device, \
-                '%s%s' % (drive_string, os.path.join(dev_dir, file)))
+                '%s%s' % (device_drive_string, os.path.join(dev_dir, file)))
             cp_cmd_list.append(local_command)
         #if printall: CGI_CLI.uprint("SCP COMMANDS:\n"+'\n'.join(cp_cmd_list))
         os.environ['SSHPASS'] = PASSWORD
@@ -1497,7 +1501,7 @@ def do_scp_all_files(true_sw_release_files_on_server = None, device_list = None,
 ###############################################################################
 
 def do_scp_one_file_to_more_devices(true_sw_release_file_on_server = None, \
-    device_list = None, USERNAME = None, PASSWORD = None , drive_string = None, \
+    device_list = None, USERNAME = None, PASSWORD = None , device_drive_string = None, \
     printall = None):
     if true_sw_release_file_on_server and len(device_list)>0:
         os.environ['SSHPASS'] = PASSWORD
@@ -1507,7 +1511,7 @@ def do_scp_one_file_to_more_devices(true_sw_release_file_on_server = None, \
         for device in device_list:
             local_command = 'sshpass -e scp -v -o StrictHostKeyChecking=no %s %s@%s:/%s 1>/dev/null 2>/dev/null &' \
                 % (os.path.join(directory, file), USERNAME, device, \
-                '%s%s' % (drive_string, os.path.join(dev_dir, file)))
+                '%s%s' % (device_drive_string, os.path.join(dev_dir, file)))
             os.system(local_command)
             CGI_CLI.uprint('scp start file %s, (file size %.2fMB) to device %s' % \
                 (file, float(fsize)/1048576, device))
@@ -1774,21 +1778,16 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
             if not RCMD.ssh_connection:
                 CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), color = 'red')
                 RCMD.disconnect()
-                if len(device_list) > 1: continue
-                else: sys.exit(0)
-
-            ### DEVICE DRIVE STRING ###############################################
-            drive_string = str()
-            if RCMD.router_type == 'cisco_xr': drive_string = 'harddisk:'
-            if RCMD.router_type == 'cisco_ios': drive_string = 'bootflash:'
-
+                time.sleep(2)
+                continue                
+            device_drive_string = RCMD.drive_string  
             ### CHECK FILE(S) AND MD5(S) FIRST ################################
             CGI_CLI.uprint('checking existing device file(s) and md5(s)', \
                 no_newlines = None if printall else True)
             xr_md5_cmds, xe_md5_cmds = [], []
             for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
-                xr_md5_cmds.append('show md5 file /%s%s' % (drive_string, os.path.join(dev_dir, file)))
-                xe_md5_cmds.append('verify /md5 %s%s' % (drive_string, os.path.join(dev_dir, file)))
+                xr_md5_cmds.append('show md5 file /%s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
+                xe_md5_cmds.append('verify /md5 %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
             rcmd_md5_outputs = RCMD.run_commands({'cisco_ios':xe_md5_cmds,'cisco_xr':xr_md5_cmds}, printall = printall)
             for files_list,rcmd_md5_output in zip(true_sw_release_files_on_server,rcmd_md5_outputs):
                 directory, dev_dir, file, md5, fsize = files_list
@@ -1802,8 +1801,8 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
             redundant_dev_dir_list = [ dev_dir for directory,dev_dir,file,md5,fsize in true_sw_release_files_on_server ]
             dev_dir_set = set(redundant_dev_dir_list)
             unique_device_directory_list = list(dev_dir_set)
-            xe_device_dir_list = [ 'dir %s%s' % (drive_string, dev_dir) for dev_dir in unique_device_directory_list ]
-            xr_device_dir_list = [ 'dir %s%s' % (drive_string, dev_dir) for dev_dir in unique_device_directory_list ]
+            xe_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) for dev_dir in unique_device_directory_list ]
+            xr_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) for dev_dir in unique_device_directory_list ]
             dir_device_cmds = {
                 'cisco_ios':xe_device_dir_list,
                 'cisco_xr':xr_device_dir_list,
@@ -1827,6 +1826,8 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                         if file_found_on_device and md5_ok: pass
                         else: missing_or_bad_files_per_device.append([directory, dev_dir, file, md5, fsize])                     
             needed_to_copy_files_per_device_list.append([device,missing_or_bad_files_per_device])
+            device_drive_string = RCMD.drive_string
+            RCMD.disconnect()
             time.sleep(2)
     ### PRINT NEEDED FILES TO COPY ############################################
     at_least_some_files_need_to_copy = None
@@ -1850,14 +1851,90 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
         for directory, dev_dir, file, md5, fsize in missing_or_bad_files_per_device:
             if CGI_CLI.data.get('check_device_sw_files_only'):
                 CGI_CLI.uprint('%s    %s' % \
-                    (device,drive_string+os.path.join(dev_dir, file)), color = 'red')
+                    (device,device_drive_string+os.path.join(dev_dir, file)), color = 'red')
             else:    
                 CGI_CLI.uprint('%s    %s' % \
-                    (device,drive_string+os.path.join(dev_dir, file)), color = 'blue')
+                    (device,device_drive_string+os.path.join(dev_dir, file)), color = 'blue')
     if not all_files_on_all_devices_ok and CGI_CLI.data.get('check_device_sw_files_only'): 
         CGI_CLI.uprint('SW RELEASE FILES - CHECK FAILED!' , tag = 'h1', color = 'red')
         sys.exit(0)
-    return all_files_on_all_devices_ok, needed_to_copy_files_per_device_list     
+    return all_files_on_all_devices_ok, needed_to_copy_files_per_device_list, device_drive_string      
+
+##############################################################################
+
+def check_free_disk_space_on_devices(device_list = None, \
+    USERNAME = None, PASSWORD = None, logfilename = None, printall = None):
+    disk_low_space_devices = []
+    for device in device_list:
+        if device:
+            CGI_CLI.uprint('\nDevice %s disk space checks:\n' % (device), tag = 'h2', color = 'blue')
+            RCMD.connect(device, username = USERNAME, password = PASSWORD, \
+                printall = printall, logfilename = logfilename)
+          
+            if not RCMD.ssh_connection:
+                CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), color = 'red')
+                RCMD.disconnect()
+                time.sleep(2)
+                continue          
+            check_disk_space_cmds = {
+                ### some ios = enable, ask password, 'show bootflash:' , exit
+                'cisco_ios':[' ','show bootflash:',' ','show version | in (%s)' % (asr1k_detection_string)],
+                'cisco_xr':['show filesystem',
+                    'show version | in "%s"' % (asr9k_detection_string),
+                    ],
+                'juniper':['show system storage'],
+                'huawei':['display device | include PhyDisk','display disk information']
+            }
+            CGI_CLI.uprint('checking disk space', \
+                no_newlines = None if printall else True)
+            rcmd_check_disk_space_outputs = RCMD.run_commands(check_disk_space_cmds)
+            #CGI_CLI.uprint('\n')
+
+            if RCMD.router_type == 'cisco_ios':
+                try: device_free_space = float(rcmd_check_disk_space_outputs[1].\
+                         split('bytes available')[0].splitlines()[-1].strip())
+                except: pass
+            elif RCMD.router_type == 'cisco_xr':
+                try: device_free_space = float(rcmd_check_disk_space_outputs[0].\
+                         split('harddisk:')[0].splitlines()[-1].split()[1].strip())
+                except: pass
+            elif RCMD.router_type == 'juniper': pass
+            elif RCMD.router_type == 'huawei': pass
+
+            xr_device_mkdir_list = []
+            for dev_dir in unique_device_directory_list:
+                up_path = str()
+                for dev_sub_dir in dev_dir.split('/'):
+                    if dev_sub_dir:
+                        xr_device_mkdir_list.append('mkdir %s%s' % \
+                            (RCMD.drive_string, os.path.join(up_path,dev_sub_dir)))
+                        xr_device_mkdir_list.append('\r\n')
+                        up_path = os.path.join(up_path, dev_sub_dir)
+
+            mkdir_device_cmds = {
+                'cisco_ios':xr_device_mkdir_list,
+                'cisco_xr':xr_device_mkdir_list,
+                'juniper':[],
+                'huawei':[]
+            }
+            #CGI_CLI.uprint('making directories', no_newlines = None if printall else True)
+            forget_it = RCMD.run_commands(mkdir_device_cmds)
+            CGI_CLI.uprint('\n')
+
+            CGI_CLI.uprint('disk free space = %.2f MB' % (float(device_free_space)/1048576) , color = 'blue')
+
+            ### SOME GB FREE EXPECTED (1MB=1048576, 1GB=1073741824) ###
+            if device_free_space < (device_expected_GB_free * 1073741824):
+                CGI_CLI.uprint('Disk space - CHECK FAIL!', color = 'red')
+                RCMD.disconnect()
+                time.sleep(2)
+                disk_low_space_devices.append(device)
+                continue
+                
+            else: CGI_CLI.uprint('Disk space - CHECK OK.', color = 'green')
+            RCMD.disconnect()
+            time.sleep(2)
+    return disk_low_space_devices
 
 
 ##############################################################################
@@ -2249,95 +2326,21 @@ redundant_dev_dir_list = [ dev_dir for directory,dev_dir,file,md5,fsize in true_
 dev_dir_set = set(redundant_dev_dir_list)
 unique_device_directory_list = list(dev_dir_set)
 
+
 ### CHECK EXISTING FILES ON DEVICES ###########################################
-all_files_on_all_devices_ok, needed_to_copy_files_per_device_list = \
+all_files_on_all_devices_ok, needed_to_copy_files_per_device_list, device_drive_string = \
     check_files_on_devices(device_list = device_list, \
     true_sw_release_files_on_server = true_sw_release_files_on_server, \
     USERNAME = USERNAME, PASSWORD = PASSWORD, logfilename = logfilename, \
     printall = printall)
 
 
-
+### CHECK DISK SPACE ON DEVICES ###############################################
 if CGI_CLI.data.get('check_device_sw_files_only'): pass
 elif not all_files_on_all_devices_ok:
-
-    ### def CHECK DISK SPACE ON DEVICE ############################################
-    for device in device_list:
-        if device:
-            CGI_CLI.uprint('\nDevice %s disk space checks:\n' % (device), tag = 'h2', color = 'blue')
-            RCMD.connect(device, username = USERNAME, password = PASSWORD, \
-                printall = printall, logfilename = logfilename)
-
-            if not RCMD.ssh_connection:
-                CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), color = 'red')
-                RCMD.disconnect()
-                if len(device_list) > 1: continue
-                else: sys.exit(0)
-
-            ### DEVICE DRIVE STRING ###############################################
-            drive_string = str()
-            if RCMD.router_type == 'cisco_xr': drive_string = 'harddisk:'
-            if RCMD.router_type == 'cisco_ios': drive_string = 'bootflash:'
-            
-            check_disk_space_cmds = {
-                ### some ios = enable, ask password, 'show bootflash:' , exit
-                'cisco_ios':[' ','show bootflash:',' ','show version | in (%s)' % (asr1k_detection_string)],
-                'cisco_xr':['show filesystem',
-                    'show version | in "%s"' % (asr9k_detection_string),
-                    ],
-                'juniper':['show system storage'],
-                'huawei':['display device | include PhyDisk','display disk information']
-            }
-            CGI_CLI.uprint('checking disk space', \
-                no_newlines = None if printall else True)
-            rcmd_check_disk_space_outputs = RCMD.run_commands(check_disk_space_cmds)
-            CGI_CLI.uprint('\n')
-
-            if RCMD.router_type == 'cisco_ios':
-                try: device_free_space = float(rcmd_check_disk_space_outputs[1].\
-                         split('bytes available')[0].splitlines()[-1].strip())
-                except: pass
-            elif RCMD.router_type == 'cisco_xr':
-                try: device_free_space = float(rcmd_check_disk_space_outputs[0].\
-                         split('harddisk:')[0].splitlines()[-1].split()[1].strip())
-                except: pass
-            elif RCMD.router_type == 'juniper': pass
-            elif RCMD.router_type == 'huawei': pass
-
-            CGI_CLI.uprint('disk free space = %.2f MB' % (float(device_free_space)/1048576) , color = 'blue')
-
-            ### SOME GB FREE EXPECTED (1MB=1048576, 1GB=1073741824) ###
-            if device_free_space < (device_expected_GB_free * 1073741824):
-                CGI_CLI.uprint('Disk space - CHECK FAIL!', color = 'red')
-                RCMD.disconnect()
-                if len(device_list) > 1: continue
-                else: sys.exit(0)
-            else: CGI_CLI.uprint('Disk space - CHECK OK.', color = 'green')
-
-            xr_device_mkdir_list = []
-            for dev_dir in unique_device_directory_list:
-                up_path = str()
-                for dev_sub_dir in dev_dir.split('/'):
-                    if dev_sub_dir:
-                        xr_device_mkdir_list.append('mkdir %s%s' % \
-                            (drive_string, os.path.join(up_path,dev_sub_dir)))
-                        xr_device_mkdir_list.append('\r\n')
-                        up_path = os.path.join(up_path, dev_sub_dir)
-
-            mkdir_device_cmds = {
-                'cisco_ios':xr_device_mkdir_list,
-                'cisco_xr':xr_device_mkdir_list,
-                'juniper':[],
-                'huawei':[]
-            }
-            CGI_CLI.uprint('making directories', \
-                no_newlines = None if printall else True)
-            forget_it = RCMD.run_commands(mkdir_device_cmds)
-            CGI_CLI.uprint('\n')
-            RCMD.disconnect()
-            time.sleep(2)
-
-
+    check_free_disk_space_on_devices(device_list = device_list, \
+        USERNAME = USERNAME, PASSWORD = PASSWORD, logfilename = logfilename, \
+        printall = printall)
 
     
 ### def FILE SCP COPYING ######################################################
@@ -2351,7 +2354,7 @@ elif not all_files_on_all_devices_ok:
         ### IF SCP_LIST IS VOID COPY ALL ###
         if len(scp_list) == 0:
             do_scp_one_file_to_more_devices(true_sw_release_file_on_server, device_list, \
-                USERNAME, PASSWORD, drive_string = drive_string, printall = printall)
+                USERNAME, PASSWORD, device_drive_string = device_drive_string, printall = printall)
             time.sleep(3)
         ### IF SCP_LIST IS NOT VOID CHECK AND COPY ONLY NOT RUNNING ###
         for server_file, device_file, scp_device, device_user, pid, ppid in scp_list:
@@ -2361,7 +2364,7 @@ elif not all_files_on_all_devices_ok:
                     (device_file, device))
             else:
                 do_scp_one_file_to_more_devices(true_sw_release_file_on_server, device_list, \
-                    USERNAME, PASSWORD, drive_string = drive_string, printall = printall)
+                    USERNAME, PASSWORD, device_drive_string = device_drive_string, printall = printall)
                 time.sleep(2)
         ### DO SCP LIST AGAIN AND WAIT TILL END OF YOUR SCP SESSIONS ###
         actual_scp_devices_in_scp_list = True
@@ -2382,7 +2385,7 @@ if all_files_on_all_devices_ok: pass
 else:
     time.sleep(3)
     ### CHECK EXISTING FILES ON DEVICES AGAIN #################################
-    all_files_on_all_devices_ok, needed_to_copy_files_per_device_list = \
+    all_files_on_all_devices_ok, needed_to_copy_files_per_device_list, device_drive_string = \
         check_files_on_devices(device_list = device_list, \
         true_sw_release_files_on_server = true_sw_release_files_on_server, \
         USERNAME = USERNAME, PASSWORD = PASSWORD, logfilename = logfilename, \
@@ -2405,12 +2408,6 @@ if CGI_CLI.data.get('backup_configs_to_device_disk') \
                 if len(device_list) > 1: continue
                 else: sys.exit(0)
 
-            ### DEVICE DRIVE STRING ###############################################
-            drive_string = str()
-            if RCMD.router_type == 'cisco_xr': drive_string = 'harddisk:'
-            if RCMD.router_type == 'cisco_ios': drive_string = 'bootflash:'
-
-
             ### CHECK LOCAL SERVER AND DEVICE HDD FILES #######################
             if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
                 ### def BACKUP NORMAL AND ADMIN CONFIG ########################
@@ -2418,14 +2415,14 @@ if CGI_CLI.data.get('backup_configs_to_device_disk') \
                     actual_date_string = time.strftime("%Y-%m%d-%H:%M",time.gmtime(time.time()))
                     backup_config_rcmds = {
                         'cisco_ios':[
-                        'copy running-config %s%s-config.txt' % (drive_string, actual_date_string),
+                        'copy running-config %s%s-config.txt' % (RCMD.drive_string, actual_date_string),
                         '\n',
                         ],
                         'cisco_xr':[
-                        'copy running-config %s%s-config.txt' % (drive_string, actual_date_string),
+                        'copy running-config %s%s-config.txt' % (RCMD.drive_string, actual_date_string),
                         '\n',
                         'admin',
-                        'copy running-config %sadmin-%s-config.txt' %(drive_string, actual_date_string),
+                        'copy running-config %sadmin-%s-config.txt' %(RCMD.drive_string, actual_date_string),
                         '\n',
                         'exit']
                     }
@@ -2442,12 +2439,12 @@ if CGI_CLI.data.get('backup_configs_to_device_disk') \
                         for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
                             if unique_dir == dev_dir:
                                 del_files_cmds['cisco_xr'].append( \
-                                    'del /%s%s' % (drive_string, os.path.join(dev_dir, file)))
+                                    'del /%s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
                                 del_files_cmds['cisco_xr'].append('\n')
                                 del_files_cmds['cisco_xr'].append('\n')
 
                                 del_files_cmds['cisco_ios'].append( \
-                                    'del %s%s' % (drive_string, os.path.join(dev_dir, file)))
+                                    'del %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
                                 del_files_cmds['cisco_ios'].append('\n')
                                 del_files_cmds['cisco_ios'].append('\n')
 
@@ -2461,10 +2458,10 @@ if CGI_CLI.data.get('backup_configs_to_device_disk') \
                         for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
                             if unique_dir == dev_dir:
                                 check_dir_files_cmds['cisco_xr'].append( \
-                                    'dir /%s%s' % (drive_string, dev_dir))
+                                    'dir /%s%s' % (RCMD.drive_string, dev_dir))
 
                                 check_dir_files_cmds['cisco_ios'].append( \
-                                    'dir %s%s' % (drive_string, dev_dir))
+                                    'dir %s%s' % (RCMD.drive_string, dev_dir))
                     time.sleep(0.5)
                     dir_outputs_after_deletion = RCMD.run_commands(check_dir_files_cmds, \
                         printall = printall)
