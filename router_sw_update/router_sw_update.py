@@ -115,10 +115,10 @@ class CGI_CLI(object):
                             action = 'store_true', dest = "backup_configs_to_device_disk",
                             default = None,
                             help = "backup configs to device hdd")
-        parser.add_argument("--force_rewrite",
-                            action = 'store_true', dest = "force_rewrite_sw_files_on_device",
-                            default = None,
-                            help = "force rewrite sw release files on device disk")
+        #parser.add_argument("--force_rewrite",
+        #                    action = 'store_true', dest = "force_rewrite_sw_files_on_device",
+        #                    default = None,
+        #                    help = "force rewrite sw release files on device disk")
         parser.add_argument("--delete",
                             action = 'store_true', dest = "delete_device_sw_files_on_end",
                             default = None,
@@ -1819,7 +1819,7 @@ devices_string = CGI_CLI.data.get("device",str())
 if devices_string:
     if ',' in devices_string:
         device_list = [ dev_mix_case.upper() for dev_mix_case in devices_string.split(',') ]
-    else: device_list = devices_string.upper()
+    else: device_list = [devices_string.upper()]
 
 ### GET sw_release FROM cli ###################################################
 sw_release = CGI_CLI.data.get('sw_release',str())
@@ -1850,7 +1850,7 @@ if not sw_release:
             active_menu = 3
             break
 
-### SQL INIT ##################################################################
+### def SQL INIT ##############################################################
 sql_inst = sql_interface(host='localhost', user='cfgbuilder', \
     password='cfgbuildergetdata', database='rtr_configuration')
 
@@ -2005,7 +2005,7 @@ if CGI_CLI.cgi_active and (not CGI_CLI.submit_form or active_menu == 2):
             {'checkbox':'check_device_sw_files_only'},'<br/>',\
             {'checkbox':'slow_scp_mode'},'<br/>',\
             {'checkbox':'display_scp_percentage_only'},'<br/>',\
-            {'checkbox':'force_rewrite_sw_files_on_device'},'<br/>',\
+            #{'checkbox':'force_rewrite_sw_files_on_device'},'<br/>',\
             {'checkbox':'backup_configs_to_device_disk'},'<br/>',\
             {'checkbox':'delete_device_sw_files_on_end'},'<br/>',\
             '<br/>', {'checkbox':'printall'}]
@@ -2269,13 +2269,13 @@ if CGI_CLI.data.get('slow_scp_mode'):
 
 
 ### FORCE REWRITE FILES ON DEVICE #############################################
-if CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
-    CGI_CLI.uprint('Force rewrite scp mode selected.', tag = 'h2', color = 'blue')
-    if do_scp_all_files(true_sw_release_files_on_server, device_list, \
-        USERNAME, PASSWORD, drive_string = drive_string, printall = printall):
-        CGI_CLI.uprint('Copy file(s) - CHECK OK\n', color = 'green')
-    else: CGI_CLI.uprint('Copy file(s) - PROBLEM\n', tag = 'h1', color = 'red')
-    time.sleep(1)
+# if CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
+    # CGI_CLI.uprint('Force rewrite scp mode selected.', tag = 'h2', color = 'blue')
+    # if do_scp_all_files(true_sw_release_files_on_server, device_list, \
+        # USERNAME, PASSWORD, drive_string = drive_string, printall = printall):
+        # CGI_CLI.uprint('Copy file(s) - CHECK OK\n', color = 'green')
+    # else: CGI_CLI.uprint('Copy file(s) - PROBLEM\n', tag = 'h1', color = 'red')
+    # time.sleep(1)
 
 
 ### def CONNECT TO DEVICE AGAIN ###############################################
@@ -2359,7 +2359,7 @@ for device in device_list:
                                 md5_ok = True
                     ### COPY MISSING OF REWRITE CORRUPTED FILE ################
                     if CGI_CLI.data.get('check_device_sw_files_only'): pass
-                    elif CGI_CLI.data.get('force_rewrite_sw_files_on_device'): pass
+                    #elif CGI_CLI.data.get('force_rewrite_sw_files_on_device'): pass
                     elif CGI_CLI.data.get('slow_scp_mode'): pass
                     elif not file_found or not md5_ok:
                         ### REMOTE COPYING ####################################
