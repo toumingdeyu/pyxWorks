@@ -444,7 +444,8 @@ class RCMD(object):
     def connect(device = None, cmd_data = None, username = None, password = None, \
         use_module = 'paramiko', logfilename = None, timeout = 60, conf = None, \
         sim_config = None, disconnect = None, printall = None, \
-        do_not_final_print = None, commit_text = None, silent_fail = None):
+        do_not_final_print = None, commit_text = None, silent_mode = None, \
+        disconnect_timeout = 1):
         """ FUNCTION: RCMD.connect(), RETURNS: list of command_outputs
         PARAMETERS:
         device     - string , device_name/ip_address/device_name:PORT_NUMBER/ip_address:PORT_NUMBER
@@ -464,6 +465,8 @@ class RCMD(object):
         RCMD.ssh_connection = None
         RCMD.CMD = []
         if device:
+            RCMD.silent_mode = silent_mode
+            RCMD.DISCONNECT_TIMEOUT = disconnect_timeout
             RCMD.CMD = []
             RCMD.output, RCMD.fp = None, None
             RCMD.device = device
@@ -490,10 +493,11 @@ class RCMD(object):
             try: RCMD.DEVICE_PORT = device.split(':')[1]
             except: RCMD.DEVICE_PORT = '22'
             if printall: CGI_CLI.uprint('DEVICE %s (host=%s, port=%s) START'\
-                %(device, RCMD.DEVICE_HOST, RCMD.DEVICE_PORT)+24 * '.')
+                %(device, RCMD.DEVICE_HOST, RCMD.DEVICE_PORT)+24 * '.', color = 'gray')
             RCMD.router_type, RCMD.router_prompt = RCMD.ssh_raw_detect_router_type(debug = None)
             if RCMD.router_type in RCMD.KNOWN_OS_TYPES and printall:
-                CGI_CLI.uprint('DETECTED DEVICE_TYPE: %s' % (RCMD.router_type))
+                CGI_CLI.uprint('DETECTED DEVICE_TYPE: %s' % (RCMD.router_type), \
+                    color = 'gray')
             ####################################################################
             if RCMD.router_type == 'cisco_ios':
                 if cmd_data:
@@ -577,7 +581,7 @@ class RCMD(object):
                 command_outputs = RCMD.run_commands(RCMD.CMD)
                 ### ==========================================================
             except Exception as e:
-                if not silent_fail: CGI_CLI.uprint('CONNECTION_PROBLEM[' + str(e) + ']', color = 'magenta')
+                if not RCMD.silent_mode: CGI_CLI.uprint('CONNECTION_PROBLEM[' + str(e) + ']', color = 'magenta')
             finally:
                 if disconnect: RCMD.disconnect()
         else: CGI_CLI.uprint('DEVICE NOT INSERTED!', color = 'magenta')
@@ -604,7 +608,7 @@ class RCMD(object):
             if printall or RCMD.printall:
                 CGI_CLI.uprint('REMOTE_COMMAND' + sim_mark + ': ' + cmd_line, color = 'blue')
                 CGI_CLI.uprint(last_output, color = 'gray')
-            else: CGI_CLI.uprint(' . ', no_newlines = True)
+            elif not RCMD.silent_mode: CGI_CLI.uprint(' . ', no_newlines = True)
             if RCMD.fp: RCMD.fp.write('REMOTE_COMMAND' + sim_mark + ': ' + cmd_line + '\n' + last_output + '\n')
         return last_output
 
@@ -761,7 +765,8 @@ class RCMD(object):
         if RCMD.ssh_connection:
             if RCMD.use_module == 'netmiko': RCMD.ssh_connection.disconnect()
             elif RCMD.use_module == 'paramiko': RCMD.client.close()
-            if RCMD.printall: CGI_CLI.uprint('DEVICE %s:%s DONE.' % (RCMD.DEVICE_HOST, RCMD.DEVICE_PORT))
+            if RCMD.printall: CGI_CLI.uprint('DEVICE %s:%s DONE.' % \
+                (RCMD.DEVICE_HOST, RCMD.DEVICE_PORT), color = 'gray')
             RCMD.ssh_connection = None
 
     @staticmethod
@@ -770,8 +775,10 @@ class RCMD(object):
         if RCMD.ssh_connection:
             if RCMD.use_module == 'netmiko': RCMD.ssh_connection.disconnect()
             elif RCMD.use_module == 'paramiko': RCMD.client.close()
-            if RCMD.printall: CGI_CLI.uprint('DEVICE %s:%s DISCONNECTED.' % (RCMD.DEVICE_HOST, RCMD.DEVICE_PORT))
+            if RCMD.printall: CGI_CLI.uprint('DEVICE %s:%s DISCONNECTED.' % \
+                (RCMD.DEVICE_HOST, RCMD.DEVICE_PORT), color = 'gray')
             RCMD.ssh_connection = None
+            time.sleep(RCMD.DISCONNECT_TIMEOUT)
 
     @staticmethod
     def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True):
@@ -1432,6 +1439,8 @@ class sql_interface():
         return dict_list
 
 
+
+
 ###############################################################################
 
 def generate_logfilename(prefix = None, USERNAME = None, suffix = None, \
@@ -1459,47 +1468,6 @@ def generate_logfilename(prefix = None, USERNAME = None, suffix = None, \
 
 ##############################################################################
 
-def do_scp_command(USERNAME = None, PASSWORD = None, device = None, \
-    local_file = None, device_file = None , printall = None):
-    if USERNAME and PASSWORD and local_file and device_file:
-        os.environ['SSHPASS'] = PASSWORD
-        if not printall: CGI_CLI.uprint(' copying %s    ' % (device_file), no_newlines = True)
-        local_command = 'sshpass -e scp -v -o StrictHostKeyChecking=no %s %s@%s:/%s' \
-            % (local_file, USERNAME, device, device_file)
-        scp_result = LCMD.run_command(cmd_line = local_command,
-            printall = printall, chunked = True)
-        ### SECURITY REASONS ###
-        os.environ['SSHPASS'] = '-'
-        return scp_result
-    else: return str()
-
-###############################################################################
-
-def do_scp_all_files(true_sw_release_files_on_server = None, device_list = None, \
-    USERNAME = None, PASSWORD = None , device_drive_string = None, printall = None):
-    result = True
-    os.environ['SSHPASS'] = PASSWORD
-    for directory,dev_dir,file,md5,fsize in true_sw_release_files_on_server:
-        cp_cmd_list = []
-        ### ONLY 1 SCP CONNECTION PER ROUTER ###
-        for device in device_list:
-            local_command = 'sshpass -e scp -v -o StrictHostKeyChecking=no %s %s@%s:/%s' \
-                % (os.path.join(directory, file), USERNAME, device, \
-                '%s%s' % (device_drive_string, os.path.join(dev_dir, file)))
-            cp_cmd_list.append(local_command)
-        #if printall: CGI_CLI.uprint("SCP COMMANDS:\n"+'\n'.join(cp_cmd_list))
-        os.environ['SSHPASS'] = PASSWORD
-        copy_commands = {'unix':cp_cmd_list}
-        partial_result = LCMD.run_paralel_commands(copy_commands, \
-            custom_text='copying file(s) %s, (file size %.2fMB) to device(s) %s' % (file, float(fsize)/1048576, ','.join(device_list)) , printall = printall)
-        if not partial_result: result = False
-        time.sleep(1)
-    ### SECURITY REASONS ###
-    os.environ['SSHPASS'] = '-'
-    return result
-
-###############################################################################
-
 def do_scp_one_file_to_more_devices(true_sw_release_file_on_server = None, \
     device_list = None, USERNAME = None, PASSWORD = None , device_drive_string = None, \
     printall = None):
@@ -1518,50 +1486,6 @@ def do_scp_one_file_to_more_devices(true_sw_release_file_on_server = None, \
         ### SECURITY REASONS ###
         os.environ['SSHPASS'] = '-'
     return None
-
-###############################################################################
-
-def do_sftp_command(USERNAME = None, PASSWORD = None, device = None,\
-    local_file = None, device_file = None , printall = None):
-    if USERNAME and PASSWORD and local_file and device_file:
-        os.environ['SSHPASS'] = PASSWORD
-        if not printall: CGI_CLI.uprint(' copying %s    ' % (device_file), no_newlines = True)
-
-        local_path, forget_it = os.path.split(local_file)
-        remote_path, filename = os.path.split(device_file)
-
-        local_command = '''cd %s
-sshpass -e sftp -oStrictHostKeyChecking=no %s@%s << !
-progress
-cd %s
-put %s | zenity --progress --auto-close
-bye
-!
-''' % (local_path, USERNAME, device, remote_path, filename)
-
-        sftp_result = LCMD.run_command(cmd_line = local_command,
-            printall = printall, chunked = True)
-        ### SECURITY REASONS ###
-        os.environ['SSHPASS'] = '-'
-        return sftp_result
-    else: return str()
-
-sftp_sx1 = '''
-sftp -o StrictHostKeyChecking=no  user@ftpsite.com << !
- progress
- cd offload
- put /media/*/*.tgz |zenity --progress --auto-close
- bye
-'''
-
-sftp_ex2 = '''
-export SSHPASS=your-password-here
-sshpass -e sftp -oBatchMode=no -b - sftp-user@remote-host << !
-   cd incoming
-   put your-log-file.log
-   bye
-!
-'''
 
 ##############################################################################
 
@@ -1724,9 +1648,8 @@ def check_percentage_of_copied_files(scp_list = [], USERNAME = None, \
     device_file_percentage_list = []
     for server_file, device_file, device, device_user, pid, ppid in scp_list:
         if device:
-            time.sleep(2)
             RCMD.connect(device, username = USERNAME, password = PASSWORD, \
-                printall = printall, logfilename = None, silent_fail = True)
+                printall = printall, logfilename = None, silent_mode = True)
             if RCMD.ssh_connection:
                 dir_device_cmd = {
                     'cisco_ios':['dir %s' % (device_file)],
@@ -1735,7 +1658,6 @@ def check_percentage_of_copied_files(scp_list = [], USERNAME = None, \
                     'huawei':[]
                 }
                 dir_one_output = RCMD.run_commands(dir_device_cmd, printall = printall)
-                CGI_CLI.uprint('\n')
                 device_filesize_in_bytes = 0
                 if RCMD.router_type == 'cisco_xr':
                     ### dir file gets output without 'harddisk:/'!!! ###
@@ -1759,9 +1681,9 @@ def check_percentage_of_copied_files(scp_list = [], USERNAME = None, \
                     percentage), color = 'blue')
                 device_file_percentage_list.append([device, device_file, percentage])    
                 RCMD.disconnect()
-                time.sleep(2)
             else:
-                CGI_CLI.uprint('Device %s file %s still copying...' % (device, device_file) , color = 'blue')
+                CGI_CLI.uprint('Device %s file %s still copying...' % \
+                    (device, device_file) , color = 'blue')
     return device_file_percentage_list
     
 ##############################################################################
@@ -1779,7 +1701,6 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
             if not RCMD.ssh_connection:
                 CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), color = 'red')
                 RCMD.disconnect()
-                time.sleep(2)
                 continue                
             device_drive_string = RCMD.drive_string  
             ### CHECK FILE(S) AND MD5(S) FIRST ################################
@@ -1829,7 +1750,6 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
             needed_to_copy_files_per_device_list.append([device,missing_or_bad_files_per_device])
             device_drive_string = RCMD.drive_string
             RCMD.disconnect()
-            time.sleep(2)
     ### PRINT NEEDED FILES TO COPY ############################################
     at_least_some_files_need_to_copy = None
     for device,missing_or_bad_files_per_device in needed_to_copy_files_per_device_list:
@@ -1875,7 +1795,6 @@ def check_free_disk_space_on_devices(device_list = None, \
             if not RCMD.ssh_connection:
                 CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), color = 'red')
                 RCMD.disconnect()
-                time.sleep(2)
                 continue          
             check_disk_space_cmds = {
                 ### some ios = enable, ask password, 'show bootflash:' , exit
@@ -1928,13 +1847,11 @@ def check_free_disk_space_on_devices(device_list = None, \
             if device_free_space < (device_expected_GB_free * 1073741824):
                 CGI_CLI.uprint('Disk space - CHECK FAIL!', color = 'red')
                 RCMD.disconnect()
-                time.sleep(2)
                 disk_low_space_devices.append(device)
                 continue
                 
             else: CGI_CLI.uprint('Disk space - CHECK OK.', color = 'green')
             RCMD.disconnect()
-            time.sleep(2)
     return disk_low_space_devices
 
 
@@ -2347,7 +2264,7 @@ elif not all_files_on_all_devices_ok:
 ### def FILE SCP COPYING ######################################################
 if CGI_CLI.data.get('check_device_sw_files_only'): pass
 elif not all_files_on_all_devices_ok:
-    time.sleep(2)
+    #time.sleep(2)
 
     #### !!! needed_to_copy_files_per_device_list
     old_files_status = []
@@ -2359,7 +2276,7 @@ elif not all_files_on_all_devices_ok:
         if len(scp_list) == 0:
             do_scp_one_file_to_more_devices(true_sw_release_file_on_server, device_list, \
                 USERNAME, PASSWORD, device_drive_string = device_drive_string, printall = printall)
-            time.sleep(3)
+            #time.sleep(3)
         ### IF SCP_LIST IS NOT VOID CHECK AND COPY ONLY NOT RUNNING ###
         for server_file, device_file, scp_device, device_user, pid, ppid in scp_list:
             CGI_CLI.uprint('%s=%s, %s=%s' %(scp_device, device_list, device_file, os.path.join(dev_dir, file)))
@@ -2369,7 +2286,7 @@ elif not all_files_on_all_devices_ok:
             else:
                 do_scp_one_file_to_more_devices(true_sw_release_file_on_server, device_list, \
                     USERNAME, PASSWORD, device_drive_string = device_drive_string, printall = printall)
-                time.sleep(2)
+                #time.sleep(2)
         ### DO SCP LIST AGAIN AND WAIT TILL END OF YOUR SCP SESSIONS ###
         actual_scp_devices_in_scp_list = True
         scp_list = does_run_scp_processes(printall = False)
@@ -2388,13 +2305,13 @@ elif not all_files_on_all_devices_ok:
                         CGI_CLI.uprint('WARNING: Device=%s, File=%s, Percent copied=%.2f HAS STALLED!' % \
                             (device, device_file, percentage))
             else: break
-            time.sleep(5)
+            #time.sleep(5)
 
 
 ### def CONNECT TO DEVICE AGAIN ###############################################
 if all_files_on_all_devices_ok: pass
 else:
-    time.sleep(3)
+    #time.sleep(3)
     ### CHECK EXISTING FILES ON DEVICES AGAIN #################################
     all_files_on_all_devices_ok, needed_to_copy_files_per_device_list, device_drive_string = \
         check_files_on_devices(device_list = device_list, \
@@ -2416,8 +2333,7 @@ if CGI_CLI.data.get('backup_configs_to_device_disk') \
             if not RCMD.ssh_connection:
                 CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), color = 'red')
                 RCMD.disconnect()
-                if len(device_list) > 1: continue
-                else: sys.exit(0)
+                continue
 
             ### CHECK LOCAL SERVER AND DEVICE HDD FILES #######################
             if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
@@ -2490,7 +2406,6 @@ if CGI_CLI.data.get('backup_configs_to_device_disk') \
 
             ### DISCONNECT ####################################################
             RCMD.disconnect()
-
 del sql_inst
 
 
