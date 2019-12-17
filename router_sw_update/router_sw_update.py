@@ -107,7 +107,7 @@ class CGI_CLI(object):
                             action = "store", dest = 'sw_files',
                             default = str(),
                             help = "--files OTI.tar,SMU,pkg,bin")
-        parser.add_argument("--check_files_only",
+        parser.add_argument("--check_only",
                             action = 'store_true', dest = "check_device_sw_files_only",
                             default = None,
                             help = "check existing device sw release files only, do not copy new tar files")
@@ -115,10 +115,10 @@ class CGI_CLI(object):
                             action = 'store_true', dest = "backup_configs_to_device_disk",
                             default = None,
                             help = "backup configs to device hdd")
-        #parser.add_argument("--force_rewrite",
-        #                    action = 'store_true', dest = "force_rewrite_sw_files_on_device",
-        #                    default = None,
-        #                    help = "force rewrite sw release files on device disk")
+        parser.add_argument("--force",
+                           action = 'store_true', dest = "force_rewrite_sw_files_on_device",
+                           default = None,
+                           help = "force rewrite sw release files on device disk")
         parser.add_argument("--delete",
                             action = 'store_true', dest = "delete_device_sw_files_on_end",
                             default = None,
@@ -445,7 +445,7 @@ class RCMD(object):
         use_module = 'paramiko', logfilename = None, timeout = 60, conf = None, \
         sim_config = None, disconnect = None, printall = None, \
         do_not_final_print = None, commit_text = None, silent_mode = None, \
-        disconnect_timeout = 1):
+        disconnect_timeout = 2):
         """ FUNCTION: RCMD.connect(), RETURNS: list of command_outputs
         PARAMETERS:
         device     - string , device_name/ip_address/device_name:PORT_NUMBER/ip_address:PORT_NUMBER
@@ -581,7 +581,8 @@ class RCMD(object):
                 command_outputs = RCMD.run_commands(RCMD.CMD)
                 ### ==========================================================
             except Exception as e:
-                if not RCMD.silent_mode: CGI_CLI.uprint('CONNECTION_PROBLEM[' + str(e) + ']', color = 'magenta')
+                if not RCMD.silent_mode: 
+                    CGI_CLI.uprint('CONNECTION_PROBLEM[' + str(e) + ']', color = 'magenta')
             finally:
                 if disconnect: RCMD.disconnect()
         else: CGI_CLI.uprint('DEVICE NOT INSERTED!', color = 'magenta')
@@ -937,7 +938,9 @@ class RCMD(object):
                 if 'LINUX' in output.upper(): router_os = 'linux'
             if not router_os:
                 CGI_CLI.uprint("\nCannot find recognizable OS in %s" % (output), color = 'magenta')
-        except Exception as e: CGI_CLI.uprint('CONNECTION_PROBLEM[' + str(e) + ']' , color = 'magenta')
+        except Exception as e: 
+            if not RCMD.silent_mode: 
+                CGI_CLI.uprint('CONNECTION_PROBLEM[' + str(e) + ']' , color = 'magenta')
         finally: client.close()
         netmiko_os = str()
         if router_os == 'ios-xe': netmiko_os = 'cisco_ios'
@@ -1473,6 +1476,7 @@ def do_scp_one_file_to_more_devices(true_sw_release_file_on_server = None, \
     printall = None):
     if true_sw_release_file_on_server and len(device_list)>0:
         os.environ['SSHPASS'] = PASSWORD
+        time.sleep(2) 
         directory,dev_dir,file,md5,fsize = true_sw_release_file_on_server
         cp_cmd_list = []
         ### ONLY 1 SCP CONNECTION PER ROUTER ###
@@ -1480,11 +1484,14 @@ def do_scp_one_file_to_more_devices(true_sw_release_file_on_server = None, \
             local_command = 'sshpass -e scp -v -o StrictHostKeyChecking=no %s %s@%s:/%s 1>/dev/null 2>/dev/null &' \
                 % (os.path.join(directory, file), USERNAME, device, \
                 '%s%s' % (device_drive_string, os.path.join(dev_dir, file)))
+            if printall:CGI_CLI.uprint(local_command)    
             os.system(local_command)
             CGI_CLI.uprint('scp start file %s, (file size %.2fMB) to device %s' % \
                 (file, float(fsize)/1048576, device))
+            time.sleep(2)    
         ### SECURITY REASONS ###
         os.environ['SSHPASS'] = '-'
+        time.sleep(2)
     return None
 
 ##############################################################################
@@ -1598,27 +1605,28 @@ def get_local_subdirectories(brand_raw = None, type_raw = None):
 
 ##############################################################################
 
-def does_run_scp_processes(my_pid_only = None, printall = None):
-    scp_list = []
+def does_run_scp_processes(printall = None):
+    scp_list, scp_ps_list = [], []
     split_string = 'scp -v -o StrictHostKeyChecking=no'
-    #my_ps_result = LCMD.run_commands({'unix':["ps -ef | grep `whoami`"]},
-    #    printall = printall)
-    my_ps_result = LCMD.run_commands({'unix':["ps -ef"]},
+    my_ps_result = LCMD.run_commands({'unix':["ps -ef | grep -v grep | grep scp"]},
         printall = printall)
     if my_ps_result:
         for line in str(my_ps_result[0]).splitlines():
-            if split_string in line and not 'sshpass' in line:
-                try:
-                    files_string = line.split(split_string)[1].strip()
-                    server_file = files_string.split()[0]
-                    device_user = files_string.split()[1].split('@')[0]
-                    device = files_string.split()[1].split('@')[1].split(':')[0]
-                    device_file = files_string.split()[1].split(device+':/')[1]
-                    pid = line.split()[1]
-                    ppid = line.split()[2]
-                    scp_list.append([server_file, device_file, device, device_user, pid, ppid])
-                except: pass
-    return scp_list
+            try: scp_ps_list.append(line.split()[1])
+            except: pass
+            if split_string in line:
+                if not 'sshpass' in line:
+                    try:
+                        files_string = line.split(split_string)[1].strip()
+                        server_file = files_string.split()[0]
+                        device_user = files_string.split()[1].split('@')[0]
+                        device = files_string.split()[1].split('@')[1].split(':')[0]
+                        device_file = files_string.split()[1].split(device+':/')[1]
+                        pid = line.split()[1]
+                        ppid = line.split()[2]
+                        scp_list.append([server_file, device_file, device, device_user, pid, ppid])
+                    except: pass
+    return scp_list, scp_ps_list
 
 ##############################################################################
 
@@ -1628,7 +1636,7 @@ def does_run_script_processes(my_pid_only = None, printall = None):
         split_string = sys.argv[0].split('/')[-1]
     except: split_string = None
     my_pid = str(os.getpid())
-    my_ps_result = LCMD.run_commands({'unix':["ps -ef | grep -v grep"]},
+    my_ps_result = LCMD.run_commands({'unix':["ps -ef | grep -v grep | grep %s" % (split_string)]},
         printall = printall)
     if my_ps_result:
         for line in str(my_ps_result[0]).splitlines():
@@ -1679,33 +1687,34 @@ def check_percentage_of_copied_files(scp_list = [], USERNAME = None, \
                 percentage = float(100*device_filesize_in_bytes/server_filesize_in_bytes)
                 CGI_CLI.uprint('Device %s file %s    %.2f%% copied.' % (device, device_file, \
                     percentage), color = 'blue')
-                device_file_percentage_list.append([device, device_file, percentage])    
+                device_file_percentage_list.append([device, device_file, percentage])
                 RCMD.disconnect()
             else:
-                CGI_CLI.uprint('Device %s file %s still copying...' % \
+                CGI_CLI.uprint('Device %s file %s    still copying...' % \
                     (device, device_file) , color = 'blue')
     return device_file_percentage_list
-    
+
 ##############################################################################
 
 def check_files_on_devices(device_list = None, true_sw_release_files_on_server = None, \
-    USERNAME = None, PASSWORD = None, logfilename = None, printall = None):
+    USERNAME = None, PASSWORD = None, logfilename = None, printall = None, \
+    check_mode = None, silent_mode = None):
     all_files_on_all_devices_ok = None
     needed_to_copy_files_per_device_list = []
     for device in device_list:
         if device:
-            CGI_CLI.uprint('\nDevice %s checks:\n' % (device), tag = 'h2', color = 'blue')
             RCMD.connect(device, username = USERNAME, password = PASSWORD, \
-                printall = printall, logfilename = logfilename)
+                printall = printall, logfilename = logfilename, silent_mode = silent_mode)
 
             if not RCMD.ssh_connection:
-                CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), color = 'red')
+                if not silent_mode: 
+                    CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), color = 'red')
                 RCMD.disconnect()
-                continue                
-            device_drive_string = RCMD.drive_string  
+                continue
+            device_drive_string = RCMD.drive_string
             ### CHECK FILE(S) AND MD5(S) FIRST ################################
-            CGI_CLI.uprint('checking existing device file(s) and md5(s)', \
-                no_newlines = None if printall else True)
+            if not silent_mode: CGI_CLI.uprint('checking existing device file(s) and md5(s) on %s' \
+                % (device), no_newlines = None if printall else True)
             xr_md5_cmds, xe_md5_cmds = [], []
             for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
                 xr_md5_cmds.append('show md5 file /%s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
@@ -1746,56 +1755,57 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                             except: possible_file_name = str()
                             if file == possible_file_name: file_found_on_device = True
                         if file_found_on_device and md5_ok: pass
-                        else: missing_or_bad_files_per_device.append([directory, dev_dir, file, md5, fsize])                     
+                        else: missing_or_bad_files_per_device.append([directory, dev_dir, file, md5, fsize])
             needed_to_copy_files_per_device_list.append([device,missing_or_bad_files_per_device])
             device_drive_string = RCMD.drive_string
             RCMD.disconnect()
     ### PRINT NEEDED FILES TO COPY ############################################
     at_least_some_files_need_to_copy = None
     for device,missing_or_bad_files_per_device in needed_to_copy_files_per_device_list:
-        if len(missing_or_bad_files_per_device) != 0: 
+        if len(missing_or_bad_files_per_device) != 0:
             at_least_some_files_need_to_copy = True
-    if at_least_some_files_need_to_copy:
-        if CGI_CLI.data.get('check_device_sw_files_only'):
-            CGI_CLI.uprint('Device    Checked_file:', tag = 'h2', color = 'red')    
-        else:    
-            CGI_CLI.uprint('Device    File_to_copy:', tag = 'h2', color = 'blue')
-    else: 
-        CGI_CLI.uprint('Sw release %s file(s) on devices %s - CHECK OK.' % \
-            (sw_release, ', '.join(device_list)), tag = 'h1', color='green')
-        all_files_on_all_devices_ok = True    
-        ### CHECK IF EXIT OR NOT ##############################################    
+    if not silent_mode:        
+        if at_least_some_files_need_to_copy:
+            if CGI_CLI.data.get('check_device_sw_files_only') or check_mode:
+                CGI_CLI.uprint('Device    Bad_or_missing_file(s):', tag = 'h2', color = 'red')
+            else:
+                CGI_CLI.uprint('Device    File(s)_to_copy:', tag = 'h2', color = 'blue')
+        else:
+            CGI_CLI.uprint('Sw release %s file(s) on devices %s - CHECK OK.' % \
+                (sw_release, ', '.join(device_list)), tag = 'h1', color='green')
+            all_files_on_all_devices_ok = True
+        ### CHECK IF EXIT OR NOT ##############################################
         if CGI_CLI.data.get('backup_configs_to_device_disk') \
-            or CGI_CLI.data.get('delete_device_sw_files_on_end'): pass       
-        else: sys.exit(0)    
-    for device,missing_or_bad_files_per_device in needed_to_copy_files_per_device_list:
-        for directory, dev_dir, file, md5, fsize in missing_or_bad_files_per_device:
-            if CGI_CLI.data.get('check_device_sw_files_only'):
-                CGI_CLI.uprint('%s    %s' % \
-                    (device,device_drive_string+os.path.join(dev_dir, file)), color = 'red')
-            else:    
-                CGI_CLI.uprint('%s    %s' % \
-                    (device,device_drive_string+os.path.join(dev_dir, file)), color = 'blue')
-    if not all_files_on_all_devices_ok and CGI_CLI.data.get('check_device_sw_files_only'): 
-        CGI_CLI.uprint('SW RELEASE FILES - CHECK FAILED!' , tag = 'h1', color = 'red')
-        sys.exit(0)
-    return all_files_on_all_devices_ok, needed_to_copy_files_per_device_list, device_drive_string      
+            or CGI_CLI.data.get('delete_device_sw_files_on_end'): pass
+        else: sys.exit(0)
+        for device,missing_or_bad_files_per_device in needed_to_copy_files_per_device_list:
+            for directory, dev_dir, file, md5, fsize in missing_or_bad_files_per_device:
+                if CGI_CLI.data.get('check_device_sw_files_only') or check_mode:
+                    CGI_CLI.uprint('%s    %s' % \
+                        (device,device_drive_string+os.path.join(dev_dir, file)), color = 'red')
+                else:
+                    CGI_CLI.uprint('%s    %s' % \
+                        (device,device_drive_string+os.path.join(dev_dir, file)), color = 'blue')
+        if not all_files_on_all_devices_ok and \
+            (CGI_CLI.data.get('check_device_sw_files_only') or check_mode):
+            CGI_CLI.uprint('SW RELEASE FILES - CHECK FAILED!' , tag = 'h1', color = 'red')
+            sys.exit(0)
+    return all_files_on_all_devices_ok, needed_to_copy_files_per_device_list, device_drive_string
 
 ##############################################################################
 
 def check_free_disk_space_on_devices(device_list = None, \
     USERNAME = None, PASSWORD = None, logfilename = None, printall = None):
-    disk_low_space_devices = []
+    disk_low_space_devices, disk_free_list = [], []
     for device in device_list:
         if device:
-            CGI_CLI.uprint('\nDevice %s disk space checks:\n' % (device), tag = 'h2', color = 'blue')
             RCMD.connect(device, username = USERNAME, password = PASSWORD, \
                 printall = printall, logfilename = logfilename)
-          
+
             if not RCMD.ssh_connection:
                 CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), color = 'red')
                 RCMD.disconnect()
-                continue          
+                continue
             check_disk_space_cmds = {
                 ### some ios = enable, ask password, 'show bootflash:' , exit
                 'cisco_ios':[' ','show bootflash:',' ','show version | in (%s)' % (asr1k_detection_string)],
@@ -1805,10 +1815,9 @@ def check_free_disk_space_on_devices(device_list = None, \
                 'juniper':['show system storage'],
                 'huawei':['display device | include PhyDisk','display disk information']
             }
-            CGI_CLI.uprint('checking disk space', \
+            CGI_CLI.uprint('checking disk space on %s' % (device), \
                 no_newlines = None if printall else True)
             rcmd_check_disk_space_outputs = RCMD.run_commands(check_disk_space_cmds)
-            #CGI_CLI.uprint('\n')
 
             if RCMD.router_type == 'cisco_ios':
                 try: device_free_space = float(rcmd_check_disk_space_outputs[1].\
@@ -1837,21 +1846,21 @@ def check_free_disk_space_on_devices(device_list = None, \
                 'juniper':[],
                 'huawei':[]
             }
-            #CGI_CLI.uprint('making directories', no_newlines = None if printall else True)
             forget_it = RCMD.run_commands(mkdir_device_cmds)
             CGI_CLI.uprint('\n')
-
-            CGI_CLI.uprint('disk free space = %.2f MB' % (float(device_free_space)/1048576) , color = 'blue')
-
-            ### SOME GB FREE EXPECTED (1MB=1048576, 1GB=1073741824) ###
-            if device_free_space < (device_expected_GB_free * 1073741824):
-                CGI_CLI.uprint('Disk space - CHECK FAIL!', color = 'red')
-                RCMD.disconnect()
-                disk_low_space_devices.append(device)
-                continue
-                
-            else: CGI_CLI.uprint('Disk space - CHECK OK.', color = 'green')
+            disk_free_list.append([device,float(device_free_space)/1048576])
             RCMD.disconnect()
+    CGI_CLI.uprint('Device    Disk_free', tag = 'h2' , color = 'blue')
+    all_disk_checks_ok = True
+    for device, disk_free in disk_free_list:
+        ### SOME GB FREE EXPECTED (1MB=1048576, 1GB=1073741824) ###
+        if disk_free < (device_expected_GB_free * 1073741824):
+            all_disk_checks_ok = False
+            CGI_CLI.uprint('%s    %.2f MB' % (device, disk_free), color = 'red')
+            disk_low_space_devices.append(device)
+        else: CGI_CLI.uprint('%s    %.2f MB' % (device, disk_free), color = 'blue')
+    CGI_CLI.uprint('\n')    
+    if not all_disk_checks_ok: CGI_CLI.uprint('Disk space - CHECK FAIL.', color = 'RED')
     return disk_low_space_devices
 
 
@@ -1870,11 +1879,11 @@ if printall: CGI_CLI.print_args()
 ##############################################################################
 
 CGI_CLI.uprint('ROUTER SW UPGRADE TOOL (v.%s)' % (CGI_CLI.VERSION()), tag = 'h1', color = 'blue')
-CGI_CLI.uprint('PID=%s ' % (os.getpid()), color = 'blue')
+#CGI_CLI.uprint('PID=%s ' % (os.getpid()), color = 'blue')
 
 does_run_script_processes()
 
-scp_list = does_run_scp_processes(printall = False)
+scp_list, foreign_scp_ps_list = does_run_scp_processes(printall = printall)
 if len(scp_list)>0:
     CGI_CLI.uprint('WARNING: Running scp copy...', tag = 'h2', color = 'magenta')
     for server_file, device_file, device, device_user, pid, ppid in scp_list:
@@ -1909,6 +1918,7 @@ device_list = []
 device_types = []
 true_sw_release_files_on_server = []
 needed_to_copy_files_per_device_list = []
+all_files_on_all_devices_ok = None
 
 ###############################################################################
 devices_string = CGI_CLI.data.get("device",str())
@@ -2099,9 +2109,8 @@ if CGI_CLI.cgi_active and (not CGI_CLI.submit_form or active_menu == 2):
 
         main_menu_list += ['<br/>','<h3>Options:</h3>', \
             {'checkbox':'check_device_sw_files_only'},'<br/>',\
-            #{'checkbox':'slow_scp_mode'},'<br/>',\
             {'checkbox':'display_scp_percentage_only'},'<br/>',\
-            #{'checkbox':'force_rewrite_sw_files_on_device'},'<br/>',\
+            {'checkbox':'force_rewrite_sw_files_on_device'},'<br/>',\
             {'checkbox':'backup_configs_to_device_disk'},'<br/>',\
             {'checkbox':'delete_device_sw_files_on_end'},'<br/>',\
             '<br/>', {'checkbox':'printall'}]
@@ -2123,7 +2132,7 @@ else:
 
 ### def DISPLAY PERCENTAGE OF SCP #############################################
 if CGI_CLI.data.get('display_scp_percentage_only'):
-    scp_list = does_run_scp_processes(printall = False)
+    scp_list, forget_it = does_run_scp_processes(printall = printall)
     if len(scp_list)>0 and USERNAME and PASSWORD:
         check_percentage_of_copied_files(scp_list, USERNAME, PASSWORD, printall)
     sys.exit(0)
@@ -2140,11 +2149,11 @@ logfilename = None
 CGI_CLI.uprint('server = %s' % (iptac_server))
 if len(device_list) > 0: CGI_CLI.uprint('device(s) = %s' % (', '.join(device_list)))
 if sw_release: CGI_CLI.uprint('sw release = %s' % (sw_release))
-if device_expected_GB_free: 
+if device_expected_GB_free:
     CGI_CLI.uprint('expected disk free = %s GB' % (device_expected_GB_free))
-if len(selected_sw_file_types_list)>0: 
+if len(selected_sw_file_types_list)>0:
     CGI_CLI.uprint('sw file types = %s' % (', '.join(selected_sw_file_types_list) ))
-if logfilename: CGI_CLI.uprint('logfile=%s' % (logfilename))    
+if logfilename: CGI_CLI.uprint('logfile=%s' % (logfilename))
 
 ###############################################################################
 if CGI_CLI.data.get('sw_files'):
@@ -2233,25 +2242,25 @@ if type_subdir and brand_subdir and sw_release:
             sys.exit(0)
     CGI_CLI.uprint('File(s),    md5 checksum(s),    device folder(s),    filesize:\n%s' % \
         ('\n'.join([ '%s/%s    %s    %s    %.2fMB' % (directory,file,md5,dev_dir,float(fsize)/1048576) for directory,dev_dir,file,md5,fsize in true_sw_release_files_on_server ])))
+    CGI_CLI.uprint('\n')
+    # ### CALCULATE NEEDED DISK SPACE #########################################
+    # for directory,dev_dir,file,md5,fsize in true_sw_release_files_on_server:
+        # total_size_of_files_in_bytes += fsize
+    # CGI_CLI.uprint('\ndisk space needed = %.2F MB' % (float(total_size_of_files_in_bytes)/1048576), color = 'blue')
 
-    ### CALCULATE NEEDED DISK SPACE ###########################################
-    for directory,dev_dir,file,md5,fsize in true_sw_release_files_on_server:
-        total_size_of_files_in_bytes += fsize
-    CGI_CLI.uprint('\ndisk space needed = %.2F MB' % (float(total_size_of_files_in_bytes)/1048576), color = 'blue')
-
-### def MAKE ALL SUB-DIRECTORIES ONE BY ONE ###########################
+### def MAKE ALL SUB-DIRECTORIES ONE BY ONE ###################################
 redundant_dev_dir_list = [ dev_dir for directory,dev_dir,file,md5,fsize in true_sw_release_files_on_server ]
 dev_dir_set = set(redundant_dev_dir_list)
 unique_device_directory_list = list(dev_dir_set)
 
-
-### CHECK EXISTING FILES ON DEVICES ###########################################
-all_files_on_all_devices_ok, needed_to_copy_files_per_device_list, device_drive_string = \
+### CHECK EXISTING FILES ON DEVICES #######################################
+all_files_on_all_devices_ok, needed_to_copy_files_per_device_list, \
+    device_drive_string = \
     check_files_on_devices(device_list = device_list, \
     true_sw_release_files_on_server = true_sw_release_files_on_server, \
     USERNAME = USERNAME, PASSWORD = PASSWORD, logfilename = logfilename, \
-    printall = printall)
-
+    printall = printall, \
+    silent_mode = True if CGI_CLI.data.get('force_rewrite_sw_files_on_device') else False)
 
 ### CHECK DISK SPACE ON DEVICES ###############################################
 if CGI_CLI.data.get('check_device_sw_files_only'): pass
@@ -2260,23 +2269,20 @@ elif not all_files_on_all_devices_ok:
         USERNAME = USERNAME, PASSWORD = PASSWORD, logfilename = logfilename, \
         printall = printall)
 
-    
+
 ### def FILE SCP COPYING ######################################################
 if CGI_CLI.data.get('check_device_sw_files_only'): pass
 elif not all_files_on_all_devices_ok:
-    #time.sleep(2)
-
     #### !!! needed_to_copy_files_per_device_list
     old_files_status = []
     files_status = []
-    scp_list = does_run_scp_processes(printall = False)
+    scp_list, forget_it = does_run_scp_processes(printall = printall)
     for true_sw_release_file_on_server in true_sw_release_files_on_server:
         directory,dev_dir,file,md5,fsize = true_sw_release_file_on_server
         ### IF SCP_LIST IS VOID COPY ALL ###
         if len(scp_list) == 0:
             do_scp_one_file_to_more_devices(true_sw_release_file_on_server, device_list, \
                 USERNAME, PASSWORD, device_drive_string = device_drive_string, printall = printall)
-            #time.sleep(3)
         ### IF SCP_LIST IS NOT VOID CHECK AND COPY ONLY NOT RUNNING ###
         for server_file, device_file, scp_device, device_user, pid, ppid in scp_list:
             CGI_CLI.uprint('%s=%s, %s=%s' %(scp_device, device_list, device_file, os.path.join(dev_dir, file)))
@@ -2286,13 +2292,11 @@ elif not all_files_on_all_devices_ok:
             else:
                 do_scp_one_file_to_more_devices(true_sw_release_file_on_server, device_list, \
                     USERNAME, PASSWORD, device_drive_string = device_drive_string, printall = printall)
-                #time.sleep(2)
         ### DO SCP LIST AGAIN AND WAIT TILL END OF YOUR SCP SESSIONS ###
         actual_scp_devices_in_scp_list = True
-        scp_list = does_run_scp_processes(printall = False)
         while actual_scp_devices_in_scp_list:
             actual_scp_devices_in_scp_list = False
-            scp_list = does_run_scp_processes(printall = False)
+            scp_list, forget_it = does_run_scp_processes(printall = printall)
             for server_file, device_file, scp_device, device_user, pid, ppid in scp_list:
                 if scp_device in device_list: actual_scp_devices_in_scp_list = True
             if len(scp_list) > 0:
@@ -2305,19 +2309,18 @@ elif not all_files_on_all_devices_ok:
                         CGI_CLI.uprint('WARNING: Device=%s, File=%s, Percent copied=%.2f HAS STALLED!' % \
                             (device, device_file, percentage))
             else: break
-            #time.sleep(5)
 
 
 ### def CONNECT TO DEVICE AGAIN ###############################################
 if all_files_on_all_devices_ok: pass
 else:
-    #time.sleep(3)
+    time.sleep(3)
     ### CHECK EXISTING FILES ON DEVICES AGAIN #################################
     all_files_on_all_devices_ok, needed_to_copy_files_per_device_list, device_drive_string = \
         check_files_on_devices(device_list = device_list, \
         true_sw_release_files_on_server = true_sw_release_files_on_server, \
         USERNAME = USERNAME, PASSWORD = PASSWORD, logfilename = logfilename, \
-        printall = printall)
+        printall = printall, check_mode = True)
 
 ### def ADITIONAL DEVICE ACTIONS ##################################################
 if CGI_CLI.data.get('backup_configs_to_device_disk') \
@@ -2326,7 +2329,6 @@ if CGI_CLI.data.get('backup_configs_to_device_disk') \
 
         ### REMOTE DEVICE OPERATIONS ##############################################
         if device:
-            CGI_CLI.uprint('\nFinal device %s actions:\n' % (device), tag = 'h2', color = 'blue')
             RCMD.connect(device, username = USERNAME, password = PASSWORD, \
                 printall = printall, logfilename = logfilename)
 
@@ -2353,8 +2355,8 @@ if CGI_CLI.data.get('backup_configs_to_device_disk') \
                         '\n',
                         'exit']
                     }
-                    CGI_CLI.uprint('backup configs', no_newlines = \
-                        None if printall else True)
+                    CGI_CLI.uprint('backup configs on %s' % (device), \
+                        no_newlines = None if printall else True)
                     forget_it = RCMD.run_commands(backup_config_rcmds, printall = printall)
                     CGI_CLI.uprint('\n')
 
@@ -2375,8 +2377,8 @@ if CGI_CLI.data.get('backup_configs_to_device_disk') \
                                 del_files_cmds['cisco_ios'].append('\n')
                                 del_files_cmds['cisco_ios'].append('\n')
 
-                    CGI_CLI.uprint('deleting sw release files', no_newlines = \
-                        None if printall else True)
+                    CGI_CLI.uprint('deleting sw release files on %s' % (device), \
+                        no_newlines = None if printall else True)
                     forget_it = RCMD.run_commands(del_files_cmds, printall = printall)
 
                     ### CHECK FILES DELETION ##################################
@@ -2402,7 +2404,7 @@ if CGI_CLI.data.get('backup_configs_to_device_disk') \
                                     CGI_CLI.uprint(dir_outputs_after_deletion[3], color = 'blue')
                                     file_not_deleted = True
                     if file_not_deleted: CGI_CLI.uprint('DELETE PROBLEM!', color = 'red')
-                    else: CGI_CLI.uprint('Delete file(s) - CHECK OK.', color = 'green')
+                    #else: CGI_CLI.uprint('Delete file(s) - CHECK OK.', color = 'green')
 
             ### DISCONNECT ####################################################
             RCMD.disconnect()
