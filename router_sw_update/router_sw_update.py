@@ -1507,9 +1507,10 @@ def do_scp_one_file_to_more_devices_per_needed_to_copy_list(\
         cp_cmd_list = []
         ### ONLY 1 SCP CONNECTION PER ROUTER ###
         for device in device_list:
-            for device_to_copy,missing_or_bad_files_per_device in needed_to_copy_files_per_device_list:
-                if '%s%s' % (device_drive_string, os.path.join(dev_dir, file)) == missing_or_bad_files_per_device \
-                    and device == device_to_copy:
+            for device2, missing_or_bad_files_per_device in needed_to_copy_files_per_device_list:            
+                directory2, dev_dir2, file2, md52, fsize2 = missing_or_bad_files_per_device   
+                if '%s%s' % (device_drive_string, os.path.join(dev_dir, file)) == '%s%s' % (device_drive_string, os.path.join(dev_dir2, file2)) \
+                    and device == device2:
                     local_command = 'sshpass -e scp -v -o StrictHostKeyChecking=no %s %s@%s:/%s 1>/dev/null 2>/dev/null &' \
                         % (os.path.join(directory, file), USERNAME, device, \
                         '%s%s' % (device_drive_string, os.path.join(dev_dir, file)))
@@ -1733,7 +1734,6 @@ def get_device_drive_string(device_list = None, \
         if device:
             RCMD.connect(device, username = USERNAME, password = PASSWORD, \
                 printall = printall, logfilename = logfilename, silent_mode = silent_mode)
-
             if not RCMD.ssh_connection:
                 if not silent_mode:
                     CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), color = 'red')
@@ -1755,7 +1755,6 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
         if device:
             RCMD.connect(device, username = USERNAME, password = PASSWORD, \
                 printall = printall, logfilename = logfilename)
-
             if not RCMD.ssh_connection:
                 CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), color = 'red')
                 RCMD.disconnect()
@@ -1792,7 +1791,6 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
             rcmd_dir_outputs = RCMD.run_commands(dir_device_cmds, printall = printall)
             CGI_CLI.uprint('\n')
             all_md5_ok, all_files_per_device_ok = None, None
-            missing_or_bad_files_per_device = []
             for unique_dir,unique_dir_outputs in zip(unique_device_directory_list,rcmd_dir_outputs):
                 all_md5_ok, all_files_per_device_ok = True, True
                 for files_list,rcmd_md5_output in zip(true_sw_release_files_on_server,rcmd_md5_outputs):
@@ -1804,16 +1802,13 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                             except: possible_file_name = str()
                             if file == possible_file_name: file_found_on_device = True
                         if file_found_on_device and md5_ok: pass
-                        else: missing_or_bad_files_per_device.append([directory, dev_dir, file, md5, fsize])
-            needed_to_copy_files_per_device_list.append([device,missing_or_bad_files_per_device])
+                        else: needed_to_copy_files_per_device_list.append([device,[directory, dev_dir, file, md5, fsize]])
             device_drive_string = RCMD.drive_string
             RCMD.disconnect()
     ### PRINT NEEDED FILES TO COPY ############################################
     at_least_some_files_need_to_copy = None
-    for device,missing_or_bad_files_per_device in needed_to_copy_files_per_device_list:
-        if len(missing_or_bad_files_per_device) != 0:
-            at_least_some_files_need_to_copy = True
-
+    if len(needed_to_copy_files_per_device_list) > 0:        
+       at_least_some_files_need_to_copy = True
     if at_least_some_files_need_to_copy:
         if CGI_CLI.data.get('check_device_sw_files_only') or check_mode:
             CGI_CLI.uprint('Device    Bad_or_missing_file(s):', tag = 'h2', color = 'red')
@@ -1828,13 +1823,13 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
             or CGI_CLI.data.get('delete_device_sw_files_on_end'): pass
         else: sys.exit(0)
     for device,missing_or_bad_files_per_device in needed_to_copy_files_per_device_list:
-        for directory, dev_dir, file, md5, fsize in missing_or_bad_files_per_device:
-            if CGI_CLI.data.get('check_device_sw_files_only') or check_mode:
-                CGI_CLI.uprint('%s    %s' % \
-                    (device,device_drive_string+os.path.join(dev_dir, file)), color = 'red')
-            else:
-                CGI_CLI.uprint('%s    %s' % \
-                    (device,device_drive_string+os.path.join(dev_dir, file)), color = 'blue')
+        directory, dev_dir, file, md5, fsize = missing_or_bad_files_per_device                                
+        if CGI_CLI.data.get('check_device_sw_files_only') or check_mode:
+            CGI_CLI.uprint('%s    %s' % \
+                (device,device_drive_string+os.path.join(dev_dir, file)), color = 'red')
+        else:
+            CGI_CLI.uprint('%s    %s' % \
+                (device,device_drive_string+os.path.join(dev_dir, file)), color = 'blue')
     if not all_files_on_all_devices_ok and \
         (CGI_CLI.data.get('check_device_sw_files_only') or check_mode):
         CGI_CLI.uprint('SW RELEASE FILES - CHECK FAILED!' , tag = 'h1', color = 'red')
@@ -2319,7 +2314,6 @@ else:
         printall = printall)
 
 ### CHECK DISK SPACE ON DEVICES ###############################################
-
 check_free_disk_space_on_devices(device_list = device_list, \
     USERNAME = USERNAME, PASSWORD = PASSWORD, logfilename = logfilename, \
     printall = printall)
