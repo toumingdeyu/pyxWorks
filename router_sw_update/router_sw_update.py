@@ -1496,6 +1496,35 @@ def do_scp_one_file_to_more_devices(true_sw_release_file_on_server = None, \
 
 ##############################################################################
 
+def do_scp_one_file_to_more_devices_per_needed_to_copy_list(\
+    true_sw_release_file_on_server = None, needed_to_copy_files_per_device_list = None,\
+    device_list = None, USERNAME = None, PASSWORD = None , device_drive_string = None, \
+    printall = None):
+    if true_sw_release_file_on_server and len(device_list)>0:
+        os.environ['SSHPASS'] = PASSWORD
+        time.sleep(2)
+        directory,dev_dir,file,md5,fsize = true_sw_release_file_on_server
+        cp_cmd_list = []
+        ### ONLY 1 SCP CONNECTION PER ROUTER ###
+        for device in device_list:
+            for device_to_copy,missing_or_bad_files_per_device in needed_to_copy_files_per_device_list:
+                if '%s%s' % (device_drive_string, os.path.join(dev_dir, file)) == missing_or_bad_files_per_device \
+                    and device == device_to_copy:
+                    local_command = 'sshpass -e scp -v -o StrictHostKeyChecking=no %s %s@%s:/%s 1>/dev/null 2>/dev/null &' \
+                        % (os.path.join(directory, file), USERNAME, device, \
+                        '%s%s' % (device_drive_string, os.path.join(dev_dir, file)))
+                    if printall:CGI_CLI.uprint(local_command)
+                    os.system(local_command)
+                    CGI_CLI.uprint('scp start file %s, (file size %.2fMB) to device %s' % \
+                        (file, float(fsize)/1048576, device))
+                    time.sleep(2)
+        ### SECURITY REASONS ###
+        os.environ['SSHPASS'] = '-'
+        time.sleep(2)
+    return None
+
+##############################################################################
+
 def get_existing_sw_release_list(brand_subdir = None, type_subdir = None):
     sw_release_list, sw_release_list_raw, default_sw_release = [], [], str()
 
@@ -2297,12 +2326,6 @@ check_free_disk_space_on_devices(device_list = device_list, \
 
 
 ### def FILE SCP COPYING ######################################################
-
-if CGI_CLI.data.get('force_rewrite_sw_files_on_device'): pass
-else: pass
-    ### loop per needed_to_copy_files_per_device_list
-    ### [device,missing_or_bad_files_per_device]
-
 old_files_status = []
 files_status = []
 scp_list, forget_it = does_run_scp_processes(printall = printall)
@@ -2310,8 +2333,17 @@ for true_sw_release_file_on_server in true_sw_release_files_on_server:
     directory,dev_dir,file,md5,fsize = true_sw_release_file_on_server
     ### IF SCP_LIST IS VOID COPY ALL ###
     if len(scp_list) == 0:
-        do_scp_one_file_to_more_devices(true_sw_release_file_on_server, device_list, \
-            USERNAME, PASSWORD, device_drive_string = device_drive_string, printall = printall)
+        if CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
+            do_scp_one_file_to_more_devices(true_sw_release_file_on_server, device_list, \
+                USERNAME, PASSWORD, device_drive_string = device_drive_string, printall = printall)
+        else:
+            do_scp_one_file_to_more_devices_per_needed_to_copy_list( \
+                true_sw_release_file_on_server, \
+                needed_to_copy_files_per_device_list, \
+                device_list, USERNAME, PASSWORD, \
+                device_drive_string = device_drive_string, printall = printall)
+
+
     ### IF SCP_LIST IS NOT VOID CHECK AND COPY ONLY NOT RUNNING ###
     for server_file, device_file, scp_device, device_user, pid, ppid in scp_list:
         CGI_CLI.uprint('%s=%s, %s=%s' %(scp_device, device_list, device_file, os.path.join(dev_dir, file)))
@@ -2319,8 +2351,15 @@ for true_sw_release_file_on_server in true_sw_release_files_on_server:
             CGI_CLI.uprint('FILE %s is already copying to device %s, ommiting new scp copying!' % \
                 (device_file, device))
         else:
-            do_scp_one_file_to_more_devices(true_sw_release_file_on_server, device_list, \
-                USERNAME, PASSWORD, device_drive_string = device_drive_string, printall = printall)
+            if CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
+                do_scp_one_file_to_more_devices(true_sw_release_file_on_server, device_list, \
+                    USERNAME, PASSWORD, device_drive_string = device_drive_string, printall = printall)
+            else:
+                do_scp_one_file_to_more_devices_per_needed_to_copy_list( \
+                    true_sw_release_file_on_server, \
+                    needed_to_copy_files_per_device_list, \
+                    device_list, USERNAME, PASSWORD, \
+                    device_drive_string = device_drive_string, printall = printall)
     ### DO SCP LIST AGAIN AND WAIT TILL END OF YOUR SCP SESSIONS ###
     actual_scp_devices_in_scp_list = True
     while actual_scp_devices_in_scp_list:
