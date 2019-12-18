@@ -1603,34 +1603,44 @@ def get_local_subdirectories(brand_raw = None, type_raw = None):
             file_types = ['*OTI.tar', 'SMU/*.tar']
         elif 'C29' in type_raw.upper():
             type_subdir_on_server = 'C2900'
+            type_subdir_on_device = ''
             file_types = ['c2900*.bin']
         elif '2901' in type_raw.upper():
             type_subdir_on_server = 'C2900'
+            type_subdir_on_device = ''
             file_types = ['c2900*.bin']
         elif 'C35' in type_raw.upper():
             type_subdir_on_server = 'C3500'
+            type_subdir_on_device = ''
             file_types = ['c35*.bin']
         elif 'C36' in type_raw.upper():
             type_subdir_on_server = 'C3600'
+            type_subdir_on_device = ''
             file_types = ['c36*.bin']
         elif 'C37' in type_raw.upper():
             type_subdir_on_server = 'C3700'
+            type_subdir_on_device = ''
             file_types = ['c37*.bin']
         elif 'C38' in type_raw.upper():
             type_subdir_on_server = 'C3800'
+            type_subdir_on_device = ''
             file_types = ['c38*.bin']
         elif 'ISR43' in type_raw.upper():
             type_subdir_on_server = 'C4321'
+            type_subdir_on_device = ''
             file_types = ['isr43*.bin']
         elif 'C45' in type_raw.upper():
             type_subdir_on_server = 'C4500'
+            type_subdir_on_device = ''
             file_types = ['cat45*.bin']
         elif 'MX480' in type_raw.upper():
             type_subdir_on_server = 'MX/MX480'
+            type_subdir_on_device = ''
             file_types = ['junos*.img.gz', '*.tgz']
         elif 'NE40' in type_raw.upper():
             type_subdir_on_server = 'V8R10'
-            file_types = []
+            type_subdir_on_device = ''
+            file_types = ['Patch/*.PAT','*.cc']
     return brand_subdir, type_subdir_on_server, type_subdir_on_device, file_types
 
 ##############################################################################
@@ -1712,7 +1722,7 @@ def check_percentage_of_copied_files(scp_list = [], USERNAME = None, \
                     'cisco_ios':['dir %s' % (device_file)],
                     'cisco_xr':['dir %s' % (device_file)],
                     'juniper':[],
-                    'huawei':[]
+                    'huawei':['dir %s' % (device_file)]
                 }
                 dir_one_output = RCMD.run_commands(dir_device_cmd, printall = printall)
                 device_filesize_in_bytes = 0
@@ -1732,6 +1742,13 @@ def check_percentage_of_copied_files(scp_list = [], USERNAME = None, \
                                 try: device_filesize_in_bytes = float(line.split()[2])
                                 except: pass
                         except: pass
+                if RCMD.router_type == 'huawei':
+                    for line in dir_one_output[0].splitlines():
+                        try:
+                            if device_file.split('/')[-1] in line:
+                                try: device_filesize_in_bytes = float(line.split()[2].replace(',',''))
+                                except: pass
+                        except: pass                
                 server_filesize_in_bytes = float(os.stat(server_file).st_size)
                 percentage = float(100*device_filesize_in_bytes/server_filesize_in_bytes)
                 CGI_CLI.uprint('Device %s file %s    %.2f%% copied.' % (device, device_file, \
@@ -1801,11 +1818,12 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
             unique_device_directory_list = list(dev_dir_set)
             xe_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) for dev_dir in unique_device_directory_list ]
             xr_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) for dev_dir in unique_device_directory_list ]
+            huawei_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) for dev_dir in unique_device_directory_list ]
             dir_device_cmds = {
                 'cisco_ios':xe_device_dir_list,
                 'cisco_xr':xr_device_dir_list,
                 'juniper':[],
-                'huawei':[]
+                'huawei':huawei_device_dir_list
             }
             rcmd_dir_outputs = RCMD.run_commands(dir_device_cmds, printall = printall)
             CGI_CLI.uprint('\n')
@@ -1876,7 +1894,7 @@ def check_free_disk_space_on_devices(device_list = None, \
                     'show version | in "%s"' % (asr9k_detection_string),
                     ],
                 'juniper':['show system storage'],
-                'huawei':['display device | include PhyDisk','display disk information']
+                'huawei':['dir']
             }
             CGI_CLI.uprint('checking disk space on %s' % (device), \
                 no_newlines = None if printall else True)
@@ -1891,9 +1909,13 @@ def check_free_disk_space_on_devices(device_list = None, \
                          split('harddisk:')[0].splitlines()[-1].split()[1].strip())
                 except: pass
             elif RCMD.router_type == 'juniper': pass
-            elif RCMD.router_type == 'huawei': pass
+            elif RCMD.router_type == 'huawei': 
+                try: device_free_space = float(rcmd_check_disk_space_outputs[0].\
+                         split(' KB free)')[0].splitlines()[-1].split()[-1].\
+                         replace('(','').replace(',','').strip())*1024
+                except: pass
 
-            xr_device_mkdir_list = []
+            xr_device_mkdir_list, huawei_device_mkdir_list = [], []
             for dev_dir in unique_device_directory_list:
                 up_path = str()
                 for dev_sub_dir in dev_dir.split('/'):
@@ -1901,13 +1923,15 @@ def check_free_disk_space_on_devices(device_list = None, \
                         xr_device_mkdir_list.append('mkdir %s%s' % \
                             (RCMD.drive_string, os.path.join(up_path,dev_sub_dir)))
                         xr_device_mkdir_list.append('\r\n')
+                        huawei_device_mkdir_list.append('mkdir %s/%s' % \
+                            (RCMD.drive_string, os.path.join(up_path,dev_sub_dir)))
                         up_path = os.path.join(up_path, dev_sub_dir)
 
             mkdir_device_cmds = {
                 'cisco_ios':xr_device_mkdir_list,
                 'cisco_xr':xr_device_mkdir_list,
                 'juniper':[],
-                'huawei':[]
+                'huawei':huawei_device_mkdir_list
             }
             forget_it = RCMD.run_commands(mkdir_device_cmds)
             CGI_CLI.uprint('\n')
