@@ -2284,6 +2284,16 @@ if device_expected_GB_free:
 if len(selected_sw_file_types_list)>0:
     CGI_CLI.uprint('sw file types = %s' % (', '.join(selected_sw_file_types_list) ))
 if logfilename: CGI_CLI.uprint('logfile=%s' % (logfilename))
+if CGI_CLI.data.get('display_scp_percentage_only'):
+    CGI_CLI.uprint('display_scp_percentage_only = Y')
+elif CGI_CLI.data.get('check_device_sw_files_only'): 
+    CGI_CLI.uprint('check_device_sw_files_only = Y')
+elif CGI_CLI.data.get('force_rewrite_sw_files_on_device'): 
+    CGI_CLI.uprint('force_rewrite_sw_files_on_device = Y')
+if CGI_CLI.data.get('backup_configs_to_device_disk'): 
+    CGI_CLI.uprint('backup_configs_to_device_disk = Y')    
+if CGI_CLI.data.get('delete_device_sw_files_on_end'): 
+    CGI_CLI.uprint('delete_device_sw_files_on_end = Y')
 
 ###############################################################################
 if CGI_CLI.data.get('sw_files'):
