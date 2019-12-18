@@ -50,6 +50,8 @@ matplotlib.pyplot
 cerberus
 dynamic
 pexpect
+matplotlib
+mpld3
 """
 
 ### MAIN ######################################################################
