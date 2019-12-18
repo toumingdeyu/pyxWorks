@@ -127,10 +127,6 @@ class CGI_CLI(object):
                             # action = "store_true", dest = 'sim',
                             # default = None,
                             # help = "config simulation mode")
-        parser.add_argument("--slow",
-                            action = 'store_true', dest = "slow_scp_mode",
-                            default = None,
-                            help = "slow_scp_mode")
         parser.add_argument("--printall",
                             action = "store_true", dest = 'printall',
                             default = None,
@@ -1835,7 +1831,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                 (device,device_drive_string+os.path.join(dev_dir, file)))
     CGI_CLI.uprint(end_tag = 'p')
     if not all_files_on_all_devices_ok and \
-        (CGI_CLI.data.get('check_device_sw_files_only') or check_mode):
+        CGI_CLI.data.get('check_device_sw_files_only'):
         CGI_CLI.uprint('SW RELEASE FILES - CHECK FAILED!' , tag = 'h1', color = 'red')
         sys.exit(0)
     return all_files_on_all_devices_ok, needed_to_copy_files_per_device_list, device_drive_string
@@ -1898,7 +1894,7 @@ def check_free_disk_space_on_devices(device_list = None, \
             CGI_CLI.uprint('\n')
             disk_free_list.append([device,float(device_free_space)/1048576])
             RCMD.disconnect()
-    CGI_CLI.uprint('Device    Disk_free', tag = 'h2' , color = 'blue')
+    CGI_CLI.uprint('Device    Disk_free:', tag = 'h3' , color = 'blue')
     all_disk_checks_ok = True
     #CGI_CLI.uprint(start_tag = 'p')
     for device, disk_free in disk_free_list:
@@ -1914,6 +1910,69 @@ def check_free_disk_space_on_devices(device_list = None, \
     if not all_disk_checks_ok: CGI_CLI.uprint('Disk space - CHECK FAIL.', color = 'RED')
     return disk_low_space_devices
 
+##############################################################################
+
+def copy_files_to_devices(true_sw_release_files_on_server = None, \
+    needed_to_copy_files_per_device_list = None, \
+    device_list = None, USERNAME = None, PASSWORD = None, \
+    device_drive_string = None):
+    old_files_status = []
+    files_status = []
+    scp_list, forget_it = does_run_scp_processes(printall = printall)
+    
+    if CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
+        CGI_CLI.uprint('Copy all file(s) to all device(s).', tag = 'h3', color = 'blue')
+    
+    for true_sw_release_file_on_server in true_sw_release_files_on_server:
+        directory,dev_dir,file,md5,fsize = true_sw_release_file_on_server
+        ### IF SCP_LIST IS VOID COPY ALL ###
+        if len(scp_list) == 0:
+            if CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
+                do_scp_one_file_to_more_devices(true_sw_release_file_on_server, device_list, \
+                    USERNAME, PASSWORD, device_drive_string = device_drive_string, printall = printall)
+            else:
+                do_scp_one_file_to_more_devices_per_needed_to_copy_list( \
+                    true_sw_release_file_on_server, \
+                    needed_to_copy_files_per_device_list, \
+                    device_list, USERNAME, PASSWORD, \
+                    device_drive_string = device_drive_string, printall = printall)
+
+
+        ### IF SCP_LIST IS NOT VOID CHECK AND COPY ONLY NOT RUNNING ###
+        for server_file, device_file, scp_device, device_user, pid, ppid in scp_list:
+            CGI_CLI.uprint('%s=%s, %s=%s' %(scp_device, device_list, device_file, os.path.join(dev_dir, file)))
+            if scp_device in device_list and device_file == os.path.join(dev_dir, file):
+                CGI_CLI.uprint('FILE %s is already copying to device %s, ommiting new scp copying!' % \
+                    (device_file, device))
+            else:
+                if CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
+                    do_scp_one_file_to_more_devices(true_sw_release_file_on_server, device_list, \
+                        USERNAME, PASSWORD, device_drive_string = device_drive_string, printall = printall)
+                else:
+                    do_scp_one_file_to_more_devices_per_needed_to_copy_list( \
+                        true_sw_release_file_on_server, \
+                        needed_to_copy_files_per_device_list, \
+                        device_list, USERNAME, PASSWORD, \
+                        device_drive_string = device_drive_string, printall = printall)
+        ### DO SCP LIST AGAIN AND WAIT TILL END OF YOUR SCP SESSIONS ###
+        actual_scp_devices_in_scp_list = True
+        while actual_scp_devices_in_scp_list:
+            actual_scp_devices_in_scp_list = False
+            scp_list, forget_it = does_run_scp_processes(printall = printall)
+            for server_file, device_file, scp_device, device_user, pid, ppid in scp_list:
+                if scp_device in device_list: actual_scp_devices_in_scp_list = True
+            if len(scp_list) > 0:
+                old_files_status = files_status
+                files_status = check_percentage_of_copied_files(scp_list, USERNAME, PASSWORD, printall)
+                ### CHECKED STALLED COPYING ###
+                for old_file_status in old_files_status:
+                    if old_file_status in files_status:
+                        device, device_file, percentage = old_file_status
+                        CGI_CLI.uprint('WARNING: Device=%s, File=%s, Percent copied=%.2f HAS STALLED!' % \
+                            (device, device_file, percentage))
+            else: break
+
+##############################################################################
 
 ##############################################################################
 #
@@ -2323,75 +2382,27 @@ else:
         printall = printall)
 
 ### CHECK DISK SPACE ON DEVICES ###############################################
-check_free_disk_space_on_devices(device_list = device_list, \
-    USERNAME = USERNAME, PASSWORD = PASSWORD, logfilename = logfilename, \
-    printall = printall)
-
-
-### def FILE SCP COPYING ######################################################
-old_files_status = []
-files_status = []
-scp_list, forget_it = does_run_scp_processes(printall = printall)
-for true_sw_release_file_on_server in true_sw_release_files_on_server:
-    directory,dev_dir,file,md5,fsize = true_sw_release_file_on_server
-    ### IF SCP_LIST IS VOID COPY ALL ###
-    if len(scp_list) == 0:
-        if CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
-            do_scp_one_file_to_more_devices(true_sw_release_file_on_server, device_list, \
-                USERNAME, PASSWORD, device_drive_string = device_drive_string, printall = printall)
-        else:
-            do_scp_one_file_to_more_devices_per_needed_to_copy_list( \
-                true_sw_release_file_on_server, \
-                needed_to_copy_files_per_device_list, \
-                device_list, USERNAME, PASSWORD, \
-                device_drive_string = device_drive_string, printall = printall)
-
-
-    ### IF SCP_LIST IS NOT VOID CHECK AND COPY ONLY NOT RUNNING ###
-    for server_file, device_file, scp_device, device_user, pid, ppid in scp_list:
-        CGI_CLI.uprint('%s=%s, %s=%s' %(scp_device, device_list, device_file, os.path.join(dev_dir, file)))
-        if scp_device in device_list and device_file == os.path.join(dev_dir, file):
-            CGI_CLI.uprint('FILE %s is already copying to device %s, ommiting new scp copying!' % \
-                (device_file, device))
-        else:
-            if CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
-                do_scp_one_file_to_more_devices(true_sw_release_file_on_server, device_list, \
-                    USERNAME, PASSWORD, device_drive_string = device_drive_string, printall = printall)
-            else:
-                do_scp_one_file_to_more_devices_per_needed_to_copy_list( \
-                    true_sw_release_file_on_server, \
-                    needed_to_copy_files_per_device_list, \
-                    device_list, USERNAME, PASSWORD, \
-                    device_drive_string = device_drive_string, printall = printall)
-    ### DO SCP LIST AGAIN AND WAIT TILL END OF YOUR SCP SESSIONS ###
-    actual_scp_devices_in_scp_list = True
-    while actual_scp_devices_in_scp_list:
-        actual_scp_devices_in_scp_list = False
-        scp_list, forget_it = does_run_scp_processes(printall = printall)
-        for server_file, device_file, scp_device, device_user, pid, ppid in scp_list:
-            if scp_device in device_list: actual_scp_devices_in_scp_list = True
-        if len(scp_list) > 0:
-            old_files_status = files_status
-            files_status = check_percentage_of_copied_files(scp_list, USERNAME, PASSWORD, printall)
-            ### CHECKED STALLED COPYING ###
-            for old_file_status in old_files_status:
-                if old_file_status in files_status:
-                    device, device_file, percentage = old_file_status
-                    CGI_CLI.uprint('WARNING: Device=%s, File=%s, Percent copied=%.2f HAS STALLED!' % \
-                        (device, device_file, percentage))
-        else: break
-
-
-### CONNECT TO DEVICE AGAIN ###################################################
 if all_files_on_all_devices_ok: pass
 else:
+    check_free_disk_space_on_devices(device_list = device_list, \
+        USERNAME = USERNAME, PASSWORD = PASSWORD, logfilename = logfilename, \
+        printall = printall)
+
+
+### def LOOP TILL ALL FILES ARE COPIED OK #####################################
+while not all_files_on_all_devices_ok:
+    copy_files_to_devices(true_sw_release_files_on_server = true_sw_release_files_on_server, \
+        needed_to_copy_files_per_device_list = needed_to_copy_files_per_device_list, \
+        device_list = device_list, USERNAME = USERNAME, PASSWORD = PASSWORD, \
+        device_drive_string = device_drive_string)
     time.sleep(3)
-    ### def CHECK DEVICE FILES AFTER COPYING ##################################
+    ### CHECK DEVICE FILES AFTER COPYING ######################################
     all_files_on_all_devices_ok, needed_to_copy_files_per_device_list, device_drive_string = \
         check_files_on_devices(device_list = device_list, \
         true_sw_release_files_on_server = true_sw_release_files_on_server, \
         USERNAME = USERNAME, PASSWORD = PASSWORD, logfilename = logfilename, \
         printall = printall, check_mode = True)
+
 
 ### def ADITIONAL DEVICE ACTIONS ##################################################
 if CGI_CLI.data.get('backup_configs_to_device_disk') \
