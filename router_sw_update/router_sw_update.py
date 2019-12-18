@@ -2026,6 +2026,7 @@ if len(scp_list)>0:
 
 ### def GLOBAL CONSTANTS #####################################################
 device_expected_GB_free = 0
+number_of_scp_attempts = 3
 
 SCRIPT_ACTIONS_LIST = [
 #'copy_tar_files','do_sw_upgrade',
@@ -2420,19 +2421,25 @@ else:
 
 
 ### def LOOP TILL ALL FILES ARE COPIED OK #####################################
+number_of_scp_treatments = 0
 while not all_files_on_all_devices_ok:
     copy_files_to_devices(true_sw_release_files_on_server = true_sw_release_files_on_server, \
         needed_to_copy_files_per_device_list = needed_to_copy_files_per_device_list, \
         device_list = device_list, USERNAME = USERNAME, PASSWORD = PASSWORD, \
         device_drive_string = device_drive_string)
     time.sleep(3)
+    number_of_scp_treatments += 1
     ### CHECK DEVICE FILES AFTER COPYING ######################################
     all_files_on_all_devices_ok, needed_to_copy_files_per_device_list, device_drive_string = \
         check_files_on_devices(device_list = device_list, \
         true_sw_release_files_on_server = true_sw_release_files_on_server, \
         USERNAME = USERNAME, PASSWORD = PASSWORD, logfilename = logfilename, \
         printall = printall, check_mode = True)
-
+    ### TRY SCP X TIMES, THEN END ############################################# 
+    if number_of_scp_treatments > number_of_scp_attempts:
+        CGI_CLI.uprint('MULTIPLE (%d) SCP ATTEMPTS FAILED!' % \
+        (number_of_scp_attempts), tag = 'h1', color = 'red')    
+        break    
 
 ### def ADITIONAL DEVICE ACTIONS ##################################################
 if CGI_CLI.data.get('backup_configs_to_device_disk') \
