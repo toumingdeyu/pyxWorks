@@ -2436,7 +2436,7 @@ while not all_files_on_all_devices_ok:
         USERNAME = USERNAME, PASSWORD = PASSWORD, logfilename = logfilename, \
         printall = printall, check_mode = True)
     ### TRY SCP X TIMES, THEN END ############################################# 
-    if number_of_scp_treatments > number_of_scp_attempts:
+    if number_of_scp_treatments >= number_of_scp_attempts:
         CGI_CLI.uprint('MULTIPLE (%d) SCP ATTEMPTS FAILED!' % \
         (number_of_scp_attempts), tag = 'h1', color = 'red')    
         break    
