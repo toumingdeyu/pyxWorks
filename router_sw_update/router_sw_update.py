@@ -1679,6 +1679,25 @@ def does_run_script_processes(my_pid_only = None, printall = None):
                 except: pass
     return running_pid_list
 
+##############################################################################
+
+def kill_stalled_scp_processes(device_file = None, printall = None):
+    pid_list = []
+    split_string = 'scp -v -o StrictHostKeyChecking=no'
+    my_ps_result = LCMD.run_commands({'unix':["ps -ef | grep -v grep | grep scp"]},
+        printall = printall)
+    if my_ps_result:
+        for line in str(my_ps_result[0]).splitlines():
+            try: scp_ps_list.append(line.split()[1])
+            except: pass
+            if split_string in line:
+                if str(device_file) in line:
+                    try: pid_list.append(line.split()[1])
+                    except: pass
+        if len(pid_list) > 0:            
+            my_ps_result = LCMD.run_commands({'unix':["kill %s" % ','.join(pid_list)]},
+            printall = printall)
+
 ###############################################################################
 
 def check_percentage_of_copied_files(scp_list = [], USERNAME = None, \
@@ -1968,8 +1987,9 @@ def copy_files_to_devices(true_sw_release_files_on_server = None, \
                 for old_file_status in old_files_status:
                     if old_file_status in files_status:
                         device, device_file, percentage = old_file_status
-                        CGI_CLI.uprint('WARNING: Device=%s, File=%s, Percent copied=%.2f HAS STALLED!' % \
-                            (device, device_file, percentage))
+                        CGI_CLI.uprint('WARNING: Device=%s, File=%s, Percent copied=%.2f HAS STALLED, KILLING SCP PROCESSES!' % \
+                            (device, device_file, percentage), color = 'red')
+                        kill_stalled_scp_processes(device_file = device_file, printall = printall)   
             else: break
 
 ##############################################################################
