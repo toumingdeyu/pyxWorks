@@ -261,15 +261,17 @@ class CGI_CLI(object):
         else: print(msg)
 
     @staticmethod
-    def uprint(text, tag = None, tag_id = None, color = None, name = None, jsonprint = None, \
-        log = None, no_newlines = None):
-        """NOTE: name parameter could be True or string."""
+    def uprint(text = str(), tag = None, tag_id = None, color = None, name = None, jsonprint = None, \
+        log = None, no_newlines = None, start_tag = None, end_tag = None):
+        """NOTE: name parameter could be True or string.
+           start_tag - starts tag and needs to be ended next time by end_tag
+        """
         print_text, print_name, print_per_tag = copy.deepcopy(text), str(), str()
         if jsonprint:
             if isinstance(text, (dict,collections.OrderedDict,list,tuple)):
                 try: print_text = json.dumps(text, indent = 4)
                 except Exception as e: CGI_CLI.print_chunk('JSON_PROBLEM[' + str(e) + ']')
-        if name==True:
+        if name == True:
             if not 'inspect.currentframe' in sys.modules: import inspect
             callers_local_vars = inspect.currentframe().f_back.f_locals.items()
             var_list = [var_name for var_name, var_val in callers_local_vars if var_val is text]
@@ -280,8 +282,9 @@ class CGI_CLI(object):
         log_text   = str(copy.deepcopy((print_text)))
         if CGI_CLI.cgi_active:
             ### WORKARROUND FOR COLORING OF SIMPLE TEXT
-            if color and not tag: tag = 'p';
+            if color and not (tag or start_tag): tag = 'p';
             if tag: CGI_CLI.print_chunk('<%s%s%s>'%(tag,' id="%s"'%(tag_id) if tag_id else str(),' style="color:%s;"'%(color) if color else 'black'))
+            elif start_tag: CGI_CLI.print_chunk('<%s%s%s>'%(start_tag,' id="%s"'%(tag_id) if tag_id else str(),' style="color:%s;"'%(color) if color else 'black'))
             if isinstance(print_text, six.string_types):
                 print_text = str(print_text.replace('&','&amp;').replace('<','&lt;'). \
                     replace('>','&gt;').replace(' ','&nbsp;').replace('"','&quot;').replace("'",'&apos;').\
@@ -306,7 +309,8 @@ class CGI_CLI(object):
                 print(text_color + print_name + print_text + CGI_CLI.bcolors.ENDC)
         del print_text
         if CGI_CLI.cgi_active:
-            if tag: CGI_CLI.print_chunk('</%s>'%(tag))
+            if tag: CGI_CLI.print_chunk('</%s>' % (tag))
+            elif end_tag: CGI_CLI.print_chunk('</%s>' % (end_tag))
             elif not no_newlines: CGI_CLI.print_chunk('<br/>');
             ### PRINT PER TAG ###
             CGI_CLI.print_chunk(print_per_tag)
@@ -1507,8 +1511,8 @@ def do_scp_one_file_to_more_devices_per_needed_to_copy_list(\
         cp_cmd_list = []
         ### ONLY 1 SCP CONNECTION PER ROUTER ###
         for device in device_list:
-            for device2, missing_or_bad_files_per_device in needed_to_copy_files_per_device_list:            
-                directory2, dev_dir2, file2, md52, fsize2 = missing_or_bad_files_per_device   
+            for device2, missing_or_bad_files_per_device in needed_to_copy_files_per_device_list:
+                directory2, dev_dir2, file2, md52, fsize2 = missing_or_bad_files_per_device
                 if '%s%s' % (device_drive_string, os.path.join(dev_dir, file)) == '%s%s' % (device_drive_string, os.path.join(dev_dir2, file2)) \
                     and device == device2:
                     local_command = 'sshpass -e scp -v -o StrictHostKeyChecking=no %s %s@%s:/%s 1>/dev/null 2>/dev/null &' \
@@ -1807,29 +1811,29 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
             RCMD.disconnect()
     ### PRINT NEEDED FILES TO COPY ############################################
     at_least_some_files_need_to_copy = None
-    if len(needed_to_copy_files_per_device_list) > 0:        
+    if len(needed_to_copy_files_per_device_list) > 0:
        at_least_some_files_need_to_copy = True
     if at_least_some_files_need_to_copy:
         if CGI_CLI.data.get('check_device_sw_files_only') or check_mode:
-            CGI_CLI.uprint('Device    Bad_or_missing_file(s):', tag = 'h2', color = 'red')
+            CGI_CLI.uprint('Device    Bad_or_missing_file(s):', tag = 'h3', color = 'red')
         else:
-            CGI_CLI.uprint('Device    File(s)_to_copy:', tag = 'h2', color = 'blue')
+            CGI_CLI.uprint('Device    File(s)_to_copy:', tag = 'h3', color = 'blue')
     else:
-        CGI_CLI.uprint('Sw release %s file(s) on devices %s - CHECK OK.' % \
+        CGI_CLI.uprint('Sw release %s file(s) on device(s) %s - CHECK OK.' % \
             (sw_release, ', '.join(device_list)), tag = 'h1', color='green')
         all_files_on_all_devices_ok = True
         ### WHEN SUCCESS, THEN CHECK IF EXIT OR NOT ###########################
         if CGI_CLI.data.get('backup_configs_to_device_disk') \
             or CGI_CLI.data.get('delete_device_sw_files_on_end'): pass
         else: sys.exit(0)
+    if CGI_CLI.data.get('check_device_sw_files_only') or check_mode:
+        CGI_CLI.uprint(no_newlines = True, start_tag = 'p', color = 'red')
+    else: CGI_CLI.uprint(no_newlines = True, start_tag = 'p', color = 'blue')
     for device,missing_or_bad_files_per_device in needed_to_copy_files_per_device_list:
-        directory, dev_dir, file, md5, fsize = missing_or_bad_files_per_device                                
-        if CGI_CLI.data.get('check_device_sw_files_only') or check_mode:
-            CGI_CLI.uprint('%s    %s' % \
-                (device,device_drive_string+os.path.join(dev_dir, file)), color = 'red')
-        else:
-            CGI_CLI.uprint('%s    %s' % \
-                (device,device_drive_string+os.path.join(dev_dir, file)), color = 'blue')
+        directory, dev_dir, file, md5, fsize = missing_or_bad_files_per_device
+        CGI_CLI.uprint('%s    %s' % \
+                (device,device_drive_string+os.path.join(dev_dir, file)))
+    CGI_CLI.uprint(end_tag = 'p')
     if not all_files_on_all_devices_ok and \
         (CGI_CLI.data.get('check_device_sw_files_only') or check_mode):
         CGI_CLI.uprint('SW RELEASE FILES - CHECK FAILED!' , tag = 'h1', color = 'red')
@@ -1896,14 +1900,17 @@ def check_free_disk_space_on_devices(device_list = None, \
             RCMD.disconnect()
     CGI_CLI.uprint('Device    Disk_free', tag = 'h2' , color = 'blue')
     all_disk_checks_ok = True
+    #CGI_CLI.uprint(start_tag = 'p')
     for device, disk_free in disk_free_list:
         ### SOME GB FREE EXPECTED (1MB=1048576, 1GB=1073741824) ###
         if disk_free < (device_expected_GB_free * 1073741824):
             all_disk_checks_ok = False
-            CGI_CLI.uprint('%s    %.2f MB' % (device, disk_free), color = 'red')
+            CGI_CLI.uprint('%s    %.2f MB' % (device, disk_free), \
+                color = 'red')
             disk_low_space_devices.append(device)
-        else: CGI_CLI.uprint('%s    %.2f MB' % (device, disk_free), color = 'blue')
-    CGI_CLI.uprint('\n')
+        else: CGI_CLI.uprint('%s    %.2f MB' % (device, disk_free), \
+                  color = 'blue')
+    #CGI_CLI.uprint(end_tag = 'p')
     if not all_disk_checks_ok: CGI_CLI.uprint('Disk space - CHECK FAIL.', color = 'RED')
     return disk_low_space_devices
 
@@ -2285,7 +2292,9 @@ if type_subdir and brand_subdir and sw_release:
             CGI_CLI.uprint('%s file(s) NOT FOUND in %s!' % (actual_file_name,directory), color = 'red')
             sys.exit(0)
     CGI_CLI.uprint('File(s),    md5 checksum(s),    device folder(s),    filesize:\n%s' % \
-        ('\n'.join([ '%s/%s    %s    %s    %.2fMB' % (directory,file,md5,dev_dir,float(fsize)/1048576) for directory,dev_dir,file,md5,fsize in true_sw_release_files_on_server ])))
+        ('\n'.join([ '%s/%s    %s    %s    %.2fMB' % \
+        (directory,file,md5,dev_dir,float(fsize)/1048576) for directory,dev_dir,file,md5,fsize in true_sw_release_files_on_server ])),\
+        color = 'blue')
     CGI_CLI.uprint('\n')
     # ### CALCULATE NEEDED DISK SPACE #########################################
     # for directory,dev_dir,file,md5,fsize in true_sw_release_files_on_server:
@@ -2373,11 +2382,11 @@ for true_sw_release_file_on_server in true_sw_release_files_on_server:
         else: break
 
 
-### def CONNECT TO DEVICE AGAIN ###############################################
+### CONNECT TO DEVICE AGAIN ###################################################
 if all_files_on_all_devices_ok: pass
 else:
     time.sleep(3)
-    ### CHECK EXISTING FILES ON DEVICES AGAIN #################################
+    ### def CHECK DEVICE FILES AFTER COPYING ##################################
     all_files_on_all_devices_ok, needed_to_copy_files_per_device_list, device_drive_string = \
         check_files_on_devices(device_list = device_list, \
         true_sw_release_files_on_server = true_sw_release_files_on_server, \
