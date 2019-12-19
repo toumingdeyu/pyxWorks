@@ -1798,23 +1798,69 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                 RCMD.disconnect()
                 continue
             device_drive_string = RCMD.drive_string
-            ### CHECK FILE(S) AND MD5(S) FIRST ################################
+            ### MAKE UNIQUE DIRECTORY LIST ####################################         
+            redundant_dev_dir_list = [ dev_dir for directory,dev_dir,file,md5,fsize in true_sw_release_files_on_server ]
+            dev_dir_set = set(redundant_dev_dir_list)
+            unique_device_directory_list = list(dev_dir_set)
+            ### SHOW DEVICE DIRECTORY #########################################
             CGI_CLI.uprint('checking existing device file(s) and md5(s) on %s' \
-                % (device), no_newlines = None if printall else True)
+                % (device), no_newlines = None if printall else True)   
+            xe_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) for dev_dir in unique_device_directory_list ]
+            xr_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) for dev_dir in unique_device_directory_list ]
+            huawei_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) for dev_dir in unique_device_directory_list ]
+            dir_device_cmds = {
+                'cisco_ios':xe_device_dir_list,
+                'cisco_xr':xr_device_dir_list,
+                'juniper':[],
+                'huawei':huawei_device_dir_list
+            }
+            rcmd_dir_outputs = RCMD.run_commands(dir_device_cmds, printall = printall)
+            for unique_dir,unique_dir_outputs in zip(unique_device_directory_list,rcmd_dir_outputs):
+                for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
+                    if unique_dir == dev_dir:
+                        file_found_on_device = False
+                        file_size_ok_on_device = False
+                        device_fsize = 0
+                        possible_file_name = str()
+                        for line in unique_dir_outputs.splitlines():                                                           
+                            if file in line:
+                                try:
+                                    possible_file_name = line.split()[-1].strip()
+                                    if RCMD.router_type == 'huawei':
+                                        device_fsize = float(line.split()[2].replace(',','')) 
+                                    elif RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
+                                        device_fsize = float(line.split()[3].replace(',',''))                                                 
+                                except: pass                            
+                        if file == possible_file_name: file_found_on_device = True
+                        if device_fsize == fsize: file_size_ok_on_device = True
+                        filecheck_list.append([file,file_found_on_device,file_size_ok_on_device])
+            ### MAKE BAD FILE LIST, BECAUSE HUAWEI MD5 SUM CHECK IS SLOW ######            
+            bad_files = [ file for file, file_found_on_device, file_size_ok_on_device in \
+                filecheck_list if not file_found_on_device and not file_size_ok_on_device]
+            CGI_CLI.uprint(bad_files)             
+            ### CHECK FILE(S) AND MD5(S) FIRST ################################
             xr_md5_cmds, xe_md5_cmds, huawei_md5_cmds = [], [], []
-            for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:           
-                xr_md5_cmds.append('show md5 file /%s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
-                xe_md5_cmds.append('verify /md5 %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
-                if '.CC' in file.upper():
-                    huawei_md5_cmds.append('check system-software %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
-                    huawei_md5_cmds.append('Y')
-                if '.PAT' in file.upper():
-                    huawei_md5_cmds.append('check patch %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
-                    huawei_md5_cmds.append('Y')                    
+            for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
+                if file in bad_files:
+                    ### VOID COMMANDS for BAD FILES ###########################
+                    xr_md5_cmds.append('\n')
+                    xe_md5_cmds.append('\n')
+                    huawei_md5_cmds.append('\n')
+                    huawei_md5_cmds.append('\n')
+                else:                
+                    xr_md5_cmds.append('show md5 file /%s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
+                    xe_md5_cmds.append('verify /md5 %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
+                    if '.CC' in file.upper():
+                        huawei_md5_cmds.append('check system-software %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
+                        huawei_md5_cmds.append('Y')
+                    if '.PAT' in file.upper():
+                        huawei_md5_cmds.append('check patch %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
+                        huawei_md5_cmds.append('Y')                    
             rcmd_md5_outputs = RCMD.run_commands( \
                 {'cisco_ios':xe_md5_cmds,'cisco_xr':xr_md5_cmds,'huawei':huawei_md5_cmds}, \
                 printall = printall)
-            ### CHECK MD5 IN LOOP ###
+            CGI_CLI.uprint('\n')    
+            ### CHECK MD5 RESULTS IN LOOP #####################################
             if RCMD.router_type == 'huawei':            
                 for files_list in true_sw_release_files_on_server:
                     md5_ok = False
@@ -1834,42 +1880,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                         md5_on_device = find_list[0]
                         if md5_on_device == md5:
                             md5_ok = True
-                    md5check_list.append([file,md5_ok])
-            ### SHOW DEVICE DIRECTORY #########################################
-            redundant_dev_dir_list = [ dev_dir for directory,dev_dir,file,md5,fsize in true_sw_release_files_on_server ]
-            dev_dir_set = set(redundant_dev_dir_list)
-            unique_device_directory_list = list(dev_dir_set)
-            xe_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) for dev_dir in unique_device_directory_list ]
-            xr_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) for dev_dir in unique_device_directory_list ]
-            huawei_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) for dev_dir in unique_device_directory_list ]
-            dir_device_cmds = {
-                'cisco_ios':xe_device_dir_list,
-                'cisco_xr':xr_device_dir_list,
-                'juniper':[],
-                'huawei':huawei_device_dir_list
-            }
-            rcmd_dir_outputs = RCMD.run_commands(dir_device_cmds, printall = printall)
-            CGI_CLI.uprint('\n')
-            for unique_dir,unique_dir_outputs in zip(unique_device_directory_list,rcmd_dir_outputs):
-                for files_list,rcmd_md5_output in zip(true_sw_release_files_on_server,rcmd_md5_outputs):
-                    directory, dev_dir, file, md5, fsize = files_list
-                    if unique_dir == dev_dir:
-                        file_found_on_device = False
-                        file_size_ok_on_device = False
-                        device_fsize = 0
-                        possible_file_name = str()
-                        for line in unique_dir_outputs.splitlines():                                                           
-                            if file in line:
-                                try:
-                                    possible_file_name = line.split()[-1].strip()
-                                    if RCMD.router_type == 'huawei':
-                                        device_fsize = float(line.split()[2].replace(',','')) 
-                                    elif RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
-                                        device_fsize = float(line.split()[3].replace(',',''))                                                 
-                                except: pass                            
-                        if file == possible_file_name: file_found_on_device = True
-                        if device_fsize == fsize: file_size_ok_on_device = True
-                        filecheck_list.append([file,file_found_on_device,file_size_ok_on_device])
+                    md5check_list.append([file,md5_ok])                        
             ### CHECK IF DEVICE FILES ARE OK ##################################                 
             for md5list,filelist in zip(md5check_list,filecheck_list):                
                  file, md5_ok = md5list
