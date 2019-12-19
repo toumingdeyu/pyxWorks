@@ -1857,6 +1857,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                         file_found_on_device = False
                         file_size_ok_on_device = False
                         device_fsize = 0
+                        possible_file_name = str()
                         for line in unique_dir_outputs.splitlines():                                                           
                             if file in line:
                                 try:
