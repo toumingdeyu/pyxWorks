@@ -1857,15 +1857,18 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                         file_found_on_device = False
                         file_size_ok_on_device = False
                         device_fsize = 0
-                        for line in unique_dir_outputs.splitlines():
-                            try: 
-                                possible_file_name = line.split()[-1].strip()                                
-                                if file in line:
-                                    device_fsize = float(line.split()[2].replace(',',''))             
-                            except: possible_file_name = str()                            
-                            if file == possible_file_name: file_found_on_device = True
-                            if device_fsize == fsize: file_size_ok_on_device = True
-                            filecheck_list.append([file,file_found_on_device,file_size_ok_on_device])
+                        for line in unique_dir_outputs.splitlines():                                                           
+                            if file in line:
+                                try:
+                                    possible_file_name = line.split()[-1].strip()
+                                    if RCMD.router_type == 'huawei':
+                                        device_fsize = float(line.split()[2].replace(',','')) 
+                                    elif RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
+                                        device_fsize = float(line.split()[3].replace(',',''))                                                 
+                                except: pass                            
+                        if file == possible_file_name: file_found_on_device = True
+                        if device_fsize == fsize: file_size_ok_on_device = True
+                        filecheck_list.append([file,file_found_on_device,file_size_ok_on_device])
             ### CHECK IF DEVICE FILES ARE OK ##################################                 
             for md5list,filelist in zip(md5check_list,filecheck_list):                
                  file, md5_ok = md5list
@@ -1874,7 +1877,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                     if file_found_on_device and md5_ok and file_size_ok_on_device: pass
                     else: needed_to_copy_files_per_device_list.append( \
                         [device,[directory, dev_dir, file, md5, fsize]])
-                    CGI_CLI.uprint('File=%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
+                    if printall: CGI_CLI.uprint('File=%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
                         (file,file_found_on_device,md5_ok,file_size_ok_on_device))
             device_drive_string = RCMD.drive_string
             RCMD.disconnect()
