@@ -1770,6 +1770,7 @@ def check_percentage_of_copied_files(scp_list = [], USERNAME = None, \
             else:
                 CGI_CLI.uprint('Device %s file %s    still copying...' % \
                     (device, device_file) , color = 'blue')
+                device_file_percentage_list.append([device, device_file, -1])    
     return device_file_percentage_list
 
 ##############################################################################
@@ -1800,9 +1801,9 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
     check_mode = None):
     all_files_on_all_devices_ok = None
     needed_to_copy_files_per_device_list = []
-    md5check_list, filecheck_list = [], []
     device_drive_string, router_type = str(), str()
     for device in device_list:
+        md5check_list, filecheck_list = [], []
         if device:
             RCMD.connect(device, username = USERNAME, password = PASSWORD, \
                 printall = printall, logfilename = logfilename)
@@ -1894,22 +1895,28 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                         if md5_on_device == md5:
                             md5_ok = True
                     md5check_list.append([file,md5_ok])                        
-            ### CHECK IF DEVICE FILES ARE OK ##################################                 
+            ### CHECK IF DEVICE FILES ARE OK ##################################                        
             for md5list,filelist in zip(md5check_list,filecheck_list):                
-                 file, md5_ok = md5list
+                 file1, md5_ok = md5list
                  file2, file_found_on_device, file_size_ok_on_device = filelist
-                 if file==file2:                                        
+                 if file1==file2:                                        
                     if file_found_on_device and md5_ok and file_size_ok_on_device: pass
-                    else: needed_to_copy_files_per_device_list.append( \
-                        [device,[directory, dev_dir, file, md5, fsize]])
+                    else:
+                        for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
+                            if file == file1:                        
+                                needed_to_copy_files_per_device_list.append( \
+                                    [device,[directory, dev_dir, file, md5, fsize]])
                     if printall: CGI_CLI.uprint('File=%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
-                        (file,file_found_on_device,md5_ok,file_size_ok_on_device))
+                        (file,file_found_on_device,md5_ok,file_size_ok_on_device))         
+            ###################################################################            
+            # for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
+                # for bad_file in bad_files:
+                    # if bad_file == file: 
+                        # needed_to_copy_files_per_device_list.append([device,[directory, dev_dir, file, md5, fsize]])
+            ###################################################################
             RCMD.disconnect()
     ### PRINT NEEDED FILES TO COPY ############################################
-    at_least_some_files_need_to_copy = None
     if len(needed_to_copy_files_per_device_list) > 0:
-       at_least_some_files_need_to_copy = True
-    if at_least_some_files_need_to_copy:
         if CGI_CLI.data.get('check_device_sw_files_only') or check_mode:
             CGI_CLI.uprint('Device    Bad_or_missing_file(s):', tag = 'h3', color = 'red')
         else:
@@ -2078,9 +2085,10 @@ def copy_files_to_devices(true_sw_release_files_on_server = None, \
                 for old_file_status in old_files_status:
                     if old_file_status in files_status:
                         device, device_file, percentage = old_file_status
-                        CGI_CLI.uprint('WARNING: Device=%s, File=%s, Percent copied=%.2f HAS STALLED, KILLING SCP PROCESSES!' % \
-                            (device, device_file, percentage), color = 'red')
-                        kill_stalled_scp_processes(device_file = device_file, printall = printall)   
+                        if percentage >= 0:
+                            CGI_CLI.uprint('WARNING: Device=%s, File=%s, Percent copied=%.2f HAS STALLED, KILLING SCP PROCESSES!' % \
+                                (device, device_file, percentage), color = 'red')
+                            kill_stalled_scp_processes(device_file = device_file, printall = printall)   
             else: break
 
 ##############################################################################
