@@ -2576,6 +2576,8 @@ if CGI_CLI.data.get('backup_configs_to_device_disk') \
                     forget_it = RCMD.run_commands(backup_config_rcmds, printall = printall)
                     CGI_CLI.uprint('\n')
 
+            if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios' \
+                or RCMD.router_type == 'huawei':
                 ### def DELETE TAR FILES ON END ###############################
                 if CGI_CLI.data.get('delete_device_sw_files_on_end'):
                     del_files_cmds = {'cisco_xr':[],'cisco_ios':[],'huawei':[]}
