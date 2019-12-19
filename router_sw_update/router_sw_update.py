@@ -1821,7 +1821,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                 % (device), no_newlines = None if printall else True)   
             xe_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) for dev_dir in unique_device_directory_list ]
             xr_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) for dev_dir in unique_device_directory_list ]
-            huawei_device_dir_list = [ 'dir %s%s/' % (RCMD.drive_string, dev_dir) for dev_dir in unique_device_directory_list ]
+            huawei_device_dir_list = [ 'dir %s%s/' % (RCMD.drive_string, dev_dir if dev_dir != '/' else str()) for dev_dir in unique_device_directory_list ]
             dir_device_cmds = {
                 'cisco_ios':xe_device_dir_list,
                 'cisco_xr':xr_device_dir_list,
@@ -2573,7 +2573,7 @@ if CGI_CLI.data.get('backup_configs_to_device_disk') \
 
                 ### def DELETE TAR FILES ON END ###############################
                 if CGI_CLI.data.get('delete_device_sw_files_on_end'):
-                    del_files_cmds = {'cisco_xr':[],'cisco_ios':[]}
+                    del_files_cmds = {'cisco_xr':[],'cisco_ios':[],'huawei':[]}
 
                     for unique_dir in unique_device_directory_list:
                         for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
@@ -2587,21 +2587,25 @@ if CGI_CLI.data.get('backup_configs_to_device_disk') \
                                     'del %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
                                 del_files_cmds['cisco_ios'].append('\n')
                                 del_files_cmds['cisco_ios'].append('\n')
-
+                                
+                                del_files_cmds['huawei'].append( \
+                                    'del %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
+                                del_files_cmds['huawei'].append('Y')
                     CGI_CLI.uprint('deleting sw release files on %s' % (device), \
                         no_newlines = None if printall else True)
                     forget_it = RCMD.run_commands(del_files_cmds, printall = printall)
 
                     ### CHECK FILES DELETION ##################################
-                    check_dir_files_cmds = {'cisco_xr':[],'cisco_ios':[]}
+                    check_dir_files_cmds = {'cisco_xr':[],'cisco_ios':[],'huawei':[]}
                     for unique_dir in unique_device_directory_list:
                         for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
                             if unique_dir == dev_dir:
                                 check_dir_files_cmds['cisco_xr'].append( \
                                     'dir /%s%s' % (RCMD.drive_string, dev_dir))
-
                                 check_dir_files_cmds['cisco_ios'].append( \
                                     'dir %s%s' % (RCMD.drive_string, dev_dir))
+                                check_dir_files_cmds['huawei'].append( \
+                                    'dir %s%s/' % (RCMD.drive_string, dev_dir if dev_dir != '/' else str()))                                    
                     time.sleep(0.5)
                     dir_outputs_after_deletion = RCMD.run_commands(check_dir_files_cmds, \
                         printall = printall)
