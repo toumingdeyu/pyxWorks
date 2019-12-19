@@ -824,7 +824,8 @@ class RCMD(object):
                         exit_loop=True; break
             else:
                 ### INTERACTIVE QUESTION --> GO AWAY FAST !!! ###
-                if last_line.strip().endswith('?') or last_line.strip().endswith('[confirm]'): exit_loop = True; break
+                if last_line.strip().endswith('?') or last_line.strip().endswith('? [Y/N]:') \
+                    or last_line.strip().endswith('[confirm]'): exit_loop = True; break
                 ### 30 SECONDS COMMAND TIMEOUT
                 elif (timeout_counter_100msec) > 30*10: exit_loop = True; break
                 ### 10 SECONDS --> This could be a new PROMPT
@@ -1787,6 +1788,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
     check_mode = None):
     all_files_on_all_devices_ok = None
     needed_to_copy_files_per_device_list = []
+    md5check_list, filecheck_list = [], []
     for device in device_list:
         if device:
             RCMD.connect(device, username = USERNAME, password = PASSWORD, \
@@ -1799,19 +1801,40 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
             ### CHECK FILE(S) AND MD5(S) FIRST ################################
             CGI_CLI.uprint('checking existing device file(s) and md5(s) on %s' \
                 % (device), no_newlines = None if printall else True)
-            xr_md5_cmds, xe_md5_cmds = [], []
-            for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
+            xr_md5_cmds, xe_md5_cmds, huawei_md5_cmds = [], [], []
+            for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:           
                 xr_md5_cmds.append('show md5 file /%s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
                 xe_md5_cmds.append('verify /md5 %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
-            rcmd_md5_outputs = RCMD.run_commands({'cisco_ios':xe_md5_cmds,'cisco_xr':xr_md5_cmds}, printall = printall)
-            for files_list,rcmd_md5_output in zip(true_sw_release_files_on_server,rcmd_md5_outputs):
-                directory, dev_dir, file, md5, fsize = files_list
-                find_list = re.findall(r'[0-9a-fA-F]{32}', rcmd_md5_output.strip())
-                if len(find_list) == 1:
-                    md5_on_device = find_list[0]
-                    if md5_on_device == md5:
-                        md5_ok = True
-
+                if '.CC' in file.upper():
+                    huawei_md5_cmds.append('check system-software %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
+                    huawei_md5_cmds.append('Y')
+                if '.PAT' in file.upper():
+                    huawei_md5_cmds.append('check patch %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
+                    huawei_md5_cmds.append('Y')                    
+            rcmd_md5_outputs = RCMD.run_commands( \
+                {'cisco_ios':xe_md5_cmds,'cisco_xr':xr_md5_cmds,'huawei':huawei_md5_cmds}, \
+                printall = printall)
+            ### CHECK MD5 IN LOOP ###
+            if RCMD.router_type == 'huawei':            
+                for files_list in true_sw_release_files_on_server:
+                    md5_ok = False
+                    directory, dev_dir, file, md5, fsize = files_list  
+                    for rcmd_md5_output in rcmd_md5_outputs:
+                        if 'Info: Prepare to check' in rcmd_md5_output and file in rcmd_md5_output:                                                        
+                            if 'Info: System software CRC check OK!' in rcmd_md5_output \
+                                or 'Info: The patch is complete.' in rcmd_md5_output: 
+                                    md5_ok = True
+                    md5check_list.append([file,md5_ok])                
+            if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios': 
+                for files_list,rcmd_md5_output in zip(true_sw_release_files_on_server,rcmd_md5_outputs):
+                    md5_ok = False
+                    directory, dev_dir, file, md5, fsize = files_list
+                    find_list = re.findall(r'[0-9a-fA-F]{32}', rcmd_md5_output.strip())
+                    if len(find_list) == 1:
+                        md5_on_device = find_list[0]
+                        if md5_on_device == md5:
+                            md5_ok = True
+                    md5check_list.append([file,md5_ok])
             ### SHOW DEVICE DIRECTORY #########################################
             redundant_dev_dir_list = [ dev_dir for directory,dev_dir,file,md5,fsize in true_sw_release_files_on_server ]
             dev_dir_set = set(redundant_dev_dir_list)
@@ -1827,19 +1850,32 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
             }
             rcmd_dir_outputs = RCMD.run_commands(dir_device_cmds, printall = printall)
             CGI_CLI.uprint('\n')
-            all_md5_ok, all_files_per_device_ok = None, None
             for unique_dir,unique_dir_outputs in zip(unique_device_directory_list,rcmd_dir_outputs):
-                all_md5_ok, all_files_per_device_ok = True, True
                 for files_list,rcmd_md5_output in zip(true_sw_release_files_on_server,rcmd_md5_outputs):
                     directory, dev_dir, file, md5, fsize = files_list
                     if unique_dir == dev_dir:
                         file_found_on_device = False
+                        file_size_ok_on_device = False
+                        device_fsize = 0
                         for line in unique_dir_outputs.splitlines():
-                            try: possible_file_name = line.split()[-1].strip()
-                            except: possible_file_name = str()
+                            try: 
+                                possible_file_name = line.split()[-1].strip()                                
+                                if file in line:
+                                    device_fsize = float(line.split()[2].replace(',',''))             
+                            except: possible_file_name = str()                            
                             if file == possible_file_name: file_found_on_device = True
-                        if file_found_on_device and md5_ok: pass
-                        else: needed_to_copy_files_per_device_list.append([device,[directory, dev_dir, file, md5, fsize]])
+                            if device_fsize == fsize: file_size_ok_on_device = True
+                            filecheck_list.append([file,file_found_on_device,file_size_ok_on_device])
+            ### CHECK IF DEVICE FILES ARE OK ##################################                 
+            for md5list,filelist in zip(md5check_list,filecheck_list):                
+                 file, md5_ok = md5list
+                 file2, file_found_on_device, file_size_ok_on_device = filelist
+                 if file==file2:                                        
+                    if file_found_on_device and md5_ok and file_size_ok_on_device: pass
+                    else: needed_to_copy_files_per_device_list.append( \
+                        [device,[directory, dev_dir, file, md5, fsize]])
+                    CGI_CLI.uprint('File=%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
+                        (file,file_found_on_device,md5_ok,file_size_ok_on_device))
             device_drive_string = RCMD.drive_string
             RCMD.disconnect()
     ### PRINT NEEDED FILES TO COPY ############################################
