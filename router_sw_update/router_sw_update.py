@@ -1474,7 +1474,7 @@ def generate_logfilename(prefix = None, USERNAME = None, suffix = None, \
 
 def do_scp_one_file_to_more_devices(true_sw_release_file_on_server = None, \
     device_list = None, USERNAME = None, PASSWORD = None , device_drive_string = None, \
-    printall = None):
+    printall = None, router_type = None):
     if true_sw_release_file_on_server and len(device_list)>0:
         os.environ['SSHPASS'] = PASSWORD
         time.sleep(2)
@@ -1482,9 +1482,15 @@ def do_scp_one_file_to_more_devices(true_sw_release_file_on_server = None, \
         cp_cmd_list = []
         ### ONLY 1 SCP CONNECTION PER ROUTER ###
         for device in device_list:
-            local_command = 'sshpass -e scp -v -o StrictHostKeyChecking=no %s %s@%s:/%s 1>/dev/null 2>/dev/null &' \
-                % (os.path.join(directory, file), USERNAME, device, \
-                '%s%s' % (device_drive_string, os.path.join(dev_dir, file)))
+            if router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
+                local_command = 'sshpass -e scp -v -o StrictHostKeyChecking=no %s %s@%s:/%s 1>/dev/null 2>/dev/null &' \
+                    % (os.path.join(directory, file), USERNAME, device, \
+                    '%s%s' % (device_drive_string, os.path.join(dev_dir, file)))
+            ### HUAWEI MUST NOT HAVE /cfcard: , cfcard only!!! ###        
+            elif router_type == 'huawei':     
+                local_command = 'sshpass -e scp -v -o StrictHostKeyChecking=no %s %s@%s:%s 1>/dev/null 2>/dev/null &' \
+                    % (os.path.join(directory, file), USERNAME, device, \
+                    '%s%s' % (device_drive_string, os.path.join(dev_dir, file)))                                
             if printall:CGI_CLI.uprint(local_command)
             os.system(local_command)
             CGI_CLI.uprint('scp start file %s, (file size %.2fMB) to device %s' % \
@@ -1500,7 +1506,7 @@ def do_scp_one_file_to_more_devices(true_sw_release_file_on_server = None, \
 def do_scp_one_file_to_more_devices_per_needed_to_copy_list(\
     true_sw_release_file_on_server = None, needed_to_copy_files_per_device_list = None,\
     device_list = None, USERNAME = None, PASSWORD = None , device_drive_string = None, \
-    printall = None):
+    printall = None, router_type = None):
     if true_sw_release_file_on_server and len(device_list)>0:
         os.environ['SSHPASS'] = PASSWORD
         time.sleep(2)
@@ -1512,9 +1518,14 @@ def do_scp_one_file_to_more_devices_per_needed_to_copy_list(\
                 directory2, dev_dir2, file2, md52, fsize2 = missing_or_bad_files_per_device
                 if '%s%s' % (device_drive_string, os.path.join(dev_dir, file)) == '%s%s' % (device_drive_string, os.path.join(dev_dir2, file2)) \
                     and device == device2:
-                    local_command = 'sshpass -e scp -v -o StrictHostKeyChecking=no %s %s@%s:/%s 1>/dev/null 2>/dev/null &' \
-                        % (os.path.join(directory, file), USERNAME, device, \
-                        '%s%s' % (device_drive_string, os.path.join(dev_dir, file)))
+                    if router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
+                        local_command = 'sshpass -e scp -v -o StrictHostKeyChecking=no %s %s@%s:/%s 1>/dev/null 2>/dev/null &' \
+                            % (os.path.join(directory, file), USERNAME, device, \
+                            '%s%s' % (device_drive_string, os.path.join(dev_dir, file)))
+                    elif router_type == 'huawei':         
+                        local_command = 'sshpass -e scp -v -o StrictHostKeyChecking=no %s %s@%s:%s 1>/dev/null 2>/dev/null &' \
+                            % (os.path.join(directory, file), USERNAME, device, \
+                            '%s%s' % (device_drive_string, os.path.join(dev_dir, file)))                            
                     if printall:CGI_CLI.uprint(local_command)
                     os.system(local_command)
                     CGI_CLI.uprint('scp start file %s, (file size %.2fMB) to device %s' % \
@@ -1766,7 +1777,7 @@ def check_percentage_of_copied_files(scp_list = [], USERNAME = None, \
 def get_device_drive_string(device_list = None, \
     USERNAME = None, PASSWORD = None, logfilename = None, printall = None, \
     silent_mode = None):
-    device_drive_string = str()
+    device_drive_string, router_type = str(), str()
     for device in device_list:
         if device:
             RCMD.connect(device, username = USERNAME, password = PASSWORD, \
@@ -1777,9 +1788,10 @@ def get_device_drive_string(device_list = None, \
                 RCMD.disconnect()
                 continue
             device_drive_string = RCMD.drive_string
+            router_type = RCMD.router_type
             RCMD.disconnect()
             break
-    return device_drive_string
+    return device_drive_string, router_type
 
 ##############################################################################
 
@@ -1789,6 +1801,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
     all_files_on_all_devices_ok = None
     needed_to_copy_files_per_device_list = []
     md5check_list, filecheck_list = [], []
+    device_drive_string, router_type = str(), str()
     for device in device_list:
         if device:
             RCMD.connect(device, username = USERNAME, password = PASSWORD, \
@@ -1798,6 +1811,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                 RCMD.disconnect()
                 continue
             device_drive_string = RCMD.drive_string
+            router_type = RCMD.router_type
             ### MAKE UNIQUE DIRECTORY LIST ####################################         
             redundant_dev_dir_list = [ dev_dir for directory,dev_dir,file,md5,fsize in true_sw_release_files_on_server ]
             dev_dir_set = set(redundant_dev_dir_list)
@@ -1836,8 +1850,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                         filecheck_list.append([file,file_found_on_device,file_size_ok_on_device])
             ### MAKE BAD FILE LIST, BECAUSE HUAWEI MD5 SUM CHECK IS SLOW ######            
             bad_files = [ file for file, file_found_on_device, file_size_ok_on_device in \
-                filecheck_list if not file_found_on_device and not file_size_ok_on_device]
-            CGI_CLI.uprint(bad_files)             
+                filecheck_list if not file_found_on_device and not file_size_ok_on_device]            
             ### CHECK FILE(S) AND MD5(S) FIRST ################################
             xr_md5_cmds, xe_md5_cmds, huawei_md5_cmds = [], [], []
             for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
@@ -1891,7 +1904,6 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                         [device,[directory, dev_dir, file, md5, fsize]])
                     if printall: CGI_CLI.uprint('File=%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
                         (file,file_found_on_device,md5_ok,file_size_ok_on_device))
-            device_drive_string = RCMD.drive_string
             RCMD.disconnect()
     ### PRINT NEEDED FILES TO COPY ############################################
     at_least_some_files_need_to_copy = None
@@ -1922,7 +1934,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
         CGI_CLI.data.get('check_device_sw_files_only'):
         CGI_CLI.uprint('SW RELEASE FILES - CHECK FAILED!' , tag = 'h1', color = 'red')
         sys.exit(0)
-    return all_files_on_all_devices_ok, needed_to_copy_files_per_device_list, device_drive_string
+    return all_files_on_all_devices_ok, needed_to_copy_files_per_device_list, device_drive_string, router_type
 
 ##############################################################################
 
@@ -2009,7 +2021,7 @@ def check_free_disk_space_on_devices(device_list = None, \
 def copy_files_to_devices(true_sw_release_files_on_server = None, \
     needed_to_copy_files_per_device_list = None, \
     device_list = None, USERNAME = None, PASSWORD = None, \
-    device_drive_string = None):
+    device_drive_string = None, router_type = None):
     old_files_status = []
     files_status = []
     scp_list, forget_it = does_run_scp_processes(printall = printall)
@@ -2023,13 +2035,15 @@ def copy_files_to_devices(true_sw_release_files_on_server = None, \
         if len(scp_list) == 0:
             if CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
                 do_scp_one_file_to_more_devices(true_sw_release_file_on_server, device_list, \
-                    USERNAME, PASSWORD, device_drive_string = device_drive_string, printall = printall)
+                    USERNAME, PASSWORD, device_drive_string = device_drive_string, \
+                    printall = printall, router_type = router_type)
             else:
                 do_scp_one_file_to_more_devices_per_needed_to_copy_list( \
                     true_sw_release_file_on_server, \
                     needed_to_copy_files_per_device_list, \
                     device_list, USERNAME, PASSWORD, \
-                    device_drive_string = device_drive_string, printall = printall)
+                    device_drive_string = device_drive_string, \
+                    printall = printall, router_type = router_type)
 
 
         ### IF SCP_LIST IS NOT VOID CHECK AND COPY ONLY NOT RUNNING ###
@@ -2041,13 +2055,15 @@ def copy_files_to_devices(true_sw_release_files_on_server = None, \
             else:
                 if CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
                     do_scp_one_file_to_more_devices(true_sw_release_file_on_server, device_list, \
-                        USERNAME, PASSWORD, device_drive_string = device_drive_string, printall = printall)
+                        USERNAME, PASSWORD, device_drive_string = device_drive_string, \
+                        printall = printall, router_type = router_type)
                 else:
                     do_scp_one_file_to_more_devices_per_needed_to_copy_list( \
                         true_sw_release_file_on_server, \
                         needed_to_copy_files_per_device_list, \
                         device_list, USERNAME, PASSWORD, \
-                        device_drive_string = device_drive_string, printall = printall)
+                        device_drive_string = device_drive_string, \
+                        printall = printall, router_type = router_type)
         ### DO SCP LIST AGAIN AND WAIT TILL END OF YOUR SCP SESSIONS ###
         actual_scp_devices_in_scp_list = True
         while actual_scp_devices_in_scp_list:
@@ -2474,14 +2490,14 @@ unique_device_directory_list = list(dev_dir_set)
 
 ### GET DEVICE DRIVE STRING ###################################################
 if CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
-    device_drive_string = get_device_drive_string(device_list = device_list, \
+    device_drive_string, router_type = get_device_drive_string(device_list = device_list, \
         USERNAME = USERNAME, PASSWORD = PASSWORD, logfilename = logfilename, \
         printall = printall, \
         silent_mode = True)
 else:
     ### CHECK EXISTING FILES ON DEVICES #######################################
     all_files_on_all_devices_ok, needed_to_copy_files_per_device_list, \
-        device_drive_string = \
+        device_drive_string, router_type = \
         check_files_on_devices(device_list = device_list, \
         true_sw_release_files_on_server = true_sw_release_files_on_server, \
         USERNAME = USERNAME, PASSWORD = PASSWORD, logfilename = logfilename, \
@@ -2501,11 +2517,12 @@ while not all_files_on_all_devices_ok:
     copy_files_to_devices(true_sw_release_files_on_server = true_sw_release_files_on_server, \
         needed_to_copy_files_per_device_list = needed_to_copy_files_per_device_list, \
         device_list = device_list, USERNAME = USERNAME, PASSWORD = PASSWORD, \
-        device_drive_string = device_drive_string)
+        device_drive_string = device_drive_string, router_type = router_type)
     time.sleep(3)
     number_of_scp_treatments += 1
     ### CHECK DEVICE FILES AFTER COPYING ######################################
-    all_files_on_all_devices_ok, needed_to_copy_files_per_device_list, device_drive_string = \
+    all_files_on_all_devices_ok, needed_to_copy_files_per_device_list, \
+        device_drive_string, router_type = \
         check_files_on_devices(device_list = device_list, \
         true_sw_release_files_on_server = true_sw_release_files_on_server, \
         USERNAME = USERNAME, PASSWORD = PASSWORD, logfilename = logfilename, \
