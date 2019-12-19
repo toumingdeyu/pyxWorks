@@ -1673,11 +1673,14 @@ def does_run_scp_processes(printall = None):
                         server_file = files_string.split()[0]
                         device_user = files_string.split()[1].split('@')[0]
                         device = files_string.split()[1].split('@')[1].split(':')[0]
-                        device_file = files_string.split()[1].split(device+':/')[1]
+                        ### HUAWEI SCP WITHOUT / ###
+                        try: device_file = files_string.split()[1].split(device+':/')[1]
+                        except: device_file = files_string.split()[1].split(device+':')[1]
                         pid = line.split()[1]
                         ppid = line.split()[2]
                         scp_list.append([server_file, device_file, device, device_user, pid, ppid])
                     except: pass
+    #if printall: CGI_CLI.uprint(scp_list)                
     return scp_list, scp_ps_list
 
 ##############################################################################
