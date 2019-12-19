@@ -1821,7 +1821,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                 % (device), no_newlines = None if printall else True)   
             xe_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) for dev_dir in unique_device_directory_list ]
             xr_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) for dev_dir in unique_device_directory_list ]
-            huawei_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) for dev_dir in unique_device_directory_list ]
+            huawei_device_dir_list = [ 'dir %s%s/' % (RCMD.drive_string, dev_dir) for dev_dir in unique_device_directory_list ]
             dir_device_cmds = {
                 'cisco_ios':xe_device_dir_list,
                 'cisco_xr':xr_device_dir_list,
