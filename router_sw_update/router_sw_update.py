@@ -2021,19 +2021,19 @@ def check_free_disk_space_on_devices(device_list = None, \
 def copy_files_to_devices(true_sw_release_files_on_server = None, \
     needed_to_copy_files_per_device_list = None, \
     device_list = None, USERNAME = None, PASSWORD = None, \
-    device_drive_string = None, router_type = None):
+    device_drive_string = None, router_type = None, force_rewrite = None):
     old_files_status = []
     files_status = []
     scp_list, forget_it = does_run_scp_processes(printall = printall)
     
-    if CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
+    if force_rewrite:
         CGI_CLI.uprint('Copy all file(s) to all device(s).', tag = 'h3', color = 'blue')
     
     for true_sw_release_file_on_server in true_sw_release_files_on_server:
         directory,dev_dir,file,md5,fsize = true_sw_release_file_on_server
         ### IF SCP_LIST IS VOID COPY ALL ###
         if len(scp_list) == 0:
-            if CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
+            if force_rewrite:
                 do_scp_one_file_to_more_devices(true_sw_release_file_on_server, device_list, \
                     USERNAME, PASSWORD, device_drive_string = device_drive_string, \
                     printall = printall, router_type = router_type)
@@ -2053,7 +2053,7 @@ def copy_files_to_devices(true_sw_release_files_on_server = None, \
                 CGI_CLI.uprint('FILE %s is already copying to device %s, ommiting new scp copying!' % \
                     (device_file, device))
             else:
-                if CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
+                if force_rewrite:
                     do_scp_one_file_to_more_devices(true_sw_release_file_on_server, device_list, \
                         USERNAME, PASSWORD, device_drive_string = device_drive_string, \
                         printall = printall, router_type = router_type)
@@ -2514,12 +2514,17 @@ else:
 ### def LOOP TILL ALL FILES ARE COPIED OK #####################################
 number_of_scp_treatments = 0
 while not all_files_on_all_devices_ok:
+    number_of_scp_treatments += 1
+    if CGI_CLI.data.get('force_rewrite_sw_files_on_device') and number_of_scp_treatments <= 1:
+        force_rewrite = True
+    else: force_rewrite = False
+    ### FORCE REWRITE HAS A SENSE FIRST TIME ONLY #############################    
     copy_files_to_devices(true_sw_release_files_on_server = true_sw_release_files_on_server, \
         needed_to_copy_files_per_device_list = needed_to_copy_files_per_device_list, \
         device_list = device_list, USERNAME = USERNAME, PASSWORD = PASSWORD, \
-        device_drive_string = device_drive_string, router_type = router_type)
-    time.sleep(3)
-    number_of_scp_treatments += 1
+        device_drive_string = device_drive_string, router_type = router_type, \
+        force_rewrite = force_rewrite)
+    time.sleep(3)   
     ### CHECK DEVICE FILES AFTER COPYING ######################################
     all_files_on_all_devices_ok, needed_to_copy_files_per_device_list, \
         device_drive_string, router_type = \
