@@ -1486,11 +1486,11 @@ def do_scp_one_file_to_more_devices(true_sw_release_file_on_server = None, \
                 local_command = 'sshpass -e scp -v -o StrictHostKeyChecking=no %s %s@%s:/%s 1>/dev/null 2>/dev/null &' \
                     % (os.path.join(directory, file), USERNAME, device, \
                     '%s%s' % (device_drive_string, os.path.join(dev_dir, file)))
-            ### HUAWEI MUST NOT HAVE /cfcard: , cfcard only!!! ###        
-            elif router_type == 'huawei':     
+            ### HUAWEI MUST NOT HAVE /cfcard: , cfcard only!!! ###
+            elif router_type == 'huawei':
                 local_command = 'sshpass -e scp -v -o StrictHostKeyChecking=no %s %s@%s:%s 1>/dev/null 2>/dev/null &' \
                     % (os.path.join(directory, file), USERNAME, device, \
-                    '%s%s' % (device_drive_string, os.path.join(dev_dir, file)))                                
+                    '%s%s' % (device_drive_string, os.path.join(dev_dir, file)))
             if printall:CGI_CLI.uprint(local_command)
             os.system(local_command)
             CGI_CLI.uprint('scp start file %s, (file size %.2fMB) to device %s' % \
@@ -1522,10 +1522,10 @@ def do_scp_one_file_to_more_devices_per_needed_to_copy_list(\
                         local_command = 'sshpass -e scp -v -o StrictHostKeyChecking=no %s %s@%s:/%s 1>/dev/null 2>/dev/null &' \
                             % (os.path.join(directory, file), USERNAME, device, \
                             '%s%s' % (device_drive_string, os.path.join(dev_dir, file)))
-                    elif router_type == 'huawei':         
+                    elif router_type == 'huawei':
                         local_command = 'sshpass -e scp -v -o StrictHostKeyChecking=no %s %s@%s:%s 1>/dev/null 2>/dev/null &' \
                             % (os.path.join(directory, file), USERNAME, device, \
-                            '%s%s' % (device_drive_string, os.path.join(dev_dir, file)))                            
+                            '%s%s' % (device_drive_string, os.path.join(dev_dir, file)))
                     if printall:CGI_CLI.uprint(local_command)
                     os.system(local_command)
                     CGI_CLI.uprint('scp start file %s, (file size %.2fMB) to device %s' % \
@@ -1680,7 +1680,6 @@ def does_run_scp_processes(printall = None):
                         ppid = line.split()[2]
                         scp_list.append([server_file, device_file, device, device_user, pid, ppid])
                     except: pass
-    #if printall: CGI_CLI.uprint(scp_list)                
     return scp_list, scp_ps_list
 
 ##############################################################################
@@ -1719,7 +1718,7 @@ def kill_stalled_scp_processes(device_file = None, printall = None):
                 if str(device_file) in line:
                     try: pid_list.append(line.split()[1])
                     except: pass
-        if len(pid_list) > 0:            
+        if len(pid_list) > 0:
             my_ps_result = LCMD.run_commands({'unix':["kill %s" % ','.join(pid_list)]},
             printall = printall)
 
@@ -1763,7 +1762,7 @@ def check_percentage_of_copied_files(scp_list = [], USERNAME = None, \
                             if device_file.split('/')[-1] in line:
                                 try: device_filesize_in_bytes = float(line.split()[2].replace(',',''))
                                 except: pass
-                        except: pass                
+                        except: pass
                 server_filesize_in_bytes = float(os.stat(server_file).st_size)
                 percentage = float(100*device_filesize_in_bytes/server_filesize_in_bytes)
                 CGI_CLI.uprint('Device %s file %s    %.2f%% copied.' % (device, device_file, \
@@ -1773,7 +1772,7 @@ def check_percentage_of_copied_files(scp_list = [], USERNAME = None, \
             else:
                 CGI_CLI.uprint('Device %s file %s    still copying...' % \
                     (device, device_file) , color = 'blue')
-                device_file_percentage_list.append([device, device_file, -1])    
+                device_file_percentage_list.append([device, device_file, -1])
     return device_file_percentage_list
 
 ##############################################################################
@@ -1816,13 +1815,13 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                 continue
             device_drive_string = RCMD.drive_string
             router_type = RCMD.router_type
-            ### MAKE UNIQUE DIRECTORY LIST ####################################         
+            ### MAKE UNIQUE DIRECTORY LIST ####################################
             redundant_dev_dir_list = [ dev_dir for directory,dev_dir,file,md5,fsize in true_sw_release_files_on_server ]
             dev_dir_set = set(redundant_dev_dir_list)
             unique_device_directory_list = list(dev_dir_set)
             ### SHOW DEVICE DIRECTORY #########################################
             CGI_CLI.uprint('checking existing device file(s) and md5(s) on %s' \
-                % (device), no_newlines = None if printall else True)   
+                % (device), no_newlines = None if printall else True)
             xe_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) for dev_dir in unique_device_directory_list ]
             xr_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) for dev_dir in unique_device_directory_list ]
             huawei_device_dir_list = [ 'dir %s%s/' % (RCMD.drive_string, dev_dir if dev_dir != '/' else str()) for dev_dir in unique_device_directory_list ]
@@ -1840,21 +1839,21 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                         file_size_ok_on_device = False
                         device_fsize = 0
                         possible_file_name = str()
-                        for line in unique_dir_outputs.splitlines():                                                           
+                        for line in unique_dir_outputs.splitlines():
                             if file in line:
                                 try:
                                     possible_file_name = line.split()[-1].strip()
                                     if RCMD.router_type == 'huawei':
-                                        device_fsize = float(line.split()[2].replace(',','')) 
+                                        device_fsize = float(line.split()[2].replace(',',''))
                                     elif RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
-                                        device_fsize = float(line.split()[3].replace(',',''))                                                 
-                                except: pass                            
+                                        device_fsize = float(line.split()[3].replace(',',''))
+                                except: pass
                         if file == possible_file_name: file_found_on_device = True
                         if device_fsize == fsize: file_size_ok_on_device = True
                         filecheck_list.append([file,file_found_on_device,file_size_ok_on_device])
-            ### MAKE BAD FILE LIST, BECAUSE HUAWEI MD5 SUM CHECK IS SLOW ######            
+            ### MAKE BAD FILE LIST, BECAUSE HUAWEI MD5 SUM CHECK IS SLOW ######
             bad_files = [ file for file, file_found_on_device, file_size_ok_on_device in \
-                filecheck_list if not file_found_on_device and not file_size_ok_on_device]            
+                filecheck_list if not file_found_on_device and not file_size_ok_on_device]
             ### CHECK FILE(S) AND MD5(S) FIRST ################################
             xr_md5_cmds, xe_md5_cmds, huawei_md5_cmds = [], [], []
             for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
@@ -1864,7 +1863,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                     xe_md5_cmds.append('\n')
                     huawei_md5_cmds.append('\n')
                     huawei_md5_cmds.append('\n')
-                else:                
+                else:
                     xr_md5_cmds.append('show md5 file /%s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
                     xe_md5_cmds.append('verify /md5 %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
                     if '.CC' in file.upper():
@@ -1872,23 +1871,23 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                         huawei_md5_cmds.append('Y')
                     if '.PAT' in file.upper():
                         huawei_md5_cmds.append('check patch %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
-                        huawei_md5_cmds.append('Y')                    
+                        huawei_md5_cmds.append('Y')
             rcmd_md5_outputs = RCMD.run_commands( \
                 {'cisco_ios':xe_md5_cmds,'cisco_xr':xr_md5_cmds,'huawei':huawei_md5_cmds}, \
                 printall = printall)
-            CGI_CLI.uprint('\n')    
+            CGI_CLI.uprint('\n')
             ### CHECK MD5 RESULTS IN LOOP #####################################
-            if RCMD.router_type == 'huawei':            
+            if RCMD.router_type == 'huawei':
                 for files_list in true_sw_release_files_on_server:
                     md5_ok = False
-                    directory, dev_dir, file, md5, fsize = files_list  
+                    directory, dev_dir, file, md5, fsize = files_list
                     for rcmd_md5_output in rcmd_md5_outputs:
-                        if 'Info: Prepare to check' in rcmd_md5_output and file in rcmd_md5_output:                                                        
+                        if 'Info: Prepare to check' in rcmd_md5_output and file in rcmd_md5_output:
                             if 'Info: System software CRC check OK!' in rcmd_md5_output \
-                                or 'Info: The patch is complete.' in rcmd_md5_output: 
+                                or 'Info: The patch is complete.' in rcmd_md5_output:
                                     md5_ok = True
-                    md5check_list.append([file,md5_ok])                
-            if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios': 
+                    md5check_list.append([file,md5_ok])
+            if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
                 for files_list,rcmd_md5_output in zip(true_sw_release_files_on_server,rcmd_md5_outputs):
                     md5_ok = False
                     directory, dev_dir, file, md5, fsize = files_list
@@ -1897,24 +1896,24 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                         md5_on_device = find_list[0]
                         if md5_on_device == md5:
                             md5_ok = True
-                    md5check_list.append([file,md5_ok])                        
-            ### CHECK IF DEVICE FILES ARE OK ##################################                        
-            for md5list,filelist in zip(md5check_list,filecheck_list):                
+                    md5check_list.append([file,md5_ok])
+            ### CHECK IF DEVICE FILES ARE OK ##################################
+            for md5list,filelist in zip(md5check_list,filecheck_list):
                  file1, md5_ok = md5list
                  file2, file_found_on_device, file_size_ok_on_device = filelist
-                 if file1==file2:                                        
+                 if file1==file2:
                     if file_found_on_device and md5_ok and file_size_ok_on_device: pass
                     else:
                         for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
-                            if file == file1:                        
+                            if file == file1:
                                 needed_to_copy_files_per_device_list.append( \
                                     [device,[directory, dev_dir, file, md5, fsize]])
                     if printall: CGI_CLI.uprint('File=%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
-                        (file,file_found_on_device,md5_ok,file_size_ok_on_device))         
-            ###################################################################            
+                        (file,file_found_on_device,md5_ok,file_size_ok_on_device))
+            ###################################################################
             # for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
                 # for bad_file in bad_files:
-                    # if bad_file == file: 
+                    # if bad_file == file:
                         # needed_to_copy_files_per_device_list.append([device,[directory, dev_dir, file, md5, fsize]])
             ###################################################################
             RCMD.disconnect()
@@ -1982,7 +1981,7 @@ def check_free_disk_space_on_devices(device_list = None, \
                          split('harddisk:')[0].splitlines()[-1].split()[1].strip())
                 except: pass
             elif RCMD.router_type == 'juniper': pass
-            elif RCMD.router_type == 'huawei': 
+            elif RCMD.router_type == 'huawei':
                 try: device_free_space = float(rcmd_check_disk_space_outputs[0].\
                          split(' KB free)')[0].splitlines()[-1].split()[-1].\
                          replace('(','').replace(',','').strip())*1024
@@ -1998,6 +1997,9 @@ def check_free_disk_space_on_devices(device_list = None, \
                         xr_device_mkdir_list.append('\r\n')
                         huawei_device_mkdir_list.append('mkdir %s/%s' % \
                             (RCMD.drive_string, os.path.join(up_path,dev_sub_dir)))
+                        if CGI_CLI.data.get('copy_device_sw_files_to_huawei_slave_cfcard'):
+                            huawei_device_mkdir_list.append('mkdir slave#%s/%s' % \
+                                (RCMD.drive_string, os.path.join(up_path,dev_sub_dir)))
                         up_path = os.path.join(up_path, dev_sub_dir)
 
             mkdir_device_cmds = {
@@ -2035,10 +2037,10 @@ def copy_files_to_devices(true_sw_release_files_on_server = None, \
     old_files_status = []
     files_status = []
     scp_list, forget_it = does_run_scp_processes(printall = printall)
-    
+
     if force_rewrite:
         CGI_CLI.uprint('Copy all file(s) to all device(s).', tag = 'h3', color = 'blue')
-    
+
     for true_sw_release_file_on_server in true_sw_release_files_on_server:
         directory,dev_dir,file,md5,fsize = true_sw_release_file_on_server
         ### IF SCP_LIST IS VOID COPY ALL ###
@@ -2091,7 +2093,7 @@ def copy_files_to_devices(true_sw_release_files_on_server = None, \
                         if percentage >= 0:
                             CGI_CLI.uprint('WARNING: Device=%s, File=%s, Percent copied=%.2f HAS STALLED, KILLING SCP PROCESSES!' % \
                                 (device, device_file, percentage), color = 'red')
-                            kill_stalled_scp_processes(device_file = device_file, printall = printall)   
+                            kill_stalled_scp_processes(device_file = device_file, printall = printall)
             else: break
 
 ##############################################################################
@@ -2344,6 +2346,7 @@ if CGI_CLI.cgi_active and (not CGI_CLI.submit_form or active_menu == 2):
             {'checkbox':'check_device_sw_files_only'},'<br/>',\
             {'checkbox':'display_scp_percentage_only'},'<br/>',\
             {'checkbox':'force_rewrite_sw_files_on_device'},'<br/>',\
+            {'checkbox':'copy_device_sw_files_to_huawei_slave_cfcard'},'<br/>',\
             {'checkbox':'backup_configs_to_device_disk'},'<br/>',\
             {'checkbox':'delete_device_sw_files_on_end'},'<br/>',\
             '<br/>', {'checkbox':'printall'}]
@@ -2363,7 +2366,7 @@ else:
         if CGI_CLI.data.get("script_action"):
             SCRIPT_ACTION = CGI_CLI.data.get("script_action")
 
-### def DISPLAY PERCENTAGE OF SCP #############################################
+### def DISPLAY PERCENTAGE OF SCP ONLY ########################################
 if CGI_CLI.data.get('display_scp_percentage_only'):
     scp_list, forget_it = does_run_scp_processes(printall = printall)
     if len(scp_list)>0 and USERNAME and PASSWORD:
@@ -2389,14 +2392,17 @@ if len(selected_sw_file_types_list)>0:
 if logfilename: CGI_CLI.uprint('logfile=%s' % (logfilename))
 if CGI_CLI.data.get('display_scp_percentage_only'):
     CGI_CLI.uprint('display_scp_percentage_only = Y')
-elif CGI_CLI.data.get('check_device_sw_files_only'): 
+elif CGI_CLI.data.get('check_device_sw_files_only'):
     CGI_CLI.uprint('check_device_sw_files_only = Y')
-elif CGI_CLI.data.get('force_rewrite_sw_files_on_device'): 
+elif CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
     CGI_CLI.uprint('force_rewrite_sw_files_on_device = Y')
-if CGI_CLI.data.get('backup_configs_to_device_disk'): 
-    CGI_CLI.uprint('backup_configs_to_device_disk = Y')    
-if CGI_CLI.data.get('delete_device_sw_files_on_end'): 
+if CGI_CLI.data.get('copy_device_sw_files_to_huawei_slave_cfcard'):
+    CGI_CLI.uprint('copy_device_sw_files_to_huawei_slave_cfcard = Y')
+if CGI_CLI.data.get('backup_configs_to_device_disk'):
+    CGI_CLI.uprint('backup_configs_to_device_disk = Y')
+if CGI_CLI.data.get('delete_device_sw_files_on_end'):
     CGI_CLI.uprint('delete_device_sw_files_on_end = Y')
+
 
 ###############################################################################
 if CGI_CLI.data.get('sw_files'):
@@ -2529,13 +2535,13 @@ while not all_files_on_all_devices_ok:
     if CGI_CLI.data.get('force_rewrite_sw_files_on_device') and number_of_scp_treatments <= 1:
         force_rewrite = True
     else: force_rewrite = False
-    ### FORCE REWRITE HAS A SENSE FIRST TIME ONLY #############################    
+    ### FORCE REWRITE HAS A SENSE FIRST TIME ONLY #############################
     copy_files_to_devices(true_sw_release_files_on_server = true_sw_release_files_on_server, \
         needed_to_copy_files_per_device_list = needed_to_copy_files_per_device_list, \
         device_list = device_list, USERNAME = USERNAME, PASSWORD = PASSWORD, \
         device_drive_string = device_drive_string, router_type = router_type, \
         force_rewrite = force_rewrite)
-    time.sleep(3)   
+    time.sleep(3)
     ### CHECK DEVICE FILES AFTER COPYING ######################################
     all_files_on_all_devices_ok, needed_to_copy_files_per_device_list, \
         device_drive_string, router_type = \
@@ -2543,11 +2549,11 @@ while not all_files_on_all_devices_ok:
         true_sw_release_files_on_server = true_sw_release_files_on_server, \
         USERNAME = USERNAME, PASSWORD = PASSWORD, logfilename = logfilename, \
         printall = printall, check_mode = True)
-    ### TRY SCP X TIMES, THEN END ############################################# 
+    ### TRY SCP X TIMES, THEN END #############################################
     if number_of_scp_treatments >= number_of_scp_attempts:
         CGI_CLI.uprint('MULTIPLE (%d) SCP ATTEMPTS FAILED!' % \
-        (number_of_scp_attempts), tag = 'h1', color = 'red')    
-        break    
+        (number_of_scp_attempts), tag = 'h1', color = 'red')
+        break
 
 ### def ADITIONAL DEVICE ACTIONS ##################################################
 if CGI_CLI.data.get('backup_configs_to_device_disk') \
@@ -2563,6 +2569,43 @@ if CGI_CLI.data.get('backup_configs_to_device_disk') \
                 CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), color = 'red')
                 RCMD.disconnect()
                 continue
+
+            if RCMD.router_type == 'huawei':
+                ### COPY FILES TO SLAVE #######################################
+                if CGI_CLI.data.get('copy_device_sw_files_to_huawei_slave_cfcard'):
+                    del_files_cmds = {'huawei':[]}
+
+                    for unique_dir in unique_device_directory_list:
+                        for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
+                            if unique_dir == dev_dir:
+                                del_files_cmds['huawei'].append('copy %s%s slave#%s%s' % \
+                                    (RCMD.drive_string, os.path.join(dev_dir, file),
+                                    RCMD.drive_string, os.path.join(dev_dir, file)))
+                                del_files_cmds['huawei'].append('Y')
+                    CGI_CLI.uprint('copying sw release files on %s to slave cfcard' % (device), \
+                        no_newlines = None if printall else True)
+                    forget_it = RCMD.run_commands(del_files_cmds, printall = printall)
+
+                    ### CHECK FILES COPY ######################################
+                    check_dir_files_cmds = {'cisco_xr':[],'cisco_ios':[],'huawei':[]}
+                    for unique_dir in unique_device_directory_list:
+                        for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
+                            if unique_dir == dev_dir:
+                                check_dir_files_cmds['huawei'].append( \
+                                    'dir slave#%s%s/' % (RCMD.drive_string, dev_dir if dev_dir != '/' else str()))
+                    time.sleep(0.5)
+                    dir_outputs_after_deletion = RCMD.run_commands(check_dir_files_cmds, \
+                        printall = printall)
+                    CGI_CLI.uprint('\n')
+                    file_not_found = False
+                    for unique_dir in unique_device_directory_list:
+                        for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
+                            if unique_dir == dev_dir:
+                                if file in dir_outputs_after_deletion[0]:
+                                    CGI_CLI.uprint(file, color = 'red')
+                                    CGI_CLI.uprint(dir_outputs_after_deletion[3], color = 'blue')
+                                else: file_not_found = True
+                    if file_not_found: CGI_CLI.uprint('COPY PROBLEM!', color = 'red')
 
             ### CHECK LOCAL SERVER AND DEVICE HDD FILES #######################
             if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
@@ -2605,7 +2648,7 @@ if CGI_CLI.data.get('backup_configs_to_device_disk') \
                                     'del %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
                                 del_files_cmds['cisco_ios'].append('\n')
                                 del_files_cmds['cisco_ios'].append('\n')
-                                
+
                                 del_files_cmds['huawei'].append( \
                                     'del %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
                                 del_files_cmds['huawei'].append('Y')
@@ -2623,7 +2666,7 @@ if CGI_CLI.data.get('backup_configs_to_device_disk') \
                                 check_dir_files_cmds['cisco_ios'].append( \
                                     'dir %s%s' % (RCMD.drive_string, dev_dir))
                                 check_dir_files_cmds['huawei'].append( \
-                                    'dir %s%s/' % (RCMD.drive_string, dev_dir if dev_dir != '/' else str()))                                    
+                                    'dir %s%s/' % (RCMD.drive_string, dev_dir if dev_dir != '/' else str()))
                     time.sleep(0.5)
                     dir_outputs_after_deletion = RCMD.run_commands(check_dir_files_cmds, \
                         printall = printall)
