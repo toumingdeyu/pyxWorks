@@ -1849,8 +1849,10 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                                     possible_file_name = line.split()[-1].strip()
                                     if RCMD.router_type == 'huawei':
                                         device_fsize = float(line.split()[2].replace(',',''))
-                                    elif RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
+                                    elif RCMD.router_type == 'cisco_xr':
                                         device_fsize = float(line.split()[3].replace(',',''))
+                                    elif RCMD.router_type == 'cisco_ios':
+                                        device_fsize = float(line.split()[2].replace(',',''))
                                 except: pass
                         if file == possible_file_name: file_found_on_device = True
                         if device_fsize == fsize: file_size_ok_on_device = True
