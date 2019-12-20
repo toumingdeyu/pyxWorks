@@ -122,7 +122,7 @@ class CGI_CLI(object):
         parser.add_argument("--slave",
                            action = 'store_true', dest = "copy_device_sw_files_to_huawei_slave_cfcard",
                            default = None,
-                           help = "copy device sw files to huawei slave cfcard")                           
+                           help = "copy device sw files to huawei slave cfcard")
         parser.add_argument("--delete",
                             action = 'store_true', dest = "delete_device_sw_files_on_end",
                             default = None,
@@ -1954,7 +1954,9 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
 ##############################################################################
 
 def check_free_disk_space_on_devices(device_list = None, \
+    needed_to_copy_files_per_device_list = None, \
     USERNAME = None, PASSWORD = None, logfilename = None, printall = None):
+    device_free_space_in_bytes = 0
     disk_low_space_devices, disk_free_list = [], []
     for device in device_list:
         if device:
@@ -1979,16 +1981,16 @@ def check_free_disk_space_on_devices(device_list = None, \
             rcmd_check_disk_space_outputs = RCMD.run_commands(check_disk_space_cmds)
 
             if RCMD.router_type == 'cisco_ios':
-                try: device_free_space = float(rcmd_check_disk_space_outputs[1].\
+                try: device_free_space_in_bytes = float(rcmd_check_disk_space_outputs[1].\
                          split('bytes available')[0].splitlines()[-1].strip())
                 except: pass
             elif RCMD.router_type == 'cisco_xr':
-                try: device_free_space = float(rcmd_check_disk_space_outputs[0].\
+                try: device_free_space_in_bytes = float(rcmd_check_disk_space_outputs[0].\
                          split('harddisk:')[0].splitlines()[-1].split()[1].strip())
                 except: pass
             elif RCMD.router_type == 'juniper': pass
             elif RCMD.router_type == 'huawei':
-                try: device_free_space = float(rcmd_check_disk_space_outputs[0].\
+                try: device_free_space_in_bytes = float(rcmd_check_disk_space_outputs[0].\
                          split(' KB free)')[0].splitlines()[-1].split()[-1].\
                          replace('(','').replace(',','').strip())*1024
                 except: pass
@@ -2016,22 +2018,30 @@ def check_free_disk_space_on_devices(device_list = None, \
             }
             forget_it = RCMD.run_commands(mkdir_device_cmds)
             CGI_CLI.uprint('\n')
-            disk_free_list.append([device,float(device_free_space)/1048576])
+            ### CALCULATE NEEDED SPACE ON DEVICE FORM MISSING FILES ###
+            device_free_space_in_bytes_in_bytes = 0
+            for device2,missing_or_bad_files_per_device in needed_to_copy_files_per_device_list:
+                directory, dev_dir, file, md5, fsize = missing_or_bad_files_per_device
+                if device == device2:
+                    device_free_space_in_bytes_in_bytes += fsize
+            disk_free_list.append([device, device_free_space_in_bytes, device_free_space_in_bytes_in_bytes])
             RCMD.disconnect()
-    CGI_CLI.uprint('Device    Disk_free:', tag = 'h3' , color = 'blue')
+    CGI_CLI.uprint('Device    Disk_free    Disk_needed:', tag = 'h3' , color = 'blue')
     all_disk_checks_ok = True
     #CGI_CLI.uprint(start_tag = 'p')
-    for device, disk_free in disk_free_list:
+    for device, disk_free, disk_reguired in disk_free_list:
         ### SOME GB FREE EXPECTED (1MB=1048576, 1GB=1073741824) ###
-        if disk_free < (device_expected_GB_free * 1073741824):
+        if disk_free + (device_expected_MB_free * 1048576) < disk_reguired:
             all_disk_checks_ok = False
-            CGI_CLI.uprint('%s    %.2f MB' % (device, disk_free), \
-                color = 'red')
+            CGI_CLI.uprint('%s    %.2f MB    %.2f MB' % (device, float(disk_free)/1048576, \
+                float(disk_reguired)/1048576), color = 'red')
             disk_low_space_devices.append(device)
-        else: CGI_CLI.uprint('%s    %.2f MB' % (device, disk_free), \
-                  color = 'blue')
+        else: CGI_CLI.uprint('%s    %.2f MB    %.2f MB' % (device, float(disk_free)/1048576, \
+            float(disk_reguired)/1048576), color = 'blue')
     #CGI_CLI.uprint(end_tag = 'p')
-    if not all_disk_checks_ok: CGI_CLI.uprint('Disk space - CHECK FAIL.', color = 'RED')
+    if not all_disk_checks_ok: 
+        CGI_CLI.uprint('Disk space - CHECK FAIL!', tag='h1', color = 'RED')
+        sys.exit(0)
     return disk_low_space_devices
 
 ##############################################################################
@@ -2135,7 +2145,7 @@ if len(scp_list)>0:
 
 
 ### def GLOBAL CONSTANTS #####################################################
-device_expected_GB_free = 0
+device_expected_MB_free = 100
 number_of_scp_attempts = 3
 
 SCRIPT_ACTIONS_LIST = [
@@ -2149,7 +2159,6 @@ asr9k_detection_string = 'ASR9K|IOS-XRv 9000'
 
 ### GLOBAL VARIABLES ##########################################################
 
-device_free_space = 0
 SCRIPT_ACTION = None
 ACTION_ITEM_FOUND = None
 type_subdir = str()
@@ -2170,7 +2179,7 @@ if devices_string:
 
 ### GET sw_release FROM cli ###################################################
 sw_release = CGI_CLI.data.get('sw_release',str())
-try: device_expected_GB_free = float(CGI_CLI.data.get('device_disk_free_GB',device_expected_GB_free))
+try: device_expected_MB_free = float(CGI_CLI.data.get('remaining_device_disk_free_MB',device_expected_MB_free))
 except: pass
 iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
 if CGI_CLI.cgi_active and not (USERNAME and PASSWORD):
@@ -2341,8 +2350,8 @@ if CGI_CLI.cgi_active and (not CGI_CLI.submit_form or active_menu == 2):
         if len(sw_file_types_list) == 0:
             main_menu_list.append('<h3 style="color:red">NO FILE TYPES SPECIFIED!</h3>')
 
-        main_menu_list += ['<h3>DEVICE DISK FREE (optional) [default &gt %.2f GB]:</h3>'%(device_expected_GB_free),\
-        {'text':'device_disk_free_GB'}, '<br/>',\
+        main_menu_list += ['<h3>REMAINING DEVICE DISK FREE (optional) [default &gt %.2f MB]:</h3>'%(device_expected_MB_free),\
+        {'text':'remaining_device_disk_free_MB'}, '<br/>',\
         '<h3>LDAP authentication (required):</h3>',{'text':'username'}, \
         '<br/>', {'password':'password'}, '<br/>','<br/>']
 
@@ -2391,8 +2400,8 @@ logfilename = None
 CGI_CLI.uprint('server = %s' % (iptac_server))
 if len(device_list) > 0: CGI_CLI.uprint('device(s) = %s' % (', '.join(device_list)))
 if sw_release: CGI_CLI.uprint('sw release = %s' % (sw_release))
-if device_expected_GB_free:
-    CGI_CLI.uprint('expected disk free = %s GB' % (device_expected_GB_free))
+if device_expected_MB_free:
+    CGI_CLI.uprint('expected remaining disk free = %.2f MB' % (device_expected_MB_free))
 if len(selected_sw_file_types_list)>0:
     CGI_CLI.uprint('sw file types = %s' % (', '.join(selected_sw_file_types_list) ))
 if logfilename: CGI_CLI.uprint('logfile=%s' % (logfilename))
@@ -2530,6 +2539,7 @@ else:
 if all_files_on_all_devices_ok: pass
 else:
     check_free_disk_space_on_devices(device_list = device_list, \
+        needed_to_copy_files_per_device_list = needed_to_copy_files_per_device_list, \
         USERNAME = USERNAME, PASSWORD = PASSWORD, logfilename = logfilename, \
         printall = printall)
 
