@@ -119,6 +119,10 @@ class CGI_CLI(object):
                            action = 'store_true', dest = "force_rewrite_sw_files_on_device",
                            default = None,
                            help = "force rewrite sw release files on device disk")
+        parser.add_argument("--slave",
+                           action = 'store_true', dest = "copy_device_sw_files_to_huawei_slave_cfcard",
+                           default = None,
+                           help = "copy device sw files to huawei slave cfcard")                           
         parser.add_argument("--delete",
                             action = 'store_true', dest = "delete_device_sw_files_on_end",
                             default = None,
