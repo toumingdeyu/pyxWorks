@@ -1807,6 +1807,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
     check_mode = None):
     all_files_on_all_devices_ok = None
     needed_to_copy_files_per_device_list = []
+    compatibility_problem_list = []
     device_drive_string, router_type = str(), str()
     for device in device_list:
         md5check_list, filecheck_list = [], []
@@ -1881,7 +1882,6 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
             rcmd_md5_outputs = RCMD.run_commands( \
                 {'cisco_ios':xe_md5_cmds,'cisco_xr':xr_md5_cmds,'huawei':huawei_md5_cmds}, \
                 printall = printall)
-            CGI_CLI.uprint('\n')
             ### CHECK MD5 RESULTS IN LOOP #####################################
             if RCMD.router_type == 'huawei':
                 for files_list in true_sw_release_files_on_server:
@@ -1903,7 +1903,22 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                         if md5_on_device == md5:
                             md5_ok = True
                     md5check_list.append([file,md5_ok])
+            ### HUAWEI COMPATIBILITY CHECK ####################################
+            if RCMD.router_type == 'huawei':
+                huawei_compatibility_cmds = []
+                for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
+                    if not file in bad_files and '.cc' in file:                        
+                        huawei_compatibility_cmds.append('check hardware-compatibility %s%s' % \
+                            (RCMD.drive_string, os.path.join(dev_dir, file)))
+                    else: huawei_compatibility_cmds.append('\n')                             
+                rcmd_compatibility_outputs = RCMD.run_commands( \
+                    {'huawei':huawei_compatibility_cmds}, printall = printall)                     
+                for compatibility_output, true_sw_file in zip(rcmd_compatibility_outputs, true_sw_release_files_on_server):
+                    directory, dev_dir, file, md5, fsize = true_sw_file
+                    if 'check hardware-compatibility failed!' in compatibility_output:
+                        compatibility_problem_list.append([device,os.path.join(dev_dir, file)])                                                    
             ### CHECK IF DEVICE FILES ARE OK ##################################
+            CGI_CLI.uprint('\n')
             for md5list,filelist in zip(md5check_list,filecheck_list):
                  file1, md5_ok = md5list
                  file2, file_found_on_device, file_size_ok_on_device = filelist
@@ -1917,12 +1932,12 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                     if printall: CGI_CLI.uprint('File=%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
                         (file,file_found_on_device,md5_ok,file_size_ok_on_device))
             ###################################################################
-            # for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
-                # for bad_file in bad_files:
-                    # if bad_file == file:
-                        # needed_to_copy_files_per_device_list.append([device,[directory, dev_dir, file, md5, fsize]])
-            ###################################################################
             RCMD.disconnect()
+    ### PRINT INCOMPATIBLE FILES ##############################################
+    if len(compatibility_problem_list) > 0:
+        CGI_CLI.uprint('Device    Incompatible_file(s):', tag = 'h3', color = 'red')
+        CGI_CLI.uprint('\n'.join([ '%s    %s' % (device,devfile) for device,devfile in compatibility_problem_list ]),
+            color = 'red')
     ### PRINT NEEDED FILES TO COPY ############################################
     if len(needed_to_copy_files_per_device_list) > 0:
         if CGI_CLI.data.get('check_device_sw_files_only') or check_mode:
@@ -1930,9 +1945,13 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
         else:
             CGI_CLI.uprint('Device    File(s)_to_copy:', tag = 'h3', color = 'blue')
     else:
-        CGI_CLI.uprint('Sw release %s file(s) on device(s) %s - CHECK OK.' % \
-            (sw_release, ', '.join(device_list)), tag = 'h1', color='green')
-        all_files_on_all_devices_ok = True
+        if len(compatibility_problem_list) == 0:
+            CGI_CLI.uprint('Sw release %s file(s) on device(s) %s - CHECK OK.' % \
+                (sw_release, ', '.join(device_list)), tag = 'h1', color='green')
+            all_files_on_all_devices_ok = True
+        else:
+            CGI_CLI.uprint('SW RELEASE FILES COMPATIBILITY - CHECK FAILED!' , \
+                tag = 'h1', color = 'red')        
         ### WHEN SUCCESS, THEN CHECK IF EXIT OR NOT ###########################
         if CGI_CLI.data.get('backup_configs_to_device_disk') \
             or CGI_CLI.data.get('delete_device_sw_files_on_end'): pass
@@ -1946,7 +1965,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                 (device,device_drive_string+os.path.join(dev_dir, file)))
     CGI_CLI.uprint(end_tag = 'p')
     if not all_files_on_all_devices_ok and \
-        CGI_CLI.data.get('check_device_sw_files_only'):
+        CGI_CLI.data.get('check_device_sw_files_only') or len(compatibility_problem_list) > 0:
         CGI_CLI.uprint('SW RELEASE FILES - CHECK FAILED!' , tag = 'h1', color = 'red')
         sys.exit(0)
     return all_files_on_all_devices_ok, needed_to_copy_files_per_device_list, device_drive_string, router_type
