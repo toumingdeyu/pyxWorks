@@ -20,5 +20,19 @@
         <br/>
         <!-- Using document.write() after an HTML document is loaded, will delete all existing HTML! -->
         <button type="button" onclick="document.write('Rewritten HTML page.')">Using document.write() after an HTML document is loaded, will delete all existing HTML!</button>
+        <br/>
+        <p>Console log is visible after pressing of F12.</p>
+        <script>
+            console.log('Console log is visible after pressing of F12.');
+        </script>
+                
+        <p id="demo6"></p>
+        <script>
+            function myFunction1() {
+              document.getElementById("demo6").innerHTML = "Paragraph 6";
+            }
+        </script>
+        <button type="button" onclick="myFunction1()">Fill me by function!</button>
+        
     </body>
 </html>
