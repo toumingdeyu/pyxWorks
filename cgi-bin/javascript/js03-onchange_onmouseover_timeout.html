@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+    <body>
+        <p>Onchange event to an input element:</p>
+        Uppercase inserted text: <input type="text" id="fname">
+        <script>
+            document.getElementById("fname").onchange = function() {myFunction()};
+            
+            function myFunction() {
+                var x = document.getElementById("fname");
+                x.value = x.value.toUpperCase();
+            }
+        </script> 
+        <br/>
+        <p id="demo2">Move mouse here...</p>
+        <script>
+            var still_mouseover = false
+            document.getElementById("demo2").onmouseover = function() {myFunction2()};
+            
+            function myFunction2() {
+                still_mouseover = true
+                document.getElementById("demo2").innerHTML = "Mouse is here...";
+                setTimeout(function (){
+                    if(still_mouseover) {
+                        document.getElementById("demo2").innerHTML = "Mouse stays her over 2 seconds...";
+                    }                       
+                }, 2000);                              
+            }
+            
+            document.getElementById("demo2").onmouseout = function() {myFunction3()};
+            function myFunction3() {
+                still_mouseover = false
+                document.getElementById("demo2").innerHTML = "Mouse was here...";
+                setTimeout(function (){
+                    document.getElementById("demo2").innerHTML = "Move mouse here...";  
+                }, 500);                              
+            }            
+            
+        </script>         
+    </body>
+</html>
