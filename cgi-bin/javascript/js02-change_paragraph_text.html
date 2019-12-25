@@ -12,5 +12,13 @@
         <p id="demo3">Hide/Show HTML element.</p>
         <button type="button" onclick="document.getElementById('demo3').style.display='none'">Hide me!</button>
         <button type="button" onclick="document.getElementById('demo3').style.display='block'">Show me!</button>
+        <br/>
+        <p id="demo4"></p>
+        <script>
+            document.getElementById("demo4").innerHTML = '4th Paragraph generated in script.';
+        </script>
+        <br/>
+        <!-- Using document.write() after an HTML document is loaded, will delete all existing HTML! -->
+        <button type="button" onclick="document.write('Rewritten HTML page.')">Using document.write() after an HTML document is loaded, will delete all existing HTML!</button>
     </body>
 </html>
