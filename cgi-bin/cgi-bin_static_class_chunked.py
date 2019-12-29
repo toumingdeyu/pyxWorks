@@ -183,7 +183,7 @@ class CGI_CLI(object):
             sys.stdout.write("HTTP/1.1 Status: 200 OK\n%sContent-type:text/html\n\n" %
                 (CGI_CLI.chunked_transfer_encoding_string if CGI_CLI.chunked else str()))
             sys.stdout.flush()
-            CGI_CLI.print_chunk("<html><head><title>%s</title></head><body>" %
+            CGI_CLI.print_chunk("<!DOCTYPE html><html><head><title>%s</title></head><body>" %
                 (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit'))
         import atexit; atexit.register(CGI_CLI.__cleanup__)
         ### GAIN USERNAME AND PASSWORD FROM ENVIRONMENT BY DEFAULT ###
