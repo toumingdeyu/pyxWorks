@@ -93,35 +93,35 @@ class CGI_CLI(object):
         parser.add_argument("--device",
                             action = "store", dest = 'device',
                             default = str(),
-                            help = "target router to access")
+                            help = "Target router to access. (Optionable device list separated ba comma, i.e. --device DEVICE1,DEVICE2)")
         parser.add_argument("--sw_release",
                             action = "store", dest = 'sw_release',
                             default = str(),
-                            help = "sw release number without dots, i.e 653")
-        parser.add_argument("--OTI_tar",
-                            action = 'store_true', dest = "OTI.tar_file",
+                            help = "sw release number with or without dots, i.e. 653 or 6.5.3, or alternatively sw release filename")
+        parser.add_argument("--files",
+                            action = "store", dest = 'sw_files',
+                            default = str(),
+                            help = "--files OTI.tar,SMU,pkg,bin")
+        parser.add_argument("--check_only",
+                            action = 'store_true', dest = "check_device_sw_files_only",
                             default = None,
-                            help = "copy/check OTI.tar file")
-        parser.add_argument("--SMU_tar",
-                            action = 'store_true', dest = "SMU.tar_files",
-                            default = None,
-                            help = "copy/check SMU.tar files")
-        parser.add_argument("--delete_files",
-                            action = 'store_true', dest = "delete_device_tar_files_on_end",
-                            default = None,
-                            help = "delete device tar files on end")
-        parser.add_argument("--check_files_only",
-                            action = 'store_true', dest = "check_device_tar_files_only",
-                            default = None,
-                            help = "check existing device tar files only, do not copy new tar files")
+                            help = "check existing device sw release files only, do not copy new tar files")
         parser.add_argument("--backup_configs",
                             action = 'store_true', dest = "backup_configs_to_device_disk",
                             default = None,
                             help = "backup configs to device hdd")
-        parser.add_argument("--force_rewrite",
-                            action = 'store_true', dest = "force_rewrite_tar_files_on_device",
+        parser.add_argument("--force",
+                           action = 'store_true', dest = "force_rewrite_sw_files_on_device",
+                           default = None,
+                           help = "force rewrite sw release files on device disk")
+        parser.add_argument("--slave",
+                           action = 'store_true', dest = "copy_device_sw_files_to_huawei_slave_cfcard",
+                           default = None,
+                           help = "copy device sw files to huawei slave cfcard")
+        parser.add_argument("--delete",
+                            action = 'store_true', dest = "delete_device_sw_files_on_end",
                             default = None,
-                            help = "force rewrite tar files on device hdd")
+                            help = "delete device sw release files on end after sw upgrade")
         # parser.add_argument("--sim",
                             # action = "store_true", dest = 'sim',
                             # default = None,
@@ -152,7 +152,7 @@ class CGI_CLI(object):
         CGI_CLI.START_EPOCH = time.time()
         CGI_CLI.chunked = None
         ### TO BE PLACED - BEFORE HEADER ###
-        CGI_CLI.chunked_transfer_encoding_string = "Transfer-Encoding: chunked\r\n"
+        CGI_CLI.chunked_transfer_encoding_string = "Transfer-Encoding: chunked\n"
         CGI_CLI.cgi_active = None
         CGI_CLI.initialized = True
         getpass_done = None
@@ -180,10 +180,10 @@ class CGI_CLI(object):
         if not CGI_CLI.cgi_active: CGI_CLI.data = vars(CGI_CLI.args)
         if CGI_CLI.cgi_active:
             CGI_CLI.chunked = chunked
-            sys.stdout.write("%sContent-type:text/html\r\n" %
+            sys.stdout.write("HTTP/1.1 Status: 200 OK\n%sContent-type:text/html\n\n" %
                 (CGI_CLI.chunked_transfer_encoding_string if CGI_CLI.chunked else str()))
             sys.stdout.flush()
-            CGI_CLI.print_chunk("\r\n\r\n<html><head><title>%s</title></head><body>" %
+            CGI_CLI.print_chunk("<html><head><title>%s</title></head><body>" %
                 (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit'))
         import atexit; atexit.register(CGI_CLI.__cleanup__)
         ### GAIN USERNAME AND PASSWORD FROM ENVIRONMENT BY DEFAULT ###
@@ -256,15 +256,17 @@ class CGI_CLI(object):
         else: print(msg)
 
     @staticmethod
-    def uprint(text, tag = None, tag_id = None, color = None, name = None, jsonprint = None, \
-        log = None, no_newlines = None):
-        """NOTE: name parameter could be True or string."""
+    def uprint(text = str(), tag = None, tag_id = None, color = None, name = None, jsonprint = None, \
+        log = None, no_newlines = None, start_tag = None, end_tag = None):
+        """NOTE: name parameter could be True or string.
+           start_tag - starts tag and needs to be ended next time by end_tag
+        """
         print_text, print_name, print_per_tag = copy.deepcopy(text), str(), str()
         if jsonprint:
             if isinstance(text, (dict,collections.OrderedDict,list,tuple)):
                 try: print_text = json.dumps(text, indent = 4)
                 except Exception as e: CGI_CLI.print_chunk('JSON_PROBLEM[' + str(e) + ']')
-        if name==True:
+        if name == True:
             if not 'inspect.currentframe' in sys.modules: import inspect
             callers_local_vars = inspect.currentframe().f_back.f_locals.items()
             var_list = [var_name for var_name, var_val in callers_local_vars if var_val is text]
@@ -275,8 +277,9 @@ class CGI_CLI(object):
         log_text   = str(copy.deepcopy((print_text)))
         if CGI_CLI.cgi_active:
             ### WORKARROUND FOR COLORING OF SIMPLE TEXT
-            if color and not tag: tag = 'p';
+            if color and not (tag or start_tag): tag = 'p';
             if tag: CGI_CLI.print_chunk('<%s%s%s>'%(tag,' id="%s"'%(tag_id) if tag_id else str(),' style="color:%s;"'%(color) if color else 'black'))
+            elif start_tag: CGI_CLI.print_chunk('<%s%s%s>'%(start_tag,' id="%s"'%(tag_id) if tag_id else str(),' style="color:%s;"'%(color) if color else 'black'))
             if isinstance(print_text, six.string_types):
                 print_text = str(print_text.replace('&','&amp;').replace('<','&lt;'). \
                     replace('>','&gt;').replace(' ','&nbsp;').replace('"','&quot;').replace("'",'&apos;').\
@@ -301,7 +304,8 @@ class CGI_CLI(object):
                 print(text_color + print_name + print_text + CGI_CLI.bcolors.ENDC)
         del print_text
         if CGI_CLI.cgi_active:
-            if tag: CGI_CLI.print_chunk('</%s>'%(tag))
+            if tag: CGI_CLI.print_chunk('</%s>' % (tag))
+            elif end_tag: CGI_CLI.print_chunk('</%s>' % (end_tag))
             elif not no_newlines: CGI_CLI.print_chunk('<br/>');
             ### PRINT PER TAG ###
             CGI_CLI.print_chunk(print_per_tag)
@@ -313,7 +317,8 @@ class CGI_CLI(object):
 
 
     @staticmethod
-    def formprint(form_data = None, submit_button = None, pyfile = None, tag = None, color = None):
+    def formprint(form_data = None, submit_button = None, pyfile = None, tag = None, \
+        color = None, list_separator = None):
         """ formprint() - print simple HTML form
             form_data - string, just html raw OR list or dict values = ['raw','text','checkbox','radio','submit','dropdown','textcontent']
                       - value in dictionary means cgi variable name / printed componenet value
@@ -332,13 +337,23 @@ class CGI_CLI(object):
                     CGI_CLI.print_chunk('%s: <input type = "password" name = "%s"><br />'%\
                         (data_item.get('password','').replace('_',' '),data_item.get('password')))
                 elif data_item.get('radio'):
+                    ### 'RADIO':'NAME__VALUE' ###
                     if isinstance(data_item.get('radio'), (list,tuple)):
                         for radiobutton in data_item.get('radio'):
-                            CGI_CLI.print_chunk('<input type = "radio" name = "%s" value = "%s" /> %s'%\
-                                ('script_action',radiobutton,radiobutton.replace('_',' ')))
+                            try:
+                                value = radiobutton.split('__')[1]
+                                name = radiobutton.split('__')[0]
+                            except: value, name = radiobutton, 'radio'
+                            CGI_CLI.print_chunk('<input type = "radio" name = "%s" value = "%s" /> %s %s'%\
+                                (name,value,value.replace('_',' '), \
+                                list_separator if list_separator else str()))
                     else:
+                        try:
+                            value = data_item.get('radio').split('__')[1]
+                            name = data_item.get('radio').split('__')[0]
+                        except: value, name = data_item.get('radio'), 'radio'
                         CGI_CLI.print_chunk('<input type = "radio" name = "%s" value = "%s" /> %s'%\
-                            (data_item.get('radio'),data_item.get('radio'),data_item.get('radio','').replace('_',' ')))
+                            (name,value,value.replace('_',' ')))
                 elif data_item.get('checkbox'):
                     CGI_CLI.print_chunk('<input type = "checkbox" name = "%s" value = "on" /> %s'%\
                         (data_item.get('checkbox'),data_item.get('checkbox','').replace('_',' ')))
@@ -420,6 +435,7 @@ class CGI_CLI(object):
 
 
 
+
 ##############################################################################
 #
 # BEGIN MAIN
@@ -429,7 +445,7 @@ class CGI_CLI(object):
 if __name__ != "__main__": sys.exit(0)
 
 ### CGI-BIN READ FORM ############################################
-CGI_CLI.init_cgi(chunked = True)
+CGI_CLI.init_cgi(chunked = False)
 CGI_CLI.print_args()
 CGI_CLI.print_env()
 #print(repr(CGI_CLI))
