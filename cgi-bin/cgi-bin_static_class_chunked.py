@@ -259,9 +259,10 @@ class CGI_CLI(object):
 
     @staticmethod
     def uprint(text = str(), tag = None, tag_id = None, color = None, name = None, jsonprint = None, \
-        log = None, no_newlines = None, start_tag = None, end_tag = None):
+        log = None, no_newlines = None, start_tag = None, end_tag = None, raw = None):
         """NOTE: name parameter could be True or string.
            start_tag - starts tag and needs to be ended next time by end_tag
+           raw = True , print text as it is, not convert to html. Intended i.e. for javascript
         """
         print_text, print_name, print_per_tag = copy.deepcopy(text), str(), str()
         if jsonprint:
@@ -277,7 +278,7 @@ class CGI_CLI(object):
 
         print_text = str(print_text)
         log_text   = str(copy.deepcopy((print_text)))
-        if CGI_CLI.cgi_active:
+        if CGI_CLI.cgi_active and not raw:
             ### WORKARROUND FOR COLORING OF SIMPLE TEXT
             if color and not (tag or start_tag): tag = 'p';
             if tag: CGI_CLI.print_chunk('<%s%s%s>'%(tag,' id="%s"'%(tag_id) if tag_id else str(),' style="color:%s;"' % (color) if color else str()))
@@ -287,6 +288,8 @@ class CGI_CLI(object):
                     replace('>','&gt;').replace(' ','&nbsp;').replace('"','&quot;').replace("'",'&apos;').\
                     replace('\n','<br/>'))
             CGI_CLI.print_chunk(print_name + print_text)
+        elif CGI_CLI.cgi_active and raw:
+            CGI_CLI.print_chunk(print_text)
         else:
             text_color = str()
             if color:
@@ -305,7 +308,7 @@ class CGI_CLI(object):
             else:
                 print(text_color + print_name + print_text + CGI_CLI.bcolors.ENDC)
         del print_text
-        if CGI_CLI.cgi_active:
+        if CGI_CLI.cgi_active and not raw:
             if tag: CGI_CLI.print_chunk('</%s>' % (tag))
             elif end_tag: CGI_CLI.print_chunk('</%s>' % (end_tag))
             elif not no_newlines: CGI_CLI.print_chunk('<br/>');
