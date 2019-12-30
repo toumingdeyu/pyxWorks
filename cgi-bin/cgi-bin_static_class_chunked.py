@@ -527,3 +527,31 @@ CGI_CLI.uprint('Tag - H3\n', tag = 'h3')
 CGI_CLI.uprint('DEFAULT LINE.')
 CGI_CLI.uprint('RED LINE.', color='red')
 
+CGI_CLI.uprint("""<?php
+echo "My first PHP script!";
+?>""", raw = True)
+
+CGI_CLI.uprint("""
+        <p id="demo2">Move mouse here...</p>
+        <script>
+            var still_mouseover = false
+            document.getElementById("demo2").onmouseover = function() {myFunction2()};
+            
+            function myFunction2() {
+                still_mouseover = true
+                document.getElementById("demo2").innerHTML = "Mouse is here...";
+                setTimeout(function (){
+                    if(still_mouseover) {
+                        document.getElementById("demo2").innerHTML = "Mouse stays her over 2 seconds...";
+                    }                       
+                }, 2000);                              
+            }            
+            document.getElementById("demo2").onmouseout = function() {myFunction3()};
+            function myFunction3() {
+                still_mouseover = false
+                document.getElementById("demo2").innerHTML = "Mouse was here...";
+                setTimeout(function (){
+                    document.getElementById("demo2").innerHTML = "Move mouse here...";  
+                }, 500);                              
+            }                        
+        </script>""", raw = True)
