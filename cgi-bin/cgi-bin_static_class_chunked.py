@@ -33,7 +33,10 @@ class CGI_CLI(object):
     # import cgitb; cgitb.enable()
 
     ### TO BE PLACED - IN BODY ###
-    js_reload_button = """<input type="button" value="Reload Page" onClick="document.location.reload(true)">"""
+    JS_RELOAD_BUTTON = """<input type="button" value="Reload Page" onClick="document.location.reload(true)">"""
+
+    CSS_STYLE = """
+    """
 
     class bcolors:
             DEFAULT    = '\033[99m'
@@ -180,11 +183,11 @@ class CGI_CLI(object):
         if not CGI_CLI.cgi_active: CGI_CLI.data = vars(CGI_CLI.args)
         if CGI_CLI.cgi_active:
             CGI_CLI.chunked = chunked
-            sys.stdout.write("HTTP/1.1 Status: 200 OK\n%sContent-type:text/html\n\n" %
+            sys.stdout.write("HTTP/1.1 Status: 200 OK\n%sContent-type:text/html; charset=utf-8\n\n" %
                 (CGI_CLI.chunked_transfer_encoding_string if CGI_CLI.chunked else str()))
             sys.stdout.flush()
-            CGI_CLI.print_chunk("<!DOCTYPE html><html><head><title>%s</title></head><body>" %
-                (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit'))
+            CGI_CLI.print_chunk("<!DOCTYPE html><html><head><title>%s</title><style>%s</style></head><body>" %
+                (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit',CGI_CLI.CSS_STYLE))
         import atexit; atexit.register(CGI_CLI.__cleanup__)
         ### GAIN USERNAME AND PASSWORD FROM ENVIRONMENT BY DEFAULT ###
         try:    CGI_CLI.PASSWORD        = os.environ['NEWR_PASS']
