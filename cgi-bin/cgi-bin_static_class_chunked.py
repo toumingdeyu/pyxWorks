@@ -34,7 +34,6 @@ class CGI_CLI(object):
 
     ### TO BE PLACED - IN BODY ###
     JS_RELOAD_BUTTON = """<input type="button" value="Reload Page" onClick="document.location.reload(true)">"""
-    CSS_STYLE = str()
 
     class bcolors:
             DEFAULT    = '\033[99m'
@@ -149,9 +148,10 @@ class CGI_CLI(object):
         import atexit; atexit.register(CGI_CLI.__cleanup__)
 
     @staticmethod
-    def init_cgi(chunked = None):
+    def init_cgi(chunked = None, css_style = None):
         CGI_CLI.START_EPOCH = time.time()
         CGI_CLI.chunked = None
+        CGI_CLI.CSS_STYLE = css_style if css_style else str()
         ### TO BE PLACED - BEFORE HEADER ###
         CGI_CLI.chunked_transfer_encoding_string = "Transfer-Encoding: chunked\n"
         CGI_CLI.cgi_active = None
@@ -447,7 +447,25 @@ class CGI_CLI(object):
 if __name__ != "__main__": sys.exit(0)
 
 ### CGI-BIN READ FORM ############################################
-CGI_CLI.init_cgi(chunked = False)
+CSS_STYLE = """
+body {
+  background-color: lightblue;
+}
+
+h1 {
+  color: green;
+  text-align: center;
+}
+
+p {
+  font-family: verdana;
+  font-size: 20px;
+}
+"""
+
+
+CGI_CLI.init_cgi(chunked = False, css_style = CSS_STYLE)
+
 CGI_CLI.print_args()
 CGI_CLI.print_env()
 #print(repr(CGI_CLI))
