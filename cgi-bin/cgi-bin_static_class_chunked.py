@@ -34,9 +34,7 @@ class CGI_CLI(object):
 
     ### TO BE PLACED - IN BODY ###
     JS_RELOAD_BUTTON = """<input type="button" value="Reload Page" onClick="document.location.reload(true)">"""
-
-    CSS_STYLE = """
-    """
+    CSS_STYLE = str()
 
     class bcolors:
             DEFAULT    = '\033[99m'
@@ -186,8 +184,9 @@ class CGI_CLI(object):
             sys.stdout.write("HTTP/1.1 Status: 200 OK\n%sContent-type:text/html; charset=utf-8\n\n" %
                 (CGI_CLI.chunked_transfer_encoding_string if CGI_CLI.chunked else str()))
             sys.stdout.flush()
-            CGI_CLI.print_chunk("<!DOCTYPE html><html><head><title>%s</title><style>%s</style></head><body>" %
-                (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit',CGI_CLI.CSS_STYLE))
+            CGI_CLI.print_chunk("<!DOCTYPE html><html><head><title>%s</title>%s</head><body>" %
+                (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit', \
+                '<style>%s</style>' % (CGI_CLI.CSS_STYLE) if CGI_CLI.CSS_STYLE else str()))
         import atexit; atexit.register(CGI_CLI.__cleanup__)
         ### GAIN USERNAME AND PASSWORD FROM ENVIRONMENT BY DEFAULT ###
         try:    CGI_CLI.PASSWORD        = os.environ['NEWR_PASS']
@@ -281,8 +280,8 @@ class CGI_CLI(object):
         if CGI_CLI.cgi_active:
             ### WORKARROUND FOR COLORING OF SIMPLE TEXT
             if color and not (tag or start_tag): tag = 'p';
-            if tag: CGI_CLI.print_chunk('<%s%s%s>'%(tag,' id="%s"'%(tag_id) if tag_id else str(),' style="color:%s;"'%(color) if color else 'black'))
-            elif start_tag: CGI_CLI.print_chunk('<%s%s%s>'%(start_tag,' id="%s"'%(tag_id) if tag_id else str(),' style="color:%s;"'%(color) if color else 'black'))
+            if tag: CGI_CLI.print_chunk('<%s%s%s>'%(tag,' id="%s"'%(tag_id) if tag_id else str(),' style="color:%s;"' % (color) if color else str()))
+            elif start_tag: CGI_CLI.print_chunk('<%s%s%s>'%(start_tag,' id="%s"'%(tag_id) if tag_id else str(),' style="color:%s;"' % (color) if color else str()))
             if isinstance(print_text, six.string_types):
                 print_text = str(print_text.replace('&','&amp;').replace('<','&lt;'). \
                     replace('>','&gt;').replace(' ','&nbsp;').replace('"','&quot;').replace("'",'&apos;').\
@@ -500,7 +499,10 @@ CGI_CLI.formprint([{'password':'password'},'<br/>',{'textcontent':'email_body'},
 
 CGI_CLI.formprint([{'raw':'<select name = "dropdown"><option value = "Maths" selected>Maths</option><option value = "Physics">Physics</option></select>'}])
 
-CGI_CLI.uprint('RED LINE.', color='red')
-CGI_CLI.uprint('DEFAULT LINE.')
+CGI_CLI.uprint('Tag - H1\n', tag = 'h1')
+CGI_CLI.uprint('Tag - H2\n', tag = 'h2')
+CGI_CLI.uprint('Tag - H3\n', tag = 'h3')
 
+CGI_CLI.uprint('DEFAULT LINE.')
+CGI_CLI.uprint('RED LINE.', color='red')
 
