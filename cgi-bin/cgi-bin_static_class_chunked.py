@@ -156,8 +156,9 @@ class CGI_CLI(object):
         CGI_CLI.newline = '\n' if not newline else newline
         CGI_CLI.chunked_transfer_encoding_string = \
             "Transfer-Encoding: chunked%s" % (CGI_CLI.newline)
-        CGI_CLI.status_line = \
-            "HTTP/1.1 Status: 200 OK%s" % (CGI_CLI.newline)
+        #CGI_CLI.status_line = \
+        #    "HTTP/1.1 Status: 200 OK%s" % (CGI_CLI.newline)            
+        CGI_CLI.status_line = str()    
         CGI_CLI.cgi_active = None
         CGI_CLI.initialized = True
         getpass_done = None
