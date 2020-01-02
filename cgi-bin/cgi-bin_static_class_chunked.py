@@ -148,12 +148,16 @@ class CGI_CLI(object):
         import atexit; atexit.register(CGI_CLI.__cleanup__)
 
     @staticmethod
-    def init_cgi(chunked = None, css_style = None):
+    def init_cgi(chunked = None, css_style = None, newline = None):
         CGI_CLI.START_EPOCH = time.time()
         CGI_CLI.chunked = None
         CGI_CLI.CSS_STYLE = css_style if css_style else str()
         ### TO BE PLACED - BEFORE HEADER ###
-        CGI_CLI.chunked_transfer_encoding_string = "Transfer-Encoding: chunked\n"
+        CGI_CLI.newline = '\n' if not newline else newline
+        CGI_CLI.chunked_transfer_encoding_string = \
+            "Transfer-Encoding: chunked%s" % (CGI_CLI.newline)
+        CGI_CLI.status_line = \
+            "HTTP/1.1 Status: 200 OK%s" % (CGI_CLI.newline)
         CGI_CLI.cgi_active = None
         CGI_CLI.initialized = True
         getpass_done = None
@@ -181,8 +185,10 @@ class CGI_CLI(object):
         if not CGI_CLI.cgi_active: CGI_CLI.data = vars(CGI_CLI.args)
         if CGI_CLI.cgi_active:
             CGI_CLI.chunked = chunked
-            sys.stdout.write("HTTP/1.1 Status: 200 OK\n%sContent-type:text/html; charset=utf-8\n\n" %
-                (CGI_CLI.chunked_transfer_encoding_string if CGI_CLI.chunked else str()))
+            sys.stdout.write("%s%sContent-type:text/html; charset=utf-8%s%s" %
+                (CGI_CLI.status_line,
+                CGI_CLI.chunked_transfer_encoding_string if CGI_CLI.chunked else str(),
+                CGI_CLI.newline, CGI_CLI.newline))
             sys.stdout.flush()
             CGI_CLI.print_chunk("<!DOCTYPE html><html><head><title>%s</title>%s</head><body>" %
                 (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit', \
@@ -536,22 +542,22 @@ CGI_CLI.uprint("""
         <script>
             var still_mouseover = false
             document.getElementById("demo2").onmouseover = function() {myFunction2()};
-            
+
             function myFunction2() {
                 still_mouseover = true
                 document.getElementById("demo2").innerHTML = "Mouse is here...";
                 setTimeout(function (){
                     if(still_mouseover) {
                         document.getElementById("demo2").innerHTML = "Mouse stays her over 2 seconds...";
-                    }                       
-                }, 2000);                              
-            }            
+                    }
+                }, 2000);
+            }
             document.getElementById("demo2").onmouseout = function() {myFunction3()};
             function myFunction3() {
                 still_mouseover = false
                 document.getElementById("demo2").innerHTML = "Mouse was here...";
                 setTimeout(function (){
-                    document.getElementById("demo2").innerHTML = "Move mouse here...";  
-                }, 500);                              
-            }                        
+                    document.getElementById("demo2").innerHTML = "Move mouse here...";
+                }, 500);
+            }
         </script>""", raw = True)
