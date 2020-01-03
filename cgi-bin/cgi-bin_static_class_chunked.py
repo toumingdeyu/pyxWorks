@@ -150,15 +150,18 @@ class CGI_CLI(object):
     @staticmethod
     def init_cgi(chunked = None, css_style = None, newline = None):
         CGI_CLI.START_EPOCH = time.time()
-        CGI_CLI.chunked = None
+        CGI_CLI.http_status = 200 
+        CGI_CLI.http_status_text = 'OK'
+        CGI_CLI.chunked = chunked
         CGI_CLI.CSS_STYLE = css_style if css_style else str()
         ### TO BE PLACED - BEFORE HEADER ###
         CGI_CLI.newline = '\n' if not newline else newline
-        CGI_CLI.chunked_transfer_encoding_string = \
-            "Transfer-Encoding: chunked%s" % (CGI_CLI.newline)
-        #CGI_CLI.status_line = \
-        #    "HTTP/1.1 Status: 200 OK%s" % (CGI_CLI.newline)            
-        CGI_CLI.status_line = str()    
+        CGI_CLI.chunked_transfer_encoding_line = \
+            "Transfer-Encoding: chunked%s" % (CGI_CLI.newline) if CGI_CLI.chunked else str()
+        ### HTTP/1.1 ???        
+        CGI_CLI.status_line = \
+            "Status: %s %s%s" % (CGI_CLI.http_status, CGI_CLI.http_status_text, CGI_CLI.newline)            
+        CGI_CLI.content_type_line = 'Content-type:text/html; charset=utf-8%s' % (CGI_CLI.newline)  
         CGI_CLI.cgi_active = None
         CGI_CLI.initialized = True
         getpass_done = None
@@ -184,11 +187,11 @@ class CGI_CLI(object):
             CGI_CLI.cgi_active = True
         CGI_CLI.args = CGI_CLI.cli_parser()
         if not CGI_CLI.cgi_active: CGI_CLI.data = vars(CGI_CLI.args)
-        if CGI_CLI.cgi_active:
-            CGI_CLI.chunked = chunked
-            sys.stdout.write("%s%sContent-type:text/html; charset=utf-8%s%s" %
-                (CGI_CLI.status_line,
-                CGI_CLI.chunked_transfer_encoding_string if CGI_CLI.chunked else str(),
+        if CGI_CLI.cgi_active:            
+            sys.stdout.write("%s%s%s%s%s" %
+                (CGI_CLI.chunked_transfer_encoding_line,
+                CGI_CLI.content_type_line,
+                CGI_CLI.status_line,
                 CGI_CLI.newline, CGI_CLI.newline))
             sys.stdout.flush()
             CGI_CLI.print_chunk("<!DOCTYPE html><html><head><title>%s</title>%s</head><body>" %
