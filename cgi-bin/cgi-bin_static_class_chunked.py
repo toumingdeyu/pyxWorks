@@ -155,7 +155,7 @@ class CGI_CLI(object):
         CGI_CLI.chunked = chunked
         CGI_CLI.CSS_STYLE = css_style if css_style else str()
         ### TO BE PLACED - BEFORE HEADER ###
-        CGI_CLI.newline = '\n' if not newline else newline
+        CGI_CLI.newline = '\r\n' if not newline else newline
         CGI_CLI.chunked_transfer_encoding_line = \
             "Transfer-Encoding: chunked%s" % (CGI_CLI.newline) if CGI_CLI.chunked else str()
         ### HTTP/1.1 ???        
