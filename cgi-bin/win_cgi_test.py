@@ -1,3 +1,4 @@
+### https://docs.microsoft.com/en-us/iis/configuration/system.webserver/cgi
 ### https://docs.microsoft.com/en-us/iis/configuration/system.webserver/fastcgi/index
 ### https://serverfault.com/questions/594298/iis-wont-let-python-script-set-headers
 ### https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Transfer-Encoding
