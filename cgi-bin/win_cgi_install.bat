@@ -1,16 +1,24 @@
 rem https://docs.microsoft.com/en-us/iis/configuration/system.webserver/cgi
 @echo on
 echo %cd%
+
+REM - ENABLE IIS_CGI
 call dism /online /enable-feature /featurename:IIS-CGI
 
-REM CGI DEFAULT SETTINGS
+REM - CGI DEFAULT SETTINGS
 rem c:\Windows\System32\inetsrv\appcmd.exe
 call c:\Windows\System32\inetsrv\appcmd.exe set CONFIG "Default Web Site" -section:system.webServer/cgi /createCGIWithNewConsole:"True" /commit:apphost
 call c:\Windows\System32\inetsrv\appcmd.exe set CONFIG "Default Web Site" -section:system.webServer/cgi /createProcessAsUser:"False" /commit:apphost
 call c:\Windows\System32\inetsrv\appcmd.exe set CONFIG "Default Web Site" -section:system.webServer/cgi /timeout:"00:20:00" /commit:apphost
 
-REM ADD CGI HANDLER - SPACE IS NEEDED %u0020
+REM - ADD CGI HANDLER - SPACE IS NEEDED %u0020
 call c:\Windows\System32\inetsrv\appcmd.exe set config /section:system.webServer/handlers /+[name='cgi-py',path='*.py',verb='*',modules='CgiModule',scriptProcessor='C:\python37\python.exe%u0020%s%u0020%s',resourceType='File',requireAccess='Script']
+
+REM - INSTALL IIS6 COMPATIBILITY
+rem IIS 6 Management Compatibility:IIS6 scripting Tools, IIS 6 Management Compatibility:IIS6 WMI compatibility
+call cscript C:\inetpub\AdminScripts\adsutil.vbs set /W3SVC/AspEnableChunkedEncoding "TRUE"
+
+
 
 
 
