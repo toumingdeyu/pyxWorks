@@ -18,6 +18,12 @@ REM - INSTALL IIS6 COMPATIBILITY
 rem IIS 6 Management Compatibility:IIS6 scripting Tools, IIS 6 Management Compatibility:IIS6 WMI compatibility
 call cscript C:\inetpub\AdminScripts\adsutil.vbs set /W3SVC/AspEnableChunkedEncoding "TRUE"
 
+REM - DISABLE HTTP2
+rem HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\HTTP\Parameters
+rem EnableHttp2Tls REG_DWORD 0
+rem EnableHttp2Cleartext REG_DWORD 0
+call REG ADD HKLM\System\CurrentControlSet\Services\HTTP\Parameters /v EnableHttp2Tls /t REG_DWORD /d 0
+call REG ADD HKLM\System\CurrentControlSet\Services\HTTP\Parameters /v EnableHttp2Cleartext /t REG_DWORD /d 0
 
 
 
