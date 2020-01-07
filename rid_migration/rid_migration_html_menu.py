@@ -1426,6 +1426,7 @@ undo interface Loopback200
 
 huawei_config_part_2 = """#
 interface LoopBack0
+ undo ipv6 address
 % for item in loopback_200_config:
  ${item}
 % endfor
