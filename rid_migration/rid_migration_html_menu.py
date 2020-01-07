@@ -1451,7 +1451,6 @@ peer ${item} connect-interface LoopBack10
 #
 bgp ${bgp_as}
  router-id ${loopback_200_address}
-Y
 #
 #
 #
