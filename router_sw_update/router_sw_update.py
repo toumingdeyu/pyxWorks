@@ -38,7 +38,7 @@ class CGI_CLI(object):
     # import cgitb; cgitb.enable()
 
     ### TO BE PLACED - IN BODY ###
-    js_reload_button = """<input type="button" value="Reload Page" onClick="document.location.reload(true)">"""
+    JS_RELOAD_BUTTON = """<input type="button" value="Reload Page" onClick="document.location.reload(true)">"""
 
     class bcolors:
             DEFAULT    = '\033[99m'
@@ -153,11 +153,20 @@ class CGI_CLI(object):
         import atexit; atexit.register(CGI_CLI.__cleanup__)
 
     @staticmethod
-    def init_cgi(chunked = None):
+    def init_cgi(chunked = None, css_style = None, newline = None):
         CGI_CLI.START_EPOCH = time.time()
-        CGI_CLI.chunked = None
+        CGI_CLI.http_status = 200
+        CGI_CLI.http_status_text = 'OK'
+        CGI_CLI.chunked = chunked
+        CGI_CLI.CSS_STYLE = css_style if css_style else str()
         ### TO BE PLACED - BEFORE HEADER ###
-        CGI_CLI.chunked_transfer_encoding_string = "Transfer-Encoding: chunked\r\n"
+        CGI_CLI.newline = '\r\n' if not newline else newline
+        CGI_CLI.chunked_transfer_encoding_line = \
+            "Transfer-Encoding: chunked%s" % (CGI_CLI.newline) if CGI_CLI.chunked else str()
+        ### HTTP/1.1 ???
+        CGI_CLI.status_line = \
+            "Status: %s %s%s" % (CGI_CLI.http_status, CGI_CLI.http_status_text, CGI_CLI.newline)
+        CGI_CLI.content_type_line = 'Content-type:text/html; charset=utf-8%s' % (CGI_CLI.newline)
         CGI_CLI.cgi_active = None
         CGI_CLI.initialized = True
         getpass_done = None
@@ -184,12 +193,15 @@ class CGI_CLI(object):
         CGI_CLI.args = CGI_CLI.cli_parser()
         if not CGI_CLI.cgi_active: CGI_CLI.data = vars(CGI_CLI.args)
         if CGI_CLI.cgi_active:
-            CGI_CLI.chunked = chunked
-            sys.stdout.write("%sContent-type:text/html\r\n" %
-                (CGI_CLI.chunked_transfer_encoding_string if CGI_CLI.chunked else str()))
+            sys.stdout.write("%s%s%s%s%s" %
+                (CGI_CLI.chunked_transfer_encoding_line,
+                CGI_CLI.content_type_line,
+                CGI_CLI.status_line,
+                CGI_CLI.newline, CGI_CLI.newline))
             sys.stdout.flush()
-            CGI_CLI.print_chunk("\r\n\r\n<html><head><title>%s</title></head><body>" %
-                (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit'))
+            CGI_CLI.print_chunk("<!DOCTYPE html><html><head><title>%s</title>%s</head><body>" %
+                (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit', \
+                '<style>%s</style>' % (CGI_CLI.CSS_STYLE) if CGI_CLI.CSS_STYLE else str()))
         import atexit; atexit.register(CGI_CLI.__cleanup__)
         ### GAIN USERNAME AND PASSWORD FROM ENVIRONMENT BY DEFAULT ###
         try:    CGI_CLI.PASSWORD        = os.environ['NEWR_PASS']
@@ -262,9 +274,10 @@ class CGI_CLI(object):
 
     @staticmethod
     def uprint(text = str(), tag = None, tag_id = None, color = None, name = None, jsonprint = None, \
-        log = None, no_newlines = None, start_tag = None, end_tag = None):
+        log = None, no_newlines = None, start_tag = None, end_tag = None, raw = None):
         """NOTE: name parameter could be True or string.
            start_tag - starts tag and needs to be ended next time by end_tag
+           raw = True , print text as it is, not convert to html. Intended i.e. for javascript
         """
         print_text, print_name, print_per_tag = copy.deepcopy(text), str(), str()
         if jsonprint:
@@ -280,16 +293,18 @@ class CGI_CLI(object):
 
         print_text = str(print_text)
         log_text   = str(copy.deepcopy((print_text)))
-        if CGI_CLI.cgi_active:
+        if CGI_CLI.cgi_active and not raw:
             ### WORKARROUND FOR COLORING OF SIMPLE TEXT
             if color and not (tag or start_tag): tag = 'p';
-            if tag: CGI_CLI.print_chunk('<%s%s%s>'%(tag,' id="%s"'%(tag_id) if tag_id else str(),' style="color:%s;"'%(color) if color else 'black'))
-            elif start_tag: CGI_CLI.print_chunk('<%s%s%s>'%(start_tag,' id="%s"'%(tag_id) if tag_id else str(),' style="color:%s;"'%(color) if color else 'black'))
+            if tag: CGI_CLI.print_chunk('<%s%s%s>'%(tag,' id="%s"'%(tag_id) if tag_id else str(),' style="color:%s;"' % (color) if color else str()))
+            elif start_tag: CGI_CLI.print_chunk('<%s%s%s>'%(start_tag,' id="%s"'%(tag_id) if tag_id else str(),' style="color:%s;"' % (color) if color else str()))
             if isinstance(print_text, six.string_types):
                 print_text = str(print_text.replace('&','&amp;').replace('<','&lt;'). \
                     replace('>','&gt;').replace(' ','&nbsp;').replace('"','&quot;').replace("'",'&apos;').\
                     replace('\n','<br/>'))
             CGI_CLI.print_chunk(print_name + print_text)
+        elif CGI_CLI.cgi_active and raw:
+            CGI_CLI.print_chunk(print_text)
         else:
             text_color = str()
             if color:
@@ -308,7 +323,7 @@ class CGI_CLI(object):
             else:
                 print(text_color + print_name + print_text + CGI_CLI.bcolors.ENDC)
         del print_text
-        if CGI_CLI.cgi_active:
+        if CGI_CLI.cgi_active and not raw:
             if tag: CGI_CLI.print_chunk('</%s>' % (tag))
             elif end_tag: CGI_CLI.print_chunk('</%s>' % (end_tag))
             elif not no_newlines: CGI_CLI.print_chunk('<br/>');
@@ -422,10 +437,12 @@ class CGI_CLI(object):
         print_string = 'python[%s]\n' % (str(python_version()))
         print_string += 'version[%s], ' % (CGI_CLI.VERSION())
         print_string += 'file[%s]\n' % (sys.argv[0])
-        print_string += 'CGI_CLI.USERNAME[%s], CGI_CLI.PASSWORD[%s]\n' % (CGI_CLI.USERNAME, 'Yes' if CGI_CLI.PASSWORD else 'No')
+        print_string += 'CGI_CLI.USERNAME[%s], CGI_CLI.PASSWORD[%s]\n' % \
+            (CGI_CLI.USERNAME, 'Yes' if CGI_CLI.PASSWORD else 'No')
         print_string += 'remote_addr[%s], ' % dict(os.environ).get('REMOTE_ADDR','')
         print_string += 'browser[%s]\n' % dict(os.environ).get('HTTP_USER_AGENT','')
-        print_string += 'CGI_CLI.cgi_active[%s]\n' % (str(CGI_CLI.cgi_active))
+        print_string += 'CGI_CLI.cgi_active[%s], CGI_CLI.submit_form[%s], CGI_CLI.chunked[%s]\n' % \
+            (str(CGI_CLI.cgi_active), str(CGI_CLI.submit_form), str(CGI_CLI.chunked))
         if CGI_CLI.cgi_active:
             try: print_string += 'CGI_CLI.data[%s] = %s\n' % (str(CGI_CLI.submit_form),str(json.dumps(CGI_CLI.data, indent = 4)))
             except: pass
@@ -436,6 +453,7 @@ class CGI_CLI(object):
     @staticmethod
     def print_env():
         CGI_CLI.uprint(dict(os.environ), name = 'os.environ', jsonprint = True)
+
 
 
 
@@ -1907,16 +1925,16 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
             if RCMD.router_type == 'huawei':
                 huawei_compatibility_cmds = []
                 for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
-                    if not file in bad_files and '.cc' in file:                        
+                    if not file in bad_files and '.cc' in file:
                         huawei_compatibility_cmds.append('check hardware-compatibility %s%s' % \
                             (RCMD.drive_string, os.path.join(dev_dir, file)))
-                    else: huawei_compatibility_cmds.append('\n')                             
+                    else: huawei_compatibility_cmds.append('\n')
                 rcmd_compatibility_outputs = RCMD.run_commands( \
-                    {'huawei':huawei_compatibility_cmds}, printall = printall)                     
+                    {'huawei':huawei_compatibility_cmds}, printall = printall)
                 for compatibility_output, true_sw_file in zip(rcmd_compatibility_outputs, true_sw_release_files_on_server):
                     directory, dev_dir, file, md5, fsize = true_sw_file
                     if 'check hardware-compatibility failed!' in compatibility_output:
-                        compatibility_problem_list.append([device,os.path.join(dev_dir, file)])                                                    
+                        compatibility_problem_list.append([device,os.path.join(dev_dir, file)])
             ### CHECK IF DEVICE FILES ARE OK ##################################
             CGI_CLI.uprint('\n')
             for md5list,filelist in zip(md5check_list,filecheck_list):
@@ -1951,7 +1969,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
             all_files_on_all_devices_ok = True
         else:
             CGI_CLI.uprint('SW RELEASE FILES COMPATIBILITY - CHECK FAILED!' , \
-                tag = 'h1', color = 'red')        
+                tag = 'h1', color = 'red')
         ### WHEN SUCCESS, THEN CHECK IF EXIT OR NOT ###########################
         if CGI_CLI.data.get('backup_configs_to_device_disk') \
             or CGI_CLI.data.get('delete_device_sw_files_on_end'): pass
@@ -2058,7 +2076,7 @@ def check_free_disk_space_on_devices(device_list = None, \
         else: CGI_CLI.uprint('%s    %.2f MB    %.2f MB' % (device, float(disk_free)/1048576, \
             float(disk_reguired)/1048576), color = 'blue')
     #CGI_CLI.uprint(end_tag = 'p')
-    if not all_disk_checks_ok: 
+    if not all_disk_checks_ok:
         CGI_CLI.uprint('Disk space - CHECK FAIL!', tag='h1', color = 'RED')
         sys.exit(0)
     return disk_low_space_devices
