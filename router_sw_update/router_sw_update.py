@@ -1964,6 +1964,8 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
         CGI_CLI.uprint('Device    Incompatible_file(s):', tag = 'h3', color = 'red')
         CGI_CLI.uprint('\n'.join([ '%s    %s' % (device,devfile) for device,devfile in compatibility_problem_list ]),
             color = 'red')
+        sys.exit(0)
+        
     ### PRINT NEEDED FILES TO COPY ############################################
     if len(needed_to_copy_files_per_device_list) > 0:
         if CGI_CLI.data.get('check_device_sw_files_only') or check_mode:
