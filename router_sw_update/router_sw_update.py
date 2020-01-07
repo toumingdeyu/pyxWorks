@@ -1928,6 +1928,9 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                     if not file in bad_files and '.cc' in file:
                         huawei_compatibility_cmds.append('check hardware-compatibility %s%s' % \
                             (RCMD.drive_string, os.path.join(dev_dir, file)))
+                        ### CHECK FILES ON 'slave#' ALSO FOR HW COMPATIBILITY ###
+                        huawei_compatibility_cmds.append('check hardware-compatibility slave#%s%s' % \
+                            (RCMD.drive_string, os.path.join(dev_dir, file)))
                     else: huawei_compatibility_cmds.append('\n')
                 rcmd_compatibility_outputs = RCMD.run_commands( \
                     {'huawei':huawei_compatibility_cmds}, printall = printall)
@@ -1993,7 +1996,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
 def check_free_disk_space_on_devices(device_list = None, \
     needed_to_copy_files_per_device_list = None, \
     USERNAME = None, PASSWORD = None, logfilename = None, printall = None):
-    device_free_space_in_bytes = 0
+    device_free_space_in_bytes, slave_device_free_space_in_bytes = 0, -1
     disk_low_space_devices, disk_free_list = [], []
     for device in device_list:
         if device:
@@ -2011,7 +2014,7 @@ def check_free_disk_space_on_devices(device_list = None, \
                     'show version | in "%s"' % (asr9k_detection_string),
                     ],
                 'juniper':['show system storage'],
-                'huawei':['dir']
+                'huawei':['dir','dir slave#cfcard:']
             }
             CGI_CLI.uprint('checking disk space on %s' % (device), \
                 no_newlines = None if printall else True)
@@ -2027,7 +2030,11 @@ def check_free_disk_space_on_devices(device_list = None, \
                 except: pass
             elif RCMD.router_type == 'juniper': pass
             elif RCMD.router_type == 'huawei':
-                try: device_free_space_in_bytes = float(rcmd_check_disk_space_outputs[0].\
+                try: 
+                     device_free_space_in_bytes = float(rcmd_check_disk_space_outputs[0].\
+                         split(' KB free)')[0].splitlines()[-1].split()[-1].\
+                         replace('(','').replace(',','').strip())*1024
+                     slave_device_free_space_in_bytes = float(rcmd_check_disk_space_outputs[1].\
                          split(' KB free)')[0].splitlines()[-1].split()[-1].\
                          replace('(','').replace(',','').strip())*1024
                 except: pass
@@ -2056,26 +2063,46 @@ def check_free_disk_space_on_devices(device_list = None, \
             forget_it = RCMD.run_commands(mkdir_device_cmds)
             CGI_CLI.uprint('\n')
             ### CALCULATE NEEDED SPACE ON DEVICE FORM MISSING FILES ###
-            device_free_space_in_bytes_in_bytes = 0
+            needed_device_free_space_in_bytes = 0
             for device2,missing_or_bad_files_per_device in needed_to_copy_files_per_device_list:
                 directory, dev_dir, file, md5, fsize = missing_or_bad_files_per_device
                 if device == device2:
-                    device_free_space_in_bytes_in_bytes += fsize
-            disk_free_list.append([device, device_free_space_in_bytes, device_free_space_in_bytes_in_bytes])
+                    needed_device_free_space_in_bytes += fsize
+            disk_free_list.append([device, device_free_space_in_bytes, \
+                slave_device_free_space_in_bytes, needed_device_free_space_in_bytes])
             RCMD.disconnect()
-    CGI_CLI.uprint('Device    Disk_free    Disk_needed:', tag = 'h3' , color = 'blue')
+
+    CGI_CLI.uprint('Device    Disk_needed    Disk_free    SlaveDisk_free:', tag = 'h3' , color = 'blue')
     all_disk_checks_ok = True
-    #CGI_CLI.uprint(start_tag = 'p')
-    for device, disk_free, disk_reguired in disk_free_list:
+    for device, disk_free, slave_disk_free, disk_reguired in disk_free_list:
         ### SOME GB FREE EXPECTED (1MB=1048576, 1GB=1073741824) ###
         if disk_free + (device_expected_MB_free * 1048576) < disk_reguired:
             all_disk_checks_ok = False
-            CGI_CLI.uprint('%s    %.2f MB    %.2f MB' % (device, float(disk_free)/1048576, \
-                float(disk_reguired)/1048576), color = 'red')
+            if slave_disk_free >= 0:
+                CGI_CLI.uprint('%s    %.2f MB    %.2f MB    %.2f MB' % (device, \
+                    float(disk_reguired)/1048576, \
+                    float(disk_free)/1048576, \
+                    float(slave_disk_free)/1048576) \
+                    , color = 'red')
+            else:
+                CGI_CLI.uprint('%s    %.2f MB    %.2f MB    ---' % (device, \
+                    float(disk_reguired)/1048576, \
+                    float(disk_free)/1048576) \
+                    , color = 'red')
             disk_low_space_devices.append(device)
-        else: CGI_CLI.uprint('%s    %.2f MB    %.2f MB' % (device, float(disk_free)/1048576, \
-            float(disk_reguired)/1048576), color = 'blue')
-    #CGI_CLI.uprint(end_tag = 'p')
+        else:
+            if slave_disk_free >= 0:
+                CGI_CLI.uprint('%s    %.2f MB    %.2f MB    %.2f MB' % (device,
+                    float(disk_reguired)/1048576, \
+                    float(disk_free)/1048576, \
+                    float(slave_disk_free)/1048576) \
+                    , color = 'blue')
+            else:
+                CGI_CLI.uprint('%s    %.2f MB    %.2f MB    ---' % (device,
+                    float(disk_reguired)/1048576, \
+                    float(disk_free)/1048576) \
+                    , color = 'blue')
+
     if not all_disk_checks_ok:
         CGI_CLI.uprint('Disk space - CHECK FAIL!', tag='h1', color = 'RED')
         sys.exit(0)
