@@ -432,10 +432,12 @@ class CGI_CLI(object):
         print_string = 'python[%s]\n' % (str(python_version()))
         print_string += 'version[%s], ' % (CGI_CLI.VERSION())
         print_string += 'file[%s]\n' % (sys.argv[0])
-        print_string += 'CGI_CLI.USERNAME[%s], CGI_CLI.PASSWORD[%s]\n' % (CGI_CLI.USERNAME, 'Yes' if CGI_CLI.PASSWORD else 'No')
+        print_string += 'CGI_CLI.USERNAME[%s], CGI_CLI.PASSWORD[%s]\n' % \
+            (CGI_CLI.USERNAME, 'Yes' if CGI_CLI.PASSWORD else 'No')
         print_string += 'remote_addr[%s], ' % dict(os.environ).get('REMOTE_ADDR','')
         print_string += 'browser[%s]\n' % dict(os.environ).get('HTTP_USER_AGENT','')
-        print_string += 'CGI_CLI.cgi_active[%s]\n' % (str(CGI_CLI.cgi_active))
+        print_string += 'CGI_CLI.cgi_active[%s], CGI_CLI.chunked[%s]\n' % \
+            (str(CGI_CLI.cgi_active),str(CGI_CLI.chunked))
         if CGI_CLI.cgi_active:
             try: print_string += 'CGI_CLI.data[%s] = %s\n' % (str(CGI_CLI.submit_form),str(json.dumps(CGI_CLI.data, indent = 4)))
             except: pass
@@ -477,7 +479,7 @@ p {
 """
 
 
-CGI_CLI.init_cgi(chunked = False, css_style = CSS_STYLE)
+CGI_CLI.init_cgi(chunked = True, css_style = CSS_STYLE)
 
 CGI_CLI.print_args()
 CGI_CLI.print_env()
