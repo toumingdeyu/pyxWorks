@@ -1596,13 +1596,18 @@ def get_existing_sw_release_list(brand_subdir = None, type_subdir = None):
 
 ##############################################################################
 
-def does_directory_exist_by_ls_l(directory, printall = None):
+def does_local_directory_or_file_exist_by_ls_l(directory_or_file, printall = None):
+    this_is_directory, file_found = None, None, None
     ### BUG: os.path.exists RETURNS ALLWAYS FALSE, SO I USE OS ls -l ######
-    ls_all_result = LCMD.run_commands({'unix':['ls -l %s' % (directory)]}, printall = printall)
-    if 'No such file or directory' in ls_all_result[0] \
-        or not 'total ' in ls_all_result[0]:
-        return False
-    return True
+    ls_all_result = LCMD.run_commands({'unix':['ls -l %s' % (directory_or_file)]}, printall = printall)
+    if 'NO SUCH FILE OR DIRECTORY' in ls_all_result[0].upper(): pass
+    elif ls_all_result[0].strip().split()[0] == 'total': 
+        this_is_directory = True
+    try: 
+        if directory_or_file.split('/')[-1] and directory_or_file.split('/')[-1] in ls_all_result[0].strip(): 
+            file_found = True
+    except: pass    
+    return this_is_directory, file_found
 
 ##############################################################################
 
@@ -1929,8 +1934,8 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                         huawei_compatibility_cmds.append('check hardware-compatibility %s%s' % \
                             (RCMD.drive_string, os.path.join(dev_dir, file)))
                         ### CHECK FILES ON 'slave#' ALSO FOR HW COMPATIBILITY ###
-                        huawei_compatibility_cmds.append('check hardware-compatibility slave#%s%s' % \
-                            (RCMD.drive_string, os.path.join(dev_dir, file)))
+                        #huawei_compatibility_cmds.append('check hardware-compatibility slave#%s%s' % \
+                        #    (RCMD.drive_string, os.path.join(dev_dir, file)))
                     else: huawei_compatibility_cmds.append('\n')
                 rcmd_compatibility_outputs = RCMD.run_commands( \
                     {'huawei':huawei_compatibility_cmds}, printall = printall)
@@ -2516,32 +2521,79 @@ if type_subdir and brand_subdir and sw_release:
     for actual_file_type in selected_sw_file_types_list:
         actual_file_type_subdir, forget_it = os.path.split(actual_file_type)
 
-        dir_sw_version_subdir = os.path.abspath(os.path.join(os.sep,'home',\
-            'tftpboot',brand_subdir, type_subdir, sw_release.replace('.',''), actual_file_type_subdir)).strip()
-
-        dir_sw_version_subdir_dotted = os.path.abspath(os.path.join(os.sep,'home',\
-            'tftpboot',brand_subdir, type_subdir, sw_release, actual_file_type_subdir)).strip()
-
-        dir_without_sw_version_subdir = os.path.abspath(os.path.join(os.sep,'home',\
-            'tftpboot',brand_subdir, type_subdir, actual_file_type_subdir)).strip()
-
+        ### WARNING: 'sw_release' COULD BE ALSO FILE !!! ######################
         ### BUG: os.path.exists RETURNS ALLWAYS FALSE, SO I USE OS ls -l ######
-        dir_sw_version_subdir_exists = does_directory_exist_by_ls_l(dir_sw_version_subdir, printall = printall)
-        dir_sw_version_subdir_dotted_exists = does_directory_exist_by_ls_l(dir_sw_version_subdir_dotted, printall = printall)
-        dir_without_sw_version_subdir_exists = does_directory_exist_by_ls_l(dir_without_sw_version_subdir, printall = printall)
+        IS_DIRECTORY_OR_FILE_FOUND = False 
+        FILE_FOUND_STRING = str()
+        
+        ### LET DOTS IN DIRECTORY NAME ########################################
+        if not IS_DIRECTORY_OR_FILE_FOUND:
+            use_dir_or_file = os.path.abspath(os.path.join(os.sep,'home',\
+                'tftpboot',brand_subdir, type_subdir, sw_release, actual_file_type_subdir)).strip()        
+            this_is_directory, file_found = \
+                does_local_directory_or_file_exist_by_ls_l(use_dir_or_file, printall = printall)
+            CGI_CLI.uprint('Path=%s, is_file[%s], is_dir[%s]' % (use_dir_or_file, this_is_directory,  file_found))
+            
+            if this_is_directory: 
+                IS_DIRECTORY_OR_FILE_FOUND = True
+                directory_list.append(use_dir_or_file, str())
+            if file_found and not this_is_directory:
+                try: 
+                    FILE_FOUND_STRING = use_dir_or_file.split('/')[-1]
+                    IS_DIRECTORY_OR_FILE_FOUND = True
+                except: pass
+                directory_list.append(use_dir_or_file, FILE_FOUND_STRING)
+                
+        ### DELETE DOTS FROM DIRECTORY NAME ################################### 
+        if not IS_DIRECTORY_OR_FILE_FOUND:
+            use_dir_or_file = os.path.abspath(os.path.join(os.sep,'home',\
+                'tftpboot',brand_subdir, type_subdir, sw_release.replace('.',''), actual_file_type_subdir)).strip()        
+            this_is_directory, file_found = \
+                does_local_directory_or_file_exist_by_ls_l(use_dir_or_file, printall = printall)
+            CGI_CLI.uprint('Path=%s, is_file[%s], is_dir[%s]' % (use_dir_or_file, this_is_directory, file_found))
+        
+            if this_is_directory: 
+                IS_DIRECTORY_OR_FILE_FOUND = True
+                directory_list.append(use_dir_or_file, str())
+            if file_found and not this_is_directory:
+                try: 
+                    FILE_FOUND_STRING = use_dir_or_file.split('/')[-1]
+                    IS_DIRECTORY_OR_FILE_FOUND = True
+                except: pass
+                directory_list.append(use_dir_or_file, FILE_FOUND_STRING)
+                
+        ### NO SW_RELEASE SUBDIRECTORY ########################################
+        if not IS_DIRECTORY_OR_FILE_FOUND:
+            use_dir_or_file = os.path.abspath(os.path.join(os.sep,'home',\
+                'tftpboot',brand_subdir, type_subdir, actual_file_type_subdir)).strip()            
+            this_is_directory, file_found = \
+                does_local_directory_or_file_exist_by_ls_l(use_dir_or_file, printall = printall)
+            CGI_CLI.uprint('Path=%s, is_file[%s], is_dir[%s]' % (use_dir_or_file, this_is_directory, file_found))
 
-        if not dir_sw_version_subdir_exists and not dir_without_sw_version_subdir_exists:
-            CGI_CLI.uprint('Path for %s NOT FOUND!' % (actual_file_type), color = 'red')
-            sys.exit(0)
+            if this_is_directory: 
+                IS_DIRECTORY_OR_FILE_FOUND = True
+                directory_list.append(use_dir_or_file, str())
+            if file_found and not this_is_directory:
+                try: 
+                    FILE_FOUND_STRING = use_dir_or_file.split('/')[-1]
+                    IS_DIRECTORY_OR_FILE_FOUND = True
+                except: pass
+                directory_list.append(use_dir_or_file, FILE_FOUND_STRING)
+                
+        ### PRINT WARNING #####################################################        
+        if not IS_DIRECTORY_OR_FILE_FOUND: 
+            CGI_CLI.uprint('Path for %s is NOT FOUND!' % (actual_file_type), color = 'red')
 
-        if dir_sw_version_subdir_exists: directory_list.append(dir_sw_version_subdir)
-        elif dir_sw_version_subdir_dotted_exists: directory_list.append(dir_sw_version_subdir_dotted)
-        elif dir_without_sw_version_subdir_exists: directory_list.append(dir_without_sw_version_subdir)
+    ### EXIT if DIRECTORY LIST IS VOID ########################################    
+    if len(directory_list) == 0:
+       CGI_CLI.uprint('Server install directories NOT FOUND!', color = 'red')    
+       sys.exit(0)
 
-    ### CHECK LOCAL SERVER FILES EXISTENCY ################################
-    for directory,actual_file_type in zip(directory_list,selected_sw_file_types_list):
+    ### CHECK LOCAL SERVER FILES EXISTENCY ####################################
+    for directory_sublist,actual_file_type in zip(directory_list,selected_sw_file_types_list):
         forget_it, actual_file_name = os.path.split(actual_file_type)
         actual_file_type_subdir, forget_it = os.path.split(actual_file_type)
+        directory, true_local_file_in_sw_release = directory_sublist
         if sw_release in directory:
             device_directory = os.path.abspath(os.path.join(os.sep, \
                 type_subdir_on_device, sw_release.replace('.',''), actual_file_type_subdir))
@@ -2549,22 +2601,33 @@ if type_subdir and brand_subdir and sw_release:
             ### FILES ON DEVICE WILL BE IN DIRECTORY WITHOUT SW_RELEASE IF SW_RELEASE SUDBIR DOES NOT EXISTS ON SERVER, BECAUSE THEN SW_RELEASE IS FILENAME ###
             device_directory = os.path.abspath(os.path.join(os.sep,type_subdir_on_device, actual_file_type_subdir))
         local_results = LCMD.run_commands({'unix':['ls -l %s' % (directory)]}, printall = printall)
-        no_such_files_in_directory = True
-        for line in local_results[0].splitlines():
-            ### PROBLEM ARE '*' IN FILE NAME ###
-            all_file_name_parts_found = True
-            for part_of_name in actual_file_name.split('*'):
-                if part_of_name.upper() in line.upper(): pass
-                else: all_file_name_parts_found = False
-            if all_file_name_parts_found:
-                no_such_files_in_directory = False
-                true_file_name = line.split()[-1].strip()
-                local_oti_checkum_string = LCMD.run_commands({'unix':['md5sum %s' % \
-                    (os.path.join(directory,true_file_name))]}, printall = printall)
-                md5_sum = local_oti_checkum_string[0].split()[0].strip()
-                filesize_in_bytes = os.stat(os.path.join(directory,true_file_name)).st_size
-                ### MAKE TRUE FILE LIST ###
-                true_sw_release_files_on_server.append([directory,device_directory,true_file_name,md5_sum,filesize_in_bytes])
+
+        no_such_files_in_directory = True        
+        if true_local_file_in_sw_release and true_local_file_in_sw_release in local_results[0]:
+            no_such_files_in_directory = False
+            true_file_name = true_local_file_in_sw_release
+            local_oti_checkum_string = LCMD.run_commands({'unix':['md5sum %s' % \
+                (os.path.join(directory,true_file_name))]}, printall = printall)
+            md5_sum = local_oti_checkum_string[0].split()[0].strip()
+            filesize_in_bytes = os.stat(os.path.join(directory,true_file_name)).st_size
+            ### MAKE TRUE FILE LIST, SW RELEASE ONLY ###
+            true_sw_release_files_on_server.append([directory,device_directory,true_file_name,md5_sum,filesize_in_bytes])            
+        else:
+            for line in local_results[0].splitlines():
+                ### PROBLEM ARE '*' IN FILE NAME ###
+                all_file_name_parts_found = True
+                for part_of_name in actual_file_name.split('*'):
+                    if part_of_name.upper() in line.upper(): pass
+                    else: all_file_name_parts_found = False
+                if all_file_name_parts_found:
+                    no_such_files_in_directory = False
+                    true_file_name = line.split()[-1].strip()
+                    local_oti_checkum_string = LCMD.run_commands({'unix':['md5sum %s' % \
+                        (os.path.join(directory,true_file_name))]}, printall = printall)
+                    md5_sum = local_oti_checkum_string[0].split()[0].strip()
+                    filesize_in_bytes = os.stat(os.path.join(directory,true_file_name)).st_size
+                    ### MAKE TRUE FILE LIST ###
+                    true_sw_release_files_on_server.append([directory,device_directory,true_file_name,md5_sum,filesize_in_bytes])
         if no_such_files_in_directory:
             CGI_CLI.uprint('%s file(s) NOT FOUND in %s!' % (actual_file_name,directory), color = 'red')
             sys.exit(0)
