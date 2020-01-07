@@ -1597,16 +1597,16 @@ def get_existing_sw_release_list(brand_subdir = None, type_subdir = None):
 ##############################################################################
 
 def does_local_directory_or_file_exist_by_ls_l(directory_or_file, printall = None):
-    this_is_directory, file_found = None, None, None
+    this_is_directory, file_found = None, None
     ### BUG: os.path.exists RETURNS ALLWAYS FALSE, SO I USE OS ls -l ######
     ls_all_result = LCMD.run_commands({'unix':['ls -l %s' % (directory_or_file)]}, printall = printall)
     if 'NO SUCH FILE OR DIRECTORY' in ls_all_result[0].upper(): pass
-    elif ls_all_result[0].strip().split()[0] == 'total': 
+    elif ls_all_result[0].strip().split()[0] == 'total':
         this_is_directory = True
-    try: 
-        if directory_or_file.split('/')[-1] and directory_or_file.split('/')[-1] in ls_all_result[0].strip(): 
+    try:
+        if directory_or_file.split('/')[-1] and directory_or_file.split('/')[-1] in ls_all_result[0].strip():
             file_found = True
-    except: pass    
+    except: pass
     return this_is_directory, file_found
 
 ##############################################################################
@@ -2035,7 +2035,7 @@ def check_free_disk_space_on_devices(device_list = None, \
                 except: pass
             elif RCMD.router_type == 'juniper': pass
             elif RCMD.router_type == 'huawei':
-                try: 
+                try:
                      device_free_space_in_bytes = float(rcmd_check_disk_space_outputs[0].\
                          split(' KB free)')[0].splitlines()[-1].split()[-1].\
                          replace('(','').replace(',','').strip())*1024
@@ -2523,71 +2523,79 @@ if type_subdir and brand_subdir and sw_release:
 
         ### WARNING: 'sw_release' COULD BE ALSO FILE !!! ######################
         ### BUG: os.path.exists RETURNS ALLWAYS FALSE, SO I USE OS ls -l ######
-        IS_DIRECTORY_OR_FILE_FOUND = False 
+        IS_DIRECTORY_OR_FILE_FOUND = False
         FILE_FOUND_STRING = str()
-        
+        DIR_FOUND_STRING  = str()
         ### LET DOTS IN DIRECTORY NAME ########################################
         if not IS_DIRECTORY_OR_FILE_FOUND:
             use_dir_or_file = os.path.abspath(os.path.join(os.sep,'home',\
-                'tftpboot',brand_subdir, type_subdir, sw_release, actual_file_type_subdir)).strip()        
+                'tftpboot',brand_subdir, type_subdir, sw_release, actual_file_type_subdir)).strip()
             this_is_directory, file_found = \
                 does_local_directory_or_file_exist_by_ls_l(use_dir_or_file, printall = printall)
-            CGI_CLI.uprint('Path=%s, is_file[%s], is_dir[%s]' % (use_dir_or_file, this_is_directory,  file_found))
-            
-            if this_is_directory: 
+            if printall:
+                CGI_CLI.uprint('Path=%s, is_dir[%s], is_file[%s]' % \
+                    (use_dir_or_file, this_is_directory,  file_found))
+            if this_is_directory:
                 IS_DIRECTORY_OR_FILE_FOUND = True
-                directory_list.append(use_dir_or_file, str())
+                directory_list.append([use_dir_or_file, str()])
             if file_found and not this_is_directory:
-                try: 
-                    FILE_FOUND_STRING = use_dir_or_file.split('/')[-1]
+                try:
+                    DIR_FOUND_STRING, FILE_FOUND_STRING = os.path.split(use_dir_or_file)
+                    #FILE_FOUND_STRING = use_dir_or_file.split('/')[-1]
                     IS_DIRECTORY_OR_FILE_FOUND = True
                 except: pass
-                directory_list.append(use_dir_or_file, FILE_FOUND_STRING)
-                
-        ### DELETE DOTS FROM DIRECTORY NAME ################################### 
+                directory_list.append([DIR_FOUND_STRING, FILE_FOUND_STRING])
+
+        ### DELETE DOTS FROM DIRECTORY NAME ###################################
         if not IS_DIRECTORY_OR_FILE_FOUND:
             use_dir_or_file = os.path.abspath(os.path.join(os.sep,'home',\
-                'tftpboot',brand_subdir, type_subdir, sw_release.replace('.',''), actual_file_type_subdir)).strip()        
+                'tftpboot',brand_subdir, type_subdir, sw_release.replace('.',''), actual_file_type_subdir)).strip()
             this_is_directory, file_found = \
                 does_local_directory_or_file_exist_by_ls_l(use_dir_or_file, printall = printall)
-            CGI_CLI.uprint('Path=%s, is_file[%s], is_dir[%s]' % (use_dir_or_file, this_is_directory, file_found))
-        
-            if this_is_directory: 
+            if printall:
+                CGI_CLI.uprint('Path=%s, is_dir[%s], is_file[%s]' % \
+                    (use_dir_or_file, this_is_directory, file_found))
+            if this_is_directory:
                 IS_DIRECTORY_OR_FILE_FOUND = True
-                directory_list.append(use_dir_or_file, str())
+                directory_list.append([use_dir_or_file, str()])
             if file_found and not this_is_directory:
-                try: 
-                    FILE_FOUND_STRING = use_dir_or_file.split('/')[-1]
+                try:
+                    DIR_FOUND_STRING, FILE_FOUND_STRING = os.path.split(use_dir_or_file)
+                    #FILE_FOUND_STRING = use_dir_or_file.split('/')[-1]
                     IS_DIRECTORY_OR_FILE_FOUND = True
                 except: pass
-                directory_list.append(use_dir_or_file, FILE_FOUND_STRING)
-                
+                directory_list.append([DIR_FOUND_STRING, FILE_FOUND_STRING])
+
         ### NO SW_RELEASE SUBDIRECTORY ########################################
         if not IS_DIRECTORY_OR_FILE_FOUND:
             use_dir_or_file = os.path.abspath(os.path.join(os.sep,'home',\
-                'tftpboot',brand_subdir, type_subdir, actual_file_type_subdir)).strip()            
+                'tftpboot',brand_subdir, type_subdir, actual_file_type_subdir)).strip()
             this_is_directory, file_found = \
                 does_local_directory_or_file_exist_by_ls_l(use_dir_or_file, printall = printall)
-            CGI_CLI.uprint('Path=%s, is_file[%s], is_dir[%s]' % (use_dir_or_file, this_is_directory, file_found))
-
-            if this_is_directory: 
+            if printall:
+                CGI_CLI.uprint('Path=%s, is_dir[%s], is_file[%s]' % \
+                    (use_dir_or_file, this_is_directory, file_found))
+            if this_is_directory:
                 IS_DIRECTORY_OR_FILE_FOUND = True
-                directory_list.append(use_dir_or_file, str())
+                directory_list.append([use_dir_or_file, str()])
             if file_found and not this_is_directory:
-                try: 
-                    FILE_FOUND_STRING = use_dir_or_file.split('/')[-1]
+                try:
+                    DIR_FOUND_STRING, FILE_FOUND_STRING = os.path.split(use_dir_or_file)
+                    #FILE_FOUND_STRING = use_dir_or_file.split('/')[-1]
                     IS_DIRECTORY_OR_FILE_FOUND = True
                 except: pass
-                directory_list.append(use_dir_or_file, FILE_FOUND_STRING)
-                
-        ### PRINT WARNING #####################################################        
-        if not IS_DIRECTORY_OR_FILE_FOUND: 
+                directory_list.append([DIR_FOUND_STRING, FILE_FOUND_STRING])
+
+        ### PRINT WARNING #####################################################
+        if not IS_DIRECTORY_OR_FILE_FOUND:
             CGI_CLI.uprint('Path for %s is NOT FOUND!' % (actual_file_type), color = 'red')
 
-    ### EXIT if DIRECTORY LIST IS VOID ########################################    
+    ### EXIT if DIRECTORY LIST IS VOID ########################################
     if len(directory_list) == 0:
-       CGI_CLI.uprint('Server install directories NOT FOUND!', color = 'red')    
+       CGI_CLI.uprint('Server install directories NOT FOUND!', color = 'red')
        sys.exit(0)
+    else:
+       if printall: CGI_CLI.uprint(directory_list)
 
     ### CHECK LOCAL SERVER FILES EXISTENCY ####################################
     for directory_sublist,actual_file_type in zip(directory_list,selected_sw_file_types_list):
@@ -2602,7 +2610,7 @@ if type_subdir and brand_subdir and sw_release:
             device_directory = os.path.abspath(os.path.join(os.sep,type_subdir_on_device, actual_file_type_subdir))
         local_results = LCMD.run_commands({'unix':['ls -l %s' % (directory)]}, printall = printall)
 
-        no_such_files_in_directory = True        
+        no_such_files_in_directory = True
         if true_local_file_in_sw_release and true_local_file_in_sw_release in local_results[0]:
             no_such_files_in_directory = False
             true_file_name = true_local_file_in_sw_release
@@ -2611,7 +2619,7 @@ if type_subdir and brand_subdir and sw_release:
             md5_sum = local_oti_checkum_string[0].split()[0].strip()
             filesize_in_bytes = os.stat(os.path.join(directory,true_file_name)).st_size
             ### MAKE TRUE FILE LIST, SW RELEASE ONLY ###
-            true_sw_release_files_on_server.append([directory,device_directory,true_file_name,md5_sum,filesize_in_bytes])            
+            true_sw_release_files_on_server.append([directory,device_directory,true_file_name,md5_sum,filesize_in_bytes])
         else:
             for line in local_results[0].splitlines():
                 ### PROBLEM ARE '*' IN FILE NAME ###
