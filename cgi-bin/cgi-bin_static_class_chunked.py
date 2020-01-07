@@ -436,8 +436,8 @@ class CGI_CLI(object):
             (CGI_CLI.USERNAME, 'Yes' if CGI_CLI.PASSWORD else 'No')
         print_string += 'remote_addr[%s], ' % dict(os.environ).get('REMOTE_ADDR','')
         print_string += 'browser[%s]\n' % dict(os.environ).get('HTTP_USER_AGENT','')
-        print_string += 'CGI_CLI.cgi_active[%s], CGI_CLI.chunked[%s]\n' % \
-            (str(CGI_CLI.cgi_active),str(CGI_CLI.chunked))
+        print_string += 'CGI_CLI.cgi_active[%s], CGI_CLI.submit_form[%s], CGI_CLI.chunked[%s]\n' % \
+            (str(CGI_CLI.cgi_active), str(CGI_CLI.submit_form), str(CGI_CLI.chunked))
         if CGI_CLI.cgi_active:
             try: print_string += 'CGI_CLI.data[%s] = %s\n' % (str(CGI_CLI.submit_form),str(json.dumps(CGI_CLI.data, indent = 4)))
             except: pass
@@ -567,3 +567,11 @@ CGI_CLI.uprint("""
                 }, 500);
             }
         </script>""", raw = True)
+        
+        
+for i in range(1,101):
+    time.sleep(0.1)
+    CGI_CLI.uprint("%s  " % (i), no_newlines = True)
+    if not i % 30: CGI_CLI.uprint("\n")
+CGI_CLI.uprint("\n")
+        
