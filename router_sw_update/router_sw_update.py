@@ -1526,7 +1526,7 @@ def do_scp_one_file_to_more_devices(true_sw_release_file_on_server = None, \
 ##############################################################################
 
 def do_scp_one_file_to_more_devices_per_needed_to_copy_list(\
-    true_sw_release_file_on_server = None, needed_to_copy_files_per_device_list = None,\
+    true_sw_release_file_on_server = None, missing_files_per_device_list = None,\
     device_list = None, USERNAME = None, PASSWORD = None , device_drive_string = None, \
     printall = None, router_type = None):
     if true_sw_release_file_on_server and len(device_list)>0:
@@ -1536,7 +1536,7 @@ def do_scp_one_file_to_more_devices_per_needed_to_copy_list(\
         cp_cmd_list = []
         ### ONLY 1 SCP CONNECTION PER ROUTER ###
         for device in device_list:
-            for device2, missing_or_bad_files_per_device in needed_to_copy_files_per_device_list:
+            for device2, missing_or_bad_files_per_device in missing_files_per_device_list:
                 directory2, dev_dir2, file2, md52, fsize2 = missing_or_bad_files_per_device
                 if '%s%s' % (device_drive_string, os.path.join(dev_dir, file)) == '%s%s' % (device_drive_string, os.path.join(dev_dir2, file2)) \
                     and device == device2:
@@ -1828,8 +1828,12 @@ def get_device_drive_string(device_list = None, \
 def check_files_on_devices(device_list = None, true_sw_release_files_on_server = None, \
     USERNAME = None, PASSWORD = None, logfilename = None, printall = None, \
     check_mode = None):
+    """
+    check_mode = True, check device files and print failed checks
+    check_mode = False, just get files needed to copy
+    """
     all_files_on_all_devices_ok = None
-    needed_to_copy_files_per_device_list = []
+    missing_files_per_device_list = []
     compatibility_problem_list = []
     device_drive_string, router_type = str(), str()
     for device in device_list:
@@ -1953,21 +1957,15 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                     else:
                         for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
                             if file == file1:
-                                needed_to_copy_files_per_device_list.append( \
+                                missing_files_per_device_list.append( \
                                     [device,[directory, dev_dir, file, md5, fsize]])
                     if printall: CGI_CLI.uprint('File=%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
                         (file,file_found_on_device,md5_ok,file_size_ok_on_device))
             ###################################################################
             RCMD.disconnect()
-    ### PRINT INCOMPATIBLE FILES ##############################################
-    if len(compatibility_problem_list) > 0:
-        CGI_CLI.uprint('Device    Incompatible_file(s):', tag = 'h3', color = 'red')
-        CGI_CLI.uprint('\n'.join([ '%s    %s' % (device,devfile) for device,devfile in compatibility_problem_list ]),
-            color = 'red')
-        sys.exit(0)
-        
+
     ### PRINT NEEDED FILES TO COPY ############################################
-    if len(needed_to_copy_files_per_device_list) > 0:
+    if len(missing_files_per_device_list) > 0:
         if CGI_CLI.data.get('check_device_sw_files_only') or check_mode:
             CGI_CLI.uprint('Device    Bad_or_missing_file(s):', tag = 'h3', color = 'red')
         else:
@@ -1977,31 +1975,41 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
             CGI_CLI.uprint('Sw release %s file(s) on device(s) %s - CHECK OK.' % \
                 (sw_release, ', '.join(device_list)), tag = 'h1', color='green')
             all_files_on_all_devices_ok = True
-        else:
-            CGI_CLI.uprint('SW RELEASE FILES COMPATIBILITY - CHECK FAILED!' , \
+        elif check_mode:
+            CGI_CLI.uprint('\nSW RELEASE FILES COMPATIBILITY - CHECK FAILED!' , \
                 tag = 'h1', color = 'red')
         ### WHEN SUCCESS, THEN CHECK IF EXIT OR NOT ###########################
         if CGI_CLI.data.get('backup_configs_to_device_disk') \
             or CGI_CLI.data.get('delete_device_sw_files_on_end'): pass
         else: sys.exit(0)
+
+    ### PRINT RED OR BLUE FILES TO COPY OR MISSING/BAD ########################
     if CGI_CLI.data.get('check_device_sw_files_only') or check_mode:
         CGI_CLI.uprint(no_newlines = True, start_tag = 'p', color = 'red')
     else: CGI_CLI.uprint(no_newlines = True, start_tag = 'p', color = 'blue')
-    for device,missing_or_bad_files_per_device in needed_to_copy_files_per_device_list:
+    for device,missing_or_bad_files_per_device in missing_files_per_device_list:
         directory, dev_dir, file, md5, fsize = missing_or_bad_files_per_device
         CGI_CLI.uprint('%s    %s' % \
                 (device,device_drive_string+os.path.join(dev_dir, file)))
     CGI_CLI.uprint(end_tag = 'p')
-    if not all_files_on_all_devices_ok and \
-        CGI_CLI.data.get('check_device_sw_files_only') or len(compatibility_problem_list) > 0:
+
+    ### PRINT INCOMPATIBLE FILES ##################################
+    if len(compatibility_problem_list) > 0 and check_mode:
+        CGI_CLI.uprint('\nDevice    Incompatible_file(s):', tag = 'h3', color = 'red')
+        CGI_CLI.uprint('\n'.join([ '%s    %s' % (device,devfile) for device,devfile in compatibility_problem_list ]),
+            color = 'red')
+
+    if not all_files_on_all_devices_ok \
+        and (CGI_CLI.data.get('check_device_sw_files_only') \
+        or (len(compatibility_problem_list) > 0 and check_mode)):
         CGI_CLI.uprint('SW RELEASE FILES - CHECK FAILED!' , tag = 'h1', color = 'red')
         sys.exit(0)
-    return all_files_on_all_devices_ok, needed_to_copy_files_per_device_list, device_drive_string, router_type
+    return all_files_on_all_devices_ok, missing_files_per_device_list, device_drive_string, router_type
 
 ##############################################################################
 
 def check_free_disk_space_on_devices(device_list = None, \
-    needed_to_copy_files_per_device_list = None, \
+    missing_files_per_device_list = None, \
     USERNAME = None, PASSWORD = None, logfilename = None, printall = None):
     device_free_space_in_bytes, slave_device_free_space_in_bytes = 0, -1
     disk_low_space_devices, disk_free_list = [], []
@@ -2071,7 +2079,7 @@ def check_free_disk_space_on_devices(device_list = None, \
             CGI_CLI.uprint('\n')
             ### CALCULATE NEEDED SPACE ON DEVICE FORM MISSING FILES ###
             needed_device_free_space_in_bytes = 0
-            for device2,missing_or_bad_files_per_device in needed_to_copy_files_per_device_list:
+            for device2,missing_or_bad_files_per_device in missing_files_per_device_list:
                 directory, dev_dir, file, md5, fsize = missing_or_bad_files_per_device
                 if device == device2:
                     needed_device_free_space_in_bytes += fsize
@@ -2118,7 +2126,7 @@ def check_free_disk_space_on_devices(device_list = None, \
 ##############################################################################
 
 def copy_files_to_devices(true_sw_release_files_on_server = None, \
-    needed_to_copy_files_per_device_list = None, \
+    missing_files_per_device_list = None, \
     device_list = None, USERNAME = None, PASSWORD = None, \
     device_drive_string = None, router_type = None, force_rewrite = None):
     old_files_status = []
@@ -2139,7 +2147,7 @@ def copy_files_to_devices(true_sw_release_files_on_server = None, \
             else:
                 do_scp_one_file_to_more_devices_per_needed_to_copy_list( \
                     true_sw_release_file_on_server, \
-                    needed_to_copy_files_per_device_list, \
+                    missing_files_per_device_list, \
                     device_list, USERNAME, PASSWORD, \
                     device_drive_string = device_drive_string, \
                     printall = printall, router_type = router_type)
@@ -2159,7 +2167,7 @@ def copy_files_to_devices(true_sw_release_files_on_server = None, \
                 else:
                     do_scp_one_file_to_more_devices_per_needed_to_copy_list( \
                         true_sw_release_file_on_server, \
-                        needed_to_copy_files_per_device_list, \
+                        missing_files_per_device_list, \
                         device_list, USERNAME, PASSWORD, \
                         device_drive_string = device_drive_string, \
                         printall = printall, router_type = router_type)
@@ -2238,7 +2246,7 @@ total_size_of_files_in_bytes = 0
 device_list = []
 device_types = []
 true_sw_release_files_on_server = []
-needed_to_copy_files_per_device_list = []
+missing_files_per_device_list = []
 all_files_on_all_devices_ok = None
 
 ###############################################################################
@@ -2597,7 +2605,7 @@ if type_subdir and brand_subdir and sw_release:
        CGI_CLI.uprint('Server install directories NOT FOUND!', color = 'red')
        sys.exit(0)
     else:
-       if printall: CGI_CLI.uprint(directory_list)
+       if printall: CGI_CLI.uprint(directory_list, name = 'directory_list')
 
     ### CHECK LOCAL SERVER FILES EXISTENCY ####################################
     for directory_sublist,actual_file_type in zip(directory_list,selected_sw_file_types_list):
@@ -2665,7 +2673,7 @@ if CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
         silent_mode = True)
 else:
     ### CHECK EXISTING FILES ON DEVICES #######################################
-    all_files_on_all_devices_ok, needed_to_copy_files_per_device_list, \
+    all_files_on_all_devices_ok, missing_files_per_device_list, \
         device_drive_string, router_type = \
         check_files_on_devices(device_list = device_list, \
         true_sw_release_files_on_server = true_sw_release_files_on_server, \
@@ -2676,7 +2684,7 @@ else:
 if all_files_on_all_devices_ok: pass
 else:
     check_free_disk_space_on_devices(device_list = device_list, \
-        needed_to_copy_files_per_device_list = needed_to_copy_files_per_device_list, \
+        missing_files_per_device_list = missing_files_per_device_list, \
         USERNAME = USERNAME, PASSWORD = PASSWORD, logfilename = logfilename, \
         printall = printall)
 
@@ -2690,13 +2698,13 @@ while not all_files_on_all_devices_ok:
     else: force_rewrite = False
     ### FORCE REWRITE HAS A SENSE FIRST TIME ONLY #############################
     copy_files_to_devices(true_sw_release_files_on_server = true_sw_release_files_on_server, \
-        needed_to_copy_files_per_device_list = needed_to_copy_files_per_device_list, \
+        missing_files_per_device_list = missing_files_per_device_list, \
         device_list = device_list, USERNAME = USERNAME, PASSWORD = PASSWORD, \
         device_drive_string = device_drive_string, router_type = router_type, \
         force_rewrite = force_rewrite)
     time.sleep(3)
     ### CHECK DEVICE FILES AFTER COPYING ######################################
-    all_files_on_all_devices_ok, needed_to_copy_files_per_device_list, \
+    all_files_on_all_devices_ok, missing_files_per_device_list, \
         device_drive_string, router_type = \
         check_files_on_devices(device_list = device_list, \
         true_sw_release_files_on_server = true_sw_release_files_on_server, \
