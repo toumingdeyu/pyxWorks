@@ -1972,7 +1972,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
         else:
             CGI_CLI.uprint('Device    File(s)_to_copy:', tag = 'h3', color = 'blue')
             CGI_CLI.uprint(no_newlines = True, start_tag = 'p', color = 'blue')
-            
+
         ### PRINT RED OR BLUE FILES TO COPY OR MISSING/BAD ####################
         for device,missing_or_bad_files_per_device in missing_files_per_device_list:
             directory, dev_dir, file, md5, fsize = missing_or_bad_files_per_device
@@ -1985,19 +1985,19 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
         if len(compatibility_problem_list) > 0:
             CGI_CLI.uprint('\nDevice    Incompatible_file(s):', tag = 'h3', color = 'red')
             CGI_CLI.uprint('\n'.join([ '%s    %s' % (device,devfile) for device,devfile in compatibility_problem_list ]),
-                color = 'red')    
+                color = 'red')
         ### PRINT CHECK RESULTS ###############################################
-        if len(missing_files_per_device_list) == 0 and len(compatibility_problem_list) == 0:        
+        if len(missing_files_per_device_list) == 0 and len(compatibility_problem_list) == 0:
             CGI_CLI.uprint('Sw release %s file(s) on device(s) %s - CHECK OK.' % \
                 (sw_release, ', '.join(device_list)), tag = 'h1', color='green')
         else: CGI_CLI.uprint('Sw release file(s) - CHECK FAILED!' , tag = 'h1', color = 'red')
-        
-    ### END IN CHECK_DEVICE_FILES_ONLY MODE, BECAUSE OF X TIMES SCP TRIES #####    
-    if CGI_CLI.data.get('check_device_sw_files_only'):            
+
+    ### END IN CHECK_DEVICE_FILES_ONLY MODE, BECAUSE OF X TIMES SCP TRIES #####
+    if CGI_CLI.data.get('check_device_sw_files_only'):
         if CGI_CLI.data.get('backup_configs_to_device_disk') \
             or CGI_CLI.data.get('delete_device_sw_files_on_end'): pass
-        else: sys.exit(0)        
-        
+        else: sys.exit(0)
+
     return all_files_on_all_devices_ok, missing_files_per_device_list, device_drive_string, router_type
 
 ###############################################################################
@@ -2642,10 +2642,10 @@ if type_subdir and brand_subdir and sw_release:
                     ### MAKE TRUE FILE LIST ###
                     true_sw_release_files_on_server.append([directory,device_directory,true_file_name,md5_sum,filesize_in_bytes])
         if no_such_files_in_directory:
-            CGI_CLI.uprint('%s file(s) NOT FOUND in %s!' % (actual_file_name,directory), color = 'red')
-            
+            CGI_CLI.uprint('Specified %s file(s) NOT FOUND in %s!' % (actual_file_name,directory), color = 'red')
+
     ### PRINT LIST OF FILES OR END SCRIPT #####################################
-    if len(true_sw_release_files_on_server) > 0:            
+    if len(true_sw_release_files_on_server) > 0:
         CGI_CLI.uprint('File(s),    md5 checksum(s),    device folder(s),    filesize:\n%s' % \
             ('\n'.join([ '%s/%s    %s    %s    %.2fMB' % \
             (directory,file,md5,dev_dir,float(fsize)/1048576) for directory,dev_dir,file,md5,fsize in true_sw_release_files_on_server ])),\
