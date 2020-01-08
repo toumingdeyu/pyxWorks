@@ -1980,20 +1980,30 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                     (device,device_drive_string+os.path.join(dev_dir, file)))
         CGI_CLI.uprint(end_tag = 'p')
 
-    if CGI_CLI.data.get('check_device_sw_files_only') or check_mode:
-        ### PRINT INCOMPATIBLE FILES ##########################################
+    ### SET FLAG FILES OK #####################################################
+    if len(missing_files_per_device_list) == 0 and len(compatibility_problem_list) == 0: 
+        all_files_on_all_devices_ok = True
+           
+    ### PRINT INCOMPATIBLE FILES WARNING EVEN NOT IN CHECK MODE ###############
+    if CGI_CLI.data.get('check_device_sw_files_only') or check_mode \
+        or len(missing_files_per_device_list) == 0:
         if len(compatibility_problem_list) > 0:
             CGI_CLI.uprint('\nDevice    Incompatible_file(s):', tag = 'h3', color = 'red')
             CGI_CLI.uprint('\n'.join([ '%s    %s' % (device,devfile) for device,devfile in compatibility_problem_list ]),
                 color = 'red')
-        ### PRINT CHECK RESULTS ###############################################
-        if len(missing_files_per_device_list) == 0 and len(compatibility_problem_list) == 0:
-            CGI_CLI.uprint('Sw release %s file(s) on device(s) %s - CHECK OK.' % \
-                (sw_release, ', '.join(device_list)), tag = 'h1', color='green')
-        else: CGI_CLI.uprint('Sw release file(s) - CHECK FAILED!' , tag = 'h1', color = 'red')
+            CGI_CLI.uprint('\nIncompatible file(s) on device(s)!', tag = 'h1', color = 'red')    
+    
+    ### PRINT CHECK RESULTS ###################################################
+    if all_files_on_all_devices_ok:
+        CGI_CLI.uprint('Sw release %s file(s) on device(s) %s - CHECK OK.' % \
+            (sw_release, ', '.join(device_list)), tag = 'h1', color='green')
+    elif CGI_CLI.data.get('check_device_sw_files_only') or check_mode:            
+        if len(missing_files_per_device_list) == 0 and len(compatibility_problem_list) == 0: pass
+        else: CGI_CLI.uprint('Sw release file(s) on device(s) - CHECK FAILED!' , tag = 'h1', color = 'red')
 
     ### END IN CHECK_DEVICE_FILES_ONLY MODE, BECAUSE OF X TIMES SCP TRIES #####
-    if CGI_CLI.data.get('check_device_sw_files_only'):
+    if CGI_CLI.data.get('check_device_sw_files_only') \
+        or len(compatibility_problem_list) > 0:
         if CGI_CLI.data.get('backup_configs_to_device_disk') \
             or CGI_CLI.data.get('delete_device_sw_files_on_end'): pass
         else: sys.exit(0)
