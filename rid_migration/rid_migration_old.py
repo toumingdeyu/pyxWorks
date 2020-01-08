@@ -1615,7 +1615,8 @@ if device:
             except: loopback_0_config = []
             try:loopback_200_config  = (rcmd_outputs[1].replace('\r','').split('interface Loopback0\n')[1].replace('Loopback0','Loopback200').strip().split('!')[0] + '!').splitlines()
             except: loopback_200_config = []
-            try:    loopback_200_address = rcmd_outputs[1].split('ipv4 address')[1].split()[0].strip()
+            ### output 0 = lo10 ###
+            try:    loopback_200_address = rcmd_outputs[0].split('ipv4 address')[1].split()[0].strip()
             except: loopback_200_address = str()
             try:
                 neighbor_groups = re.findall(r'neighbor-group\s+[0-9a-zA-Z\-\.\@\_]+$\s+update-source Loopback10', rcmd_outputs[2], re.MULTILINE)
@@ -1713,7 +1714,7 @@ if device:
             except: loopback_0_config = []
             try: loopback_200_config  = (rcmd_outputs[1].replace('\r','').split('interface LoopBack0\n')[1].replace('Loopback0','Loopback200').strip().split('#')[0] + '#').splitlines()
             except: loopback_200_config = []
-            try:    loopback_200_address = rcmd_outputs[1].split('ip address')[1].split()[0].strip()
+            try:    loopback_200_address = rcmd_outputs[0].split('ip address')[1].split()[0].strip()
             except: loopback_200_address = str()
             try:    loopback_0_address = rcmd_outputs[0].split('ip address')[1].split()[0].strip()
             except: loopback_0_address = str()
