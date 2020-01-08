@@ -1415,6 +1415,7 @@ router bgp 5511
 !
 """
 
+### def HUAWEI CONFIG ###
 huawei_config = []
 
 huawei_config_part_1 = """#
@@ -1477,19 +1478,30 @@ ipv4-family
 huawei_config.append(huawei_config_part_1)
 huawei_config.append(huawei_config_part_2)
 
+### def HUAWEI UNDO CONFIG ###
+undo_huawei_config = []
 
-undo_huawei_config = """#
-undo interface LoopBack 10
-undo interface LoopBack 0
+undo_huawei_config_part_1 = """#
+undo mpls lsr-id
+Y
+#
+undo interface loopback10
+#
+"""
+
+undo_huawei_config_part_2 = """#
+interface LoopBack0
+% for item in loopback_0_config:
+${item}
+% endfor
+#
+"""
+
+undo_huawei_config_part_3 = """
 #
 interface LoopBack200
 % for item in loopback_200_config:
  ${item}
-% endfor
-#
-interface LoopBack0
-% for item in loopback_0_config:
-${item}
 % endfor
 #
 info-center loghost source LoopBack0
@@ -1506,10 +1518,21 @@ peer ${item} connect-interface LoopBack0
 #
 bgp ${bgp_as}
  router-id ${loopback_200_address}
+Y
+#
+peer ARBOR connect-interface LoopBack0
+peer ARBOR connect-interface LoopBack0
+peer RR-SERVER-L0-IPV6 connect-interface LoopBack0
 #
 ${router_id_line}
 #
+mpls lsr-id ${loopback_200_address}
+#
 """
+
+undo_huawei_config.append(undo_huawei_config_part_1)
+undo_huawei_config.append(undo_huawei_config_part_2)
+undo_huawei_config.append(undo_huawei_config_part_3)
 
 juniper_config = """
 delete interfaces lo0 unit 0 family inet address ${loopback_0_ipv4_address}/32 primary
