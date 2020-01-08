@@ -1158,7 +1158,7 @@ router isis PAII
 ############################################################################
 junos_config = """set interfaces lo0 unit 0 family inet6 address ${converted_ipv4}/128 primary"""
 
-undo_junos_config = """delete interfaces lo0 unit 0 family inet6 address ${converted_ipv4}/128 primary"""
+undo_junos_config = """delete interfaces lo0 unit 0 family inet6 address ${converted_ipv4}/128"""
 
 ############################################################################
 huawei_config = """interface loopback 200
