@@ -2,7 +2,8 @@
 
 ###!/usr/bin/python36
 
-import sys, os, io, paramiko, json, copy, html, traceback, logging
+#import traceback
+import sys, os, io, paramiko, json, copy, html, logging
 import getopt
 import getpass
 import telnetlib
@@ -1832,6 +1833,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
     check_mode = True, check device files and print failed checks
     check_mode = False, just get files needed to copy
     """
+    nr_of_connected_devices = 0
     all_files_on_all_devices_ok = None
     missing_files_per_device_list = []
     compatibility_problem_list = []
@@ -1845,6 +1847,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                 CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), color = 'red')
                 RCMD.disconnect()
                 continue
+            nr_of_connected_devices += 1    
             device_drive_string = RCMD.drive_string
             router_type = RCMD.router_type
             ### MAKE UNIQUE DIRECTORY LIST ####################################
@@ -1981,9 +1984,15 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
         CGI_CLI.uprint(end_tag = 'p')
 
     ### SET FLAG FILES OK #####################################################
-    if len(missing_files_per_device_list) == 0 and len(compatibility_problem_list) == 0: 
+    if len(missing_files_per_device_list) == 0 \
+        and len(compatibility_problem_list) == 0 \
+        and nr_of_connected_devices > 0 \
+        and nr_of_connected_devices == len(device_list):
         all_files_on_all_devices_ok = True
-           
+    
+    if nr_of_connected_devices != len(device_list): 
+        CGI_CLI.uprint('\nConnection problems to device(s)!', tag = 'h3', color = 'red')
+    
     ### PRINT INCOMPATIBLE FILES WARNING EVEN NOT IN CHECK MODE ###############
     if CGI_CLI.data.get('check_device_sw_files_only') or check_mode \
         or len(missing_files_per_device_list) == 0:
@@ -1991,13 +2000,13 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
             CGI_CLI.uprint('\nDevice    Incompatible_file(s):', tag = 'h3', color = 'red')
             CGI_CLI.uprint('\n'.join([ '%s    %s' % (device,devfile) for device,devfile in compatibility_problem_list ]),
                 color = 'red')
-            CGI_CLI.uprint('\nIncompatible file(s) on device(s)!', tag = 'h1', color = 'red')    
-    
+            CGI_CLI.uprint('\nIncompatible file(s) on device(s)!', tag = 'h1', color = 'red')
+
     ### PRINT CHECK RESULTS ###################################################
     if all_files_on_all_devices_ok:
         CGI_CLI.uprint('Sw release %s file(s) on device(s) %s - CHECK OK.' % \
             (sw_release, ', '.join(device_list)), tag = 'h1', color='green')
-    elif CGI_CLI.data.get('check_device_sw_files_only') or check_mode:            
+    elif CGI_CLI.data.get('check_device_sw_files_only') or check_mode:
         if len(missing_files_per_device_list) == 0 and len(compatibility_problem_list) == 0: pass
         else: CGI_CLI.uprint('Sw release file(s) on device(s) - CHECK FAILED!' , tag = 'h1', color = 'red')
 
@@ -2196,6 +2205,62 @@ def copy_files_to_devices(true_sw_release_files_on_server = None, \
             else: break
 
 ##############################################################################
+
+def copy_device_files_to_slave_cfcard(true_sw_release_files_on_server = None,
+    unique_device_directory_list = None):
+    if RCMD.router_type == 'huawei' and CGI_CLI.data.get('copy_device_sw_files_to_huawei_slave_cfcard'):
+        for device in device_list:
+            if device:
+                RCMD.connect(device, username = USERNAME, password = PASSWORD, \
+                    printall = printall, logfilename = logfilename)
+
+                if not RCMD.ssh_connection:
+                    CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), color = 'red')
+                    RCMD.disconnect()
+                    continue
+
+                del_files_cmds = {'huawei':[]}
+
+                for unique_dir in unique_device_directory_list:
+                    for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
+                        if unique_dir == dev_dir:
+                            del_files_cmds['huawei'].append('copy %s%s slave#%s%s' % \
+                                (RCMD.drive_string, os.path.join(dev_dir, file),
+                                RCMD.drive_string, os.path.join(dev_dir, file)))
+                            del_files_cmds['huawei'].append('Y')
+                CGI_CLI.uprint('copying sw release files on %s to slave cfcard' % (device), \
+                    no_newlines = None if printall else True)
+                forget_it = RCMD.run_commands(del_files_cmds, printall = printall)
+
+                ### CHECK FILES COPY ######################################
+                check_dir_files_cmds = {'cisco_xr':[],'cisco_ios':[],'huawei':[]}
+                for unique_dir in unique_device_directory_list:
+                    for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
+                        if unique_dir == dev_dir:
+                            check_dir_files_cmds['huawei'].append( \
+                                'dir slave#%s%s/' % (RCMD.drive_string, dev_dir if dev_dir != '/' else str()))
+                time.sleep(0.5)
+                dir_outputs_after_deletion = RCMD.run_commands(check_dir_files_cmds, \
+                    printall = printall)
+                CGI_CLI.uprint('\n')
+                file_not_found = False
+                for unique_dir in unique_device_directory_list:
+                    for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
+                        if unique_dir == dev_dir:
+                            if file in dir_outputs_after_deletion[0]:
+                                CGI_CLI.uprint(file, color = 'red')
+                                CGI_CLI.uprint(dir_outputs_after_deletion[3], color = 'blue')
+                            else: file_not_found = True
+                if file_not_found: CGI_CLI.uprint('COPY PROBLEM!', color = 'red')
+                ### DISCONNECT ################################################
+                RCMD.disconnect()
+                time.sleep(3)
+
+##############################################################################
+
+
+
+
 
 ##############################################################################
 #
@@ -2706,7 +2771,11 @@ while not all_files_on_all_devices_ok:
         device_list = device_list, USERNAME = USERNAME, PASSWORD = PASSWORD, \
         device_drive_string = device_drive_string, router_type = router_type, \
         force_rewrite = force_rewrite)
+    ### TIMEOUT ###############################################################
     time.sleep(3)
+    ### COPY DEVICE FILES TO HUAWEI SLAVE CFCARD ##############################
+    copy_device_files_to_slave_cfcard(true_sw_release_files_on_server, \
+        unique_device_directory_list)
     ### CHECK DEVICE FILES AFTER COPYING ######################################
     all_files_on_all_devices_ok, missing_files_per_device_list, \
         device_drive_string, router_type = \
@@ -2734,43 +2803,6 @@ if CGI_CLI.data.get('backup_configs_to_device_disk') \
                 CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), color = 'red')
                 RCMD.disconnect()
                 continue
-
-            if RCMD.router_type == 'huawei':
-                ### COPY FILES TO SLAVE #######################################
-                if CGI_CLI.data.get('copy_device_sw_files_to_huawei_slave_cfcard'):
-                    del_files_cmds = {'huawei':[]}
-
-                    for unique_dir in unique_device_directory_list:
-                        for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
-                            if unique_dir == dev_dir:
-                                del_files_cmds['huawei'].append('copy %s%s slave#%s%s' % \
-                                    (RCMD.drive_string, os.path.join(dev_dir, file),
-                                    RCMD.drive_string, os.path.join(dev_dir, file)))
-                                del_files_cmds['huawei'].append('Y')
-                    CGI_CLI.uprint('copying sw release files on %s to slave cfcard' % (device), \
-                        no_newlines = None if printall else True)
-                    forget_it = RCMD.run_commands(del_files_cmds, printall = printall)
-
-                    ### CHECK FILES COPY ######################################
-                    check_dir_files_cmds = {'cisco_xr':[],'cisco_ios':[],'huawei':[]}
-                    for unique_dir in unique_device_directory_list:
-                        for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
-                            if unique_dir == dev_dir:
-                                check_dir_files_cmds['huawei'].append( \
-                                    'dir slave#%s%s/' % (RCMD.drive_string, dev_dir if dev_dir != '/' else str()))
-                    time.sleep(0.5)
-                    dir_outputs_after_deletion = RCMD.run_commands(check_dir_files_cmds, \
-                        printall = printall)
-                    CGI_CLI.uprint('\n')
-                    file_not_found = False
-                    for unique_dir in unique_device_directory_list:
-                        for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
-                            if unique_dir == dev_dir:
-                                if file in dir_outputs_after_deletion[0]:
-                                    CGI_CLI.uprint(file, color = 'red')
-                                    CGI_CLI.uprint(dir_outputs_after_deletion[3], color = 'blue')
-                                else: file_not_found = True
-                    if file_not_found: CGI_CLI.uprint('COPY PROBLEM!', color = 'red')
 
             ### CHECK LOCAL SERVER AND DEVICE HDD FILES #######################
             if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
