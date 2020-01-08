@@ -2615,15 +2615,16 @@ if type_subdir and brand_subdir and sw_release:
         local_results = LCMD.run_commands({'unix':['ls -l %s' % (directory)]}, printall = printall)
 
         no_such_files_in_directory = True
-        if true_local_file_in_sw_release and true_local_file_in_sw_release in local_results[0]:
-            no_such_files_in_directory = False
-            true_file_name = true_local_file_in_sw_release
-            local_oti_checkum_string = LCMD.run_commands({'unix':['md5sum %s' % \
-                (os.path.join(directory,true_file_name))]}, printall = printall)
-            md5_sum = local_oti_checkum_string[0].split()[0].strip()
-            filesize_in_bytes = os.stat(os.path.join(directory,true_file_name)).st_size
-            ### MAKE TRUE FILE LIST, SW RELEASE ONLY ###
-            true_sw_release_files_on_server.append([directory,device_directory,true_file_name,md5_sum,filesize_in_bytes])
+        if true_local_file_in_sw_release:
+            if true_local_file_in_sw_release in local_results[0]:
+                no_such_files_in_directory = False
+                true_file_name = true_local_file_in_sw_release
+                local_oti_checkum_string = LCMD.run_commands({'unix':['md5sum %s' % \
+                    (os.path.join(directory,true_file_name))]}, printall = printall)
+                md5_sum = local_oti_checkum_string[0].split()[0].strip()
+                filesize_in_bytes = os.stat(os.path.join(directory,true_file_name)).st_size
+                ### MAKE TRUE FILE LIST, SW RELEASE ONLY ###
+                true_sw_release_files_on_server.append([directory,device_directory,true_file_name,md5_sum,filesize_in_bytes])
         else:
             for line in local_results[0].splitlines():
                 ### PROBLEM ARE '*' IN FILE NAME ###
@@ -2642,16 +2643,15 @@ if type_subdir and brand_subdir and sw_release:
                     true_sw_release_files_on_server.append([directory,device_directory,true_file_name,md5_sum,filesize_in_bytes])
         if no_such_files_in_directory:
             CGI_CLI.uprint('%s file(s) NOT FOUND in %s!' % (actual_file_name,directory), color = 'red')
-            sys.exit(0)
-    CGI_CLI.uprint('File(s),    md5 checksum(s),    device folder(s),    filesize:\n%s' % \
-        ('\n'.join([ '%s/%s    %s    %s    %.2fMB' % \
-        (directory,file,md5,dev_dir,float(fsize)/1048576) for directory,dev_dir,file,md5,fsize in true_sw_release_files_on_server ])),\
-        color = 'blue')
-    CGI_CLI.uprint('\n')
-    # ### CALCULATE NEEDED DISK SPACE #########################################
-    # for directory,dev_dir,file,md5,fsize in true_sw_release_files_on_server:
-        # total_size_of_files_in_bytes += fsize
-    # CGI_CLI.uprint('\ndisk space needed = %.2F MB' % (float(total_size_of_files_in_bytes)/1048576), color = 'blue')
+            
+    ### PRINT LIST OF FILES OR END SCRIPT #####################################
+    if len(true_sw_release_files_on_server) > 0:            
+        CGI_CLI.uprint('File(s),    md5 checksum(s),    device folder(s),    filesize:\n%s' % \
+            ('\n'.join([ '%s/%s    %s    %s    %.2fMB' % \
+            (directory,file,md5,dev_dir,float(fsize)/1048576) for directory,dev_dir,file,md5,fsize in true_sw_release_files_on_server ])),\
+            color = 'blue')
+        CGI_CLI.uprint('\n')
+    else: sys.exit(0)
 
 ### MAKE ALL SUB-DIRECTORIES ONE BY ONE #######################################
 redundant_dev_dir_list = [ dev_dir for directory,dev_dir,file,md5,fsize in true_sw_release_files_on_server ]
