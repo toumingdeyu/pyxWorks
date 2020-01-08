@@ -1964,49 +1964,43 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
             ###################################################################
             RCMD.disconnect()
 
-    ### PRINT NEEDED FILES TO COPY ############################################
+    ### PRINT HEADERS RED OR BLUE #############################################
     if len(missing_files_per_device_list) > 0:
         if CGI_CLI.data.get('check_device_sw_files_only') or check_mode:
             CGI_CLI.uprint('Device    Bad_or_missing_file(s):', tag = 'h3', color = 'red')
+            CGI_CLI.uprint(no_newlines = True, start_tag = 'p', color = 'red')
         else:
             CGI_CLI.uprint('Device    File(s)_to_copy:', tag = 'h3', color = 'blue')
-    else:
-        if len(compatibility_problem_list) == 0:
+            CGI_CLI.uprint(no_newlines = True, start_tag = 'p', color = 'blue')
+            
+        ### PRINT RED OR BLUE FILES TO COPY OR MISSING/BAD ####################
+        for device,missing_or_bad_files_per_device in missing_files_per_device_list:
+            directory, dev_dir, file, md5, fsize = missing_or_bad_files_per_device
+            CGI_CLI.uprint('%s    %s' % \
+                    (device,device_drive_string+os.path.join(dev_dir, file)))
+        CGI_CLI.uprint(end_tag = 'p')
+
+    if CGI_CLI.data.get('check_device_sw_files_only') or check_mode:
+        ### PRINT INCOMPATIBLE FILES ##########################################
+        if len(compatibility_problem_list) > 0:
+            CGI_CLI.uprint('\nDevice    Incompatible_file(s):', tag = 'h3', color = 'red')
+            CGI_CLI.uprint('\n'.join([ '%s    %s' % (device,devfile) for device,devfile in compatibility_problem_list ]),
+                color = 'red')    
+        ### PRINT CHECK RESULTS ###############################################
+        if len(missing_files_per_device_list) == 0 and len(compatibility_problem_list) == 0:        
             CGI_CLI.uprint('Sw release %s file(s) on device(s) %s - CHECK OK.' % \
                 (sw_release, ', '.join(device_list)), tag = 'h1', color='green')
-            all_files_on_all_devices_ok = True
-        elif check_mode:
-            CGI_CLI.uprint('\nSW RELEASE FILES COMPATIBILITY - CHECK FAILED!' , \
-                tag = 'h1', color = 'red')
-        ### WHEN SUCCESS, THEN CHECK IF EXIT OR NOT ###########################
+        else: CGI_CLI.uprint('Sw release file(s) - CHECK FAILED!' , tag = 'h1', color = 'red')
+        
+    ### END IN CHECK_DEVICE_FILES_ONLY MODE, BECAUSE OF X TIMES SCP TRIES #####    
+    if CGI_CLI.data.get('check_device_sw_files_only'):            
         if CGI_CLI.data.get('backup_configs_to_device_disk') \
             or CGI_CLI.data.get('delete_device_sw_files_on_end'): pass
-        else: sys.exit(0)
-
-    ### PRINT RED OR BLUE FILES TO COPY OR MISSING/BAD ########################
-    if CGI_CLI.data.get('check_device_sw_files_only') or check_mode:
-        CGI_CLI.uprint(no_newlines = True, start_tag = 'p', color = 'red')
-    else: CGI_CLI.uprint(no_newlines = True, start_tag = 'p', color = 'blue')
-    for device,missing_or_bad_files_per_device in missing_files_per_device_list:
-        directory, dev_dir, file, md5, fsize = missing_or_bad_files_per_device
-        CGI_CLI.uprint('%s    %s' % \
-                (device,device_drive_string+os.path.join(dev_dir, file)))
-    CGI_CLI.uprint(end_tag = 'p')
-
-    ### PRINT INCOMPATIBLE FILES ##################################
-    if len(compatibility_problem_list) > 0 and check_mode:
-        CGI_CLI.uprint('\nDevice    Incompatible_file(s):', tag = 'h3', color = 'red')
-        CGI_CLI.uprint('\n'.join([ '%s    %s' % (device,devfile) for device,devfile in compatibility_problem_list ]),
-            color = 'red')
-
-    if not all_files_on_all_devices_ok \
-        and (CGI_CLI.data.get('check_device_sw_files_only') \
-        or (len(compatibility_problem_list) > 0 and check_mode)):
-        CGI_CLI.uprint('SW RELEASE FILES - CHECK FAILED!' , tag = 'h1', color = 'red')
-        sys.exit(0)
+        else: sys.exit(0)        
+        
     return all_files_on_all_devices_ok, missing_files_per_device_list, device_drive_string, router_type
 
-##############################################################################
+###############################################################################
 
 def check_free_disk_space_on_devices(device_list = None, \
     missing_files_per_device_list = None, \
