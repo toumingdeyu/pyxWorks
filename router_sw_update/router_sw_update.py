@@ -186,7 +186,7 @@ class CGI_CLI(object):
             if variable == "submit": CGI_CLI.submit_form = value
             if variable == "username": CGI_CLI.username = value
             if variable == "password": CGI_CLI.password = value
-        ### DECIDE - CLI OR CGI MODE #######################################
+        ### DECIDE - CLI OR CGI MODE ##########################################
         CGI_CLI.remote_addr =  dict(os.environ).get('REMOTE_ADDR','')
         CGI_CLI.http_user_agent = dict(os.environ).get('HTTP_USER_AGENT','')
         if CGI_CLI.remote_addr and CGI_CLI.http_user_agent:
@@ -194,14 +194,15 @@ class CGI_CLI(object):
         CGI_CLI.args = CGI_CLI.cli_parser()
         if not CGI_CLI.cgi_active: CGI_CLI.data = vars(CGI_CLI.args)
         if CGI_CLI.cgi_active:
-            sys.stdout.write("%s%s%s%s%s" %
+            sys.stdout.write("%s%s%s" %
                 (CGI_CLI.chunked_transfer_encoding_line,
                 CGI_CLI.content_type_line,
-                CGI_CLI.status_line,
-                CGI_CLI.newline, CGI_CLI.newline))
+                CGI_CLI.status_line))
             sys.stdout.flush()
-            CGI_CLI.print_chunk("<!DOCTYPE html><html><head><title>%s</title>%s</head><body>" %
-                (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit', \
+            ### CHROME NEEDS 2NEWLINES TO BE ALREADY CHUNKED !!! ##############
+            CGI_CLI.print_chunk("%s%s<!DOCTYPE html><html><head><title>%s</title>%s</head><body>" %
+                (CGI_CLI.newline, CGI_CLI.newline,
+                CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit', \
                 '<style>%s</style>' % (CGI_CLI.CSS_STYLE) if CGI_CLI.CSS_STYLE else str()))
         import atexit; atexit.register(CGI_CLI.__cleanup__)
         ### GAIN USERNAME AND PASSWORD FROM ENVIRONMENT BY DEFAULT ###
