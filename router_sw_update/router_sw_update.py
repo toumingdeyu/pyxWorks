@@ -462,7 +462,7 @@ class RCMD(object):
 
     @staticmethod
     def connect(device = None, cmd_data = None, username = None, password = None, \
-        use_module = 'paramiko', logfilename = None, timeout = 60, conf = None, \
+        use_module = 'paramiko', logfilename = None, timeout = 180, conf = None, \
         sim_config = None, disconnect = None, printall = None, \
         do_not_final_print = None, commit_text = None, silent_mode = None, \
         disconnect_timeout = 2):
