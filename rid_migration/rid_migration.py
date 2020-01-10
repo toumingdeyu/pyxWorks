@@ -1512,6 +1512,7 @@ router bgp 5511
 
 undo_xr_config = """!
 interface Loopback0
+no ipv6 address
 % for item in loopback_0_config:
 ${item}
 % endfor
