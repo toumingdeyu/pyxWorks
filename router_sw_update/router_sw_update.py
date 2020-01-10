@@ -120,10 +120,6 @@ class CGI_CLI(object):
                            action = 'store_true', dest = "force_rewrite_sw_files_on_device",
                            default = None,
                            help = "force rewrite sw release files on device disk")
-        parser.add_argument("--slave",
-                           action = 'store_true', dest = "copy_device_sw_files_to_huawei_slave_cfcard",
-                           default = None,
-                           help = "copy device sw files to huawei slave cfcard")
         parser.add_argument("--delete",
                             action = 'store_true', dest = "delete_device_sw_files_on_end",
                             default = None,
@@ -1831,16 +1827,16 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
     USERNAME = None, PASSWORD = None, logfilename = None, printall = None, \
     check_mode = None):
     """
-    check_mode = True, check device files and print failed checks
-    check_mode = False, just get files needed to copy
+    check_mode = True,  check device files and print failed checks
+    check_mode = False, just get files needed to copy to device
     """
     nr_of_connected_devices = 0
     all_files_on_all_devices_ok = None
-    missing_files_per_device_list = []
+    missing_files_per_device_list, slave_missing_files_per_device_list = [], []
     compatibility_problem_list = []
     device_drive_string, router_type = str(), str()
     for device in device_list:
-        md5check_list, filecheck_list = [], []
+        md5check_list, filecheck_list, slave_md5check_list, slave_filecheck_list = [], [], [], []
         if device:
             RCMD.connect(device, username = USERNAME, password = PASSWORD, \
                 printall = printall, logfilename = logfilename)
@@ -1934,24 +1930,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                         if md5_on_device == md5:
                             md5_ok = True
                     md5check_list.append([file,md5_ok])
-            ### HUAWEI COMPATIBILITY CHECK ####################################
-            if RCMD.router_type == 'huawei':
-                huawei_compatibility_cmds = []
-                for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
-                    if not file in bad_files and '.cc' in file:
-                        huawei_compatibility_cmds.append('check hardware-compatibility %s%s' % \
-                            (RCMD.drive_string, os.path.join(dev_dir, file)))
-                        ### CHECK FILES ON 'slave#' ALSO FOR HW COMPATIBILITY ###
-                        #huawei_compatibility_cmds.append('check hardware-compatibility slave#%s%s' % \
-                        #    (RCMD.drive_string, os.path.join(dev_dir, file)))
-                    else: huawei_compatibility_cmds.append('\n')
-                rcmd_compatibility_outputs = RCMD.run_commands( \
-                    {'huawei':huawei_compatibility_cmds}, printall = printall)
-                for compatibility_output, true_sw_file in zip(rcmd_compatibility_outputs, true_sw_release_files_on_server):
-                    directory, dev_dir, file, md5, fsize = true_sw_file
-                    if 'check hardware-compatibility failed!' in compatibility_output:
-                        compatibility_problem_list.append([device,os.path.join(dev_dir, file)])
-            ### CHECK IF DEVICE FILES ARE OK ##################################
+            ### CHECK IF DEVICE FILES ARE OK (file on device,filesize,md5) ####
             CGI_CLI.uprint('\n')
             for md5list,filelist in zip(md5check_list,filecheck_list):
                  file1, md5_ok = md5list
@@ -1965,11 +1944,107 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                                     [device,[directory, dev_dir, file, md5, fsize]])
                     if printall: CGI_CLI.uprint('File=%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
                         (file,file_found_on_device,md5_ok,file_size_ok_on_device))
+
+            ### HUAWEI SLAVE#CFCARD FILES CHECK ###############################
+            if RCMD.router_type == 'huawei':
+                CGI_CLI.uprint('checking existing device slave#cfcard file(s) on %s.' \
+                    % (device), no_newlines = None if printall else True)
+                huawei_slave_device_dir_list = [ 'dir slave#%s%s/' % (RCMD.drive_string, dev_dir if dev_dir != '/' else str()) for dev_dir in unique_device_directory_list ]
+                slave_dir_device_cmds = {
+                    'huawei':huawei_slave_device_dir_list
+                }
+                rcmd_dir_outputs = RCMD.run_commands(slave_dir_device_cmds, printall = printall)
+                for unique_dir,unique_dir_outputs in zip(unique_device_directory_list,rcmd_dir_outputs):
+                    for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
+                        if unique_dir == dev_dir:
+                            file_found_on_device = False
+                            file_size_ok_on_device = False
+                            device_fsize = 0
+                            possible_file_name = str()
+                            for line in unique_dir_outputs.splitlines():
+                                if file in line:
+                                    try:
+                                        possible_file_name = line.split()[-1].strip()
+                                        if RCMD.router_type == 'huawei':
+                                            device_fsize = float(line.split()[2].replace(',',''))
+                                        elif RCMD.router_type == 'cisco_xr':
+                                            device_fsize = float(line.split()[3].replace(',',''))
+                                        elif RCMD.router_type == 'cisco_ios':
+                                            device_fsize = float(line.split()[2].replace(',',''))
+                                    except: pass
+                            if file == possible_file_name: file_found_on_device = True
+                            if device_fsize == fsize: file_size_ok_on_device = True
+                            slave_filecheck_list.append([file,file_found_on_device,file_size_ok_on_device])
+                ### MAKE BAD FILE LIST, BECAUSE HUAWEI MD5 SUM CHECK IS SLOW ######
+                slave_bad_files = [ file for file, file_found_on_device, file_size_ok_on_device in \
+                    slave_filecheck_list if not file_found_on_device and not file_size_ok_on_device]
+                ### CHECK FILE(S) AND MD5(S) FIRST ################################
+                slave_huawei_md5_cmds = []
+                for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
+                    if file in slave_bad_files:
+                        ### VOID COMMANDS for BAD FILES ###########################
+                        slave_huawei_md5_cmds.append('\n')
+                        slave_huawei_md5_cmds.append('\n')
+                    else:
+                        if '.CC' in file.upper():
+                            slave_huawei_md5_cmds.append('check system-software %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
+                            slave_huawei_md5_cmds.append('Y')
+                        if '.PAT' in file.upper():
+                            slave_huawei_md5_cmds.append('check patch %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
+                            slave_huawei_md5_cmds.append('Y')
+                slave_rcmd_md5_outputs = RCMD.run_commands({'huawei':slave_huawei_md5_cmds}, \
+                    printall = printall)
+                ### CHECK MD5 RESULTS IN LOOP #################################
+                for files_list in true_sw_release_files_on_server:
+                    md5_ok = False
+                    directory, dev_dir, file, md5, fsize = files_list
+                    for rcmd_md5_output in slave_rcmd_md5_outputs:
+                        if 'Info: Prepare to check' in rcmd_md5_output and file in rcmd_md5_output:
+                            if 'Info: System software CRC check OK!' in rcmd_md5_output \
+                                or 'Info: The patch is complete.' in rcmd_md5_output:
+                                    md5_ok = True
+                    slave_md5check_list.append([file,md5_ok])
+
+                ### CHECK IF SLAVE DEVICE FILES ARE OK (slavefile,fsize,md5) ##
+                for md5list,filelist in zip(slave_md5check_list,slave_filecheck_list):
+                     file1, md5_ok = md5list
+                     file2, file_found_on_device, file_size_ok_on_device = filelist
+                     if file1==file2:
+                        if file_found_on_device and md5_ok and file_size_ok_on_device: pass
+                        else:
+                            for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
+                                if file == file1:
+                                    slave_missing_files_per_device_list.append( \
+                                        [device,[directory, dev_dir, file, md5, fsize]])
+                        if printall: CGI_CLI.uprint('SlaveFile=%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
+                            (file,file_found_on_device,md5_ok,file_size_ok_on_device))
+
+
+            ### HUAWEI COMPATIBILITY CHECK ####################################
+            if RCMD.router_type == 'huawei':
+                CGI_CLI.uprint('\nchecking existing %s device file(s) for hw compatibility.' \
+                    % (device), no_newlines = None if printall else True)
+                huawei_compatibility_cmds = []
+                for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
+                    if not file in bad_files and '.CC' in file.upper():
+                        huawei_compatibility_cmds.append('check hardware-compatibility %s%s' % \
+                            (RCMD.drive_string, os.path.join(dev_dir, file)))
+                        ### CHECK FILES ON 'slave#' ALSO FOR HW COMPATIBILITY ###
+                        #huawei_compatibility_cmds.append('check hardware-compatibility slave#%s%s' % \
+                        #    (RCMD.drive_string, os.path.join(dev_dir, file)))
+                    else: huawei_compatibility_cmds.append('\n')
+                rcmd_compatibility_outputs = RCMD.run_commands( \
+                    {'huawei':huawei_compatibility_cmds}, printall = printall)
+                for compatibility_output, true_sw_file in zip(rcmd_compatibility_outputs, true_sw_release_files_on_server):
+                    directory, dev_dir, file, md5, fsize = true_sw_file
+                    if 'check hardware-compatibility failed!' in compatibility_output:
+                        compatibility_problem_list.append([device,os.path.join(dev_dir, file)])
             ###################################################################
+            CGI_CLI.uprint('\n')
             RCMD.disconnect()
 
     ### PRINT HEADERS RED OR BLUE #############################################
-    if len(missing_files_per_device_list) > 0:
+    if len(missing_files_per_device_list) > 0 or len(slave_missing_files_per_device_list)>0:
         if CGI_CLI.data.get('check_device_sw_files_only') or check_mode:
             CGI_CLI.uprint('Device    Bad_or_missing_file(s):', tag = 'h3', color = 'red')
             CGI_CLI.uprint(no_newlines = True, start_tag = 'p', color = 'red')
@@ -1982,14 +2057,19 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
             directory, dev_dir, file, md5, fsize = missing_or_bad_files_per_device
             CGI_CLI.uprint('%s    %s' % \
                     (device,device_drive_string+os.path.join(dev_dir, file)))
+        for device,missing_or_bad_files_per_device in slave_missing_files_per_device_list:
+            directory, dev_dir, file, md5, fsize = missing_or_bad_files_per_device
+            CGI_CLI.uprint('%s    slave#%s' % \
+                    (device,device_drive_string + os.path.join(dev_dir, file)))
         CGI_CLI.uprint(end_tag = 'p')
 
     ### SET FLAG FILES OK #####################################################
     if len(missing_files_per_device_list) == 0 \
+        and len(slave_missing_files_per_device_list) == 0 \
         and len(compatibility_problem_list) == 0 \
         and nr_of_connected_devices > 0 \
         and nr_of_connected_devices == len(device_list):
-        all_files_on_all_devices_ok = True
+            all_files_on_all_devices_ok = True
 
     if nr_of_connected_devices != len(device_list):
         CGI_CLI.uprint('\nConnection problems to device(s)!', tag = 'h3', color = 'red')
@@ -2078,9 +2158,8 @@ def check_free_disk_space_on_devices(device_list = None, \
                         xr_device_mkdir_list.append('\r\n')
                         huawei_device_mkdir_list.append('mkdir %s/%s' % \
                             (RCMD.drive_string, os.path.join(up_path,dev_sub_dir)))
-                        if CGI_CLI.data.get('copy_device_sw_files_to_huawei_slave_cfcard'):
-                            huawei_device_mkdir_list.append('mkdir slave#%s/%s' % \
-                                (RCMD.drive_string, os.path.join(up_path,dev_sub_dir)))
+                        huawei_device_mkdir_list.append('mkdir slave#%s/%s' % \
+                            (RCMD.drive_string, os.path.join(up_path,dev_sub_dir)))
                         up_path = os.path.join(up_path, dev_sub_dir)
 
             mkdir_device_cmds = {
@@ -2211,7 +2290,7 @@ def copy_files_to_devices(true_sw_release_files_on_server = None, \
 
 def copy_device_files_to_slave_cfcard(true_sw_release_files_on_server = None,
     unique_device_directory_list = None):
-    if RCMD.router_type == 'huawei' and CGI_CLI.data.get('copy_device_sw_files_to_huawei_slave_cfcard'):
+    if RCMD.router_type == 'huawei':
         for device in device_list:
             if device:
                 RCMD.connect(device, username = USERNAME, password = PASSWORD, \
@@ -2513,7 +2592,6 @@ try:
                 {'checkbox':'check_device_sw_files_only'},'<br/>',\
                 {'checkbox':'display_scp_percentage_only'},'<br/>',\
                 {'checkbox':'force_rewrite_sw_files_on_device'},'<br/>',\
-                {'checkbox':'copy_device_sw_files_to_huawei_slave_cfcard'},'<br/>',\
                 {'checkbox':'backup_configs_to_device_disk'},'<br/>',\
                 {'checkbox':'delete_device_sw_files_on_end'},'<br/>',\
                 '<br/>', {'checkbox':'printall'}]
@@ -2563,8 +2641,6 @@ try:
         CGI_CLI.uprint('check_device_sw_files_only = Y')
     elif CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
         CGI_CLI.uprint('force_rewrite_sw_files_on_device = Y')
-    if CGI_CLI.data.get('copy_device_sw_files_to_huawei_slave_cfcard'):
-        CGI_CLI.uprint('copy_device_sw_files_to_huawei_slave_cfcard = Y')
     if CGI_CLI.data.get('backup_configs_to_device_disk'):
         CGI_CLI.uprint('backup_configs_to_device_disk = Y')
     if CGI_CLI.data.get('delete_device_sw_files_on_end'):
