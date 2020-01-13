@@ -857,7 +857,8 @@ class RCMD(object):
             #        last_line = last_line_part1 + last_line_part2
             #    except: last_line = last_line
 
-            if long_lasting_command and buff_read and not RCMD.silent_mode:
+            ### PRINT LONG LASTING OUTPUTS PER PARTS ##########################
+            if printall and long_lasting_command and buff_read and not RCMD.silent_mode:
                 CGI_CLI.uprint('%s' % (buff_read), color = 'gray', no_newlines = True)
 
             # IS ACTUAL LAST LINE PROMPT ? IF YES , GO AWAY
