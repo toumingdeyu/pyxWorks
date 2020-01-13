@@ -463,7 +463,7 @@ class RCMD(object):
     @staticmethod
     def connect(device = None, cmd_data = None, username = None, password = None, \
         use_module = 'paramiko', logfilename = None, \
-        connection_timeout = 180, cmd_timeout = 30, \
+        connection_timeout = 300, cmd_timeout = 30, \
         conf = None, sim_config = None, disconnect = None, printall = None, \
         do_not_final_print = None, commit_text = None, silent_mode = None, \
         disconnect_timeout = 2):
@@ -624,7 +624,9 @@ class RCMD(object):
         last_output, sim_mark = str(), str()
         if RCMD.ssh_connection and cmd_line:
             if ((sim_config or RCMD.sim_config) and (conf or RCMD.conf)) or sim_all: sim_mark = '(SIM)'
-            else:
+            if printall or RCMD.printall:
+                CGI_CLI.uprint('REMOTE_COMMAND' + sim_mark + ': ' + cmd_line, color = 'blue')            
+            if not sim_mark:
                 if RCMD.use_module == 'netmiko':
                     last_output = RCMD.ssh_connection.send_command(cmd_line)
                 elif RCMD.use_module == 'paramiko':
@@ -634,9 +636,9 @@ class RCMD(object):
                         autoconfirm_mode = autoconfirm_mode, printall = printall)
                     if new_prompt: RCMD.DEVICE_PROMPTS.append(new_prompt)
             if printall or RCMD.printall:
-                CGI_CLI.uprint('REMOTE_COMMAND' + sim_mark + ': ' + cmd_line, color = 'blue')
-                CGI_CLI.uprint(last_output, color = 'gray')
-            elif not RCMD.silent_mode: CGI_CLI.uprint(' . ', no_newlines = True)
+                if not long_lasting_command: CGI_CLI.uprint(last_output, color = 'gray')
+            elif not RCMD.silent_mode: 
+                if not long_lasting_command: CGI_CLI.uprint(' . ', no_newlines = True)
             if RCMD.fp: RCMD.fp.write('REMOTE_COMMAND' + sim_mark + ': ' + cmd_line + '\n' + last_output + '\n')
         return last_output
 
@@ -706,7 +708,8 @@ class RCMD(object):
                     for cmd_line in cmd_list:
                         command_outputs.append(RCMD.run_command(cmd_line, \
                             conf = conf, sim_config = sim_config, printall = printall,
-                            long_lasting_command = long_lasting_command))
+                            long_lasting_command = long_lasting_command, \
+                            autoconfirm_mode = autoconfirm_mode))
                     ### EXIT FROM CONFIG MODE FOR PARAMIKO #####################
                     if (conf or RCMD.conf) and RCMD.use_module == 'paramiko':
                         ### GO TO CONFIG TOP LEVEL SECTION ---------------------
@@ -854,6 +857,9 @@ class RCMD(object):
             #        last_line = last_line_part1 + last_line_part2
             #    except: last_line = last_line
 
+            if long_lasting_command and buff_read and not RCMD.silent_mode:
+                CGI_CLI.uprint('%s' % (buff_read), color = 'gray', no_newlines = True)
+
             # IS ACTUAL LAST LINE PROMPT ? IF YES , GO AWAY
             for actual_prompt in prompts:
                 if output.strip().endswith(actual_prompt) or \
@@ -862,8 +868,9 @@ class RCMD(object):
             else:
                 dialog_list = ['?', '[Y/N]:', '[confirm]']
                 for dialog_line in dialog_list:
-                    if last_line_orig.strip().endswith(dialog_line):
-                        if autoconfirm_mode:    
+                    if last_line_orig.strip().endswith(dialog_line) or \
+                        last_line.strip().endswith(dialog_line):
+                        if autoconfirm_mode:
                             ### AUTO-CONFIRM MODE ###
                             if RCMD.router_type in ["ios-xr","ios-xe",'cisco_ios','cisco_xr']:
                                 chan.send('\n')
@@ -871,7 +878,7 @@ class RCMD(object):
                             time.sleep(0.1)
                         else:
                             ### INTERACTIVE QUESTION --> GO AWAY FAST !!! ###
-                            exit_loop = True; break                        
+                            exit_loop = True; break
 
                 ### LONG LASTING COMMAND = ONLY CONNECTION TIMEOUT WILL BE APPLIED ###
                 if long_lasting_command:
@@ -1933,13 +1940,13 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                     xe_md5_cmds.append('verify /md5 %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
                     if '.CC' in file.upper():
                         huawei_md5_cmds.append('check system-software %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
-                        huawei_md5_cmds.append('Y')
+                        #huawei_md5_cmds.append('Y')
                     if '.PAT' in file.upper():
                         huawei_md5_cmds.append('check patch %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
-                        huawei_md5_cmds.append('Y')
+                        #huawei_md5_cmds.append('Y')
             rcmd_md5_outputs = RCMD.run_commands( \
                 {'cisco_ios':xe_md5_cmds,'cisco_xr':xr_md5_cmds,'huawei':huawei_md5_cmds}, \
-                printall = printall, long_lasting_command = True)
+                printall = printall, autoconfirm_mode = True, long_lasting_command = True)
             ### CHECK MD5 RESULTS IN LOOP #####################################
             if RCMD.router_type == 'huawei':
                 for files_list in true_sw_release_files_on_server:
@@ -2019,12 +2026,12 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                     else:
                         if '.CC' in file.upper():
                             slave_huawei_md5_cmds.append('check system-software slave#%s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
-                            slave_huawei_md5_cmds.append('Y')
+                            #slave_huawei_md5_cmds.append('Y')
                         if '.PAT' in file.upper():
                             slave_huawei_md5_cmds.append('check patch slave#%s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
-                            slave_huawei_md5_cmds.append('Y')
+                            #slave_huawei_md5_cmds.append('Y')
                 slave_rcmd_md5_outputs = RCMD.run_commands({'huawei':slave_huawei_md5_cmds}, \
-                    printall = printall, long_lasting_command = True)
+                    printall = printall, autoconfirm_mode = True, long_lasting_command = True)
                 ### CHECK MD5 RESULTS IN LOOP #################################
                 for files_list in true_sw_release_files_on_server:
                     md5_ok = False
