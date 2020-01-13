@@ -559,6 +559,7 @@ class RCMD(object):
                      USERNAME + '@' + RCMD.device.upper() + '# ' ]
                 RCMD.TERM_LEN_0 = "set cli screen-length 0"
                 RCMD.EXIT = "exit"
+                RCMD.drive_string = 're0:'
             elif RCMD.router_type == 'huawei':
                 if cmd_data:
                     try: RCMD.CMD = cmd_data.get('huawei',[])
@@ -1647,9 +1648,13 @@ def does_local_directory_or_file_exist_by_ls_l(directory_or_file, printall = Non
     except: pass
     return this_is_directory, file_found
 
-##############################################################################
+### def GET LOCAL SUB-DIRS ####################################################
 
 def get_local_subdirectories(brand_raw = None, type_raw = None):
+    """
+    type_subdir_on_device - For the x2800..c4500 and the Huawei the files just 
+        go in the top level directory and for Juniper it goes in /var/tmp/
+    """
     brand_subdir, type_subdir_on_server, file_types = str(), str(), []
     type_subdir_on_device = str()
     if brand_raw and type_raw:
@@ -1712,7 +1717,7 @@ def get_local_subdirectories(brand_raw = None, type_raw = None):
             file_types = ['cat45*.bin']
         elif 'MX480' in type_raw.upper():
             type_subdir_on_server = 'MX/MX480'
-            type_subdir_on_device = ''
+            type_subdir_on_device = '/var/tmp'
             file_types = ['junos*.img.gz', '*.tgz']
         elif 'NE40' in type_raw.upper():
             type_subdir_on_server = 'V8R10'
@@ -1800,7 +1805,7 @@ def check_percentage_of_copied_files(scp_list = [], USERNAME = None, \
                 dir_device_cmd = {
                     'cisco_ios':['dir %s' % (device_file)],
                     'cisco_xr':['dir %s' % (device_file)],
-                    'juniper':[],
+                    'juniper':['file list %s detail' % (device_file)],
                     'huawei':['dir %s' % (device_file)]
                 }
                 dir_one_output = RCMD.run_commands(dir_device_cmd, printall = printall)
@@ -1828,6 +1833,13 @@ def check_percentage_of_copied_files(scp_list = [], USERNAME = None, \
                                 try: device_filesize_in_bytes = float(line.split()[2].replace(',',''))
                                 except: pass
                         except: pass
+                if RCMD.router_type == 'juniper':
+                    for line in dir_one_output[0].splitlines():
+                        try:
+                            if device_file.split('/')[-1] in line:
+                                try: device_filesize_in_bytes = float(line.split()[4])
+                                except: pass
+                        except: pass        
                 server_filesize_in_bytes = float(os.stat(server_file).st_size)
                 percentage = float(100*device_filesize_in_bytes/server_filesize_in_bytes)
                 CGI_CLI.uprint('Device %s file %s    %.2f%% copied.' % (device, device_file, \
@@ -1897,10 +1909,11 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
             xe_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) for dev_dir in unique_device_directory_list ]
             xr_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) for dev_dir in unique_device_directory_list ]
             huawei_device_dir_list = [ 'dir %s%s/' % (RCMD.drive_string, dev_dir if dev_dir != '/' else str()) for dev_dir in unique_device_directory_list ]
+            juniper_device_dir_list = [ 'file list %s%s detail' % (RCMD.drive_string, dev_dir) for dev_dir in unique_device_directory_list ]
             dir_device_cmds = {
                 'cisco_ios':xe_device_dir_list,
                 'cisco_xr':xr_device_dir_list,
-                'juniper':[],
+                'juniper':[juniper_device_dir_list],
                 'huawei':huawei_device_dir_list
             }
             rcmd_dir_outputs = RCMD.run_commands(dir_device_cmds, printall = printall)
@@ -1921,6 +1934,8 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                                         device_fsize = float(line.split()[3].replace(',',''))
                                     elif RCMD.router_type == 'cisco_ios':
                                         device_fsize = float(line.split()[2].replace(',',''))
+                                    elif RCMD.router_type == 'juniper':
+                                        device_fsize = float(line.split()[4])                                        
                                 except: pass
                         if file == possible_file_name: file_found_on_device = True
                         if device_fsize == fsize: file_size_ok_on_device = True
@@ -1929,7 +1944,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
             bad_files = [ file for file, file_found_on_device, file_size_ok_on_device in \
                 filecheck_list if not file_found_on_device and not file_size_ok_on_device]
             ### CHECK FILE(S) AND MD5(S) FIRST ################################
-            xr_md5_cmds, xe_md5_cmds, huawei_md5_cmds = [], [], []
+            xr_md5_cmds, xe_md5_cmds, huawei_md5_cmds, juniper_md5_cmds = [], [], [], []
             for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
                 if file in bad_files:
                     ### VOID COMMANDS for BAD FILES ###########################
@@ -1937,9 +1952,11 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                     xe_md5_cmds.append('\n')
                     huawei_md5_cmds.append('\n')
                     huawei_md5_cmds.append('\n')
+                    juniper_md5_cmds.append('\n')
                 else:
                     xr_md5_cmds.append('show md5 file /%s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
                     xe_md5_cmds.append('verify /md5 %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
+                    juniper_md5_cmds.append('file checksum md5 %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
                     if '.CC' in file.upper():
                         huawei_md5_cmds.append('check system-software %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
                         #huawei_md5_cmds.append('Y')
@@ -1947,8 +1964,10 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                         huawei_md5_cmds.append('check patch %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
                         #huawei_md5_cmds.append('Y')
             rcmd_md5_outputs = RCMD.run_commands( \
-                {'cisco_ios':xe_md5_cmds,'cisco_xr':xr_md5_cmds,'huawei':huawei_md5_cmds}, \
-                printall = printall, autoconfirm_mode = True, long_lasting_command = True)
+                {'cisco_ios':xe_md5_cmds,'cisco_xr':xr_md5_cmds, \
+                'huawei':huawei_md5_cmds, 'juniper':juniper_md5_cmds}, \
+                printall = printall, autoconfirm_mode = True, 
+                long_lasting_command = True)
             ### CHECK MD5 RESULTS IN LOOP #####################################
             if RCMD.router_type == 'huawei':
                 for files_list in true_sw_release_files_on_server:
@@ -1970,6 +1989,16 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                         if md5_on_device == md5:
                             md5_ok = True
                     md5check_list.append([file,md5_ok])
+            if RCMD.router_type == 'juniper':
+                for files_list in true_sw_release_files_on_server:
+                    md5_ok = False
+                    directory, dev_dir, file, md5, fsize = files_list                    
+                    find_list = re.findall(r'[0-9a-fA-F]{32}', rcmd_md5_output.strip())
+                    if len(find_list) == 1:
+                        md5_on_device = find_list[0]
+                        if md5_on_device == md5:
+                            md5_ok = True
+                    md5check_list.append([file,md5_ok])                    
             ### CHECK IF DEVICE FILES ARE OK (file on device,filesize,md5) ####
             CGI_CLI.uprint('\n')
             for md5list,filelist in zip(md5check_list,filecheck_list):
