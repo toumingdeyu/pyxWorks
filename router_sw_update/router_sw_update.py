@@ -1983,7 +1983,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                                 missing_files_per_device_list.append( \
                                     [device,[directory, dev_dir, file, md5, fsize]])
                     if printall: CGI_CLI.uprint('File=%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
-                        (file,file_found_on_device,md5_ok,file_size_ok_on_device))
+                        (file1,file_found_on_device,md5_ok,file_size_ok_on_device))
 
             ### HUAWEI SLAVE#CFCARD FILES CHECK ###############################
             if RCMD.router_type == 'huawei':
@@ -2057,7 +2057,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                                     slave_missing_files_per_device_list.append( \
                                         [device,[directory, dev_dir, file, md5, fsize]])
                         if printall: CGI_CLI.uprint('SlaveFile=%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
-                            (file,file_found_on_device,md5_ok,file_size_ok_on_device))
+                            (file1,file_found_on_device,md5_ok,file_size_ok_on_device))
 
 
             ### HUAWEI COMPATIBILITY CHECK ####################################
