@@ -625,7 +625,7 @@ class RCMD(object):
         if RCMD.ssh_connection and cmd_line:
             if ((sim_config or RCMD.sim_config) and (conf or RCMD.conf)) or sim_all: sim_mark = '(SIM)'
             if printall or RCMD.printall:
-                CGI_CLI.uprint('REMOTE_COMMAND' + sim_mark + ': ' + cmd_line, color = 'blue')            
+                CGI_CLI.uprint('REMOTE_COMMAND' + sim_mark + ': ' + cmd_line, color = 'blue')
             if not sim_mark:
                 if RCMD.use_module == 'netmiko':
                     last_output = RCMD.ssh_connection.send_command(cmd_line)
@@ -637,7 +637,7 @@ class RCMD(object):
                     if new_prompt: RCMD.DEVICE_PROMPTS.append(new_prompt)
             if printall or RCMD.printall:
                 if not long_lasting_command: CGI_CLI.uprint(last_output, color = 'gray')
-            elif not RCMD.silent_mode: 
+            elif not RCMD.silent_mode:
                 if not long_lasting_command: CGI_CLI.uprint(' . ', no_newlines = True)
             if RCMD.fp: RCMD.fp.write('REMOTE_COMMAND' + sim_mark + ': ' + cmd_line + '\n' + last_output + '\n')
         return last_output
@@ -864,7 +864,8 @@ class RCMD(object):
             # IS ACTUAL LAST LINE PROMPT ? IF YES , GO AWAY
             for actual_prompt in prompts:
                 if output.strip().endswith(actual_prompt) or \
-                    last_line and last_line.endswith(actual_prompt):
+                    (last_line and last_line.endswith(actual_prompt)) or \
+                    (last_line_orig and last_line_orig.endswith(actual_prompt)):
                         exit_loop=True; break
             else:
                 dialog_list = ['?', '[Y/N]:', '[confirm]']
