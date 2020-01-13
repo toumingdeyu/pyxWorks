@@ -418,7 +418,7 @@ class CGI_CLI(object):
             i_pyfile = sys.argv[0]
             try: pyfile = i_pyfile.replace('\\','/').split('/')[-1].strip()
             except: pyfile = i_pyfile.strip()
-            if CGI_CLI.cgi_active: CGI_CLI.print_chunk('<br/><a href = "./%s">RELOAD</a>' % (pyfile))
+            if CGI_CLI.cgi_active: CGI_CLI.print_chunk('<br/><a href = "./%s">PAGE RELOAD</a>' % (pyfile))
 
     @staticmethod
     def VERSION(path_to_file = str(os.path.abspath(__file__))):
@@ -462,8 +462,9 @@ class RCMD(object):
 
     @staticmethod
     def connect(device = None, cmd_data = None, username = None, password = None, \
-        use_module = 'paramiko', logfilename = None, timeout = 180, conf = None, \
-        sim_config = None, disconnect = None, printall = None, \
+        use_module = 'paramiko', logfilename = None, \
+        connection_timeout = 180, cmd_timeout = 30, \
+        conf = None, sim_config = None, disconnect = None, printall = None, \
         do_not_final_print = None, commit_text = None, silent_mode = None, \
         disconnect_timeout = 2):
         """ FUNCTION: RCMD.connect(), RETURNS: list of command_outputs
@@ -491,7 +492,8 @@ class RCMD(object):
             RCMD.output, RCMD.fp = None, None
             RCMD.device = device
             RCMD.ssh_connection = None
-            RCMD.TIMEOUT = timeout
+            RCMD.CONNECTION_TIMEOUT = int(connection_timeout)
+            RCMD.CMD_TIMEOUT = int(cmd_timeout)
             RCMD.use_module = use_module
             RCMD.logfilename = logfilename
             RCMD.USERNAME = username
@@ -593,7 +595,7 @@ class RCMD(object):
                     RCMD.client.connect(RCMD.DEVICE_HOST, port=int(RCMD.DEVICE_PORT), \
                         username=RCMD.USERNAME, password=RCMD.PASSWORD,look_for_keys=False)
                     RCMD.ssh_connection = RCMD.client.invoke_shell()
-                    RCMD.ssh_connection.settimeout(RCMD.TIMEOUT)
+                    RCMD.ssh_connection.settimeout(RCMD.CONNECTION_TIMEOUT)
                     RCMD.output, RCMD.forget_it = RCMD.ssh_send_command_and_read_output(RCMD.ssh_connection,RCMD.DEVICE_PROMPTS,RCMD.TERM_LEN_0)
                     RCMD.output2, RCMD.forget_it = RCMD.ssh_send_command_and_read_output(RCMD.ssh_connection,RCMD.DEVICE_PROMPTS,"")
                     RCMD.output += RCMD.output2
@@ -609,12 +611,15 @@ class RCMD(object):
         return command_outputs
 
     @staticmethod
-    def run_command(cmd_line = None, printall = None, conf = None, sim_config = None, sim_all = None):
+    def run_command(cmd_line = None, printall = None, conf = None, \
+        long_lasting_command = None, autoconfirm_mode = None, \
+        sim_config = None, sim_all = None):
         """
         cmd_line - string, DETECTED DEVICE TYPE DEPENDENT
         sim_all  - simulate execution of all commands, not only config commands
                    used for ommit save/write in normal mode
         sim_config - simulate config commands
+        long_lasting_command - max connection timeout, no cmd timeout, no prompt discovery
         """
         last_output, sim_mark = str(), str()
         if RCMD.ssh_connection and cmd_line:
@@ -624,7 +629,9 @@ class RCMD(object):
                     last_output = RCMD.ssh_connection.send_command(cmd_line)
                 elif RCMD.use_module == 'paramiko':
                     last_output, new_prompt = RCMD.ssh_send_command_and_read_output( \
-                        RCMD.ssh_connection, RCMD.DEVICE_PROMPTS, cmd_line, printall = printall)
+                        RCMD.ssh_connection, RCMD.DEVICE_PROMPTS, cmd_line, \
+                        long_lasting_command = long_lasting_command, \
+                        autoconfirm_mode = autoconfirm_mode, printall = printall)
                     if new_prompt: RCMD.DEVICE_PROMPTS.append(new_prompt)
             if printall or RCMD.printall:
                 CGI_CLI.uprint('REMOTE_COMMAND' + sim_mark + ': ' + cmd_line, color = 'blue')
@@ -635,7 +642,8 @@ class RCMD(object):
 
     @staticmethod
     def run_commands(cmd_data = None, printall = None, conf = None, sim_config = None, \
-        do_not_final_print = None , commit_text = None, submit_result = None):
+        do_not_final_print = None , commit_text = None, submit_result = None , \
+        long_lasting_command = None, autoconfirm_mode = None):
         """
         FUNCTION: run_commands(), RETURN: list of command_outputs
         PARAMETERS:
@@ -643,6 +651,7 @@ class RCMD(object):
                  - list of strings or string, OS TYPE DEPENDENT
         conf     - True/False, go to config mode
         sim_config - simulate config commands
+        long_lasting_command - max connection timeout, no cmd timeout, no prompt discovery
         """
         command_outputs = str()
         if cmd_data and isinstance(cmd_data, (dict,collections.OrderedDict)):
@@ -696,7 +705,8 @@ class RCMD(object):
                     ### PROCESS COMMANDS - PER COMMAND #########################
                     for cmd_line in cmd_list:
                         command_outputs.append(RCMD.run_command(cmd_line, \
-                            conf = conf, sim_config = sim_config, printall = printall))
+                            conf = conf, sim_config = sim_config, printall = printall,
+                            long_lasting_command = long_lasting_command))
                     ### EXIT FROM CONFIG MODE FOR PARAMIKO #####################
                     if (conf or RCMD.conf) and RCMD.use_module == 'paramiko':
                         ### GO TO CONFIG TOP LEVEL SECTION ---------------------
@@ -802,7 +812,9 @@ class RCMD(object):
             time.sleep(RCMD.DISCONNECT_TIMEOUT)
 
     @staticmethod
-    def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True):
+    def ssh_send_command_and_read_output(chan, prompts, \
+        send_data = str(), long_lasting_command = None, \
+        autoconfirm_mode = None, printall=True):
         output, output2, new_prompt = str(), str(), str()
         exit_loop, exit_loop2 = False, False
         timeout_counter_100msec, timeout_counter_100msec_2 = 0, 0
@@ -816,10 +828,14 @@ class RCMD(object):
                 ### WORKARROUND FOR DISCONTINIOUS OUTPUT FROM ROUTERS ###
                 timeout_counter_100msec = 0
                 buff = chan.recv(9999)
-                buff_read = buff.decode("utf-8").replace('\x0d','').replace('\x07','').\
-                    replace('\x08','').replace(' \x1b[1D','')
+                buff_read = str(buff.decode("utf-8").replace('\x0d','').replace('\x07','').\
+                    replace('\x08','').replace(' \x1b[1D',''))
                 output += buff_read
-            else: time.sleep(0.1); timeout_counter_100msec += 1
+            else:
+                buff_read = str()
+                time.sleep(0.1);
+                timeout_counter_100msec += 1
+                continue
             # FIND LAST LINE, THIS COULD BE PROMPT
             try: last_line, last_line_orig = output.splitlines()[-1].strip(), output.splitlines()[-1].strip()
             except: last_line, last_line_orig = str(), str()
@@ -831,43 +847,58 @@ class RCMD(object):
                     last_line = last_line_part1 + last_line_part2
                 except: last_line = last_line
             # FILTER-OUT '[*','[~','-...]' FROM VRP
-            elif RCMD.router_type in ["vrp",'huawei']:
-                try:
-                    last_line_part1 = '[' + last_line.replace('[~','[').replace('[*','[').split('[')[1].split('-')[0]
-                    last_line_part2 = ']' + last_line.replace('[~','[').replace('[*','[').split('[')[1].split(']')[1]
-                    last_line = last_line_part1 + last_line_part2
-                except: last_line = last_line
+            #elif RCMD.router_type in ["vrp",'huawei']:
+            #    try:
+            #        last_line_part1 = '[' + last_line.replace('[~','[').replace('[*','[').split('[')[1].split('-')[0]
+            #        last_line_part2 = ']' + last_line.replace('[~','[').replace('[*','[').split('[')[1].split(']')[1]
+            #        last_line = last_line_part1 + last_line_part2
+            #    except: last_line = last_line
+
             # IS ACTUAL LAST LINE PROMPT ? IF YES , GO AWAY
             for actual_prompt in prompts:
-                if output.endswith(actual_prompt) or \
+                if output.strip().endswith(actual_prompt) or \
                     last_line and last_line.endswith(actual_prompt):
                         exit_loop=True; break
             else:
-                ### INTERACTIVE QUESTION --> GO AWAY FAST !!! ###
-                if last_line.strip().endswith('?') or last_line.strip().endswith('? [Y/N]:') \
-                    or last_line.strip().endswith('[confirm]'): exit_loop = True; break
-                ### 30 SECONDS COMMAND TIMEOUT
-                elif (timeout_counter_100msec) > 30*10: exit_loop = True; break
-                ### 10 SECONDS --> This could be a new PROMPT
-                elif (timeout_counter_100msec) > 10*10 and not exit_loop2:
-                    ### TRICK IS IF NEW PROMPT OCCURS, HIT ENTER ... ###
-                    ### ... AND IF OCCURS THE SAME LINE --> IT IS NEW PROMPT!!! ###
-                    chan.send('\n')
-                    time.sleep(0.1)
-                    while(not exit_loop2):
-                        if chan.recv_ready():
-                            buff = chan.recv(9999)
-                            buff_read = buff.decode("utf-8").replace('\x0d','')\
-                               .replace('\x07','').replace('\x08','').replace(' \x1b[1D','')
-                            output2 += buff_read
-                        else: time.sleep(0.1); timeout_counter_100msec_2 += 1
-                        try: new_last_line = output2.splitlines()[-1].strip()
-                        except: new_last_line = str()
-                        if last_line_orig and new_last_line and last_line_orig == new_last_line:
-                            if printall: CGI_CLI.uprint('NEW_PROMPT: %s' % (last_line_orig), color = 'cyan')
-                            new_prompt = last_line_orig; exit_loop=True;exit_loop2=True; break
-                        # WAIT UP TO 5 SECONDS
-                        if (timeout_counter_100msec_2) > 5*10: exit_loop2 = True; break
+                dialog_list = ['?', '[Y/N]:', '[confirm]']
+                for dialog_line in dialog_list:
+                    if last_line_orig.strip().endswith(dialog_line):
+                        if autoconfirm_mode:    
+                            ### AUTO-CONFIRM MODE ###
+                            if RCMD.router_type in ["ios-xr","ios-xe",'cisco_ios','cisco_xr']:
+                                chan.send('\n')
+                            elif RCMD.router_type in ["vrp",'huawei']: chan.send('Y\n')
+                            time.sleep(0.1)
+                        else:
+                            ### INTERACTIVE QUESTION --> GO AWAY FAST !!! ###
+                            exit_loop = True; break                        
+
+                ### LONG LASTING COMMAND = ONLY CONNECTION TIMEOUT WILL BE APPLIED ###
+                if long_lasting_command:
+                    if timeout_counter_100msec > RCMD.CONNECTION_TIMEOUT*10: exit_loop = True; break
+                else:
+                    ### 30 SECONDS COMMAND TIMEOUT ###
+                    if timeout_counter_100msec > RCMD.CMD_TIMEOUT*10: exit_loop = True; break
+                    ### 10 SECONDS --> This could be a new PROMPT ###
+                    elif timeout_counter_100msec > 10*10 and not exit_loop2:
+                        ### TRICK IS IF NEW PROMPT OCCURS, HIT ENTER ... ###
+                        ### ... AND IF OCCURS THE SAME LINE --> IT IS NEW PROMPT!!! ###
+                        chan.send('\n')
+                        time.sleep(0.1)
+                        while(not exit_loop2):
+                            if chan.recv_ready():
+                                buff = chan.recv(9999)
+                                buff_read = buff.decode("utf-8").replace('\x0d','')\
+                                   .replace('\x07','').replace('\x08','').replace(' \x1b[1D','')
+                                output2 += buff_read
+                            else: time.sleep(0.1); timeout_counter_100msec_2 += 1
+                            try: new_last_line = output2.splitlines()[-1].strip()
+                            except: new_last_line = str()
+                            if last_line_orig and new_last_line and last_line_orig == new_last_line:
+                                if printall: CGI_CLI.uprint('NEW_PROMPT: %s' % (last_line_orig), color = 'cyan')
+                                new_prompt = last_line_orig; exit_loop=True;exit_loop2=True; break
+                            # WAIT UP TO 5 SECONDS
+                            if (timeout_counter_100msec_2) > 5*10: exit_loop2 = True; break
         return output, new_prompt
 
     @staticmethod
@@ -933,7 +964,7 @@ class RCMD(object):
             client.connect(RCMD.DEVICE_HOST, port = int(RCMD.DEVICE_PORT), \
                 username = RCMD.USERNAME, password = RCMD.PASSWORD)
             chan = client.invoke_shell()
-            chan.settimeout(RCMD.TIMEOUT)
+            chan.settimeout(RCMD.CONNECTION_TIMEOUT)
             # prevent --More-- in log banner (space=page, enter=1line,tab=esc)
             # \n\n get prompt as last line
             prompt = ssh_raw_detect_prompt(chan, debug=debug)
@@ -1908,7 +1939,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                         huawei_md5_cmds.append('Y')
             rcmd_md5_outputs = RCMD.run_commands( \
                 {'cisco_ios':xe_md5_cmds,'cisco_xr':xr_md5_cmds,'huawei':huawei_md5_cmds}, \
-                printall = printall)
+                printall = printall, long_lasting_command = True)
             ### CHECK MD5 RESULTS IN LOOP #####################################
             if RCMD.router_type == 'huawei':
                 for files_list in true_sw_release_files_on_server:
@@ -1987,13 +2018,13 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                         slave_huawei_md5_cmds.append('\n')
                     else:
                         if '.CC' in file.upper():
-                            slave_huawei_md5_cmds.append('check system-software %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
+                            slave_huawei_md5_cmds.append('check system-software slave#%s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
                             slave_huawei_md5_cmds.append('Y')
                         if '.PAT' in file.upper():
-                            slave_huawei_md5_cmds.append('check patch %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
+                            slave_huawei_md5_cmds.append('check patch slave#%s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
                             slave_huawei_md5_cmds.append('Y')
                 slave_rcmd_md5_outputs = RCMD.run_commands({'huawei':slave_huawei_md5_cmds}, \
-                    printall = printall)
+                    printall = printall, long_lasting_command = True)
                 ### CHECK MD5 RESULTS IN LOOP #################################
                 for files_list in true_sw_release_files_on_server:
                     md5_ok = False
@@ -2034,7 +2065,8 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                         #    (RCMD.drive_string, os.path.join(dev_dir, file)))
                     else: huawei_compatibility_cmds.append('\n')
                 rcmd_compatibility_outputs = RCMD.run_commands( \
-                    {'huawei':huawei_compatibility_cmds}, printall = printall)
+                    {'huawei':huawei_compatibility_cmds}, printall = printall, \
+                    long_lasting_command = True)
                 for compatibility_output, true_sw_file in zip(rcmd_compatibility_outputs, true_sw_release_files_on_server):
                     directory, dev_dir, file, md5, fsize = true_sw_file
                     if 'check hardware-compatibility failed!' in compatibility_output:
@@ -2631,7 +2663,7 @@ try:
     if len(device_list) > 0: CGI_CLI.uprint('device(s) = %s' % (', '.join(device_list)))
     if sw_release: CGI_CLI.uprint('sw release = %s' % (sw_release))
     if device_expected_MB_free:
-        CGI_CLI.uprint('expected remaining disk free = %.2f MB' % (device_expected_MB_free))
+        CGI_CLI.uprint('expected remaining disk free >= %.2f MB' % (device_expected_MB_free))
     if len(selected_sw_file_types_list)>0:
         CGI_CLI.uprint('sw file types = %s' % (', '.join(selected_sw_file_types_list) ))
     if logfilename: CGI_CLI.uprint('logfile=%s' % (logfilename))
