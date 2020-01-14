@@ -1758,9 +1758,10 @@ def does_run_scp_processes(printall = None):
                         device = files_string.split()[1].split('@')[1].split(':')[0]
 
                         ### TRICK - GET DEVICE TYPE FROM SCP COMMAND LINE #####
-                        device_file = files_string.split()[1].split(device+':')[1]
-                        ### HUAWEI SCP WITHOUT / ###
-                        if 'HUAWEI' in line:
+                        if 'JUNIPER' in line.upper():
+                            device_file = files_string.split()[1].split(device+':')[1]
+                        ### HUAWEI SCP WITHOUT '/', CISCO IOS delete '/' ###
+                        else:
                             try: device_file = files_string.split()[1].split(device+':/')[1]
                             except: device_file = files_string.split()[1].split(device+':')[1]
 
