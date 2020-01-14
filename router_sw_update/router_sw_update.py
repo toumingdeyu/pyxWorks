@@ -516,10 +516,27 @@ class RCMD(object):
             except: RCMD.DEVICE_PORT = '22'
             if printall: CGI_CLI.uprint('DEVICE %s (host=%s, port=%s) START'\
                 %(device, RCMD.DEVICE_HOST, RCMD.DEVICE_PORT)+24 * '.', color = 'gray')
-            RCMD.router_type, RCMD.router_prompt = RCMD.ssh_raw_detect_router_type(debug = None)
-            if RCMD.router_type in RCMD.KNOWN_OS_TYPES and printall:
-                CGI_CLI.uprint('DETECTED DEVICE_TYPE: %s' % (RCMD.router_type), \
-                    color = 'gray')
+            try:
+                ### ONE_CONNECT DETECTION #####################################
+                RCMD.client = paramiko.SSHClient()
+                RCMD.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                RCMD.client.connect(RCMD.DEVICE_HOST, port=int(RCMD.DEVICE_PORT), \
+                    username=RCMD.USERNAME, password=RCMD.PASSWORD, \
+                    banner_timeout = 10, auth_timeout = 10, timeout = RCMD.CONNECTION_TIMEOUT, \
+                    look_for_keys = False)
+                RCMD.ssh_connection = RCMD.client.invoke_shell()
+                if RCMD.ssh_connection:
+                    RCMD.router_type, RCMD.router_prompt = RCMD.ssh_raw_detect_router_type(debug = None)
+                    if RCMD.router_type in RCMD.KNOWN_OS_TYPES and printall:
+                        CGI_CLI.uprint('DETECTED DEVICE_TYPE: %s' % (RCMD.router_type), \
+                            color = 'gray')
+            except Exception as e:
+                if not RCMD.silent_mode:
+                    CGI_CLI.uprint('CONNECTION_PROBLEM[' + str(e) + ']', color = 'magenta')
+            finally:
+                if disconnect: RCMD.disconnect()
+            ### EXIT IF NO CONNECTION ##########################################
+            if not RCMD.ssh_connection: return command_outputs
             ####################################################################
             if RCMD.router_type == 'cisco_ios':
                 if cmd_data:
@@ -587,18 +604,19 @@ class RCMD(object):
             ### START SSH CONNECTION AGAIN #####################################
             try:
                 if RCMD.router_type and RCMD.use_module == 'netmiko':
+                    RCMD.disconnect()
                     RCMD.ssh_connection = netmiko.ConnectHandler(device_type = RCMD.router_type, \
                         ip = RCMD.DEVICE_HOST, port = int(RCMD.DEVICE_PORT), \
                         username = RCMD.USERNAME, password = RCMD.PASSWORD)
                 elif RCMD.router_type and RCMD.use_module == 'paramiko':
-                    RCMD.client = paramiko.SSHClient()
-                    RCMD.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-                    RCMD.client.connect(RCMD.DEVICE_HOST, port=int(RCMD.DEVICE_PORT), \
-                        username=RCMD.USERNAME, password=RCMD.PASSWORD, \
-                        banner_timeout = 10, auth_timeout = 10, \
-                        look_for_keys = False)
-                    RCMD.ssh_connection = RCMD.client.invoke_shell()
-                    RCMD.ssh_connection.settimeout(RCMD.CONNECTION_TIMEOUT)
+                    #RCMD.client = paramiko.SSHClient()
+                    #RCMD.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                    #RCMD.client.connect(RCMD.DEVICE_HOST, port=int(RCMD.DEVICE_PORT), \
+                    #    username=RCMD.USERNAME, password=RCMD.PASSWORD, \
+                    #    banner_timeout = 10, auth_timeout = 10, timeout = CONNECTION_TIMEOUT, \
+                    #    look_for_keys = False)
+                    #RCMD.ssh_connection = RCMD.client.invoke_shell()
+                    #RCMD.ssh_connection.settimeout(RCMD.CONNECTION_TIMEOUT)
                     RCMD.output, RCMD.forget_it = RCMD.ssh_send_command_and_read_output(RCMD.ssh_connection,RCMD.DEVICE_PROMPTS,RCMD.TERM_LEN_0)
                     RCMD.output2, RCMD.forget_it = RCMD.ssh_send_command_and_read_output(RCMD.ssh_connection,RCMD.DEVICE_PROMPTS,"")
                     RCMD.output += RCMD.output2
@@ -854,13 +872,6 @@ class RCMD(object):
                     last_line_part2 = last_line.split(')')[1]
                     last_line = last_line_part1 + last_line_part2
                 except: last_line = last_line
-            # FILTER-OUT '[*','[~','-...]' FROM VRP
-            #elif RCMD.router_type in ["vrp",'huawei']:
-            #    try:
-            #        last_line_part1 = '[' + last_line.replace('[~','[').replace('[*','[').split('[')[1].split('-')[0]
-            #        last_line_part2 = ']' + last_line.replace('[~','[').replace('[*','[').split('[')[1].split(']')[1]
-            #        last_line = last_line_part1 + last_line_part2
-            #    except: last_line = last_line
 
             ### PRINT LONG LASTING OUTPUTS PER PARTS ##########################
             if printall and long_lasting_mode and buff_read and not RCMD.silent_mode:
@@ -971,46 +982,33 @@ class RCMD(object):
         #asr1k_detection_string = 'CSR1000'
         #asr9k_detection_string = 'ASR9K|IOS-XRv 9000'
         router_os, prompt = str(), str()
-        client = paramiko.SSHClient()
-        #client.load_system_host_keys()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        try:
-            client.connect(RCMD.DEVICE_HOST, port = int(RCMD.DEVICE_PORT), \
-                username = RCMD.USERNAME, password = RCMD.PASSWORD, \
-                banner_timeout = 10, auth_timeout = 10, \
-                look_for_keys = False)
-            chan = client.invoke_shell()
-            chan.settimeout(RCMD.CONNECTION_TIMEOUT)
-            # prevent --More-- in log banner (space=page, enter=1line,tab=esc)
-            # \n\n get prompt as last line
-            prompt = ssh_raw_detect_prompt(chan, debug=debug)
-            #test if this is HUAWEI VRP
-            if prompt and not router_os:
-                command = 'display version | include (Huawei)\n'
-                output = ssh_raw_read_until_prompt(chan, command, [prompt], debug=debug)
-                if 'Huawei Versatile Routing Platform Software' in output: router_os = 'vrp'
-            #test if this is CISCO IOS-XR, IOS-XE or JUNOS
-            if prompt and not router_os:
-                command = 'show version\n'
-                output = ssh_raw_read_until_prompt(chan, command, [prompt], debug=debug)
-                if 'iosxr-' in output or 'Cisco IOS XR Software' in output:
-                    router_os = 'ios-xr'
-                    if 'ASR9K' in output or 'IOS-XRv 9000' in output: RCMD.router_version = 'ASR9K'
-                elif 'Cisco IOS-XE software' in output:
-                    router_os = 'ios-xe'
-                    if 'CSR1000' in output: RCMD.router_version = 'ASR1K'
-                elif 'JUNOS OS' in output: router_os = 'junos'
-            if prompt and not router_os:
-                command = 'uname -a\n'
-                output = ssh_raw_read_until_prompt(chan, command, [prompt], debug=debug)
-                if 'LINUX' in output.upper(): router_os = 'linux'
-            if not router_os:
-                CGI_CLI.uprint("\nCannot find recognizable OS in %s" % (output), color = 'magenta')
-        except Exception as e:
-            if not RCMD.silent_mode:
-                CGI_CLI.uprint('CONNECTION_PROBLEM[' + str(e) + ']' , color = 'magenta')
-        finally: client.close()
-        #time.sleep(2)
+
+        ### 1-CONNECTION ONLY, connection opened in RCMD.connect ###
+        # prevent --More-- in log banner (space=page, enter=1line,tab=esc)
+        # \n\n get prompt as last line
+        prompt = ssh_raw_detect_prompt(RCMD.ssh_connection, debug=debug)
+        #test if this is HUAWEI VRP
+        if prompt and not router_os:
+            command = 'display version | include (Huawei)\n'
+            output = ssh_raw_read_until_prompt(RCMD.ssh_connection, command, [prompt], debug=debug)
+            if 'Huawei Versatile Routing Platform Software' in output: router_os = 'vrp'
+        #test if this is CISCO IOS-XR, IOS-XE or JUNOS
+        if prompt and not router_os:
+            command = 'show version\n'
+            output = ssh_raw_read_until_prompt(RCMD.ssh_connection, command, [prompt], debug=debug)
+            if 'iosxr-' in output or 'Cisco IOS XR Software' in output:
+                router_os = 'ios-xr'
+                if 'ASR9K' in output or 'IOS-XRv 9000' in output: RCMD.router_version = 'ASR9K'
+            elif 'Cisco IOS-XE software' in output:
+                router_os = 'ios-xe'
+                if 'CSR1000' in output: RCMD.router_version = 'ASR1K'
+            elif 'JUNOS OS' in output: router_os = 'junos'
+        if prompt and not router_os:
+            command = 'uname -a\n'
+            output = ssh_raw_read_until_prompt(RCMD.ssh_connection, command, [prompt], debug=debug)
+            if 'LINUX' in output.upper(): router_os = 'linux'
+        if not router_os:
+            CGI_CLI.uprint("\nCannot find recognizable OS in %s" % (output), color = 'magenta')
         netmiko_os = str()
         if router_os == 'ios-xe': netmiko_os = 'cisco_ios'
         if router_os == 'ios-xr': netmiko_os = 'cisco_xr'
@@ -1547,7 +1545,7 @@ def do_scp_one_file_to_more_devices(true_sw_release_file_on_server = None, \
         os.environ['SSHPASS'] = PASSWORD
         time.sleep(2)
         directory,dev_dir,file,md5,fsize = true_sw_release_file_on_server
-        cp_cmd_list = []
+        cp_cmd_list, local_command = [], str()
         ### ONLY 1 SCP CONNECTION PER ROUTER ###
         for device in device_list:
             if router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
@@ -1583,7 +1581,7 @@ def do_scp_one_file_to_more_devices_per_needed_to_copy_list(\
         os.environ['SSHPASS'] = PASSWORD
         time.sleep(2)
         directory,dev_dir,file,md5,fsize = true_sw_release_file_on_server
-        cp_cmd_list = []
+        cp_cmd_list, local_command = [], str()
         ### ONLY 1 SCP CONNECTION PER ROUTER ###
         for device in device_list:
             for device2, missing_or_bad_files_per_device in missing_files_per_device_list:
@@ -2453,7 +2451,7 @@ try:
     logging.raiseExceptions=False
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True)
     CGI_CLI.uprint('ROUTER SW UPGRADE TOOL (v.%s)' % (CGI_CLI.VERSION()), tag = 'h1', color = 'blue')
-    # CGI_CLI.uprint('PID=%s ' % (os.getpid()), color = 'blue')    
+    # CGI_CLI.uprint('PID=%s ' % (os.getpid()), color = 'blue')
     printall = CGI_CLI.data.get("printall")
     if printall: CGI_CLI.print_args()
 
