@@ -2507,7 +2507,7 @@ def juniper_copy_device_files_to_other_routing_engine(true_sw_release_files_on_s
 
 
                 re_files_cmds = {'juniper':['show chassis routing-engine']}
-                CGI_CLI.uprint('actual routing engine check' % (device), \
+                CGI_CLI.uprint('actual routing engine check', \
                     no_newlines = None if printall else True)
                 re_output = RCMD.run_commands(re_files_cmds, \
                     printall = printall)
@@ -2522,7 +2522,7 @@ def juniper_copy_device_files_to_other_routing_engine(true_sw_release_files_on_s
                         backup_re = 're1'
                 except: pass
 
-                CGI_CLI.uprint('Routing engine MASTER=%s, BACKUP=%s.' % (master_re,str(backup_re)), \
+                CGI_CLI.uprint('Routing engine MASTER=%s, BACKUP=%s' % (master_re,str(backup_re)), \
                     no_newlines = None if printall else True)
 
                 if backup_re:
