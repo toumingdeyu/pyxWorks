@@ -2039,7 +2039,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                                     [device,[directory, dev_dir, file, md5, fsize]])
                     if printall:
                         if RCMD.router_type == 'juniper':
-                            CGI_CLI.uprint('File=re0:%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
+                            CGI_CLI.uprint('re0_File=%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
                                 (file1,file_found_on_device,md5_ok,file_size_ok_on_device))
                         else:
                             CGI_CLI.uprint('File=%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
@@ -2081,8 +2081,8 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                                 if file == file1:
                                     slave_missing_files_per_device_list.append( \
                                         [device,[directory, dev_dir, file, md5, fsize]])
-                        if printall: CGI_CLI.uprint('File=re1:%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
-                            (file1,file_found_on_device,md5_ok,file_size_ok_on_device))
+                        if printall: CGI_CLI.uprint('re1_File=%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
+                            (file1, file_found_on_device, md5_ok, file_size_ok_on_device))
 
             ### HUAWEI SLAVE#CFCARD FILES CHECK ###############################
             if RCMD.router_type == 'huawei':
@@ -2201,7 +2201,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
             directory, dev_dir, file, md5, fsize = missing_or_bad_files_per_device
             if RCMD.router_type == 'juniper':
                 CGI_CLI.uprint('%s    re1:%s' % \
-                        (device, device_drive_string + os.path.join(dev_dir, file)))
+                        (device, os.path.join(dev_dir, file)))
             else:
                 CGI_CLI.uprint('%s    slave#%s' % \
                     (device, device_drive_string + os.path.join(dev_dir, file)))            
