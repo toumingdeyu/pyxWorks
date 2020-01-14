@@ -594,7 +594,9 @@ class RCMD(object):
                     RCMD.client = paramiko.SSHClient()
                     RCMD.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
                     RCMD.client.connect(RCMD.DEVICE_HOST, port=int(RCMD.DEVICE_PORT), \
-                        username=RCMD.USERNAME, password=RCMD.PASSWORD,look_for_keys=False)
+                        username=RCMD.USERNAME, password=RCMD.PASSWORD, \
+                        banner_timeout = 10, auth_timeout = 10, \
+                        look_for_keys = False)
                     RCMD.ssh_connection = RCMD.client.invoke_shell()
                     RCMD.ssh_connection.settimeout(RCMD.CONNECTION_TIMEOUT)
                     RCMD.output, RCMD.forget_it = RCMD.ssh_send_command_and_read_output(RCMD.ssh_connection,RCMD.DEVICE_PROMPTS,RCMD.TERM_LEN_0)
@@ -974,7 +976,9 @@ class RCMD(object):
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         try:
             client.connect(RCMD.DEVICE_HOST, port = int(RCMD.DEVICE_PORT), \
-                username = RCMD.USERNAME, password = RCMD.PASSWORD)
+                username = RCMD.USERNAME, password = RCMD.PASSWORD, \
+                banner_timeout = 10, auth_timeout = 10, \
+                look_for_keys = False)
             chan = client.invoke_shell()
             chan.settimeout(RCMD.CONNECTION_TIMEOUT)
             # prevent --More-- in log banner (space=page, enter=1line,tab=esc)
@@ -1006,6 +1010,7 @@ class RCMD(object):
             if not RCMD.silent_mode:
                 CGI_CLI.uprint('CONNECTION_PROBLEM[' + str(e) + ']' , color = 'magenta')
         finally: client.close()
+        #time.sleep(2)
         netmiko_os = str()
         if router_os == 'ios-xe': netmiko_os = 'cisco_ios'
         if router_os == 'ios-xr': netmiko_os = 'cisco_xr'
@@ -1753,14 +1758,14 @@ def does_run_scp_processes(printall = None):
                         server_file = files_string.split()[0]
                         device_user = files_string.split()[1].split('@')[0]
                         device = files_string.split()[1].split('@')[1].split(':')[0]
-                        
-                        ### TRICK - GET DEVICE TYPE FROM SCP COMMAND LINE #####                                                
+
+                        ### TRICK - GET DEVICE TYPE FROM SCP COMMAND LINE #####
                         device_file = files_string.split()[1].split(device+':')[1]
-                        ### HUAWEI SCP WITHOUT / ###    
-                        if 'HUAWEI' in line:   
+                        ### HUAWEI SCP WITHOUT / ###
+                        if 'HUAWEI' in line:
                             try: device_file = files_string.split()[1].split(device+':/')[1]
                             except: device_file = files_string.split()[1].split(device+':')[1]
-                            
+
                         pid = line.split()[1]
                         ppid = line.split()[2]
                         scp_list.append([server_file, device_file, device, device_user, pid, ppid])
@@ -1865,7 +1870,8 @@ def check_percentage_of_copied_files(scp_list = [], USERNAME = None, \
                 CGI_CLI.uprint('Device %s file %s    still copying...' % \
                     (device, device_file) , color = 'blue')
                 device_file_percentage_list.append([device, device_file, -1])
-            RCMD.disconnect()    
+            RCMD.disconnect()
+            time.sleep(1)
     return device_file_percentage_list
 
 ##############################################################################
@@ -2366,12 +2372,13 @@ def copy_files_to_devices(true_sw_release_files_on_server = None, \
                 if scp_device in device_list: actual_scp_devices_in_scp_list = True
             if len(scp_list) > 0:
                 old_files_status = files_status
+                time.sleep(1)
                 files_status = check_percentage_of_copied_files(scp_list, USERNAME, PASSWORD, printall)
                 ### CHECKED STALLED COPYING ###################################
                 for old_file_status in old_files_status:
                     if old_file_status in files_status:
                         device, device_file, percentage = old_file_status
-                        if percentage >= 0:
+                        if percentage > 0 and percentage < 100:
                             CGI_CLI.uprint('WARNING: Device=%s, File=%s, Percent copied=%.2f HAS STALLED, KILLING SCP PROCESSES!' % \
                                 (device, device_file, percentage), color = 'red')
                             kill_stalled_scp_processes(device_file = device_file, printall = printall)
@@ -2445,13 +2452,12 @@ if __name__ != "__main__": sys.exit(0)
 try:
     logging.raiseExceptions=False
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True)
+    CGI_CLI.uprint('ROUTER SW UPGRADE TOOL (v.%s)' % (CGI_CLI.VERSION()), tag = 'h1', color = 'blue')
+    # CGI_CLI.uprint('PID=%s ' % (os.getpid()), color = 'blue')    
     printall = CGI_CLI.data.get("printall")
     if printall: CGI_CLI.print_args()
 
     ##############################################################################
-
-    CGI_CLI.uprint('ROUTER SW UPGRADE TOOL (v.%s)' % (CGI_CLI.VERSION()), tag = 'h1', color = 'blue')
-    #CGI_CLI.uprint('PID=%s ' % (os.getpid()), color = 'blue')
 
     does_run_script_processes()
 
@@ -2943,7 +2949,7 @@ try:
             device_drive_string = device_drive_string, router_type = router_type, \
             force_rewrite = force_rewrite)
         ### TIMEOUT ###############################################################
-        time.sleep(3)
+        time.sleep(4)
         ### COPY DEVICE FILES TO HUAWEI SLAVE CFCARD ##############################
         copy_device_files_to_slave_cfcard(true_sw_release_files_on_server, \
             unique_device_directory_list)
