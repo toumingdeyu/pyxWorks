@@ -1557,7 +1557,7 @@ def do_scp_one_file_to_more_devices(true_sw_release_file_on_server = None, \
             elif router_type == 'juniper':
                 local_command = 'sshpass -e scp -v -o StrictHostKeyChecking=no %s %s@%s:%s 1>/dev/null 2>/dev/null &' \
                     % (os.path.join(directory, file), USERNAME, device, \
-                    '%s%s' % (device_drive_string, os.path.join(dev_dir, file)))
+                    '%s' % (os.path.join(dev_dir, file)))
             if printall: CGI_CLI.uprint(local_command)
             os.system(local_command)
             CGI_CLI.uprint('scp start file %s, (file size %.2fMB) to device %s' % \
@@ -1596,7 +1596,7 @@ def do_scp_one_file_to_more_devices_per_needed_to_copy_list(\
                     elif router_type == 'juniper':
                         local_command = 'sshpass -e scp -v -o StrictHostKeyChecking=no %s %s@%s:%s 1>/dev/null 2>/dev/null &' \
                             % (os.path.join(directory, file), USERNAME, device, \
-                            '%s%s' % (device_drive_string, os.path.join(dev_dir, file)))
+                            '%s' % (os.path.join(dev_dir, file)))
                     if printall: CGI_CLI.uprint(local_command)
                     os.system(local_command)
                     CGI_CLI.uprint('scp start file %s, (file size %.2fMB) to device %s' % \
@@ -1753,9 +1753,14 @@ def does_run_scp_processes(printall = None):
                         server_file = files_string.split()[0]
                         device_user = files_string.split()[1].split('@')[0]
                         device = files_string.split()[1].split('@')[1].split(':')[0]
-                        ### HUAWEI SCP WITHOUT / ###
-                        try: device_file = files_string.split()[1].split(device+':/')[1]
-                        except: device_file = files_string.split()[1].split(device+':')[1]
+                        
+                        ### TRICK - GET DEVICE TYPE FROM SCP COMMAND LINE #####                                                
+                        device_file = files_string.split()[1].split(device+':')[1]
+                        ### HUAWEI SCP WITHOUT / ###    
+                        if 'HUAWEI' in line:   
+                            try: device_file = files_string.split()[1].split(device+':/')[1]
+                            except: device_file = files_string.split()[1].split(device+':')[1]
+                            
                         pid = line.split()[1]
                         ppid = line.split()[2]
                         scp_list.append([server_file, device_file, device, device_user, pid, ppid])
@@ -1860,6 +1865,7 @@ def check_percentage_of_copied_files(scp_list = [], USERNAME = None, \
                 CGI_CLI.uprint('Device %s file %s    still copying...' % \
                     (device, device_file) , color = 'blue')
                 device_file_percentage_list.append([device, device_file, -1])
+            RCMD.disconnect()    
     return device_file_percentage_list
 
 ##############################################################################
@@ -2993,33 +2999,46 @@ try:
                         CGI_CLI.uprint('\n')
 
                 if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios' \
-                    or RCMD.router_type == 'huawei':
+                    or RCMD.router_type == 'huawei' or RCMD.router_type == 'juniper':
                     ### def DELETE TAR FILES ON END ###############################
                     if CGI_CLI.data.get('delete_device_sw_files_on_end'):
-                        del_files_cmds = {'cisco_xr':[],'cisco_ios':[],'huawei':[]}
+                        del_files_cmds = {'cisco_xr':[], 'cisco_ios':[], \
+                            'huawei':[], 'juniper':[]}
 
                         for unique_dir in unique_device_directory_list:
                             for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
                                 if unique_dir == dev_dir:
                                     del_files_cmds['cisco_xr'].append( \
                                         'del /%s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
-                                    del_files_cmds['cisco_xr'].append('\n')
-                                    del_files_cmds['cisco_xr'].append('\n')
+                                    #del_files_cmds['cisco_xr'].append('\n')
+                                    #del_files_cmds['cisco_xr'].append('\n')
 
                                     del_files_cmds['cisco_ios'].append( \
                                         'del %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
-                                    del_files_cmds['cisco_ios'].append('\n')
-                                    del_files_cmds['cisco_ios'].append('\n')
+                                    #del_files_cmds['cisco_ios'].append('\n')
+                                    #del_files_cmds['cisco_ios'].append('\n')
 
                                     del_files_cmds['huawei'].append( \
                                         'del %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
-                                    del_files_cmds['huawei'].append('Y')
+                                    #del_files_cmds['huawei'].append('Y')
+
+                                    del_files_cmds['huawei'].append( \
+                                        'del slave#%s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
+                                    #del_files_cmds['huawei'].append('Y')
+
+                                    del_files_cmds['juniper'].append( \
+                                        'file delete re0:%s' % (os.path.join(dev_dir, file)))
+                                    del_files_cmds['juniper'].append( \
+                                        'file delete re1:%s' % (os.path.join(dev_dir, file)))
+
                         CGI_CLI.uprint('deleting sw release files on %s' % (device), \
                             no_newlines = None if printall else True)
-                        forget_it = RCMD.run_commands(del_files_cmds, printall = printall)
+                        forget_it = RCMD.run_commands(del_files_cmds, \
+                            autoconfirm_mode = True, printall = printall)
 
                         ### CHECK FILES DELETION ##################################
-                        check_dir_files_cmds = {'cisco_xr':[],'cisco_ios':[],'huawei':[]}
+                        check_dir_files_cmds = {'cisco_xr':[],'cisco_ios':[], \
+                            'huawei':[], 'juniper':[]}
                         for unique_dir in unique_device_directory_list:
                             for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
                                 if unique_dir == dev_dir:
@@ -3029,6 +3048,12 @@ try:
                                         'dir %s%s' % (RCMD.drive_string, dev_dir))
                                     check_dir_files_cmds['huawei'].append( \
                                         'dir %s%s/' % (RCMD.drive_string, dev_dir if dev_dir != '/' else str()))
+                                    check_dir_files_cmds['huawei'].append( \
+                                        'dir slave#%s%s/' % (RCMD.drive_string, dev_dir if dev_dir != '/' else str()))
+                                    check_dir_files_cmds['juniper'].append( \
+                                        'file list re0:%s' % (dev_dir))
+                                    check_dir_files_cmds['juniper'].append( \
+                                        'file list re1:%s' % (dev_dir))
                         time.sleep(0.5)
                         dir_outputs_after_deletion = RCMD.run_commands(check_dir_files_cmds, \
                             printall = printall)
@@ -3037,12 +3062,12 @@ try:
                         for unique_dir in unique_device_directory_list:
                             for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
                                 if unique_dir == dev_dir:
-                                    if file in dir_outputs_after_deletion[0]:
-                                        CGI_CLI.uprint(file, color = 'red')
-                                        CGI_CLI.uprint(dir_outputs_after_deletion[3], color = 'blue')
-                                        file_not_deleted = True
+                                    for dir_output in dir_outputs_after_deletion:
+                                        if file in dir_output:
+                                            CGI_CLI.uprint(file, color = 'red')
+                                            CGI_CLI.uprint(dir_outputs_after_deletion[3], color = 'blue')
+                                            file_not_deleted = True
                         if file_not_deleted: CGI_CLI.uprint('DELETE PROBLEM!', color = 'red')
-                        #else: CGI_CLI.uprint('Delete file(s) - CHECK OK.', color = 'green')
 
                 ### DISCONNECT ####################################################
                 RCMD.disconnect()
