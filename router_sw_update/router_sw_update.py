@@ -1920,17 +1920,19 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
             nr_of_connected_devices += 1
             device_drive_string = RCMD.drive_string
             router_type = RCMD.router_type
+
             ### MAKE UNIQUE DIRECTORY LIST ####################################
             redundant_dev_dir_list = [ dev_dir for directory,dev_dir,file,md5,fsize in true_sw_release_files_on_server ]
             dev_dir_set = set(redundant_dev_dir_list)
             unique_device_directory_list = list(dev_dir_set)
+
             ### SHOW DEVICE DIRECTORY #########################################
             CGI_CLI.uprint('checking existing device file(s) and md5(s) on %s' \
                 % (device), no_newlines = None if printall else True)
             xe_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) for dev_dir in unique_device_directory_list ]
             xr_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) for dev_dir in unique_device_directory_list ]
             huawei_device_dir_list = [ 'dir %s%s/' % (RCMD.drive_string, dev_dir if dev_dir != '/' else str()) for dev_dir in unique_device_directory_list ]
-            juniper_device_dir_list = [ 'file list %s%s detail' % (RCMD.drive_string, dev_dir) for dev_dir in unique_device_directory_list ]
+            juniper_device_dir_list = [ 'file list re0:%s detail' % (dev_dir) for dev_dir in unique_device_directory_list ]
             dir_device_cmds = {
                 'cisco_ios':xe_device_dir_list,
                 'cisco_xr':xr_device_dir_list,
@@ -1961,10 +1963,12 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                         if file == possible_file_name: file_found_on_device = True
                         if device_fsize == fsize: file_size_ok_on_device = True
                         filecheck_list.append([file,file_found_on_device,file_size_ok_on_device])
+
             ### MAKE BAD FILE LIST, BECAUSE HUAWEI MD5 SUM CHECK IS SLOW ######
             bad_files = [ file for file, file_found_on_device, file_size_ok_on_device in \
                 filecheck_list if not file_found_on_device and not file_size_ok_on_device]
-            ### CHECK FILE(S) AND MD5(S) FIRST ################################
+
+            ### CHECK FILE(S) AND MD5(S) FIRST PER ALL DEVICE TYPES FIRST #####
             xr_md5_cmds, xe_md5_cmds, huawei_md5_cmds, juniper_md5_cmds = [], [], [], []
             for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
                 if file in bad_files:
@@ -1977,7 +1981,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                 else:
                     xr_md5_cmds.append('show md5 file /%s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
                     xe_md5_cmds.append('verify /md5 %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
-                    juniper_md5_cmds.append('file checksum md5 %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
+                    juniper_md5_cmds.append('file checksum md5 re0:%s' % (os.path.join(dev_dir, file)))
                     if '.CC' in file.upper():
                         huawei_md5_cmds.append('check system-software %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
                         #huawei_md5_cmds.append('Y')
@@ -2020,6 +2024,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                         if md5_on_device == md5:
                             md5_ok = True
                     md5check_list.append([file,md5_ok])
+
             ### CHECK IF DEVICE FILES ARE OK (file on device,filesize,md5) ####
             CGI_CLI.uprint('\n')
             for md5list,filelist in zip(md5check_list,filecheck_list):
@@ -2032,8 +2037,52 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                             if file == file1:
                                 missing_files_per_device_list.append( \
                                     [device,[directory, dev_dir, file, md5, fsize]])
-                    if printall: CGI_CLI.uprint('File=%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
-                        (file1,file_found_on_device,md5_ok,file_size_ok_on_device))
+                    if printall:
+                        if RCMD.router_type == 'juniper':
+                            CGI_CLI.uprint('File=re0:%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
+                                (file1,file_found_on_device,md5_ok,file_size_ok_on_device))
+                        else:
+                            CGI_CLI.uprint('File=%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
+                                (file1,file_found_on_device,md5_ok,file_size_ok_on_device))
+
+            ### JUNIPER RE1 CHECK #################################################
+            if RCMD.router_type == 'juniper':
+                juniper_md5_cmds = []
+                for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
+                    if file in bad_files:
+                        ### VOID COMMANDS for BAD FILES ###########################
+                        juniper_md5_cmds.append('\n')
+                    else:
+                        juniper_md5_cmds.append('file checksum md5 re1:%s' % (os.path.join(dev_dir, file)))
+                rcmd_md5_outputs = RCMD.run_commands( \
+                    {'juniper':juniper_md5_cmds}, \
+                    printall = printall, autoconfirm_mode = True,
+                    long_lasting_mode = True)
+                ### CHECK MD5 RESULTS IN LOOP #####################################
+                if RCMD.router_type == 'juniper':
+                    for files_list,rcmd_md5_output in zip(true_sw_release_files_on_server,rcmd_md5_outputs):
+                        md5_ok = False
+                        directory, dev_dir, file, md5, fsize = files_list
+                        find_list = re.findall(r'[0-9a-fA-F]{32}', rcmd_md5_output.strip())
+                        if len(find_list) == 1:
+                            md5_on_device = find_list[0]
+                            if md5_on_device == md5:
+                                md5_ok = True
+                        slave_md5check_list.append([file,md5_ok])
+                ### CHECK IF DEVICE FILES ARE OK (file on device,filesize,md5) ####
+                CGI_CLI.uprint('\n')
+                for md5list,filelist in zip(slave_md5check_list,filecheck_list):
+                     file1, md5_ok = md5list
+                     file2, file_found_on_device, file_size_ok_on_device = filelist
+                     if file1==file2:
+                        if file_found_on_device and md5_ok and file_size_ok_on_device: pass
+                        else:
+                            for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
+                                if file == file1:
+                                    slave_missing_files_per_device_list.append( \
+                                        [device,[directory, dev_dir, file, md5, fsize]])
+                        if printall: CGI_CLI.uprint('File=re1:%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
+                            (file1,file_found_on_device,md5_ok,file_size_ok_on_device))
 
             ### HUAWEI SLAVE#CFCARD FILES CHECK ###############################
             if RCMD.router_type == 'huawei':
@@ -2147,11 +2196,15 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
         for device,missing_or_bad_files_per_device in missing_files_per_device_list:
             directory, dev_dir, file, md5, fsize = missing_or_bad_files_per_device
             CGI_CLI.uprint('%s    %s' % \
-                    (device,device_drive_string+os.path.join(dev_dir, file)))
+                    (device, device_drive_string + os.path.join(dev_dir, file)))
         for device,missing_or_bad_files_per_device in slave_missing_files_per_device_list:
             directory, dev_dir, file, md5, fsize = missing_or_bad_files_per_device
-            CGI_CLI.uprint('%s    slave#%s' % \
-                    (device,device_drive_string + os.path.join(dev_dir, file)))
+            if RCMD.router_type == 'juniper':
+                CGI_CLI.uprint('%s    re1:%s' % \
+                        (device, device_drive_string + os.path.join(dev_dir, file)))
+            else:
+                CGI_CLI.uprint('%s    slave#%s' % \
+                    (device, device_drive_string + os.path.join(dev_dir, file)))            
         CGI_CLI.uprint(end_tag = 'p')
 
     ### SET FLAG FILES OK #####################################################
