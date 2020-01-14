@@ -2385,7 +2385,7 @@ def copy_files_to_devices(true_sw_release_files_on_server = None, \
 
 ##############################################################################
 
-def copy_device_files_to_slave_cfcard(true_sw_release_files_on_server = None,
+def huawei_copy_device_files_to_slave_cfcard(true_sw_release_files_on_server = None,
     unique_device_directory_list = None):
     if RCMD.router_type == 'huawei':
         for device in device_list:
@@ -2398,21 +2398,22 @@ def copy_device_files_to_slave_cfcard(true_sw_release_files_on_server = None,
                     RCMD.disconnect()
                     continue
 
-                del_files_cmds = {'huawei':[]}
+                copy_files_cmds = {'huawei':[]}
 
                 for unique_dir in unique_device_directory_list:
                     for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
                         if unique_dir == dev_dir:
-                            del_files_cmds['huawei'].append('copy %s%s slave#%s%s' % \
+                            copy_files_cmds['huawei'].append('copy %s%s slave#%s%s' % \
                                 (RCMD.drive_string, os.path.join(dev_dir, file),
                                 RCMD.drive_string, os.path.join(dev_dir, file)))
-                            del_files_cmds['huawei'].append('Y')
+
                 CGI_CLI.uprint('copying sw release files on %s to slave cfcard' % (device), \
                     no_newlines = None if printall else True)
-                forget_it = RCMD.run_commands(del_files_cmds, printall = printall)
+                forget_it = RCMD.run_commands(copy_files_cmds, \
+                    autoconfirm_mode = True, printall = printall)
 
                 ### CHECK FILES COPY ######################################
-                check_dir_files_cmds = {'cisco_xr':[],'cisco_ios':[],'huawei':[]}
+                check_dir_files_cmds = {'huawei':[]}
                 for unique_dir in unique_device_directory_list:
                     for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
                         if unique_dir == dev_dir:
@@ -2434,6 +2435,82 @@ def copy_device_files_to_slave_cfcard(true_sw_release_files_on_server = None,
                 ### DISCONNECT ################################################
                 RCMD.disconnect()
                 time.sleep(3)
+
+###############################################################################
+
+def juniper_copy_device_files_to_other_routing_engine(true_sw_release_files_on_server = None,
+    unique_device_directory_list = None):
+    master_re, backup_re = 're0', None
+    if RCMD.router_type == 'juniper':
+        for device in device_list:
+            if device:
+                RCMD.connect(device, username = USERNAME, password = PASSWORD, \
+                    printall = printall, logfilename = logfilename)
+
+                if not RCMD.ssh_connection:
+                    CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), color = 'red')
+                    RCMD.disconnect()
+                    continue
+
+
+                re_files_cmds = {'juniper':['show chassis routing-engine']}
+                CGI_CLI.uprint('actual routing engine check' % (device), \
+                    no_newlines = None if printall else True)
+                re_output = RCMD.run_commands(re_files_cmds, \
+                    printall = printall)
+                try:
+                    if re_output.split('Slot 0:')[1].split('Current state')[1].split()[0] == 'Master':
+                        master_re = 're0'
+                    if re_output.split('Slot 0:')[1].split('Current state')[1].split()[0] == 'Backup':
+                        backup_re = 're0'
+                    if re_output.split('Slot 1:')[1].split('Current state')[1].split()[0] == 'Master':
+                        master_re = 're1'
+                    if re_output.split('Slot 1:')[1].split('Current state')[1].split()[0] == 'Backup':
+                        backup_re = 're1'
+                except: pass
+
+                CGI_CLI.uprint('Routing engine MASTER=%s, BACKUP=%s.' % (master_re,str(backup_re)), \
+                    no_newlines = None if printall else True)
+
+                if backup_re:
+                    copy_files_cmds = {'juniper':[]}
+
+                    for unique_dir in unique_device_directory_list:
+                        for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
+                            if unique_dir == dev_dir:
+                                copy_files_cmds['juniper'].append('file copy %s:%s %s:%s' % \
+                                    (master_re, os.path.join(dev_dir, file), \
+                                    backup_re, os.path.join(dev_dir, file)))
+
+                    CGI_CLI.uprint('copying sw release files on %s to other (backup) routing engine' % (device), \
+                        no_newlines = None if printall else True)
+                    forget_it = RCMD.run_commands(copy_files_cmds, \
+                        autoconfirm_mode = True, printall = printall)
+
+                    ### CHECK FILES COPY ######################################
+                    check_dir_files_cmds = {'juniper':[]}
+                    for unique_dir in unique_device_directory_list:
+                        for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
+                            if unique_dir == dev_dir:
+                                check_dir_files_cmds['huawei'].append( \
+                                    'file list %s:%s/' % (backup_re, dev_dir if dev_dir != '/' else str()))
+                    time.sleep(0.5)
+                    dir_outputs_after_deletion = RCMD.run_commands(check_dir_files_cmds, \
+                        printall = printall)
+                    CGI_CLI.uprint('\n')
+                    file_not_found = False
+                    for unique_dir in unique_device_directory_list:
+                        for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
+                            if unique_dir == dev_dir:
+                                if file in dir_outputs_after_deletion[0]:
+                                    CGI_CLI.uprint(file, color = 'red')
+                                    CGI_CLI.uprint(dir_outputs_after_deletion[3], color = 'blue')
+                                else: file_not_found = True
+                    if file_not_found: CGI_CLI.uprint('COPY PROBLEM!', color = 'red')
+                ### DISCONNECT ################################################
+                RCMD.disconnect()
+                time.sleep(3)
+    return master_re, backup_re
 
 ##############################################################################
 
@@ -2895,7 +2972,7 @@ try:
             if no_such_files_in_directory:
                 CGI_CLI.uprint('Specified %s file(s) NOT FOUND in %s!' % (actual_file_name,directory), color = 'red')
 
-        ### PRINT LIST OF FILES OR END SCRIPT #####################################
+        ### PRINT LIST OF FILES OR END SCRIPT #################################
         if len(true_sw_release_files_on_server) > 0:
             CGI_CLI.uprint('File(s),    md5 checksum(s),    device folder(s),    filesize:\n%s' % \
                 ('\n'.join([ '%s/%s    %s    %s    %.2fMB' % \
@@ -2904,20 +2981,20 @@ try:
             CGI_CLI.uprint('\n')
         else: sys.exit(0)
 
-    ### MAKE ALL SUB-DIRECTORIES ONE BY ONE #######################################
+    ### MAKE ALL SUB-DIRECTORIES ONE BY ONE ###################################
     redundant_dev_dir_list = [ dev_dir for directory,dev_dir,file,md5,fsize in true_sw_release_files_on_server ]
     dev_dir_set = set(redundant_dev_dir_list)
     unique_device_directory_list = list(dev_dir_set)
 
 
-    ### GET DEVICE DRIVE STRING ###################################################
+    ### GET DEVICE DRIVE STRING ###############################################
     if CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
         device_drive_string, router_type = get_device_drive_string(device_list = device_list, \
             USERNAME = USERNAME, PASSWORD = PASSWORD, logfilename = logfilename, \
             printall = printall, \
             silent_mode = True)
     else:
-        ### CHECK EXISTING FILES ON DEVICES #######################################
+        ### CHECK EXISTING FILES ON DEVICES ###################################
         all_files_on_all_devices_ok, missing_files_per_device_list, \
             device_drive_string, router_type = \
             check_files_on_devices(device_list = device_list, \
@@ -2925,7 +3002,7 @@ try:
             USERNAME = USERNAME, PASSWORD = PASSWORD, logfilename = logfilename, \
             printall = printall)
 
-    ### CHECK DISK SPACE ON DEVICES ###############################################
+    ### CHECK DISK SPACE ON DEVICES ###########################################
     if all_files_on_all_devices_ok: pass
     else:
         check_free_disk_space_on_devices(device_list = device_list, \
@@ -2934,43 +3011,52 @@ try:
             printall = printall)
 
 
-    ### def LOOP TILL ALL FILES ARE COPIED OK #####################################
+    ### def LOOP TILL ALL FILES ARE COPIED OK #################################
     number_of_scp_treatments = 0
     while not all_files_on_all_devices_ok:
         number_of_scp_treatments += 1
         if CGI_CLI.data.get('force_rewrite_sw_files_on_device') and number_of_scp_treatments <= 1:
             force_rewrite = True
         else: force_rewrite = False
-        ### FORCE REWRITE HAS A SENSE FIRST TIME ONLY #############################
+        ### FORCE REWRITE HAS A SENSE FIRST TIME ONLY #########################
         copy_files_to_devices(true_sw_release_files_on_server = true_sw_release_files_on_server, \
             missing_files_per_device_list = missing_files_per_device_list, \
             device_list = device_list, USERNAME = USERNAME, PASSWORD = PASSWORD, \
             device_drive_string = device_drive_string, router_type = router_type, \
             force_rewrite = force_rewrite)
-        ### TIMEOUT ###############################################################
+
+        ### TIMEOUT ###########################################################
         time.sleep(4)
-        ### COPY DEVICE FILES TO HUAWEI SLAVE CFCARD ##############################
-        copy_device_files_to_slave_cfcard(true_sw_release_files_on_server, \
+
+        ### COPY DEVICE FILES TO HUAWEI SLAVE CFCARD ##########################
+        huawei_copy_device_files_to_slave_cfcard(true_sw_release_files_on_server, \
             unique_device_directory_list)
-        ### CHECK DEVICE FILES AFTER COPYING ######################################
+
+        ### COPY DEVICE FILES TO JUNIPER OTHER ROUTING ENGINE #################
+        master_re, backup_re = juniper_copy_device_files_to_other_routing_engine( \
+            true_sw_release_files_on_server, \
+            unique_device_directory_list)
+
+        ### CHECK DEVICE FILES AFTER COPYING ##################################
         all_files_on_all_devices_ok, missing_files_per_device_list, \
             device_drive_string, router_type = \
             check_files_on_devices(device_list = device_list, \
             true_sw_release_files_on_server = true_sw_release_files_on_server, \
             USERNAME = USERNAME, PASSWORD = PASSWORD, logfilename = logfilename, \
             printall = printall, check_mode = True)
-        ### TRY SCP X TIMES, THEN END #############################################
+
+        ### TRY SCP X TIMES, THEN END #########################################
         if number_of_scp_treatments >= number_of_scp_attempts:
             CGI_CLI.uprint('MULTIPLE (%d) SCP ATTEMPTS FAILED!' % \
             (number_of_scp_attempts), tag = 'h1', color = 'red')
             break
 
-    ### def ADITIONAL DEVICE ACTIONS ##################################################
+    ### def ADITIONAL DEVICE ACTIONS ##########################################
     if CGI_CLI.data.get('backup_configs_to_device_disk') \
         or CGI_CLI.data.get('delete_device_sw_files_on_end'):
         for device in device_list:
 
-            ### REMOTE DEVICE OPERATIONS ##############################################
+            ### REMOTE DEVICE OPERATIONS ######################################
             if device:
                 RCMD.connect(device, username = USERNAME, password = PASSWORD, \
                     printall = printall, logfilename = logfilename)
