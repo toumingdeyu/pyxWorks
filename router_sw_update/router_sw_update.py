@@ -613,14 +613,15 @@ class RCMD(object):
 
     @staticmethod
     def run_command(cmd_line = None, printall = None, conf = None, \
-        long_lasting_command = None, autoconfirm_mode = None, \
+        long_lasting_mode = None, autoconfirm_mode = None, \
         sim_config = None, sim_all = None):
         """
         cmd_line - string, DETECTED DEVICE TYPE DEPENDENT
         sim_all  - simulate execution of all commands, not only config commands
                    used for ommit save/write in normal mode
         sim_config - simulate config commands
-        long_lasting_command - max connection timeout, no cmd timeout, no prompt discovery
+        long_lasting_mode - max connection timeout, no cmd timeout, no prompt discovery
+        autoconfirm_mode - in case of interactivity send 'Y\n' on huawei ,'\n' on cisco
         """
         last_output, sim_mark = str(), str()
         if RCMD.ssh_connection and cmd_line:
@@ -633,20 +634,20 @@ class RCMD(object):
                 elif RCMD.use_module == 'paramiko':
                     last_output, new_prompt = RCMD.ssh_send_command_and_read_output( \
                         RCMD.ssh_connection, RCMD.DEVICE_PROMPTS, cmd_line, \
-                        long_lasting_command = long_lasting_command, \
+                        long_lasting_mode = long_lasting_mode, \
                         autoconfirm_mode = autoconfirm_mode, printall = printall)
                     if new_prompt: RCMD.DEVICE_PROMPTS.append(new_prompt)
             if printall or RCMD.printall:
-                if not long_lasting_command: CGI_CLI.uprint(last_output, color = 'gray')
+                if not long_lasting_mode: CGI_CLI.uprint(last_output, color = 'gray')
             elif not RCMD.silent_mode:
-                if not long_lasting_command: CGI_CLI.uprint(' . ', no_newlines = True)
+                if not long_lasting_mode: CGI_CLI.uprint(' . ', no_newlines = True)
             if RCMD.fp: RCMD.fp.write('REMOTE_COMMAND' + sim_mark + ': ' + cmd_line + '\n' + last_output + '\n')
         return last_output
 
     @staticmethod
     def run_commands(cmd_data = None, printall = None, conf = None, sim_config = None, \
         do_not_final_print = None , commit_text = None, submit_result = None , \
-        long_lasting_command = None, autoconfirm_mode = None):
+        long_lasting_mode = None, autoconfirm_mode = None):
         """
         FUNCTION: run_commands(), RETURN: list of command_outputs
         PARAMETERS:
@@ -654,7 +655,8 @@ class RCMD(object):
                  - list of strings or string, OS TYPE DEPENDENT
         conf     - True/False, go to config mode
         sim_config - simulate config commands
-        long_lasting_command - max connection timeout, no cmd timeout, no prompt discovery
+        long_lasting_mode - max connection timeout, no cmd timeout, no prompt discovery
+        autoconfirm_mode - in case of interactivity send 'Y\n' on huawei ,'\n' on cisco
         """
         command_outputs = str()
         if cmd_data and isinstance(cmd_data, (dict,collections.OrderedDict)):
@@ -709,7 +711,7 @@ class RCMD(object):
                     for cmd_line in cmd_list:
                         command_outputs.append(RCMD.run_command(cmd_line, \
                             conf = conf, sim_config = sim_config, printall = printall,
-                            long_lasting_command = long_lasting_command, \
+                            long_lasting_mode = long_lasting_mode, \
                             autoconfirm_mode = autoconfirm_mode))
                     ### EXIT FROM CONFIG MODE FOR PARAMIKO #####################
                     if (conf or RCMD.conf) and RCMD.use_module == 'paramiko':
@@ -817,7 +819,7 @@ class RCMD(object):
 
     @staticmethod
     def ssh_send_command_and_read_output(chan, prompts, \
-        send_data = str(), long_lasting_command = None, \
+        send_data = str(), long_lasting_mode = None, \
         autoconfirm_mode = None, printall=True):
         output, output2, new_prompt = str(), str(), str()
         exit_loop, exit_loop2 = False, False
@@ -859,7 +861,7 @@ class RCMD(object):
             #    except: last_line = last_line
 
             ### PRINT LONG LASTING OUTPUTS PER PARTS ##########################
-            if printall and long_lasting_command and buff_read and not RCMD.silent_mode:
+            if printall and long_lasting_mode and buff_read and not RCMD.silent_mode:
                 CGI_CLI.uprint('%s' % (buff_read), color = 'gray', no_newlines = True)
 
             # IS ACTUAL LAST LINE PROMPT ? IF YES , GO AWAY
@@ -884,7 +886,7 @@ class RCMD(object):
                             exit_loop = True; break
 
                 ### LONG LASTING COMMAND = ONLY CONNECTION TIMEOUT WILL BE APPLIED ###
-                if long_lasting_command:
+                if long_lasting_mode:
                     if timeout_counter_100msec > RCMD.CONNECTION_TIMEOUT*10: exit_loop = True; break
                 else:
                     ### 30 SECONDS COMMAND TIMEOUT ###
@@ -1552,7 +1554,11 @@ def do_scp_one_file_to_more_devices(true_sw_release_file_on_server = None, \
                 local_command = 'sshpass -e scp -v -o StrictHostKeyChecking=no %s %s@%s:%s 1>/dev/null 2>/dev/null &' \
                     % (os.path.join(directory, file), USERNAME, device, \
                     '%s%s' % (device_drive_string, os.path.join(dev_dir, file)))
-            if printall:CGI_CLI.uprint(local_command)
+            elif router_type == 'juniper':
+                local_command = 'sshpass -e scp -v -o StrictHostKeyChecking=no %s %s@%s:%s 1>/dev/null 2>/dev/null &' \
+                    % (os.path.join(directory, file), USERNAME, device, \
+                    '%s%s' % (device_drive_string, os.path.join(dev_dir, file)))
+            if printall: CGI_CLI.uprint(local_command)
             os.system(local_command)
             CGI_CLI.uprint('scp start file %s, (file size %.2fMB) to device %s' % \
                 (file, float(fsize)/1048576, device))
@@ -1587,7 +1593,11 @@ def do_scp_one_file_to_more_devices_per_needed_to_copy_list(\
                         local_command = 'sshpass -e scp -v -o StrictHostKeyChecking=no %s %s@%s:%s 1>/dev/null 2>/dev/null &' \
                             % (os.path.join(directory, file), USERNAME, device, \
                             '%s%s' % (device_drive_string, os.path.join(dev_dir, file)))
-                    if printall:CGI_CLI.uprint(local_command)
+                    elif router_type == 'juniper':
+                        local_command = 'sshpass -e scp -v -o StrictHostKeyChecking=no %s %s@%s:%s 1>/dev/null 2>/dev/null &' \
+                            % (os.path.join(directory, file), USERNAME, device, \
+                            '%s%s' % (device_drive_string, os.path.join(dev_dir, file)))
+                    if printall: CGI_CLI.uprint(local_command)
                     os.system(local_command)
                     CGI_CLI.uprint('scp start file %s, (file size %.2fMB) to device %s' % \
                         (file, float(fsize)/1048576, device))
@@ -1652,7 +1662,7 @@ def does_local_directory_or_file_exist_by_ls_l(directory_or_file, printall = Non
 
 def get_local_subdirectories(brand_raw = None, type_raw = None):
     """
-    type_subdir_on_device - For the x2800..c4500 and the Huawei the files just 
+    type_subdir_on_device - For the x2800..c4500 and the Huawei the files just
         go in the top level directory and for Juniper it goes in /var/tmp/
     """
     brand_subdir, type_subdir_on_server, file_types = str(), str(), []
@@ -1716,9 +1726,9 @@ def get_local_subdirectories(brand_raw = None, type_raw = None):
             type_subdir_on_device = ''
             file_types = ['cat45*.bin']
         elif 'MX480' in type_raw.upper():
-            type_subdir_on_server = 'MX/MX480'
+            type_subdir_on_server = 'MX'
             type_subdir_on_device = '/var/tmp'
-            file_types = ['junos*.img.gz', '*.tgz']
+            file_types = ['junos*.img.gz', 'junos*.tgz']
         elif 'NE40' in type_raw.upper():
             type_subdir_on_server = 'V8R10'
             type_subdir_on_device = ''
@@ -1839,7 +1849,7 @@ def check_percentage_of_copied_files(scp_list = [], USERNAME = None, \
                             if device_file.split('/')[-1] in line:
                                 try: device_filesize_in_bytes = float(line.split()[4])
                                 except: pass
-                        except: pass        
+                        except: pass
                 server_filesize_in_bytes = float(os.stat(server_file).st_size)
                 percentage = float(100*device_filesize_in_bytes/server_filesize_in_bytes)
                 CGI_CLI.uprint('Device %s file %s    %.2f%% copied.' % (device, device_file, \
@@ -1913,7 +1923,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
             dir_device_cmds = {
                 'cisco_ios':xe_device_dir_list,
                 'cisco_xr':xr_device_dir_list,
-                'juniper':[juniper_device_dir_list],
+                'juniper':juniper_device_dir_list,
                 'huawei':huawei_device_dir_list
             }
             rcmd_dir_outputs = RCMD.run_commands(dir_device_cmds, printall = printall)
@@ -1935,7 +1945,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                                     elif RCMD.router_type == 'cisco_ios':
                                         device_fsize = float(line.split()[2].replace(',',''))
                                     elif RCMD.router_type == 'juniper':
-                                        device_fsize = float(line.split()[4])                                        
+                                        device_fsize = float(line.split()[4])
                                 except: pass
                         if file == possible_file_name: file_found_on_device = True
                         if device_fsize == fsize: file_size_ok_on_device = True
@@ -1966,8 +1976,8 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
             rcmd_md5_outputs = RCMD.run_commands( \
                 {'cisco_ios':xe_md5_cmds,'cisco_xr':xr_md5_cmds, \
                 'huawei':huawei_md5_cmds, 'juniper':juniper_md5_cmds}, \
-                printall = printall, autoconfirm_mode = True, 
-                long_lasting_command = True)
+                printall = printall, autoconfirm_mode = True,
+                long_lasting_mode = True)
             ### CHECK MD5 RESULTS IN LOOP #####################################
             if RCMD.router_type == 'huawei':
                 for files_list in true_sw_release_files_on_server:
@@ -1990,15 +2000,15 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                             md5_ok = True
                     md5check_list.append([file,md5_ok])
             if RCMD.router_type == 'juniper':
-                for files_list in true_sw_release_files_on_server:
+                for files_list,rcmd_md5_output in zip(true_sw_release_files_on_server,rcmd_md5_outputs):
                     md5_ok = False
-                    directory, dev_dir, file, md5, fsize = files_list                    
+                    directory, dev_dir, file, md5, fsize = files_list
                     find_list = re.findall(r'[0-9a-fA-F]{32}', rcmd_md5_output.strip())
                     if len(find_list) == 1:
                         md5_on_device = find_list[0]
                         if md5_on_device == md5:
                             md5_ok = True
-                    md5check_list.append([file,md5_ok])                    
+                    md5check_list.append([file,md5_ok])
             ### CHECK IF DEVICE FILES ARE OK (file on device,filesize,md5) ####
             CGI_CLI.uprint('\n')
             for md5list,filelist in zip(md5check_list,filecheck_list):
@@ -2062,7 +2072,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                             slave_huawei_md5_cmds.append('check patch slave#%s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
                             #slave_huawei_md5_cmds.append('Y')
                 slave_rcmd_md5_outputs = RCMD.run_commands({'huawei':slave_huawei_md5_cmds}, \
-                    printall = printall, autoconfirm_mode = True, long_lasting_command = True)
+                    printall = printall, autoconfirm_mode = True, long_lasting_mode = True)
                 ### CHECK MD5 RESULTS IN LOOP #################################
                 for files_list in true_sw_release_files_on_server:
                     md5_ok = False
@@ -2104,7 +2114,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                     else: huawei_compatibility_cmds.append('\n')
                 rcmd_compatibility_outputs = RCMD.run_commands( \
                     {'huawei':huawei_compatibility_cmds}, printall = printall, \
-                    long_lasting_command = True)
+                    long_lasting_mode = True)
                 for compatibility_output, true_sw_file in zip(rcmd_compatibility_outputs, true_sw_release_files_on_server):
                     directory, dev_dir, file, md5, fsize = true_sw_file
                     if 'check hardware-compatibility failed!' in compatibility_output:
@@ -2192,7 +2202,7 @@ def check_free_disk_space_on_devices(device_list = None, \
                 'cisco_xr':['show filesystem',
                     'show version | in "%s"' % (asr9k_detection_string),
                     ],
-                'juniper':['show system storage'],
+                'juniper':['show system storage detail invoke-on all-routing-engines'],
                 'huawei':['dir','dir slave#cfcard:']
             }
             CGI_CLI.uprint('checking disk space on %s' % (device), \
@@ -2207,7 +2217,6 @@ def check_free_disk_space_on_devices(device_list = None, \
                 try: device_free_space_in_bytes = float(rcmd_check_disk_space_outputs[0].\
                          split('harddisk:')[0].splitlines()[-1].split()[1].strip())
                 except: pass
-            elif RCMD.router_type == 'juniper': pass
             elif RCMD.router_type == 'huawei':
                 try:
                      device_free_space_in_bytes = float(rcmd_check_disk_space_outputs[0].\
@@ -2216,6 +2225,12 @@ def check_free_disk_space_on_devices(device_list = None, \
                      slave_device_free_space_in_bytes = float(rcmd_check_disk_space_outputs[1].\
                          split(' KB free)')[0].splitlines()[-1].split()[-1].\
                          replace('(','').replace(',','').strip())*1024
+                except: pass
+            elif RCMD.router_type == 'juniper':
+                try:
+                    for line in rcmd_check_disk_space_outputs[0].splitlines():
+                        if line.split()[-1] == '/.mount':
+                            device_free_space_in_bytes = float(line.split()[3])*1024
                 except: pass
 
             xr_device_mkdir_list, huawei_device_mkdir_list = [], []
@@ -3033,7 +3048,7 @@ try:
                 RCMD.disconnect()
     del sql_inst
 except SystemExit: pass
-except: CGI_CLI.uprint(traceback.format_exc(), tag = 'h1',color = 'magenta')
+except: CGI_CLI.uprint(traceback.format_exc(), tag = 'h3',color = 'magenta')
 
 
 
