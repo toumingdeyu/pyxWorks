@@ -2516,22 +2516,24 @@ def huawei_copy_device_files_to_slave_cfcard(true_sw_release_files_on_server = N
                 RCMD.disconnect()
                 time.sleep(3)
 
+
 ###############################################################################
 
 def juniper_copy_device_files_to_other_routing_engine(true_sw_release_files_on_server = None,
     unique_device_directory_list = None):
-    master_re, backup_re = 're0', None
-    if RCMD.router_type == 'juniper':
-        for device in device_list:
-            if device:
-                RCMD.connect(device, username = USERNAME, password = PASSWORD, \
-                    printall = printall, logfilename = logfilename)
+    for device in device_list:
+        if device:
+            RCMD.connect(device, username = USERNAME, password = PASSWORD, \
+                printall = printall, logfilename = logfilename)
 
-                if not RCMD.ssh_connection:
-                    CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), color = 'red')
-                    RCMD.disconnect()
-                    continue
+            if not RCMD.ssh_connection:
+                CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), color = 'red')
+                RCMD.disconnect()
+                continue
 
+            if RCMD.router_type == 'juniper':
+
+                master_re, backup_re = 're0', None
 
                 re_files_cmds = {'juniper':['show chassis routing-engine']}
                 CGI_CLI.uprint('actual routing engine check', \
@@ -2554,7 +2556,8 @@ def juniper_copy_device_files_to_other_routing_engine(true_sw_release_files_on_s
 
                 if not backup_re:
                     CGI_CLI.uprint('BACKUP routing engine is NOT PRESENT!', tag = 'warning' , color = 'red')
-                else:
+
+                if backup_re:
                     copy_files_cmds = {'juniper':[]}
 
                     for unique_dir in unique_device_directory_list:
@@ -2589,10 +2592,9 @@ def juniper_copy_device_files_to_other_routing_engine(true_sw_release_files_on_s
                                     CGI_CLI.uprint(dir_outputs_after_deletion[3], color = 'blue')
                                 else: file_not_found = True
                     if file_not_found: CGI_CLI.uprint('COPY PROBLEM!', color = 'red')
-                ### DISCONNECT ################################################
-                RCMD.disconnect()
-                time.sleep(3)
-    return master_re, backup_re
+            ### DISCONNECT ################################################
+            RCMD.disconnect()
+            time.sleep(3)
 
 ##############################################################################
 
@@ -3091,6 +3093,8 @@ warning {
             printall = printall, \
             silent_mode = True)
     else:
+
+
         ### CHECK EXISTING FILES ON DEVICES ###################################
         all_files_on_all_devices_ok, missing_files_per_device_list, \
             device_drive_string, router_type = \
@@ -3130,7 +3134,7 @@ warning {
             unique_device_directory_list)
 
         ### COPY DEVICE FILES TO JUNIPER OTHER ROUTING ENGINE #################
-        master_re, backup_re = juniper_copy_device_files_to_other_routing_engine( \
+        juniper_copy_device_files_to_other_routing_engine( \
             true_sw_release_files_on_server, \
             unique_device_directory_list)
 
