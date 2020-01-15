@@ -2322,6 +2322,11 @@ def check_free_disk_space_on_devices(device_list = None, \
                     for line in rcmd_check_disk_space_outputs[0].splitlines():
                         if line.split()[-1] == '/.mount':
                             device_free_space_in_bytes = float(line.split()[3])*1024
+                    try:
+                        for line in rcmd_check_disk_space_outputs[0].split('re1')[1].splitlines():
+                            if line.split()[-1] == '/.mount':
+                                slave_device_free_space_in_bytes = float(line.split()[3])*1024
+                    except: pass
                 except: pass
 
             xr_device_mkdir_list, huawei_device_mkdir_list = [], []
@@ -2356,7 +2361,12 @@ def check_free_disk_space_on_devices(device_list = None, \
                 slave_device_free_space_in_bytes, needed_device_free_space_in_bytes])
             RCMD.disconnect()
 
-    CGI_CLI.uprint('Device    Disk_needed    Disk_free    SlaveDisk_free:', tag = 'h3' , color = 'blue')
+    if RCMD.router_type == 'juniper':
+        CGI_CLI.uprint('Device    Disk_needed    re0_Disk_free    re1_Disk_free:', \
+            tag = 'h3' , color = 'blue')
+    else:
+        CGI_CLI.uprint('Device    Disk_needed    Disk_free    (Slave)Disk_free:', \
+            tag = 'h3' , color = 'blue')
     all_disk_checks_ok = True
     for device, disk_free, slave_disk_free, disk_reguired in disk_free_list:
         ### SOME GB FREE EXPECTED (1MB=1048576, 1GB=1073741824) ###
