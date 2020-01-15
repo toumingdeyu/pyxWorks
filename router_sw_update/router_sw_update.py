@@ -522,7 +522,9 @@ class RCMD(object):
                 RCMD.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
                 RCMD.client.connect(RCMD.DEVICE_HOST, port=int(RCMD.DEVICE_PORT), \
                     username=RCMD.USERNAME, password=RCMD.PASSWORD, \
-                    banner_timeout = 10, auth_timeout = 10, timeout = RCMD.CONNECTION_TIMEOUT, \
+                    banner_timeout = 10, \
+                    #auth_timeout = 10, \
+                    timeout = RCMD.CONNECTION_TIMEOUT, \
                     look_for_keys = False)
                 RCMD.ssh_connection = RCMD.client.invoke_shell()
                 if RCMD.ssh_connection:
@@ -576,6 +578,7 @@ class RCMD(object):
                      USERNAME + '@' + RCMD.device.upper() + '# ' ]
                 RCMD.TERM_LEN_0 = "set cli screen-length 0"
                 RCMD.EXIT = "exit"
+                ### MOST PROBABLE IS THAT RE0 IS ALONE OR MASTER ##############
                 RCMD.drive_string = 're0:'
             elif RCMD.router_type == 'huawei':
                 if cmd_data:
@@ -601,28 +604,22 @@ class RCMD(object):
             else: RCMD.CMD = []
             # ADD PROMPT TO PROMPTS LIST
             if RCMD.router_prompt: RCMD.DEVICE_PROMPTS.append(RCMD.router_prompt)
-            ### START SSH CONNECTION AGAIN #####################################
+            ### START SSH CONNECTION AGAIN ####################################
             try:
                 if RCMD.router_type and RCMD.use_module == 'netmiko':
+                    ### PARAMIKO IS ALREADY CONNECTED, SO DISCONNECT FIRST ####
                     RCMD.disconnect()
                     RCMD.ssh_connection = netmiko.ConnectHandler(device_type = RCMD.router_type, \
                         ip = RCMD.DEVICE_HOST, port = int(RCMD.DEVICE_PORT), \
                         username = RCMD.USERNAME, password = RCMD.PASSWORD)
                 elif RCMD.router_type and RCMD.use_module == 'paramiko':
-                    #RCMD.client = paramiko.SSHClient()
-                    #RCMD.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-                    #RCMD.client.connect(RCMD.DEVICE_HOST, port=int(RCMD.DEVICE_PORT), \
-                    #    username=RCMD.USERNAME, password=RCMD.PASSWORD, \
-                    #    banner_timeout = 10, auth_timeout = 10, timeout = CONNECTION_TIMEOUT, \
-                    #    look_for_keys = False)
-                    #RCMD.ssh_connection = RCMD.client.invoke_shell()
-                    #RCMD.ssh_connection.settimeout(RCMD.CONNECTION_TIMEOUT)
+                    ### PARAMIKO IS ALREADY CONNECTED #########################
                     RCMD.output, RCMD.forget_it = RCMD.ssh_send_command_and_read_output(RCMD.ssh_connection,RCMD.DEVICE_PROMPTS,RCMD.TERM_LEN_0)
                     RCMD.output2, RCMD.forget_it = RCMD.ssh_send_command_and_read_output(RCMD.ssh_connection,RCMD.DEVICE_PROMPTS,"")
                     RCMD.output += RCMD.output2
-                ### WORK REMOTE  =============================================
+                ### WORK REMOTE  ==============================================
                 command_outputs = RCMD.run_commands(RCMD.CMD)
-                ### ==========================================================
+                ### ===========================================================
             except Exception as e:
                 if not RCMD.silent_mode:
                     CGI_CLI.uprint('CONNECTION_PROBLEM[' + str(e) + ']', color = 'magenta')
@@ -2045,22 +2042,48 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                             CGI_CLI.uprint('File=%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
                                 (file1,file_found_on_device,md5_ok,file_size_ok_on_device))
 
+            ### ===================================================================
             ### JUNIPER RE1 CHECK #################################################
+            ### ===================================================================
             if RCMD.router_type == 'juniper':
-                juniper_md5_cmds = []
+                re1_filecheck_list = []
+                CGI_CLI.uprint('checking existing device re1 file(s) on %s' \
+                    % (device), no_newlines = None if printall else True)
+                juniper_device_dir_list = [ 'file list re1:%s detail' % (dev_dir) for dev_dir in unique_device_directory_list ]
+                re1_dir_device_cmds = {'juniper':juniper_device_dir_list}
+                re1_rcmd_dir_outputs = RCMD.run_commands(re1_dir_device_cmds, printall = printall)
+                for unique_dir,unique_dir_outputs in zip(unique_device_directory_list, re1_rcmd_dir_outputs):
+                    for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
+                        if unique_dir == dev_dir:
+                            file_found_on_device = False
+                            file_size_ok_on_device = False
+                            device_fsize = 0
+                            possible_file_name = str()
+                            for line in unique_dir_outputs.splitlines():
+                                if file in line:
+                                    try:
+                                        possible_file_name = line.split()[-1].strip()
+                                        if RCMD.router_type == 'juniper':
+                                            device_fsize = float(line.split()[4])
+                                    except: pass
+                            if file == possible_file_name: file_found_on_device = True
+                            if device_fsize == fsize: file_size_ok_on_device = True
+                            re1_filecheck_list.append([file,file_found_on_device,file_size_ok_on_device])
+                ### CHECK MD5 ON RE1 ###        
+                re1_juniper_md5_cmds, re1_md5check_list = [], []
                 for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
                     if file in bad_files:
                         ### VOID COMMANDS for BAD FILES ###########################
-                        juniper_md5_cmds.append('\n')
+                        re1_juniper_md5_cmds.append('\n')
                     else:
-                        juniper_md5_cmds.append('file checksum md5 re1:%s' % (os.path.join(dev_dir, file)))
-                rcmd_md5_outputs = RCMD.run_commands( \
-                    {'juniper':juniper_md5_cmds}, \
+                        re1_juniper_md5_cmds.append('file checksum md5 re1:%s' % (os.path.join(dev_dir, file)))
+                re1_rcmd_md5_outputs = RCMD.run_commands( \
+                    {'juniper':re1_juniper_md5_cmds}, \
                     printall = printall, autoconfirm_mode = True,
                     long_lasting_mode = True)
                 ### CHECK MD5 RESULTS IN LOOP #####################################
                 if RCMD.router_type == 'juniper':
-                    for files_list,rcmd_md5_output in zip(true_sw_release_files_on_server,rcmd_md5_outputs):
+                    for files_list,rcmd_md5_output in zip(true_sw_release_files_on_server,re1_rcmd_md5_outputs):
                         md5_ok = False
                         directory, dev_dir, file, md5, fsize = files_list
                         find_list = re.findall(r'[0-9a-fA-F]{32}', rcmd_md5_output.strip())
@@ -2068,10 +2091,10 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                             md5_on_device = find_list[0]
                             if md5_on_device == md5:
                                 md5_ok = True
-                        slave_md5check_list.append([file,md5_ok])
+                        re1_md5check_list.append([file,md5_ok])
                 ### CHECK IF DEVICE FILES ARE OK (file on device,filesize,md5) ####
                 CGI_CLI.uprint('\n')
-                for md5list,filelist in zip(slave_md5check_list,filecheck_list):
+                for md5list,filelist in zip(re1_md5check_list,re1_filecheck_list):
                      file1, md5_ok = md5list
                      file2, file_found_on_device, file_size_ok_on_device = filelist
                      if file1==file2:
@@ -2079,6 +2102,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                         else:
                             for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
                                 if file == file1:
+                                    ### SLAVE HAS ANALOGIC MEANING OF RE1 #####
                                     slave_missing_files_per_device_list.append( \
                                         [device,[directory, dev_dir, file, md5, fsize]])
                         if printall: CGI_CLI.uprint('re1_File=%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
@@ -2204,7 +2228,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                         (device, os.path.join(dev_dir, file)))
             else:
                 CGI_CLI.uprint('%s    slave#%s' % \
-                    (device, device_drive_string + os.path.join(dev_dir, file)))            
+                    (device, device_drive_string + os.path.join(dev_dir, file)))
         CGI_CLI.uprint(end_tag = 'p')
 
     ### SET FLAG FILES OK #####################################################
@@ -2603,7 +2627,7 @@ try:
 
     ### def GLOBAL CONSTANTS #####################################################
     device_expected_MB_free = 100
-    number_of_scp_attempts = 3
+    total_number_of_scp_attempts = 3
 
     SCRIPT_ACTIONS_LIST = [
     #'copy_tar_files','do_sw_upgrade',
@@ -3004,8 +3028,9 @@ try:
                         (os.path.join(directory,true_file_name))]}, printall = printall)
                     md5_sum = local_oti_checkum_string[0].split()[0].strip()
                     filesize_in_bytes = os.stat(os.path.join(directory,true_file_name)).st_size
-                    ### MAKE TRUE FILE LIST, SW RELEASE ONLY ###
-                    true_sw_release_files_on_server.append([directory,device_directory,true_file_name,md5_sum,filesize_in_bytes])
+                    ### MAKE TRUE AND UNIQUE FILE LIST, SW RELEASE ONLY ###
+                    if not [directory,device_directory,true_file_name,md5_sum,filesize_in_bytes] in true_sw_release_files_on_server: 
+                        true_sw_release_files_on_server.append([directory,device_directory,true_file_name,md5_sum,filesize_in_bytes])
             else:
                 for line in local_results[0].splitlines():
                     ### PROBLEM ARE '*' IN FILE NAME ###
@@ -3020,8 +3045,9 @@ try:
                             (os.path.join(directory,true_file_name))]}, printall = printall)
                         md5_sum = local_oti_checkum_string[0].split()[0].strip()
                         filesize_in_bytes = os.stat(os.path.join(directory,true_file_name)).st_size
-                        ### MAKE TRUE FILE LIST ###
-                        true_sw_release_files_on_server.append([directory,device_directory,true_file_name,md5_sum,filesize_in_bytes])
+                        ### MAKE TRUE AND UNIQUE FILE LIST ###
+                        if not [directory,device_directory,true_file_name,md5_sum,filesize_in_bytes] in true_sw_release_files_on_server:
+                            true_sw_release_files_on_server.append([directory,device_directory,true_file_name,md5_sum,filesize_in_bytes])
             if no_such_files_in_directory:
                 CGI_CLI.uprint('Specified %s file(s) NOT FOUND in %s!' % (actual_file_name,directory), color = 'red')
 
@@ -3065,10 +3091,10 @@ try:
 
 
     ### def LOOP TILL ALL FILES ARE COPIED OK #################################
-    number_of_scp_treatments = 0
+    counter_of_scp_attempts = 0
     while not all_files_on_all_devices_ok:
-        number_of_scp_treatments += 1
-        if CGI_CLI.data.get('force_rewrite_sw_files_on_device') and number_of_scp_treatments <= 1:
+        counter_of_scp_attempts += 1
+        if CGI_CLI.data.get('force_rewrite_sw_files_on_device') and counter_of_scp_attempts <= 1:
             force_rewrite = True
         else: force_rewrite = False
         ### FORCE REWRITE HAS A SENSE FIRST TIME ONLY #########################
@@ -3099,9 +3125,9 @@ try:
             printall = printall, check_mode = True)
 
         ### TRY SCP X TIMES, THEN END #########################################
-        if number_of_scp_treatments >= number_of_scp_attempts:
+        if counter_of_scp_attempts >= total_number_of_scp_attempts:
             CGI_CLI.uprint('MULTIPLE (%d) SCP ATTEMPTS FAILED!' % \
-            (number_of_scp_attempts), tag = 'h1', color = 'red')
+            (total_number_of_scp_attempts), tag = 'h1', color = 'red')
             break
 
     ### def ADITIONAL DEVICE ACTIONS ##########################################
