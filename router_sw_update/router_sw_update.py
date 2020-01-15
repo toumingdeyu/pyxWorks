@@ -2551,11 +2551,13 @@ def juniper_copy_device_files_to_other_routing_engine(true_sw_release_files_on_s
                         backup_re = 're1'
                 except: pass
 
-                if printall: CGI_CLI.uprint('Routing engine MASTER=%s, BACKUP=%s' % \
-                    (master_re,str(backup_re)), tag = 'debug')
+                CGI_CLI.uprint('\n')
+                if printall: CGI_CLI.uprint('Routing engine MASTER=%s, BACKUP=%s on device %s' % \
+                    (master_re, str(backup_re), device), tag = 'debug')
 
                 if not backup_re:
-                    CGI_CLI.uprint('BACKUP routing engine is NOT PRESENT!', tag = 'warning' , color = 'red')
+                    CGI_CLI.uprint('BACKUP routing engine is NOT PRESENT on device %s!' % (device), \
+                        tag = 'warning' , color = 'red')
 
                 if backup_re:
                     copy_files_cmds = {'juniper':[]}
@@ -3085,7 +3087,6 @@ warning {
     dev_dir_set = set(redundant_dev_dir_list)
     unique_device_directory_list = list(dev_dir_set)
 
-
     ### GET DEVICE DRIVE STRING ###############################################
     if CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
         device_drive_string, router_type = get_device_drive_string(device_list = device_list, \
@@ -3093,7 +3094,6 @@ warning {
             printall = printall, \
             silent_mode = True)
     else:
-
 
         ### CHECK EXISTING FILES ON DEVICES ###################################
         all_files_on_all_devices_ok, missing_files_per_device_list, \
