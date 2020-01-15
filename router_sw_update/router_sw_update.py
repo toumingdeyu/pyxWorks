@@ -322,9 +322,12 @@ class CGI_CLI(object):
                 print(text_color + print_name + print_text + CGI_CLI.bcolors.ENDC)
         del print_text
         if CGI_CLI.cgi_active and not raw:
-            if tag: CGI_CLI.print_chunk('</%s>' % (tag))
+            if tag: 
+                CGI_CLI.print_chunk('</%s>' % (tag))
+                ### USER DEFINED TAGS DOES NOT PROVIDE NEWLINES!!! ############
+                if tag in ['debug','warning']: CGI_CLI.print_chunk('<br/>');
             elif end_tag: CGI_CLI.print_chunk('</%s>' % (end_tag))
-            elif not no_newlines: CGI_CLI.print_chunk('<br/>');
+            elif not no_newlines: CGI_CLI.print_chunk('<br/>')
             ### PRINT PER TAG ###
             CGI_CLI.print_chunk(print_per_tag)
         ### LOGGING ###
@@ -445,12 +448,12 @@ class CGI_CLI(object):
             try: print_string += 'CGI_CLI.data[%s] = %s\n' % (str(CGI_CLI.submit_form),str(json.dumps(CGI_CLI.data, indent = 4)))
             except: pass
         else: print_string += 'CLI_args = %s\nCGI_CLI.data = %s' % (str(sys.argv[1:]), str(json.dumps(CGI_CLI.data,indent = 4)))
-        CGI_CLI.uprint(print_string)
+        CGI_CLI.uprint(print_string, tag = 'debug')
         return print_string
 
     @staticmethod
     def print_env():
-        CGI_CLI.uprint(dict(os.environ), name = 'os.environ', jsonprint = True)
+        CGI_CLI.uprint(dict(os.environ), name = 'os.environ', tag = 'debug', jsonprint = True)
 
 
 
@@ -1558,7 +1561,7 @@ def do_scp_one_file_to_more_devices(true_sw_release_file_on_server = None, \
                 local_command = 'sshpass -e scp -v -o StrictHostKeyChecking=no %s %s@%s:%s 1>/dev/null 2>/dev/null &' \
                     % (os.path.join(directory, file), USERNAME, device, \
                     '%s' % (os.path.join(dev_dir, file)))
-            if printall: CGI_CLI.uprint(local_command)
+            if printall: CGI_CLI.uprint(local_command, tag = 'debug')
             os.system(local_command)
             CGI_CLI.uprint('scp start file %s, (file size %.2fMB) to device %s' % \
                 (file, float(fsize)/1048576, device))
@@ -1597,7 +1600,7 @@ def do_scp_one_file_to_more_devices_per_needed_to_copy_list(\
                         local_command = 'sshpass -e scp -v -o StrictHostKeyChecking=no %s %s@%s:%s 1>/dev/null 2>/dev/null &' \
                             % (os.path.join(directory, file), USERNAME, device, \
                             '%s' % (os.path.join(dev_dir, file)))
-                    if printall: CGI_CLI.uprint(local_command)
+                    if printall: CGI_CLI.uprint(local_command, tag = 'debug')
                     os.system(local_command)
                     CGI_CLI.uprint('scp start file %s, (file size %.2fMB) to device %s' % \
                         (file, float(fsize)/1048576, device))
@@ -2037,10 +2040,10 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                     if printall:
                         if RCMD.router_type == 'juniper':
                             CGI_CLI.uprint('re0_File=%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
-                                (file1,file_found_on_device,md5_ok,file_size_ok_on_device))
+                                (file1,file_found_on_device,md5_ok,file_size_ok_on_device), tag = 'debug')
                         else:
                             CGI_CLI.uprint('File=%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
-                                (file1,file_found_on_device,md5_ok,file_size_ok_on_device))
+                                (file1,file_found_on_device,md5_ok,file_size_ok_on_device), tag = 'debug')
 
             ### ===================================================================
             ### JUNIPER RE1 CHECK #################################################
@@ -2106,7 +2109,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                                     slave_missing_files_per_device_list.append( \
                                         [device,[directory, dev_dir, file, md5, fsize]])
                         if printall: CGI_CLI.uprint('re1_File=%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
-                            (file1, file_found_on_device, md5_ok, file_size_ok_on_device))
+                            (file1, file_found_on_device, md5_ok, file_size_ok_on_device), tag = 'debug')
 
             ### HUAWEI SLAVE#CFCARD FILES CHECK ###############################
             if RCMD.router_type == 'huawei':
@@ -2180,7 +2183,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                                     slave_missing_files_per_device_list.append( \
                                         [device,[directory, dev_dir, file, md5, fsize]])
                         if printall: CGI_CLI.uprint('SlaveFile=%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
-                            (file1,file_found_on_device,md5_ok,file_size_ok_on_device))
+                            (file1,file_found_on_device,md5_ok,file_size_ok_on_device), tag = 'debug')
 
 
             ### HUAWEI COMPATIBILITY CHECK ####################################
@@ -2546,10 +2549,12 @@ def juniper_copy_device_files_to_other_routing_engine(true_sw_release_files_on_s
                         backup_re = 're1'
                 except: pass
 
-                CGI_CLI.uprint('Routing engine MASTER=%s, BACKUP=%s' % (master_re,str(backup_re)), \
-                    no_newlines = None if printall else True)
+                if printall: CGI_CLI.uprint('Routing engine MASTER=%s, BACKUP=%s' % \
+                    (master_re,str(backup_re)), tag = 'debug')
 
-                if backup_re:
+                if not backup_re:
+                    CGI_CLI.uprint('BACKUP routing engine is NOT PRESENT!', tag = 'warning' , color = 'red')
+                else:
                     copy_files_cmds = {'juniper':[]}
 
                     for unique_dir in unique_device_directory_list:
@@ -2603,8 +2608,19 @@ def juniper_copy_device_files_to_other_routing_engine(true_sw_release_files_on_s
 
 if __name__ != "__main__": sys.exit(0)
 try:
+    CSS_STYLE = """
+debug {
+  background-color: lightgray;
+}
+
+warning {
+  color: red
+  background-color: yellow;
+}
+"""
+
     logging.raiseExceptions=False
-    USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True)
+    USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True , css_style = CSS_STYLE)
     CGI_CLI.uprint('ROUTER SW UPGRADE TOOL (v.%s)' % (CGI_CLI.VERSION()), tag = 'h1', color = 'blue')
     # CGI_CLI.uprint('PID=%s ' % (os.getpid()), color = 'blue')
     printall = CGI_CLI.data.get("printall")
@@ -2794,7 +2810,7 @@ try:
                 brand_subdir, type_subdir, type_subdir_on_device, sw_file_types_list = \
                     get_local_subdirectories(brand_raw = brand_raw, type_raw = type_raw)
                 if printall: CGI_CLI.uprint('READ_FROM_DB: [router=%s, vendor=%s, hardware=%s]' % \
-                    (device_list[0], brand_raw, type_raw))
+                    (device_list[0], brand_raw, type_raw), tag = 'debug')
                 break
 
         ### CHECK LOCAL SW VERSIONS DIRECTORIES ###################################
@@ -2943,7 +2959,7 @@ try:
                     does_local_directory_or_file_exist_by_ls_l(use_dir_or_file, printall = printall)
                 if printall:
                     CGI_CLI.uprint('Path=%s, is_dir[%s], is_file[%s]' % \
-                        (use_dir_or_file, this_is_directory,  file_found))
+                        (use_dir_or_file, this_is_directory,  file_found), tag = 'debug')
                 if this_is_directory:
                     IS_DIRECTORY_OR_FILE_FOUND = True
                     directory_list.append([use_dir_or_file, str()])
@@ -2963,7 +2979,7 @@ try:
                     does_local_directory_or_file_exist_by_ls_l(use_dir_or_file, printall = printall)
                 if printall:
                     CGI_CLI.uprint('Path=%s, is_dir[%s], is_file[%s]' % \
-                        (use_dir_or_file, this_is_directory, file_found))
+                        (use_dir_or_file, this_is_directory, file_found), tag = 'debug')
                 if this_is_directory:
                     IS_DIRECTORY_OR_FILE_FOUND = True
                     directory_list.append([use_dir_or_file, str()])
@@ -2983,7 +2999,7 @@ try:
                     does_local_directory_or_file_exist_by_ls_l(use_dir_or_file, printall = printall)
                 if printall:
                     CGI_CLI.uprint('Path=%s, is_dir[%s], is_file[%s]' % \
-                        (use_dir_or_file, this_is_directory, file_found))
+                        (use_dir_or_file, this_is_directory, file_found), tag = 'debug')
                 if this_is_directory:
                     IS_DIRECTORY_OR_FILE_FOUND = True
                     directory_list.append([use_dir_or_file, str()])
@@ -3004,7 +3020,7 @@ try:
            CGI_CLI.uprint('Server install directories NOT FOUND!', color = 'red')
            sys.exit(0)
         else:
-           if printall: CGI_CLI.uprint(directory_list, name = 'directory_list')
+           if printall: CGI_CLI.uprint(directory_list, name = 'directory_list', tag = 'debug')
 
         ### CHECK LOCAL SERVER FILES EXISTENCY ####################################
         for directory_sublist,actual_file_type in zip(directory_list,selected_sw_file_types_list):
