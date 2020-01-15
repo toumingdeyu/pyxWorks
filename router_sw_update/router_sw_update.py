@@ -2888,6 +2888,7 @@ warning {
         scp_list, forget_it = does_run_scp_processes(printall = printall)
         if len(scp_list)>0 and USERNAME and PASSWORD:
             check_percentage_of_copied_files(scp_list, USERNAME, PASSWORD, printall)
+        else: CGI_CLI.uprint('No currently running scp processes.')
         sys.exit(0)
 
     ### SET DEFAULT (HIGHEST) SW RELEASE IF NOT SET ###############################
