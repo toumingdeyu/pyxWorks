@@ -2432,13 +2432,12 @@ def copy_files_to_devices(true_sw_release_files_on_server = None, \
                     device_drive_string = device_drive_string, \
                     printall = printall, router_type = router_type)
 
-
         ### IF SCP_LIST IS NOT VOID CHECK AND COPY ONLY NOT RUNNING ###
         for server_file, device_file, scp_device, device_user, pid, ppid in scp_list:
             CGI_CLI.uprint('%s=%s, %s=%s' %(scp_device, device_list, device_file, os.path.join(dev_dir, file)))
             if scp_device in device_list and device_file == os.path.join(dev_dir, file):
                 CGI_CLI.uprint('FILE %s is already copying to device %s, ommiting new scp copying!' % \
-                    (device_file, device))
+                    (device_file, scp_device))
             else:
                 if force_rewrite:
                     do_scp_one_file_to_more_devices(true_sw_release_file_on_server, device_list, \
@@ -2635,7 +2634,10 @@ warning {
 
     goto_webpage_end_by_javascript = """
 <script language="javascript" type="text/javascript">
-setInterval(function(){ window.scrollTo(0,document.body.scrollHeight); }, 100);
+setInterval(function() {
+if (document.readyState !== "complete:") {
+window.scrollTo(0,document.body.scrollHeight); }
+}, 100);
 </script>
 """
 
@@ -2935,8 +2937,8 @@ setInterval(function(){ window.scrollTo(0,document.body.scrollHeight); }, 100);
         CGI_CLI.uprint('backup_configs_to_device_disk = Y')
     if CGI_CLI.data.get('delete_device_sw_files_on_end'):
         CGI_CLI.uprint('delete_device_sw_files_on_end = Y')
-        
-    ### START TO MOVE WEBPAGE ALLWAYS TO END ##################################   
+
+    ### START TO MOVE WEBPAGE ALLWAYS TO END ##################################
     CGI_CLI.uprint(goto_webpage_end_by_javascript, raw=True)
 
     ###########################################################################
