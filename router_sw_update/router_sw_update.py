@@ -2635,12 +2635,18 @@ warning {
     goto_webpage_end_by_javascript = """
 <script language="javascript" type="text/javascript">
 setInterval(function() {
-if (document.readyState !== "complete:") {
+if (document.readyState !== "complete") {
 window.scrollTo(0,document.body.scrollHeight); }
 }, 100);
 </script>
 """
 
+    goto_webpage_end_by_javascript = """
+var refreshIntervalId = setInterval(function(){ window.scrollTo(0,document.body.scrollHeight);}, 100);
+if (document.readyState === 'complete') {
+  clearInterval(refreshIntervalId);
+}"""   
+    
 
     logging.raiseExceptions=False
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True , css_style = CSS_STYLE)
