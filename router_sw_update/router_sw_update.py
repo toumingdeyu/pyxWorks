@@ -322,7 +322,7 @@ class CGI_CLI(object):
                 print(text_color + print_name + print_text + CGI_CLI.bcolors.ENDC)
         del print_text
         if CGI_CLI.cgi_active and not raw:
-            if tag: 
+            if tag:
                 CGI_CLI.print_chunk('</%s>' % (tag))
                 ### USER DEFINED TAGS DOES NOT PROVIDE NEWLINES!!! ############
                 if tag in ['debug','warning']: CGI_CLI.print_chunk('<br/>');
@@ -2072,7 +2072,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                             if file == possible_file_name: file_found_on_device = True
                             if device_fsize == fsize: file_size_ok_on_device = True
                             re1_filecheck_list.append([file,file_found_on_device,file_size_ok_on_device])
-                ### CHECK MD5 ON RE1 ###        
+                ### CHECK MD5 ON RE1 ###
                 re1_juniper_md5_cmds, re1_md5check_list = [], []
                 for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
                     if file in bad_files:
@@ -2614,13 +2614,15 @@ debug {
 }
 
 warning {
-  color: red
+  color: red;
   background-color: yellow;
 }
 """
 
     logging.raiseExceptions=False
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True , css_style = CSS_STYLE)
+    #CGI_CLI.uprint('<img src="/style/orange.gif" alt="" title="" width="40" height="40">', \
+    #    raw=True)
     CGI_CLI.uprint('ROUTER SW UPGRADE TOOL (v.%s)' % (CGI_CLI.VERSION()), tag = 'h1', color = 'blue')
     # CGI_CLI.uprint('PID=%s ' % (os.getpid()), color = 'blue')
     printall = CGI_CLI.data.get("printall")
@@ -3045,7 +3047,7 @@ warning {
                     md5_sum = local_oti_checkum_string[0].split()[0].strip()
                     filesize_in_bytes = os.stat(os.path.join(directory,true_file_name)).st_size
                     ### MAKE TRUE AND UNIQUE FILE LIST, SW RELEASE ONLY ###
-                    if not [directory,device_directory,true_file_name,md5_sum,filesize_in_bytes] in true_sw_release_files_on_server: 
+                    if not [directory,device_directory,true_file_name,md5_sum,filesize_in_bytes] in true_sw_release_files_on_server:
                         true_sw_release_files_on_server.append([directory,device_directory,true_file_name,md5_sum,filesize_in_bytes])
             else:
                 for line in local_results[0].splitlines():
