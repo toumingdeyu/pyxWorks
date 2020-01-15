@@ -2633,6 +2633,13 @@ warning {
 }
 """
 
+    goto_webpage_end_by_javascript = """
+<script language="javascript" type="text/javascript">
+setInterval(function(){ window.scrollTo(0,document.body.scrollHeight); }, 100);
+</script>
+"""
+
+
     logging.raiseExceptions=False
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True , css_style = CSS_STYLE)
     #CGI_CLI.uprint('<img src="/style/orange.gif" alt="" title="" width="40" height="40">', \
@@ -2909,7 +2916,7 @@ warning {
         USERNAME = USERNAME, suffix = str(SCRIPT_ACTION) + '.log')
     logfilename = None
 
-    ### def PRINT BASIC INFO ##########################################################
+    ### def PRINT BASIC INFO ######################################################
     CGI_CLI.uprint('server = %s' % (iptac_server))
     if len(device_list) > 0: CGI_CLI.uprint('device(s) = %s' % (', '.join(device_list)))
     if sw_release: CGI_CLI.uprint('sw release = %s' % (sw_release))
@@ -2928,9 +2935,11 @@ warning {
         CGI_CLI.uprint('backup_configs_to_device_disk = Y')
     if CGI_CLI.data.get('delete_device_sw_files_on_end'):
         CGI_CLI.uprint('delete_device_sw_files_on_end = Y')
+        
+    ### START TO MOVE WEBPAGE ALLWAYS TO END ##################################   
+    CGI_CLI.uprint(goto_webpage_end_by_javascript, raw=True)
 
-
-    ###############################################################################
+    ###########################################################################
     if CGI_CLI.data.get('sw_files'):
         ft_string = CGI_CLI.data.get('sw_files')
         ft_list = ft_string.split(',') if ',' in ft_string else [ft_string]
