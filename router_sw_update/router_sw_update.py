@@ -2559,13 +2559,13 @@ def juniper_copy_device_files_to_other_routing_engine(true_sw_release_files_on_s
                 re_output = RCMD.run_commands(re_files_cmds, \
                     printall = printall)
                 try:
-                    if re_output.split('Slot 0:')[1].split('Current state')[1].split()[0] == 'Master':
+                    if re_output[0].split('Slot 0:')[1].split('Current state')[1].split()[0] == 'Master':
                         master_re = 're0'
-                    if re_output.split('Slot 0:')[1].split('Current state')[1].split()[0] == 'Backup':
+                    if re_output[0].split('Slot 0:')[1].split('Current state')[1].split()[0] == 'Backup':
                         backup_re = 're0'
-                    if re_output.split('Slot 1:')[1].split('Current state')[1].split()[0] == 'Master':
+                    if re_output[0].split('Slot 1:')[1].split('Current state')[1].split()[0] == 'Master':
                         master_re = 're1'
-                    if re_output.split('Slot 1:')[1].split('Current state')[1].split()[0] == 'Backup':
+                    if re_output[0].split('Slot 1:')[1].split('Current state')[1].split()[0] == 'Backup':
                         backup_re = 're1'
                 except: pass
 
