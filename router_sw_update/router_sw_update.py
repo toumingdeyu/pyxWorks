@@ -420,8 +420,10 @@ class CGI_CLI(object):
         if (submit_button and str(submit_button) == str(CGI_CLI.submit_form)) or not CGI_CLI.submit_form:
             i_pyfile = sys.argv[0]
             try: pyfile = i_pyfile.replace('\\','/').split('/')[-1].strip()
-            except: pyfile = i_pyfile.strip()
-            if CGI_CLI.cgi_active: CGI_CLI.print_chunk('<br/><a href = "./%s">PAGE RELOAD</a>' % (pyfile))
+            except: pyfile = i_pyfile.strip()            
+            if CGI_CLI.cgi_active:
+                CGI_CLI.print_chunk('<p id="scriptend"></p>')            
+                CGI_CLI.print_chunk('<br/><a href = "./%s">PAGE RELOAD</a>' % (pyfile))
 
     @staticmethod
     def VERSION(path_to_file = str(os.path.abspath(__file__))):
@@ -526,6 +528,7 @@ class RCMD(object):
                 RCMD.client.connect(RCMD.DEVICE_HOST, port=int(RCMD.DEVICE_PORT), \
                     username=RCMD.USERNAME, password=RCMD.PASSWORD, \
                     banner_timeout = 10, \
+                    ### AUTH_TIMEOUT MAKES PROBLEMS ON IPTAC1 ###
                     #auth_timeout = 10, \
                     timeout = RCMD.CONNECTION_TIMEOUT, \
                     look_for_keys = False)
@@ -2632,21 +2635,31 @@ warning {
 }
 """
 
-    goto_webpage_end_by_javascript = """
-<script language="javascript" type="text/javascript">
-setInterval(function() {
-if (document.readyState !== "complete") {
-window.scrollTo(0,document.body.scrollHeight); }
-}, 100);
-</script>
-"""
+    # goto_webpage_end_by_javascript = """
+# <script language="javascript" type="text/javascript">
+# setInterval(function() {
+# if (document.readyState !== "complete") {
+# window.scrollTo(0,document.body.scrollHeight); }
+# }, 100);
+# </script>
+# """
 
-    goto_webpage_end_by_javascript = """
-var refreshIntervalId = setInterval(function(){ window.scrollTo(0,document.body.scrollHeight);}, 100);
-if (document.readyState === 'complete') {
-  clearInterval(refreshIntervalId);
-}"""   
-    
+    # goto_webpage_end_by_javascript = """<script language="javascript" type="text/javascript">
+# var refreshIntervalId = setInterval(function() { window.scrollTo(0,document.body.scrollHeight);}, 100);
+# document.addEventListener('readystatechange', (event) => {
+    # log.textContent = log.textContent + `readystate: ${document.readyState}\\n`;
+    # if (document.readyState === 'complete') {
+    # clearInterval(refreshIntervalId);
+  # }
+# });
+# document.onreadystatechange = function () {
+  # if (document.readyState === 'complete') {
+    # clearInterval(refreshIntervalId);
+  # }
+# }
+# </script>"""   
+
+    goto_webpage_end_by_javascript = str()    
 
     logging.raiseExceptions=False
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True , css_style = CSS_STYLE)
