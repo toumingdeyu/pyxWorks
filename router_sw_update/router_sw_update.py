@@ -135,7 +135,7 @@ class CGI_CLI(object):
         parser.add_argument("--timestamps",
                             action = "store_true", dest = 'timestamps',
                             default = None,
-                            help = "print all lines with timestamps")                            
+                            help = "print all lines with timestamps")
         args = parser.parse_args()
         return args
 
@@ -298,7 +298,7 @@ class CGI_CLI(object):
         log_text   = str(copy.deepcopy((print_text)))
         if timestamp or CGI_CLI.timestamp:
             timestamp_string = '@%s[%.2fs] ' % (datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S'), time.time() - CGI_CLI.START_EPOCH)
-        else: timestamp_string = str() 
+        else: timestamp_string = str()
         if CGI_CLI.cgi_active and not raw:
             ### WORKARROUND FOR COLORING OF SIMPLE TEXT
             if color and not (tag or start_tag): tag = 'p';
@@ -2329,15 +2329,20 @@ def check_free_disk_space_on_devices(device_list = None, \
             elif RCMD.router_type == 'juniper':
                 try:
                     for line in rcmd_check_disk_space_outputs[0].splitlines():
-                        if line.split()[-1] == '/.mount':
-                            device_free_space_in_bytes = float(line.split()[3])*1024
-                    try:
-                        for line in rcmd_check_disk_space_outputs[0].split('re1')[1].splitlines():
+                        try:
+                            if line.split()[-1] == '/.mount':
+                                device_free_space_in_bytes = float(line.split()[3])*1024
+                                break
+                        except: pass        
+                except: pass            
+                try:
+                    for line in rcmd_check_disk_space_outputs[0].split('re1:')[1].splitlines():
+                        try:
                             if line.split()[-1] == '/.mount':
                                 slave_device_free_space_in_bytes = float(line.split()[3])*1024
-                    except: pass
+                        except: pass        
                 except: pass
-
+               
             xr_device_mkdir_list, huawei_device_mkdir_list = [], []
             for dev_dir in unique_device_directory_list:
                 up_path = str()
@@ -2355,7 +2360,7 @@ def check_free_disk_space_on_devices(device_list = None, \
             mkdir_device_cmds = {
                 'cisco_ios':xr_device_mkdir_list,
                 'cisco_xr':xr_device_mkdir_list,
-                'juniper':[],
+                'juniper':['\n'],
                 'huawei':huawei_device_mkdir_list
             }
             forget_it = RCMD.run_commands(mkdir_device_cmds)
@@ -2674,7 +2679,7 @@ warning {
     CGI_CLI.uprint('ROUTER SW UPGRADE TOOL (v.%s)' % (CGI_CLI.VERSION()), tag = 'h1', color = 'blue')
     # CGI_CLI.uprint('PID=%s ' % (os.getpid()), color = 'blue')
     printall = CGI_CLI.data.get("printall")
-    CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")     
+    CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
     if printall: CGI_CLI.print_args()
 
 
@@ -2982,7 +2987,7 @@ warning {
     ### END DUE TO ERRORS #####################################################
 
     exit_due_to_error = None
-    
+
     if len(selected_sw_file_types_list) == 0:
         CGI_CLI.uprint('PLEASE SPECIFY SW FILE TYPE(S) TO COPY!', tag = 'h2', color = 'red')
         exit_due_to_error = True
@@ -2994,14 +2999,14 @@ warning {
     if len(device_list) == 0:
         CGI_CLI.uprint('DEVICE NAME(S) NOT INSERTED!', tag = 'h2', color = 'red')
         exit_due_to_error = True
-        
+
     if not USERNAME:
-        CGI_CLI.uprint('USERNAME NOT INSERTED!', tag = 'h2', color = 'red')    
+        CGI_CLI.uprint('USERNAME NOT INSERTED!', tag = 'h2', color = 'red')
         exit_due_to_error = True
-        
+
     if not PASSWORD:
         CGI_CLI.uprint('PASSWORD NOT INSERTED!', tag = 'h2', color = 'red')
-        exit_due_to_error = True        
+        exit_due_to_error = True
 
     if exit_due_to_error: sys.exit(0)
 
