@@ -297,7 +297,7 @@ class CGI_CLI(object):
         print_text = str(print_text)
         log_text   = str(copy.deepcopy((print_text)))
         if timestamp or CGI_CLI.timestamp:
-            timestamp_string = '@%s[%.2fs]' % (datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S'), time.time() - CGI_CLI.START_EPOCH)
+            timestamp_string = '@%s[%.2fs] ' % (datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S'), time.time() - CGI_CLI.START_EPOCH)
         else: timestamp_string = str() 
         if CGI_CLI.cgi_active and not raw:
             ### WORKARROUND FOR COLORING OF SIMPLE TEXT
