@@ -2597,7 +2597,7 @@ def juniper_copy_device_files_to_other_routing_engine(true_sw_release_files_on_s
                     for unique_dir in unique_device_directory_list:
                         for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
                             if unique_dir == dev_dir:
-                                check_dir_files_cmds['huawei'].append( \
+                                check_dir_files_cmds['juniper'].append( \
                                     'file list %s:%s/' % (backup_re, dev_dir if dev_dir != '/' else str()))
                     time.sleep(0.5)
                     dir_outputs_after_deletion = RCMD.run_commands(check_dir_files_cmds, \
@@ -2979,20 +2979,31 @@ warning {
         for ft_item in ft_list:
             selected_sw_file_types_list += [ filetype for filetype in sw_file_types_list if ft_item in filetype ]
 
-    ###############################################################################
+    ### END DUE TO ERRORS #####################################################
 
-
+    exit_due_to_error = None
+    
     if len(selected_sw_file_types_list) == 0:
-        CGI_CLI.uprint('PLEASE SPECIFY SW FILE TYPE(S) TO COPY.', tag = 'h2', color = 'red')
-        sys.exit(0)
+        CGI_CLI.uprint('PLEASE SPECIFY SW FILE TYPE(S) TO COPY!', tag = 'h2', color = 'red')
+        exit_due_to_error = True
 
     if not sw_release:
-        CGI_CLI.uprint('PLEASE SPECIFY SW_RELEASE.', tag = 'h2',color = 'red')
-        sys.exit(0)
+        CGI_CLI.uprint('PLEASE SPECIFY SW_RELEASE!', tag = 'h2',color = 'red')
+        exit_due_to_error = True
 
     if len(device_list) == 0:
         CGI_CLI.uprint('DEVICE NAME(S) NOT INSERTED!', tag = 'h2', color = 'red')
-        sys.exit(0)
+        exit_due_to_error = True
+        
+    if not USERNAME:
+        CGI_CLI.uprint('USERNAME NOT INSERTED!', tag = 'h2', color = 'red')    
+        exit_due_to_error = True
+        
+    if not PASSWORD:
+        CGI_CLI.uprint('PASSWORD NOT INSERTED!', tag = 'h2', color = 'red')
+        exit_due_to_error = True        
+
+    if exit_due_to_error: sys.exit(0)
 
     ###############################################################################
 
