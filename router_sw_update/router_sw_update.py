@@ -132,6 +132,10 @@ class CGI_CLI(object):
                             action = "store_true", dest = 'printall',
                             default = None,
                             help = "print all lines, changes will be coloured")
+        parser.add_argument("--timestamps",
+                            action = "store_true", dest = 'timestamps',
+                            default = None,
+                            help = "print all lines with timestamps")                            
         args = parser.parse_args()
         return args
 
@@ -150,11 +154,12 @@ class CGI_CLI(object):
         import atexit; atexit.register(CGI_CLI.__cleanup__)
 
     @staticmethod
-    def init_cgi(chunked = None, css_style = None, newline = None):
+    def init_cgi(chunked = None, css_style = None, newline = None, timestamp = None):
         CGI_CLI.START_EPOCH = time.time()
         CGI_CLI.http_status = 200
         CGI_CLI.http_status_text = 'OK'
         CGI_CLI.chunked = chunked
+        CGI_CLI.timestamp = timestamp
         CGI_CLI.CSS_STYLE = css_style if css_style else str()
         ### TO BE PLACED - BEFORE HEADER ###
         CGI_CLI.newline = '\r\n' if not newline else newline
@@ -272,7 +277,7 @@ class CGI_CLI(object):
 
     @staticmethod
     def uprint(text = str(), tag = None, tag_id = None, color = None, name = None, jsonprint = None, \
-        log = None, no_newlines = None, start_tag = None, end_tag = None, raw = None):
+        log = None, no_newlines = None, start_tag = None, end_tag = None, raw = None, timestamp = None):
         """NOTE: name parameter could be True or string.
            start_tag - starts tag and needs to be ended next time by end_tag
            raw = True , print text as it is, not convert to html. Intended i.e. for javascript
@@ -291,6 +296,9 @@ class CGI_CLI(object):
 
         print_text = str(print_text)
         log_text   = str(copy.deepcopy((print_text)))
+        if timestamp or CGI_CLI.timestamp:
+            timestamp_string = '@%s[%.2fs]' % (datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S'), time.time() - CGI_CLI.START_EPOCH)
+        else: timestamp_string = str() 
         if CGI_CLI.cgi_active and not raw:
             ### WORKARROUND FOR COLORING OF SIMPLE TEXT
             if color and not (tag or start_tag): tag = 'p';
@@ -300,7 +308,7 @@ class CGI_CLI(object):
                 print_text = str(print_text.replace('&','&amp;').replace('<','&lt;'). \
                     replace('>','&gt;').replace(' ','&nbsp;').replace('"','&quot;').replace("'",'&apos;').\
                     replace('\n','<br/>'))
-            CGI_CLI.print_chunk(print_name + print_text)
+            CGI_CLI.print_chunk(timestamp_string + print_name + print_text)
         elif CGI_CLI.cgi_active and raw:
             CGI_CLI.print_chunk(print_text)
         else:
@@ -319,7 +327,7 @@ class CGI_CLI(object):
                 sys.stdout.write(text_color + print_name + print_text + CGI_CLI.bcolors.ENDC)
                 sys.stdout.flush()
             else:
-                print(text_color + print_name + print_text + CGI_CLI.bcolors.ENDC)
+                print(text_color + print_name + timestamp_string + print_text + CGI_CLI.bcolors.ENDC)
         del print_text
         if CGI_CLI.cgi_active and not raw:
             if tag:
@@ -420,9 +428,9 @@ class CGI_CLI(object):
         if (submit_button and str(submit_button) == str(CGI_CLI.submit_form)) or not CGI_CLI.submit_form:
             i_pyfile = sys.argv[0]
             try: pyfile = i_pyfile.replace('\\','/').split('/')[-1].strip()
-            except: pyfile = i_pyfile.strip()            
+            except: pyfile = i_pyfile.strip()
             if CGI_CLI.cgi_active:
-                CGI_CLI.print_chunk('<p id="scriptend"></p>')            
+                CGI_CLI.print_chunk('<p id="scriptend"></p>')
                 CGI_CLI.print_chunk('<br/><a href = "./%s">PAGE RELOAD</a>' % (pyfile))
 
     @staticmethod
@@ -456,8 +464,6 @@ class CGI_CLI(object):
     @staticmethod
     def print_env():
         CGI_CLI.uprint(dict(os.environ), name = 'os.environ', tag = 'debug', jsonprint = True)
-
-
 
 
 ##############################################################################
@@ -1299,7 +1305,7 @@ class sql_interface():
                     database = database, autocommit = True)
 
             #CGI_CLI.uprint("SQL connection is open.")
-        except Exception as e: print(e)
+        except Exception as e: CGI_CLI.uprint(str(e))
 
     def __del__(self):
         if self.sql_connection and self.sql_connection.is_connected():
@@ -1327,7 +1333,7 @@ class sql_interface():
                     try: new_item = item[3].decode('utf-8')
                     except: new_item = item[3]
                     columns.append(new_item)
-            except Exception as e: print(e)
+            except Exception as e: CGI_CLI.uprint(str(e))
             try: cursor.close()
             except: pass
         return columns
@@ -1351,7 +1357,7 @@ class sql_interface():
                            except: new_item = item
                         columns.append(new_item)
                     lines.append(columns)
-            except Exception as e: print(e)
+            except Exception as e: CGI_CLI.uprint(str(e))
             try: cursor.close()
             except: pass
             ### FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE
@@ -1367,7 +1373,7 @@ class sql_interface():
                 cursor.execute(sql_command)
                 ### DO NOT COMMIT IF AUTOCOMMIT IS SET
                 if not self.sql_connection.autocommit: self.sql_connection.commit()
-            except Exception as e: print(e)
+            except Exception as e: CGI_CLI.uprint(str(e))
             try: cursor.close()
             except: pass
         return None
@@ -2657,18 +2663,21 @@ warning {
     # clearInterval(refreshIntervalId);
   # }
 # }
-# </script>"""   
+# </script>"""
 
-    goto_webpage_end_by_javascript = str()    
+    goto_webpage_end_by_javascript = str()
 
     logging.raiseExceptions=False
-    USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True , css_style = CSS_STYLE)
+    USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True, css_style = CSS_STYLE)
     #CGI_CLI.uprint('<img src="/style/orange.gif" alt="" title="" width="40" height="40">', \
     #    raw=True)
     CGI_CLI.uprint('ROUTER SW UPGRADE TOOL (v.%s)' % (CGI_CLI.VERSION()), tag = 'h1', color = 'blue')
     # CGI_CLI.uprint('PID=%s ' % (os.getpid()), color = 'blue')
     printall = CGI_CLI.data.get("printall")
+    CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")     
     if printall: CGI_CLI.print_args()
+
+
 
     ##############################################################################
 
@@ -2904,7 +2913,9 @@ warning {
                 {'checkbox':'force_rewrite_sw_files_on_device'},'<br/>',\
                 {'checkbox':'backup_configs_to_device_disk'},'<br/>',\
                 {'checkbox':'delete_device_sw_files_on_end'},'<br/>',\
-                '<br/>', {'checkbox':'printall'}]
+                '<br/>', {'checkbox':'timestamps'}, \
+                '<br/>', {'checkbox':'printall'}
+                ]
 
         CGI_CLI.formprint( main_menu_list + ['<br/>','<br/>'], submit_button = 'OK', \
             pyfile = None, tag = None, color = None , list_separator = '&emsp;')
