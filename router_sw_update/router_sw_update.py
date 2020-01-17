@@ -281,6 +281,8 @@ class CGI_CLI(object):
         """NOTE: name parameter could be True or string.
            start_tag - starts tag and needs to be ended next time by end_tag
            raw = True , print text as it is, not convert to html. Intended i.e. for javascript
+           timestamp = True - locally allow (CGI_CLI.timestamp = True has priority)
+           timestamp = 'no' - locally disable even if CGI_CLI.timestamp == True
         """
         print_text, print_name, print_per_tag = copy.deepcopy(text), str(), str()
         if jsonprint:
@@ -296,9 +298,18 @@ class CGI_CLI(object):
 
         print_text = str(print_text)
         log_text   = str(copy.deepcopy((print_text)))
+
+        ### GENERATE TIMESTAMP STRING , 'NO' = NO EVERYTIME EVEN IF GLOBALLY IS ALLOWED ###
+        timestamp_string = str()
         if timestamp or CGI_CLI.timestamp:
-            timestamp_string = '@%s[%.2fs] ' % (datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S'), time.time() - CGI_CLI.START_EPOCH)
-        else: timestamp_string = str()
+            timestamp_yes = True
+            try:
+                if str(timestamp).upper() == 'NO': timestamp_yes = False
+            except: pass
+            if timestamp_yes:
+                timestamp_string = '@%s[%.2fs] ' % \
+                    (datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S'), time.time() - CGI_CLI.START_EPOCH)
+
         if CGI_CLI.cgi_active and not raw:
             ### WORKARROUND FOR COLORING OF SIMPLE TEXT
             if color and not (tag or start_tag): tag = 'p';
@@ -667,7 +678,7 @@ class RCMD(object):
                         autoconfirm_mode = autoconfirm_mode, printall = printall)
                     if new_prompt: RCMD.DEVICE_PROMPTS.append(new_prompt)
             if printall or RCMD.printall:
-                if not long_lasting_mode: CGI_CLI.uprint(last_output, color = 'gray')
+                if not long_lasting_mode: CGI_CLI.uprint(last_output, color = 'gray', timestamp = 'no')
             elif not RCMD.silent_mode:
                 if not long_lasting_mode: CGI_CLI.uprint(' . ', no_newlines = True)
             if RCMD.fp: RCMD.fp.write('REMOTE_COMMAND' + sim_mark + ': ' + cmd_line + '\n' + last_output + '\n')
@@ -714,7 +725,7 @@ class RCMD(object):
                         last_output = RCMD.ssh_connection.send_config_set(cmd_list)
                         if printall or RCMD.printall:
                             CGI_CLI.uprint('REMOTE_COMMAND' + sim_mark + ': ' + str(cmd_list), color = 'blue')
-                            CGI_CLI.uprint(str(last_output), color = 'gray')
+                            CGI_CLI.uprint(str(last_output), color = 'gray', timestamp = 'no')
                         if RCMD.fp: RCMD.fp.write('REMOTE_COMMANDS' + sim_mark + ': ' \
                             + str(cmd_list) + '\n' + str(last_output) + '\n')
                         command_outputs = [last_output]
@@ -1089,7 +1100,7 @@ class LCMD(object):
                     exc_text = traceback.format_exc()
                     CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
                     LCMD.fp.write(exc_text + '\n')
-                if not chunked and os_output and printall: CGI_CLI.uprint(os_output, color = 'gray')
+                if not chunked and os_output and printall: CGI_CLI.uprint(os_output, color = 'gray', timestamp = 'no')
                 LCMD.fp.write(os_output + '\n')
         return os_output
 
@@ -1192,7 +1203,7 @@ class LCMD(object):
                         exc_text = traceback.format_exc()
                         CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
                         LCMD.fp.write(exc_text + '\n')
-                    if os_output and printall: CGI_CLI.uprint(os_output, color = 'gray')
+                    if os_output and printall: CGI_CLI.uprint(os_output, color = 'gray', timestamp = 'no')
                     LCMD.fp.write(os_output + '\n')
                     os_outputs.append(os_output)
         return os_outputs
@@ -1209,7 +1220,7 @@ class LCMD(object):
                 if printall: CGI_CLI.uprint("EVAL: %s" % (cmd_data))
                 try:
                     local_output = eval(cmd_data)
-                    if printall: CGI_CLI.uprint(str(local_output))
+                    if printall: CGI_CLI.uprint(str(local_output), color= 'gray', timestamp = 'no')
                     LCMD.fp.write('EVAL: ' + cmd_data + '\n' + str(local_output) + '\n')
                 except Exception as e:
                     if printall:CGI_CLI.uprint('EVAL_PROBLEM[' + str(e) + ']')
@@ -2333,16 +2344,16 @@ def check_free_disk_space_on_devices(device_list = None, \
                             if line.split()[-1] == '/.mount':
                                 device_free_space_in_bytes = float(line.split()[3])*1024
                                 break
-                        except: pass        
-                except: pass            
+                        except: pass
+                except: pass
                 try:
                     for line in rcmd_check_disk_space_outputs[0].split('re1:')[1].splitlines():
                         try:
                             if line.split()[-1] == '/.mount':
                                 slave_device_free_space_in_bytes = float(line.split()[3])*1024
-                        except: pass        
+                        except: pass
                 except: pass
-               
+
             xr_device_mkdir_list, huawei_device_mkdir_list = [], []
             for dev_dir in unique_device_directory_list:
                 up_path = str()
@@ -2523,18 +2534,18 @@ def huawei_copy_device_files_to_slave_cfcard(true_sw_release_files_on_server = N
                             check_dir_files_cmds['huawei'].append( \
                                 'dir slave#%s%s/' % (RCMD.drive_string, dev_dir if dev_dir != '/' else str()))
                 time.sleep(0.5)
-                dir_outputs_after_deletion = RCMD.run_commands(check_dir_files_cmds, \
+                dir_outputs_after_copy = RCMD.run_commands(check_dir_files_cmds, \
                     printall = printall)
                 CGI_CLI.uprint('\n')
-                file_not_found = False
-                for unique_dir in unique_device_directory_list:
+                
+                file_not_found_list = []
+                for unique_dir, dir_output_after_copy in zip(unique_device_directory_list, dir_outputs_after_copy):
                     for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
                         if unique_dir == dev_dir:
-                            if file in dir_outputs_after_deletion[0]:
-                                CGI_CLI.uprint(file, color = 'red')
-                                CGI_CLI.uprint(dir_outputs_after_deletion[3], color = 'blue')
-                            else: file_not_found = True
-                if file_not_found: CGI_CLI.uprint('COPY PROBLEM!', color = 'red')
+                            if file in dir_output_after_copy: pass
+                            else: file_not_found_list.append(dev_dir + file)
+                if len(file_not_found_list) > 0: 
+                    CGI_CLI.uprint('COPY PROBLEM[%s]!' % (','.join(file_not_found_list)), color = 'red')
                 ### DISCONNECT ################################################
                 RCMD.disconnect()
                 time.sleep(3)
@@ -2608,15 +2619,15 @@ def juniper_copy_device_files_to_other_routing_engine(true_sw_release_files_on_s
                     dir_outputs_after_deletion = RCMD.run_commands(check_dir_files_cmds, \
                         printall = printall)
                     CGI_CLI.uprint('\n')
-                    file_not_found = False
-                    for unique_dir in unique_device_directory_list:
+
+                    file_not_found_list = []
+                    for unique_dir, dir_output_after_copy in zip(unique_device_directory_list, dir_outputs_after_copy):
                         for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
                             if unique_dir == dev_dir:
-                                if file in dir_outputs_after_deletion[0]:
-                                    CGI_CLI.uprint(file, color = 'red')
-                                    CGI_CLI.uprint(dir_outputs_after_deletion[3], color = 'blue')
-                                else: file_not_found = True
-                    if file_not_found: CGI_CLI.uprint('COPY PROBLEM!', color = 'red')
+                                if file in dir_output_after_copy: pass
+                                else: file_not_found_list.append(dev_dir + file)
+                    if len(file_not_found_list) > 0: 
+                        CGI_CLI.uprint('COPY PROBLEM[%s]!' % (','.join(file_not_found_list)), color = 'red')
             ### DISCONNECT ################################################
             RCMD.disconnect()
             time.sleep(3)
