@@ -2616,7 +2616,7 @@ def juniper_copy_device_files_to_other_routing_engine(true_sw_release_files_on_s
                                 check_dir_files_cmds['juniper'].append( \
                                     'file list %s:%s/' % (backup_re, dev_dir if dev_dir != '/' else str()))
                     time.sleep(0.5)
-                    dir_outputs_after_deletion = RCMD.run_commands(check_dir_files_cmds, \
+                    dir_outputs_after_copy = RCMD.run_commands(check_dir_files_cmds, \
                         printall = printall)
                     CGI_CLI.uprint('\n')
 
