@@ -2603,11 +2603,6 @@ def juniper_copy_device_files_to_other_routing_engine(true_sw_release_files_on_s
                 if printall: CGI_CLI.uprint('Routing engine MASTER=%s, BACKUP=%s on device %s' % \
                     (master_re, str(backup_re), device), tag = 'debug')
 
-                if not backup_re:
-                    missing_backup_re_list.append(device)
-                    CGI_CLI.uprint('BACKUP routing engine is NOT PRESENT on device %s!' % (device), \
-                        tag = 'warning' , color = 'red')
-
                 if backup_re:
                     copy_files_cmds = {'juniper':[]}
 
