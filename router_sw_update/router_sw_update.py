@@ -124,6 +124,10 @@ class CGI_CLI(object):
                             action = 'store_true', dest = "delete_device_sw_files_on_end",
                             default = None,
                             help = "delete device sw release files on end after sw upgrade")
+        parser.add_argument("--nobackupre",
+                            action = 'store_true', dest = "ignore_missing_backup_re_on_junos",
+                            default = None,
+                            help = "ignore missing backup re on junos")
         # parser.add_argument("--sim",
                             # action = "store_true", dest = 'sim',
                             # default = None,
@@ -2244,10 +2248,12 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
             directory, dev_dir, file, md5, fsize = missing_or_bad_files_per_device
             CGI_CLI.uprint('%s    %s' % \
                     (device, device_drive_string + os.path.join(dev_dir, file)))
+        ### PRINT SLAVE/BACKUP RE FILES #######################################
         for device,missing_or_bad_files_per_device in slave_missing_files_per_device_list:
             directory, dev_dir, file, md5, fsize = missing_or_bad_files_per_device
             if RCMD.router_type == 'juniper':
-                CGI_CLI.uprint('%s    re1:%s' % \
+                if CGI_CLI.data.get('ignore_missing_backup_re_on_junos'): pass
+                else: CGI_CLI.uprint('%s    re1:%s' % \
                         (device, os.path.join(dev_dir, file)))
             else:
                 CGI_CLI.uprint('%s    slave#%s' % \
@@ -2257,6 +2263,13 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
     ### SET FLAG FILES OK #####################################################
     if len(missing_files_per_device_list) == 0 \
         and len(slave_missing_files_per_device_list) == 0 \
+        and len(compatibility_problem_list) == 0 \
+        and nr_of_connected_devices > 0 \
+        and nr_of_connected_devices == len(device_list):
+            all_files_on_all_devices_ok = True
+
+    if len(missing_files_per_device_list) == 0 \
+        and len(slave_missing_files_per_device_list) > 0 and CGI_CLI.data.get('ignore_missing_backup_re_on_junos') and RCMD.router_type == 'juniper'\
         and len(compatibility_problem_list) == 0 \
         and nr_of_connected_devices > 0 \
         and nr_of_connected_devices == len(device_list):
@@ -2537,14 +2550,14 @@ def huawei_copy_device_files_to_slave_cfcard(true_sw_release_files_on_server = N
                 dir_outputs_after_copy = RCMD.run_commands(check_dir_files_cmds, \
                     printall = printall)
                 CGI_CLI.uprint('\n')
-                
+
                 file_not_found_list = []
                 for unique_dir, dir_output_after_copy in zip(unique_device_directory_list, dir_outputs_after_copy):
                     for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
                         if unique_dir == dev_dir:
                             if file in dir_output_after_copy: pass
                             else: file_not_found_list.append(dev_dir + file)
-                if len(file_not_found_list) > 0: 
+                if len(file_not_found_list) > 0:
                     CGI_CLI.uprint('COPY PROBLEM[%s]!' % (','.join(file_not_found_list)), color = 'red')
                 ### DISCONNECT ################################################
                 RCMD.disconnect()
@@ -2626,7 +2639,7 @@ def juniper_copy_device_files_to_other_routing_engine(true_sw_release_files_on_s
                             if unique_dir == dev_dir:
                                 if file in dir_output_after_copy: pass
                                 else: file_not_found_list.append(dev_dir + file)
-                    if len(file_not_found_list) > 0: 
+                    if len(file_not_found_list) > 0:
                         CGI_CLI.uprint('COPY PROBLEM[%s]!' % (','.join(file_not_found_list)), color = 'red')
             ### DISCONNECT ################################################
             RCMD.disconnect()
@@ -2927,6 +2940,7 @@ warning {
                 {'checkbox':'check_device_sw_files_only'},'<br/>',\
                 {'checkbox':'display_scp_percentage_only'},'<br/>',\
                 {'checkbox':'force_rewrite_sw_files_on_device'},'<br/>',\
+                {'checkbox':'ignore_missing_backup_re_on_junos'},'<br/>',\
                 {'checkbox':'backup_configs_to_device_disk'},'<br/>',\
                 {'checkbox':'delete_device_sw_files_on_end'},'<br/>',\
                 '<br/>', {'checkbox':'timestamps'}, \
@@ -2979,10 +2993,14 @@ warning {
         CGI_CLI.uprint('check_device_sw_files_only = Y')
     elif CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
         CGI_CLI.uprint('force_rewrite_sw_files_on_device = Y')
+    if CGI_CLI.data.get('ignore_missing_backup_re_on_junos'):
+        CGI_CLI.uprint('ignore_missing_backup_re_on_junos = Y')
     if CGI_CLI.data.get('backup_configs_to_device_disk'):
         CGI_CLI.uprint('backup_configs_to_device_disk = Y')
     if CGI_CLI.data.get('delete_device_sw_files_on_end'):
         CGI_CLI.uprint('delete_device_sw_files_on_end = Y')
+
+
 
     ### START TO MOVE WEBPAGE ALLWAYS TO END ##################################
     CGI_CLI.uprint(goto_webpage_end_by_javascript, raw=True)
@@ -3213,9 +3231,11 @@ warning {
             unique_device_directory_list)
 
         ### COPY DEVICE FILES TO JUNIPER OTHER ROUTING ENGINE #################
-        juniper_copy_device_files_to_other_routing_engine( \
-            true_sw_release_files_on_server, \
-            unique_device_directory_list)
+        if CGI_CLI.data.get('ignore_missing_backup_re_on_junos'): pass
+        else:
+            juniper_copy_device_files_to_other_routing_engine( \
+                true_sw_release_files_on_server, \
+                unique_device_directory_list)
 
         ### CHECK DEVICE FILES AFTER COPYING ##################################
         all_files_on_all_devices_ok, missing_files_per_device_list, \
