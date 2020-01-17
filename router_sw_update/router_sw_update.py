@@ -2568,6 +2568,7 @@ def huawei_copy_device_files_to_slave_cfcard(true_sw_release_files_on_server = N
 
 def juniper_copy_device_files_to_other_routing_engine(true_sw_release_files_on_server = None,
     unique_device_directory_list = None):
+    missing_backup_re_list = []
     for device in device_list:
         if device:
             RCMD.connect(device, username = USERNAME, password = PASSWORD, \
@@ -2603,6 +2604,7 @@ def juniper_copy_device_files_to_other_routing_engine(true_sw_release_files_on_s
                     (master_re, str(backup_re), device), tag = 'debug')
 
                 if not backup_re:
+                    missing_backup_re_list.append(device)
                     CGI_CLI.uprint('BACKUP routing engine is NOT PRESENT on device %s!' % (device), \
                         tag = 'warning' , color = 'red')
 
@@ -2644,6 +2646,11 @@ def juniper_copy_device_files_to_other_routing_engine(true_sw_release_files_on_s
             ### DISCONNECT ################################################
             RCMD.disconnect()
             time.sleep(3)
+
+    if len(missing_backup_re_list) > 0:
+        CGI_CLI.uprint('BACKUP routing engine is NOT PRESENT on device(s) %s!' % (','.join(missing_backup_re_list)), \
+            tag = 'warning' , color = 'red')
+    return missing_backup_re_list
 
 ##############################################################################
 
@@ -3212,6 +3219,7 @@ warning {
     ### def LOOP TILL ALL FILES ARE COPIED OK #################################
     counter_of_scp_attempts = 0
     while not all_files_on_all_devices_ok:
+        missing_backup_re_list = []
         counter_of_scp_attempts += 1
         if CGI_CLI.data.get('force_rewrite_sw_files_on_device') and counter_of_scp_attempts <= 1:
             force_rewrite = True
@@ -3233,9 +3241,11 @@ warning {
         ### COPY DEVICE FILES TO JUNIPER OTHER ROUTING ENGINE #################
         if CGI_CLI.data.get('ignore_missing_backup_re_on_junos'): pass
         else:
-            juniper_copy_device_files_to_other_routing_engine( \
+            missing_backup_re_list = juniper_copy_device_files_to_other_routing_engine( \
                 true_sw_release_files_on_server, \
                 unique_device_directory_list)
+
+            if len(missing_backup_re_list) > 0: sys.exit(0)
 
         ### CHECK DEVICE FILES AFTER COPYING ##################################
         all_files_on_all_devices_ok, missing_files_per_device_list, \
