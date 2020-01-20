@@ -555,7 +555,7 @@ class RCMD(object):
                     look_for_keys = False)
                 RCMD.ssh_connection = RCMD.client.invoke_shell()
                 if RCMD.ssh_connection:
-                    RCMD.router_type, RCMD.router_prompt = RCMD.ssh_raw_detect_router_type(debug = None)
+                    RCMD.router_type, RCMD.router_prompt = RCMD.ssh_raw_detect_router_type(debug = True)
                     if RCMD.router_type in RCMD.KNOWN_OS_TYPES and printall:
                         CGI_CLI.uprint('DETECTED DEVICE_TYPE: %s' % (RCMD.router_type), \
                             color = 'gray')
@@ -937,7 +937,7 @@ class RCMD(object):
                         ### TRICK IS IF NEW PROMPT OCCURS, HIT ENTER ... ###
                         ### ... AND IF OCCURS THE SAME LINE --> IT IS NEW PROMPT!!! ###
                         chan.send('\n')
-                        time.sleep(0.1)
+                        time.sleep(0.2)
                         while(not exit_loop2):
                             if chan.recv_ready():
                                 buff = chan.recv(9999)
@@ -966,13 +966,13 @@ class RCMD(object):
             while not (last_line and last_but_one_line and last_line == last_but_one_line):
                 buff = chan.recv(9999)
                 if len(buff)>0:
-                    if debug: CGI_CLI.uprint('LOOKING_FOR_PROMPT:',last_but_one_line,last_line)
+                    if debug: CGI_CLI.uprint('LOOKING_FOR_PROMPT:',last_but_one_line,last_line, color = 'grey')
                     output += buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
                               replace('\x1b[K','').replace('\n{master}\n','')
                     if '--More--' or '---(more' in buff.strip():
                         chan.send('\x20')
-                        if debug: CGI_CLI.uprint('SPACE_SENT.')
-                        time.sleep(0.3)
+                        if debug: CGI_CLI.uprint('SPACE_SENT.', color = 'blue')
+                        time.sleep(0.1)
                     try: last_line = output.splitlines()[-1].strip().replace('\x20','')
                     except: last_line = 'dummyline1'
                     try:
@@ -982,7 +982,7 @@ class RCMD(object):
                             last_but_one_line = output.splitlines()[-3].strip().replace('\x20','')
                     except: last_but_one_line = 'dummyline2'
             prompt = output.splitlines()[-1].strip()
-            if debug: CGI_CLI.uprint('DETECTED PROMPT: \'' + prompt + '\'')
+            if debug: CGI_CLI.uprint('DETECTED PROMPT: \'' + prompt + '\'', color = 'yellow')
             return prompt
         # bullet-proof read-until function , even in case of ---more---
         def ssh_raw_read_until_prompt(chan,command,prompts,debug = debug):
@@ -999,12 +999,13 @@ class RCMD(object):
                 output += buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
                           replace('\x1b[K','').replace('\n{master}\n','')
                 if '--More--' or '---(more' in buff.strip(): chan.send('\x20')
-                if debug: CGI_CLI.uprint('BUFFER:' + buff)
+                if debug: CGI_CLI.uprint('BUFFER:' + buff, color = 'grey')
                 try: last_line = output.splitlines()[-1].strip()
                 except: last_line = str()
                 for actual_prompt in prompts:
-                    if output.endswith(actual_prompt) or \
-                        last_line and last_line.endswith(actual_prompt): exit_loop = True
+                    if output.endswith(actual_prompt) \
+                        or (last_line and last_line.endswith(actual_prompt)) \
+                        or actual_prompt in last_line: exit_loop = True
             return output
         # Detect function start
         #asr1k_detection_string = 'CSR1000'
@@ -1015,14 +1016,20 @@ class RCMD(object):
         # prevent --More-- in log banner (space=page, enter=1line,tab=esc)
         # \n\n get prompt as last line
         prompt = ssh_raw_detect_prompt(RCMD.ssh_connection, debug=debug)
-        #test if this is HUAWEI VRP
+        ### test if this is HUAWEI VRP
         if prompt and not router_os:
             command = 'display version | include (Huawei)\n'
             output = ssh_raw_read_until_prompt(RCMD.ssh_connection, command, [prompt], debug=debug)
             if 'Huawei Versatile Routing Platform Software' in output: router_os = 'vrp'
-        #test if this is CISCO IOS-XR, IOS-XE or JUNOS
+        ### JUNOS
         if prompt and not router_os:
-            command = 'show version\n'
+            command = 'show version | match Software\n'
+            output = ssh_raw_read_until_prompt(RCMD.ssh_connection, command, [prompt], debug=debug)        
+            if 'JUNOS' in output: router_os = 'junos'
+
+        ### test if this is CISCO IOS-XR, IOS-XE or JUNOS
+        if prompt and not router_os:
+            command = 'show version | include Software\n'
             output = ssh_raw_read_until_prompt(RCMD.ssh_connection, command, [prompt], debug=debug)
             if 'iosxr-' in output or 'Cisco IOS XR Software' in output:
                 router_os = 'ios-xr'
@@ -1030,7 +1037,7 @@ class RCMD(object):
             elif 'Cisco IOS-XE software' in output:
                 router_os = 'ios-xe'
                 if 'CSR1000' in output: RCMD.router_version = 'ASR1K'
-            elif 'JUNOS OS' in output: router_os = 'junos'
+ 
         if prompt and not router_os:
             command = 'uname -a\n'
             output = ssh_raw_read_until_prompt(RCMD.ssh_connection, command, [prompt], debug=debug)
@@ -1319,6 +1326,7 @@ warning {
 
     goto_webpage_end_by_javascript = str()
 
+    logfilename = str()
     logging.raiseExceptions=False
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True, css_style = CSS_STYLE)
 
@@ -1330,16 +1338,28 @@ warning {
         else: device_list = [devices_string.upper()]
 
     CGI_CLI.uprint('ISIS check (v.%s)' % (CGI_CLI.VERSION()), tag = 'h1', color = 'blue')
-    # CGI_CLI.uprint('PID=%s ' % (os.getpid()), color = 'blue')
+    
     printall = CGI_CLI.data.get("printall")
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
     if printall: CGI_CLI.print_args()
 
+
+    ### HTML MENU SHOWS ONLY IN CGI MODE ###
+    if CGI_CLI.cgi_active and not CGI_CLI.submit_form:
+        CGI_CLI.formprint([{'text':'device'},'<br/>',{'text':'username'},'<br/>',\
+            {'password':'password'},'<br/>',{'checkbox':'printall'},'<br/>','<br/>'],\
+            submit_button = 'OK', pyfile = None, tag = None, color = None)
+
+    iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
+    if CGI_CLI.cgi_active and not (USERNAME and PASSWORD):
+        if iptac_server == 'iptac5': USERNAME, PASSWORD = 'iptac', 'paiiUNDO'
+        
     for device in device_list:
 
         ### REMOTE DEVICE OPERATIONS ######################################
         if device:
             RCMD.connect(device, username = USERNAME, password = PASSWORD, \
+                connection_timeout = 60, disconnect_timeout = 0.1, \
                 printall = printall, logfilename = logfilename)
 
             if not RCMD.ssh_connection:
@@ -1361,17 +1381,31 @@ warning {
             if RCMD.router_type == 'cisco_xr':
                 ### SELECT BE and SUBINTERFACES FROM OUTPUT ###
                 for line in rcmds_1_outputs[0].splitlines():
-                    if 'Testing' in line or 'OLD' in line or 'LAG' in line: continue
-                    if '.' in line.split()[0] or 'BE' in line.split()[0]:
-                        isis_interface_list.append(line.split()[0])
-
+                    if line.split()[-1] == 'MET' or line.split()[0] == 'sh': continue
+                    if line.strip() in RCMD.DEVICE_PROMPTS: continue
+                    if 'TESTING' in line.upper() or 'ETHNOW-TEST' in line.upper(): continue
+                    if 'OLD' in line.upper() or 'LAG' in line.upper(): continue
+                    if '.' in line.split()[0] or 'BE' in line.split()[0].upper():
+                        if len(isis_interface_list) == 0:
+                            isis_interface_list.append(line.split()[0])
+                        for interface_string in isis_interface_list:
+                            if line.split()[0] in interface_string: pass
+                            else: 
+                                isis_interface_list.append(line.split()[0])
+                                break
+                    
                 ### SELECT INTERFACES IF SUBINTERFACES ARE NOT IN LIST ###
                 for line in rcmds_1_outputs[0].splitlines():
-                    if 'Testing' in line or 'OLD' in line or 'LAG' in line: continue
+                    if ' MET' in line or line.split()[0] =='sh': continue
+                    if line.strip() in RCMD.DEVICE_PROMPTS: continue
+                    if 'TESTING' in line.upper() or 'ETHNOW-TEST' in line.upper(): continue
+                    if 'OLD' in line.upper() or 'LAG' in line.upper(): continue
                     if not '.' in line.split()[0]:
                         for interface_string in isis_interface_list:
                             if line.split()[0] in interface_string: pass
-                            else: isis_interface_list.append(line.split()[0])
+                            else: 
+                                isis_interface_list.append(line.split()[0])
+                                break
 
             if RCMD.router_type == 'cisco_ios': pass
             if RCMD.router_type == 'huawei': pass
@@ -1384,24 +1418,27 @@ warning {
                 'cisco_ios':[],
                 'cisco_xr':[]
             }
-            
+
             for isis_interface in isis_interface_list:
-                rcmds_2['cisco_ios'].append('sh isis interface ' % (isis_interface))
-                rcmds_2['cisco_xr'].append('sh isis interface ' % (isis_interface))
-            
+                rcmds_2['cisco_ios'].append('sh isis interface %s' % (isis_interface))
+                rcmds_2['cisco_xr'].append('sh isis interface %s' % (isis_interface))
+
             CGI_CLI.uprint('Read interface isis on %s' % (device), \
                 no_newlines = None if printall else True)
             rcmds_2_outputs = RCMD.run_commands(rcmds_2, printall = printall)
             CGI_CLI.uprint('\n')
 
-            isis_interface_ok_list, isis_interface_fail_list = [], []
+            isis_interface_ok_list, isis_interface_fail_list, isis_interface_warning_list = [], [], []
             for interface, rcmd_2_output in zip(isis_interface_list,rcmds_2_outputs):
-                if '(Intf passive in IS-IS cfg)' in rcmd_2_output: 
+                if '(Intf passive in IS-IS cfg)' in rcmd_2_output:
                     isis_interface_ok_list.append(interface)
-                else: isis_interface_fail_list(interface)   
+                elif '% No IS-IS instances are configured to use':
+                    isis_interface_fail_list.append(interface)
+                else: isis_interface_warning_list.append(interface)
 
-            CGI_CLI.uprint('ISIS OK on: %s' % (','.join(isis_interface_ok_list)), tag = 'h1' ,color = 'green')
             CGI_CLI.uprint('ISIS PROBLEM on: %s' % (','.join(isis_interface_fail_list)), tag = 'h1' ,color = 'red')
+            CGI_CLI.uprint('ISIS WARNING on: %s' % (','.join(isis_interface_warning_list)), tag = 'h1' ,color = 'yellow')
+            CGI_CLI.uprint('ISIS OK on: %s' % (','.join(isis_interface_ok_list)), tag = 'h1' ,color = 'green')
 
             RCMD.disconnect()
 except SystemExit: pass
