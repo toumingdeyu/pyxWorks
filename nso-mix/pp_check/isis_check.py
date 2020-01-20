@@ -876,7 +876,7 @@ class RCMD(object):
         if chan.recv_ready(): flush_buffer = chan.recv(9999)
         time.sleep(0.1)
         chan.send(send_data + '\n')
-        time.sleep(0.2)
+        time.sleep(0.1)
         while not exit_loop:
             if chan.recv_ready():
                 ### WORKARROUND FOR DISCONTINIOUS OUTPUT FROM ROUTERS ###
@@ -1367,6 +1367,22 @@ warning {
                 RCMD.disconnect()
                 continue
 
+            rcmds_0 = {
+                'cisco_ios':['show bgp summary'],
+                'cisco_xr':["show bgp summary"],
+                'juniper':['show configuration protocols bgp | match local-as']
+            }
+
+            CGI_CLI.uprint('Check Internal AS on %s' % (device), \
+                no_newlines = None if printall else True)
+            rcmds_0_outputs = RCMD.run_commands(rcmds_0, printall = printall)
+            CGI_CLI.uprint('\n')
+
+            if 'local AS number 2300' in rcmds_0_outputs[0] or 'local-as 2300' in rcmds_0_outputs[0]:
+                RCMD.disconnect()
+                CGI_CLI.uprint('This is IMN Router (Internal AS 2300).\n')
+                sys.exit(0)
+
             rcmds_1 = {
                 'cisco_ios':['show interfaces description | i Custom'],
                 'cisco_xr':["show int description | utility egrep 'Custom|Peer|peer|Content'"],
@@ -1390,7 +1406,8 @@ warning {
                         if 'TESTING' in line.upper() or 'ETHNOW-TEST' in line.upper(): continue
                         if 'OLD' in line.upper(): continue
                         if not 'BE' in line.split()[0].upper() and 'LAG' in line.upper(): continue
-                        if '.' in line.split()[0] or 'BE' in line.split()[0].upper():
+                        ### DOTTED INTERFACES FIRST ###
+                        if '.' in line.split()[0]:
                             if len(isis_interface_list) == 0:
                                 isis_interface_list.append(line.split()[0])
                             for interface_string in isis_interface_list:
@@ -1407,7 +1424,9 @@ warning {
                         if line.strip() in RCMD.DEVICE_PROMPTS: continue
                         if 'TESTING' in line.upper() or 'ETHNOW-TEST' in line.upper(): continue
                         if 'OLD' in line.upper(): continue
-                        if not 'BE' in line.split()[0].upper() and 'LAG' in line.upper(): continue                      
+                        if not 'BE' in line.split()[0].upper() and 'LAG' in line.upper(): continue
+                        if len(isis_interface_list) == 0:
+                            isis_interface_list.append(line.split()[0])
                         for interface_string in isis_interface_list:
                             if line.split()[0] in interface_string: pass
                             else:
@@ -1448,7 +1467,7 @@ warning {
                                     break
 
             if RCMD.router_type == 'huawei': pass
-            
+
 
             rcmds_2 = {
                 'cisco_ios':[],
