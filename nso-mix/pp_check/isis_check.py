@@ -555,7 +555,7 @@ class RCMD(object):
                     look_for_keys = False)
                 RCMD.ssh_connection = RCMD.client.invoke_shell()
                 if RCMD.ssh_connection:
-                    RCMD.router_type, RCMD.router_prompt = RCMD.ssh_raw_detect_router_type(debug = True)
+                    RCMD.router_type, RCMD.router_prompt = RCMD.ssh_raw_detect_router_type(debug = None)
                     if RCMD.router_type in RCMD.KNOWN_OS_TYPES and printall:
                         CGI_CLI.uprint('DETECTED DEVICE_TYPE: %s' % (RCMD.router_type), \
                             color = 'gray')
@@ -1024,7 +1024,7 @@ class RCMD(object):
         ### JUNOS
         if prompt and not router_os:
             command = 'show version | match Software\n'
-            output = ssh_raw_read_until_prompt(RCMD.ssh_connection, command, [prompt], debug=debug)        
+            output = ssh_raw_read_until_prompt(RCMD.ssh_connection, command, [prompt], debug=debug)
             if 'JUNOS' in output: router_os = 'junos'
 
         ### test if this is CISCO IOS-XR, IOS-XE or JUNOS
@@ -1037,7 +1037,7 @@ class RCMD(object):
             elif 'Cisco IOS-XE software' in output:
                 router_os = 'ios-xe'
                 if 'CSR1000' in output: RCMD.router_version = 'ASR1K'
- 
+
         if prompt and not router_os:
             command = 'uname -a\n'
             output = ssh_raw_read_until_prompt(RCMD.ssh_connection, command, [prompt], debug=debug)
@@ -1338,7 +1338,7 @@ warning {
         else: device_list = [devices_string.upper()]
 
     CGI_CLI.uprint('ISIS check (v.%s)' % (CGI_CLI.VERSION()), tag = 'h1', color = 'blue')
-    
+
     printall = CGI_CLI.data.get("printall")
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
     if printall: CGI_CLI.print_args()
@@ -1353,7 +1353,7 @@ warning {
     iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
     if CGI_CLI.cgi_active and not (USERNAME and PASSWORD):
         if iptac_server == 'iptac5': USERNAME, PASSWORD = 'iptac', 'paiiUNDO'
-        
+
     for device in device_list:
 
         ### REMOTE DEVICE OPERATIONS ######################################
@@ -1368,8 +1368,9 @@ warning {
                 continue
 
             rcmds_1 = {
-                'cisco_ios':['sh interfaces description | i Custom'],
-                'cisco_xr':['sh interfaces description | i Custom']
+                'cisco_ios':['show interfaces description | i Custom'],
+                'cisco_xr':['show interfaces description | i Custom'],
+                'juniper':['show interfaces descriptions | match Custom']
             }
 
             CGI_CLI.uprint('Read interfaces on %s' % (device), \
@@ -1378,50 +1379,88 @@ warning {
             CGI_CLI.uprint('\n')
 
             isis_interface_list = []
-            if RCMD.router_type == 'cisco_xr':
+
+            if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
                 ### SELECT BE and SUBINTERFACES FROM OUTPUT ###
                 for line in rcmds_1_outputs[0].splitlines():
-                    if line.split()[-1] == 'MET' or line.split()[0] == 'sh': continue
-                    if line.strip() in RCMD.DEVICE_PROMPTS: continue
-                    if 'TESTING' in line.upper() or 'ETHNOW-TEST' in line.upper(): continue
-                    if 'OLD' in line.upper() or 'LAG' in line.upper(): continue
-                    if '.' in line.split()[0] or 'BE' in line.split()[0].upper():
-                        if len(isis_interface_list) == 0:
-                            isis_interface_list.append(line.split()[0])
-                        for interface_string in isis_interface_list:
-                            if line.split()[0] in interface_string: pass
-                            else: 
+                    if line.strip():
+                        if line.split()[-1] == 'MET' or line.split()[0] == 'show': continue
+                        if line.strip() in RCMD.DEVICE_PROMPTS: continue
+                        if 'TESTING' in line.upper() or 'ETHNOW-TEST' in line.upper(): continue
+                        if 'OLD' in line.upper() or 'LAG' in line.upper(): continue
+                        if '.' in line.split()[0] or 'BE' in line.split()[0].upper():
+                            if len(isis_interface_list) == 0:
                                 isis_interface_list.append(line.split()[0])
-                                break
-                    
+                            for interface_string in isis_interface_list:
+                                if line.split()[0] in interface_string: pass
+                                else:
+                                    isis_interface_list.append(line.split()[0])
+                                    break
+
                 ### SELECT INTERFACES IF SUBINTERFACES ARE NOT IN LIST ###
                 for line in rcmds_1_outputs[0].splitlines():
-                    if ' MET' in line or line.split()[0] =='sh': continue
-                    if line.strip() in RCMD.DEVICE_PROMPTS: continue
-                    if 'TESTING' in line.upper() or 'ETHNOW-TEST' in line.upper(): continue
-                    if 'OLD' in line.upper() or 'LAG' in line.upper(): continue
-                    if not '.' in line.split()[0]:
-                        for interface_string in isis_interface_list:
-                            if line.split()[0] in interface_string: pass
-                            else: 
-                                isis_interface_list.append(line.split()[0])
-                                break
+                    if line.strip():
+                        if ' MET' in line or line.split()[0] =='show': continue
+                        if line.strip() in RCMD.DEVICE_PROMPTS: continue
+                        if 'TESTING' in line.upper() or 'ETHNOW-TEST' in line.upper(): continue
+                        if 'OLD' in line.upper() or 'LAG' in line.upper(): continue
+                        if not '.' in line.split()[0]:
+                            for interface_string in isis_interface_list:
+                                if line.split()[0] in interface_string: pass
+                                else:
+                                    isis_interface_list.append(line.split()[0])
+                                    break
 
-            if RCMD.router_type == 'cisco_ios': pass
+            if RCMD.router_type == 'juniper':
+                ### SELECT BE and SUBINTERFACES FROM OUTPUT ###
+                for line in rcmds_1_outputs[0].splitlines():
+                    if line.strip():
+                        if line == '{master}': continue
+                        if line.strip() and len(line.split())> 0 and line.split()[0] == 'show': continue
+                        if line.strip() in RCMD.DEVICE_PROMPTS: continue
+                        if 'TESTING' in line.upper() or 'ETHNOW-TEST' in line.upper(): continue
+                        if 'OLD' in line.upper() or 'LAG' in line.upper(): continue
+                        if '.' in line.split()[0] or 'BE' in line.split()[0].upper():
+                            if len(isis_interface_list) == 0:
+                                isis_interface_list.append(line.split()[0])
+                            for interface_string in isis_interface_list:
+                                if line.split()[0] in interface_string: pass
+                                else:
+                                    isis_interface_list.append(line.split()[0])
+                                    break
+
+                ### SELECT INTERFACES IF SUBINTERFACES ARE NOT IN LIST ###
+                for line in rcmds_1_outputs[0].splitlines():
+                    if line.strip():
+                        if line == '{master}': continue
+                        if line.strip() and len(line.split())> 0 and line.split()[0] == 'show': continue
+                        if line.strip() in RCMD.DEVICE_PROMPTS: continue
+                        if 'TESTING' in line.upper() or 'ETHNOW-TEST' in line.upper(): continue
+                        if 'OLD' in line.upper() or 'LAG' in line.upper(): continue
+                        if not '.' in line.split()[0]:
+                            for interface_string in isis_interface_list:
+                                if line.split()[0] in interface_string: pass
+                                else:
+                                    isis_interface_list.append(line.split()[0])
+                                    break
+
             if RCMD.router_type == 'huawei': pass
-            if RCMD.router_type == 'juniper': pass
+
 
             CGI_CLI.uprint(isis_interface_list, name = True , jsonprint = True)
 
 
             rcmds_2 = {
                 'cisco_ios':[],
-                'cisco_xr':[]
+                'cisco_xr':[],
+                'juniper':[]
             }
 
             for isis_interface in isis_interface_list:
                 rcmds_2['cisco_ios'].append('sh isis interface %s' % (isis_interface))
                 rcmds_2['cisco_xr'].append('sh isis interface %s' % (isis_interface))
+                rcmds_2['juniper'].append('show isis interface %s' % (isis_interface))
+
 
             CGI_CLI.uprint('Read interface isis on %s' % (device), \
                 no_newlines = None if printall else True)
@@ -1429,16 +1468,27 @@ warning {
             CGI_CLI.uprint('\n')
 
             isis_interface_ok_list, isis_interface_fail_list, isis_interface_warning_list = [], [], []
-            for interface, rcmd_2_output in zip(isis_interface_list,rcmds_2_outputs):
-                if '(Intf passive in IS-IS cfg)' in rcmd_2_output:
-                    isis_interface_ok_list.append(interface)
-                elif '% No IS-IS instances are configured to use':
-                    isis_interface_fail_list.append(interface)
-                else: isis_interface_warning_list.append(interface)
 
-            CGI_CLI.uprint('ISIS PROBLEM on: %s' % (','.join(isis_interface_fail_list)), tag = 'h1' ,color = 'red')
-            CGI_CLI.uprint('ISIS WARNING on: %s' % (','.join(isis_interface_warning_list)), tag = 'h1' ,color = 'yellow')
-            CGI_CLI.uprint('ISIS OK on: %s' % (','.join(isis_interface_ok_list)), tag = 'h1' ,color = 'green')
+            if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
+                for interface, rcmd_2_output in zip(isis_interface_list,rcmds_2_outputs):
+                    if '(Intf passive in IS-IS cfg)' in rcmd_2_output:
+                        isis_interface_ok_list.append(interface)
+                    elif '% No IS-IS instances are configured to use':
+                        isis_interface_fail_list.append(interface)
+                    else: isis_interface_warning_list.append(interface)
+
+            if RCMD.router_type == 'juniper':
+                for interface, rcmd_2_output in zip(isis_interface_list,rcmds_2_outputs):
+                    if 'Level 2 DR' in rcmd_2_output or 'Passive' in rcmd_2_output:
+                        isis_interface_ok_list.append(interface)
+                    else: isis_interface_fail_list.append(interface)
+
+            if len(isis_interface_fail_list) > 0:
+                CGI_CLI.uprint('ISIS PROBLEM on: %s' % (','.join(isis_interface_fail_list)), tag = 'h1' ,color = 'red')
+            if len(isis_interface_warning_list) > 0:
+                CGI_CLI.uprint('ISIS WARNING on: %s' % (','.join(isis_interface_warning_list)), tag = 'h1' ,color = 'yellow')
+            if len(isis_interface_ok_list) > 0:
+                CGI_CLI.uprint('ISIS OK on: %s' % (','.join(isis_interface_ok_list)), tag = 'h1' ,color = 'green')
 
             RCMD.disconnect()
 except SystemExit: pass
