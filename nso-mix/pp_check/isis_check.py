@@ -1369,7 +1369,7 @@ warning {
 
             rcmds_1 = {
                 'cisco_ios':['show interfaces description | i Custom'],
-                'cisco_xr':['show interfaces description | i Custom'],
+                'cisco_xr':["show int description | utility egrep 'Custom|Peer|peer'"],
                 'juniper':['show interfaces descriptions | match Custom']
             }
 
@@ -1403,13 +1403,12 @@ warning {
                         if ' MET' in line or line.split()[0] =='show': continue
                         if line.strip() in RCMD.DEVICE_PROMPTS: continue
                         if 'TESTING' in line.upper() or 'ETHNOW-TEST' in line.upper(): continue
-                        if 'OLD' in line.upper() or 'LAG' in line.upper(): continue
-                        if not '.' in line.split()[0]:
-                            for interface_string in isis_interface_list:
-                                if line.split()[0] in interface_string: pass
-                                else:
-                                    isis_interface_list.append(line.split()[0])
-                                    break
+                        if 'OLD' in line.upper() or 'LAG' in line.upper(): continue                        
+                        for interface_string in isis_interface_list:
+                            if line.split()[0] in interface_string: pass
+                            else:
+                                isis_interface_list.append(line.split()[0])
+                                break
 
             if RCMD.router_type == 'juniper':
                 ### SELECT BE and SUBINTERFACES FROM OUTPUT ###
