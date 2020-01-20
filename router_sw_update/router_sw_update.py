@@ -843,23 +843,27 @@ class RCMD(object):
     @staticmethod
     def __cleanup__():
         RCMD.output, RCMD.fp = None, None
-        if RCMD.ssh_connection:
-            if RCMD.use_module == 'netmiko': RCMD.ssh_connection.disconnect()
-            elif RCMD.use_module == 'paramiko': RCMD.client.close()
-            if RCMD.printall: CGI_CLI.uprint('DEVICE %s:%s DONE.' % \
-                (RCMD.DEVICE_HOST, RCMD.DEVICE_PORT), color = 'gray')
-            RCMD.ssh_connection = None
+        try:
+            if RCMD.ssh_connection:
+                if RCMD.use_module == 'netmiko': RCMD.ssh_connection.disconnect()
+                elif RCMD.use_module == 'paramiko': RCMD.client.close()
+                if RCMD.printall: CGI_CLI.uprint('DEVICE %s:%s DONE.' % \
+                    (RCMD.DEVICE_HOST, RCMD.DEVICE_PORT), color = 'gray')
+                RCMD.ssh_connection = None
+        except: pass
 
     @staticmethod
     def disconnect():
         RCMD.output, RCMD.fp = None, None
-        if RCMD.ssh_connection:
-            if RCMD.use_module == 'netmiko': RCMD.ssh_connection.disconnect()
-            elif RCMD.use_module == 'paramiko': RCMD.client.close()
-            if RCMD.printall: CGI_CLI.uprint('DEVICE %s:%s DISCONNECTED.' % \
-                (RCMD.DEVICE_HOST, RCMD.DEVICE_PORT), color = 'gray')
-            RCMD.ssh_connection = None
-            time.sleep(RCMD.DISCONNECT_TIMEOUT)
+        try:
+            if RCMD.ssh_connection:
+                if RCMD.use_module == 'netmiko': RCMD.ssh_connection.disconnect()
+                elif RCMD.use_module == 'paramiko': RCMD.client.close()
+                if RCMD.printall: CGI_CLI.uprint('DEVICE %s:%s DISCONNECTED.' % \
+                    (RCMD.DEVICE_HOST, RCMD.DEVICE_PORT), color = 'gray')
+                RCMD.ssh_connection = None
+                time.sleep(RCMD.DISCONNECT_TIMEOUT)
+        except: pass
 
     @staticmethod
     def ssh_send_command_and_read_output(chan, prompts, \
@@ -962,12 +966,12 @@ class RCMD(object):
             while not (last_line and last_but_one_line and last_line == last_but_one_line):
                 buff = chan.recv(9999)
                 if len(buff)>0:
-                    if debug: CGI_CLI.uprint('LOOKING_FOR_PROMPT:',last_but_one_line,last_line)
+                    if debug: CGI_CLI.uprint('LOOKING_FOR_PROMPT:',last_but_one_line,last_line, color = 'grey')
                     output += buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
                               replace('\x1b[K','').replace('\n{master}\n','')
                     if '--More--' or '---(more' in buff.strip():
                         chan.send('\x20')
-                        if debug: CGI_CLI.uprint('SPACE_SENT.')
+                        if debug: CGI_CLI.uprint('SPACE_SENT.', color = 'blue')
                         time.sleep(0.3)
                     try: last_line = output.splitlines()[-1].strip().replace('\x20','')
                     except: last_line = 'dummyline1'
@@ -978,7 +982,7 @@ class RCMD(object):
                             last_but_one_line = output.splitlines()[-3].strip().replace('\x20','')
                     except: last_but_one_line = 'dummyline2'
             prompt = output.splitlines()[-1].strip()
-            if debug: CGI_CLI.uprint('DETECTED PROMPT: \'' + prompt + '\'')
+            if debug: CGI_CLI.uprint('DETECTED PROMPT: \'' + prompt + '\'', color = 'yellow')
             return prompt
         # bullet-proof read-until function , even in case of ---more---
         def ssh_raw_read_until_prompt(chan,command,prompts,debug = debug):
@@ -995,12 +999,13 @@ class RCMD(object):
                 output += buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
                           replace('\x1b[K','').replace('\n{master}\n','')
                 if '--More--' or '---(more' in buff.strip(): chan.send('\x20')
-                if debug: CGI_CLI.uprint('BUFFER:' + buff)
+                if debug: CGI_CLI.uprint('BUFFER:' + buff, color = 'grey')
                 try: last_line = output.splitlines()[-1].strip()
                 except: last_line = str()
                 for actual_prompt in prompts:
-                    if output.endswith(actual_prompt) or \
-                        last_line and last_line.endswith(actual_prompt): exit_loop = True
+                    if output.endswith(actual_prompt) \
+                        or (last_line and last_line.endswith(actual_prompt)) \
+                        or actual_prompt in last_line: exit_loop = True
             return output
         # Detect function start
         #asr1k_detection_string = 'CSR1000'
@@ -1011,14 +1016,20 @@ class RCMD(object):
         # prevent --More-- in log banner (space=page, enter=1line,tab=esc)
         # \n\n get prompt as last line
         prompt = ssh_raw_detect_prompt(RCMD.ssh_connection, debug=debug)
-        #test if this is HUAWEI VRP
+        ### test if this is HUAWEI VRP
         if prompt and not router_os:
             command = 'display version | include (Huawei)\n'
             output = ssh_raw_read_until_prompt(RCMD.ssh_connection, command, [prompt], debug=debug)
             if 'Huawei Versatile Routing Platform Software' in output: router_os = 'vrp'
-        #test if this is CISCO IOS-XR, IOS-XE or JUNOS
+        ### JUNOS
         if prompt and not router_os:
-            command = 'show version\n'
+            command = 'show version | match Software\n'
+            output = ssh_raw_read_until_prompt(RCMD.ssh_connection, command, [prompt], debug=debug)
+            if 'JUNOS' in output: router_os = 'junos'
+
+        ### test if this is CISCO IOS-XR, IOS-XE or JUNOS
+        if prompt and not router_os:
+            command = 'show version | include Software\n'
             output = ssh_raw_read_until_prompt(RCMD.ssh_connection, command, [prompt], debug=debug)
             if 'iosxr-' in output or 'Cisco IOS XR Software' in output:
                 router_os = 'ios-xr'
@@ -1026,7 +1037,7 @@ class RCMD(object):
             elif 'Cisco IOS-XE software' in output:
                 router_os = 'ios-xe'
                 if 'CSR1000' in output: RCMD.router_version = 'ASR1K'
-            elif 'JUNOS OS' in output: router_os = 'junos'
+
         if prompt and not router_os:
             command = 'uname -a\n'
             output = ssh_raw_read_until_prompt(RCMD.ssh_connection, command, [prompt], debug=debug)
