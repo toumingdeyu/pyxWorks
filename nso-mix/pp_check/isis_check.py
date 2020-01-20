@@ -1369,7 +1369,7 @@ warning {
 
             rcmds_1 = {
                 'cisco_ios':['show interfaces description | i Custom'],
-                'cisco_xr':["show int description | utility egrep 'Custom|Peer|peer'"],
+                'cisco_xr':["show int description | utility egrep 'Custom|Peer|peer|Content'"],
                 'juniper':['show interfaces descriptions | match Custom']
             }
 
@@ -1384,10 +1384,12 @@ warning {
                 ### SELECT BE and SUBINTERFACES FROM OUTPUT ###
                 for line in rcmds_1_outputs[0].splitlines():
                     if line.strip():
-                        if line.split()[-1] == 'MET' or line.split()[0] == 'show': continue
+                        if line.split()[-1] == 'MET' or line.split()[-1] == 'UTC': continue
+                        if line.split()[0] == 'show': continue
                         if line.strip() in RCMD.DEVICE_PROMPTS: continue
                         if 'TESTING' in line.upper() or 'ETHNOW-TEST' in line.upper(): continue
-                        if 'OLD' in line.upper() or 'LAG' in line.upper(): continue
+                        if 'OLD' in line.upper(): continue
+                        if not 'BE' in line.split()[0].upper() and 'LAG' in line.upper(): continue
                         if '.' in line.split()[0] or 'BE' in line.split()[0].upper():
                             if len(isis_interface_list) == 0:
                                 isis_interface_list.append(line.split()[0])
@@ -1400,10 +1402,12 @@ warning {
                 ### SELECT INTERFACES IF SUBINTERFACES ARE NOT IN LIST ###
                 for line in rcmds_1_outputs[0].splitlines():
                     if line.strip():
-                        if ' MET' in line or line.split()[0] =='show': continue
+                        if line.split()[-1] == 'MET' or line.split()[-1] == 'UTC': continue
+                        if line.split()[0] == 'show': continue
                         if line.strip() in RCMD.DEVICE_PROMPTS: continue
                         if 'TESTING' in line.upper() or 'ETHNOW-TEST' in line.upper(): continue
-                        if 'OLD' in line.upper() or 'LAG' in line.upper(): continue                        
+                        if 'OLD' in line.upper(): continue
+                        if not 'BE' in line.split()[0].upper() and 'LAG' in line.upper(): continue                      
                         for interface_string in isis_interface_list:
                             if line.split()[0] in interface_string: pass
                             else:
@@ -1444,10 +1448,7 @@ warning {
                                     break
 
             if RCMD.router_type == 'huawei': pass
-
-
-            CGI_CLI.uprint(isis_interface_list, name = True , jsonprint = True)
-
+            
 
             rcmds_2 = {
                 'cisco_ios':[],
@@ -1482,6 +1483,8 @@ warning {
                         isis_interface_ok_list.append(interface)
                     else: isis_interface_fail_list.append(interface)
 
+            ### PRINTOUTS ###
+            CGI_CLI.uprint(isis_interface_list, name = True , jsonprint = True)
             if len(isis_interface_fail_list) > 0:
                 CGI_CLI.uprint('ISIS PROBLEM on: %s' % (','.join(isis_interface_fail_list)), tag = 'h1' ,color = 'red')
             if len(isis_interface_warning_list) > 0:
