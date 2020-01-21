@@ -489,7 +489,7 @@ class RCMD(object):
     @staticmethod
     def connect(device = None, cmd_data = None, username = None, password = None, \
         use_module = 'paramiko', logfilename = None, \
-        connection_timeout = 500, cmd_timeout = 30, \
+        connection_timeout = 600, cmd_timeout = 30, \
         conf = None, sim_config = None, disconnect = None, printall = None, \
         do_not_final_print = None, commit_text = None, silent_mode = None, \
         disconnect_timeout = 2):
@@ -895,6 +895,16 @@ class RCMD(object):
                 buff_read = str()
                 time.sleep(0.1);
                 timeout_counter_100msec += 1
+
+                ### LONG LASTING COMMAND = ONLY CONNECTION TIMEOUT WILL BE APPLIED ###
+                if long_lasting_mode:
+                    if timeout_counter_100msec%100: pass
+                    elif CGI_CLI.cgi_active:
+                        CGI_CLI.uprint("<script>console.log('10sec...');</script>", raw = True)
+                    if timeout_counter_100msec + 100 >= RCMD.CONNECTION_TIMEOUT*10:
+                        CGI_CLI.uprint("LONG LASTING COMMAND TIMEOUT!", color = 'red')
+                        exit_loop = True
+                        break
                 continue
             # FIND LAST LINE, THIS COULD BE PROMPT
             try: last_line, last_line_orig = output.splitlines()[-1].strip(), output.splitlines()[-1].strip()
@@ -934,7 +944,13 @@ class RCMD(object):
 
                 ### LONG LASTING COMMAND = ONLY CONNECTION TIMEOUT WILL BE APPLIED ###
                 if long_lasting_mode:
-                    if timeout_counter_100msec > RCMD.CONNECTION_TIMEOUT*10: exit_loop = True; break
+                    if timeout_counter_100msec%100: pass
+                    elif CGI_CLI.cgi_active:
+                        CGI_CLI.uprint("<script>console.log('10s...');</script>", raw = True)
+                    if timeout_counter_100msec + 100 > RCMD.CONNECTION_TIMEOUT*10:
+                        CGI_CLI.uprint("LONG LASTING COMMAND TIMEOUT!!", color = 'red')
+                        exit_loop = True
+                        break
                 else:
                     ### 30 SECONDS COMMAND TIMEOUT ###
                     if timeout_counter_100msec > RCMD.CMD_TIMEOUT*10: exit_loop = True; break
@@ -1554,6 +1570,7 @@ class sql_interface():
                 except: pass
         return dict_list
 
+
 ##############################################################################
 #
 # def BEGIN MAIN
@@ -1653,7 +1670,7 @@ warning {
             if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
                 ### SELECT DOTTED = BE and SUBINTERFACES FROM OUTPUT ###
                 for line in rcmds_1_outputs[0].splitlines():
-                    if line.strip() and 'CUSTOM' in line.upper():
+                    if line.strip() and 'CUSTOM' in line.upper() and not 'L2VPN' in line.upper():
                         if line.split()[-1] == 'MET' or line.split()[-1] == 'UTC': continue
                         if line.split()[0] == 'show': continue
                         if line.strip() in RCMD.DEVICE_PROMPTS: continue
@@ -1675,7 +1692,7 @@ warning {
 
                 ### SELECT INTERFACES IF SUBINTERFACES ARE NOT IN LIST ###
                 for line in rcmds_1_outputs[0].splitlines():
-                    if line.strip() and 'CUSTOM' in line.upper():
+                    if line.strip() and 'CUSTOM' in line.upper() and not 'L2VPN' in line.upper():
                         if line.split()[-1] == 'MET' or line.split()[-1] == 'UTC': continue
                         if line.split()[0] == 'show': continue
                         if line.strip() in RCMD.DEVICE_PROMPTS: continue
@@ -1697,7 +1714,7 @@ warning {
             if RCMD.router_type == 'juniper':
                 ### SELECT BE and SUBINTERFACES FROM OUTPUT ###
                 for line in rcmds_1_outputs[0].splitlines():
-                    if line.strip() and 'CUSTOM' in line.upper():
+                    if line.strip() and 'CUSTOM' in line.upper() and not 'L2VPN' in line.upper():
                         if line == '{master}': continue
                         if line.strip() and len(line.split())> 0 and line.split()[0] == 'show': continue
                         if line.strip() in RCMD.DEVICE_PROMPTS: continue
@@ -1718,7 +1735,7 @@ warning {
 
                 ### SELECT INTERFACES IF SUBINTERFACES ARE NOT IN LIST ###
                 for line in rcmds_1_outputs[0].splitlines():
-                    if line.strip() and 'CUSTOM' in line.upper():
+                    if line.strip() and 'CUSTOM' in line.upper() and not 'L2VPN' in line.upper():
                         if line == '{master}': continue
                         if line.strip() and len(line.split())> 0 and line.split()[0] == 'show': continue
                         if line.strip() in RCMD.DEVICE_PROMPTS: continue
