@@ -1392,6 +1392,11 @@ warning {
                 RCMD.disconnect()
                 CGI_CLI.uprint('This is IMN Router (Internal AS 2300).\n')
                 sys.exit(0)
+            elif 'local AS number 5511' in rcmds_0_outputs[0] or 'local-as 5511' in rcmds_0_outputs[0]: pass
+            else:
+                RCMD.disconnect()
+                CGI_CLI.uprint('This is not OTI Router (unknown Internal AS).\n')
+                sys.exit(0)
 
             rcmds_1 = {
                 'cisco_ios':['show interfaces description | i Custom'],
@@ -1409,7 +1414,7 @@ warning {
             if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
                 ### SELECT DOTTED = BE and SUBINTERFACES FROM OUTPUT ###
                 for line in rcmds_1_outputs[0].splitlines():
-                    if line.strip():
+                    if line.strip() and 'CUSTOM' in line.upper():
                         if line.split()[-1] == 'MET' or line.split()[-1] == 'UTC': continue
                         if line.split()[0] == 'show': continue
                         if line.strip() in RCMD.DEVICE_PROMPTS: continue
@@ -1431,7 +1436,7 @@ warning {
 
                 ### SELECT INTERFACES IF SUBINTERFACES ARE NOT IN LIST ###
                 for line in rcmds_1_outputs[0].splitlines():
-                    if line.strip():
+                    if line.strip() and 'CUSTOM' in line.upper():
                         if line.split()[-1] == 'MET' or line.split()[-1] == 'UTC': continue
                         if line.split()[0] == 'show': continue
                         if line.strip() in RCMD.DEVICE_PROMPTS: continue
@@ -1453,7 +1458,7 @@ warning {
             if RCMD.router_type == 'juniper':
                 ### SELECT BE and SUBINTERFACES FROM OUTPUT ###
                 for line in rcmds_1_outputs[0].splitlines():
-                    if line.strip():
+                    if line.strip() and 'CUSTOM' in line.upper():
                         if line == '{master}': continue
                         if line.strip() and len(line.split())> 0 and line.split()[0] == 'show': continue
                         if line.strip() in RCMD.DEVICE_PROMPTS: continue
@@ -1474,7 +1479,7 @@ warning {
 
                 ### SELECT INTERFACES IF SUBINTERFACES ARE NOT IN LIST ###
                 for line in rcmds_1_outputs[0].splitlines():
-                    if line.strip():
+                    if line.strip() and 'CUSTOM' in line.upper():
                         if line == '{master}': continue
                         if line.strip() and len(line.split())> 0 and line.split()[0] == 'show': continue
                         if line.strip() in RCMD.DEVICE_PROMPTS: continue
