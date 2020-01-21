@@ -490,7 +490,7 @@ class RCMD(object):
     @staticmethod
     def connect(device = None, cmd_data = None, username = None, password = None, \
         use_module = 'paramiko', logfilename = None, \
-        connection_timeout = 500, cmd_timeout = 30, \
+        connection_timeout = 600, cmd_timeout = 30, \
         conf = None, sim_config = None, disconnect = None, printall = None, \
         do_not_final_print = None, commit_text = None, silent_mode = None, \
         disconnect_timeout = 2):
@@ -896,6 +896,16 @@ class RCMD(object):
                 buff_read = str()
                 time.sleep(0.1);
                 timeout_counter_100msec += 1
+
+                ### LONG LASTING COMMAND = ONLY CONNECTION TIMEOUT WILL BE APPLIED ###
+                if long_lasting_mode:
+                    if timeout_counter_100msec%100: pass
+                    elif CGI_CLI.cgi_active:
+                        CGI_CLI.uprint("<script>console.log('10sec...');</script>", raw = True)
+                    if timeout_counter_100msec + 100 >= RCMD.CONNECTION_TIMEOUT*10:
+                        CGI_CLI.uprint("LONG LASTING COMMAND TIMEOUT!", color = 'red')
+                        exit_loop = True
+                        break
                 continue
             # FIND LAST LINE, THIS COULD BE PROMPT
             try: last_line, last_line_orig = output.splitlines()[-1].strip(), output.splitlines()[-1].strip()
@@ -935,7 +945,13 @@ class RCMD(object):
 
                 ### LONG LASTING COMMAND = ONLY CONNECTION TIMEOUT WILL BE APPLIED ###
                 if long_lasting_mode:
-                    if timeout_counter_100msec > RCMD.CONNECTION_TIMEOUT*10: exit_loop = True; break
+                    if timeout_counter_100msec%100: pass
+                    elif CGI_CLI.cgi_active:
+                        CGI_CLI.uprint("<script>console.log('10s...');</script>", raw = True)
+                    if timeout_counter_100msec + 100 > RCMD.CONNECTION_TIMEOUT*10:
+                        CGI_CLI.uprint("LONG LASTING COMMAND TIMEOUT!!", color = 'red')
+                        exit_loop = True
+                        break
                 else:
                     ### 30 SECONDS COMMAND TIMEOUT ###
                     if timeout_counter_100msec > RCMD.CMD_TIMEOUT*10: exit_loop = True; break
