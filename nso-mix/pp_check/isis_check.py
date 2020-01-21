@@ -888,8 +888,8 @@ class RCMD(object):
                         replace('\x08','').replace(' \x1b[1D','').replace(u'\u2013',''))
                     output += buff_read
                 except:
-                    CGI_CLI.uprint('BUFF_ERR[%s][%s]'%(buff,type(buff)), color = 'red')                
-                    CGI_CLI.uprint(traceback.format_exc(), color = 'magenta')                       
+                    CGI_CLI.uprint('BUFF_ERR[%s][%s]'%(buff,type(buff)), color = 'red')
+                    CGI_CLI.uprint(traceback.format_exc(), color = 'magenta')
             else:
                 buff_read = str()
                 time.sleep(0.1);
@@ -946,8 +946,9 @@ class RCMD(object):
                         while(not exit_loop2):
                             if chan.recv_ready():
                                 buff = chan.recv(9999)
-                                buff_read = buff.decode("utf-8").replace('\x0d','')\
-                                   .replace('\x07','').replace('\x08','').replace(' \x1b[1D','')
+                                buff_read = str(buff.decode(encoding='utf-8').\
+                                    replace('\x0d','').replace('\x07','').\
+                                    replace('\x08','').replace(' \x1b[1D','').replace(u'\u2013',''))
                                 output2 += buff_read
                             else: time.sleep(0.1); timeout_counter_100msec_2 += 1
                             try: new_last_line = output2.splitlines()[-1].strip()
@@ -967,13 +968,15 @@ class RCMD(object):
             flush_buffer = chan.recv(9999)
             del flush_buffer
             chan.send('\t \n\n')
-            time.sleep(0.3)
+            time.sleep(0.2)
             while not (last_line and last_but_one_line and last_line == last_but_one_line):
                 buff = chan.recv(9999)
                 if len(buff)>0:
                     if debug: CGI_CLI.uprint('LOOKING_FOR_PROMPT:',last_but_one_line,last_line, color = 'grey')
-                    output += buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
-                              replace('\x1b[K','').replace('\n{master}\n','')
+                    try:
+                        output += str(buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
+                            replace('\x1b[K','').replace('\n{master}\n','').replace(u'\u2013',''))
+                    except: pass
                     if '--More--' or '---(more' in buff.strip():
                         chan.send('\x20')
                         if debug: CGI_CLI.uprint('SPACE_SENT.', color = 'blue')
@@ -1001,8 +1004,10 @@ class RCMD(object):
             while not exit_loop:
                 if debug: CGI_CLI.uprint('LAST_LINE:',prompts,last_line)
                 buff = chan.recv(9999)
-                output += buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
-                          replace('\x1b[K','').replace('\n{master}\n','')
+                try:
+                    output += str(buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
+                        replace('\x1b[K','').replace('\n{master}\n','').replace(u'\u2013',''))
+                except: pass
                 if '--More--' or '---(more' in buff.strip(): chan.send('\x20')
                 if debug: CGI_CLI.uprint('BUFFER:' + buff, color = 'grey')
                 try: last_line = output.splitlines()[-1].strip()
