@@ -2430,7 +2430,9 @@ def check_free_disk_space_on_devices(device_list = None, \
     all_disk_checks_ok = True
     for device, disk_free, slave_disk_free, disk_reguired in disk_free_list:
         ### SOME GB FREE EXPECTED (1MB=1048576, 1GB=1073741824) ###
-        if disk_free + (device_expected_MB_free * 1048576) < disk_reguired:
+        if (disk_free + (device_expected_MB_free * 1048576) < disk_reguired) \
+            or (slave_disk_free >= 0 \
+            and (slave_disk_free + (device_expected_MB_free * 1048576) < disk_reguired)):
             all_disk_checks_ok = False
             if slave_disk_free >= 0:
                 CGI_CLI.uprint('%s    %.2f MB    %.2f MB    %.2f MB' % (device, \
