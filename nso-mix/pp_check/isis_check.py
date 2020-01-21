@@ -882,9 +882,14 @@ class RCMD(object):
                 ### WORKARROUND FOR DISCONTINIOUS OUTPUT FROM ROUTERS ###
                 timeout_counter_100msec = 0
                 buff = chan.recv(9999)
-                buff_read = str(buff.decode("utf-8").replace('\x0d','').replace('\x07','').\
-                    replace('\x08','').replace(' \x1b[1D',''))
-                output += buff_read
+                try:
+                    buff_read = str(buff.decode(encoding='utf-8').\
+                        replace('\x0d','').replace('\x07','').\
+                        replace('\x08','').replace(' \x1b[1D','').replace(u'\u2013',''))
+                    output += buff_read
+                except:
+                    CGI_CLI.uprint('BUFF_ERR[%s][%s]'%(buff,type(buff)), color = 'red')                
+                    CGI_CLI.uprint(traceback.format_exc(), color = 'magenta')                       
             else:
                 buff_read = str()
                 time.sleep(0.1);
