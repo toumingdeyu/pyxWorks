@@ -490,7 +490,7 @@ class RCMD(object):
     @staticmethod
     def connect(device = None, cmd_data = None, username = None, password = None, \
         use_module = 'paramiko', logfilename = None, \
-        connection_timeout = 300, cmd_timeout = 30, \
+        connection_timeout = 500, cmd_timeout = 30, \
         conf = None, sim_config = None, disconnect = None, printall = None, \
         do_not_final_print = None, commit_text = None, silent_mode = None, \
         disconnect_timeout = 2):
@@ -557,7 +557,8 @@ class RCMD(object):
                 RCMD.ssh_connection = RCMD.client.invoke_shell()
                 if RCMD.ssh_connection:
                     RCMD.router_type, RCMD.router_prompt = RCMD.ssh_raw_detect_router_type(debug = None)
-                    if RCMD.router_type in RCMD.KNOWN_OS_TYPES and printall:
+                    if not RCMD.router_type: CGI_CLI.uprint('DEVICE_TYPE NOT DETECTED!', color = 'red')
+                    elif RCMD.router_type in RCMD.KNOWN_OS_TYPES and printall:
                         CGI_CLI.uprint('DETECTED DEVICE_TYPE: %s' % (RCMD.router_type), \
                             color = 'gray')
             except Exception as e:
@@ -1045,7 +1046,7 @@ class RCMD(object):
             if 'iosxr-' in output or 'Cisco IOS XR Software' in output:
                 router_os = 'ios-xr'
                 if 'ASR9K' in output or 'IOS-XRv 9000' in output: RCMD.router_version = 'ASR9K'
-            elif 'Cisco IOS-XE software' in output:
+            elif 'Cisco IOS-XE software' in output or 'Cisco IOS XE Software' in output:
                 router_os = 'ios-xe'
                 if 'CSR1000' in output: RCMD.router_version = 'ASR1K'
 
