@@ -1629,7 +1629,8 @@ def display_interface(header_text = None, interface_list = None, color = None):
 #
 ##############################################################################
 
-xr_config_header ='''!
+xr_config_header ='''conf
+!
 router isis PAII
 !
 '''
@@ -1644,6 +1645,50 @@ xr_config_interface_part ='''% for isis_interface, description in isis_interface
  !
 !
 % endfor
+'''
+
+xr_config_tail ='''Commit
+!
+Exit
+!
+'''
+
+juniper_config_header ='''configure private
+'''
+
+juniper_config_interface_part ='''% for isis_interface, description in isis_interface_fail_list:
+set protocols isis interface ${isis_interface} level 2 passive
+% endfor
+'''
+
+juniper_config_tail ='''commit
+exit
+'''
+
+
+huawei_config_header ='''#
+sys
+'''
+
+huawei_config_interface_part ='''% for isis_interface, description in isis_interface_fail_list:
+interface ${isis_interface}
+ isis enable 5511
+ isis ipv6 enable 5511
+ isis silent 
+ isis ipv6 cost 1
+ isis cost 1
+#
+% endfor
+'''
+
+huawei_config_tail ='''#
+Commit
+Y
+#
+Exit
+#
+Save
+#
 '''
 
 ##############################################################################
@@ -1961,6 +2006,29 @@ warning {
 
                 mytemplate = Template(xr_config_interface_part,strict_undefined=True)
                 config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
+
+                mytemplate = Template(xr_config_tail,strict_undefined=True)
+                config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
+                
+            if RCMD.router_type == 'juniper':
+                mytemplate = Template(juniper_config_header,strict_undefined=True)
+                config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
+
+                mytemplate = Template(juniper_config_interface_part,strict_undefined=True)
+                config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
+
+                mytemplate = Template(juniper_config_tail,strict_undefined=True)
+                config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
+
+            if RCMD.router_type == 'huawei':
+                mytemplate = Template(huawei_config_header,strict_undefined=True)
+                config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
+
+                mytemplate = Template(huawei_config_interface_part,strict_undefined=True)
+                config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
+
+                mytemplate = Template(huawei_config_tail,strict_undefined=True)
+                config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'                
 
             if isis_interface_fail_list:
                 CGI_CLI.uprint('\nREPAIR CONFIG:\n\n%s' % (config_to_apply), color = 'blue')
