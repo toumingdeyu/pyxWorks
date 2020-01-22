@@ -593,7 +593,8 @@ class RCMD(object):
                     '%s%s#'%(RCMD.device.upper(),'(config)'), \
                     '%s%s#'%(RCMD.device.upper(),'(config-if)'), \
                     '%s%s#'%(RCMD.device.upper(),'(config-line)'), \
-                    '%s%s#'%(RCMD.device.upper(),'(config-router)')  ]
+                    '%s%s#'%(RCMD.device.upper(),'(config-router)'), \
+                    'sysadmin#' ]
                 RCMD.TERM_LEN_0 = "terminal length 0"
                 RCMD.EXIT = "exit"
                 RCMD.drive_string = 'harddisk:'
@@ -660,7 +661,7 @@ class RCMD(object):
     @staticmethod
     def run_command(cmd_line = None, printall = None, conf = None, \
         long_lasting_mode = None, autoconfirm_mode = None, \
-        sim_config = None, sim_all = None):
+        sim_config = None, sim_all = None, ignore_prompt = None):
         """
         cmd_line - string, DETECTED DEVICE TYPE DEPENDENT
         sim_all  - simulate execution of all commands, not only config commands
@@ -681,7 +682,9 @@ class RCMD(object):
                     last_output, new_prompt = RCMD.ssh_send_command_and_read_output( \
                         RCMD.ssh_connection, RCMD.DEVICE_PROMPTS, cmd_line, \
                         long_lasting_mode = long_lasting_mode, \
-                        autoconfirm_mode = autoconfirm_mode, printall = printall)
+                        autoconfirm_mode = autoconfirm_mode, \
+                        ignore_prompt = ignore_prompt, \
+                        printall = printall)
                     if new_prompt: RCMD.DEVICE_PROMPTS.append(new_prompt)
             if printall or RCMD.printall:
                 if not long_lasting_mode: CGI_CLI.uprint(last_output, color = 'gray', timestamp = 'no')
@@ -693,7 +696,7 @@ class RCMD(object):
     @staticmethod
     def run_commands(cmd_data = None, printall = None, conf = None, sim_config = None, \
         do_not_final_print = None , commit_text = None, submit_result = None , \
-        long_lasting_mode = None, autoconfirm_mode = None):
+        long_lasting_mode = None, autoconfirm_mode = None, ignore_prompt = None):
         """
         FUNCTION: run_commands(), RETURN: list of command_outputs
         PARAMETERS:
@@ -758,6 +761,7 @@ class RCMD(object):
                         command_outputs.append(RCMD.run_command(cmd_line, \
                             conf = conf, sim_config = sim_config, printall = printall,
                             long_lasting_mode = long_lasting_mode, \
+                            ignore_prompt = ignore_prompt, \
                             autoconfirm_mode = autoconfirm_mode))
                     ### EXIT FROM CONFIG MODE FOR PARAMIKO #####################
                     if (conf or RCMD.conf) and RCMD.use_module == 'paramiko':
@@ -870,15 +874,22 @@ class RCMD(object):
     @staticmethod
     def ssh_send_command_and_read_output(chan, prompts, \
         send_data = str(), long_lasting_mode = None, \
-        autoconfirm_mode = None, printall=True):
+        autoconfirm_mode = None, ignore_prompt = None, \
+        printall = True):
+        '''
+        autoconfirm_mode = True ==> CISCO - '\n', HUAWEI - 'Y\n'
+        '''
         output, output2, new_prompt = str(), str(), str()
         exit_loop, exit_loop2 = False, False
         timeout_counter_100msec, timeout_counter_100msec_2 = 0, 0
-        # FLUSH BUFFERS FROM PREVIOUS COMMANDS IF THEY ARE ALREADY BUFFERD
+
+        ### FLUSH BUFFERS FROM PREVIOUS COMMANDS IF THEY ARE ALREADY BUFFERED ###
         if chan.recv_ready(): flush_buffer = chan.recv(9999)
         time.sleep(0.1)
         chan.send(send_data + '\n')
         time.sleep(0.1)
+        
+        ### MAIN WHILE LOOP ###################################################
         while not exit_loop:
             if chan.recv_ready():
                 ### WORKARROUND FOR DISCONTINIOUS OUTPUT FROM ROUTERS ###
@@ -901,22 +912,29 @@ class RCMD(object):
                 if long_lasting_mode:
                     if timeout_counter_100msec%100: pass
                     elif CGI_CLI.cgi_active:
+                        ### KEEPALIVE CONNECTION, DEFAULT 300sec TIMEOUT ###
                         CGI_CLI.uprint("<script>console.log('10sec...');</script>", raw = True)
                     if timeout_counter_100msec + 100 >= RCMD.CONNECTION_TIMEOUT*10:
                         CGI_CLI.uprint("LONG LASTING COMMAND TIMEOUT!", color = 'red')
                         exit_loop = True
                         break
                 continue
-            # FIND LAST LINE, THIS COULD BE PROMPT
-            try: last_line, last_line_orig = output.splitlines()[-1].strip(), output.splitlines()[-1].strip()
-            except: last_line, last_line_orig = str(), str()
-            # FILTER-OUT '(...)' FROM PROMPT IOS-XR/IOS-XE
+
+            ### FIND LAST LINE (STRIPPED), THIS COULD BE PROMPT ###
+            last_line_edited = str()
+            try: last_line_original = output.splitlines()[-1].strip()
+            except: last_line_original = str()
+
+            # FILTER-OUT '(...)' FROM PROMPT IOS-XR/IOS-XE ###
             if RCMD.router_type in ["ios-xr","ios-xe",'cisco_ios','cisco_xr']:
                 try:
-                    last_line_part1 = last_line.split('(')[0]
-                    last_line_part2 = last_line.split(')')[1]
-                    last_line = last_line_part1 + last_line_part2
-                except: last_line = last_line
+                    last_line_part1 = last_line_original.split('(')[0]
+                    last_line_part2 = last_line_original.split(')')[1]
+                    last_line_edited = last_line_part1 + last_line_part2
+                except:
+                    if 'sysadmin' in last_line_original and '#' in last_line_original:
+                        last_line_edited = 'sysadmin#'
+                    else: last_line_edited = last_line_original
 
             ### PRINT LONG LASTING OUTPUTS PER PARTS ##########################
             if printall and long_lasting_mode and buff_read and not RCMD.silent_mode:
@@ -925,34 +943,53 @@ class RCMD(object):
             # IS ACTUAL LAST LINE PROMPT ? IF YES , GO AWAY
             for actual_prompt in prompts:
                 if output.strip().endswith(actual_prompt) or \
-                    (last_line and last_line.endswith(actual_prompt)) or \
-                    (last_line_orig and last_line_orig.endswith(actual_prompt)):
+                    (last_line_edited and last_line_edited.endswith(actual_prompt)) or \
+                    (last_line_original and last_line_original.endswith(actual_prompt)):
+                        #CGI_CLI.uprint(prompts)
                         exit_loop=True; break
             else:
-                dialog_list = ['?', '[Y/N]:', '[confirm]']
+                continue_while_loop = False
+                dialog_list = ['?', '[Y/N]:', '[confirm]', '? [no]:']
                 for dialog_line in dialog_list:
-                    if last_line_orig.strip().endswith(dialog_line) or \
-                        last_line.strip().endswith(dialog_line):
+                    if last_line_original.strip().endswith(dialog_line) or \
+                        last_line_edited.strip().endswith(dialog_line):
                         if autoconfirm_mode:
                             ### AUTO-CONFIRM MODE ###
+                            time.sleep(0.2)
                             if RCMD.router_type in ["ios-xr","ios-xe",'cisco_ios','cisco_xr']:
                                 chan.send('\n')
-                            elif RCMD.router_type in ["vrp",'huawei']: chan.send('Y\n')
-                            time.sleep(0.1)
+                            elif RCMD.router_type in ["vrp",'huawei']:
+                                chan.send('Y\n')
+                            time.sleep(0.5)
+                            continue_while_loop = True
+                            break
                         else:
-                            ### INTERACTIVE QUESTION --> GO AWAY FAST !!! ###
-                            exit_loop = True; break
-
+                            ### INTERACTIVE QUESTION --> GO AWAY ###
+                            time.sleep(0.1)
+                            continue_while_loop = True
+                            exit_loop = True 
+                            break
+                
+                ### CONTINUE WHILE LOOP ###                
+                if continue_while_loop: continue
+                
                 ### LONG LASTING COMMAND = ONLY CONNECTION TIMEOUT WILL BE APPLIED ###
                 if long_lasting_mode:
                     if timeout_counter_100msec%100: pass
                     elif CGI_CLI.cgi_active:
+                        ### KEEPALIVE CONNECTION, DEFAULT 300sec TIMEOUT ###
                         CGI_CLI.uprint("<script>console.log('10s...');</script>", raw = True)
                     if timeout_counter_100msec + 100 > RCMD.CONNECTION_TIMEOUT*10:
                         CGI_CLI.uprint("LONG LASTING COMMAND TIMEOUT!!", color = 'red')
                         exit_loop = True
                         break
                 else:
+                    ### IGNORE NEW PROMPT AND GO AWAY ###
+                    if ignore_prompt:
+                        time.sleep(1)
+                        exit_loop = True
+                        break
+
                     ### 30 SECONDS COMMAND TIMEOUT ###
                     if timeout_counter_100msec > RCMD.CMD_TIMEOUT*10: exit_loop = True; break
                     ### 10 SECONDS --> This could be a new PROMPT ###
@@ -960,7 +997,7 @@ class RCMD(object):
                         ### TRICK IS IF NEW PROMPT OCCURS, HIT ENTER ... ###
                         ### ... AND IF OCCURS THE SAME LINE --> IT IS NEW PROMPT!!! ###
                         chan.send('\n')
-                        time.sleep(0.2)
+                        time.sleep(0.5)
                         while(not exit_loop2):
                             if chan.recv_ready():
                                 buff = chan.recv(9999)
@@ -971,9 +1008,9 @@ class RCMD(object):
                             else: time.sleep(0.1); timeout_counter_100msec_2 += 1
                             try: new_last_line = output2.splitlines()[-1].strip()
                             except: new_last_line = str()
-                            if last_line_orig and new_last_line and last_line_orig == new_last_line:
-                                if printall: CGI_CLI.uprint('NEW_PROMPT: %s' % (last_line_orig), color = 'cyan')
-                                new_prompt = last_line_orig; exit_loop=True;exit_loop2=True; break
+                            if last_line_original and new_last_line and last_line_original == new_last_line:
+                                if printall: CGI_CLI.uprint('NEW_PROMPT: %s' % (last_line_original), color = 'cyan')
+                                new_prompt = last_line_original; exit_loop=True;exit_loop2=True; break
                             # WAIT UP TO 5 SECONDS
                             if (timeout_counter_100msec_2) > 5*10: exit_loop2 = True; break
         return output, new_prompt
@@ -3314,31 +3351,65 @@ warning {
                     continue
 
                 ### CHECK LOCAL SERVER AND DEVICE HDD FILES #######################
+                actual_date_string = time.strftime("%Y-%m%d-%H:%M",time.gmtime(time.time()))
                 if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
                     ### def BACKUP NORMAL AND ADMIN CONFIG ########################
                     if CGI_CLI.data.get('backup_configs_to_device_disk'):
-                        actual_date_string = time.strftime("%Y-%m%d-%H:%M",time.gmtime(time.time()))
                         backup_config_rcmds = {
                             'cisco_ios':[
                             'copy running-config %s%s-config.txt' % (RCMD.drive_string, actual_date_string),
-                            '\n',
                             ],
+                            
                             'cisco_xr':[
                             'copy running-config %s%s-config.txt' % (RCMD.drive_string, actual_date_string),
-                            '\n',
                             'admin',
                             'copy running-config %sadmin-%s-config.txt' %(RCMD.drive_string, actual_date_string),
-                            '\n',
-                            'exit']
+                            'exit'
+                            ]
                         }
                         CGI_CLI.uprint('backup configs on %s' % (device), \
                             no_newlines = None if printall else True)
-                        forget_it = RCMD.run_commands(backup_config_rcmds, printall = printall)
-                        CGI_CLI.uprint('\n')
+                        forget_it = RCMD.run_commands(backup_config_rcmds, \
+                            autoconfirm_mode = True, \
+                            printall = printall)
 
+                time.sleep(0.5)
+
+                ### CHECK CONFIG FILE EXISTENCY ###
+                check_dir_cfgfiles_cmds = {'cisco_xr':[],'cisco_ios':[], \
+                    'huawei':[], 'juniper':[]}
+
+                check_dir_cfgfiles_cmds['cisco_ios'].append( \
+                    'dir %s%s-config.txt' % (RCMD.drive_string, actual_date_string))
+
+                check_dir_cfgfiles_cmds['cisco_xr'].append( \
+                    'dir /%s%s-config.txt' % (RCMD.drive_string, actual_date_string))
+                check_dir_cfgfiles_cmds['cisco_xr'].append('admin')
+                check_dir_cfgfiles_cmds['cisco_xr'].append( \
+                    'dir /%sadmin-%s-config.txt' % (RCMD.drive_string, actual_date_string))
+                check_dir_cfgfiles_cmds['cisco_xr'].append('exit'),
+
+                cfgfiles_cmds_outputs = RCMD.run_commands(check_dir_cfgfiles_cmds, \
+                    autoconfirm_mode = True, printall = printall)
+                CGI_CLI.uprint('\n')
+                
+                if RCMD.router_type == 'cisco_xr': 
+                    if '-config.txt' in cfgfiles_cmds_outputs[0]:
+                        CGI_CLI.uprint('%s CONFIG copy done!' % (device), color = 'green')
+                    else: CGI_CLI.uprint('%s CONFIG copy PROBLEM!' % (device), color = 'red')
+                    if '-config.txt' in cfgfiles_cmds_outputs[2]:
+                        CGI_CLI.uprint('%s ADMIN CONFIG copy done!' % (device), color = 'green')
+                    else: CGI_CLI.uprint('%s ADMIN CONFIG copy PROBLEM!' % (device), color = 'red')
+
+                if RCMD.router_type == 'cisco_ios':
+                    if '-config.txt' in cfgfiles_cmds_outputs[0]:
+                        CGI_CLI.uprint('%s CONFIG copy done!' % (device), color = 'green')
+                    else: CGI_CLI.uprint('%s CONFIG copy PROBLEM!' % (device), color = 'red')
+                        
+
+                ### def DELETE TAR FILES ON END ###############################
                 if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios' \
-                    or RCMD.router_type == 'huawei' or RCMD.router_type == 'juniper':
-                    ### def DELETE TAR FILES ON END ###############################
+                    or RCMD.router_type == 'huawei' or RCMD.router_type == 'juniper':                    
                     if CGI_CLI.data.get('delete_device_sw_files_on_end'):
                         del_files_cmds = {'cisco_xr':[], 'cisco_ios':[], \
                             'huawei':[], 'juniper':[]}
@@ -3405,7 +3476,8 @@ warning {
                                             CGI_CLI.uprint(file, color = 'red')
                                             CGI_CLI.uprint(dir_outputs_after_deletion[3], color = 'blue')
                                             file_not_deleted = True
-                        if file_not_deleted: CGI_CLI.uprint('DELETE PROBLEM!', color = 'red')
+                        if file_not_deleted: CGI_CLI.uprint('%s DELETE PROBLEM!' % (device), color = 'red')
+                        else: CGI_CLI.uprint('%s Delete done!' % (device), color = 'green')
 
                 ### DISCONNECT ####################################################
                 RCMD.disconnect()
