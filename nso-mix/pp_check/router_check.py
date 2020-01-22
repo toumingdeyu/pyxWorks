@@ -422,12 +422,12 @@ def detect_router_by_ssh(device, debug = False):
         time.sleep(0.2)
         while not (last_line and last_but_one_line and last_line == last_but_one_line):
             if debug: print('FIND_PROMPT:',last_but_one_line,last_line)
-            buff = chan.recv(9999)                        
+            buff = chan.recv(9999)
             try:
                 output += str(buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
                     replace('\x1b[K','').replace('\n{master}\n','').replace(u'\u2013',''))
             except: pass
-            if '--More--' or '---(more' in buff.strip(): 
+            if '--More--' or '---(more' in buff.strip():
                 chan.send('\x20')
                 time.sleep(0.2)
             if debug: print('BUFFER:' + buff)
@@ -455,7 +455,7 @@ def detect_router_by_ssh(device, debug = False):
                 output += str(buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
                     replace('\x1b[K','').replace('\n{master}\n','').replace(u'\u2013',''))
             except: pass
-            if '--More--' or '---(more' in buff.strip(): 
+            if '--More--' or '---(more' in buff.strip():
                 chan.send('\x20')
                 time.sleep(0.2)
             if debug: print('BUFFER:' + buff)
@@ -477,8 +477,10 @@ def detect_router_by_ssh(device, debug = False):
     except: PARAMIKO_PORT = '22'
 
     try:
-        #connect(self, hostname, port=22, username=None, password=None, pkey=None, key_filename=None, timeout=None, allow_agent=True, look_for_keys=True, compress=False)
-        client.connect(PARAMIKO_HOST, port=int(PARAMIKO_PORT), username=USERNAME, password=PASSWORD,look_for_keys=False)
+        client.connect(PARAMIKO_HOST, port=int(PARAMIKO_PORT), username=USERNAME, password=PASSWORD,\
+            banner_timeout = 10, \
+            look_for_keys = False)
+
         chan = client.invoke_shell()
         chan.settimeout(TIMEOUT)
         # prevent --More-- in log banner (space=page, enter=1line,tab=esc)
@@ -579,7 +581,7 @@ def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True)
                             output2 += buff_read
                         except:
                             print('BUFF_ERR[%s][%s]'%(buff,type(buff)))
-                            print(traceback.format_exc())                        
+                            print(traceback.format_exc())
                     else: time.sleep(0.1); timeout_counter2 += 1
                     try: new_last_line = output2.splitlines()[-1].strip()
                     except: new_last_line = str()
@@ -963,7 +965,7 @@ parser.add_argument("--isis",
                     action = "store_true",
                     default = False,
                     dest = 'isis_check_only',
-                    help = "do isis check only")                    
+                    help = "do isis check only")
 args = parser.parse_args()
 
 if args.emailaddr:
@@ -1186,7 +1188,10 @@ else:
 
     try:
         output = str()
-        client.connect(PARAMIKO_HOST, port=int(PARAMIKO_PORT), username=USERNAME, password=PASSWORD,look_for_keys=False)
+        client.connect(PARAMIKO_HOST, port=int(PARAMIKO_PORT), username=USERNAME, password=PASSWORD,\
+            banner_timeout = 10, \
+            look_for_keys = False)
+
         chan = client.invoke_shell()
         chan.settimeout(TIMEOUT)
         output, forget_it = ssh_send_command_and_read_output(chan,DEVICE_PROMPTS,TERM_LEN_0,printall=False)
@@ -1209,6 +1214,7 @@ else:
         sys.exit()
     finally:
         client.close()
+        time.sleep(0.5)
     ### MAKE READABLE for THE OTHERS
     last_output = subprocess.check_output('chmod +r %s' % (filename),shell=True)
     print(" ... Collection is completed\n")

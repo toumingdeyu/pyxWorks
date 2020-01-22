@@ -1707,6 +1707,11 @@ warning {
                 RCMD.disconnect()
                 continue
 
+            if RCMD.router_type == 'huawei':
+                CGI_CLI.uprint('Huawei is not supported !' , color = 'red')
+                RCMD.disconnect()
+                continue
+                
             rcmds_0 = {
                 'cisco_ios':['show bgp summary'],
                 'cisco_xr':["show bgp summary"],
