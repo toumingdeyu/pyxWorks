@@ -1674,7 +1674,7 @@ huawei_config_interface_part ='''% for isis_interface, description in isis_inter
 interface ${isis_interface}
  isis enable 5511
  isis ipv6 enable 5511
- isis silent 
+ isis silent
  isis ipv6 cost 1
  isis cost 1
 #
@@ -1898,7 +1898,7 @@ warning {
                 for line in rcmds_1_outputs[0].splitlines():
                     if line.strip() and 'CUSTOM' in line.upper() and not 'L2VPN' in line.upper():
                         if line == 'Interface': continue
-                        if line.strip() and len(line.split())> 0 and line.split()[0] == 'show': continue
+                        if line.strip() and len(line.split())> 0 and line.split()[0] == 'disp': continue
                         if line.strip() in RCMD.DEVICE_PROMPTS: continue
                         if 'TESTING' in line.upper() or 'ETHNOW-TEST' in line.upper(): continue
                         if 'OLD' in line.upper() or 'LAG' in line.upper(): continue
@@ -1925,7 +1925,7 @@ warning {
                 for line in rcmds_1_outputs[0].splitlines():
                     if line.strip() and 'CUSTOM' in line.upper() and not 'L2VPN' in line.upper():
                         if line == 'Interface': continue
-                        if line.strip() and len(line.split())> 0 and line.split()[0] == 'show': continue
+                        if line.strip() and len(line.split())> 0 and line.split()[0] == 'disp': continue
                         if line.strip() in RCMD.DEVICE_PROMPTS: continue
                         if 'TESTING' in line.upper() or 'ETHNOW-TEST' in line.upper(): continue
                         if 'OLD' in line.upper() or 'LAG' in line.upper(): continue
@@ -2017,7 +2017,7 @@ warning {
 
                 mytemplate = Template(xr_config_tail,strict_undefined=True)
                 config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
-                
+
             if RCMD.router_type == 'juniper':
                 mytemplate = Template(juniper_config_header,strict_undefined=True)
                 config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
@@ -2036,7 +2036,7 @@ warning {
                 config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
 
                 mytemplate = Template(huawei_config_tail,strict_undefined=True)
-                config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'                
+                config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
 
             if isis_interface_fail_list:
                 CGI_CLI.uprint('\nREPAIR CONFIG:\n\n%s' % (config_to_apply), color = 'blue')
