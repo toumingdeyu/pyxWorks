@@ -100,34 +100,34 @@ class CGI_CLI(object):
                             action = "store", dest = 'device',
                             default = str(),
                             help = "Target router to access. (Optionable device list separated ba comma, i.e. --device DEVICE1,DEVICE2)")
-        parser.add_argument("--sw_release",
-                            action = "store", dest = 'sw_release',
-                            default = str(),
-                            help = "sw release number with or without dots, i.e. 653 or 6.5.3, or alternatively sw release filename")
-        parser.add_argument("--files",
-                            action = "store", dest = 'sw_files',
-                            default = str(),
-                            help = "--files OTI.tar,SMU,pkg,bin")
-        parser.add_argument("--check_only",
-                            action = 'store_true', dest = "check_device_sw_files_only",
-                            default = None,
-                            help = "check existing device sw release files only, do not copy new tar files")
-        parser.add_argument("--backup_configs",
-                            action = 'store_true', dest = "backup_configs_to_device_disk",
-                            default = None,
-                            help = "backup configs to device hdd")
-        parser.add_argument("--force",
-                           action = 'store_true', dest = "force_rewrite_sw_files_on_device",
-                           default = None,
-                           help = "force rewrite sw release files on device disk")
-        parser.add_argument("--delete",
-                            action = 'store_true', dest = "delete_device_sw_files_on_end",
-                            default = None,
-                            help = "delete device sw release files on end after sw upgrade")
-        parser.add_argument("--nobackupre",
-                            action = 'store_true', dest = "ignore_missing_backup_re_on_junos",
-                            default = None,
-                            help = "ignore missing backup re on junos")
+        # parser.add_argument("--sw_release",
+                            # action = "store", dest = 'sw_release',
+                            # default = str(),
+                            # help = "sw release number with or without dots, i.e. 653 or 6.5.3, or alternatively sw release filename")
+        # parser.add_argument("--files",
+                            # action = "store", dest = 'sw_files',
+                            # default = str(),
+                            # help = "--files OTI.tar,SMU,pkg,bin")
+        # parser.add_argument("--check_only",
+                            # action = 'store_true', dest = "check_device_sw_files_only",
+                            # default = None,
+                            # help = "check existing device sw release files only, do not copy new tar files")
+        # parser.add_argument("--backup_configs",
+                            # action = 'store_true', dest = "backup_configs_to_device_disk",
+                            # default = None,
+                            # help = "backup configs to device hdd")
+        # parser.add_argument("--force",
+                           # action = 'store_true', dest = "force_rewrite_sw_files_on_device",
+                           # default = None,
+                           # help = "force rewrite sw release files on device disk")
+        # parser.add_argument("--delete",
+                            # action = 'store_true', dest = "delete_device_sw_files_on_end",
+                            # default = None,
+                            # help = "delete device sw release files on end after sw upgrade")
+        # parser.add_argument("--nobackupre",
+                            # action = 'store_true', dest = "ignore_missing_backup_re_on_junos",
+                            # default = None,
+                            # help = "ignore missing backup re on junos")
         # parser.add_argument("--sim",
                             # action = "store_true", dest = 'sim',
                             # default = None,
@@ -136,10 +136,10 @@ class CGI_CLI(object):
                             action = "store_true", dest = 'printall',
                             default = None,
                             help = "print all lines, changes will be coloured")
-        parser.add_argument("--timestamps",
-                            action = "store_true", dest = 'timestamps',
-                            default = None,
-                            help = "print all lines with timestamps")
+        # parser.add_argument("--timestamps",
+                            # action = "store_true", dest = 'timestamps',
+                            # default = None,
+                            # help = "print all lines with timestamps")
         args = parser.parse_args()
         return args
 
@@ -1000,10 +1000,14 @@ class RCMD(object):
                         while(not exit_loop2):
                             if chan.recv_ready():
                                 buff = chan.recv(9999)
-                                buff_read = str(buff.decode(encoding='utf-8').\
-                                    replace('\x0d','').replace('\x07','').\
-                                    replace('\x08','').replace(' \x1b[1D','').replace(u'\u2013',''))
-                                output2 += buff_read
+                                try:
+                                    buff_read = str(buff.decode(encoding='utf-8').\
+                                        replace('\x0d','').replace('\x07','').\
+                                        replace('\x08','').replace(' \x1b[1D','').replace(u'\u2013',''))
+                                    output2 += buff_read
+                                except:
+                                    CGI_CLI.uprint('BUFF_ERR[%s][%s]'%(buff,type(buff)), color = 'red')
+                                    CGI_CLI.uprint(traceback.format_exc(), color = 'magenta')
                             else: time.sleep(0.1); timeout_counter_100msec_2 += 1
                             try: new_last_line = output2.splitlines()[-1].strip()
                             except: new_last_line = str()
@@ -1628,7 +1632,7 @@ def display_interface(header_text = None, interface_list = None, color = None):
 xr_config_header ='''!
 router isis PAII
 !
-''' 
+'''
 
 xr_config_interface_part ='''% for isis_interface, description in isis_interface_fail_list:
  interface ${isis_interface}
@@ -1640,7 +1644,7 @@ xr_config_interface_part ='''% for isis_interface, description in isis_interface
  !
 !
 % endfor
-''' 
+'''
 
 ##############################################################################
 #
@@ -1873,26 +1877,25 @@ warning {
                 CGI_CLI.uprint(isis_interface_fail_list, name = True , jsonprint = True)
                 CGI_CLI.uprint(isis_interface_warning_list, name = True , jsonprint = True)
                 CGI_CLI.uprint(isis_interface_ok_list, name = True , jsonprint = True)
-            
-            display_interface(header_text = '%s interface(s) with ISIS PROBLEM:' % (device), interface_list = isis_interface_fail_list, color = 'red')
-            display_interface(header_text = '%s interface(s) with ISIS WARNING:' % (device), interface_list = isis_interface_warning_list, color = 'yellow')     
-            display_interface(header_text = '%s interface(s) with ISIS OK:' % (device), interface_list = isis_interface_ok_list, color = 'green')
 
+            display_interface(header_text = '%s interface(s) with ISIS OK:' % (device), interface_list = isis_interface_ok_list, color = 'green')
+            display_interface(header_text = '%s interface(s) with ISIS WARNING:' % (device), interface_list = isis_interface_warning_list, color = 'yellow')
+            display_interface(header_text = '%s interface(s) with ISIS PROBLEM:' % (device), interface_list = isis_interface_fail_list, color = 'red')
 
             data = {}
             data['isis_interface_fail_list'] = isis_interface_fail_list
-            
+
             config_to_apply = str()
-            if RCMD.router_type == 'cisco_xr':                
+            if RCMD.router_type == 'cisco_xr':
                 mytemplate = Template(xr_config_header,strict_undefined=True)
                 config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
-                                
+
                 mytemplate = Template(xr_config_interface_part,strict_undefined=True)
                 config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
 
             if isis_interface_fail_list:
                 CGI_CLI.uprint('\nREPAIR CONFIG:\n\n%s' % (config_to_apply), color = 'blue')
- 
+
 
             RCMD.disconnect()
 except SystemExit: pass

@@ -416,13 +416,20 @@ def detect_router_by_ssh(device, debug = False):
     # detect device prompt
     def ssh_detect_prompt(chan, debug = False):
         output, buff, last_line, last_but_one_line = str(), str(), 'dummyline1', 'dummyline2'
+        flush_buffer = chan.recv(9999)
+        del flush_buffer
         chan.send('\t \n\n')
+        time.sleep(0.2)
         while not (last_line and last_but_one_line and last_line == last_but_one_line):
             if debug: print('FIND_PROMPT:',last_but_one_line,last_line)
-            buff = chan.recv(9999)
-            output += buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
-                      replace('\x1b[K','').replace('\n{master}\n','')
-            if '--More--' or '---(more' in buff.strip(): chan.send('\x20')
+            buff = chan.recv(9999)                        
+            try:
+                output += str(buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
+                    replace('\x1b[K','').replace('\n{master}\n','').replace(u'\u2013',''))
+            except: pass
+            if '--More--' or '---(more' in buff.strip(): 
+                chan.send('\x20')
+                time.sleep(0.2)
             if debug: print('BUFFER:' + buff)
             try: last_line = output.splitlines()[-1].strip().replace('\x20','')
             except: last_line = 'dummyline1'
@@ -444,9 +451,13 @@ def detect_router_by_ssh(device, debug = False):
         while not exit_loop:
             if debug: print('LAST_LINE:',prompts,last_line)
             buff = chan.recv(9999)
-            output += buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
-                      replace('\x1b[K','').replace('\n{master}\n','')
-            if '--More--' or '---(more' in buff.strip(): chan.send('\x20')
+            try:
+                output += str(buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
+                    replace('\x1b[K','').replace('\n{master}\n','').replace(u'\u2013',''))
+            except: pass
+            if '--More--' or '---(more' in buff.strip(): 
+                chan.send('\x20')
+                time.sleep(0.2)
             if debug: print('BUFFER:' + buff)
             try: last_line = output.splitlines()[-1].strip()
             except: last_line = str()
@@ -510,6 +521,7 @@ def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True)
     timeout_counter, timeout_counter2 = 0, 0
     # FLUSH BUFFERS FROM PREVIOUS COMMANDS IF THEY ARE ALREADY BUFFERD
     if chan.recv_ready(): flush_buffer = chan.recv(9999)
+    time.sleep(0.1)
     chan.send(send_data + '\n')
     time.sleep(0.1)
     if printall: print("%sCOMMAND: %s%s%s" % (bcolors.GREEN,bcolors.YELLOW,send_data,bcolors.ENDC))
@@ -518,9 +530,14 @@ def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True)
             # workarround for discontious outputs from routers
             timeout_counter = 0
             buff = chan.recv(9999)
-            buff_read = buff.decode("utf-8").replace('\x0d','').replace('\x07','').\
-                replace('\x08','').replace(' \x1b[1D','')
-            output += buff_read
+            try:
+                buff_read = str(buff.decode(encoding='utf-8').\
+                    replace('\x0d','').replace('\x07','').\
+                    replace('\x08','').replace(' \x1b[1D','').replace(u'\u2013',''))
+                output += buff_read
+            except:
+                print('BUFF_ERR[%s][%s]'%(buff,type(buff)))
+                print(traceback.format_exc())
             if printall: print("%s%s%s" % (bcolors.GREY,buff_read,bcolors.ENDC))
         else: time.sleep(0.1); timeout_counter += 1
         # FIND LAST LINE, THIS COULD BE PROMPT
@@ -555,9 +572,14 @@ def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True)
                 while(not exit_loop2):
                     if chan.recv_ready():
                         buff = chan.recv(9999)
-                        buff_read = buff.decode("utf-8").replace('\x0d','')\
-                           .replace('\x07','').replace('\x08','').replace(' \x1b[1D','')
-                        output2 += buff_read
+                        try:
+                            buff_read = str(buff.decode(encoding='utf-8').\
+                                replace('\x0d','').replace('\x07','').\
+                                replace('\x08','').replace(' \x1b[1D','').replace(u'\u2013',''))
+                            output2 += buff_read
+                        except:
+                            print('BUFF_ERR[%s][%s]'%(buff,type(buff)))
+                            print(traceback.format_exc())                        
                     else: time.sleep(0.1); timeout_counter2 += 1
                     try: new_last_line = output2.splitlines()[-1].strip()
                     except: new_last_line = str()
@@ -675,8 +697,8 @@ def get_difference_string_from_string_or_list(
                     if (re.search(item,line)) != None: print_line = True
                 if print_line:
                     print_string += COL_EQUAL + line + bcolors.ENDC + '\n'
-        if print_string: all_ok = False   
-        return print_string, all_ok 
+        if print_string: all_ok = False
+        return print_string, all_ok
 
     # NDIFF0 COMPARISON METHOD--------------------------------------------------
     if diff_method == 'ndiff0' or diff_method == 'pdiff0':
@@ -860,9 +882,16 @@ def send_me_email(subject='testmail', file_name='/dev/null'):
         print(' ==> Email "%s" sent to %s.'%(subject,my_email_address))
     except: pass
 
+def run_isis_check():
+    command_string = '/var/www/cgi-bin/isis_check.py --device %s%s%s%s' % \
+        (args.device.upper(),' --printall' if args.printall else str(), \
+        ' --username %s' % (USERNAME),' --password %s' % (PASSWORD) )
+    os.system(command_string)
+    #forget_it = subprocess.check_output(command_string, shell=True)
+
 ##############################################################################
 #
-# BEGIN MAIN
+# def BEGIN MAIN
 #
 ##############################################################################
 
@@ -888,9 +917,9 @@ parser.add_argument("--post", action = "store_true",
 parser.add_argument("--emailaddr",
                     action = "store", dest = 'emailaddr', default = '',
                     help = "insert your email address once if is different than name.surname@orange.com,\
-                    it will do NEWR_EMAIL variable record in your bashrc file and you do not need to insert it any more.")                    
+                    it will do NEWR_EMAIL variable record in your bashrc file and you do not need to insert it any more.")
 parser.add_argument("--printall",action = "store_true", default = False,
-                    help = "print all lines, changes will be coloured")                    
+                    help = "print all lines, changes will be coloured")
 parser.add_argument("--prefile",
                     action = 'store', dest = "precheck_file", default = str(),
                     help = "run postcheck against a specific precheck file")
@@ -902,7 +931,7 @@ parser.add_argument("--user", default = str(),
                     help = "specify router user login")
 parser.add_argument("--fgetpass",
                     action = 'store_true', dest = "fgetpass", default = False,
-                    help = "force getpass.getpass() call even if NEWR_PASS is set.")                    
+                    help = "force getpass.getpass() call even if NEWR_PASS is set.")
 parser.add_argument("--recheck",action = "store_true", default = False,
                     help = "recheck last or specified diff pre/post files per inserted device")
 parser.add_argument("--cmdlist",
@@ -914,22 +943,27 @@ parser.add_argument("--logfile",
 parser.add_argument("--latest",
                     action = 'store_true', dest = "latest", default = False,
                     help = "look for really latest pre/postcheck files (also from somebody else),\
-                    otherwise your own last pre/postcheck files will be used by default")                    
+                    otherwise your own last pre/postcheck files will be used by default")
 parser.add_argument("--nocolors",
                     action = 'store_true', dest = "nocolors", default = False,
-                    help = "print mode with no colors.")                    
+                    help = "print mode with no colors.")
 parser.add_argument("--os",
                     action = "store", dest="router_type",
                     choices = ["ios-xr", "ios-xe", "junos", "vrp", "linux"],
                     help = "router operating system type")
 parser.add_argument("--cmdfile", action = 'store', dest = "cmd_file", default = str(),
-                    help = "specify a file with a list of custom commands to execute, instead of built-in commands")                    
+                    help = "specify a file with a list of custom commands to execute, instead of built-in commands")
 parser.add_argument("--olddiff",action = "store_true", default = False,
-                    help = "force old diff method")                    
+                    help = "force old diff method")
 parser.add_argument("--noslice",
                     action = "store_true",
                     default = False,
-                    help = "postcheck with no end of line cut used with --olddiff")                    
+                    help = "postcheck with no end of line cut used with --olddiff")
+parser.add_argument("--isis",
+                    action = "store_true",
+                    default = False,
+                    dest = 'isis_check_only',
+                    help = "do isis check only")                    
 args = parser.parse_args()
 
 if args.emailaddr:
@@ -1071,6 +1105,10 @@ logfilename=str()
 if args.log_file:
     logfilename = "%s-%.2i%.2i%.2i-%.2i%.2i%.2i-%s-%s" % \
     (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,now.second,USERNAME,'log')
+
+if args.isis_check_only:
+    run_isis_check()
+    sys.exit(0)
 
 if not args.recheck:
     if str(args.cmdlist) != 'list':
@@ -1332,6 +1370,7 @@ if pre_post == "post" or args.recheck or args.postcheck_file:
                         if len(diff_result) == 0: myfile.write(bcolors.GREY + 'OK' + bcolors.ENDC + '\n\n')
                         else: myfile.write(diff_result + '\n\n')
 
+    run_isis_check()
     print('\n ==> POSTCHECK COMPLETE !')
 elif pre_post == "pre" and not args.recheck:
     print('\n ==> PRECHECK COMPLETE !')
