@@ -1707,15 +1707,16 @@ warning {
                 RCMD.disconnect()
                 continue
 
-            if RCMD.router_type == 'huawei':
-                CGI_CLI.uprint('Huawei is not supported !' , color = 'red')
-                RCMD.disconnect()
-                continue
-                
+            # if RCMD.router_type == 'huawei':
+                # CGI_CLI.uprint('Huawei is not supported !' , color = 'red')
+                # RCMD.disconnect()
+                # continue
+
             rcmds_0 = {
                 'cisco_ios':['show bgp summary'],
                 'cisco_xr':["show bgp summary"],
-                'juniper':['show configuration protocols bgp | match local-as']
+                'juniper':['show configuration protocols bgp | match local-as'],
+                'huawei':['disp bgp peer']
             }
 
             CGI_CLI.uprint('Check Internal AS on %s' % (device), \
@@ -1723,11 +1724,15 @@ warning {
             rcmds_0_outputs = RCMD.run_commands(rcmds_0, printall = printall)
             CGI_CLI.uprint('\n')
 
-            if 'local AS number 2300' in rcmds_0_outputs[0] or 'local-as 2300' in rcmds_0_outputs[0]:
+            if 'local AS number 2300' in rcmds_0_outputs[0] \
+                or 'local-as 2300' in rcmds_0_outputs[0] \
+                or 'Local AS number : 2300' in rcmds_0_outputs[0]:
                 RCMD.disconnect()
                 CGI_CLI.uprint('This is IMN Router (Internal AS 2300).\n')
                 sys.exit(0)
-            elif 'local AS number 5511' in rcmds_0_outputs[0] or 'local-as 5511' in rcmds_0_outputs[0]: pass
+            elif 'local AS number 5511' in rcmds_0_outputs[0] \
+                or 'local-as 5511' in rcmds_0_outputs[0] \
+                or 'Local AS number : 5511' in rcmds_0_outputs[0]: pass
             else:
                 RCMD.disconnect()
                 CGI_CLI.uprint('This is not OTI Router (unknown Internal AS).\n')
@@ -1736,7 +1741,8 @@ warning {
             rcmds_1 = {
                 'cisco_ios':['show interfaces description | i Custom'],
                 'cisco_xr':["show int description | utility egrep 'Custom|Peer|peer|Content'"],
-                'juniper':['show interfaces descriptions | match Custom']
+                'juniper':['show interfaces descriptions | match Custom'],
+                'huawei':['disp interface description | include (Custom|Peer|peer|Content)']
             }
 
             CGI_CLI.uprint('Read interfaces on %s' % (device), \
@@ -1763,7 +1769,8 @@ warning {
                                 isis_interface_list.append([line.split()[0], ' '.join(line.split()[3:])])
                             else:
                                 is_in_isis_interface_list = False
-                                for interface_string in isis_interface_list:
+                                for interface in isis_interface_list:
+                                    interface_string, description = interface
                                     if line.split()[0] in interface_string: is_in_isis_interface_list = True
                                     else: pass
                                 if not is_in_isis_interface_list:
@@ -1786,7 +1793,8 @@ warning {
                                 isis_interface_list.append([line.split()[0], ' '.join(line.split()[3:])])
                             else:
                                 is_in_isis_interface_list = False
-                                for interface_string in isis_interface_list:
+                                for interface in isis_interface_list:
+                                    interface_string, description = interface
                                     if line.split()[0] in interface_string: is_in_isis_interface_list = True
                                     else: pass
                                 if not is_in_isis_interface_list:
@@ -1809,7 +1817,8 @@ warning {
                                 isis_interface_list.append([line.split()[0], ' '.join(line.split()[3:])])
                             else:
                                 is_in_isis_interface_list = False
-                                for interface_string in isis_interface_list:
+                                for interface in isis_interface_list:
+                                    interface_string, description = interface
                                     if line.split()[0] in interface_string: is_in_isis_interface_list = True
                                     else: pass
                                 if not is_in_isis_interface_list:
@@ -1831,27 +1840,73 @@ warning {
                                 isis_interface_list.append([line.split()[0], ' '.join(line.split()[3:])])
                             else:
                                 is_in_isis_interface_list = False
-                                for interface_string in isis_interface_list:
+                                for interface in isis_interface_list:
+                                    interface_string, description = interface
                                     if line.split()[0] in interface_string: is_in_isis_interface_list = True
                                     else: pass
                                 if not is_in_isis_interface_list:
                                     isis_interface_list.append([line.split()[0], ' '.join(line.split()[3:])])
                                     continue
 
-            if RCMD.router_type == 'huawei': pass
+            if RCMD.router_type == 'huawei':
+                ### SELECT BE and SUBINTERFACES FROM OUTPUT ###
+                for line in rcmds_1_outputs[0].splitlines():
+                    if line.strip() and 'CUSTOM' in line.upper() and not 'L2VPN' in line.upper():
+                        if line == 'Interface': continue
+                        if line.strip() and len(line.split())> 0 and line.split()[0] == 'show': continue
+                        if line.strip() in RCMD.DEVICE_PROMPTS: continue
+                        if 'TESTING' in line.upper() or 'ETHNOW-TEST' in line.upper(): continue
+                        if 'OLD' in line.upper() or 'LAG' in line.upper(): continue
 
+                        ### DOTTED INTERFACES FIRST ###
+                        if '.' in line.split()[0]:
+                            if len(isis_interface_list) == 0:
+                                isis_interface_list.append([line.split()[0].replace('GE','G'), ' '.join(line.split()[3:])])
+                            else:
+                                is_in_isis_interface_list = False
+                                for interface in isis_interface_list:
+                                    interface_string, description = interface
+                                    if line.split()[0] in interface_string: is_in_isis_interface_list = True
+                                    else: pass
+                                if not is_in_isis_interface_list:
+                                    isis_interface_list.append([line.split()[0].replace('GE','G'), ' '.join(line.split()[3:])])
+                                    continue
+
+                ### SELECT INTERFACES IF SUBINTERFACES ARE NOT IN LIST ###
+                for line in rcmds_1_outputs[0].splitlines():
+                    if line.strip() and 'CUSTOM' in line.upper() and not 'L2VPN' in line.upper():
+                        if line == 'Interface': continue
+                        if line.strip() and len(line.split())> 0 and line.split()[0] == 'show': continue
+                        if line.strip() in RCMD.DEVICE_PROMPTS: continue
+                        if 'TESTING' in line.upper() or 'ETHNOW-TEST' in line.upper(): continue
+                        if 'OLD' in line.upper() or 'LAG' in line.upper(): continue
+
+                        ### UNDOTTED INTERFACES LAST ###
+                        if not '.' in line.split()[0]:
+                            if len(isis_interface_list) == 0:
+                                isis_interface_list.append([line.split()[0].replace('GE','G'), ' '.join(line.split()[3:])])
+                            else:
+                                is_in_isis_interface_list = False
+                                for interface in isis_interface_list:
+                                    interface_string, description = interface
+                                    if line.split()[0] in interface_string: is_in_isis_interface_list = True
+                                    else: pass
+                                if not is_in_isis_interface_list:
+                                    isis_interface_list.append([line.split()[0].replace('GE','G'), ' '.join(line.split()[3:])])
+                                    continue
 
             rcmds_2 = {
                 'cisco_ios':[],
                 'cisco_xr':[],
-                'juniper':[]
+                'juniper':[],
+                'huawei':[]
             }
 
             for isis_interface, description in isis_interface_list:
                 rcmds_2['cisco_ios'].append('show isis interface %s' % (isis_interface))
                 rcmds_2['cisco_xr'].append('show isis interface %s' % (isis_interface))
                 rcmds_2['juniper'].append('show isis interface %s' % (isis_interface))
-
+                rcmds_2['huawei'].append('disp isis interface %s' % (isis_interface))
 
             CGI_CLI.uprint('Read interface isis on %s' % (device), \
                 no_newlines = None if printall else True)
@@ -1876,6 +1931,12 @@ warning {
                         isis_interface_ok_list.append(interface)
                     else: isis_interface_fail_list.append(interface)
 
+            if RCMD.router_type == 'huawei':
+                for interface, rcmd_2_output in zip(isis_interface_list,rcmds_2_outputs):
+                    if 'Interface information for ISIS' in rcmd_2_output:
+                         isis_interface_ok_list.append(interface)
+                    else: isis_interface_fail_list.append(interface)
+
             ### PRINTOUTS ###
             if printall:
                 CGI_CLI.uprint(isis_interface_list, name = True , jsonprint = True)
@@ -1883,7 +1944,10 @@ warning {
                 CGI_CLI.uprint(isis_interface_warning_list, name = True , jsonprint = True)
                 CGI_CLI.uprint(isis_interface_ok_list, name = True , jsonprint = True)
 
-            display_interface(header_text = '%s interface(s) with ISIS OK:' % (device), interface_list = isis_interface_ok_list, color = 'green')
+            if len(isis_interface_fail_list) == 0 and len(isis_interface_warning_list) == 0:
+                #display_interface(header_text = '%s interface(s) with ISIS OK:' % (device), interface_list = isis_interface_ok_list, color = 'green')
+                CGI_CLI.uprint('%s interface(s) - ISIS OK.' % (device), color = 'green')
+
             display_interface(header_text = '%s interface(s) with ISIS WARNING:' % (device), interface_list = isis_interface_warning_list, color = 'yellow')
             display_interface(header_text = '%s interface(s) with ISIS PROBLEM:' % (device), interface_list = isis_interface_fail_list, color = 'red')
 
