@@ -592,7 +592,8 @@ class RCMD(object):
                     '%s%s#'%(RCMD.device.upper(),'(config)'), \
                     '%s%s#'%(RCMD.device.upper(),'(config-if)'), \
                     '%s%s#'%(RCMD.device.upper(),'(config-line)'), \
-                    '%s%s#'%(RCMD.device.upper(),'(config-router)')  ]
+                    '%s%s#'%(RCMD.device.upper(),'(config-router)'), \
+                    'sysadmin#' ]
                 RCMD.TERM_LEN_0 = "terminal length 0"
                 RCMD.EXIT = "exit"
                 RCMD.drive_string = 'harddisk:'
@@ -659,7 +660,7 @@ class RCMD(object):
     @staticmethod
     def run_command(cmd_line = None, printall = None, conf = None, \
         long_lasting_mode = None, autoconfirm_mode = None, \
-        sim_config = None, sim_all = None):
+        sim_config = None, sim_all = None, ignore_prompt = None):
         """
         cmd_line - string, DETECTED DEVICE TYPE DEPENDENT
         sim_all  - simulate execution of all commands, not only config commands
@@ -680,7 +681,9 @@ class RCMD(object):
                     last_output, new_prompt = RCMD.ssh_send_command_and_read_output( \
                         RCMD.ssh_connection, RCMD.DEVICE_PROMPTS, cmd_line, \
                         long_lasting_mode = long_lasting_mode, \
-                        autoconfirm_mode = autoconfirm_mode, printall = printall)
+                        autoconfirm_mode = autoconfirm_mode, \
+                        ignore_prompt = ignore_prompt, \
+                        printall = printall)
                     if new_prompt: RCMD.DEVICE_PROMPTS.append(new_prompt)
             if printall or RCMD.printall:
                 if not long_lasting_mode: CGI_CLI.uprint(last_output, color = 'gray', timestamp = 'no')
@@ -692,7 +695,7 @@ class RCMD(object):
     @staticmethod
     def run_commands(cmd_data = None, printall = None, conf = None, sim_config = None, \
         do_not_final_print = None , commit_text = None, submit_result = None , \
-        long_lasting_mode = None, autoconfirm_mode = None):
+        long_lasting_mode = None, autoconfirm_mode = None, ignore_prompt = None):
         """
         FUNCTION: run_commands(), RETURN: list of command_outputs
         PARAMETERS:
@@ -757,6 +760,7 @@ class RCMD(object):
                         command_outputs.append(RCMD.run_command(cmd_line, \
                             conf = conf, sim_config = sim_config, printall = printall,
                             long_lasting_mode = long_lasting_mode, \
+                            ignore_prompt = ignore_prompt, \
                             autoconfirm_mode = autoconfirm_mode))
                     ### EXIT FROM CONFIG MODE FOR PARAMIKO #####################
                     if (conf or RCMD.conf) and RCMD.use_module == 'paramiko':
@@ -869,15 +873,22 @@ class RCMD(object):
     @staticmethod
     def ssh_send_command_and_read_output(chan, prompts, \
         send_data = str(), long_lasting_mode = None, \
-        autoconfirm_mode = None, printall=True):
+        autoconfirm_mode = None, ignore_prompt = None, \
+        printall = True):
+        '''
+        autoconfirm_mode = True ==> CISCO - '\n', HUAWEI - 'Y\n'
+        '''
         output, output2, new_prompt = str(), str(), str()
         exit_loop, exit_loop2 = False, False
         timeout_counter_100msec, timeout_counter_100msec_2 = 0, 0
-        # FLUSH BUFFERS FROM PREVIOUS COMMANDS IF THEY ARE ALREADY BUFFERD
+
+        ### FLUSH BUFFERS FROM PREVIOUS COMMANDS IF THEY ARE ALREADY BUFFERED ###
         if chan.recv_ready(): flush_buffer = chan.recv(9999)
         time.sleep(0.1)
         chan.send(send_data + '\n')
         time.sleep(0.1)
+
+        ### MAIN WHILE LOOP ###################################################
         while not exit_loop:
             if chan.recv_ready():
                 ### WORKARROUND FOR DISCONTINIOUS OUTPUT FROM ROUTERS ###
@@ -900,22 +911,29 @@ class RCMD(object):
                 if long_lasting_mode:
                     if timeout_counter_100msec%100: pass
                     elif CGI_CLI.cgi_active:
+                        ### KEEPALIVE CONNECTION, DEFAULT 300sec TIMEOUT ###
                         CGI_CLI.uprint("<script>console.log('10sec...');</script>", raw = True)
                     if timeout_counter_100msec + 100 >= RCMD.CONNECTION_TIMEOUT*10:
                         CGI_CLI.uprint("LONG LASTING COMMAND TIMEOUT!", color = 'red')
                         exit_loop = True
                         break
                 continue
-            # FIND LAST LINE, THIS COULD BE PROMPT
-            try: last_line, last_line_orig = output.splitlines()[-1].strip(), output.splitlines()[-1].strip()
-            except: last_line, last_line_orig = str(), str()
-            # FILTER-OUT '(...)' FROM PROMPT IOS-XR/IOS-XE
+
+            ### FIND LAST LINE (STRIPPED), THIS COULD BE PROMPT ###
+            last_line_edited = str()
+            try: last_line_original = output.splitlines()[-1].strip()
+            except: last_line_original = str()
+
+            # FILTER-OUT '(...)' FROM PROMPT IOS-XR/IOS-XE ###
             if RCMD.router_type in ["ios-xr","ios-xe",'cisco_ios','cisco_xr']:
                 try:
-                    last_line_part1 = last_line.split('(')[0]
-                    last_line_part2 = last_line.split(')')[1]
-                    last_line = last_line_part1 + last_line_part2
-                except: last_line = last_line
+                    last_line_part1 = last_line_original.split('(')[0]
+                    last_line_part2 = last_line_original.split(')')[1]
+                    last_line_edited = last_line_part1 + last_line_part2
+                except:
+                    if 'sysadmin' in last_line_original and '#' in last_line_original:
+                        last_line_edited = 'sysadmin#'
+                    else: last_line_edited = last_line_original
 
             ### PRINT LONG LASTING OUTPUTS PER PARTS ##########################
             if printall and long_lasting_mode and buff_read and not RCMD.silent_mode:
@@ -924,34 +942,53 @@ class RCMD(object):
             # IS ACTUAL LAST LINE PROMPT ? IF YES , GO AWAY
             for actual_prompt in prompts:
                 if output.strip().endswith(actual_prompt) or \
-                    (last_line and last_line.endswith(actual_prompt)) or \
-                    (last_line_orig and last_line_orig.endswith(actual_prompt)):
+                    (last_line_edited and last_line_edited.endswith(actual_prompt)) or \
+                    (last_line_original and last_line_original.endswith(actual_prompt)):
+                        #CGI_CLI.uprint(prompts)
                         exit_loop=True; break
             else:
-                dialog_list = ['?', '[Y/N]:', '[confirm]']
+                continue_while_loop = False
+                dialog_list = ['?', '[Y/N]:', '[confirm]', '? [no]:']
                 for dialog_line in dialog_list:
-                    if last_line_orig.strip().endswith(dialog_line) or \
-                        last_line.strip().endswith(dialog_line):
+                    if last_line_original.strip().endswith(dialog_line) or \
+                        last_line_edited.strip().endswith(dialog_line):
                         if autoconfirm_mode:
                             ### AUTO-CONFIRM MODE ###
+                            time.sleep(0.2)
                             if RCMD.router_type in ["ios-xr","ios-xe",'cisco_ios','cisco_xr']:
                                 chan.send('\n')
-                            elif RCMD.router_type in ["vrp",'huawei']: chan.send('Y\n')
-                            time.sleep(0.1)
+                            elif RCMD.router_type in ["vrp",'huawei']:
+                                chan.send('Y\n')
+                            time.sleep(0.5)
+                            continue_while_loop = True
+                            break
                         else:
-                            ### INTERACTIVE QUESTION --> GO AWAY FAST !!! ###
-                            exit_loop = True; break
+                            ### INTERACTIVE QUESTION --> GO AWAY ###
+                            time.sleep(0.1)
+                            continue_while_loop = True
+                            exit_loop = True
+                            break
+
+                ### CONTINUE WHILE LOOP ###
+                if continue_while_loop: continue
 
                 ### LONG LASTING COMMAND = ONLY CONNECTION TIMEOUT WILL BE APPLIED ###
                 if long_lasting_mode:
                     if timeout_counter_100msec%100: pass
                     elif CGI_CLI.cgi_active:
+                        ### KEEPALIVE CONNECTION, DEFAULT 300sec TIMEOUT ###
                         CGI_CLI.uprint("<script>console.log('10s...');</script>", raw = True)
                     if timeout_counter_100msec + 100 > RCMD.CONNECTION_TIMEOUT*10:
                         CGI_CLI.uprint("LONG LASTING COMMAND TIMEOUT!!", color = 'red')
                         exit_loop = True
                         break
                 else:
+                    ### IGNORE NEW PROMPT AND GO AWAY ###
+                    if ignore_prompt:
+                        time.sleep(1)
+                        exit_loop = True
+                        break
+
                     ### 30 SECONDS COMMAND TIMEOUT ###
                     if timeout_counter_100msec > RCMD.CMD_TIMEOUT*10: exit_loop = True; break
                     ### 10 SECONDS --> This could be a new PROMPT ###
@@ -959,7 +996,7 @@ class RCMD(object):
                         ### TRICK IS IF NEW PROMPT OCCURS, HIT ENTER ... ###
                         ### ... AND IF OCCURS THE SAME LINE --> IT IS NEW PROMPT!!! ###
                         chan.send('\n')
-                        time.sleep(0.2)
+                        time.sleep(0.5)
                         while(not exit_loop2):
                             if chan.recv_ready():
                                 buff = chan.recv(9999)
@@ -970,9 +1007,9 @@ class RCMD(object):
                             else: time.sleep(0.1); timeout_counter_100msec_2 += 1
                             try: new_last_line = output2.splitlines()[-1].strip()
                             except: new_last_line = str()
-                            if last_line_orig and new_last_line and last_line_orig == new_last_line:
-                                if printall: CGI_CLI.uprint('NEW_PROMPT: %s' % (last_line_orig), color = 'cyan')
-                                new_prompt = last_line_orig; exit_loop=True;exit_loop2=True; break
+                            if last_line_original and new_last_line and last_line_original == new_last_line:
+                                if printall: CGI_CLI.uprint('NEW_PROMPT: %s' % (last_line_original), color = 'cyan')
+                                new_prompt = last_line_original; exit_loop=True;exit_loop2=True; break
                             # WAIT UP TO 5 SECONDS
                             if (timeout_counter_100msec_2) > 5*10: exit_loop2 = True; break
         return output, new_prompt
@@ -1571,12 +1608,45 @@ class sql_interface():
         return dict_list
 
 
+
+
+##############################################################################
+
+def display_interface(header_text = None, interface_list = None, color = None):
+    if len(interface_list) > 0: CGI_CLI.uprint(header_text, color = color)
+    for interface in interface_list:
+        isis_interface, description = interface
+        CGI_CLI.uprint('%s  -  %s' %(isis_interface, description), color = color)
+    if len(interface_list) > 0: CGI_CLI.uprint(' ')
+
+##############################################################################
+#
+# def CONFIG TEMPLATES
+#
+##############################################################################
+
+xr_config_header ='''!
+router isis PAII
+!
+''' 
+
+xr_config_interface_part ='''% for isis_interface, description in isis_interface_fail_list:
+ interface ${isis_interface}
+  passive
+  address-family ipv4 unicast
+  !
+  address-family ipv6 unicast
+  !
+ !
+!
+% endfor
+''' 
+
 ##############################################################################
 #
 # def BEGIN MAIN
 #
 ##############################################################################
-
 if __name__ != "__main__": sys.exit(0)
 try:
     CSS_STYLE = """
@@ -1677,17 +1747,18 @@ warning {
                         if 'TESTING' in line.upper() or 'ETHNOW-TEST' in line.upper(): continue
                         if 'OLD' in line.upper(): continue
                         if not 'BE' in line.split()[0].upper() and 'LAG' in line.upper(): continue
+
                         ### DOTTED INTERFACES FIRST ###
                         if '.' in line.split()[0]:
                             if len(isis_interface_list) == 0:
-                                isis_interface_list.append(line.split()[0])
+                                isis_interface_list.append([line.split()[0], ' '.join(line.split()[3:])])
                             else:
                                 is_in_isis_interface_list = False
                                 for interface_string in isis_interface_list:
                                     if line.split()[0] in interface_string: is_in_isis_interface_list = True
                                     else: pass
                                 if not is_in_isis_interface_list:
-                                    isis_interface_list.append(line.split()[0])
+                                    isis_interface_list.append([line.split()[0], ' '.join(line.split()[3:])])
                                     continue
 
                 ### SELECT INTERFACES IF SUBINTERFACES ARE NOT IN LIST ###
@@ -1699,16 +1770,18 @@ warning {
                         if 'TESTING' in line.upper() or 'ETHNOW-TEST' in line.upper(): continue
                         if 'OLD' in line.upper(): continue
                         if not 'BE' in line.split()[0].upper() and 'LAG' in line.upper(): continue
+
+                        ### UNDOTTED INTERFACES LAST ###
                         if not '.' in line.split()[0]:
                             if len(isis_interface_list) == 0:
-                                isis_interface_list.append(line.split()[0])
+                                isis_interface_list.append([line.split()[0], ' '.join(line.split()[3:])])
                             else:
                                 is_in_isis_interface_list = False
                                 for interface_string in isis_interface_list:
                                     if line.split()[0] in interface_string: is_in_isis_interface_list = True
                                     else: pass
                                 if not is_in_isis_interface_list:
-                                    isis_interface_list.append(line.split()[0])
+                                    isis_interface_list.append([line.split()[0], ' '.join(line.split()[3:])])
                                     continue
 
             if RCMD.router_type == 'juniper':
@@ -1720,17 +1793,18 @@ warning {
                         if line.strip() in RCMD.DEVICE_PROMPTS: continue
                         if 'TESTING' in line.upper() or 'ETHNOW-TEST' in line.upper(): continue
                         if 'OLD' in line.upper() or 'LAG' in line.upper(): continue
+
                         ### DOTTED INTERFACES FIRST ###
                         if '.' in line.split()[0]:
                             if len(isis_interface_list) == 0:
-                                isis_interface_list.append(line.split()[0])
+                                isis_interface_list.append([line.split()[0], ' '.join(line.split()[3:])])
                             else:
                                 is_in_isis_interface_list = False
                                 for interface_string in isis_interface_list:
                                     if line.split()[0] in interface_string: is_in_isis_interface_list = True
                                     else: pass
                                 if not is_in_isis_interface_list:
-                                    isis_interface_list.append(line.split()[0])
+                                    isis_interface_list.append([line.split()[0], ' '.join(line.split()[3:])])
                                     continue
 
                 ### SELECT INTERFACES IF SUBINTERFACES ARE NOT IN LIST ###
@@ -1741,16 +1815,18 @@ warning {
                         if line.strip() in RCMD.DEVICE_PROMPTS: continue
                         if 'TESTING' in line.upper() or 'ETHNOW-TEST' in line.upper(): continue
                         if 'OLD' in line.upper() or 'LAG' in line.upper(): continue
+
+                        ### UNDOTTED INTERFACES LAST ###
                         if not '.' in line.split()[0]:
                             if len(isis_interface_list) == 0:
-                                isis_interface_list.append(line.split()[0])
+                                isis_interface_list.append([line.split()[0], ' '.join(line.split()[3:])])
                             else:
                                 is_in_isis_interface_list = False
                                 for interface_string in isis_interface_list:
                                     if line.split()[0] in interface_string: is_in_isis_interface_list = True
                                     else: pass
                                 if not is_in_isis_interface_list:
-                                    isis_interface_list.append(line.split()[0])
+                                    isis_interface_list.append([line.split()[0], ' '.join(line.split()[3:])])
                                     continue
 
             if RCMD.router_type == 'huawei': pass
@@ -1762,7 +1838,7 @@ warning {
                 'juniper':[]
             }
 
-            for isis_interface in isis_interface_list:
+            for isis_interface, description in isis_interface_list:
                 rcmds_2['cisco_ios'].append('show isis interface %s' % (isis_interface))
                 rcmds_2['cisco_xr'].append('show isis interface %s' % (isis_interface))
                 rcmds_2['juniper'].append('show isis interface %s' % (isis_interface))
@@ -1777,6 +1853,7 @@ warning {
 
             if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
                 for interface, rcmd_2_output in zip(isis_interface_list,rcmds_2_outputs):
+                    isis_interface, description = interface
                     if '(Intf passive in IS-IS cfg)' in rcmd_2_output:
                         isis_interface_ok_list.append(interface)
                     elif '% No IS-IS instances are configured to use':
@@ -1785,18 +1862,37 @@ warning {
 
             if RCMD.router_type == 'juniper':
                 for interface, rcmd_2_output in zip(isis_interface_list,rcmds_2_outputs):
+                    isis_interface, description = interface
                     if 'Level 2 DR' in rcmd_2_output or 'Passive' in rcmd_2_output:
                         isis_interface_ok_list.append(interface)
                     else: isis_interface_fail_list.append(interface)
 
             ### PRINTOUTS ###
-            CGI_CLI.uprint(isis_interface_list, name = True , jsonprint = True)
-            if len(isis_interface_fail_list) > 0:
-                CGI_CLI.uprint('ISIS PROBLEM on: %s' % (', '.join(isis_interface_fail_list)), tag = 'h1' ,color = 'red')
-            if len(isis_interface_warning_list) > 0:
-                CGI_CLI.uprint('ISIS WARNING on: %s' % (', '.join(isis_interface_warning_list)), tag = 'h1' ,color = 'yellow')
-            if len(isis_interface_ok_list) > 0:
-                CGI_CLI.uprint('ISIS OK on: %s' % (', '.join(isis_interface_ok_list)), tag = 'h1' ,color = 'green')
+            if printall:
+                CGI_CLI.uprint(isis_interface_list, name = True , jsonprint = True)
+                CGI_CLI.uprint(isis_interface_fail_list, name = True , jsonprint = True)
+                CGI_CLI.uprint(isis_interface_warning_list, name = True , jsonprint = True)
+                CGI_CLI.uprint(isis_interface_ok_list, name = True , jsonprint = True)
+            
+            display_interface(header_text = '%s interface(s) with ISIS PROBLEM:' % (device), interface_list = isis_interface_fail_list, color = 'red')
+            display_interface(header_text = '%s interface(s) with ISIS WARNING:' % (device), interface_list = isis_interface_warning_list, color = 'yellow')     
+            display_interface(header_text = '%s interface(s) with ISIS OK:' % (device), interface_list = isis_interface_ok_list, color = 'green')
+
+
+            data = {}
+            data['isis_interface_fail_list'] = isis_interface_fail_list
+            
+            config_to_apply = str()
+            if RCMD.router_type == 'cisco_xr':                
+                mytemplate = Template(xr_config_header,strict_undefined=True)
+                config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
+                                
+                mytemplate = Template(xr_config_interface_part,strict_undefined=True)
+                config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
+
+            if isis_interface_fail_list:
+                CGI_CLI.uprint('\nREPAIR CONFIG:\n\n%s' % (config_to_apply), color = 'blue')
+ 
 
             RCMD.disconnect()
 except SystemExit: pass
