@@ -1906,7 +1906,9 @@ warning {
                         ### DOTTED INTERFACES FIRST ###
                         if '.' in line.split()[0]:
                             if len(isis_interface_list) == 0:
-                                isis_interface_list.append([line.split()[0].replace('GE','G'), ' '.join(line.split()[3:])])
+                                try:    isis_if = line.split()[0].replace('GE','G').split('(')[0]
+                                except: isis_if = line.split()[0].replace('GE','G')
+                                isis_interface_list.append([isis_if, ' '.join(line.split()[3:])])
                             else:
                                 is_in_isis_interface_list = False
                                 for interface in isis_interface_list:
@@ -1914,7 +1916,9 @@ warning {
                                     if line.split()[0] in interface_string: is_in_isis_interface_list = True
                                     else: pass
                                 if not is_in_isis_interface_list:
-                                    isis_interface_list.append([line.split()[0].replace('GE','G'), ' '.join(line.split()[3:])])
+                                    try:    isis_if = line.split()[0].replace('GE','G').split('(')[0]
+                                    except: isis_if = line.split()[0].replace('GE','G')
+                                    isis_interface_list.append([isis_if, ' '.join(line.split()[3:])])
                                     continue
 
                 ### SELECT INTERFACES IF SUBINTERFACES ARE NOT IN LIST ###
@@ -1929,7 +1933,9 @@ warning {
                         ### UNDOTTED INTERFACES LAST ###
                         if not '.' in line.split()[0]:
                             if len(isis_interface_list) == 0:
-                                isis_interface_list.append([line.split()[0].replace('GE','G'), ' '.join(line.split()[3:])])
+                                try:    isis_if = line.split()[0].replace('GE','G').split('(')[0]
+                                except: isis_if = line.split()[0].replace('GE','G')
+                                isis_interface_list.append([isis_if, ' '.join(line.split()[3:])])
                             else:
                                 is_in_isis_interface_list = False
                                 for interface in isis_interface_list:
@@ -1937,7 +1943,9 @@ warning {
                                     if line.split()[0] in interface_string: is_in_isis_interface_list = True
                                     else: pass
                                 if not is_in_isis_interface_list:
-                                    isis_interface_list.append([line.split()[0].replace('GE','G'), ' '.join(line.split()[3:])])
+                                    try:    isis_if = line.split()[0].replace('GE','G').split('(')[0]
+                                    except: isis_if = line.split()[0].replace('GE','G')
+                                    isis_interface_list.append([isis_if, ' '.join(line.split()[3:])])
                                     continue
 
             rcmds_2 = {
