@@ -1722,7 +1722,7 @@ warning {
             device_list = [ dev_mix_case.upper() for dev_mix_case in devices_string.split(',') ]
         else: device_list = [devices_string.upper()]
 
-    CGI_CLI.uprint('ISIS check (v.%s)' % (CGI_CLI.VERSION()), tag = 'h1', color = 'blue')
+    CGI_CLI.uprint('Customer ISIS check (v.%s)' % (CGI_CLI.VERSION()), tag = 'h1', color = 'blue')
 
     printall = CGI_CLI.data.get("printall")
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
@@ -1999,10 +1999,10 @@ warning {
 
             if len(isis_interface_fail_list) == 0 and len(isis_interface_warning_list) == 0:
                 #display_interface(header_text = '%s interface(s) with ISIS OK:' % (device), interface_list = isis_interface_ok_list, color = 'green')
-                CGI_CLI.uprint('%s interface(s) - ISIS OK.' % (device), color = 'green')
+                CGI_CLI.uprint('%s interface(s) - Customer ISIS OK.' % (device), color = 'green')
 
-            display_interface(header_text = '%s interface(s) with ISIS WARNING:' % (device), interface_list = isis_interface_warning_list, color = 'yellow')
-            display_interface(header_text = '%s interface(s) with ISIS PROBLEM:' % (device), interface_list = isis_interface_fail_list, color = 'red')
+            display_interface(header_text = '%s interface(s) with Customer ISIS WARNING:' % (device), interface_list = isis_interface_warning_list, color = 'yellow')
+            display_interface(header_text = '%s interface(s) with Customer ISIS PROBLEM:' % (device), interface_list = isis_interface_fail_list, color = 'red')
 
             data = {}
             data['isis_interface_fail_list'] = isis_interface_fail_list
