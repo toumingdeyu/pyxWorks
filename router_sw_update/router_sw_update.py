@@ -3439,7 +3439,6 @@ warning {
                 check_dir_cfgfiles_cmds['juniper'].append( \
                     'file list re1:/var/tmp/%s-config.txt' % (actual_date_string))
 
-
                 cfgfiles_cmds_outputs = RCMD.run_commands(check_dir_cfgfiles_cmds, \
                     autoconfirm_mode = True, printall = printall)
                 CGI_CLI.uprint('\n')
@@ -3461,6 +3460,16 @@ warning {
                     else: CGI_CLI.uprint('%s CONFIG copy PROBLEM!' % (device), color = 'red')
 
                 if RCMD.router_type == 'juniper':
+                    if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[0] \
+                        and not 'No such file or directory' in cfgfiles_cmds_outputs[0]:
+                        CGI_CLI.uprint('%s CONFIG copy done!' % (device), color = 'green')
+                    else: CGI_CLI.uprint('%s CONFIG copy PROBLEM!' % (device), color = 'red')
+                    if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[1] \
+                        and not 'No such file or directory' in cfgfiles_cmds_outputs[1]:
+                        CGI_CLI.uprint('%s CONFIG copy done!' % (device), color = 'green')
+                    else: CGI_CLI.uprint('%s CONFIG copy PROBLEM!' % (device), color = 'red')
+
+                if RCMD.router_type == 'huawei':
                     if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[0] \
                         and not 'No such file or directory' in cfgfiles_cmds_outputs[0]:
                         CGI_CLI.uprint('%s CONFIG copy done!' % (device), color = 'green')
