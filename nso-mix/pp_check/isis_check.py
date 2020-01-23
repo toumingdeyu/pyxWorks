@@ -136,6 +136,10 @@ class CGI_CLI(object):
                             action = "store_true", dest = 'printall',
                             default = None,
                             help = "print all lines, changes will be coloured")
+        parser.add_argument("--all_routers",
+                            action = "store_true", dest = 'all_routers',
+                            default = None,
+                            help = "check all routers")
         # parser.add_argument("--timestamps",
                             # action = "store_true", dest = 'timestamps',
                             # default = None,
@@ -1729,15 +1733,44 @@ warning {
     if printall: CGI_CLI.print_args()
 
 
+    all_routers_list = []
+    if CGI_CLI.data.get("all_routers"):
+        CGI_CLI.uprint('PID=%s ' % (os.getpid()), color = 'blue')
+
+        ### def SQL INIT ##########################################################
+        sql_inst = sql_interface(host='localhost', user='cfgbuilder', \
+            password='cfgbuildergetdata', database='rtr_configuration')
+
+        ### SQL READ ALL DEVICES IN NETWORK #######################################
+        data = collections.OrderedDict()
+        routers_list = sql_inst.sql_read_table_records( \
+            select_string = 'rtr_name',\
+            from_string = 'oti_all_table',\
+            order_by = 'rtr_name ASC')
+
+        ### DO SORTED DEVICE LIST ################################################
+        if len(routers_list)>0:
+            device_set = set([ router[0].upper() for router in routers_list ])
+            all_routers_list = list(device_set)
+            all_routers_list.sort()
+
+        if printall: CGI_CLI.uprint(all_routers_list)
+
+
     ### HTML MENU SHOWS ONLY IN CGI MODE ###
     if CGI_CLI.cgi_active and not CGI_CLI.submit_form:
         CGI_CLI.formprint([{'text':'device'},'<br/>',{'text':'username'},'<br/>',\
-            {'password':'password'},'<br/>',{'checkbox':'printall'},'<br/>','<br/>'],\
+            {'password':'password'},'<br/>',\
+            {'checkbox':'all_routers'},'<br/>',\
+            {'checkbox':'printall'},'<br/>','<br/>'],\
             submit_button = 'OK', pyfile = None, tag = None, color = None)
 
     iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
     if CGI_CLI.cgi_active and not (USERNAME and PASSWORD):
         if iptac_server == 'iptac5': USERNAME, PASSWORD = 'iptac', 'paiiUNDO'
+
+
+    device_list += all_routers_list
 
     for device in device_list:
 
