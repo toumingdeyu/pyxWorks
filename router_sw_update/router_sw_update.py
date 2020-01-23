@@ -3393,9 +3393,15 @@ warning {
                             'cisco_xr':[
                             'copy running-config %s%s-config.txt' % (RCMD.drive_string, actual_date_string),
                             'admin',
-                            'copy running-config %sadmin-%s-config.txt' %(RCMD.drive_string, actual_date_string),
+                            'copy running-config %sadmin-%s-config.txt' % (RCMD.drive_string, actual_date_string),
                             'exit'
+                            ],
+
+                            'juniper': [
+                            'show configuration | save re0:/var/tmp/%s-config.txt' % (actual_date_string),
+                            'show configuration | save re1:/var/tmp/%s-config.txt' % (actual_date_string)
                             ]
+
                         }
                         CGI_CLI.uprint('backup configs on %s' % (device), \
                             no_newlines = None if printall else True)
@@ -3419,20 +3425,45 @@ warning {
                     'dir /%sadmin-%s-config.txt' % (RCMD.drive_string, actual_date_string))
                 check_dir_cfgfiles_cmds['cisco_xr'].append('exit'),
 
+
+                # check_dir_cfgfiles_cmds['huawei'].append( \
+                    # 'dir %s%s-config.txt' % (RCMD.drive_string, actual_date_string))
+                # check_dir_cfgfiles_cmds['huawei'].append( \
+                    # 'dir slave#%s%s-config.txt' % (RCMD.drive_string, actual_date_string))
+
+                check_dir_cfgfiles_cmds['juniper'].append( \
+                    'file list re0:/var/tmp/%s-config.txt' % (actual_date_string))
+                check_dir_cfgfiles_cmds['juniper'].append( \
+                    'file list re1:/var/tmp/%s-config.txt' % (actual_date_string))
+
+
                 cfgfiles_cmds_outputs = RCMD.run_commands(check_dir_cfgfiles_cmds, \
                     autoconfirm_mode = True, printall = printall)
                 CGI_CLI.uprint('\n')
 
                 if RCMD.router_type == 'cisco_xr':
-                    if '-config.txt' in cfgfiles_cmds_outputs[0]:
+                    if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[0] \
+                        and not 'No such file or directory' in cfgfiles_cmds_outputs[0]:
                         CGI_CLI.uprint('%s CONFIG copy done!' % (device), color = 'green')
                     else: CGI_CLI.uprint('%s CONFIG copy PROBLEM!' % (device), color = 'red')
-                    if '-config.txt' in cfgfiles_cmds_outputs[2]:
+                    if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[2] \
+                        and not 'No such file or directory' in cfgfiles_cmds_outputs[2]:
                         CGI_CLI.uprint('%s ADMIN CONFIG copy done!' % (device), color = 'green')
                     else: CGI_CLI.uprint('%s ADMIN CONFIG copy PROBLEM!' % (device), color = 'red')
 
                 if RCMD.router_type == 'cisco_ios':
-                    if '-config.txt' in cfgfiles_cmds_outputs[0]:
+                    if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[0] \
+                        and not 'No such file or directory' in cfgfiles_cmds_outputs[0]:
+                        CGI_CLI.uprint('%s CONFIG copy done!' % (device), color = 'green')
+                    else: CGI_CLI.uprint('%s CONFIG copy PROBLEM!' % (device), color = 'red')
+
+                if RCMD.router_type == 'juniper':
+                    if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[0] \
+                        and not 'No such file or directory' in cfgfiles_cmds_outputs[0]:
+                        CGI_CLI.uprint('%s CONFIG copy done!' % (device), color = 'green')
+                    else: CGI_CLI.uprint('%s CONFIG copy PROBLEM!' % (device), color = 'red')
+                    if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[1] \
+                        and not 'No such file or directory' in cfgfiles_cmds_outputs[1]:
                         CGI_CLI.uprint('%s CONFIG copy done!' % (device), color = 'green')
                     else: CGI_CLI.uprint('%s CONFIG copy PROBLEM!' % (device), color = 'red')
 
