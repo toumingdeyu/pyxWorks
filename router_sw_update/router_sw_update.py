@@ -1001,10 +1001,12 @@ class RCMD(object):
                         while(not exit_loop2):
                             if chan.recv_ready():
                                 buff = chan.recv(9999)
-                                buff_read = str(buff.decode(encoding='utf-8').\
-                                    replace('\x0d','').replace('\x07','').\
-                                    replace('\x08','').replace(' \x1b[1D','').replace(u'\u2013',''))
-                                output2 += buff_read
+                                try:
+                                    buff_read = str(buff.decode(encoding='utf-8').\
+                                        replace('\x0d','').replace('\x07','').\
+                                        replace('\x08','').replace(' \x1b[1D','').replace(u'\u2013',''))
+                                    output2 += buff_read
+                                except: pass
                             else: time.sleep(0.1); timeout_counter_100msec_2 += 1
                             try: new_last_line = output2.splitlines()[-1].strip()
                             except: new_last_line = str()
