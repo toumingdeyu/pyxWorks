@@ -3400,8 +3400,12 @@ warning {
                             'juniper': [
                             'show configuration | save re0:/var/tmp/%s-config.txt' % (actual_date_string),
                             'show configuration | save re1:/var/tmp/%s-config.txt' % (actual_date_string)
-                            ]
+                            ],
 
+                            'huawei': [
+                            'display current-configuration > %s%s-config.txt' % (RCMD.drive_string, actual_date_string),
+                            'display current-configuration > slave#%s%s-config.txt' % (RCMD.drive_string, actual_date_string)
+                            ]
                         }
                         CGI_CLI.uprint('backup configs on %s' % (device), \
                             no_newlines = None if printall else True)
@@ -3425,11 +3429,10 @@ warning {
                     'dir /%sadmin-%s-config.txt' % (RCMD.drive_string, actual_date_string))
                 check_dir_cfgfiles_cmds['cisco_xr'].append('exit'),
 
-
-                # check_dir_cfgfiles_cmds['huawei'].append( \
-                    # 'dir %s%s-config.txt' % (RCMD.drive_string, actual_date_string))
-                # check_dir_cfgfiles_cmds['huawei'].append( \
-                    # 'dir slave#%s%s-config.txt' % (RCMD.drive_string, actual_date_string))
+                check_dir_cfgfiles_cmds['huawei'].append( \
+                    'dir %s%s-config.txt' % (RCMD.drive_string, actual_date_string))
+                check_dir_cfgfiles_cmds['huawei'].append( \
+                    'dir slave#%s%s-config.txt' % (RCMD.drive_string, actual_date_string))
 
                 check_dir_cfgfiles_cmds['juniper'].append( \
                     'file list re0:/var/tmp/%s-config.txt' % (actual_date_string))
