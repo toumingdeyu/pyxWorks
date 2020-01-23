@@ -1753,12 +1753,13 @@ def does_local_directory_or_file_exist_by_ls_l(directory_or_file, printall = Non
     ### BUG: os.path.exists RETURNS ALLWAYS FALSE, SO I USE OS ls -l ######
     ls_all_result = LCMD.run_commands({'unix':['ls -l %s' % (directory_or_file)]}, printall = printall)
     if 'NO SUCH FILE OR DIRECTORY' in ls_all_result[0].upper(): pass
-    elif ls_all_result[0].strip().split()[0] == 'total':
-        this_is_directory = True
-    try:
-        if directory_or_file.split('/')[-1] and directory_or_file.split('/')[-1] in ls_all_result[0].strip():
-            file_found = True
-    except: pass
+    else:
+        if ls_all_result[0].strip().split()[0] == 'total':
+            this_is_directory = True        
+        try:
+            if directory_or_file.split('/')[-1] and directory_or_file.split('/')[-1] in ls_all_result[0].strip():
+                file_found = True
+        except: pass
     return this_is_directory, file_found
 
 ### def GET LOCAL SUB-DIRS ####################################################
@@ -1783,15 +1784,15 @@ def get_local_subdirectories(brand_raw = None, type_raw = None):
         elif 'ASR1001' in type_raw.upper():
             type_subdir_on_server = 'ASR1K/ASR1001X/IOS_XE'
             type_subdir_on_device = 'IOS-XE'
-            file_types = ['asr1001x*.bin','asr100*.pkg','ROMMON/*.pkg']
+            file_types = ['asr1001x*.bin','asr100*.pkg','/home/tftpboot/CISCO/ASR1K/ASR1002X/ROMMON/*.pkg']
         elif 'ASR1002-X' in type_raw.upper():
             type_subdir_on_server = 'ASR1K/ASR1002X/IOS_XE'
             type_subdir_on_device = 'IOS-XE'
-            file_types = ['asr1002x*.bin','asr100*.pkg','ROMMON/*.pkg']
+            file_types = ['asr1002x*.bin','asr100*.pkg','/home/tftpboot/CISCO/ASR1K/ASR1002X/ROMMON/*.pkg']
         elif 'ASR1002-HX' in type_raw.upper():
             type_subdir_on_server = 'ASR1K/ASR1002HX/IOS_XE'
             type_subdir_on_device = 'IOS-XE'
-            file_types = ['asr100*.bin','asr100*.pkg','ROMMON/*.pkg']
+            file_types = ['asr100*.bin','asr100*.pkg','/home/tftpboot/CISCO/ASR1K/ASR1002X/ROMMON/*.pkg']
         elif 'CRS' in type_raw.upper():
             type_subdir_on_server = 'CRS'
             type_subdir_on_device = 'IOS-XR'
@@ -2241,9 +2242,11 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                             if file == possible_file_name: file_found_on_device = True
                             if device_fsize == fsize: file_size_ok_on_device = True
                             slave_filecheck_list.append([file,file_found_on_device,file_size_ok_on_device])
+                            
                 ### MAKE BAD FILE LIST, BECAUSE HUAWEI MD5 SUM CHECK IS SLOW ######
                 slave_bad_files = [ file for file, file_found_on_device, file_size_ok_on_device in \
                     slave_filecheck_list if not file_found_on_device and not file_size_ok_on_device]
+
                 ### CHECK FILE(S) AND MD5(S) FIRST ################################
                 slave_huawei_md5_cmds = []
                 for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
@@ -2781,7 +2784,7 @@ warning {
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True, css_style = CSS_STYLE)
     #CGI_CLI.uprint('<img src="/style/orange.gif" alt="" title="" width="40" height="40">', \
     #    raw=True)
-    CGI_CLI.uprint('ROUTER SW UPGRADE TOOL (v.%s)' % (CGI_CLI.VERSION()), tag = 'h1', color = 'blue')
+    CGI_CLI.uprint('ROUTER SW UPLOAD TOOL (v.%s)' % (CGI_CLI.VERSION()), tag = 'h1', color = 'blue')
     # CGI_CLI.uprint('PID=%s ' % (os.getpid()), color = 'blue')
     printall = CGI_CLI.data.get("printall")
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
@@ -3133,8 +3136,27 @@ warning {
             ### WARNING: 'sw_release' COULD BE ALSO FILE !!! ######################
             ### BUG: os.path.exists RETURNS ALLWAYS FALSE, SO I USE OS ls -l ######
             IS_DIRECTORY_OR_FILE_FOUND = False
-            FILE_FOUND_STRING = str()
-            DIR_FOUND_STRING  = str()
+            FILE_FOUND_STRING, DIR_FOUND_STRING = str(), str()
+           
+            ### ABSOLUTE PATH 'actual_file_type', ROMMON IS OUTSIDE OF SUBDIR #####
+            if str(actual_file_type).startswith(os.sep):
+                use_dir_or_file = str(actual_file_type)
+                this_is_directory, file_found = \
+                    does_local_directory_or_file_exist_by_ls_l(use_dir_or_file, printall = printall)
+                if printall:
+                    CGI_CLI.uprint('Path=%s, is_dir[%s], is_file[%s]' % \
+                        (use_dir_or_file, this_is_directory,  file_found), tag = 'debug')
+                if this_is_directory:
+                    IS_DIRECTORY_OR_FILE_FOUND = True
+                    directory_list.append([use_dir_or_file, str()])
+                if file_found and not this_is_directory:
+                    try:
+                        DIR_FOUND_STRING, FILE_FOUND_STRING = os.path.split(use_dir_or_file)
+                        #FILE_FOUND_STRING = use_dir_or_file.split('/')[-1]
+                        IS_DIRECTORY_OR_FILE_FOUND = True
+                    except: pass
+                    directory_list.append([DIR_FOUND_STRING, FILE_FOUND_STRING])                
+            
             ### LET DOTS IN DIRECTORY NAME ########################################
             if not IS_DIRECTORY_OR_FILE_FOUND:
                 use_dir_or_file = os.path.abspath(os.path.join(os.sep,'home',\
@@ -3209,8 +3231,14 @@ warning {
         ### CHECK LOCAL SERVER FILES EXISTENCY ####################################
         for directory_sublist,actual_file_type in zip(directory_list,selected_sw_file_types_list):
             forget_it, actual_file_name = os.path.split(actual_file_type)
-            actual_file_type_subdir, forget_it = os.path.split(actual_file_type)
+
+            ### WORKARROUND FOR ABSOLUTE PATH, LIKE ROMMON ########################
+            if actual_file_type.startwith(os.sep): actual_file_type_subdir = str()
+            else:            
+                actual_file_type_subdir, forget_it = os.path.split(actual_file_type)
+
             directory, true_local_file_in_sw_release = directory_sublist
+
             if sw_release in directory:
                 device_directory = os.path.abspath(os.path.join(os.sep, \
                     type_subdir_on_device, sw_release.replace('.',''), actual_file_type_subdir))
