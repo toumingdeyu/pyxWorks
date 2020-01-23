@@ -888,7 +888,7 @@ class RCMD(object):
         time.sleep(0.1)
         chan.send(send_data + '\n')
         time.sleep(0.1)
-        
+
         ### MAIN WHILE LOOP ###################################################
         while not exit_loop:
             if chan.recv_ready():
@@ -967,12 +967,12 @@ class RCMD(object):
                             ### INTERACTIVE QUESTION --> GO AWAY ###
                             time.sleep(0.1)
                             continue_while_loop = True
-                            exit_loop = True 
+                            exit_loop = True
                             break
-                
-                ### CONTINUE WHILE LOOP ###                
+
+                ### CONTINUE WHILE LOOP ###
                 if continue_while_loop: continue
-                
+
                 ### LONG LASTING COMMAND = ONLY CONNECTION TIMEOUT WILL BE APPLIED ###
                 if long_lasting_mode:
                     if timeout_counter_100msec%100: pass
@@ -1755,7 +1755,7 @@ def does_local_directory_or_file_exist_by_ls_l(directory_or_file, printall = Non
     if 'NO SUCH FILE OR DIRECTORY' in ls_all_result[0].upper(): pass
     else:
         if ls_all_result[0].strip().split()[0] == 'total':
-            this_is_directory = True        
+            this_is_directory = True
         try:
             if directory_or_file.split('/')[-1] and directory_or_file.split('/')[-1] in ls_all_result[0].strip():
                 file_found = True
@@ -2242,7 +2242,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                             if file == possible_file_name: file_found_on_device = True
                             if device_fsize == fsize: file_size_ok_on_device = True
                             slave_filecheck_list.append([file,file_found_on_device,file_size_ok_on_device])
-                            
+
                 ### MAKE BAD FILE LIST, BECAUSE HUAWEI MD5 SUM CHECK IS SLOW ######
                 slave_bad_files = [ file for file, file_found_on_device, file_size_ok_on_device in \
                     slave_filecheck_list if not file_found_on_device and not file_size_ok_on_device]
@@ -3137,7 +3137,7 @@ warning {
             ### BUG: os.path.exists RETURNS ALLWAYS FALSE, SO I USE OS ls -l ######
             IS_DIRECTORY_OR_FILE_FOUND = False
             FILE_FOUND_STRING, DIR_FOUND_STRING = str(), str()
-           
+
             ### ABSOLUTE PATH 'actual_file_type', ROMMON IS OUTSIDE OF SUBDIR #####
             if str(actual_file_type).startswith(os.sep):
                 use_dir_or_file = str(actual_file_type)
@@ -3155,8 +3155,8 @@ warning {
                         #FILE_FOUND_STRING = use_dir_or_file.split('/')[-1]
                         IS_DIRECTORY_OR_FILE_FOUND = True
                     except: pass
-                    directory_list.append([DIR_FOUND_STRING, FILE_FOUND_STRING])                
-            
+                    directory_list.append([DIR_FOUND_STRING, FILE_FOUND_STRING])
+
             ### LET DOTS IN DIRECTORY NAME ########################################
             if not IS_DIRECTORY_OR_FILE_FOUND:
                 use_dir_or_file = os.path.abspath(os.path.join(os.sep,'home',\
@@ -3233,8 +3233,8 @@ warning {
             forget_it, actual_file_name = os.path.split(actual_file_type)
 
             ### WORKARROUND FOR ABSOLUTE PATH, LIKE ROMMON ########################
-            if actual_file_type.startwith(os.sep): actual_file_type_subdir = str()
-            else:            
+            if actual_file_type.startswith(os.sep): actual_file_type_subdir = str()
+            else:
                 actual_file_type_subdir, forget_it = os.path.split(actual_file_type)
 
             directory, true_local_file_in_sw_release = directory_sublist
@@ -3387,7 +3387,7 @@ warning {
                             'cisco_ios':[
                             'copy running-config %s%s-config.txt' % (RCMD.drive_string, actual_date_string),
                             ],
-                            
+
                             'cisco_xr':[
                             'copy running-config %s%s-config.txt' % (RCMD.drive_string, actual_date_string),
                             'admin',
@@ -3420,8 +3420,8 @@ warning {
                 cfgfiles_cmds_outputs = RCMD.run_commands(check_dir_cfgfiles_cmds, \
                     autoconfirm_mode = True, printall = printall)
                 CGI_CLI.uprint('\n')
-                
-                if RCMD.router_type == 'cisco_xr': 
+
+                if RCMD.router_type == 'cisco_xr':
                     if '-config.txt' in cfgfiles_cmds_outputs[0]:
                         CGI_CLI.uprint('%s CONFIG copy done!' % (device), color = 'green')
                     else: CGI_CLI.uprint('%s CONFIG copy PROBLEM!' % (device), color = 'red')
@@ -3433,11 +3433,11 @@ warning {
                     if '-config.txt' in cfgfiles_cmds_outputs[0]:
                         CGI_CLI.uprint('%s CONFIG copy done!' % (device), color = 'green')
                     else: CGI_CLI.uprint('%s CONFIG copy PROBLEM!' % (device), color = 'red')
-                        
+
 
                 ### def DELETE TAR FILES ON END ###############################
                 if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios' \
-                    or RCMD.router_type == 'huawei' or RCMD.router_type == 'juniper':                    
+                    or RCMD.router_type == 'huawei' or RCMD.router_type == 'juniper':
                     if CGI_CLI.data.get('delete_device_sw_files_on_end'):
                         del_files_cmds = {'cisco_xr':[], 'cisco_ios':[], \
                             'huawei':[], 'juniper':[]}
