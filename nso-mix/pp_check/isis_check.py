@@ -2034,7 +2034,7 @@ warning {
             filtered_isis_interface_list = []
             for interface, rcmd_if_check_output in zip(isis_interface_list,rcmds_if_check_outputs):
                 isis_interface, description = interface
-                find_list = re.findall(r'[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}', rcmd_md5_output.strip())
+                find_list = re.findall(r'[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}', rcmd_if_check_output.strip())
                 if len(find_list) >= 1:
                     filtered_isis_interface_list.append([isis_interface, description])
             del isis_interface_list
