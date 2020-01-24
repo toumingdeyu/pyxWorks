@@ -1094,7 +1094,9 @@ class RCMD(object):
                     output += str(buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
                         replace('\x1b[K','').replace('\n{master}\n','').replace(u'\u2013',''))
                 except: pass
-                if '--More--' or '---(more' in buff.strip(): chan.send('\x20')
+                if '--More--' or '---(more' in buff.strip():
+                    chan.send('\x20')
+                    time.sleep(0.3)
                 if debug: CGI_CLI.uprint('BUFFER:' + buff, color = 'grey')
                 try: last_line = output.splitlines()[-1].strip()
                 except: last_line = str()
@@ -1806,7 +1808,7 @@ warning {
         ### REMOTE DEVICE OPERATIONS ######################################
         if device:
             RCMD.connect(device, username = USERNAME, password = PASSWORD, \
-                connection_timeout = 100, disconnect_timeout = 0.5, \
+                connection_timeout = 100, disconnect_timeout = 2, \
                 printall = printall, logfilename = logfilename)
 
             if not RCMD.ssh_connection:
