@@ -25,7 +25,6 @@ from mako.lookup import TemplateLookup
 
 
 
-
 class CGI_CLI(object):
     """
     class CGI_handle - Simple statis class for handling CGI parameters and
@@ -493,7 +492,7 @@ class RCMD(object):
         connection_timeout = 600, cmd_timeout = 30, \
         conf = None, sim_config = None, disconnect = None, printall = None, \
         do_not_final_print = None, commit_text = None, silent_mode = None, \
-        disconnect_timeout = 2):
+        disconnect_timeout = 2, no_alive_test = None):
         """ FUNCTION: RCMD.connect(), RETURNS: list of command_outputs
         PARAMETERS:
         device     - string , device_name/ip_address/device_name:PORT_NUMBER/ip_address:PORT_NUMBER
@@ -541,6 +540,15 @@ class RCMD(object):
             except: RCMD.DEVICE_HOST = str()
             try: RCMD.DEVICE_PORT = device.split(':')[1]
             except: RCMD.DEVICE_PORT = '22'
+
+            ### IS ALIVE TEST #################################################
+            if not no_alive_test:
+                for i_repeat in range(3):
+                    if RCMD.is_alive(device): break
+                else:
+                    CGI_CLI.uprint('DEVICE %s is not ALIVE.' % (device), color = 'magenta')
+                    return command_outputs
+            ### START SSH CONNECTION ##########################################
             if printall: CGI_CLI.uprint('DEVICE %s (host=%s, port=%s) START'\
                 %(device, RCMD.DEVICE_HOST, RCMD.DEVICE_PORT)+24 * '.', color = 'gray')
             try:
@@ -563,7 +571,7 @@ class RCMD(object):
                             color = 'gray')
             except Exception as e:
                 if not RCMD.silent_mode:
-                    CGI_CLI.uprint('CONNECTION_PROBLEM[' + str(e) + ']', color = 'magenta')
+                    CGI_CLI.uprint(str(device) + ' CONNECTION_PROBLEM[' + str(e) + ']', color = 'magenta')
             finally:
                 if disconnect: RCMD.disconnect()
             ### EXIT IF NO CONNECTION ##########################################
@@ -659,6 +667,22 @@ class RCMD(object):
         return command_outputs
 
     @staticmethod
+    def is_alive(device = None):
+        if device:
+            try:    device_without_port = device.split(':')[0]
+            except: device_without_port = device
+            if 'WIN32' in sys.platform.upper():
+                command = 'ping %s -n 1' % (device_without_port)
+            else: command = 'ping %s -c 1' % (device_without_port)
+            try: os_output = subprocess.check_output(str(command), \
+                stderr=subprocess.STDOUT, shell=True).decode("utf-8")
+            except: os_output = str()
+            if 'Packets: Sent = 1, Received = 1' in os_output \
+                or '1 packets transmitted, 1 received,' in os_output:
+                return True
+        return False
+
+    @staticmethod
     def run_command(cmd_line = None, printall = None, conf = None, \
         long_lasting_mode = None, autoconfirm_mode = None, \
         sim_config = None, sim_all = None, ignore_prompt = None):
@@ -707,7 +731,7 @@ class RCMD(object):
         long_lasting_mode - max connection timeout, no cmd timeout, no prompt discovery
         autoconfirm_mode - in case of interactivity send 'Y\n' on huawei ,'\n' on cisco
         """
-        command_outputs = str()
+        command_outputs, cmd_list = str(), []
         if cmd_data and isinstance(cmd_data, (dict,collections.OrderedDict)):
             if RCMD.router_type=='cisco_ios': cmd_list = cmd_data.get('cisco_ios',[])
             elif RCMD.router_type=='cisco_xr': cmd_list = cmd_data.get('cisco_xr',[])
@@ -716,7 +740,6 @@ class RCMD(object):
             elif RCMD.router_type=='linux': cmd_list = cmd_data.get('linux',[])
         elif cmd_data and isinstance(cmd_data, (list,tuple)): cmd_list = cmd_data
         elif cmd_data and isinstance(cmd_data, (six.string_types)): cmd_list = [cmd_data]
-        else: cmd_list = []
 
         if RCMD.ssh_connection and len(cmd_list)>0:
             ### WORK REMOTE ================================================
@@ -1006,7 +1029,9 @@ class RCMD(object):
                                         replace('\x0d','').replace('\x07','').\
                                         replace('\x08','').replace(' \x1b[1D','').replace(u'\u2013',''))
                                     output2 += buff_read
-                                except: pass
+                                except:
+                                    CGI_CLI.uprint('BUFF_ERR[%s][%s]'%(buff,type(buff)), color = 'red')
+                                    CGI_CLI.uprint(traceback.format_exc(), color = 'magenta')
                             else: time.sleep(0.1); timeout_counter_100msec_2 += 1
                             try: new_last_line = output2.splitlines()[-1].strip()
                             except: new_last_line = str()
@@ -1025,7 +1050,7 @@ class RCMD(object):
             flush_buffer = chan.recv(9999)
             del flush_buffer
             chan.send('\t \n\n')
-            time.sleep(0.2)
+            time.sleep(0.3)
             while not (last_line and last_but_one_line and last_line == last_but_one_line):
                 buff = chan.recv(9999)
                 if len(buff)>0:
@@ -1037,7 +1062,7 @@ class RCMD(object):
                     if '--More--' or '---(more' in buff.strip():
                         chan.send('\x20')
                         if debug: CGI_CLI.uprint('SPACE_SENT.', color = 'blue')
-                        time.sleep(0.1)
+                        time.sleep(0.3)
                     try: last_line = output.splitlines()[-1].strip().replace('\x20','')
                     except: last_line = 'dummyline1'
                     try:
@@ -1065,7 +1090,9 @@ class RCMD(object):
                     output += str(buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
                         replace('\x1b[K','').replace('\n{master}\n','').replace(u'\u2013',''))
                 except: pass
-                if '--More--' or '---(more' in buff.strip(): chan.send('\x20')
+                if '--More--' or '---(more' in buff.strip():
+                    chan.send('\x20')
+                    time.sleep(0.3)
                 if debug: CGI_CLI.uprint('BUFFER:' + buff, color = 'grey')
                 try: last_line = output.splitlines()[-1].strip()
                 except: last_line = str()
