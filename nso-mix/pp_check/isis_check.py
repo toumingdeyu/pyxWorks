@@ -1801,8 +1801,6 @@ warning {
 
     device_list += all_oti_routers_list
 
-    #sys.exit(0)
-
     for device in device_list:
 
         ### REMOTE DEVICE OPERATIONS ######################################
@@ -1815,11 +1813,6 @@ warning {
                 CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), color = 'red')
                 RCMD.disconnect()
                 continue
-
-            # if RCMD.router_type == 'huawei':
-                # CGI_CLI.uprint('Huawei is not supported !' , color = 'red')
-                # RCMD.disconnect()
-                # continue
 
             rcmds_0 = {
                 'cisco_ios':['show bgp summary'],
@@ -1867,6 +1860,7 @@ warning {
                     if line.strip() and 'CUSTOM' in line.upper() and not 'L2VPN' in line.upper():
                         if line.split()[-1] == 'MET' or line.split()[-1] == 'UTC': continue
                         if line.split()[0] == 'show': continue
+                        if "XXX.XXX.XXX.XXX" in line.upper(): continue
                         if line.strip() in RCMD.DEVICE_PROMPTS: continue
                         if 'TESTING' in line.upper() or 'ETHNOW-TEST' in line.upper(): continue
                         if 'OLD' in line.upper(): continue
@@ -1891,6 +1885,7 @@ warning {
                     if line.strip() and 'CUSTOM' in line.upper() and not 'L2VPN' in line.upper():
                         if line.split()[-1] == 'MET' or line.split()[-1] == 'UTC': continue
                         if line.split()[0] == 'show': continue
+                        if "XXX.XXX.XXX.XXX" in line.upper(): continue
                         if line.strip() in RCMD.DEVICE_PROMPTS: continue
                         if 'TESTING' in line.upper() or 'ETHNOW-TEST' in line.upper(): continue
                         if 'OLD' in line.upper(): continue
@@ -1915,6 +1910,7 @@ warning {
                 for line in rcmds_1_outputs[0].splitlines():
                     if line.strip() and 'CUSTOM' in line.upper() and not 'L2VPN' in line.upper():
                         if line == '{master}': continue
+                        if "XXX.XXX.XXX.XXX" in line.upper(): continue
                         if line.strip() and len(line.split())> 0 and line.split()[0] == 'show': continue
                         if line.strip() in RCMD.DEVICE_PROMPTS: continue
                         if 'TESTING' in line.upper() or 'ETHNOW-TEST' in line.upper(): continue
@@ -1938,6 +1934,7 @@ warning {
                 for line in rcmds_1_outputs[0].splitlines():
                     if line.strip() and 'CUSTOM' in line.upper() and not 'L2VPN' in line.upper():
                         if line == '{master}': continue
+                        if "XXX.XXX.XXX.XXX" in line.upper(): continue
                         if line.strip() and len(line.split())> 0 and line.split()[0] == 'show': continue
                         if line.strip() in RCMD.DEVICE_PROMPTS: continue
                         if 'TESTING' in line.upper() or 'ETHNOW-TEST' in line.upper(): continue
@@ -1962,6 +1959,7 @@ warning {
                 for line in rcmds_1_outputs[0].splitlines():
                     if line.strip() and 'CUSTOM' in line.upper() and not 'L2VPN' in line.upper():
                         if line == 'Interface': continue
+                        if "XXX.XXX.XXX.XXX" in line.upper(): continue
                         if line.strip() and len(line.split())> 0 and line.split()[0] == 'disp': continue
                         if line.strip() in RCMD.DEVICE_PROMPTS: continue
                         if 'TESTING' in line.upper() or 'ETHNOW-TEST' in line.upper(): continue
@@ -1989,6 +1987,7 @@ warning {
                 for line in rcmds_1_outputs[0].splitlines():
                     if line.strip() and 'CUSTOM' in line.upper() and not 'L2VPN' in line.upper():
                         if line == 'Interface': continue
+                        if "XXX.XXX.XXX.XXX" in line.upper(): continue
                         if line.strip() and len(line.split())> 0 and line.split()[0] == 'disp': continue
                         if line.strip() in RCMD.DEVICE_PROMPTS: continue
                         if 'TESTING' in line.upper() or 'ETHNOW-TEST' in line.upper(): continue
@@ -2012,6 +2011,38 @@ warning {
                                     isis_interface_list.append([isis_if, ' '.join(line.split()[3:])])
                                     continue
 
+
+            ### CHECK INTERFACE IF HAS IP ADDRESS ASSINGED ####################
+            rcmds_if_check = {
+                'cisco_ios':[],
+                'cisco_xr':[],
+                'juniper':[],
+                'huawei':[]
+            }
+
+            for isis_interface, description in isis_interface_list:
+                rcmds_if_check['cisco_ios'].append('show run interface %s' % (isis_interface))
+                rcmds_if_check['cisco_xr'].append('show run interface %s' % (isis_interface))
+                rcmds_if_check['juniper'].append('display cu interface %s' % (isis_interface))
+                rcmds_if_check['huawei'].append('show configuration interface %s | display set' % (isis_interface))
+
+            CGI_CLI.uprint('Read interface sh run on %s' % (device), \
+                no_newlines = None if printall else True)
+            rcmds_if_check_outputs = RCMD.run_commands(rcmds_if_check, printall = printall)
+            CGI_CLI.uprint('\n')
+
+            filtered_isis_interface_list = []
+            for interface, rcmd_if_check_output in zip(isis_interface_list,rcmds_if_check_outputs):
+                isis_interface, description = interface
+                find_list = re.findall(r'[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}', rcmd_md5_output.strip())
+                if len(find_list) >= 1:
+                    filtered_isis_interface_list.append([isis_interface, description])
+            del isis_interface_list
+            isis_interface_list = filtered_isis_interface_list
+            if printall: CGI_CLI.uprint(isis_interface_list, name = 'filtered_isis_interface_list')
+
+
+            ### CHECK ISIS PASSIVE ############################################
             rcmds_2 = {
                 'cisco_ios':[],
                 'cisco_xr':[],
