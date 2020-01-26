@@ -25,6 +25,10 @@ rem EnableHttp2Cleartext REG_DWORD 0
 call REG ADD HKLM\System\CurrentControlSet\Services\HTTP\Parameters /v EnableHttp2Tls /t REG_DWORD /d 0
 call REG ADD HKLM\System\CurrentControlSet\Services\HTTP\Parameters /v EnableHttp2Cleartext /t REG_DWORD /d 0
 
+@echo on
+cd C:\inetpub\AdminScripts
+call cscript adsutil.vbs set /W3SVC/AspEnableChunkedEncoding "TRUE"
+
 
 
 

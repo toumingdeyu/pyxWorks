@@ -6,7 +6,7 @@ def print_chunk(msg=""):
     sys.stdout.write("\r\n%X\r\n%s" % (len(msg), msg))
     sys.stdout.flush()
 
-
+sys.stdout.write("Connection: keep-alive\r\n")
 sys.stdout.write("Transfer-Encoding: chunked\r\n")
 sys.stdout.write("Content-Type: text/html\r\n")
 print_chunk("\r\n\r\n<html><head><title>%s</title></head><body>" % ('No submit'))
