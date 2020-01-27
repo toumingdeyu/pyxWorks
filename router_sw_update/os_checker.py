@@ -143,11 +143,11 @@ class CGI_CLI(object):
         # parser.add_argument("--timestamps",
                             # action = "store_true", dest = 'timestamps',
                             # default = None,
-                            # help = "print all lines with timestamps")                            
+                            # help = "print all lines with timestamps")
         parser.add_argument("--append_logfile",
                             action = "store", dest = 'append_logfile',
                             default = None,
-                            help = "append logfile with specified name")                    
+                            help = "append logfile with specified name")
         args = parser.parse_args()
         return args
 
@@ -1754,15 +1754,15 @@ warning {
     logging.raiseExceptions=False
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True, \
         css_style = CSS_STYLE, log = True)
-    
-    
-    ### def APPEND ISIS OUTPUT TO POSTCHECK LOGFILE IN 1 DEVICE CLI MODE ONLY 
-    if CGI_CLI.data.get("append_logfile",str()):                
+
+
+    ### def APPEND ISIS OUTPUT TO POSTCHECK LOGFILE IN 1 DEVICE CLI MODE ONLY
+    if CGI_CLI.data.get("append_logfile",str()):
         logfilename = CGI_CLI.data.get("append_logfile",str())
         if logfilename: CGI_CLI.set_logfile(logfilename = logfilename)
-        
 
-    
+
+
 
     device_list = []
     devices_string = CGI_CLI.data.get("device",str())
@@ -1835,7 +1835,7 @@ warning {
 
             rcmds_version = {
                 'cisco_ios':['show version | i Software'],
-                'cisco_xr':["show version | i Software"],
+                'cisco_xr':["show version | i Software", 'show install active summary | i CSC'],
                 'juniper':['show version | match Junos'],
                 'huawei':['display version']
             }
@@ -1845,24 +1845,29 @@ warning {
             rcmds_version_outputs = RCMD.run_commands(rcmds_version, printall = printall)
             CGI_CLI.uprint('\n')
 
-            sw_version = str()
+            current_os, current_smu_patch, sub_type_platform = str(), str(), str()
             if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
                 if 'Software, Version' in rcmds_version_outputs[0]:
-                    try: sw_version = rcmds_version_outputs[0].split('Software, Version')[1].split()[0].strip()
+                    try: current_os = rcmds_version_outputs[0].split('Software, Version')[1].split()[0].strip()
                     except: pass
-                    if '[' in sw_version: sw_version = sw_version.split('[')[0]
+                    if '[' in current_os: current_os = current_os.split('[')[0]
+            if RCMD.router_type == 'cisco_xr':
+                 current_smu_patch = ','.join([ line.split(':')[1] for line in rcmds_version_outputs[1].splitlines() if current_os in line and ":" in line])
+
             elif RCMD.router_type == 'huawei':
                 if 'software, Version' in rcmds_version_outputs[0]:
-                    try: sw_version = rcmds_version_outputs[0].split('software, Version')[1].split()[0].strip()
-                    except: pass                                            
+                    try: current_os = rcmds_version_outputs[0].split('software, Version')[1].split()[0].strip()
+                    except: pass
             elif RCMD.router_type == 'juniper':
                 if 'Junos: ' in rcmds_version_outputs[0]:
-                    try: sw_version = rcmds_version_outputs[0].split('Junos: ')[1].split()[0].strip()
-                    except: pass                    
-            CGI_CLI.uprint('SW_VERSION[%s]' % (sw_version))
-            
-            ### DISCONNECT DEVICE ON END ###   
-            RCMD.disconnect()        
+                    try: current_os = rcmds_version_outputs[0].split('Junos: ')[1].split()[0].strip()
+                    except: pass
+            CGI_CLI.uprint('SW_VERSION[%s], SW_PATCH[%s]' % (current_os,current_smu_patch))
+
+
+
+            ### DISCONNECT DEVICE ON END ###
+            RCMD.disconnect()
 
 except SystemExit: pass
 except: CGI_CLI.uprint(traceback.format_exc(), tag = 'h3',color = 'magenta')
