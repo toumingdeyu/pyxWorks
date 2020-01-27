@@ -884,9 +884,11 @@ def send_me_email(subject='testmail', file_name='/dev/null'):
         print(' ==> Email "%s" sent to %s.'%(subject,my_email_address))
     except: pass
 
-def run_isis_check():
-    command_string = '/var/www/cgi-bin/isis_check.py --device %s%s%s%s' % \
-        (args.device.upper(),' --printall' if args.printall else str(), \
+def run_isis_check(logfilename = None):
+    command_string = '/var/www/cgi-bin/isis_check.py --device %s%s%s%s%s' % \
+        (args.device.upper(), \
+        ' --append_logfile %s' % (str(logfilename)) if logfilename else str(),
+        ' --printall' if args.printall else str(), \
         ' --username %s' % (USERNAME),' --password %s' % (PASSWORD) )
     os.system(command_string)
     #forget_it = subprocess.check_output(command_string, shell=True)
@@ -1377,6 +1379,7 @@ if pre_post == "post" or args.recheck or args.postcheck_file:
                         else: myfile.write(diff_result + '\n\n')
 
     run_isis_check()
+    
     print('\n ==> POSTCHECK COMPLETE !')
 elif pre_post == "pre" and not args.recheck:
     print('\n ==> PRECHECK COMPLETE !')

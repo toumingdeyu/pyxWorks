@@ -143,7 +143,11 @@ class CGI_CLI(object):
         # parser.add_argument("--timestamps",
                             # action = "store_true", dest = 'timestamps',
                             # default = None,
-                            # help = "print all lines with timestamps")
+                            # help = "print all lines with timestamps")                            
+        parser.add_argument("--append_logfile",
+                            action = "store", dest = 'append_logfile',
+                            default = None,
+                            help = "append logfile with specified name")                    
         args = parser.parse_args()
         return args
 
@@ -162,12 +166,17 @@ class CGI_CLI(object):
         import atexit; atexit.register(CGI_CLI.__cleanup__)
 
     @staticmethod
-    def init_cgi(chunked = None, css_style = None, newline = None, timestamp = None):
+    def init_cgi(chunked = None, css_style = None, newline = None, \
+        timestamp = None, log = None):
+        """
+        log - start to log all after logfilename is inserted
+        """
         CGI_CLI.START_EPOCH = time.time()
         CGI_CLI.http_status = 200
         CGI_CLI.http_status_text = 'OK'
         CGI_CLI.chunked = chunked
         CGI_CLI.timestamp = timestamp
+        CGI_CLI.log = log
         CGI_CLI.CSS_STYLE = css_style if css_style else str()
         ### TO BE PLACED - BEFORE HEADER ###
         CGI_CLI.newline = '\r\n' if not newline else newline
@@ -358,7 +367,7 @@ class CGI_CLI(object):
             ### PRINT PER TAG ###
             CGI_CLI.print_chunk(print_per_tag)
         ### LOGGING ###
-        if CGI_CLI.logfilename and log:
+        if CGI_CLI.logfilename and (log or CGI_CLI.log):
             with open(CGI_CLI.logfilename,"a+") as CGI_CLI.fp:
                 CGI_CLI.fp.write(print_name + log_text + '\n')
                 del log_text
@@ -1743,7 +1752,17 @@ warning {
 
     logfilename = str()
     logging.raiseExceptions=False
-    USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True, css_style = CSS_STYLE)
+    USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True, \
+        css_style = CSS_STYLE, log = True)
+    
+    
+    ### def APPEND ISIS OUTPUT TO POSTCHECK LOGFILE IN 1 DEVICE CLI MODE ONLY 
+    if CGI_CLI.data.get("append_logfile",str()):                
+        logfilename = CGI_CLI.data.get("append_logfile",str())
+        if logfilename: CGI_CLI.set_logfile(logfilename = logfilename)
+        
+
+    
 
     device_list = []
     devices_string = CGI_CLI.data.get("device",str())
@@ -1752,7 +1771,7 @@ warning {
             device_list = [ dev_mix_case.upper() for dev_mix_case in devices_string.split(',') ]
         else: device_list = [devices_string.upper()]
 
-    CGI_CLI.uprint('Customer ISIS check (v.%s)' % (CGI_CLI.VERSION()), tag = 'h1', color = 'blue')
+    CGI_CLI.uprint('Customer ISIS check (v.%s)' % (CGI_CLI.VERSION()), tag = 'h1', color = 'blue' , log = True)
 
     printall = CGI_CLI.data.get("printall")
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
@@ -2136,7 +2155,9 @@ warning {
             if isis_interface_fail_list:
                 CGI_CLI.uprint('\nREPAIR CONFIG:\n\n%s' % (config_to_apply), color = 'blue')
 
-
+            ### DISCONNECT DEVICE ON END ###   
             RCMD.disconnect()
+
+        
 except SystemExit: pass
 except: CGI_CLI.uprint(traceback.format_exc(), tag = 'h3',color = 'magenta')
