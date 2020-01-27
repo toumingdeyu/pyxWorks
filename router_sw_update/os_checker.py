@@ -1858,6 +1858,10 @@ warning {
                 if 'software, Version' in rcmds_version_outputs[0]:
                     try: current_os = rcmds_version_outputs[0].split('software, Version')[1].split()[0].strip()
                     except: pass
+                if 'Patch Version:' in rcmds_version_outputs[0]:
+                    try: current_smu_patch = rcmds_version_outputs[0].split('Patch Version:')[1].split()[0].strip()
+                    except: pass    
+                    
             elif RCMD.router_type == 'juniper':
                 if 'Junos: ' in rcmds_version_outputs[0]:
                     try: current_os = rcmds_version_outputs[0].split('Junos: ')[1].split()[0].strip()
