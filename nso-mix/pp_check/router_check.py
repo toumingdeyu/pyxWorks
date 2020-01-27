@@ -1378,7 +1378,7 @@ if pre_post == "post" or args.recheck or args.postcheck_file:
                         if len(diff_result) == 0: myfile.write(bcolors.GREY + 'OK' + bcolors.ENDC + '\n\n')
                         else: myfile.write(diff_result + '\n\n')
 
-    run_isis_check()
+    run_isis_check(logfilename)
     
     print('\n ==> POSTCHECK COMPLETE !')
 elif pre_post == "pre" and not args.recheck:
