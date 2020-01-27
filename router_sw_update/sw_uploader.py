@@ -2461,6 +2461,19 @@ def check_free_disk_space_on_devices(device_list = None, \
             elif RCMD.router_type == 'juniper':
                 try:
                     for line in rcmd_check_disk_space_outputs[0].splitlines():
+                        ### AMSCR8 WORKARROUND MOUNT MAPPING BUGFIX ###
+                        try:
+                            if line.split()[-1] == '/.mount/var/tmp':
+                                device_free_space_in_bytes = float(line.split()[3])*1024
+                                break
+                        except: pass 
+                        
+                        try:
+                            if line.split()[-1] == '/.mount/var':
+                                device_free_space_in_bytes = float(line.split()[3])*1024
+                                break
+                        except: pass                    
+                                        
                         try:
                             if line.split()[-1] == '/.mount':
                                 device_free_space_in_bytes = float(line.split()[3])*1024
@@ -2469,6 +2482,17 @@ def check_free_disk_space_on_devices(device_list = None, \
                 except: pass
                 try:
                     for line in rcmd_check_disk_space_outputs[0].split('re1:')[1].splitlines():
+                        ### AMSCR8 WORKARROUND MOUNT MAPPING BUGFIX ###
+                        try:
+                            if line.split()[-1] == '/.mount/var/tmp':
+                                slave_device_free_space_in_bytes = float(line.split()[3])*1024
+                        except: pass
+
+                        try:
+                            if line.split()[-1] == '/.mount/var':
+                                slave_device_free_space_in_bytes = float(line.split()[3])*1024
+                        except: pass                        
+                                        
                         try:
                             if line.split()[-1] == '/.mount':
                                 slave_device_free_space_in_bytes = float(line.split()[3])*1024
