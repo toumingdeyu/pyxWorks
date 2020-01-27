@@ -158,12 +158,17 @@ class CGI_CLI(object):
         import atexit; atexit.register(CGI_CLI.__cleanup__)
 
     @staticmethod
-    def init_cgi(chunked = None, css_style = None, newline = None, timestamp = None):
+    def init_cgi(chunked = None, css_style = None, newline = None, \
+        timestamp = None, log = None):
+        """
+        log - start to log all after logfilename is inserted
+        """
         CGI_CLI.START_EPOCH = time.time()
         CGI_CLI.http_status = 200
         CGI_CLI.http_status_text = 'OK'
         CGI_CLI.chunked = chunked
         CGI_CLI.timestamp = timestamp
+        CGI_CLI.log = log
         CGI_CLI.CSS_STYLE = css_style if css_style else str()
         ### TO BE PLACED - BEFORE HEADER ###
         CGI_CLI.newline = '\r\n' if not newline else newline
@@ -354,7 +359,7 @@ class CGI_CLI(object):
             ### PRINT PER TAG ###
             CGI_CLI.print_chunk(print_per_tag)
         ### LOGGING ###
-        if CGI_CLI.logfilename and log:
+        if CGI_CLI.logfilename and (log or CGI_CLI.log):
             with open(CGI_CLI.logfilename,"a+") as CGI_CLI.fp:
                 CGI_CLI.fp.write(print_name + log_text + '\n')
                 del log_text
