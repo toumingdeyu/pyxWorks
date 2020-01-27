@@ -887,11 +887,20 @@ def send_me_email(subject='testmail', file_name='/dev/null'):
 def run_isis_check(logfilename = None):
     command_string = '/var/www/cgi-bin/isis_check.py --device %s%s%s%s%s' % \
         (args.device.upper(), \
-        ' --append_logfile %s' % (str(logfilename)) if logfilename else str(),
+        ' --append_logfile %s' % (logfilename) if logfilename else str(), \
         ' --printall' if args.printall else str(), \
-        ' --username %s' % (USERNAME),' --password %s' % (PASSWORD) )
+        ' --username %s' % (USERNAME), \
+        ' --password %s' % (PASSWORD) )       
     os.system(command_string)
-    #forget_it = subprocess.check_output(command_string, shell=True)
+
+def GET_VERSION(path_to_file = str(os.path.abspath(__file__))):
+    if 'WIN32' in sys.platform.upper():
+        file_time = os.path.getmtime(path_to_file)
+    else:
+        stat = os.stat(path_to_file)
+        file_time = stat.st_mtime
+    return time.strftime("%y.%m.%d_%H:%M",time.gmtime(file_time))
+
 
 ##############################################################################
 #
@@ -899,13 +908,7 @@ def run_isis_check(logfilename = None):
 #
 ##############################################################################
 
-VERSION = get_version_from_file_last_modification_date()
-
-
-######## Parse program arguments #########
-if len(sys.argv) == 1 or sys.argv[1] == '-h' or sys.argv[1] == '--help':
-    print(('DIFF_FORMATS:\n  %s  %s  %s') % \
-          (note_ndiff_string,note_ndiff0_string, note_pdiff0_string))
+VERSION = GET_VERSION() #get_version_from_file_last_modification_date()
 
 parser = argparse.ArgumentParser(
     description = "Script to perform Pre and Post router check v.%s" % (VERSION),
@@ -974,7 +977,9 @@ if args.emailaddr:
     append_variable_to_bashrc(variable_name='NEWR_EMAIL',variable_value=args.emailaddr)
     EMAIL_ADDRESS = args.emailaddr
 
-if args.nocolors: bcolors = nocolors
+if args.nocolors or 'WIN32' in sys.platform.upper(): bcolors = nocolors
+
+print('router_check (v.%s)' % (VERSION))
 
 COL_DELETED = bcolors.RED
 COL_ADDED   = bcolors.GREEN
@@ -982,6 +987,19 @@ COL_DIFFDEL = bcolors.BLUE
 COL_DIFFADD = bcolors.YELLOW
 COL_EQUAL   = bcolors.GREY
 COL_PROBLEM = bcolors.RED
+
+note_ndiff_string  = "ndiff( %s'-' missed, %s'+' added, %s'-\\n%s+' difference, %s' ' equal%s)\n" % \
+    (bcolors.RED,bcolors.GREEN,bcolors.RED,bcolors.GREEN,bcolors.GREY,bcolors.ENDC )
+note_ndiff0_string = "ndiff0(%s'-' missed, %s'+' added, %s'-\\n%s+' difference, %s' ' equal%s)\n" % \
+    (COL_DELETED,COL_ADDED,COL_DIFFDEL,COL_DIFFADD,COL_EQUAL,bcolors.ENDC )
+note_pdiff0_string = "pdiff0(%s'-' missed, %s'+' added, %s'!' difference,    %s' ' equal%s)\n" % \
+    (COL_DELETED,COL_ADDED,COL_DIFFADD,COL_EQUAL,bcolors.ENDC )
+
+######## Parse program arguments #########
+if len(sys.argv) == 1 or sys.argv[1] == '-h' or sys.argv[1] == '--help':
+    print(('DIFF_FORMATS:\n  %s  %s  %s') % \
+          (note_ndiff_string,note_ndiff0_string, note_pdiff0_string))
+
 
 if args.post: pre_post = 'post'
 elif args.recheck: pre_post = 'post'
@@ -1378,8 +1396,11 @@ if pre_post == "post" or args.recheck or args.postcheck_file:
                         if len(diff_result) == 0: myfile.write(bcolors.GREY + 'OK' + bcolors.ENDC + '\n\n')
                         else: myfile.write(diff_result + '\n\n')
 
-    run_isis_check(logfilename)
-    
+    ### ISIS CHECK DO NOT LOG IF RECHECK ######################################
+    print('\n')
+    if args.recheck: run_isis_check()
+    else: run_isis_check(postcheck_file)
+
     print('\n ==> POSTCHECK COMPLETE !')
 elif pre_post == "pre" and not args.recheck:
     print('\n ==> PRECHECK COMPLETE !')
