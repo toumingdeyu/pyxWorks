@@ -2466,14 +2466,14 @@ def check_free_disk_space_on_devices(device_list = None, \
                             if line.split()[-1] == '/.mount/var/tmp':
                                 device_free_space_in_bytes = float(line.split()[3])*1024
                                 break
-                        except: pass 
-                        
+                        except: pass
+
                         try:
                             if line.split()[-1] == '/.mount/var':
                                 device_free_space_in_bytes = float(line.split()[3])*1024
                                 break
-                        except: pass                    
-                                        
+                        except: pass
+
                         try:
                             if line.split()[-1] == '/.mount':
                                 device_free_space_in_bytes = float(line.split()[3])*1024
@@ -2491,8 +2491,8 @@ def check_free_disk_space_on_devices(device_list = None, \
                         try:
                             if line.split()[-1] == '/.mount/var':
                                 slave_device_free_space_in_bytes = float(line.split()[3])*1024
-                        except: pass                        
-                                        
+                        except: pass
+
                         try:
                             if line.split()[-1] == '/.mount':
                                 slave_device_free_space_in_bytes = float(line.split()[3])*1024
@@ -2837,7 +2837,7 @@ warning {
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True, css_style = CSS_STYLE)
     #CGI_CLI.uprint('<img src="/style/orange.gif" alt="" title="" width="40" height="40">', \
     #    raw=True)
-    CGI_CLI.uprint('ROUTER SW UPLOAD TOOL (v.%s)' % (CGI_CLI.VERSION()), tag = 'h1', color = 'blue')
+    CGI_CLI.uprint('SW UPLOADER (v.%s)' % (CGI_CLI.VERSION()), tag = 'h1', color = 'blue')
     # CGI_CLI.uprint('PID=%s ' % (os.getpid()), color = 'blue')
     printall = CGI_CLI.data.get("printall")
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
