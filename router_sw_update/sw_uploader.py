@@ -2511,7 +2511,9 @@ def check_free_disk_space_on_devices(device_list = None, \
                             break
 
                 ### RE1 #######################################################
-                for line in rcmd_check_disk_space_outputs[0].split('re1:')[1].splitlines():
+                try: re1_output_part = rcmd_check_disk_space_outputs[0].split('re1:')[1]
+                except: re1_output_part = str()
+                for line in re1_output_part.splitlines():
                     ### AMSCR8 WORKARROUND MOUNT MAPPING BUGFIX ###
                     try:
                         last_column  = str(line).split()[-1]
@@ -2524,7 +2526,7 @@ def check_free_disk_space_on_devices(device_list = None, \
                         break
 
                 if slave_device_free_space_in_bytes == -1:
-                    for line in rcmd_check_disk_space_outputs[0].split('re1:')[1].splitlines():
+                    for line in re1_output_part.splitlines():
                         try:
                             last_column  = str(line).split()[-1]
                             third_column = str(line).split()[3]
@@ -2536,7 +2538,7 @@ def check_free_disk_space_on_devices(device_list = None, \
                             break
 
                 if slave_device_free_space_in_bytes == -1:
-                    for line in rcmd_check_disk_space_outputs[0].split('re1:')[1].splitlines():
+                    for line in re1_output_part.splitlines():
                         try:
                             last_column  = str(line).split()[-1]
                             third_column = str(line).split()[3]
