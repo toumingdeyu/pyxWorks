@@ -2349,9 +2349,16 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
 
     ### PRINT HEADERS RED OR BLUE #############################################
     if len(missing_files_per_device_list) > 0 or len(slave_missing_files_per_device_list)>0:
+
         if CGI_CLI.data.get('check_device_sw_files_only') or check_mode:
-            CGI_CLI.uprint('Device    Bad_or_missing_file(s):', tag = 'h3', color = 'red')
-            CGI_CLI.uprint(no_newlines = True, start_tag = 'p', color = 'red')
+            ### DO NOT PRINT HEADER IF IGNORE BACKUP RE #######################
+            if RCMD.router_type == 'juniper' \
+                and CGI_CLI.data.get('ignore_missing_backup_re_on_junos') \
+                and len(missing_files_per_device_list) == 0 \
+                and len(slave_missing_files_per_device_list)>0: pass
+            else:
+                CGI_CLI.uprint('Device    Bad_or_missing_file(s):', tag = 'h3', color = 'red')
+                CGI_CLI.uprint(no_newlines = True, start_tag = 'p', color = 'red')
         else:
             CGI_CLI.uprint('Device    File(s)_to_copy:', tag = 'h3', color = 'blue')
             CGI_CLI.uprint(no_newlines = True, start_tag = 'p', color = 'blue')
@@ -3566,8 +3573,7 @@ warning {
                         ],
 
                         'juniper': [
-                        'show configuration | save re0:/var/tmp/%s-config.txt' % (actual_date_string),
-                        'show configuration | save re1:/var/tmp/%s-config.txt' % (actual_date_string)
+                        'show configuration | save re0:/var/tmp/%s-config.txt' % (actual_date_string)
                         ],
 
                         'huawei': [
@@ -3575,6 +3581,9 @@ warning {
                         'display current-configuration > slave#%s%s-config.txt' % (RCMD.drive_string, actual_date_string)
                         ]
                     }
+                    if not CGI_CLI.data.get('ignore_missing_backup_re_on_junos'):
+                        backup_config_rcmds['juniper'].append('show configuration | save re1:/var/tmp/%s-config.txt' % (actual_date_string))
+
                     CGI_CLI.uprint('backup configs on %s' % (device), \
                         no_newlines = None if printall else True)
                     forget_it = RCMD.run_commands(backup_config_rcmds, \
@@ -3604,8 +3613,10 @@ warning {
 
                     check_dir_cfgfiles_cmds['juniper'].append( \
                         'file list re0:/var/tmp/%s-config.txt' % (actual_date_string))
-                    check_dir_cfgfiles_cmds['juniper'].append( \
-                        'file list re1:/var/tmp/%s-config.txt' % (actual_date_string))
+
+                    if not CGI_CLI.data.get('ignore_missing_backup_re_on_junos'):
+                        check_dir_cfgfiles_cmds['juniper'].append( \
+                            'file list re1:/var/tmp/%s-config.txt' % (actual_date_string))
 
                     cfgfiles_cmds_outputs = RCMD.run_commands(check_dir_cfgfiles_cmds, \
                         autoconfirm_mode = True, printall = printall)
@@ -3632,10 +3643,11 @@ warning {
                             and not 'No such file or directory' in cfgfiles_cmds_outputs[0]:
                             CGI_CLI.uprint('%s CONFIG copy done!' % (device), color = 'green')
                         else: CGI_CLI.uprint('%s CONFIG copy PROBLEM!' % (device), color = 'red')
-                        if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[1] \
-                            and not 'No such file or directory' in cfgfiles_cmds_outputs[1]:
-                            CGI_CLI.uprint('%s CONFIG copy done!' % (device), color = 'green')
-                        else: CGI_CLI.uprint('%s CONFIG copy PROBLEM!' % (device), color = 'red')
+                        if not CGI_CLI.data.get('ignore_missing_backup_re_on_junos'):
+                            if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[1] \
+                                and not 'No such file or directory' in cfgfiles_cmds_outputs[1]:
+                                CGI_CLI.uprint('%s CONFIG copy done!' % (device), color = 'green')
+                            else: CGI_CLI.uprint('%s CONFIG copy PROBLEM!' % (device), color = 'red')
 
                     elif RCMD.router_type == 'huawei':
                         if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[0] \
@@ -3676,8 +3688,9 @@ warning {
 
                                 del_files_cmds['juniper'].append( \
                                     'file delete re0:%s' % (os.path.join(dev_dir, file)))
-                                del_files_cmds['juniper'].append( \
-                                    'file delete re1:%s' % (os.path.join(dev_dir, file)))
+                                if not CGI_CLI.data.get('ignore_missing_backup_re_on_junos'):
+                                    del_files_cmds['juniper'].append( \
+                                        'file delete re1:%s' % (os.path.join(dev_dir, file)))
 
                     CGI_CLI.uprint('deleting sw release files on %s' % (device), \
                         no_newlines = None if printall else True)
@@ -3700,8 +3713,9 @@ warning {
                                     'dir slave#%s%s/' % (RCMD.drive_string, dev_dir if dev_dir != '/' else str()))
                                 check_dir_files_cmds['juniper'].append( \
                                     'file list re0:%s' % (dev_dir))
-                                check_dir_files_cmds['juniper'].append( \
-                                    'file list re1:%s' % (dev_dir))
+                                if not CGI_CLI.data.get('ignore_missing_backup_re_on_junos'):
+                                    check_dir_files_cmds['juniper'].append( \
+                                        'file list re1:%s' % (dev_dir))
                     time.sleep(0.5)
                     dir_outputs_after_deletion = RCMD.run_commands(check_dir_files_cmds, \
                         printall = printall)
@@ -3712,8 +3726,7 @@ warning {
                             if unique_dir == dev_dir:
                                 for dir_output in dir_outputs_after_deletion:
                                     if file in dir_output:
-                                        CGI_CLI.uprint(file, color = 'red')
-                                        CGI_CLI.uprint(dir_outputs_after_deletion[3], color = 'blue')
+                                        CGI_CLI.uprint('File %s not deleted on %s.' % (file, device), color = 'red')
                                         file_not_deleted = True
                     if file_not_deleted: CGI_CLI.uprint('%s DELETE PROBLEM!' % (device), color = 'red')
                     else: CGI_CLI.uprint('%s Delete done!' % (device), color = 'green')
