@@ -3464,7 +3464,7 @@ warning {
             USERNAME = USERNAME, PASSWORD = PASSWORD, logfilename = logfilename, \
             printall = printall)
 
-    ### DELETE NOT OK DISK SPACE DEVICES ######################################
+    ### DELETE NOT-OK DISK SPACE DEVICES ######################################
     if len(disk_low_space_devices) > 0:
         disk_ok_missing_files_per_device_list, disk_ok_device_list = [], []
         for copy_to_device, missing_or_bad_files_per_device in missing_files_per_device_list:
@@ -3484,9 +3484,19 @@ warning {
     while not all_files_on_all_devices_ok:
         missing_backup_re_list = []
         counter_of_scp_attempts += 1
+
+        ### TRY SCP X TIMES, THEN END #########################################
+        if counter_of_scp_attempts > total_number_of_scp_attempts:
+            CGI_CLI.uprint('MULTIPLE (%d) SCP ATTEMPTS FAILED!' % \
+            (total_number_of_scp_attempts), tag = 'h1', color = 'red')
+            all_files_on_all_devices_ok = True
+            break
+
+        ### FORCE REWRITE ONLY ONCE ###########################################
         if CGI_CLI.data.get('force_rewrite_sw_files_on_device') and counter_of_scp_attempts <= 1:
             force_rewrite = True
         else: force_rewrite = False
+
         ### FORCE REWRITE HAS A SENSE FIRST TIME ONLY #########################
         copy_files_to_devices(true_sw_release_files_on_server = true_sw_release_files_on_server, \
             missing_files_per_device_list = missing_files_per_device_list, \
@@ -3518,12 +3528,8 @@ warning {
             USERNAME = USERNAME, PASSWORD = PASSWORD, logfilename = logfilename, \
             printall = printall, check_mode = True, \
             disk_low_space_devices = disk_low_space_devices)
+    ### END OF LOOP TILL ALL FILES ARE COPIED OK ##############################
 
-        ### TRY SCP X TIMES, THEN END #########################################
-        if counter_of_scp_attempts >= total_number_of_scp_attempts:
-            CGI_CLI.uprint('MULTIPLE (%d) SCP ATTEMPTS FAILED!' % \
-            (total_number_of_scp_attempts), tag = 'h1', color = 'red')
-            break
 
     ### def ADITIONAL DEVICE ACTIONS ##########################################
     if CGI_CLI.data.get('backup_configs_to_device_disk') \
