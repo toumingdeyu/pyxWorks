@@ -3550,175 +3550,173 @@ warning {
 
                 ### CHECK LOCAL SERVER AND DEVICE HDD FILES #######################
                 actual_date_string = time.strftime("%Y-%m%d-%H:%M",time.gmtime(time.time()))
-                if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
-                    ### def BACKUP NORMAL AND ADMIN CONFIG ########################
-                    if CGI_CLI.data.get('backup_configs_to_device_disk'):
-                        backup_config_rcmds = {
-                            'cisco_ios':[
-                            'copy running-config %s%s-config.txt' % (RCMD.drive_string, actual_date_string),
-                            ],
 
-                            'cisco_xr':[
-                            'copy running-config %s%s-config.txt' % (RCMD.drive_string, actual_date_string),
-                            'admin',
-                            'copy running-config %sadmin-%s-config.txt' % (RCMD.drive_string, actual_date_string),
-                            'exit'
-                            ],
+                ### def BACKUP NORMAL AND ADMIN CONFIG ########################
+                if CGI_CLI.data.get('backup_configs_to_device_disk'):
+                    backup_config_rcmds = {
+                        'cisco_ios':[
+                        'copy running-config %s%s-config.txt' % (RCMD.drive_string, actual_date_string),
+                        ],
 
-                            'juniper': [
-                            'show configuration | save re0:/var/tmp/%s-config.txt' % (actual_date_string),
-                            'show configuration | save re1:/var/tmp/%s-config.txt' % (actual_date_string)
-                            ],
+                        'cisco_xr':[
+                        'copy running-config %s%s-config.txt' % (RCMD.drive_string, actual_date_string),
+                        'admin',
+                        'copy running-config %sadmin-%s-config.txt' % (RCMD.drive_string, actual_date_string),
+                        'exit'
+                        ],
 
-                            'huawei': [
-                            'display current-configuration > %s%s-config.txt' % (RCMD.drive_string, actual_date_string),
-                            'display current-configuration > slave#%s%s-config.txt' % (RCMD.drive_string, actual_date_string)
-                            ]
-                        }
-                        CGI_CLI.uprint('backup configs on %s' % (device), \
-                            no_newlines = None if printall else True)
-                        forget_it = RCMD.run_commands(backup_config_rcmds, \
-                            autoconfirm_mode = True, \
-                            printall = printall)
+                        'juniper': [
+                        'show configuration | save re0:/var/tmp/%s-config.txt' % (actual_date_string),
+                        'show configuration | save re1:/var/tmp/%s-config.txt' % (actual_date_string)
+                        ],
 
-                time.sleep(0.5)
+                        'huawei': [
+                        'display current-configuration > %s%s-config.txt' % (RCMD.drive_string, actual_date_string),
+                        'display current-configuration > slave#%s%s-config.txt' % (RCMD.drive_string, actual_date_string)
+                        ]
+                    }
+                    CGI_CLI.uprint('backup configs on %s' % (device), \
+                        no_newlines = None if printall else True)
+                    forget_it = RCMD.run_commands(backup_config_rcmds, \
+                        autoconfirm_mode = True, \
+                        printall = printall)
 
-                ### CHECK CONFIG FILE EXISTENCY ###
-                check_dir_cfgfiles_cmds = {'cisco_xr':[],'cisco_ios':[], \
-                    'huawei':[], 'juniper':[]}
+                    time.sleep(0.5)
 
-                check_dir_cfgfiles_cmds['cisco_ios'].append( \
-                    'dir %s%s-config.txt' % (RCMD.drive_string, actual_date_string))
+                    ### CHECK CONFIG FILE EXISTENCY ###
+                    check_dir_cfgfiles_cmds = {'cisco_xr':[],'cisco_ios':[], \
+                        'huawei':[], 'juniper':[]}
 
-                check_dir_cfgfiles_cmds['cisco_xr'].append( \
-                    'dir /%s%s-config.txt' % (RCMD.drive_string, actual_date_string))
-                check_dir_cfgfiles_cmds['cisco_xr'].append('admin')
-                check_dir_cfgfiles_cmds['cisco_xr'].append( \
-                    'dir /%sadmin-%s-config.txt' % (RCMD.drive_string, actual_date_string))
-                check_dir_cfgfiles_cmds['cisco_xr'].append('exit'),
+                    check_dir_cfgfiles_cmds['cisco_ios'].append( \
+                        'dir %s%s-config.txt' % (RCMD.drive_string, actual_date_string))
 
-                check_dir_cfgfiles_cmds['huawei'].append( \
-                    'dir %s%s-config.txt' % (RCMD.drive_string, actual_date_string))
-                check_dir_cfgfiles_cmds['huawei'].append( \
-                    'dir slave#%s%s-config.txt' % (RCMD.drive_string, actual_date_string))
+                    check_dir_cfgfiles_cmds['cisco_xr'].append( \
+                        'dir /%s%s-config.txt' % (RCMD.drive_string, actual_date_string))
+                    check_dir_cfgfiles_cmds['cisco_xr'].append('admin')
+                    check_dir_cfgfiles_cmds['cisco_xr'].append( \
+                        'dir /%sadmin-%s-config.txt' % (RCMD.drive_string, actual_date_string))
+                    check_dir_cfgfiles_cmds['cisco_xr'].append('exit'),
 
-                check_dir_cfgfiles_cmds['juniper'].append( \
-                    'file list re0:/var/tmp/%s-config.txt' % (actual_date_string))
-                check_dir_cfgfiles_cmds['juniper'].append( \
-                    'file list re1:/var/tmp/%s-config.txt' % (actual_date_string))
+                    check_dir_cfgfiles_cmds['huawei'].append( \
+                        'dir %s%s-config.txt' % (RCMD.drive_string, actual_date_string))
+                    check_dir_cfgfiles_cmds['huawei'].append( \
+                        'dir slave#%s%s-config.txt' % (RCMD.drive_string, actual_date_string))
 
-                cfgfiles_cmds_outputs = RCMD.run_commands(check_dir_cfgfiles_cmds, \
-                    autoconfirm_mode = True, printall = printall)
-                CGI_CLI.uprint('\n')
+                    check_dir_cfgfiles_cmds['juniper'].append( \
+                        'file list re0:/var/tmp/%s-config.txt' % (actual_date_string))
+                    check_dir_cfgfiles_cmds['juniper'].append( \
+                        'file list re1:/var/tmp/%s-config.txt' % (actual_date_string))
 
-                if RCMD.router_type == 'cisco_xr':
-                    if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[0] \
-                        and not 'No such file or directory' in cfgfiles_cmds_outputs[0]:
-                        CGI_CLI.uprint('%s CONFIG copy done!' % (device), color = 'green')
-                    else: CGI_CLI.uprint('%s CONFIG copy PROBLEM!' % (device), color = 'red')
-                    if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[2] \
-                        and not 'No such file or directory' in cfgfiles_cmds_outputs[2]:
-                        CGI_CLI.uprint('%s ADMIN CONFIG copy done!' % (device), color = 'green')
-                    else: CGI_CLI.uprint('%s ADMIN CONFIG copy PROBLEM!' % (device), color = 'red')
+                    cfgfiles_cmds_outputs = RCMD.run_commands(check_dir_cfgfiles_cmds, \
+                        autoconfirm_mode = True, printall = printall)
+                    CGI_CLI.uprint('\n')
 
-                if RCMD.router_type == 'cisco_ios':
-                    if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[0] \
-                        and not 'No such file or directory' in cfgfiles_cmds_outputs[0]:
-                        CGI_CLI.uprint('%s CONFIG copy done!' % (device), color = 'green')
-                    else: CGI_CLI.uprint('%s CONFIG copy PROBLEM!' % (device), color = 'red')
+                    if RCMD.router_type == 'cisco_xr':
+                        if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[0] \
+                            and not 'No such file or directory' in cfgfiles_cmds_outputs[0]:
+                            CGI_CLI.uprint('%s CONFIG copy done!' % (device), color = 'green')
+                        else: CGI_CLI.uprint('%s CONFIG copy PROBLEM!' % (device), color = 'red')
+                        if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[2] \
+                            and not 'No such file or directory' in cfgfiles_cmds_outputs[2]:
+                            CGI_CLI.uprint('%s ADMIN CONFIG copy done!' % (device), color = 'green')
+                        else: CGI_CLI.uprint('%s ADMIN CONFIG copy PROBLEM!' % (device), color = 'red')
 
-                if RCMD.router_type == 'juniper':
-                    if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[0] \
-                        and not 'No such file or directory' in cfgfiles_cmds_outputs[0]:
-                        CGI_CLI.uprint('%s CONFIG copy done!' % (device), color = 'green')
-                    else: CGI_CLI.uprint('%s CONFIG copy PROBLEM!' % (device), color = 'red')
-                    if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[1] \
-                        and not 'No such file or directory' in cfgfiles_cmds_outputs[1]:
-                        CGI_CLI.uprint('%s CONFIG copy done!' % (device), color = 'green')
-                    else: CGI_CLI.uprint('%s CONFIG copy PROBLEM!' % (device), color = 'red')
+                    elif RCMD.router_type == 'cisco_ios':
+                        if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[0] \
+                            and not 'No such file or directory' in cfgfiles_cmds_outputs[0]:
+                            CGI_CLI.uprint('%s CONFIG copy done!' % (device), color = 'green')
+                        else: CGI_CLI.uprint('%s CONFIG copy PROBLEM!' % (device), color = 'red')
 
-                if RCMD.router_type == 'huawei':
-                    if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[0] \
-                        and not 'No such file or directory' in cfgfiles_cmds_outputs[0]:
-                        CGI_CLI.uprint('%s CONFIG copy done!' % (device), color = 'green')
-                    else: CGI_CLI.uprint('%s CONFIG copy PROBLEM!' % (device), color = 'red')
-                    if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[1] \
-                        and not 'No such file or directory' in cfgfiles_cmds_outputs[1]:
-                        CGI_CLI.uprint('%s CONFIG copy done!' % (device), color = 'green')
-                    else: CGI_CLI.uprint('%s CONFIG copy PROBLEM!' % (device), color = 'red')
+                    elif RCMD.router_type == 'juniper':
+                        if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[0] \
+                            and not 'No such file or directory' in cfgfiles_cmds_outputs[0]:
+                            CGI_CLI.uprint('%s CONFIG copy done!' % (device), color = 'green')
+                        else: CGI_CLI.uprint('%s CONFIG copy PROBLEM!' % (device), color = 'red')
+                        if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[1] \
+                            and not 'No such file or directory' in cfgfiles_cmds_outputs[1]:
+                            CGI_CLI.uprint('%s CONFIG copy done!' % (device), color = 'green')
+                        else: CGI_CLI.uprint('%s CONFIG copy PROBLEM!' % (device), color = 'red')
+
+                    elif RCMD.router_type == 'huawei':
+                        if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[0] \
+                            and not 'No such file or directory' in cfgfiles_cmds_outputs[0]:
+                            CGI_CLI.uprint('%s CONFIG copy done!' % (device), color = 'green')
+                        else: CGI_CLI.uprint('%s CONFIG copy PROBLEM!' % (device), color = 'red')
+                        if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[1] \
+                            and not 'No such file or directory' in cfgfiles_cmds_outputs[1]:
+                            CGI_CLI.uprint('%s CONFIG copy done!' % (device), color = 'green')
+                        else: CGI_CLI.uprint('%s CONFIG copy PROBLEM!' % (device), color = 'red')
 
 
                 ### def DELETE TAR FILES ON END ###############################
-                if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios' \
-                    or RCMD.router_type == 'huawei' or RCMD.router_type == 'juniper':
-                    if CGI_CLI.data.get('delete_device_sw_files_on_end'):
-                        del_files_cmds = {'cisco_xr':[], 'cisco_ios':[], \
-                            'huawei':[], 'juniper':[]}
+                if CGI_CLI.data.get('delete_device_sw_files_on_end'):
+                    del_files_cmds = {'cisco_xr':[], 'cisco_ios':[], \
+                        'huawei':[], 'juniper':[]}
 
-                        for unique_dir in unique_device_directory_list:
-                            for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
-                                if unique_dir == dev_dir:
-                                    del_files_cmds['cisco_xr'].append( \
-                                        'del /%s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
-                                    #del_files_cmds['cisco_xr'].append('\n')
-                                    #del_files_cmds['cisco_xr'].append('\n')
+                    for unique_dir in unique_device_directory_list:
+                        for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
+                            if unique_dir == dev_dir:
+                                del_files_cmds['cisco_xr'].append( \
+                                    'del /%s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
+                                #del_files_cmds['cisco_xr'].append('\n')
+                                #del_files_cmds['cisco_xr'].append('\n')
 
-                                    del_files_cmds['cisco_ios'].append( \
-                                        'del /unreserved %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
-                                    #del_files_cmds['cisco_ios'].append('\n')
-                                    #del_files_cmds['cisco_ios'].append('\n')
+                                del_files_cmds['cisco_ios'].append( \
+                                    'del /unreserved %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
+                                #del_files_cmds['cisco_ios'].append('\n')
+                                #del_files_cmds['cisco_ios'].append('\n')
 
-                                    del_files_cmds['huawei'].append( \
-                                        'del /unreserved %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
-                                    #del_files_cmds['huawei'].append('Y')
+                                del_files_cmds['huawei'].append( \
+                                    'del /unreserved %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
+                                #del_files_cmds['huawei'].append('Y')
 
-                                    del_files_cmds['huawei'].append( \
-                                        'del slave#%s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
-                                    #del_files_cmds['huawei'].append('Y')
+                                del_files_cmds['huawei'].append( \
+                                    'del slave#%s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
+                                #del_files_cmds['huawei'].append('Y')
 
-                                    del_files_cmds['juniper'].append( \
-                                        'file delete re0:%s' % (os.path.join(dev_dir, file)))
-                                    del_files_cmds['juniper'].append( \
-                                        'file delete re1:%s' % (os.path.join(dev_dir, file)))
+                                del_files_cmds['juniper'].append( \
+                                    'file delete re0:%s' % (os.path.join(dev_dir, file)))
+                                del_files_cmds['juniper'].append( \
+                                    'file delete re1:%s' % (os.path.join(dev_dir, file)))
 
-                        CGI_CLI.uprint('deleting sw release files on %s' % (device), \
-                            no_newlines = None if printall else True)
-                        forget_it = RCMD.run_commands(del_files_cmds, \
-                            autoconfirm_mode = True, printall = printall)
+                    CGI_CLI.uprint('deleting sw release files on %s' % (device), \
+                        no_newlines = None if printall else True)
+                    forget_it = RCMD.run_commands(del_files_cmds, \
+                        autoconfirm_mode = True, printall = printall)
 
-                        ### CHECK FILES DELETION ##################################
-                        check_dir_files_cmds = {'cisco_xr':[],'cisco_ios':[], \
-                            'huawei':[], 'juniper':[]}
-                        for unique_dir in unique_device_directory_list:
-                            for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
-                                if unique_dir == dev_dir:
-                                    check_dir_files_cmds['cisco_xr'].append( \
-                                        'dir /%s%s' % (RCMD.drive_string, dev_dir))
-                                    check_dir_files_cmds['cisco_ios'].append( \
-                                        'dir %s%s' % (RCMD.drive_string, dev_dir))
-                                    check_dir_files_cmds['huawei'].append( \
-                                        'dir %s%s/' % (RCMD.drive_string, dev_dir if dev_dir != '/' else str()))
-                                    check_dir_files_cmds['huawei'].append( \
-                                        'dir slave#%s%s/' % (RCMD.drive_string, dev_dir if dev_dir != '/' else str()))
-                                    check_dir_files_cmds['juniper'].append( \
-                                        'file list re0:%s' % (dev_dir))
-                                    check_dir_files_cmds['juniper'].append( \
-                                        'file list re1:%s' % (dev_dir))
-                        time.sleep(0.5)
-                        dir_outputs_after_deletion = RCMD.run_commands(check_dir_files_cmds, \
-                            printall = printall)
-                        CGI_CLI.uprint('\n')
-                        file_not_deleted = False
-                        for unique_dir in unique_device_directory_list:
-                            for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
-                                if unique_dir == dev_dir:
-                                    for dir_output in dir_outputs_after_deletion:
-                                        if file in dir_output:
-                                            CGI_CLI.uprint(file, color = 'red')
-                                            CGI_CLI.uprint(dir_outputs_after_deletion[3], color = 'blue')
-                                            file_not_deleted = True
-                        if file_not_deleted: CGI_CLI.uprint('%s DELETE PROBLEM!' % (device), color = 'red')
-                        else: CGI_CLI.uprint('%s Delete done!' % (device), color = 'green')
+                    ### CHECK FILES DELETION ##################################
+                    check_dir_files_cmds = {'cisco_xr':[],'cisco_ios':[], \
+                        'huawei':[], 'juniper':[]}
+                    for unique_dir in unique_device_directory_list:
+                        for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
+                            if unique_dir == dev_dir:
+                                check_dir_files_cmds['cisco_xr'].append( \
+                                    'dir /%s%s' % (RCMD.drive_string, dev_dir))
+                                check_dir_files_cmds['cisco_ios'].append( \
+                                    'dir %s%s' % (RCMD.drive_string, dev_dir))
+                                check_dir_files_cmds['huawei'].append( \
+                                    'dir %s%s/' % (RCMD.drive_string, dev_dir if dev_dir != '/' else str()))
+                                check_dir_files_cmds['huawei'].append( \
+                                    'dir slave#%s%s/' % (RCMD.drive_string, dev_dir if dev_dir != '/' else str()))
+                                check_dir_files_cmds['juniper'].append( \
+                                    'file list re0:%s' % (dev_dir))
+                                check_dir_files_cmds['juniper'].append( \
+                                    'file list re1:%s' % (dev_dir))
+                    time.sleep(0.5)
+                    dir_outputs_after_deletion = RCMD.run_commands(check_dir_files_cmds, \
+                        printall = printall)
+                    CGI_CLI.uprint('\n')
+                    file_not_deleted = False
+                    for unique_dir in unique_device_directory_list:
+                        for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
+                            if unique_dir == dev_dir:
+                                for dir_output in dir_outputs_after_deletion:
+                                    if file in dir_output:
+                                        CGI_CLI.uprint(file, color = 'red')
+                                        CGI_CLI.uprint(dir_outputs_after_deletion[3], color = 'blue')
+                                        file_not_deleted = True
+                    if file_not_deleted: CGI_CLI.uprint('%s DELETE PROBLEM!' % (device), color = 'red')
+                    else: CGI_CLI.uprint('%s Delete done!' % (device), color = 'green')
 
                 ### DISCONNECT ####################################################
                 RCMD.disconnect()
