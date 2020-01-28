@@ -2786,7 +2786,7 @@ def huawei_copy_device_files_to_slave_cfcard(true_sw_release_files_on_server = N
                             if file in dir_output_after_copy: pass
                             else: file_not_found_list.append(dev_dir + file)
                 if len(file_not_found_list) > 0:
-                    CGI_CLI.uprint('COPY PROBLEM[%s]!' % (','.join(file_not_found_list)), color = 'red')
+                    CGI_CLI.uprint('Copy problem from cfcard to slave#cfcard [%s] on %s!' % (','.join(file_not_found_list), device), color = 'red')
                 ### DISCONNECT ################################################
                 RCMD.disconnect()
                 time.sleep(3)
@@ -2866,7 +2866,7 @@ def juniper_copy_device_files_to_other_routing_engine(true_sw_release_files_on_s
                                 if file in dir_output_after_copy: pass
                                 else: file_not_found_list.append(dev_dir + file)
                     if len(file_not_found_list) > 0:
-                        CGI_CLI.uprint('COPY PROBLEM[%s]!' % (','.join(file_not_found_list)), color = 'red')
+                        CGI_CLI.uprint('Copy problem from re0 to re1 [%s] on %s!' % (','.join(file_not_found_list), device), color = 'red')
             ### DISCONNECT ################################################
             RCMD.disconnect()
             time.sleep(3)
