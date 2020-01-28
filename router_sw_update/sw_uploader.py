@@ -2562,6 +2562,7 @@ def check_free_disk_space_on_devices(device_list = None, \
             }
             forget_it = RCMD.run_commands(mkdir_device_cmds)
             CGI_CLI.uprint('\n')
+
             ### CALCULATE NEEDED SPACE ON DEVICE FORM MISSING FILES ###
             needed_device_free_space_in_bytes = 0
             for device2,missing_or_bad_files_per_device in missing_files_per_device_list:
@@ -3588,12 +3589,12 @@ warning {
                                     #del_files_cmds['cisco_xr'].append('\n')
 
                                     del_files_cmds['cisco_ios'].append( \
-                                        'del %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
+                                        'del /unreserved %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
                                     #del_files_cmds['cisco_ios'].append('\n')
                                     #del_files_cmds['cisco_ios'].append('\n')
 
                                     del_files_cmds['huawei'].append( \
-                                        'del %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
+                                        'del /unreserved %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
                                     #del_files_cmds['huawei'].append('Y')
 
                                     del_files_cmds['huawei'].append( \
