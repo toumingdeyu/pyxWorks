@@ -2651,7 +2651,7 @@ def check_free_disk_space_on_devices(device_list = None, \
                     float(disk_free)/1048576, \
                     float(slave_disk_free)/1048576), color = 'red')
         else:
-            if slave_disk_free != -1:
+            if slave_disk_free == -1:
                 CGI_CLI.uprint('%s    %.2f MB    %.2f MB    ---' % (device,
                     float(disk_reguired)/1048576, \
                     float(disk_free)/1048576), color = 'blue')
