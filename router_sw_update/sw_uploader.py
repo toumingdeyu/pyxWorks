@@ -2033,7 +2033,7 @@ def get_device_drive_string(device_list = None, \
 
 def check_files_on_devices(device_list = None, true_sw_release_files_on_server = None, \
     USERNAME = None, PASSWORD = None, logfilename = None, printall = None, \
-    check_mode = None):
+    check_mode = None, disk_low_space_devices = None):
     """
     check_mode = True,  check device files and print failed checks
     check_mode = False, just get files needed to copy to device
@@ -2401,9 +2401,14 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
             CGI_CLI.uprint('\nIncompatible file(s) on device(s)!', tag = 'h1', color = 'red')
 
     ### PRINT CHECK RESULTS ###################################################
-    if all_files_on_all_devices_ok:
+    if all_files_on_all_devices_ok and len(disk_low_space_devices) == 0:
         CGI_CLI.uprint('Sw release %s file(s) on device(s) %s - CHECK OK.' % \
             (sw_release, ', '.join(device_list)), tag = 'h1', color='green')
+    elif all_files_on_all_devices_ok and len(disk_low_space_devices) > 0:
+        CGI_CLI.uprint('Sw release %s file(s) on device(s) %s - CHECK OK.' % \
+            (sw_release, ', '.join(device_list)), tag = 'h1', color='green')
+        CGI_CLI.uprint('Disk space problems & sw release file(s) on device(s) %s - CHECK FAILED!' % \
+            (', '.join(disk_low_space_devices)), tag = 'h1', color = 'red')
     elif CGI_CLI.data.get('check_device_sw_files_only') or check_mode:
         if len(missing_files_per_device_list) == 0 and len(compatibility_problem_list) == 0: pass
         else: CGI_CLI.uprint('Sw release file(s) on device(s) - CHECK FAILED!' , tag = 'h1', color = 'red')
@@ -2422,7 +2427,10 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
 def check_free_disk_space_on_devices(device_list = None, \
     missing_files_per_device_list = None, \
     USERNAME = None, PASSWORD = None, logfilename = None, printall = None):
+
+    ### SPACE = -1  MEANS UNTOUCHED/UNKNOWN/NOT EXISTENT SPACE ###
     device_free_space_in_bytes, slave_device_free_space_in_bytes = -1, -1
+
     disk_low_space_devices, disk_free_list = [], []
     for device in device_list:
         if device:
@@ -2573,46 +2581,88 @@ def check_free_disk_space_on_devices(device_list = None, \
                 slave_device_free_space_in_bytes, needed_device_free_space_in_bytes])
             RCMD.disconnect()
 
+    ### JUST PRINT TABLE HEADER ###
     if RCMD.router_type == 'juniper':
         CGI_CLI.uprint('Device    Disk_needed    re0_Disk_free    re1_Disk_free:', \
             tag = 'h3' , color = 'blue')
     else:
         CGI_CLI.uprint('Device    Disk_needed    Disk_free    (Slave)Disk_free:', \
             tag = 'h3' , color = 'blue')
-    all_disk_checks_ok = True
+
+
+    ### CHECK FREE SPACE ######################################################
+    all_disk_checks_ok, error_string = True, str()
     for device, disk_free, slave_disk_free, disk_reguired in disk_free_list:
-        ### SOME GB FREE EXPECTED (1MB=1048576, 1GB=1073741824) ###
-        if (disk_free + (device_expected_MB_free * 1048576) < disk_reguired) \
-            or (slave_disk_free >= 0 \
-            and (slave_disk_free + (device_expected_MB_free * 1048576) < disk_reguired)):
+
+        ### ZERO SPACE OR JUNOS COULD HAVE NEGATIVE FREE SPACE ################
+        if disk_free < -1 or slave_disk_free < -1 \
+            or disk_free == 0 or slave_disk_free == 0:
+
             all_disk_checks_ok = False
-            if slave_disk_free >= 0:
+            error_string += 'No disk space on %s!\n' % (device)
+            disk_low_space_devices.append(device)
+
+            if slave_disk_free == -1:
+                CGI_CLI.uprint('%s    %.2f MB    %.2f MB    ---' % (device, \
+                    float(disk_reguired)/1048576, \
+                    float(disk_free)/1048576), color = 'red')
+            else:
                 CGI_CLI.uprint('%s    %.2f MB    %.2f MB    %.2f MB' % (device, \
                     float(disk_reguired)/1048576, \
                     float(disk_free)/1048576, \
-                    float(slave_disk_free)/1048576) \
-                    , color = 'red')
-            else:
+                    float(slave_disk_free)/1048576), color = 'red')
+
+        ### FREE SPACE BELOW MINIMUM ##########################################
+        elif disk_free < (device_expected_MB_free * 1048576) or \
+            slave_disk_free != -1 and slave_disk_free < (device_expected_MB_free * 1048576):
+
+            all_disk_checks_ok = False
+            error_string += 'Disk space below %.2fMB on %s!\n' % (device_expected_MB_free, device)
+            disk_low_space_devices.append(device)
+
+            if slave_disk_free == -1:
                 CGI_CLI.uprint('%s    %.2f MB    %.2f MB    ---' % (device, \
                     float(disk_reguired)/1048576, \
-                    float(disk_free)/1048576) \
-                    , color = 'red')
+                    float(disk_free)/1048576), color = 'red')
+            else:
+                CGI_CLI.uprint('%s    %.2f MB    %.2f MB    %.2f MB' % (device, \
+                    float(disk_reguired)/1048576, \
+                    float(disk_free)/1048576, \
+                    float(slave_disk_free)/1048576), color = 'red')
+
+        ### SOME GB FREE EXPECTED (1MB=1048576, 1GB=1073741824) ###############
+        elif (disk_free + (device_expected_MB_free * 1048576) < disk_reguired) \
+            or (slave_disk_free != -1 \
+            and (slave_disk_free + (device_expected_MB_free * 1048576) < disk_reguired)):
+
+            all_disk_checks_ok = False
+            error_string += 'Not enough space to copy files on %s!\n' % (device)
             disk_low_space_devices.append(device)
+
+            if slave_disk_free == -1:
+                CGI_CLI.uprint('%s    %.2f MB    %.2f MB    ---' % (device, \
+                    float(disk_reguired)/1048576, \
+                    float(disk_free)/1048576), color = 'red')
+            else:
+                CGI_CLI.uprint('%s    %.2f MB    %.2f MB    %.2f MB' % (device, \
+                    float(disk_reguired)/1048576, \
+                    float(disk_free)/1048576, \
+                    float(slave_disk_free)/1048576), color = 'red')
         else:
-            if slave_disk_free >= 0:
+            if slave_disk_free != -1:
+                CGI_CLI.uprint('%s    %.2f MB    %.2f MB    ---' % (device,
+                    float(disk_reguired)/1048576, \
+                    float(disk_free)/1048576), color = 'blue')
+            else:
                 CGI_CLI.uprint('%s    %.2f MB    %.2f MB    %.2f MB' % (device,
                     float(disk_reguired)/1048576, \
                     float(disk_free)/1048576, \
-                    float(slave_disk_free)/1048576) \
-                    , color = 'blue')
-            else:
-                CGI_CLI.uprint('%s    %.2f MB    %.2f MB    ---' % (device,
-                    float(disk_reguired)/1048576, \
-                    float(disk_free)/1048576) \
-                    , color = 'blue')
+                    float(slave_disk_free)/1048576), color = 'blue')
 
+    ### PRINT SPACE CHECK RESULTS ############################################
     if not all_disk_checks_ok:
-        CGI_CLI.uprint('Disk space - CHECK FAIL!', tag='h1', color = 'RED')
+        if error_string: CGI_CLI.uprint(error_string, color = 'red')
+        CGI_CLI.uprint('Disk space - CHECK FAIL!', tag='h1', color = 'red')
         sys.exit(0)
     return disk_low_space_devices
 
@@ -2874,7 +2924,7 @@ warning {
 # </script>"""
 
     goto_webpage_end_by_javascript = str()
-
+    disk_low_space_devices = []
     logging.raiseExceptions=False
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True, css_style = CSS_STYLE)
     #CGI_CLI.uprint('<img src="/style/orange.gif" alt="" title="" width="40" height="40">', \
@@ -3402,16 +3452,32 @@ warning {
             check_files_on_devices(device_list = device_list, \
             true_sw_release_files_on_server = true_sw_release_files_on_server, \
             USERNAME = USERNAME, PASSWORD = PASSWORD, logfilename = logfilename, \
-            printall = printall)
+            printall = printall, disk_low_space_devices = disk_low_space_devices)
 
     ### CHECK DISK SPACE ON DEVICES ###########################################
+    disk_low_space_devices = []
     if all_files_on_all_devices_ok: pass
     else:
-        check_free_disk_space_on_devices(device_list = device_list, \
+        disk_low_space_devices = check_free_disk_space_on_devices(\
+            device_list = device_list, \
             missing_files_per_device_list = missing_files_per_device_list, \
             USERNAME = USERNAME, PASSWORD = PASSWORD, logfilename = logfilename, \
             printall = printall)
 
+    ### DELETE NOT OK DISK SPACE DEVICES ######################################
+    if len(disk_low_space_devices) > 0:
+        disk_ok_missing_files_per_device_list, disk_ok_device_list = [], []
+        for copy_to_device, missing_or_bad_files_per_device in missing_files_per_device_list:
+            directory, dev_dir, file, md5, fsize = missing_or_bad_files_per_device
+            if copy_to_device in disk_low_space_devices: pass
+            else:
+                disk_ok_missing_files_per_device_list.append([copy_to_device,[directory, dev_dir, file, md5, fsize]])
+                if not copy_to_device in disk_ok_device_list: disk_ok_device_list.append(copy_to_device)
+        ### RENEW LISTS ###
+        del device_list
+        del missing_files_per_device_list
+        missing_files_per_device_list = disk_ok_missing_files_per_device_list
+        device_list = disk_ok_device_list
 
     ### def LOOP TILL ALL FILES ARE COPIED OK #################################
     counter_of_scp_attempts = 0
@@ -3450,7 +3516,8 @@ warning {
             check_files_on_devices(device_list = device_list, \
             true_sw_release_files_on_server = true_sw_release_files_on_server, \
             USERNAME = USERNAME, PASSWORD = PASSWORD, logfilename = logfilename, \
-            printall = printall, check_mode = True)
+            printall = printall, check_mode = True, \
+            disk_low_space_devices = disk_low_space_devices)
 
         ### TRY SCP X TIMES, THEN END #########################################
         if counter_of_scp_attempts >= total_number_of_scp_attempts:
