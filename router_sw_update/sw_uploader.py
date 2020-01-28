@@ -3556,7 +3556,7 @@ warning {
                     continue
 
                 ### CHECK LOCAL SERVER AND DEVICE HDD FILES #######################
-                actual_date_string = time.strftime("%Y-%m%d-%H:%M",time.gmtime(time.time()))
+                actual_date_string = time.strftime("%Y_%mm%dd_%Hh%M",time.gmtime(time.time()))
 
                 ### def BACKUP NORMAL AND ADMIN CONFIG ########################
                 if CGI_CLI.data.get('backup_configs_to_device_disk'):
