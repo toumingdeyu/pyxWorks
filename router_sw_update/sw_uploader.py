@@ -2422,7 +2422,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
 def check_free_disk_space_on_devices(device_list = None, \
     missing_files_per_device_list = None, \
     USERNAME = None, PASSWORD = None, logfilename = None, printall = None):
-    device_free_space_in_bytes, slave_device_free_space_in_bytes = 0, -1
+    device_free_space_in_bytes, slave_device_free_space_in_bytes = -1, -1
     disk_low_space_devices, disk_free_list = [], []
     for device in device_list:
         if device:
@@ -2464,69 +2464,82 @@ def check_free_disk_space_on_devices(device_list = None, \
                          replace('(','').replace(',','').strip())*1024
                 except: pass
             elif RCMD.router_type == 'juniper':
+
+                ### RE0 #######################################################
                 for line in rcmd_check_disk_space_outputs[0].splitlines():
                     ### AMSCR8 WORKARROUND MOUNT MAPPING BUGFIX ###
                     try:
                         last_column  = str(line).split()[-1]
                         third_column = str(line).split()[3]
                     except: last_column, third_column = str(), str()
+
                     if last_column == '/.mount/var/tmp':
                         device_free_space_in_bytes = float(third_column)*1024
+                        if printall: CGI_CLI.uprint("Free1[%s], Line[%s]" % (device_free_space_in_bytes, line), tag = 'debug')
                         break
-                if not device_free_space_in_bytes:
+
+                if device_free_space_in_bytes == -1:
                     for line in rcmd_check_disk_space_outputs[0].splitlines():
                         try:
                             last_column  = str(line).split()[-1]
                             third_column = str(line).split()[3]
                         except: last_column, third_column = str(), str()
+
                         if last_column == '/.mount/var':
                             device_free_space_in_bytes = float(third_column)*1024
+                            if printall: CGI_CLI.uprint("Free2[%s], Line[%s]" % (device_free_space_in_bytes, line), tag = 'debug')
                             break
-                if not device_free_space_in_bytes:
+
+                if device_free_space_in_bytes == -1:
                     for line in rcmd_check_disk_space_outputs[0].splitlines():
                         try:
                             last_column  = str(line).split()[-1]
                             third_column = str(line).split()[3]
                         except: last_column, third_column = str(), str()
+
                         if last_column == '/.mount':
                             device_free_space_in_bytes = float(third_column)*1024
+                            if printall: CGI_CLI.uprint("Free3[%s], Line[%s]" % (device_free_space_in_bytes, line), tag = 'debug')
                             break
 
+                ### RE1 #######################################################
                 for line in rcmd_check_disk_space_outputs[0].split('re1:')[1].splitlines():
                     ### AMSCR8 WORKARROUND MOUNT MAPPING BUGFIX ###
                     try:
                         last_column  = str(line).split()[-1]
                         third_column = str(line).split()[3]
                     except: last_column, third_column = str(), str()
+
                     if last_column == '/.mount/var/tmp':
                         slave_device_free_space_in_bytes = float(third_column)*1024
+                        if printall: CGI_CLI.uprint("Free11[%s], Line[%s]" % (slave_device_free_space_in_bytes, line), tag = 'debug')
                         break
-                if slave_device_free_space_in_bytes <= 0:
+
+                if slave_device_free_space_in_bytes == -1:
                     for line in rcmd_check_disk_space_outputs[0].split('re1:')[1].splitlines():
                         try:
                             last_column  = str(line).split()[-1]
                             third_column = str(line).split()[3]
                         except: last_column, third_column = str(), str()
-                        if last_column == '/.mount/var/tmp':
+
+                        if last_column == '/.mount/var':
                             slave_device_free_space_in_bytes = float(third_column)*1024
+                            if printall: CGI_CLI.uprint("Free12[%s], Line[%s]" % (slave_device_free_space_in_bytes, line), tag = 'debug')
                             break
-                            if last_column == '/.mount/var':
-                                slave_device_free_space_in_bytes = float(third_column)*1024
-                                break
-                if slave_device_free_space_in_bytes <= 0:
+
+                if slave_device_free_space_in_bytes == -1:
                     for line in rcmd_check_disk_space_outputs[0].split('re1:')[1].splitlines():
                         try:
                             last_column  = str(line).split()[-1]
                             third_column = str(line).split()[3]
                         except: last_column, third_column = str(), str()
-                        if last_column == '/.mount/var/tmp':
+
+                        if last_column == '/.mount':
                             slave_device_free_space_in_bytes = float(third_column)*1024
+                            if printall: CGI_CLI.uprint("Free13[%s], Line[%s]" % (slave_device_free_space_in_bytes, line), tag = 'debug')
                             break
-                            if last_column == '/.mount':
-                                slave_device_free_space_in_bytes = float(third_column)*1024
-                                break
 
-
+            ### MAKE UNIQUE DIRECTORY LIST ####################################
             xr_device_mkdir_list, huawei_device_mkdir_list = [], []
             for dev_dir in unique_device_directory_list:
                 up_path = str()
