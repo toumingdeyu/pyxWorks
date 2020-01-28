@@ -2663,7 +2663,7 @@ def check_free_disk_space_on_devices(device_list = None, \
     if not all_disk_checks_ok:
         if error_string: CGI_CLI.uprint(error_string, color = 'red')
         CGI_CLI.uprint('Disk space - CHECK FAIL!', tag='h1', color = 'red')
-        sys.exit(0)
+        #sys.exit(0)
     return disk_low_space_devices
 
 ##############################################################################
