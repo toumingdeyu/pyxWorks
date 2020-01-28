@@ -3474,6 +3474,7 @@ warning {
             printall = printall)
 
     ### DELETE NOT-OK DISK SPACE DEVICES ######################################
+    original_device_list = copy.deepcopy(device_list)
     if len(disk_low_space_devices) > 0:
         disk_ok_missing_files_per_device_list, disk_ok_device_list = [], []
         for copy_to_device, missing_or_bad_files_per_device in missing_files_per_device_list:
@@ -3494,11 +3495,13 @@ warning {
         missing_backup_re_list = []
         counter_of_scp_attempts += 1
 
+        ### END IF NOTHING TO COPY ############################################
+        if len(device_list) == 0 or len(missing_files_per_device_list) == 0: break
+
         ### TRY SCP X TIMES, THEN END #########################################
         if counter_of_scp_attempts > total_number_of_scp_attempts:
-            CGI_CLI.uprint('MULTIPLE (%d) SCP ATTEMPTS FAILED!' % \
-            (total_number_of_scp_attempts), tag = 'h1', color = 'red')
-            all_files_on_all_devices_ok = True
+            CGI_CLI.uprint('Multiple (%d) scp attempts failed!' % \
+                (total_number_of_scp_attempts), tag = 'h1', color = 'red')
             break
 
         ### FORCE REWRITE ONLY ONCE ###########################################
@@ -3543,7 +3546,7 @@ warning {
     ### def ADITIONAL DEVICE ACTIONS ##########################################
     if CGI_CLI.data.get('backup_configs_to_device_disk') \
         or CGI_CLI.data.get('delete_device_sw_files_on_end'):
-        for device in device_list:
+        for device in original_device_list:
 
             ### REMOTE DEVICE OPERATIONS ######################################
             if device:
