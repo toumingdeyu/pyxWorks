@@ -3673,21 +3673,14 @@ warning {
                             if unique_dir == dev_dir:
                                 del_files_cmds['cisco_xr'].append( \
                                     'del /%s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
-                                #del_files_cmds['cisco_xr'].append('\n')
-                                #del_files_cmds['cisco_xr'].append('\n')
 
                                 del_files_cmds['cisco_ios'].append( \
-                                    'del /unreserved %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
-                                #del_files_cmds['cisco_ios'].append('\n')
-                                #del_files_cmds['cisco_ios'].append('\n')
+                                    'del %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
 
                                 del_files_cmds['huawei'].append( \
                                     'del /unreserved %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
-                                #del_files_cmds['huawei'].append('Y')
-
                                 del_files_cmds['huawei'].append( \
-                                    'del slave#%s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
-                                #del_files_cmds['huawei'].append('Y')
+                                    'del /unreserved slave#%s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
 
                                 del_files_cmds['juniper'].append( \
                                     'file delete re0:%s' % (os.path.join(dev_dir, file)))
