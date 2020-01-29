@@ -3582,8 +3582,6 @@ warning {
                         'huawei': [
                         'save %s/%s-config.cfg' % (RCMD.drive_string, actual_date_string),
                         'save slave#%s/%s-config.cfg' % (RCMD.drive_string, actual_date_string)
-                        #'display current-configuration > %s%s-config.txt' % (RCMD.drive_string, actual_date_string),
-                        #'display current-configuration > slave#%s%s-config.txt' % (RCMD.drive_string, actual_date_string)
                         ]
                     }
                     if not CGI_CLI.data.get('ignore_missing_backup_re_on_junos'):
@@ -3630,41 +3628,41 @@ warning {
                     if RCMD.router_type == 'cisco_xr':
                         if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[0] \
                             and not 'No such file or directory' in cfgfiles_cmds_outputs[0]:
-                            CGI_CLI.uprint('%s config copy done!' % (device), color = 'green')
-                        else: CGI_CLI.uprint('%s config copy problem!' % (device), color = 'red')
+                            CGI_CLI.uprint('%s backup config done!' % (device), color = 'green')
+                        else: CGI_CLI.uprint('%s backup config problem!' % (device), color = 'red')
                         if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[2] \
                             and not 'No such file or directory' in cfgfiles_cmds_outputs[2]:
-                            CGI_CLI.uprint('%s admin config copy done!' % (device), color = 'green')
-                        else: CGI_CLI.uprint('%s admin config copy problem!' % (device), color = 'red')
+                            CGI_CLI.uprint('%s backup admin config done!' % (device), color = 'green')
+                        else: CGI_CLI.uprint('%s backup admin config problem!' % (device), color = 'red')
 
                     elif RCMD.router_type == 'cisco_ios':
                         if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[0] \
                             and not 'No such file or directory' in cfgfiles_cmds_outputs[0]:
-                            CGI_CLI.uprint('%s config copy done!' % (device), color = 'green')
-                        else: CGI_CLI.uprint('%s config copy problem!' % (device), color = 'red')
+                            CGI_CLI.uprint('%s backup config done!' % (device), color = 'green')
+                        else: CGI_CLI.uprint('%s backup config problem!' % (device), color = 'red')
 
                     elif RCMD.router_type == 'juniper':
                         if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[0] \
                             and not 'No such file or directory' in cfgfiles_cmds_outputs[0]:
-                            CGI_CLI.uprint('%s config copy done!' % (device), color = 'green')
-                        else: CGI_CLI.uprint('%s config copy problem!' % (device), color = 'red')
+                            CGI_CLI.uprint('%s backup config to re0 done!' % (device), color = 'green')
+                        else: CGI_CLI.uprint('%s backup config to re0 problem!' % (device), color = 'red')
                         if not CGI_CLI.data.get('ignore_missing_backup_re_on_junos'):
                             if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[1] \
                                 and not 'No such file or directory' in cfgfiles_cmds_outputs[1]:
-                                CGI_CLI.uprint('%s config copy done!' % (device), color = 'green')
-                            else: CGI_CLI.uprint('%s config copy problem!' % (device), color = 'red')
+                                CGI_CLI.uprint('%s backup config to re1 done!' % (device), color = 'green')
+                            else: CGI_CLI.uprint('%s backup config to re1 problem!' % (device), color = 'red')
 
                     elif RCMD.router_type == 'huawei':
                         if '%s-config.cfg' % (actual_date_string) in cfgfiles_cmds_outputs[0] \
                             and not 'No such file or directory' in cfgfiles_cmds_outputs[0] \
                             and not "Such file or path doesn't exist." in cfgfiles_cmds_outputs[0]:
-                            CGI_CLI.uprint('%s config copy done!' % (device), color = 'green')
-                        else: CGI_CLI.uprint('%s config copy problem!' % (device), color = 'red')
+                            CGI_CLI.uprint('%s backup config to cfcard done!' % (device), color = 'green')
+                        else: CGI_CLI.uprint('%s backup config to cfcard problem!' % (device), color = 'red')
                         if '%s-config.cfg' % (actual_date_string) in cfgfiles_cmds_outputs[1] \
                             and not 'No such file or directory' in cfgfiles_cmds_outputs[1] \
                             and not "Such file or path doesn't exist." in cfgfiles_cmds_outputs[0]:
-                            CGI_CLI.uprint('%s config copy done!' % (device), color = 'green')
-                        else: CGI_CLI.uprint('%s config copy problem!' % (device), color = 'red')
+                            CGI_CLI.uprint('%s backup config to slave#cfcard done!' % (device), color = 'green')
+                        else: CGI_CLI.uprint('%s backup config to slave#cfcard problem!' % (device), color = 'red')
 
 
                 ### def DELETE TAR FILES ON END ###############################
@@ -3726,10 +3724,11 @@ warning {
                             if unique_dir == dev_dir:
                                 for dir_output in dir_outputs_after_deletion:
                                     if file in dir_output:
-                                        CGI_CLI.uprint('File %s not deleted on %s.' % (file, device), color = 'red')
+                                        CGI_CLI.uprint('File %s not deleted from %s on %s!' \
+                                            % (file,unique_dir, device), color = 'red')
                                         file_not_deleted = True
-                    if file_not_deleted: CGI_CLI.uprint('%s DELETE PROBLEM!' % (device), color = 'red')
-                    else: CGI_CLI.uprint('%s Delete done!' % (device), color = 'green')
+                    if file_not_deleted: CGI_CLI.uprint('%s delete problem!' % (device), color = 'red')
+                    else: CGI_CLI.uprint('%s delete done!' % (device), color = 'green')
 
                 ### DISCONNECT ####################################################
                 RCMD.disconnect()
