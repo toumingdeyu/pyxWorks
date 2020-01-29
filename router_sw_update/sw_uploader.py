@@ -3580,8 +3580,10 @@ warning {
                         ],
 
                         'huawei': [
-                        'display current-configuration > %s%s-config.txt' % (RCMD.drive_string, actual_date_string),
-                        'display current-configuration > slave#%s%s-config.txt' % (RCMD.drive_string, actual_date_string)
+                        'save %s%s-config.cfg' % (RCMD.drive_string, actual_date_string),
+                        'save slave#%s%s-config.cfg' % (RCMD.drive_string, actual_date_string)
+                        #'display current-configuration > %s%s-config.txt' % (RCMD.drive_string, actual_date_string),
+                        #'display current-configuration > slave#%s%s-config.txt' % (RCMD.drive_string, actual_date_string)
                         ]
                     }
                     if not CGI_CLI.data.get('ignore_missing_backup_re_on_junos'):
@@ -3610,9 +3612,9 @@ warning {
                     check_dir_cfgfiles_cmds['cisco_xr'].append('exit'),
 
                     check_dir_cfgfiles_cmds['huawei'].append( \
-                        'dir %s%s-config.txt' % (RCMD.drive_string, actual_date_string))
+                        'dir %s%s-config.cfg' % (RCMD.drive_string, actual_date_string))
                     check_dir_cfgfiles_cmds['huawei'].append( \
-                        'dir slave#%s%s-config.txt' % (RCMD.drive_string, actual_date_string))
+                        'dir slave#%s%s-config.cfg' % (RCMD.drive_string, actual_date_string))
 
                     check_dir_cfgfiles_cmds['juniper'].append( \
                         'file list re0:/var/tmp/%s-config.txt' % (actual_date_string))
@@ -3654,11 +3656,13 @@ warning {
 
                     elif RCMD.router_type == 'huawei':
                         if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[0] \
-                            and not 'No such file or directory' in cfgfiles_cmds_outputs[0]:
+                            and not 'No such file or directory' in cfgfiles_cmds_outputs[0] \
+                            and not "Such file or path doesn't exist." in cfgfiles_cmds_outputs[0]:
                             CGI_CLI.uprint('%s CONFIG copy done!' % (device), color = 'green')
                         else: CGI_CLI.uprint('%s CONFIG copy PROBLEM!' % (device), color = 'red')
                         if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[1] \
-                            and not 'No such file or directory' in cfgfiles_cmds_outputs[1]:
+                            and not 'No such file or directory' in cfgfiles_cmds_outputs[1] \
+                            and not "Such file or path doesn't exist." in cfgfiles_cmds_outputs[0]:
                             CGI_CLI.uprint('%s CONFIG copy done!' % (device), color = 'green')
                         else: CGI_CLI.uprint('%s CONFIG copy PROBLEM!' % (device), color = 'red')
 
