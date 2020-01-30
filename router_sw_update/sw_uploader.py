@@ -140,6 +140,10 @@ class CGI_CLI(object):
                             action = "store_true", dest = 'timestamps',
                             default = None,
                             help = "print all lines with timestamps")
+        parser.add_argument("--disable_scp",
+                            action = "store_true", dest = 'disable_scp_after_copy',
+                            default = None,
+                            help = "disable scp after copy")
         args = parser.parse_args()
         return args
 
@@ -2424,7 +2428,8 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
     if CGI_CLI.data.get('check_device_sw_files_only') \
         or len(compatibility_problem_list) > 0:
         if CGI_CLI.data.get('backup_configs_to_device_disk') \
-            or CGI_CLI.data.get('delete_device_sw_files_on_end'): pass
+            or CGI_CLI.data.get('delete_device_sw_files_on_end') \
+            or CGI_CLI.data.get('disable_scp_after_copy'): pass
         else: sys.exit(0)
 
     return all_files_on_all_devices_ok, missing_files_per_device_list, device_drive_string, router_type
@@ -2448,6 +2453,10 @@ def check_free_disk_space_on_devices(device_list = None, \
                 CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), color = 'red')
                 RCMD.disconnect()
                 continue
+
+            ### DO ENABLING OF SCP ON ROUTER ##################################
+            do_scp_enable(printall = printall)
+
             check_disk_space_cmds = {
                 ### some ios = enable, ask password, 'show bootflash:' , exit
                 'cisco_ios':[' ','show bootflash:',' ','show version | in (%s)' % (asr1k_detection_string)],
@@ -2884,8 +2893,29 @@ def juniper_copy_device_files_to_other_routing_engine(true_sw_release_files_on_s
     return missing_backup_re_list
 
 ##############################################################################
+def do_scp_enable(printall = None):
+    scp_enable_cmds = {
+        'cisco_xr':[],
+        'cisco_ios':[],
+        'huawei':['scp ipv4 server enable'],
+        'juniper':[]
+        }
+
+    run_commands(scp_enable_cmds, printall = printall, conf = True, autoconfirm_mode = True)
+
+##############################################################################
+def do_scp_disable(printall = None):
+    scp_disable_cmds = {
+        'cisco_xr':[],
+        'cisco_ios':[],
+        'huawei':['scp ipv4 server disable'],
+        'juniper':[]
+        }
+
+    run_commands(scp_enable_cmds, printall = printall, conf = True, autoconfirm_mode = True)
 
 
+##############################################################################
 
 
 
@@ -3179,6 +3209,7 @@ warning {
                 {'checkbox':'display_scp_percentage_only'},'<br/>',\
                 {'checkbox':'force_rewrite_sw_files_on_device'},'<br/>',\
                 {'checkbox':'ignore_missing_backup_re_on_junos'},'<br/>',\
+                {'checkbox':'disable_scp_after_copy'},'<br/>',\
                 {'checkbox':'backup_configs_to_device_disk'},'<br/>',\
                 {'checkbox':'delete_device_sw_files_on_end'},'<br/>',\
                 '<br/>', {'checkbox':'timestamps'}, \
@@ -3233,10 +3264,13 @@ warning {
         CGI_CLI.uprint('force_rewrite_sw_files_on_device = Y')
     if CGI_CLI.data.get('ignore_missing_backup_re_on_junos'):
         CGI_CLI.uprint('ignore_missing_backup_re_on_junos = Y')
+    if CGI_CLI.data.get('disable_scp_after_copy'):
+        CGI_CLI.uprint('disable_scp_after_copy = Y')
     if CGI_CLI.data.get('backup_configs_to_device_disk'):
         CGI_CLI.uprint('backup_configs_to_device_disk = Y')
     if CGI_CLI.data.get('delete_device_sw_files_on_end'):
         CGI_CLI.uprint('delete_device_sw_files_on_end = Y')
+
 
 
 
@@ -3255,13 +3289,13 @@ warning {
 
     exit_due_to_error = None
 
-    if len(selected_sw_file_types_list) == 0:
-        CGI_CLI.uprint('PLEASE SPECIFY SW FILE TYPE(S) TO COPY!', tag = 'h2', color = 'red')
-        exit_due_to_error = True
+    # if len(selected_sw_file_types_list) == 0:
+        # CGI_CLI.uprint('PLEASE SPECIFY SW FILE TYPE(S) TO COPY!', tag = 'h2', color = 'red')
+        # exit_due_to_error = True
 
-    if not sw_release:
-        CGI_CLI.uprint('PLEASE SPECIFY SW_RELEASE!', tag = 'h2',color = 'red')
-        exit_due_to_error = True
+    # if not sw_release:
+        # CGI_CLI.uprint('PLEASE SPECIFY SW_RELEASE!', tag = 'h2',color = 'red')
+        # exit_due_to_error = True
 
     if len(device_list) == 0:
         CGI_CLI.uprint('DEVICE NAME(S) NOT INSERTED!', tag = 'h2', color = 'red')
@@ -3279,7 +3313,8 @@ warning {
 
     ###############################################################################
 
-    if type_subdir and brand_subdir and sw_release:
+    if type_subdir and brand_subdir and sw_release \
+        and len(selected_sw_file_types_list) > 0 and sw_release:
         CGI_CLI.uprint('Server %s checks:\n' % (iptac_server), tag = 'h2', color = 'blue')
 
         ### def CHECK LOCAL SW DIRECTORIES ########################################
@@ -3453,8 +3488,8 @@ warning {
             USERNAME = USERNAME, PASSWORD = PASSWORD, logfilename = logfilename, \
             printall = printall, \
             silent_mode = True)
-    else:
 
+    elif len(selected_sw_file_types_list) > 0 or sw_release:
         ### CHECK EXISTING FILES ON DEVICES ###################################
         all_files_on_all_devices_ok, missing_files_per_device_list, \
             device_drive_string, router_type = \
@@ -3465,13 +3500,14 @@ warning {
 
     ### CHECK DISK SPACE ON DEVICES ###########################################
     disk_low_space_devices = []
-    if all_files_on_all_devices_ok: pass
-    else:
-        disk_low_space_devices = check_free_disk_space_on_devices(\
-            device_list = device_list, \
-            missing_files_per_device_list = missing_files_per_device_list, \
-            USERNAME = USERNAME, PASSWORD = PASSWORD, logfilename = logfilename, \
-            printall = printall)
+    if len(selected_sw_file_types_list) > 0 or sw_release:
+        if all_files_on_all_devices_ok: pass
+        else:
+            disk_low_space_devices = check_free_disk_space_on_devices(\
+                device_list = device_list, \
+                missing_files_per_device_list = missing_files_per_device_list, \
+                USERNAME = USERNAME, PASSWORD = PASSWORD, logfilename = logfilename, \
+                printall = printall)
 
     ### DELETE NOT-OK DISK SPACE DEVICES ######################################
     original_device_list = copy.deepcopy(device_list)
@@ -3494,6 +3530,10 @@ warning {
     while not all_files_on_all_devices_ok:
         missing_backup_re_list = []
         counter_of_scp_attempts += 1
+
+        ### DO NOT SCP IF NO SW VERSION #######################################
+        if len(selected_sw_file_types_list) > 0 or sw_release: pass
+        else: break
 
         ### END IF NOTHING TO COPY ############################################
         if len(device_list) == 0 or len(missing_files_per_device_list) == 0: break
@@ -3545,7 +3585,8 @@ warning {
 
     ### def ADITIONAL DEVICE ACTIONS ##########################################
     if CGI_CLI.data.get('backup_configs_to_device_disk') \
-        or CGI_CLI.data.get('delete_device_sw_files_on_end'):
+        or CGI_CLI.data.get('delete_device_sw_files_on_end') \
+        or CGI_CLI.data.get('disable_scp_after_copy'):
         for device in original_device_list:
 
             ### REMOTE DEVICE OPERATIONS ######################################
@@ -3729,6 +3770,12 @@ warning {
                                         file_not_deleted = True
                     if file_not_deleted: CGI_CLI.uprint('%s delete problem!' % (device), color = 'red')
                     else: CGI_CLI.uprint('%s delete done!' % (device), color = 'green')
+
+
+                ### def DISABLE SCP ###############################################
+                if CGI_CLI.data.get('disable_scp_after_copy'):
+                    do_scp_disable(printall = printall)
+
 
                 ### DISCONNECT ####################################################
                 RCMD.disconnect()
