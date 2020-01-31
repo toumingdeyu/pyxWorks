@@ -1779,16 +1779,26 @@ def get_existing_sw_release_list(brand_subdir = None, type_subdir = None):
                             if part_of_name.upper() in release.upper():
                                 sw_release_list.append(release)
             except: pass
+
+        ### SORT AND CLEAN SW RELEASE LIST ####################################
         if len(sw_release_list) > 0:
             sw_release_set = set(sw_release_list)
             del sw_release_list
             sw_release_list = list(sw_release_set)
             del sw_release_set
             sw_release_list.sort(reverse = True)
+
+            ### DELETE NOT-PROPER FILES #######################################
+            for sw_item in sw_release_list:
+                if '.pptx' in sw_item: sw_release_list.remove(sw_item)
+                if '.xls' in sw_item: sw_release_list.remove(sw_item)
+                if '.doc' in sw_item: sw_release_list.remove(sw_item)
+
+            ### DEFAULT SW RELEASE ############################################
             default_sw_release = sw_release_list[0]
     return sw_release_list, default_sw_release
 
-##############################################################################
+###############################################################################
 
 def does_local_directory_or_file_exist_by_ls_l(directory_or_file, printall = None):
     this_is_directory, file_found = None, None
@@ -3301,7 +3311,7 @@ warning {
     if len(device_list) > 0: CGI_CLI.uprint('device(s) = %s' % (', '.join(device_list)))
     if sw_release: CGI_CLI.uprint('sw release = %s' % (sw_release))
     if device_expected_MB_free:
-        CGI_CLI.uprint('expected remaining disk free >= %.2f MB' % (device_expected_MB_free))
+        CGI_CLI.uprint('expected remaining device disk free >= %.2f MB' % (device_expected_MB_free))
     if len(selected_sw_file_types_list)>0:
         CGI_CLI.uprint('sw file types = %s' % (', '.join(selected_sw_file_types_list) ))
     if logfilename: CGI_CLI.uprint('logfile=%s' % (logfilename))
