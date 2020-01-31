@@ -3172,7 +3172,7 @@ warning {
                 break
 
         ### CHECK LOCAL SW VERSIONS DIRECTORIES ###################################
-        if len(sw_release_list) == 9:
+        if len(sw_release_list) == 0:
             sw_release_list, default_sw_release = get_existing_sw_release_list(brand_subdir, type_subdir)
 
     ###############################################################################
@@ -3198,12 +3198,18 @@ warning {
             else:
                 main_menu_list.append('<h3 style="color:red">NO SW RELEASE VERSIONS AVAILABLE on server %s!</h3>' % (iptac_server))
 
+            main_menu_list.append('<br/>')
             main_menu_list.append('<h3>FILES TO COPY (required):</h3>')
             for sw_file in sw_file_types_list:
                 main_menu_list.append({'checkbox':sw_file + '_file(s)'})
                 main_menu_list.append('<br/>')
             if len(sw_file_types_list) == 0:
                 main_menu_list.append('<h3 style="color:red">NO FILE TYPES SPECIFIED!</h3>')
+            main_menu_list.append('<p>Additional file(s) to copy (optional) [list separator=,]:</p>')
+            main_menu_list.append({'text':'additional_files_to_copy'})
+            main_menu_list.append('<br/>')
+
+
 
             main_menu_list += ['<h3>REMAINING DEVICE DISK FREE (optional) [default &gt %.2f MB]:</h3>'%(device_expected_MB_free),\
             {'text':'remaining_device_disk_free_MB'}, '<br/>',\
@@ -3255,6 +3261,16 @@ warning {
     logfilename = generate_logfilename(prefix = ('_'.join(device_list)).upper(), \
         USERNAME = USERNAME, suffix = str(SCRIPT_ACTION) + '.log')
     logfilename = None
+
+
+    ### APPEND SELECTED SW FILE TYPE LIST By ADDITIONAL FILE LIST #################
+    additional_file_list = []
+    if CGI_CLI.data.get('additional_files_to_copy'):
+        if ',' in CGI_CLI.data.get('additional_files_to_copy'):
+            additional_file_list = CGI_CLI.data.get('additional_files_to_copy').split(',')
+        else: additional_file_list = [CGI_CLI.data.get('additional_files_to_copy')]
+    selected_sw_file_types_list += additional_file_list
+
 
     ### def PRINT BASIC INFO ######################################################
     CGI_CLI.uprint('server = %s' % (iptac_server))
@@ -3324,8 +3340,8 @@ warning {
 
     ###############################################################################
 
-    if type_subdir and brand_subdir and sw_release \
-        and len(selected_sw_file_types_list) > 0 and sw_release:
+    if type_subdir and brand_subdir \
+        and len(selected_sw_file_types_list) > 0:
         CGI_CLI.uprint('Server %s checks:\n' % (iptac_server), tag = 'h2', color = 'blue')
 
         ### def CHECK LOCAL SW DIRECTORIES ########################################
@@ -3359,8 +3375,13 @@ warning {
 
             ### LET DOTS IN DIRECTORY NAME ########################################
             if not IS_DIRECTORY_OR_FILE_FOUND:
-                use_dir_or_file = os.path.abspath(os.path.join(os.sep,'home',\
-                    'tftpboot',brand_subdir, type_subdir, sw_release, actual_file_type_subdir)).strip()
+                if sw_release:
+                    use_dir_or_file = os.path.abspath(os.path.join(os.sep,'home',\
+                        'tftpboot',brand_subdir, type_subdir, sw_release, actual_file_type_subdir)).strip()
+                else:
+                    use_dir_or_file = os.path.abspath(os.path.join(os.sep,'home',\
+                        'tftpboot',brand_subdir, type_subdir, actual_file_type_subdir)).strip()
+
                 this_is_directory, file_found = \
                     does_local_directory_or_file_exist_by_ls_l(use_dir_or_file, printall = printall)
                 if printall:
@@ -3379,8 +3400,13 @@ warning {
 
             ### DELETE DOTS FROM DIRECTORY NAME ###################################
             if not IS_DIRECTORY_OR_FILE_FOUND:
-                use_dir_or_file = os.path.abspath(os.path.join(os.sep,'home',\
-                    'tftpboot',brand_subdir, type_subdir, sw_release.replace('.',''), actual_file_type_subdir)).strip()
+                if sw_release:
+                    use_dir_or_file = os.path.abspath(os.path.join(os.sep,'home',\
+                        'tftpboot',brand_subdir, type_subdir, sw_release.replace('.',''), actual_file_type_subdir)).strip()
+                else:
+                    use_dir_or_file = os.path.abspath(os.path.join(os.sep,'home',\
+                        'tftpboot',brand_subdir, type_subdir, actual_file_type_subdir)).strip()
+
                 this_is_directory, file_found = \
                     does_local_directory_or_file_exist_by_ls_l(use_dir_or_file, printall = printall)
                 if printall:
@@ -3439,7 +3465,7 @@ warning {
 
             directory, true_local_file_in_sw_release = directory_sublist
 
-            if sw_release in directory:
+            if sw_release and sw_release in directory:
                 device_directory = os.path.abspath(os.path.join(os.sep, \
                     type_subdir_on_device, sw_release.replace('.',''), actual_file_type_subdir))
             else:
