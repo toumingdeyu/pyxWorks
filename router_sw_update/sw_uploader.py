@@ -104,10 +104,14 @@ class CGI_CLI(object):
                             action = "store", dest = 'sw_release',
                             default = str(),
                             help = "sw release number with or without dots, i.e. 653 or 6.5.3, or alternatively sw release filename")
-        parser.add_argument("--files",
+        parser.add_argument("--file_types",
                             action = "store", dest = 'sw_files',
                             default = str(),
-                            help = "--files OTI.tar,SMU,pkg,bin")
+                            help = "--file_types OTI.tar,SMU,pkg,bin , one file type or list of file types separated by ',' without any space. NOTE: This is intended as file-name filter in sw_release directory.")
+        parser.add_argument("--files",
+                            action = "store", dest = 'additional_files_to_copy',
+                            default = str(),
+                            help = "--files absolute_path_to_file_with_filename(s), one file or list of files separated by ',' without any space. NOTE: Independent on sw_release.")
         parser.add_argument("--check_only",
                             action = 'store_true', dest = "check_device_sw_files_only",
                             default = None,
@@ -124,14 +128,10 @@ class CGI_CLI(object):
                             action = 'store_true', dest = "delete_device_sw_files_on_end",
                             default = None,
                             help = "delete device sw release files on end after sw upgrade")
-        parser.add_argument("--nobackupre",
+        parser.add_argument("--no_backup_re",
                             action = 'store_true', dest = "ignore_missing_backup_re_on_junos",
                             default = None,
                             help = "ignore missing backup re on junos")
-        # parser.add_argument("--sim",
-                            # action = "store_true", dest = 'sim',
-                            # default = None,
-                            # help = "config simulation mode")
         parser.add_argument("--printall",
                             action = "store_true", dest = 'printall',
                             default = None,
@@ -3012,7 +3012,6 @@ warning {
     #CGI_CLI.uprint('<img src="/style/orange.gif" alt="" title="" width="40" height="40">', \
     #    raw=True)
     CGI_CLI.uprint('SW UPLOADER (v.%s)' % (CGI_CLI.VERSION()), tag = 'h1', color = 'blue')
-    # CGI_CLI.uprint('PID=%s ' % (os.getpid()), color = 'blue')
     printall = CGI_CLI.data.get("printall")
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
     if printall: CGI_CLI.print_args()
@@ -3021,7 +3020,7 @@ warning {
 
     ##############################################################################
 
-    does_run_script_processes()
+    does_run_script_processes(printall = printall)
 
     scp_list, foreign_scp_ps_list = does_run_scp_processes(printall = printall)
     if len(scp_list)>0:
@@ -3295,8 +3294,18 @@ warning {
     ### def LOGFILENAME GENERATION ################################################
     logfilename = generate_logfilename(prefix = ('_'.join(device_list)).upper(), \
         USERNAME = USERNAME, suffix = str(SCRIPT_ACTION) + '.log')
-    logfilename = None
+    #logfilename = None
 
+
+    ### DO SELECTED SW FILE TYPE LIST #########################################
+    ### ALSO DIRECT FILES WITH ABS-PATH COULD BE USED HERE DIRECTLY ###########
+    if CGI_CLI.data.get('sw_files'):
+        ft_string = CGI_CLI.data.get('sw_files')
+        ft_list = ft_string.split(',') if ',' in ft_string else [ft_string]
+
+        for ft_item in ft_list:
+            selected_sw_file_types_list += \
+                [ filetype for filetype in sw_file_types_list if ft_item in filetype ]
 
     ### APPEND SELECTED SW FILE TYPE LIST By ADDITIONAL FILE LIST #################
     additional_file_list = []
@@ -3315,7 +3324,7 @@ warning {
         CGI_CLI.uprint('expected remaining device disk free >= %.2f MB' % (device_expected_MB_free))
     if len(selected_sw_file_types_list)>0:
         CGI_CLI.uprint('sw file types = %s' % (', '.join(selected_sw_file_types_list) ))
-    if logfilename: CGI_CLI.uprint('logfile=%s' % (logfilename))
+    if logfilename: CGI_CLI.uprint('logfilename=%s' % (logfilename))
     if CGI_CLI.data.get('display_scp_percentage_only'):
         CGI_CLI.uprint('display_scp_percentage_only = Y')
     elif CGI_CLI.data.get('check_device_sw_files_only'):
@@ -3339,25 +3348,8 @@ warning {
     ### START TO MOVE WEBPAGE ALLWAYS TO END ##################################
     CGI_CLI.uprint(goto_webpage_end_by_javascript, raw=True)
 
-    ###########################################################################
-    if CGI_CLI.data.get('sw_files'):
-        ft_string = CGI_CLI.data.get('sw_files')
-        ft_list = ft_string.split(',') if ',' in ft_string else [ft_string]
-
-        for ft_item in ft_list:
-            selected_sw_file_types_list += [ filetype for filetype in sw_file_types_list if ft_item in filetype ]
-
     ### END DUE TO ERRORS #####################################################
-
     exit_due_to_error = None
-
-    # if len(selected_sw_file_types_list) == 0:
-        # CGI_CLI.uprint('PLEASE SPECIFY SW FILE TYPE(S) TO COPY!', tag = 'h2', color = 'red')
-        # exit_due_to_error = True
-
-    # if not sw_release:
-        # CGI_CLI.uprint('PLEASE SPECIFY SW_RELEASE!', tag = 'h2',color = 'red')
-        # exit_due_to_error = True
 
     if len(device_list) == 0:
         CGI_CLI.uprint('DEVICE NAME(S) NOT INSERTED!', tag = 'h2', color = 'red')
