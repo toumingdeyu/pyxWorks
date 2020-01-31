@@ -141,11 +141,11 @@ class CGI_CLI(object):
                             default = None,
                             help = "print all lines with timestamps")
         parser.add_argument("--enable_scp",
-                            action = "store_true", dest = 'enable_scp_before_copy',
+                            action = "store_true", dest = 'enable_device_scp_before_copying',
                             default = None,
                             help = "enable scp before copy")
         parser.add_argument("--disable_scp",
-                            action = "store_true", dest = 'disable_scp_after_copy',
+                            action = "store_true", dest = 'disable_device_scp_before_copying',
                             default = None,
                             help = "disable scp after copy")
         args = parser.parse_args()
@@ -2433,8 +2433,8 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
         or len(compatibility_problem_list) > 0:
         if CGI_CLI.data.get('backup_configs_to_device_disk') \
             or CGI_CLI.data.get('delete_device_sw_files_on_end') \
-            or CGI_CLI.data.get('enable_scp_before_copy') \
-            or CGI_CLI.data.get('disable_scp_after_copy'): pass
+            or CGI_CLI.data.get('enable_device_scp_before_copying') \
+            or CGI_CLI.data.get('disable_device_scp_before_copying'): pass
         else: sys.exit(0)
 
     return all_files_on_all_devices_ok, missing_files_per_device_list, device_drive_string, router_type
@@ -2460,7 +2460,7 @@ def check_free_disk_space_on_devices(device_list = None, \
                 continue
 
             ### DO ENABLING OF SCP ON ROUTER ##################################
-            if CGI_CLI.data.get('enable_scp_before_copy'):
+            if CGI_CLI.data.get('enable_device_scp_before_copying'):
                 do_scp_enable(printall = printall)
 
             check_disk_space_cmds = {
@@ -2900,6 +2900,7 @@ def juniper_copy_device_files_to_other_routing_engine(true_sw_release_files_on_s
 
 
 ##############################################################################
+
 def do_scp_enable(printall = None):
     scp_status_cmds = {
         'cisco_xr':[],
@@ -2923,6 +2924,7 @@ def do_scp_enable(printall = None):
 
 
 ##############################################################################
+
 def do_scp_disable(printall = None):
     scp_status_cmds = {
         'cisco_xr':[],
@@ -2941,7 +2943,7 @@ def do_scp_disable(printall = None):
             'juniper':[]
             }
 
-        RCMD.run_commands(scp_enable_cmds, conf = True, autoconfirm_mode = True, \
+        RCMD.run_commands(scp_disable_cmds, conf = True, autoconfirm_mode = True, \
             printall = printall)
 
 
@@ -3245,8 +3247,8 @@ warning {
                 {'checkbox':'display_scp_percentage_only'},'<br/>',\
                 {'checkbox':'force_rewrite_sw_files_on_device'},'<br/>',\
                 {'checkbox':'ignore_missing_backup_re_on_junos'},'<br/>',\
-                {'checkbox':'enable_scp_before_copy'},'<br/>',\
-                {'checkbox':'disable_scp_after_copy'},'<br/>',\
+                {'checkbox':'enable_device_scp_before_copying'},'<br/>',\
+                {'checkbox':'disable_device_scp_before_copying'},'<br/>',\
                 {'checkbox':'backup_configs_to_device_disk'},'<br/>',\
                 {'checkbox':'delete_device_sw_files_on_end'},'<br/>',\
                 '<br/>', {'checkbox':'timestamps'}, \
@@ -3311,10 +3313,10 @@ warning {
         CGI_CLI.uprint('force_rewrite_sw_files_on_device = Y')
     if CGI_CLI.data.get('ignore_missing_backup_re_on_junos'):
         CGI_CLI.uprint('ignore_missing_backup_re_on_junos = Y')
-    if CGI_CLI.data.get('enable_scp_before_copy'):
-        CGI_CLI.uprint('enable_scp_before_copy = Y')
-    if CGI_CLI.data.get('disable_scp_after_copy'):
-        CGI_CLI.uprint('disable_scp_after_copy = Y')
+    if CGI_CLI.data.get('enable_device_scp_before_copying'):
+        CGI_CLI.uprint('enable_device_scp_before_copying = Y')
+    if CGI_CLI.data.get('disable_device_scp_before_copying'):
+        CGI_CLI.uprint('disable_device_scp_before_copying = Y')
     if CGI_CLI.data.get('backup_configs_to_device_disk'):
         CGI_CLI.uprint('backup_configs_to_device_disk = Y')
     if CGI_CLI.data.get('delete_device_sw_files_on_end'):
@@ -3645,8 +3647,8 @@ warning {
     ### def ADITIONAL DEVICE ACTIONS ##########################################
     if CGI_CLI.data.get('backup_configs_to_device_disk') \
         or CGI_CLI.data.get('delete_device_sw_files_on_end') \
-        or CGI_CLI.data.get('enable_scp_before_copy') \
-        or CGI_CLI.data.get('disable_scp_after_copy'):
+        or CGI_CLI.data.get('enable_device_scp_before_copying') \
+        or CGI_CLI.data.get('disable_device_scp_before_copying'):
         for device in original_device_list:
 
             ### REMOTE DEVICE OPERATIONS ######################################
@@ -3833,7 +3835,7 @@ warning {
 
 
                 ### def DISABLE SCP ###############################################
-                if CGI_CLI.data.get('disable_scp_after_copy'):
+                if CGI_CLI.data.get('disable_device_scp_before_copying'):
                     do_scp_disable(printall = printall)
 
 
