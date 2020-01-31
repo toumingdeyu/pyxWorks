@@ -2898,29 +2898,51 @@ def juniper_copy_device_files_to_other_routing_engine(true_sw_release_files_on_s
             tag = 'warning' , color = 'red')
     return missing_backup_re_list
 
+
 ##############################################################################
 def do_scp_enable(printall = None):
-    scp_enable_cmds = {
+    scp_status_cmds = {
         'cisco_xr':[],
         'cisco_ios':[],
-        'huawei':['scp ipv4 server enable'],
+        'huawei':['display ssh server status'],
         'juniper':[]
         }
 
-    RCMD.run_commands(scp_enable_cmds, conf = True, autoconfirm_mode = True, \
-        printall = printall)
+    scp_status_outputs = RCMD.run_commands(scp_status_cmds, printall = printall)
+
+    if len(scp_status_outputs) > 0:
+        scp_enable_cmds = {
+            'cisco_xr':[],
+            'cisco_ios':[],
+            'huawei':['scp %sserver enable' % ('ipv4 ' if 'SCP IPv4 server' in scp_status_outputs[0] else str())],
+            'juniper':[]
+            }
+
+        RCMD.run_commands(scp_enable_cmds, conf = True, autoconfirm_mode = True, \
+            printall = printall)
+
 
 ##############################################################################
 def do_scp_disable(printall = None):
-    scp_disable_cmds = {
+    scp_status_cmds = {
         'cisco_xr':[],
         'cisco_ios':[],
-        'huawei':['scp ipv4 server disable'],
+        'huawei':['display ssh server status'],
         'juniper':[]
         }
 
-    RCMD.run_commands(scp_enable_cmds, conf = True, autoconfirm_mode = True, \
-        printall = printall)
+    scp_status_outputs = RCMD.run_commands(scp_status_cmds, printall = printall)
+
+    if len(scp_status_outputs) > 0:
+        scp_disable_cmds = {
+            'cisco_xr':[],
+            'cisco_ios':[],
+            'huawei':['scp %sserver disable' % ('ipv4 ' if 'SCP IPv4 server' in scp_status_outputs[0] else str())],
+            'juniper':[]
+            }
+
+        RCMD.run_commands(scp_enable_cmds, conf = True, autoconfirm_mode = True, \
+            printall = printall)
 
 
 ##############################################################################
