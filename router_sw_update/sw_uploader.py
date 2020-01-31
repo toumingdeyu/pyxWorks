@@ -3008,7 +3008,7 @@ warning {
     goto_webpage_end_by_javascript = str()
     disk_low_space_devices = []
     logging.raiseExceptions=False
-    USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True, css_style = CSS_STYLE)
+    USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True, css_style = CSS_STYLE, log = True)
     #CGI_CLI.uprint('<img src="/style/orange.gif" alt="" title="" width="40" height="40">', \
     #    raw=True)
     CGI_CLI.uprint('SW UPLOADER (v.%s)' % (CGI_CLI.VERSION()), tag = 'h1', color = 'blue')
@@ -3295,7 +3295,7 @@ warning {
     logfilename = generate_logfilename(prefix = ('_'.join(device_list)).upper(), \
         USERNAME = USERNAME, suffix = str(SCRIPT_ACTION) + '.log')
     #logfilename = None
-
+    if logfilename: CGI_CLI.set_logfile(logfilename = logfilename)
 
     ### DO SELECTED SW FILE TYPE LIST #########################################
     ### ALSO DIRECT FILES WITH ABS-PATH COULD BE USED HERE DIRECTLY ###########
