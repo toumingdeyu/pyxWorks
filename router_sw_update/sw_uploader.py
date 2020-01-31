@@ -220,7 +220,8 @@ class CGI_CLI(object):
             ### CHROME NEEDS 2NEWLINES TO BE ALREADY CHUNKED !!! ##############
             CGI_CLI.print_chunk("%s%s<!DOCTYPE html><html><head><title>%s</title>%s</head><body>" %
                 (CGI_CLI.newline, CGI_CLI.newline,
-                CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit', \
+                #CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit', \
+                str(__file__).split('/')[-1] + '  PID' + str(os.getpid()) if '/' in str(__file__) else str(), \
                 '<style>%s</style>' % (CGI_CLI.CSS_STYLE) if CGI_CLI.CSS_STYLE else str()))
         import atexit; atexit.register(CGI_CLI.__cleanup__)
         ### GAIN USERNAME AND PASSWORD FROM ENVIRONMENT BY DEFAULT ###
