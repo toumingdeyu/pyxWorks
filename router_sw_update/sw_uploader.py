@@ -3716,10 +3716,10 @@ warning {
                         'dir %s%s-config.txt' % (RCMD.drive_string, actual_date_string))
 
                     check_dir_cfgfiles_cmds['cisco_xr'].append( \
-                        'dir /%s%s-config.txt' % (RCMD.drive_string, actual_date_string))
+                        'dir %s%s-config.txt' % (RCMD.drive_string, actual_date_string))
                     check_dir_cfgfiles_cmds['cisco_xr'].append('admin')
                     check_dir_cfgfiles_cmds['cisco_xr'].append( \
-                        'dir /%sadmin-%s-config.txt' % (RCMD.drive_string, actual_date_string))
+                        'dir %sadmin-%s-config.txt' % (RCMD.drive_string, actual_date_string))
                     check_dir_cfgfiles_cmds['cisco_xr'].append('exit'),
 
                     check_dir_cfgfiles_cmds['huawei'].append( \
