@@ -3188,7 +3188,7 @@ warning {
     ### START PRINTING AND LOGGING ########################################
     changelog = 'https://github.com/peteneme/pyxWorks/commits/master/router_sw_update/sw_uploader.py'
     if CGI_CLI.cgi_active:
-        CGI_CLI.uprint('<h1 style="color:blue;">SW UPLOADER <a href = "%s">(v.%s)</a></h1>' % \
+        CGI_CLI.uprint('<h1 style="color:blue;">SW UPLOADER <a href="%s" style="text-decoration: none">(v.%s)</a></h1>' % \
             (changelog, CGI_CLI.VERSION()), raw = True)
     else: CGI_CLI.uprint('SW UPLOADER (v.%s)' % (CGI_CLI.VERSION()), \
               tag = 'h1', color = 'blue')
