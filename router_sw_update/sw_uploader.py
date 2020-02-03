@@ -2958,24 +2958,6 @@ def do_scp_disable(printall = None):
             printall = printall)
 
 
-##############################################################################
-
-def send_me_email_old(subject='testmail', file_name='/dev/null'):
-    try:    EMAIL_ADDRESS   = os.environ['NEWR_EMAIL']
-    except: EMAIL_ADDRESS   = str()
-    my_account = subprocess.check_output('whoami', shell=True)
-    my_finger_line = subprocess.check_output('finger | grep "%s"'%(my_account.strip()), shell=True)
-    try:
-        my_name = my_finger_line.splitlines()[0].split()[1]
-        my_surname = my_finger_line.splitlines()[0].split()[2]
-        if EMAIL_ADDRESS: my_email_address = EMAIL_ADDRESS
-        else: my_email_address = '%s.%s@orange.com' % (my_name, my_surname)
-        mail_command = 'echo | mutt -s "%s" -a %s -- %s' % (subject,file_name,my_email_address)
-        #mail_command = 'uuencode %s %s | mail -s "%s" %s' % (file_name,file_name,subject,my_email_address)
-        forget_it = subprocess.check_output(mail_command, shell=True)
-        print(' ==> Email "%s" sent to %s.'%(subject,my_email_address))
-    except: pass
-
 ###############################################################################
 
 def send_me_email(subject = str(), email_body = str(), file_name = None, attachments = None, \
@@ -3001,7 +2983,8 @@ def send_me_email(subject = str(), email_body = str(), file_name = None, attachm
         except Exception as e: CGI_CLI.uprint(" ==> Problem to send email by COMMAND=[%s], PROBLEM=[%s]\n"\
                 % (mail_command,str(e)) ,color = 'red')
         return email_success
-    ### FUCTION send_me_email START ----------------------------------------
+
+    ### FUCTION send_me_email START ###########################################
     email_sent, sugested_email_address = None, str()
     if username: my_account = username
     else: my_account = subprocess.check_output('whoami', shell=True).strip()
@@ -3013,15 +2996,19 @@ def send_me_email(subject = str(), email_body = str(), file_name = None, attachm
         except: ldap_email_address = None
         if ldap_email_address: sugested_email_address = ldap_email_address
         else:
-            try:
-                my_getent_line = ' '.join((subprocess.check_output('getent passwd "%s"'% \
-                    (my_account.strip()), shell=True)).split(':')[4].split()[:2])
-                my_name = my_getent_line.splitlines()[0].split()[0]
-                my_surname = my_getent_line.splitlines()[0].split()[1]
-                sugested_email_address = '%s.%s@orange.com' % (my_name, my_surname)
+            try: sugested_email_address = os.environ['NEWR_EMAIL']
             except: pass
+            if not sugested_email_address:
+                try:
+                    my_getent_line = ' '.join((subprocess.check_output('getent passwd "%s"'% \
+                        (my_account.strip()), shell=True)).split(':')[4].split()[:2])
+                    my_name = my_getent_line.splitlines()[0].split()[0]
+                    my_surname = my_getent_line.splitlines()[0].split()[1]
+                    if my_name and my_surname:
+                        sugested_email_address = '%s.%s@orange.com' % (my_name, my_surname)
+                except: pass
 
-        ### UNIX - MAILX ----------------------------------------------------
+        ### UNIX - MAILX ######################################################
         mail_command = 'echo \'%s\' | mailx -s "%s" ' % (email_body,subject)
         if cc:
             if isinstance(cc, six.string_types): mail_command += '-c %s' % (cc)
@@ -3039,6 +3026,14 @@ def send_me_email(subject = str(), email_body = str(), file_name = None, attachm
         mail_command += '%s' % (sugested_email_address)
         email_sent = send_unix_email_body(mail_command)
 
+        ### UNIX - MUTT #######################################################
+        if not email_sent and file_name:
+            mail_command = 'echo | mutt -s "%s" -a %s -- %s' % \
+                (subject, file_name, sugested_email_address)
+            email_sent = send_unix_email_body(mail_command)
+
+
+    ### WINDOWS OS PART #######################################################
     if 'WIN32' in sys.platform.upper():
         ### NEEDED 'pip install pywin32'
         #if not 'win32com.client' in sys.modules: import win32com.client
