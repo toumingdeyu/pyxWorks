@@ -2448,7 +2448,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
             or CGI_CLI.data.get('disable_device_scp_before_copying'): pass
         else: sys.exit(0)
 
-    return all_files_on_all_devices_ok, missing_files_per_device_list, device_drive_string, router_type
+    return all_files_on_all_devices_ok, missing_files_per_device_list, device_drive_string, router_type, compatibility_problem_list
 
 ###############################################################################
 
@@ -3122,9 +3122,11 @@ warning {
 # }
 # </script>"""
 
-    goto_webpage_end_by_javascript = str()
-    disk_low_space_devices = []
     logging.raiseExceptions=False
+    goto_webpage_end_by_javascript = str()
+
+    disk_low_space_devices, compatibility_problem_list = [], []
+
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True, css_style = CSS_STYLE, log = True)
     #CGI_CLI.uprint('<img src="/style/orange.gif" alt="" title="" width="40" height="40">', \
     #    raw=True)
@@ -3673,7 +3675,7 @@ warning {
     elif len(selected_sw_file_types_list) > 0 or sw_release:
         ### CHECK EXISTING FILES ON DEVICES ###################################
         all_files_on_all_devices_ok, missing_files_per_device_list, \
-            device_drive_string, router_type = \
+            device_drive_string, router_type, compatibility_problem_list = \
             check_files_on_devices(device_list = device_list, \
             true_sw_release_files_on_server = true_sw_release_files_on_server, \
             USERNAME = USERNAME, PASSWORD = PASSWORD, logfilename = logfilename, \
@@ -3690,7 +3692,7 @@ warning {
                 USERNAME = USERNAME, PASSWORD = PASSWORD, logfilename = logfilename, \
                 printall = printall)
 
-    ### DELETE NOT-OK DISK SPACE DEVICES ######################################
+    ### DELETE NOT-OK DISK SPACE DEVICES FROM COPY LIST #######################
     original_device_list = copy.deepcopy(device_list)
     if len(disk_low_space_devices) > 0:
         disk_ok_missing_files_per_device_list, disk_ok_device_list = [], []
@@ -3716,8 +3718,13 @@ warning {
         if len(selected_sw_file_types_list) > 0 or sw_release: pass
         else: break
 
+        ### END IF FILE COMPATIBILTY PROBLEM OCCURS ON DEVICES AFTER ONE SCP ##
+        if len(compatibility_problem_list) > 0 and counter_of_scp_attempts > 1:
+            break
+
         ### END IF NOTHING TO COPY ############################################
-        if len(device_list) == 0 or len(missing_files_per_device_list) == 0: break
+        if len(device_list) == 0 or len(missing_files_per_device_list) == 0:
+            break
 
         ### TRY SCP X TIMES, THEN END #########################################
         if counter_of_scp_attempts > total_number_of_scp_attempts:
@@ -3730,7 +3737,7 @@ warning {
             force_rewrite = True
         else: force_rewrite = False
 
-        ### FORCE REWRITE HAS A SENSE FIRST TIME ONLY #########################
+        ### DO SCP COPYING - FORCE REWRITE HAS A SENSE FIRST TIME ONLY ########
         copy_files_to_devices(true_sw_release_files_on_server = true_sw_release_files_on_server, \
             missing_files_per_device_list = missing_files_per_device_list, \
             device_list = device_list, USERNAME = USERNAME, PASSWORD = PASSWORD, \
@@ -3750,12 +3757,11 @@ warning {
             missing_backup_re_list = juniper_copy_device_files_to_other_routing_engine( \
                 true_sw_release_files_on_server, \
                 unique_device_directory_list)
-
             if len(missing_backup_re_list) > 0: sys.exit(0)
 
-        ### CHECK DEVICE FILES AFTER COPYING ##################################
+        ### CHECK DEVICE FILES AFTER SCP COPYING ##############################
         all_files_on_all_devices_ok, missing_files_per_device_list, \
-            device_drive_string, router_type = \
+            device_drive_string, router_type, compatibility_problem_list = \
             check_files_on_devices(device_list = device_list, \
             true_sw_release_files_on_server = true_sw_release_files_on_server, \
             USERNAME = USERNAME, PASSWORD = PASSWORD, logfilename = logfilename, \
@@ -3954,17 +3960,18 @@ warning {
                     else: CGI_CLI.uprint('%s delete done!' % (device), color = 'green')
 
 
-                ### def DISABLE SCP ###############################################
+                ### def DISABLE SCP ###########################################
                 if CGI_CLI.data.get('disable_device_scp_before_copying'):
                     do_scp_disable(printall = printall)
 
 
-                ### DISCONNECT ####################################################
+                ### DISCONNECT ################################################
                 RCMD.disconnect()
     del sql_inst
 except SystemExit: pass
 except: CGI_CLI.uprint(traceback.format_exc(), tag = 'h3',color = 'magenta')
 
+### SEND LOGFILE ##############################################################
 send_me_email(subject = logfilename.replace('\\','/').split('/')[-1], \
     file_name = logfilename, username = USERNAME)
 
