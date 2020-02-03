@@ -2978,10 +2978,12 @@ def send_me_email(subject = str(), email_body = str(), file_name = None, attachm
         try:
             forget_it = subprocess.check_output(mail_command, shell=True)
             CGI_CLI.uprint(' ==> Email sent. Subject:"%s" SentTo:%s by COMMAND=[%s] with RESULT=[%s]...'\
-                %(subject,sugested_email_address,mail_command,forget_it), color = 'blue')
+                %(subject,sugested_email_address,mail_command,forget_it), color = 'green')
             email_success = True
-        except Exception as e: CGI_CLI.uprint(" ==> Problem to send email by COMMAND=[%s], PROBLEM=[%s]\n"\
-                % (mail_command,str(e)) ,color = 'red')
+        except Exception as e:
+            if printall:
+                CGI_CLI.uprint(" ==> Problem to send email by COMMAND=[%s], PROBLEM=[%s]\n"\
+                    % (mail_command,str(e)) ,color = 'magenta')
         return email_success
 
     ### FUCTION send_me_email START ###########################################
@@ -3023,14 +3025,19 @@ def send_me_email(subject = str(), email_body = str(), file_name = None, attachm
                 mail_command += ''.join([ '-a %s ' % (attach_file) for attach_file in attachments if os.path.exists(attach_file) ])
             if isinstance(attachments, six.string_types) and os.path.exists(attachments):
                 mail_command += '-a %s ' % (attachments)
-        mail_command += '%s' % (sugested_email_address)
-        email_sent = send_unix_email_body(mail_command)
 
-        ### UNIX - MUTT #######################################################
-        if not email_sent and file_name:
-            mail_command = 'echo | mutt -s "%s" -a %s -- %s' % \
-                (subject, file_name, sugested_email_address)
+        ### IF EMAIL ADDRESS FOUND , SEND EMAIL ###############################
+        if not sugested_email_address:
+            if printall: CGI_CLI.uprint('Email Address not found!', color = 'magenta')
+        else:
+            mail_command += '%s' % (sugested_email_address)
             email_sent = send_unix_email_body(mail_command)
+
+            ### UNIX - MUTT ###################################################
+            if not email_sent and file_name:
+                mail_command = 'echo | mutt -s "%s" -a %s -- %s' % \
+                    (subject, file_name, sugested_email_address)
+                email_sent = send_unix_email_body(mail_command)
 
 
     ### WINDOWS OS PART #######################################################
@@ -3068,10 +3075,10 @@ def send_me_email(subject = str(), email_body = str(), file_name = None, attachm
             msg.Send()
             ol.Quit()
             CGI_CLI.uprint(' ==> Email sent. Subject:"%s" SentTo:%s by APPLICATION=[%s].'\
-                %(subject,sugested_email_address,email_application), color = 'blue')
+                %(subject,sugested_email_address,email_application), color = 'green')
             email_sent = True
         except Exception as e: CGI_CLI.uprint(" ==> Problem to send email by APPLICATION=[%s], PROBLEM=[%s]\n"\
-                % (email_application,str(e)) ,color = 'red')
+                % (email_application,str(e)) ,color = 'magenta')
     return email_sent
 
 ###############################################################################
@@ -3955,17 +3962,18 @@ warning {
                     if file_not_deleted: CGI_CLI.uprint('%s delete problem!' % (device), color = 'red')
                     else: CGI_CLI.uprint('%s delete done!' % (device), color = 'green')
 
-
                 ### def DISABLE SCP ###########################################
                 if CGI_CLI.data.get('disable_device_scp_before_copying'):
                     do_scp_disable(printall = printall)
-
 
                 ### DISCONNECT ################################################
                 RCMD.disconnect()
     del sql_inst
 except SystemExit: pass
 except: CGI_CLI.uprint(traceback.format_exc(), tag = 'h3',color = 'magenta')
+
+### PRINT LOGFILENAME #########################################################
+if logfilename: CGI_CLI.uprint(' ==> File %s created.' % (logfilename))
 
 ### SEND EMAIL WITH LOGFILE ###################################################
 send_me_email( \
