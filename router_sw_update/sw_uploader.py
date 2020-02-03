@@ -3387,7 +3387,7 @@ warning {
         CGI_CLI.formprint( main_menu_list + ['<br/>','<br/>'], submit_button = 'OK', \
             pyfile = None, tag = None, color = None , list_separator = '&emsp;')
 
-        ### SHOW HTML MENU AND EXIT ###############################################
+        ### SHOW HTML MENU AND EXIT ###########################################
         sys.exit(0)
     else:
         ### READ SCRIPT ACTION ###
@@ -3399,7 +3399,7 @@ warning {
             if CGI_CLI.data.get("script_action"):
                 SCRIPT_ACTION = CGI_CLI.data.get("script_action")
 
-    ### def DISPLAY PERCENTAGE OF SCP ONLY ########################################
+    ### def DISPLAY PERCENTAGE OF SCP ONLY ####################################
     if CGI_CLI.data.get('display_scp_percentage_only'):
         scp_list, forget_it = does_run_scp_processes(printall = printall)
         if len(scp_list)>0 and USERNAME and PASSWORD:
@@ -3407,13 +3407,14 @@ warning {
         else: CGI_CLI.uprint('No currently running scp processes.')
         sys.exit(0)
 
-    ### SET DEFAULT (HIGHEST) SW RELEASE IF NOT SET ###############################
+    ### SET DEFAULT (HIGHEST) SW RELEASE IF NOT SET ###########################
     if not sw_release and default_sw_release: sw_release = default_sw_release
 
-    ### def LOGFILENAME GENERATION ################################################
+    ### def LOGFILENAME GENERATION ############################################
     logfilename = generate_logfilename(prefix = ('_'.join(device_list)).upper(), \
         USERNAME = USERNAME, suffix = str('scp') + '.log')
-    #logfilename = None
+    ### NO WINDOWS LOGGING ####################################################
+    if 'WIN32' in sys.platform.upper(): logfilename = None
     if logfilename: CGI_CLI.set_logfile(logfilename = logfilename)
 
     ### DO SELECTED SW FILE TYPE LIST #########################################
@@ -3426,7 +3427,7 @@ warning {
             selected_sw_file_types_list += \
                 [ filetype for filetype in sw_file_types_list if ft_item in filetype ]
 
-    ### APPEND SELECTED SW FILE TYPE LIST By ADDITIONAL FILE LIST #################
+    ### APPEND SELECTED SW FILE TYPE LIST By ADDITIONAL FILE LIST #############
     additional_file_list = []
     if CGI_CLI.data.get('additional_files_to_copy'):
         if ',' in CGI_CLI.data.get('additional_files_to_copy'):
@@ -3971,11 +3972,8 @@ warning {
 except SystemExit: pass
 except: CGI_CLI.uprint(traceback.format_exc(), tag = 'h3',color = 'magenta')
 
-### SEND LOGFILE ##############################################################
-send_me_email(subject = logfilename.replace('\\','/').split('/')[-1], \
+### SEND EMAIL WITH LOGFILE ###################################################
+send_me_email( \
+    subject = logfilename.replace('\\','/').split('/')[-1] if logfilename else None, \
     file_name = logfilename, username = USERNAME)
-
-
-
-
 
