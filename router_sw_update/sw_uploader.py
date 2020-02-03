@@ -1826,7 +1826,8 @@ def get_local_subdirectories(brand_raw = None, type_raw = None):
     type_subdir_on_device = str()
     if brand_raw and type_raw:
         brand_subdir = brand_raw.upper()
-        if 'ASR9K' in type_raw.upper():
+        if 'ASR9K' in type_raw.upper() \
+            or 'ASR-9' in type_raw.upper():
             type_subdir_on_server = 'ASR9K'
             type_subdir_on_device = 'IOS-XR'
             file_types = ['asr9k*OTI.tar', 'SMU/*.tar']
