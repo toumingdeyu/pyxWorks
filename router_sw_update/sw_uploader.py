@@ -2194,11 +2194,11 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                                     [device,[directory, dev_dir, file, md5, fsize]])
                     if printall:
                         if RCMD.router_type == 'juniper':
-                            CGI_CLI.uprint('re0_File=%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
-                                (file1,file_found_on_device,md5_ok,file_size_ok_on_device), tag = 'debug')
+                            CGI_CLI.uprint('Device=%s, re0_File=%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
+                                (device,file1,file_found_on_device,md5_ok,file_size_ok_on_device), tag = 'debug')
                         else:
-                            CGI_CLI.uprint('File=%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
-                                (file1,file_found_on_device,md5_ok,file_size_ok_on_device), tag = 'debug')
+                            CGI_CLI.uprint('Device=%s, File=%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
+                                (device,file1,file_found_on_device,md5_ok,file_size_ok_on_device), tag = 'debug')
 
             ### ===================================================================
             ### JUNIPER RE1 CHECK #################################################
@@ -2263,8 +2263,8 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                                     ### SLAVE HAS ANALOGIC MEANING OF RE1 #####
                                     slave_missing_files_per_device_list.append( \
                                         [device,[directory, dev_dir, file, md5, fsize]])
-                        if printall: CGI_CLI.uprint('re1_File=%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
-                            (file1, file_found_on_device, md5_ok, file_size_ok_on_device), tag = 'debug')
+                        if printall: CGI_CLI.uprint('Device=%s, re1_File=%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
+                            (device, file1, file_found_on_device, md5_ok, file_size_ok_on_device), tag = 'debug')
 
             ### HUAWEI SLAVE#CFCARD FILES CHECK ###############################
             if RCMD.router_type == 'huawei':
@@ -2339,8 +2339,8 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                                 if file == file1:
                                     slave_missing_files_per_device_list.append( \
                                         [device,[directory, dev_dir, file, md5, fsize]])
-                        if printall: CGI_CLI.uprint('SlaveFile=%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
-                            (file1,file_found_on_device,md5_ok,file_size_ok_on_device), tag = 'debug')
+                        if printall: CGI_CLI.uprint('Device=%s, SlaveFile=%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
+                            (device, file1,file_found_on_device,md5_ok,file_size_ok_on_device), tag = 'debug')
 
 
             ### HUAWEI COMPATIBILITY CHECK ####################################
@@ -3712,6 +3712,9 @@ warning {
     while not all_files_on_all_devices_ok:
         missing_backup_re_list = []
         counter_of_scp_attempts += 1
+
+        ### DO NOT COPY FILES IN CHECK ONLY MODE ##############################
+        if CGI_CLI.data.get('check_device_sw_files_only'): break
 
         ### DO NOT SCP IF NO SW VERSION #######################################
         if len(selected_sw_file_types_list) > 0 or sw_release: pass
