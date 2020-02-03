@@ -3127,34 +3127,7 @@ warning {
     logging.raiseExceptions=False
     goto_webpage_end_by_javascript = str()
 
-    disk_low_space_devices, compatibility_problem_list = [], []
-
-    USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True, css_style = CSS_STYLE, log = True)
-    #CGI_CLI.uprint('<img src="/style/orange.gif" alt="" title="" width="40" height="40">', \
-    #    raw=True)
-    CGI_CLI.uprint('SW UPLOADER (v.%s)' % (CGI_CLI.VERSION()), tag = 'h1', color = 'blue')
-    printall = CGI_CLI.data.get("printall")
-    CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
-    if printall: CGI_CLI.print_args()
-
-
-
-    ##############################################################################
-
-    does_run_script_processes(printall = printall)
-
-    scp_list, foreign_scp_ps_list = does_run_scp_processes(printall = printall)
-    if len(scp_list)>0:
-        CGI_CLI.uprint('WARNING: Running scp copy...', tag = 'h2', color = 'magenta')
-        for server_file, device_file, device, device_user, pid, ppid in scp_list:
-            if device:
-                CGI_CLI.uprint('USER=%s, DEVICE=%s, FILE=%s, COPYING_TO=%s, PID=%s, PPID=%s' % \
-                    (device_user, device, server_file, device_file, pid, ppid), color = 'magenta')
-
-    ##############################################################################
-
-
-    ### def GLOBAL CONSTANTS #####################################################
+    ### def GLOBAL CONSTANTS #################################################
     device_expected_MB_free = 100
     total_number_of_scp_attempts = 3
 
@@ -3167,8 +3140,9 @@ warning {
     asr1k_detection_string = 'CSR1000'
     asr9k_detection_string = 'ASR9K|IOS-XRv 9000'
 
-    ### GLOBAL VARIABLES ##########################################################
+    ### GLOBAL VARIABLES ######################################################
 
+    logfilename = None
     SCRIPT_ACTION = None
     ACTION_ITEM_FOUND = None
     type_subdir = str()
@@ -3179,15 +3153,51 @@ warning {
     true_sw_release_files_on_server = []
     missing_files_per_device_list = []
     all_files_on_all_devices_ok = None
+    disk_low_space_devices, compatibility_problem_list = [], []
+    router_type_id_string, router_id_string = "router_type", '__'
 
-    ###############################################################################
+    ### GCI_CLI INIT ##########################################################
+    USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True, css_style = CSS_STYLE, log = True)
+    CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
+    printall = CGI_CLI.data.get("printall")
+
+    ### GENERATE DEVICE LIST ##################################################
     devices_string = CGI_CLI.data.get("device",str())
     if devices_string:
         if ',' in devices_string:
             device_list = [ dev_mix_case.upper() for dev_mix_case in devices_string.split(',') ]
         else: device_list = [devices_string.upper()]
 
-    ### GET sw_release FROM cli ###################################################
+    ### APPEND DEVICE LIST ####################################################
+    for key in CGI_CLI.data.keys():
+        ### DEVICE NAME IS IN '__KEY' ###
+        try: value = str(key)
+        except: value = str()
+        if router_id_string in value: device_list.append(value.replace('_',''))
+
+    ### def LOGFILENAME GENERATION, DO LOGGING ONLY WHEN DEVICE LIST EXISTS ###
+    if device_list:
+        logfilename = generate_logfilename(prefix = ('_'.join(device_list)).upper(), \
+            USERNAME = USERNAME, suffix = str('scp') + '.log')
+        ### NO WINDOWS LOGGING ################################################
+        if 'WIN32' in sys.platform.upper(): logfilename = None
+        if logfilename: CGI_CLI.set_logfile(logfilename = logfilename)
+
+        ### START PRINTING AND LOGGING ########################################
+        CGI_CLI.uprint('SW UPLOADER (v.%s)' % (CGI_CLI.VERSION()), tag = 'h1', color = 'blue')
+        if printall: CGI_CLI.print_args()
+
+    ### CHECK RUNNING SCP PROCESSES ON START ##################################
+    does_run_script_processes(printall = printall)
+    scp_list, foreign_scp_ps_list = does_run_scp_processes(printall = printall)
+    if len(scp_list)>0:
+        CGI_CLI.uprint('WARNING: Running scp copy...', tag = 'h2', color = 'magenta')
+        for server_file, device_file, device, device_user, pid, ppid in scp_list:
+            if device:
+                CGI_CLI.uprint('USER=%s, DEVICE=%s, FILE=%s, COPYING_TO=%s, PID=%s, PPID=%s' % \
+                    (device_user, device, server_file, device_file, pid, ppid), color = 'magenta')
+
+    ### GET sw_release FROM cli ###############################################
     sw_release = CGI_CLI.data.get('sw_release',str())
     try: device_expected_MB_free = float(CGI_CLI.data.get('remaining_device_disk_free_MB',device_expected_MB_free))
     except: pass
@@ -3195,7 +3205,7 @@ warning {
     if CGI_CLI.cgi_active and not (USERNAME and PASSWORD):
         if iptac_server == 'iptac5': USERNAME, PASSWORD = 'iptac', 'paiiUNDO'
 
-    ### GENERATE selected_sw_file_types_list ######################################
+    ### GENERATE selected_sw_file_types_list ##################################
     selected_sw_file_types_list = []
     selected_files_types_string = '_file(s)'
     for key in CGI_CLI.data.keys():
@@ -3241,7 +3251,6 @@ warning {
         device_types.sort()
 
     ### FIND SELECTED DEVICE TYPE #################################################
-    router_type_id_string, router_id_string = "router_type", '__'
     selected_device_type = str()
     for key in CGI_CLI.data.keys():
         ### DEVICE NAME IS IN 'router_type__VALUE' ###
@@ -3306,13 +3315,6 @@ warning {
     if counter != 0: router_menu_list.append('</tr>')
     router_menu_list.append('</table>')
     router_menu_list.append('</div>')
-
-    ### APPEND DEVICE LIST ########################################################
-    for key in CGI_CLI.data.keys():
-        ### DEVICE NAME IS IN '__KEY' ###
-        try: value = str(key)
-        except: value = str()
-        if router_id_string in value: device_list.append(value.replace('_',''))
 
     ### GAIN VENDOR + HARDWARE FROM DEVICE LIST "AGAIN" ###########################
     if len(device_list)>0:
@@ -3412,13 +3414,6 @@ warning {
     ### SET DEFAULT (HIGHEST) SW RELEASE IF NOT SET ###########################
     if not sw_release and default_sw_release: sw_release = default_sw_release
 
-    ### def LOGFILENAME GENERATION ############################################
-    logfilename = generate_logfilename(prefix = ('_'.join(device_list)).upper(), \
-        USERNAME = USERNAME, suffix = str('scp') + '.log')
-    ### NO WINDOWS LOGGING ####################################################
-    if 'WIN32' in sys.platform.upper(): logfilename = None
-    if logfilename: CGI_CLI.set_logfile(logfilename = logfilename)
-
     ### DO SELECTED SW FILE TYPE LIST #########################################
     ### ALSO DIRECT FILES WITH ABS-PATH COULD BE USED HERE DIRECTLY ###########
     if CGI_CLI.data.get('sw_files'):
@@ -3439,7 +3434,7 @@ warning {
 
 
     ### def PRINT BASIC INFO ######################################################
-    CGI_CLI.uprint('server = %s' % (iptac_server))
+    CGI_CLI.uprint('server = %s, user = %s' % (iptac_server, USERNAME))
     if len(device_list) > 0: CGI_CLI.uprint('device(s) = %s' % (', '.join(device_list)))
     if sw_release: CGI_CLI.uprint('sw release = %s' % (sw_release))
     if device_expected_MB_free:
