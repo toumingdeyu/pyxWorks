@@ -3183,9 +3183,9 @@ warning {
         if 'WIN32' in sys.platform.upper(): logfilename = None
         if logfilename: CGI_CLI.set_logfile(logfilename = logfilename)
 
-        ### START PRINTING AND LOGGING ########################################
-        CGI_CLI.uprint('SW UPLOADER (v.%s)' % (CGI_CLI.VERSION()), tag = 'h1', color = 'blue')
-        if printall: CGI_CLI.print_args()
+    ### START PRINTING AND LOGGING ########################################
+    CGI_CLI.uprint('SW UPLOADER (v.%s)' % (CGI_CLI.VERSION()), tag = 'h1', color = 'blue')
+    if printall: CGI_CLI.print_args()
 
     ### CHECK RUNNING SCP PROCESSES ON START ##################################
     does_run_script_processes(printall = printall)
