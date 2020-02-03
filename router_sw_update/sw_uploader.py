@@ -3682,30 +3682,31 @@ warning {
 
     ### CHECK DISK SPACE ON DEVICES ###########################################
     disk_low_space_devices = []
-    if len(selected_sw_file_types_list) > 0 or sw_release:
-        if all_files_on_all_devices_ok: pass
-        else:
-            disk_low_space_devices = check_free_disk_space_on_devices(\
-                device_list = device_list, \
-                missing_files_per_device_list = missing_files_per_device_list, \
-                USERNAME = USERNAME, PASSWORD = PASSWORD, logfilename = logfilename, \
-                printall = printall)
-
-    ### DELETE NOT-OK DISK SPACE DEVICES FROM COPY LIST #######################
-    original_device_list = copy.deepcopy(device_list)
-    if len(disk_low_space_devices) > 0:
-        disk_ok_missing_files_per_device_list, disk_ok_device_list = [], []
-        for copy_to_device, missing_or_bad_files_per_device in missing_files_per_device_list:
-            directory, dev_dir, file, md5, fsize = missing_or_bad_files_per_device
-            if copy_to_device in disk_low_space_devices: pass
+    if not CGI_CLI.data.get('check_device_sw_files_only'):
+        if len(selected_sw_file_types_list) > 0 or sw_release:
+            if all_files_on_all_devices_ok: pass
             else:
-                disk_ok_missing_files_per_device_list.append([copy_to_device,[directory, dev_dir, file, md5, fsize]])
-                if not copy_to_device in disk_ok_device_list: disk_ok_device_list.append(copy_to_device)
-        ### RENEW LISTS ###
-        del device_list
-        del missing_files_per_device_list
-        missing_files_per_device_list = disk_ok_missing_files_per_device_list
-        device_list = disk_ok_device_list
+                disk_low_space_devices = check_free_disk_space_on_devices(\
+                    device_list = device_list, \
+                    missing_files_per_device_list = missing_files_per_device_list, \
+                    USERNAME = USERNAME, PASSWORD = PASSWORD, logfilename = logfilename, \
+                    printall = printall)
+
+        ### DELETE NOT-OK DISK SPACE DEVICES FROM COPY LIST ###################
+        original_device_list = copy.deepcopy(device_list)
+        if len(disk_low_space_devices) > 0:
+            disk_ok_missing_files_per_device_list, disk_ok_device_list = [], []
+            for copy_to_device, missing_or_bad_files_per_device in missing_files_per_device_list:
+                directory, dev_dir, file, md5, fsize = missing_or_bad_files_per_device
+                if copy_to_device in disk_low_space_devices: pass
+                else:
+                    disk_ok_missing_files_per_device_list.append([copy_to_device,[directory, dev_dir, file, md5, fsize]])
+                    if not copy_to_device in disk_ok_device_list: disk_ok_device_list.append(copy_to_device)
+            ### RENEW LISTS ###
+            del device_list
+            del missing_files_per_device_list
+            missing_files_per_device_list = disk_ok_missing_files_per_device_list
+            device_list = disk_ok_device_list
 
     ### def LOOP TILL ALL FILES ARE COPIED OK #################################
     counter_of_scp_attempts = 0
