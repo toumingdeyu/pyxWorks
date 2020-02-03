@@ -462,6 +462,7 @@ class CGI_CLI(object):
                 CGI_CLI.print_chunk('<p id="scriptend"></p>')
                 CGI_CLI.print_chunk('<br/><a href = "./%s">PAGE RELOAD</a>' % (pyfile))
 
+
     @staticmethod
     def VERSION(path_to_file = str(os.path.abspath(__file__))):
         if 'WIN32' in sys.platform.upper():
@@ -3185,7 +3186,12 @@ warning {
         if logfilename: CGI_CLI.set_logfile(logfilename = logfilename)
 
     ### START PRINTING AND LOGGING ########################################
-    CGI_CLI.uprint('SW UPLOADER (v.%s)' % (CGI_CLI.VERSION()), tag = 'h1', color = 'blue')
+    changelog = 'https://github.com/peteneme/pyxWorks/commits/master/router_sw_update/sw_uploader.py'
+    if CGI_CLI.cgi_active:
+        CGI_CLI.uprint('<h1 style="color:blue;">SW UPLOADER <a href = "%s">(v.%s)</a></h1>' % \
+            (changelog, CGI_CLI.VERSION()), raw = True)
+    else: CGI_CLI.uprint('SW UPLOADER (v.%s)' % (CGI_CLI.VERSION()), \
+              tag = 'h1', color = 'blue')
     if printall: CGI_CLI.print_args()
 
     ### CHECK RUNNING SCP PROCESSES ON START ##################################
