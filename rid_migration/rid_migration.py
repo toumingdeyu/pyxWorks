@@ -1586,7 +1586,6 @@ def ipv4_to_ipv6_obs(ipv4address):
         except: pass
     return ip4to6, ip6to4
 
-
 ###############################################################################
 
 ### def XR CONFIG ###
@@ -1874,28 +1873,28 @@ set protocols ldp transport-address ${loopback_0_ipv4_address}
 ### def PRE POST CHECK COMMANDS ###
 prepost_commands_1 = {
     'cisco_ios':[
-        'sh run interface LoopBack 0',
-        'sh run interface LoopBack 10',
-        'sh run interface LoopBack 200',
-        'sh run | include Loopback0',
-        'sh run | include Loopback10',
-        'sh run | include Loopback200'
+        'show run interface LoopBack 0',
+        'show run interface LoopBack 10',
+        'show run interface LoopBack 200',
+        'show run | include Loopback0',
+        'show run | include Loopback10',
+        'show run | include Loopback200'
         ],
     'cisco_xr':[
-        'sh run interface LoopBack 0',
-        'sh run interface LoopBack 10',
-        'sh run interface LoopBack 200',
-        'sh run | include Loopback0',
-        'sh run | include Loopback10',
-        'sh run | include Loopback200'
+        'show run interface LoopBack 0',
+        'show run interface LoopBack 10',
+        'show run interface LoopBack 200',
+        'show run | include Loopback0',
+        'show run | include Loopback10',
+        'show run | include Loopback200'
         ],
     'huawei':[
         'display current-configuration interface LoopBack 0',
         'display current-configuration interface LoopBack 10',
         'display current-configuration interface LoopBack 200',
-        'disp current-configuration | include LoopBack0',
-        'disp current-configuration | include LoopBack10',
-        'disp current-configuration | include LoopBack200',
+        'display current-configuration | include LoopBack0',
+        'display current-configuration | include LoopBack10',
+        'display current-configuration | include LoopBack200',
         ],
     'juniper':[
         'show configuration interfaces lo0 | display set',
@@ -1903,25 +1902,57 @@ prepost_commands_1 = {
         ]
 }
 
-prepost_commands_2 = {
-    'cisco_ios':[
-        'sh run | include <L0 ipv4 address>',
-        'sh run | include <L10 ipv4 address>',
-        'sh run | include <L200 ipv4 address>',
-        ],
-    'cisco_xr':[
-        'sh run | include <L0 ipv4 address>',
-        'sh run | include <L10 ipv4 address>',
-        'sh run | include <L200 ipv4 address>',
-        ],
-    'huawei':[
-        'disp current-configuration | include <L0 ipv4 address>',
-        'disp current-configuration | include <L10 ipv4 address>',
-        'disp current-configuration | include <L200 ipv4 address>'
-        ],
-    'juniper':[]
-}
 
+###############################################################################
+
+def do_pre_post_check(post = None, printall = None):
+    check_outputs = []
+    CGI_CLI.uprint('%s-CHECK START:' % ('POST' if post else 'PRE'), tag = 'h2', color = 'blue')
+
+    check_outputs_1 = RCMD.run_commands(prepost_commands_1, printall = True)
+
+    if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
+        try:    loopback_0_address = check_outputs_1[0].split('ipv4 address')[1].split()[0].strip()
+        except: loopback_0_address = str()
+        try:    loopback_10_address = check_outputs_1[1].split('ipv4 address')[1].split()[0].strip()
+        except: loopback_10_address = str()
+        try:    loopback_200_address = check_outputs_1[2].split('ipv4 address')[1].split()[0].strip()
+        except: loopback_200_address = str()
+
+    if RCMD.router_type == 'huawei':
+        try:    loopback_0_address = check_outputs_1[0].split('ip address')[1].split()[0].strip()
+        except: loopback_0_address = str()
+        try:    loopback_10_address = check_outputs_1[1].split('ip address')[1].split()[0].strip()
+        except: loopback_10_address = str()
+        try:    loopback_200_address = check_outputs_1[2].split('ip address')[1].split()[0].strip()
+        except: loopback_200_address = str()
+
+    prepost_commands_2 = {
+        'cisco_ios':[
+            'show run | include %s' % (loopback_0_address),
+            'show run | include %s' % (loopback_10_address),
+            'show run | include %s' % (loopback_200_address)
+            ],
+        'cisco_xr':[
+            'show run | include %s' % (loopback_0_address),
+            'show run | include %s' % (loopback_10_address),
+            'show run | include %s' % (loopback_200_address)
+            ],
+        'huawei':[
+            'display current-configuration | include %s' % (loopback_0_address),
+            'display current-configuration | include %s' % (loopback_10_address),
+            'display current-configuration | include %s' % (loopback_200_address)
+            ],
+        'juniper':[]
+    }
+
+    check_outputs_2 = RCMD.run_commands(prepost_commands_2, printall = True)
+
+    check_outputs = zip(check_outputs_1) + check_outputs_2
+
+    if printall: CGI_CLI.uprint('%s-CHECK DONE.' % ('POST' if post else 'PRE'))
+    else: CGI_CLI.uprint('\n')
+    return check_outputs
 
 ##############################################################################
 #
@@ -1950,7 +1981,7 @@ try:
         if 'WIN32' in sys.platform.upper(): logfilename = None
         if logfilename: CGI_CLI.set_logfile(logfilename = logfilename)
 
-    ### START PRINTING AND LOGGING ########################################
+    ### START PRINTING AND LOGGING ############################################
     changelog = 'https://github.com/peteneme/pyxWorks/commits/master/rid_migration/rid_migration.py'
     SCRIPT_NAME = 'ROUTER ID MIGRATION TOOL'
     if CGI_CLI.cgi_active:
@@ -1960,7 +1991,7 @@ try:
               tag = 'h1', color = 'blue')
     if printall: CGI_CLI.print_args()
 
-    ### def HTML MENU SHOWS ONLY IN CGI MODE ###
+    ### def HTML MENU SHOWS ONLY IN CGI MODE ##################################
     if CGI_CLI.cgi_active and not CGI_CLI.submit_form:
         CGI_CLI.formprint([{'text':'device'},'<br/>',{'text':'username'},'<br/>',\
         {'password':'password'},'<br/>',{'checkbox':'sim'},'<br/>',\
@@ -1985,10 +2016,7 @@ try:
             continue
 
         ### def PRECHECK SECTION ##############################################
-        if printall: CGI_CLI.uprint('PRE-CHECK START.', color = 'purple')
-        precheck_outputs = RCMD.run_commands(prepost_commands_1, printall = printall)
-        if printall: CGI_CLI.uprint('PRE-CHECK DONE.', color = 'purple')
-
+        precheck_outputs = do_pre_post_check(post = None, printall = printall)
 
         ### RID MIGRATION START ###############################################
         if RCMD.router_type == 'cisco_xr':
@@ -2292,32 +2320,35 @@ try:
         CGI_CLI.uprint('CONFIG:\n', tag = 'h1', color = 'blue')
 
         if isinstance(config_to_apply, (list,tuple)):
-            for config_item in config_to_apply: CGI_CLI.uprint('CONFIG PART:\n\n' + config_item + "\n\n", color = 'blue')
+            for config_item in config_to_apply:
+                CGI_CLI.uprint('CONFIG PART:\n\n' + config_item + "\n\n", color = 'blue')
         else: CGI_CLI.uprint(config_to_apply, color = 'blue')
 
-        if CGI_CLI.data.get('show_config_only'):
-            RCMD.disconnect()
-            continue
 
         ### def PUSH CONFIG TO DEVICE #########################################
-        if isinstance(config_to_apply, (list,tuple)):
-            for config_item in config_to_apply:
-                splitted_config = copy.deepcopy(config_item)
+        if not CGI_CLI.data.get('show_config_only'):
+            if isinstance(config_to_apply, (list,tuple)):
+                for config_item in config_to_apply:
+                    splitted_config = copy.deepcopy(config_item)
+                    try: splitted_config = str(splitted_config.decode("utf-8")).splitlines()
+                    except: splitted_config = []
+
+                    rcmd_outputs = RCMD.run_commands(cmd_data = splitted_config, \
+                        conf = True, printall = printall, \
+                        sim_config = CGI_CLI.data.get('sim',None))
+            else:
+                splitted_config = copy.deepcopy(config_to_apply)
                 try: splitted_config = str(splitted_config.decode("utf-8")).splitlines()
                 except: splitted_config = []
 
-                rcmd_outputs = RCMD.run_commands(cmd_data = splitted_config, conf = True, printall = printall, sim_config = CGI_CLI.data.get('sim',None))
-        else:
-            splitted_config = copy.deepcopy(config_to_apply)
-            try: splitted_config = str(splitted_config.decode("utf-8")).splitlines()
-            except: splitted_config = []
+                rcmd_outputs = RCMD.run_commands(cmd_data = splitted_config, \
+                    conf = True, printall = printall, \
+                    sim_config = CGI_CLI.data.get('sim',None))
 
-            rcmd_outputs = RCMD.run_commands(cmd_data = splitted_config, conf = True, printall = printall, sim_config = CGI_CLI.data.get('sim',None))
 
         ### def POSTCHECK SECTION #############################################
-        if printall: CGI_CLI.uprint('POST-CHECK START.', color = 'purple')
-        postcheck_outputs = RCMD.run_commands(prepost_commands_1, printall = printall)
-        if printall: CGI_CLI.uprint('POST-CHECK DONE.', color = 'purple')
+        if not CGI_CLI.data.get('show_config_only'):
+            postcheck_outputs = do_pre_post_check(post = True, printall = printall)
 
         RCMD.disconnect()
 
