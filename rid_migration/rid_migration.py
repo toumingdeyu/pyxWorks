@@ -17,7 +17,7 @@ import six
 import collections
 
 import cgi
-import cgitb; cgitb.enable()
+#import cgitb; cgitb.enable()
 import requests
 from mako.template import Template
 from mako.lookup import TemplateLookup
@@ -111,6 +111,10 @@ class CGI_CLI(object):
                             action = "store_true", dest = 'show_config_only',
                             default = None,
                             help = "show config only, do not push data to device")
+        parser.add_argument("--printall",
+                            action = "store_true", dest = 'printall',
+                            default = None,
+                            help = "print all lines, changes will be coloured")
         args = parser.parse_args()
         return args
 
@@ -129,11 +133,17 @@ class CGI_CLI(object):
         import atexit; atexit.register(CGI_CLI.__cleanup__)
 
     @staticmethod
-    def init_cgi(chunked = None, css_style = None, newline = None):
+    def init_cgi(chunked = None, css_style = None, newline = None, \
+        timestamp = None, log = None):
+        """
+        log - start to log all after logfilename is inserted
+        """
         CGI_CLI.START_EPOCH = time.time()
         CGI_CLI.http_status = 200
         CGI_CLI.http_status_text = 'OK'
         CGI_CLI.chunked = chunked
+        CGI_CLI.timestamp = timestamp
+        CGI_CLI.log = log
         CGI_CLI.CSS_STYLE = css_style if css_style else str()
         ### TO BE PLACED - BEFORE HEADER ###
         CGI_CLI.newline = '\r\n' if not newline else newline
@@ -161,7 +171,7 @@ class CGI_CLI(object):
             if variable == "submit": CGI_CLI.submit_form = value
             if variable == "username": CGI_CLI.username = value
             if variable == "password": CGI_CLI.password = value
-        ### DECIDE - CLI OR CGI MODE #######################################
+        ### DECIDE - CLI OR CGI MODE ##########################################
         CGI_CLI.remote_addr =  dict(os.environ).get('REMOTE_ADDR','')
         CGI_CLI.http_user_agent = dict(os.environ).get('HTTP_USER_AGENT','')
         if CGI_CLI.remote_addr and CGI_CLI.http_user_agent:
@@ -169,14 +179,16 @@ class CGI_CLI(object):
         CGI_CLI.args = CGI_CLI.cli_parser()
         if not CGI_CLI.cgi_active: CGI_CLI.data = vars(CGI_CLI.args)
         if CGI_CLI.cgi_active:
-            sys.stdout.write("%s%s%s%s%s" %
+            sys.stdout.write("%s%s%s" %
                 (CGI_CLI.chunked_transfer_encoding_line,
                 CGI_CLI.content_type_line,
-                CGI_CLI.status_line,
-                CGI_CLI.newline, CGI_CLI.newline))
+                CGI_CLI.status_line))
             sys.stdout.flush()
-            CGI_CLI.print_chunk("<!DOCTYPE html><html><head><title>%s</title>%s</head><body>" %
-                (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit', \
+            ### CHROME NEEDS 2NEWLINES TO BE ALREADY CHUNKED !!! ##############
+            CGI_CLI.print_chunk("%s%s<!DOCTYPE html><html><head><title>%s</title>%s</head><body>" %
+                (CGI_CLI.newline, CGI_CLI.newline,
+                #CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit', \
+                str(__file__).split('/')[-1] + '  PID' + str(os.getpid()) if '/' in str(__file__) else str(), \
                 '<style>%s</style>' % (CGI_CLI.CSS_STYLE) if CGI_CLI.CSS_STYLE else str()))
         import atexit; atexit.register(CGI_CLI.__cleanup__)
         ### GAIN USERNAME AND PASSWORD FROM ENVIRONMENT BY DEFAULT ###
@@ -250,10 +262,12 @@ class CGI_CLI(object):
 
     @staticmethod
     def uprint(text = str(), tag = None, tag_id = None, color = None, name = None, jsonprint = None, \
-        log = None, no_newlines = None, start_tag = None, end_tag = None, raw = None):
+        log = None, no_newlines = None, start_tag = None, end_tag = None, raw = None, timestamp = None):
         """NOTE: name parameter could be True or string.
            start_tag - starts tag and needs to be ended next time by end_tag
            raw = True , print text as it is, not convert to html. Intended i.e. for javascript
+           timestamp = True - locally allow (CGI_CLI.timestamp = True has priority)
+           timestamp = 'no' - locally disable even if CGI_CLI.timestamp == True
         """
         print_text, print_name, print_per_tag = copy.deepcopy(text), str(), str()
         if jsonprint:
@@ -269,6 +283,18 @@ class CGI_CLI(object):
 
         print_text = str(print_text)
         log_text   = str(copy.deepcopy((print_text)))
+
+        ### GENERATE TIMESTAMP STRING , 'NO' = NO EVERYTIME EVEN IF GLOBALLY IS ALLOWED ###
+        timestamp_string = str()
+        if timestamp or CGI_CLI.timestamp:
+            timestamp_yes = True
+            try:
+                if str(timestamp).upper() == 'NO': timestamp_yes = False
+            except: pass
+            if timestamp_yes:
+                timestamp_string = '@%s[%.2fs] ' % \
+                    (datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S'), time.time() - CGI_CLI.START_EPOCH)
+
         if CGI_CLI.cgi_active and not raw:
             ### WORKARROUND FOR COLORING OF SIMPLE TEXT
             if color and not (tag or start_tag): tag = 'p';
@@ -278,7 +304,7 @@ class CGI_CLI(object):
                 print_text = str(print_text.replace('&','&amp;').replace('<','&lt;'). \
                     replace('>','&gt;').replace(' ','&nbsp;').replace('"','&quot;').replace("'",'&apos;').\
                     replace('\n','<br/>'))
-            CGI_CLI.print_chunk(print_name + print_text)
+            CGI_CLI.print_chunk(timestamp_string + print_name + print_text)
         elif CGI_CLI.cgi_active and raw:
             CGI_CLI.print_chunk(print_text)
         else:
@@ -297,16 +323,19 @@ class CGI_CLI(object):
                 sys.stdout.write(text_color + print_name + print_text + CGI_CLI.bcolors.ENDC)
                 sys.stdout.flush()
             else:
-                print(text_color + print_name + print_text + CGI_CLI.bcolors.ENDC)
+                print(text_color + print_name + timestamp_string + print_text + CGI_CLI.bcolors.ENDC)
         del print_text
         if CGI_CLI.cgi_active and not raw:
-            if tag: CGI_CLI.print_chunk('</%s>' % (tag))
+            if tag:
+                CGI_CLI.print_chunk('</%s>' % (tag))
+                ### USER DEFINED TAGS DOES NOT PROVIDE NEWLINES!!! ############
+                if tag in ['debug','warning']: CGI_CLI.print_chunk('<br/>');
             elif end_tag: CGI_CLI.print_chunk('</%s>' % (end_tag))
-            elif not no_newlines: CGI_CLI.print_chunk('<br/>');
+            elif not no_newlines: CGI_CLI.print_chunk('<br/>')
             ### PRINT PER TAG ###
             CGI_CLI.print_chunk(print_per_tag)
         ### LOGGING ###
-        if CGI_CLI.logfilename and log:
+        if CGI_CLI.logfilename and (log or CGI_CLI.log):
             with open(CGI_CLI.logfilename,"a+") as CGI_CLI.fp:
                 CGI_CLI.fp.write(print_name + log_text + '\n')
                 del log_text
@@ -396,7 +425,10 @@ class CGI_CLI(object):
             i_pyfile = sys.argv[0]
             try: pyfile = i_pyfile.replace('\\','/').split('/')[-1].strip()
             except: pyfile = i_pyfile.strip()
-            if CGI_CLI.cgi_active: CGI_CLI.print_chunk('<br/><a href = "./%s">RELOAD</a>' % (pyfile))
+            if CGI_CLI.cgi_active:
+                CGI_CLI.print_chunk('<p id="scriptend"></p>')
+                CGI_CLI.print_chunk('<br/><a href = "./%s">PAGE RELOAD</a>' % (pyfile))
+
 
     @staticmethod
     def VERSION(path_to_file = str(os.path.abspath(__file__))):
@@ -423,14 +455,12 @@ class CGI_CLI(object):
             try: print_string += 'CGI_CLI.data[%s] = %s\n' % (str(CGI_CLI.submit_form),str(json.dumps(CGI_CLI.data, indent = 4)))
             except: pass
         else: print_string += 'CLI_args = %s\nCGI_CLI.data = %s' % (str(sys.argv[1:]), str(json.dumps(CGI_CLI.data,indent = 4)))
-        CGI_CLI.uprint(print_string)
+        CGI_CLI.uprint(print_string, tag = 'debug')
         return print_string
 
     @staticmethod
     def print_env():
-        CGI_CLI.uprint(dict(os.environ), name = 'os.environ', jsonprint = True)
-
-
+        CGI_CLI.uprint(dict(os.environ), name = 'os.environ', tag = 'debug', jsonprint = True)
 
 
 ##############################################################################
@@ -440,10 +470,11 @@ class RCMD(object):
 
     @staticmethod
     def connect(device = None, cmd_data = None, username = None, password = None, \
-        use_module = 'paramiko', logfilename = None, timeout = 60, conf = None, \
-        sim_config = None, disconnect = None, printall = None, \
+        use_module = 'paramiko', logfilename = None, \
+        connection_timeout = 600, cmd_timeout = 30, \
+        conf = None, sim_config = None, disconnect = None, printall = None, \
         do_not_final_print = None, commit_text = None, silent_mode = None, \
-        disconnect_timeout = 2):
+        disconnect_timeout = 2, no_alive_test = None):
         """ FUNCTION: RCMD.connect(), RETURNS: list of command_outputs
         PARAMETERS:
         device     - string , device_name/ip_address/device_name:PORT_NUMBER/ip_address:PORT_NUMBER
@@ -469,7 +500,8 @@ class RCMD(object):
             RCMD.output, RCMD.fp = None, None
             RCMD.device = device
             RCMD.ssh_connection = None
-            RCMD.TIMEOUT = timeout
+            RCMD.CONNECTION_TIMEOUT = int(connection_timeout)
+            RCMD.CMD_TIMEOUT = int(cmd_timeout)
             RCMD.use_module = use_module
             RCMD.logfilename = logfilename
             RCMD.USERNAME = username
@@ -490,12 +522,42 @@ class RCMD(object):
             except: RCMD.DEVICE_HOST = str()
             try: RCMD.DEVICE_PORT = device.split(':')[1]
             except: RCMD.DEVICE_PORT = '22'
+
+            ### IS ALIVE TEST #################################################
+            if not no_alive_test:
+                for i_repeat in range(3):
+                    if RCMD.is_alive(device): break
+                else:
+                    CGI_CLI.uprint('DEVICE %s is not ALIVE.' % (device), color = 'magenta')
+                    return command_outputs
+            ### START SSH CONNECTION ##########################################
             if printall: CGI_CLI.uprint('DEVICE %s (host=%s, port=%s) START'\
                 %(device, RCMD.DEVICE_HOST, RCMD.DEVICE_PORT)+24 * '.', color = 'gray')
-            RCMD.router_type, RCMD.router_prompt = RCMD.ssh_raw_detect_router_type(debug = None)
-            if RCMD.router_type in RCMD.KNOWN_OS_TYPES and printall:
-                CGI_CLI.uprint('DETECTED DEVICE_TYPE: %s' % (RCMD.router_type), \
-                    color = 'gray')
+            try:
+                ### ONE_CONNECT DETECTION #####################################
+                RCMD.client = paramiko.SSHClient()
+                RCMD.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                RCMD.client.connect(RCMD.DEVICE_HOST, port=int(RCMD.DEVICE_PORT), \
+                    username=RCMD.USERNAME, password=RCMD.PASSWORD, \
+                    banner_timeout = 10, \
+                    ### AUTH_TIMEOUT MAKES PROBLEMS ON IPTAC1 ###
+                    #auth_timeout = 10, \
+                    timeout = RCMD.CONNECTION_TIMEOUT, \
+                    look_for_keys = False)
+                RCMD.ssh_connection = RCMD.client.invoke_shell()
+                if RCMD.ssh_connection:
+                    RCMD.router_type, RCMD.router_prompt = RCMD.ssh_raw_detect_router_type(debug = None)
+                    if not RCMD.router_type: CGI_CLI.uprint('DEVICE_TYPE NOT DETECTED!', color = 'red')
+                    elif RCMD.router_type in RCMD.KNOWN_OS_TYPES and printall:
+                        CGI_CLI.uprint('DETECTED DEVICE_TYPE: %s' % (RCMD.router_type), \
+                            color = 'gray')
+            except Exception as e:
+                if not RCMD.silent_mode:
+                    CGI_CLI.uprint(str(device) + ' CONNECTION_PROBLEM[' + str(e) + ']', color = 'magenta')
+            finally:
+                if disconnect: RCMD.disconnect()
+            ### EXIT IF NO CONNECTION ##########################################
+            if not RCMD.ssh_connection: return command_outputs
             ####################################################################
             if RCMD.router_type == 'cisco_ios':
                 if cmd_data:
@@ -521,7 +583,8 @@ class RCMD(object):
                     '%s%s#'%(RCMD.device.upper(),'(config)'), \
                     '%s%s#'%(RCMD.device.upper(),'(config-if)'), \
                     '%s%s#'%(RCMD.device.upper(),'(config-line)'), \
-                    '%s%s#'%(RCMD.device.upper(),'(config-router)')  ]
+                    '%s%s#'%(RCMD.device.upper(),'(config-router)'), \
+                    'sysadmin#' ]
                 RCMD.TERM_LEN_0 = "terminal length 0"
                 RCMD.EXIT = "exit"
                 RCMD.drive_string = 'harddisk:'
@@ -535,6 +598,8 @@ class RCMD(object):
                      USERNAME + '@' + RCMD.device.upper() + '# ' ]
                 RCMD.TERM_LEN_0 = "set cli screen-length 0"
                 RCMD.EXIT = "exit"
+                ### MOST PROBABLE IS THAT RE0 IS ALONE OR MASTER ##############
+                RCMD.drive_string = 're0:'
             elif RCMD.router_type == 'huawei':
                 if cmd_data:
                     try: RCMD.CMD = cmd_data.get('huawei',[])
@@ -559,25 +624,22 @@ class RCMD(object):
             else: RCMD.CMD = []
             # ADD PROMPT TO PROMPTS LIST
             if RCMD.router_prompt: RCMD.DEVICE_PROMPTS.append(RCMD.router_prompt)
-            ### START SSH CONNECTION AGAIN #####################################
+            ### START SSH CONNECTION AGAIN ####################################
             try:
                 if RCMD.router_type and RCMD.use_module == 'netmiko':
+                    ### PARAMIKO IS ALREADY CONNECTED, SO DISCONNECT FIRST ####
+                    RCMD.disconnect()
                     RCMD.ssh_connection = netmiko.ConnectHandler(device_type = RCMD.router_type, \
                         ip = RCMD.DEVICE_HOST, port = int(RCMD.DEVICE_PORT), \
                         username = RCMD.USERNAME, password = RCMD.PASSWORD)
                 elif RCMD.router_type and RCMD.use_module == 'paramiko':
-                    RCMD.client = paramiko.SSHClient()
-                    RCMD.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-                    RCMD.client.connect(RCMD.DEVICE_HOST, port=int(RCMD.DEVICE_PORT), \
-                        username=RCMD.USERNAME, password=RCMD.PASSWORD,look_for_keys=False)
-                    RCMD.ssh_connection = RCMD.client.invoke_shell()
-                    RCMD.ssh_connection.settimeout(RCMD.TIMEOUT)
+                    ### PARAMIKO IS ALREADY CONNECTED #########################
                     RCMD.output, RCMD.forget_it = RCMD.ssh_send_command_and_read_output(RCMD.ssh_connection,RCMD.DEVICE_PROMPTS,RCMD.TERM_LEN_0)
                     RCMD.output2, RCMD.forget_it = RCMD.ssh_send_command_and_read_output(RCMD.ssh_connection,RCMD.DEVICE_PROMPTS,"")
                     RCMD.output += RCMD.output2
-                ### WORK REMOTE  =============================================
+                ### WORK REMOTE  ==============================================
                 command_outputs = RCMD.run_commands(RCMD.CMD)
-                ### ==========================================================
+                ### ===========================================================
             except Exception as e:
                 if not RCMD.silent_mode:
                     CGI_CLI.uprint('CONNECTION_PROBLEM[' + str(e) + ']', color = 'magenta')
@@ -587,33 +649,60 @@ class RCMD(object):
         return command_outputs
 
     @staticmethod
-    def run_command(cmd_line = None, printall = None, conf = None, sim_config = None, sim_all = None):
+    def is_alive(device = None):
+        if device:
+            try:    device_without_port = device.split(':')[0]
+            except: device_without_port = device
+            if 'WIN32' in sys.platform.upper():
+                command = 'ping %s -n 1' % (device_without_port)
+            else: command = 'ping %s -c 1' % (device_without_port)
+            try: os_output = subprocess.check_output(str(command), \
+                stderr=subprocess.STDOUT, shell=True).decode("utf-8")
+            except: os_output = str()
+            if 'Packets: Sent = 1, Received = 1' in os_output \
+                or '1 packets transmitted, 1 received,' in os_output:
+                return True
+        return False
+
+    @staticmethod
+    def run_command(cmd_line = None, printall = None, conf = None, \
+        long_lasting_mode = None, autoconfirm_mode = None, \
+        sim_config = None, sim_all = None, ignore_prompt = None):
         """
         cmd_line - string, DETECTED DEVICE TYPE DEPENDENT
         sim_all  - simulate execution of all commands, not only config commands
                    used for ommit save/write in normal mode
         sim_config - simulate config commands
+        long_lasting_mode - max connection timeout, no cmd timeout, no prompt discovery
+        autoconfirm_mode - in case of interactivity send 'Y\n' on huawei ,'\n' on cisco
         """
         last_output, sim_mark = str(), str()
         if RCMD.ssh_connection and cmd_line:
             if ((sim_config or RCMD.sim_config) and (conf or RCMD.conf)) or sim_all: sim_mark = '(SIM)'
-            else:
+            if printall or RCMD.printall:
+                CGI_CLI.uprint('REMOTE_COMMAND' + sim_mark + ': ' + cmd_line, color = 'blue')
+            if not sim_mark:
                 if RCMD.use_module == 'netmiko':
                     last_output = RCMD.ssh_connection.send_command(cmd_line)
                 elif RCMD.use_module == 'paramiko':
                     last_output, new_prompt = RCMD.ssh_send_command_and_read_output( \
-                        RCMD.ssh_connection, RCMD.DEVICE_PROMPTS, cmd_line, printall = printall)
+                        RCMD.ssh_connection, RCMD.DEVICE_PROMPTS, cmd_line, \
+                        long_lasting_mode = long_lasting_mode, \
+                        autoconfirm_mode = autoconfirm_mode, \
+                        ignore_prompt = ignore_prompt, \
+                        printall = printall)
                     if new_prompt: RCMD.DEVICE_PROMPTS.append(new_prompt)
             if printall or RCMD.printall:
-                CGI_CLI.uprint('REMOTE_COMMAND' + sim_mark + ': ' + cmd_line, color = 'blue')
-                CGI_CLI.uprint(last_output, color = 'gray')
-            elif not RCMD.silent_mode: CGI_CLI.uprint(' . ', no_newlines = True)
+                if not long_lasting_mode: CGI_CLI.uprint(last_output, color = 'gray', timestamp = 'no')
+            elif not RCMD.silent_mode:
+                if not long_lasting_mode: CGI_CLI.uprint(' . ', no_newlines = True)
             if RCMD.fp: RCMD.fp.write('REMOTE_COMMAND' + sim_mark + ': ' + cmd_line + '\n' + last_output + '\n')
         return last_output
 
     @staticmethod
     def run_commands(cmd_data = None, printall = None, conf = None, sim_config = None, \
-        do_not_final_print = None , commit_text = None, submit_result = None):
+        do_not_final_print = None , commit_text = None, submit_result = None , \
+        long_lasting_mode = None, autoconfirm_mode = None, ignore_prompt = None):
         """
         FUNCTION: run_commands(), RETURN: list of command_outputs
         PARAMETERS:
@@ -621,8 +710,10 @@ class RCMD(object):
                  - list of strings or string, OS TYPE DEPENDENT
         conf     - True/False, go to config mode
         sim_config - simulate config commands
+        long_lasting_mode - max connection timeout, no cmd timeout, no prompt discovery
+        autoconfirm_mode - in case of interactivity send 'Y\n' on huawei ,'\n' on cisco
         """
-        command_outputs = str()
+        command_outputs, cmd_list = str(), []
         if cmd_data and isinstance(cmd_data, (dict,collections.OrderedDict)):
             if RCMD.router_type=='cisco_ios': cmd_list = cmd_data.get('cisco_ios',[])
             elif RCMD.router_type=='cisco_xr': cmd_list = cmd_data.get('cisco_xr',[])
@@ -631,7 +722,6 @@ class RCMD(object):
             elif RCMD.router_type=='linux': cmd_list = cmd_data.get('linux',[])
         elif cmd_data and isinstance(cmd_data, (list,tuple)): cmd_list = cmd_data
         elif cmd_data and isinstance(cmd_data, (six.string_types)): cmd_list = [cmd_data]
-        else: cmd_list = []
 
         if RCMD.ssh_connection and len(cmd_list)>0:
             ### WORK REMOTE ================================================
@@ -649,7 +739,7 @@ class RCMD(object):
                         last_output = RCMD.ssh_connection.send_config_set(cmd_list)
                         if printall or RCMD.printall:
                             CGI_CLI.uprint('REMOTE_COMMAND' + sim_mark + ': ' + str(cmd_list), color = 'blue')
-                            CGI_CLI.uprint(str(last_output), color = 'gray')
+                            CGI_CLI.uprint(str(last_output), color = 'gray', timestamp = 'no')
                         if RCMD.fp: RCMD.fp.write('REMOTE_COMMANDS' + sim_mark + ': ' \
                             + str(cmd_list) + '\n' + str(last_output) + '\n')
                         command_outputs = [last_output]
@@ -674,7 +764,10 @@ class RCMD(object):
                     ### PROCESS COMMANDS - PER COMMAND #########################
                     for cmd_line in cmd_list:
                         command_outputs.append(RCMD.run_command(cmd_line, \
-                            conf = conf, sim_config = sim_config, printall = printall))
+                            conf = conf, sim_config = sim_config, printall = printall,
+                            long_lasting_mode = long_lasting_mode, \
+                            ignore_prompt = ignore_prompt, \
+                            autoconfirm_mode = autoconfirm_mode))
                     ### EXIT FROM CONFIG MODE FOR PARAMIKO #####################
                     if (conf or RCMD.conf) and RCMD.use_module == 'paramiko':
                         ### GO TO CONFIG TOP LEVEL SECTION ---------------------
@@ -761,91 +854,174 @@ class RCMD(object):
     @staticmethod
     def __cleanup__():
         RCMD.output, RCMD.fp = None, None
-        if RCMD.ssh_connection:
-            if RCMD.use_module == 'netmiko': RCMD.ssh_connection.disconnect()
-            elif RCMD.use_module == 'paramiko': RCMD.client.close()
-            if RCMD.printall: CGI_CLI.uprint('DEVICE %s:%s DONE.' % \
-                (RCMD.DEVICE_HOST, RCMD.DEVICE_PORT), color = 'gray')
-            RCMD.ssh_connection = None
+        try:
+            if RCMD.ssh_connection:
+                if RCMD.use_module == 'netmiko': RCMD.ssh_connection.disconnect()
+                elif RCMD.use_module == 'paramiko': RCMD.client.close()
+                if RCMD.printall: CGI_CLI.uprint('DEVICE %s:%s DONE.' % \
+                    (RCMD.DEVICE_HOST, RCMD.DEVICE_PORT), color = 'gray')
+                RCMD.ssh_connection = None
+        except: pass
 
     @staticmethod
     def disconnect():
         RCMD.output, RCMD.fp = None, None
-        if RCMD.ssh_connection:
-            if RCMD.use_module == 'netmiko': RCMD.ssh_connection.disconnect()
-            elif RCMD.use_module == 'paramiko': RCMD.client.close()
-            if RCMD.printall: CGI_CLI.uprint('DEVICE %s:%s DISCONNECTED.' % \
-                (RCMD.DEVICE_HOST, RCMD.DEVICE_PORT), color = 'gray')
-            RCMD.ssh_connection = None
-            time.sleep(RCMD.DISCONNECT_TIMEOUT)
+        try:
+            if RCMD.ssh_connection:
+                if RCMD.use_module == 'netmiko': RCMD.ssh_connection.disconnect()
+                elif RCMD.use_module == 'paramiko': RCMD.client.close()
+                if RCMD.printall: CGI_CLI.uprint('DEVICE %s:%s DISCONNECTED.' % \
+                    (RCMD.DEVICE_HOST, RCMD.DEVICE_PORT), color = 'gray')
+                RCMD.ssh_connection = None
+                time.sleep(RCMD.DISCONNECT_TIMEOUT)
+        except: pass
 
     @staticmethod
-    def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True):
+    def ssh_send_command_and_read_output(chan, prompts, \
+        send_data = str(), long_lasting_mode = None, \
+        autoconfirm_mode = None, ignore_prompt = None, \
+        printall = True):
+        '''
+        autoconfirm_mode = True ==> CISCO - '\n', HUAWEI - 'Y\n'
+        '''
         output, output2, new_prompt = str(), str(), str()
         exit_loop, exit_loop2 = False, False
         timeout_counter_100msec, timeout_counter_100msec_2 = 0, 0
-        # FLUSH BUFFERS FROM PREVIOUS COMMANDS IF THEY ARE ALREADY BUFFERD
+
+        ### FLUSH BUFFERS FROM PREVIOUS COMMANDS IF THEY ARE ALREADY BUFFERED ###
         if chan.recv_ready(): flush_buffer = chan.recv(9999)
         time.sleep(0.1)
         chan.send(send_data + '\n')
-        time.sleep(0.2)
+        time.sleep(0.1)
+
+        ### MAIN WHILE LOOP ###################################################
         while not exit_loop:
             if chan.recv_ready():
                 ### WORKARROUND FOR DISCONTINIOUS OUTPUT FROM ROUTERS ###
                 timeout_counter_100msec = 0
                 buff = chan.recv(9999)
-                buff_read = buff.decode("utf-8").replace('\x0d','').replace('\x07','').\
-                    replace('\x08','').replace(' \x1b[1D','')
-                output += buff_read
-            else: time.sleep(0.1); timeout_counter_100msec += 1
-            # FIND LAST LINE, THIS COULD BE PROMPT
-            try: last_line, last_line_orig = output.splitlines()[-1].strip(), output.splitlines()[-1].strip()
-            except: last_line, last_line_orig = str(), str()
-            # FILTER-OUT '(...)' FROM PROMPT IOS-XR/IOS-XE
+                try:
+                    buff_read = str(buff.decode(encoding='utf-8').\
+                        replace('\x0d','').replace('\x07','').\
+                        replace('\x08','').replace(' \x1b[1D','').replace(u'\u2013',''))
+                    output += buff_read
+                except:
+                    CGI_CLI.uprint('BUFF_ERR[%s][%s]'%(buff,type(buff)), color = 'red')
+                    CGI_CLI.uprint(traceback.format_exc(), color = 'magenta')
+            else:
+                buff_read = str()
+                time.sleep(0.1);
+                timeout_counter_100msec += 1
+
+                ### LONG LASTING COMMAND = ONLY CONNECTION TIMEOUT WILL BE APPLIED ###
+                if long_lasting_mode:
+                    if timeout_counter_100msec%100: pass
+                    elif CGI_CLI.cgi_active:
+                        ### KEEPALIVE CONNECTION, DEFAULT 300sec TIMEOUT ###
+                        CGI_CLI.uprint("<script>console.log('10sec...');</script>", raw = True)
+                    if timeout_counter_100msec + 100 >= RCMD.CONNECTION_TIMEOUT*10:
+                        CGI_CLI.uprint("LONG LASTING COMMAND TIMEOUT!", color = 'red')
+                        exit_loop = True
+                        break
+                continue
+
+            ### FIND LAST LINE (STRIPPED), THIS COULD BE PROMPT ###
+            last_line_edited = str()
+            try: last_line_original = output.splitlines()[-1].strip()
+            except: last_line_original = str()
+
+            # FILTER-OUT '(...)' FROM PROMPT IOS-XR/IOS-XE ###
             if RCMD.router_type in ["ios-xr","ios-xe",'cisco_ios','cisco_xr']:
                 try:
-                    last_line_part1 = last_line.split('(')[0]
-                    last_line_part2 = last_line.split(')')[1]
-                    last_line = last_line_part1 + last_line_part2
-                except: last_line = last_line
-            # FILTER-OUT '[*','[~','-...]' FROM VRP
-            elif RCMD.router_type in ["vrp",'huawei']:
-                try:
-                    last_line_part1 = '[' + last_line.replace('[~','[').replace('[*','[').split('[')[1].split('-')[0]
-                    last_line_part2 = ']' + last_line.replace('[~','[').replace('[*','[').split('[')[1].split(']')[1]
-                    last_line = last_line_part1 + last_line_part2
-                except: last_line = last_line
+                    last_line_part1 = last_line_original.split('(')[0]
+                    last_line_part2 = last_line_original.split(')')[1]
+                    last_line_edited = last_line_part1 + last_line_part2
+                except:
+                    if 'sysadmin' in last_line_original and '#' in last_line_original:
+                        last_line_edited = 'sysadmin#'
+                    else: last_line_edited = last_line_original
+
+            ### PRINT LONG LASTING OUTPUTS PER PARTS ##########################
+            if printall and long_lasting_mode and buff_read and not RCMD.silent_mode:
+                CGI_CLI.uprint('%s' % (buff_read), color = 'gray', no_newlines = True)
+
             # IS ACTUAL LAST LINE PROMPT ? IF YES , GO AWAY
             for actual_prompt in prompts:
-                if output.endswith(actual_prompt) or \
-                    last_line and last_line.endswith(actual_prompt):
+                if output.strip().endswith(actual_prompt) or \
+                    (last_line_edited and last_line_edited.endswith(actual_prompt)) or \
+                    (last_line_original and last_line_original.endswith(actual_prompt)):
+                        #CGI_CLI.uprint(prompts)
                         exit_loop=True; break
             else:
-                ### INTERACTIVE QUESTION --> GO AWAY FAST !!! ###
-                if last_line.strip().endswith('?') or last_line.strip().endswith('? [Y/N]:') \
-                    or last_line.strip().endswith('[confirm]'): exit_loop = True; break
-                ### 30 SECONDS COMMAND TIMEOUT
-                elif (timeout_counter_100msec) > 30*10: exit_loop = True; break
-                ### 10 SECONDS --> This could be a new PROMPT
-                elif (timeout_counter_100msec) > 10*10 and not exit_loop2:
-                    ### TRICK IS IF NEW PROMPT OCCURS, HIT ENTER ... ###
-                    ### ... AND IF OCCURS THE SAME LINE --> IT IS NEW PROMPT!!! ###
-                    chan.send('\n')
-                    time.sleep(0.1)
-                    while(not exit_loop2):
-                        if chan.recv_ready():
-                            buff = chan.recv(9999)
-                            buff_read = buff.decode("utf-8").replace('\x0d','')\
-                               .replace('\x07','').replace('\x08','').replace(' \x1b[1D','')
-                            output2 += buff_read
-                        else: time.sleep(0.1); timeout_counter_100msec_2 += 1
-                        try: new_last_line = output2.splitlines()[-1].strip()
-                        except: new_last_line = str()
-                        if last_line_orig and new_last_line and last_line_orig == new_last_line:
-                            if printall: CGI_CLI.uprint('NEW_PROMPT: %s' % (last_line_orig), color = 'cyan')
-                            new_prompt = last_line_orig; exit_loop=True;exit_loop2=True; break
-                        # WAIT UP TO 5 SECONDS
-                        if (timeout_counter_100msec_2) > 5*10: exit_loop2 = True; break
+                continue_while_loop = False
+                dialog_list = ['?', '[Y/N]:', '[confirm]', '? [no]:']
+                for dialog_line in dialog_list:
+                    if last_line_original.strip().endswith(dialog_line) or \
+                        last_line_edited.strip().endswith(dialog_line):
+                        if autoconfirm_mode:
+                            ### AUTO-CONFIRM MODE ###
+                            time.sleep(0.2)
+                            if RCMD.router_type in ["ios-xr","ios-xe",'cisco_ios','cisco_xr']:
+                                chan.send('\n')
+                            elif RCMD.router_type in ["vrp",'huawei']:
+                                chan.send('Y\n')
+                            time.sleep(0.5)
+                            continue_while_loop = True
+                            break
+                        else:
+                            ### INTERACTIVE QUESTION --> GO AWAY ###
+                            time.sleep(0.1)
+                            continue_while_loop = True
+                            exit_loop = True
+                            break
+
+                ### CONTINUE WHILE LOOP ###
+                if continue_while_loop: continue
+
+                ### LONG LASTING COMMAND = ONLY CONNECTION TIMEOUT WILL BE APPLIED ###
+                if long_lasting_mode:
+                    if timeout_counter_100msec%100: pass
+                    elif CGI_CLI.cgi_active:
+                        ### KEEPALIVE CONNECTION, DEFAULT 300sec TIMEOUT ###
+                        CGI_CLI.uprint("<script>console.log('10s...');</script>", raw = True)
+                    if timeout_counter_100msec + 100 > RCMD.CONNECTION_TIMEOUT*10:
+                        CGI_CLI.uprint("LONG LASTING COMMAND TIMEOUT!!", color = 'red')
+                        exit_loop = True
+                        break
+                else:
+                    ### IGNORE NEW PROMPT AND GO AWAY ###
+                    if ignore_prompt:
+                        time.sleep(1)
+                        exit_loop = True
+                        break
+
+                    ### 30 SECONDS COMMAND TIMEOUT ###
+                    if timeout_counter_100msec > RCMD.CMD_TIMEOUT*10: exit_loop = True; break
+                    ### 10 SECONDS --> This could be a new PROMPT ###
+                    elif timeout_counter_100msec > 10*10 and not exit_loop2:
+                        ### TRICK IS IF NEW PROMPT OCCURS, HIT ENTER ... ###
+                        ### ... AND IF OCCURS THE SAME LINE --> IT IS NEW PROMPT!!! ###
+                        chan.send('\n')
+                        time.sleep(0.5)
+                        while(not exit_loop2):
+                            if chan.recv_ready():
+                                buff = chan.recv(9999)
+                                try:
+                                    buff_read = str(buff.decode(encoding='utf-8').\
+                                        replace('\x0d','').replace('\x07','').\
+                                        replace('\x08','').replace(' \x1b[1D','').replace(u'\u2013',''))
+                                    output2 += buff_read
+                                except:
+                                    CGI_CLI.uprint('BUFF_ERR[%s][%s]'%(buff,type(buff)), color = 'red')
+                                    CGI_CLI.uprint(traceback.format_exc(), color = 'magenta')
+                            else: time.sleep(0.1); timeout_counter_100msec_2 += 1
+                            try: new_last_line = output2.splitlines()[-1].strip()
+                            except: new_last_line = str()
+                            if last_line_original and new_last_line and last_line_original == new_last_line:
+                                if printall: CGI_CLI.uprint('NEW_PROMPT: %s' % (last_line_original), color = 'cyan')
+                                new_prompt = last_line_original; exit_loop=True;exit_loop2=True; break
+                            # WAIT UP TO 5 SECONDS
+                            if (timeout_counter_100msec_2) > 5*10: exit_loop2 = True; break
         return output, new_prompt
 
     @staticmethod
@@ -860,12 +1036,14 @@ class RCMD(object):
             while not (last_line and last_but_one_line and last_line == last_but_one_line):
                 buff = chan.recv(9999)
                 if len(buff)>0:
-                    if debug: CGI_CLI.uprint('LOOKING_FOR_PROMPT:',last_but_one_line,last_line)
-                    output += buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
-                              replace('\x1b[K','').replace('\n{master}\n','')
+                    if debug: CGI_CLI.uprint('LOOKING_FOR_PROMPT:',last_but_one_line,last_line, color = 'grey')
+                    try:
+                        output += str(buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
+                            replace('\x1b[K','').replace('\n{master}\n','').replace(u'\u2013',''))
+                    except: pass
                     if '--More--' or '---(more' in buff.strip():
                         chan.send('\x20')
-                        if debug: CGI_CLI.uprint('SPACE_SENT.')
+                        if debug: CGI_CLI.uprint('SPACE_SENT.', color = 'blue')
                         time.sleep(0.3)
                     try: last_line = output.splitlines()[-1].strip().replace('\x20','')
                     except: last_line = 'dummyline1'
@@ -876,7 +1054,7 @@ class RCMD(object):
                             last_but_one_line = output.splitlines()[-3].strip().replace('\x20','')
                     except: last_but_one_line = 'dummyline2'
             prompt = output.splitlines()[-1].strip()
-            if debug: CGI_CLI.uprint('DETECTED PROMPT: \'' + prompt + '\'')
+            if debug: CGI_CLI.uprint('DETECTED PROMPT: \'' + prompt + '\'', color = 'yellow')
             return prompt
         # bullet-proof read-until function , even in case of ---more---
         def ssh_raw_read_until_prompt(chan,command,prompts,debug = debug):
@@ -890,57 +1068,58 @@ class RCMD(object):
             while not exit_loop:
                 if debug: CGI_CLI.uprint('LAST_LINE:',prompts,last_line)
                 buff = chan.recv(9999)
-                output += buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
-                          replace('\x1b[K','').replace('\n{master}\n','')
-                if '--More--' or '---(more' in buff.strip(): chan.send('\x20')
-                if debug: CGI_CLI.uprint('BUFFER:' + buff)
+                try:
+                    output += str(buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
+                        replace('\x1b[K','').replace('\n{master}\n','').replace(u'\u2013',''))
+                except: pass
+                if '--More--' or '---(more' in buff.strip():
+                    chan.send('\x20')
+                    time.sleep(0.3)
+                if debug: CGI_CLI.uprint('BUFFER:' + buff, color = 'grey')
                 try: last_line = output.splitlines()[-1].strip()
                 except: last_line = str()
                 for actual_prompt in prompts:
-                    if output.endswith(actual_prompt) or \
-                        last_line and last_line.endswith(actual_prompt): exit_loop = True
+                    if output.endswith(actual_prompt) \
+                        or (last_line and last_line.endswith(actual_prompt)) \
+                        or actual_prompt in last_line: exit_loop = True
             return output
         # Detect function start
         #asr1k_detection_string = 'CSR1000'
         #asr9k_detection_string = 'ASR9K|IOS-XRv 9000'
         router_os, prompt = str(), str()
-        client = paramiko.SSHClient()
-        #client.load_system_host_keys()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        try:
-            client.connect(RCMD.DEVICE_HOST, port = int(RCMD.DEVICE_PORT), \
-                username = RCMD.USERNAME, password = RCMD.PASSWORD)
-            chan = client.invoke_shell()
-            chan.settimeout(RCMD.TIMEOUT)
-            # prevent --More-- in log banner (space=page, enter=1line,tab=esc)
-            # \n\n get prompt as last line
-            prompt = ssh_raw_detect_prompt(chan, debug=debug)
-            #test if this is HUAWEI VRP
-            if prompt and not router_os:
-                command = 'display version | include (Huawei)\n'
-                output = ssh_raw_read_until_prompt(chan, command, [prompt], debug=debug)
-                if 'Huawei Versatile Routing Platform Software' in output: router_os = 'vrp'
-            #test if this is CISCO IOS-XR, IOS-XE or JUNOS
-            if prompt and not router_os:
-                command = 'show version\n'
-                output = ssh_raw_read_until_prompt(chan, command, [prompt], debug=debug)
-                if 'iosxr-' in output or 'Cisco IOS XR Software' in output:
-                    router_os = 'ios-xr'
-                    if 'ASR9K' in output or 'IOS-XRv 9000' in output: RCMD.router_version = 'ASR9K'
-                elif 'Cisco IOS-XE software' in output:
-                    router_os = 'ios-xe'
-                    if 'CSR1000' in output: RCMD.router_version = 'ASR1K'
-                elif 'JUNOS OS' in output: router_os = 'junos'
-            if prompt and not router_os:
-                command = 'uname -a\n'
-                output = ssh_raw_read_until_prompt(chan, command, [prompt], debug=debug)
-                if 'LINUX' in output.upper(): router_os = 'linux'
-            if not router_os:
-                CGI_CLI.uprint("\nCannot find recognizable OS in %s" % (output), color = 'magenta')
-        except Exception as e:
-            if not RCMD.silent_mode:
-                CGI_CLI.uprint('CONNECTION_PROBLEM[' + str(e) + ']' , color = 'magenta')
-        finally: client.close()
+
+        ### 1-CONNECTION ONLY, connection opened in RCMD.connect ###
+        # prevent --More-- in log banner (space=page, enter=1line,tab=esc)
+        # \n\n get prompt as last line
+        prompt = ssh_raw_detect_prompt(RCMD.ssh_connection, debug=debug)
+        ### test if this is HUAWEI VRP
+        if prompt and not router_os:
+            command = 'display version | include (Huawei)\n'
+            output = ssh_raw_read_until_prompt(RCMD.ssh_connection, command, [prompt], debug=debug)
+            if 'Huawei Versatile Routing Platform Software' in output: router_os = 'vrp'
+        ### JUNOS
+        if prompt and not router_os:
+            command = 'show version | match Software\n'
+            output = ssh_raw_read_until_prompt(RCMD.ssh_connection, command, [prompt], debug=debug)
+            if 'JUNOS' in output: router_os = 'junos'
+
+        ### test if this is CISCO IOS-XR, IOS-XE or JUNOS
+        if prompt and not router_os:
+            command = 'show version | include Software\n'
+            output = ssh_raw_read_until_prompt(RCMD.ssh_connection, command, [prompt], debug=debug)
+            if 'iosxr-' in output or 'Cisco IOS XR Software' in output:
+                router_os = 'ios-xr'
+                if 'ASR9K' in output or 'IOS-XRv 9000' in output: RCMD.router_version = 'ASR9K'
+            elif 'Cisco IOS-XE software' in output or 'Cisco IOS XE Software' in output:
+                router_os = 'ios-xe'
+                if 'CSR1000' in output: RCMD.router_version = 'ASR1K'
+
+        if prompt and not router_os:
+            command = 'uname -a\n'
+            output = ssh_raw_read_until_prompt(RCMD.ssh_connection, command, [prompt], debug=debug)
+            if 'LINUX' in output.upper(): router_os = 'linux'
+        if not router_os:
+            CGI_CLI.uprint("\nCannot find recognizable OS in %s" % (output), color = 'magenta')
         netmiko_os = str()
         if router_os == 'ios-xe': netmiko_os = 'cisco_ios'
         if router_os == 'ios-xr': netmiko_os = 'cisco_xr'
@@ -1012,7 +1191,7 @@ class LCMD(object):
                     exc_text = traceback.format_exc()
                     CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
                     LCMD.fp.write(exc_text + '\n')
-                if not chunked and os_output and printall: CGI_CLI.uprint(os_output, color = 'gray')
+                if not chunked and os_output and printall: CGI_CLI.uprint(os_output, color = 'gray', timestamp = 'no')
                 LCMD.fp.write(os_output + '\n')
         return os_output
 
@@ -1115,7 +1294,7 @@ class LCMD(object):
                         exc_text = traceback.format_exc()
                         CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
                         LCMD.fp.write(exc_text + '\n')
-                    if os_output and printall: CGI_CLI.uprint(os_output, color = 'gray')
+                    if os_output and printall: CGI_CLI.uprint(os_output, color = 'gray', timestamp = 'no')
                     LCMD.fp.write(os_output + '\n')
                     os_outputs.append(os_output)
         return os_outputs
@@ -1132,7 +1311,7 @@ class LCMD(object):
                 if printall: CGI_CLI.uprint("EVAL: %s" % (cmd_data))
                 try:
                     local_output = eval(cmd_data)
-                    if printall: CGI_CLI.uprint(str(local_output))
+                    if printall: CGI_CLI.uprint(str(local_output), color= 'gray', timestamp = 'no')
                     LCMD.fp.write('EVAL: ' + cmd_data + '\n' + str(local_output) + '\n')
                 except Exception as e:
                     if printall:CGI_CLI.uprint('EVAL_PROBLEM[' + str(e) + ']')
@@ -1203,11 +1382,9 @@ class LCMD(object):
         return None
 
 
-
-
-
 ###############################################################################
-def generate_file_name(prefix = None, USERNAME = None, suffix = None , directory = None):
+def generate_logfilename(prefix = None, USERNAME = None, suffix = None, \
+    directory = None):
     filenamewithpath = None
     if not directory:
         try:    DIR         = os.environ['HOME']
@@ -1410,32 +1587,7 @@ def ipv4_to_ipv6_obs(ipv4address):
     return ip4to6, ip6to4
 
 
-##############################################################################
-#
-# BEGIN MAIN
-#
-##############################################################################
-if __name__ != "__main__": sys.exit(0)
-
-### CGI-BIN READ FORM ############################################
-USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True)
-#CGI_CLI.print_args()
-
-device = None
-if CGI_CLI.data.get("device"):
-    device = CGI_CLI.data.get("device")
-
-# rcmd_data = {
-    # 'cisco_ios':[],
-    # 'cisco_xr':[],
-    # 'juniper':[],
-    # 'huawei':[],
-    # 'linux':[],
-# }
-# lcmd_data = {
-    # 'windows':['whoami'],
-    # 'unix':['whoami'],
-# }
+###############################################################################
 
 ### def XR CONFIG ###
 
@@ -1508,6 +1660,7 @@ router bgp 5511
  bgp router-id ${loopback_200_address}
 !
 """
+
 ### def XR UNDO CONFIG ###
 
 undo_xr_config = """!
@@ -1580,6 +1733,7 @@ router bgp 5511
 """
 
 ### def HUAWEI CONFIG ###
+
 huawei_config = []
 
 huawei_config_part_1 = """#
@@ -1643,6 +1797,7 @@ huawei_config.append(huawei_config_part_1)
 huawei_config.append(huawei_config_part_2)
 
 ### def HUAWEI UNDO CONFIG ###
+
 undo_huawei_config = []
 
 undo_huawei_config_part_1 = """#
@@ -1716,318 +1871,458 @@ set routing-options router-id ${loopback_0_ipv4_address}
 set protocols ldp transport-address ${loopback_0_ipv4_address}
 """
 
-### HTML MENU SHOWS ONLY IN CGI MODE ###
-if CGI_CLI.cgi_active and not CGI_CLI.submit_form:
-    CGI_CLI.uprint('ROUTER ID MIGRATION TOOL: (v.%s)\n' % (CGI_CLI.VERSION()), tag = 'h1', color = 'blue')
-    CGI_CLI.formprint([{'text':'device'},'<br/>',{'text':'username'},'<br/>',\
+### def PRE POST CHECK COMMANDS ###
+prepost_commands_1 = {
+    'cisco_ios':[
+        'sh run interface LoopBack 0',
+        'sh run interface LoopBack 10',
+        'sh run interface LoopBack 200',
+        'sh run | include Loopback0',
+        'sh run | include Loopback10',
+        'sh run | include Loopback200'
+        ],
+    'cisco_xr':[
+        'sh run interface LoopBack 0',
+        'sh run interface LoopBack 10',
+        'sh run interface LoopBack 200',
+        'sh run | include Loopback0',
+        'sh run | include Loopback10',
+        'sh run | include Loopback200'
+        ],
+    'huawei':[
+        'display current-configuration interface LoopBack 0',
+        'display current-configuration interface LoopBack 10',
+        'display current-configuration interface LoopBack 200',
+        'disp current-configuration | include LoopBack0',
+        'disp current-configuration | include LoopBack10',
+        'disp current-configuration | include LoopBack200',
+        ],
+    'juniper':[
+        'show configuration interfaces lo0 | display set',
+        'show configuration | match transport-address | display set'
+        ]
+}
+
+prepost_commands_2 = {
+    'cisco_ios':[
+        'sh run | include <L0 ipv4 address>',
+        'sh run | include <L10 ipv4 address>',
+        'sh run | include <L200 ipv4 address>',
+        ],
+    'cisco_xr':[
+        'sh run | include <L0 ipv4 address>',
+        'sh run | include <L10 ipv4 address>',
+        'sh run | include <L200 ipv4 address>',
+        ],
+    'huawei':[
+        'disp current-configuration | include <L0 ipv4 address>',
+        'disp current-configuration | include <L10 ipv4 address>',
+        'disp current-configuration | include <L200 ipv4 address>'
+        ],
+    'juniper':[]
+}
+
+
+##############################################################################
+#
+# def BEGIN MAIN
+#
+##############################################################################
+if __name__ != "__main__": sys.exit(0)
+
+### CGI-BIN READ FORM ########################################################
+USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True, log = True)
+
+logfilename = None
+device = None
+if CGI_CLI.data.get("device"): device = CGI_CLI.data.get("device")
+printall = CGI_CLI.data.get("printall")
+iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
+if CGI_CLI.cgi_active and not (USERNAME and PASSWORD):
+    if iptac_server == 'iptac5': USERNAME, PASSWORD = 'iptac', 'paiiUNDO'
+
+try:
+    ### def LOGFILENAME GENERATION, DO LOGGING ONLY WHEN DEVICE LIST EXISTS ###
+    if device:
+        logfilename = generate_logfilename(prefix = str(device).upper(), \
+            USERNAME = USERNAME, suffix = str('rid') + '.log')
+        ### NO WINDOWS LOGGING ################################################
+        if 'WIN32' in sys.platform.upper(): logfilename = None
+        if logfilename: CGI_CLI.set_logfile(logfilename = logfilename)
+
+    ### START PRINTING AND LOGGING ########################################
+    changelog = 'https://github.com/peteneme/pyxWorks/commits/master/rid_migration/rid_migration.py'
+    SCRIPT_NAME = 'ROUTER ID MIGRATION TOOL'
+    if CGI_CLI.cgi_active:
+        CGI_CLI.uprint('<h1 style="color:blue;">%s <a href="%s" style="text-decoration: none">(v.%s)</a></h1>' % \
+            (SCRIPT_NAME, changelog, CGI_CLI.VERSION()), raw = True)
+    else: CGI_CLI.uprint('%s (v.%s)' % (SCRIPT_NAME,CGI_CLI.VERSION()), \
+              tag = 'h1', color = 'blue')
+    if printall: CGI_CLI.print_args()
+
+    ### def HTML MENU SHOWS ONLY IN CGI MODE ###
+    if CGI_CLI.cgi_active and not CGI_CLI.submit_form:
+        CGI_CLI.formprint([{'text':'device'},'<br/>',{'text':'username'},'<br/>',\
         {'password':'password'},'<br/>',{'checkbox':'sim'},'<br/>',\
-        {'checkbox':'rollback'},'<br/>',{'checkbox':'show_config_only'},'<br/>'], \
+        {'checkbox':'rollback'},'<br/>',{'checkbox':'show_config_only'},'<br/>',\
+        {'checkbox':'printall'},'<br/>','<br/>'], \
         submit_button = 'OK', pyfile = None, tag = None, color = None)
 
+    config_to_apply = str()
 
-config_to_apply = str()
-iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
+    if not device:
+        if CGI_CLI.cgi_active and CGI_CLI.submit_form:
+            CGI_CLI.uprint('DEVICE NAME NOT INSERTED!', tag = 'h1', color = 'red')
 
-if device:
-    rcmd_outputs = RCMD.connect(device, username = USERNAME, password = PASSWORD)
+    for device in [device]:
+        if not device: continue
+        rcmd_outputs = RCMD.connect(device, username = USERNAME, \
+            logfilename = logfilename, password = PASSWORD,)
 
-    if RCMD.router_type == 'cisco_xr':
-        if not CGI_CLI.data.get('rollback'):
-            collector_cmd = {'cisco_xr':['sh run interface loopback 0','sh run interface loopback 200',
-            "show running-config router bgp | utility egrep 'neighbor-group|update-source' | exclude use neighbor-group"]}
+        if not RCMD.ssh_connection:
+            CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), color = 'red')
+            RCMD.disconnect()
+            continue
 
-            rcmd_outputs = RCMD.run_commands(collector_cmd, printall = True)
-
-            try: loopback_0_config    = (rcmd_outputs[0].replace('\r','').split('interface Loopback0\n')[1].replace('Loopback0','Loopback10').strip().split('!')[0] + '!').splitlines()
-            except: loopback_0_config = []
-            try: loopback_200_config  = (rcmd_outputs[1].replace('\r','').split('interface Loopback200\n')[1].replace('Loopback200','Loopback0').strip().split('!')[0] + '!').splitlines()
-            except: loopback_200_config = []
-            try:    loopback_200_address = rcmd_outputs[1].split('ipv4 address')[1].split()[0].strip()
-            except: loopback_200_address = str()
-            try:
-                neighbor_groups = re.findall(r'neighbor-group\s+[0-9a-zA-Z\-\.\@\_]+$\s+update-source Loopback0', rcmd_outputs[2], re.MULTILINE)
-                neighbor_groups = [ item.splitlines()[0].replace('neighbor-group','').strip() for item in neighbor_groups ]
-            except: neighbor_groups = []
-
-            data = {}
-            data['loopback_0_config']    = loopback_0_config
-            data['loopback_200_config']  = loopback_200_config
-            data['neighbor_groups']      = neighbor_groups
-            data['loopback_200_address'] = loopback_200_address
-            data['bgp_as'] = '5511'
+        ### def PRECHECK SECTION ##############################################
+        if printall: CGI_CLI.uprint('PRE-CHECK START.', color = 'purple')
+        precheck_outputs = RCMD.run_commands(prepost_commands_1, printall = printall)
+        if printall: CGI_CLI.uprint('PRE-CHECK DONE.', color = 'purple')
 
 
-            CGI_CLI.uprint(data, name = True, jsonprint = True, color = 'blue')
-            CGI_CLI.uprint('\n\n')
+        ### RID MIGRATION START ###############################################
+        if RCMD.router_type == 'cisco_xr':
+            if not CGI_CLI.data.get('rollback'):
+                collector_cmd = {'cisco_xr':['sh run interface loopback 0','sh run interface loopback 200',
+                "show running-config router bgp | utility egrep 'neighbor-group|update-source' | exclude use neighbor-group"]}
 
-            if data:
-               None_elements = get_void_json_elements(data)
-               CGI_CLI.uprint('VOID ELEMENTS CHECK: %s\n' % (str(None_elements) if len(None_elements)>0 else 'OK') )
-               if len(None_elements)>0:
-                  CGI_CLI.uprint('\nVOID DATA PROBLEM FOUND!', tag = 'h1', color = 'red')
-                  RCMD.disconnect()
-                  sys.exit(0)
+                rcmd_outputs = RCMD.run_commands(collector_cmd, printall = printall)
 
-            config_to_apply = str()
-            mytemplate = Template(xr_config,strict_undefined=True)
-            config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
-        else:
-            ### UNDO/ROLLBACK CONFIG GENERATION ###
-            collector_cmd = {'cisco_xr':['sh run interface loopback 10','sh run interface loopback 0',
-            "show running-config router bgp | utility egrep 'neighbor-group|update-source' | exclude use neighbor-group"]}
+                try: loopback_0_config    = (rcmd_outputs[0].replace('\r','').split('interface Loopback0\n')[1].replace('Loopback0','Loopback10').strip().split('!')[0] + '!').splitlines()
+                except: loopback_0_config = []
+                try: loopback_200_config  = (rcmd_outputs[1].replace('\r','').split('interface Loopback200\n')[1].replace('Loopback200','Loopback0').strip().split('!')[0] + '!').splitlines()
+                except: loopback_200_config = []
+                try:    loopback_200_address = rcmd_outputs[1].split('ipv4 address')[1].split()[0].strip()
+                except: loopback_200_address = str()
+                try:
+                    neighbor_groups = re.findall(r'neighbor-group\s+[0-9a-zA-Z\-\.\@\_]+$\s+update-source Loopback0', rcmd_outputs[2], re.MULTILINE)
+                    neighbor_groups = [ item.splitlines()[0].replace('neighbor-group','').strip() for item in neighbor_groups ]
+                except: neighbor_groups = []
 
-            rcmd_outputs = RCMD.run_commands(collector_cmd, printall = True)
+                data = {}
+                data['loopback_0_config']    = loopback_0_config
+                data['loopback_200_config']  = loopback_200_config
+                data['neighbor_groups']      = neighbor_groups
+                data['loopback_200_address'] = loopback_200_address
+                data['bgp_as'] = '5511'
 
-            try: loopback_0_config    = (rcmd_outputs[0].replace('\r','').split('interface Loopback10\n')[1].replace('Loopback10','Loopback0').strip().split('!')[0] + '!').splitlines()
-            except: loopback_0_config = []
-            try:loopback_200_config  = (rcmd_outputs[1].replace('\r','').split('interface Loopback0\n')[1].replace('Loopback0','Loopback200').strip().split('!')[0] + '!').splitlines()
-            except: loopback_200_config = []
-            ### output 0 = lo10 ###
-            try:    loopback_200_address = rcmd_outputs[0].split('ipv4 address')[1].split()[0].strip()
-            except: loopback_200_address = str()
-            try:
-                neighbor_groups = re.findall(r'neighbor-group\s+[0-9a-zA-Z\-\.\@\_]+$\s+update-source Loopback10', rcmd_outputs[2], re.MULTILINE)
-                neighbor_groups = [ item.splitlines()[0].replace('neighbor-group','').strip() for item in neighbor_groups ]
-            except: neighbor_groups = []
+                if printall:
+                    CGI_CLI.uprint('\n')
+                    CGI_CLI.uprint(data, name = True, jsonprint = True)
+                    CGI_CLI.uprint('\n\n')
 
-            data = {}
-            data['loopback_0_config']    = loopback_0_config
-            data['loopback_200_config']  = loopback_200_config
-            data['neighbor_groups']      = neighbor_groups
-            data['loopback_200_address'] = loopback_200_address
-            data['bgp_as'] = '5511'
+                if data:
+                   None_elements = get_void_json_elements(data)
 
-            CGI_CLI.uprint(data, name = True, jsonprint = True, color = 'blue')
-            CGI_CLI.uprint('\n\n')
+                   CGI_CLI.uprint('VOID ELEMENTS CHECK: %s\n' % (str(None_elements) if len(None_elements)>0 else 'OK'), \
+                       color = 'red' if len(None_elements)>0 else 'green')
 
-            if data:
-               None_elements = get_void_json_elements(data)
-               CGI_CLI.uprint('VOID ELEMENTS CHECK: %s\n' % (str(None_elements) if len(None_elements)>0 else 'OK') )
-               if len(None_elements)>0:
-                  CGI_CLI.uprint('\nVOID DATA PROBLEM FOUND!', tag = 'h1', color = 'red')
-                  RCMD.disconnect()
-                  sys.exit(0)
+                   if len(None_elements)>0:
+                      CGI_CLI.uprint('\nVOID DATA PROBLEM FOUND!', tag = 'h1', color = 'red')
+                      RCMD.disconnect()
+                      continue
 
-            config_to_apply = str()
-            mytemplate = Template(undo_xr_config,strict_undefined=True)
-            config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
-
-    ### HUAWEI #####################################################################
-    if RCMD.router_type == 'huawei':
-        if not CGI_CLI.data.get('rollback'):
-            collector_cmd = {'huawei':[
-                'disp current-configuration interface LoopBack 0',
-                'disp current-configuration interface LoopBack 200',
-                'display current-configuration configuration bgp | include connect-interface',
-                'disp current-configuration | include router id']}
-
-            rcmd_outputs = RCMD.run_commands(collector_cmd, printall = True)
-
-            try: loopback_0_config    = (rcmd_outputs[0].replace('\r','').split('interface LoopBack0\n')[1].replace('Loopback0','Loopback10').strip().split('#')[0] + '#').splitlines()
-            except: loopback_0_config = []
-            try: loopback_200_config  = (rcmd_outputs[1].replace('\r','').split('interface LoopBack200\n')[1].replace('Loopback200','Loopback0').strip().split('#')[0] + '#').splitlines()
-            except: loopback_200_config = []
-            try:    loopback_200_address = rcmd_outputs[1].split('ip address')[1].split()[0].strip()
-            except: loopback_200_address = str()
-            try:
-                neighbor_groups = re.findall(r'peer\s+[0-9a-zA-Z\-\.\@\_]+ connect-interface LoopBack0', rcmd_outputs[2], re.MULTILINE)
-                neighbor_groups = [ item.splitlines()[0].replace('peer','').replace('connect-interface LoopBack0','').strip() for item in neighbor_groups ]
-            except: neighbor_groups = []
-
-            if 'router id 193.251.245.' in rcmd_outputs[3] and loopback_200_address:
-                router_id_line = 'router id ' + loopback_200_address
-            else: router_id_line = '#'
-
-            data = {}
-            data['loopback_0_config']    = loopback_0_config
-            data['loopback_200_config']  = loopback_200_config
-            data['neighbor_groups']      = neighbor_groups
-            data['loopback_200_address'] = loopback_200_address
-            data['bgp_as']               = '5511'
-            data['router_id_line']       = router_id_line
-
-            CGI_CLI.uprint(data, name = True, jsonprint = True, color = 'blue')
-            CGI_CLI.uprint('\n\n')
-
-            if data:
-               None_elements = get_void_json_elements(data)
-               CGI_CLI.uprint('VOID ELEMENTS CHECK: %s\n' % (str(None_elements) if len(None_elements)>0 else 'OK') )
-               if len(None_elements)>0:
-                  CGI_CLI.uprint('\nVOID DATA PROBLEM FOUND!', tag = 'h1', color = 'red')
-                  RCMD.disconnect()
-                  sys.exit(0)
-
-            ### HUAWEI CONFIG SHOULD HAVE MORE PARTS ###
-            if isinstance(huawei_config, (list,tuple)):
-                config_to_apply = []
-                for config_item in huawei_config:
-                    mytemplate = Template(config_item,strict_undefined=True)
-                    config_to_apply.append(str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n')
-            else:
                 config_to_apply = str()
-                mytemplate = Template(huawei_config,strict_undefined=True)
+                mytemplate = Template(xr_config,strict_undefined=True)
                 config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
+            else:
+                ### UNDO/ROLLBACK CONFIG GENERATION ###
+                collector_cmd = {'cisco_xr':['sh run interface loopback 10','sh run interface loopback 0',
+                "show running-config router bgp | utility egrep 'neighbor-group|update-source' | exclude use neighbor-group"]}
+
+                rcmd_outputs = RCMD.run_commands(collector_cmd, printall = printall)
+
+                try: loopback_0_config    = (rcmd_outputs[0].replace('\r','').split('interface Loopback10\n')[1].replace('Loopback10','Loopback0').strip().split('!')[0] + '!').splitlines()
+                except: loopback_0_config = []
+                try:loopback_200_config  = (rcmd_outputs[1].replace('\r','').split('interface Loopback0\n')[1].replace('Loopback0','Loopback200').strip().split('!')[0] + '!').splitlines()
+                except: loopback_200_config = []
+                ### output 0 = lo10 ###
+                try:    loopback_200_address = rcmd_outputs[0].split('ipv4 address')[1].split()[0].strip()
+                except: loopback_200_address = str()
+                try:
+                    neighbor_groups = re.findall(r'neighbor-group\s+[0-9a-zA-Z\-\.\@\_]+$\s+update-source Loopback10', rcmd_outputs[2], re.MULTILINE)
+                    neighbor_groups = [ item.splitlines()[0].replace('neighbor-group','').strip() for item in neighbor_groups ]
+                except: neighbor_groups = []
+
+                data = {}
+                data['loopback_0_config']    = loopback_0_config
+                data['loopback_200_config']  = loopback_200_config
+                data['neighbor_groups']      = neighbor_groups
+                data['loopback_200_address'] = loopback_200_address
+                data['bgp_as'] = '5511'
+
+                if printall:
+                    CGI_CLI.uprint('\n')
+                    CGI_CLI.uprint(data, name = True, jsonprint = True)
+                    CGI_CLI.uprint('\n\n')
+
+                if data:
+                   None_elements = get_void_json_elements(data)
+
+                   CGI_CLI.uprint('VOID ELEMENTS CHECK: %s\n' % (str(None_elements) if len(None_elements)>0 else 'OK'), \
+                       color = 'red' if len(None_elements)>0 else 'green')
+
+                   if len(None_elements)>0:
+                      CGI_CLI.uprint('\nVOID DATA PROBLEM FOUND!', tag = 'h1', color = 'red')
+                      RCMD.disconnect()
+                      continue
+
+                config_to_apply = str()
+                mytemplate = Template(undo_xr_config,strict_undefined=True)
+                config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
+
+        ### HUAWEI #####################################################################
+        if RCMD.router_type == 'huawei':
+            if not CGI_CLI.data.get('rollback'):
+                collector_cmd = {'huawei':[
+                    'disp current-configuration interface LoopBack 0',
+                    'disp current-configuration interface LoopBack 200',
+                    'display current-configuration configuration bgp | include connect-interface',
+                    'disp current-configuration | include router id']}
+
+                rcmd_outputs = RCMD.run_commands(collector_cmd, printall = printall)
+
+                try: loopback_0_config    = (rcmd_outputs[0].replace('\r','').split('interface LoopBack0\n')[1].replace('Loopback0','Loopback10').strip().split('#')[0] + '#').splitlines()
+                except: loopback_0_config = []
+                try: loopback_200_config  = (rcmd_outputs[1].replace('\r','').split('interface LoopBack200\n')[1].replace('Loopback200','Loopback0').strip().split('#')[0] + '#').splitlines()
+                except: loopback_200_config = []
+                try:    loopback_200_address = rcmd_outputs[1].split('ip address')[1].split()[0].strip()
+                except: loopback_200_address = str()
+                try:
+                    neighbor_groups = re.findall(r'peer\s+[0-9a-zA-Z\-\.\@\_]+ connect-interface LoopBack0', rcmd_outputs[2], re.MULTILINE)
+                    neighbor_groups = [ item.splitlines()[0].replace('peer','').replace('connect-interface LoopBack0','').strip() for item in neighbor_groups ]
+                except: neighbor_groups = []
+
+                if 'router id 193.251.245.' in rcmd_outputs[3] and loopback_200_address:
+                    router_id_line = 'router id ' + loopback_200_address
+                else: router_id_line = '#'
+
+                data = {}
+                data['loopback_0_config']    = loopback_0_config
+                data['loopback_200_config']  = loopback_200_config
+                data['neighbor_groups']      = neighbor_groups
+                data['loopback_200_address'] = loopback_200_address
+                data['bgp_as']               = '5511'
+                data['router_id_line']       = router_id_line
+
+                if printall:
+                    CGI_CLI.uprint('\n')
+                    CGI_CLI.uprint(data, name = True, jsonprint = True)
+                    CGI_CLI.uprint('\n\n')
+
+                if data:
+                   None_elements = get_void_json_elements(data)
+
+                   CGI_CLI.uprint('VOID ELEMENTS CHECK: %s\n' % (str(None_elements) if len(None_elements)>0 else 'OK'), \
+                       color = 'red' if len(None_elements)>0 else 'green')
+
+                   if len(None_elements)>0:
+                      CGI_CLI.uprint('\nVOID DATA PROBLEM FOUND!', tag = 'h1', color = 'red')
+                      RCMD.disconnect()
+                      continue
+
+                ### HUAWEI CONFIG SHOULD HAVE MORE PARTS ###
+                if isinstance(huawei_config, (list,tuple)):
+                    config_to_apply = []
+                    for config_item in huawei_config:
+                        mytemplate = Template(config_item,strict_undefined=True)
+                        config_to_apply.append(str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n')
+                else:
+                    config_to_apply = str()
+                    mytemplate = Template(huawei_config,strict_undefined=True)
+                    config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
+            else:
+                ### UNDO/ROLLBACK CONFIG GENERATION ###
+                collector_cmd = {'huawei':[
+                    'disp current-configuration interface LoopBack 10',
+                    'disp current-configuration interface LoopBack 0',
+                    'display current-configuration configuration bgp | include connect-interface',
+                    'disp current-configuration | include router id']}
+
+                rcmd_outputs = RCMD.run_commands(collector_cmd, printall = printall)
+
+                try: loopback_0_config    = (rcmd_outputs[0].replace('\r','').split('interface LoopBack10\n')[1].replace('Loopback10','Loopback0').strip().split('#')[0] + '#').splitlines()
+                except: loopback_0_config = []
+                try: loopback_200_config  = (rcmd_outputs[1].replace('\r','').split('interface LoopBack0\n')[1].replace('Loopback0','Loopback200').strip().split('#')[0] + '#').splitlines()
+                except: loopback_200_config = []
+                try:    loopback_200_address = rcmd_outputs[0].split('ip address')[1].split()[0].strip()
+                except: loopback_200_address = str()
+                try:    loopback_0_address = rcmd_outputs[0].split('ip address')[1].split()[0].strip()
+                except: loopback_0_address = str()
+                try:
+                    neighbor_groups = re.findall(r'peer\s+[0-9a-zA-Z\-\.\@\_]+ connect-interface LoopBack10', rcmd_outputs[2], re.MULTILINE)
+                    neighbor_groups = [ item.splitlines()[0].replace('peer','').replace('connect-interface LoopBack10','').strip() for item in neighbor_groups ]
+                except: neighbor_groups = []
+
+                if 'router id 193.251.245.' in rcmd_outputs[3] and loopback_0_address:
+                    router_id_line = 'router id ' + loopback_0_address
+                else: router_id_line = '#'
+
+                data = {}
+                data['loopback_0_config']    = loopback_0_config
+                data['loopback_200_config']  = loopback_200_config
+                data['neighbor_groups']      = neighbor_groups
+                data['loopback_200_address'] = loopback_200_address
+                data['bgp_as']               = '5511'
+                data['router_id_line']       = router_id_line
+
+                if printall:
+                    CGI_CLI.uprint('\n')
+                    CGI_CLI.uprint(data, name = True, jsonprint = True)
+                    CGI_CLI.uprint('\n\n')
+
+                if data:
+                   None_elements = get_void_json_elements(data)
+
+                   CGI_CLI.uprint('VOID ELEMENTS CHECK: %s\n' % (str(None_elements) if len(None_elements)>0 else 'OK'), \
+                       color = 'red' if len(None_elements)>0 else 'green')
+
+                   if len(None_elements)>0:
+                      CGI_CLI.uprint('\nVOID DATA PROBLEM FOUND!', tag = 'h1', color = 'red')
+                      RCMD.disconnect()
+                      continue
+
+                config_to_apply = str()
+                mytemplate = Template(undo_huawei_config,strict_undefined=True)
+                config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
+
+
+        ### JUNIPER #####################################################################
+        if RCMD.router_type == 'juniper':
+            if not CGI_CLI.data.get('rollback'):
+                collector_cmd = {'juniper':[ 'show configuration interfaces lo0 | display set']}
+
+                rcmd_outputs = RCMD.run_commands(collector_cmd, printall = printall)
+
+                loopback_0_ipv4_address, loopback_200_ipv4_address, loopback_0_ipv6_address = str(), str(), str()
+                look_for = ['inet address 193.251.245.','inet address 172.25.4.','inet6 address 2001:688:0:1:']
+                for line in rcmd_outputs[0].splitlines():
+                    if look_for[0] in line and 'primary' in line:
+                        loopback_0_ipv4_address = look_for[0].replace('inet address ','') + line.split(look_for[0])[1].split()[0].split('/')[0]
+                    if look_for[1] in line and not 'primary' in line:
+                        loopback_200_ipv4_address = look_for[1].replace('inet address ','') + line.split(look_for[1])[1].split()[0].split('/')[0]
+                    # if look_for[2] in line and 'primary' in line:
+                        # loopback_0_ipv6_address = look_for[2].replace('inet6 address ','') + line.split(look_for[2])[1].split()[0].split('/')[0]
+                # loopback_200_ipv6_address = ipv4_to_ipv6_obs(loopback_0_ipv4_address)[0] if loopback_0_ipv4_address else str()
+
+                data = {}
+                data['loopback_0_ipv4_address']    = loopback_0_ipv4_address
+                data['loopback_200_ipv4_address']  = loopback_200_ipv4_address
+                #data['loopback_0_ipv6_address']    = loopback_0_ipv6_address
+                #data['loopback_200_ipv6_address']  = loopback_200_ipv6_address
+                data['bgp_as']               = '5511'
+
+                if printall:
+                    CGI_CLI.uprint('\n')
+                    CGI_CLI.uprint(data, name = True, jsonprint = True)
+                    CGI_CLI.uprint('\n\n')
+
+                if data:
+                   None_elements = get_void_json_elements(data)
+
+                   CGI_CLI.uprint('VOID ELEMENTS CHECK: %s\n' % (str(None_elements) if len(None_elements)>0 else 'OK'), \
+                       color = 'red' if len(None_elements)>0 else 'green')
+
+                   if len(None_elements)>0:
+                      CGI_CLI.uprint('\nVOID DATA PROBLEM FOUND!', tag = 'h1', color = 'red')
+                      RCMD.disconnect()
+                      continue
+
+                config_to_apply = str()
+                mytemplate = Template(juniper_config,strict_undefined=True)
+                config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
+
+
+            else:
+                ### UNDO/ROLLBACK CONFIG GENERATION ###
+                collector_cmd = {'juniper':[ 'show configuration interfaces lo0 | display set']}
+
+                rcmd_outputs = RCMD.run_commands(collector_cmd, printall = printall)
+
+                loopback_0_ipv4_address, loopback_200_ipv4_address, loopback_0_ipv6_address = str(), str(), str()
+                look_for = ['inet address 193.251.245.','inet address 172.25.4.','inet6 address 2001:688:0:1:']
+                for line in rcmd_outputs[0].splitlines():
+                    if look_for[0] in line:
+                        loopback_0_ipv4_address = look_for[0].replace('inet address ','') + line.split(look_for[0])[1].split()[0].split('/')[0]
+                    if look_for[1] in line:
+                        loopback_200_ipv4_address = look_for[1].replace('inet address ','') + line.split(look_for[1])[1].split()[0].split('/')[0]
+                    # if look_for[2] in line and 'primary' in line:
+                        # loopback_0_ipv6_address = look_for[2].replace('inet6 address ','') + line.split(look_for[2])[1].split()[0].split('/')[0]
+                # loopback_200_ipv6_address = ipv4_to_ipv6_obs(loopback_0_ipv4_address)[0] if loopback_0_ipv4_address else str()
+
+                data = {}
+                data['loopback_0_ipv4_address']    = loopback_0_ipv4_address
+                data['loopback_200_ipv4_address']  = loopback_200_ipv4_address
+                #data['loopback_0_ipv6_address']    = loopback_0_ipv6_address
+                #data['loopback_200_ipv6_address']  = loopback_200_ipv6_address
+                data['bgp_as']               = '5511'
+
+                if printall:
+                    CGI_CLI.uprint('\n')
+                    CGI_CLI.uprint(data, name = True, jsonprint = True)
+                    CGI_CLI.uprint('\n\n')
+
+                if data:
+                   None_elements = get_void_json_elements(data)
+
+                   CGI_CLI.uprint('VOID ELEMENTS CHECK: %s\n' % (str(None_elements) if len(None_elements)>0 else 'OK'), \
+                       color = 'red' if len(None_elements)>0 else 'green')
+
+                   if len(None_elements)>0:
+                      CGI_CLI.uprint('\nVOID DATA PROBLEM FOUND!', tag = 'h1', color = 'red')
+                      RCMD.disconnect()
+                      continue
+
+                config_to_apply = str()
+                mytemplate = Template(undo_juniper_config,strict_undefined=True)
+                config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
+
+
+        ### def PRINT CONFIG ##################################################
+        CGI_CLI.uprint('CONFIG:\n', tag = 'h1', color = 'blue')
+
+        if isinstance(config_to_apply, (list,tuple)):
+            for config_item in config_to_apply: CGI_CLI.uprint('CONFIG PART:\n\n' + config_item + "\n\n", color = 'blue')
+        else: CGI_CLI.uprint(config_to_apply, color = 'blue')
+
+        if CGI_CLI.data.get('show_config_only'):
+            RCMD.disconnect()
+            continue
+
+        ### def PUSH CONFIG TO DEVICE #########################################
+        if isinstance(config_to_apply, (list,tuple)):
+            for config_item in config_to_apply:
+                splitted_config = copy.deepcopy(config_item)
+                try: splitted_config = str(splitted_config.decode("utf-8")).splitlines()
+                except: splitted_config = []
+
+                rcmd_outputs = RCMD.run_commands(cmd_data = splitted_config, conf = True, printall = printall, sim_config = CGI_CLI.data.get('sim',None))
         else:
-            ### UNDO/ROLLBACK CONFIG GENERATION ###
-            collector_cmd = {'huawei':[
-                'disp current-configuration interface LoopBack 10',
-                'disp current-configuration interface LoopBack 0',
-                'display current-configuration configuration bgp | include connect-interface',
-                'disp current-configuration | include router id']}
-
-            rcmd_outputs = RCMD.run_commands(collector_cmd, printall = True)
-
-            try: loopback_0_config    = (rcmd_outputs[0].replace('\r','').split('interface LoopBack10\n')[1].replace('Loopback10','Loopback0').strip().split('#')[0] + '#').splitlines()
-            except: loopback_0_config = []
-            try: loopback_200_config  = (rcmd_outputs[1].replace('\r','').split('interface LoopBack0\n')[1].replace('Loopback0','Loopback200').strip().split('#')[0] + '#').splitlines()
-            except: loopback_200_config = []
-            try:    loopback_200_address = rcmd_outputs[0].split('ip address')[1].split()[0].strip()
-            except: loopback_200_address = str()
-            try:    loopback_0_address = rcmd_outputs[0].split('ip address')[1].split()[0].strip()
-            except: loopback_0_address = str()
-            try:
-                neighbor_groups = re.findall(r'peer\s+[0-9a-zA-Z\-\.\@\_]+ connect-interface LoopBack10', rcmd_outputs[2], re.MULTILINE)
-                neighbor_groups = [ item.splitlines()[0].replace('peer','').replace('connect-interface LoopBack10','').strip() for item in neighbor_groups ]
-            except: neighbor_groups = []
-
-            if 'router id 193.251.245.' in rcmd_outputs[3] and loopback_0_address:
-                router_id_line = 'router id ' + loopback_0_address
-            else: router_id_line = '#'
-
-            data = {}
-            data['loopback_0_config']    = loopback_0_config
-            data['loopback_200_config']  = loopback_200_config
-            data['neighbor_groups']      = neighbor_groups
-            data['loopback_200_address'] = loopback_200_address
-            data['bgp_as']               = '5511'
-            data['router_id_line']       = router_id_line
-
-            CGI_CLI.uprint(data, name = True, jsonprint = True, color = 'blue')
-            CGI_CLI.uprint('\n\n')
-
-            if data:
-               None_elements = get_void_json_elements(data)
-               CGI_CLI.uprint('VOID ELEMENTS CHECK: %s\n' % (str(None_elements) if len(None_elements)>0 else 'OK') )
-               if len(None_elements)>0:
-                  CGI_CLI.uprint('\nVOID DATA PROBLEM FOUND!', tag = 'h1', color = 'red')
-                  RCMD.disconnect()
-                  sys.exit(0)
-
-            config_to_apply = str()
-            mytemplate = Template(undo_huawei_config,strict_undefined=True)
-            config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
-
-
-    ### JUNIPER #####################################################################
-    if RCMD.router_type == 'juniper':
-        if not CGI_CLI.data.get('rollback'):
-            collector_cmd = {'juniper':[ 'show configuration interfaces lo0 | display set']}
-
-            rcmd_outputs = RCMD.run_commands(collector_cmd, printall = True)
-
-            loopback_0_ipv4_address, loopback_200_ipv4_address, loopback_0_ipv6_address = str(), str(), str()
-            look_for = ['inet address 193.251.245.','inet address 172.25.4.','inet6 address 2001:688:0:1:']
-            for line in rcmd_outputs[0].splitlines():
-                if look_for[0] in line and 'primary' in line:
-                    loopback_0_ipv4_address = look_for[0].replace('inet address ','') + line.split(look_for[0])[1].split()[0].split('/')[0]
-                if look_for[1] in line and not 'primary' in line:
-                    loopback_200_ipv4_address = look_for[1].replace('inet address ','') + line.split(look_for[1])[1].split()[0].split('/')[0]
-                # if look_for[2] in line and 'primary' in line:
-                    # loopback_0_ipv6_address = look_for[2].replace('inet6 address ','') + line.split(look_for[2])[1].split()[0].split('/')[0]
-            # loopback_200_ipv6_address = ipv4_to_ipv6_obs(loopback_0_ipv4_address)[0] if loopback_0_ipv4_address else str()
-
-            data = {}
-            data['loopback_0_ipv4_address']    = loopback_0_ipv4_address
-            data['loopback_200_ipv4_address']  = loopback_200_ipv4_address
-            #data['loopback_0_ipv6_address']    = loopback_0_ipv6_address
-            #data['loopback_200_ipv6_address']  = loopback_200_ipv6_address
-            data['bgp_as']               = '5511'
-
-            CGI_CLI.uprint(data, name = True, jsonprint = True, color = 'blue')
-            CGI_CLI.uprint('\n\n')
-
-            if data:
-               None_elements = get_void_json_elements(data)
-               CGI_CLI.uprint('VOID ELEMENTS CHECK: %s\n' % (str(None_elements) if len(None_elements)>0 else 'OK') )
-               if len(None_elements)>0:
-                  CGI_CLI.uprint('\nVOID DATA PROBLEM FOUND!', tag = 'h1', color = 'red')
-                  RCMD.disconnect()
-                  sys.exit(0)
-
-            config_to_apply = str()
-            mytemplate = Template(juniper_config,strict_undefined=True)
-            config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
-
-
-        else:
-            ### UNDO/ROLLBACK CONFIG GENERATION ###
-            collector_cmd = {'juniper':[ 'show configuration interfaces lo0 | display set']}
-
-            rcmd_outputs = RCMD.run_commands(collector_cmd, printall = True)
-
-            loopback_0_ipv4_address, loopback_200_ipv4_address, loopback_0_ipv6_address = str(), str(), str()
-            look_for = ['inet address 193.251.245.','inet address 172.25.4.','inet6 address 2001:688:0:1:']
-            for line in rcmd_outputs[0].splitlines():
-                if look_for[0] in line:
-                    loopback_0_ipv4_address = look_for[0].replace('inet address ','') + line.split(look_for[0])[1].split()[0].split('/')[0]
-                if look_for[1] in line:
-                    loopback_200_ipv4_address = look_for[1].replace('inet address ','') + line.split(look_for[1])[1].split()[0].split('/')[0]
-                # if look_for[2] in line and 'primary' in line:
-                    # loopback_0_ipv6_address = look_for[2].replace('inet6 address ','') + line.split(look_for[2])[1].split()[0].split('/')[0]
-            # loopback_200_ipv6_address = ipv4_to_ipv6_obs(loopback_0_ipv4_address)[0] if loopback_0_ipv4_address else str()
-
-            data = {}
-            data['loopback_0_ipv4_address']    = loopback_0_ipv4_address
-            data['loopback_200_ipv4_address']  = loopback_200_ipv4_address
-            #data['loopback_0_ipv6_address']    = loopback_0_ipv6_address
-            #data['loopback_200_ipv6_address']  = loopback_200_ipv6_address
-            data['bgp_as']               = '5511'
-
-            CGI_CLI.uprint(data, name = True, jsonprint = True, color = 'blue')
-            CGI_CLI.uprint('\n\n')
-
-            if data:
-               None_elements = get_void_json_elements(data)
-               CGI_CLI.uprint('VOID ELEMENTS CHECK: %s\n' % (str(None_elements) if len(None_elements)>0 else 'OK') )
-               if len(None_elements)>0:
-                  CGI_CLI.uprint('\nVOID DATA PROBLEM FOUND!', tag = 'h1', color = 'red')
-                  RCMD.disconnect()
-                  sys.exit(0)
-
-            config_to_apply = str()
-            mytemplate = Template(undo_juniper_config,strict_undefined=True)
-            config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
-
-
-
-
-    ### PRINT CONFIG ################################################################
-    CGI_CLI.uprint('CONFIG:\n', tag = 'h1', color = 'blue')
-
-    if isinstance(config_to_apply, (list,tuple)):
-        for config_item in config_to_apply: CGI_CLI.uprint('CONFIG PART:\n\n' + config_item + "\n\n")
-    else: CGI_CLI.uprint(config_to_apply)
-
-    if CGI_CLI.data.get('show_config_only'):
-        RCMD.disconnect()
-        sys.exit(0)
-
-    ### PUSH CONFIG TO DEVICE #######################################################
-    if isinstance(config_to_apply, (list,tuple)):
-        for config_item in config_to_apply:
-            splitted_config = copy.deepcopy(config_item)
+            splitted_config = copy.deepcopy(config_to_apply)
             try: splitted_config = str(splitted_config.decode("utf-8")).splitlines()
             except: splitted_config = []
 
-            rcmd_outputs = RCMD.run_commands(cmd_data = splitted_config, conf = True, printall = True, sim_config = CGI_CLI.data.get('sim',None))
-    else:
-        splitted_config = copy.deepcopy(config_to_apply)
-        try: splitted_config = str(splitted_config.decode("utf-8")).splitlines()
-        except: splitted_config = []
+            rcmd_outputs = RCMD.run_commands(cmd_data = splitted_config, conf = True, printall = printall, sim_config = CGI_CLI.data.get('sim',None))
 
-        rcmd_outputs = RCMD.run_commands(cmd_data = splitted_config, conf = True, printall = True, sim_config = CGI_CLI.data.get('sim',None))
+        ### def POSTCHECK SECTION #############################################
+        if printall: CGI_CLI.uprint('POST-CHECK START.', color = 'purple')
+        postcheck_outputs = RCMD.run_commands(prepost_commands_1, printall = printall)
+        if printall: CGI_CLI.uprint('POST-CHECK DONE.', color = 'purple')
 
-    RCMD.disconnect()
-else:
-    if CGI_CLI.cgi_active and CGI_CLI.submit_form:
-        CGI_CLI.uprint('DEVICE NAME NOT INSERTED!', tag = 'h1', color = 'red')
+        RCMD.disconnect()
+
+except SystemExit: pass
+except: CGI_CLI.uprint(traceback.format_exc(), tag = 'h3',color = 'magenta')
+
+### PRINT LOGFILENAME #########################################################
+if logfilename: CGI_CLI.uprint(' ==> File %s created.' % (logfilename))
