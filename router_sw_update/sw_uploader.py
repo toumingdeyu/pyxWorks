@@ -270,18 +270,31 @@ class CGI_CLI(object):
         set_logfile(logfilename) - uses inserted logfilename
         """
         actual_logfilename, CGI_CLI.logfilename = None, None
+        ### CHECK AND GET ALREADY USED LOGFILES ###############################
         try:
             if not (LCMD.logfilenam == 'nul' or LCMD.logfilename == '/dev/null'):
-                actual_logfilename = LCMD.logfilename
+                actual_logfilename = copy.deepcopy(LCMD.logfilename)
         except: pass
         try:
             if not (RCMD.logfilenam == 'nul' or RCMD.logfilename == '/dev/null'):
-               actual_logfilename = RCMD.logfilename
+               actual_logfilename = copy.deepcopy(RCMD.logfilename)
         except: pass
+        ### SET ACTUAL_LOGFILENAME FROM INSERTED IF INSETRED ##################
         if logfilename: actual_logfilename = logfilename
+        ### REWRITE CGI_CLI.LOGFILENAME #######################################
         if actual_logfilename == 'nul' or actual_logfilename == '/dev/null' \
             or not actual_logfilename: pass
-        else: CGI_CLI.logfilename = actual_logfilename
+        else:
+            CGI_CLI.logfilename = actual_logfilename
+            ### IF LOGFILE SET, SET ALSO OTHER CLASSES LOG FILES ##############
+            try:
+                if CGI_CLI.logfilename:
+                    LCMD.logfilename = copy.deepcopy(CGI_CLI.logfilename)
+            except: pass
+            try:
+                if CGI_CLI.logfilename:
+                    RCMD.logfilename = copy.deepcopy(CGI_CLI.logfilename)
+            except: pass
 
     @staticmethod
     def print_chunk(msg=""):
@@ -1979,7 +1992,7 @@ def check_percentage_of_copied_files(scp_list = [], USERNAME = None, \
     for server_file, device_file, device, device_user, pid, ppid in scp_list:
         if device:
             RCMD.connect(device, username = USERNAME, password = PASSWORD, \
-                printall = printall, logfilename = None, silent_mode = True)
+                printall = printall, logfilename = logfilename, silent_mode = True)
             if RCMD.ssh_connection:
                 dir_device_cmd = {
                     'cisco_ios':['dir %s' % (device_file)],
@@ -2451,7 +2464,8 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
         if CGI_CLI.data.get('backup_configs_to_device_disk') \
             or CGI_CLI.data.get('delete_device_sw_files_on_end') \
             or CGI_CLI.data.get('enable_device_scp_before_copying') \
-            or CGI_CLI.data.get('disable_device_scp_after_copying'): pass
+            or CGI_CLI.data.get('disable_device_scp_after_copying') \
+            or CGI_CLI.data.get('force_rewrite_sw_files_on_device'): pass
         else: sys.exit(0)
 
     return all_files_on_all_devices_ok, missing_files_per_device_list, device_drive_string, router_type, compatibility_problem_list
@@ -3164,6 +3178,7 @@ warning {
 
     ### GCI_CLI INIT ##########################################################
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True, css_style = CSS_STYLE, log = True)
+    LCMD.init(logfilename = logfilename)
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
     printall = CGI_CLI.data.get("printall")
 
