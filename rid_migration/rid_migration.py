@@ -892,7 +892,7 @@ class RCMD(object):
         if chan.recv_ready(): flush_buffer = chan.recv(9999)
         time.sleep(0.1)
         chan.send(send_data + '\n')
-        time.sleep(0.1)
+        time.sleep(0.2)
 
         ### MAIN WHILE LOOP ###################################################
         while not exit_loop:
@@ -1907,48 +1907,48 @@ prepost_commands_1 = {
 
 def do_pre_post_check(post = None, printall = None):
     check_outputs = []
+    loopback_0_address, loopback_10_address, loopback_200_address = str(), str(), str()
     CGI_CLI.uprint('%s-CHECK START:' % ('POST' if post else 'PRE'), tag = 'h2', color = 'blue')
 
     check_outputs_1 = RCMD.run_commands(prepost_commands_1, printall = True)
 
     if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
         try:    loopback_0_address = check_outputs_1[0].split('ipv4 address')[1].split()[0].strip()
-        except: loopback_0_address = str()
+        except: pass
         try:    loopback_10_address = check_outputs_1[1].split('ipv4 address')[1].split()[0].strip()
-        except: loopback_10_address = str()
+        except: pass
         try:    loopback_200_address = check_outputs_1[2].split('ipv4 address')[1].split()[0].strip()
-        except: loopback_200_address = str()
+        except: pass
 
     if RCMD.router_type == 'huawei':
         try:    loopback_0_address = check_outputs_1[0].split('ip address')[1].split()[0].strip()
-        except: loopback_0_address = str()
+        except: pass
         try:    loopback_10_address = check_outputs_1[1].split('ip address')[1].split()[0].strip()
-        except: loopback_10_address = str()
+        except: pass
         try:    loopback_200_address = check_outputs_1[2].split('ip address')[1].split()[0].strip()
-        except: loopback_200_address = str()
+        except: pass
 
     prepost_commands_2 = {
         'cisco_ios':[
             'show run | include %s' % (loopback_0_address),
             'show run | include %s' % (loopback_10_address),
-            'show run | include %s' % (loopback_200_address)
+            '%s' % ('show run | include ' + loopback_200_address if loopback_200_address else str())
             ],
         'cisco_xr':[
             'show run | include %s' % (loopback_0_address),
             'show run | include %s' % (loopback_10_address),
-            'show run | include %s' % (loopback_200_address)
+            '%s' % ('show run | include ' + loopback_200_address if loopback_200_address else str())
             ],
         'huawei':[
             'display current-configuration | include %s' % (loopback_0_address),
             'display current-configuration | include %s' % (loopback_10_address),
-            'display current-configuration | include %s' % (loopback_200_address)
+            '%s' % ('display current-configuration | include ' + loopback_200_address if loopback_200_address else str())
             ],
         'juniper':[]
     }
 
     check_outputs_2 = RCMD.run_commands(prepost_commands_2, printall = True)
-
-    check_outputs = zip(check_outputs_1) + check_outputs_2
+    check_outputs = check_outputs_1 + check_outputs_2
 
     if printall: CGI_CLI.uprint('%s-CHECK DONE.' % ('POST' if post else 'PRE'))
     else: CGI_CLI.uprint('\n')
