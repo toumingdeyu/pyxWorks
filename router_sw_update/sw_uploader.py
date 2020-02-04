@@ -3696,6 +3696,18 @@ warning {
             printall = printall, \
             silent_mode = True)
 
+        CGI_CLI.uprint('Device    All_File(s)_to_copy:', tag = 'h3', color = 'blue')
+        CGI_CLI.uprint(no_newlines = True, start_tag = 'p', color = 'blue')
+
+        ### DO MISSING_FILES_PER_DEVICE_LIST, BECAUSE IT IS NEEDED FURTHER ####
+        for device in device_list:
+            for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
+                missing_files_per_device_list.append( \
+                    [device,[directory, dev_dir, file, md5, fsize]])
+                CGI_CLI.uprint('%s    %s' % \
+                    (device, device_drive_string + os.path.join(dev_dir, file)))
+        CGI_CLI.uprint(end_tag = 'p')
+
     elif len(selected_sw_file_types_list) > 0 or sw_release:
         ### CHECK EXISTING FILES ON DEVICES ###################################
         all_files_on_all_devices_ok, missing_files_per_device_list, \
