@@ -1930,18 +1930,18 @@ def do_pre_post_check(post = None, printall = None):
 
     prepost_commands_2 = {
         'cisco_ios':[
-            'show run | include %s' % (loopback_0_address),
-            'show run | include %s' % (loopback_10_address),
+            '%s' % ('show run | include ' + loopback_0_address if loopback_0_address else str()),
+            '%s' % ('show run | include ' + loopback_10_address if loopback_10_address else str()),
             '%s' % ('show run | include ' + loopback_200_address if loopback_200_address else str())
             ],
         'cisco_xr':[
-            'show run | include %s' % (loopback_0_address),
-            'show run | include %s' % (loopback_10_address),
+            '%s' % ('show run | include ' + loopback_0_address if loopback_0_address else str()),
+            '%s' % ('show run | include ' + loopback_10_address if loopback_10_address else str()),
             '%s' % ('show run | include ' + loopback_200_address if loopback_200_address else str())
             ],
         'huawei':[
-            'display current-configuration | include %s' % (loopback_0_address),
-            'display current-configuration | include %s' % (loopback_10_address),
+            '%s' % ('display current-configuration | include ' + loopback_0_address if loopback_0_address else str()),
+            '%s' % ('display current-configuration | include ' + loopback_10_address if loopback_10_address else str()),
             '%s' % ('display current-configuration | include ' + loopback_200_address if loopback_200_address else str())
             ],
         'juniper':[]
