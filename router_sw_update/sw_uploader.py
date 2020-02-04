@@ -1440,7 +1440,7 @@ class sql_interface():
                     database = database, autocommit = True)
 
             #CGI_CLI.uprint("SQL connection is open.")
-        except Exception as e: CGI_CLI.uprint(str(e))
+        except Exception as e: CGI_CLI.uprint(' ==> SQL problem [%s]' % (str(e)), color = 'magenta')
 
     def __del__(self):
         if self.sql_connection and self.sql_connection.is_connected():
@@ -1468,7 +1468,7 @@ class sql_interface():
                     try: new_item = item[3].decode('utf-8')
                     except: new_item = item[3]
                     columns.append(new_item)
-            except Exception as e: CGI_CLI.uprint(str(e))
+            except Exception as e: CGI_CLI.uprint(' ==> SQL problem [%s]' % (str(e)), color = 'magenta')
             try: cursor.close()
             except: pass
         return columns
@@ -1492,7 +1492,7 @@ class sql_interface():
                            except: new_item = item
                         columns.append(new_item)
                     lines.append(columns)
-            except Exception as e: CGI_CLI.uprint(str(e))
+            except Exception as e: CGI_CLI.uprint(' ==> SQL problem [%s]' % (str(e)), color = 'magenta')
             try: cursor.close()
             except: pass
             ### FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE
@@ -1508,7 +1508,7 @@ class sql_interface():
                 cursor.execute(sql_command)
                 ### DO NOT COMMIT IF AUTOCOMMIT IS SET
                 if not self.sql_connection.autocommit: self.sql_connection.commit()
-            except Exception as e: CGI_CLI.uprint(str(e))
+            except Exception as e: CGI_CLI.uprint(' ==> SQL problem [%s]' % (str(e)), color = 'magenta')
             try: cursor.close()
             except: pass
         return None
@@ -1884,8 +1884,12 @@ def get_local_subdirectories(brand_raw = None, type_raw = None):
             type_subdir_on_server = 'C4500'
             type_subdir_on_device = ''
             file_types = ['cat45*.bin']
-        elif 'MX480' in type_raw.upper():
+        elif 'MX20' in type_raw.upper():
             type_subdir_on_server = 'MX'
+            type_subdir_on_device = '/var/tmp'
+            file_types = ['junos*.img.gz', 'junos*.tgz']
+        elif 'MX480' in type_raw.upper():
+            type_subdir_on_server = 'MX/MX480'
             type_subdir_on_device = '/var/tmp'
             file_types = ['junos*.img.gz', 'junos*.tgz']
         elif 'NE40' in type_raw.upper():
