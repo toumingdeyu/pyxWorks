@@ -775,7 +775,7 @@ class RCMD(object):
                 if 'WIN32' in sys.platform.upper(): RCMD.logfilename = 'nul'
                 else: RCMD.logfilename = '/dev/null'
             with open(RCMD.logfilename,"a+") as RCMD.fp:
-                if RCMD.output: RCMD.fp.write(RCMD.output)
+                if RCMD.output: RCMD.fp.write(RCMD.output + '\n')
                 command_outputs, sim_mark = [], str()
                 ### CONFIG MODE FOR NETMIKO ####################################
                 if (conf or RCMD.conf) and RCMD.use_module == 'netmiko':
