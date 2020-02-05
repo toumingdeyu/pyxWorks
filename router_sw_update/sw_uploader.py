@@ -2675,14 +2675,13 @@ def check_free_disk_space_on_devices(device_list = None, \
 
 
     ### CHECK FREE SPACE ######################################################
-    all_disk_checks_ok, error_string = True, str()
+    error_string = str()
     for device, disk_free, slave_disk_free, disk_reguired, maximal_filesize in disk_free_list:
 
         ### ZERO SPACE OR JUNOS COULD HAVE NEGATIVE FREE SPACE ################
         if disk_free < -1 or slave_disk_free < -1 \
             or disk_free == 0 or slave_disk_free == 0:
 
-            all_disk_checks_ok = False
             error_string += 'No disk space on %s!\n' % (device)
             disk_low_space_devices.append(device)
 
@@ -2700,7 +2699,6 @@ def check_free_disk_space_on_devices(device_list = None, \
         elif disk_free < (device_expected_MB_free * 1048576) or \
             slave_disk_free != -1 and slave_disk_free < (device_expected_MB_free * 1048576):
 
-            all_disk_checks_ok = False
             error_string += 'Disk space below %.2fMB on %s!\n' % (device_expected_MB_free, device)
             disk_low_space_devices.append(device)
 
@@ -2719,7 +2717,6 @@ def check_free_disk_space_on_devices(device_list = None, \
             or (slave_disk_free != -1 \
             and (slave_disk_free + (device_expected_MB_free * 1048576) < disk_reguired)):
 
-            all_disk_checks_ok = False
             error_string += 'Not enough space to copy files on %s!\n' % (device)
             disk_low_space_devices.append(device)
 
@@ -2738,7 +2735,6 @@ def check_free_disk_space_on_devices(device_list = None, \
             ((disk_free + (device_expected_MB_free * 1048576) < disk_reguired + maximal_filesize) \
             and slave_disk_free != -1):
 
-                all_disk_checks_ok = False
                 error_string += 'Not enough space to copy files from re0 to re1 on %s!\n' % (device)
                 error_string += 'NOTE: Copy of files needs twice as space as max. filesize on re0.\n'
                 disk_low_space_devices.append(device)
@@ -2764,10 +2760,10 @@ def check_free_disk_space_on_devices(device_list = None, \
                     float(slave_disk_free)/1048576), color = 'blue')
 
     ### PRINT SPACE CHECK RESULTS ############################################
-    if not all_disk_checks_ok:
+    if len(disk_low_space_devices) > 0:
         if error_string: CGI_CLI.uprint(error_string, color = 'red')
         CGI_CLI.uprint('Disk space - CHECK FAIL!', tag='h1', color = 'red')
-        #sys.exit(0)
+    else: CGI_CLI.uprint('Disk space - CHECK OK', color = 'green')
     return disk_low_space_devices
 
 ##############################################################################
@@ -3818,10 +3814,6 @@ warning {
         if len(compatibility_problem_list) > 0 and counter_of_scp_attempts > 1:
             break
 
-        ### END IF NOTHING TO COPY ############################################
-        if len(device_list) == 0 or len(missing_files_per_device_list) == 0:
-            break
-
         ### TRY SCP X TIMES, THEN END #########################################
         if counter_of_scp_attempts > total_number_of_scp_attempts:
             CGI_CLI.uprint('Multiple (%d) scp attempts failed!' % \
@@ -3863,6 +3855,10 @@ warning {
             USERNAME = USERNAME, PASSWORD = PASSWORD, logfilename = logfilename, \
             printall = printall, check_mode = True, \
             disk_low_space_devices = disk_low_space_devices)
+
+        ### DO LOCAL FILE COPY TO RE1/slave#cfcard AND CHECK BEFORE END #######
+        if len(device_list) == 0 or len(missing_files_per_device_list) == 0:
+            break
     ### END OF LOOP TILL ALL FILES ARE COPIED OK ##############################
 
 
