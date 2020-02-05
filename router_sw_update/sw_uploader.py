@@ -330,7 +330,7 @@ class CGI_CLI(object):
         print_text = str(print_text)
         log_text   = str(copy.deepcopy((print_text)))
 
-        ### GENERATE TIMESTAMP STRING , 'NO' = NO EVERYTIME EVEN IF GLOBALLY IS ALLOWED ###
+        ### GENERATE TIMESTAMP STRING, 'NO' = NO EVEN IF GLOBALLY IS ALLOWED ###
         timestamp_string = str()
         if timestamp or CGI_CLI.timestamp:
             timestamp_yes = True
@@ -342,7 +342,7 @@ class CGI_CLI(object):
                     (datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S'), time.time() - CGI_CLI.START_EPOCH)
 
         if CGI_CLI.cgi_active and not raw:
-            ### WORKARROUND FOR COLORING OF SIMPLE TEXT
+            ### WORKARROUND FOR COLORING OF SIMPLE TEXT #######################
             if color and not (tag or start_tag): tag = 'p';
             if tag: CGI_CLI.print_chunk('<%s%s%s>'%(tag,' id="%s"'%(tag_id) if tag_id else str(),' style="color:%s;"' % (color) if color else str()))
             elif start_tag: CGI_CLI.print_chunk('<%s%s%s>'%(start_tag,' id="%s"'%(tag_id) if tag_id else str(),' style="color:%s;"' % (color) if color else str()))
@@ -364,12 +364,12 @@ class CGI_CLI(object):
                 elif 'GREY' in color.upper():    text_color = CGI_CLI.bcolors.GREY
                 elif 'GRAY' in color.upper():    text_color = CGI_CLI.bcolors.GREY
                 elif 'YELLOW' in color.upper():  text_color = CGI_CLI.bcolors.YELLOW
-            ### CLI_MODE ###
+            ### CLI_MODE ######################################################
             if no_newlines:
                 sys.stdout.write(text_color + print_name + print_text + CGI_CLI.bcolors.ENDC)
                 sys.stdout.flush()
             else:
-                print(text_color + print_name + timestamp_string + print_text + CGI_CLI.bcolors.ENDC)
+                print(text_color + timestamp_string + print_name + print_text + CGI_CLI.bcolors.ENDC)
         del print_text
         if CGI_CLI.cgi_active and not raw:
             if tag:
@@ -378,13 +378,20 @@ class CGI_CLI(object):
                 if tag in ['debug','warning']: CGI_CLI.print_chunk('<br/>');
             elif end_tag: CGI_CLI.print_chunk('</%s>' % (end_tag))
             elif not no_newlines: CGI_CLI.print_chunk('<br/>')
-            ### PRINT PER TAG ###
+            ### PRINT PER TAG #################################################
             CGI_CLI.print_chunk(print_per_tag)
-        ### LOGGING ###
+        ### LOG ALL, if CGI_CLI.log is True, except log == 'no' ###############
         if CGI_CLI.logfilename and (log or CGI_CLI.log):
-            with open(CGI_CLI.logfilename,"a+") as CGI_CLI.fp:
-                CGI_CLI.fp.write(print_name + log_text + '\n')
-                del log_text
+            log_yes = True
+            try:
+                if str(log).upper() == 'NO': log_yes = False
+            except: pass
+            if log_yes:
+                with open(CGI_CLI.logfilename,"a+") as CGI_CLI.fp:
+                    CGI_CLI.fp.write(timestamp_string + print_name + log_text + '\n')
+        ### COPY CLEANUP ######################################################
+        del log_text
+        del print_text
 
 
     @staticmethod
