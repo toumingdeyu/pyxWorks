@@ -2492,7 +2492,7 @@ def check_free_disk_space_on_devices(device_list = None, \
     missing_files_per_device_list = None, \
     USERNAME = None, PASSWORD = None, logfilename = None, printall = None):
 
-    ### SPACE = -1  MEANS UNTOUCHED/UNKNOWN/NOT EXISTENT SPACE ###
+    ### SPACE = -1 MEANS UNTOUCHED/UNKNOWN/NOT EXISTENT SPACE #################
     device_free_space_in_bytes, slave_device_free_space_in_bytes = -1, -1
 
     disk_low_space_devices, disk_free_list = [], []
@@ -2642,14 +2642,18 @@ def check_free_disk_space_on_devices(device_list = None, \
             forget_it = RCMD.run_commands(mkdir_device_cmds)
             CGI_CLI.uprint('\n')
 
-            ### CALCULATE NEEDED SPACE ON DEVICE FORM MISSING FILES ###
-            needed_device_free_space_in_bytes = 0
+            ### CALCULATE NEEDED SPACE ON DEVICE FORM MISSING FILES ###########
+            needed_device_free_space_in_bytes, maximal_filesize = 0, 0
             for device2,missing_or_bad_files_per_device in missing_files_per_device_list:
                 directory, dev_dir, file, md5, fsize = missing_or_bad_files_per_device
                 if device == device2:
                     needed_device_free_space_in_bytes += fsize
+                    ### FIND MAX FILE SIZE ####################################
+                    if fsize > maximal_filesize:
+                        maximal_filesize = copy.deepcopy(fsize)
             disk_free_list.append([device, device_free_space_in_bytes, \
-                slave_device_free_space_in_bytes, needed_device_free_space_in_bytes])
+                slave_device_free_space_in_bytes, needed_device_free_space_in_bytes, \
+                maximal_filesize])
             RCMD.disconnect()
 
     ### JUST PRINT TABLE HEADER ###
@@ -2663,7 +2667,7 @@ def check_free_disk_space_on_devices(device_list = None, \
 
     ### CHECK FREE SPACE ######################################################
     all_disk_checks_ok, error_string = True, str()
-    for device, disk_free, slave_disk_free, disk_reguired in disk_free_list:
+    for device, disk_free, slave_disk_free, disk_reguired, maximal_filesize in disk_free_list:
 
         ### ZERO SPACE OR JUNOS COULD HAVE NEGATIVE FREE SPACE ################
         if disk_free < -1 or slave_disk_free < -1 \
@@ -2719,6 +2723,26 @@ def check_free_disk_space_on_devices(device_list = None, \
                     float(disk_reguired)/1048576, \
                     float(disk_free)/1048576, \
                     float(slave_disk_free)/1048576), color = 'red')
+
+        ### JUNIPER NEEDS TWICE SPACE FOR LOCAL COPY OF FILES ON RE0 ##########
+        elif RCMD.router_type == 'juniper' and \
+            ((disk_free + (device_expected_MB_free * 1048576) < disk_reguired + maximal_filesize) \
+            and slave_disk_free != -1):
+
+                all_disk_checks_ok = False
+                error_string += 'Not enough space to copy files from re0 to re1 on %s!\n' % (device)
+                error_string += 'NOTE: Copy of files needs twice as space as max. filesize on re0.\n'
+                disk_low_space_devices.append(device)
+
+                if slave_disk_free == -1:
+                    CGI_CLI.uprint('%s    %.2f MB    %.2f MB    ---' % (device, \
+                        float(disk_reguired)/1048576, \
+                        float(disk_free)/1048576), color = 'red')
+                else:
+                    CGI_CLI.uprint('%s    %.2f MB    %.2f MB    %.2f MB' % (device, \
+                        float(disk_reguired)/1048576, \
+                        float(disk_free)/1048576, \
+                        float(slave_disk_free)/1048576), color = 'red')
         else:
             if slave_disk_free == -1:
                 CGI_CLI.uprint('%s    %.2f MB    %.2f MB    ---' % (device,
