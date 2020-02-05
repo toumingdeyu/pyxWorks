@@ -1981,6 +1981,22 @@ def do_pre_post_check(post = None, printall = None):
     else: CGI_CLI.uprint('\n')
 
 ##############################################################################
+
+def render_template(config_template = None):
+    ### CONFIG COULD HAVE MORE PARTS ###
+    if isinstance(config_template, (list,tuple)):
+        config_to_apply = []
+        for config_item in config_template:
+            mytemplate = Template(config_item,strict_undefined=True)
+            config_to_apply.append(str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n')
+    else:
+        config_to_apply = str()
+        mytemplate = Template(config_template,strict_undefined=True)
+        config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
+    return config_to_apply
+
+
+##############################################################################
 #
 # def BEGIN MAIN
 #
@@ -2086,9 +2102,7 @@ try:
                       RCMD.disconnect()
                       continue
 
-                config_to_apply = str()
-                mytemplate = Template(xr_config,strict_undefined=True)
-                config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
+                config_to_apply = render_template(xr_config)
             else:
                 ### UNDO/ROLLBACK CONFIG GENERATION ###
                 collector_cmd = {'cisco_xr':['sh run interface loopback 10','sh run interface loopback 0',
@@ -2131,9 +2145,7 @@ try:
                       RCMD.disconnect()
                       continue
 
-                config_to_apply = str()
-                mytemplate = Template(undo_xr_config,strict_undefined=True)
-                config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
+                config_to_apply = render_template(undo_xr_config)
 
         ### HUAWEI #####################################################################
         if RCMD.router_type == 'huawei':
@@ -2185,16 +2197,7 @@ try:
                       RCMD.disconnect()
                       continue
 
-                ### HUAWEI CONFIG SHOULD HAVE MORE PARTS ###
-                if isinstance(huawei_config, (list,tuple)):
-                    config_to_apply = []
-                    for config_item in huawei_config:
-                        mytemplate = Template(config_item,strict_undefined=True)
-                        config_to_apply.append(str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n')
-                else:
-                    config_to_apply = str()
-                    mytemplate = Template(huawei_config,strict_undefined=True)
-                    config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
+                config_to_apply = render_template(huawei_config)
             else:
                 ### UNDO/ROLLBACK CONFIG GENERATION ###
                 collector_cmd = {'huawei':[
@@ -2246,10 +2249,7 @@ try:
                       RCMD.disconnect()
                       continue
 
-                config_to_apply = str()
-                mytemplate = Template(undo_huawei_config,strict_undefined=True)
-                config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
-
+                config_to_apply = render_template(undo_huawei_config)
 
         ### JUNIPER #####################################################################
         if RCMD.router_type == 'juniper':
@@ -2292,11 +2292,7 @@ try:
                       RCMD.disconnect()
                       continue
 
-                config_to_apply = str()
-                mytemplate = Template(juniper_config,strict_undefined=True)
-                config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
-
-
+                config_to_apply = render_template(juniper_config)
             else:
                 ### UNDO/ROLLBACK CONFIG GENERATION ###
                 collector_cmd = {'juniper':[ 'show configuration interfaces lo0 | display set']}
@@ -2337,10 +2333,7 @@ try:
                       RCMD.disconnect()
                       continue
 
-                config_to_apply = str()
-                mytemplate = Template(undo_juniper_config,strict_undefined=True)
-                config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
-
+                config_to_apply = render_template(undo_juniper_config)
 
         ### def PRINT CONFIG ##################################################
         CGI_CLI.uprint('CONFIG:\n', tag = 'h1', color = 'blue')
