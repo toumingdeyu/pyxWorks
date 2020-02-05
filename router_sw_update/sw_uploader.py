@@ -2490,7 +2490,8 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
 
 def check_free_disk_space_on_devices(device_list = None, \
     missing_files_per_device_list = None, \
-    USERNAME = None, PASSWORD = None, logfilename = None, printall = None):
+    USERNAME = None, PASSWORD = None, logfilename = None, printall = None, \
+    max_file_size_even_if_already_exists_on_device = None):
 
     ### SPACE = -1 MEANS UNTOUCHED/UNKNOWN/NOT EXISTENT SPACE #################
     device_free_space_in_bytes, slave_device_free_space_in_bytes = -1, -1
@@ -2648,9 +2649,17 @@ def check_free_disk_space_on_devices(device_list = None, \
                 directory, dev_dir, file, md5, fsize = missing_or_bad_files_per_device
                 if device == device2:
                     needed_device_free_space_in_bytes += fsize
-                    ### FIND MAX FILE SIZE ####################################
+                    ### FIND ACTUAL NEEDED MAX FILE SIZE PER DEVICE ###########
                     if fsize > maximal_filesize:
                         maximal_filesize = copy.deepcopy(fsize)
+
+            ### THIS SITUATION DOES NOT COVER IF FILE IS ALREADY OK ON RE0 ####
+            ### BUT THERE IS NO SPACE TO COPY FILE TO RE1 #####################
+            ### FOR SURE FORCE OVERWRITE FREE EXPECTED DISK SPACE BY MAXIMUM ##
+            ### LATER WE CEN DECIDE ###########################################
+            if max_file_size_even_if_already_exists_on_device:
+                maximal_filesize = max_file_size_even_if_already_exists_on_device
+
             disk_free_list.append([device, device_free_space_in_bytes, \
                 slave_device_free_space_in_bytes, needed_device_free_space_in_bytes, \
                 maximal_filesize])
@@ -3757,6 +3766,12 @@ warning {
             USERNAME = USERNAME, PASSWORD = PASSWORD, logfilename = logfilename, \
             printall = printall, disk_low_space_devices = disk_low_space_devices)
 
+    ### FIND MAX FILE SIZE, FOR JUNIPER RE0 LOCAL COPY DISK CHECK #############
+    max_file_size_even_if_already_exists_on_device = 0
+    for directory,dev_dir,file,md5,fsize in true_sw_release_files_on_server:
+        if fsize > max_file_size_even_if_already_exists_on_device:
+            max_file_size_even_if_already_exists_on_device = fsize
+
     ### CHECK DISK SPACE ON DEVICES ###########################################
     disk_low_space_devices = []
     original_device_list = copy.deepcopy(device_list)
@@ -3768,7 +3783,8 @@ warning {
                     device_list = device_list, \
                     missing_files_per_device_list = missing_files_per_device_list, \
                     USERNAME = USERNAME, PASSWORD = PASSWORD, logfilename = logfilename, \
-                    printall = printall)
+                    printall = printall, \
+                    max_file_size_even_if_already_exists_on_device = max_file_size_even_if_already_exists_on_device)
 
         ### DELETE NOT-OK DISK SPACE DEVICES FROM COPY LIST ###################
         if len(disk_low_space_devices) > 0:
