@@ -237,18 +237,31 @@ class CGI_CLI(object):
         set_logfile(logfilename) - uses inserted logfilename
         """
         actual_logfilename, CGI_CLI.logfilename = None, None
+        ### CHECK AND GET ALREADY USED LOGFILES ###############################
         try:
             if not (LCMD.logfilenam == 'nul' or LCMD.logfilename == '/dev/null'):
-                actual_logfilename = LCMD.logfilename
+                actual_logfilename = copy.deepcopy(LCMD.logfilename)
         except: pass
         try:
             if not (RCMD.logfilenam == 'nul' or RCMD.logfilename == '/dev/null'):
-               actual_logfilename = RCMD.logfilename
+               actual_logfilename = copy.deepcopy(RCMD.logfilename)
         except: pass
+        ### SET ACTUAL_LOGFILENAME FROM INSERTED IF INSETRED ##################
         if logfilename: actual_logfilename = logfilename
+        ### REWRITE CGI_CLI.LOGFILENAME #######################################
         if actual_logfilename == 'nul' or actual_logfilename == '/dev/null' \
             or not actual_logfilename: pass
-        else: CGI_CLI.logfilename = actual_logfilename
+        else:
+            CGI_CLI.logfilename = actual_logfilename
+            ### IF LOGFILE SET, SET ALSO OTHER CLASSES LOG FILES ##############
+            try:
+                if CGI_CLI.logfilename:
+                    LCMD.logfilename = copy.deepcopy(CGI_CLI.logfilename)
+            except: pass
+            try:
+                if CGI_CLI.logfilename:
+                    RCMD.logfilename = copy.deepcopy(CGI_CLI.logfilename)
+            except: pass
 
     @staticmethod
     def print_chunk(msg=""):
@@ -268,6 +281,7 @@ class CGI_CLI(object):
            raw = True , print text as it is, not convert to html. Intended i.e. for javascript
            timestamp = True - locally allow (CGI_CLI.timestamp = True has priority)
            timestamp = 'no' - locally disable even if CGI_CLI.timestamp == True
+           log = 'no' - locally disable logging even if CGI_CLI.log == True
         """
         print_text, print_name, print_per_tag = copy.deepcopy(text), str(), str()
         if jsonprint:
@@ -284,7 +298,7 @@ class CGI_CLI(object):
         print_text = str(print_text)
         log_text   = str(copy.deepcopy((print_text)))
 
-        ### GENERATE TIMESTAMP STRING , 'NO' = NO EVERYTIME EVEN IF GLOBALLY IS ALLOWED ###
+        ### GENERATE TIMESTAMP STRING, 'NO' = NO EVEN IF GLOBALLY IS ALLOWED ###
         timestamp_string = str()
         if timestamp or CGI_CLI.timestamp:
             timestamp_yes = True
@@ -296,17 +310,18 @@ class CGI_CLI(object):
                     (datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S'), time.time() - CGI_CLI.START_EPOCH)
 
         if CGI_CLI.cgi_active and not raw:
-            ### WORKARROUND FOR COLORING OF SIMPLE TEXT
+            ### WORKARROUND FOR COLORING OF SIMPLE TEXT #######################
             if color and not (tag or start_tag): tag = 'p';
             if tag: CGI_CLI.print_chunk('<%s%s%s>'%(tag,' id="%s"'%(tag_id) if tag_id else str(),' style="color:%s;"' % (color) if color else str()))
             elif start_tag: CGI_CLI.print_chunk('<%s%s%s>'%(start_tag,' id="%s"'%(tag_id) if tag_id else str(),' style="color:%s;"' % (color) if color else str()))
             if isinstance(print_text, six.string_types):
-                print_text = str(print_text.replace('&','&amp;').replace('<','&lt;'). \
-                    replace('>','&gt;').replace(' ','&nbsp;').replace('"','&quot;').replace("'",'&apos;').\
+                print_text = str(print_text.replace('&','&amp;').\
+                    replace('<','&lt;').\
+                    replace('>','&gt;').replace(' ','&nbsp;').\
+                    replace('"','&quot;').replace("'",'&apos;').\
                     replace('\n','<br/>'))
             CGI_CLI.print_chunk(timestamp_string + print_name + print_text)
-        elif CGI_CLI.cgi_active and raw:
-            CGI_CLI.print_chunk(print_text)
+        elif CGI_CLI.cgi_active and raw: CGI_CLI.print_chunk(print_text)
         else:
             text_color = str()
             if color:
@@ -318,13 +333,15 @@ class CGI_CLI(object):
                 elif 'GREY' in color.upper():    text_color = CGI_CLI.bcolors.GREY
                 elif 'GRAY' in color.upper():    text_color = CGI_CLI.bcolors.GREY
                 elif 'YELLOW' in color.upper():  text_color = CGI_CLI.bcolors.YELLOW
-            ### CLI_MODE ###
+            ### CLI_MODE ######################################################
             if no_newlines:
-                sys.stdout.write(text_color + print_name + print_text + CGI_CLI.bcolors.ENDC)
+                sys.stdout.write(text_color + print_name + print_text \
+                    + CGI_CLI.bcolors.ENDC)
                 sys.stdout.flush()
             else:
-                print(text_color + print_name + timestamp_string + print_text + CGI_CLI.bcolors.ENDC)
-        del print_text
+                print(text_color + timestamp_string + print_name + print_text \
+                    + CGI_CLI.bcolors.ENDC)
+        ### PRINT END OF TAGS #################################################
         if CGI_CLI.cgi_active and not raw:
             if tag:
                 CGI_CLI.print_chunk('</%s>' % (tag))
@@ -332,13 +349,21 @@ class CGI_CLI(object):
                 if tag in ['debug','warning']: CGI_CLI.print_chunk('<br/>');
             elif end_tag: CGI_CLI.print_chunk('</%s>' % (end_tag))
             elif not no_newlines: CGI_CLI.print_chunk('<br/>')
-            ### PRINT PER TAG ###
+            ### PRINT PER TAG #################################################
             CGI_CLI.print_chunk(print_per_tag)
-        ### LOGGING ###
+        ### LOG ALL, if CGI_CLI.log is True, EXCEPT log == 'no' ###############
         if CGI_CLI.logfilename and (log or CGI_CLI.log):
-            with open(CGI_CLI.logfilename,"a+") as CGI_CLI.fp:
-                CGI_CLI.fp.write(print_name + log_text + '\n')
-                del log_text
+            log_yes = True
+            try:
+                if str(log).upper() == 'NO': log_yes = False
+            except: pass
+            if log_yes:
+                with open(CGI_CLI.logfilename,"a+") as CGI_CLI.fp:
+                    CGI_CLI.fp.write(timestamp_string + print_name + \
+                        log_text + '\n')
+        ### COPY CLEANUP ######################################################
+        del log_text
+        del print_text
 
 
     @staticmethod
@@ -693,10 +718,14 @@ class RCMD(object):
                         printall = printall)
                     if new_prompt: RCMD.DEVICE_PROMPTS.append(new_prompt)
             if printall or RCMD.printall:
-                if not long_lasting_mode: CGI_CLI.uprint(last_output, color = 'gray', timestamp = 'no')
+                if not long_lasting_mode:
+                    CGI_CLI.uprint(last_output, color = 'gray', timestamp = 'no', log = 'no')
             elif not RCMD.silent_mode:
-                if not long_lasting_mode: CGI_CLI.uprint(' . ', no_newlines = True)
-            if RCMD.fp: RCMD.fp.write('REMOTE_COMMAND' + sim_mark + ': ' + cmd_line + '\n' + last_output + '\n')
+                if not long_lasting_mode:
+                    CGI_CLI.uprint(' . ', no_newlines = True, log = 'no')
+            ### LOG ALL ONLY ONCE, THAT IS BECAUSE PREVIOUS LINE log = 'no' ###
+            if RCMD.fp: RCMD.fp.write('REMOTE_COMMAND' + sim_mark + ': ' + \
+                            cmd_line + '\n' + last_output + '\n')
         return last_output
 
     @staticmethod
@@ -729,7 +758,7 @@ class RCMD(object):
                 if 'WIN32' in sys.platform.upper(): RCMD.logfilename = 'nul'
                 else: RCMD.logfilename = '/dev/null'
             with open(RCMD.logfilename,"a+") as RCMD.fp:
-                if RCMD.output: RCMD.fp.write(RCMD.output)
+                if RCMD.output: RCMD.fp.write(RCMD.output + '\n')
                 command_outputs, sim_mark = [], str()
                 ### CONFIG MODE FOR NETMIKO ####################################
                 if (conf or RCMD.conf) and RCMD.use_module == 'netmiko':
