@@ -1935,7 +1935,6 @@ prepost_commands_1 = {
 ###############################################################################
 
 def do_pre_post_check(post = None, printall = None):
-    check_outputs = []
     loopback_0_address, loopback_10_address, loopback_200_address = str(), str(), str()
     CGI_CLI.uprint('%s-CHECK START:' % ('POST' if post else 'PRE'), tag = 'h2', color = 'blue')
 
@@ -1977,11 +1976,9 @@ def do_pre_post_check(post = None, printall = None):
     }
 
     check_outputs_2 = RCMD.run_commands(prepost_commands_2, printall = True)
-    check_outputs = check_outputs_1 + check_outputs_2
 
     if printall: CGI_CLI.uprint('%s-CHECK DONE.' % ('POST' if post else 'PRE'))
     else: CGI_CLI.uprint('\n')
-    return check_outputs
 
 ##############################################################################
 #
@@ -2045,7 +2042,7 @@ try:
             continue
 
         ### def PRECHECK SECTION ##############################################
-        precheck_outputs = do_pre_post_check(post = None, printall = printall)
+        do_pre_post_check(post = None, printall = printall)
 
         ### RID MIGRATION START ###############################################
         if RCMD.router_type == 'cisco_xr':
@@ -2377,7 +2374,7 @@ try:
 
         ### def POSTCHECK SECTION #############################################
         if not CGI_CLI.data.get('show_config_only'):
-            postcheck_outputs = do_pre_post_check(post = True, printall = printall)
+            do_pre_post_check(post = True, printall = printall)
 
         RCMD.disconnect()
 
