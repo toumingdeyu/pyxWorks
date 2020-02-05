@@ -282,7 +282,7 @@ class CGI_CLI(object):
         del print_text
         if CGI_CLI.cgi_active:
             if tag: CGI_CLI.print_chunk('</%s>'%(tag))
-            elif not no_newlines: CGI_CLI.print_chunk('<br/>');
+            elif not no_newlines: CGI_CLI.print_chunk('<br/>')
             ### PRINT PER TAG ###
             CGI_CLI.print_chunk(print_per_tag)
         ### LOGGING ###
@@ -341,7 +341,7 @@ class CGI_CLI(object):
         try: i_pyfile = i_pyfile.replace('\\','/').split('/')[-1].strip()
         except: i_pyfile = i_pyfile.strip()
         if CGI_CLI.cgi_active:
-            CGI_CLI.print_chunk('<br/>');
+            CGI_CLI.print_chunk('<br/>')
             if tag and 'h' in tag: CGI_CLI.print_chunk('<%s%s>'%(tag,' style="color:%s;"'%(color) if color else str()))
             if color or tag and 'p' in tag: tag = 'p'; CGI_CLI.print_chunk('<p%s>'%(' style="color:%s;"'%(color) if color else str()))
             CGI_CLI.print_chunk('<form action = "/cgi-bin/%s" enctype = "multipart/form-data" action = "save_file.py" method = "post">'%\

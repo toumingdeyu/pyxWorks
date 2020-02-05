@@ -346,7 +346,7 @@ class CGI_CLI(object):
             if tag:
                 CGI_CLI.print_chunk('</%s>' % (tag))
                 ### USER DEFINED TAGS DOES NOT PROVIDE NEWLINES!!! ############
-                if tag in ['debug','warning']: CGI_CLI.print_chunk('<br/>');
+                if tag in ['debug','warning']: CGI_CLI.print_chunk('<br/>')
             elif end_tag: CGI_CLI.print_chunk('</%s>' % (end_tag))
             elif not no_newlines: CGI_CLI.print_chunk('<br/>')
             ### PRINT PER TAG #################################################
@@ -426,7 +426,7 @@ class CGI_CLI(object):
         try: i_pyfile = i_pyfile.replace('\\','/').split('/')[-1].strip()
         except: i_pyfile = i_pyfile.strip()
         if CGI_CLI.cgi_active:
-            CGI_CLI.print_chunk('<br/>');
+            CGI_CLI.print_chunk('<br/>')
             if tag and 'h' in tag: CGI_CLI.print_chunk('<%s%s>'%(tag,' style="color:%s;"'%(color) if color else str()))
             if color or tag and 'p' in tag: tag = 'p'; CGI_CLI.print_chunk('<p%s>'%(' style="color:%s;"'%(color) if color else str()))
             CGI_CLI.print_chunk('<form action = "/cgi-bin/%s" enctype = "multipart/form-data" action = "save_file.py" method = "post">'%\
@@ -939,7 +939,7 @@ class RCMD(object):
                     CGI_CLI.uprint(traceback.format_exc(), color = 'magenta')
             else:
                 buff_read = str()
-                time.sleep(0.1);
+                time.sleep(0.1)
                 timeout_counter_100msec += 1
 
                 ### LONG LASTING COMMAND = ONLY CONNECTION TIMEOUT WILL BE APPLIED ###
