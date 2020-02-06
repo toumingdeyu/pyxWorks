@@ -1231,8 +1231,9 @@ if CGI_CLI.cgi_active and not CGI_CLI.submit_form:
     CGI_CLI.uprint('%s (v.%s)' % (SCRIPT_NAME,CGI_CLI.VERSION()), \
         tag = 'h1', color = 'blue')
     if CGI_CLI.cgi_active:
-        CGI_CLI.uprint('WARNING: PLEASE BE CAREFUL WHEN USING THIS TOOL!\nSUBMITING THE FORM WILL CHANGE CONFIGURATION ON LIVE DEVICE!', \
-            tag = 'h2', color = 'red')
+        CGI_CLI.uprint('WARNING!\n             PLEASE BE CAREFUL WHILE USING THIS TOOL!\nSUBMITING WILL CHANGE CONFIGURATION OF DEVICE IN OPERATION!', \
+            tag = 'h3', color = 'red')
+
 
     CGI_CLI.formprint([{'text':'device'},'<br/>',{'text':'username'},'<br/>',\
         {'password':'password'},'<br/>',{'text':'delay'},'<br/>',\
