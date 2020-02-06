@@ -529,7 +529,7 @@ class RCMD(object):
     @staticmethod
     def connect(device = None, cmd_data = None, username = None, password = None, \
         use_module = 'paramiko', logfilename = None, \
-        connection_timeout = 600, cmd_timeout = 30, \
+        connection_timeout = 600, cmd_timeout = 60, \
         conf = None, sim_config = None, disconnect = None, printall = None, \
         do_not_final_print = None, commit_text = None, silent_mode = None, \
         disconnect_timeout = 2, no_alive_test = None):
@@ -947,8 +947,9 @@ class RCMD(object):
         autoconfirm_mode = True ==> CISCO - '\n', HUAWEI - 'Y\n'
         '''
         output, output2, new_prompt = str(), str(), str()
-        exit_loop, exit_loop2 = False, False
-        timeout_counter_100msec, timeout_counter_100msec_2 = 0, 0
+        exit_loop = False
+        no_rx_data_counter_100msec, command_counter_100msec = 0, 0
+        after_enter_counter_100msec, possible_prompts = 0, []
 
         ### FLUSH BUFFERS FROM PREVIOUS COMMANDS IF THEY ARE ALREADY BUFFERED ###
         if chan.recv_ready(): flush_buffer = chan.recv(9999)
@@ -958,9 +959,17 @@ class RCMD(object):
 
         ### MAIN WHILE LOOP ###################################################
         while not exit_loop:
-            if chan.recv_ready():
-                ### WORKARROUND FOR DISCONTINIOUS OUTPUT FROM ROUTERS ###
-                timeout_counter_100msec = 0
+            if not chan.recv_ready():
+                ### NOT RECEIVED ANY DATA #####################################
+                buff_read = str()
+                time.sleep(0.1)
+                no_rx_data_counter_100msec += 1
+                command_counter_100msec    += 1
+                if after_enter_counter_100msec:
+                    after_enter_counter_100msec += 1
+            else:
+                ### RECEIVED DATA IMMEDIATE ACTIONS ###########################
+                no_rx_data_counter_100msec = 0
                 buff = chan.recv(9999)
                 try:
                     buff_read = str(buff.decode(encoding='utf-8').\
@@ -970,120 +979,105 @@ class RCMD(object):
                 except:
                     CGI_CLI.uprint('BUFF_ERR[%s][%s]'%(buff,type(buff)), color = 'red')
                     CGI_CLI.uprint(traceback.format_exc(), color = 'magenta')
-            else:
-                buff_read = str()
-                time.sleep(0.1)
-                timeout_counter_100msec += 1
 
-                ### LONG LASTING COMMAND = ONLY CONNECTION TIMEOUT WILL BE APPLIED ###
-                if long_lasting_mode:
-                    if timeout_counter_100msec%100: pass
-                    elif CGI_CLI.cgi_active:
-                        ### KEEPALIVE CONNECTION, DEFAULT 300sec TIMEOUT ###
-                        CGI_CLI.uprint("<script>console.log('10sec...');</script>", raw = True)
-                    if timeout_counter_100msec + 100 >= RCMD.CONNECTION_TIMEOUT*10:
-                        CGI_CLI.uprint("LONG LASTING COMMAND TIMEOUT!", color = 'red')
-                        exit_loop = True
-                        break
-                continue
+                ### FIND LAST LINE (STRIPPED), THIS COULD BE PROMPT ###
+                last_line_edited = str()
+                try: last_line_original = output.splitlines()[-1].strip()
+                except: last_line_original = str()
 
-            ### FIND LAST LINE (STRIPPED), THIS COULD BE PROMPT ###
-            last_line_edited = str()
-            try: last_line_original = output.splitlines()[-1].strip()
-            except: last_line_original = str()
+                # FILTER-OUT '(...)' FROM PROMPT IOS-XR/IOS-XE ###
+                if RCMD.router_type in ["ios-xr","ios-xe",'cisco_ios','cisco_xr']:
+                    try:
+                        last_line_part1 = last_line_original.split('(')[0]
+                        last_line_part2 = last_line_original.split(')')[1]
+                        last_line_edited = last_line_part1 + last_line_part2
+                    except:
+                        if 'sysadmin' in last_line_original and '#' in last_line_original:
+                            last_line_edited = 'sysadmin#'
+                        else: last_line_edited = last_line_original
 
-            # FILTER-OUT '(...)' FROM PROMPT IOS-XR/IOS-XE ###
-            if RCMD.router_type in ["ios-xr","ios-xe",'cisco_ios','cisco_xr']:
-                try:
-                    last_line_part1 = last_line_original.split('(')[0]
-                    last_line_part2 = last_line_original.split(')')[1]
-                    last_line_edited = last_line_part1 + last_line_part2
-                except:
-                    if 'sysadmin' in last_line_original and '#' in last_line_original:
-                        last_line_edited = 'sysadmin#'
-                    else: last_line_edited = last_line_original
+                ### PRINT LONG LASTING OUTPUTS PER PARTS ######################
+                if printall and long_lasting_mode and buff_read and not RCMD.silent_mode:
+                    CGI_CLI.uprint('%s' % (buff_read), color = 'gray', no_newlines = True)
 
-            ### PRINT LONG LASTING OUTPUTS PER PARTS ##########################
-            if printall and long_lasting_mode and buff_read and not RCMD.silent_mode:
-                CGI_CLI.uprint('%s' % (buff_read), color = 'gray', no_newlines = True)
+                ### PROMPT IN LAST LINE = PROPER END OF COMMAND ###############
+                for actual_prompt in prompts:
+                    if output.strip().endswith(actual_prompt) or \
+                        (last_line_edited and last_line_edited.endswith(actual_prompt)) or \
+                        (last_line_original and last_line_original.endswith(actual_prompt)):
+                            exit_loop = True
+                            break
+                if exit_loop: break
 
-            # IS ACTUAL LAST LINE PROMPT ? IF YES , GO AWAY
-            for actual_prompt in prompts:
-                if output.strip().endswith(actual_prompt) or \
-                    (last_line_edited and last_line_edited.endswith(actual_prompt)) or \
-                    (last_line_original and last_line_original.endswith(actual_prompt)):
-                        #CGI_CLI.uprint(prompts)
-                        exit_loop=True; break
-            else:
-                continue_while_loop = False
+                ### IS ACTUAL LAST LINE PROMPT ? IF YES, CONFIRM ##############
                 dialog_list = ['?', '[Y/N]:', '[confirm]', '? [no]:']
                 for dialog_line in dialog_list:
                     if last_line_original.strip().endswith(dialog_line) or \
                         last_line_edited.strip().endswith(dialog_line):
                         if autoconfirm_mode:
-                            ### AUTO-CONFIRM MODE ###
-                            time.sleep(0.2)
+                            ### AUTO-CONFIRM MODE #############################
                             if RCMD.router_type in ["ios-xr","ios-xe",'cisco_ios','cisco_xr']:
                                 chan.send('\n')
                             elif RCMD.router_type in ["vrp",'huawei']:
                                 chan.send('Y\n')
-                            time.sleep(0.5)
-                            continue_while_loop = True
+                            time.sleep(0.2)
                             break
                         else:
-                            ### INTERACTIVE QUESTION --> GO AWAY ###
-                            time.sleep(0.1)
-                            continue_while_loop = True
+                            ### INTERACTIVE QUESTION --> GO AWAY ##############
                             exit_loop = True
                             break
+                if exit_loop: break
 
-                ### CONTINUE WHILE LOOP ###
-                if continue_while_loop: continue
+            ### RECEIVED OR NOT RECEIVED DATA COMMON ACTIONS ##################
+            if not long_lasting_mode:
+                ### COMMAND TIMEOUT EXIT ######################################
+                if command_counter_100msec > RCMD.CMD_TIMEOUT*10:
+                    exit_loop = True
+                    break
 
-                ### LONG LASTING COMMAND = ONLY CONNECTION TIMEOUT WILL BE APPLIED ###
-                if long_lasting_mode:
-                    if timeout_counter_100msec%100: pass
-                    elif CGI_CLI.cgi_active:
-                        ### KEEPALIVE CONNECTION, DEFAULT 300sec TIMEOUT ###
-                        CGI_CLI.uprint("<script>console.log('10s...');</script>", raw = True)
-                    if timeout_counter_100msec + 100 > RCMD.CONNECTION_TIMEOUT*10:
-                        CGI_CLI.uprint("LONG LASTING COMMAND TIMEOUT!!", color = 'red')
-                        exit_loop = True
-                        break
-                else:
-                    ### IGNORE NEW PROMPT AND GO AWAY ###
-                    if ignore_prompt:
-                        time.sleep(1)
-                        exit_loop = True
-                        break
+            if long_lasting_mode:
+                ### KEEPALIVE CONNECTION, DEFAULT 300sec TIMEOUT ##############
+                if not command_counter_100msec%100 and CGI_CLI.cgi_active:
+                    CGI_CLI.uprint("<script>console.log('10s...');</script>", \
+                        raw = True)
 
-                    ### 30 SECONDS COMMAND TIMEOUT ###
-                    if timeout_counter_100msec > RCMD.CMD_TIMEOUT*10: exit_loop = True; break
-                    ### 10 SECONDS --> This could be a new PROMPT ###
-                    elif timeout_counter_100msec > 10*10 and not exit_loop2:
-                        ### TRICK IS IF NEW PROMPT OCCURS, HIT ENTER ... ###
-                        ### ... AND IF OCCURS THE SAME LINE --> IT IS NEW PROMPT!!! ###
-                        chan.send('\n')
-                        time.sleep(0.5)
-                        while(not exit_loop2):
-                            if chan.recv_ready():
-                                buff = chan.recv(9999)
-                                try:
-                                    buff_read = str(buff.decode(encoding='utf-8').\
-                                        replace('\x0d','').replace('\x07','').\
-                                        replace('\x08','').replace(' \x1b[1D','').replace(u'\u2013',''))
-                                    output2 += buff_read
-                                except:
-                                    CGI_CLI.uprint('BUFF_ERR[%s][%s]'%(buff,type(buff)), color = 'red')
-                                    CGI_CLI.uprint(traceback.format_exc(), color = 'magenta')
-                            else: time.sleep(0.1); timeout_counter_100msec_2 += 1
-                            try: new_last_line = output2.splitlines()[-1].strip()
-                            except: new_last_line = str()
-                            if last_line_original and new_last_line and last_line_original == new_last_line:
-                                if printall: CGI_CLI.uprint('NEW_PROMPT: %s' % (last_line_original), color = 'cyan')
-                                new_prompt = last_line_original; exit_loop=True;exit_loop2=True; break
-                            # WAIT UP TO 5 SECONDS
-                            if (timeout_counter_100msec_2) > 5*10: exit_loop2 = True; break
+            ### EXIT SOONER THAN CONNECTION TIMEOUT IF LONG LASTING OR NOT ####
+            if command_counter_100msec + 100 > RCMD.CONNECTION_TIMEOUT*10:
+                CGI_CLI.uprint("LONG LASTING COMMAND TIMEOUT!!", color = 'red')
+                exit_loop = True
+                break
+
+            ### IGNORE NEW PROMPT AND GO AWAY #################################
+            if ignore_prompt:
+                time.sleep(1)
+                exit_loop = True
+                break
+
+            ### PROMPT FOUND OR NOT ###########################################
+            if after_enter_counter_100msec > 0:
+                if last_line_original and last_line_original in possible_prompts:
+                    new_prompt = last_line_original
+                    exit_loop = True
+                    break
+                if after_enter_counter_100msec > 50:
+                    exit_loop = True
+                    break
+
+            ### LONG TIME NO RESPONSE - THIS COULD BE A NEW PROMPT ############
+            if not long_lasting_mode and no_rx_data_counter_100msec > 100 \
+                and after_enter_counter_100msec == 0 and last_line_original:
+                ### TRICK IS IF NEW PROMPT OCCURS, HIT ENTER ... ###
+                ### ... AND IF OCCURS THE SAME LINE --> IT IS NEW PROMPT!!! ###
+                try: last_line_actual = copy.deepcopy(output.strip().splitlines[-1])
+                except: last_line_actual = str()
+                if last_line_original:
+                    possible_prompts.append(copy.deepcopy(last_line_original))
+                if last_line_edited:
+                    possible_prompts.append(copy.deepcopy(last_line_edited))
+                if last_line_actual: possible_prompts.append(last_line_actual)
+                chan.send('\n')
+                time.sleep(0.1)
+                after_enter_counter_100msec = 1
         return output, new_prompt
 
     @staticmethod
@@ -1443,6 +1437,7 @@ class LCMD(object):
                     LCMD.fp.write('EXEC_PROBLEM[' + str(e) + ']\n')
         return None
 
+###############################################################################
 
 class sql_interface():
     ### import mysql.connector
@@ -1454,8 +1449,9 @@ class sql_interface():
         default_ipxt_data_collector_delete_columns = ['id','last_updated']
         self.sql_connection = None
         try:
-            if CGI_CLI.initialized: pass
-            else: CGI_CLI.init_cgi(); CGI_CLI.print_args()
+            if not CGI_CLI.initialized:
+                CGI_CLI.init_cgi(chunked = True)
+                if printall: CGI_CLI.print_args()
         except: pass
         try:
             if int(sys.version_info[0]) == 3:
@@ -3191,6 +3187,7 @@ warning {
 
     logging.raiseExceptions=False
     goto_webpage_end_by_javascript = str()
+    traceback_found = None
 
     ### def GLOBAL CONSTANTS #################################################
     device_expected_MB_free = 100
@@ -4059,7 +4056,9 @@ warning {
                 RCMD.disconnect()
     del sql_inst
 except SystemExit: pass
-except: CGI_CLI.uprint(traceback.format_exc(), tag = 'h3',color = 'magenta')
+except:
+    traceback_found = True
+    CGI_CLI.uprint(traceback.format_exc(), tag = 'h3',color = 'magenta')
 
 ### PRINT LOGFILENAME #########################################################
 if logfilename: CGI_CLI.uprint(' ==> File %s created.' % (logfilename))
@@ -4069,3 +4068,9 @@ send_me_email( \
     subject = logfilename.replace('\\','/').split('/')[-1] if logfilename else None, \
     file_name = logfilename, username = USERNAME)
 
+### SEND EMAIL WITH ERROR/TRACEBACK LOGFILE TO SUPPORT ########################
+if traceback_found:
+    send_me_email( \
+        subject = 'TRACEBACK-SW_ULOADER-' + logfilename.replace('\\','/').\
+        split('/')[-1] if logfilename else str(), \
+        file_name = logfilename, username = 'pnemec')
