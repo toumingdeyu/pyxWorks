@@ -915,11 +915,9 @@ class RCMD(object):
         '''
         output, output2, new_prompt = str(), str(), str()
         exit_loop = False
-        no_rx_data_counter_100msec = 0
-        command_counter_100msec = 0
-        after_enter_counter_100msec = 0
-        possible_prompts = []
-        
+        no_rx_data_counter_100msec, command_counter_100msec = 0, 0
+        after_enter_counter_100msec, possible_prompts = 0, []
+
         ### FLUSH BUFFERS FROM PREVIOUS COMMANDS IF THEY ARE ALREADY BUFFERED ###
         if chan.recv_ready(): flush_buffer = chan.recv(9999)
         time.sleep(0.1)
@@ -934,7 +932,7 @@ class RCMD(object):
                 time.sleep(0.1)
                 no_rx_data_counter_100msec += 1
                 command_counter_100msec    += 1
-                if after_enter_counter_100msec: 
+                if after_enter_counter_100msec:
                     after_enter_counter_100msec += 1
             else:
                 ### RECEIVED DATA IMMEDIATE ACTIONS ###########################
@@ -1003,20 +1001,20 @@ class RCMD(object):
                 if command_counter_100msec > RCMD.CMD_TIMEOUT*10:
                     exit_loop = True
                     break
-                    
+
             if long_lasting_mode:
                 ### KEEPALIVE CONNECTION, DEFAULT 300sec TIMEOUT ##############
                 if not command_counter_100msec%100 and CGI_CLI.cgi_active:
                     CGI_CLI.uprint("<script>console.log('10s...');</script>", \
                         raw = True)
-                        
+
             ### EXIT SOONER THAN CONNECTION TIMEOUT IF LONG LASTING OR NOT ####
             if command_counter_100msec + 100 > RCMD.CONNECTION_TIMEOUT*10:
                 CGI_CLI.uprint("LONG LASTING COMMAND TIMEOUT!!", color = 'red')
                 exit_loop = True
                 break
-                
-            ### IGNORE NEW PROMPT AND GO AWAY #################################    
+
+            ### IGNORE NEW PROMPT AND GO AWAY #################################
             if ignore_prompt:
                 time.sleep(1)
                 exit_loop = True
@@ -1024,26 +1022,29 @@ class RCMD(object):
 
             ### PROMPT FOUND OR NOT ###########################################
             if after_enter_counter_100msec > 0:
-                if last_line_original in possible_prompts:
+                if last_line_original and last_line_original in possible_prompts:
                     new_prompt = last_line_original
                     exit_loop = True
                     break
-                elif after_enter_counter_100msec > 50:
+                if after_enter_counter_100msec > 50:
                     exit_loop = True
-                    break                
+                    break
 
             ### LONG TIME NO RESPONSE - THIS COULD BE A NEW PROMPT ############
             if not long_lasting_mode and no_rx_data_counter_100msec > 100 \
                 and after_enter_counter_100msec == 0:
                 ### TRICK IS IF NEW PROMPT OCCURS, HIT ENTER ... ###
-                ### ... AND IF OCCURS THE SAME LINE --> IT IS NEW PROMPT!!! ###              
-                possible_prompts = [
-                    copy.deepcopy(output.strip().splitlines[-1]),\
-                    copy.deepcopy(last_line_original), 
-                    copy.deepcopy(ast_line_edited)]                
+                ### ... AND IF OCCURS THE SAME LINE --> IT IS NEW PROMPT!!! ###
+                try: last_line_actual = copy.deepcopy(output.strip().splitlines[-1])
+                except: last_line_actual = str()
+                if last_line_original:
+                    possible_prompts.append(copy.deepcopy(last_line_original))
+                if last_line_edited:
+                    possible_prompts.append(copy.deepcopy(last_line_edited))
+                if last_line_actual: possible_prompts.append(last_line_actual)
                 chan.send('\n')
                 time.sleep(0.1)
-                after_enter_counter_100msec = 1                
+                after_enter_counter_100msec = 1
         return output, new_prompt
 
     @staticmethod
