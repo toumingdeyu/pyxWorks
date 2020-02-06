@@ -1178,8 +1178,10 @@ undo isis ipv6 enable 5511
 ### HTML MENU SHOWS ONLY IN CGI MODE ###
 if CGI_CLI.cgi_active and not CGI_CLI.submit_form:
     CGI_CLI.uprint('ADD Loopback200 ipv4 to ipv6 TOOL:\n', tag = 'h1', color = 'blue')
+    CGI_CLI.uprint('WARNING: PLEASE BE CAREFUL WHEN USING THIS TOOL!\nSUBMITING THE FORM WILL CHANGE CONFIGURATION ON LIVE DEVICE!', \
+        tag = 'h2', color = 'red')
     CGI_CLI.formprint([{'text':'device'},'<br/>',{'text':'username'},'<br/>',\
-        {'password':'password'},'<br/>',{'checkbox':'sim'},'<br/>',\
+        {'password':'password'},'<br/>',\
         {'checkbox':'rollback'},'<br/>',{'checkbox':'show_config_only'},'<br/>'], \
         submit_button = 'OK', pyfile = None, tag = None, color = None)
 
