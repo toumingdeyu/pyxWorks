@@ -2143,8 +2143,9 @@ try:
     if CGI_CLI.cgi_active:
         CGI_CLI.uprint('<h1 style="color:blue;">%s <a href="%s" style="text-decoration: none">(v.%s)</a></h1>' % \
             (SCRIPT_NAME, changelog, CGI_CLI.VERSION()), raw = True)
-        CGI_CLI.uprint('WARNING: PLEASE BE CAREFUL WHEN USING THIS TOOL!\nSUBMITING THE FORM WILL CHANGE CONFIGURATION ON LIVE DEVICE!', \
-            tag = 'h2', color = 'red')
+        CGI_CLI.uprint('WARNING!\n             PLEASE BE CAREFUL WHILE USING THIS TOOL!\nSUBMITING WILL CHANGE CONFIGURATION OF DEVICE IN OPERATION!', \
+            tag = 'h3', color = 'red')
+
     else: CGI_CLI.uprint('%s (v.%s)' % (SCRIPT_NAME,CGI_CLI.VERSION()), \
               tag = 'h1', color = 'blue')
     if printall: CGI_CLI.print_args()
