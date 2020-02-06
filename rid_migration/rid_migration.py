@@ -103,10 +103,6 @@ class CGI_CLI(object):
                             action = "store_true", dest = 'rollback',
                             default = None,
                             help = "do rollback")
-        parser.add_argument("--sim",
-                            action = "store_true", dest = 'sim',
-                            default = None,
-                            help = "config simulation mode")
         parser.add_argument("--cfg",
                             action = "store_true", dest = 'show_config_only',
                             default = None,
@@ -1405,6 +1401,130 @@ class LCMD(object):
         return None
 
 
+
+###############################################################################
+
+def send_me_email(subject = str(), email_body = str(), file_name = None, attachments = None, \
+    email_address = None, cc = None, bcc = None, username = None):
+    """
+    FUCTION: send_me_email, RETURNS: True/None, Successfully send email or not
+    INPUT PARAMETERS:
+    email_address - string, email address if is known, otherwise use username parameter
+    username    - string, system username from which could be generated email
+    subject     - string, email subject
+    email_body  - string, email body
+    cc, bcc     - list or string, in case of list possibility to insert more email addresses
+    attachments - list or string , possibility to attach more files
+    file_name   - string, simple file attachment option
+    """
+    def send_unix_email_body(mail_command):
+        email_success = None
+        try:
+            forget_it = subprocess.check_output(mail_command, shell=True)
+            CGI_CLI.uprint(' ==> Email sent. Subject:"%s" SentTo:%s by COMMAND=[%s] with RESULT=[%s]...'\
+                %(subject,sugested_email_address,mail_command,forget_it), color = 'green')
+            email_success = True
+        except Exception as e:
+            if printall:
+                CGI_CLI.uprint(" ==> Problem to send email by COMMAND=[%s], PROBLEM=[%s]\n"\
+                    % (mail_command,str(e)) ,color = 'magenta')
+        return email_success
+
+    ### FUCTION send_me_email START ###########################################
+    email_sent, sugested_email_address = None, str()
+    if username: my_account = username
+    else: my_account = subprocess.check_output('whoami', shell=True).strip()
+    if email_address: sugested_email_address = email_address
+    if not 'WIN32' in sys.platform.upper():
+        try:
+            ldapsearch_output = subprocess.check_output('ldapsearch -LLL -x uid=%s mail' % (my_account), shell=True)
+            ldap_email_address = ldapsearch_output.decode("utf-8").split('mail:')[1].splitlines()[0].strip()
+        except: ldap_email_address = None
+        if ldap_email_address: sugested_email_address = ldap_email_address
+        else:
+            try: sugested_email_address = os.environ['NEWR_EMAIL']
+            except: pass
+            if not sugested_email_address:
+                try:
+                    my_getent_line = ' '.join((subprocess.check_output('getent passwd "%s"'% \
+                        (my_account.strip()), shell=True)).split(':')[4].split()[:2])
+                    my_name = my_getent_line.splitlines()[0].split()[0]
+                    my_surname = my_getent_line.splitlines()[0].split()[1]
+                    if my_name and my_surname:
+                        sugested_email_address = '%s.%s@orange.com' % (my_name, my_surname)
+                except: pass
+
+        ### UNIX - MAILX ######################################################
+        mail_command = 'echo \'%s\' | mailx -s "%s" ' % (email_body,subject)
+        if cc:
+            if isinstance(cc, six.string_types): mail_command += '-c %s' % (cc)
+            if cc and isinstance(cc, (list,tuple)): mail_command += ''.join([ '-c %s ' % (bcc_email) for bcc_email in bcc ])
+        if bcc:
+            if isinstance(bcc, six.string_types): mail_command += '-b %s' % (bcc)
+            if bcc and isinstance(bcc, (list,tuple)): mail_command += ''.join([ '-b %s ' % (bcc_email) for bcc_email in bcc ])
+        if file_name and isinstance(file_name, six.string_types) and os.path.exists(file_name):
+            mail_command += '-a %s ' % (file_name)
+        if attachments:
+            if isinstance(attachments, (list,tuple)):
+                mail_command += ''.join([ '-a %s ' % (attach_file) for attach_file in attachments if os.path.exists(attach_file) ])
+            if isinstance(attachments, six.string_types) and os.path.exists(attachments):
+                mail_command += '-a %s ' % (attachments)
+
+        ### IF EMAIL ADDRESS FOUND , SEND EMAIL ###############################
+        if not sugested_email_address:
+            if printall: CGI_CLI.uprint('Email Address not found!', color = 'magenta')
+        else:
+            mail_command += '%s' % (sugested_email_address)
+            email_sent = send_unix_email_body(mail_command)
+
+            ### UNIX - MUTT ###################################################
+            if not email_sent and file_name:
+                mail_command = 'echo | mutt -s "%s" -a %s -- %s' % \
+                    (subject, file_name, sugested_email_address)
+                email_sent = send_unix_email_body(mail_command)
+
+
+    ### WINDOWS OS PART #######################################################
+    if 'WIN32' in sys.platform.upper():
+        ### NEEDED 'pip install pywin32'
+        #if not 'win32com.client' in sys.modules: import win32com.client
+        import win32com.client
+        olMailItem, email_application = 0, 'Outlook.Application'
+        try:
+            ol = win32com.client.Dispatch(email_application)
+            msg = ol.CreateItem(olMailItem)
+            if email_address:
+                msg.Subject, msg.Body = subject, email_body
+                if email_address:
+                    if isinstance(email_address, six.string_types): msg.To = email_address
+                    if email_address and isinstance(email_address, (list,tuple)):
+                        msg.To = ';'.join([ eadress for eadress in email_address if eadress != "" ])
+                if cc:
+                    if isinstance(cc, six.string_types): msg.CC = cc
+                    if cc and isinstance(cc, (list,tuple)):
+                        msg.CC = ';'.join([ eadress for eadress in cc if eadress != "" ])
+                if bcc:
+                    if isinstance(bcc, six.string_types): msg.BCC = bcc
+                    if bcc and isinstance(bcc, (list,tuple)):
+                        msg.BCC = ';'.join([ eadress for eadress in bcc if eadress != "" ])
+                if file_name and isinstance(file_name, six.string_types) and os.path.exists(file_name):
+                    msg.Attachments.Add(file_name)
+                if attachments:
+                    if isinstance(attachments, (list,tuple)):
+                        for attach_file in attachments:
+                            if os.path.exists(attach_file): msg.Attachments.Add(attach_file)
+                    if isinstance(attachments, six.string_types) and os.path.exists(attachments):
+                        msg.Attachments.Add(attachments)
+
+            msg.Send()
+            ol.Quit()
+            CGI_CLI.uprint(' ==> Email sent. Subject:"%s" SentTo:%s by APPLICATION=[%s].'\
+                %(subject,sugested_email_address,email_application), color = 'green')
+            email_sent = True
+        except Exception as e: CGI_CLI.uprint(" ==> Problem to send email by APPLICATION=[%s], PROBLEM=[%s]\n"\
+                % (email_application,str(e)) ,color = 'magenta')
+    return email_sent
+
 ###############################################################################
 def generate_logfilename(prefix = None, USERNAME = None, suffix = None, \
     directory = None):
@@ -1999,7 +2119,7 @@ if __name__ != "__main__": sys.exit(0)
 
 ### CGI-BIN READ FORM ########################################################
 USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True, log = True)
-
+traceback_found = None
 logfilename = None
 device = None
 if CGI_CLI.data.get("device"): device = CGI_CLI.data.get("device")
@@ -2029,9 +2149,11 @@ try:
 
     ### def HTML MENU SHOWS ONLY IN CGI MODE ##################################
     if CGI_CLI.cgi_active and not CGI_CLI.submit_form:
-        CGI_CLI.formprint([{'text':'device'},'<br/>',{'text':'username'},'<br/>',\
-        {'password':'password'},'<br/>',{'checkbox':'sim'},'<br/>',\
-        {'checkbox':'rollback'},'<br/>',{'checkbox':'show_config_only'},'<br/>',\
+        CGI_CLI.formprint([{'text':'device'},'<br/>',\
+        {'text':'username'},'<br/>',\
+        {'password':'password'},'<br/>',\
+        {'checkbox':'rollback'},'<br/>',\
+        {'checkbox':'show_config_only'},'<br/>',\
         {'checkbox':'printall'},'<br/>','<br/>'], \
         submit_button = 'OK', pyfile = None, tag = None, color = None)
 
@@ -2366,7 +2488,20 @@ try:
         RCMD.disconnect()
 
 except SystemExit: pass
-except: CGI_CLI.uprint(traceback.format_exc(), tag = 'h3',color = 'magenta')
+except:
+    traceback_found = True
+    CGI_CLI.uprint(traceback.format_exc(), tag = 'h3',color = 'magenta')
 
 ### PRINT LOGFILENAME #########################################################
 if logfilename: CGI_CLI.uprint(' ==> File %s created.' % (logfilename))
+
+### SEND EMAIL WITH ERROR/TRACEBACK LOGFILE TO SUPPORT ########################
+if traceback_found:
+    send_me_email( \
+        subject = 'TRACEBACK-RID-' + logfilename.replace('\\','/').\
+        split('/')[-1] if logfilename else str(), \
+        file_name = logfilename, username = 'pnemec')
+    send_me_email( \
+        subject = 'TRACEBACK-RID-' + logfilename.replace('\\','/').\
+        split('/')[-1] if logfilename else str(), \
+        file_name = logfilename, username = 'mkrupa')
