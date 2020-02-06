@@ -1981,10 +1981,6 @@ bgp ${bgp_as}
  router-id ${loopback_200_address}
 Y
 #
-peer ARBOR connect-interface LoopBack0
-peer ARBOR connect-interface LoopBack0
-peer RR-SERVER-L0-IPV6 connect-interface LoopBack0
-#
 ${router_id_line}
 #
 mpls lsr-id ${loopback_200_address}
