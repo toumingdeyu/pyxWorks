@@ -1032,7 +1032,7 @@ class RCMD(object):
 
             ### LONG TIME NO RESPONSE - THIS COULD BE A NEW PROMPT ############
             if not long_lasting_mode and no_rx_data_counter_100msec > 100 \
-                and after_enter_counter_100msec == 0:
+                and after_enter_counter_100msec == 0 and last_line_original:
                 ### TRICK IS IF NEW PROMPT OCCURS, HIT ENTER ... ###
                 ### ... AND IF OCCURS THE SAME LINE --> IT IS NEW PROMPT!!! ###
                 try: last_line_actual = copy.deepcopy(output.strip().splitlines[-1])
