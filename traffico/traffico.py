@@ -1225,7 +1225,15 @@ if CGI_CLI.cgi_active and not (USERNAME and PASSWORD):
 
 ### HTML MENU SHOWS ONLY IN CGI MODE ###
 if CGI_CLI.cgi_active and not CGI_CLI.submit_form:
-    CGI_CLI.uprint('TRAFFIC OFF/ON TOOL:\n', tag = 'h1', color = 'blue')
+    ### START PRINTING AND LOGGING ############################################
+    changelog = 'https://github.com/peteneme/pyxWorks/commits/master/traffico/traffico.py'
+    SCRIPT_NAME = 'TRAFFIC OFF/ON TOOL:'
+    CGI_CLI.uprint('%s (v.%s)' % (SCRIPT_NAME,CGI_CLI.VERSION()), \
+        tag = 'h1', color = 'blue')
+    if CGI_CLI.cgi_active:
+        CGI_CLI.uprint('WARNING: PLEASE BE CAREFUL WHEN USING THIS TOOL!\nSUBMITING THE FORM WILL CHANGE CONFIGURATION ON LIVE DEVICE!', \
+            tag = 'h2', color = 'red')
+
     CGI_CLI.formprint([{'text':'device'},'<br/>',{'text':'username'},'<br/>',\
         {'password':'password'},'<br/>',{'text':'delay'},'<br/>',\
         {'radio':['shut','noshut']},'<br/>',\
