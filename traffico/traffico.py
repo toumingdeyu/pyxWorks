@@ -1238,7 +1238,7 @@ if CGI_CLI.cgi_active and not CGI_CLI.submit_form:
     CGI_CLI.formprint([{'text':'device'},'<br/>',{'text':'username'},'<br/>',\
         {'password':'password'},'<br/>',{'text':'delay'},'<br/>',\
         {'radio':['shut','noshut']},'<br/>',\
-        {'checkbox':'sim'},'<br/>',{'checkbox':'printall'},'<br/>',\
+        {'checkbox':'printall'},'<br/>',\
         {'checkbox':'show_config_only'},'<br/>','<br/>'], \
         submit_button = 'OK', pyfile = None, tag = None, color = None)
     ### NOT NEEDED TO DO ANY MORE ###
