@@ -1817,7 +1817,7 @@ def get_interface_list_per_device(device = None):
                 if if_lines[-1] in RCMD.DEVICE_PROMPTS: del if_lines[-1]
             except: pass
 
-            interface_list = [ (if_line.split()[0], if_line) for if_line in if_lines if if_line.strip() ]
+            interface_list = [ (if_line.split()[0].replace('GE','Gi'), if_line) for if_line in if_lines if if_line.strip() ]
 
         RCMD.disconnect()
     return interface_list
