@@ -1885,9 +1885,16 @@ warning {
     ipv6_addr_rem = 'ff::ff'
     LDP_neighbor_IP = '2.2.2.2'
 
+    get_interface_rcmds = {
+        'cisco_ios':['sh interfaces description'],
+        'cisco_xr':['sh interfaces description'],
+        'juniper':['show interfaces description'],
+        'huawei':['display interface description '],
+    }
+
 
     ### FIRST COMMAND LIST ####################################################
-    first_config_rcmds = {
+    collect_data_rcmds = {
         'cisco_ios':[],
         'cisco_xr':[
             'show run interface %s' % (interface_id),
@@ -1977,7 +1984,13 @@ warning {
 
             CGI_CLI.uprint('Collecting data on %s' % (device), \
                 no_newlines = None if printall else True)
-            first_config_rcmd_outputs = RCMD.run_commands(first_config_rcmds, \
+
+            get_interface_rcmd_outputs = RCMD.run_commands(get_interface_rcmds, \
+                autoconfirm_mode = True, \
+                printall = printall)
+
+
+            first_config_rcmd_outputs = RCMD.run_commands(collect_data_rcmds, \
                 autoconfirm_mode = True, \
                 printall = printall)
 
