@@ -1843,6 +1843,17 @@ warning {
               tag = 'h1', color = 'blue')
     if printall: CGI_CLI.print_args()
 
+    ### HTML MENU SHOWS ONLY IN CGI MODE ###
+    if CGI_CLI.cgi_active and not CGI_CLI.submit_form:
+        CGI_CLI.formprint([{'text':'device'},'<br/>', {'text':'interface'},'<br/>',\
+            {'text':'username'},'<br/>', {'password':'password'},'<br/>','<br/>',\
+            {'checkbox':'printall'},'<br/>','<br/>'],\
+            submit_button = 'OK', pyfile = None, tag = None, color = None)
+        sys.exit(0)
+
+    iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
+    if CGI_CLI.cgi_active and not (USERNAME and PASSWORD):
+        if iptac_server == 'iptac5': USERNAME, PASSWORD = 'iptac', 'paiiUNDO'
 
     ### END DUE TO ERRORS #####################################################
     exit_due_to_error = None
@@ -1871,7 +1882,7 @@ warning {
     ### DEFAULT MTU SIZE ######################################################
     mtu_size = 9100
     ipv4_addr_rem = '1.1.1.1'
-    ipv4_addr_rem = 'ff::ff'
+    ipv6_addr_rem = 'ff::ff'
     LDP_neighbor_IP = '2.2.2.2'
 
 
