@@ -1785,6 +1785,44 @@ def send_me_email(subject = str(), email_body = str(), file_name = None, attachm
     return email_sent
 
 ###############################################################################
+
+def get_interface_list_per_device(device = None):
+    interface_list = []
+    get_interface_rcmds = {
+        'cisco_ios':['sh interfaces description'],
+        'cisco_xr':['sh interfaces description'],
+        'juniper':['show interfaces description'],
+        'huawei':['display interface description '],
+    }
+
+    if device:
+        RCMD.connect(device, username = USERNAME, password = PASSWORD, \
+            printall = printall, logfilename = logfilename)
+
+        if not RCMD.ssh_connection:
+            CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), \
+                color = 'red')
+        else:
+            CGI_CLI.uprint('Collecting data on %s' % (device), \
+                no_newlines = None if printall else True)
+
+            get_interface_rcmd_outputs = RCMD.run_commands(get_interface_rcmds, \
+                autoconfirm_mode = True, \
+                printall = printall)
+
+            if_lines = []
+            try:
+                if_lines = get_interface_rcmd_outputs[0].strip().split('Description')[1].splitlines()[1:]
+                if '-----' in if_lines[0]: del if_lines[0]
+                if if_lines[-1] in RCMD.DEVICE_PROMPTS: del if_lines[-1]
+            except: pass
+
+            interface_list = [ (if_line.split()[0], if_line) for if_line in if_lines if if_line.strip() ]
+
+        RCMD.disconnect()
+    return interface_list
+
+###############################################################################
 #
 # def BEGIN MAIN
 #
@@ -1802,12 +1840,16 @@ warning {
   background-color: yellow;
 }
 """
-
+    ### GLOBAL VARIABLES AND SETTINGS #########################################
     logging.raiseExceptions = False
     goto_webpage_end_by_javascript = str()
     traceback_found = None
     device_list = []
     logfilename = None
+    mtu_size = 9100
+    ipv4_addr_rem = str()
+    ipv6_addr_rem = str()
+    LDP_neighbor_IP = str()
 
     ### GCI_CLI INIT ##########################################################
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True, css_style = CSS_STYLE, log = True)
@@ -1815,6 +1857,10 @@ warning {
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
     printall = CGI_CLI.data.get("printall")
     interface_id = CGI_CLI.data.get("interface",str())
+
+    iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
+    if CGI_CLI.cgi_active and not (USERNAME and PASSWORD):
+        if iptac_server == 'iptac5': USERNAME, PASSWORD = 'iptac', 'paiiUNDO'
 
     ### GENERATE DEVICE LIST ##################################################
     devices_string = CGI_CLI.data.get("device",str())
@@ -1833,7 +1879,7 @@ warning {
 
     ### START PRINTING AND LOGGING ############################################
     changelog = 'https://github.com/peteneme/pyxWorks/commits/master/backbone_pre_traffic_activation/backbone_pre_traffic_activation.py'
-    SCRIPT_NAME = 'Backbone pre traffic activation tool'
+    SCRIPT_NAME = 'Interface (Backbone/Custom) pre traffic activation tool'
     if CGI_CLI.cgi_active:
         CGI_CLI.uprint('<h1 style="color:blue;">%s <a href="%s" style="text-decoration: none">(v.%s)</a></h1>' % \
             (SCRIPT_NAME, changelog, CGI_CLI.VERSION()), raw = True)
@@ -1843,17 +1889,24 @@ warning {
               tag = 'h1', color = 'blue')
     if printall: CGI_CLI.print_args()
 
-    ### HTML MENU SHOWS ONLY IN CGI MODE ###
+    if len(device_list) > 0 and not interface_id:
+        for device in device_list:
+            CGI_CLI.uprint(get_interface_list_per_device(device), jsonprint = True)
+
+    ### HTML MENU 1 SHOWS ONLY IN CGI MODE ####################################
     if CGI_CLI.cgi_active and not CGI_CLI.submit_form:
-        CGI_CLI.formprint([{'text':'device'},'<br/>', {'text':'interface'},'<br/>',\
-            {'text':'username'},'<br/>', {'password':'password'},'<br/>','<br/>',\
-            {'checkbox':'printall'},'<br/>','<br/>'],\
-            submit_button = 'OK', pyfile = None, tag = None, color = None)
+        if len(device_list) == 0 and not interface_id:
+            CGI_CLI.formprint([{'text':'device'},'<br/>', {'text':'interface'},'<br/>',\
+                {'text':'username'},'<br/>', {'password':'password'},'<br/>','<br/>',\
+                {'checkbox':'printall'},'<br/>','<br/>'],\
+                submit_button = 'OK', pyfile = None, tag = None, color = None)
+#        elif len(device_list) > 0 and not interface_id:
+
+
         sys.exit(0)
 
-    iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
-    if CGI_CLI.cgi_active and not (USERNAME and PASSWORD):
-        if iptac_server == 'iptac5': USERNAME, PASSWORD = 'iptac', 'paiiUNDO'
+
+
 
     ### END DUE TO ERRORS #####################################################
     exit_due_to_error = None
@@ -1878,19 +1931,6 @@ warning {
 
 
 
-
-    ### DEFAULT MTU SIZE ######################################################
-    mtu_size = 9100
-    ipv4_addr_rem = '1.1.1.1'
-    ipv6_addr_rem = 'ff::ff'
-    LDP_neighbor_IP = '2.2.2.2'
-
-    get_interface_rcmds = {
-        'cisco_ios':['sh interfaces description'],
-        'cisco_xr':['sh interfaces description'],
-        'juniper':['show interfaces description'],
-        'huawei':['display interface description '],
-    }
 
 
     ### FIRST COMMAND LIST ####################################################
@@ -2007,17 +2047,18 @@ except:
     traceback_found = True
     CGI_CLI.uprint(traceback.format_exc(), tag = 'h3',color = 'magenta')
 
-### PRINT LOGFILENAME #########################################################
-if logfilename: CGI_CLI.uprint(' ==> File %s created.' % (logfilename))
+if logfilename:
+    ### PRINT LOGFILENAME #####################################################
+    CGI_CLI.uprint(' ==> File %s created.' % (logfilename))
 
-### SEND EMAIL WITH LOGFILE ###################################################
-send_me_email( \
-    subject = logfilename.replace('\\','/').split('/')[-1] if logfilename else None, \
-    file_name = logfilename, username = USERNAME)
-
-### SEND EMAIL WITH ERROR/TRACEBACK LOGFILE TO SUPPORT ########################
-if traceback_found:
+    ### SEND EMAIL WITH LOGFILE ###############################################
     send_me_email( \
-        subject = 'TRACEBACK-PRE_TRAFFIC-' + logfilename.replace('\\','/').\
-        split('/')[-1] if logfilename else str(), \
-        file_name = logfilename, username = 'pnemec')
+        subject = str(logfilename).replace('\\','/').split('/')[-1] if logfilename else None, \
+        file_name = str(logfilename), username = USERNAME)
+
+    ### SEND EMAIL WITH ERROR/TRACEBACK LOGFILE TO SUPPORT ####################
+    if traceback_found:
+        send_me_email( \
+            subject = 'TRACEBACK-PRE_TRAFFIC-' + logfilename.replace('\\','/').\
+            split('/')[-1] if logfilename else str(), \
+            file_name = logfilename, username = 'pnemec')
