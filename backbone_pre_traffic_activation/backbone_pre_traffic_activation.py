@@ -100,54 +100,10 @@ class CGI_CLI(object):
                             action = "store", dest = 'device',
                             default = str(),
                             help = "Target router to access. (Optionable device list separated ba comma, i.e. --device DEVICE1,DEVICE2)")
-        parser.add_argument("--sw_release",
-                            action = "store", dest = 'sw_release',
+        parser.add_argument("--interface",
+                            action = "store", dest = 'interface',
                             default = str(),
-                            help = "sw release number with or without dots, i.e. 653 or 6.5.3, or alternatively sw release filename")
-        parser.add_argument("--file_types",
-                            action = "store", dest = 'sw_files',
-                            default = str(),
-                            help = "--file_types OTI.tar,SMU,pkg,bin , one file type or list of file types separated by ',' without any space. NOTE: This is intended as file-name filter in sw_release directory.")
-        parser.add_argument("--files",
-                            action = "store", dest = 'additional_files_to_copy',
-                            default = str(),
-                            help = "--files absolute_path_to_file_with_filename(s), one file or list of files separated by ',' without any space. NOTE: Independent on sw_release.")
-        parser.add_argument("--check_only",
-                            action = 'store_true', dest = "check_device_sw_files_only",
-                            default = None,
-                            help = "check existing device sw release files only, do not copy new tar files")
-        parser.add_argument("--backup_configs",
-                            action = 'store_true', dest = "backup_configs_to_device_disk",
-                            default = None,
-                            help = "backup configs to device hdd")
-        parser.add_argument("--force",
-                           action = 'store_true', dest = "force_rewrite_sw_files_on_device",
-                           default = None,
-                           help = "force rewrite sw release files on device disk")
-        parser.add_argument("--delete",
-                            action = 'store_true', dest = "delete_device_sw_files_on_end",
-                            default = None,
-                            help = "delete device sw release files on end after sw upgrade")
-        parser.add_argument("--no_backup_re",
-                            action = 'store_true', dest = "ignore_missing_backup_re_on_junos",
-                            default = None,
-                            help = "ignore missing backup re on junos")
-        parser.add_argument("--printall",
-                            action = "store_true", dest = 'printall',
-                            default = None,
-                            help = "print all lines, changes will be coloured")
-        parser.add_argument("--timestamps",
-                            action = "store_true", dest = 'timestamps',
-                            default = None,
-                            help = "print all lines with timestamps")
-        parser.add_argument("--enable_scp",
-                            action = "store_true", dest = 'enable_device_scp_before_copying',
-                            default = None,
-                            help = "enable device scp before copy")
-        parser.add_argument("--disable_scp",
-                            action = "store_true", dest = 'disable_device_scp_after_copying',
-                            default = None,
-                            help = "disable device scp after copy")
+                            help = "interface id for testing")
         args = parser.parse_args()
         return args
 
@@ -1858,6 +1814,7 @@ warning {
     LCMD.init(logfilename = logfilename)
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
     printall = CGI_CLI.data.get("printall")
+    interface_id = CGI_CLI.data.get("interface",str())
 
     ### GENERATE DEVICE LIST ##################################################
     devices_string = CGI_CLI.data.get("device",str())
@@ -1887,14 +1844,139 @@ warning {
     if printall: CGI_CLI.print_args()
 
 
- 
+    ### END DUE TO ERRORS #####################################################
+    exit_due_to_error = None
+
+    if len(device_list) == 0:
+        CGI_CLI.uprint('Device name(s) NOT INSERTED!', tag = 'h2', color = 'red')
+        exit_due_to_error = True
+
+    if not interface_id:
+        CGI_CLI.uprint('Interface id NOT INSERTED!', tag = 'h2', color = 'red')
+        exit_due_to_error = True
+
+    if not USERNAME:
+        CGI_CLI.uprint('Username NOT INSERTED!', tag = 'h2', color = 'red')
+        exit_due_to_error = True
+
+    if not PASSWORD:
+        CGI_CLI.uprint('Password NOT INSERTED!', tag = 'h2', color = 'red')
+        exit_due_to_error = True
+
+    if exit_due_to_error: sys.exit(0)
+
+
+
+
+    ### DEFAULT MTU SIZE ######################################################
+    mtu_size = 9100
+    ipv4_addr_rem = '1.1.1.1'
+    ipv4_addr_rem = 'ff::ff'
+    LDP_neighbor_IP = '2.2.2.2'
+
+
+    ### FIRST COMMAND LIST ####################################################
+    first_config_rcmds = {
+        'cisco_ios':[],
+        'cisco_xr':[
+            'show run interface %s' % (interface_id),
+            'show run router isis PAII interface %s ' % (interface_id),
+            'show run mpls traffic-eng interface %s' % (interface_id),
+            'show run mpls ldp interface %s' % (interface_id),
+            'show run rsvp interface %s' % (interface_id),
+            'show interface %s' % (interface_id),
+            'show isis neighbors %s' % (interface_id),
+            'show mpls ldp neighbor %s' % (interface_id),
+            'show mpls ldp igp sync interface %s' % (interface_id),
+            'show rsvp interface %s' % (interface_id)
+        ],
+
+        'juniper': [
+            'show configuration interfaces %s' % (interface_id),
+            'show isis interface %s' % (interface_id),
+            'show configuration protocols mpls',
+            'show configuration protocols ldp | match %s' % (interface_id),
+            'show configuration protocols rsvp | match %s' % (interface_id),
+            'show interfaces brief %s' % (interface_id),
+            'show isis adjacency | match %s' % (interface_id),
+            'show ldp neighbor | match %s' % (interface_id),
+            'show isis interface %s extensive' % (interface_id),
+            'show rsvp interface %s' % (interface_id)
+        ],
+
+        'huawei': [
+            'display current-configuration interface %s' % (interface_id),
+            'display current-configuration interface %s | i isis' % (interface_id),
+            'display current-configuration interface %s | i  mpls te' % (interface_id),
+            'display current-configuration interface %s | i mpls ldp' % (interface_id),
+            'display current-configuration interface %s | i rsvp' % (interface_id),
+            ' ',
+            'display isis interface %s' % (interface_id),
+            'display mpls ldp adjacency interface %s' % (interface_id),
+            'display isis ldp-sync interface | i %s' % (interface_id),
+            'display mpls rsvp-te interface %s' % (interface_id)
+        ]
+    }
+
+
+    ### PING COMMAND LIST #####################################################
+    ping_config_rcmds = {
+        'cisco_ios':[],
+        'cisco_xr':[
+            'ping %s' % (ipv4_addr_rem),
+            'ping %s size %s df-bit' % (ipv4_addr_rem, str(mtu_size)),
+            'ping ipv6 %s' % (ipv6_addr_rem),
+            'ping ipv6 %s size %s' % (ipv6_addr_rem, str(mtu_size))
+        ],
+
+        'juniper': [
+            'ping %s count 5' % (ipv4_addr_rem),
+            'ping %s count 5 size %s' % (ipv4_addr_rem, str(mtu_size)),
+            'ping inet6 %s count 5' % (ipv6_addr_rem),
+            'ping inet6 %s count 5 size %s' % (ipv6_addr_rem, str(mtu_size)),
+
+            'show configuration class-of-service interfaces %s' % (interface_id),
+            'show ldp neighbor %s extensive' % (LDP_neighbor_IP)
+        ],
+
+        'huawei': [
+            'ping %s' % (ipv4_addr_rem),
+            'ping -s %s %s' % (str(mtu_size), ipv4_addr_rem),
+            'ping ipv6 %s' % (ipv6_addr_rem),
+            'ping ipv6 -s %s %s' % (str(mtu_size), ipv6_addr_rem),
+
+            'display interface %s' % (ipv4_addr_rem),
+            'display interface %s | i  Line protocol' % (ipv4_addr_rem)
+        ]
+    }
+
+
+
+    ## REMOTE DEVICE OPERATIONS ###############################################
+    for device in device_list:
+        if device:
+            RCMD.connect(device, username = USERNAME, password = PASSWORD, \
+                printall = printall, logfilename = logfilename)
+
+            if not RCMD.ssh_connection:
+                CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), \
+                    color = 'red')
+                RCMD.disconnect()
+                continue
+
+            CGI_CLI.uprint('Collecting data on %s' % (device), \
+                no_newlines = None if printall else True)
+            first_config_rcmd_outputs = RCMD.run_commands(first_config_rcmds, \
+                autoconfirm_mode = True, \
+                printall = printall)
 
 
 
 
 
-                
-                
+
+
+            RCMD.disconnect()
 
 except SystemExit: pass
 except:
