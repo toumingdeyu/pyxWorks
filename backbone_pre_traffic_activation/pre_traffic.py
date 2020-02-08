@@ -1951,11 +1951,8 @@ warning {
                 {'text':'username'},'<br/>', {'password':'password'},'<br/>','<br/>',\
                 {'checkbox':'printall'},'<br/>','<br/>'],\
                 submit_button = 'OK', pyfile = None, tag = None, color = None)
-
-    sys.exit(0)
-
-
-
+        ### EXIT AFTER MENU PRINTING ##########################################
+        sys.exit(0)
 
     ### END DUE TO ERRORS #####################################################
     exit_due_to_error = None
@@ -1978,12 +1975,13 @@ warning {
 
     if exit_due_to_error: sys.exit(0)
 
-
-
+    ### PRINT SELECTED DEVICE AND INTWRFACE ###################################
+    CGI_CLI.uprint('Device(s)=%s, Interface=%s' % '\
+        (,'.join(device_list), interface_id))
 
 
     ### def COLLECT COMMAND LIST ##############################################
-    collect_data_rcmds = {
+    collect_if_data_rcmds = {
         'cisco_ios':[],
         'cisco_xr':[
             'show run interface %s' % (interface_id),
@@ -2074,12 +2072,7 @@ warning {
             CGI_CLI.uprint('Collecting data on %s' % (device), \
                 no_newlines = None if printall else True)
 
-            get_interface_rcmd_outputs = RCMD.run_commands(get_interface_rcmds, \
-                autoconfirm_mode = True, \
-                printall = printall)
-
-
-            first_config_rcmd_outputs = RCMD.run_commands(collect_data_rcmds, \
+            collect_if_config_rcmd_outputs = RCMD.run_commands(collect_if_data_rcmds, \
                 autoconfirm_mode = True, \
                 printall = printall)
 
