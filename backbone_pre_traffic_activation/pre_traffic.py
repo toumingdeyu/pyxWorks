@@ -1870,10 +1870,11 @@ warning {
     LCMD.init(logfilename = logfilename)
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
     printall = CGI_CLI.data.get("printall")
+
     interface_line = CGI_CLI.data.get("interface",str())
     if interface_line:
         try: interface_id = CGI_CLI.data.get("interface",str()).split()[0]
-        except: pass
+        except: interface_id = interface_line
 
     iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
     if not (USERNAME and PASSWORD):
@@ -1941,6 +1942,8 @@ warning {
                 {'text':'username'},'<br/>', {'password':'password'},'<br/>','<br/>',\
                 '<br/>',{'checkbox':'printall'},'<br/>','<br/>'], submit_button = 'OK',
                 pyfile = None, tag = None, color = None , list_separator = '&emsp;')
+            ### EXIT AFTER MENU PRINTING ######################################
+            sys.exit(0)
 
         ### MAIN MENU #########################################################
         elif len(device_list) == 0 and not interface_id:
@@ -1951,8 +1954,8 @@ warning {
                 {'text':'username'},'<br/>', {'password':'password'},'<br/>','<br/>',\
                 {'checkbox':'printall'},'<br/>','<br/>'],\
                 submit_button = 'OK', pyfile = None, tag = None, color = None)
-        ### EXIT AFTER MENU PRINTING ##########################################
-        sys.exit(0)
+            ### EXIT AFTER MENU PRINTING ######################################
+            sys.exit(0)
 
     ### END DUE TO ERRORS #####################################################
     exit_due_to_error = None
@@ -1976,8 +1979,8 @@ warning {
     if exit_due_to_error: sys.exit(0)
 
     ### PRINT SELECTED DEVICE AND INTWRFACE ###################################
-    CGI_CLI.uprint('Device(s)=%s, Interface=%s' % '\
-        (,'.join(device_list), interface_id))
+    CGI_CLI.uprint('Device(s)=%s, Interface=%s' % \
+        (','.join(device_list), interface_id))
 
 
     ### def COLLECT COMMAND LIST ##############################################
