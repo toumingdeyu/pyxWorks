@@ -2107,7 +2107,8 @@ warning {
 
             try: interface_data['mtu'] = collect_if_config_rcmd_outputs[0].split('mtu ')[1].splitlines()[0].strip()
             except: interface_data['mtu'] = str()
-            try: interface_data['bandwidth'] = collect_if_config_rcmd_outputs[0].split('bandwidth ')[1].splitlines()[0].strip()
+            try: interface_data['bandwidth'] = collect_if_config_rcmd_outputs[0].\
+                     split('bandwidth ')[1].splitlines()[0].strip().replace(';','')
             except: interface_data['bandwidth'] = str()
 
 
@@ -2155,11 +2156,11 @@ warning {
 
         None_elements = get_void_json_elements(interface_data)
 
-        CGI_CLI.uprint('VOID ELEMENTS CHECK: %s\n' % (str(None_elements) if len(None_elements)>0 else 'OK'), \
+        CGI_CLI.uprint('VOID/UNSET ELEMENTS CHECK: %s\n' % (str(None_elements) if len(None_elements)>0 else 'OK'), \
            color = 'red' if len(None_elements)>0 else 'green')
 
         if len(None_elements)>0:
-          CGI_CLI.uprint('\nVOID DATA PROBLEM FOUND!', tag = 'h1', color = 'red')
+            CGI_CLI.uprint('\nVOID/UNSET DATA PROBLEM FOUND!', tag = 'h1', color = 'red')
 
 except SystemExit: pass
 except:
