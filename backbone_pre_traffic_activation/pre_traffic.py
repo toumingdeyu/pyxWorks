@@ -1935,7 +1935,8 @@ warning {
 
         ### MAIN MENU #########################################################
         elif len(device_list) == 0 and not interface_id:
-            CGI_CLI.formprint([{'text':'device'},'<br/>', {'text':'interface'},'<br/>',\
+            CGI_CLI.formprint([{'text':'device'},'<br/>', \
+                '(Optional choise) select menu available:','<br/>',{'text':'interface'},'<br/>',\
                 {'text':'username'},'<br/>', {'password':'password'},'<br/>','<br/>',\
                 {'checkbox':'printall'},'<br/>','<br/>'],\
                 submit_button = 'OK', pyfile = None, tag = None, color = None)
