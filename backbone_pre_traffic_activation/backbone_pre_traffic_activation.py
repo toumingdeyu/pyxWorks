@@ -1821,8 +1821,9 @@ def get_interface_list_per_device(device = None):
                 if if_lines[-1] in RCMD.DEVICE_PROMPTS: del if_lines[-1]
             except: pass
 
-            interface_list = [ (if_line.split()[0].replace('GE','Gi'), \
-                if_line.replace('                                               ','')) \
+            interface_list = [ \
+                (if_line.replace('                                               ',''), \
+                if_line.split()[0].replace('GE','Gi')) \
                 for if_line in if_lines if if_line.strip() ]
 
             ### if_type.upper() = ['BACKBONE', 'CUSTOM', 'PRIVPEER'] ##########
@@ -1859,6 +1860,8 @@ warning {
     ipv4_addr_rem = str()
     ipv6_addr_rem = str()
     LDP_neighbor_IP = str()
+    device_interface_list = []
+    interface_cgi_string = 'interface'
 
     ### GCI_CLI INIT ##########################################################
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True, css_style = CSS_STYLE, log = True)
@@ -1900,19 +1903,42 @@ warning {
 
     if len(device_list) > 0 and not interface_id:
         for device in device_list:
-            CGI_CLI.uprint(get_interface_list_per_device(device), jsonprint = True)
+            device_interface_list = get_interface_list_per_device(device)
+        if printall: CGI_CLI.uprint(device_interface_list, jsonprint = True)
 
-    ### HTML MENU 1 SHOWS ONLY IN CGI MODE ####################################
-    if CGI_CLI.cgi_active and not CGI_CLI.submit_form:
-        if len(device_list) == 0 and not interface_id:
+    ### def HTML MENUS DISPLAYED ONLY IN CGI MODE #############################
+    if CGI_CLI.cgi_active:
+        if len(device_interface_list) > 0:
+            ### INTERFACE MENU PART ###########################################
+            table_rows = 1
+            counter = 0
+            interface_menu_list = ['<h2>Select interface:</h2>',
+                '<div align="left">', '<table style="width:70%">']
+            for whole_if_line, interface in device_interface_list:
+                if counter == 0: interface_menu_list.append('<tr>')
+                interface_menu_list.append('<td>')
+                interface_menu_list.append({'radio':'%s__%s' % (interface_cgi_string,whole_if_line)})
+                counter += 1
+                interface_menu_list.append('</td>')
+                if counter + 1 > table_rows:
+                    interface_menu_list.append('</tr>')
+                    counter = 0
+            if counter != 0: router_type_menu_list.append('</tr>')
+            interface_menu_list.append('</table>')
+            interface_menu_list.append('</div>')
+
+            CGI_CLI.formprint( interface_menu_list + \
+                ['<br/>',{'checkbox':'printall'},'<br/>','<br/>'], submit_button = 'OK',
+                pyfile = None, tag = None, color = None , list_separator = '&emsp;')
+
+        ### MAIN MENU #########################################################
+        elif len(device_list) == 0 and not interface_id:
             CGI_CLI.formprint([{'text':'device'},'<br/>', {'text':'interface'},'<br/>',\
                 {'text':'username'},'<br/>', {'password':'password'},'<br/>','<br/>',\
                 {'checkbox':'printall'},'<br/>','<br/>'],\
                 submit_button = 'OK', pyfile = None, tag = None, color = None)
-#        elif len(device_list) > 0 and not interface_id:
 
-
-        sys.exit(0)
+    sys.exit(0)
 
 
 
@@ -1942,7 +1968,7 @@ warning {
 
 
 
-    ### FIRST COMMAND LIST ####################################################
+    ### def COLLECT COMMAND LIST ##############################################
     collect_data_rcmds = {
         'cisco_ios':[],
         'cisco_xr':[
@@ -2019,7 +2045,7 @@ warning {
 
 
 
-    ## REMOTE DEVICE OPERATIONS ###############################################
+    ## def REMOTE DEVICE OPERATIONS ###########################################
     for device in device_list:
         if device:
             RCMD.connect(device, username = USERNAME, password = PASSWORD, \
@@ -2065,7 +2091,7 @@ if logfilename:
         subject = str(logfilename).replace('\\','/').split('/')[-1] if logfilename else None, \
         file_name = str(logfilename), username = USERNAME)
 
-    ### SEND EMAIL WITH ERROR/TRACEBACK LOGFILE TO SUPPORT ####################
+    ### def SEND EMAIL WITH ERROR/TRACEBACK LOGFILE TO SUPPORT ################
     if traceback_found:
         send_me_email( \
             subject = 'TRACEBACK-PRE_TRAFFIC-' + logfilename.replace('\\','/').\
