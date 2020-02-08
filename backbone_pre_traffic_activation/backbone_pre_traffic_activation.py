@@ -1912,7 +1912,9 @@ warning {
             ### INTERFACE MENU PART ###########################################
             table_rows = 1
             counter = 0
-            interface_menu_list = ['<h2>Select interface:</h2>',
+            interface_menu_list = [
+                '<p hidden><input type="checkbox" name="device" value="%s" checked="checked"></p>'%(device),
+                '<h2>Select interface:</h2>',
                 '<div align="left">', '<table style="width:70%">']
             for whole_if_line, interface in device_interface_list:
                 if counter == 0: interface_menu_list.append('<tr>')
