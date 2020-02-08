@@ -104,6 +104,10 @@ class CGI_CLI(object):
                             action = "store", dest = 'interface',
                             default = str(),
                             help = "interface id for testing")
+        parser.add_argument("--printall",
+                            action = "store_true", dest = 'printall',
+                            default = None,
+                            help = "print all lines, changes will be coloured")
         args = parser.parse_args()
         return args
 
@@ -1817,7 +1821,12 @@ def get_interface_list_per_device(device = None):
                 if if_lines[-1] in RCMD.DEVICE_PROMPTS: del if_lines[-1]
             except: pass
 
-            interface_list = [ (if_line.split()[0].replace('GE','Gi'), if_line) for if_line in if_lines if if_line.strip() ]
+            interface_list = [ (if_line.split()[0].replace('GE','Gi'), \
+                if_line.replace('                                               ','')) \
+                for if_line in if_lines if if_line.strip() ]
+
+            ### if_type.upper() = ['BACKBONE', 'CUSTOM', 'PRIVPEER'] ##########
+            ### @ip , LD...
 
         RCMD.disconnect()
     return interface_list
