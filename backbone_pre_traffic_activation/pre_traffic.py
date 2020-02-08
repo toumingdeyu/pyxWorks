@@ -1833,6 +1833,53 @@ def get_interface_list_per_device(device = None):
     return interface_list
 
 ###############################################################################
+
+### GET_XPATH_FROM_XMLSTRING ===================================================
+def get_void_json_elements(json_data, ignore_void_strings = None, ignore_void_lists = None):
+    """
+    FUNCTION: get_void_json_elements()
+    parameters: json_data   - data structure
+    returns:    xpath_list  - lists of all void xpaths found in json_data
+    """
+    ### SUBFUNCTION --------------------------------------------------------------
+    def get_dictionary_subreferences(tuple_data):
+        json_deeper_references = []
+        parrent_xpath = tuple_data[0]
+        json_data = tuple_data[1]
+        if isinstance(json_data, (dict,collections.OrderedDict)):
+            for key in json_data.keys():
+                key_content=json_data.get(key)
+                if isinstance(key_content, (dict,collections.OrderedDict)): json_deeper_references.append((parrent_xpath+'/'+key,key_content))
+                elif isinstance(key_content, (list,tuple)):
+                    if len(key_content)==0:
+                        json_deeper_references.append((parrent_xpath+'/'+key+'=[]',key_content))
+                    for ii,sub_xml in enumerate(key_content,start=0):
+                        if type(sub_xml) in [dict,collections.OrderedDict]: json_deeper_references.append((parrent_xpath+'/'+key+'['+str(ii)+']',sub_xml))
+                elif isinstance(key_content, (six.string_types,six.integer_types,float,bool,bytearray)):
+                      if '#text' in key: json_deeper_references.append((parrent_xpath+'="'+key_content+'"',key_content))
+                      elif str(key)[0]=='@': json_deeper_references.append((parrent_xpath+'['+key+'="'+key_content+'"]',key_content))
+                      else: json_deeper_references.append((parrent_xpath+'/'+key+'="'+str(key_content)+'"',key_content))
+                elif key_content == None:
+                    json_deeper_references.append((parrent_xpath+'/'+key+'="'+str(key_content)+'"',key_content))
+        return json_deeper_references
+    ### FUNCTION -----------------------------------------------------------------
+    references,xpath_list = [], []
+    references.append(('',json_data))
+    while len(references)>0:
+        add_references=get_dictionary_subreferences(references[0])
+        if '="None"' in references[0][0]\
+            or not ignore_void_strings and '=""' in references[0][0]\
+            or not ignore_void_lists and '=[]' in references[0][0]:
+            xpath_list.append(references[0][0])
+        references.remove(references[0])
+        references=add_references+references
+    del references
+    return xpath_list
+### ----------------------------------------------------------------------------
+
+
+
+###############################################################################
 #
 # def BEGIN MAIN
 #
@@ -1978,14 +2025,25 @@ warning {
 
     if exit_due_to_error: sys.exit(0)
 
-    ### PRINT SELECTED DEVICE AND INTWRFACE ###################################
+    ### PRINT SELECTED DEVICE AND INTERFACE ###################################
     CGI_CLI.uprint('Device(s)=%s, Interface=%s' % \
         (','.join(device_list), interface_id))
 
 
     ### def COLLECT COMMAND LIST ##############################################
     collect_if_data_rcmds = {
-        'cisco_ios':[],
+        'cisco_ios':[
+            'show run interface %s' % (interface_id),
+            'show run router isis PAII interface %s ' % (interface_id),
+            'show run mpls traffic-eng interface %s' % (interface_id),
+            'show run mpls ldp interface %s' % (interface_id),
+            'show run rsvp interface %s' % (interface_id),
+            'show interface %s' % (interface_id),
+            'show isis neighbors %s' % (interface_id),
+            'show mpls ldp neighbor %s' % (interface_id),
+            'show mpls ldp igp sync interface %s' % (interface_id),
+            'show rsvp interface %s' % (interface_id)
+        ],
         'cisco_xr':[
             'show run interface %s' % (interface_id),
             'show run router isis PAII interface %s ' % (interface_id),
@@ -2026,41 +2084,9 @@ warning {
         ]
     }
 
-
-    ### PING COMMAND LIST #####################################################
-    ping_config_rcmds = {
-        'cisco_ios':[],
-        'cisco_xr':[
-            'ping %s' % (ipv4_addr_rem),
-            'ping %s size %s df-bit' % (ipv4_addr_rem, str(mtu_size)),
-            'ping ipv6 %s' % (ipv6_addr_rem),
-            'ping ipv6 %s size %s' % (ipv6_addr_rem, str(mtu_size))
-        ],
-
-        'juniper': [
-            'ping %s count 5' % (ipv4_addr_rem),
-            'ping %s count 5 size %s' % (ipv4_addr_rem, str(mtu_size)),
-            'ping inet6 %s count 5' % (ipv6_addr_rem),
-            'ping inet6 %s count 5 size %s' % (ipv6_addr_rem, str(mtu_size)),
-
-            'show configuration class-of-service interfaces %s' % (interface_id),
-            'show ldp neighbor %s extensive' % (LDP_neighbor_IP)
-        ],
-
-        'huawei': [
-            'ping %s' % (ipv4_addr_rem),
-            'ping -s %s %s' % (str(mtu_size), ipv4_addr_rem),
-            'ping ipv6 %s' % (ipv6_addr_rem),
-            'ping ipv6 -s %s %s' % (str(mtu_size), ipv6_addr_rem),
-
-            'display interface %s' % (ipv4_addr_rem),
-            'display interface %s | i  Line protocol' % (ipv4_addr_rem)
-        ]
-    }
-
-
-
     ## def REMOTE DEVICE OPERATIONS ###########################################
+    interface_data = collections.OrderedDict()
+    interface_data['interface_id'] = interface_id
     for device in device_list:
         if device:
             RCMD.connect(device, username = USERNAME, password = PASSWORD, \
@@ -2079,13 +2105,61 @@ warning {
                 autoconfirm_mode = True, \
                 printall = printall)
 
+            try: interface_data['mtu'] = collect_if_config_rcmd_outputs[0].split('mtu ')[1].splitlines()[0].strip()
+            except: interface_data['mtu'] = str()
+            try: interface_data['bandwidth'] = collect_if_config_rcmd_outputs[0].split('bandwidth ')[1].splitlines()[0].strip()
+            except: interface_data['bandwidth'] = str()
 
 
 
 
 
+
+
+            ### PING COMMAND LIST #############################################
+            ping_config_rcmds = {
+                'cisco_ios':[],
+                'cisco_xr':[
+                    'ping %s' % (ipv4_addr_rem),
+                    'ping %s size %s df-bit' % (ipv4_addr_rem, str(mtu_size)),
+                    'ping ipv6 %s' % (ipv6_addr_rem),
+                    'ping ipv6 %s size %s' % (ipv6_addr_rem, str(mtu_size))
+                ],
+
+                'juniper': [
+                    'ping %s count 5' % (ipv4_addr_rem),
+                    'ping %s count 5 size %s' % (ipv4_addr_rem, str(mtu_size)),
+                    'ping inet6 %s count 5' % (ipv6_addr_rem),
+                    'ping inet6 %s count 5 size %s' % (ipv6_addr_rem, str(mtu_size)),
+
+                    'show configuration class-of-service interfaces %s' % (interface_id),
+                    'show ldp neighbor %s extensive' % (LDP_neighbor_IP)
+                ],
+
+                'huawei': [
+                    'ping %s' % (ipv4_addr_rem),
+                    'ping -s %s %s' % (str(mtu_size), ipv4_addr_rem),
+                    'ping ipv6 %s' % (ipv6_addr_rem),
+                    'ping ipv6 -s %s %s' % (str(mtu_size), ipv6_addr_rem),
+
+                    'display interface %s' % (ipv4_addr_rem),
+                    'display interface %s | i  Line protocol' % (ipv4_addr_rem)
+                ]
+            }
 
             RCMD.disconnect()
+
+        ### PRINT INTERFACE DATA INFO #########################################
+        CGI_CLI.uprint(interface_data, name = '%s interface %s data' % (device, interface_id), \
+            jsonprint = True, color = 'blue')
+
+        None_elements = get_void_json_elements(interface_data)
+
+        CGI_CLI.uprint('VOID ELEMENTS CHECK: %s\n' % (str(None_elements) if len(None_elements)>0 else 'OK'), \
+           color = 'red' if len(None_elements)>0 else 'green')
+
+        if len(None_elements)>0:
+          CGI_CLI.uprint('\nVOID DATA PROBLEM FOUND!', tag = 'h1', color = 'red')
 
 except SystemExit: pass
 except:
