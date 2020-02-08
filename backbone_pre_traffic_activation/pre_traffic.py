@@ -1873,7 +1873,7 @@ warning {
 
     interface_line = CGI_CLI.data.get("interface",str())
     if interface_line:
-        try: interface_id = CGI_CLI.data.get("interface",str()).split()[0]
+        try: interface_id = CGI_CLI.data.get("interface",str()).split()[0].replace('GE','Gi')
         except: interface_id = interface_line
 
     iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
