@@ -1862,16 +1862,21 @@ warning {
     LDP_neighbor_IP = str()
     device_interface_list = []
     interface_cgi_string = 'interface'
+    interface_id = str()
 
     ### GCI_CLI INIT ##########################################################
-    USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True, css_style = CSS_STYLE, log = True)
+    USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True, css_style = CSS_STYLE, \
+        log = True)
     LCMD.init(logfilename = logfilename)
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
     printall = CGI_CLI.data.get("printall")
-    interface_id = CGI_CLI.data.get("interface",str())
+    interface_line = CGI_CLI.data.get("interface",str())
+    if interface_line:
+        try: interface_id = CGI_CLI.data.get("interface",str()).split()[0]
+        except: pass
 
     iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
-    if CGI_CLI.cgi_active and not (USERNAME and PASSWORD):
+    if not (USERNAME and PASSWORD):
         if iptac_server == 'iptac5': USERNAME, PASSWORD = 'iptac', 'paiiUNDO'
 
     ### GENERATE DEVICE LIST ##################################################
@@ -1889,8 +1894,10 @@ warning {
         if 'WIN32' in sys.platform.upper(): logfilename = None
         if logfilename: CGI_CLI.set_logfile(logfilename = logfilename)
 
+    logfilename = None
+
     ### START PRINTING AND LOGGING ############################################
-    changelog = 'https://github.com/peteneme/pyxWorks/commits/master/backbone_pre_traffic_activation/backbone_pre_traffic_activation.py'
+    changelog = 'https://github.com/peteneme/pyxWorks/commits/master/backbone_pre_traffic_activation/pre_traffic.py'
     SCRIPT_NAME = 'Interface (Backbone/Custom) pre traffic activation tool'
     if CGI_CLI.cgi_active:
         CGI_CLI.uprint('<h1 style="color:blue;">%s <a href="%s" style="text-decoration: none">(v.%s)</a></h1>' % \
@@ -1914,7 +1921,7 @@ warning {
             counter = 0
             interface_menu_list = [
                 '<p hidden><input type="checkbox" name="device" value="%s" checked="checked"></p>'%(device),
-                '<h2>Select interface:</h2>',
+                '<h2>Select interface on %s:</h2>' % (device if device else str()),
                 '<div align="left">', '<table style="width:70%">']
             for whole_if_line, interface in device_interface_list:
                 if counter == 0: interface_menu_list.append('<tr>')
@@ -1930,13 +1937,17 @@ warning {
             interface_menu_list.append('</div>')
 
             CGI_CLI.formprint( interface_menu_list + \
-                ['<br/>',{'checkbox':'printall'},'<br/>','<br/>'], submit_button = 'OK',
+                ['<h3>LDAP authentication (required):</h3>',\
+                {'text':'username'},'<br/>', {'password':'password'},'<br/>','<br/>',\
+                '<br/>',{'checkbox':'printall'},'<br/>','<br/>'], submit_button = 'OK',
                 pyfile = None, tag = None, color = None , list_separator = '&emsp;')
 
         ### MAIN MENU #########################################################
         elif len(device_list) == 0 and not interface_id:
             CGI_CLI.formprint([{'text':'device'},'<br/>', \
-                '(Optional choise) select menu available:','<br/>',{'text':'interface'},'<br/>',\
+                '<h3>(Optional) select menu available in next step:</h3>','<br/>',\
+                {'text':'interface'},'<br/>',\
+                '<h3>LDAP authentication (required):</h3>',\
                 {'text':'username'},'<br/>', {'password':'password'},'<br/>','<br/>',\
                 {'checkbox':'printall'},'<br/>','<br/>'],\
                 submit_button = 'OK', pyfile = None, tag = None, color = None)
