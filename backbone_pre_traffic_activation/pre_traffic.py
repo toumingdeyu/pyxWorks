@@ -2058,7 +2058,7 @@ warning {
         ],
 
         'juniper': [
-            'show configuration interfaces %s' % (interface_id),
+            'show configuration interfaces %s | display set' % (interface_id),
             'show isis interface %s' % (interface_id),
             'show configuration protocols mpls',
             'show configuration protocols ldp | match %s' % (interface_id),
@@ -2111,13 +2111,24 @@ warning {
                      split('bandwidth ')[1].splitlines()[0].strip().replace(';','')
             except: interface_data['bandwidth'] = str()
 
+            if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
+                try: interface_data['ipv4_address'] = collect_if_config_rcmd_outputs[0].split('ipv4 address ')[1].split()[0]
+                except: interface_data['ipv4_address'] = str()
+                try: interface_data['ipv6_address'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
+                except: interface_data['ipv6_address'] = str()
+                interface_data['dampening'] = True if 'dampening' in collect_if_config_rcmd_outputs[0] else str()
+            elif RCMD.router_type == 'huawei':
+                try: interface_data['ipv4_address'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[0]
+                except: interface_data['ipv4_address'] = str()
+                try: interface_data['ipv6_address'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
+                except: interface_data['ipv6_address'] = str()
+            elif RCMD.router_type == 'juniper': pass
 
 
 
 
 
-
-            ### PING COMMAND LIST #############################################
+            ### def PING COMMAND LIST #########################################
             ping_config_rcmds = {
                 'cisco_ios':[],
                 'cisco_xr':[
@@ -2150,8 +2161,8 @@ warning {
 
             RCMD.disconnect()
 
-        ### PRINT INTERFACE DATA INFO #########################################
-        CGI_CLI.uprint(interface_data, name = '%s interface %s data' % (device, interface_id), \
+        ### def PRINT INTERFACE DATA INFO #####################################
+        CGI_CLI.uprint(interface_data, name = 'Device:%s' % (device), \
             jsonprint = True, color = 'blue')
 
         None_elements = get_void_json_elements(interface_data)
