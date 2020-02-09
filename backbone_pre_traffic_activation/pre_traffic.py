@@ -2160,6 +2160,22 @@ warning {
                 try: interface_data['flow ipv6 monitor'] = collect_if_config_rcmd_outputs[0].split('flow ipv4 monitor ')[1].split()[0]
                 except: interface_data['flow ipv6 monitor'] = str()
 
+                interface_data['mpls ldp sync'] = True if 'mpls ldp sync' in collect_if_config_rcmd_outputs[1] else str()
+
+
+            elif RCMD.router_type == 'juniper':
+                try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet address ')[1].split()[0].split('/')[0].replace(';','')
+                except: interface_data['ipv4_addr_loc'] = str()
+                try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet6 address ')[1].split()[0].split('/')[0].replace(';','')
+                except: interface_data['ipv6_addr_loc'] = str()
+                try: interface_data['scheduler-map'] = collect_if_config_rcmd_outputs[10].split('scheduler-map ')[1].split()[0].split('/')[0].replace(';','')
+                except: interface_data['scheduler-map'] = str()
+                try: interface_data['mtu'] = collect_if_config_rcmd_outputs[11].split('mtu ')[1].splitlines()[0].strip()
+                except: interface_data['mtu'] = str()
+
+                interface_data['ldp-synchronization;'] = True if 'ldp-synchronization;' in collect_if_config_rcmd_outputs[1] else str()
+
+
 
             elif RCMD.router_type == 'huawei':
                 try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[0]
@@ -2167,18 +2183,11 @@ warning {
                 try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
                 except: interface_data['ipv6_addr_loc'] = str()
 
-            elif RCMD.router_type == 'juniper':
-                try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet address ')[1].split()[0].replace(';','')
-                except: interface_data['ipv4_addr_loc'] = str()
-                try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet6 address ')[1].split()[0].split('/')[0].replace(';','')
-                except: interface_data['ipv6_addr_loc'] = str()
-
-                try: interface_data['scheduler-map'] = collect_if_config_rcmd_outputs[10].split('scheduler-map ')[1].split()[0].split('/')[0].replace(';','')
-                except: interface_data['scheduler-map'] = str()
-
-                try: interface_data['mtu'] = collect_if_config_rcmd_outputs[11].split('mtu ')[1].splitlines()[0].strip()
-                except: interface_data['mtu'] = str()
-
+                interface_data['isis ldp-sync'] = True if 'isis ldp-sync' in collect_if_config_rcmd_outputs[1] else str()
+                try: interface_data['isis cost'] = collect_if_config_rcmd_outputs[1].split('isis ipv6 cost ')[1].split()[0]
+                except: interface_data['isis cost'] = str()
+                try: interface_data['isis ipv6 cost'] = collect_if_config_rcmd_outputs[1].split('isis ipv6 cost ')[1].split()[0]
+                except: interface_data['isis ipv6 cost'] = str()
 
 
 
@@ -2198,7 +2207,6 @@ warning {
                     'ping inet6 %s count 5' % (ipv6_addr_rem),
                     'ping inet6 %s count 5 size %s' % (ipv6_addr_rem, str(mtu_size)),
 
-                    'show configuration class-of-service interfaces %s' % (interface_id),
                     'show ldp neighbor %s extensive' % (LDP_neighbor_IP)
                 ],
 
