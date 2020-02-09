@@ -2122,7 +2122,12 @@ warning {
                 except: interface_data['ipv4_address'] = str()
                 try: interface_data['ipv6_address'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
                 except: interface_data['ipv6_address'] = str()
-            elif RCMD.router_type == 'juniper': pass
+            elif RCMD.router_type == 'juniper':
+                try: interface_data['ipv4_address'] = collect_if_config_rcmd_outputs[0].split('family inet address ')[1].split()[0].replace(';','')
+                except: interface_data['ipv4_address'] = str()
+                try: interface_data['ipv6_address'] = collect_if_config_rcmd_outputs[0].split('family inet6 address ')[1].split()[0].split('/')[0].replace(';','')
+                except: interface_data['ipv6_address'] = str()
+
 
 
 
