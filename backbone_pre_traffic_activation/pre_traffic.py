@@ -2152,6 +2152,11 @@ warning {
                 try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
                 except: interface_data['ipv6_addr_loc'] = str()
                 interface_data['dampening'] = True if 'dampening' in collect_if_config_rcmd_outputs[0] else str()
+                try: interface_data['flow ipv4 monitor'] = collect_if_config_rcmd_outputs[0].split('flow ipv4 monitor ')[1].split()[0]
+                except: interface_data['flow ipv4 monitor'] = str()
+                try: interface_data['flow ipv6 monitor'] = collect_if_config_rcmd_outputs[0].split('flow ipv4 monitor ')[1].split()[0]
+                except: interface_data['flow ipv6 monitor'] = str()
+
 
             elif RCMD.router_type == 'huawei':
                 try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[0]
@@ -2213,7 +2218,7 @@ warning {
            color = 'red' if len(None_elements)>0 else 'green')
 
         if len(None_elements)>0:
-            CGI_CLI.uprint('\nVOID/UNSET DATA PROBLEM FOUND!', tag = 'h1', color = 'red')
+            CGI_CLI.uprint('\nWARNING: VOID/UNSET DATA PROBLEM FOUND!', tag = 'h1', color = 'red')
 
 except SystemExit: pass
 except:
