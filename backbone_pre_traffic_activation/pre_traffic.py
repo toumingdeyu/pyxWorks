@@ -2091,7 +2091,10 @@ warning {
             'show isis adjacency | match %s' % (interface_id),
             'show ldp neighbor | match %s' % (interface_id),
             'show isis interface %s extensive' % (interface_id),
-            'show rsvp interface %s' % (interface_id)
+            'show rsvp interface %s' % (interface_id),
+
+            'show configuration class-of-service interfaces %s | display set'  % (interface_id),
+            'show configuration groups mtu-default | display set'
         ],
 
         'huawei': [
@@ -2170,7 +2173,11 @@ warning {
                 try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet6 address ')[1].split()[0].split('/')[0].replace(';','')
                 except: interface_data['ipv6_addr_loc'] = str()
 
+                try: interface_data['scheduler-map'] = collect_if_config_rcmd_outputs[10].split('scheduler-map ')[1].split()[0].split('/')[0].replace(';','')
+                except: interface_data['scheduler-map'] = str()
 
+                try: interface_data['mtu'] = collect_if_config_rcmd_outputs[11].split('mtu ')[1].splitlines()[0].strip()
+                except: interface_data['mtu'] = str()
 
 
 
