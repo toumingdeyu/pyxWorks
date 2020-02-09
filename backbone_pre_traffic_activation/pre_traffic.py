@@ -1877,6 +1877,30 @@ def get_void_json_elements(json_data, ignore_void_strings = None, ignore_void_li
     return xpath_list
 ### ----------------------------------------------------------------------------
 
+###############################################################################
+
+def get_fiblist(input_text = None):
+    fib_list = []
+    if input_text:
+        fib_list = re.findall(r'LD[0-9]{5,6}|FIB[0-9]{5,6}|LDA[0-9]{5,6}', str(input_text))
+        fib_dash_list = re.findall(r'LD[0-9]{5,6}\-LDA[0-9]{5,6}', str(input_text))
+
+        fib_set = set(fib_list)
+        fib_list = list(fib_set)
+        fib_list.sort()
+
+        fib_dash_set = set(fib_dash_list)
+        fib_dash_list = list(fib_dash_set)
+        fib_dash_list.sort()
+
+        for dash_line in fib_dash_list:
+            for line in fib_list:
+                if line in dash_line:
+                    fib_list.remove(line)
+    return fib_list
+
+###############################################################################
+
 
 
 ###############################################################################
@@ -2105,28 +2129,41 @@ warning {
                 autoconfirm_mode = True, \
                 printall = printall)
 
+            ### def PROCEED COMMAND OUTPUT DATA ###############################
             try: interface_data['mtu'] = collect_if_config_rcmd_outputs[0].split('mtu ')[1].splitlines()[0].strip()
             except: interface_data['mtu'] = str()
+
             try: interface_data['bandwidth'] = collect_if_config_rcmd_outputs[0].\
                      split('bandwidth ')[1].splitlines()[0].strip().replace(';','')
             except: interface_data['bandwidth'] = str()
 
+            try: interface_data['fib_number(s)'] = ','.join(get_fiblist(collect_if_config_rcmd_outputs[0].split('description')[1].splitlines()[0]))
+            except: interface_data['fib_number'] = str()
+
+            try: interface_data['name_of_remote_device'] = collect_if_config_rcmd_outputs[0].split('description')[1].splitlines()[0].split('from')[0].strip().replace('"','')
+            except: interface_data['name_of_remote_device'] = str()
+
+            try: interface_data['ipv4_addr_rem'] = collect_if_config_rcmd_outputs[0].split('description')[1].splitlines()[0].split('@')[1].split()[0]
+            except: interface_data['ipv4_addr_rem'] = str()
+
             if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
-                try: interface_data['ipv4_address'] = collect_if_config_rcmd_outputs[0].split('ipv4 address ')[1].split()[0]
-                except: interface_data['ipv4_address'] = str()
-                try: interface_data['ipv6_address'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
-                except: interface_data['ipv6_address'] = str()
+                try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv4 address ')[1].split()[0]
+                except: interface_data['ipv4_addr_loc'] = str()
+                try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
+                except: interface_data['ipv6_addr_loc'] = str()
                 interface_data['dampening'] = True if 'dampening' in collect_if_config_rcmd_outputs[0] else str()
+
             elif RCMD.router_type == 'huawei':
-                try: interface_data['ipv4_address'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[0]
-                except: interface_data['ipv4_address'] = str()
-                try: interface_data['ipv6_address'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
-                except: interface_data['ipv6_address'] = str()
+                try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[0]
+                except: interface_data['ipv4_addr_loc'] = str()
+                try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
+                except: interface_data['ipv6_addr_loc'] = str()
+
             elif RCMD.router_type == 'juniper':
-                try: interface_data['ipv4_address'] = collect_if_config_rcmd_outputs[0].split('family inet address ')[1].split()[0].replace(';','')
-                except: interface_data['ipv4_address'] = str()
-                try: interface_data['ipv6_address'] = collect_if_config_rcmd_outputs[0].split('family inet6 address ')[1].split()[0].split('/')[0].replace(';','')
-                except: interface_data['ipv6_address'] = str()
+                try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet address ')[1].split()[0].replace(';','')
+                except: interface_data['ipv4_addr_loc'] = str()
+                try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet6 address ')[1].split()[0].split('/')[0].replace(';','')
+                except: interface_data['ipv6_addr_loc'] = str()
 
 
 
