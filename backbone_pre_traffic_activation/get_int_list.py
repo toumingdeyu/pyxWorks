@@ -1951,7 +1951,7 @@ warning {
 
     ### PRINT WEBFORM LIST ####################################################
     for whole_if_line, interface in device_interface_list:
-        CGI_CLI.uprint('<label><input type="checkbox" id="interface_id" name="%s"> %s</label>' \
+        CGI_CLI.uprint('<label><input type="checkbox" name="interface_id[]" value="%s"> %s</label>' \
             % (interface, whole_if_line), raw = True)
 
 except SystemExit: pass
