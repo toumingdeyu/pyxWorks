@@ -127,13 +127,15 @@ class CGI_CLI(object):
 
     @staticmethod
     def init_cgi(chunked = None, css_style = None, newline = None, \
-        timestamp = None, log = None):
+        timestamp = None, log = None, html_logging = None):
         """
         log - start to log all after logfilename is inserted
+        html_logging - write log file in HTML format for easy reading
         """
         CGI_CLI.START_EPOCH = time.time()
         CGI_CLI.http_status = 200
         CGI_CLI.http_status_text = 'OK'
+        CGI_CLI.html_logging = html_logging
         CGI_CLI.chunked = chunked
         CGI_CLI.timestamp = timestamp
         CGI_CLI.log = log
@@ -164,6 +166,15 @@ class CGI_CLI(object):
             if variable == "submit": CGI_CLI.submit_form = value
             if variable == "username": CGI_CLI.username = value
             if variable == "password": CGI_CLI.password = value
+            if variable == "chunked_mode":
+                if not value: CGI_CLI.chunked = False
+                elif value: CGI_CLI.chunked = True
+                try:
+                    if value.upper() in ['DISABLE','DISABLED','NO','FALSE','NONE']:
+                        CGI_CLI.chunked_mode = False
+                    elif value.upper() in ['ENABLE','ENABLED','YES','TRUE']:
+                        CGI_CLI.chunked_mode = True
+                except: pass
         ### DECIDE - CLI OR CGI MODE ##########################################
         CGI_CLI.remote_addr =  dict(os.environ).get('REMOTE_ADDR','')
         CGI_CLI.http_user_agent = dict(os.environ).get('HTTP_USER_AGENT','')
@@ -258,13 +269,17 @@ class CGI_CLI(object):
 
     @staticmethod
     def print_chunk(msg=""):
-        ### sys.stdout.write is printing without \n , print adds \n == +1BYTE ###
+        ### sys.stdout.write is printing without \n, print adds \n == +1BYTE ##
         if CGI_CLI.chunked and CGI_CLI.cgi_active:
             if len(msg)>0:
                 sys.stdout.write("\r\n%X\r\n%s" % (len(msg), msg))
                 sys.stdout.flush()
         ### CLI MODE ###
         else: print(msg)
+        ### HTML LOGGING ######################################################
+        if CGI_CLI.logfilename and CGI_CLI.log and CGI_CLI.html_logging:
+            with open(CGI_CLI.logfilename,"a+") as CGI_CLI.fp:
+                CGI_CLI.fp.write(msg)
 
     @staticmethod
     def uprint(text = str(), tag = None, tag_id = None, color = None, name = None, jsonprint = None, \
@@ -345,7 +360,7 @@ class CGI_CLI(object):
             ### PRINT PER TAG #################################################
             CGI_CLI.print_chunk(print_per_tag)
         ### LOG ALL, if CGI_CLI.log is True, EXCEPT log == 'no' ###############
-        if CGI_CLI.logfilename and (log or CGI_CLI.log):
+        if CGI_CLI.logfilename and (log or CGI_CLI.log) and not CGI_CLI.html_logging:
             log_yes = True
             try:
                 if str(log).upper() == 'NO': log_yes = False
@@ -2042,9 +2057,15 @@ warning {
             interface_menu_list.append('</table>')
             interface_menu_list.append('</div>')
 
+            if not (USERNAME and PASSWORD):
+                interface_menu_list.append('<h3>LDAP authentication (required):</h3>')
+                interface_menu_list.append({'text':'username'})
+                interface_menu_list.append('<br/>')
+                interface_menu_list.append({'password':'password'})
+                interface_menu_list.append('<br/>')
+
             CGI_CLI.formprint( interface_menu_list + \
-                ['<h3>LDAP authentication (required):</h3>',\
-                {'text':'username'},'<br/>', {'password':'password'},'<br/>','<br/>',\
+                ['<br/>',\
                 '<br/>',{'checkbox':'printall'},'<br/>','<br/>'], submit_button = 'OK',
                 pyfile = None, tag = None, color = None , list_separator = '&emsp;')
             ### EXIT AFTER MENU PRINTING ######################################
@@ -2052,11 +2073,19 @@ warning {
 
         ### MAIN MENU #########################################################
         elif len(device_list) == 0 and len(interface_id_list) == 0:
-            CGI_CLI.formprint([{'text':'device'},'<br/>', \
+
+            interface_menu_list = [{'text':'device'},'<br/>', \
                 '<h3>(Optional) select menu available in next step:</h3>','<br/>',\
-                {'text':'interface'},'<br/>',\
-                '<h3>LDAP authentication (required):</h3>',\
-                {'text':'username'},'<br/>', {'password':'password'},'<br/>','<br/>',\
+                {'text':'interface'},'<br/>']
+
+            if not (USERNAME and PASSWORD):
+                interface_menu_list.append('<h3>LDAP authentication (required):</h3>')
+                interface_menu_list.append({'text':'username'})
+                interface_menu_list.append('<br/>')
+                interface_menu_list.append({'password':'password'})
+                interface_menu_list.append('<br/>')
+
+            CGI_CLI.formprint(interface_menu_list + ['<br/>',\
                 {'checkbox':'printall'},'<br/>','<br/>'],\
                 submit_button = 'OK', pyfile = None, tag = None, color = None)
             ### EXIT AFTER MENU PRINTING ######################################
@@ -2276,11 +2305,14 @@ warning {
 
         None_elements = get_void_json_elements(interface_data)
 
-        CGI_CLI.uprint('VOID/UNSET ELEMENTS CHECK: %s\n' % (str(None_elements) if len(None_elements)>0 else 'OK'), \
-           color = 'red' if len(None_elements)>0 else 'green')
+        CGI_CLI.uprint('Unset elements check on %s: %s\n' % \
+            (interface_data.get('interface_id'), \
+            str(None_elements) if len(None_elements)>0 else 'OK'), \
+            color = 'red' if len(None_elements)>0 else 'green')
 
         if len(None_elements)>0:
-            CGI_CLI.uprint('\nWARNING: VOID/UNSET DATA PROBLEM FOUND!', tag = 'h1', color = 'red')
+            CGI_CLI.uprint('\nWARNING: Unset data found on interface %s!' % \
+                (interface_data.get('interface_id')), tag = 'h1', color = 'red')
 
 except SystemExit: pass
 except:
