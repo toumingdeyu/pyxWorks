@@ -1932,8 +1932,8 @@ warning {
     ipv6_addr_rem = str()
     LDP_neighbor_IP = str()
     device_interface_list = []
-    interface_cgi_string = 'interface'
-    interface_id = str()
+    interface_cgi_string = 'interface__'
+    interface_id_list = []
 
     ### GCI_CLI INIT ##########################################################
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True, css_style = CSS_STYLE, \
@@ -1942,11 +1942,22 @@ warning {
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
     printall = CGI_CLI.data.get("printall")
 
+
+    ### READ INTERFACE ID LIST FROM CGI #######################################
+    for key in CGI_CLI.data.keys():
+        try: value = str(key)
+        except: value = str()
+        if interface_cgi_string in value:
+            try: interface_id_list.append(value.replace(interface_cgi_string,str()).split()[0].replace('GE','Gi'))
+            except: interface_id_list.append(value.replace(interface_cgi_string,str()).replace('GE','Gi'))
+
+    ### APPEND INTERFACE LIST FROM CLI OR ADDITIONAL CGI INPUT ################
     interface_line = CGI_CLI.data.get("interface",str())
     if interface_line:
-        try: interface_id = CGI_CLI.data.get("interface",str()).split()[0].replace('GE','Gi')
-        except: interface_id = interface_line
+        try: interface_id_list.append(CGI_CLI.data.get("interface",str()).split()[0].replace('GE','Gi'))
+        except: interface_id_list.append(CGI_CLI.data.get("interface",str()).replace('GE','Gi'))
 
+    ### TESTSERVER WORKAROUND #################################################
     iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
     if not (USERNAME and PASSWORD):
         if iptac_server == 'iptac5': USERNAME, PASSWORD = 'iptac', 'paiiUNDO'
@@ -1980,13 +1991,36 @@ warning {
               tag = 'h1', color = 'blue')
     if printall: CGI_CLI.print_args()
 
-    if len(device_list) > 0 and not interface_id:
+
+    ### def SQL INIT ##############################################################
+    sql_inst = sql_interface(host='localhost', user='cfgbuilder', \
+        password='cfgbuildergetdata', database='rtr_configuration')
+
+    ### SQL READ ALL DEVICES IN NETWORK ###########################################
+    data = collections.OrderedDict()
+    data['oti_all_table'] = sql_inst.sql_read_records_to_dict_list( \
+        select_string = 'vendor, hardware, software, rtr_name, network',\
+        from_string = 'oti_all_table',\
+        order_by = 'vendor, hardware, rtr_name ASC')
+
+
+
+
+
+
+    ### DEBUG PRINTALL OF INTERFACE LIST PER DEVICE ###########################
+    if len(device_list) > 0 and len(interface_id_list) == 0:
         for device in device_list:
             device_interface_list = get_interface_list_per_device(device)
-        if printall: CGI_CLI.uprint(device_interface_list, jsonprint = True)
+        if printall: CGI_CLI.uprint(device_interface_list, \
+            name='%s_interface_list' % (device), jsonprint = True)
+
 
     ### def HTML MENUS DISPLAYED ONLY IN CGI MODE #############################
-    if CGI_CLI.cgi_active:
+    if CGI_CLI.cgi_active \
+        and (not CGI_CLI.submit_form or CGI_CLI.submit_form in ['OK']):
+        ### OTHER SUBMIT BUTTONS THAN OK ALLOWS "REMOTE" CGI CONTROL ##########
+
         if len(device_interface_list) > 0:
             ### INTERFACE MENU PART ###########################################
             table_rows = 1
@@ -1998,7 +2032,7 @@ warning {
             for whole_if_line, interface in device_interface_list:
                 if counter == 0: interface_menu_list.append('<tr>')
                 interface_menu_list.append('<td>')
-                interface_menu_list.append({'radio':'%s__%s' % (interface_cgi_string,whole_if_line)})
+                interface_menu_list.append({'checkbox':'%s%s' % (interface_cgi_string,whole_if_line)})
                 counter += 1
                 interface_menu_list.append('</td>')
                 if counter + 1 > table_rows:
@@ -2017,7 +2051,7 @@ warning {
             sys.exit(0)
 
         ### MAIN MENU #########################################################
-        elif len(device_list) == 0 and not interface_id:
+        elif len(device_list) == 0 and len(interface_id_list) == 0:
             CGI_CLI.formprint([{'text':'device'},'<br/>', \
                 '<h3>(Optional) select menu available in next step:</h3>','<br/>',\
                 {'text':'interface'},'<br/>',\
@@ -2028,14 +2062,14 @@ warning {
             ### EXIT AFTER MENU PRINTING ######################################
             sys.exit(0)
 
-    ### END DUE TO ERRORS #####################################################
+    ### END DUE TO MISSING INPUT DATA #########################################
     exit_due_to_error = None
 
     if len(device_list) == 0:
         CGI_CLI.uprint('Device name(s) NOT INSERTED!', tag = 'h2', color = 'red')
         exit_due_to_error = True
 
-    if not interface_id:
+    if len(interface_id_list) == 0:
         CGI_CLI.uprint('Interface id NOT INSERTED!', tag = 'h2', color = 'red')
         exit_due_to_error = True
 
@@ -2050,70 +2084,12 @@ warning {
     if exit_due_to_error: sys.exit(0)
 
     ### PRINT SELECTED DEVICE AND INTERFACE ###################################
-    CGI_CLI.uprint('Device(s)=%s, Interface=%s' % \
-        (','.join(device_list), interface_id))
+    CGI_CLI.uprint('Device(s)=%s, Interface(s)=[%s], Username=%s' % \
+        (','.join(device_list), ','.join(interface_id_list), USERNAME))
 
-
-    ### def COLLECT COMMAND LIST ##############################################
-    collect_if_data_rcmds = {
-        'cisco_ios':[
-            'show run interface %s' % (interface_id),
-            'show run router isis PAII interface %s ' % (interface_id),
-            'show run mpls traffic-eng interface %s' % (interface_id),
-            'show run mpls ldp interface %s' % (interface_id),
-            'show run rsvp interface %s' % (interface_id),
-            'show interface %s' % (interface_id),
-            'show isis neighbors %s' % (interface_id),
-            'show mpls ldp neighbor %s' % (interface_id),
-            'show mpls ldp igp sync interface %s' % (interface_id),
-            'show rsvp interface %s' % (interface_id)
-        ],
-        'cisco_xr':[
-            'show run interface %s' % (interface_id),
-            'show run router isis PAII interface %s ' % (interface_id),
-            'show run mpls traffic-eng interface %s' % (interface_id),
-            'show run mpls ldp interface %s' % (interface_id),
-            'show run rsvp interface %s' % (interface_id),
-            'show interface %s' % (interface_id),
-            'show isis neighbors %s' % (interface_id),
-            'show mpls ldp neighbor %s' % (interface_id),
-            'show mpls ldp igp sync interface %s' % (interface_id),
-            'show rsvp interface %s' % (interface_id)
-        ],
-
-        'juniper': [
-            'show configuration interfaces %s | display set' % (interface_id),
-            'show isis interface %s' % (interface_id),
-            'show configuration protocols mpls',
-            'show configuration protocols ldp | match %s' % (interface_id),
-            'show configuration protocols rsvp | match %s' % (interface_id),
-            'show interfaces brief %s' % (interface_id),
-            'show isis adjacency | match %s' % (interface_id),
-            'show ldp neighbor | match %s' % (interface_id),
-            'show isis interface %s extensive' % (interface_id),
-            'show rsvp interface %s' % (interface_id),
-
-            'show configuration class-of-service interfaces %s | display set'  % (interface_id),
-            'show configuration groups mtu-default | display set'
-        ],
-
-        'huawei': [
-            'display current-configuration interface %s' % (interface_id),
-            'display current-configuration interface %s | i isis' % (interface_id),
-            'display current-configuration interface %s | i  mpls te' % (interface_id),
-            'display current-configuration interface %s | i mpls ldp' % (interface_id),
-            'display current-configuration interface %s | i rsvp' % (interface_id),
-            ' ',
-            'display isis interface %s' % (interface_id),
-            'display mpls ldp adjacency interface %s' % (interface_id),
-            'display isis ldp-sync interface | i %s' % (interface_id),
-            'display mpls rsvp-te interface %s' % (interface_id)
-        ]
-    }
 
     ## def REMOTE DEVICE OPERATIONS ###########################################
-    interface_data = collections.OrderedDict()
-    interface_data['interface_id'] = interface_id
+    device_data = []
     for device in device_list:
         if device:
             RCMD.connect(device, username = USERNAME, password = PASSWORD, \
@@ -2125,105 +2101,176 @@ warning {
                 RCMD.disconnect()
                 continue
 
-            CGI_CLI.uprint('Collecting data on %s' % (device), \
-                no_newlines = None if printall else True)
+            ### LOOP PER INTERFACE ############################################
+            for interface_id in interface_id_list:
 
-            collect_if_config_rcmd_outputs = RCMD.run_commands(collect_if_data_rcmds, \
-                autoconfirm_mode = True, \
-                printall = printall)
+                interface_data = collections.OrderedDict()
+                interface_data['interface_id'] = interface_id
 
-            ### def PROCEED COMMAND OUTPUT DATA ###############################
-            try: interface_data['mtu'] = collect_if_config_rcmd_outputs[0].split('mtu ')[1].splitlines()[0].strip()
-            except: interface_data['mtu'] = str()
+                ### def COLLECT COMMAND LIST ##################################
+                collect_if_data_rcmds = {
+                    'cisco_ios':[
+                        'show run interface %s' % (interface_id),
+                        'show run router isis PAII interface %s ' % (interface_id),
+                        'show run mpls traffic-eng interface %s' % (interface_id),
+                        'show run mpls ldp interface %s' % (interface_id),
+                        'show run rsvp interface %s' % (interface_id),
+                        'show interface %s' % (interface_id),
+                        'show isis neighbors %s' % (interface_id),
+                        'show mpls ldp neighbor %s' % (interface_id),
+                        'show mpls ldp igp sync interface %s' % (interface_id),
+                        'show rsvp interface %s' % (interface_id)
+                    ],
+                    'cisco_xr':[
+                        'show run interface %s' % (interface_id),
+                        'show run router isis PAII interface %s ' % (interface_id),
+                        'show run mpls traffic-eng interface %s' % (interface_id),
+                        'show run mpls ldp interface %s' % (interface_id),
+                        'show run rsvp interface %s' % (interface_id),
+                        'show interface %s' % (interface_id),
+                        'show isis neighbors %s' % (interface_id),
+                        'show mpls ldp neighbor %s' % (interface_id),
+                        'show mpls ldp igp sync interface %s' % (interface_id),
+                        'show rsvp interface %s' % (interface_id)
+                    ],
 
-            try: interface_data['bandwidth'] = collect_if_config_rcmd_outputs[0].\
-                     split('bandwidth ')[1].splitlines()[0].strip().replace(';','')
-            except: interface_data['bandwidth'] = str()
+                    'juniper': [
+                        'show configuration interfaces %s | display set' % (interface_id),
+                        'show isis interface %s' % (interface_id),
+                        'show configuration protocols mpls',
+                        'show configuration protocols ldp | match %s' % (interface_id),
+                        'show configuration protocols rsvp | match %s' % (interface_id),
+                        'show interfaces brief %s' % (interface_id),
+                        'show isis adjacency | match %s' % (interface_id),
+                        'show ldp neighbor | match %s' % (interface_id),
+                        'show isis interface %s extensive' % (interface_id),
+                        'show rsvp interface %s' % (interface_id),
 
-            try: interface_data['fib_number(s)'] = ','.join(get_fiblist(collect_if_config_rcmd_outputs[0].split('description')[1].splitlines()[0]))
-            except: interface_data['fib_number'] = str()
+                        'show configuration class-of-service interfaces %s | display set'  % (interface_id),
+                        'show configuration groups mtu-default | display set'
+                    ],
 
-            try: interface_data['name_of_remote_device'] = collect_if_config_rcmd_outputs[0].split('description')[1].splitlines()[0].split('from')[0].strip().replace('"','')
-            except: interface_data['name_of_remote_device'] = str()
+                    'huawei': [
+                        'display current-configuration interface %s' % (interface_id),
+                        'display current-configuration interface %s | i isis' % (interface_id),
+                        'display current-configuration interface %s | i  mpls te' % (interface_id),
+                        'display current-configuration interface %s | i mpls ldp' % (interface_id),
+                        'display current-configuration interface %s | i rsvp' % (interface_id),
+                        ' ',
+                        'display isis interface %s' % (interface_id),
+                        'display mpls ldp adjacency interface %s' % (interface_id),
+                        'display isis ldp-sync interface | i %s' % (interface_id),
+                        'display mpls rsvp-te interface %s' % (interface_id)
+                    ]
+                }
 
-            try: interface_data['ipv4_addr_rem'] = collect_if_config_rcmd_outputs[0].split('description')[1].splitlines()[0].split('@')[1].split()[0]
-            except: interface_data['ipv4_addr_rem'] = str()
+                CGI_CLI.uprint('Collecting data on %s' % (device), \
+                    no_newlines = None if printall else True)
 
-            if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
-                try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv4 address ')[1].split()[0]
-                except: interface_data['ipv4_addr_loc'] = str()
-                try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
-                except: interface_data['ipv6_addr_loc'] = str()
-                interface_data['dampening'] = True if 'dampening' in collect_if_config_rcmd_outputs[0] else str()
-                try: interface_data['flow ipv4 monitor'] = collect_if_config_rcmd_outputs[0].split('flow ipv4 monitor ')[1].split()[0]
-                except: interface_data['flow ipv4 monitor'] = str()
-                try: interface_data['flow ipv6 monitor'] = collect_if_config_rcmd_outputs[0].split('flow ipv4 monitor ')[1].split()[0]
-                except: interface_data['flow ipv6 monitor'] = str()
+                collect_if_config_rcmd_outputs = RCMD.run_commands(collect_if_data_rcmds, \
+                    autoconfirm_mode = True, \
+                    printall = printall)
 
-                interface_data['mpls ldp sync'] = True if 'mpls ldp sync' in collect_if_config_rcmd_outputs[1] else str()
-
-
-            elif RCMD.router_type == 'juniper':
-                try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet address ')[1].split()[0].split('/')[0].replace(';','')
-                except: interface_data['ipv4_addr_loc'] = str()
-                try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet6 address ')[1].split()[0].split('/')[0].replace(';','')
-                except: interface_data['ipv6_addr_loc'] = str()
-                try: interface_data['scheduler-map'] = collect_if_config_rcmd_outputs[10].split('scheduler-map ')[1].split()[0].split('/')[0].replace(';','')
-                except: interface_data['scheduler-map'] = str()
-                try: interface_data['mtu'] = collect_if_config_rcmd_outputs[11].split('mtu ')[1].splitlines()[0].strip()
+                ### def PROCEED COMMAND OUTPUT DATA ###############################
+                try: interface_data['mtu'] = collect_if_config_rcmd_outputs[0].split('mtu ')[1].splitlines()[0].strip()
                 except: interface_data['mtu'] = str()
 
-                interface_data['ldp-synchronization;'] = True if 'ldp-synchronization;' in collect_if_config_rcmd_outputs[1] else str()
+                try: interface_data['bandwidth'] = collect_if_config_rcmd_outputs[0].\
+                         split('bandwidth ')[1].splitlines()[0].strip().replace(';','')
+                except: interface_data['bandwidth'] = str()
+
+                try: interface_data['fib_number(s)'] = ','.join(get_fiblist(collect_if_config_rcmd_outputs[0].split('description')[1].splitlines()[0]))
+                except: interface_data['fib_number'] = str()
+
+                try: interface_data['name_of_remote_device'] = collect_if_config_rcmd_outputs[0].split('description')[1].splitlines()[0].split('from')[0].strip().replace('"','')
+                except: interface_data['name_of_remote_device'] = str()
+
+                try: interface_data['ipv4_addr_rem'] = collect_if_config_rcmd_outputs[0].split('description')[1].splitlines()[0].split('@')[1].split()[0]
+                except: interface_data['ipv4_addr_rem'] = str()
+
+                if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
+                    try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv4 address ')[1].split()[0]
+                    except: interface_data['ipv4_addr_loc'] = str()
+                    try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
+                    except: interface_data['ipv6_addr_loc'] = str()
+                    interface_data['dampening'] = True if 'dampening' in collect_if_config_rcmd_outputs[0] else str()
+                    try: interface_data['flow ipv4 monitor'] = collect_if_config_rcmd_outputs[0].split('flow ipv4 monitor ')[1].split()[0]
+                    except: interface_data['flow ipv4 monitor'] = str()
+                    try: interface_data['flow ipv6 monitor'] = collect_if_config_rcmd_outputs[0].split('flow ipv4 monitor ')[1].split()[0]
+                    except: interface_data['flow ipv6 monitor'] = str()
+
+                    interface_data['mpls ldp sync'] = True if 'mpls ldp sync' in collect_if_config_rcmd_outputs[1] else str()
+
+
+                elif RCMD.router_type == 'juniper':
+                    try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet address ')[1].split()[0].split('/')[0].replace(';','')
+                    except: interface_data['ipv4_addr_loc'] = str()
+                    try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet6 address ')[1].split()[0].split('/')[0].replace(';','')
+                    except: interface_data['ipv6_addr_loc'] = str()
+                    try: interface_data['scheduler-map'] = collect_if_config_rcmd_outputs[10].split('scheduler-map ')[1].split()[0].split('/')[0].replace(';','')
+                    except: interface_data['scheduler-map'] = str()
+                    try: interface_data['mtu'] = collect_if_config_rcmd_outputs[11].split('mtu ')[1].splitlines()[0].strip()
+                    except: interface_data['mtu'] = str()
+
+                    interface_data['ldp-synchronization;'] = True if 'ldp-synchronization;' in collect_if_config_rcmd_outputs[1] else str()
 
 
 
-            elif RCMD.router_type == 'huawei':
-                try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[0]
-                except: interface_data['ipv4_addr_loc'] = str()
-                try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
-                except: interface_data['ipv6_addr_loc'] = str()
+                elif RCMD.router_type == 'huawei':
+                    try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[0]
+                    except: interface_data['ipv4_addr_loc'] = str()
+                    try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
+                    except: interface_data['ipv6_addr_loc'] = str()
 
-                interface_data['isis ldp-sync'] = True if 'isis ldp-sync' in collect_if_config_rcmd_outputs[1] else str()
-                try: interface_data['isis cost'] = collect_if_config_rcmd_outputs[1].split('isis ipv6 cost ')[1].split()[0]
-                except: interface_data['isis cost'] = str()
-                try: interface_data['isis ipv6 cost'] = collect_if_config_rcmd_outputs[1].split('isis ipv6 cost ')[1].split()[0]
-                except: interface_data['isis ipv6 cost'] = str()
+                    interface_data['isis ldp-sync'] = True if 'isis ldp-sync' in collect_if_config_rcmd_outputs[1] else str()
+                    try: interface_data['isis cost'] = collect_if_config_rcmd_outputs[1].split('isis ipv6 cost ')[1].split()[0]
+                    except: interface_data['isis cost'] = str()
+                    try: interface_data['isis ipv6 cost'] = collect_if_config_rcmd_outputs[1].split('isis ipv6 cost ')[1].split()[0]
+                    except: interface_data['isis ipv6 cost'] = str()
 
 
 
-            ### def PING COMMAND LIST #########################################
-            ping_config_rcmds = {
-                'cisco_ios':[],
-                'cisco_xr':[
-                    'ping %s' % (ipv4_addr_rem),
-                    'ping %s size %s df-bit' % (ipv4_addr_rem, str(mtu_size)),
-                    'ping ipv6 %s' % (ipv6_addr_rem),
-                    'ping ipv6 %s size %s' % (ipv6_addr_rem, str(mtu_size))
-                ],
+                ### def PING COMMAND LIST #########################################
+                ping_config_rcmds = {
+                    'cisco_ios':[],
+                    'cisco_xr':[
+                        'ping %s' % (ipv4_addr_rem),
+                        'ping %s size %s df-bit' % (ipv4_addr_rem, str(mtu_size)),
+                        'ping ipv6 %s' % (ipv6_addr_rem),
+                        'ping ipv6 %s size %s' % (ipv6_addr_rem, str(mtu_size))
+                    ],
 
-                'juniper': [
-                    'ping %s count 5' % (ipv4_addr_rem),
-                    'ping %s count 5 size %s' % (ipv4_addr_rem, str(mtu_size)),
-                    'ping inet6 %s count 5' % (ipv6_addr_rem),
-                    'ping inet6 %s count 5 size %s' % (ipv6_addr_rem, str(mtu_size)),
+                    'juniper': [
+                        'ping %s count 5' % (ipv4_addr_rem),
+                        'ping %s count 5 size %s' % (ipv4_addr_rem, str(mtu_size)),
+                        'ping inet6 %s count 5' % (ipv6_addr_rem),
+                        'ping inet6 %s count 5 size %s' % (ipv6_addr_rem, str(mtu_size)),
 
-                    'show ldp neighbor %s extensive' % (LDP_neighbor_IP)
-                ],
+                        'show ldp neighbor %s extensive' % (LDP_neighbor_IP)
+                    ],
 
-                'huawei': [
-                    'ping %s' % (ipv4_addr_rem),
-                    'ping -s %s %s' % (str(mtu_size), ipv4_addr_rem),
-                    'ping ipv6 %s' % (ipv6_addr_rem),
-                    'ping ipv6 -s %s %s' % (str(mtu_size), ipv6_addr_rem),
+                    'huawei': [
+                        'ping %s' % (ipv4_addr_rem),
+                        'ping -s %s %s' % (str(mtu_size), ipv4_addr_rem),
+                        'ping ipv6 %s' % (ipv6_addr_rem),
+                        'ping ipv6 -s %s %s' % (str(mtu_size), ipv6_addr_rem),
 
-                    'display interface %s' % (ipv4_addr_rem),
-                    'display interface %s | i  Line protocol' % (ipv4_addr_rem)
-                ]
-            }
+                        'display interface %s' % (ipv4_addr_rem),
+                        'display interface %s | i  Line protocol' % (ipv4_addr_rem)
+                    ]
+                }
 
+                ### LIST RECORD PER INTERFACE #################################
+                device_data.append([copy.deepcopy(device), copy.deepcopy(interface_data)])
+
+            ### LOOP PER INTERFACE - END ######################################
             RCMD.disconnect()
 
-        ### def PRINT INTERFACE DATA INFO #####################################
+    #if printall: CGI_CLI.uprint(device_data, name = 'device_data', jsonprint = True)
+
+    ### def PRINT INTERFACE DATA INFO PER DEVICE ##############################
+    for device, interface_data in device_data:
+
         CGI_CLI.uprint(interface_data, name = 'Device:%s' % (device), \
             jsonprint = True, color = 'blue')
 
