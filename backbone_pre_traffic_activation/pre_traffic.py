@@ -281,7 +281,8 @@ class CGI_CLI(object):
         else: print(msg)
 
         ### HTML LOGGING ######################################################
-        if CGI_CLI.logfilename and CGI_CLI.log and CGI_CLI.html_logging:
+        if CGI_CLI.logfilename and CGI_CLI.log and CGI_CLI.html_logging \
+            and CGI_CLI.cgi_active:
             with open(CGI_CLI.logfilename,"a+") as CGI_CLI.fp:
                 if not raw_log: msg_to_html = str(msg.replace('&','&amp;').\
                                 replace('<','&lt;').\
@@ -339,7 +340,7 @@ class CGI_CLI(object):
                     replace('>','&gt;').replace(' ','&nbsp;').\
                     replace('"','&quot;').replace("'",'&apos;').\
                     replace('\n','<br/>'))
-            CGI_CLI.print_chunk(timestamp_string + print_name + print_text)
+            CGI_CLI.print_chunk(timestamp_string + print_name + print_text, raw_log = True)
         elif CGI_CLI.cgi_active and raw: CGI_CLI.print_chunk(print_text, raw_log = True)
         else:
             text_color = str()
@@ -370,6 +371,7 @@ class CGI_CLI(object):
             elif not no_newlines: CGI_CLI.print_chunk('<br/>', raw_log = True)
             ### PRINT PER TAG #################################################
             CGI_CLI.print_chunk(print_per_tag)
+
         ### LOG ALL, if CGI_CLI.log is True, EXCEPT log == 'no' ###############
         if CGI_CLI.logfilename and (log or CGI_CLI.log) and not CGI_CLI.html_logging:
             log_yes = True
@@ -380,6 +382,18 @@ class CGI_CLI(object):
                 with open(CGI_CLI.logfilename,"a+") as CGI_CLI.fp:
                     CGI_CLI.fp.write(timestamp_string + print_name + \
                         log_text + '\n')
+
+        ### LOG IN CLI MODE ###################################################
+        if not CGI_CLI.cgi_active and CGI_CLI.logfilename and (log or CGI_CLI.log):
+            log_yes = True
+            try:
+                if str(log).upper() == 'NO': log_yes = False
+            except: pass
+            if log_yes:
+                with open(CGI_CLI.logfilename,"a+") as CGI_CLI.fp:
+                    CGI_CLI.fp.write(timestamp_string + print_name + \
+                        log_text + '\n')
+
         ### COPY CLEANUP ######################################################
         del log_text
         del print_text
@@ -1996,9 +2010,9 @@ warning {
         else: device_list = [devices_string.upper()]
 
     ### def LOGFILENAME GENERATION, DO LOGGING ONLY WHEN DEVICE LIST EXISTS ###
-    if device_list:
+    if len(device_list) > 0 and len(interface_id_list) > 0:
         logfilename = generate_logfilename(prefix = ('_'.join(device_list)).upper(), \
-            USERNAME = USERNAME, suffix = str('backb') + '.htm')
+            USERNAME = USERNAME, suffix = str('backb') + '.htmlog')
         ### NO WINDOWS LOGGING ################################################
         if 'WIN32' in sys.platform.upper(): logfilename = None
         if logfilename: CGI_CLI.set_logfile(logfilename = logfilename)
