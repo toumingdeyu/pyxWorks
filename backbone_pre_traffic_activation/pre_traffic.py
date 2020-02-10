@@ -268,7 +268,10 @@ class CGI_CLI(object):
             except: pass
 
     @staticmethod
-    def print_chunk(msg=""):
+    def print_chunk(msg = "", raw_log = None):
+        """
+        raw_log = raw logging
+        """
         ### sys.stdout.write is printing without \n, print adds \n == +1BYTE ##
         if CGI_CLI.chunked and CGI_CLI.cgi_active:
             if len(msg)>0:
@@ -276,10 +279,18 @@ class CGI_CLI(object):
                 sys.stdout.flush()
         ### CLI MODE ###
         else: print(msg)
+
         ### HTML LOGGING ######################################################
         if CGI_CLI.logfilename and CGI_CLI.log and CGI_CLI.html_logging:
             with open(CGI_CLI.logfilename,"a+") as CGI_CLI.fp:
-                CGI_CLI.fp.write(msg)
+                if not raw_log: msg_to_html = str(msg.replace('&','&amp;').\
+                                replace('<','&lt;').\
+                                replace('>','&gt;').replace(' ','&nbsp;').\
+                                replace('"','&quot;').replace("'",'&apos;').\
+                                replace('\n','<br/>'))
+                else: msg_to_html = copy.deepcopy(msg)
+                CGI_CLI.fp.write(msg_to_html)
+                del msg_to_html
 
     @staticmethod
     def uprint(text = str(), tag = None, tag_id = None, color = None, name = None, jsonprint = None, \
@@ -320,8 +331,8 @@ class CGI_CLI(object):
         if CGI_CLI.cgi_active and not raw:
             ### WORKARROUND FOR COLORING OF SIMPLE TEXT #######################
             if color and not (tag or start_tag): tag = 'p';
-            if tag: CGI_CLI.print_chunk('<%s%s%s>'%(tag,' id="%s"'%(tag_id) if tag_id else str(),' style="color:%s;"' % (color) if color else str()))
-            elif start_tag: CGI_CLI.print_chunk('<%s%s%s>'%(start_tag,' id="%s"'%(tag_id) if tag_id else str(),' style="color:%s;"' % (color) if color else str()))
+            if tag: CGI_CLI.print_chunk('<%s%s%s>'%(tag,' id="%s"'%(tag_id) if tag_id else str(),' style="color:%s;"' % (color) if color else str()), raw_log = True)
+            elif start_tag: CGI_CLI.print_chunk('<%s%s%s>'%(start_tag,' id="%s"'%(tag_id) if tag_id else str(),' style="color:%s;"' % (color) if color else str()), raw_log = True)
             if isinstance(print_text, six.string_types):
                 print_text = str(print_text.replace('&','&amp;').\
                     replace('<','&lt;').\
@@ -329,7 +340,7 @@ class CGI_CLI(object):
                     replace('"','&quot;').replace("'",'&apos;').\
                     replace('\n','<br/>'))
             CGI_CLI.print_chunk(timestamp_string + print_name + print_text)
-        elif CGI_CLI.cgi_active and raw: CGI_CLI.print_chunk(print_text)
+        elif CGI_CLI.cgi_active and raw: CGI_CLI.print_chunk(print_text, raw_log = True)
         else:
             text_color = str()
             if color:
@@ -352,11 +363,11 @@ class CGI_CLI(object):
         ### PRINT END OF TAGS #################################################
         if CGI_CLI.cgi_active and not raw:
             if tag:
-                CGI_CLI.print_chunk('</%s>' % (tag))
+                CGI_CLI.print_chunk('</%s>' % (tag), raw_log = True)
                 ### USER DEFINED TAGS DOES NOT PROVIDE NEWLINES!!! ############
-                if tag in ['debug','warning']: CGI_CLI.print_chunk('<br/>')
-            elif end_tag: CGI_CLI.print_chunk('</%s>' % (end_tag))
-            elif not no_newlines: CGI_CLI.print_chunk('<br/>')
+                if tag in ['debug','warning']: CGI_CLI.print_chunk('<br/>', raw_log = True)
+            elif end_tag: CGI_CLI.print_chunk('</%s>' % (end_tag), raw_log = True)
+            elif not no_newlines: CGI_CLI.print_chunk('<br/>', raw_log = True)
             ### PRINT PER TAG #################################################
             CGI_CLI.print_chunk(print_per_tag)
         ### LOG ALL, if CGI_CLI.log is True, EXCEPT log == 'no' ###############
@@ -382,18 +393,18 @@ class CGI_CLI(object):
                       - value in dictionary means cgi variable name / printed componenet value
         """
         def subformprint(data_item):
-            if isinstance(data_item, six.string_types):  CGI_CLI.print_chunk(data_item)
+            if isinstance(data_item, six.string_types):  CGI_CLI.print_chunk(data_item, raw_log = True)
             elif isinstance(data_item, (dict,collections.OrderedDict)):
-                if data_item.get('raw',None): CGI_CLI.print_chunk(data_item.get('raw'))
+                if data_item.get('raw',None): CGI_CLI.print_chunk(data_item.get('raw'), raw_log = True)
                 elif data_item.get('textcontent',None):
                     CGI_CLI.print_chunk('<textarea type = "textcontent" name = "%s" cols = "40" rows = "4">%s</textarea>'%\
-                        (data_item.get('textcontent'), data_item.get('text','')))
+                        (data_item.get('textcontent'), data_item.get('text','')), raw_log = True)
                 elif data_item.get('text'):
                     CGI_CLI.print_chunk('%s: <input type = "text" name = "%s"><br />'%\
-                        (data_item.get('text','').replace('_',' '),data_item.get('text')))
+                        (data_item.get('text','').replace('_',' '),data_item.get('text')), raw_log = True)
                 elif data_item.get('password'):
                     CGI_CLI.print_chunk('%s: <input type = "password" name = "%s"><br />'%\
-                        (data_item.get('password','').replace('_',' '),data_item.get('password')))
+                        (data_item.get('password','').replace('_',' '),data_item.get('password')), raw_log = True)
                 elif data_item.get('radio'):
                     ### 'RADIO':'NAME__VALUE' ###
                     if isinstance(data_item.get('radio'), (list,tuple)):
@@ -404,28 +415,28 @@ class CGI_CLI(object):
                             except: value, name = radiobutton, 'radio'
                             CGI_CLI.print_chunk('<input type = "radio" name = "%s" value = "%s" /> %s %s'%\
                                 (name,value,value.replace('_',' '), \
-                                list_separator if list_separator else str()))
+                                list_separator if list_separator else str()), raw_log = True)
                     else:
                         try:
                             value = data_item.get('radio').split('__')[1]
                             name = data_item.get('radio').split('__')[0]
                         except: value, name = data_item.get('radio'), 'radio'
                         CGI_CLI.print_chunk('<input type = "radio" name = "%s" value = "%s" /> %s'%\
-                            (name,value,value.replace('_',' ')))
+                            (name,value,value.replace('_',' ')), raw_log = True)
                 elif data_item.get('checkbox'):
                     CGI_CLI.print_chunk('<input type = "checkbox" name = "%s" value = "on" /> %s'%\
-                        (data_item.get('checkbox'),data_item.get('checkbox','').replace('_',' ')))
+                        (data_item.get('checkbox'),data_item.get('checkbox','').replace('_',' ')), raw_log = True)
                 elif data_item.get('dropdown'):
                     if len(data_item.get('dropdown').split(','))>0:
-                        CGI_CLI.print_chunk('<select name = "dropdown[%s]">'%(data_item.get('dropdown')))
+                        CGI_CLI.print_chunk('<select name = "dropdown[%s]">'%(data_item.get('dropdown')), raw_log = True)
                         for option in data_item.get('dropdown').split(','):
-                            CGI_CLI.print_chunk('<option value = "%s">%s</option>'%(option,option))
+                            CGI_CLI.print_chunk('<option value = "%s">%s</option>'%(option,option), raw_log = True)
                         CGI_CLI.print_chunk('</select>')
                 elif data_item.get('file'):
-                   CGI_CLI.print_chunk('Upload file: <input type = "file" name = "file[%s]" />'%(data_item.get('file').replace('\\','/')))
+                   CGI_CLI.print_chunk('Upload file: <input type = "file" name = "file[%s]" />'%(data_item.get('file').replace('\\','/')), raw_log = True)
                 elif data_item.get('submit'):
                     CGI_CLI.print_chunk('<input id = "%s" type = "submit" name = "submit" value = "%s" />'%\
-                        (data_item.get('submit'),data_item.get('submit')))
+                        (data_item.get('submit'),data_item.get('submit')), raw_log = True)
 
         ### START OF FORMPRINT ###
         formtypes = ['raw','text','checkbox','radio','submit','dropdown','textcontent']
@@ -434,22 +445,22 @@ class CGI_CLI(object):
         try: i_pyfile = i_pyfile.replace('\\','/').split('/')[-1].strip()
         except: i_pyfile = i_pyfile.strip()
         if CGI_CLI.cgi_active:
-            CGI_CLI.print_chunk('<br/>')
-            if tag and 'h' in tag: CGI_CLI.print_chunk('<%s%s>'%(tag,' style="color:%s;"'%(color) if color else str()))
-            if color or tag and 'p' in tag: tag = 'p'; CGI_CLI.print_chunk('<p%s>'%(' style="color:%s;"'%(color) if color else str()))
+            CGI_CLI.print_chunk('<br/>', raw_log = True)
+            if tag and 'h' in tag: CGI_CLI.print_chunk('<%s%s>'%(tag,' style="color:%s;"'%(color) if color else str()), raw_log = True)
+            if color or tag and 'p' in tag: tag = 'p'; CGI_CLI.print_chunk('<p%s>'%(' style="color:%s;"'%(color) if color else str()), raw_log = True)
             CGI_CLI.print_chunk('<form action = "/cgi-bin/%s" enctype = "multipart/form-data" action = "save_file.py" method = "post">'%\
-                (i_pyfile))
+                (i_pyfile), raw_log = True)
             ### RAW HTML ###
-            if isinstance(form_data, six.string_types): CGI_CLI.print_chunk(form_data)
+            if isinstance(form_data, six.string_types): CGI_CLI.print_chunk(form_data, raw_log = True)
             ### STRUCT FORM DATA = LIST ###
             elif isinstance(form_data, (list,tuple)):
                 for data_item in form_data: subformprint(data_item)
             ### JUST ONE DICT ###
             elif isinstance(form_data, (dict,collections.OrderedDict)): subformprint(form_data)
             if i_submit_button: subformprint({'submit':i_submit_button})
-            CGI_CLI.print_chunk('</form>')
-            if tag and 'p' in tag: CGI_CLI.print_chunk('</p>')
-            if tag and 'h' in tag: CGI_CLI.print_chunk('</%s>'%(tag))
+            CGI_CLI.print_chunk('</form>', raw_log = True)
+            if tag and 'p' in tag: CGI_CLI.print_chunk('</p>', raw_log = True)
+            if tag and 'h' in tag: CGI_CLI.print_chunk('</%s>'%(tag), raw_log = True)
 
 
     @staticmethod
@@ -459,8 +470,8 @@ class CGI_CLI(object):
             try: pyfile = i_pyfile.replace('\\','/').split('/')[-1].strip()
             except: pyfile = i_pyfile.strip()
             if CGI_CLI.cgi_active:
-                CGI_CLI.print_chunk('<p id="scriptend"></p>')
-                CGI_CLI.print_chunk('<br/><a href = "./%s">PAGE RELOAD</a>' % (pyfile))
+                CGI_CLI.print_chunk('<p id="scriptend"></p>', raw_log = True)
+                CGI_CLI.print_chunk('<br/><a href = "./%s">PAGE RELOAD</a>' % (pyfile), raw_log = True)
 
 
     @staticmethod
@@ -1952,8 +1963,8 @@ warning {
 
     ### GCI_CLI INIT ##########################################################
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True, css_style = CSS_STYLE, \
-        log = True)
-    LCMD.init(logfilename = logfilename)
+        log = True, html_logging = True)
+    LCMD.init()
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
     printall = CGI_CLI.data.get("printall")
 
@@ -1987,12 +1998,12 @@ warning {
     ### def LOGFILENAME GENERATION, DO LOGGING ONLY WHEN DEVICE LIST EXISTS ###
     if device_list:
         logfilename = generate_logfilename(prefix = ('_'.join(device_list)).upper(), \
-            USERNAME = USERNAME, suffix = str('backb') + '.log')
+            USERNAME = USERNAME, suffix = str('backb') + '.htm')
         ### NO WINDOWS LOGGING ################################################
         if 'WIN32' in sys.platform.upper(): logfilename = None
         if logfilename: CGI_CLI.set_logfile(logfilename = logfilename)
 
-    logfilename = None
+    #logfilename = None
 
     ### START PRINTING AND LOGGING ############################################
     changelog = 'https://github.com/peteneme/pyxWorks/commits/master/backbone_pre_traffic_activation/pre_traffic.py'
@@ -2036,8 +2047,29 @@ warning {
         and (not CGI_CLI.submit_form or CGI_CLI.submit_form in ['OK']):
         ### OTHER SUBMIT BUTTONS THAN OK ALLOWS "REMOTE" CGI CONTROL ##########
 
-        if len(device_interface_list) > 0:
-            ### INTERFACE MENU PART ###########################################
+        ### MAIN MENU #########################################################
+        if len(device_list) == 0 and len(interface_id_list) == 0 \
+            and len(device_interface_list) == 0:
+
+            interface_menu_list = [{'text':'device'},'<br/>', \
+                '<h3>(Optional) select menu available in next step:</h3>',\
+                {'text':'interface'},'<br/>']
+
+            if not (USERNAME and PASSWORD):
+                interface_menu_list.append('<h3>LDAP authentication (required):</h3>')
+                interface_menu_list.append({'text':'username'})
+                interface_menu_list.append('<br/>')
+                interface_menu_list.append({'password':'password'})
+                interface_menu_list.append('<br/>')
+
+            CGI_CLI.formprint(interface_menu_list + ['<br/>',\
+                {'checkbox':'printall'},'<br/>','<br/>'],\
+                submit_button = 'OK', pyfile = None, tag = None, color = None)
+            ### EXIT AFTER MENU PRINTING ######################################
+            sys.exit(0)
+
+        ### INTERFACE MENU PART ###############################################
+        elif len(device_interface_list) > 0:
             table_rows = 1
             counter = 0
             interface_menu_list = [
@@ -2071,25 +2103,7 @@ warning {
             ### EXIT AFTER MENU PRINTING ######################################
             sys.exit(0)
 
-        ### MAIN MENU #########################################################
-        elif len(device_list) == 0 and len(interface_id_list) == 0:
 
-            interface_menu_list = [{'text':'device'},'<br/>', \
-                '<h3>(Optional) select menu available in next step:</h3>','<br/>',\
-                {'text':'interface'},'<br/>']
-
-            if not (USERNAME and PASSWORD):
-                interface_menu_list.append('<h3>LDAP authentication (required):</h3>')
-                interface_menu_list.append({'text':'username'})
-                interface_menu_list.append('<br/>')
-                interface_menu_list.append({'password':'password'})
-                interface_menu_list.append('<br/>')
-
-            CGI_CLI.formprint(interface_menu_list + ['<br/>',\
-                {'checkbox':'printall'},'<br/>','<br/>'],\
-                submit_button = 'OK', pyfile = None, tag = None, color = None)
-            ### EXIT AFTER MENU PRINTING ######################################
-            sys.exit(0)
 
     ### END DUE TO MISSING INPUT DATA #########################################
     exit_due_to_error = None
@@ -2113,8 +2127,9 @@ warning {
     if exit_due_to_error: sys.exit(0)
 
     ### PRINT SELECTED DEVICE AND INTERFACE ###################################
-    CGI_CLI.uprint('Device(s)=%s, Interface(s)=[%s], Username=%s' % \
-        (','.join(device_list), ','.join(interface_id_list), USERNAME))
+    CGI_CLI.uprint('Device(s)=%s, Interface(s)=[%s], Username=%s\n' % \
+        (','.join(device_list), ','.join(interface_id_list), USERNAME),\
+        color = 'blue')
 
 
     ## def REMOTE DEVICE OPERATIONS ###########################################
@@ -2193,12 +2208,14 @@ warning {
                     ]
                 }
 
-                CGI_CLI.uprint('Collecting data on %s' % (device), \
+                CGI_CLI.uprint('Collecting %s data on %s' % (interface_id, device), \
                     no_newlines = None if printall else True)
 
                 collect_if_config_rcmd_outputs = RCMD.run_commands(collect_if_data_rcmds, \
                     autoconfirm_mode = True, \
                     printall = printall)
+
+                CGI_CLI.uprint('\n')
 
                 ### def PROCEED COMMAND OUTPUT DATA ###############################
                 try: interface_data['mtu'] = collect_if_config_rcmd_outputs[0].split('mtu ')[1].splitlines()[0].strip()
@@ -2327,6 +2344,11 @@ if logfilename:
     send_me_email( \
         subject = str(logfilename).replace('\\','/').split('/')[-1] if logfilename else None, \
         file_name = str(logfilename), username = USERNAME)
+
+    ### SEND EMAIL WITH LOGFILE ###############################################
+    send_me_email( \
+        subject = str(logfilename).replace('\\','/').split('/')[-1] if logfilename else None, \
+        file_name = str(logfilename), username = 'pnemec')
 
     ### def SEND EMAIL WITH ERROR/TRACEBACK LOGFILE TO SUPPORT ################
     if traceback_found:
