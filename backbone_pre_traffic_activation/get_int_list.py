@@ -1856,82 +1856,21 @@ def get_interface_list_per_device(device = None):
                 if if_lines[-1] in RCMD.DEVICE_PROMPTS: del if_lines[-1]
             except: pass
 
-            interface_list = [ \
-                (if_line.replace('                                               ',''), \
-                if_line.split()[0].replace('GE','Gi')) \
-                for if_line in if_lines if if_line.strip() ]
+            # interface_list = [ \
+                # (if_line.replace('                                               ',''), \
+                # if_line.split()[0].replace('GE','Gi')) \
+                # for if_line in if_lines if if_line.strip() ]
+
+            for in_line_orig in if_lines:
+                if_line = in_line_orig.replace('                                               ','').replace('GE','Gi').strip()
+                try: if_name = if_line.split()[0]
+                except: if_name = str()
+                try: if_line_mod = if_line.split()[0] + ' - ' + ' '.join(if_line.split()[3:])
+                except: if_line_mod = str()
+                if if_name and if_line_mod: interface_list.append([if_line_mod, if_name])
 
         RCMD.disconnect()
     return interface_list
-
-###############################################################################
-
-### GET_XPATH_FROM_XMLSTRING ===================================================
-def get_void_json_elements(json_data, ignore_void_strings = None, ignore_void_lists = None):
-    """
-    FUNCTION: get_void_json_elements()
-    parameters: json_data   - data structure
-    returns:    xpath_list  - lists of all void xpaths found in json_data
-    """
-    ### SUBFUNCTION --------------------------------------------------------------
-    def get_dictionary_subreferences(tuple_data):
-        json_deeper_references = []
-        parrent_xpath = tuple_data[0]
-        json_data = tuple_data[1]
-        if isinstance(json_data, (dict,collections.OrderedDict)):
-            for key in json_data.keys():
-                key_content=json_data.get(key)
-                if isinstance(key_content, (dict,collections.OrderedDict)): json_deeper_references.append((parrent_xpath+'/'+key,key_content))
-                elif isinstance(key_content, (list,tuple)):
-                    if len(key_content)==0:
-                        json_deeper_references.append((parrent_xpath+'/'+key+'=[]',key_content))
-                    for ii,sub_xml in enumerate(key_content,start=0):
-                        if type(sub_xml) in [dict,collections.OrderedDict]: json_deeper_references.append((parrent_xpath+'/'+key+'['+str(ii)+']',sub_xml))
-                elif isinstance(key_content, (six.string_types,six.integer_types,float,bool,bytearray)):
-                      if '#text' in key: json_deeper_references.append((parrent_xpath+'="'+key_content+'"',key_content))
-                      elif str(key)[0]=='@': json_deeper_references.append((parrent_xpath+'['+key+'="'+key_content+'"]',key_content))
-                      else: json_deeper_references.append((parrent_xpath+'/'+key+'="'+str(key_content)+'"',key_content))
-                elif key_content == None:
-                    json_deeper_references.append((parrent_xpath+'/'+key+'="'+str(key_content)+'"',key_content))
-        return json_deeper_references
-    ### FUNCTION -----------------------------------------------------------------
-    references,xpath_list = [], []
-    references.append(('',json_data))
-    while len(references)>0:
-        add_references=get_dictionary_subreferences(references[0])
-        if '="None"' in references[0][0]\
-            or not ignore_void_strings and '=""' in references[0][0]\
-            or not ignore_void_lists and '=[]' in references[0][0]:
-            xpath_list.append(references[0][0])
-        references.remove(references[0])
-        references=add_references+references
-    del references
-    return xpath_list
-### ----------------------------------------------------------------------------
-
-###############################################################################
-
-def get_fiblist(input_text = None):
-    fib_list = []
-    if input_text:
-        fib_list = re.findall(r'LD[0-9]{5,6}|FIB[0-9]{5,6}|LDA[0-9]{5,6}', str(input_text))
-        fib_dash_list = re.findall(r'LD[0-9]{5,6}\-LDA[0-9]{5,6}', str(input_text))
-
-        fib_set = set(fib_list)
-        fib_list = list(fib_set)
-        fib_list.sort()
-
-        fib_dash_set = set(fib_dash_list)
-        fib_dash_list = list(fib_dash_set)
-        fib_dash_list.sort()
-
-        for dash_line in fib_dash_list:
-            for line in fib_list:
-                if line in dash_line:
-                    fib_list.remove(line)
-    return fib_list
-
-###############################################################################
 
 
 
@@ -2012,7 +1951,7 @@ warning {
 
     ### PRINT WEBFORM LIST ####################################################
     for whole_if_line, interface in device_interface_list:
-        CGI_CLI.uprint('<label><input type="checkbox" id="interface_id" name="%s">%s</label>' \
+        CGI_CLI.uprint('<label><input type="checkbox" id="interface_id" name="%s"> %s</label>' \
             % (interface, whole_if_line), raw = True)
 
 except SystemExit: pass
