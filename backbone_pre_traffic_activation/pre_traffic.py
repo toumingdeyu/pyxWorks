@@ -2331,8 +2331,14 @@ except:
     CGI_CLI.uprint(traceback.format_exc(), tag = 'h3',color = 'magenta')
 
 if logfilename:
+
+    iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
+    if iptac_server == 'iptac5': urllink = 'https://10.253.58.126/cgi-bin/'
+    else: urllink = 'https://%s/cgi-bin/' % (iptac_server)
+
     ### PRINT LOGFILENAME #####################################################
-    logviewer = './logviewer.py?logfile=%s' % (logfilename)
+    if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, logfilename)
+    else: logviewer = './logviewer.py?logfile=%s' % (logfilename)
     if CGI_CLI.cgi_active:
         CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
             % (logviewer, logfilename), raw = True)
