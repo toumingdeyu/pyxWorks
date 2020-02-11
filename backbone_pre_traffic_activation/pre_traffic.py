@@ -114,7 +114,7 @@ class CGI_CLI(object):
     @staticmethod
     def __cleanup__():
         ### CGI_CLI.uprint('\nEND[script runtime = %d sec]. '%(time.time() - CGI_CLI.START_EPOCH))
-        CGI_CLI.html_selflink('OK')
+        CGI_CLI.html_selflink()
         if CGI_CLI.cgi_active: CGI_CLI.print_chunk("</body></html>")
 
     @staticmethod
@@ -132,6 +132,7 @@ class CGI_CLI(object):
         log - start to log all after logfilename is inserted
         html_logging - write log file in HTML format for easy reading
         """
+        CGI_CLI.self_buttons = ['OK']
         CGI_CLI.START_EPOCH = time.time()
         CGI_CLI.http_status = 200
         CGI_CLI.http_status_text = 'OK'
@@ -478,8 +479,8 @@ class CGI_CLI(object):
 
 
     @staticmethod
-    def html_selflink(submit_button = None):
-        if (submit_button and str(submit_button) == str(CGI_CLI.submit_form)) or not CGI_CLI.submit_form:
+    def html_selflink():
+        if not CGI_CLI.submit_form or CGI_CLI.submit_form in CGI_CLI.self_buttons:
             i_pyfile = sys.argv[0]
             try: pyfile = i_pyfile.replace('\\','/').split('/')[-1].strip()
             except: pyfile = i_pyfile.strip()
@@ -2057,8 +2058,8 @@ warning {
 
 
     ### def HTML MENUS DISPLAYED ONLY IN CGI MODE #############################
-    if CGI_CLI.cgi_active \
-        and (not CGI_CLI.submit_form or CGI_CLI.submit_form in ['OK']):
+    if CGI_CLI.cgi_active and \
+        (not CGI_CLI.submit_form or CGI_CLI.submit_form in CGI_CLI.self_buttons):
         ### OTHER SUBMIT BUTTONS THAN OK ALLOWS "REMOTE" CGI CONTROL ##########
 
         ### MAIN MENU #########################################################
@@ -2078,7 +2079,8 @@ warning {
 
             CGI_CLI.formprint(interface_menu_list + ['<br/>',\
                 {'checkbox':'printall'},'<br/>','<br/>'],\
-                submit_button = 'OK', pyfile = None, tag = None, color = None)
+                submit_button = CGI_CLI.self_buttons[0], \
+                pyfile = None, tag = None, color = None)
             ### EXIT AFTER MENU PRINTING ######################################
             sys.exit(0)
 
@@ -2087,7 +2089,8 @@ warning {
             table_rows = 1
             counter = 0
             interface_menu_list = [
-                '<p hidden><input type="checkbox" name="device" value="%s" checked="checked"></p>'%(device),
+                '<p hidden><input type="checkbox" name="device" value="%s" checked="checked"></p>' \
+                    % (','.join(device_list) if len(device_list) > 0 else str()),
                 '<h2>Select interface on %s:</h2>' % (device if device else str()),
                 '<div align="left">', '<table style="width:70%">']
             for whole_if_line, interface in device_interface_list:
@@ -2112,7 +2115,8 @@ warning {
 
             CGI_CLI.formprint( interface_menu_list + \
                 ['<br/>',\
-                '<br/>',{'checkbox':'printall'},'<br/>','<br/>'], submit_button = 'OK',
+                '<br/>',{'checkbox':'printall'},'<br/>','<br/>'], \
+                submit_button = CGI_CLI.self_buttons[0],
                 pyfile = None, tag = None, color = None , list_separator = '&emsp;')
             ### EXIT AFTER MENU PRINTING ######################################
             sys.exit(0)
