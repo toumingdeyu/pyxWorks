@@ -1969,7 +1969,7 @@ warning {
             else: number_or_nothing = str(loop_counter + 1)
             ### PRINT WEBFORM LIST ############################################
             for whole_if_line, interface in device_interface_list:
-                CGI_CLI.uprint('<label><input type="checkbox" name="interface_id[%s]" value="%s"> %s</label>' \
+                CGI_CLI.uprint('<label><input type="checkbox" name="interface_id%s[]" value="%s"> %s</label>' \
                     % (number_or_nothing,interface, whole_if_line), raw = True)
             loop_counter += 1
 
