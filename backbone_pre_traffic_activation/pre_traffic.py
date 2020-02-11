@@ -1239,7 +1239,7 @@ class LCMD(object):
                 exc_text = traceback.format_exc()
                 CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
                 CGI_CLI.logtofile(exc_text + '\n')
-            if not chunked and os_output and printall: CGI_CLI.uprint(os_output, color = 'gray', timestamp = 'no')
+            if not chunked and os_output and printall: CGI_CLI.uprint(os_output, tag = 'pre', timestamp = 'no')
             CGI_CLI.logtofile(os_output + '\n')
         return os_output
 
@@ -1340,7 +1340,7 @@ class LCMD(object):
                     exc_text = traceback.format_exc()
                     CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
                     CGI_CLI.logtofile(exc_text + '\n')
-                if os_output and printall: CGI_CLI.uprint(os_output, color = 'gray', timestamp = 'no')
+                if os_output and printall: CGI_CLI.uprint(os_output, tag = 'pre', timestamp = 'no')
                 CGI_CLI.logtofile(os_output + '\n')
                 os_outputs.append(os_output)
         return os_outputs
