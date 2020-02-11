@@ -765,7 +765,7 @@ class RCMD(object):
 
         if RCMD.ssh_connection and len(cmd_list)>0:
             ### WORK REMOTE ================================================
-            CGI_CLI.logtofile(RCMD.output + '\n')
+            ### CGI_CLI.logtofile(RCMD.output + '\n')
             command_outputs, sim_mark = [], str()
             ### CONFIG MODE FOR NETMIKO ####################################
             if (conf or RCMD.conf) and RCMD.use_module == 'netmiko':
