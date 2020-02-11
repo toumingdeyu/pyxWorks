@@ -1960,8 +1960,8 @@ warning {
 
     if type_content:
         CGI_CLI.uprint( \
-            '<p class="hiddenField"><input type="checkbox" name="type" value="%s" checked="checked"></p>' \
-            % (type_content))
+            '<p hidden><input type="checkbox" name="type" value="%s" checked="checked"></p>' \
+            % (type_content), raw = True)
 
     ### GENERATE DEVICE INTERFACE LIST ########################################
     device_interface_list = []
