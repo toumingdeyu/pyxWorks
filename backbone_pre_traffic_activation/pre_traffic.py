@@ -269,21 +269,25 @@ class CGI_CLI(object):
             except: pass
 
     @staticmethod
-    def print_chunk(msg = "", raw_log = None):
+    def print_chunk(msg = str(), raw_log = None):
         """
         raw_log = raw logging
         """
-        ### sys.stdout.write is printing without \n, print adds \n == +1BYTE ##
-        if CGI_CLI.chunked and CGI_CLI.cgi_active:
-            if len(msg)>0:
-                sys.stdout.write("\r\n%X\r\n%s" % (len(msg), msg))
-                sys.stdout.flush()
-        ### CLI MODE ###
-        else: print(msg)
+        if msg:
+            ### sys.stdout.write is printing without \n, print adds \n == +1BYTE ##
+            if CGI_CLI.chunked and CGI_CLI.cgi_active:
+                if len(msg)>0:
+                    sys.stdout.write("\r\n%X\r\n%s" % (len(msg), msg))
+                    sys.stdout.flush()
+            ### CLI MODE ###
+            else: print(msg)
+            logtofile(msg = msg, raw_log = raw_log)
 
+    @staticmethod
+    def logtofile(msg = str(), raw_log = None):
         ### HTML LOGGING ######################################################
         if CGI_CLI.logfilename and CGI_CLI.log and CGI_CLI.html_logging \
-            and CGI_CLI.cgi_active:
+            and CGI_CLI.cgi_active and msg:
             with open(CGI_CLI.logfilename,"a+") as CGI_CLI.fp:
                 if not raw_log: msg_to_html = str(msg.replace('&','&amp;').\
                                 replace('<','&lt;').\
@@ -758,7 +762,7 @@ class RCMD(object):
                 if not long_lasting_mode:
                     CGI_CLI.uprint(' . ', no_newlines = True, log = 'no')
             ### LOG ALL ONLY ONCE, THAT IS BECAUSE PREVIOUS LINE log = 'no' ###
-            if RCMD.fp: RCMD.fp.write('REMOTE_COMMAND' + sim_mark + ': ' + \
+            if RCMD.fp: CGI_CLI.logtofile('REMOTE_COMMAND' + sim_mark + ': ' + \
                             cmd_line + '\n' + last_output + '\n')
         return last_output
 
@@ -792,7 +796,7 @@ class RCMD(object):
                 if 'WIN32' in sys.platform.upper(): RCMD.logfilename = 'nul'
                 else: RCMD.logfilename = '/dev/null'
             with open(RCMD.logfilename,"a+") as RCMD.fp:
-                if RCMD.output: RCMD.fp.write(RCMD.output + '\n')
+                if RCMD.output: CGI_CLI.logtofile(RCMD.output + '\n')
                 command_outputs, sim_mark = [], str()
                 ### CONFIG MODE FOR NETMIKO ####################################
                 if (conf or RCMD.conf) and RCMD.use_module == 'netmiko':
@@ -803,7 +807,7 @@ class RCMD(object):
                         if printall or RCMD.printall:
                             CGI_CLI.uprint('REMOTE_COMMAND' + sim_mark + ': ' + str(cmd_list), color = 'blue')
                             CGI_CLI.uprint(str(last_output), color = 'gray', timestamp = 'no')
-                        if RCMD.fp: RCMD.fp.write('REMOTE_COMMANDS' + sim_mark + ': ' \
+                        if RCMD.fp: CGI_CLI.logtofile('REMOTE_COMMANDS' + sim_mark + ': ' \
                             + str(cmd_list) + '\n' + str(last_output) + '\n')
                         command_outputs = [last_output]
                 elif RCMD.use_module == 'paramiko':
@@ -1217,7 +1221,7 @@ class LCMD(object):
         if cmd_line:
             with open(logfilename,"a+") as LCMD.fp:
                 if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line), color = 'blue')
-                LCMD.fp.write('LOCAL_COMMAND: ' + str(cmd_line) + '\n')
+                CGI_CLI.logtofile('LOCAL_COMMAND: ' + str(cmd_line) + '\n')
                 try:
                     if chunked:
                         os_output, timer_counter_100ms = str(), 0
@@ -1243,13 +1247,13 @@ class LCMD(object):
                 except (subprocess.CalledProcessError) as e:
                     os_output = str(e.output.decode("utf-8"))
                     if printall: CGI_CLI.uprint('EXITCODE: %s' % (str(e.returncode)))
-                    LCMD.fp.write('EXITCODE: %s\n' % (str(e.returncode)))
+                    CGI_CLI.logtofile('EXITCODE: %s\n' % (str(e.returncode)))
                 except:
                     exc_text = traceback.format_exc()
                     CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
-                    LCMD.fp.write(exc_text + '\n')
+                    CGI_CLI.logtofile(exc_text + '\n')
                 if not chunked and os_output and printall: CGI_CLI.uprint(os_output, color = 'gray', timestamp = 'no')
-                LCMD.fp.write(os_output + '\n')
+                CGI_CLI.logtofile(os_output + '\n')
         return os_output
 
     @staticmethod
@@ -1275,16 +1279,16 @@ class LCMD(object):
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
                         CommandObjectList.append(actual_CommandObject)
                         if printall: CGI_CLI.uprint("LOCAL_COMMAND_(START)[%s]: %s" % (str(actual_CommandObject), str(cmd_line)), color = 'blue')
-                        LCMD.fp.write('LOCAL_COMMAND_(START)[%s]: %s' % (str(actual_CommandObject), str(cmd_line)) + '\n')
+                        CGI_CLI.logtofile('LOCAL_COMMAND_(START)[%s]: %s' % (str(actual_CommandObject), str(cmd_line)) + '\n')
                     except (subprocess.CalledProcessError) as e:
                         os_output = str(e.output.decode("utf-8"))
                         if printall: CGI_CLI.uprint('EXITCODE: %s' % (str(e.returncode)))
-                        LCMD.fp.write('EXITCODE: %s\n' % (str(e.returncode)))
+                        CGI_CLI.logtofile('EXITCODE: %s\n' % (str(e.returncode)))
                         commands_ok = False
                     except:
                         exc_text = traceback.format_exc()
                         CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
-                        LCMD.fp.write(exc_text + '\n')
+                        CGI_CLI.logtofile(exc_text + '\n')
                         commands_ok = False
                 if not printall:
                     CGI_CLI.uprint("%s: %d   " % (str(custom_text) if custom_text else "RUNNING LOCAL_COMMANDS", len(CommandObjectList)), no_newlines = True)
@@ -1303,7 +1307,7 @@ class LCMD(object):
                             ExitCode = actual_CommandObject.returncode
                             if check_exitcode and ExitCode != 0: commands_ok = False
                             if printall: CGI_CLI.uprint("LOCAL_COMMAND_(END)[%s]: %s\n%s" % (str(actual_CommandObject), str(cmd_line), outputs), color = 'gray')
-                            LCMD.fp.write('LOCAL_COMMAND_(END)[%s]: %s\n%s\n' % (str(actual_CommandObject), str(cmd_line), outputs))
+                            CGI_CLI.logtofile('LOCAL_COMMAND_(END)[%s]: %s\n%s\n' % (str(actual_CommandObject), str(cmd_line), outputs))
                             CommandObjectList.remove(actual_CommandObject)
                             continue
                         if timer_counter_100ms % 10 == 0:
@@ -1312,7 +1316,7 @@ class LCMD(object):
                         if timer_counter_100ms % 300 == 0: CGI_CLI.uprint('\n')
                         if timer_counter_100ms > timeout_sec * 10:
                             if printall: CGI_CLI.uprint("LOCAL_COMMAND_(TIMEOUT)[%s]: %s\n%s" % (str(actual_CommandObject), str(cmd_line), outputs), color = 'red')
-                            LCMD.fp.write('LOCAL_COMMAND_(TIMEOUT)[%s]: %s\n%s\n' % (str(actual_CommandObject), str(cmd_line), outputs))
+                            CGI_CLI.logtofile('LOCAL_COMMAND_(TIMEOUT)[%s]: %s\n%s\n' % (str(actual_CommandObject), str(cmd_line), outputs))
                             actual_CommandObject.terminate()
                             CommandObjectList.remove(actual_CommandObject)
                             commands_ok = False
@@ -1341,18 +1345,18 @@ class LCMD(object):
                 for cmd_line in cmd_list:
                     os_output = str()
                     if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line), color = 'blue')
-                    LCMD.fp.write('LOCAL_COMMAND: ' + str(cmd_line) + '\n')
+                    CGI_CLI.logtofile('LOCAL_COMMAND: ' + str(cmd_line) + '\n')
                     try: os_output = subprocess.check_output(str(cmd_line), stderr=subprocess.STDOUT, shell=True).decode("utf-8")
                     except (subprocess.CalledProcessError) as e:
                         os_output = str(e.output.decode("utf-8"))
                         if printall: CGI_CLI.uprint('EXITCODE: %s' % (str(e.returncode)))
-                        LCMD.fp.write('EXITCODE: %s\n' % (str(e.returncode)))
+                        CGI_CLI.logtofile('EXITCODE: %s\n' % (str(e.returncode)))
                     except:
                         exc_text = traceback.format_exc()
                         CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
-                        LCMD.fp.write(exc_text + '\n')
+                        CGI_CLI.logtofile(exc_text + '\n')
                     if os_output and printall: CGI_CLI.uprint(os_output, color = 'gray', timestamp = 'no')
-                    LCMD.fp.write(os_output + '\n')
+                    CGI_CLI.logtofile(os_output + '\n')
                     os_outputs.append(os_output)
         return os_outputs
 
@@ -1369,10 +1373,10 @@ class LCMD(object):
                 try:
                     local_output = eval(cmd_data)
                     if printall: CGI_CLI.uprint(str(local_output), color= 'gray', timestamp = 'no')
-                    LCMD.fp.write('EVAL: ' + cmd_data + '\n' + str(local_output) + '\n')
+                    CGI_CLI.logtofile('EVAL: ' + cmd_data + '\n' + str(local_output) + '\n')
                 except Exception as e:
                     if printall:CGI_CLI.uprint('EVAL_PROBLEM[' + str(e) + ']')
-                    LCMD.fp.write('EVAL_PROBLEM[' + str(e) + ']\n', color = 'magenta')
+                    CGI_CLI.logtofile('EVAL_PROBLEM[' + str(e) + ']\n', color = 'magenta')
         return local_output
 
     @staticmethod
@@ -1386,7 +1390,7 @@ class LCMD(object):
         if cmd_data and isinstance(cmd_data, (six.string_types)):
             with open(logfilename,"a+") as LCMD.fp:
                 if printall: CGI_CLI.uprint("EXEC: %s" % (cmd_data))
-                LCMD.fp.write('EXEC: ' + cmd_data + '\n')
+                CGI_CLI.logtofile('EXEC: ' + cmd_data + '\n')
                 ### EXEC CODE WORKAROUND for OLD PYTHON v2.7.5
                 try:
                     if escape_newline:
@@ -1395,7 +1399,7 @@ class LCMD(object):
                     else: edict = {}; eval(compile(cmd_data, '<string>', 'exec'), globals(), edict)
                 except Exception as e:
                     if printall:CGI_CLI.uprint('EXEC_PROBLEM[' + str(e) + ']', color = 'magenta')
-                    LCMD.fp.write('EXEC_PROBLEM[' + str(e) + ']\n')
+                    CGI_CLI.logtofile('EXEC_PROBLEM[' + str(e) + ']\n')
         return None
 
 
@@ -1428,14 +1432,14 @@ class LCMD(object):
                                 cmd_data.split('=')[0].strip())
                     else: cmd_ex_data = cmd_data
                     if printall: CGI_CLI.uprint("EXEC: \n%s" % (cmd_ex_data))
-                    LCMD.fp.write('EXEC: \n' + cmd_ex_data + '\n')
+                    CGI_CLI.logtofile('EXEC: \n' + cmd_ex_data + '\n')
                     ### EXEC CODE WORKAROUND for OLD PYTHON v2.7.5
                     edict = {}; eval(compile(cmd_ex_data, '<string>', 'exec'), globals(), edict)
                     #CGI_CLI.uprint("%s" % (eval(cmd_data.split('=')[0].strip())))
                 except Exception as e:
                     if printall: CGI_CLI.uprint('EXEC_PROBLEM[' + str(e) + ']', \
                                      color = 'magenta')
-                    LCMD.fp.write('EXEC_PROBLEM[' + str(e) + ']\n')
+                    CGI_CLI.logtofile('EXEC_PROBLEM[' + str(e) + ']\n')
         return None
 
 ###############################################################################
