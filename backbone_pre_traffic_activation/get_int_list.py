@@ -1939,20 +1939,39 @@ warning {
     if devices_string:
         if ',' in devices_string:
             device_list = [ dev_mix_case.upper() for dev_mix_case in devices_string.split(',') ]
-        else: device_list = [devices_string.upper()]
+        else: device_list.append(devices_string.upper())
 
+    ### GENERATE DEVICE LIST ##################################################
+    devices_string = CGI_CLI.data.get("device2",str())
+    if devices_string:
+        if ',' in devices_string:
+            device_list = [ dev_mix_case.upper() for dev_mix_case in devices_string.split(',') ]
+        else: device_list.append(devices_string.upper())
+
+    ### GENERATE DEVICE LIST ##################################################
+    devices_string = CGI_CLI.data.get("device3",str())
+    if devices_string:
+        if ',' in devices_string:
+            device_list = [ dev_mix_case.upper() for dev_mix_case in devices_string.split(',') ]
+        else: device_list.append(devices_string.upper())
 
     ### GENERATE DEVICE INTERFACE LIST ########################################
     device_interface_list = []
     if len(device_list) > 0 and len(interface_id_list) == 0:
+        ABC_list = ['A','B','C','D','E','F','G','H']
+        loop_counter = 0
         for device in device_list:
             device_interface_list = get_interface_list_per_device(device)
 
+            CGI_CLI.uprint('DEVICE %s %s:' % (ABC_list[loop_counter], device), tag = 'h2')
 
-    ### PRINT WEBFORM LIST ####################################################
-    for whole_if_line, interface in device_interface_list:
-        CGI_CLI.uprint('<label><input type="checkbox" name="interface_id[]" value="%s"> %s</label>' \
-            % (interface, whole_if_line), raw = True)
+            if loop_counter == 0: number_or_nothing = str()
+            else: number_or_nothing = str(loop_counter + 1)
+            ### PRINT WEBFORM LIST ############################################
+            for whole_if_line, interface in device_interface_list:
+                CGI_CLI.uprint('<label><input type="checkbox" name="interface_id[%s]" value="%s"> %s</label>' \
+                    % (number_or_nothing,interface, whole_if_line), raw = True)
+            loop_counter += 1
 
 except SystemExit: pass
 except:
