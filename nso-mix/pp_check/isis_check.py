@@ -143,11 +143,11 @@ class CGI_CLI(object):
         # parser.add_argument("--timestamps",
                             # action = "store_true", dest = 'timestamps',
                             # default = None,
-                            # help = "print all lines with timestamps")                            
+                            # help = "print all lines with timestamps")
         parser.add_argument("--append_logfile",
                             action = "store", dest = 'append_logfile',
                             default = None,
-                            help = "append logfile with specified name")                    
+                            help = "append logfile with specified name")
         args = parser.parse_args()
         return args
 
@@ -1754,15 +1754,15 @@ warning {
     logging.raiseExceptions=False
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True, \
         css_style = CSS_STYLE, log = True)
-    
-    
-    ### def APPEND ISIS OUTPUT TO POSTCHECK LOGFILE IN 1 DEVICE CLI MODE ONLY 
-    if CGI_CLI.data.get("append_logfile",str()):                
+
+
+    ### def APPEND ISIS OUTPUT TO POSTCHECK LOGFILE IN 1 DEVICE CLI MODE ONLY
+    if CGI_CLI.data.get("append_logfile",str()):
         logfilename = CGI_CLI.data.get("append_logfile",str())
         if logfilename: CGI_CLI.set_logfile(logfilename = logfilename)
-        
 
-    
+
+
 
     device_list = []
     devices_string = CGI_CLI.data.get("device",str())
@@ -2042,8 +2042,8 @@ warning {
             for isis_interface, description in isis_interface_list:
                 rcmds_if_check['cisco_ios'].append('show run interface %s' % (isis_interface))
                 rcmds_if_check['cisco_xr'].append('show run interface %s' % (isis_interface))
-                rcmds_if_check['juniper'].append('display cu interface %s' % (isis_interface))
-                rcmds_if_check['huawei'].append('show configuration interface %s | display set' % (isis_interface))
+                rcmds_if_check['huawei'].append('display cu interface %s' % (isis_interface))
+                rcmds_if_check['juniper'].append('show configuration interface %s | display set' % (isis_interface))
 
             CGI_CLI.uprint('Read interface sh run on %s' % (device), \
                 no_newlines = None if printall else True)
@@ -2053,7 +2053,7 @@ warning {
             filtered_isis_interface_list = []
             for interface, rcmd_if_check_output in zip(isis_interface_list,rcmds_if_check_outputs):
                 isis_interface, description = interface
-                find_list = re.findall(r'[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}', rcmd_if_check_output.strip())
+                find_list = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', rcmd_if_check_output.strip())
                 if len(find_list) >= 1:
                     filtered_isis_interface_list.append([isis_interface, description])
             del isis_interface_list
@@ -2155,9 +2155,9 @@ warning {
             if isis_interface_fail_list:
                 CGI_CLI.uprint('\nREPAIR CONFIG:\n\n%s' % (config_to_apply), color = 'blue')
 
-            ### DISCONNECT DEVICE ON END ###   
+            ### DISCONNECT DEVICE ON END ###
             RCMD.disconnect()
 
-        
+
 except SystemExit: pass
 except: CGI_CLI.uprint(traceback.format_exc(), tag = 'h3',color = 'magenta')
