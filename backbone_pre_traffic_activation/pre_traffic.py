@@ -2356,7 +2356,11 @@ except:
 
 if logfilename:
     ### PRINT LOGFILENAME #####################################################
-    CGI_CLI.uprint(' ==> File %s created.' % (logfilename))
+    logviewer = './logviewer.py?logfile=%s' % (logfilename)
+    if CGI_CLI.cgi_active:
+        CGI_CLI.uprint('<p> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' % \
+            (logviewer, logfilename), raw = True)
+    else: CGI_CLI.uprint(' ==> File %s created.' % (logfilename))
 
     ### SEND EMAIL WITH LOGFILE ###############################################
     send_me_email( \
