@@ -33,7 +33,7 @@ from mako.lookup import TemplateLookup
 
 if __name__ != "__main__": sys.exit(0)
 try:
-    logfile, form = None, None
+    logfile, form, file_opened = None, None, None
 
     try: form = cgi.FieldStorage()
     except: pass
@@ -43,17 +43,22 @@ try:
         except: value = str(','.join(form.getlist(name)))
         if variable == "logfile": logfile = value
 
-    if form:
-        print("Content-type:text/html")
-        print("Status: %s %s\r\n" % ('200',""))
-        print("\r\n\r\n")
+    #if form:
+    print("Content-type:text/html")
+    print("Status: %s %s\r\n" % ('200',""))
+    print("\r\n\r\n")
 
     if logfile:
-        with open(logfile,"r") as file:
-            logfile_content = file.read()
-            if '<html>' in logfile_content:
-                print(logfile_content)
-            else: print('<pre>' + logfile_content + '</pre>')
+        try:
+            with open(logfile,"r") as file:
+                file_opened = True
+                logfile_content = file.read()
+                if '<html>' in logfile_content:
+                    print(logfile_content)
+                else: print('<pre>' + logfile_content + '</pre>')
+        except: pass    
+        if not file_opened: print('<pre>' + 'Logfile %s not found.' % (logfile) + '</pre>')
+    else: print('<pre>' + 'No logfile inserted.' + '</pre>')
 
 except SystemExit: pass
 except:
