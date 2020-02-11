@@ -1842,15 +1842,10 @@ def get_interface_list_per_device(device = None):
 
     if device:
         RCMD.connect(device, username = USERNAME, password = PASSWORD, \
-            printall = printall, logfilename = logfilename)
+            printall = printall, logfilename = logfilename, silent_mode = True, \
+            disconnect_timeout = 0.1)
 
-        if not RCMD.ssh_connection:
-            CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), \
-                color = 'red')
-        else:
-            CGI_CLI.uprint('Collecting data on %s' % (device), \
-                no_newlines = None if printall else True)
-
+        if RCMD.ssh_connection:
             get_interface_rcmd_outputs = RCMD.run_commands(get_interface_rcmds, \
                 autoconfirm_mode = True, \
                 printall = printall)
@@ -1862,13 +1857,20 @@ def get_interface_list_per_device(device = None):
                 if if_lines[-1] in RCMD.DEVICE_PROMPTS: del if_lines[-1]
             except: pass
 
-            interface_list = [ \
-                (if_line.replace('                                               ',''), \
-                if_line.split()[0].replace('GE','Gi')) \
-                for if_line in if_lines if if_line.strip() ]
+            # interface_list = [ \
+                # (if_line.replace('                                               ',''), \
+                # if_line.split()[0].replace('GE','Gi')) \
+                # for if_line in if_lines if if_line.strip() ]
 
-            ### if_type.upper() = ['BACKBONE', 'CUSTOM', 'PRIVPEER'] ##########
-            ### @ip , LD...
+            for in_line_orig in if_lines:
+                if_line = in_line_orig.replace('                                               ','').replace('GE','Gi').strip()
+                try: if_name = if_line.split()[0]
+                except: if_name = str()
+                try: if_name = if_name.split('(')[0]
+                except: pass
+                try: if_line_mod = if_name + ' - ' + ' '.join(if_line.split()[3:])
+                except: if_line_mod = str()
+                if if_name and if_line_mod: interface_list.append([if_line_mod, if_name])
 
         RCMD.disconnect()
     return interface_list
