@@ -1955,6 +1955,14 @@ warning {
             device_list = [ dev_mix_case.upper() for dev_mix_case in devices_string.split(',') ]
         else: device_list.append(devices_string.upper())
 
+    ### type=bbactivation #####################################################
+    type_content = CGI_CLI.data.get("type",str())
+
+    if type_content:
+        CGI_CLI.uprint( \
+            '<p class="hiddenField"><input type="checkbox" name="type" value="%s" checked="checked"></p>' \
+            % (type_content))
+
     ### GENERATE DEVICE INTERFACE LIST ########################################
     device_interface_list = []
     if len(device_list) > 0 and len(interface_id_list) == 0:
