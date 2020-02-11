@@ -1884,6 +1884,7 @@ warning {
                         if 'TESTING' in line.upper() or 'ETHNOW-TEST' in line.upper(): continue
                         if 'OLD' in line.upper(): continue
                         if not 'BE' in line.split()[0].upper() and 'LAG' in line.upper(): continue
+                        if 'ORANGELABS' in line.upper(): continue
 
                         ### DOTTED INTERFACES FIRST ###
                         if '.' in line.split()[0]:
@@ -1909,6 +1910,7 @@ warning {
                         if 'TESTING' in line.upper() or 'ETHNOW-TEST' in line.upper(): continue
                         if 'OLD' in line.upper(): continue
                         if not 'BE' in line.split()[0].upper() and 'LAG' in line.upper(): continue
+                        if 'ORANGELABS' in line.upper(): continue
 
                         ### UNDOTTED INTERFACES LAST ###
                         if not '.' in line.split()[0]:
@@ -1934,6 +1936,7 @@ warning {
                         if line.strip() in RCMD.DEVICE_PROMPTS: continue
                         if 'TESTING' in line.upper() or 'ETHNOW-TEST' in line.upper(): continue
                         if 'OLD' in line.upper() or 'LAG' in line.upper(): continue
+                        if 'ORANGELABS' in line.upper(): continue
 
                         ### DOTTED INTERFACES FIRST ###
                         if '.' in line.split()[0]:
@@ -1958,6 +1961,7 @@ warning {
                         if line.strip() in RCMD.DEVICE_PROMPTS: continue
                         if 'TESTING' in line.upper() or 'ETHNOW-TEST' in line.upper(): continue
                         if 'OLD' in line.upper() or 'LAG' in line.upper(): continue
+                        if 'ORANGELABS' in line.upper(): continue
 
                         ### UNDOTTED INTERFACES LAST ###
                         if not '.' in line.split()[0]:
@@ -1983,6 +1987,7 @@ warning {
                         if line.strip() in RCMD.DEVICE_PROMPTS: continue
                         if 'TESTING' in line.upper() or 'ETHNOW-TEST' in line.upper(): continue
                         if 'OLD' in line.upper() or 'LAG' in line.upper(): continue
+                        if 'ORANGELABS' in line.upper(): continue
 
                         ### DOTTED INTERFACES FIRST ###
                         if '.' in line.split()[0]:
@@ -2011,6 +2016,7 @@ warning {
                         if line.strip() in RCMD.DEVICE_PROMPTS: continue
                         if 'TESTING' in line.upper() or 'ETHNOW-TEST' in line.upper(): continue
                         if 'OLD' in line.upper() or 'LAG' in line.upper(): continue
+                        if 'ORANGELABS' in line.upper(): continue
 
                         ### UNDOTTED INTERFACES LAST ###
                         if not '.' in line.split()[0]:
@@ -2043,7 +2049,7 @@ warning {
                 rcmds_if_check['cisco_ios'].append('show run interface %s' % (isis_interface))
                 rcmds_if_check['cisco_xr'].append('show run interface %s' % (isis_interface))
                 rcmds_if_check['huawei'].append('display cu interface %s' % (isis_interface))
-                rcmds_if_check['juniper'].append('show configuration interface %s | display set' % (isis_interface))
+                rcmds_if_check['juniper'].append('show interface %s | display set' % (isis_interface))
 
             CGI_CLI.uprint('Read interface sh run on %s' % (device), \
                 no_newlines = None if printall else True)
