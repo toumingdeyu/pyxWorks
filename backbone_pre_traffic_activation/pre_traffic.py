@@ -281,7 +281,7 @@ class CGI_CLI(object):
                     sys.stdout.flush()
             ### CLI MODE ###
             else: print(msg)
-            logtofile(msg = msg, raw_log = raw_log)
+            CGI_CLI.logtofile(msg = msg, raw_log = raw_log)
 
     @staticmethod
     def logtofile(msg = str(), raw_log = None):
@@ -745,13 +745,17 @@ class RCMD(object):
                     if new_prompt: RCMD.DEVICE_PROMPTS.append(new_prompt)
             if printall or RCMD.printall:
                 if not long_lasting_mode:
-                    CGI_CLI.uprint(last_output, color = 'gray', timestamp = 'no', log = 'no')
+                    CGI_CLI.uprint(last_output, tag = 'pre', timestamp = 'no', log = 'no')
             elif not RCMD.silent_mode:
                 if not long_lasting_mode:
                     CGI_CLI.uprint(' . ', no_newlines = True, log = 'no')
             ### LOG ALL ONLY ONCE, THAT IS BECAUSE PREVIOUS LINE log = 'no' ###
-            if RCMD.fp: CGI_CLI.logtofile('REMOTE_COMMAND' + sim_mark + ': ' + \
-                            cmd_line + '\n' + last_output + '\n')
+            if CGI_CLI.cgi_active:
+                CGI_CLI.logtofile('<p style="color:blue;">' + 'REMOTE_COMMAND' + sim_mark + ': ' + cmd_line + '</p>', raw_log = True)
+                CGI_CLI.logtofile('<pre>' + last_output + '\n' + '</pre>', raw_log = True)
+            else: CGI_CLI.logtofile('REMOTE_COMMAND' + sim_mark + ': ' + \
+                      cmd_line + '\n' + last_output + '\n')
+
         return last_output
 
     @staticmethod
@@ -791,7 +795,7 @@ class RCMD(object):
                     if printall or RCMD.printall:
                         CGI_CLI.uprint('REMOTE_COMMAND' + sim_mark + ': ' + str(cmd_list), color = 'blue')
                         CGI_CLI.uprint(str(last_output), color = 'gray', timestamp = 'no')
-                    if RCMD.fp: CGI_CLI.logtofile('REMOTE_COMMANDS' + sim_mark + ': ' \
+                    CGI_CLI.logtofile('REMOTE_COMMANDS' + sim_mark + ': ' \
                         + str(cmd_list) + '\n' + str(last_output) + '\n')
                     command_outputs = [last_output]
             elif RCMD.use_module == 'paramiko':
@@ -876,7 +880,7 @@ class RCMD(object):
                 RCMD.config_problem = None
                 CGI_CLI.uprint('\nCHECKING COMMIT ERRORS...', tag = 'h1', color = 'blue')
                 for rcmd_output in command_outputs:
-                    CGI_CLI.uprint(' . ', no_newlines = True)
+                    CGI_CLI.uprint(' . ', no_newlines = True, log = 'no')
                     if 'INVALID INPUT' in rcmd_output.upper() \
                         or 'INCOMPLETE COMMAND' in rcmd_output.upper() \
                         or 'FAILED TO COMMIT' in rcmd_output.upper() \
@@ -1945,6 +1949,10 @@ warning {
   color: red;
   background-color: yellow;
 }
+
+pre {
+  color: gray;
+}
 """
     ### GLOBAL VARIABLES AND SETTINGS #########################################
     logging.raiseExceptions = False
@@ -2342,9 +2350,9 @@ if logfilename:
     ### PRINT LOGFILENAME #####################################################
     logviewer = './logviewer.py?logfile=%s' % (logfilename)
     if CGI_CLI.cgi_active:
-        CGI_CLI.uprint('<p> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' % \
-            (logviewer, logfilename), raw = True)
-    else: CGI_CLI.uprint(' ==> File %s created.' % (logfilename))
+        CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
+            % (logviewer, logfilename), raw = True)
+    else: CGI_CLI.uprint(' ==> File %s created.' % (logfilename), color = 'blue')
 
     ### SEND EMAIL WITH LOGFILE ###############################################
     send_me_email( \
