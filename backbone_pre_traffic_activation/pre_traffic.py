@@ -238,35 +238,10 @@ class CGI_CLI(object):
     @staticmethod
     def set_logfile(logfilename = None):
         """
-        set_logfile()            - uses LCMD.logfilename or RCMD.logfilename,
         set_logfile(logfilename) - uses inserted logfilename
         """
-        actual_logfilename, CGI_CLI.logfilename = None, None
-        ### CHECK AND GET ALREADY USED LOGFILES ###############################
-        try:
-            if not (LCMD.logfilenam == 'nul' or LCMD.logfilename == '/dev/null'):
-                actual_logfilename = copy.deepcopy(LCMD.logfilename)
-        except: pass
-        try:
-            if not (RCMD.logfilenam == 'nul' or RCMD.logfilename == '/dev/null'):
-               actual_logfilename = copy.deepcopy(RCMD.logfilename)
-        except: pass
-        ### SET ACTUAL_LOGFILENAME FROM INSERTED IF INSETRED ##################
-        if logfilename: actual_logfilename = logfilename
-        ### REWRITE CGI_CLI.LOGFILENAME #######################################
-        if actual_logfilename == 'nul' or actual_logfilename == '/dev/null' \
-            or not actual_logfilename: pass
-        else:
-            CGI_CLI.logfilename = actual_logfilename
-            ### IF LOGFILE SET, SET ALSO OTHER CLASSES LOG FILES ##############
-            try:
-                if CGI_CLI.logfilename:
-                    LCMD.logfilename = copy.deepcopy(CGI_CLI.logfilename)
-            except: pass
-            try:
-                if CGI_CLI.logfilename:
-                    RCMD.logfilename = copy.deepcopy(CGI_CLI.logfilename)
-            except: pass
+        CGI_CLI.logfilename = logfilename
+
 
     @staticmethod
     def print_chunk(msg = str(), raw_log = None, ommit_logging = None):
@@ -327,7 +302,7 @@ class CGI_CLI(object):
         try:
             if str(log).upper() == 'NO': ommit_logging = True
         except: pass
-        
+
         ### GENERATE TIMESTAMP STRING, 'NO' = NO EVEN IF GLOBALLY IS ALLOWED ###
         timestamp_string = str()
         if timestamp or CGI_CLI.timestamp:
@@ -529,7 +504,7 @@ class RCMD(object):
 
     @staticmethod
     def connect(device = None, cmd_data = None, username = None, password = None, \
-        use_module = 'paramiko', logfilename = None, \
+        use_module = 'paramiko', \
         connection_timeout = 600, cmd_timeout = 60, \
         conf = None, sim_config = None, disconnect = None, printall = None, \
         do_not_final_print = None, commit_text = None, silent_mode = None, \
@@ -542,7 +517,6 @@ class RCMD(object):
         password   - string, remote password
         use_module - string, paramiko/netmiko
         disconnect - True/False, immediate disconnect after RCMD.connect and processing of cmd_data
-        logfilename - strng, name of logging file
         conf        - True/False, go to config mode
         NOTES:
         1. cmd_data is DEVICE TYPE INDEPENDENT and will be processed after device detection
@@ -562,7 +536,6 @@ class RCMD(object):
             RCMD.CONNECTION_TIMEOUT = int(connection_timeout)
             RCMD.CMD_TIMEOUT = int(cmd_timeout)
             RCMD.use_module = use_module
-            RCMD.logfilename = logfilename
             RCMD.USERNAME = username
             RCMD.PASSWORD = password
             RCMD.router_prompt = None
@@ -1190,30 +1163,18 @@ class RCMD(object):
 class LCMD(object):
 
     @staticmethod
-    def init(logfilename = None, printall = None):
+    def init(printall = None):
         LCMD.initialized = True
-        if logfilename: LCMD.logfilename = logfilename
-        else:
-            if 'WIN32' in sys.platform.upper(): LCMD.logfilename = 'nul'
-            else: LCMD.logfilename = '/dev/null'
         LCMD.printall = printall
 
     @staticmethod
-    def init_log_and_print(logfilename = None, printall = None):
+    def run_command(cmd_line = None, printall = None,
+        chunked = None, timeout_sec = 5000):
+        os_output, cmd_list, timer_counter_100ms = str(), None, 0
         ### RUN INIT DURING FIRST RUN IF NO INIT BEFORE
         try:
             if LCMD.initialized: pass
-        except: LCMD.init(logfilename = logfilename, printall = printall)
-        ### LOCAL PRINTALL AND LOGFILENAME OVERWRITES GLOBAL
-        if not printall: printall = LCMD.printall
-        if not logfilename: logfilename = LCMD.logfilename
-        return logfilename, printall
-
-    @staticmethod
-    def run_command(cmd_line = None, logfilename = None, printall = None,
-        chunked = None, timeout_sec = 5000):
-        os_output, cmd_list, timer_counter_100ms = str(), None, 0
-        logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
+        except: LCMD.init(printall = printall)
         if cmd_line:
             if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line), color = 'blue')
             CGI_CLI.logtofile('LOCAL_COMMAND: ' + str(cmd_line) + '\n')
@@ -1252,9 +1213,12 @@ class LCMD(object):
         return os_output
 
     @staticmethod
-    def run_paralel_commands(cmd_data = None, logfilename = None, printall = None, \
+    def run_paralel_commands(cmd_data = None, printall = None, \
         timeout_sec = 5000, custom_text = None, check_exitcode = None):
-        logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
+        ### RUN INIT DURING FIRST RUN IF NO INIT BEFORE
+        try:
+            if LCMD.initialized: pass
+        except: LCMD.init(printall = printall)
         commands_ok = None
         if cmd_data and isinstance(cmd_data, (dict,collections.OrderedDict)):
             if 'WIN32' in sys.platform.upper(): cmd_list = cmd_data.get('windows',[])
@@ -1318,7 +1282,7 @@ class LCMD(object):
         return commands_ok
 
     @staticmethod
-    def run_commands(cmd_data = None, logfilename = None, printall = None):
+    def run_commands(cmd_data = None, printall = None):
         """
         FUNCTION: LCMD.run_commands(), RETURN: list of command_outputs
         PARAMETERS:
@@ -1326,7 +1290,10 @@ class LCMD(object):
                  - list of strings or string, OS TYPE DEPENDENT
         """
         os_outputs =  None
-        logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
+                ### RUN INIT DURING FIRST RUN IF NO INIT BEFORE
+        try:
+            if LCMD.initialized: pass
+        except: LCMD.init(printall = printall)
         if cmd_data and isinstance(cmd_data, (dict,collections.OrderedDict)):
             if 'WIN32' in sys.platform.upper(): cmd_list = cmd_data.get('windows',[])
             else: cmd_list = cmd_data.get('unix',[])
@@ -1354,12 +1321,15 @@ class LCMD(object):
         return os_outputs
 
     @staticmethod
-    def eval_command(cmd_data = None, logfilename = None, printall = None):
+    def eval_command(cmd_data = None, printall = None):
         """
         NOTE: by default - '\\n' = insert newline to text, '\n' = interpreted line
         """
         local_output = None
-        logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
+        ### RUN INIT DURING FIRST RUN IF NO INIT BEFORE
+        try:
+            if LCMD.initialized: pass
+        except: LCMD.init(printall = printall)
         if cmd_data and isinstance(cmd_data, (six.string_types)):
             if printall: CGI_CLI.uprint("EVAL: %s" % (cmd_data))
             try:
@@ -1372,13 +1342,16 @@ class LCMD(object):
         return local_output
 
     @staticmethod
-    def exec_command(cmd_data = None, logfilename = None, printall = None, escape_newline = None):
+    def exec_command(cmd_data = None, printall = None, escape_newline = None):
         """
         NOTE:
               escape_newline = None, ==> '\\n' = insert newline to text, '\n' = interpreted line
               escape_newline = True, ==> '\n' = insert newline to text
         """
-        logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
+        ### RUN INIT DURING FIRST RUN IF NO INIT BEFORE
+        try:
+            if LCMD.initialized: pass
+        except: LCMD.init(printall = printall)
         if cmd_data and isinstance(cmd_data, (six.string_types)):
             if printall: CGI_CLI.uprint("EXEC: %s" % (cmd_data))
             CGI_CLI.logtofile('EXEC: ' + cmd_data + '\n')
@@ -1395,7 +1368,7 @@ class LCMD(object):
 
 
     @staticmethod
-    def exec_command_try_except(cmd_data = None, logfilename = None, \
+    def exec_command_try_except(cmd_data = None, \
         printall = None, escape_newline = None):
         """
         NOTE: This method can access global variable, expects '=' in expression,
@@ -1404,7 +1377,10 @@ class LCMD(object):
               escape_newline = None, ==> '\\n' = insert newline to text, '\n' = interpreted line
               escape_newline = True, ==> '\n' = insert newline to text
         """
-        logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
+        ### RUN INIT DURING FIRST RUN IF NO INIT BEFORE
+        try:
+            if LCMD.initialized: pass
+        except: LCMD.init(printall = printall)
         if cmd_data and isinstance(cmd_data, (six.string_types)):
             try:
                 if '=' in cmd_data:
@@ -1836,7 +1812,7 @@ def get_interface_list_per_device(device = None):
 
     if device:
         RCMD.connect(device, username = USERNAME, password = PASSWORD, \
-            printall = printall, logfilename = logfilename, silent_mode = True, \
+            printall = printall, silent_mode = True, \
             disconnect_timeout = 0.1)
 
         if RCMD.ssh_connection:
@@ -2155,7 +2131,7 @@ pre {
     for device in device_list:
         if device:
             RCMD.connect(device, username = USERNAME, password = PASSWORD, \
-                printall = printall, logfilename = logfilename)
+                printall = printall)
 
             if not RCMD.ssh_connection:
                 CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), \
@@ -2360,7 +2336,11 @@ if logfilename:
     if CGI_CLI.cgi_active:
         CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
             % (logviewer, logfilename), raw = True)
+        CGI_CLI.logtofile('</body></head>', raw_log = True)
+        CGI_CLI.logfilename = str()
     else: CGI_CLI.uprint(' ==> File %s created.' % (logfilename), color = 'blue')
+
+
 
     ### SEND EMAIL WITH LOGFILE ###############################################
     send_me_email( \
