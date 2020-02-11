@@ -269,7 +269,7 @@ class CGI_CLI(object):
             except: pass
 
     @staticmethod
-    def print_chunk(msg = str(), raw_log = None):
+    def print_chunk(msg = str(), raw_log = None, ommit_logging = None):
         """
         raw_log = raw logging
         """
@@ -281,7 +281,7 @@ class CGI_CLI(object):
                     sys.stdout.flush()
             ### CLI MODE ###
             else: print(msg)
-            CGI_CLI.logtofile(msg = msg, raw_log = raw_log)
+            if not ommit_logging: CGI_CLI.logtofile(msg = msg, raw_log = raw_log)
 
     @staticmethod
     def logtofile(msg = str(), raw_log = None):
@@ -323,6 +323,11 @@ class CGI_CLI(object):
         print_text = str(print_text)
         log_text   = str(copy.deepcopy((print_text)))
 
+        ommit_logging = None
+        try:
+            if str(log).upper() == 'NO': ommit_logging = True
+        except: pass
+        
         ### GENERATE TIMESTAMP STRING, 'NO' = NO EVEN IF GLOBALLY IS ALLOWED ###
         timestamp_string = str()
         if timestamp or CGI_CLI.timestamp:
@@ -345,8 +350,11 @@ class CGI_CLI(object):
                     replace('>','&gt;').replace(' ','&nbsp;').\
                     replace('"','&quot;').replace("'",'&apos;').\
                     replace('\n','<br/>'))
-            CGI_CLI.print_chunk(timestamp_string + print_name + print_text, raw_log = True)
-        elif CGI_CLI.cgi_active and raw: CGI_CLI.print_chunk(print_text, raw_log = True)
+            CGI_CLI.print_chunk(timestamp_string + print_name + print_text, \
+                raw_log = True, ommit_logging = ommit_logging)
+        elif CGI_CLI.cgi_active and raw:
+            CGI_CLI.print_chunk(print_text, raw_log = True, \
+                ommit_logging = ommit_logging)
         else:
             text_color = str()
             if color:
