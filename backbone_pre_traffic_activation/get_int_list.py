@@ -1865,6 +1865,8 @@ def get_interface_list_per_device(device = None):
                 if_line = in_line_orig.replace('                                               ','').replace('GE','Gi').strip()
                 try: if_name = if_line.split()[0]
                 except: if_name = str()
+                try: if_name = if_name.split('(')[0]
+                except: pass
                 try: if_line_mod = if_line.split()[0] + ' - ' + ' '.join(if_line.split()[3:])
                 except: if_line_mod = str()
                 if if_name and if_line_mod: interface_list.append([if_line_mod, if_name])
