@@ -2023,6 +2023,7 @@ pre {
     device_interface_list = []
     interface_cgi_string = 'interface__'
     interface_id_list = []
+    logfilename_list = []
 
     ### GCI_CLI INIT ##########################################################
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = None, css_style = CSS_STYLE, \
@@ -2138,6 +2139,7 @@ pre {
                 interface_menu_list.append('<br/>')
 
             CGI_CLI.formprint(interface_menu_list + ['<br/>',\
+                {'checkbox':'send_email'},'<br/>',
                 {'checkbox':'printall'},'<br/>','<br/>'],\
                 submit_button = CGI_CLI.self_buttons[0], \
                 pyfile = None, tag = None, color = None)
@@ -2186,10 +2188,6 @@ pre {
     ### END DUE TO MISSING INPUT DATA #########################################
     exit_due_to_error = None
 
-    #if len(device_list) == 0:
-    #    CGI_CLI.uprint('Device name(s) NOT INSERTED!', tag = 'h2', color = 'red')
-    #    exit_due_to_error = True
-
     if len(device_interface_id_list) == 0:
         CGI_CLI.uprint('Interface id NOT INSERTED!', tag = 'h2', color = 'red')
         exit_due_to_error = True
@@ -2210,7 +2208,7 @@ pre {
 
 
     ### def REMOTE DEVICE OPERATIONS ##########################################
-    device_data, logfilename_list = [], []
+    device_data = []
     for device, interface_list in device_interface_id_list:
         if device:
 
@@ -2437,17 +2435,47 @@ except:
     traceback_found = True
     CGI_CLI.uprint(traceback.format_exc(), tag = 'h3',color = 'magenta')
 
-if logfilename:
 
-    ## SEND EMAIL WITH LOGFILE ###############################################
-    # send_me_email( \
-        # subject = str(logfilename).replace('\\','/').split('/')[-1] if logfilename else None, \
-        # file_name = str(logfilename), username = USERNAME)
+### def LOGFILENAME GENERATION, DO LOGGING ONLY WHEN DEVICE LIST EXISTS #######
+html_extention = 'htm' if CGI_CLI.cgi_active else str()
+logfilename = generate_logfilename(prefix = 'PRE-', USERNAME = USERNAME, suffix = str('.%slog' % (html_extention)))
 
-    ## SEND EMAIL WITH LOGFILE ###############################################
-    # send_me_email( \
-        # subject = str(logfilename).replace('\\','/').split('/')[-1] if logfilename else None, \
-        # file_name = str(logfilename), username = 'pnemec')
+### NO WINDOWS LOGGING ########################################################
+if 'WIN32' in sys.platform.upper(): logfilename = None
+if logfilename: CGI_CLI.set_logfile(logfilename = logfilename)
+
+if CGI_CLI.cgi_active:
+    CGI_CLI.logtofile('<h1 style="color:blue;">%s <a href="%s" style="text-decoration: none">(v.%s)</a></h1>' % \
+        (SCRIPT_NAME, changelog, CGI_CLI.VERSION()), raw_log = True)
+    if swan_id: CGI_CLI.logtofile('<p>SWAN_ID=%s</p>' %(swan_id), raw_log = True)
+    CGI_CLI.logtofile('<p>LOGFILES:</p>' , raw_log = True)
+else:
+    CGI_CLI.logtofile('%s (v.%s)' % (SCRIPT_NAME,CGI_CLI.VERSION()))
+    if swan_id: CGI_CLI.logtofile('SWAN_ID=%s\n' %(swan_id))
+    CGI_CLI.logtofile('\nLOGFILES:\n')
+
+for logfilename in logfilename_list:
+    ### PRINT LOGFILENAME #####################################################
+    if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, logfilename)
+    else: logviewer = './logviewer.py?logfile=%s' % (logfilename)
+    if CGI_CLI.cgi_active:
+        CGI_CLI.logtofile('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
+            % (logviewer, logfilename), raw_log = True)
+    else: CGI_CLI.logtofile(' ==> File %s created\n' % (logfilename))
+
+### CLOSE GLOBAL LOGFILE ######################################################
+CGI_CLI.logtofile(end_log = True)
+
+if logfilename and CGI_CLI.data.get("send_email"):
+    # SEND EMAIL WITH LOGFILE ###############################################
+    send_me_email( \
+        subject = str(logfilename).replace('\\','/').split('/')[-1] if logfilename else None, \
+        file_name = str(logfilename), username = USERNAME)
+
+    # SEND EMAIL WITH LOGFILE ###############################################
+    send_me_email( \
+        subject = str(logfilename).replace('\\','/').split('/')[-1] if logfilename else None, \
+        file_name = str(logfilename), username = 'pnemec')
 
     ### def SEND EMAIL WITH ERROR/TRACEBACK LOGFILE TO SUPPORT ################
     if traceback_found:
