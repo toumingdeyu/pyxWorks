@@ -2064,12 +2064,14 @@ pre {
         device_interface_id_list.append([router3.upper(), interface_id_list3])
 
     ### MARTIN'S SPECIAL FORM OF SENDING DATA #################################
-    testint_list = []
+    testint_list, swan_id = [], str()
     CGI_CLI.parse_input_data(key = 'testint', append_to_list = testint_list)
     if len(testint_list) > 0:
         for testint in testint_list:
-            try: device_interface_id_list.append([testint.split('-')[1],\
-                [testint.split('-')[2]]])
+            try:
+                swan_id = testint.split('-')[1]
+                device_interface_id_list.append([testint.split('-')[1],\
+                    [testint.split('-')[2]]])
             except: pass
 
     ### TESTSERVER WORKAROUND #################################################
@@ -2232,6 +2234,12 @@ pre {
                 if logfilename: CGI_CLI.set_logfile(logfilename = logfilename)
                 logfilename_list.append(logfilename)
 
+                if CGI_CLI.cgi_active:
+                    CGI_CLI.logtofile('<h1 style="color:blue;">%s <a href="%s" style="text-decoration: none">(v.%s)</a></h1>' % \
+                        (SCRIPT_NAME, changelog, CGI_CLI.VERSION()), raw_log = True)
+                else: CGI_CLI.logtofile('%s (v.%s)' % (SCRIPT_NAME,CGI_CLI.VERSION()))
+
+                if swan_id: CGI_CLI.uprint('SWAN_ID=%s' %(swan_id))
 
                 interface_data = collections.OrderedDict()
                 interface_data['interface_id'] = interface_id
