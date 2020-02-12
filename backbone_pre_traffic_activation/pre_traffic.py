@@ -536,25 +536,25 @@ class CGI_CLI(object):
                 if value_found:
                     if ',' in value_found:
                         ### IF IGNORE_LIST USE ONLY FIRST DATA ################
-                        result = value_found.split(',')[0].strip()
+                        result = value_found.split(',')[0].strip().replace(",",'').replace(']','').replace('[','')
                         if ignore_list:
                             if isinstance(append_to_list, (list)): append_to_list.append(result)
                             break
                         else:
                             for list_item in value_found.split(','):
-                                item = copy.deepcopy(list_item).strip()
+                                item = copy.deepcopy(list_item).strip().replace(",",'').replace(']','').replace('[','')
                                 if replace_what and replace_by:
                                     item = item.replace(str(replace_what),str(replace_by))
                                 if isinstance(append_to_list, (list)): append_to_list.append(item)
                     else:
                         if replace_what and replace_by:
-                            value_found = value_found.replace(str(replace_what),str(replace_by)).strip()
+                            value_found = value_found.replace(str(replace_what),str(replace_by)).strip().replace(",",'').replace(']','').replace('[','')
                         result = value_found
                         if isinstance(append_to_list, (list)): append_to_list.append(result)
 
             ### READ PART OF KEY WHICH CONTAINES KEY_IN #######################
             elif key_in and key_in in data_value:
-                data_value = data_value.replace(key_in,str()).strip()
+                data_value = data_value.replace(key_in,str()).strip().replace(",",'').replace(']','').replace('[','')
                 if replace_what and replace_by:
                     data_value = data_value.replace(str(replace_what),str(replace_by))
                 if isinstance(append_to_list, (list)): append_to_list.append(data_value)
@@ -2030,7 +2030,7 @@ pre {
     LCMD.init()
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
     printall = CGI_CLI.data.get("printall")
-
+    printall = True
 
     ### MAKE DEVICE LIST ######################################################
     CGI_CLI.parse_input_data(key = 'device', append_to_list = device_list, ignore_list = True)
