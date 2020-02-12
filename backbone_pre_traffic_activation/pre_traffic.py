@@ -513,6 +513,53 @@ class CGI_CLI(object):
     def print_env():
         CGI_CLI.uprint(dict(os.environ), name = 'os.environ', tag = 'debug', jsonprint = True)
 
+    @staticmethod
+    def parse_input_data(key = None, key_in = None, \
+        append_to_list = None, replace_what = None, replace_by = None, \
+        ignore_list = None):
+        """
+        key - read value of inserted key
+        key_in - read part of key which contains key_in
+        append_to_list - address of list to append
+        replace_what, replace_by - values which will be changed
+        return result - string variable
+        """
+        result = str()
+        ### READ PART OF KEY WHICH CONTAINES KEY_IN ###########################
+        for data_key in CGI_CLI.data.keys():
+            try: data_value = copy.deepcopy(data_key)
+            except: data_value = str()
+            if key_in and key_in in data_value:
+                data_value = data_value.replace(key_in,str()).strip()
+                if replace_what and replace_by:
+                    data_value = data_value.replace(str(replace_what),str(replace_by))
+                if isinstance(append_to_list, (list)): append_to_list.append(data_value)
+
+        ### READ KEY VALUE OR KEY VALUES LIST #################################
+        value_found = copy.deepcopy(CGI_CLI.data.get(key,str()))
+        if value_found:
+            if ',' in value_found:
+                ### IF IGNORE_LIST USE ONLY FIRST DATA ########################
+                result = value_found.split(',')[0].strip()
+                if ignore_list:
+                    if isinstance(append_to_list, (list)): append_to_list.append(result)
+                else:
+                    for list_item in value_found.split(','):
+                        item = copy.deepcopy(list_item).strip()
+                        if replace_what and replace_by:
+                            item = item.replace(str(replace_what),str(replace_by))
+                        if isinstance(append_to_list, (list)): append_to_list.append(item)
+            else:
+                if replace_what and replace_by:
+                    value_found = value_found.replace(str(replace_what),str(replace_by)).strip()
+                result = value_found
+                if isinstance(append_to_list, (list)): append_to_list.append(result)
+
+        ### RETURN STRING VARIABLE, IGNORE LISTS ##############################
+        return result
+
+
+
 
 ##############################################################################
 
@@ -1849,11 +1896,6 @@ def get_interface_list_per_device(device = None):
                 if if_lines[-1] in RCMD.DEVICE_PROMPTS: del if_lines[-1]
             except: pass
 
-            # interface_list = [ \
-                # (if_line.replace('                                               ',''), \
-                # if_line.split()[0].replace('GE','Gi')) \
-                # for if_line in if_lines if if_line.strip() ]
-
             for in_line_orig in if_lines:
                 if_line = in_line_orig.replace('                                               ','').replace('GE','Gi').strip()
                 try: if_name = if_line.split()[0]
@@ -1939,6 +1981,10 @@ def get_fiblist(input_text = None):
 
 
 ###############################################################################
+
+
+
+###############################################################################
 #
 # def BEGIN MAIN
 #
@@ -1982,6 +2028,49 @@ pre {
     printall = CGI_CLI.data.get("printall")
 
 
+    ### MAKE DEVICE LIST ######################################################
+    CGI_CLI.parse_input_data(key = 'device', append_to_list = device_list, ignore_list = True)
+    CGI_CLI.parse_input_data(key = 'router', append_to_list = device_list, ignore_list = True)
+    CGI_CLI.parse_input_data(key = 'router2', append_to_list = device_list, ignore_list = True)
+    CGI_CLI.parse_input_data(key = 'router3', append_to_list = device_list, ignore_list = True)
+
+    router = CGI_CLI.parse_input_data(key = 'device')
+    if not router: router = CGI_CLI.parse_input_data(key = 'router')
+    router2 = CGI_CLI.parse_input_data(key = 'router2')
+    router3 = CGI_CLI.parse_input_data(key = 'router3')
+
+    ### COLLECT INTERFACE LISTS ###############################################
+    interface_id_list2, interface_id_list3 = [], []
+    CGI_CLI.parse_input_data(key_in = interface_cgi_string, append_to_list = interface_id_list)
+    if len(interface_id_list) == 0:
+        CGI_CLI.parse_input_data(key = 'interface', append_to_list = interface_id_list)
+    if len(interface_id_list) == 0:
+        CGI_CLI.parse_input_data(key = 'interface_id[]', append_to_list = interface_id_list)
+    CGI_CLI.parse_input_data(key = 'interface_id2[]', append_to_list = interface_id_list2)
+    CGI_CLI.parse_input_data(key = 'interface_id3[]', append_to_list = interface_id_list3)
+
+    ### def COLLECT DEVICE INTERFACE LIST #####################################
+    device_interface_id_list = []
+    if router and len(interface_id_list) > 0:
+        device_interface_id_list.append([router, interface_id_list])
+    if router2 and len(interface_id_list2) > 0:
+        device_interface_id_list.append([router2, interface_id_list2])
+    if router3 and len(interface_id_list3) > 0:
+        device_interface_id_list.append([router3, interface_id_list3])
+
+    CGI_CLI.uprint(device_list, name = True)
+    CGI_CLI.uprint(router, name = 'router')
+    CGI_CLI.uprint(router2, name = 'router2')
+    CGI_CLI.uprint(router3, name = 'router3')
+    CGI_CLI.uprint(interface_id_list, name = True)
+    CGI_CLI.uprint(interface_id_list2, name = True)
+    CGI_CLI.uprint(interface_id_list3, name = True)
+    ### PRINT SELECTED DEVICE AND INTERFACE ###################################
+    CGI_CLI.uprint(device_interface_id_list, name = 'device_interface_id_list',\
+        jsonprint = True, color = 'blue')
+
+    sys.exit(0)
+
     ### READ INTERFACE ID LIST FROM CGI #######################################
     for key in CGI_CLI.data.keys():
         try: value = str(key)
@@ -1995,6 +2084,11 @@ pre {
     if interface_line:
         try: interface_id_list.append(CGI_CLI.data.get("interface",str()).split()[0].replace('GE','Gi'))
         except: interface_id_list.append(CGI_CLI.data.get("interface",str()).replace('GE','Gi'))
+
+    interface_line = CGI_CLI.data.get("interface_id",str())
+    if interface_line:
+        try: interface_id_list.append(CGI_CLI.data.get("interface_id",str()).split()[0].replace('GE','Gi'))
+        except: interface_id_list.append(CGI_CLI.data.get("interface_id",str()).replace('GE','Gi'))
 
     ### TESTSERVER WORKAROUND #################################################
     iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
