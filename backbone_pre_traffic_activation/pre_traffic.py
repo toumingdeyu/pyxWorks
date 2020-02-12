@@ -2069,7 +2069,7 @@ pre {
     if len(testint_list) > 0:
         for testint in testint_list:
             try: device_interface_id_list.append([testint.split('-')[1],\
-                testint.split('-')[2]])
+                [testint.split('-')[2]]])
             except: pass
 
     ### TESTSERVER WORKAROUND #################################################
