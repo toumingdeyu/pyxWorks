@@ -2030,7 +2030,6 @@ pre {
     LCMD.init()
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
     printall = CGI_CLI.data.get("printall")
-    printall = True
 
     ### MAKE DEVICE LIST ######################################################
     CGI_CLI.parse_input_data(key = 'device', append_to_list = device_list, ignore_list = True)
