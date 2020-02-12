@@ -194,7 +194,8 @@ class CGI_CLI(object):
                 (CGI_CLI.newline, CGI_CLI.newline,
                 #CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit', \
                 str(__file__).split('/')[-1] + '  PID' + str(os.getpid()) if '/' in str(__file__) else str(), \
-                '<style>%s</style>' % (CGI_CLI.CSS_STYLE) if CGI_CLI.CSS_STYLE else str()))
+                '<style>%s</style>' % (CGI_CLI.CSS_STYLE) if CGI_CLI.CSS_STYLE else str()),\
+                ommit_logging = True)
         import atexit; atexit.register(CGI_CLI.__cleanup__)
         ### GAIN USERNAME AND PASSWORD FROM ENVIRONMENT BY DEFAULT ###
         try:    CGI_CLI.PASSWORD        = os.environ['NEWR_PASS']
@@ -239,9 +240,40 @@ class CGI_CLI(object):
     def set_logfile(logfilename = None):
         """
         set_logfile(logfilename) - uses inserted logfilename
+        NOTE: Add html footer to logfile if exists, Add html header to logfile
         """
+        if CGI_CLI.logfilename: CGI_CLI.logtofile(end_log = True)
         CGI_CLI.logfilename = logfilename
+        CGI_CLI.logtofile(start_log = True)
 
+    @staticmethod
+    def logtofile(msg = str(), raw_log = None, start_log = None, end_log = None):
+        msg_to_file = str()
+        if CGI_CLI.logfilename and CGI_CLI.log:
+            ### HTML LOGGING ##################################################
+            if CGI_CLI.cgi_active and CGI_CLI.html_logging:
+                ### ADD HTML HEADER ###########################################
+                if start_log:
+                    msg_to_file += '<!DOCTYPE html><html><head><title>%s</title></head><body>'\
+                        % (CGI_CLI.logfilename)
+                ### CONVERT TEXT TO HTML FORMAT ###############################
+                if not raw_log: msg_to_file += str(msg.replace('&','&amp;').\
+                                replace('<','&lt;').\
+                                replace('>','&gt;').replace(' ','&nbsp;').\
+                                replace('"','&quot;').replace("'",'&apos;').\
+                                replace('\n','<br/>'))
+                else: msg_to_file += msg
+                ### ADD HTML FOOTER ###########################################
+                if end_log: msg_to_file += '</body></html>'
+            ### CLI LOGGING ###################################################
+            else: msg_to_file = msg
+            ### LOG CLI OR HTML MODE ##########################################
+            if msg_to_file:
+                with open(CGI_CLI.logfilename,"a+") as CGI_CLI.fp:
+                    CGI_CLI.fp.write(msg_to_file)
+                    del msg_to_file
+            ### ON END: LOGFILE SET TO VOID, AVOID OF MULTIPLE FOOTERS ########
+            if end_log: CGI_CLI.logfilename = None
 
     @staticmethod
     def print_chunk(msg = str(), raw_log = None, ommit_logging = None):
@@ -257,21 +289,6 @@ class CGI_CLI(object):
             ### CLI MODE ###
             else: print(msg)
             if not ommit_logging: CGI_CLI.logtofile(msg = msg, raw_log = raw_log)
-
-    @staticmethod
-    def logtofile(msg = str(), raw_log = None):
-        ### HTML LOGGING ######################################################
-        if CGI_CLI.logfilename and CGI_CLI.log and CGI_CLI.html_logging \
-            and CGI_CLI.cgi_active and msg:
-            with open(CGI_CLI.logfilename,"a+") as CGI_CLI.fp:
-                if not raw_log: msg_to_html = str(msg.replace('&','&amp;').\
-                                replace('<','&lt;').\
-                                replace('>','&gt;').replace(' ','&nbsp;').\
-                                replace('"','&quot;').replace("'",'&apos;').\
-                                replace('\n','<br/>'))
-                else: msg_to_html = copy.deepcopy(msg)
-                CGI_CLI.fp.write(msg_to_html)
-                del msg_to_html
 
     @staticmethod
     def uprint(text = str(), tag = None, tag_id = None, color = None, name = None, jsonprint = None, \
@@ -2342,7 +2359,7 @@ if logfilename:
     if CGI_CLI.cgi_active:
         CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
             % (logviewer, logfilename), raw = True)
-        CGI_CLI.logtofile('</body></head>', raw_log = True)
+        CGI_CLI.logtofile(end_log = True)
         CGI_CLI.logfilename = str()
     else: CGI_CLI.uprint(' ==> File %s created.' % (logfilename), color = 'blue')
 
