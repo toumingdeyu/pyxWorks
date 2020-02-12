@@ -1195,7 +1195,7 @@ class LCMD(object):
         if cmd_line:
             if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line), color = 'blue', log = 'no')
             if CGI_CLI.cgi_active:
-                CGI_CLI.logtofile('<p style="color:blue;">' + 'LOCAL_COMMAND:' + cmd_line + '</p>', raw_log = True)
+                CGI_CLI.logtofile('<p style="color:blue;">' + 'LOCAL_COMMAND: ' + cmd_line + '</p>', raw_log = True)
             else:
                 CGI_CLI.logtofile('LOCAL_COMMAND: ' + str(cmd_line) + '\n')
             try:
@@ -2010,8 +2010,9 @@ pre {
 
     ### def LOGFILENAME GENERATION, DO LOGGING ONLY WHEN DEVICE LIST EXISTS ###
     if len(device_list) > 0 and len(interface_id_list) > 0:
+        html_extention = 'htm' if CGI_CLI.cgi_active else str()
         logfilename = generate_logfilename(prefix = ('_'.join(device_list)).upper(), \
-            USERNAME = USERNAME, suffix = str('backb') + '.htmlog')
+            USERNAME = USERNAME, suffix = str('backb') + '.%slog' % (html_extention))
         ### NO WINDOWS LOGGING ################################################
         if 'WIN32' in sys.platform.upper(): logfilename = None
         if logfilename: CGI_CLI.set_logfile(logfilename = logfilename)
