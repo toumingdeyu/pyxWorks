@@ -2022,7 +2022,7 @@ pre {
     interface_id_list = []
 
     ### GCI_CLI INIT ##########################################################
-    USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True, css_style = CSS_STYLE, \
+    USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = None, css_style = CSS_STYLE, \
         log = True, html_logging = True)
     LCMD.init()
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
@@ -2063,6 +2063,14 @@ pre {
     if router3 and len(interface_id_list3) > 0:
         device_interface_id_list.append([router3.upper(), interface_id_list3])
 
+    ### MARTIN'S SPECIAL FORM OF SENDING DATA #################################
+    testint_list = []
+    CGI_CLI.parse_input_data(key = 'testint', append_to_list = testint_list)
+    if len(testint_list) > 0:
+        for testint in testint_list:
+            try: device_interface_id_list.append([testint.split('-')[1],\
+                testint.split('-')[2]])
+            except: pass
 
     ### TESTSERVER WORKAROUND #################################################
     iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
@@ -2174,9 +2182,9 @@ pre {
     ### END DUE TO MISSING INPUT DATA #########################################
     exit_due_to_error = None
 
-    if len(device_list) == 0:
-        CGI_CLI.uprint('Device name(s) NOT INSERTED!', tag = 'h2', color = 'red')
-        exit_due_to_error = True
+    #if len(device_list) == 0:
+    #    CGI_CLI.uprint('Device name(s) NOT INSERTED!', tag = 'h2', color = 'red')
+    #    exit_due_to_error = True
 
     if len(device_interface_id_list) == 0:
         CGI_CLI.uprint('Interface id NOT INSERTED!', tag = 'h2', color = 'red')
