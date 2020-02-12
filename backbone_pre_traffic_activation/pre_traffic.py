@@ -2024,6 +2024,7 @@ pre {
     interface_cgi_string = 'interface__'
     interface_id_list = []
     logfilename_list = []
+    global_logfilename = str()
 
     ### GCI_CLI INIT ##########################################################
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = None, css_style = CSS_STYLE, \
