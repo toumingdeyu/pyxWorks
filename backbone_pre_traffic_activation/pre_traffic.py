@@ -292,7 +292,8 @@ class CGI_CLI(object):
 
     @staticmethod
     def uprint(text = str(), tag = None, tag_id = None, color = None, name = None, jsonprint = None, \
-        log = None, no_newlines = None, start_tag = None, end_tag = None, raw = None, timestamp = None):
+        log = None, no_newlines = None, start_tag = None, end_tag = None, raw = None, \
+        timestamp = None, printall = None):
         """NOTE: name parameter could be True or string.
            start_tag - starts tag and needs to be ended next time by end_tag
            raw = True , print text as it is, not convert to html. Intended i.e. for javascript
@@ -2040,78 +2041,38 @@ pre {
     router3 = CGI_CLI.parse_input_data(key = 'router3')
 
     ### COLLECT INTERFACE LISTS ###############################################
-    interface_id_list2, interface_id_list3 = [], []
+    interface_id_list1, interface_id_list2, interface_id_list3 = [], [], []
     CGI_CLI.parse_input_data(key_in = interface_cgi_string, append_to_list = interface_id_list)
-    if len(interface_id_list) == 0:
-        CGI_CLI.parse_input_data(key = 'interface', append_to_list = interface_id_list)
-    if len(interface_id_list) == 0:
-        CGI_CLI.parse_input_data(key = 'interface_id[]', append_to_list = interface_id_list)
+
+    ### FILTER MY OWN RECEIVED INTERFACE LINE TO INTERFACE_LIST to LIST1 ######
+    interface_id_list1 = [ interface_line.split()[0] for interface_line in interface_id_list ]
+
+    if len(interface_id_list1) == 0:
+        CGI_CLI.parse_input_data(key = 'interface', append_to_list = interface_id_list1)
+    if len(interface_id_list1) == 0:
+        CGI_CLI.parse_input_data(key = 'interface_id[]', append_to_list = interface_id_list1)
     CGI_CLI.parse_input_data(key = 'interface_id2[]', append_to_list = interface_id_list2)
     CGI_CLI.parse_input_data(key = 'interface_id3[]', append_to_list = interface_id_list3)
 
     ### def COLLECT DEVICE INTERFACE LIST #####################################
     device_interface_id_list = []
-    if router and len(interface_id_list) > 0:
-        device_interface_id_list.append([router, interface_id_list])
+    if router and len(interface_id_list1) > 0:
+        device_interface_id_list.append([router.upper(), interface_id_list1])
     if router2 and len(interface_id_list2) > 0:
-        device_interface_id_list.append([router2, interface_id_list2])
+        device_interface_id_list.append([router2.upper(), interface_id_list2])
     if router3 and len(interface_id_list3) > 0:
-        device_interface_id_list.append([router3, interface_id_list3])
+        device_interface_id_list.append([router3.upper(), interface_id_list3])
 
-    CGI_CLI.uprint(device_list, name = True)
-    CGI_CLI.uprint(router, name = 'router')
-    CGI_CLI.uprint(router2, name = 'router2')
-    CGI_CLI.uprint(router3, name = 'router3')
-    CGI_CLI.uprint(interface_id_list, name = True)
-    CGI_CLI.uprint(interface_id_list2, name = True)
-    CGI_CLI.uprint(interface_id_list3, name = True)
-    ### PRINT SELECTED DEVICE AND INTERFACE ###################################
-    CGI_CLI.uprint(device_interface_id_list, name = 'device_interface_id_list',\
-        jsonprint = True, color = 'blue')
-
-    sys.exit(0)
-
-    ### READ INTERFACE ID LIST FROM CGI #######################################
-    for key in CGI_CLI.data.keys():
-        try: value = str(key)
-        except: value = str()
-        if interface_cgi_string in value:
-            try: interface_id_list.append(value.replace(interface_cgi_string,str()).split()[0].replace('GE','Gi'))
-            except: interface_id_list.append(value.replace(interface_cgi_string,str()).replace('GE','Gi'))
-
-    ### APPEND INTERFACE LIST FROM CLI OR ADDITIONAL CGI INPUT ################
-    interface_line = CGI_CLI.data.get("interface",str())
-    if interface_line:
-        try: interface_id_list.append(CGI_CLI.data.get("interface",str()).split()[0].replace('GE','Gi'))
-        except: interface_id_list.append(CGI_CLI.data.get("interface",str()).replace('GE','Gi'))
-
-    interface_line = CGI_CLI.data.get("interface_id",str())
-    if interface_line:
-        try: interface_id_list.append(CGI_CLI.data.get("interface_id",str()).split()[0].replace('GE','Gi'))
-        except: interface_id_list.append(CGI_CLI.data.get("interface_id",str()).replace('GE','Gi'))
 
     ### TESTSERVER WORKAROUND #################################################
     iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
+
+    if iptac_server == 'iptac5': urllink = 'https://10.253.58.126/cgi-bin/'
+    else: urllink = 'https://%s/cgi-bin/' % (iptac_server)
+
     if not (USERNAME and PASSWORD):
         if iptac_server == 'iptac5': USERNAME, PASSWORD = 'iptac', 'paiiUNDO'
 
-    ### GENERATE DEVICE LIST ##################################################
-    devices_string = CGI_CLI.data.get("device",str())
-    if devices_string:
-        if ',' in devices_string:
-            device_list = [ dev_mix_case.upper() for dev_mix_case in devices_string.split(',') ]
-        else: device_list = [devices_string.upper()]
-
-    ### def LOGFILENAME GENERATION, DO LOGGING ONLY WHEN DEVICE LIST EXISTS ###
-    if len(device_list) > 0 and len(interface_id_list) > 0:
-        html_extention = 'htm' if CGI_CLI.cgi_active else str()
-        logfilename = generate_logfilename(prefix = ('_'.join(device_list)).upper(), \
-            USERNAME = USERNAME, suffix = str('backb') + '.%slog' % (html_extention))
-        ### NO WINDOWS LOGGING ################################################
-        if 'WIN32' in sys.platform.upper(): logfilename = None
-        if logfilename: CGI_CLI.set_logfile(logfilename = logfilename)
-
-    #logfilename = None
 
     ### START PRINTING AND LOGGING ############################################
     changelog = 'https://github.com/peteneme/pyxWorks/commits/master/backbone_pre_traffic_activation/pre_traffic.py'
@@ -2119,8 +2080,6 @@ pre {
     if CGI_CLI.cgi_active:
         CGI_CLI.uprint('<h1 style="color:blue;">%s <a href="%s" style="text-decoration: none">(v.%s)</a></h1>' % \
             (SCRIPT_NAME, changelog, CGI_CLI.VERSION()), raw = True)
-        #CGI_CLI.uprint('WARNING!\n             PLEASE BE CAREFUL WHILE USING THIS TOOL!\nSUBMITING WILL CHANGE CONFIGURATION OF DEVICE IN OPERATION!', \
-        #    tag = 'h3', color = 'red')
     else: CGI_CLI.uprint('%s (v.%s)' % (SCRIPT_NAME,CGI_CLI.VERSION()), \
               tag = 'h1', color = 'blue')
     if printall: CGI_CLI.print_args()
@@ -2136,10 +2095,6 @@ pre {
         select_string = 'vendor, hardware, software, rtr_name, network',\
         from_string = 'oti_all_table',\
         order_by = 'vendor, hardware, rtr_name ASC')
-
-
-
-
 
 
     ### DEBUG PRINTALL OF INTERFACE LIST PER DEVICE ###########################
@@ -2223,7 +2178,7 @@ pre {
         CGI_CLI.uprint('Device name(s) NOT INSERTED!', tag = 'h2', color = 'red')
         exit_due_to_error = True
 
-    if len(interface_id_list) == 0:
+    if len(device_interface_id_list) == 0:
         CGI_CLI.uprint('Interface id NOT INSERTED!', tag = 'h2', color = 'red')
         exit_due_to_error = True
 
@@ -2238,15 +2193,16 @@ pre {
     if exit_due_to_error: sys.exit(0)
 
     ### PRINT SELECTED DEVICE AND INTERFACE ###################################
-    CGI_CLI.uprint('Device(s)=%s, Interface(s)=[%s], Username=%s\n' % \
-        (','.join(device_list), ','.join(interface_id_list), USERNAME),\
-        color = 'blue')
+    CGI_CLI.uprint(device_interface_id_list, name = 'device_interface_id_list',\
+            jsonprint = True, color = 'blue')
 
 
-    ## def REMOTE DEVICE OPERATIONS ###########################################
-    device_data = []
-    for device in device_list:
+    ### def REMOTE DEVICE OPERATIONS ##########################################
+    device_data, logfilename_list = [], []
+    for device, interface_list in device_interface_id_list:
         if device:
+
+            ### DEVICE CONNECT ################################################
             RCMD.connect(device, username = USERNAME, password = PASSWORD, \
                 printall = printall)
 
@@ -2257,7 +2213,17 @@ pre {
                 continue
 
             ### LOOP PER INTERFACE ############################################
-            for interface_id in interface_id_list:
+            for interface_id in interface_list:
+
+                ### def LOGFILENAME GENERATION, DO LOGGING ONLY WHEN DEVICE LIST EXISTS ###
+                html_extention = 'htm' if CGI_CLI.cgi_active else str()
+                logfilename = generate_logfilename(prefix = device.upper() + '_' + interface_id.replace('/','-'), \
+                    USERNAME = USERNAME, suffix = str('backb') + '.%slog' % (html_extention))
+                ### NO WINDOWS LOGGING ########################################
+                if 'WIN32' in sys.platform.upper(): logfilename = None
+                if logfilename: CGI_CLI.set_logfile(logfilename = logfilename)
+                logfilename_list.append(logfilename)
+
 
                 interface_data = collections.OrderedDict()
                 interface_data['interface_id'] = interface_id
@@ -2417,30 +2383,36 @@ pre {
                     ]
                 }
 
-                ### LIST RECORD PER INTERFACE #################################
-                device_data.append([copy.deepcopy(device), copy.deepcopy(interface_data)])
+
+                ### PRINT RESULTS PER INTERFACE ###########################################
+                CGI_CLI.uprint(interface_data, name = 'Device:%s' % (device), \
+                    jsonprint = True, color = 'blue')
+
+                None_elements = get_void_json_elements(interface_data)
+
+                CGI_CLI.uprint('Unset elements check on %s: %s\n' % \
+                    (interface_data.get('interface_id'), \
+                    str(None_elements) if len(None_elements)>0 else 'OK'), \
+                    color = 'red' if len(None_elements)>0 else 'green')
+
+                if len(None_elements)>0:
+                    CGI_CLI.uprint('\nWARNING: Unset data found on interface %s!' % \
+                        (interface_data.get('interface_id')), tag = 'h1', color = 'red')
+
+                ### PRINT LOGFILENAME #####################################################
+                if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, logfilename)
+                else: logviewer = './logviewer.py?logfile=%s' % (logfilename)
+                if CGI_CLI.cgi_active:
+                    CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
+                        % (logviewer, logfilename), raw = True)
+                else: CGI_CLI.uprint(' ==> File %s created.' % (logfilename), color = 'blue')
+
+                ### END OF LOGGING TO FILE PER DEVICE #####################################
+                CGI_CLI.logtofile(end_log = True)
+
 
             ### LOOP PER INTERFACE - END ######################################
             RCMD.disconnect()
-
-    #if printall: CGI_CLI.uprint(device_data, name = 'device_data', jsonprint = True)
-
-    ### def PRINT INTERFACE DATA INFO PER DEVICE ##############################
-    for device, interface_data in device_data:
-
-        CGI_CLI.uprint(interface_data, name = 'Device:%s' % (device), \
-            jsonprint = True, color = 'blue')
-
-        None_elements = get_void_json_elements(interface_data)
-
-        CGI_CLI.uprint('Unset elements check on %s: %s\n' % \
-            (interface_data.get('interface_id'), \
-            str(None_elements) if len(None_elements)>0 else 'OK'), \
-            color = 'red' if len(None_elements)>0 else 'green')
-
-        if len(None_elements)>0:
-            CGI_CLI.uprint('\nWARNING: Unset data found on interface %s!' % \
-                (interface_data.get('interface_id')), tag = 'h1', color = 'red')
 
 except SystemExit: pass
 except:
@@ -2449,31 +2421,15 @@ except:
 
 if logfilename:
 
-    iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
-    if iptac_server == 'iptac5': urllink = 'https://10.253.58.126/cgi-bin/'
-    else: urllink = 'https://%s/cgi-bin/' % (iptac_server)
+    ## SEND EMAIL WITH LOGFILE ###############################################
+    # send_me_email( \
+        # subject = str(logfilename).replace('\\','/').split('/')[-1] if logfilename else None, \
+        # file_name = str(logfilename), username = USERNAME)
 
-    ### PRINT LOGFILENAME #####################################################
-    if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, logfilename)
-    else: logviewer = './logviewer.py?logfile=%s' % (logfilename)
-    if CGI_CLI.cgi_active:
-        CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
-            % (logviewer, logfilename), raw = True)
-        CGI_CLI.logtofile(end_log = True)
-        CGI_CLI.logfilename = str()
-    else: CGI_CLI.uprint(' ==> File %s created.' % (logfilename), color = 'blue')
-
-
-
-    ### SEND EMAIL WITH LOGFILE ###############################################
-    send_me_email( \
-        subject = str(logfilename).replace('\\','/').split('/')[-1] if logfilename else None, \
-        file_name = str(logfilename), username = USERNAME)
-
-    ### SEND EMAIL WITH LOGFILE ###############################################
-    send_me_email( \
-        subject = str(logfilename).replace('\\','/').split('/')[-1] if logfilename else None, \
-        file_name = str(logfilename), username = 'pnemec')
+    ## SEND EMAIL WITH LOGFILE ###############################################
+    # send_me_email( \
+        # subject = str(logfilename).replace('\\','/').split('/')[-1] if logfilename else None, \
+        # file_name = str(logfilename), username = 'pnemec')
 
     ### def SEND EMAIL WITH ERROR/TRACEBACK LOGFILE TO SUPPORT ################
     if traceback_found:
