@@ -729,7 +729,7 @@ class RCMD(object):
         if RCMD.ssh_connection and cmd_line:
             if ((sim_config or RCMD.sim_config) and (conf or RCMD.conf)) or sim_all: sim_mark = '(SIM)'
             if printall or RCMD.printall:
-                CGI_CLI.uprint('REMOTE_COMMAND' + sim_mark + ': ' + cmd_line, color = 'blue')
+                CGI_CLI.uprint('REMOTE_COMMAND' + sim_mark + ': ' + cmd_line, color = 'blue', log = 'no')
             if not sim_mark:
                 if RCMD.use_module == 'netmiko':
                     last_output = RCMD.ssh_connection.send_command(cmd_line)
@@ -1193,8 +1193,11 @@ class LCMD(object):
             if LCMD.initialized: pass
         except: LCMD.init(printall = printall)
         if cmd_line:
-            if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line), color = 'blue')
-            CGI_CLI.logtofile('LOCAL_COMMAND: ' + str(cmd_line) + '\n')
+            if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line), color = 'blue', log = 'no')
+            if CGI_CLI.cgi_active:
+                CGI_CLI.logtofile('<p style="color:blue;">' + 'LOCAL_COMMAND:' + cmd_line + '</p>', raw_log = True)
+            else:
+                CGI_CLI.logtofile('LOCAL_COMMAND: ' + str(cmd_line) + '\n')
             try:
                 if chunked:
                     os_output, timer_counter_100ms = str(), 0
@@ -1225,8 +1228,10 @@ class LCMD(object):
                 exc_text = traceback.format_exc()
                 CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
                 CGI_CLI.logtofile(exc_text + '\n')
-            if not chunked and os_output and printall: CGI_CLI.uprint(os_output, tag = 'pre', timestamp = 'no')
-            CGI_CLI.logtofile(os_output + '\n')
+            if not chunked and os_output and printall: CGI_CLI.uprint(os_output, tag = 'pre', timestamp = 'no', log = 'no')
+            if CGI_CLI.cgi_active:
+                CGI_CLI.logtofile('<pre>' + os_output + '\n' + '</pre>', raw_log = True)
+            else: CGI_CLI.logtofile(os_output + '\n')
         return os_output
 
     @staticmethod
