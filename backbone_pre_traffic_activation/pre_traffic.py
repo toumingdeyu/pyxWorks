@@ -526,35 +526,38 @@ class CGI_CLI(object):
         return result - string variable
         """
         result = str()
-        ### READ PART OF KEY WHICH CONTAINES KEY_IN ###########################
         for data_key in CGI_CLI.data.keys():
             try: data_value = copy.deepcopy(data_key)
             except: data_value = str()
-            if key_in and key_in in data_value:
+
+            ### READ KEY VALUE OR KEY VALUES LIST #############################
+            if key and key == data_value:
+                value_found = copy.deepcopy(CGI_CLI.data.get(key,str()))
+                if value_found:
+                    if ',' in value_found:
+                        ### IF IGNORE_LIST USE ONLY FIRST DATA ################
+                        result = value_found.split(',')[0].strip()
+                        if ignore_list:
+                            if isinstance(append_to_list, (list)): append_to_list.append(result)
+                            break
+                        else:
+                            for list_item in value_found.split(','):
+                                item = copy.deepcopy(list_item).strip()
+                                if replace_what and replace_by:
+                                    item = item.replace(str(replace_what),str(replace_by))
+                                if isinstance(append_to_list, (list)): append_to_list.append(item)
+                    else:
+                        if replace_what and replace_by:
+                            value_found = value_found.replace(str(replace_what),str(replace_by)).strip()
+                        result = value_found
+                        if isinstance(append_to_list, (list)): append_to_list.append(result)
+
+            ### READ PART OF KEY WHICH CONTAINES KEY_IN #######################
+            elif key_in and key_in in data_value:
                 data_value = data_value.replace(key_in,str()).strip()
                 if replace_what and replace_by:
                     data_value = data_value.replace(str(replace_what),str(replace_by))
                 if isinstance(append_to_list, (list)): append_to_list.append(data_value)
-
-        ### READ KEY VALUE OR KEY VALUES LIST #################################
-        value_found = copy.deepcopy(CGI_CLI.data.get(key,str()))
-        if value_found:
-            if ',' in value_found:
-                ### IF IGNORE_LIST USE ONLY FIRST DATA ########################
-                result = value_found.split(',')[0].strip()
-                if ignore_list:
-                    if isinstance(append_to_list, (list)): append_to_list.append(result)
-                else:
-                    for list_item in value_found.split(','):
-                        item = copy.deepcopy(list_item).strip()
-                        if replace_what and replace_by:
-                            item = item.replace(str(replace_what),str(replace_by))
-                        if isinstance(append_to_list, (list)): append_to_list.append(item)
-            else:
-                if replace_what and replace_by:
-                    value_found = value_found.replace(str(replace_what),str(replace_by)).strip()
-                result = value_found
-                if isinstance(append_to_list, (list)): append_to_list.append(result)
 
         ### RETURN STRING VARIABLE, IGNORE LISTS ##############################
         return result
