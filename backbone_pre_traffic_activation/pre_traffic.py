@@ -2139,7 +2139,6 @@ pre {
                 interface_menu_list.append('<br/>')
 
             CGI_CLI.formprint(interface_menu_list + ['<br/>',\
-                {'checkbox':'send_email'},'<br/>',
                 {'checkbox':'printall'},'<br/>','<br/>'],\
                 submit_button = CGI_CLI.self_buttons[0], \
                 pyfile = None, tag = None, color = None)
@@ -2177,6 +2176,7 @@ pre {
 
             CGI_CLI.formprint( interface_menu_list + \
                 ['<br/>',\
+                {'checkbox':'send_email'},'<br/>',\
                 '<br/>',{'checkbox':'printall'},'<br/>','<br/>'], \
                 submit_button = CGI_CLI.self_buttons[0],
                 pyfile = None, tag = None, color = None , list_separator = '&emsp;')
