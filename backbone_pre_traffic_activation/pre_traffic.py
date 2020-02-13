@@ -99,11 +99,11 @@ class CGI_CLI(object):
         parser.add_argument("--device",
                             action = "store", dest = 'device',
                             default = str(),
-                            help = "Target router to access. (Optionable device list separated ba comma, i.e. --device DEVICE1,DEVICE2)")
+                            help = "target router to access. For now supports only 1.")
         parser.add_argument("--interface",
                             action = "store", dest = 'interface',
                             default = str(),
-                            help = "interface id for testing")
+                            help = "interface id for testing. Interface list separated by , without whitespace.")
         parser.add_argument("--send_email",
                             action = "store_true", dest = 'send_email', default = None,
                             help = "send email with test result logs")
@@ -2072,7 +2072,7 @@ pre {
     LCMD.init()
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
     printall = CGI_CLI.data.get("printall")
-    CGI_CLI.data["send_email"] = True
+    #CGI_CLI.data["send_email"] = True
 
     ### MAKE DEVICE LIST ######################################################
     CGI_CLI.parse_input_data(key = 'device', append_to_list = device_list, ignore_list = True)
