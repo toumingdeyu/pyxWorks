@@ -2562,11 +2562,11 @@ if global_logfilename and CGI_CLI.data.get("send_email"):
         subject = str(global_logfilename).replace('\\','/').split('/')[-1] if global_logfilename else None, \
         file_name = str(global_logfilename), username = 'pnemec')
 
-    ### def SEND EMAIL WITH ERROR/TRACEBACK LOGFILE TO SUPPORT ################
-    if traceback_found:
-        send_me_email( \
-            subject = 'TRACEBACK-PRE_TRAFFIC-' + global_logfilename.replace('\\','/').\
-            split('/')[-1] if global_logfilename else str(), \
-            file_name = global_logfilename, username = 'pnemec')
+### def SEND EMAIL WITH ERROR/TRACEBACK LOGFILE TO SUPPORT ####################
+if traceback_found:
+    send_me_email( \
+        subject = 'TRACEBACK-PRE_TRAFFIC-' + global_logfilename.replace('\\','/').\
+        split('/')[-1] if global_logfilename else str(), \
+        file_name = global_logfilename, username = 'pnemec')
 
 del sql_inst
