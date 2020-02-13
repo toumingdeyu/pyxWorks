@@ -2071,6 +2071,7 @@ pre {
     LCMD.init()
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
     printall = CGI_CLI.data.get("printall")
+    CGI_CLI.data["send_email"] = True
 
     ### MAKE DEVICE LIST ######################################################
     CGI_CLI.parse_input_data(key = 'device', append_to_list = device_list, ignore_list = True)
@@ -2489,14 +2490,14 @@ pre {
                 CGI_CLI.uprint(sql_read_data, name = True, jsonprint = True)
 
                 ### UPDATE OR INSERT ##########################################
-                if not len(sgl_read_data) > 0:
-                    sgl_read_data[0]['precheck_result'] = 'NOT OK' if len(None_elements) > 0 else 'OK'
-                    sgl_read_data[0]['precheck_log'] = CGI_CLI.logfilename
+                if not len(sql_read_data) > 0:
+                    sql_read_data[0]['precheck_result'] = 'NOT OK' if len(None_elements) > 0 else 'OK'
+                    sql_read_data[0]['precheck_log'] = CGI_CLI.logfilename
                     try:
-                        del sgl_read_data[0]['id']
-                        del sgl_read_data[0]['last_updated']
+                        del sql_read_data[0]['id']
+                        del sql_read_data[0]['last_updated']
                     except: pass
-                    sql_inst.sql_write_table_from_dict('pre_post_result', sgl_read_data[0])
+                    sql_inst.sql_write_table_from_dict('pre_post_result', sql_read_data[0])
                 else:
                     sql_write_table_from_dict('pre_post_result', pre_post_template, \
                         where_string = 'swan_id=%s and router_name=%s and int_name=%s' \
