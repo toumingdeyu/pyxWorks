@@ -2111,13 +2111,13 @@ pre {
     ### MARTIN'S SPECIAL FORM OF SENDING DATA #################################
     testint_list, swan_id = [], str()
     CGI_CLI.parse_input_data(key = 'testint', append_to_list = testint_list)
-    if len(testint_list) > 0:
-        for testint in testint_list:
-            try:
-                swan_id = testint.split('-')[0].strip()
-                device_interface_id_list.append([testint.split('-')[1].strip(),\
-                    [testint.split('-')[2].strip()]])
-            except: pass
+
+    for testint in testint_list:
+        try:
+            swan_id = testint.split('-')[0].strip()
+            device_interface_id_list.append([testint.split('-')[1].strip(),\
+                [testint.split('-')[2].strip()]])
+        except: pass
 
     ### TESTSERVER WORKAROUND #################################################
     iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
@@ -2249,19 +2249,27 @@ pre {
 
 
     ### def REMOTE DEVICE OPERATIONS ##########################################
-    device_data = []
+    device_data, interface_results = [], []
+    old_device = str()
     for device, interface_list in device_interface_id_list:
         if device:
+            ### DISCONNECT, IF DEVICE IS NOT THE SAME AS BEFORE ###############
+            if old_device and old_device != device: RCMD.disconnect()
 
-            ### DEVICE CONNECT ################################################
-            RCMD.connect(device, username = USERNAME, password = PASSWORD, \
-                printall = printall)
+            ### LOOP THROUGH THE SAME DEVICE WITHOUT RECONNECT OR NEW CONNECT #
+            if not old_device or old_device != device:
 
-            if not RCMD.ssh_connection:
-                CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), \
-                    color = 'red')
-                RCMD.disconnect()
-                continue
+                ### DEVICE CONNECT ############################################
+                RCMD.connect(device, username = USERNAME, password = PASSWORD, \
+                    printall = printall)
+
+                if not RCMD.ssh_connection:
+                    CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), \
+                        color = 'red')
+                    RCMD.disconnect()
+                    continue
+
+            old_device = device
 
             ### LOOP PER INTERFACE ############################################
             for interface_id in interface_list:
@@ -2456,16 +2464,20 @@ pre {
                     CGI_CLI.uprint('\nWARNING: Unset data found on interface %s!' % \
                         (interface_data.get('interface_id')), tag = 'h1', color = 'red')
 
+                interface_result = 'NOT OK' if len(None_elements) > 0 else 'OK'
+                interface_results.append([device, interface_id, interface_result])
+
                 ### PRINT LOGFILENAME #########################################
                 if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, logfilename)
                 else: logviewer = './logviewer.py?logfile=%s' % (logfilename)
                 if CGI_CLI.cgi_active:
-                    CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
-                        % (logviewer, logfilename), raw = True)
-                else: CGI_CLI.uprint(' ==> File %s created.' % (logfilename), color = 'blue')
+                    CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created. Result=%s</p>' \
+                        % (logviewer, logfilename, interface_result), raw = True)
+                else: CGI_CLI.uprint(' ==> File %s created. Result=%s' % (logfilename, interface_result), color = 'blue')
 
                 ### END OF LOGGING TO FILE PER DEVICE #########################
                 CGI_CLI.logtofile(end_log = True)
+
 
                 ### def SQL UPDATE IF SWAN_ID DEFINED #########################
                 if not swan_id: continue
@@ -2480,7 +2492,7 @@ pre {
                 pre_post_template['router_name'] = device.upper()
                 pre_post_template['int_name'] = interface_id
                 pre_post_template['precheck_result'] = 'NOT OK' if len(None_elements) > 0 else 'OK'
-                pre_post_template['precheck_log'] = CGI_CLI.logfilename
+                pre_post_template['precheck_log'] = copy.deepcopy(logfilename)
 
                 CGI_CLI.uprint(pre_post_template, name = True, jsonprint = True)
 
@@ -2500,7 +2512,7 @@ pre {
                 ### UPDATE OR INSERT ##########################################
                 if len(sql_read_data) > 0:
                     sql_read_data[0]['precheck_result'] = 'NOT OK' if len(None_elements) > 0 else 'OK'
-                    sql_read_data[0]['precheck_log'] = CGI_CLI.logfilename
+                    sql_read_data[0]['precheck_log'] = copy.deepcopy(logfilename)
                     try:
                         del sql_read_data[0]['id']
                         del sql_read_data[0]['last_updated']
@@ -2511,8 +2523,8 @@ pre {
                 else:
                     sql_inst.sql_write_table_from_dict('pre_post_result', pre_post_template)
 
-            ### LOOP PER INTERFACE - END ######################################
-            RCMD.disconnect()
+    ### LOOP PER INTERFACE - END ######################################
+    RCMD.disconnect()
 
     ### def GLOBAL_LOGFILENAME, DO LOG ONLY WHEN DEVICE LIST EXISTS ###########
     if len(device_interface_id_list) > 0:
@@ -2534,14 +2546,15 @@ pre {
             if swan_id: CGI_CLI.logtofile('SWAN_ID=%s\n' %(swan_id))
             CGI_CLI.logtofile('\nLOGFILES:\n')
 
-        for logfilename in logfilename_list:
+        for logfilename, interface_result in zip(logfilename_list, interface_results):
+            device, interface_id, interface_result = interface_result
             ### PRINT LOGFILENAME #############################################
             if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, logfilename)
             else: logviewer = './logviewer.py?logfile=%s' % (logfilename)
             if CGI_CLI.cgi_active:
-                CGI_CLI.logtofile('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
-                    % (logviewer, logfilename), raw_log = True)
-            else: CGI_CLI.logtofile(' ==> File %s created\n' % (logfilename))
+                CGI_CLI.logtofile('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created. Device=%s, interface=%s  -  RESULT=%s</p>' \
+                    % (logviewer, device, interface_id, logfilename, interface_result), raw_log = True)
+            else: CGI_CLI.logtofile(' ==> File %s created. Device=%s, interface=%s  -  RESULT=%s\n' % (logfilename, device, interface_id, interface_result))
 
         ### CLOSE GLOBAL LOGFILE ##############################################
         CGI_CLI.logtofile(end_log = True)
