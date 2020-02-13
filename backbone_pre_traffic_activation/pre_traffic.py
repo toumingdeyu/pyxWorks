@@ -1543,6 +1543,9 @@ class sql_interface():
             except Exception as e: CGI_CLI.uprint(' ==> SQL problem [%s]' % (str(e)), color = 'magenta')
             try: cursor.close()
             except: pass
+            if len(columns) == 0:
+                CGI_CLI.uprint('SQL PROBLEM[%s table has no existing columns]' % \
+                    (table_name), tag = 'h3',color = 'magenta')
         return columns
 
     def sql_read_sql_command(self, sql_command):
@@ -1585,50 +1588,70 @@ class sql_interface():
             except: pass
         return None
 
-    def sql_write_table_from_dict(self, table_name, dict_data, update = None):  ###'ipxt_data_collector'
-       if self.sql_is_connected():
-           existing_sql_table_columns = self.sql_read_all_table_columns(table_name)
-           if existing_sql_table_columns:
-               columns_string, values_string = str(), str()
-               ### ASSUMPTION: LIST OF COLUMNS HAS CORRECT ORDER!!!
-               for key in existing_sql_table_columns:
-                   if key in list(dict_data.keys()):
-                        if len(columns_string) > 0: columns_string += ','
-                        if len(values_string) > 0: values_string += ','
-                        ### WRITE KEY/COLUMNS_STRING
-                        columns_string += '`' + key + '`'
-                        ### BE AWARE OF DATA TYPE
-                        if isinstance(dict_data.get(key,""), (list,tuple)):
-                            item_string = str()
-                            for item in dict_data.get(key,""):
-                                ### LIST TO COMMA SEPARATED STRING
-                                if isinstance(item, (six.string_types)):
-                                    if len(item_string) > 0: item_string += ','
-                                    item_string += item
-                                ### DICTIONARY TO COMMA SEPARATED STRING
-                                elif isinstance(item, (dict,collections.OrderedDict)):
-                                    for i in item:
-                                        if len(item_string) > 0: item_string += ','
-                                        item_string += item.get(i,"")
-                            values_string += "'" + item_string + "'"
-                        elif isinstance(dict_data.get(key,""), (six.string_types)):
-                            values_string += "'" + str(dict_data.get(key,"")) + "'"
-                        else:
-                            values_string += "'" + str(dict_data.get(key,"")) + "'"
-               ### FINALIZE SQL_STRING - INSERT
-               if not update:
-                   sql_string = """INSERT INTO `%s` (%s) VALUES (%s);""" \
-                       % (table_name,columns_string,values_string)
-                   if columns_string:
-                       self.sql_write_sql_command("""INSERT INTO `%s`
-                           (%s) VALUES (%s);""" %(table_name,columns_string,values_string))
-               else:
-                   sql_string = """UPDATE `%s` (%s) VALUES (%s);""" \
-                       % (table_name,columns_string,values_string)
-                   if columns_string:
-                       self.sql_write_sql_command("""UPDATE `%s`
-                           (%s) VALUES (%s);""" %(table_name,columns_string,values_string))
-       return None
+    def sql_write_table_from_dict(self, table_name, dict_data, \
+        where_string = None, update = None):
+
+        columns_string, values_string = str(), str()
+        name_equals_value_string = str()
+
+        ### EXIT IF NOT CONNECTED #############################################
+        if not self.sql_is_connected(): return None
+
+        ### EXIT IF TABLE COLUMNS DOES NOT EXISTS #############################
+        existing_sql_table_columns = self.sql_read_all_table_columns(table_name)
+        if len(existing_sql_table_columns) == 0: return None
+
+        ### ASSUMPTION: LIST OF COLUMNS HAS CORRECT ORDER!!! ##################
+        for key in existing_sql_table_columns:
+            if key in list(dict_data.keys()):
+                if len(columns_string) > 0: columns_string += ','
+                if len(values_string) > 0: values_string += ','
+                if len(name_equals_value_string) > 0:
+                    name_equals_value_string += ','
+                ### WRITE KEY/COLUMNS_STRING ##################################
+                columns_string += '`' + key + '`'
+                name_equals_value_string += key + '='
+                ### BE AWARE OF (LIST/STRING) DATA TYPE #######################
+                if isinstance(dict_data.get(key,""), (list,tuple)):
+                    item_string = str()
+                    for item in dict_data.get(key,""):
+                        ### LIST TO COMMA SEPARATED STRING
+                        if isinstance(item, (six.string_types)):
+                            if len(item_string) > 0: item_string += ','
+                            item_string += item
+                        ### DICTIONARY TO COMMA SEPARATED STRING
+                        elif isinstance(item, (dict,collections.OrderedDict)):
+                            for i in item:
+                                if len(item_string) > 0: item_string += ','
+                                item_string += item.get(i,"")
+                    values_string += "'" + item_string + "'"
+                    name_equals_value_string += "'" + item_string + "'"
+                ### STRING TYPE ###############################################
+                elif isinstance(dict_data.get(key,""), (six.string_types)):
+                    values_string += "'" + str(dict_data.get(key,"")) + "'"
+                    name_equals_value_string += "'" + str(dict_data.get(key,"")) + "'"
+                else:
+                    values_string += "'" + str(dict_data.get(key,"")) + "'"
+                    name_equals_value_string += "'" + str(dict_data.get(key,"")) + "'"
+
+        ### FINALIZE SQL_STRING - INSERT ######################################
+        if not update:
+            if table_name and columns_string:
+               sql_string = """INSERT INTO `%s` (%s) VALUES (%s);""" \
+                   % (table_name, columns_string, values_string)
+               self.sql_write_sql_command(sql_string)
+               return True
+        else:
+            ### SQL UPDATE ####################################################
+            # UPDATE Customers
+            # SET ContactName = 'Alfred Schmidt', City= 'Frankfurt'
+            # WHERE CustomerID = 1;
+            if table_name and name_equals_value_string and where_string:
+                sql_string = """UPDATE %s SET %s WHERE %s;""" % \
+                    (table_name, name_equals_value_string, where_string)
+                self.sql_write_sql_command(sql_string)
+                return True
+        return None
 
     def sql_read_table_last_record(self, select_string = None, from_string = None, where_string = None):
         """NOTE: FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE"""
@@ -2431,11 +2454,29 @@ pre {
                 CGI_CLI.logtofile(end_log = True)
 
                 ### def SQL UPDATE IF SWAN_ID DEFINED #########################
+                swan_id = 'TEST1'
                 if not swan_id: continue
+
+                #MariaDB [rtr_configuration]> select * from pre_post_result;
+                #+----+---------+-------------+-----------+-----------------+------------------+--------------+---------------+--------------+
+                #| id | swan_id | router_name | int_name  | precheck_result | postcheck_result | precheck_log | postcheck_log | last_updated |
+
                 IF_TEST_RESULT = 'NOT OK' if len(None_elements) > 0 else 'OK'
 
+                ### TEST IF SWAN ALREADY RECORD EXISTS ########################
+                sgl_read_data = sql_read_records_to_dict_list( \
+                    table_name = 'pre_post_result', \
+                    where_string = "swan_id='%s'" % (swan_id) )
 
+                CGI_CLI.uprint(sgl_read_data, name = True, jsonprint = True)
 
+                ### UPDATE OR INSERT ##########################################
+                # if not sgl_read_data:
+                    # sql_inst.sql_write_table_from_dict('pre_post_result', sgl_read_data)
+                # else:
+                    # sql_write_table_from_dict('pre_post_result', sgl_read_data, \
+                        # where_string = 'swan_id=%s and router_name=%s and int_name=%s' \
+                        # % (swan_id, device.upper(), interface_id), update = True)
 
             ### LOOP PER INTERFACE - END ######################################
             RCMD.disconnect()
@@ -2471,8 +2512,6 @@ pre {
 
         ### CLOSE GLOBAL LOGFILE ##############################################
         CGI_CLI.logtofile(end_log = True)
-
-
 
 except SystemExit: pass
 except:
