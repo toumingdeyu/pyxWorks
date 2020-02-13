@@ -2492,6 +2492,11 @@ pre {
 
                 CGI_CLI.uprint(sql_read_data, name = True, jsonprint = True)
 
+                ### WARNING MESSAGE ###########################################
+                if len(sql_read_data) > 1:
+                    CGI_CLI.uprint("WARNING: More records per swan_id='%s' and router_name='%s' and int_name='%s'! 1st will be edited." \
+                         % (swan_id, device.upper(), interface_id), color = 'red')
+
                 ### UPDATE OR INSERT ##########################################
                 if len(sql_read_data) > 0:
                     sql_read_data[0]['precheck_result'] = 'NOT OK' if len(None_elements) > 0 else 'OK'
