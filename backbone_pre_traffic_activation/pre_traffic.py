@@ -104,6 +104,9 @@ class CGI_CLI(object):
                             action = "store", dest = 'interface',
                             default = str(),
                             help = "interface id for testing")
+        parser.add_argument("--send_email",
+                            action = "store_true", dest = 'send_email', default = None,
+                            help = "send email with test result logs")
         parser.add_argument("--printall",
                             action = "store_true", dest = 'printall',
                             default = None,
@@ -2401,7 +2404,7 @@ pre {
                 }
 
 
-                ### PRINT RESULTS PER INTERFACE ###########################################
+                ### PRINT RESULTS PER INTERFACE ###############################
                 CGI_CLI.uprint(interface_data, name = 'Device:%s' % (device), \
                     jsonprint = True, color = 'blue')
 
@@ -2416,7 +2419,7 @@ pre {
                     CGI_CLI.uprint('\nWARNING: Unset data found on interface %s!' % \
                         (interface_data.get('interface_id')), tag = 'h1', color = 'red')
 
-                ### PRINT LOGFILENAME #####################################################
+                ### PRINT LOGFILENAME #########################################
                 if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, logfilename)
                 else: logviewer = './logviewer.py?logfile=%s' % (logfilename)
                 if CGI_CLI.cgi_active:
@@ -2424,43 +2427,50 @@ pre {
                         % (logviewer, logfilename), raw = True)
                 else: CGI_CLI.uprint(' ==> File %s created.' % (logfilename), color = 'blue')
 
-                ### END OF LOGGING TO FILE PER DEVICE #####################################
+                ### END OF LOGGING TO FILE PER DEVICE #########################
                 CGI_CLI.logtofile(end_log = True)
+
+                ### def SQL UPDATE IF SWAN_ID DEFINED #########################
+                if not swan_id: continue
+                IF_TEST_RESULT = 'NOT OK' if len(None_elements) > 0 else 'OK'
+
+
 
 
             ### LOOP PER INTERFACE - END ######################################
             RCMD.disconnect()
 
-    ### def LOGFILENAME GENERATION, DO LOGGING ONLY WHEN DEVICE LIST EXISTS ###
-    html_extention = 'htm' if CGI_CLI.cgi_active else str()
-    global_logfilename = copy.deepcopy(generate_logfilename(prefix = 'PRE-', \
-        USERNAME = USERNAME, suffix = str('.%slog' % (html_extention))))
+    ### def GLOBAL_LOGFILENAME, DO LOG ONLY WHEN DEVICE LIST EXISTS ###########
+    if len(device_interface_id_list) > 0:
+        html_extention = 'htm' if CGI_CLI.cgi_active else str()
+        global_logfilename = copy.deepcopy(generate_logfilename(prefix = 'PRE-', \
+            USERNAME = USERNAME, suffix = str('.%slog' % (html_extention))))
 
-    ### NO WINDOWS LOGGING ####################################################
-    if 'WIN32' in sys.platform.upper(): global_logfilename = None
-    if global_logfilename: CGI_CLI.set_logfile(logfilename = global_logfilename)
+        ### NO WINDOWS LOGGING ################################################
+        if 'WIN32' in sys.platform.upper(): global_logfilename = None
+        if global_logfilename: CGI_CLI.set_logfile(logfilename = global_logfilename)
 
-    if CGI_CLI.cgi_active:
-        CGI_CLI.logtofile('<h1 style="color:blue;">%s <a href="%s" style="text-decoration: none">(v.%s)</a></h1>' % \
-            (SCRIPT_NAME, changelog, CGI_CLI.VERSION()), raw_log = True)
-        if swan_id: CGI_CLI.logtofile('<p>SWAN_ID=%s</p>' %(swan_id), raw_log = True)
-        CGI_CLI.logtofile('<p>LOGFILES:</p>' , raw_log = True)
-    else:
-        CGI_CLI.logtofile('%s (v.%s)' % (SCRIPT_NAME,CGI_CLI.VERSION()))
-        if swan_id: CGI_CLI.logtofile('SWAN_ID=%s\n' %(swan_id))
-        CGI_CLI.logtofile('\nLOGFILES:\n')
-
-    for logfilename in logfilename_list:
-        ### PRINT LOGFILENAME #################################################
-        if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, logfilename)
-        else: logviewer = './logviewer.py?logfile=%s' % (logfilename)
         if CGI_CLI.cgi_active:
-            CGI_CLI.logtofile('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
-                % (logviewer, logfilename), raw_log = True)
-        else: CGI_CLI.logtofile(' ==> File %s created\n' % (logfilename))
+            CGI_CLI.logtofile('<h1 style="color:blue;">%s <a href="%s" style="text-decoration: none">(v.%s)</a></h1>' % \
+                (SCRIPT_NAME, changelog, CGI_CLI.VERSION()), raw_log = True)
+            if swan_id: CGI_CLI.logtofile('<p>SWAN_ID=%s</p>' %(swan_id), raw_log = True)
+            CGI_CLI.logtofile('<p>LOGFILES:</p>' , raw_log = True)
+        else:
+            CGI_CLI.logtofile('%s (v.%s)' % (SCRIPT_NAME,CGI_CLI.VERSION()))
+            if swan_id: CGI_CLI.logtofile('SWAN_ID=%s\n' %(swan_id))
+            CGI_CLI.logtofile('\nLOGFILES:\n')
 
-    ### CLOSE GLOBAL LOGFILE ##################################################
-    CGI_CLI.logtofile(end_log = True)
+        for logfilename in logfilename_list:
+            ### PRINT LOGFILENAME #############################################
+            if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, logfilename)
+            else: logviewer = './logviewer.py?logfile=%s' % (logfilename)
+            if CGI_CLI.cgi_active:
+                CGI_CLI.logtofile('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
+                    % (logviewer, logfilename), raw_log = True)
+            else: CGI_CLI.logtofile(' ==> File %s created\n' % (logfilename))
+
+        ### CLOSE GLOBAL LOGFILE ##############################################
+        CGI_CLI.logtofile(end_log = True)
 
 
 
