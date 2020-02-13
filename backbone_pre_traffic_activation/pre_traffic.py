@@ -2471,9 +2471,9 @@ pre {
                 if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, logfilename)
                 else: logviewer = './logviewer.py?logfile=%s' % (logfilename)
                 if CGI_CLI.cgi_active:
-                    CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created. Result=%s</p>' \
-                        % (logviewer, logfilename, interface_result), raw = True)
-                else: CGI_CLI.uprint(' ==> File %s created. Result=%s' % (logfilename, interface_result), color = 'blue')
+                    CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.  Device=%s, interface=%s  -  RESULT = %s</p>' \
+                        % (logviewer, logfilename, device, interface_id, interface_result), raw = True)
+                else: CGI_CLI.uprint(' ==> File %s created.  Device=%s, interface=%s  -  RESULT = %s' % (logfilename, device, interface_id, interface_result), color = 'blue')
 
                 ### END OF LOGGING TO FILE PER DEVICE #########################
                 CGI_CLI.logtofile(end_log = True)
@@ -2552,9 +2552,9 @@ pre {
             if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, logfilename)
             else: logviewer = './logviewer.py?logfile=%s' % (logfilename)
             if CGI_CLI.cgi_active:
-                CGI_CLI.logtofile('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created. Device=%s, interface=%s  -  RESULT=%s</p>' \
-                    % (logviewer, device, interface_id, logfilename, interface_result), raw_log = True)
-            else: CGI_CLI.logtofile(' ==> File %s created. Device=%s, interface=%s  -  RESULT=%s\n' % (logfilename, device, interface_id, interface_result))
+                CGI_CLI.logtofile('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.  Device=%s, interface=%s  -  RESULT = %s</p>' \
+                    % (logviewer, logfilename, device, interface_id, interface_result), raw_log = True)
+            else: CGI_CLI.logtofile(' ==> File %s created.  Device=%s, interface=%s  -  RESULT = %s\n' % (logfilename, device, interface_id, interface_result))
 
         ### CLOSE GLOBAL LOGFILE ##############################################
         CGI_CLI.logtofile(end_log = True)
