@@ -1548,6 +1548,19 @@ class sql_interface():
                     (table_name), tag = 'h3',color = 'magenta')
         return columns
 
+    def sql_read_all_table_columns_to_void_dict(self, table_name, \
+        ommit_columns = None):
+        '''
+        ommit_columns - list of columns which will be ignored
+        '''
+        data = collections.OrderedDict()
+        columns = self.sql_read_all_table_columns(table_name)
+        for column in columns:
+            if ommit_columns:
+                if column in ommit_columns or column.upper() in ommit_columns: continue
+            data[column] = str()
+        return data
+
     def sql_read_sql_command(self, sql_command):
         '''NOTE: FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE'''
         lines = []
@@ -1670,7 +1683,7 @@ class sql_interface():
                 check_data = self.sql_read_sql_command(sql_string)
         return check_data
 
-    def sql_read_last_record_to_dict(table_name = None, from_string = None, \
+    def sql_read_last_record_to_dict(self, table_name = None, from_string = None, \
         select_string = None, where_string = None, delete_columns = None):
         """sql_read_last_record_to_dict - MAKE DICTIONARY FROM LAST TABLE RECORD
            NOTES: -'table_name' is alternative name to 'from_string'
@@ -1682,8 +1695,8 @@ class sql_interface():
         if not select_string: select_string = '*'
         if table_name:  table_name_or_from_string = table_name
         if from_string: table_name_or_from_string = from_string
-        columns_list = sql_inst.sql_read_all_table_columns(table_name_or_from_string)
-        data_list = sql_inst.sql_read_table_last_record( \
+        columns_list = self.sql_read_all_table_columns(table_name_or_from_string)
+        data_list = self.sql_read_table_last_record( \
             from_string = table_name_or_from_string, \
             select_string = select_string, where_string = where_string)
         if columns_list and data_list:
@@ -1713,7 +1726,7 @@ class sql_interface():
                 check_data = self.sql_read_sql_command(sql_string)
         return check_data
 
-    def sql_read_records_to_dict_list(table_name = None, from_string = None, \
+    def sql_read_records_to_dict_list(self, table_name = None, from_string = None, \
         select_string = None, where_string = None, order_by = None, \
         delete_columns = None):
         """sql_read_last_record_to_dict - MAKE DICTIONARY FROM LAST TABLE RECORD
@@ -1727,8 +1740,8 @@ class sql_interface():
         if not select_string: select_string = '*'
         if table_name:  table_name_or_from_string = table_name
         if from_string: table_name_or_from_string = from_string
-        columns_list = sql_inst.sql_read_all_table_columns(table_name_or_from_string)
-        data_list = sql_inst.sql_read_table_records( \
+        columns_list = self.sql_read_all_table_columns(table_name_or_from_string)
+        data_list = self.sql_read_table_records( \
             from_string = table_name_or_from_string, \
             select_string = select_string, where_string = where_string,
             order_by = order_by)
@@ -2125,17 +2138,16 @@ pre {
     if printall: CGI_CLI.print_args()
 
 
-    ### def SQL INIT ##############################################################
+    ### def SQL INIT ##########################################################
     sql_inst = sql_interface(host='localhost', user='cfgbuilder', \
         password='cfgbuildergetdata', database='rtr_configuration')
 
-    ### SQL READ ALL DEVICES IN NETWORK ###########################################
-    data = collections.OrderedDict()
-    data['oti_all_table'] = sql_inst.sql_read_records_to_dict_list( \
-        select_string = 'vendor, hardware, software, rtr_name, network',\
-        from_string = 'oti_all_table',\
-        order_by = 'vendor, hardware, rtr_name ASC')
-
+    ### SQL READ ALL DEVICES IN NETWORK #######################################
+    # data = collections.OrderedDict()
+    # data['oti_all_table'] = sql_inst.sql_read_records_to_dict_list( \
+        # select_string = 'vendor, hardware, software, rtr_name, network',\
+        # from_string = 'oti_all_table',\
+        # order_by = 'vendor, hardware, rtr_name ASC')
 
     ### DEBUG PRINTALL OF INTERFACE LIST PER DEVICE ###########################
     if len(device_list) > 0 and len(interface_id_list) == 0:
@@ -2454,29 +2466,41 @@ pre {
                 CGI_CLI.logtofile(end_log = True)
 
                 ### def SQL UPDATE IF SWAN_ID DEFINED #########################
-                swan_id = 'TEST1'
                 if not swan_id: continue
 
                 #MariaDB [rtr_configuration]> select * from pre_post_result;
                 #+----+---------+-------------+-----------+-----------------+------------------+--------------+---------------+--------------+
                 #| id | swan_id | router_name | int_name  | precheck_result | postcheck_result | precheck_log | postcheck_log | last_updated |
 
-                IF_TEST_RESULT = 'NOT OK' if len(None_elements) > 0 else 'OK'
+                pre_post_template = sql_inst.sql_read_all_table_columns_to_void_dict(\
+                    'pre_post_result', ommit_columns = ['id','last_updated','postcheck_result','postcheck_log'])
+                pre_post_template['swan_id'] = swan_id
+                pre_post_template['router_name'] = device.upper()
+                pre_post_template['int_name'] = interface_id
+                pre_post_template['precheck_result'] = 'NOT OK' if len(None_elements) > 0 else 'OK'
+                pre_post_template['precheck_log'] = CGI_CLI.logfilename
 
                 ### TEST IF SWAN ALREADY RECORD EXISTS ########################
-                sgl_read_data = sql_read_records_to_dict_list( \
+                sql_read_data = sql_inst.sql_read_records_to_dict_list( \
                     table_name = 'pre_post_result', \
-                    where_string = "swan_id='%s'" % (swan_id) )
+                    where_string = "swan_id='%s' and router_name='%s' and int_name='%s'" \
+                         % (swan_id, device.upper(), interface_id) )
 
-                CGI_CLI.uprint(sgl_read_data, name = True, jsonprint = True)
+                CGI_CLI.uprint(sql_read_data, name = True, jsonprint = True)
 
                 ### UPDATE OR INSERT ##########################################
-                # if not sgl_read_data:
-                    # sql_inst.sql_write_table_from_dict('pre_post_result', sgl_read_data)
-                # else:
-                    # sql_write_table_from_dict('pre_post_result', sgl_read_data, \
-                        # where_string = 'swan_id=%s and router_name=%s and int_name=%s' \
-                        # % (swan_id, device.upper(), interface_id), update = True)
+                if not len(sgl_read_data) > 0:
+                    sgl_read_data[0]['precheck_result'] = 'NOT OK' if len(None_elements) > 0 else 'OK'
+                    sgl_read_data[0]['precheck_log'] = CGI_CLI.logfilename
+                    try:
+                        del sgl_read_data[0]['id']
+                        del sgl_read_data[0]['last_updated']
+                    except: pass
+                    sql_inst.sql_write_table_from_dict('pre_post_result', sgl_read_data[0])
+                else:
+                    sql_write_table_from_dict('pre_post_result', pre_post_template, \
+                        where_string = 'swan_id=%s and router_name=%s and int_name=%s' \
+                        % (swan_id, device.upper(), interface_id), update = True)
 
             ### LOOP PER INTERFACE - END ######################################
             RCMD.disconnect()
@@ -2535,3 +2559,5 @@ if global_logfilename and CGI_CLI.data.get("send_email"):
             subject = 'TRACEBACK-PRE_TRAFFIC-' + global_logfilename.replace('\\','/').\
             split('/')[-1] if global_logfilename else str(), \
             file_name = global_logfilename, username = 'pnemec')
+
+del sql_inst
