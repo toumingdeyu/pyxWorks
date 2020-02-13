@@ -2481,6 +2481,8 @@ pre {
                 pre_post_template['precheck_result'] = 'NOT OK' if len(None_elements) > 0 else 'OK'
                 pre_post_template['precheck_log'] = CGI_CLI.logfilename
 
+                CGI_CLI.uprint(pre_post_template, name = True, jsonprint = True)
+
                 ### TEST IF SWAN ALREADY RECORD EXISTS ########################
                 sql_read_data = sql_inst.sql_read_records_to_dict_list( \
                     table_name = 'pre_post_result', \
@@ -2490,7 +2492,7 @@ pre {
                 CGI_CLI.uprint(sql_read_data, name = True, jsonprint = True)
 
                 ### UPDATE OR INSERT ##########################################
-                if not len(sql_read_data) > 0:
+                if len(sql_read_data) > 0:
                     sql_read_data[0]['precheck_result'] = 'NOT OK' if len(None_elements) > 0 else 'OK'
                     sql_read_data[0]['precheck_log'] = CGI_CLI.logfilename
                     try:
@@ -2499,7 +2501,7 @@ pre {
                     except: pass
                     sql_inst.sql_write_table_from_dict('pre_post_result', sql_read_data[0])
                 else:
-                    sql_write_table_from_dict('pre_post_result', pre_post_template, \
+                    sql_inst.sql_write_table_from_dict('pre_post_result', pre_post_template, \
                         where_string = 'swan_id=%s and router_name=%s and int_name=%s' \
                         % (swan_id, device.upper(), interface_id), update = True)
 
