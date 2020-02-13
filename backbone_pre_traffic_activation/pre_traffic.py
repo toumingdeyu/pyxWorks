@@ -2500,11 +2500,11 @@ pre {
                         del sql_read_data[0]['id']
                         del sql_read_data[0]['last_updated']
                     except: pass
-                    sql_inst.sql_write_table_from_dict('pre_post_result', sql_read_data[0])
-                else:
-                    sql_inst.sql_write_table_from_dict('pre_post_result', pre_post_template, \
+                    sql_inst.sql_write_table_from_dict('pre_post_result', sql_read_data[0],
                         where_string = "swan_id='%s' and router_name='%s' and int_name='%s'" \
-                        % (swan_id, device.upper(), interface_id), update = True)
+                            % (swan_id, device.upper(), interface_id), update = True)
+                else:
+                    sql_inst.sql_write_table_from_dict('pre_post_result', pre_post_template)
 
             ### LOOP PER INTERFACE - END ######################################
             RCMD.disconnect()
