@@ -1599,6 +1599,7 @@ class sql_interface():
             except Exception as e: CGI_CLI.uprint(' ==> SQL problem [%s]' % (str(e)), color = 'magenta')
             try: cursor.close()
             except: pass
+            CGI_CLI.uprint('SQL_CMD[%s]' % (sql_command))
         return None
 
     def sql_write_table_from_dict(self, table_name, dict_data, \
@@ -2113,9 +2114,9 @@ pre {
     if len(testint_list) > 0:
         for testint in testint_list:
             try:
-                swan_id = testint.split('-')[1]
-                device_interface_id_list.append([testint.split('-')[1],\
-                    [testint.split('-')[2]]])
+                swan_id = testint.split('-')[0].strip()
+                device_interface_id_list.append([testint.split('-')[1].strip(),\
+                    [testint.split('-')[2].strip()]])
             except: pass
 
     ### TESTSERVER WORKAROUND #################################################
@@ -2502,7 +2503,7 @@ pre {
                     sql_inst.sql_write_table_from_dict('pre_post_result', sql_read_data[0])
                 else:
                     sql_inst.sql_write_table_from_dict('pre_post_result', pre_post_template, \
-                        where_string = 'swan_id=%s and router_name=%s and int_name=%s' \
+                        where_string = "swan_id='%s' and router_name='%s' and int_name='%s'" \
                         % (swan_id, device.upper(), interface_id), update = True)
 
             ### LOOP PER INTERFACE - END ######################################
