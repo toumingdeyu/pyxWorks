@@ -2165,12 +2165,59 @@ pre {
     sql_inst = sql_interface(host='localhost', user='cfgbuilder', \
         password='cfgbuildergetdata', database='rtr_configuration')
 
-    ### SQL READ ALL DEVICES IN NETWORK #######################################
-    # data = collections.OrderedDict()
-    # data['oti_all_table'] = sql_inst.sql_read_records_to_dict_list( \
-        # select_string = 'vendor, hardware, software, rtr_name, network',\
-        # from_string = 'oti_all_table',\
-        # order_by = 'vendor, hardware, rtr_name ASC')
+    ### def SQL CREATE RECORDS IF SWAN_ID DEFINED #############################
+    if swan_id and not \
+        (CGI_CLI.data.get('submit-type',str()) == 'submit-with-precheck' \
+        or CGI_CLI.data.get('submit-type',str()) == 'submit-with-precheck' \
+        or CGI_CLI.data.get('submit',str()) == 'Run precheck' \
+        or CGI_CLI.data.get('submit',str()) == 'Run postcheck'):
+
+        for device, interface_list in device_interface_id_list:
+            for interface_id in interface_list:
+                pre_post_template = sql_inst.sql_read_all_table_columns_to_void_dict(\
+                    'pre_post_result', ommit_columns = ['id','last_updated'])
+
+                pre_post_template['swan_id'] = swan_id
+                pre_post_template['router_name'] = device.upper()
+                pre_post_template['int_name'] = interface_id
+                pre_post_template['precheck_result'] = '-'
+                pre_post_template['postcheck_result'] = '-'
+
+                ### TEST IF SWAN ALREADY RECORD EXISTS ########################
+                sql_read_data = sql_inst.sql_read_records_to_dict_list( \
+                    table_name = 'pre_post_result', \
+                    where_string = "swan_id='%s' and router_name='%s' and int_name='%s'" \
+                         % (swan_id, device.upper(), interface_id) )
+
+                CGI_CLI.uprint(sql_read_data, name = True, jsonprint = True)
+
+                ### WARNING MESSAGE ###########################################
+                if len(sql_read_data) > 0:
+                    CGI_CLI.uprint("WARNING: DB Record already exists per swan_id='%s' and router_name='%s' and int_name='%s'! Overwriting..." \
+                         % (swan_id, device.upper(), interface_id), color = 'red')
+
+                    sql_read_data[0]['precheck_result'] = '-'
+                    sql_read_data[0]['postcheck_result'] = '-'
+                    sql_read_data[0]['precheck_log'] = str()
+                    sql_read_data[0]['postcheck_log'] = str()
+                    try:
+                        del sql_read_data[0]['id']
+                        del sql_read_data[0]['last_updated']
+                    except: pass
+                    sql_inst.sql_write_table_from_dict('pre_post_result', sql_read_data[0],
+                        where_string = "swan_id='%s' and router_name='%s' and int_name='%s'" \
+                            % (swan_id, device.upper(), interface_id), update = True)
+
+                else:
+                    sql_inst.sql_write_table_from_dict('pre_post_result', pre_post_template)
+                    CGI_CLI.uprint ("RECORD swan_id='%s' and router_name='%s' and int_name='%s'DONE." \
+                        % (swan_id, device.upper(), interface_id))
+        sys.exit(0)
+
+
+
+
+
 
     ### DEBUG PRINTALL OF INTERFACE LIST PER DEVICE ###########################
     if len(device_list) > 0 and len(interface_id_list) == 0:
