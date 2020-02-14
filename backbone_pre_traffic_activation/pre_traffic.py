@@ -2072,6 +2072,8 @@ pre {
     logfilename_list = []
     global_logfilename = str()
     swan_id = str()
+    precheck_mode = True
+    global_logfilename = str()
 
     ### GCI_CLI INIT ##########################################################
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = None, css_style = CSS_STYLE, \
@@ -2616,10 +2618,11 @@ if global_logfilename and CGI_CLI.data.get("send_email"):
         subject = str(global_logfilename).replace('\\','/').split('/')[-1] if global_logfilename else None, \
         file_name = str(global_logfilename), username = USERNAME)
 
-### SEND EMAIL WITH LOGFILE ###################################################
-send_me_email( \
-    subject = str(global_logfilename).replace('\\','/').split('/')[-1] if global_logfilename else None, \
-    file_name = str(global_logfilename), username = 'pnemec')
+if global_logfilename:
+    ### SEND EMAIL WITH LOGFILE ###############################################
+    send_me_email( \
+        subject = str(global_logfilename).replace('\\','/').split('/')[-1] if global_logfilename else None, \
+        file_name = str(global_logfilename), username = 'pnemec')
 
 ### def SEND EMAIL WITH ERROR/TRACEBACK LOGFILE TO SUPPORT ####################
 if traceback_found:
