@@ -2146,14 +2146,6 @@ pre {
         except: pass
 
 
-    ### DEBUG PRINTALL OF INTERFACE LIST PER DEVICE ###########################
-    if len(device_list) > 0 and len(interface_id_list) == 0:
-        for device in device_list:
-            device_interface_list = get_interface_list_per_device(device)
-        if printall: CGI_CLI.uprint(device_interface_list, \
-            name='%s_interface_list' % (device), jsonprint = True)
-
-
     ### TESTSERVER WORKAROUND #################################################
     iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
 
@@ -2162,6 +2154,14 @@ pre {
 
     if not (USERNAME and PASSWORD):
         if iptac_server == 'iptac5': USERNAME, PASSWORD = 'iptac', 'paiiUNDO'
+
+
+    ### def CREATE ALL INTERFACES LIST PER DEVICE ##############################
+    if len(device_list) > 0 and len(interface_id_list) == 0:
+        for device in device_list:
+            device_interface_list = get_interface_list_per_device(device)
+        if printall: CGI_CLI.uprint(device_interface_list, \
+            name='%s_interface_list' % (device), jsonprint = True)
 
 
     ### START PRINTING AND LOGGING ############################################
