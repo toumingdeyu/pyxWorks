@@ -2082,6 +2082,10 @@ pre {
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
     printall = CGI_CLI.data.get("printall")
 
+
+
+            
+
     ### MULTIPLE INPUTS FROM MORE MARTIN'S PAGES ##############################
     swan_id = CGI_CLI.data.get("swan",str())
     if CGI_CLI.data.get("precheck") \
@@ -2140,6 +2144,15 @@ pre {
             device_interface_id_list.append([testint.split('-')[1].strip(),\
                 [testint.split('-')[2].strip()]])
         except: pass
+
+
+    ### DEBUG PRINTALL OF INTERFACE LIST PER DEVICE ###########################
+    if len(device_list) > 0 and len(interface_id_list) == 0:
+        for device in device_list:
+            device_interface_list = get_interface_list_per_device(device)
+        if printall: CGI_CLI.uprint(device_interface_list, \
+            name='%s_interface_list' % (device), jsonprint = True)
+
 
     ### TESTSERVER WORKAROUND #################################################
     iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
@@ -2216,17 +2229,6 @@ pre {
 
 
 
-
-
-
-    ### DEBUG PRINTALL OF INTERFACE LIST PER DEVICE ###########################
-    if len(device_list) > 0 and len(interface_id_list) == 0:
-        for device in device_list:
-            device_interface_list = get_interface_list_per_device(device)
-        if printall: CGI_CLI.uprint(device_interface_list, \
-            name='%s_interface_list' % (device), jsonprint = True)
-
-
     ### def HTML MENUS DISPLAYED ONLY IN CGI MODE #############################
     if CGI_CLI.cgi_active and \
         (not CGI_CLI.submit_form or CGI_CLI.submit_form in CGI_CLI.self_buttons):
@@ -2261,8 +2263,13 @@ pre {
             interface_menu_list = [
                 '<p hidden><input type="checkbox" name="device" value="%s" checked="checked"></p>' \
                     % (','.join(device_list) if len(device_list) > 0 else str()),
+                '<p hidden><input type="checkbox" name="username" value="%s" checked="checked"></p>' \
+                    % (USERNAME)),
+                '<p hidden><input type="checkbox" name="password" value="%s" checked="checked"></p>' \
+                    % (PASSWORD)),
                 '<h2>Select interface on %s:</h2>' % (device if device else str()),
-                '<div align="left">', '<table style="width:70%">']
+                '<div align="left">', '<table style="width:90%">']
+                
             for whole_if_line, interface in device_interface_list:
                 if counter == 0: interface_menu_list.append('<tr>')
                 interface_menu_list.append('<td>')
