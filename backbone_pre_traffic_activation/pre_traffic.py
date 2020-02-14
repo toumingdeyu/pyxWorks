@@ -182,7 +182,7 @@ class CGI_CLI(object):
                 try:
                     if value.upper() in ['DISABLE','DISABLED','NO','FALSE','NONE']:
                         CGI_CLI.chunked_mode = False
-                    elif value.upper() in ['ENABLE','ENABLED','YES','TRUE']:
+                    elif value.upper() in ['ENABLE','ENABLED','YES','TRUE','ON']:
                         CGI_CLI.chunked_mode = True
                 except: pass
         ### DECIDE - CLI OR CGI MODE ##########################################
@@ -2084,7 +2084,7 @@ pre {
 
 
 
-            
+
 
     ### MULTIPLE INPUTS FROM MORE MARTIN'S PAGES ##############################
     swan_id = CGI_CLI.data.get("swan",str())
@@ -2269,7 +2269,7 @@ pre {
                     % (PASSWORD),
                 '<h2>Select interface on %s:</h2>' % (device if device else str()),
                 '<div align="left">', '<table style="width:90%">']
-                
+
             for whole_if_line, interface in device_interface_list:
                 if counter == 0: interface_menu_list.append('<tr>')
                 interface_menu_list.append('<td>')
@@ -2294,6 +2294,7 @@ pre {
                 ['<br/>','<br/>',\
                 {'radio':['precheck','postcheck']},'<br/>',\
                 {'checkbox':'send_email'},'<br/>',\
+                {'checkbox':'chunked_mode'},'<br/>',\
                 {'checkbox':'printall'},'<br/>','<br/>'], \
                 submit_button = CGI_CLI.self_buttons[0],
                 pyfile = None, tag = None, color = None , list_separator = '&emsp;')
