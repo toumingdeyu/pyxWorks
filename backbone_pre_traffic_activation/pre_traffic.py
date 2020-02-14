@@ -2310,8 +2310,8 @@ pre {
 
                 if swan_id: CGI_CLI.uprint('SWAN_ID=%s' %(swan_id))
 
-                if precheck_mode: CGI_CLI.uprint('Monitoring/precheck mode.')
-                else: CGI_CLI.uprint('Traffic/postcheck mode.')
+                if precheck_mode: CGI_CLI.uprint('Monitoring/precheck mode.', raw = None)
+                else: CGI_CLI.uprint('Traffic/postcheck mode.', raw = None)
 
                 interface_data = collections.OrderedDict()
                 interface_data['interface_id'] = interface_id
@@ -2565,7 +2565,8 @@ pre {
     ### def GLOBAL_LOGFILENAME, DO LOG ONLY WHEN DEVICE LIST EXISTS ###########
     if len(device_interface_id_list) > 0:
         html_extention = 'htm' if CGI_CLI.cgi_active else str()
-        global_logfilename = copy.deepcopy(generate_logfilename(prefix = 'PRE-', \
+        global_logfilename = copy.deepcopy(generate_logfilename( \
+            prefix = '%s-' % ('PRE' if precheck_mode else 'POST'), \
             USERNAME = USERNAME, suffix = str('.%slog' % (html_extention))))
 
         ### NO WINDOWS LOGGING ################################################
