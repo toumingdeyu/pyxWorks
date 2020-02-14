@@ -150,14 +150,6 @@ class CGI_CLI(object):
         CGI_CLI.timestamp = timestamp
         CGI_CLI.log = log
         CGI_CLI.CSS_STYLE = css_style if css_style else str()
-        ### TO BE PLACED - BEFORE HEADER ###
-        CGI_CLI.newline = '\r\n' if not newline else newline
-        CGI_CLI.chunked_transfer_encoding_line = \
-            "Transfer-Encoding: chunked%s" % (CGI_CLI.newline) if CGI_CLI.chunked else str()
-        ### HTTP/1.1 ???
-        CGI_CLI.status_line = \
-            "Status: %s %s%s" % (CGI_CLI.http_status, CGI_CLI.http_status_text, CGI_CLI.newline)
-        CGI_CLI.content_type_line = 'Content-type:text/html; charset=utf-8%s' % (CGI_CLI.newline)
         CGI_CLI.cgi_active = None
         CGI_CLI.initialized = True
         getpass_done = None
@@ -176,6 +168,8 @@ class CGI_CLI(object):
             if variable == "submit": CGI_CLI.submit_form = value
             if variable == "username": CGI_CLI.username = value
             if variable == "password": CGI_CLI.password = value
+
+            ### SET CHUNKED MODE BY CGI #######################################
             if variable == "chunked_mode":
                 if not value: CGI_CLI.chunked = False
                 elif value: CGI_CLI.chunked = True
@@ -185,6 +179,16 @@ class CGI_CLI(object):
                     elif value.upper() in ['ENABLE','ENABLED','YES','TRUE','ON']:
                         CGI_CLI.chunked_mode = True
                 except: pass
+
+        ### TO BE PLACED - BEFORE HEADER ######################################
+        CGI_CLI.newline = '\r\n' if not newline else newline
+        CGI_CLI.chunked_transfer_encoding_line = \
+            "Transfer-Encoding: chunked%s" % (CGI_CLI.newline) if CGI_CLI.chunked else str()
+        ### HTTP/1.1 ???
+        CGI_CLI.status_line = \
+            "Status: %s %s%s" % (CGI_CLI.http_status, CGI_CLI.http_status_text, CGI_CLI.newline)
+        CGI_CLI.content_type_line = 'Content-type:text/html; charset=utf-8%s' % (CGI_CLI.newline)
+
         ### DECIDE - CLI OR CGI MODE ##########################################
         CGI_CLI.remote_addr =  dict(os.environ).get('REMOTE_ADDR','')
         CGI_CLI.http_user_agent = dict(os.environ).get('HTTP_USER_AGENT','')
