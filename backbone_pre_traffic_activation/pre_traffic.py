@@ -2512,12 +2512,19 @@ pre {
                 #+----+---------+-------------+-----------+-----------------+------------------+--------------+---------------+--------------+
                 #| id | swan_id | router_name | int_name  | precheck_result | postcheck_result | precheck_log | postcheck_log | last_updated |
 
-                pre_post_template = sql_inst.sql_read_all_table_columns_to_void_dict(\
-                    'pre_post_result', ommit_columns = ['id','last_updated','postcheck_result','postcheck_log'])
+                ### AVOID OF REWRITING SQL PRE/POST DB FIELDS #################
+                if precheck_mode:
+                    pre_post_template = sql_inst.sql_read_all_table_columns_to_void_dict(\
+                        'pre_post_result', ommit_columns = ['id','last_updated','postcheck_result','postcheck_log'])
+                else:
+                     pre_post_template = sql_inst.sql_read_all_table_columns_to_void_dict(\
+                        'pre_post_result', ommit_columns = ['id','last_updated','precheck_result','precheck_log'])
+
                 pre_post_template['swan_id'] = swan_id
                 pre_post_template['router_name'] = device.upper()
                 pre_post_template['int_name'] = interface_id
-                pre_post_template['precheck_result'] = 'NOT OK' if len(None_elements) > 0 else 'OK'
+                if precheck_mode: pre_post_template['precheck_result'] = 'NOT OK' if len(None_elements) > 0 else 'OK'
+                else: pre_post_template['postcheck_result'] = 'NOT OK' if len(None_elements) > 0 else 'OK'
                 pre_post_template['precheck_log'] = copy.deepcopy(logfilename)
 
                 CGI_CLI.uprint(pre_post_template, name = True, jsonprint = True)
@@ -2538,7 +2545,8 @@ pre {
                 ### UPDATE OR INSERT ##########################################
                 if len(sql_read_data) > 0:
                     sql_read_data[0]['precheck_result'] = 'NOT OK' if len(None_elements) > 0 else 'OK'
-                    sql_read_data[0]['precheck_log'] = copy.deepcopy(logfilename)
+                    if precheck_mode: sql_read_data[0]['precheck_log'] = copy.deepcopy(logfilename)
+                    else: sql_read_data[0]['postcheck_log'] = copy.deepcopy(logfilename)
                     try:
                         del sql_read_data[0]['id']
                         del sql_read_data[0]['last_updated']
