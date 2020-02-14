@@ -104,6 +104,12 @@ class CGI_CLI(object):
                             action = "store", dest = 'interface',
                             default = str(),
                             help = "interface id for testing. Interface list separated by , without whitespace.")
+        parser.add_argument("--precheck",
+                            action = "store_true", dest = 'precheck', default = None,
+                            help = "do monitoring/precheck")
+        parser.add_argument("--postcheck",
+                            action = "store_true", dest = 'postcheck', default = None,
+                            help = "do traffic/postcheck")
         parser.add_argument("--send_email",
                             action = "store_true", dest = 'send_email', default = None,
                             help = "send email with test result logs")
@@ -2065,6 +2071,7 @@ pre {
     interface_id_list = []
     logfilename_list = []
     global_logfilename = str()
+    swan_id = str()
 
     ### GCI_CLI INIT ##########################################################
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = None, css_style = CSS_STYLE, \
@@ -2072,9 +2079,20 @@ pre {
     LCMD.init()
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
     printall = CGI_CLI.data.get("printall")
-    #CGI_CLI.data["send_email"] = True
 
-    ### MAKE DEVICE LIST ######################################################
+    ### MULTIPLE INPUTS FROM MORE MARTIN'S PAGES ##############################
+    swan_id = CGI_CLI.data.get("swan",str())
+    if CGI_CLI.data.get("precheck") \
+        or CGI_CLI.data.get('submit-type',str()) == 'submit-with-precheck' \
+        or CGI_CLI.data.get('submit',str()) == 'Run precheck':
+            precheck_mode = True
+    elif CGI_CLI.data.get("postcheck") \
+        or CGI_CLI.data.get('submit-type',str()) == 'submit-with-postcheck' \
+        or CGI_CLI.data.get('submit',str()) == 'Run postcheck':
+            precheck_mode = False
+
+
+    ### def MAKE DEVICE LIST ##################################################
     CGI_CLI.parse_input_data(key = 'device', append_to_list = device_list, ignore_list = True)
     CGI_CLI.parse_input_data(key = 'router', append_to_list = device_list, ignore_list = True)
     CGI_CLI.parse_input_data(key = 'router2', append_to_list = device_list, ignore_list = True)
@@ -2109,7 +2127,7 @@ pre {
         device_interface_id_list.append([router3.upper(), interface_id_list3])
 
     ### MARTIN'S SPECIAL FORM OF SENDING DATA #################################
-    testint_list, swan_id = [], str()
+    testint_list = []
     CGI_CLI.parse_input_data(key = 'testint', append_to_list = testint_list)
 
     for testint in testint_list:
@@ -2138,7 +2156,6 @@ pre {
     else: CGI_CLI.uprint('%s (v.%s)' % (SCRIPT_NAME,CGI_CLI.VERSION()), \
               tag = 'h1', color = 'blue')
     if printall: CGI_CLI.print_args()
-
 
     ### def SQL INIT ##########################################################
     sql_inst = sql_interface(host='localhost', user='cfgbuilder', \
@@ -2217,6 +2234,7 @@ pre {
 
             CGI_CLI.formprint( interface_menu_list + \
                 ['<br/>','<br/>',\
+                {'radio':['precheck','postcheck']},'<br/>',\
                 {'checkbox':'send_email'},'<br/>',\
                 {'checkbox':'printall'},'<br/>','<br/>'], \
                 submit_button = CGI_CLI.self_buttons[0],
@@ -2289,6 +2307,9 @@ pre {
                 else: CGI_CLI.logtofile('%s (v.%s)' % (SCRIPT_NAME,CGI_CLI.VERSION()))
 
                 if swan_id: CGI_CLI.uprint('SWAN_ID=%s' %(swan_id))
+
+                if precheck_mode: CGI_CLI.uprint('Monitoring/precheck mode.')
+                else: CGI_CLI.uprint('Traffic/postcheck mode.')
 
                 interface_data = collections.OrderedDict()
                 interface_data['interface_id'] = interface_id
@@ -2545,10 +2566,14 @@ pre {
             CGI_CLI.logtofile('<h1 style="color:blue;">%s <a href="%s" style="text-decoration: none">(v.%s)</a></h1>' % \
                 (SCRIPT_NAME, changelog, CGI_CLI.VERSION()), raw_log = True)
             if swan_id: CGI_CLI.logtofile('<p>SWAN_ID=%s</p>' %(swan_id), raw_log = True)
+            if precheck_mode: CGI_CLI.logtofile('<p>Monitoring/precheck mode.</p>')
+            else: CGI_CLI.logtofile('<p>Traffic/postcheck mode.</p>')
             CGI_CLI.logtofile('<p>LOGFILES:</p>' , raw_log = True)
         else:
             CGI_CLI.logtofile('%s (v.%s)' % (SCRIPT_NAME,CGI_CLI.VERSION()))
             if swan_id: CGI_CLI.logtofile('SWAN_ID=%s\n' %(swan_id))
+            if precheck_mode: CGI_CLI.logtofile('Monitoring/precheck mode.\n')
+            else: CGI_CLI.logtofile('Traffic/postcheck mode.\n')
             CGI_CLI.logtofile('\nLOGFILES:\n')
 
         for logfilename, interface_result in zip(logfilename_list, interface_results):
@@ -2583,10 +2608,10 @@ if global_logfilename and CGI_CLI.data.get("send_email"):
         subject = str(global_logfilename).replace('\\','/').split('/')[-1] if global_logfilename else None, \
         file_name = str(global_logfilename), username = USERNAME)
 
-    ### SEND EMAIL WITH LOGFILE ###############################################
-    send_me_email( \
-        subject = str(global_logfilename).replace('\\','/').split('/')[-1] if global_logfilename else None, \
-        file_name = str(global_logfilename), username = 'pnemec')
+### SEND EMAIL WITH LOGFILE ###################################################
+send_me_email( \
+    subject = str(global_logfilename).replace('\\','/').split('/')[-1] if global_logfilename else None, \
+    file_name = str(global_logfilename), username = 'pnemec')
 
 ### def SEND EMAIL WITH ERROR/TRACEBACK LOGFILE TO SUPPORT ####################
 if traceback_found:
