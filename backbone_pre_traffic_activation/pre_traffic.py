@@ -2264,9 +2264,9 @@ pre {
                 '<p hidden><input type="checkbox" name="device" value="%s" checked="checked"></p>' \
                     % (','.join(device_list) if len(device_list) > 0 else str()),
                 '<p hidden><input type="checkbox" name="username" value="%s" checked="checked"></p>' \
-                    % (USERNAME)),
+                    % (USERNAME),
                 '<p hidden><input type="checkbox" name="password" value="%s" checked="checked"></p>' \
-                    % (PASSWORD)),
+                    % (PASSWORD),
                 '<h2>Select interface on %s:</h2>' % (device if device else str()),
                 '<div align="left">', '<table style="width:90%">']
                 
