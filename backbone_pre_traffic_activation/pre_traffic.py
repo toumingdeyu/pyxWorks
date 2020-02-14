@@ -2346,7 +2346,7 @@ pre {
                 ### def LOGFILENAME GENERATION, DO LOGGING ONLY WHEN DEVICE LIST EXISTS ###
                 html_extention = 'htm' if CGI_CLI.cgi_active else str()
                 logfilename = generate_logfilename(prefix = device.upper() + '_' + interface_id.replace('/','-'), \
-                    USERNAME = USERNAME, suffix = str('backb') + '.%slog' % (html_extention))
+                    USERNAME = USERNAME, suffix = str('PRECHECK' if precheck_mode else 'POSTCHECK') + '.%slog' % (html_extention))
                 ### NO WINDOWS LOGGING ########################################
                 if 'WIN32' in sys.platform.upper(): logfilename = None
                 if logfilename: CGI_CLI.set_logfile(logfilename = logfilename)
@@ -2615,7 +2615,7 @@ pre {
     if len(device_interface_id_list) > 0:
         html_extention = 'htm' if CGI_CLI.cgi_active else str()
         global_logfilename = copy.deepcopy(generate_logfilename( \
-            prefix = '%s-' % ('PRE' if precheck_mode else 'POST'), \
+            prefix = '%s' % ('PRECHECK' if precheck_mode else 'POSTCHECK'), \
             USERNAME = USERNAME, suffix = str('.%slog' % (html_extention))))
 
         ### NO WINDOWS LOGGING ################################################
