@@ -1787,7 +1787,7 @@ def generate_logfilename(prefix = None, USERNAME = None, suffix = None, \
         if not suffix: filename_suffix = 'log'
         else: filename_suffix = suffix
         now = datetime.datetime.now()
-        filename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s-%s-%s" % \
+        filename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s-%s.%s" % \
             (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,\
             now.second,sys.argv[0].replace('.py','').replace('./','').\
             replace(':','_').replace('.','_').replace('\\','/')\
@@ -2345,8 +2345,10 @@ pre {
 
                 ### def LOGFILENAME GENERATION, DO LOGGING ONLY WHEN DEVICE LIST EXISTS ###
                 html_extention = 'htm' if CGI_CLI.cgi_active else str()
-                logfilename = generate_logfilename(prefix = device.upper() + '_' + interface_id.replace('/','-'), \
-                    USERNAME = USERNAME, suffix = str('PRECHECK' if precheck_mode else 'POSTCHECK') + '.%slog' % (html_extention))
+                logfilename = generate_logfilename(
+                    prefix = str('PRECHECK' if precheck_mode else 'POSTCHECK') + \
+                    '_' + device.upper() + '_' + interface_id.replace('/','-'), \
+                    USERNAME = USERNAME, suffix = '%slog' % (html_extention))
                 ### NO WINDOWS LOGGING ########################################
                 if 'WIN32' in sys.platform.upper(): logfilename = None
                 if logfilename: CGI_CLI.set_logfile(logfilename = logfilename)
@@ -2616,7 +2618,7 @@ pre {
         html_extention = 'htm' if CGI_CLI.cgi_active else str()
         global_logfilename = copy.deepcopy(generate_logfilename( \
             prefix = '%s' % ('PRECHECK' if precheck_mode else 'POSTCHECK'), \
-            USERNAME = USERNAME, suffix = str('.%slog' % (html_extention))))
+            USERNAME = USERNAME, suffix = str('%slog' % (html_extention))))
 
         ### NO WINDOWS LOGGING ################################################
         if 'WIN32' in sys.platform.upper(): global_logfilename = None
