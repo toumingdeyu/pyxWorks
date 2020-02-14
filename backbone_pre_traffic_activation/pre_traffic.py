@@ -2312,8 +2312,8 @@ pre {
 
                 if swan_id: CGI_CLI.uprint('SWAN_ID=%s' %(swan_id))
 
-                if precheck_mode: CGI_CLI.uprint('Monitoring/precheck mode.', raw = None)
-                else: CGI_CLI.uprint('Traffic/postcheck mode.', raw = None)
+                if precheck_mode: CGI_CLI.uprint('Monitoring/precheck mode.')
+                else: CGI_CLI.uprint('Traffic/postcheck mode.')
 
                 interface_data = collections.OrderedDict()
                 interface_data['interface_id'] = interface_id
@@ -2579,8 +2579,8 @@ pre {
             CGI_CLI.logtofile('<h1 style="color:blue;">%s <a href="%s" style="text-decoration: none">(v.%s)</a></h1>' % \
                 (SCRIPT_NAME, changelog, CGI_CLI.VERSION()), raw_log = True)
             if swan_id: CGI_CLI.logtofile('<p>SWAN_ID=%s</p>' %(swan_id), raw_log = True)
-            if precheck_mode: CGI_CLI.logtofile('<p>Monitoring/precheck mode.</p>')
-            else: CGI_CLI.logtofile('<p>Traffic/postcheck mode.</p>')
+            if precheck_mode: CGI_CLI.logtofile('<p>Monitoring/precheck mode.</p>', raw_log = True)
+            else: CGI_CLI.logtofile('<p>Traffic/postcheck mode.</p>', raw_log = True)
             CGI_CLI.logtofile('<p>LOGFILES:</p>' , raw_log = True)
         else:
             CGI_CLI.logtofile('%s (v.%s)' % (SCRIPT_NAME,CGI_CLI.VERSION()))
