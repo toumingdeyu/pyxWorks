@@ -2442,7 +2442,7 @@ pre {
                         'show configuration protocols mpls',
                         'show configuration protocols ldp | match %s' % (interface_id),
                         'show configuration protocols rsvp | match %s' % (interface_id),
-                        'show interfaces brief %s' % (interface_id),
+                        'show interfaces brief %s' % (undotted_interface_id),
                         'show isis adjacency | match %s' % (interface_id),
                         'show ldp neighbor | match %s' % (interface_id),
                         'show isis interface %s extensive' % (interface_id),
@@ -2521,6 +2521,10 @@ pre {
                     try: interface_data['run mpls rsvp interface'] = collect_if_config_rcmd_outputs[4].split('interface')[1]
                     except: interface_data['run mpls rsvp interface'] = str()
 
+                    try: interface_data['line protocol is'] = collect_if_config_rcmd_outputs[5].split('line protocol is ')[1]
+                    except: interface_data['line protocol is'] = str()
+
+
 
 
                 ### def JUNIPER 1st CMDS ######################################
@@ -2555,6 +2559,12 @@ pre {
                     interface_data['configuration protocols ldp interface %s' % (interface_id)] = interface_plus_interface_id if interface_plus_interface_id in collect_if_config_rcmd_outputs[3] else str()
                     interface_data['configuration protocols rsvp interface %s' % (interface_id)] = interface_plus_interface_id if interface_plus_interface_id in collect_if_config_rcmd_outputs[4] else str()
 
+                    try: interface_data['Physical link is'] = collect_if_config_rcmd_outputs[5].split('Physical link is ')[1]
+                    except: interface_data['Physical link is'] = str()
+
+                    try: interface_data['Flags'] = collect_if_config_rcmd_outputs[5].split('Flags:')[1]
+                    except: interface_data['Flags'] = str()
+
 
 
                 ### def HUAWEI 1st CMDS #######################################
@@ -2579,7 +2589,8 @@ pre {
                     interface_data['mpls lpd'] = 'mpls lpd' if 'mpls lpd' in collect_if_config_rcmd_outputs[3] else str()
                     interface_data['mpls rsvp-te'] = 'mpls rsvp-te' if 'mpls rsvp-te' in collect_if_config_rcmd_outputs[4] else str()
 
-
+                    try: interface_data['Line protocol current state'] = collect_if_config_rcmd_outputs[5].split('Line protocol current state :')[1]
+                    except: interface_data['Line protocol current state'] = str()
 
 
 
