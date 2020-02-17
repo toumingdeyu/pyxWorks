@@ -289,6 +289,22 @@ class CGI_CLI(object):
             if end_log: CGI_CLI.logfilename = None
 
     @staticmethod
+    def html_escape(text = None, pre_tag = None):
+        escaped_text = str()
+        if text and not pre_tag:
+            escaped_text = str(text.replace('&','&amp;').\
+                replace('<','&lt;').replace('>','&gt;').\
+                replace(' ','&nbsp;').\
+                replace('"','&quot;').replace("'",'&apos;').\
+                replace('\n','<br/>'))
+        elif text and pre_tag:
+            ### OMMIT SPACES,QUOTES AND NEWLINES ##############################
+            escaped_text = str(text.replace('&','&amp;').\
+                replace('<','&lt;').replace('>','&gt;'))
+        return escaped_text
+
+
+    @staticmethod
     def print_chunk(msg = str(), raw_log = None, ommit_logging = None):
         """
         raw_log = raw logging
@@ -813,8 +829,10 @@ class RCMD(object):
                     CGI_CLI.uprint(' . ', no_newlines = True, log = 'no')
             ### LOG ALL ONLY ONCE, THAT IS BECAUSE PREVIOUS LINE log = 'no' ###
             if CGI_CLI.cgi_active:
-                CGI_CLI.logtofile('<p style="color:blue;">' + 'REMOTE_COMMAND' + sim_mark + ': ' + cmd_line + '</p>', raw_log = True)
-                CGI_CLI.logtofile('<pre>' + last_output + '\n' + '</pre>', raw_log = True)
+                CGI_CLI.logtofile('<p style="color:blue;">REMOTE_COMMAND' + \
+                    sim_mark + ': ' + cmd_line + '</p>\n<pre>' + \
+                    CGI_CLI.html_escape(last_output, pre_tag = True) + \
+                    '\n</pre>\n', raw_log = True)
             else: CGI_CLI.logtofile('REMOTE_COMMAND' + sim_mark + ': ' + \
                       cmd_line + '\n' + last_output + '\n')
 
@@ -1294,7 +1312,9 @@ class LCMD(object):
                 CGI_CLI.logtofile(exc_text + '\n')
             if not chunked and os_output and printall: CGI_CLI.uprint(os_output, tag = 'pre', timestamp = 'no', log = 'no')
             if CGI_CLI.cgi_active:
-                CGI_CLI.logtofile('<pre>' + os_output + '\n' + '</pre>', raw_log = True)
+                CGI_CLI.logtofile('\n<pre>' + \
+                    CGI_CLI.html_escape(last_output, pre_tag = True) + \
+                    '\n</pre>\n', raw_log = True)
             else: CGI_CLI.logtofile(os_output + '\n')
         return os_output
 
@@ -2681,8 +2701,8 @@ pre {
 
 except SystemExit: pass
 except:
-    traceback_found = True
-    CGI_CLI.uprint(traceback.format_exc(), tag = 'h3',color = 'magenta')
+    traceback_found = traceback.format_exc()
+    CGI_CLI.uprint(traceback_found, tag = 'h3',color = 'magenta')
 
 if global_logfilename and CGI_CLI.data.get("send_email"):
     ### SEND EMAIL WITH LOGFILE ###############################################
@@ -2700,7 +2720,8 @@ if global_logfilename and CGI_CLI.data.get("send_email"):
 if traceback_found:
     send_me_email( \
         subject = 'TRACEBACK-PRE_TRAFFIC-' + global_logfilename.replace('\\','/').\
-        split('/')[-1] if global_logfilename else str(), \
+        split('/')[-1] if global_logfilename else str(),
+        email_body = str(traceback_found),\
         file_name = global_logfilename, username = 'pnemec')
 
 del sql_inst
