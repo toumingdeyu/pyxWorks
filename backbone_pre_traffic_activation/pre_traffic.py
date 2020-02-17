@@ -2403,6 +2403,9 @@ pre {
                 interface_data = collections.OrderedDict()
                 interface_data['interface_id'] = interface_id
 
+                try: undotted_interface_id = interface_id.split('.')[0]
+                except: undotted_interface_id = interface_id
+
                 ### def COLLECT COMMAND LIST ##################################
                 collect_if_data_rcmds = {
                     'cisco_ios':[
@@ -2442,7 +2445,7 @@ pre {
                         'show isis interface %s extensive' % (interface_id),
                         'show rsvp interface %s' % (interface_id),
 
-                        'show configuration class-of-service interfaces %s | display set'  % (interface_id),
+                        'show configuration class-of-service interfaces %s | display set'  % (undotted_interface_id),
                         'show configuration groups mtu-default | display set'
                     ],
 
@@ -2469,7 +2472,7 @@ pre {
 
                 CGI_CLI.uprint('\n')
 
-                ### def PROCEED COMMAND OUTPUT DATA ###########################
+                ### def PROCEED COMMON 1st CMDS ###############################
                 try: interface_data['mtu'] = collect_if_config_rcmd_outputs[0].split('mtu ')[1].splitlines()[0].strip()
                 except: interface_data['mtu'] = str()
 
@@ -2486,7 +2489,7 @@ pre {
                 try: interface_data['ipv4_addr_rem'] = collect_if_config_rcmd_outputs[0].split('description')[1].splitlines()[0].split('@')[1].split()[0]
                 except: interface_data['ipv4_addr_rem'] = str()
 
-                ### def CISCO XR+XE ###########################################
+                ### def CISCO XR+XE 1st CMDS ##################################
                 if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
                     try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv4 address ')[1].split()[0]
                     except: interface_data['ipv4_addr_loc'] = str()
@@ -2500,7 +2503,13 @@ pre {
 
                     interface_data['mpls ldp sync'] = True if 'mpls ldp sync' in collect_if_config_rcmd_outputs[1] else str()
 
-                ### def JUNIPER ###############################################
+                    try: interface_data['ipv4_metric'] = collect_if_config_rcmd_outputs[1].split('address-family ipv4 unicast').splitlines()[1].split('metric ')[1].split()[0]
+                    except: interface_data['ipv4_metric'] = str()
+
+                    try: interface_data['ipv6_metric'] = collect_if_config_rcmd_outputs[1].split('address-family ipv6 unicast').splitlines()[1].split('metric ')[1].split()[0]
+                    except: interface_data['ipv6_metric'] = str()
+
+                ### def JUNIPER 1st CMDS ######################################
                 elif RCMD.router_type == 'juniper':
                     try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet address ')[1].split()[0].split('/')[0].replace(';','')
                     except: interface_data['ipv4_addr_loc'] = str()
@@ -2522,8 +2531,10 @@ pre {
 
                     interface_data['ldp-synchronization;'] = True if 'ldp-synchronization;' in collect_if_config_rcmd_outputs[1] else str()
 
+                    try: interface_data['metric'] = collect_if_config_rcmd_outputs[1].split('metric ')[1].split()[0].replace(';','')
+                    except: interface_data['metric'] = str()
 
-                ### def HUAWEI ################################################
+                ### def HUAWEI 1st CMDS #######################################
                 elif RCMD.router_type == 'huawei':
                     try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[0]
                     except: interface_data['ipv4_addr_loc'] = str()
@@ -2531,10 +2542,12 @@ pre {
                     except: interface_data['ipv6_addr_loc'] = str()
 
                     interface_data['isis ldp-sync'] = True if 'isis ldp-sync' in collect_if_config_rcmd_outputs[1] else str()
-                    try: interface_data['isis cost'] = collect_if_config_rcmd_outputs[1].split('isis ipv6 cost ')[1].split()[0]
+
+                    try: interface_data['isis cost'] = collect_if_config_rcmd_outputs[1].split('isis cost ')[1].split()[0]
                     except: interface_data['isis cost'] = str()
                     try: interface_data['isis ipv6 cost'] = collect_if_config_rcmd_outputs[1].split('isis ipv6 cost ')[1].split()[0]
                     except: interface_data['isis ipv6 cost'] = str()
+
 
 
 
