@@ -2509,6 +2509,17 @@ pre {
                     try: interface_data['ipv6_metric'] = collect_if_config_rcmd_outputs[1].split('address-family ipv6 unicast').splitlines()[1].split('metric ')[1].split()[0]
                     except: interface_data['ipv6_metric'] = str()
 
+                    try: interface_data['run mpls traffic-eng interface'] = collect_if_config_rcmd_outputs[2].split('interface')[1]
+                    except: interface_data['run mpls traffic-eng interface'] = str()
+
+                    try: interface_data['run mpls ldp interface'] = collect_if_config_rcmd_outputs[3].split('interface')[1]
+                    except: interface_data['run mpls ldp interface'] = str()
+
+                    try: interface_data['run mpls rsvp interface'] = collect_if_config_rcmd_outputs[4].split('interface')[1]
+                    except: interface_data['run mpls rsvp interface'] = str()
+
+
+
                 ### def JUNIPER 1st CMDS ######################################
                 elif RCMD.router_type == 'juniper':
                     try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet address ')[1].split()[0].split('/')[0].replace(';','')
@@ -2534,12 +2545,25 @@ pre {
                     try: interface_data['metric'] = collect_if_config_rcmd_outputs[1].split('metric ')[1].split()[0].replace(';','')
                     except: interface_data['metric'] = str()
 
+                    interface_data['traffic-engineering;'] = 'traffic-engineering;' if 'traffic-engineering;' in collect_if_config_rcmd_outputs[2] else str()
+                    interface_plus_interface_id = 'interface %s;'% (interface_id)
+
+                    interface_data['configuration protocols mpls interface %s' % (interface_id)] = interface_plus_interface_id if interface_plus_interface_id in collect_if_config_rcmd_outputs[2] else str()
+                    interface_data['configuration protocols ldp interface %s' % (interface_id)] = interface_plus_interface_id if interface_plus_interface_id in collect_if_config_rcmd_outputs[3] else str()
+                    interface_data['configuration protocols rsvp interface %s' % (interface_id)] = interface_plus_interface_id if interface_plus_interface_id in collect_if_config_rcmd_outputs[4] else str()
+
+
+
                 ### def HUAWEI 1st CMDS #######################################
                 elif RCMD.router_type == 'huawei':
                     try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[0]
                     except: interface_data['ipv4_addr_loc'] = str()
                     try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
                     except: interface_data['ipv6_addr_loc'] = str()
+
+                    ### BANDWITH IS OPTIONABLE --> AVOID FROM VOID CHECK ######
+                    if not interface_data.get('bandwidth'):
+                        del interface_data['bandwidth']
 
                     interface_data['isis ldp-sync'] = True if 'isis ldp-sync' in collect_if_config_rcmd_outputs[1] else str()
 
@@ -2548,10 +2572,18 @@ pre {
                     try: interface_data['isis ipv6 cost'] = collect_if_config_rcmd_outputs[1].split('isis ipv6 cost ')[1].split()[0]
                     except: interface_data['isis ipv6 cost'] = str()
 
+                    interface_data['mpls te'] = 'mpls te' if 'mpls te' in collect_if_config_rcmd_outputs[2] else str()
+                    interface_data['mpls lpd'] = 'mpls lpd' if 'mpls lpd' in collect_if_config_rcmd_outputs[3] else str()
+                    interface_data['mpls rsvp-te'] = 'mpls rsvp-te' if 'mpls rsvp-te' in collect_if_config_rcmd_outputs[4] else str()
 
 
 
-                ### def PING COMMAND LIST #########################################
+
+
+
+
+
+                ### def PING COMMAND LIST #####################################
                 ping_config_rcmds = {
                     'cisco_ios':[],
                     'cisco_xr':[
