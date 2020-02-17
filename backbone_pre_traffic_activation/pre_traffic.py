@@ -2469,7 +2469,7 @@ pre {
 
                 CGI_CLI.uprint('\n')
 
-                ### def PROCEED COMMAND OUTPUT DATA ###############################
+                ### def PROCEED COMMAND OUTPUT DATA ###########################
                 try: interface_data['mtu'] = collect_if_config_rcmd_outputs[0].split('mtu ')[1].splitlines()[0].strip()
                 except: interface_data['mtu'] = str()
 
@@ -2486,7 +2486,7 @@ pre {
                 try: interface_data['ipv4_addr_rem'] = collect_if_config_rcmd_outputs[0].split('description')[1].splitlines()[0].split('@')[1].split()[0]
                 except: interface_data['ipv4_addr_rem'] = str()
 
-                ### CISCO XR+XE ###############################################
+                ### def CISCO XR+XE ###########################################
                 if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
                     try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv4 address ')[1].split()[0]
                     except: interface_data['ipv4_addr_loc'] = str()
@@ -2500,7 +2500,7 @@ pre {
 
                     interface_data['mpls ldp sync'] = True if 'mpls ldp sync' in collect_if_config_rcmd_outputs[1] else str()
 
-                ### JUNIPER ###################################################
+                ### def JUNIPER ###############################################
                 elif RCMD.router_type == 'juniper':
                     try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet address ')[1].split()[0].split('/')[0].replace(';','')
                     except: interface_data['ipv4_addr_loc'] = str()
@@ -2509,19 +2509,21 @@ pre {
                     try: interface_data['scheduler-map'] = collect_if_config_rcmd_outputs[10].split('scheduler-map ')[1].split()[0].split('/')[0].replace(';','')
                     except: interface_data['scheduler-map'] = str()
 
-                    try: interface_prefix = interface_id[0:1]
+                    try: interface_prefix = interface_id[0:2]
                     except: interface_prefix = str()
+
                     if interface_prefix:
                         try: interface_data['mtu'] = collect_if_config_rcmd_outputs[11].split('<' + interface_prefix).split('mtu ')[1].splitlines()[0].strip()
                         except: interface_data['mtu'] = str()
-                    else:
+
+                    if not interface_data.get('mtu'):
                         try: interface_data['mtu'] = collect_if_config_rcmd_outputs[11].split('mtu ')[1].splitlines()[0].strip()
                         except: interface_data['mtu'] = str()
 
                     interface_data['ldp-synchronization;'] = True if 'ldp-synchronization;' in collect_if_config_rcmd_outputs[1] else str()
 
 
-                ### HUAWEI ####################################################
+                ### def HUAWEI ################################################
                 elif RCMD.router_type == 'huawei':
                     try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[0]
                     except: interface_data['ipv4_addr_loc'] = str()
