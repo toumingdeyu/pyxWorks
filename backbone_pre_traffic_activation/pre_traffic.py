@@ -2417,6 +2417,7 @@ pre {
                         'show run mpls traffic-eng interface %s' % (interface_id),
                         'show run mpls ldp interface %s' % (interface_id),
                         'show run rsvp interface %s' % (interface_id),
+
                         'show interface %s' % (interface_id),
                         'show isis neighbors %s' % (interface_id),
                         'show mpls ldp neighbor %s' % (interface_id),
@@ -2429,6 +2430,7 @@ pre {
                         'show run mpls traffic-eng interface %s' % (interface_id),
                         'show run mpls ldp interface %s' % (interface_id),
                         'show run rsvp interface %s' % (interface_id),
+
                         'show interface %s' % (interface_id),
                         'show isis neighbors %s' % (interface_id),
                         'show mpls ldp neighbor %s' % (interface_id),
@@ -2442,6 +2444,7 @@ pre {
                         'show configuration protocols mpls',
                         'show configuration protocols ldp | match %s' % (interface_id),
                         'show configuration protocols rsvp | match %s' % (interface_id),
+
                         'show interfaces brief %s' % (undotted_interface_id),
                         'show isis adjacency | match %s' % (interface_id),
                         'show ldp neighbor | match %s' % (interface_id),
@@ -2458,7 +2461,8 @@ pre {
                         'display current-configuration interface %s | i  mpls te' % (interface_id),
                         'display current-configuration interface %s | i mpls ldp' % (interface_id),
                         'display current-configuration interface %s | i rsvp' % (interface_id),
-                        ' ',
+
+                        'display interface %s' % (interface_id),
                         'display isis interface %s' % (interface_id),
                         'display mpls ldp adjacency interface %s' % (interface_id),
                         'display isis ldp-sync interface | i %s' % (interface_id),
@@ -2512,18 +2516,26 @@ pre {
                     try: interface_data['ipv6_metric'] = collect_if_config_rcmd_outputs[1].split('address-family ipv6 unicast').splitlines()[1].split('metric ')[1].split()[0]
                     except: interface_data['ipv6_metric'] = str()
 
-                    try: interface_data['run mpls traffic-eng interface'] = collect_if_config_rcmd_outputs[2].split('interface')[1]
+                    try: interface_data['run mpls traffic-eng interface'] = collect_if_config_rcmd_outputs[2].split('interface')[1].split()[0]
                     except: interface_data['run mpls traffic-eng interface'] = str()
 
-                    try: interface_data['run mpls ldp interface'] = collect_if_config_rcmd_outputs[3].split('interface')[1]
+                    try: interface_data['run mpls ldp interface'] = collect_if_config_rcmd_outputs[3].split('interface')[1].split()[0]
                     except: interface_data['run mpls ldp interface'] = str()
 
-                    try: interface_data['run mpls rsvp interface'] = collect_if_config_rcmd_outputs[4].split('interface')[1]
+                    try: interface_data['run mpls rsvp interface'] = collect_if_config_rcmd_outputs[4].split('interface')[1].split()[0]
                     except: interface_data['run mpls rsvp interface'] = str()
 
-                    try: interface_data['line protocol is'] = collect_if_config_rcmd_outputs[5].split('line protocol is ')[1]
+                    try: interface_data['line protocol is'] = collect_if_config_rcmd_outputs[5].split('line protocol is ')[1].split()[0]
                     except: interface_data['line protocol is'] = str()
 
+                    try: interface_data['isis neighbors'] = collect_if_config_rcmd_outputs[6].split(device.upper())[1].split(interface_id)[1].split()[0]
+                    except: interface_data['isis neighbors'] = str()
+
+                    try: interface_data['Up time'] = collect_if_config_rcmd_outputs[7].split('Up time:')[1].split()[0]
+                    except: interface_data['Up time'] = str()
+
+                    try: interface_data['Sync status'] = collect_if_config_rcmd_outputs[8].split('Sync status:')[1].split()[0]
+                    except: interface_data['Sync status'] = str()
 
 
 
@@ -2562,8 +2574,18 @@ pre {
                     try: interface_data['Physical link is'] = collect_if_config_rcmd_outputs[5].split('Physical link is ')[1]
                     except: interface_data['Physical link is'] = str()
 
-                    try: interface_data['Flags'] = collect_if_config_rcmd_outputs[5].split('Flags:')[1]
+                    try: interface_data['Flags'] = collect_if_config_rcmd_outputs[5].split('Flags:')[1].split()[0]
                     except: interface_data['Flags'] = str()
+
+                    try: interface_data['isis adjacency'] = collect_if_config_rcmd_outputs[6].split(interface_id)[1].split(device.upper())[1].split()[1]
+                    except: interface_data['isis adjacency'] = str()
+
+                    find_ip = re.findall(r'^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', collect_if_config_rcmd_outputs[7].strip())
+                    if len(find_ip) == 1: interface_data['ldp_neighbor_ip'] = find_ip[0]
+                    else: interface_data['ldp_neighbor_ip'] = str()
+
+                    try: interface_data['LDP sync state'] = collect_if_config_rcmd_outputs[8].split('LDP sync state:')[1].split(',')[0].strip()
+                    except: interface_data['LDP sync state'] = str()
 
 
 
@@ -2589,9 +2611,21 @@ pre {
                     interface_data['mpls lpd'] = 'mpls lpd' if 'mpls lpd' in collect_if_config_rcmd_outputs[3] else str()
                     interface_data['mpls rsvp-te'] = 'mpls rsvp-te' if 'mpls rsvp-te' in collect_if_config_rcmd_outputs[4] else str()
 
-                    try: interface_data['Line protocol current state'] = collect_if_config_rcmd_outputs[5].split('Line protocol current state :')[1]
+                    try: interface_data['Line protocol current state'] = collect_if_config_rcmd_outputs[5].split('Line protocol current state :')[1].split()[0]
                     except: interface_data['Line protocol current state'] = str()
 
+                    try: interface_data['isis interface IPV4.State'] = collect_if_config_rcmd_outputs[6].split(' Type')[1].split(' DIS')[1].split()[2]
+                    except: interface_data['isis interface IPV4.State'] = str()
+
+                    try: interface_data['isis interface IPV6.State'] = collect_if_config_rcmd_outputs[6].split(' Type')[1].split(' DIS')[1].split()[3]
+                    except: interface_data['isis interface IPV6.State'] = str()
+
+                    find_time = re.findall(r'[0-9]{2,4}\:[0-9]{2,4}\:[0-9]{2,4}', collect_if_config_rcmd_outputs[7].strip())
+                    if len(find_time) == 1: interface_data['Up time'] = find_time[0]
+                    else: interface_data['Up time'] = str()
+
+                    try: interface_data['isis ldp-sync'] = collect_if_config_rcmd_outputs[8].split('Sync State').split(interface_id)[1].split()[3].strip()
+                    except: interface_data['isis ldp-sync'] = str()
 
 
 
