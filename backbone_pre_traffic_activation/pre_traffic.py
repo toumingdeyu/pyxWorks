@@ -2571,7 +2571,7 @@ pre {
                     interface_data['configuration protocols ldp interface %s' % (interface_id)] = interface_plus_interface_id if interface_plus_interface_id in collect_if_config_rcmd_outputs[3] else str()
                     interface_data['configuration protocols rsvp interface %s' % (interface_id)] = interface_plus_interface_id if interface_plus_interface_id in collect_if_config_rcmd_outputs[4] else str()
 
-                    try: interface_data['Physical link is'] = collect_if_config_rcmd_outputs[5].split('Physical link is ')[1]
+                    try: interface_data['Physical link is'] = collect_if_config_rcmd_outputs[5].split('Physical link is ')[1].split()[0]
                     except: interface_data['Physical link is'] = str()
 
                     try: interface_data['Flags'] = collect_if_config_rcmd_outputs[5].split('Flags:')[1].split()[0]
