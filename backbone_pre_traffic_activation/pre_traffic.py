@@ -2537,7 +2537,8 @@ pre {
                     try: interface_data['Sync status'] = collect_if_config_rcmd_outputs[8].split('Sync status:')[1].split()[0]
                     except: interface_data['Sync status'] = str()
 
-
+                    try: interface_data['rsvp interface'] = collect_if_config_rcmd_outputs[9].split('------').splitlines()[1].split()[0]
+                    except: interface_data['rsvp interface'] = str()
 
                 ### def JUNIPER 1st CMDS ######################################
                 elif RCMD.router_type == 'juniper':
@@ -2587,7 +2588,8 @@ pre {
                     try: interface_data['LDP sync state'] = collect_if_config_rcmd_outputs[8].split('LDP sync state:')[1].split(',')[0].strip()
                     except: interface_data['LDP sync state'] = str()
 
-
+                    try: interface_data['rsvp interface'] = collect_if_config_rcmd_outputs[9].split('Interface').splitlines()[1].split()[0]
+                    except: interface_data['rsvp interface'] = str()
 
                 ### def HUAWEI 1st CMDS #######################################
                 elif RCMD.router_type == 'huawei':
@@ -2627,7 +2629,8 @@ pre {
                     try: interface_data['isis ldp-sync'] = collect_if_config_rcmd_outputs[8].split('Sync State').split(interface_id)[1].split()[3].strip()
                     except: interface_data['isis ldp-sync'] = str()
 
-
+                    try: interface_data['rsvp interface'] = collect_if_config_rcmd_outputs[9].split('Interface:').split()[0]
+                    except: interface_data['rsvp interface'] = str()
 
 
 
