@@ -1313,7 +1313,7 @@ class LCMD(object):
             if not chunked and os_output and printall: CGI_CLI.uprint(os_output, tag = 'pre', timestamp = 'no', log = 'no')
             if CGI_CLI.cgi_active:
                 CGI_CLI.logtofile('\n<pre>' + \
-                    CGI_CLI.html_escape(last_output, pre_tag = True) + \
+                    CGI_CLI.html_escape(os_output, pre_tag = True) + \
                     '\n</pre>\n', raw_log = True)
             else: CGI_CLI.logtofile(os_output + '\n')
         return os_output
@@ -1422,7 +1422,11 @@ class LCMD(object):
                     CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
                     CGI_CLI.logtofile(exc_text + '\n')
                 if os_output and printall: CGI_CLI.uprint(os_output, tag = 'pre', timestamp = 'no')
-                CGI_CLI.logtofile(os_output + '\n')
+                if CGI_CLI.cgi_active:
+                    CGI_CLI.logtofile('\n<pre>' + \
+                        CGI_CLI.html_escape(os_output, pre_tag = True) + \
+                        '\n</pre>\n', raw_log = True)
+                else: CGI_CLI.logtofile(os_output + '\n')
                 os_outputs.append(os_output)
         return os_outputs
 
