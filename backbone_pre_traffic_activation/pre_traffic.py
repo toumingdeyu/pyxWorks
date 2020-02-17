@@ -1990,7 +1990,8 @@ def get_interface_list_per_device(device = None):
 ###############################################################################
 
 ### GET_XPATH_FROM_XMLSTRING ===================================================
-def get_void_json_elements(json_data, ignore_void_strings = None, ignore_void_lists = None):
+def get_void_json_elements(json_data, ignore_void_strings = None, \
+    ignore_void_lists = None, no_equal_sign = None, no_root_backslash = None):
     """
     FUNCTION: get_void_json_elements()
     parameters: json_data   - data structure
@@ -2025,7 +2026,9 @@ def get_void_json_elements(json_data, ignore_void_strings = None, ignore_void_li
         if '="None"' in references[0][0]\
             or not ignore_void_strings and '=""' in references[0][0]\
             or not ignore_void_lists and '=[]' in references[0][0]:
-            xpath_list.append(references[0][0])
+            if no_equal_sign and no_root_backslash: xpath_list.append(str(references[0][0].split('=')[0][1:]))
+            elif no_equal_sign and not no_root_backslash: xpath_list.append(references[0][0].split('=')[0])
+            else: xpath_list.append(references[0][0])
         references.remove(references[0])
         references=add_references+references
     del references
@@ -2618,16 +2621,16 @@ pre {
                 CGI_CLI.uprint(interface_data, name = 'Device:%s' % (device), \
                     jsonprint = True, color = 'blue')
 
-                None_elements = get_void_json_elements(interface_data)
-
-                CGI_CLI.uprint('Unset elements check on %s: %s\n' % \
-                    (interface_data.get('interface_id'), \
-                    str(None_elements) if len(None_elements)>0 else 'OK'), \
-                    color = 'red' if len(None_elements)>0 else 'green')
+                None_elements = get_void_json_elements(interface_data, \
+                    no_equal_sign = True, no_root_backslash = True)
 
                 if len(None_elements)>0:
-                    CGI_CLI.uprint('\nWARNING: Unset data found on interface %s!' % \
-                        (interface_data.get('interface_id')), tag = 'h1', color = 'red')
+                    CGI_CLI.uprint('UNSET CONFIG ELEMENTS ON INTERFACE %s:' % \
+                        (interface_data.get('interface_id')), tag = 'h3', color = 'red')
+                    CGI_CLI.uprint('\n'.join(None_elements), color = 'red')
+
+                else: CGI_CLI.uprint('NO CONFIG UNSET ELEMENTS ON %s: OK' % \
+                          (interface_data.get('interface_id')), tag = 'h3', color = 'green')
 
                 interface_result = 'NOT OK' if len(None_elements) > 0 else 'OK'
                 interface_results.append([device, interface_id, interface_result])
@@ -2637,7 +2640,7 @@ pre {
                 else: logviewer = './logviewer.py?logfile=%s' % (logfilename)
                 if CGI_CLI.cgi_active:
                     CGI_CLI.uprint('Device=%s, interface=%s  -  RESULT = %s' \
-                        % (device, interface_id, interface_result), color = 'red' if len(None_elements) > 0 else 'green')
+                        % (device, interface_id, interface_result), color = 'red' if len(None_elements) > 0 else 'green', tag = 'h2')
                     CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
                         % (logviewer, logfilename), raw = True)
                 else:
