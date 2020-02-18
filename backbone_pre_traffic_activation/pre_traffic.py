@@ -2066,7 +2066,7 @@ def check_interface_data_content(what_yes = None, where = None):
             pass
         else:
             check_interface_result = False
-            CGI_CLI.uprint("CHECK '%s' in '%s' - FAIL!" (what_yes, where),
+            CGI_CLI.uprint("CHECK '%s' in '%s' - FAIL!" % (what_yes, where),
                 color = 'red')
 
 ###############################################################################
