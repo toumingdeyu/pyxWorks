@@ -2676,18 +2676,23 @@ pre {
                         except: interface_data['Up for'] = str()
 
 
-                ### CALCULATE REMOTE IP ADDRESES = THE OTHER IP IN NETWORK ####
-                # list_of_ipv4_network, list_of_ipv6_network = [], []
-                # if interface_data.get('ipv4_addr_loc'):
-                    # list_of_ipv4_network = list(ip_network('%s/31' % (interface_data.get('ipv4_addr_loc'))).hosts())
+                ### def CALCULATE REMOTE IP ADDRESES: THE OTHER IP IN NETWORK #
+                list_of_ipv4_network, list_of_ipv6_network = [], []
+                if interface_data.get('ipv4_addr_loc'):
+                    interface = ipaddress.IPv4Interface(u'%s/31'% (interface_data.get('ipv4_addr_loc')))
+                    ipv4_network = interface.network
+                    for addr in ipaddress.IPv4Network(ipv4_network):
+                        if str(addr) == str(interface_data.get('ipv4_addr_loc')): pass
+                        else: interface_data['ipv4_addr_rem_calculated'] = str(addr)
 
-                # if interface_data.get('ipv6_addr_loc'):
-                    # list_of_ipv6_network = list(ip_network('%s/127' % (interface_data.get('ipv4_addr_loc'))).hosts())
-
-                # if printall:
-                    # CGI_CLI.uprint(list_of_ipv4_network, name = 'V4 network', jsonprint = True, tag = 'debug')
-                    # CGI_CLI.uprint(list_of_ipv6_network, name = 'V6 network', jsonprint = True, tag = 'debug')
-
+                if interface_data.get('ipv6_addr_loc'):
+                    interface = ipaddress.IPv6Interface(u'%s/127'% (interface_data.get('ipv6_addr_loc')))
+                    ipv6_network = interface.network
+                    for addr in ipaddress.IPv6Network(ipv6_network):
+                        if str(addr) == str(interface_data.get('ipv4_addr_loc')): pass
+                        else:
+                            interface_data['ipv6_addr_rem_calculated'] = str(addr)
+                            interface_data['ipv6_addr_rem'] = str(addr)
 
 
                 ### MTU #######################################################
@@ -2808,6 +2813,7 @@ pre {
                 check_interface_data_content('100', 'ping_v4_mtu_%success')
                 check_interface_data_content('100', 'ping_v6_%success')
                 check_interface_data_content('100', 'ping_v6_mtu_%success')
+                check_interface_data_content(interface_data.get('ipv4_addr_rem'), 'ipv4_addr_rem_calculated')
 
 
                 if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
