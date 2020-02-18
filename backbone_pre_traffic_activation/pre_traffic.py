@@ -2679,7 +2679,7 @@ pre {
 
                         'juniper': [
                             'ping %s count 5' % (interface_data.get('ipv4_addr_rem',str())),
-                            'ping %s count 5 size %s' % (interface_data.get('ipv4_addr_rem',str()), interface_data.get('mtu',mtu_size))
+                            'ping %s count 5 size %s' % (interface_data.get('ipv4_addr_rem',str()), str(int(interface_data.get('mtu',mtu_size)) - 42))
                         ],
 
                         'huawei': [
@@ -2724,7 +2724,7 @@ pre {
 
                         'juniper': [
                             'ping inet6 %s count 5' % (interface_data.get('ipv6_addr_rem',str())),
-                            'ping inet6 %s count 5 size %s' % (interface_data.get('ipv6_addr_rem',str()), interface_data.get('mtu',mtu_size)),
+                            'ping inet6 %s count 5 size %s' % (interface_data.get('ipv6_addr_rem',str()), str(int(interface_data.get('mtu',mtu_size)) - 42)),
                         ],
 
                         'huawei': [
