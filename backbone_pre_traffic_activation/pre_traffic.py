@@ -2424,6 +2424,7 @@ pre {
                         'show mpls ldp igp sync interface %s' % (interface_id),
                         'show rsvp interface %s' % (interface_id)
                     ],
+
                     'cisco_xr':[
                         'show run interface %s' % (interface_id),
                         'show run router isis PAII interface %s ' % (interface_id),
@@ -2452,7 +2453,8 @@ pre {
                         'show rsvp interface %s' % (interface_id),
 
                         'show configuration class-of-service interfaces %s | display set'  % (undotted_interface_id),
-                        'show configuration groups mtu-default | display set'
+                        'show configuration groups mtu-default | display set',
+                        'show configuration protocols isis interface %s' % (interface_id)
                     ],
 
                     'huawei': [
@@ -2560,13 +2562,13 @@ pre {
                         try: interface_data['mtu'] = collect_if_config_rcmd_outputs[11].split('mtu ')[1].splitlines()[0].strip()
                         except: interface_data['mtu'] = str()
 
-                    interface_data['ldp-synchronization;'] = True if 'ldp-synchronization;' in collect_if_config_rcmd_outputs[1] else str()
+                    interface_data['ldp-synchronization;'] = True if 'ldp-synchronization;' in collect_if_config_rcmd_outputs[12] else str()
 
-                    try: interface_data['metric'] = collect_if_config_rcmd_outputs[1].split('metric ')[1].split()[0].replace(';','')
+                    try: interface_data['metric'] = collect_if_config_rcmd_outputs[12].split('metric ')[1].split()[0].replace(';','').strip()
                     except: interface_data['metric'] = str()
 
                     interface_data['traffic-engineering;'] = True if 'traffic-engineering;' in collect_if_config_rcmd_outputs[2] else str()
-                    interface_plus_interface_id = 'interface %s;'% (interface_id)
+                    interface_plus_interface_id = 'interface %s'% (interface_id)
 
                     interface_data['configuration protocols mpls interface %s' % (interface_id)] = True if interface_plus_interface_id in collect_if_config_rcmd_outputs[2] else str()
                     interface_data['configuration protocols ldp interface %s' % (interface_id)] = True if interface_plus_interface_id in collect_if_config_rcmd_outputs[3] else str()
@@ -2578,10 +2580,10 @@ pre {
                     try: interface_data['Flags'] = collect_if_config_rcmd_outputs[5].split('Flags:')[1].split()[0]
                     except: interface_data['Flags'] = str()
 
-                    try: interface_data['isis adjacency'] = collect_if_config_rcmd_outputs[6].split(interface_id)[1].split(device.upper())[1].split()[1]
+                    try: interface_data['isis adjacency'] = collect_if_config_rcmd_outputs[6].split(interface_id)[1].split(interface_data.get('name_of_remote_device','XXYYZZ').upper())[1].split()[1]
                     except: interface_data['isis adjacency'] = str()
 
-                    find_ip = re.findall(r'^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', collect_if_config_rcmd_outputs[7].strip())
+                    find_ip = re.findall(r'^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ', collect_if_config_rcmd_outputs[7].strip())
                     if len(find_ip) == 1: interface_data['ldp_neighbor_ip'] = find_ip[0]
                     else: interface_data['ldp_neighbor_ip'] = str()
 
