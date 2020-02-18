@@ -2062,7 +2062,7 @@ def get_fiblist(input_text = None):
 def check_interface_data_content(what_yes = None, where = None):
     global check_interface_result
     if what_yes and where:
-        if not what_yes.upper() in interface_data.get(where,str()),upper():
+        if not what_yes.upper() in interface_data.get(where,str()).upper():
             pass
         else:
             check_interface_result = False
