@@ -22,7 +22,7 @@ import cgi
 import requests
 from mako.template import Template
 from mako.lookup import TemplateLookup
-
+import ipaddress
 
 
 class CGI_CLI(object):
@@ -2063,12 +2063,13 @@ check_interface_result = True
 def check_interface_data_content(what_yes = None, where = None):
     global check_interface_result
     if what_yes and where:
-        if what_yes.upper() in interface_data.get(where,str()).upper():
-            pass
-        else:
-            check_interface_result = False
-            CGI_CLI.uprint("CHECK '%s' in '%s' - FAIL!" % (what_yes, where),
-                color = 'red')
+        if interface_data.get(where):
+            if what_yes.upper() in interface_data.get(where,str()).upper():
+                pass
+            else:
+                check_interface_result = False
+                CGI_CLI.uprint("CHECK '%s' in '%s' - FAIL!" % (what_yes, where),
+                    color = 'red')
 
 ###############################################################################
 
@@ -2649,7 +2650,6 @@ pre {
                     try: interface_data['rsvp interface'] = collect_if_config_rcmd_outputs[9].split('Interface:')[1].split()[0]
                     except: interface_data['rsvp interface'] = str()
 
-
                 ### def COLLECT SECOND COMMAND LIST ###########################
                 if RCMD.router_type == 'juniper':
                     second_collect_if_data_rcmds = {
@@ -2674,6 +2674,21 @@ pre {
                     if RCMD.router_type == 'juniper':
                         try: interface_data['Up for'] = second_collect_if_config_rcmd_outputs[0].split('Up for ')[1].splitlines()[0].strip()
                         except: interface_data['Up for'] = str()
+
+
+                ### CALCULATE REMOTE IP ADDRESES = THE OTHER IP IN NETWORK ####
+                # list_of_ipv4_network, list_of_ipv6_network = [], []
+                # if interface_data.get('ipv4_addr_loc'):
+                    # list_of_ipv4_network = list(ip_network('%s/31' % (interface_data.get('ipv4_addr_loc'))).hosts())
+
+                # if interface_data.get('ipv6_addr_loc'):
+                    # list_of_ipv6_network = list(ip_network('%s/127' % (interface_data.get('ipv4_addr_loc'))).hosts())
+
+                # if printall:
+                    # CGI_CLI.uprint(list_of_ipv4_network, name = 'V4 network', jsonprint = True, tag = 'debug')
+                    # CGI_CLI.uprint(list_of_ipv6_network, name = 'V6 network', jsonprint = True, tag = 'debug')
+
+
 
                 ### MTU #######################################################
                 if not interface_data.get('mtu'):
