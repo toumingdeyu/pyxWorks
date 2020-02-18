@@ -2661,7 +2661,7 @@ pre {
                         printall = printall)
 
                     if RCMD.router_type == 'juniper':
-                        try: interface_data['Up for'] = second_collect_if_config_rcmd_outputs[0].split('Up for ').splitlines()[0].strip()
+                        try: interface_data['Up for'] = second_collect_if_config_rcmd_outputs[0].split('Up for ')[1].splitlines()[0].strip()
                         except: interface_data['Up for'] = str()
 
 
