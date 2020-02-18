@@ -2465,7 +2465,7 @@ pre {
                         'display interface %s' % (interface_id),
                         'display isis interface %s' % (interface_id),
                         'display mpls ldp adjacency interface %s' % (interface_id),
-                        'display isis ldp-sync interface | i %s' % (interface_id),
+                        'display isis ldp-sync interface | i %s' % (interface_id.upper().replace('GI','GE')),
                         'display mpls rsvp-te interface %s' % (interface_id)
                     ]
                 }
@@ -2610,7 +2610,7 @@ pre {
                     except: interface_data['isis ipv6 cost'] = str()
 
                     interface_data['mpls te'] = 'mpls te' if 'mpls te' in collect_if_config_rcmd_outputs[2] else str()
-                    interface_data['mpls lpd'] = 'mpls lpd' if 'mpls lpd' in collect_if_config_rcmd_outputs[3] else str()
+                    interface_data['mpls ldp'] = 'mpls ldp' if 'mpls ldp' in collect_if_config_rcmd_outputs[3] else str()
                     interface_data['mpls rsvp-te'] = 'mpls rsvp-te' if 'mpls rsvp-te' in collect_if_config_rcmd_outputs[4] else str()
 
                     try: interface_data['Line protocol current state'] = collect_if_config_rcmd_outputs[5].split('Line protocol current state :')[1].split()[0]
@@ -2622,11 +2622,11 @@ pre {
                     try: interface_data['isis interface IPV6.State'] = collect_if_config_rcmd_outputs[6].split(' Type')[1].split(' DIS')[1].split()[3]
                     except: interface_data['isis interface IPV6.State'] = str()
 
-                    find_time = re.findall(r'[0-9]{2,4}\:[0-9]{2,4}\:[0-9]{2,4}', collect_if_config_rcmd_outputs[7].strip())
+                    find_time = re.findall(r'[0-9]{2,4}\:[0-9]{2}\:[0-9]{2}', collect_if_config_rcmd_outputs[7].strip())
                     if len(find_time) == 1: interface_data['Up time'] = find_time[0]
                     else: interface_data['Up time'] = str()
 
-                    try: interface_data['isis ldp-sync'] = collect_if_config_rcmd_outputs[8].split('Sync State')[1].split(interface_id)[1].split()[3].strip()
+                    try: interface_data['isis ldp-sync'] = collect_if_config_rcmd_outputs[8].split('Sync State')[1].split(interface_id.upper().replace('GI','GE'))[1].split()[3].strip()
                     except: interface_data['isis ldp-sync'] = str()
 
                     try: interface_data['rsvp interface'] = collect_if_config_rcmd_outputs[9].split('Interface:')[1].split()[0]
