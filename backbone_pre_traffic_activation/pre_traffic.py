@@ -2171,9 +2171,12 @@ pre {
 
     for testint in testint_list:
         try:
+            dash_interface = testint.split('-')[2].strip() + '-' + testint.split('-')[3].strip()
+        except: dash_interface = testint.split('-')[2].strip()
+        try:
             swan_id = testint.split('-')[0].strip()
             device_interface_id_list.append([testint.split('-')[1].strip(),\
-                [testint.split('-')[2].strip()]])
+                [dash_interface]])
         except: pass
 
 
@@ -2584,6 +2587,9 @@ pre {
                     except: interface_data['isis adjacency'] = str()
 
                     find_ip = re.findall(r'^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ', collect_if_config_rcmd_outputs[7].strip())
+
+                    CGI_CLI.uprint(find_ip , name = 'find_ip' , jsonprint = True, tag = 'debug')
+
                     if len(find_ip) == 1: interface_data['ldp_neighbor_ip'] = find_ip[0]
                     else: interface_data['ldp_neighbor_ip'] = str()
 
@@ -2645,7 +2651,7 @@ pre {
                         ],
 
                         'juniper': [
-                            'show ldp neighbor %s extensive' % (LDP_neighbor_IP)
+                            'show ldp neighbor %s extensive' % (interface_data.get('ldp_neighbor_ip',str()))
                         ],
 
                         'huawei': [
