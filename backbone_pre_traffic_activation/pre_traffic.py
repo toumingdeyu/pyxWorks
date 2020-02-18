@@ -2583,14 +2583,12 @@ pre {
                     try: interface_data['Flags'] = collect_if_config_rcmd_outputs[5].split('Flags:')[1].split()[0]
                     except: interface_data['Flags'] = str()
 
-                    try: interface_data['isis adjacency'] = collect_if_config_rcmd_outputs[6].split(interface_id)[1].split(interface_data.get('name_of_remote_device','XXYYZZ').upper())[1].split()[1]
+                    try: interface_data['isis adjacency'] = collect_if_config_rcmd_outputs[6].split(interface_data.get('name_of_remote_device','XXYYZZ').upper())[1].splitlines()[0].split()[1]
                     except: interface_data['isis adjacency'] = str()
 
-                    find_ip = re.findall(r'^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ', collect_if_config_rcmd_outputs[7].strip())
+                    find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ', collect_if_config_rcmd_outputs[7].strip())
 
-                    CGI_CLI.uprint(find_ip , name = 'find_ip' , jsonprint = True, tag = 'debug')
-
-                    if len(find_ip) == 1: interface_data['ldp_neighbor_ip'] = find_ip[0]
+                    if len(find_ip) == 1: interface_data['ldp_neighbor_ip'] = find_ip[0].strip()
                     else: interface_data['ldp_neighbor_ip'] = str()
 
                     try: interface_data['LDP sync state'] = collect_if_config_rcmd_outputs[8].split('LDP sync state:')[1].split(',')[0].strip()
@@ -2663,7 +2661,7 @@ pre {
                         printall = printall)
 
                     if RCMD.router_type == 'juniper':
-                        try: interface_data['Up for'] = collect_if_config_rcmd_outputs[9].split('Up for ').splitlines()[0].strip()
+                        try: interface_data['Up for'] = second_collect_if_config_rcmd_outputs[0].split('Up for ').splitlines()[0].strip()
                         except: interface_data['Up for'] = str()
 
 
