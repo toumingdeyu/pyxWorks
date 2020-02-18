@@ -2059,7 +2059,15 @@ def get_fiblist(input_text = None):
 
 ###############################################################################
 
-
+def check_interface_data_content(what_yes = None, where = None):
+    global check_interface_result
+    if what_yes and where:
+        if not what_yes.upper() in interface_data.get(where,str()),upper():
+            pass
+        else:
+            check_interface_result = False
+            CGI_CLI.uprint("CHECK '%s' in '%s' - FAIL!" (what_yes, where),
+                color = 'red')
 
 ###############################################################################
 
@@ -2105,6 +2113,7 @@ pre {
     swan_id = str()
     precheck_mode = True
     global_logfilename = str()
+    check_interface_result = True
 
     ### GCI_CLI INIT ##########################################################
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = None, css_style = CSS_STYLE, \
@@ -2542,8 +2551,10 @@ pre {
                     try: interface_data['Sync status'] = collect_if_config_rcmd_outputs[8].split('Sync status:')[1].split()[0]
                     except: interface_data['Sync status'] = str()
 
-                    try: interface_data['rsvp interface'] = collect_if_config_rcmd_outputs[9].split('------')[-1].splitlines()[1].split()[0].strip()
-                    except: interface_data['rsvp interface'] = str()
+                    if 'Requested item does not exist' in collect_if_config_rcmd_outputs[9]: interface_data['rsvp interface'] = str()
+                    else:
+                        try: interface_data['rsvp interface'] = collect_if_config_rcmd_outputs[9].split('------')[-1].splitlines()[1].split()[0].strip()
+                        except: interface_data['rsvp interface'] = str()
 
                 ### def JUNIPER 1st CMDS ######################################
                 elif RCMD.router_type == 'juniper':
@@ -2772,26 +2783,47 @@ pre {
                     no_equal_sign = True, no_root_backslash = True)
 
                 if len(None_elements)>0:
+                    check_interface_result = False
                     CGI_CLI.uprint('UNSET CONFIG ELEMENTS ON INTERFACE %s:' % \
                         (interface_data.get('interface_id')), tag = 'h3', color = 'red')
                     CGI_CLI.uprint('\n'.join(None_elements), color = 'red')
 
-                else: CGI_CLI.uprint('NO CONFIG UNSET ELEMENTS ON %s: OK' % \
-                          (interface_data.get('interface_id')), tag = 'h3', color = 'green')
+                ### CONTENT ELEMENT CHECK #####################################
+                check_interface_data_content('100', 'ping_v4_%success')
+                check_interface_data_content('100', 'ping_v4_mtu_%success')
+                check_interface_data_content('100', 'ping_v6_%success')
+                check_interface_data_content('100', 'ping_v6_mtu_%success')
 
-                interface_result = 'NOT OK' if len(None_elements) > 0 else 'OK'
+
+                if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
+                    check_interface_data_content('UP', 'line protocol is')
+
+                elif RCMD.router_type == 'juniper':
+                    check_interface_data_content('UP', 'Flags')
+                    check_interface_data_content('UP', 'Physical link is')
+                    check_interface_data_content('in sync', 'LDP sync state')
+
+                elif RCMD.router_type == 'huawei':
+                    check_interface_data_content('Achieved', 'isis ldp-sync')
+                    check_interface_data_content('UP', 'Line protocol current state')
+                    check_interface_data_content('UP', 'isis interface IPV4.State')
+                    check_interface_data_content('UP', 'isis interface IPV6.State')
+
+                ### def INTERFACE RESULTS #####################################
+                interface_result = 'NOT OK' if check_interface_result else 'OK'
                 interface_results.append([device, interface_id, interface_result])
+
 
                 ### PRINT LOGFILENAME #########################################
                 if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, logfilename)
                 else: logviewer = './logviewer.py?logfile=%s' % (logfilename)
                 if CGI_CLI.cgi_active:
                     CGI_CLI.uprint('Device=%s, interface=%s  -  RESULT = %s' \
-                        % (device, interface_id, interface_result), color = 'red' if len(None_elements) > 0 else 'green', tag = 'h2')
+                        % (device, interface_id, interface_result), color = 'red' if check_interface_result else 'green', tag = 'h2')
                     CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
                         % (logviewer, logfilename), raw = True)
                 else:
-                    CGI_CLI.uprint('Device=%s, interface=%s  -  RESULT = %s' % (device, interface_id, interface_result), color = 'red' if len(None_elements) > 0 else 'green')
+                    CGI_CLI.uprint('Device=%s, interface=%s  -  RESULT = %s' % (device, interface_id, interface_result), color = 'red' if check_interface_result else 'green')
                     CGI_CLI.uprint(' ==> File %s created.' % (logfilename), color = 'blue')
                 CGI_CLI.uprint(' ')
 
@@ -2817,8 +2849,8 @@ pre {
                 pre_post_template['swan_id'] = swan_id
                 pre_post_template['router_name'] = device.upper()
                 pre_post_template['int_name'] = interface_id
-                if precheck_mode: pre_post_template['precheck_result'] = 'NOT OK' if len(None_elements) > 0 else 'OK'
-                else: pre_post_template['postcheck_result'] = 'NOT OK' if len(None_elements) > 0 else 'OK'
+                if precheck_mode: pre_post_template['precheck_result'] = 'NOT OK' if check_interface_result else 'OK'
+                else: pre_post_template['postcheck_result'] = 'NOT OK' if check_interface_result else 'OK'
                 pre_post_template['precheck_log'] = copy.deepcopy(logfilename)
 
                 CGI_CLI.uprint(pre_post_template, name = True, jsonprint = True)
@@ -2838,7 +2870,7 @@ pre {
 
                 ### UPDATE OR INSERT ##########################################
                 if len(sql_read_data) > 0:
-                    sql_read_data[0]['precheck_result'] = 'NOT OK' if len(None_elements) > 0 else 'OK'
+                    sql_read_data[0]['precheck_result'] = 'NOT OK' if check_interface_result else 'OK'
                     if precheck_mode: sql_read_data[0]['precheck_log'] = copy.deepcopy(logfilename)
                     else: sql_read_data[0]['postcheck_log'] = copy.deepcopy(logfilename)
                     try:
