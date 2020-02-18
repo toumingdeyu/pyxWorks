@@ -2059,10 +2059,11 @@ def get_fiblist(input_text = None):
 
 ###############################################################################
 
+check_interface_result = True
 def check_interface_data_content(what_yes = None, where = None):
     global check_interface_result
     if what_yes and where:
-        if not what_yes.upper() in interface_data.get(where,str()).upper():
+        if what_yes.upper() in interface_data.get(where,str()).upper():
             pass
         else:
             check_interface_result = False
@@ -2113,7 +2114,6 @@ pre {
     swan_id = str()
     precheck_mode = True
     global_logfilename = str()
-    check_interface_result = True
 
     ### GCI_CLI INIT ##########################################################
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = None, css_style = CSS_STYLE, \
@@ -2782,7 +2782,7 @@ pre {
                 None_elements = get_void_json_elements(interface_data, \
                     no_equal_sign = True, no_root_backslash = True)
 
-                if len(None_elements)>0:
+                if len(None_elements) > 0:
                     check_interface_result = False
                     CGI_CLI.uprint('UNSET CONFIG ELEMENTS ON INTERFACE %s:' % \
                         (interface_data.get('interface_id')), tag = 'h3', color = 'red')
