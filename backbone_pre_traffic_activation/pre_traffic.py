@@ -2810,7 +2810,7 @@ pre {
                     check_interface_data_content('UP', 'isis interface IPV6.State')
 
                 ### def INTERFACE RESULTS #####################################
-                interface_result = 'NOT OK' if check_interface_result else 'OK'
+                interface_result = 'OK' if check_interface_result else 'NOT OK'
                 interface_results.append([device, interface_id, interface_result])
 
 
@@ -2819,7 +2819,7 @@ pre {
                 else: logviewer = './logviewer.py?logfile=%s' % (logfilename)
                 if CGI_CLI.cgi_active:
                     CGI_CLI.uprint('Device=%s, interface=%s  -  RESULT = %s' \
-                        % (device, interface_id, interface_result), color = 'red' if check_interface_result else 'green', tag = 'h2')
+                        % (device, interface_id, interface_result), color = 'green' if check_interface_result else 'red', tag = 'h2')
                     CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
                         % (logviewer, logfilename), raw = True)
                 else:
@@ -2849,8 +2849,8 @@ pre {
                 pre_post_template['swan_id'] = swan_id
                 pre_post_template['router_name'] = device.upper()
                 pre_post_template['int_name'] = interface_id
-                if precheck_mode: pre_post_template['precheck_result'] = 'NOT OK' if check_interface_result else 'OK'
-                else: pre_post_template['postcheck_result'] = 'NOT OK' if check_interface_result else 'OK'
+                if precheck_mode: pre_post_template['precheck_result'] = 'OK' if check_interface_result else 'NOT OK'
+                else: pre_post_template['postcheck_result'] = 'OK' if check_interface_result else 'NOT OK'
                 pre_post_template['precheck_log'] = copy.deepcopy(logfilename)
 
                 CGI_CLI.uprint(pre_post_template, name = True, jsonprint = True)
@@ -2870,7 +2870,7 @@ pre {
 
                 ### UPDATE OR INSERT ##########################################
                 if len(sql_read_data) > 0:
-                    sql_read_data[0]['precheck_result'] = 'NOT OK' if check_interface_result else 'OK'
+                    sql_read_data[0]['precheck_result'] = 'OK' if check_interface_result else 'NOT OK'
                     if precheck_mode: sql_read_data[0]['precheck_log'] = copy.deepcopy(logfilename)
                     else: sql_read_data[0]['postcheck_log'] = copy.deepcopy(logfilename)
                     try:
