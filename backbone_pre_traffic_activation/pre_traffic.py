@@ -2537,7 +2537,7 @@ pre {
                     try: interface_data['Sync status'] = collect_if_config_rcmd_outputs[8].split('Sync status:')[1].split()[0]
                     except: interface_data['Sync status'] = str()
 
-                    try: interface_data['rsvp interface'] = collect_if_config_rcmd_outputs[9].split('------')[1].splitlines()[1].split()[0]
+                    try: interface_data['rsvp interface'] = collect_if_config_rcmd_outputs[9].split('------')[-1].splitlines()[1].split()[0].strip()
                     except: interface_data['rsvp interface'] = str()
 
                 ### def JUNIPER 1st CMDS ######################################
@@ -2687,22 +2687,22 @@ pre {
                         printall = printall)
 
                     if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
-                        try: interface_data['ping_v4_%%'] = ping4_config_rcmds_outputs[0].split('Success rate is ')[1].splitlines()[0].split('percent')[0].strip()
-                        except: interface_data['ping_v4_%%'] = str()
-                        try: interface_data['ping_v4_mtu_%%'] = ping4_config_rcmds_outputs[0].split('Success rate is ')[1].splitlines()[0].split('percent')[0].strip()
-                        except: interface_data['ping_v4_mtu_%%'] = str()
+                        try: interface_data['ping_v4_%success'] = ping4_config_rcmds_outputs[0].split('Success rate is ')[1].splitlines()[0].split('percent')[0].strip()
+                        except: interface_data['ping_v4_%success'] = str()
+                        try: interface_data['ping_v4_mtu_%success'] = ping4_config_rcmds_outputs[0].split('Success rate is ')[1].splitlines()[0].split('percent')[0].strip()
+                        except: interface_data['ping_v4_mtu_%success'] = str()
 
                     elif RCMD.router_type == 'juniper':
-                        try: interface_data['ping_v4_%%'] = str(100 - float(ping4_config_rcmds_outputs[0].split('received,')[1].splitlines()[0].split('%')[0].strip()))
-                        except: interface_data['ping_v4_%%'] = str()
-                        try: interface_data['ping_v4_mtu_%%'] = str(100 - float(ping4_config_rcmds_outputs[0].split('received,')[1].splitlines()[0].split('%')[0].strip()))
-                        except: interface_data['ping_v4_mtu_%%'] = str()
+                        try: interface_data['ping_v4_%success'] = str(100 - float(ping4_config_rcmds_outputs[0].split('received,')[1].splitlines()[0].split('%')[0].strip()))
+                        except: interface_data['ping_v4_%success'] = str()
+                        try: interface_data['ping_v4_mtu_%success'] = str(100 - float(ping4_config_rcmds_outputs[0].split('received,')[1].splitlines()[0].split('%')[0].strip()))
+                        except: interface_data['ping_v4_mtu_%success'] = str()
 
                     elif RCMD.router_type == 'huawei':
-                        try: interface_data['ping_v4_%%'] = str(100 - float(ping4_config_rcmds_outputs[0].split('% packet loss')[0].splitlines()[-1].strip()))
-                        except: interface_data['ping_v4_%%'] = str()
-                        try: interface_data['ping_v4_mtu_%%'] = str(100 - float(ping4_config_rcmds_outputs[0].split('% packet loss')[0].splitlines()[-1].strip()))
-                        except: interface_data['ping_v4_mtu_%%'] = str()
+                        try: interface_data['ping_v4_%success'] = str(100 - float(ping4_config_rcmds_outputs[0].split('% packet loss')[0].splitlines()[-1].strip()))
+                        except: interface_data['ping_v4_%success'] = str()
+                        try: interface_data['ping_v4_mtu_%success'] = str(100 - float(ping4_config_rcmds_outputs[0].split('% packet loss')[0].splitlines()[-1].strip()))
+                        except: interface_data['ping_v4_mtu_%success'] = str()
 
                 ### def PINGv6 COMMAND LIST ###################################
                 if interface_data.get('ipv6_addr_rem',str()):
@@ -2732,22 +2732,22 @@ pre {
                         printall = printall)
 
                     if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
-                        try: interface_data['ping_v6_%%'] = ping4_config_rcmds_outputs[0].split('Success rate is ')[1].splitlines()[0].split('percent')[0].strip()
-                        except: interface_data['ping_v6_%%'] = str()
-                        try: interface_data['ping_v6_mtu_%%'] = ping4_config_rcmds_outputs[0].split('Success rate is ')[1].splitlines()[0].split('percent')[0].strip()
-                        except: interface_data['ping_v6_mtu_%%'] = str()
+                        try: interface_data['ping_v6_%success'] = ping4_config_rcmds_outputs[0].split('Success rate is ')[1].splitlines()[0].split('percent')[0].strip()
+                        except: interface_data['ping_v6_%success'] = str()
+                        try: interface_data['ping_v6_mtu_%success'] = ping4_config_rcmds_outputs[0].split('Success rate is ')[1].splitlines()[0].split('percent')[0].strip()
+                        except: interface_data['ping_v6_mtu_%success'] = str()
 
                     elif RCMD.router_type == 'juniper':
-                        try: interface_data['ping_v6_%%'] = str(100 - float(ping4_config_rcmds_outputs[0].split('received,')[1].splitlines()[0].split('%')[0].strip()))
-                        except: interface_data['ping_v6_%%'] = str()
-                        try: interface_data['ping_v6_mtu_%%'] = str(100 - float(ping4_config_rcmds_outputs[0].split('received,')[1].splitlines()[0].split('%')[0].strip()))
-                        except: interface_data['ping_v6_mtu_%%'] = str()
+                        try: interface_data['ping_v6_%success'] = str(100 - float(ping4_config_rcmds_outputs[0].split('received,')[1].splitlines()[0].split('%')[0].strip()))
+                        except: interface_data['ping_v6_%success'] = str()
+                        try: interface_data['ping_v6_mtu_%success'] = str(100 - float(ping4_config_rcmds_outputs[0].split('received,')[1].splitlines()[0].split('%')[0].strip()))
+                        except: interface_data['ping_v6_mtu_%success'] = str()
 
                     elif RCMD.router_type == 'huawei':
-                        try: interface_data['ping_v6_%%'] = str(100 - float(ping4_config_rcmds_outputs[0].split('% packet loss')[0].splitlines()[-1].strip()))
-                        except: interface_data['ping_v6_%%'] = str()
-                        try: interface_data['ping_v6_mtu_%%'] = str(100 - float(ping4_config_rcmds_outputs[0].split('% packet loss')[0].splitlines()[-1].strip()))
-                        except: interface_data['ping_v6_mtu_%%'] = str()
+                        try: interface_data['ping_v6_%success'] = str(100 - float(ping4_config_rcmds_outputs[0].split('% packet loss')[0].splitlines()[-1].strip()))
+                        except: interface_data['ping_v6_%success'] = str()
+                        try: interface_data['ping_v6_mtu_%success'] = str(100 - float(ping4_config_rcmds_outputs[0].split('% packet loss')[0].splitlines()[-1].strip()))
+                        except: interface_data['ping_v6_mtu_%success'] = str()
 
 
                 ### PRINT \n AFTER COLLECTING OF DATA #########################
