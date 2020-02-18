@@ -2510,10 +2510,10 @@ pre {
 
                     interface_data['mpls ldp sync'] = True if 'mpls ldp sync' in collect_if_config_rcmd_outputs[1] else str()
 
-                    try: interface_data['ipv4_metric'] = collect_if_config_rcmd_outputs[1].split('address-family ipv4 unicast').splitlines()[1].split('metric ')[1].split()[0]
+                    try: interface_data['ipv4_metric'] = collect_if_config_rcmd_outputs[1].split('address-family ipv4 unicast')[1].splitlines()[1].split('metric ')[1].split()[0]
                     except: interface_data['ipv4_metric'] = str()
 
-                    try: interface_data['ipv6_metric'] = collect_if_config_rcmd_outputs[1].split('address-family ipv6 unicast').splitlines()[1].split('metric ')[1].split()[0]
+                    try: interface_data['ipv6_metric'] = collect_if_config_rcmd_outputs[1].split('address-family ipv6 unicast')[1].splitlines()[1].split('metric ')[1].split()[0]
                     except: interface_data['ipv6_metric'] = str()
 
                     try: interface_data['run mpls traffic-eng interface'] = collect_if_config_rcmd_outputs[2].split('interface')[1].split()[0]
@@ -2528,7 +2528,7 @@ pre {
                     try: interface_data['line protocol is'] = collect_if_config_rcmd_outputs[5].split('line protocol is ')[1].split()[0]
                     except: interface_data['line protocol is'] = str()
 
-                    try: interface_data['isis neighbors'] = collect_if_config_rcmd_outputs[6].split(device.upper())[1].split(interface_id)[1].split()[0]
+                    try: interface_data['isis neighbors'] = collect_if_config_rcmd_outputs[6].split(interface_data.get('name_of_remote_device','XXYYZZ').upper())[1].split(interface_id)[1].split()[0]
                     except: interface_data['isis neighbors'] = str()
 
                     try: interface_data['Up time'] = collect_if_config_rcmd_outputs[7].split('Up time:')[1].split()[0]
@@ -2537,7 +2537,7 @@ pre {
                     try: interface_data['Sync status'] = collect_if_config_rcmd_outputs[8].split('Sync status:')[1].split()[0]
                     except: interface_data['Sync status'] = str()
 
-                    try: interface_data['rsvp interface'] = collect_if_config_rcmd_outputs[9].split('------').splitlines()[1].split()[0]
+                    try: interface_data['rsvp interface'] = collect_if_config_rcmd_outputs[9].split('------')[1].splitlines()[1].split()[0]
                     except: interface_data['rsvp interface'] = str()
 
                 ### def JUNIPER 1st CMDS ######################################
@@ -2588,7 +2588,7 @@ pre {
                     try: interface_data['LDP sync state'] = collect_if_config_rcmd_outputs[8].split('LDP sync state:')[1].split(',')[0].strip()
                     except: interface_data['LDP sync state'] = str()
 
-                    try: interface_data['rsvp interface'] = collect_if_config_rcmd_outputs[9].split('Interface').splitlines()[1].split()[0]
+                    try: interface_data['rsvp interface'] = collect_if_config_rcmd_outputs[9].split('Interface')[1].splitlines()[1].split()[0]
                     except: interface_data['rsvp interface'] = str()
 
                 ### def HUAWEI 1st CMDS #######################################
@@ -2626,10 +2626,10 @@ pre {
                     if len(find_time) == 1: interface_data['Up time'] = find_time[0]
                     else: interface_data['Up time'] = str()
 
-                    try: interface_data['isis ldp-sync'] = collect_if_config_rcmd_outputs[8].split('Sync State').split(interface_id)[1].split()[3].strip()
+                    try: interface_data['isis ldp-sync'] = collect_if_config_rcmd_outputs[8].split('Sync State')[1].split(interface_id)[1].split()[3].strip()
                     except: interface_data['isis ldp-sync'] = str()
 
-                    try: interface_data['rsvp interface'] = collect_if_config_rcmd_outputs[9].split('Interface:').split()[0]
+                    try: interface_data['rsvp interface'] = collect_if_config_rcmd_outputs[9].split('Interface:')[1].split()[0]
                     except: interface_data['rsvp interface'] = str()
 
 
