@@ -2565,12 +2565,12 @@ pre {
                     try: interface_data['metric'] = collect_if_config_rcmd_outputs[1].split('metric ')[1].split()[0].replace(';','')
                     except: interface_data['metric'] = str()
 
-                    interface_data['traffic-engineering;'] = 'traffic-engineering;' if 'traffic-engineering;' in collect_if_config_rcmd_outputs[2] else str()
+                    interface_data['traffic-engineering;'] = True if 'traffic-engineering;' in collect_if_config_rcmd_outputs[2] else str()
                     interface_plus_interface_id = 'interface %s;'% (interface_id)
 
-                    interface_data['configuration protocols mpls interface %s' % (interface_id)] = interface_plus_interface_id if interface_plus_interface_id in collect_if_config_rcmd_outputs[2] else str()
-                    interface_data['configuration protocols ldp interface %s' % (interface_id)] = interface_plus_interface_id if interface_plus_interface_id in collect_if_config_rcmd_outputs[3] else str()
-                    interface_data['configuration protocols rsvp interface %s' % (interface_id)] = interface_plus_interface_id if interface_plus_interface_id in collect_if_config_rcmd_outputs[4] else str()
+                    interface_data['configuration protocols mpls interface %s' % (interface_id)] = True if interface_plus_interface_id in collect_if_config_rcmd_outputs[2] else str()
+                    interface_data['configuration protocols ldp interface %s' % (interface_id)] = True if interface_plus_interface_id in collect_if_config_rcmd_outputs[3] else str()
+                    interface_data['configuration protocols rsvp interface %s' % (interface_id)] = True if interface_plus_interface_id in collect_if_config_rcmd_outputs[4] else str()
 
                     try: interface_data['Physical link is'] = collect_if_config_rcmd_outputs[5].split('Physical link is ')[1].split()[0]
                     except: interface_data['Physical link is'] = str()
@@ -2609,9 +2609,9 @@ pre {
                     try: interface_data['isis ipv6 cost'] = collect_if_config_rcmd_outputs[1].split('isis ipv6 cost ')[1].split()[0]
                     except: interface_data['isis ipv6 cost'] = str()
 
-                    interface_data['mpls te'] = 'mpls te' if 'mpls te' in collect_if_config_rcmd_outputs[2] else str()
-                    interface_data['mpls ldp'] = 'mpls ldp' if 'mpls ldp' in collect_if_config_rcmd_outputs[3] else str()
-                    interface_data['mpls rsvp-te'] = 'mpls rsvp-te' if 'mpls rsvp-te' in collect_if_config_rcmd_outputs[4] else str()
+                    interface_data['mpls te'] = True if 'mpls te' in collect_if_config_rcmd_outputs[2] else str()
+                    interface_data['mpls ldp'] = True if 'mpls ldp' in collect_if_config_rcmd_outputs[3] else str()
+                    interface_data['mpls rsvp-te'] = True if 'mpls rsvp-te' in collect_if_config_rcmd_outputs[4] else str()
 
                     try: interface_data['Line protocol current state'] = collect_if_config_rcmd_outputs[5].split('Line protocol current state :')[1].split()[0]
                     except: interface_data['Line protocol current state'] = str()
