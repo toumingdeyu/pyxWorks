@@ -2670,21 +2670,21 @@ pre {
                     ping4_config_rcmds = {
                         'cisco_ios':[
                             'ping %s' % (interface_data.get('ipv4_addr_rem',str())),
-                            'ping %s size %s df-bit' % (interface_data.get('ipv4_addr_rem',str()), interface_data.get('mtu',mtu_size))
+                            'ping %s size %s df-bit' % (interface_data.get('ipv4_addr_rem',str()), interface_data.get('mtu',4484))
                         ],
                         'cisco_xr':[
                             'ping %s' % (interface_data.get('ipv4_addr_rem',str())),
-                            'ping %s size %s df-bit' % (interface_data.get('ipv4_addr_rem',str()), str(int(interface_data.get('mtu',mtu_size)) - 14))
+                            'ping %s size %s df-bit' % (interface_data.get('ipv4_addr_rem',str()), str(int(interface_data.get('mtu',4484)) - 14))
                         ],
 
                         'juniper': [
                             'ping %s count 5' % (interface_data.get('ipv4_addr_rem',str())),
-                            'ping %s count 5 size %s' % (interface_data.get('ipv4_addr_rem',str()), str(int(interface_data.get('mtu',mtu_size)) - 42))
+                            'ping %s count 5 size %s' % (interface_data.get('ipv4_addr_rem',str()), str(int(interface_data.get('mtu',4484)) - 42))
                         ],
 
                         'huawei': [
                             'ping %s' % (interface_data.get('ipv4_addr_rem',str())),
-                            'ping -s %s %s' % (interface_data.get('mtu',mtu_size), interface_data.get('ipv4_addr_rem',str()))
+                            'ping -s %s %s' % (interface_data.get('mtu',4470), interface_data.get('ipv4_addr_rem',str()))
                         ]
                     }
 
@@ -2715,21 +2715,21 @@ pre {
                     ping6_config_rcmds = {
                         'cisco_ios':[
                             'ping ipv6 %s' % (interface_data.get('ipv6_addr_rem',str())),
-                            'ping ipv6 %s size %s' % (interface_data.get('ipv6_addr_rem',str()), interface_data.get('mtu',mtu_size))
+                            'ping ipv6 %s size %s' % (interface_data.get('ipv6_addr_rem',str()), interface_data.get('mtu',4484))
                         ],
                         'cisco_xr':[
                             'ping ipv6 %s' % (interface_data.get('ipv6_addr_rem',str())),
-                            'ping ipv6 %s size %s' % (interface_data.get('ipv6_addr_rem',str()), str(int(interface_data.get('mtu',mtu_size)) - 14))
+                            'ping ipv6 %s size %s' % (interface_data.get('ipv6_addr_rem',str()), str(int(interface_data.get('mtu',4484)) - 14))
                         ],
 
                         'juniper': [
                             'ping inet6 %s count 5' % (interface_data.get('ipv6_addr_rem',str())),
-                            'ping inet6 %s count 5 size %s' % (interface_data.get('ipv6_addr_rem',str()), str(int(interface_data.get('mtu',mtu_size)) - 42)),
+                            'ping inet6 %s count 5 size %s' % (interface_data.get('ipv6_addr_rem',str()), str(int(interface_data.get('mtu',4484)) - 42)),
                         ],
 
                         'huawei': [
                             'ping ipv6 %s' % (interface_data.get('ipv6_addr_rem',str())),
-                            'ping ipv6 -s %s %s' % (interface_data.get('mtu',mtu_size), interface_data.get('ipv6_addr_rem',str())),
+                            'ping ipv6 -s %s %s' % (interface_data.get('mtu',4470), interface_data.get('ipv6_addr_rem',str())),
                         ]
                     }
 
