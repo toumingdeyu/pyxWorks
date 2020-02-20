@@ -2718,11 +2718,17 @@ pre {
                     except: interface_data['rsvp interface'] = str()
 
                     ### WARNINGS ###
-                    try: interface_warning_data['Rx Power'] = collect_if_config_rcmd_outputs[10].split('Rx Power: ')[1].split()[0].strip()
+                    try: interface_warning_data['Rx Power'] = collect_if_config_rcmd_outputs[10].split('Rx Power: ')[1].split()[0].strip().replace(',','')
                     except: interface_warning_data['Rx Power'] = str()
 
-                    try: interface_warning_data['Tx Power'] = collect_if_config_rcmd_outputs[10].split('Tx Power: ')[1].split()[0].strip()
+                    try: interface_warning_data['Tx Power'] = collect_if_config_rcmd_outputs[10].split('Tx Power: ')[1].split()[0].strip().replace(',','')
                     except: interface_warning_data['Tx Power'] = str()
+
+                    try: interface_warning_data['Rx Power Warning range'] = collect_if_config_rcmd_outputs[10].split('Rx Power: ')[1].split('Warning range: ')[1].splitlines()[0].strip().replace(',','')
+                    except: interface_warning_data['Rx Power Warning range'] = str()
+
+                    try: interface_warning_data['Tx Power Warning range'] = collect_if_config_rcmd_outputs[10].split('Tx Power: ')[1].split('Warning range: ')[1].splitlines()[0].strip().replace(',','')
+                    except: interface_warning_data['Tx Power Warning range'] = str()
 
                     try: interface_warning_data['CRC'] = collect_if_config_rcmd_outputs[10].split('CRC: ')[1].split()[0].strip()
                     except: interface_warning_data['CRC'] = str()
@@ -2894,7 +2900,7 @@ pre {
                 CGI_CLI.uprint(interface_data, name = 'Device:%s' % (device), \
                     jsonprint = True, color = 'blue')
 
-                CGI_CLI.uprint(interface_warning_data, name = 'WARNINGS on Device:%s' % (device), \
+                CGI_CLI.uprint(interface_warning_data, name = 'POSSIBLE WARNINGS on Device:%s' % (device), \
                     jsonprint = True, color = 'blue')
 
                 None_elements = get_void_json_elements(interface_data, \
