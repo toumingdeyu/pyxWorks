@@ -2437,6 +2437,8 @@ pre {
 
                 interface_data = collections.OrderedDict()
                 interface_data['interface_id'] = interface_id
+                interface_warning_data = collections.OrderedDict()
+                interface_warning_data['interface_id'] = interface_id
 
                 try: undotted_interface_id = interface_id.split('.')[0]
                 except: undotted_interface_id = interface_id
@@ -2454,7 +2456,9 @@ pre {
                         'show isis neighbors %s' % (interface_id),
                         'show mpls ldp neighbor %s' % (interface_id),
                         'show mpls ldp igp sync interface %s' % (interface_id),
-                        'show rsvp interface %s' % (interface_id)
+                        'show rsvp interface %s' % (interface_id),
+
+                        'show interfaces %s' % (undotted_interface_id),
                     ],
 
                     'cisco_xr':[
@@ -2468,7 +2472,9 @@ pre {
                         'show isis neighbors %s' % (interface_id),
                         'show mpls ldp neighbor %s' % (interface_id),
                         'show mpls ldp igp sync interface %s' % (interface_id),
-                        'show rsvp interface %s' % (interface_id)
+                        'show rsvp interface %s' % (interface_id),
+
+                        'show interfaces %s' % (undotted_interface_id),
                     ],
 
                     'juniper': [
@@ -2486,7 +2492,8 @@ pre {
 
                         'show configuration class-of-service interfaces %s | display set'  % (undotted_interface_id),
                         'show configuration groups mtu-default | display set',
-                        'show configuration protocols isis interface %s' % (interface_id)
+                        'show configuration protocols isis interface %s' % (interface_id),
+                        'show interfaces %s' % (undotted_interface_id),
                     ],
 
                     'huawei': [
@@ -2500,7 +2507,9 @@ pre {
                         'display isis interface %s' % (interface_id),
                         'display mpls ldp adjacency interface %s' % (interface_id),
                         'display isis ldp-sync interface | i %s' % (interface_id.upper().replace('GI','GE')),
-                        'display mpls rsvp-te interface %s' % (interface_id)
+                        'display mpls rsvp-te interface %s' % (interface_id),
+
+                        'display interface %s' % (undotted_interface_id),
                     ]
                 }
 
@@ -2576,6 +2585,17 @@ pre {
                         try: interface_data['rsvp interface'] = collect_if_config_rcmd_outputs[9].split('------')[-1].splitlines()[1].split()[0].strip()
                         except: interface_data['rsvp interface'] = str()
 
+                    ### WARNINGS ###
+                    try: interface_warning_data['input_errors'] = collect_if_config_rcmd_outputs[10].split('input errors').split()[0].splitlines()[-1].strip()
+                    except: interface_warning_data['input_errors'] = str()
+
+                    try: interface_warning_data['input CRC'] = collect_if_config_rcmd_outputs[10].split('input errors')[1].split('CRC,').split()[0].splitlines()[-1].split(',')[1].strip()
+                    except: interface_warning_data['input CRC'] = str()
+
+                    try: interface_warning_data['output_errors'] = collect_if_config_rcmd_outputs[10].split('output errors').split()[0].splitlines()[-1].strip()
+                    except: interface_warning_data['output_errors'] = str()
+
+
                 ### def JUNIPER 1st CMDS ######################################
                 elif RCMD.router_type == 'juniper':
                     try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet address ')[1].split()[0].split('/')[0].replace(';','')
@@ -2628,6 +2648,34 @@ pre {
                     try: interface_data['rsvp interface'] = collect_if_config_rcmd_outputs[9].split('Interface')[1].splitlines()[1].split()[0]
                     except: interface_data['rsvp interface'] = str()
 
+                    ### WARNINGS ###
+                    try: interface_warning_data['Active alarms'] = collect_if_config_rcmd_outputs[13].split('Active alarms  : ')[1].split()[1].strip()
+                    except: interface_warning_data['Active alarms'] = str()
+
+                    try: interface_warning_data['Active defects'] = collect_if_config_rcmd_outputs[13].split('Active defects : ')[1].split()[1].strip()
+                    except: interface_warning_data['Active defects : '] = str()
+
+                    try: interface_warning_data['Bit errors'] = collect_if_config_rcmd_outputs[13].split('Bit errors ')[1].split()[1].strip()
+                    except: interface_warning_data['Bit errors'] = str()
+
+                    try: interface_warning_data['Errored blocks'] = collect_if_config_rcmd_outputs[13].split('Errored blocks ')[1].split()[1].strip()
+                    except: interface_warning_data['Errored blocks'] = str()
+
+                    try: interface_warning_data['Ethernet FEC statistics'] = collect_if_config_rcmd_outputs[13].split('Ethernet FEC statistics ')[1].split()[1].strip()
+                    except: interface_warning_data['Ethernet FEC statistics'] = str()
+
+                    try: interface_warning_data['FEC Corrected Errors'] = collect_if_config_rcmd_outputs[13].split('FEC Corrected Errors ')[1].split()[1].strip()
+                    except: interface_warning_data['FEC Corrected Errors'] = str()
+
+                    try: interface_warning_data['FEC Uncorrected Errors'] = collect_if_config_rcmd_outputs[13].split('FEC Uncorrected Errors ')[1].split()[1].strip()
+                    except: interface_warning_data['FEC Uncorrected Errors'] = str()
+
+                    try: interface_warning_data['FEC Corrected Errors Rate'] = collect_if_config_rcmd_outputs[13].split('FEC Corrected Errors Rate ')[1].split()[1].strip()
+                    except: interface_warning_data['FEC Corrected Errors Rate'] = str()
+
+                    try: interface_warning_data['FEC Uncorrected Errors Rate'] = collect_if_config_rcmd_outputs[13].split('FEC Uncorrected Errors Rate ')[1].split()[1].strip()
+                    except: interface_warning_data['FEC Uncorrected Errors Rate'] = str()
+
                 ### def HUAWEI 1st CMDS #######################################
                 elif RCMD.router_type == 'huawei':
                     try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[0]
@@ -2668,6 +2716,34 @@ pre {
 
                     try: interface_data['rsvp interface'] = collect_if_config_rcmd_outputs[9].split('Interface:')[1].split()[0]
                     except: interface_data['rsvp interface'] = str()
+
+                    ### WARNINGS ###
+                    try: interface_warning_data['Rx Power'] = collect_if_config_rcmd_outputs[10].split('Rx Power: ')[1].split()[1].strip()
+                    except: interface_warning_data['Rx Power'] = str()
+
+                    try: interface_warning_data['Tx Power'] = collect_if_config_rcmd_outputs[10].split('Tx Power: ')[1].split()[1].strip()
+                    except: interface_warning_data['Tx Power'] = str()
+
+                    try: interface_warning_data['CRC'] = collect_if_config_rcmd_outputs[10].split('CRC: ')[1].split()[1].strip()
+                    except: interface_warning_data['CRC'] = str()
+
+                    try: interface_warning_data['Overrun'] = collect_if_config_rcmd_outputs[10].split('Overrun: ')[1].split()[1].strip()
+                    except: interface_warning_data['Overrun'] = str()
+
+                    try: interface_warning_data['Lost'] = collect_if_config_rcmd_outputs[10].split('Lost: ')[1].split()[1].strip()
+                    except: interface_warning_data['Lost'] = str()
+
+                    try: interface_warning_data['Overflow'] = collect_if_config_rcmd_outputs[10].split('Overflow: ')[1].split()[1].strip()
+                    except: interface_warning_data['Overflow'] = str()
+
+                    try: interface_warning_data['Underrun'] = collect_if_config_rcmd_outputs[10].split('Underrun: ')[1].split()[1].strip()
+                    except: interface_warning_data['Underrun'] = str()
+
+                    try: interface_warning_data['Local fault'] = collect_if_config_rcmd_outputs[10].split('Local fault: ')[1].split()[1].strip().replace('.','')
+                    except: interface_warning_data['Local fault'] = str()
+
+                    try: interface_warning_data['Remote fault'] = collect_if_config_rcmd_outputs[10].split('Remote fault: ')[1].split()[1].strip().replace('.','')
+                    except: interface_warning_data['Remote fault'] = str()
 
                 ### def COLLECT SECOND COMMAND LIST ###########################
                 if RCMD.router_type == 'juniper':
@@ -2816,6 +2892,9 @@ pre {
 
                 ### def PRINT RESULTS PER INTERFACE ###########################
                 CGI_CLI.uprint(interface_data, name = 'Device:%s' % (device), \
+                    jsonprint = True, color = 'blue')
+
+                CGI_CLI.uprint(interface_warning_data, name = 'WARNINGS on Device:%s' % (device), \
                     jsonprint = True, color = 'blue')
 
                 None_elements = get_void_json_elements(interface_data, \
