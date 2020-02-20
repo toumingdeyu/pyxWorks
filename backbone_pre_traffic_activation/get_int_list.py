@@ -1856,13 +1856,9 @@ def get_interface_list_per_device(device = None):
                 if if_lines[-1] in RCMD.DEVICE_PROMPTS: del if_lines[-1]
             except: pass
 
-            # interface_list = [ \
-                # (if_line.replace('                                               ',''), \
-                # if_line.split()[0].replace('GE','Gi')) \
-                # for if_line in if_lines if if_line.strip() ]
-
             for in_line_orig in if_lines:
                 if_line = in_line_orig.replace('                                               ','').replace('GE','Gi').strip()
+                if if_line.strip() == '{master}': continue
                 try: if_name = if_line.split()[0]
                 except: if_name = str()
                 try: if_name = if_name.split('(')[0]
