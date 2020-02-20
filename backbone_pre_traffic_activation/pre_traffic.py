@@ -2061,15 +2061,31 @@ def get_fiblist(input_text = None):
 ###############################################################################
 
 check_interface_result = True
-def check_interface_data_content(what_yes = None, where = None):
+def check_interface_data_content(what_yes = None, where = None, what_not = None):
     global check_interface_result
+    local_check_interface_result, Alarm_text = 0, str()
     if what_yes and where:
         if interface_data.get(where):
             if what_yes.upper() in interface_data.get(where,str()).upper():
                 pass
             else:
                 check_interface_result = False
-                CGI_CLI.uprint("CHECK '%s' in '%s' - FAIL!" % (what_yes, where),
+                CGI_CLI.uprint("CHECK: '%s' not in '%s' --> FAIL!" % (what_yes, where),
+                    color = 'red')
+    if what_not and where:
+        if isinstance(what_not, (list,tupple)):
+            for item in what_not:
+                if item.upper() == interface_data.get(where,str()).upper():
+                    local_check_interface_result += 1
+                    Alarm_text += "CHECK: '%s' in '%s' --> FAIL!\n" % (item, where)
+            ### ALL FAIL LOGIC ###
+            if local_check_interface_result == len(what_not):
+                CGI_CLI.uprint(Alarm_text, color = 'red')
+                check_interface_result = False
+        else:
+            if what_not.upper() in interface_data.get(where,str()).upper():
+                check_interface_result = False
+                CGI_CLI.uprint("CHECK: '%s' in '%s' --> FAIL!" % (what_not, where),
                     color = 'red')
 
 ###############################################################################
@@ -2820,16 +2836,35 @@ pre {
                 if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
                     check_interface_data_content('UP', 'line protocol is')
 
+                    if precheck_mode:
+                        check_interface_data_content('9999', 'ipv4_metric')
+                        check_interface_data_content('9999', 'ipv6_metric')
+                    else:
+                        check_interface_data_content(None, 'ipv4_metric', '9999')
+                        check_interface_data_content(None, 'ipv6_metric', '9999')
+
                 elif RCMD.router_type == 'juniper':
                     check_interface_data_content('UP', 'Flags')
                     check_interface_data_content('UP', 'Physical link is')
                     check_interface_data_content('in sync', 'LDP sync state')
+
+                    if precheck_mode:
+                        check_interface_data_content('9999', 'metric')
+                    else:
+                        check_interface_data_content(None, 'metric', '9999')
 
                 elif RCMD.router_type == 'huawei':
                     check_interface_data_content('Achieved', 'isis ldp-sync')
                     check_interface_data_content('UP', 'Line protocol current state')
                     check_interface_data_content('UP', 'isis interface IPV4.State')
                     check_interface_data_content('UP', 'isis interface IPV6.State')
+
+                    if precheck_mode:
+                        check_interface_data_content('9999', 'isis cost')
+                        check_interface_data_content('9999', 'isis ipv6 cost')
+                    else:
+                        check_interface_data_content(None, 'isis cost', '9999')
+                        check_interface_data_content(None, 'isis ipv6 cost', '9999')
 
                 ### def INTERFACE RESULTS #####################################
                 interface_result = 'OK' if check_interface_result else 'NOT OK'
