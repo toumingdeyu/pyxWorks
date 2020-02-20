@@ -2144,7 +2144,7 @@ pre {
     LCMD.init()
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
     printall = CGI_CLI.data.get("printall")
-    printall = True
+    #printall = True
 
     ### MULTIPLE INPUTS FROM MORE MARTIN'S PAGES ##############################
     swan_id = CGI_CLI.data.get("swan",str())
@@ -2932,9 +2932,12 @@ pre {
 
                 ### UPDATE OR INSERT ##########################################
                 if len(sql_read_data) > 0:
-                    sql_read_data[0]['precheck_result'] = 'OK' if check_interface_result else 'NOT OK'
-                    if precheck_mode: sql_read_data[0]['precheck_log'] = copy.deepcopy(logfilename)
-                    else: sql_read_data[0]['postcheck_log'] = copy.deepcopy(logfilename)
+                    if precheck_mode:
+                        sql_read_data[0]['precheck_log'] = copy.deepcopy(logfilename)
+                        sql_read_data[0]['precheck_result'] = 'OK' if check_interface_result else 'NOT OK'
+                    else:
+                        sql_read_data[0]['postcheck_log'] = copy.deepcopy(logfilename)
+                        sql_read_data[0]['postcheck_result'] = 'OK' if check_interface_result else 'NOT OK'
                     try:
                         del sql_read_data[0]['id']
                         del sql_read_data[0]['last_updated']
