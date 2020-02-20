@@ -2062,30 +2062,35 @@ def get_fiblist(input_text = None):
 
 check_interface_result = True
 def check_interface_data_content(what_yes = None, where = None, what_not = None):
+    """
+    what_yes - string = if occurs in where then OK.
+    what_not - list = if all items from list occurs, then FAIL. Otherwise OK.
+    what_not - string = if string occurs in text, then FAIL.
+    """
     global check_interface_result
-    local_check_interface_result, Alarm_text = 0, str()
+    local_check_interface_result, Alarm_text = 0, []
     if what_yes and where:
         if interface_data.get(where):
             if what_yes.upper() in interface_data.get(where,str()).upper():
                 pass
             else:
                 check_interface_result = False
-                CGI_CLI.uprint("CHECK: '%s' not in '%s' --> FAIL!" % (what_yes, where),
+                CGI_CLI.uprint("CHECK['%s' not in '%s'] = NOT OK." % (what_yes, where),
                     color = 'red')
     if what_not and where:
         if isinstance(what_not, (list,tupple)):
             for item in what_not:
                 if item.upper() == interface_data.get(where,str()).upper():
                     local_check_interface_result += 1
-                    Alarm_text += "CHECK: '%s' in '%s' --> FAIL!\n" % (item, where)
+                    Alarm_text.append("'%s' in '%s'" % (item, where))
             ### ALL FAIL LOGIC ###
             if local_check_interface_result == len(what_not):
-                CGI_CLI.uprint(Alarm_text, color = 'red')
+                CGI_CLI.uprint("CHECK[" + ' AND '.join(Alarm_text) + '] = NOT OK.', color = 'red')
                 check_interface_result = False
         else:
             if what_not.upper() in interface_data.get(where,str()).upper():
                 check_interface_result = False
-                CGI_CLI.uprint("CHECK: '%s' in '%s' --> FAIL!" % (what_not, where),
+                CGI_CLI.uprint("CHECK['%s' in '%s'] = NOT OK." % (what_not, where),
                     color = 'red')
 
 ###############################################################################
