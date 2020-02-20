@@ -2911,9 +2911,12 @@ pre {
                 pre_post_template['swan_id'] = swan_id
                 pre_post_template['router_name'] = device.upper()
                 pre_post_template['int_name'] = interface_id
-                if precheck_mode: pre_post_template['precheck_result'] = 'OK' if check_interface_result else 'NOT OK'
-                else: pre_post_template['postcheck_result'] = 'OK' if check_interface_result else 'NOT OK'
-                pre_post_template['precheck_log'] = copy.deepcopy(logfilename)
+                if precheck_mode:
+                    pre_post_template['precheck_result'] = 'OK' if check_interface_result else 'NOT OK'
+                    pre_post_template['precheck_log'] = copy.deepcopy(logfilename)
+                else:
+                    pre_post_template['postcheck_result'] = 'OK' if check_interface_result else 'NOT OK'
+                    pre_post_template['postcheck_log'] = copy.deepcopy(logfilename)
 
                 CGI_CLI.uprint(pre_post_template, name = True, jsonprint = True)
 
