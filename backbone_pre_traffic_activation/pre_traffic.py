@@ -2589,7 +2589,7 @@ pre {
                     try: interface_warning_data['input_errors'] = collect_if_config_rcmd_outputs[10].split('input errors')[0].splitlines()[-1].split()[0].strip()
                     except: interface_warning_data['input_errors'] = str()
 
-                    try: interface_warning_data['input CRC'] = collect_if_config_rcmd_outputs[10].split('input errors')[1].split('CRC,')[0].splitlines()[-1].split()[0].split(',')[1].strip()
+                    try: interface_warning_data['input CRC'] = collect_if_config_rcmd_outputs[10].split('input errors,')[1].split('CRC,')[0].strip()
                     except: interface_warning_data['input CRC'] = str()
 
                     try: interface_warning_data['output_errors'] = collect_if_config_rcmd_outputs[10].split('output errors')[0].splitlines()[-1].split()[0].strip()
