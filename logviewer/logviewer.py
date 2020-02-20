@@ -65,9 +65,9 @@ def unix_colors_to_html_colors(text = None):
     color_text = str()
     if text and '\033[' in text:
         color_text = copy.deepcopy(text)
-        color_text = color_text.replace.(bcolors.DEFAULT,'')
-        color_text = color_text.replace.(bcolors.HEADER,'')
-        color_text = color_text.replace.(bcolors.WHITE,'')
+        color_text = color_text.replace(bcolors.DEFAULT,'')
+        color_text = color_text.replace(bcolors.HEADER,'')
+        color_text = color_text.replace(bcolors.WHITE,'')
         color_text = color_text.replace(bcolors.ENDC,'</p>')
         color_text = color_text.replace(bcolors.CYAN,'<p style="color:%s;">' % ('cyan'))
         color_text = color_text.replace(bcolors.MAGENTA,'<p style="color:%s;">' % ('magenta'))
@@ -80,8 +80,8 @@ def unix_colors_to_html_colors(text = None):
         color_text = color_text.replace(bcolors.RED,'<p style="color:%s;">' % ('red'))
         color_text = color_text.replace(bcolors.FAIL,'<p style="color:%s;">' % ('red'))
         color_text = color_text.replace(bcolors.GREY,'<p style="color:%s;">' % ('gray'))
-        color_text = color_text.replace.(bcolors.BOLD,'')
-        color_text = color_text.replace.(bcolors.UNDERLINE,'')
+        color_text = color_text.replace(bcolors.BOLD,'')
+        color_text = color_text.replace(bcolors.UNDERLINE,'')
     return color_text
 
 ###############################################################################
@@ -103,29 +103,29 @@ try:
         if variable == "logfile": logfile = value
 
     print("Content-type:text/html")
-    print("Status: %s %s\r\n" % ('200',""))
-    print("\r\n\r\n")
+    print("Status: %s %s\r\n\r\n\r\n" % ('200',""))
 
     ### LOGFILE SECURITY ######################################################
-    if 'LOG' in logfile.upper() or 'HTM' in logfile.upper(): pass
+    if not logfile:
+        print('<pre>' + 'Logfile is not inserted.' + '</pre>')
+        sys.exit(0)
+    elif 'LOG' in str(logfile).upper() or 'HTM' in str(logfile).upper(): pass
     else:
         print('<pre>' + 'Inserted file is not logfile.' + '</pre>')
         sys.exit(0)
 
-    if logfile:
-        try:
-            with open(logfile,"r") as file:
-                file_opened = True
-                logfile_content = file.read()
-                if '<html>' in logfile_content:
-                    print(logfile_content)
-                else:
-                    print('<pre>' + \
-                        unix_colors_to_html_colors(html_escape(logfile_content, pre_tag = True)) \
-                        + '</pre>')
-        except: pass
-        if not file_opened: print('<pre>' + 'Logfile %s not found.' % (logfile) + '</pre>')
-    else: print('<pre>' + 'No logfile inserted.' + '</pre>')
+    try:
+        with open(logfile,"r") as file:
+            file_opened = True
+            logfile_content = file.read()
+            if '<html>' in logfile_content:
+                print(logfile_content)
+            else:
+                print('<pre>' + \
+                    unix_colors_to_html_colors(html_escape(logfile_content, pre_tag = True)) \
+                    + '</pre>')
+    except: pass
+    if not file_opened: print('<pre>' + 'Logfile %s not found.' % (logfile) + '</pre>')
 
 except SystemExit: pass
 except:
