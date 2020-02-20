@@ -60,11 +60,11 @@ def html_escape(text = None, pre_tag = None):
             replace('<','&lt;').replace('>','&gt;'))
     return escaped_text
 
+
 ### CONVERT UNIX COLORS TO HTML COLORS ########################################
 def unix_colors_to_html_colors(text = None):
-    color_text = str()
+    color_text = text
     if text and '\033[' in text:
-        color_text = copy.deepcopy(text)
         color_text = color_text.replace(bcolors.DEFAULT,'')
         color_text = color_text.replace(bcolors.HEADER,'')
         color_text = color_text.replace(bcolors.WHITE,'')
@@ -83,6 +83,27 @@ def unix_colors_to_html_colors(text = None):
         color_text = color_text.replace(bcolors.BOLD,'')
         color_text = color_text.replace(bcolors.UNDERLINE,'')
     return color_text
+
+
+### HTML COLORIZER OF NONE COLURED LOGFILES ###################################
+def html_colorizer(text = None):
+    color_text = text
+    ### IF UNIX COLORS OCCURS, FILE IS ALREADY COLORED ########################
+    if text and not '\033[' in text:
+        color_text = str()
+        for line in text.splitlines():
+            if 'REMOTE_COMMAND:' in line or 'LOCAL_COMMAND:' in line \
+                or 'EVAL:' in line or 'EXEC:' in line \
+                or 'CHECKING COMMIT ERRORS.' in line:
+                color_text += '<p style="color:blue;">%s</p>' % (line)
+            elif ' SUCCESSFULL.' in line:
+                color_text += '<p style="color:green;">%s</p>' % (line)
+            elif 'CONFIGURATION PROBLEM FOUND:' in line \
+                or ' FAILED!' in line:
+                color_text += '<p style="color:red;">%s</p>' % (line)
+            else: color_text += line + '\n'
+    return color_text
+
 
 ###############################################################################
 #
@@ -107,11 +128,13 @@ try:
 
     ### LOGFILE SECURITY ######################################################
     if not logfile:
-        print('<pre>' + 'Logfile is not inserted.' + '</pre>')
+        print('<html><head></head><body><pre>' + 'Logfile is not inserted.' \
+            + '</pre></html></body>')
         sys.exit(0)
     elif 'LOG' in str(logfile).upper() or 'HTM' in str(logfile).upper(): pass
     else:
-        print('<pre>' + 'Inserted file is not logfile.' + '</pre>')
+        print('<html><head></head><body><pre>' + 'Inserted file is not logfile.' \
+            + '</pre></html></body>')
         sys.exit(0)
 
     try:
@@ -121,11 +144,14 @@ try:
             if '<html>' in logfile_content:
                 print(logfile_content)
             else:
-                print('<pre>' + \
-                    unix_colors_to_html_colors(html_escape(logfile_content, pre_tag = True)) \
-                    + '</pre>')
+                print('<html><head></head><body><pre>' + \
+                    unix_colors_to_html_colors(html_colorizer(html_escape(logfile_content, pre_tag = True))) \
+                    + '</pre></html></body>')
     except: pass
-    if not file_opened: print('<pre>' + 'Logfile %s not found.' % (logfile) + '</pre>')
+
+    if not file_opened:
+        print('<html><head></head><body><pre>' + 'Logfile %s not found.' % \
+            (logfile) + '</pre></html></body>')
 
 except SystemExit: pass
 except:
