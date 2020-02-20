@@ -163,7 +163,7 @@ class CGI_CLI(object):
             variable = str(key)
             try: value = str(form.getvalue(variable))
             except: value = str(','.join(form.getlist(name)))
-            if variable and value and not variable in ["submit","username","password"]:
+            if variable and value and not variable in ["username","password"]:
                 CGI_CLI.data[variable] = value
             if variable == "submit": CGI_CLI.submit_form = value
             if variable == "username": CGI_CLI.username = value
@@ -2144,7 +2144,7 @@ pre {
     LCMD.init()
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
     printall = CGI_CLI.data.get("printall")
-
+    printall = True
 
     ### MULTIPLE INPUTS FROM MORE MARTIN'S PAGES ##############################
     swan_id = CGI_CLI.data.get("swan",str())
