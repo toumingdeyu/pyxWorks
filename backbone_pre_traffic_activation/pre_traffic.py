@@ -2229,7 +2229,7 @@ pre {
 
     ### START PRINTING AND LOGGING ############################################
     changelog = 'https://github.com/peteneme/pyxWorks/commits/master/backbone_pre_traffic_activation/pre_traffic.py'
-    SCRIPT_NAME = 'Interface (Backbone/Custom) pre traffic activation tool'
+    SCRIPT_NAME = 'Interface (Backbone/Custom) pre traffic activation check'
     if CGI_CLI.cgi_active:
         CGI_CLI.uprint('<h1 style="color:blue;">%s <a href="%s" style="text-decoration: none">(v.%s)</a></h1>' % \
             (SCRIPT_NAME, changelog, CGI_CLI.VERSION()), raw = True)
