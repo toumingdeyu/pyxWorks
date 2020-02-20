@@ -2146,21 +2146,18 @@ pre {
     printall = CGI_CLI.data.get("printall")
 
 
-
-
-
     ### MULTIPLE INPUTS FROM MORE MARTIN'S PAGES ##############################
     swan_id = CGI_CLI.data.get("swan",str())
-    if CGI_CLI.data.get("precheck") \
-        or CGI_CLI.data.get("radio",str()) == 'precheck' \
-        or CGI_CLI.data.get('submit-type',str()) == 'submit-with-precheck' \
-        or CGI_CLI.data.get('submit',str()) == 'Run precheck':
-            precheck_mode = True
-    elif CGI_CLI.data.get("postcheck") \
+    if CGI_CLI.data.get("postcheck") \
         or CGI_CLI.data.get("radio",str()) == 'postcheck' \
         or CGI_CLI.data.get('submit-type',str()) == 'submit-with-postcheck' \
         or CGI_CLI.data.get('submit',str()) == 'Run postcheck':
             precheck_mode = False
+    elif CGI_CLI.data.get("precheck") \
+        or CGI_CLI.data.get("radio",str()) == 'precheck' \
+        or CGI_CLI.data.get('submit-type',str()) == 'submit-with-precheck' \
+        or CGI_CLI.data.get('submit',str()) == 'Run precheck':
+            precheck_mode = True
 
 
     ### def MAKE DEVICE LIST ##################################################
