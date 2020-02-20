@@ -2708,7 +2708,7 @@ pre {
                     interface = ipaddress.IPv6Interface(u'%s/127'% (interface_data.get('ipv6_addr_loc')))
                     ipv6_network = interface.network
                     for addr in ipaddress.IPv6Network(ipv6_network):
-                        if str(addr) == str(interface_data.get('ipv4_addr_loc')): pass
+                        if str(addr) == str(interface_data.get('ipv6_addr_loc')): pass
                         else:
                             interface_data['ipv6_addr_rem_calculated'] = str(addr)
                             interface_data['ipv6_addr_rem'] = str(addr)
@@ -2827,13 +2827,13 @@ pre {
                         (interface_data.get('interface_id')), tag = 'h3', color = 'red')
                     CGI_CLI.uprint('\n'.join(None_elements), color = 'red')
 
-                ### CONTENT ELEMENT CHECK #####################################
+
+                ### def CONTENT ELEMENT CHECK #################################
                 check_interface_data_content('100', 'ping_v4_%success')
                 check_interface_data_content('100', 'ping_v4_mtu_%success')
                 check_interface_data_content('100', 'ping_v6_%success')
                 check_interface_data_content('100', 'ping_v6_mtu_%success')
                 check_interface_data_content(interface_data.get('ipv4_addr_rem'), 'ipv4_addr_rem_calculated')
-
 
                 if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
                     check_interface_data_content('UP', 'line protocol is')
