@@ -24,6 +24,28 @@ from mako.template import Template
 from mako.lookup import TemplateLookup
 
 
+### UNIX TEXT COLORS ##########################################################
+class bcolors:
+        DEFAULT    = '\033[99m'
+        WHITE      = '\033[97m'
+        CYAN       = '\033[96m'
+        MAGENTA    = '\033[95m'
+        HEADER     = '\033[95m'
+        OKBLUE     = '\033[94m'
+        BLUE       = '\033[94m'
+        YELLOW     = '\033[93m'
+        GREEN      = '\033[92m'
+        OKGREEN    = '\033[92m'
+        WARNING    = '\033[93m'
+        RED        = '\033[91m'
+        FAIL       = '\033[91m'
+        GREY       = '\033[90m'
+        ENDC       = '\033[0m'
+        BOLD       = '\033[1m'
+        UNDERLINE  = '\033[4m'
+
+
+### HTML ESCAPE - TEXT TO HTML ################################################
 def html_escape(text = None, pre_tag = None):
     escaped_text = str()
     if text and not pre_tag:
@@ -33,11 +55,34 @@ def html_escape(text = None, pre_tag = None):
             replace('"','&quot;').replace("'",'&apos;').\
             replace('\n','<br/>'))
     elif text and pre_tag:
-        ### OMMIT SPACES,QUOTES AND NEWLINES ##############################
+        ### OMMIT SPACES,QUOTES AND NEWLINES ##################################
         escaped_text = str(text.replace('&','&amp;').\
             replace('<','&lt;').replace('>','&gt;'))
     return escaped_text
 
+### CONVERT UNIX COLORS TO HTML COLORS ########################################
+def unix_colors_to_html_colors(text = None):
+    color_text = str()
+    if text and '\033[' in text:
+        color_text = copy.deepcopy(text)
+        color_text = color_text.replace.(bcolors.DEFAULT,'')
+        color_text = color_text.replace.(bcolors.HEADER,'')
+        color_text = color_text.replace.(bcolors.WHITE,'')
+        color_text = color_text.replace(bcolors.ENDC,'</p>')
+        color_text = color_text.replace(bcolors.CYAN,'<p style="color:%s;">' % ('cyan'))
+        color_text = color_text.replace(bcolors.MAGENTA,'<p style="color:%s;">' % ('magenta'))
+        color_text = color_text.replace(bcolors.BLUE,'<p style="color:%s;">' % ('blue'))
+        color_text = color_text.replace(bcolors.OKBLUE,'<p style="color:%s;">' % ('blue'))
+        color_text = color_text.replace(bcolors.GREEN,'<p style="color:%s;">' % ('green'))
+        color_text = color_text.replace(bcolors.OKGREEN,'<p style="color:%s;">' % ('green'))
+        color_text = color_text.replace(bcolors.YELLOW,'<p style="color:%s;">' % ('yellow'))
+        color_text = color_text.replace(bcolors.WARNING,'<p style="color:%s;">' % ('yellow'))
+        color_text = color_text.replace(bcolors.RED,'<p style="color:%s;">' % ('red'))
+        color_text = color_text.replace(bcolors.FAIL,'<p style="color:%s;">' % ('red'))
+        color_text = color_text.replace(bcolors.GREY,'<p style="color:%s;">' % ('gray'))
+        color_text = color_text.replace.(bcolors.BOLD,'')
+        color_text = color_text.replace.(bcolors.UNDERLINE,'')
+    return color_text
 
 ###############################################################################
 #
@@ -57,13 +102,13 @@ try:
         except: value = str(','.join(form.getlist(name)))
         if variable == "logfile": logfile = value
 
-    ### if form: ###
     print("Content-type:text/html")
     print("Status: %s %s\r\n" % ('200',""))
     print("\r\n\r\n")
 
-    ### LOGFILE SECURITY ###
-    if not 'LOG' in logfile.upper():
+    ### LOGFILE SECURITY ######################################################
+    if 'LOG' in logfile.upper() or 'HTM' in logfile.upper(): pass
+    else:
         print('<pre>' + 'Inserted file is not logfile.' + '</pre>')
         sys.exit(0)
 
@@ -75,7 +120,9 @@ try:
                 if '<html>' in logfile_content:
                     print(logfile_content)
                 else:
-                    print('<pre>' + html_escape(logfile_content, pre_tag = True) + '</pre>')
+                    print('<pre>' + \
+                        unix_colors_to_html_colors(html_escape(logfile_content, pre_tag = True)) \
+                        + '</pre>')
         except: pass
         if not file_opened: print('<pre>' + 'Logfile %s not found.' % (logfile) + '</pre>')
     else: print('<pre>' + 'No logfile inserted.' + '</pre>')
