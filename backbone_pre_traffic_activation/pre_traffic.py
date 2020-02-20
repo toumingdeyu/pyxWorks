@@ -2592,7 +2592,7 @@ pre {
                     try: interface_warning_data['input CRC'] = collect_if_config_rcmd_outputs[10].split('input errors')[1].split('CRC,').split()[0].splitlines()[-1].split(',')[1].strip()
                     except: interface_warning_data['input CRC'] = str()
 
-                    try: interface_warning_data['output_errors'] = collect_if_config_rcmd_outputs[10].split('output errors').split()[0].splitlines()[-1].strip()
+                    try: interface_warning_data['output_errors'] = collect_if_config_rcmd_outputs[10].split('output errors')[1].split()[0].splitlines()[-1].strip()
                     except: interface_warning_data['output_errors'] = str()
 
 
@@ -2649,31 +2649,31 @@ pre {
                     except: interface_data['rsvp interface'] = str()
 
                     ### WARNINGS ###
-                    try: interface_warning_data['Active alarms'] = collect_if_config_rcmd_outputs[13].split('Active alarms  : ')[1].split()[1].strip()
+                    try: interface_warning_data['Active alarms'] = collect_if_config_rcmd_outputs[13].split('Active alarms  : ')[1].split()[0].strip()
                     except: interface_warning_data['Active alarms'] = str()
 
-                    try: interface_warning_data['Active defects'] = collect_if_config_rcmd_outputs[13].split('Active defects : ')[1].split()[1].strip()
+                    try: interface_warning_data['Active defects'] = collect_if_config_rcmd_outputs[13].split('Active defects : ')[1].split()[0].strip()
                     except: interface_warning_data['Active defects : '] = str()
 
-                    try: interface_warning_data['Bit errors'] = collect_if_config_rcmd_outputs[13].split('Bit errors ')[1].split()[1].strip()
+                    try: interface_warning_data['Bit errors'] = collect_if_config_rcmd_outputs[13].split('Bit errors ')[1].split()[0].strip()
                     except: interface_warning_data['Bit errors'] = str()
 
-                    try: interface_warning_data['Errored blocks'] = collect_if_config_rcmd_outputs[13].split('Errored blocks ')[1].split()[1].strip()
+                    try: interface_warning_data['Errored blocks'] = collect_if_config_rcmd_outputs[13].split('Errored blocks ')[1].split()[0].strip()
                     except: interface_warning_data['Errored blocks'] = str()
 
-                    try: interface_warning_data['Ethernet FEC statistics'] = collect_if_config_rcmd_outputs[13].split('Ethernet FEC statistics ')[1].split()[1].strip()
+                    try: interface_warning_data['Ethernet FEC statistics'] = collect_if_config_rcmd_outputs[13].split('Ethernet FEC statistics ')[1].split()[0].strip()
                     except: interface_warning_data['Ethernet FEC statistics'] = str()
 
-                    try: interface_warning_data['FEC Corrected Errors'] = collect_if_config_rcmd_outputs[13].split('FEC Corrected Errors ')[1].split()[1].strip()
+                    try: interface_warning_data['FEC Corrected Errors'] = collect_if_config_rcmd_outputs[13].split('FEC Corrected Errors ')[1].split()[0].strip()
                     except: interface_warning_data['FEC Corrected Errors'] = str()
 
-                    try: interface_warning_data['FEC Uncorrected Errors'] = collect_if_config_rcmd_outputs[13].split('FEC Uncorrected Errors ')[1].split()[1].strip()
+                    try: interface_warning_data['FEC Uncorrected Errors'] = collect_if_config_rcmd_outputs[13].split('FEC Uncorrected Errors ')[1].split()[0].strip()
                     except: interface_warning_data['FEC Uncorrected Errors'] = str()
 
-                    try: interface_warning_data['FEC Corrected Errors Rate'] = collect_if_config_rcmd_outputs[13].split('FEC Corrected Errors Rate ')[1].split()[1].strip()
+                    try: interface_warning_data['FEC Corrected Errors Rate'] = collect_if_config_rcmd_outputs[13].split('FEC Corrected Errors Rate ')[1].split()[0].strip()
                     except: interface_warning_data['FEC Corrected Errors Rate'] = str()
 
-                    try: interface_warning_data['FEC Uncorrected Errors Rate'] = collect_if_config_rcmd_outputs[13].split('FEC Uncorrected Errors Rate ')[1].split()[1].strip()
+                    try: interface_warning_data['FEC Uncorrected Errors Rate'] = collect_if_config_rcmd_outputs[13].split('FEC Uncorrected Errors Rate ')[1].split()[0].strip()
                     except: interface_warning_data['FEC Uncorrected Errors Rate'] = str()
 
                 ### def HUAWEI 1st CMDS #######################################
@@ -2718,31 +2718,31 @@ pre {
                     except: interface_data['rsvp interface'] = str()
 
                     ### WARNINGS ###
-                    try: interface_warning_data['Rx Power'] = collect_if_config_rcmd_outputs[10].split('Rx Power: ')[1].split()[1].strip()
+                    try: interface_warning_data['Rx Power'] = collect_if_config_rcmd_outputs[10].split('Rx Power: ')[1].split()[0].strip()
                     except: interface_warning_data['Rx Power'] = str()
 
-                    try: interface_warning_data['Tx Power'] = collect_if_config_rcmd_outputs[10].split('Tx Power: ')[1].split()[1].strip()
+                    try: interface_warning_data['Tx Power'] = collect_if_config_rcmd_outputs[10].split('Tx Power: ')[1].split()[0].strip()
                     except: interface_warning_data['Tx Power'] = str()
 
-                    try: interface_warning_data['CRC'] = collect_if_config_rcmd_outputs[10].split('CRC: ')[1].split()[1].strip()
+                    try: interface_warning_data['CRC'] = collect_if_config_rcmd_outputs[10].split('CRC: ')[1].split()[0].strip()
                     except: interface_warning_data['CRC'] = str()
 
-                    try: interface_warning_data['Overrun'] = collect_if_config_rcmd_outputs[10].split('Overrun: ')[1].split()[1].strip()
+                    try: interface_warning_data['Overrun'] = collect_if_config_rcmd_outputs[10].split('Overrun: ')[1].split()[0].strip()
                     except: interface_warning_data['Overrun'] = str()
 
-                    try: interface_warning_data['Lost'] = collect_if_config_rcmd_outputs[10].split('Lost: ')[1].split()[1].strip()
+                    try: interface_warning_data['Lost'] = collect_if_config_rcmd_outputs[10].split('Lost: ')[1].split()[0].strip()
                     except: interface_warning_data['Lost'] = str()
 
-                    try: interface_warning_data['Overflow'] = collect_if_config_rcmd_outputs[10].split('Overflow: ')[1].split()[1].strip()
+                    try: interface_warning_data['Overflow'] = collect_if_config_rcmd_outputs[10].split('Overflow: ')[1].split()[0].strip()
                     except: interface_warning_data['Overflow'] = str()
 
-                    try: interface_warning_data['Underrun'] = collect_if_config_rcmd_outputs[10].split('Underrun: ')[1].split()[1].strip()
+                    try: interface_warning_data['Underrun'] = collect_if_config_rcmd_outputs[10].split('Underrun: ')[1].split()[0].strip()
                     except: interface_warning_data['Underrun'] = str()
 
-                    try: interface_warning_data['Local fault'] = collect_if_config_rcmd_outputs[10].split('Local fault: ')[1].split()[1].strip().replace('.','')
+                    try: interface_warning_data['Local fault'] = collect_if_config_rcmd_outputs[10].split('Local fault: ')[1].split()[0].strip().replace('.','')
                     except: interface_warning_data['Local fault'] = str()
 
-                    try: interface_warning_data['Remote fault'] = collect_if_config_rcmd_outputs[10].split('Remote fault: ')[1].split()[1].strip().replace('.','')
+                    try: interface_warning_data['Remote fault'] = collect_if_config_rcmd_outputs[10].split('Remote fault: ')[1].split()[0].strip().replace('.','')
                     except: interface_warning_data['Remote fault'] = str()
 
                 ### def COLLECT SECOND COMMAND LIST ###########################
