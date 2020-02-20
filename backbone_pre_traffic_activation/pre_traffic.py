@@ -2078,7 +2078,7 @@ def check_interface_data_content(what_yes = None, where = None, what_not = None)
                 CGI_CLI.uprint("CHECK['%s' not in '%s'] = NOT OK." % (what_yes, where),
                     color = 'red')
     if what_not and where:
-        if isinstance(what_not, (list,tupple)):
+        if isinstance(what_not, (list,tuple)):
             for item in what_not:
                 if item.upper() == interface_data.get(where,str()).upper():
                     local_check_interface_result += 1
