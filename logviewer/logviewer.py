@@ -62,26 +62,63 @@ def html_escape(text = None, pre_tag = None):
 
 
 ### CONVERT UNIX COLORS TO HTML COLORS ########################################
+#def unix_colors_to_html_colors(text = None):
+    # color_text = text
+    # if text and '\033[' in text:
+        # color_text = color_text.replace(bcolors.DEFAULT,'')
+        # color_text = color_text.replace(bcolors.HEADER,'')
+        # color_text = color_text.replace(bcolors.WHITE,'')
+        # color_text = color_text.replace(bcolors.ENDC,'</p>')
+        # color_text = color_text.replace(bcolors.CYAN,'<p style="color:%s;">' % ('cyan'))
+        # color_text = color_text.replace(bcolors.MAGENTA,'<p style="color:%s;">' % ('magenta'))
+        # color_text = color_text.replace(bcolors.BLUE,'<p style="color:%s;">' % ('blue'))
+        # color_text = color_text.replace(bcolors.OKBLUE,'<p style="color:%s;">' % ('blue'))
+        # color_text = color_text.replace(bcolors.GREEN,'<p style="color:%s;">' % ('green'))
+        # color_text = color_text.replace(bcolors.OKGREEN,'<p style="color:%s;">' % ('green'))
+        # color_text = color_text.replace(bcolors.YELLOW,'<p style="color:%s;">' % ('yellow'))
+        # color_text = color_text.replace(bcolors.WARNING,'<p style="color:%s;">' % ('yellow'))
+        # color_text = color_text.replace(bcolors.RED,'<p style="color:%s;">' % ('red'))
+        # color_text = color_text.replace(bcolors.FAIL,'<p style="color:%s;">' % ('red'))
+        # color_text = color_text.replace(bcolors.GREY,'<p style="color:%s;">' % ('gray'))
+        # color_text = color_text.replace(bcolors.BOLD,'')
+        # color_text = color_text.replace(bcolors.UNDERLINE,'')
+    # return color_text
+
 def unix_colors_to_html_colors(text = None):
     color_text = text
+    ### IF UNIX COLORS OCCURS, FILE IS ALREADY COLORED ########################
     if text and '\033[' in text:
-        color_text = color_text.replace(bcolors.DEFAULT,'')
-        color_text = color_text.replace(bcolors.HEADER,'')
-        color_text = color_text.replace(bcolors.WHITE,'')
-        color_text = color_text.replace(bcolors.ENDC,'</p>')
-        color_text = color_text.replace(bcolors.CYAN,'<p style="color:%s;">' % ('cyan'))
-        color_text = color_text.replace(bcolors.MAGENTA,'<p style="color:%s;">' % ('magenta'))
-        color_text = color_text.replace(bcolors.BLUE,'<p style="color:%s;">' % ('blue'))
-        color_text = color_text.replace(bcolors.OKBLUE,'<p style="color:%s;">' % ('blue'))
-        color_text = color_text.replace(bcolors.GREEN,'<p style="color:%s;">' % ('green'))
-        color_text = color_text.replace(bcolors.OKGREEN,'<p style="color:%s;">' % ('green'))
-        color_text = color_text.replace(bcolors.YELLOW,'<p style="color:%s;">' % ('yellow'))
-        color_text = color_text.replace(bcolors.WARNING,'<p style="color:%s;">' % ('yellow'))
-        color_text = color_text.replace(bcolors.RED,'<p style="color:%s;">' % ('red'))
-        color_text = color_text.replace(bcolors.FAIL,'<p style="color:%s;">' % ('red'))
-        color_text = color_text.replace(bcolors.GREY,'<p style="color:%s;">' % ('gray'))
-        color_text = color_text.replace(bcolors.BOLD,'')
-        color_text = color_text.replace(bcolors.UNDERLINE,'')
+        color_text = str()
+        for line in text.splitlines():
+            line = line.strip().replace(bcolors.DEFAULT,'').\
+                replace(bcolors.HEADER,'').replace(bcolors.BOLD,'').\
+                replace(bcolors.UNDERLINE,'').replace(bcolors.ENDC,'')
+                
+            ### ONLY ONE P TAG PER LINE #######################################    
+            if '\033[' in line:
+                if bcolors.CYAN in line:
+                    color = 'cyan'
+                    line = line.replace(bcolors.CYAN,'')
+                if bcolors.MAGENTA in line:
+                    color = 'magenta'
+                    line = line.replace(bcolors.MAGENTA,'')
+                if bcolors.BLUE in line:
+                    color = 'blue'
+                    line = line.replace(bcolors.BLUE,'')
+                if bcolors.GREEN in line:
+                    color = 'green'
+                    line = line.replace(bcolors.GREEN,'')
+                if bcolors.YELLOW in line:
+                    color = 'yellow'
+                    line = line.replace(bcolors.YELLOW,'')
+                if bcolors.RED in line:
+                    color = 'red'
+                    line = line.replace(bcolors.RED,'')
+                if bcolors.GREY in line:
+                    color = 'gray'
+                    line = line.replace(bcolors.RED,'')
+                color_text += '<p style="color:%s;">%s</p>' % (color,line)
+            else: color_text += line + '\n'
     return color_text
 
 
