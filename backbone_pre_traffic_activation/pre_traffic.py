@@ -2302,6 +2302,8 @@ pre {
                 pre_post_template['int_name'] = interface_id
                 pre_post_template['precheck_result'] = '-'
                 pre_post_template['postcheck_result'] = '-'
+                pre_post_template['precheck_log'] = str()
+                pre_post_template['postcheck_log'] = str()
 
                 ### TEST IF SWAN ALREADY RECORD EXISTS ########################
                 sql_read_data = sql_inst.sql_read_records_to_dict_list( \
@@ -2330,7 +2332,7 @@ pre {
 
                 else:
                     sql_inst.sql_write_table_from_dict('pre_post_result', pre_post_template)
-                    CGI_CLI.uprint ("RECORD swan_id='%s' and router_name='%s' and int_name='%s'DONE." \
+                    CGI_CLI.uprint ("RECORD swan_id='%s' and router_name='%s' and int_name='%s' DONE." \
                         % (swan_id, device.upper(), interface_id))
         sys.exit(0)
 
