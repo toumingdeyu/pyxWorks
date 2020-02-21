@@ -2382,9 +2382,9 @@ pre {
 
             CGI_CLI.formprint( interface_menu_list + \
                 ['<br/>','<br/>',\
-                {'radio':['precheck','postcheck']},'<br/>',\
-                {'text':'swan_id'},'<br/>',\
-                {'checkbox':'reinit_swan_id'},'<br/>',\
+                {'radio':['precheck','postcheck']},'<br/>','<br/>',\
+                {'text':'swan_id'},\
+                {'checkbox':'reinit_swan_id'},'<br/>','<br/>',\
                 {'checkbox':'send_email'},'<br/>',\
                 {'checkbox':'chunked_mode'},'<br/>',\
                 {'checkbox':'printall'},'<br/>','<br/>'], \
