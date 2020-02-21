@@ -1966,7 +1966,7 @@ def get_interface_list_per_device(device = None, action_type = None):
 
     if device:
         RCMD.connect(device, username = USERNAME, password = PASSWORD, \
-            printall = printall, logfilename = logfilename, silent_mode = True, \
+            printall = printall, silent_mode = True, \
             disconnect_timeout = 0.1)
 
         if RCMD.ssh_connection:
