@@ -2077,39 +2077,76 @@ def get_fiblist(input_text = None):
 
 ###############################################################################
 
-check_interface_result = True
-def check_interface_data_content(what_yes = None, where = None, what_not = None):
+check_interface_result, check_warning_interface_result = True, True
+def check_interface_data_content(where = None, what_yes_in = None, what_not = None, \
+    exact_value_yes = None, warning = None):
     """
-    what_yes - string = if occurs in where then OK.
+    what_yes_in - string = if occurs in where then OK.
     what_not - list = if all items from list occurs, then FAIL. Otherwise OK.
     what_not - string = if string occurs in text, then FAIL.
     """
     global check_interface_result
+    global check_warning_interface_result
     local_check_interface_result, Alarm_text = 0, []
-    if what_yes and where:
-        if interface_data.get(where):
-            if what_yes.upper() in interface_data.get(where,str()).upper():
-                CGI_CLI.logtofile("CHECK['%s' in '%s'] = OK.\n" % (what_yes, where))
+    if what_yes_in and where or exact_value_yes and where:
+
+        if warning: where_value = interface_warning_data.get(where, str())
+        else: where_value = interface_data.get(where, str())
+
+        if where_value:
+            if exact_value_yes:
+                if exact_value_yes.upper() == where_value.upper():
+                    CGI_CLI.logtofile("CHECK['%s' == '%s'] = OK.\n" % (exact_value_yes, where))
+                else:
+                    if warning:
+                        check_warning_interface_result = False
+                        CGI_CLI.uprint("CHECK['%s' != '%s'] = WARNING." % (exact_value_yes, where),
+                            color = 'orange')
+                    else:
+                        check_interface_result = False
+                        CGI_CLI.uprint("CHECK['%s' != '%s'] = NOT OK." % (exact_value_yes, where),
+                            color = 'red')
             else:
-                check_interface_result = False
-                CGI_CLI.uprint("CHECK['%s' not in '%s'] = NOT OK." % (what_yes, where),
-                    color = 'red')
+                if what_yes_in.upper() in where_value.upper():
+                    CGI_CLI.logtofile("CHECK['%s' in '%s'] = OK.\n" % (what_yes_in, where))
+                else:
+                    if warning:
+                        check_warning_interface_result = False
+                        CGI_CLI.uprint("CHECK['%s' not in '%s'] = WARNING." % (what_yes_in, where),
+                            color = 'orange')
+                    else:
+                        check_interface_result = False
+                        CGI_CLI.uprint("CHECK['%s' not in '%s'] = NOT OK." % (what_yes_in, where),
+                            color = 'red')
     if what_not and where:
+
+        if warning: where_value = interface_warning_data.get(where, str())
+        else: where_value = interface_data.get(where, str())
+
         if isinstance(what_not, (list,tuple)):
             for item in what_not:
-                if item.upper() == interface_data.get(where,str()).upper():
+                if item.upper() in where_value.upper():
                     local_check_interface_result += 1
                     Alarm_text.append("'%s' in '%s'" % (item, where))
             ### ALL FAIL LOGIC ###
             if local_check_interface_result == len(what_not):
-                CGI_CLI.uprint("CHECK[" + ' AND '.join(Alarm_text) + '] = NOT OK.', color = 'red')
-                check_interface_result = False
+                if warning:
+                    check_warning_interface_result = False
+                    CGI_CLI.uprint("CHECK[" + ' AND '.join(Alarm_text) + '] = WARNING.', color = 'orange')
+                else:
+                    CGI_CLI.uprint("CHECK[" + ' AND '.join(Alarm_text) + '] = NOT OK.', color = 'red')
+                    check_interface_result = False
             else: CGI_CLI.logtofile("CHECK[ ['%s'] not in '%s'] = OK.\n" % (','.join(what_not), where))
         else:
-            if what_not.upper() in interface_data.get(where,str()).upper():
-                check_interface_result = False
-                CGI_CLI.uprint("CHECK['%s' in '%s'] = NOT OK." % (what_not, where),
-                    color = 'red')
+            if what_not.upper() in where_value.upper():
+                if warning:
+                    check_warning_interface_result = False
+                    CGI_CLI.uprint("CHECK['%s' in '%s'] = WARNING." % (what_not, where),
+                        color = 'orange')
+                else:
+                    check_interface_result = False
+                    CGI_CLI.uprint("CHECK['%s' in '%s'] = NOT OK." % (what_not, where),
+                        color = 'red')
             else: CGI_CLI.logtofile("CHECK['%s' not in '%s'] = OK.\n" % (what_not, where))
 
 
@@ -2653,8 +2690,8 @@ pre {
                     try: interface_warning_data['input_errors'] = collect_if_config_rcmd_outputs[10].split('input errors')[0].splitlines()[-1].split()[0].strip()
                     except: interface_warning_data['input_errors'] = str()
 
-                    try: interface_warning_data['input CRC'] = collect_if_config_rcmd_outputs[10].split('input errors,')[1].split('CRC,')[0].strip()
-                    except: interface_warning_data['input CRC'] = str()
+                    try: interface_warning_data['input_CRC'] = collect_if_config_rcmd_outputs[10].split('input errors,')[1].split('CRC,')[0].strip()
+                    except: interface_warning_data['input_CRC'] = str()
 
                     try: interface_warning_data['output_errors'] = collect_if_config_rcmd_outputs[10].split('output errors')[0].splitlines()[-1].split()[0].strip()
                     except: interface_warning_data['output_errors'] = str()
@@ -2978,47 +3015,61 @@ pre {
 
 
                 ### def CONTENT ELEMENT CHECK #################################
-                check_interface_data_content('100', 'ping_v4_%success')
-                check_interface_data_content('100', 'ping_v4_mtu_%success')
-                check_interface_data_content('100', 'ping_v6_%success')
-                check_interface_data_content('100', 'ping_v6_mtu_%success')
-                check_interface_data_content(interface_data.get('ipv4_addr_rem'), 'ipv4_addr_rem_calculated')
+                check_interface_data_content('ping_v4_%success', '100')
+                check_interface_data_content('ping_v4_mtu_%success', '100')
+                check_interface_data_content('ping_v6_%success', '100')
+                check_interface_data_content('ping_v6_mtu_%success', '100')
+                check_interface_data_content('ipv4_addr_rem_calculated', \
+                    interface_data.get('ipv4_addr_rem'))
 
                 if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
-                    check_interface_data_content('UP', 'line protocol is')
+                    check_interface_data_content('line protocol is', 'UP')
 
                     if precheck_mode:
-                        check_interface_data_content('9999', 'ipv4_metric')
-                        check_interface_data_content('9999', 'ipv6_metric')
+                        check_interface_data_content('ipv4_metric', '99999')
+                        check_interface_data_content('ipv6_metric', '99999')
                     else:
-                        check_interface_data_content(None, 'ipv4_metric', '9999')
-                        check_interface_data_content(None, 'ipv6_metric', '9999')
+                        check_interface_data_content('ipv4_metric', None, '99999')
+                        check_interface_data_content('ipv6_metric', None, '99999')
+
+                    check_interface_data_content('input_errors', exact_value_yes = '0', warning = True)
+                    check_interface_data_content('input_CRC', exact_value_yes = '0', warning = True)
+                    check_interface_data_content('output_errors', exact_value_yes = '0', warning = True)
 
                 elif RCMD.router_type == 'juniper':
-                    check_interface_data_content('UP', 'Flags')
-                    check_interface_data_content('UP', 'Physical link is')
-                    check_interface_data_content('in sync', 'LDP sync state')
+                    check_interface_data_content('Flags', 'UP')
+                    check_interface_data_content('Physical link is', 'UP')
+                    check_interface_data_content('LDP sync state', 'in sync')
 
                     if precheck_mode:
-                        check_interface_data_content('9999', 'metric')
+                        check_interface_data_content('metric', '99999')
                     else:
-                        check_interface_data_content(None, 'metric', '9999')
+                        check_interface_data_content('metric', None,  '99999')
+
+                    check_interface_data_content('Active alarms', 'None', warning = True)
+                    check_interface_data_content('Active defects', 'None', warning = True)
+
 
                 elif RCMD.router_type == 'huawei':
-                    check_interface_data_content('Achieved', 'isis ldp-sync')
-                    check_interface_data_content('UP', 'Line protocol current state')
-                    check_interface_data_content('UP', 'isis interface IPV4.State')
-                    check_interface_data_content('UP', 'isis interface IPV6.State')
+                    check_interface_data_content('isis ldp-sync', 'Achieved')
+                    check_interface_data_content('Line protocol current state', 'UP')
+                    check_interface_data_content('isis interface IPV4.State', 'UP')
+                    check_interface_data_content('isis interface IPV6.State', 'UP')
 
                     if precheck_mode:
-                        check_interface_data_content('9999', 'isis cost')
-                        check_interface_data_content('9999', 'isis ipv6 cost')
+                        check_interface_data_content('isis cost', '99999')
+                        check_interface_data_content('isis ipv6 cost', '99999')
                     else:
-                        check_interface_data_content(None, 'isis cost', '9999')
-                        check_interface_data_content(None, 'isis ipv6 cost', '9999')
+                        check_interface_data_content('isis cost', None, '99999')
+                        check_interface_data_content('isis ipv6 cost', None, '99999')
+
+                    check_interface_data_content('Local fault', 'NORMAL', warning = True)
+                    check_interface_data_content('Remote fault', 'NORMAL', warning = True)
 
                 ### def INTERFACE RESULTS #####################################
-                interface_result = 'OK' if check_interface_result else 'NOT OK'
+                interface_error_result = 'OK' if check_interface_result else 'NOT OK'
+                interface_warning_result = 'OK' if check_warning_interface_result else 'WARNING'
+                interface_result = interface_error_result if check_interface_result else interface_warning_result
                 interface_results.append([device, interface_id, interface_result])
 
 
@@ -3057,11 +3108,12 @@ pre {
                 pre_post_template['swan_id'] = swan_id
                 pre_post_template['router_name'] = device.upper()
                 pre_post_template['int_name'] = interface_id
+
                 if precheck_mode:
-                    pre_post_template['precheck_result'] = 'OK' if check_interface_result else 'NOT OK'
+                    pre_post_template['precheck_result'] = interface_result
                     pre_post_template['precheck_log'] = copy.deepcopy(logfilename)
                 else:
-                    pre_post_template['postcheck_result'] = 'OK' if check_interface_result else 'NOT OK'
+                    pre_post_template['postcheck_result'] = interface_result
                     pre_post_template['postcheck_log'] = copy.deepcopy(logfilename)
 
                 CGI_CLI.uprint(pre_post_template, name = True, jsonprint = True)
@@ -3083,10 +3135,10 @@ pre {
                 if len(sql_read_data) > 0:
                     if precheck_mode:
                         sql_read_data[0]['precheck_log'] = copy.deepcopy(logfilename)
-                        sql_read_data[0]['precheck_result'] = 'OK' if check_interface_result else 'NOT OK'
+                        sql_read_data[0]['precheck_result'] = interface_result
                     else:
                         sql_read_data[0]['postcheck_log'] = copy.deepcopy(logfilename)
-                        sql_read_data[0]['postcheck_result'] = 'OK' if check_interface_result else 'NOT OK'
+                        sql_read_data[0]['postcheck_result'] = interface_result
                     try:
                         del sql_read_data[0]['id']
                         del sql_read_data[0]['last_updated']
@@ -3139,15 +3191,18 @@ pre {
             else: logviewer = './logviewer.py?logfile=%s' % (logfilename)
             if CGI_CLI.cgi_active:
                 if interface_result == 'NOT OK':
-                    CGI_CLI.logtofile('<p style="color:red;">Device=%s, interface=%s  -  RESULT = %s</p>' \
+                    CGI_CLI.logtofile('<p style="color:red;">Device=%s, Interface=%s  -  RESULT = %s</p>' \
                         % (device, interface_id, interface_result), raw_log = True)
-                else: CGI_CLI.logtofile('<p style="color:green;">Device=%s, interface=%s  -  RESULT = %s</p>' \
+                elif interface_result == 'WARNING':
+                    CGI_CLI.logtofile('<p style="color:orange;">Device=%s, Interface=%s  -  RESULT = %s</p>' \
+                        % (device, interface_id, interface_result), raw_log = True)
+                else: CGI_CLI.logtofile('<p style="color:green;">Device=%s, Interface=%s  -  RESULT = %s</p>' \
                           % (device, interface_id, interface_result), raw_log = True)
                 CGI_CLI.logtofile('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
                     % (logviewer, logfilename), raw_log = True)
                 CGI_CLI.logtofile('<br/>', raw_log = True)
             else:
-                CGI_CLI.logtofile('Device=%s, interface=%s  -  RESULT = %s\n' % (device, interface_id, interface_result))
+                CGI_CLI.logtofile('Device=%s, Interface=%s  -  RESULT = %s\n' % (device, interface_id, interface_result))
                 CGI_CLI.logtofile(' ==> File %s created.\n\n' % (logfilename))
 
         ### CLOSE GLOBAL LOGFILE ##############################################
