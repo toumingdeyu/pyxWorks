@@ -2270,7 +2270,7 @@ pre {
                 CGI_CLI.uprint("WARNING: REINIT swan_id='%s' record(s) in pre_post_result table in DB." \
                      % (swan_id), color = 'red')
             else:
-                CGI_CLI.uprint("WARNING: swan_id='%s' record(s) already exist(s) in pre_post_result table in DB! Exit..." \
+                CGI_CLI.uprint("WARNING: swan_id='%s' record(s) already exist(s) in pre_post_result table in DB! Aborting..." \
                      % (swan_id), color = 'red')
                 sys.exit(0)
 
