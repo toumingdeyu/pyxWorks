@@ -107,17 +107,17 @@ def unix_colors_to_html_colors(text = None):
                     color = 'blue'
                     line = line.replace(bcolors.BLUE,'')
                 if bcolors.GREEN in line:
-                    color = 'green'
+                    color = 'limegreen'
                     line = line.replace(bcolors.GREEN,'')
                 if bcolors.YELLOW in line:
-                    color = 'yellow'
+                    color = 'orange'
                     line = line.replace(bcolors.YELLOW,'')
                 if bcolors.RED in line:
                     color = 'red'
                     line = line.replace(bcolors.RED,'')
                 if bcolors.GREY in line:
                     color = 'gray'
-                    line = line.replace(bcolors.RED,'')
+                    line = line.replace(bcolors.GREY,'')
                 color_text += '<p style="color:%s;">%s</p>' % (color,line)
             else: color_text += line + '\n'
     return color_text
@@ -135,7 +135,7 @@ def html_colorizer(text = None):
                 or 'CHECKING COMMIT ERRORS.' in line:
                 color_text += '<p style="color:blue;">%s</p>' % (line)
             elif ' SUCCESSFULL.' in line:
-                color_text += '<p style="color:green;">%s</p>' % (line)
+                color_text += '<p style="color:limegreen;">%s</p>' % (line)
             elif 'CONFIGURATION PROBLEM FOUND:' in line \
                 or ' FAILED!' in line:
                 color_text += '<p style="color:red;">%s</p>' % (line)
