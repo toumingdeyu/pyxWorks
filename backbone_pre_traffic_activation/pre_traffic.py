@@ -528,7 +528,7 @@ class CGI_CLI(object):
         return time.strftime("%y.%m.%d_%H:%M",time.gmtime(file_time))
 
     @staticmethod
-    def print_args():
+    def print_args(no_print = None):
         from platform import python_version
         print_string = 'python[%s]\n' % (str(python_version()))
         print_string += 'version[%s], ' % (CGI_CLI.VERSION())
@@ -543,7 +543,7 @@ class CGI_CLI(object):
             try: print_string += 'CGI_CLI.data[%s] = %s\n' % (str(CGI_CLI.submit_form),str(json.dumps(CGI_CLI.data, indent = 4)))
             except: pass
         else: print_string += 'CLI_args = %s\nCGI_CLI.data = %s' % (str(sys.argv[1:]), str(json.dumps(CGI_CLI.data,indent = 4)))
-        CGI_CLI.uprint(print_string, tag = 'debug')
+        if not no_print: CGI_CLI.uprint(print_string, tag = 'debug')
         return print_string
 
     @staticmethod
@@ -2270,6 +2270,9 @@ pre {
     if not swan_id and CGI_CLI.data.get('swan_id'):
         swan_id = CGI_CLI.data.get('swan_id')
 
+    if not swan_id and CGI_CLI.data.get('swan-id'):
+        swan_id = CGI_CLI.data.get('swan-id')
+
     if swan_id and not \
         (CGI_CLI.data.get('submit-type',str()) == 'submit-with-precheck' \
         or CGI_CLI.data.get('submit-type',str()) == 'submit-with-precheck' \
@@ -2485,6 +2488,7 @@ pre {
                     CGI_CLI.logtofile('<h1 style="color:blue;">%s <a href="%s" style="text-decoration: none">(v.%s)</a></h1>' % \
                         (SCRIPT_NAME, changelog, CGI_CLI.VERSION()), raw_log = True)
                 else: CGI_CLI.logtofile('%s (v.%s)' % (SCRIPT_NAME,CGI_CLI.VERSION()))
+                CGI_CLI.logtofile(CGI_CLI.print_args(no_print = True)
 
                 if swan_id: CGI_CLI.uprint('SWAN_ID=%s' %(swan_id))
 
