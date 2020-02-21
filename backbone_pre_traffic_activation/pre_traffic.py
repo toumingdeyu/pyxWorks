@@ -110,6 +110,13 @@ class CGI_CLI(object):
         parser.add_argument("--postcheck",
                             action = "store_true", dest = 'postcheck', default = None,
                             help = "do traffic/postcheck")
+        parser.add_argument("--swan_id",
+                            action = "store", dest = 'swan_id',
+                            default = str(),
+                            help = "swan_id name stored in DB")
+        parser.add_argument("--reinit_swan_id",
+                            action = "store_true", dest = 'reinit_swan_id', default = None,
+                            help = "re-init/rewrite initial swan_id record in DB")
         parser.add_argument("--send_email",
                             action = "store_true", dest = 'send_email', default = None,
                             help = "send email with test result logs")
@@ -2241,12 +2248,32 @@ pre {
     sql_inst = sql_interface(host='localhost', user='cfgbuilder', \
         password='cfgbuildergetdata', database='rtr_configuration')
 
-    ### def SQL CREATE RECORDS IF SWAN_ID DEFINED #############################
+
+    ### def SQL CREATE RECORDS IF SWAN_ID AND NO PRE/POST CHECK ACTION ########
+    if not swan_id and CGI_CLI.data.get('swan_id'):
+        swan_id = CGI_CLI.data.get('swan_id')
+
     if swan_id and not \
         (CGI_CLI.data.get('submit-type',str()) == 'submit-with-precheck' \
         or CGI_CLI.data.get('submit-type',str()) == 'submit-with-precheck' \
         or CGI_CLI.data.get('submit',str()) == 'Run precheck' \
         or CGI_CLI.data.get('submit',str()) == 'Run postcheck'):
+
+        ### TEST IF SWAN ALREADY RECORD EXISTS ########################
+        sql_read_data = sql_inst.sql_read_records_to_dict_list( \
+            table_name = 'pre_post_result', \
+            where_string = "swan_id='%s'" % (swan_id) )
+
+        ### WARNING MESSAGE ###########################################
+        if len(sql_read_data) > 1:
+            if CGI_CLI.data.get('reinit_swan_id'):
+                CGI_CLI.uprint("WARNING: REINIT swan_id='%s' record(s) in pre_post_result table in DB." \
+                     % (swan_id), color = 'red')
+            else:
+                CGI_CLI.uprint("WARNING: swan_id='%s' record(s) already exist(s) in pre_post_result table in DB! Exit..." \
+                     % (swan_id), color = 'red')
+                sys.exit(0)
+
 
         for device, interface_list in device_interface_id_list:
             for interface_id in interface_list:
@@ -2356,6 +2383,8 @@ pre {
             CGI_CLI.formprint( interface_menu_list + \
                 ['<br/>','<br/>',\
                 {'radio':['precheck','postcheck']},'<br/>',\
+                {'text':'swan_id'},'<br/>',\
+                {'checkbox':'reinit_swan_id'},'<br/>',\
                 {'checkbox':'send_email'},'<br/>',\
                 {'checkbox':'chunked_mode'},'<br/>',\
                 {'checkbox':'printall'},'<br/>','<br/>'], \
@@ -3107,4 +3136,3 @@ if traceback_found:
         email_body = str(traceback_found),\
         file_name = global_logfilename, username = 'pnemec')
 
-del sql_inst
