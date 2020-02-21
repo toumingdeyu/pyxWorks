@@ -93,8 +93,9 @@ def unix_colors_to_html_colors(text = None):
             line = line.strip().replace(bcolors.DEFAULT,'').\
                 replace(bcolors.HEADER,'').replace(bcolors.BOLD,'').\
                 replace(bcolors.UNDERLINE,'').replace(bcolors.ENDC,'')
-                
-            ### ONLY ONE P TAG PER LINE #######################################    
+
+            ### ONLY ONE P TAG PER LINE #######################################
+            color = 'black'
             if '\033[' in line:
                 if bcolors.CYAN in line:
                     color = 'cyan'
