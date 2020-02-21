@@ -1830,7 +1830,7 @@ def send_me_email(subject = str(), email_body = str(), file_name = None, attachm
 
 ###############################################################################
 
-def get_interface_list_per_device(device = None):
+def get_interface_list_per_device(device = None, action_type = None):
     interface_list = []
     get_interface_rcmds = {
         'cisco_ios':['sh interfaces description'],
@@ -1859,6 +1859,16 @@ def get_interface_list_per_device(device = None):
             for in_line_orig in if_lines:
                 if_line = in_line_orig.replace('                                               ','').replace('GE','Gi').strip()
                 if if_line.strip() == '{master}': continue
+
+                if action_type == 'bbactivation':
+                    if '- CUSTOM' in if_line.strip().upper() \
+                        or '-CUSTOM' in if_line.strip().upper(): continue
+                    if '- PRIVPEER' in if_line.strip().upper() \
+                        or '-PRIVPEER' in if_line.strip().upper(): continue
+                    if '- PUBPEER' in if_line.strip().upper() \
+                        or '-PUBPEER' in if_line.strip().upper(): continue
+                    if 'LOOPBACK' in if_line.strip().upper(): continue
+
                 try: if_name = if_line.split()[0]
                 except: if_name = str()
                 try: if_name = if_name.split('(')[0]
@@ -1911,6 +1921,12 @@ warning {
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
     printall = CGI_CLI.data.get("printall")
 
+    ### ACTION TYPE ###########################################################
+    action_type = 'bbactivation'
+    action_type_list = ['bbactivation', 'bbmigration', 'custommigration']
+    if CGI_CLI.data.get("type"):
+        if CGI_CLI.data.get("type") in action_type_list:
+            action_type = CGI_CLI.data.get("type")
 
     ### READ INTERFACE ID LIST FROM CGI #######################################
     for key in CGI_CLI.data.keys():
@@ -1967,7 +1983,7 @@ warning {
         ABC_list = ['A','B','C','D','E','F','G','H']
         loop_counter = 0
         for device in device_list:
-            device_interface_list = get_interface_list_per_device(device)
+            device_interface_list = get_interface_list_per_device(device, action_type = action_type)
 
             CGI_CLI.uprint('DEVICE %s %s:' % (ABC_list[loop_counter], device), tag = 'h2')
 
