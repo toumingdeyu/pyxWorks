@@ -2488,9 +2488,10 @@ pre {
                     CGI_CLI.logtofile('<h1 style="color:blue;">%s <a href="%s" style="text-decoration: none">(v.%s)</a></h1>' % \
                         (SCRIPT_NAME, changelog, CGI_CLI.VERSION()), raw_log = True)
                 else: CGI_CLI.logtofile('%s (v.%s)' % (SCRIPT_NAME,CGI_CLI.VERSION()))
-                CGI_CLI.logtofile(CGI_CLI.print_args(no_print = True)
 
-                if swan_id: CGI_CLI.uprint('SWAN_ID=%s' %(swan_id))
+                CGI_CLI.logtofile(CGI_CLI.print_args(no_print = True) + '\n\n')
+
+                if swan_id: CGI_CLI.uprint('SWAN_ID=%s' % (swan_id))
 
                 if precheck_mode: CGI_CLI.uprint('Monitoring/precheck mode.')
                 else: CGI_CLI.uprint('Traffic/postcheck mode.')
