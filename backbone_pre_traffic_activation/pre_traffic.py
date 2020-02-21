@@ -2089,7 +2089,7 @@ def check_interface_data_content(what_yes = None, where = None, what_not = None)
     if what_yes and where:
         if interface_data.get(where):
             if what_yes.upper() in interface_data.get(where,str()).upper():
-                pass
+                CGI_CLI.logtofile("CHECK['%s' in '%s'] = OK.\n" % (what_yes, where))
             else:
                 check_interface_result = False
                 CGI_CLI.uprint("CHECK['%s' not in '%s'] = NOT OK." % (what_yes, where),
@@ -2104,11 +2104,14 @@ def check_interface_data_content(what_yes = None, where = None, what_not = None)
             if local_check_interface_result == len(what_not):
                 CGI_CLI.uprint("CHECK[" + ' AND '.join(Alarm_text) + '] = NOT OK.', color = 'red')
                 check_interface_result = False
+            else: CGI_CLI.logtofile("CHECK[ ['%s'] not in '%s'] = OK.\n" % (','.join(what_not), where))
         else:
             if what_not.upper() in interface_data.get(where,str()).upper():
                 check_interface_result = False
                 CGI_CLI.uprint("CHECK['%s' in '%s'] = NOT OK." % (what_not, where),
                     color = 'red')
+            else: CGI_CLI.logtofile("CHECK['%s' not in '%s'] = OK.\n" % (what_not, where))
+
 
 ###############################################################################
 
