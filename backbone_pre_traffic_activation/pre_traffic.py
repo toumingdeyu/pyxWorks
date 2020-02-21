@@ -2265,7 +2265,7 @@ pre {
             where_string = "swan_id='%s'" % (swan_id) )
 
         ### WARNING MESSAGE ###########################################
-        if len(sql_read_data) > 1:
+        if len(sql_read_data) > 0:
             if CGI_CLI.data.get('reinit_swan_id'):
                 CGI_CLI.uprint("WARNING: REINIT swan_id='%s' record(s) in pre_post_result table in DB." \
                      % (swan_id), color = 'red')
