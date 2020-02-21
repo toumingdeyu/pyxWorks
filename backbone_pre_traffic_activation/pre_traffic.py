@@ -2334,6 +2334,14 @@ pre {
                     sql_inst.sql_write_table_from_dict('pre_post_result', pre_post_template)
                     CGI_CLI.uprint ("RECORD swan_id='%s' and router_name='%s' and int_name='%s' DONE." \
                         % (swan_id, device.upper(), interface_id))
+
+                ### TEST IF SWAN ALREADY RECORD EXISTS ########################
+                sql_read_data = sql_inst.sql_read_records_to_dict_list( \
+                    table_name = 'pre_post_result', \
+                    where_string = "swan_id='%s' and router_name='%s' and int_name='%s'" \
+                         % (swan_id, device.upper(), interface_id) )
+                CGI_CLI.uprint(sql_read_data, name = 'DB_READ_CHECK', jsonprint = True)
+
         sys.exit(0)
 
 
@@ -3080,6 +3088,13 @@ pre {
                             % (swan_id, device.upper(), interface_id), update = True)
                 else:
                     sql_inst.sql_write_table_from_dict('pre_post_result', pre_post_template)
+
+                ### TEST IF SWAN ALREADY RECORD EXISTS ########################
+                sql_read_data = sql_inst.sql_read_records_to_dict_list( \
+                    table_name = 'pre_post_result', \
+                    where_string = "swan_id='%s' and router_name='%s' and int_name='%s'" \
+                         % (swan_id, device.upper(), interface_id) )
+                CGI_CLI.uprint(sql_read_data, name = 'DB_READ_CHECK', jsonprint = True)
 
     ### LOOP PER INTERFACE - END ######################################
     RCMD.disconnect()
