@@ -125,6 +125,32 @@ def html_colorizer(text = None):
     return color_text
 
 
+def get_os_output(cmd_line = None):
+    os_output = str()
+    if cmd_line:
+        os_output = subprocess.check_output(str(cmd_line), \
+            stderr=subprocess.STDOUT, shell=True).decode("utf-8")
+    return os_output
+
+
+def print_logviewer_links(directory = None):
+    file_list = []
+    if directory: file_list = get_os_output('ls %s' % (directory)).split()
+
+    iptac_server = get_os_output(cmd_line = 'hostname').strip()
+
+    if iptac_server == 'iptac5': urllink = 'https://10.253.58.126/cgi-bin/'
+    else: urllink = 'https://%s/cgi-bin/' % (iptac_server)
+
+    print('<h1>Directory %s file(s):</h1>\n' % (directory))
+
+    for logfilename in file_list:
+        if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, directory + '/' + logfilename)
+        else: logviewer = './logviewer.py?logfile=%s' % (directory + '/' + logfilename)
+        print('<p style="color:blue;"><a href="%s" target="_blank" style="text-decoration: none">%s</a></p>\n' \
+            % (logviewer, logfilename))
+
+
 ###############################################################################
 #
 # def BEGIN MAIN
@@ -133,7 +159,7 @@ def html_colorizer(text = None):
 
 if __name__ != "__main__": sys.exit(0)
 try:
-    logfile, form, file_opened = None, None, None
+    logfile, form, file_opened, dir1, dir2 = None, None, None, None, None
 
     try: form = cgi.FieldStorage()
     except: pass
@@ -142,17 +168,28 @@ try:
         try: value = str(form.getvalue(variable))
         except: value = str(','.join(form.getlist(name)))
         if variable == "logfile": logfile = value
+        if variable == "dir1": dir1 = True
+        if variable == "dir2": dir2 = True
 
     print("Content-type:text/html")
     print("Status: %s %s\r\n\r\n\r\n" % ('200',""))
 
     ### DISPLAY HTML MENU #####################################################
     if not logfile:
-        i_pyfile = sys.argv[0]
-        try: i_pyfile = i_pyfile.replace('\\','/').split('/')[-1].strip()
-        except: i_pyfile = i_pyfile.strip()
-        print('<html><head></head><body><form action = "/cgi-bin/%s">Insert logfile: <input type="text" name="logfile"><br></form></html></body>' % (i_pyfile))
-        sys.exit(0)
+        if dir1 or dir2:
+            if dir1: print_logviewer_links('/var/PrePost')
+            if dir2: print_logviewer_links('/var/www/cgi-bin/logs')
+            sys.exit(0)
+        else:
+            i_pyfile = sys.argv[0]
+            try: i_pyfile = i_pyfile.replace('\\','/').split('/')[-1].strip()
+            except: i_pyfile = i_pyfile.strip()
+            print('<html><head></head><body><form action = "/cgi-bin/%s">Insert logfile: <input type="text" name="logfile"><br/>' % (i_pyfile))
+            print('<input type="checkbox" name="dir1" value="on"> ls /var/PrePost<br/>')
+            print('<input type="checkbox" name="dir2" value="on"> ls /var/www/cgi-bin/logs<br/>')
+            print('<input id="OK" type="submit" name="submit" value="OK">')
+            print('</form></html></body>')
+            sys.exit(0)
 
     ### LOGFILE SECURITY ######################################################
     if not logfile:
