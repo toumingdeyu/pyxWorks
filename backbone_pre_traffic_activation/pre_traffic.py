@@ -2175,6 +2175,12 @@ warning {
 pre {
   color: gray;
 }
+
+authentication {
+  color: #cc0000;
+  font-size: x-large;
+  font-weight: bold;
+}
 """
     ### GLOBAL VARIABLES AND SETTINGS #########################################
     logging.raiseExceptions = False
@@ -2403,11 +2409,16 @@ pre {
                 {'text':'interface'},'<br/>']
 
             if not (USERNAME and PASSWORD):
-                interface_menu_list.append('<h3>LDAP authentication (required):</h3>')
+                interface_menu_list.append('<br/>')
+                interface_menu_list.append('<authentication>')
+                interface_menu_list.append('LDAP authentication (required):')
+                interface_menu_list.append('<br/>')
+                interface_menu_list.append('<br/>')
                 interface_menu_list.append({'text':'username'})
                 interface_menu_list.append('<br/>')
                 interface_menu_list.append({'password':'password'})
                 interface_menu_list.append('<br/>')
+                interface_menu_list.append('</authentication>')
 
             CGI_CLI.formprint(interface_menu_list + ['<br/>',\
                 {'checkbox':'printall'},'<br/>','<br/>'],\
