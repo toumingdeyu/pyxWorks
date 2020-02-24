@@ -62,28 +62,6 @@ def html_escape(text = None, pre_tag = None):
 
 
 ### CONVERT UNIX COLORS TO HTML COLORS ########################################
-#def unix_colors_to_html_colors(text = None):
-    # color_text = text
-    # if text and '\033[' in text:
-        # color_text = color_text.replace(bcolors.DEFAULT,'')
-        # color_text = color_text.replace(bcolors.HEADER,'')
-        # color_text = color_text.replace(bcolors.WHITE,'')
-        # color_text = color_text.replace(bcolors.ENDC,'</p>')
-        # color_text = color_text.replace(bcolors.CYAN,'<p style="color:%s;">' % ('cyan'))
-        # color_text = color_text.replace(bcolors.MAGENTA,'<p style="color:%s;">' % ('magenta'))
-        # color_text = color_text.replace(bcolors.BLUE,'<p style="color:%s;">' % ('blue'))
-        # color_text = color_text.replace(bcolors.OKBLUE,'<p style="color:%s;">' % ('blue'))
-        # color_text = color_text.replace(bcolors.GREEN,'<p style="color:%s;">' % ('green'))
-        # color_text = color_text.replace(bcolors.OKGREEN,'<p style="color:%s;">' % ('green'))
-        # color_text = color_text.replace(bcolors.YELLOW,'<p style="color:%s;">' % ('yellow'))
-        # color_text = color_text.replace(bcolors.WARNING,'<p style="color:%s;">' % ('yellow'))
-        # color_text = color_text.replace(bcolors.RED,'<p style="color:%s;">' % ('red'))
-        # color_text = color_text.replace(bcolors.FAIL,'<p style="color:%s;">' % ('red'))
-        # color_text = color_text.replace(bcolors.GREY,'<p style="color:%s;">' % ('gray'))
-        # color_text = color_text.replace(bcolors.BOLD,'')
-        # color_text = color_text.replace(bcolors.UNDERLINE,'')
-    # return color_text
-
 def unix_colors_to_html_colors(text = None):
     color_text = text
     ### IF UNIX COLORS OCCURS, FILE IS ALREADY COLORED ########################
@@ -139,6 +117,10 @@ def html_colorizer(text = None):
             elif 'CONFIGURATION PROBLEM FOUND:' in line \
                 or ' FAILED!' in line:
                 color_text += '<p style="color:red;">%s</p>' % (line)
+            elif 'PROBLEM[' in line:
+                color_text += '<p style="color:magenta;">%s</p>' % (line)
+            elif '==> ' in line or ' --> ' in line:
+                color_text += '<p style="color:blue;">%s</p>' % (line)
             else: color_text += line + '\n'
     return color_text
 
@@ -163,6 +145,14 @@ try:
 
     print("Content-type:text/html")
     print("Status: %s %s\r\n\r\n\r\n" % ('200',""))
+
+    ### DISPLAY HTML MENU #####################################################
+    if not logfile:
+        i_pyfile = sys.argv[0]
+        try: i_pyfile = i_pyfile.replace('\\','/').split('/')[-1].strip()
+        except: i_pyfile = i_pyfile.strip()
+        print('<html><head></head><body><form action = "/cgi-bin/%s">Insert logfile: <input type="text" name="logfile"><br></form></html></body>' % (i_pyfile))
+        sys.exit(0)
 
     ### LOGFILE SECURITY ######################################################
     if not logfile:
