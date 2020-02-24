@@ -2175,7 +2175,10 @@ def check_percentage_of_copied_files(scp_list = [], USERNAME = None, \
                         try:
                             if device_file.split(':/')[1] in line:
                                 try: device_filesize_in_bytes = float(line.split()[3])
-                                except: pass
+                                except:
+                                    ### SOME XR GETS FILE SIZE IN 2ND COLUMN ###
+                                    try: device_filesize_in_bytes = float(line.split()[2])
+                                    except: pass
                         except: pass
                 if RCMD.router_type == 'cisco_ios':
                     ### dir file gets output without any path ###
@@ -2294,7 +2297,10 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                                     if RCMD.router_type == 'huawei':
                                         device_fsize = float(line.split()[2].replace(',',''))
                                     elif RCMD.router_type == 'cisco_xr':
-                                        device_fsize = float(line.split()[3].replace(',',''))
+                                        try: device_fsize = float(line.split()[3].replace(',',''))
+                                        except:
+                                            try: device_fsize = float(line.split()[2].replace(',',''))
+                                            except: pass
                                     elif RCMD.router_type == 'cisco_ios':
                                         device_fsize = float(line.split()[2].replace(',',''))
                                     elif RCMD.router_type == 'juniper':
@@ -2474,7 +2480,10 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                                         if RCMD.router_type == 'huawei':
                                             device_fsize = float(line.split()[2].replace(',',''))
                                         elif RCMD.router_type == 'cisco_xr':
-                                            device_fsize = float(line.split()[3].replace(',',''))
+                                            try: device_fsize = float(line.split()[3].replace(',',''))
+                                            except:
+                                               try: device_fsize = float(line.split()[2].replace(',',''))
+                                               except: pass
                                         elif RCMD.router_type == 'cisco_ios':
                                             device_fsize = float(line.split()[2].replace(',',''))
                                     except: pass
