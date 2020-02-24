@@ -154,7 +154,9 @@ class CGI_CLI(object):
     def __cleanup__():
         ### CGI_CLI.uprint('\nEND[script runtime = %d sec]. '%(time.time() - CGI_CLI.START_EPOCH))
         CGI_CLI.html_selflink()
-        if CGI_CLI.cgi_active: CGI_CLI.print_chunk("</body></html>")
+        if CGI_CLI.cgi_active:
+            CGI_CLI.print_chunk("</body></html>",
+                ommit_logging = True)
 
     @staticmethod
     def register_cleanup_at_exit():
@@ -287,6 +289,7 @@ class CGI_CLI(object):
         """
         CGI_CLI.logtofile(end_log = True)
         CGI_CLI.logfilename = logfilename
+        time.sleep(0.1)
         CGI_CLI.logtofile(start_log = True)
 
     @staticmethod
