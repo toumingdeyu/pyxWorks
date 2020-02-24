@@ -3270,6 +3270,10 @@ warning {
     try: device_expected_MB_free = float(CGI_CLI.data.get('remaining_device_disk_free_MB',device_expected_MB_free))
     except: pass
     iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
+
+    if iptac_server == 'iptac5': urllink = 'https://10.253.58.126/cgi-bin/'
+    else: urllink = 'https://%s/cgi-bin/' % (iptac_server)
+
     if CGI_CLI.cgi_active and not (USERNAME and PASSWORD):
         if iptac_server == 'iptac5': USERNAME, PASSWORD = 'iptac', 'paiiUNDO'
 
@@ -3992,7 +3996,7 @@ warning {
                         for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
                             if unique_dir == dev_dir:
                                 del_files_cmds['cisco_xr'].append( \
-                                    'del /%s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
+                                    'del %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
 
                                 del_files_cmds['cisco_ios'].append( \
                                     'del %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
@@ -4020,7 +4024,7 @@ warning {
                         for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
                             if unique_dir == dev_dir:
                                 check_dir_files_cmds['cisco_xr'].append( \
-                                    'dir /%s%s' % (RCMD.drive_string, dev_dir))
+                                    'dir %s%s' % (RCMD.drive_string, dev_dir))
                                 check_dir_files_cmds['cisco_ios'].append( \
                                     'dir %s%s' % (RCMD.drive_string, dev_dir))
                                 check_dir_files_cmds['huawei'].append( \
@@ -4061,7 +4065,15 @@ except:
     CGI_CLI.uprint(traceback.format_exc(), tag = 'h3',color = 'magenta')
 
 ### PRINT LOGFILENAME #########################################################
-if logfilename: CGI_CLI.uprint(' ==> File %s created.' % (logfilename))
+if logfilename:
+    if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, logfilename)
+    else: logviewer = './logviewer.py?logfile=%s' % (logfilename)
+    if CGI_CLI.cgi_active:
+        CGI_CLI.logtofile('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
+            % (logviewer, logfilename), raw_log = True)
+        CGI_CLI.logtofile('<br/>', raw_log = True)
+    else:
+        CGI_CLI.logtofile(' ==> File %s created.\n\n' % (logfilename))
 
 ### SEND EMAIL WITH LOGFILE ###################################################
 send_me_email( \
