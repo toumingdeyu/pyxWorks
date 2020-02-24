@@ -285,7 +285,7 @@ class CGI_CLI(object):
         set_logfile(logfilename) - uses inserted logfilename
         NOTE: Add html footer to logfile if exists, Add html header to logfile
         """
-        if CGI_CLI.logfilename: CGI_CLI.logtofile(end_log = True)
+        CGI_CLI.logtofile(end_log = True)
         CGI_CLI.logfilename = logfilename
         CGI_CLI.logtofile(start_log = True)
 
@@ -858,7 +858,7 @@ class RCMD(object):
                 if not long_lasting_mode:
                     CGI_CLI.uprint(' . ', no_newlines = True, log = 'no')
             ### LOG ALL ONLY ONCE, THAT IS BECAUSE PREVIOUS LINE log = 'no' ###
-            if CGI_CLI.cgi_active:
+            if CGI_CLI.cgi_active and CGI_CLI.html_logging:
                 CGI_CLI.logtofile('<p style="color:blue;">REMOTE_COMMAND' + \
                     sim_mark + ': ' + cmd_line + '</p>\n<pre>' + \
                     CGI_CLI.html_escape(last_output, pre_tag = True) + \
@@ -1306,7 +1306,7 @@ class LCMD(object):
         except: LCMD.init(printall = printall)
         if cmd_line:
             if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line), color = 'blue', log = 'no')
-            if CGI_CLI.cgi_active:
+            if CGI_CLI.cgi_active and CGI_CLI.html_logging:
                 CGI_CLI.logtofile('<p style="color:blue;">' + 'LOCAL_COMMAND: ' + cmd_line + '</p>', raw_log = True)
             else:
                 CGI_CLI.logtofile('LOCAL_COMMAND: ' + str(cmd_line) + '\n')
@@ -1340,8 +1340,9 @@ class LCMD(object):
                 exc_text = traceback.format_exc()
                 CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
                 CGI_CLI.logtofile(exc_text + '\n')
-            if not chunked and os_output and printall: CGI_CLI.uprint(os_output, tag = 'pre', timestamp = 'no', log = 'no')
-            if CGI_CLI.cgi_active:
+            if not chunked and os_output and printall:
+                CGI_CLI.uprint(os_output, tag = 'pre', timestamp = 'no', log = 'no')
+            if CGI_CLI.cgi_active and CGI_CLI.html_logging:
                 CGI_CLI.logtofile('\n<pre>' + \
                     CGI_CLI.html_escape(os_output, pre_tag = True) + \
                     '\n</pre>\n', raw_log = True)
@@ -1440,8 +1441,11 @@ class LCMD(object):
             os_outputs = []
             for cmd_line in cmd_list:
                 os_output = str()
-                if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line), color = 'blue')
-                CGI_CLI.logtofile('LOCAL_COMMAND: ' + str(cmd_line) + '\n')
+                if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line), color = 'blue', log = 'no')
+                if CGI_CLI.cgi_active and CGI_CLI.html_logging:
+                    CGI_CLI.logtofile('<p style="color:blue;">' + 'LOCAL_COMMAND: ' + cmd_line + '</p>', raw_log = True)
+                else:
+                    CGI_CLI.logtofile('LOCAL_COMMAND: ' + str(cmd_line) + '\n')
                 try: os_output = subprocess.check_output(str(cmd_line), stderr=subprocess.STDOUT, shell=True).decode("utf-8")
                 except (subprocess.CalledProcessError) as e:
                     os_output = str(e.output.decode("utf-8"))
@@ -1452,7 +1456,7 @@ class LCMD(object):
                     CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
                     CGI_CLI.logtofile(exc_text + '\n')
                 if os_output and printall: CGI_CLI.uprint(os_output, tag = 'pre', timestamp = 'no')
-                if CGI_CLI.cgi_active:
+                if CGI_CLI.cgi_active and CGI_CLI.html_logging:
                     CGI_CLI.logtofile('\n<pre>' + \
                         CGI_CLI.html_escape(os_output, pre_tag = True) + \
                         '\n</pre>\n', raw_log = True)
@@ -4217,12 +4221,12 @@ except:
 if logfilename:
     if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, logfilename)
     else: logviewer = './logviewer.py?logfile=%s' % (logfilename)
-    if CGI_CLI.cgi_active:
-        CGI_CLI.logtofile('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
-            % (logviewer, logfilename), raw_log = True)
-        CGI_CLI.logtofile('<br/>', raw_log = True)
+    if CGI_CLI.cgi_active and CGI_CLI.html_logging:
+        CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
+            % (logviewer, logfilename), raw = True, color = 'blue')
+        CGI_CLI.uprint('<br/>', raw_log = True)
     else:
-        CGI_CLI.logtofile(' ==> File %s created.\n\n' % (logfilename))
+        CGI_CLI.uprint(' ==> File %s created.\n\n' % (logfilename))
 
     CGI_CLI.set_logfile(logfilename = None)
 
