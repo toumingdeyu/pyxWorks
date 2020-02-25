@@ -2077,7 +2077,7 @@ def get_fiblist(input_text = None):
 
 ###############################################################################
 
-check_interface_result, check_warning_interface_result = True, True
+check_interface_result_ok, check_warning_interface_result_ok = True, True
 def check_interface_data_content(where = None, what_yes_in = None, what_not = None, \
     exact_value_yes = None, warning = None):
     """
@@ -2085,9 +2085,9 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
     what_not - list = if all items from list occurs, then FAIL. Otherwise OK.
     what_not - string = if string occurs in text, then FAIL.
     """
-    global check_interface_result
-    global check_warning_interface_result
-    local_check_interface_result, Alarm_text = 0, []
+    global check_interface_result_ok
+    global check_warning_interface_result_ok
+    local_check_interface_result_ok, Alarm_text = 0, []
     if what_yes_in and where or exact_value_yes and where:
 
         if warning: where_value = interface_warning_data.get(where, str())
@@ -2099,11 +2099,11 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
                     CGI_CLI.logtofile("CHECK['%s' == '%s'] = OK.\n" % (exact_value_yes, where))
                 else:
                     if warning:
-                        check_warning_interface_result = False
+                        check_warning_interface_result_ok = False
                         CGI_CLI.uprint("CHECK['%s' != '%s'] = WARNING." % (exact_value_yes, where),
                             color = 'orange')
                     else:
-                        check_interface_result = False
+                        check_interface_result_ok = False
                         CGI_CLI.uprint("CHECK['%s' != '%s'] = NOT OK." % (exact_value_yes, where),
                             color = 'red')
             else:
@@ -2111,11 +2111,11 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
                     CGI_CLI.logtofile("CHECK['%s' in '%s'] = OK.\n" % (what_yes_in, where))
                 else:
                     if warning:
-                        check_warning_interface_result = False
+                        check_warning_interface_result_ok = False
                         CGI_CLI.uprint("CHECK['%s' not in '%s'] = WARNING." % (what_yes_in, where),
                             color = 'orange')
                     else:
-                        check_interface_result = False
+                        check_interface_result_ok = False
                         CGI_CLI.uprint("CHECK['%s' not in '%s'] = NOT OK." % (what_yes_in, where),
                             color = 'red')
     if what_not and where:
@@ -2126,25 +2126,25 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
         if isinstance(what_not, (list,tuple)):
             for item in what_not:
                 if item.upper() in where_value.upper():
-                    local_check_interface_result += 1
+                    local_check_interface_result_ok += 1
                     Alarm_text.append("'%s' in '%s'" % (item, where))
             ### ALL FAIL LOGIC ###
-            if local_check_interface_result == len(what_not):
+            if local_check_interface_result_ok == len(what_not):
                 if warning:
-                    check_warning_interface_result = False
+                    check_warning_interface_result_ok = False
                     CGI_CLI.uprint("CHECK[" + ' AND '.join(Alarm_text) + '] = WARNING.', color = 'orange')
                 else:
                     CGI_CLI.uprint("CHECK[" + ' AND '.join(Alarm_text) + '] = NOT OK.', color = 'red')
-                    check_interface_result = False
+                    check_interface_result_ok = False
             else: CGI_CLI.logtofile("CHECK[ ['%s'] not in '%s'] = OK.\n" % (','.join(what_not), where))
         else:
             if what_not.upper() in where_value.upper():
                 if warning:
-                    check_warning_interface_result = False
+                    check_warning_interface_result_ok = False
                     CGI_CLI.uprint("CHECK['%s' in '%s'] = WARNING." % (what_not, where),
                         color = 'orange')
                 else:
-                    check_interface_result = False
+                    check_interface_result_ok = False
                     CGI_CLI.uprint("CHECK['%s' in '%s'] = NOT OK." % (what_not, where),
                         color = 'red')
             else: CGI_CLI.logtofile("CHECK['%s' not in '%s'] = OK.\n" % (what_not, where))
@@ -3023,15 +3023,18 @@ authentication {
                 CGI_CLI.uprint(interface_warning_data, name = 'POSSIBLE WARNINGS on Device:%s' % (device), \
                     jsonprint = True, color = 'blue')
 
+                ### START OF CHECKS PER INTERFACE #############################
+                check_interface_result_ok, check_warning_interface_result_ok = True, True
+
+                ### def VOID ELEMENTS CHECK ###################################
                 None_elements = get_void_json_elements(interface_data, \
                     no_equal_sign = True, no_root_backslash = True)
 
                 if len(None_elements) > 0:
-                    check_interface_result = False
+                    check_interface_result_ok = False
                     CGI_CLI.uprint('UNSET CONFIG ELEMENTS ON INTERFACE %s:' % \
                         (interface_data.get('interface_id')), tag = 'h3', color = 'red')
                     CGI_CLI.uprint('\n'.join(None_elements), color = 'red')
-
 
                 ### def CONTENT ELEMENT CHECK #################################
                 check_interface_data_content('ping_v4_%success', '100')
@@ -3086,9 +3089,16 @@ authentication {
                     check_interface_data_content('Remote fault', 'NORMAL', warning = True)
 
                 ### def INTERFACE RESULTS #####################################
-                interface_error_result = 'OK' if check_interface_result else 'NOT OK'
-                interface_warning_result = 'OK' if check_warning_interface_result else 'WARNING'
-                interface_result = interface_error_result if check_interface_result else interface_warning_result
+                if check_interface_result_ok and check_warning_interface_result_ok:
+                    interface_result = 'OK'
+                    html_color = 'green'
+                elif not check_interface_result_ok:
+                    interface_result = 'NOT OK'
+                    html_color = 'red'
+                else:
+                    interface_result = 'WARNING'
+                    html_color = 'orange'
+
                 interface_results.append([device, interface_id, interface_result])
 
 
@@ -3096,12 +3106,13 @@ authentication {
                 if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, logfilename)
                 else: logviewer = './logviewer.py?logfile=%s' % (logfilename)
                 if CGI_CLI.cgi_active:
-                    CGI_CLI.uprint('Device=%s, interface=%s  -  RESULT = %s' \
-                        % (device, interface_id, interface_result), color = 'green' if check_interface_result else 'red', tag = 'h2')
+                    CGI_CLI.uprint('Device=%s, Interface=%s  -  RESULT = %s' \
+                        % (device, interface_id, interface_result), color = html_color, tag = 'h2')
                     CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
                         % (logviewer, logfilename), raw = True)
                 else:
-                    CGI_CLI.uprint('Device=%s, interface=%s  -  RESULT = %s' % (device, interface_id, interface_result), color = 'red' if check_interface_result else 'green')
+                    CGI_CLI.uprint('Device=%s, Interface=%s  -  RESULT = %s' % \
+                        (device, interface_id, interface_result), color = html_color)
                     CGI_CLI.uprint(' ==> File %s created.' % (logfilename), color = 'blue')
                 CGI_CLI.uprint(' ')
 
