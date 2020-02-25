@@ -2134,8 +2134,8 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
                     check_warning_interface_result_ok = False
                     CGI_CLI.uprint("CHECK[" + ' AND '.join(Alarm_text) + '] = WARNING.', color = 'orange')
                 else:
-                    CGI_CLI.uprint("CHECK[" + ' AND '.join(Alarm_text) + '] = NOT OK.', color = 'red')
                     check_interface_result_ok = False
+                    CGI_CLI.uprint("CHECK[" + ' AND '.join(Alarm_text) + '] = NOT OK.', color = 'red')
             else: CGI_CLI.logtofile("CHECK[ ['%s'] not in '%s'] = OK.\n" % (','.join(what_not), where))
         else:
             if what_not.upper() in where_value.upper():
@@ -3089,17 +3089,19 @@ authentication {
                     check_interface_data_content('Remote fault', 'NORMAL', warning = True)
 
                 ### def INTERFACE RESULTS #####################################
+                interface_result = 'WARNING'
+                html_color = '#ff6600'
+
                 if check_interface_result_ok and check_warning_interface_result_ok:
                     interface_result = 'OK'
                     html_color = 'green'
                 elif not check_interface_result_ok:
                     interface_result = 'NOT OK'
                     html_color = 'red'
-                else:
-                    interface_result = 'WARNING'
-                    html_color = 'orange'
 
-                interface_results.append([device, interface_id, interface_result])
+                #CGI_CLI.uprint('check_interface_result_ok = %s, check_warning_interface_result_ok = %s' % (str(check_interface_result_ok), str(check_warning_interface_result_ok)))
+
+                interface_results.append([copy.deepcopy(device), copy.deepcopy(interface_id), copy.deepcopy(interface_result)])
 
 
                 ### PRINT LOGFILENAME #########################################
@@ -3224,7 +3226,7 @@ authentication {
                     CGI_CLI.logtofile('<p style="color:red;">Device=%s, Interface=%s  -  RESULT = %s</p>' \
                         % (device, interface_id, interface_result), raw_log = True)
                 elif interface_result == 'WARNING':
-                    CGI_CLI.logtofile('<p style="color:orange;">Device=%s, Interface=%s  -  RESULT = %s</p>' \
+                    CGI_CLI.logtofile('<p style="color:#ff6600;">Device=%s, Interface=%s  -  RESULT = %s</p>' \
                         % (device, interface_id, interface_result), raw_log = True)
                 else: CGI_CLI.logtofile('<p style="color:green;">Device=%s, Interface=%s  -  RESULT = %s</p>' \
                           % (device, interface_id, interface_result), raw_log = True)
