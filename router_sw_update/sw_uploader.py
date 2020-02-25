@@ -311,7 +311,7 @@ class CGI_CLI(object):
                 ### ADD HTML FOOTER ###########################################
                 if end_log: msg_to_file += '</body></html>'
             ### CLI LOGGING ###################################################
-            else: msg_to_file = msg
+            else: msg_to_file = msg + '\n'
             ### LOG CLI OR HTML MODE ##########################################
             if msg_to_file:
                 with open(CGI_CLI.logfilename,"a+") as CGI_CLI.fp:
@@ -337,7 +337,8 @@ class CGI_CLI(object):
 
 
     @staticmethod
-    def print_chunk(msg = str(), raw_log = None, ommit_logging = None, printall = None):
+    def print_chunk(msg = str(), no_newlines = None, raw_log = None, \
+        ommit_logging = None, printall = None):
         """
         raw_log = raw logging
         """
@@ -348,8 +349,12 @@ class CGI_CLI(object):
                     if len(msg)>0:
                         sys.stdout.write("\r\n%X\r\n%s" % (len(msg), msg))
                         sys.stdout.flush()
-                ### CLI MODE ###
-                else: print(msg)
+                ### CLI MODE ##################################################
+                else:
+                    if no_newlines:
+                        sys.stdout.write(msg)
+                        sys.stdout.flush()
+                    else: print(msg)
             if not ommit_logging: CGI_CLI.logtofile(msg = msg, raw_log = raw_log)
 
     @staticmethod
@@ -363,7 +368,7 @@ class CGI_CLI(object):
            timestamp = 'no' - locally disable even if CGI_CLI.timestamp == True
            Use 'no_printall = not printall' instead of printall = False
         """
-        print_text, print_name, print_per_tag = copy.deepcopy(text), str(), str()
+        print_name = str()
 
         ### PRINTALL LOGIC ####################################################
         if not printall and not no_printall: printall_yes = True
@@ -372,17 +377,16 @@ class CGI_CLI(object):
 
         if jsonprint:
             if isinstance(text, (dict,collections.OrderedDict,list,tuple)):
-                try: print_text = json.dumps(text, indent = 4)
+                try: print_text = str(json.dumps(text, indent = 4))
                 except Exception as e: CGI_CLI.print_chunk('JSON_PROBLEM[' + str(e) + ']', printall = printall_yes)
+        else: print_text = str(copy.deepcopy(text))       
+                
         if name == True:
             if not 'inspect.currentframe' in sys.modules: import inspect
             callers_local_vars = inspect.currentframe().f_back.f_locals.items()
             var_list = [var_name for var_name, var_val in callers_local_vars if var_val is text]
             if str(','.join(var_list)).strip(): print_name = str(','.join(var_list)) + ' = '
         elif isinstance(name, (six.string_types)): print_name = str(name) + ' = '
-
-        print_text = str(print_text)
-        log_text   = str(copy.deepcopy((print_text)))
 
         ### GENERATE TIMESTAMP STRING, 'NO' = NO EVEN IF GLOBALLY IS ALLOWED ###
         timestamp_string = str()
@@ -394,36 +398,41 @@ class CGI_CLI(object):
             if timestamp_yes:
                 timestamp_string = '@%s[%.2fs] ' % \
                     (datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S'), time.time() - CGI_CLI.START_EPOCH)
-
-        if CGI_CLI.cgi_active and not raw:
-            ### WORKARROUND FOR COLORING OF SIMPLE TEXT #######################
-            if color and not (tag or start_tag): tag = 'p';
-            if tag:
-                if str(tag) == 'warning':
-                    CGI_CLI.print_chunk('<%s style="color:red; background-color:yellow;">'%(tag),\
+                    
+        ### CGI MODE ##########################################################  
+        if CGI_CLI.cgi_active:
+            if raw:
+                CGI_CLI.print_chunk(print_text, raw_log = True, \
+                    ommit_logging = ommit_logging, printall = printall_yes)
+            else:        
+                ### WORKARROUND FOR COLORING OF SIMPLE TEXT ###################
+                if color and not (tag or start_tag): tag = 'p';
+                if tag:
+                    if str(tag) == 'warning':
+                        CGI_CLI.print_chunk('<%s style="color:red; background-color:yellow;">'%(tag),\
+                            raw_log = True, printall = printall_yes)
+                    elif str(tag) == 'debug':
+                        CGI_CLI.print_chunk('<%s style="color:dimgray; background-color:lightgray;">'%(tag),\
+                            raw_log = True, printall = printall_yes)
+                    else:
+                        CGI_CLI.print_chunk('<%s%s%s>'%(tag,' id="%s"'%(tag_id) if tag_id else str(),\
+                            ' style="color:%s;"' % (color) if color else str()), \
+                            raw_log = True, printall = printall_yes)
+                elif start_tag:
+                    CGI_CLI.print_chunk('<%s%s%s>'%(start_tag,' id="%s"'%(tag_id) \
+                        if tag_id else str(),' style="color:%s;"' % (color) if color else str()),\
                         raw_log = True, printall = printall_yes)
-                elif str(tag) == 'debug':
-                    CGI_CLI.print_chunk('<%s style="color:dimgray; background-color:lightgray;">'%(tag),\
-                        raw_log = True, printall = printall_yes)
-                else:
-                    CGI_CLI.print_chunk('<%s%s%s>'%(tag,' id="%s"'%(tag_id) if tag_id else str(),\
-                        ' style="color:%s;"' % (color) if color else str()), raw_log = True, printall = printall_yes)
-            elif start_tag:
-                CGI_CLI.print_chunk('<%s%s%s>'%(start_tag,' id="%s"'%(tag_id) \
-                    if tag_id else str(),' style="color:%s;"' % (color) if color else str()),\
-                    raw_log = True, printall = printall_yes)
-            if isinstance(print_text, six.string_types):
-                print_text = str(print_text.replace('&','&amp;').\
-                    replace('<','&lt;').\
-                    replace('>','&gt;').replace(' ','&nbsp;').\
-                    replace('"','&quot;').replace("'",'&apos;').\
-                    replace('\n','<br/>'))
-            CGI_CLI.print_chunk(timestamp_string + print_name + print_text, \
-                raw_log = True, ommit_logging = ommit_logging, printall = printall_yes)
-        elif CGI_CLI.cgi_active and raw:
-            CGI_CLI.print_chunk(print_text, raw_log = True, \
-                ommit_logging = ommit_logging, printall = printall_yes)
+                if isinstance(print_text, six.string_types):
+                    print_text = str(print_text.replace('&','&amp;').\
+                        replace('<','&lt;').\
+                        replace('>','&gt;').replace(' ','&nbsp;').\
+                        replace('"','&quot;').replace("'",'&apos;').\
+                        replace('\n','<br/>'))
+                CGI_CLI.print_chunk(timestamp_string + print_name + print_text, \
+                    raw_log = True, ommit_logging = ommit_logging, printall = printall_yes)
         else:
+        
+            ### CLI MODE ######################################################
             text_color = str()
             if color:
                 if 'RED' in color.upper():       text_color = CGI_CLI.bcolors.RED
@@ -434,14 +443,11 @@ class CGI_CLI(object):
                 elif 'GREY' in color.upper():    text_color = CGI_CLI.bcolors.GREY
                 elif 'GRAY' in color.upper():    text_color = CGI_CLI.bcolors.GREY
                 elif 'YELLOW' in color.upper():  text_color = CGI_CLI.bcolors.YELLOW
-            ### CLI_MODE ######################################################
-            if no_newlines:
-                sys.stdout.write(text_color + print_name + print_text \
-                    + CGI_CLI.bcolors.ENDC)
-                sys.stdout.flush()
-            else:
-                CGI_CLI.print_chunk(text_color + timestamp_string + print_name + print_text \
-                    + CGI_CLI.bcolors.ENDC, raw_log = True, printall = printall_yes)
+
+            CGI_CLI.print_chunk(text_color + timestamp_string + print_name + print_text \
+                    + CGI_CLI.bcolors.ENDC if text_color else str(), \
+                    raw_log = True, printall = printall_yes, no_newlines = no_newlines)
+                    
         ### PRINT END OF TAGS #################################################
         if CGI_CLI.cgi_active and not raw:
             if tag:
@@ -453,11 +459,11 @@ class CGI_CLI(object):
                 CGI_CLI.print_chunk('</%s>' % (end_tag), raw_log = True, printall = printall_yes)
             elif not no_newlines:
                 CGI_CLI.print_chunk('<br/>', raw_log = True, printall = printall_yes)
+
             ### PRINT PER TAG #################################################
-            CGI_CLI.print_chunk(print_per_tag, printall = printall_yes)
+            #CGI_CLI.print_chunk(print_per_tag, printall = printall_yes)
 
         ### COPY CLEANUP ######################################################
-        del log_text
         del print_text
 
 
