@@ -399,8 +399,15 @@ class CGI_CLI(object):
             ### WORKARROUND FOR COLORING OF SIMPLE TEXT #######################
             if color and not (tag or start_tag): tag = 'p';
             if tag:
-                CGI_CLI.print_chunk('<%s%s%s>'%(tag,' id="%s"'%(tag_id) if tag_id else str(),\
-                    ' style="color:%s;"' % (color) if color else str()), raw_log = True, printall = printall_yes)
+                if str(tag) == 'warning':
+                    CGI_CLI.print_chunk('<%s style="color:red; background-color:yellow;">'%(tag),\
+                        raw_log = True, printall = printall_yes)
+                elif str(tag) == 'debug':
+                    CGI_CLI.print_chunk('<%s style="color:dimgray; background-color:lightgray;">'%(tag),\
+                        raw_log = True, printall = printall_yes)
+                else:
+                    CGI_CLI.print_chunk('<%s%s%s>'%(tag,' id="%s"'%(tag_id) if tag_id else str(),\
+                        ' style="color:%s;"' % (color) if color else str()), raw_log = True, printall = printall_yes)
             elif start_tag:
                 CGI_CLI.print_chunk('<%s%s%s>'%(start_tag,' id="%s"'%(tag_id) \
                     if tag_id else str(),' style="color:%s;"' % (color) if color else str()),\
@@ -448,12 +455,6 @@ class CGI_CLI(object):
                 CGI_CLI.print_chunk('<br/>', raw_log = True, printall = printall_yes)
             ### PRINT PER TAG #################################################
             CGI_CLI.print_chunk(print_per_tag, printall = printall_yes)
-
-        ### LOG ALL except ommit_logging == True ##############################
-        ### HTML LOGING BY PRINT_CHUNK ########################################
-        if CGI_CLI.logfilename and not ommit_logging and \
-            (not CGI_CLI.html_logging or not CGI_CLI.cgi_active):
-            CGI_CLI.logtofile(timestamp_string + print_name + log_text + '\n')
 
         ### COPY CLEANUP ######################################################
         del log_text
