@@ -306,7 +306,7 @@ class CGI_CLI(object):
                         replace('>','&gt;').replace(' ','&nbsp;').\
                         replace('"','&quot;').replace("'",'&apos;').\
                         replace('\n','<br/>'))
-                else: msg_to_file += msg
+                elif msg: msg_to_file += msg
                 ### ADD HTML FOOTER ###########################################
                 if end_log: msg_to_file += '</body></html>'
             ### CLI LOGGING ###################################################
