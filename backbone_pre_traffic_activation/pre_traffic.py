@@ -2320,11 +2320,12 @@ authentication {
     if not swan_id and CGI_CLI.data.get('swan-id'):
         swan_id = CGI_CLI.data.get('swan-id')
 
-    if swan_id and not \
-        (CGI_CLI.data.get('submit-type',str()) == 'submit-with-precheck' \
+    if (swan_id and CGI_CLI.data.get('submit',str()) == 'SUBMIT+STEP+2') \
+        or (swan_id and \
+        and not (CGI_CLI.data.get('submit-type',str()) == 'submit-with-precheck' \
         or CGI_CLI.data.get('submit-type',str()) == 'submit-with-precheck' \
         or CGI_CLI.data.get('submit',str()) == 'Run precheck' \
-        or CGI_CLI.data.get('submit',str()) == 'Run postcheck'):
+        or CGI_CLI.data.get('submit',str()) == 'Run postcheck')):
 
         ### TEST IF SWAN ALREADY RECORD EXISTS ########################
         sql_read_data = sql_inst.sql_read_records_to_dict_list( \
