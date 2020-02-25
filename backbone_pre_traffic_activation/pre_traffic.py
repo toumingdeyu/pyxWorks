@@ -2224,6 +2224,7 @@ authentication {
         or CGI_CLI.data.get('submit',str()) == 'Run postcheck':
             precheck_mode = False
     elif CGI_CLI.data.get("precheck") \
+        or CGI_CLI.data.get('submit',str()) == 'Run+precheck+on+all+interfaces' \
         or CGI_CLI.data.get("radio",str()) == 'precheck' \
         or CGI_CLI.data.get('submit-type',str()) == 'submit-with-precheck' \
         or CGI_CLI.data.get('submit',str()) == 'Run precheck':
@@ -2509,6 +2510,9 @@ authentication {
             ### LOOP THROUGH THE SAME DEVICE WITHOUT RECONNECT OR NEW CONNECT #
             if not old_device or old_device != device:
 
+                ### IF NOT POSSIBLE TO CONNECT AND DEVICE IS THE SAME #########
+                old_device = device
+
                 ### DEVICE CONNECT ############################################
                 RCMD.connect(device, username = USERNAME, password = PASSWORD, \
                     printall = printall)
@@ -2519,7 +2523,11 @@ authentication {
                     RCMD.disconnect()
                     continue
 
+            ### NORMAL CASE, CONNECTON OK --> SET OLD_DEVICE ##################
             old_device = device
+
+            ### DO NOT GO FURTHER IF NO CONNECTION ############################
+            if not RCMD.ssh_connection: continue
 
             ### LOOP PER INTERFACE ############################################
             for interface_id in interface_list:
