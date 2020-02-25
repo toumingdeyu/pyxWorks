@@ -358,7 +358,7 @@ class CGI_CLI(object):
             if not ommit_logging: CGI_CLI.logtofile(msg = msg, raw_log = raw_log)
 
     @staticmethod
-    def uprint(text = str(), tag = None, tag_id = None, color = None, name = None, jsonprint = None, \
+    def uprint(text = None, tag = None, tag_id = None, color = None, name = None, jsonprint = None, \
         ommit_logging = None, no_newlines = None, start_tag = None, end_tag = None, raw = None, \
         timestamp = None, printall = None, no_printall = None):
         """NOTE: name parameter could be True or string.
@@ -368,6 +368,8 @@ class CGI_CLI(object):
            timestamp = 'no' - locally disable even if CGI_CLI.timestamp == True
            Use 'no_printall = not printall' instead of printall = False
         """
+        if not text: return None
+
         print_name = str()
 
         ### PRINTALL LOGIC ####################################################
@@ -465,7 +467,7 @@ class CGI_CLI(object):
 
         ### COPY CLEANUP ######################################################
         del print_text
-
+        return None
 
     @staticmethod
     def formprint(form_data = None, submit_button = None, pyfile = None, tag = None, \
