@@ -294,7 +294,7 @@ class CGI_CLI(object):
     @staticmethod
     def logtofile(msg = str(), raw_log = None, start_log = None, end_log = None):
         msg_to_file = str()
-        if CGI_CLI.logfilename and CGI_CLI.log:
+        if CGI_CLI.logfilename:
             ### HTML LOGGING ##################################################
             if CGI_CLI.cgi_active and CGI_CLI.html_logging:
                 ### ADD HTML HEADER ###########################################
