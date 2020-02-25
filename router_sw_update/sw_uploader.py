@@ -301,11 +301,8 @@ class CGI_CLI(object):
                         % (CGI_CLI.logfilename)
                 ### CONVERT TEXT TO HTML FORMAT ###############################
                 if not raw_log and msg:
-                    msg_to_file += str(msg.replace('&','&amp;').\
-                        replace('<','&lt;').\
-                        replace('>','&gt;').replace(' ','&nbsp;').\
-                        replace('"','&quot;').replace("'",'&apos;').\
-                        replace('\n','<br/>'))
+                    html_msg = CGI_CLI.html_escape(msg)
+                    msg_to_file += html_msg
                 elif msg: msg_to_file += msg
                 ### ADD HTML FOOTER ###########################################
                 if end_log: msg_to_file += '</body></html>'
@@ -318,6 +315,8 @@ class CGI_CLI(object):
                     del msg_to_file
             ### ON END: LOGFILE SET TO VOID, AVOID OF MULTIPLE FOOTERS ########
             if end_log: CGI_CLI.logfilename = None
+            del msg_to_file
+            del html_msg
 
     @staticmethod
     def html_escape(text = None, pre_tag = None):
@@ -401,6 +400,7 @@ class CGI_CLI(object):
                     (datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S'), time.time() - CGI_CLI.START_EPOCH)
 
         ### CGI MODE ##########################################################
+        html_text = None
         if CGI_CLI.cgi_active:
             if raw:
                 CGI_CLI.print_chunk(print_text, raw_log = True, \
@@ -424,12 +424,8 @@ class CGI_CLI(object):
                         if tag_id else str(),' style="color:%s;"' % (color) if color else str()),\
                         raw_log = True, printall = printall_yes)
                 if isinstance(print_text, six.string_types):
-                    print_text = str(print_text.replace('&','&amp;').\
-                        replace('<','&lt;').\
-                        replace('>','&gt;').replace(' ','&nbsp;').\
-                        replace('"','&quot;').replace("'",'&apos;').\
-                        replace('\n','<br/>'))
-                CGI_CLI.print_chunk(timestamp_string + print_name + print_text, \
+                    html_text = CGI_CLI.html_escape(print_text)
+                CGI_CLI.print_chunk(timestamp_string + print_name + html_text, \
                     raw_log = True, ommit_logging = ommit_logging, printall = printall_yes)
         else:
             ### CLI MODE ######################################################
@@ -449,6 +445,8 @@ class CGI_CLI(object):
                 CGI_CLI.bcolors.ENDC if text_color else str()), \
                 raw_log = True, printall = printall_yes, no_newlines = no_newlines)
 
+            del text_color
+
         ### PRINT END OF TAGS #################################################
         if CGI_CLI.cgi_active and not raw:
             if tag:
@@ -461,11 +459,8 @@ class CGI_CLI(object):
             elif not no_newlines:
                 CGI_CLI.print_chunk('<br/>', raw_log = True, printall = printall_yes)
 
-            ### PRINT PER TAG #################################################
-            #CGI_CLI.print_chunk(print_per_tag, printall = printall_yes)
-
-        ### COPY CLEANUP ######################################################
-        del print_text
+        ### CLEANUP ###########################################################
+        del print_text, html_text, print_name
         return None
 
     @staticmethod
