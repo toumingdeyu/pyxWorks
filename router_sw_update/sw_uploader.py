@@ -168,16 +168,14 @@ class CGI_CLI(object):
 
     @staticmethod
     def init_cgi(chunked = None, css_style = None, newline = None, \
-        timestamp = None, html_logging = None):
+        timestamp = None):
         """
         log - start to log all after logfilename is inserted
-        html_logging - write log file in HTML format for easy reading
         """
         CGI_CLI.self_buttons = ['OK']
         CGI_CLI.START_EPOCH = time.time()
         CGI_CLI.http_status = 200
         CGI_CLI.http_status_text = 'OK'
-        CGI_CLI.html_logging = html_logging
         CGI_CLI.chunked = chunked
         CGI_CLI.timestamp = timestamp
         CGI_CLI.CSS_STYLE = css_style if css_style else str()
@@ -292,26 +290,27 @@ class CGI_CLI(object):
         CGI_CLI.logtofile(start_log = True)
 
     @staticmethod
-    def logtofile(msg = str(), raw_log = None, start_log = None, end_log = None):
+    def logtofile(msg = None, raw_log = None, start_log = None, end_log = None):
         msg_to_file = str()
         if CGI_CLI.logfilename:
             ### HTML LOGGING ##################################################
-            if CGI_CLI.cgi_active and CGI_CLI.html_logging:
+            if CGI_CLI.cgi_active:
                 ### ADD HTML HEADER ###########################################
                 if start_log:
                     msg_to_file += '<!DOCTYPE html><html><head><title>%s</title></head><body>'\
                         % (CGI_CLI.logfilename)
                 ### CONVERT TEXT TO HTML FORMAT ###############################
-                if not raw_log: msg_to_file += str(msg.replace('&','&amp;').\
-                                replace('<','&lt;').\
-                                replace('>','&gt;').replace(' ','&nbsp;').\
-                                replace('"','&quot;').replace("'",'&apos;').\
-                                replace('\n','<br/>'))
+                if not raw_log and msg:
+                    msg_to_file += str(msg.replace('&','&amp;').\
+                        replace('<','&lt;').\
+                        replace('>','&gt;').replace(' ','&nbsp;').\
+                        replace('"','&quot;').replace("'",'&apos;').\
+                        replace('\n','<br/>'))
                 else: msg_to_file += msg
                 ### ADD HTML FOOTER ###########################################
                 if end_log: msg_to_file += '</body></html>'
             ### CLI LOGGING ###################################################
-            else: msg_to_file = msg + '\n'
+            elif msg: msg_to_file = msg + '\n'
             ### LOG CLI OR HTML MODE ##########################################
             if msg_to_file:
                 with open(CGI_CLI.logfilename,"a+") as CGI_CLI.fp:
@@ -337,7 +336,7 @@ class CGI_CLI(object):
 
 
     @staticmethod
-    def print_chunk(msg = str(), no_newlines = None, raw_log = None, \
+    def print_chunk(msg = None, no_newlines = None, raw_log = None, \
         ommit_logging = None, printall = None):
         """
         raw_log = raw logging
@@ -354,7 +353,8 @@ class CGI_CLI(object):
                     if no_newlines:
                         sys.stdout.write(msg)
                         sys.stdout.flush()
-                    else: print(msg)
+                    else:
+                        print(msg)
             if not ommit_logging: CGI_CLI.logtofile(msg = msg, raw_log = raw_log)
 
     @staticmethod
@@ -370,8 +370,6 @@ class CGI_CLI(object):
         """
         if not text: return None
 
-        print_name = str()
-
         ### PRINTALL LOGIC ####################################################
         if not printall and not no_printall: printall_yes = True
         elif no_printall: printall_yes = False
@@ -381,8 +379,9 @@ class CGI_CLI(object):
             if isinstance(text, (dict,collections.OrderedDict,list,tuple)):
                 try: print_text = str(json.dumps(text, indent = 4))
                 except Exception as e: CGI_CLI.print_chunk('JSON_PROBLEM[' + str(e) + ']', printall = printall_yes)
-        else: print_text = str(copy.deepcopy(text))       
-                
+        else: print_text = str(copy.deepcopy(text))
+
+        print_name = str()
         if name == True:
             if not 'inspect.currentframe' in sys.modules: import inspect
             callers_local_vars = inspect.currentframe().f_back.f_locals.items()
@@ -400,13 +399,13 @@ class CGI_CLI(object):
             if timestamp_yes:
                 timestamp_string = '@%s[%.2fs] ' % \
                     (datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S'), time.time() - CGI_CLI.START_EPOCH)
-                    
-        ### CGI MODE ##########################################################  
+
+        ### CGI MODE ##########################################################
         if CGI_CLI.cgi_active:
             if raw:
                 CGI_CLI.print_chunk(print_text, raw_log = True, \
                     ommit_logging = ommit_logging, printall = printall_yes)
-            else:        
+            else:
                 ### WORKARROUND FOR COLORING OF SIMPLE TEXT ###################
                 if color and not (tag or start_tag): tag = 'p';
                 if tag:
@@ -433,7 +432,6 @@ class CGI_CLI(object):
                 CGI_CLI.print_chunk(timestamp_string + print_name + print_text, \
                     raw_log = True, ommit_logging = ommit_logging, printall = printall_yes)
         else:
-        
             ### CLI MODE ######################################################
             text_color = str()
             if color:
@@ -446,10 +444,11 @@ class CGI_CLI(object):
                 elif 'GRAY' in color.upper():    text_color = CGI_CLI.bcolors.GREY
                 elif 'YELLOW' in color.upper():  text_color = CGI_CLI.bcolors.YELLOW
 
-            CGI_CLI.print_chunk(text_color + timestamp_string + print_name + print_text \
-                    + CGI_CLI.bcolors.ENDC if text_color else str(), \
-                    raw_log = True, printall = printall_yes, no_newlines = no_newlines)
-                    
+            CGI_CLI.print_chunk("%s%s%s%s%s" % \
+                (text_color, timestamp_string, print_name, print_text, \
+                CGI_CLI.bcolors.ENDC if text_color else str()), \
+                raw_log = True, printall = printall_yes, no_newlines = no_newlines)
+
         ### PRINT END OF TAGS #################################################
         if CGI_CLI.cgi_active and not raw:
             if tag:
@@ -880,7 +879,7 @@ class RCMD(object):
                 if not long_lasting_mode:
                     CGI_CLI.uprint(' . ', no_newlines = True, ommit_logging = True)
             ### LOG ALL ONLY ONCE, THAT IS BECAUSE PREVIOUS LINE ommit_logging = True ###
-            if CGI_CLI.cgi_active and CGI_CLI.html_logging:
+            if CGI_CLI.cgi_active:
                 CGI_CLI.logtofile('<p style="color:blue;">REMOTE_COMMAND' + \
                     sim_mark + ': ' + cmd_line + '</p>\n<pre>' + \
                     CGI_CLI.html_escape(last_output, pre_tag = True) + \
@@ -1328,7 +1327,7 @@ class LCMD(object):
         except: LCMD.init(printall = printall)
         if cmd_line:
             if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line), color = 'blue', ommit_logging = True)
-            if CGI_CLI.cgi_active and CGI_CLI.html_logging:
+            if CGI_CLI.cgi_active:
                 CGI_CLI.logtofile('<p style="color:blue;">' + 'LOCAL_COMMAND: ' + cmd_line + '</p>', raw_log = True)
             else:
                 CGI_CLI.logtofile('LOCAL_COMMAND: ' + str(cmd_line) + '\n')
@@ -1364,7 +1363,7 @@ class LCMD(object):
                 CGI_CLI.logtofile(exc_text + '\n')
             if not chunked and os_output and printall:
                 CGI_CLI.uprint(os_output, tag = 'pre', timestamp = 'no', ommit_logging = True)
-            if CGI_CLI.cgi_active and CGI_CLI.html_logging:
+            if CGI_CLI.cgi_active:
                 CGI_CLI.logtofile('\n<pre>' + \
                     CGI_CLI.html_escape(os_output, pre_tag = True) + \
                     '\n</pre>\n', raw_log = True)
@@ -1464,7 +1463,7 @@ class LCMD(object):
             for cmd_line in cmd_list:
                 os_output = str()
                 if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line), color = 'blue', ommit_logging = True)
-                if CGI_CLI.cgi_active and CGI_CLI.html_logging:
+                if CGI_CLI.cgi_active:
                     CGI_CLI.logtofile('<p style="color:blue;">' + 'LOCAL_COMMAND: ' + cmd_line + '</p>', raw_log = True)
                 else:
                     CGI_CLI.logtofile('LOCAL_COMMAND: ' + str(cmd_line) + '\n')
@@ -1478,7 +1477,7 @@ class LCMD(object):
                     CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
                     CGI_CLI.logtofile(exc_text + '\n')
                 if os_output and printall: CGI_CLI.uprint(os_output, tag = 'pre', timestamp = 'no')
-                if CGI_CLI.cgi_active and CGI_CLI.html_logging:
+                if CGI_CLI.cgi_active:
                     CGI_CLI.logtofile('\n<pre>' + \
                         CGI_CLI.html_escape(os_output, pre_tag = True) + \
                         '\n</pre>\n', raw_log = True)
@@ -3410,11 +3409,11 @@ warning {
     router_type_id_string, router_id_string = "router_type", '__'
 
     ### GCI_CLI INIT ##########################################################
-    USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True, css_style = CSS_STYLE, \
-        html_logging = True)
+    USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True, css_style = CSS_STYLE)
     LCMD.init()
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
-    printall = CGI_CLI.data.get("printall")
+
+    printall = True if CGI_CLI.data.get("printall",False) else False
 
     ### GENERATE DEVICE LIST ##################################################
     devices_string = CGI_CLI.data.get("device",str())
@@ -4256,7 +4255,7 @@ except:
 if logfilename:
     if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, logfilename)
     else: logviewer = './logviewer.py?logfile=%s' % (logfilename)
-    if CGI_CLI.cgi_active and CGI_CLI.html_logging:
+    if CGI_CLI.cgi_active:
         CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
             % (logviewer, logfilename), raw = True, color = 'blue')
         CGI_CLI.uprint('<br/>', raw_log = True)
