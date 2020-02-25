@@ -3090,7 +3090,7 @@ authentication {
 
                 ### def INTERFACE RESULTS #####################################
                 interface_result = 'WARNING'
-                html_color = '#ff6600'
+                html_color = 'orange'
 
                 if check_interface_result_ok and check_warning_interface_result_ok:
                     interface_result = 'OK'
@@ -3226,7 +3226,7 @@ authentication {
                     CGI_CLI.logtofile('<p style="color:red;">Device=%s, Interface=%s  -  RESULT = %s</p>' \
                         % (device, interface_id, interface_result), raw_log = True)
                 elif interface_result == 'WARNING':
-                    CGI_CLI.logtofile('<p style="color:#ff6600;">Device=%s, Interface=%s  -  RESULT = %s</p>' \
+                    CGI_CLI.logtofile('<p style="color:orange;">Device=%s, Interface=%s  -  RESULT = %s</p>' \
                         % (device, interface_id, interface_result), raw_log = True)
                 else: CGI_CLI.logtofile('<p style="color:green;">Device=%s, Interface=%s  -  RESULT = %s</p>' \
                           % (device, interface_id, interface_result), raw_log = True)
