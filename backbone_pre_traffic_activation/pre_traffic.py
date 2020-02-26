@@ -2794,11 +2794,11 @@ authentication {
                     ### BACKUP INTERFACES ###
                     try:
                         backup_if_list = []
-                        if interface_data.get('name_of_remote_device'):
+                        if interface_data.get('name_of_remote_device').splitlines():
                             for line in collect_if_config_rcmd_outputs[11]:
                                 if '%s FROM %s' % (interface_data.get('name_of_remote_device',str()), device) in line.upper():
                                     backup_if_list.append(str(line.split()[0]).replace('GE','Gi'))
-                        interface_data['backup_interface_list'] = backup_if_list
+                        interface_data['backup_interface_list'] = copy.deepcopy(backup_if_list)
                     except: interface_data['backup_interface_list'] = []
 
                     ### WARNINGS ###
@@ -2867,11 +2867,11 @@ authentication {
                     ### BACKUP INTERFACES ###
                     try:
                         backup_if_list = []
-                        if interface_data.get('name_of_remote_device'):
+                        if interface_data.get('name_of_remote_device').splitlines():
                             for line in collect_if_config_rcmd_outputs[14]:
                                 if '%s FROM %s' % (interface_data.get('name_of_remote_device',str()), device) in line.upper():
                                     backup_if_list.append(str(line.split()[0]).replace('GE','Gi'))
-                        interface_data['backup_interface_list'] = backup_if_list
+                        interface_data['backup_interface_list'] = copy.deepcopy(backup_if_list)
                     except: interface_data['backup_interface_list'] = []
 
                     ### WARNINGS ###
@@ -2947,10 +2947,10 @@ authentication {
                     try:
                         backup_if_list = []
                         if interface_data.get('name_of_remote_device'):
-                            for line in collect_if_config_rcmd_outputs[11]:
+                            for line in collect_if_config_rcmd_outputs[11].splitlines():
                                 if '%s FROM %s' % (interface_data.get('name_of_remote_device',str()), device) in line.upper():
                                     backup_if_list.append(str(line.split()[0]).replace('GE','Gi'))
-                        interface_data['backup_interface_list'] = backup_if_list
+                        interface_data['backup_interface_list'] = copy.deepcopy(backup_if_list)
                     except: interface_data['backup_interface_list'] = []
 
                     ### WARNINGS ###
