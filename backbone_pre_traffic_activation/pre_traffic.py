@@ -2735,7 +2735,7 @@ authentication {
                 try: interface_data['fib_number(s)'] = ','.join(get_fiblist(collect_if_config_rcmd_outputs[0].split('description')[1].splitlines()[0]))
                 except: interface_data['fib_number'] = str()
 
-                try: interface_data['name_of_remote_device'] = collect_if_config_rcmd_outputs[0].split('description')[1].splitlines()[0].split('from')[0].strip().replace('"','')
+                try: interface_data['name_of_remote_device'] = collect_if_config_rcmd_outputs[0].upper().split('DESCRIPTION')[1].splitlines()[0].split('FROM')[0].strip().replace('"','')
                 except: interface_data['name_of_remote_device'] = str()
 
                 try: interface_data['ipv4_addr_rem'] = collect_if_config_rcmd_outputs[0].split('description')[1].splitlines()[0].split('@')[1].split()[0]
