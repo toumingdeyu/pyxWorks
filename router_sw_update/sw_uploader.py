@@ -24,6 +24,8 @@ from mako.template import Template
 from mako.lookup import TemplateLookup
 
 
+
+
 class CGI_CLI(object):
     """
     class CGI_handle - Simple statis class for handling CGI parameters and
@@ -572,7 +574,7 @@ class CGI_CLI(object):
         return time.strftime("%y.%m.%d_%H:%M",time.gmtime(file_time))
 
     @staticmethod
-    def print_args():
+    def print_args(ommit_print = None):
         from platform import python_version
         print_string = 'python[%s]\n' % (str(python_version()))
         print_string += 'version[%s], ' % (CGI_CLI.VERSION())
@@ -587,7 +589,7 @@ class CGI_CLI(object):
             try: print_string += 'CGI_CLI.data[%s] = %s\n' % (str(CGI_CLI.submit_form),str(json.dumps(CGI_CLI.data, indent = 4)))
             except: pass
         else: print_string += 'CLI_args = %s\nCGI_CLI.data = %s' % (str(sys.argv[1:]), str(json.dumps(CGI_CLI.data,indent = 4)))
-        CGI_CLI.uprint(print_string, tag = 'debug', no_printall = not printall)
+        if not ommit_print: CGI_CLI.uprint(print_string, tag = 'debug', no_printall = not printall)
         return print_string
 
     @staticmethod
@@ -686,6 +688,8 @@ class RCMD(object):
             RCMD.use_module = use_module
             RCMD.USERNAME = username
             RCMD.PASSWORD = password
+            RCMD.vision_api_json_string = None
+            RCMD.ip_address = None
             RCMD.router_prompt = None
             RCMD.printall = printall
             RCMD.router_type = None
@@ -704,11 +708,14 @@ class RCMD(object):
             except: RCMD.DEVICE_PORT = '22'
 
             ### IS ALIVE TEST #################################################
+            RCMD.ip_address = RCMD.get_IP_from_vision(device)
+            device_id = RCMD.ip_address if RCMD.ip_address else device
             if not no_alive_test:
                 for i_repeat in range(3):
-                    if RCMD.is_alive(device): break
+                    if RCMD.is_alive(device_id): break
                 else:
-                    CGI_CLI.uprint('DEVICE %s is not ALIVE.' % (device), color = 'magenta')
+                    CGI_CLI.uprint('DEVICE %s (ip=%s) is not ALIVE.' % \
+                        (device, RCMD.ip_address), color = 'magenta')
                     return command_outputs
             ### START SSH CONNECTION ##########################################
             CGI_CLI.uprint('DEVICE %s (host=%s, port=%s) START'\
@@ -717,7 +724,8 @@ class RCMD(object):
                 ### ONE_CONNECT DETECTION #####################################
                 RCMD.client = paramiko.SSHClient()
                 RCMD.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-                RCMD.client.connect(RCMD.DEVICE_HOST, port=int(RCMD.DEVICE_PORT), \
+                #RCMD.client.connect(RCMD.DEVICE_HOST, port=int(RCMD.DEVICE_PORT), \
+                RCMD.client.connect(device_id, port=int(RCMD.DEVICE_PORT), \
                     username=RCMD.USERNAME, password=RCMD.PASSWORD, \
                     banner_timeout = 10, \
                     ### AUTH_TIMEOUT MAKES PROBLEMS ON IPTAC1 ###
@@ -1307,6 +1315,33 @@ class RCMD(object):
         if router_os == 'linux': netmiko_os = 'linux'
         if router_os == 'vrp': netmiko_os = 'huawei'
         return netmiko_os, prompt
+
+    @staticmethod
+    def get_json_from_vision(URL = None):
+        global vision_api_json_string
+        if RCMD.USERNAME and RCMD.PASSWORD:
+            os.environ['CURL_AUTH_STRING'] = '%s:%s' % \
+                (RCMD.USERNAME,RCMD.PASSWORD)
+            if URL: url = URL
+            else: url = 'https://vision.opentransit.net/onv/api/nodes/'
+            local_command = 'curl -u ${CURL_AUTH_STRING} %s' % (url)
+            RCMD.vision_api_json_string = LCMD.run_commands(\
+                {'unix':[local_command]}, printall = None)
+            os.environ['CURL_AUTH_STRING'] = '-'
+
+    @staticmethod
+    def get_IP_from_vision(DEVICE_NAME = None):
+        device_ip_address = str()
+        if not RCMD.vision_api_json_string: RCMD.get_json_from_vision()
+        if RCMD.vision_api_json_string and DEVICE_NAME:
+            try:
+                device_ip_address = str(RCMD.vision_api_json_string[0].split(DEVICE_NAME.upper())[1].\
+                    splitlines()[1].\
+                    split('"ip":')[1].replace('"','').replace(',','')).strip()
+            except: pass
+        return device_ip_address
+
+
 
 
 
@@ -2191,7 +2226,7 @@ def check_percentage_of_copied_files(scp_list = [], USERNAME = None, \
                     ### dir file gets output without 'harddisk:/'!!! ###
                     for line in dir_one_output[0].splitlines():
                         try:
-                            if device_file.split(':/')[1] in line:
+                            if device_file.split('/')[-1] in line:
                                 try: device_filesize_in_bytes = float(line.split()[3])
                                 except:
                                     ### SOME XR GETS FILE SIZE IN 2ND COLUMN ###
