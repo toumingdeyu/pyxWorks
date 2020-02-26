@@ -2799,7 +2799,7 @@ authentication {
                                 if '%s FROM %s' % (interface_data.get('name_of_remote_device',str()), device) in line.upper():
                                     try: local_backup_interface = str(line.split()[0]).replace('GE','Gi').split('(')[0]
                                     except: local_backup_interface = str(line.split()[0]).replace('GE','Gi')
-                                    backup_if_list.append(local_backup_interface)
+                                    backup_if_list.append(copy.deepcopy(local_backup_interface))
                         interface_data['backup_interface_list'] = copy.deepcopy(backup_if_list)
                     except: interface_data['backup_interface_list'] = []
 
@@ -2874,7 +2874,7 @@ authentication {
                                 if '%s FROM %s' % (interface_data.get('name_of_remote_device',str()), device) in line.upper():
                                     try: local_backup_interface = str(line.split()[0]).replace('GE','Gi').split('(')[0]
                                     except: local_backup_interface = str(line.split()[0]).replace('GE','Gi')
-                                    backup_if_list.append(local_backup_interface)
+                                    backup_if_list.append(copy.deepcopy(local_backup_interface))
                         interface_data['backup_interface_list'] = copy.deepcopy(backup_if_list)
                     except: interface_data['backup_interface_list'] = []
 
@@ -2955,7 +2955,7 @@ authentication {
                                 if '%s FROM %s' % (interface_data.get('name_of_remote_device',str()), device) in line.upper():
                                     try: local_backup_interface = str(line.split()[0]).replace('GE','Gi').split('(')[0]
                                     except: local_backup_interface = str(line.split()[0]).replace('GE','Gi')
-                                    backup_if_list.append(local_backup_interface)
+                                    backup_if_list.append(copy.deepcopy(local_backup_interface))
                         interface_data['backup_interface_list'] = copy.deepcopy(backup_if_list)
                     except: interface_data['backup_interface_list'] = []
 
