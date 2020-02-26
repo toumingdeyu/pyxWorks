@@ -550,7 +550,7 @@ class CGI_CLI(object):
         return time.strftime("%y.%m.%d_%H:%M",time.gmtime(file_time))
 
     @staticmethod
-    def print_args():
+    def print_args(ommit_print = None):
         from platform import python_version
         print_string = 'python[%s]\n' % (str(python_version()))
         print_string += 'version[%s], ' % (CGI_CLI.VERSION())
@@ -565,7 +565,7 @@ class CGI_CLI(object):
             try: print_string += 'CGI_CLI.data[%s] = %s\n' % (str(CGI_CLI.submit_form),str(json.dumps(CGI_CLI.data, indent = 4)))
             except: pass
         else: print_string += 'CLI_args = %s\nCGI_CLI.data = %s' % (str(sys.argv[1:]), str(json.dumps(CGI_CLI.data,indent = 4)))
-        CGI_CLI.uprint(print_string, tag = 'debug', no_printall = not printall)
+        if not ommit_print: CGI_CLI.uprint(print_string, tag = 'debug', no_printall = not printall)
         return print_string
 
     @staticmethod
@@ -664,6 +664,8 @@ class RCMD(object):
             RCMD.use_module = use_module
             RCMD.USERNAME = username
             RCMD.PASSWORD = password
+            RCMD.vision_api_json_string = None
+            RCMD.ip_address = None
             RCMD.router_prompt = None
             RCMD.printall = printall
             RCMD.router_type = None
@@ -682,11 +684,14 @@ class RCMD(object):
             except: RCMD.DEVICE_PORT = '22'
 
             ### IS ALIVE TEST #################################################
+            RCMD.ip_address = RCMD.get_IP_from_vision(device)
+            device_id = RCMD.ip_address if RCMD.ip_address else device
             if not no_alive_test:
                 for i_repeat in range(3):
-                    if RCMD.is_alive(device): break
+                    if RCMD.is_alive(device_id): break
                 else:
-                    CGI_CLI.uprint('DEVICE %s is not ALIVE.' % (device), color = 'magenta')
+                    CGI_CLI.uprint('DEVICE %s (ip=%s) is not ALIVE.' % \
+                        (device, RCMD.ip_address), color = 'magenta')
                     return command_outputs
             ### START SSH CONNECTION ##########################################
             CGI_CLI.uprint('DEVICE %s (host=%s, port=%s) START'\
@@ -695,7 +700,8 @@ class RCMD(object):
                 ### ONE_CONNECT DETECTION #####################################
                 RCMD.client = paramiko.SSHClient()
                 RCMD.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-                RCMD.client.connect(RCMD.DEVICE_HOST, port=int(RCMD.DEVICE_PORT), \
+                #RCMD.client.connect(RCMD.DEVICE_HOST, port=int(RCMD.DEVICE_PORT), \
+                RCMD.client.connect(device_id, port=int(RCMD.DEVICE_PORT), \
                     username=RCMD.USERNAME, password=RCMD.PASSWORD, \
                     banner_timeout = 10, \
                     ### AUTH_TIMEOUT MAKES PROBLEMS ON IPTAC1 ###
@@ -1285,6 +1291,33 @@ class RCMD(object):
         if router_os == 'linux': netmiko_os = 'linux'
         if router_os == 'vrp': netmiko_os = 'huawei'
         return netmiko_os, prompt
+
+    @staticmethod
+    def get_json_from_vision(URL = None):
+        global vision_api_json_string
+        if RCMD.USERNAME and RCMD.PASSWORD:
+            os.environ['CURL_AUTH_STRING'] = '%s:%s' % \
+                (RCMD.USERNAME,RCMD.PASSWORD)
+            if URL: url = URL
+            else: url = 'https://vision.opentransit.net/onv/api/nodes/'
+            local_command = 'curl -u ${CURL_AUTH_STRING} %s' % (url)
+            RCMD.vision_api_json_string = LCMD.run_commands(\
+                {'unix':[local_command]}, printall = None)
+            os.environ['CURL_AUTH_STRING'] = '-'
+
+    @staticmethod
+    def get_IP_from_vision(DEVICE_NAME = None):
+        device_ip_address = str()
+        if not RCMD.vision_api_json_string: RCMD.get_json_from_vision()
+        if RCMD.vision_api_json_string and DEVICE_NAME:
+            try:
+                device_ip_address = str(RCMD.vision_api_json_string[0].split(DEVICE_NAME.upper())[1].\
+                    splitlines()[1].\
+                    split('"ip":')[1].replace('"','').replace(',','')).strip()
+            except: pass
+        return device_ip_address
+
+
 
 
 
@@ -2176,7 +2209,30 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
 
 
 ###############################################################################
+# vision_api_json_string = None
+# def get_IP_from_vision(DEVICE_NAME = None):
+    # def get_json_from_vision(URL = None):
+        # global vision_api_json_string
+        # if USERNAME and PASSWORD:
+            # os.environ['CURL_AUTH_STRING'] = '%s:%s' % (USERNAME,PASSWORD)
+            #time.sleep(0.1)
+            # if URL: url = URL
+            # else: url = 'https://vision.opentransit.net/onv/api/nodes/'
+            # local_command = 'curl -u ${CURL_AUTH_STRING} %s' % (url)
+            # vision_api_json_string = LCMD.run_commands({'unix':[local_command]}, \
+                # printall = None)
+            # os.environ['CURL_AUTH_STRING'] = '-'
+    # device_ip_address = str()
+    # if not vision_api_json_string: get_json_from_vision()
+    # if vision_api_json_string and DEVICE_NAME:
+        # try:
+            # device_ip_address = str(vision_api_json_string[0].split(DEVICE_NAME.upper())[1].\
+                # splitlines()[1].\
+                # split('"ip":')[1].replace('"','').replace(',','')).strip()
+        # except: pass
+    # return device_ip_address
 
+###############################################################################
 
 
 ###############################################################################
@@ -2227,12 +2283,12 @@ authentication {
     global_logfilename = str()
 
     ### GCI_CLI INIT ##########################################################
-    USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = None, css_style = CSS_STYLE, \
-        log = True, html_logging = True)
+    USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = None, css_style = CSS_STYLE)
     LCMD.init()
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
     printall = CGI_CLI.data.get("printall")
     #printall = True
+
 
     ### ACTION TYPE ###########################################################
     action_type = 'bbactivation'
@@ -2346,7 +2402,7 @@ authentication {
         swan_id = CGI_CLI.data.get('swan-id')
 
     if (swan_id and CGI_CLI.data.get('submit',str()) == 'SUBMIT+STEP+2') \
-        or (swan_id and \
+        or (swan_id \
         and not (CGI_CLI.data.get('submit-type',str()) == 'submit-with-precheck' \
         or CGI_CLI.data.get('submit-type',str()) == 'submit-with-precheck' \
         or CGI_CLI.data.get('submit',str()) == 'Run precheck' \
@@ -2574,7 +2630,7 @@ authentication {
                         (SCRIPT_NAME, changelog, CGI_CLI.VERSION()), raw_log = True)
                 else: CGI_CLI.logtofile('%s (v.%s)' % (SCRIPT_NAME,CGI_CLI.VERSION()))
 
-                CGI_CLI.logtofile(CGI_CLI.print_args(no_print = True) + '\n\n')
+                CGI_CLI.logtofile(CGI_CLI.print_args(ommit_print = True) + '\n\n')
 
                 if swan_id: CGI_CLI.uprint('SWAN_ID=%s' % (swan_id))
 
@@ -3269,7 +3325,7 @@ authentication {
 except SystemExit: pass
 except:
     traceback_found = traceback.format_exc()
-    CGI_CLI.uprint(traceback_found, tag = 'h3',color = 'magenta')
+    CGI_CLI.uprint(str(traceback_found), tag = 'h3', color = 'magenta')
 
 if global_logfilename and CGI_CLI.data.get("send_email"):
     ### SEND EMAIL WITH LOGFILE ###############################################
@@ -3290,4 +3346,5 @@ if traceback_found:
         split('/')[-1] if global_logfilename else str(),
         email_body = str(traceback_found),\
         file_name = global_logfilename, username = 'pnemec')
+
 
