@@ -534,9 +534,9 @@ class CGI_CLI(object):
             i_pyfile = sys.argv[0]
             try: pyfile = i_pyfile.replace('\\','/').split('/')[-1].strip()
             except: pyfile = i_pyfile.strip()
-            if CGI_CLI.cgi_active:
-                CGI_CLI.print_chunk('<p id="scriptend"></p>', raw_log = True, printall = True)
-                CGI_CLI.print_chunk('<br/><a href = "./%s">PAGE RELOAD</a>' % (pyfile), raw_log = True, printall = True)
+            # if CGI_CLI.cgi_active:
+                # CGI_CLI.print_chunk('<p id="scriptend"></p>', raw_log = True, printall = True)
+                # CGI_CLI.print_chunk('<br/><a href = "./%s">PAGE RELOAD</a>' % (pyfile), raw_log = True, printall = True)
 
 
     @staticmethod
