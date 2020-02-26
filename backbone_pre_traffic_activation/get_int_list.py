@@ -99,11 +99,27 @@ class CGI_CLI(object):
         parser.add_argument("--device",
                             action = "store", dest = 'device',
                             default = str(),
-                            help = "Target router to access. (Optionable device list separated ba comma, i.e. --device DEVICE1,DEVICE2)")
+                            help = "target router to access. For now supports only 1.")
         parser.add_argument("--interface",
                             action = "store", dest = 'interface',
                             default = str(),
-                            help = "interface id for testing")
+                            help = "interface id for testing. Interface list separated by , without whitespace.")
+        parser.add_argument("--precheck",
+                            action = "store_true", dest = 'precheck', default = None,
+                            help = "do monitoring/precheck")
+        parser.add_argument("--postcheck",
+                            action = "store_true", dest = 'postcheck', default = None,
+                            help = "do traffic/postcheck")
+        parser.add_argument("--swan_id",
+                            action = "store", dest = 'swan_id',
+                            default = str(),
+                            help = "swan_id name stored in DB")
+        parser.add_argument("--reinit_swan_id",
+                            action = "store_true", dest = 'reinit_swan_id', default = None,
+                            help = "re-init/rewrite initial swan_id record in DB")
+        parser.add_argument("--send_email",
+                            action = "store_true", dest = 'send_email', default = None,
+                            help = "send email with test result logs")
         parser.add_argument("--printall",
                             action = "store_true", dest = 'printall',
                             default = None,
@@ -114,8 +130,10 @@ class CGI_CLI(object):
     @staticmethod
     def __cleanup__():
         ### CGI_CLI.uprint('\nEND[script runtime = %d sec]. '%(time.time() - CGI_CLI.START_EPOCH))
-        ### CGI_CLI.html_selflink('OK')
-        if CGI_CLI.cgi_active: CGI_CLI.print_chunk("</body></html>")
+        CGI_CLI.html_selflink()
+        if CGI_CLI.cgi_active:
+            CGI_CLI.print_chunk("</body></html>",
+                ommit_logging = True, printall = True)
 
     @staticmethod
     def register_cleanup_at_exit():
@@ -127,27 +145,17 @@ class CGI_CLI(object):
 
     @staticmethod
     def init_cgi(chunked = None, css_style = None, newline = None, \
-        timestamp = None, log = None, html_logging = None):
+        timestamp = None):
         """
         log - start to log all after logfilename is inserted
-        html_logging - write log file in HTML format for easy reading
         """
+        CGI_CLI.self_buttons = ['OK']
         CGI_CLI.START_EPOCH = time.time()
         CGI_CLI.http_status = 200
         CGI_CLI.http_status_text = 'OK'
-        CGI_CLI.html_logging = html_logging
         CGI_CLI.chunked = chunked
         CGI_CLI.timestamp = timestamp
-        CGI_CLI.log = log
         CGI_CLI.CSS_STYLE = css_style if css_style else str()
-        ### TO BE PLACED - BEFORE HEADER ###
-        CGI_CLI.newline = '\r\n' if not newline else newline
-        CGI_CLI.chunked_transfer_encoding_line = \
-            "Transfer-Encoding: chunked%s" % (CGI_CLI.newline) if CGI_CLI.chunked else str()
-        ### HTTP/1.1 ???
-        CGI_CLI.status_line = \
-            "Status: %s %s%s" % (CGI_CLI.http_status, CGI_CLI.http_status_text, CGI_CLI.newline)
-        CGI_CLI.content_type_line = 'Content-type:text/html; charset=utf-8%s' % (CGI_CLI.newline)
         CGI_CLI.cgi_active = None
         CGI_CLI.initialized = True
         getpass_done = None
@@ -161,20 +169,32 @@ class CGI_CLI(object):
             variable = str(key)
             try: value = str(form.getvalue(variable))
             except: value = str(','.join(form.getlist(name)))
-            if variable and value and not variable in ["submit","username","password"]:
+            if variable and value and not variable in ["username","password"]:
                 CGI_CLI.data[variable] = value
             if variable == "submit": CGI_CLI.submit_form = value
             if variable == "username": CGI_CLI.username = value
             if variable == "password": CGI_CLI.password = value
+
+            ### SET CHUNKED MODE BY CGI #######################################
             if variable == "chunked_mode":
                 if not value: CGI_CLI.chunked = False
                 elif value: CGI_CLI.chunked = True
                 try:
                     if value.upper() in ['DISABLE','DISABLED','NO','FALSE','NONE']:
                         CGI_CLI.chunked_mode = False
-                    elif value.upper() in ['ENABLE','ENABLED','YES','TRUE']:
+                    elif value.upper() in ['ENABLE','ENABLED','YES','TRUE','ON']:
                         CGI_CLI.chunked_mode = True
                 except: pass
+
+        ### TO BE PLACED - BEFORE HEADER ######################################
+        CGI_CLI.newline = '\r\n' if not newline else newline
+        CGI_CLI.chunked_transfer_encoding_line = \
+            "Transfer-Encoding: chunked%s" % (CGI_CLI.newline) if CGI_CLI.chunked else str()
+        ### HTTP/1.1 ???
+        CGI_CLI.status_line = \
+            "Status: %s %s%s" % (CGI_CLI.http_status, CGI_CLI.http_status_text, CGI_CLI.newline)
+        CGI_CLI.content_type_line = 'Content-type:text/html; charset=utf-8%s' % (CGI_CLI.newline)
+
         ### DECIDE - CLI OR CGI MODE ##########################################
         CGI_CLI.remote_addr =  dict(os.environ).get('REMOTE_ADDR','')
         CGI_CLI.http_user_agent = dict(os.environ).get('HTTP_USER_AGENT','')
@@ -193,7 +213,8 @@ class CGI_CLI(object):
                 (CGI_CLI.newline, CGI_CLI.newline,
                 #CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit', \
                 str(__file__).split('/')[-1] + '  PID' + str(os.getpid()) if '/' in str(__file__) else str(), \
-                '<style>%s</style>' % (CGI_CLI.CSS_STYLE) if CGI_CLI.CSS_STYLE else str()))
+                '<style>%s</style>' % (CGI_CLI.CSS_STYLE) if CGI_CLI.CSS_STYLE else str()),\
+                ommit_logging = True, printall = True)
         import atexit; atexit.register(CGI_CLI.__cleanup__)
         ### GAIN USERNAME AND PASSWORD FROM ENVIRONMENT BY DEFAULT ###
         try:    CGI_CLI.PASSWORD        = os.environ['NEWR_PASS']
@@ -231,92 +252,119 @@ class CGI_CLI(object):
                             try:
                                 with open(use_filename, 'wb') as file:
                                     file.write(CGI_CLI.data.get('file[%s]'%(filename)))
-                                    CGI_CLI.uprint('The file "' + use_filename + '" was uploaded.')
-                            except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']', color = 'magenta')
+                                    CGI_CLI.uprint('The file "' + use_filename + '" was uploaded.', printall = True)
+                            except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']', color = 'magenta', printall = True)
 
     @staticmethod
     def set_logfile(logfilename = None):
         """
-        set_logfile()            - uses LCMD.logfilename or RCMD.logfilename,
         set_logfile(logfilename) - uses inserted logfilename
+        NOTE: Add html footer to logfile if exists, Add html header to logfile
         """
-        actual_logfilename, CGI_CLI.logfilename = None, None
-        ### CHECK AND GET ALREADY USED LOGFILES ###############################
-        try:
-            if not (LCMD.logfilenam == 'nul' or LCMD.logfilename == '/dev/null'):
-                actual_logfilename = copy.deepcopy(LCMD.logfilename)
-        except: pass
-        try:
-            if not (RCMD.logfilenam == 'nul' or RCMD.logfilename == '/dev/null'):
-               actual_logfilename = copy.deepcopy(RCMD.logfilename)
-        except: pass
-        ### SET ACTUAL_LOGFILENAME FROM INSERTED IF INSETRED ##################
-        if logfilename: actual_logfilename = logfilename
-        ### REWRITE CGI_CLI.LOGFILENAME #######################################
-        if actual_logfilename == 'nul' or actual_logfilename == '/dev/null' \
-            or not actual_logfilename: pass
-        else:
-            CGI_CLI.logfilename = actual_logfilename
-            ### IF LOGFILE SET, SET ALSO OTHER CLASSES LOG FILES ##############
-            try:
-                if CGI_CLI.logfilename:
-                    LCMD.logfilename = copy.deepcopy(CGI_CLI.logfilename)
-            except: pass
-            try:
-                if CGI_CLI.logfilename:
-                    RCMD.logfilename = copy.deepcopy(CGI_CLI.logfilename)
-            except: pass
+        CGI_CLI.logtofile(end_log = True)
+        CGI_CLI.logfilename = logfilename
+        time.sleep(0.1)
+        CGI_CLI.logtofile(start_log = True)
 
     @staticmethod
-    def print_chunk(msg = "", raw_log = None):
+    def logtofile(msg = None, raw_log = None, start_log = None, end_log = None):
+        msg_to_file = str()
+        if CGI_CLI.logfilename:
+            ### HTML LOGGING ##################################################
+            if CGI_CLI.cgi_active:
+                ### ADD HTML HEADER ###########################################
+                if start_log:
+                    msg_to_file += '<!DOCTYPE html><html><head><title>%s</title></head><body>'\
+                        % (CGI_CLI.logfilename)
+                ### CONVERT TEXT TO HTML FORMAT ###############################
+                if not raw_log and msg:
+                    msg_to_file += str(msg.replace('&','&amp;').\
+                        replace('<','&lt;').\
+                        replace('>','&gt;').replace(' ','&nbsp;').\
+                        replace('"','&quot;').replace("'",'&apos;').\
+                        replace('\n','<br/>'))
+                elif msg: msg_to_file += msg
+                ### ADD HTML FOOTER ###########################################
+                if end_log: msg_to_file += '</body></html>'
+            ### CLI LOGGING ###################################################
+            elif msg: msg_to_file = msg + '\n'
+            ### LOG CLI OR HTML MODE ##########################################
+            if msg_to_file:
+                with open(CGI_CLI.logfilename,"a+") as CGI_CLI.fp:
+                    CGI_CLI.fp.write(msg_to_file)
+                    del msg_to_file
+            ### ON END: LOGFILE SET TO VOID, AVOID OF MULTIPLE FOOTERS ########
+            if end_log: CGI_CLI.logfilename = None
+
+    @staticmethod
+    def html_escape(text = None, pre_tag = None):
+        escaped_text = str()
+        if text and not pre_tag:
+            escaped_text = str(text.replace('&','&amp;').\
+                replace('<','&lt;').replace('>','&gt;').\
+                replace(' ','&nbsp;').\
+                replace('"','&quot;').replace("'",'&apos;').\
+                replace('\n','<br/>'))
+        elif text and pre_tag:
+            ### OMMIT SPACES,QUOTES AND NEWLINES ##############################
+            escaped_text = str(text.replace('&','&amp;').\
+                replace('<','&lt;').replace('>','&gt;'))
+        return escaped_text
+
+
+    @staticmethod
+    def print_chunk(msg = None, no_newlines = None, raw_log = None, \
+        ommit_logging = None, printall = None):
         """
         raw_log = raw logging
         """
-        ### sys.stdout.write is printing without \n, print adds \n == +1BYTE ##
-        if CGI_CLI.chunked and CGI_CLI.cgi_active:
-            if len(msg)>0:
-                sys.stdout.write("\r\n%X\r\n%s" % (len(msg), msg))
-                sys.stdout.flush()
-        ### CLI MODE ###
-        else: print(msg)
-
-        ### HTML LOGGING ######################################################
-        if CGI_CLI.logfilename and CGI_CLI.log and CGI_CLI.html_logging \
-            and CGI_CLI.cgi_active:
-            with open(CGI_CLI.logfilename,"a+") as CGI_CLI.fp:
-                if not raw_log: msg_to_html = str(msg.replace('&','&amp;').\
-                                replace('<','&lt;').\
-                                replace('>','&gt;').replace(' ','&nbsp;').\
-                                replace('"','&quot;').replace("'",'&apos;').\
-                                replace('\n','<br/>'))
-                else: msg_to_html = copy.deepcopy(msg)
-                CGI_CLI.fp.write(msg_to_html)
-                del msg_to_html
+        if msg:
+            if printall:
+                ### sys.stdout.write is printing without \n, print adds \n == +1BYTE ##
+                if CGI_CLI.chunked and CGI_CLI.cgi_active:
+                    if len(msg)>0:
+                        sys.stdout.write("\r\n%X\r\n%s" % (len(msg), msg))
+                        sys.stdout.flush()
+                ### CLI MODE ##################################################
+                else:
+                    if no_newlines:
+                        sys.stdout.write(msg)
+                        sys.stdout.flush()
+                    else:
+                        print(msg)
+            if not ommit_logging: CGI_CLI.logtofile(msg = msg, raw_log = raw_log)
 
     @staticmethod
-    def uprint(text = str(), tag = None, tag_id = None, color = None, name = None, jsonprint = None, \
-        log = None, no_newlines = None, start_tag = None, end_tag = None, raw = None, timestamp = None):
+    def uprint(text = None, tag = None, tag_id = None, color = None, name = None, jsonprint = None, \
+        ommit_logging = None, no_newlines = None, start_tag = None, end_tag = None, raw = None, \
+        timestamp = None, printall = None, no_printall = None):
         """NOTE: name parameter could be True or string.
            start_tag - starts tag and needs to be ended next time by end_tag
            raw = True , print text as it is, not convert to html. Intended i.e. for javascript
            timestamp = True - locally allow (CGI_CLI.timestamp = True has priority)
            timestamp = 'no' - locally disable even if CGI_CLI.timestamp == True
-           log = 'no' - locally disable logging even if CGI_CLI.log == True
+           Use 'no_printall = not printall' instead of printall = False
         """
-        print_text, print_name, print_per_tag = copy.deepcopy(text), str(), str()
+        if not text: return None
+
+        ### PRINTALL LOGIC ####################################################
+        if not printall and not no_printall: printall_yes = True
+        elif no_printall: printall_yes = False
+        else: printall_yes = True
+
         if jsonprint:
             if isinstance(text, (dict,collections.OrderedDict,list,tuple)):
-                try: print_text = json.dumps(text, indent = 4)
-                except Exception as e: CGI_CLI.print_chunk('JSON_PROBLEM[' + str(e) + ']')
+                try: print_text = str(json.dumps(text, indent = 4))
+                except Exception as e: CGI_CLI.print_chunk('JSON_PROBLEM[' + str(e) + ']', printall = printall_yes)
+        else: print_text = str(copy.deepcopy(text))
+
+        print_name = str()
         if name == True:
             if not 'inspect.currentframe' in sys.modules: import inspect
             callers_local_vars = inspect.currentframe().f_back.f_locals.items()
             var_list = [var_name for var_name, var_val in callers_local_vars if var_val is text]
             if str(','.join(var_list)).strip(): print_name = str(','.join(var_list)) + ' = '
         elif isinstance(name, (six.string_types)): print_name = str(name) + ' = '
-
-        print_text = str(print_text)
-        log_text   = str(copy.deepcopy((print_text)))
 
         ### GENERATE TIMESTAMP STRING, 'NO' = NO EVEN IF GLOBALLY IS ALLOWED ###
         timestamp_string = str()
@@ -329,20 +377,39 @@ class CGI_CLI(object):
                 timestamp_string = '@%s[%.2fs] ' % \
                     (datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S'), time.time() - CGI_CLI.START_EPOCH)
 
-        if CGI_CLI.cgi_active and not raw:
-            ### WORKARROUND FOR COLORING OF SIMPLE TEXT #######################
-            if color and not (tag or start_tag): tag = 'p';
-            if tag: CGI_CLI.print_chunk('<%s%s%s>'%(tag,' id="%s"'%(tag_id) if tag_id else str(),' style="color:%s;"' % (color) if color else str()), raw_log = True)
-            elif start_tag: CGI_CLI.print_chunk('<%s%s%s>'%(start_tag,' id="%s"'%(tag_id) if tag_id else str(),' style="color:%s;"' % (color) if color else str()), raw_log = True)
-            if isinstance(print_text, six.string_types):
-                print_text = str(print_text.replace('&','&amp;').\
-                    replace('<','&lt;').\
-                    replace('>','&gt;').replace(' ','&nbsp;').\
-                    replace('"','&quot;').replace("'",'&apos;').\
-                    replace('\n','<br/>'))
-            CGI_CLI.print_chunk(timestamp_string + print_name + print_text, raw_log = True)
-        elif CGI_CLI.cgi_active and raw: CGI_CLI.print_chunk(print_text, raw_log = True)
+        ### CGI MODE ##########################################################
+        if CGI_CLI.cgi_active:
+            if raw:
+                CGI_CLI.print_chunk(print_text, raw_log = True, \
+                    ommit_logging = ommit_logging, printall = printall_yes)
+            else:
+                ### WORKARROUND FOR COLORING OF SIMPLE TEXT ###################
+                if color and not (tag or start_tag): tag = 'p';
+                if tag:
+                    if str(tag) == 'warning':
+                        CGI_CLI.print_chunk('<%s style="color:red; background-color:yellow;">'%(tag),\
+                            raw_log = True, printall = printall_yes)
+                    elif str(tag) == 'debug':
+                        CGI_CLI.print_chunk('<%s style="color:dimgray; background-color:lightgray;">'%(tag),\
+                            raw_log = True, printall = printall_yes)
+                    else:
+                        CGI_CLI.print_chunk('<%s%s%s>'%(tag,' id="%s"'%(tag_id) if tag_id else str(),\
+                            ' style="color:%s;"' % (color) if color else str()), \
+                            raw_log = True, printall = printall_yes)
+                elif start_tag:
+                    CGI_CLI.print_chunk('<%s%s%s>'%(start_tag,' id="%s"'%(tag_id) \
+                        if tag_id else str(),' style="color:%s;"' % (color) if color else str()),\
+                        raw_log = True, printall = printall_yes)
+                if isinstance(print_text, six.string_types):
+                    print_text = str(print_text.replace('&','&amp;').\
+                        replace('<','&lt;').\
+                        replace('>','&gt;').replace(' ','&nbsp;').\
+                        replace('"','&quot;').replace("'",'&apos;').\
+                        replace('\n','<br/>'))
+                CGI_CLI.print_chunk(timestamp_string + print_name + print_text, \
+                    raw_log = True, ommit_logging = ommit_logging, printall = printall_yes)
         else:
+            ### CLI MODE ######################################################
             text_color = str()
             if color:
                 if 'RED' in color.upper():       text_color = CGI_CLI.bcolors.RED
@@ -353,72 +420,51 @@ class CGI_CLI(object):
                 elif 'GREY' in color.upper():    text_color = CGI_CLI.bcolors.GREY
                 elif 'GRAY' in color.upper():    text_color = CGI_CLI.bcolors.GREY
                 elif 'YELLOW' in color.upper():  text_color = CGI_CLI.bcolors.YELLOW
-            ### CLI_MODE ######################################################
-            if no_newlines:
-                sys.stdout.write(text_color + print_name + print_text \
-                    + CGI_CLI.bcolors.ENDC)
-                sys.stdout.flush()
-            else:
-                print(text_color + timestamp_string + print_name + print_text \
-                    + CGI_CLI.bcolors.ENDC)
+
+            CGI_CLI.print_chunk("%s%s%s%s%s" % \
+                (text_color, timestamp_string, print_name, print_text, \
+                CGI_CLI.bcolors.ENDC if text_color else str()), \
+                raw_log = True, printall = printall_yes, no_newlines = no_newlines)
+
         ### PRINT END OF TAGS #################################################
         if CGI_CLI.cgi_active and not raw:
             if tag:
-                CGI_CLI.print_chunk('</%s>' % (tag), raw_log = True)
+                CGI_CLI.print_chunk('</%s>' % (tag), raw_log = True, printall = printall_yes)
                 ### USER DEFINED TAGS DOES NOT PROVIDE NEWLINES!!! ############
-                if tag in ['debug','warning']: CGI_CLI.print_chunk('<br/>', raw_log = True)
-            elif end_tag: CGI_CLI.print_chunk('</%s>' % (end_tag), raw_log = True)
-            elif not no_newlines: CGI_CLI.print_chunk('<br/>', raw_log = True)
+                if tag in ['debug','warning']:
+                    CGI_CLI.print_chunk('<br/>', raw_log = True, printall = printall_yes)
+            elif end_tag:
+                CGI_CLI.print_chunk('</%s>' % (end_tag), raw_log = True, printall = printall_yes)
+            elif not no_newlines:
+                CGI_CLI.print_chunk('<br/>', raw_log = True, printall = printall_yes)
+
             ### PRINT PER TAG #################################################
-            CGI_CLI.print_chunk(print_per_tag)
-
-        ### LOG ALL, if CGI_CLI.log is True, EXCEPT log == 'no' ###############
-        if CGI_CLI.logfilename and (log or CGI_CLI.log) and not CGI_CLI.html_logging:
-            log_yes = True
-            try:
-                if str(log).upper() == 'NO': log_yes = False
-            except: pass
-            if log_yes:
-                with open(CGI_CLI.logfilename,"a+") as CGI_CLI.fp:
-                    CGI_CLI.fp.write(timestamp_string + print_name + \
-                        log_text + '\n')
-
-        ### LOG IN CLI MODE ###################################################
-        if not CGI_CLI.cgi_active and CGI_CLI.logfilename and (log or CGI_CLI.log):
-            log_yes = True
-            try:
-                if str(log).upper() == 'NO': log_yes = False
-            except: pass
-            if log_yes:
-                with open(CGI_CLI.logfilename,"a+") as CGI_CLI.fp:
-                    CGI_CLI.fp.write(timestamp_string + print_name + \
-                        log_text + '\n')
+            #CGI_CLI.print_chunk(print_per_tag, printall = printall_yes)
 
         ### COPY CLEANUP ######################################################
-        del log_text
         del print_text
-
+        return None
 
     @staticmethod
     def formprint(form_data = None, submit_button = None, pyfile = None, tag = None, \
-        color = None, list_separator = None):
+        color = None, list_separator = None, printall = None):
         """ formprint() - print simple HTML form
             form_data - string, just html raw OR list or dict values = ['raw','text','checkbox','radio','submit','dropdown','textcontent']
                       - value in dictionary means cgi variable name / printed componenet value
         """
         def subformprint(data_item):
-            if isinstance(data_item, six.string_types):  CGI_CLI.print_chunk(data_item, raw_log = True)
+            if isinstance(data_item, six.string_types):  CGI_CLI.print_chunk(data_item, raw_log = True, printall = True)
             elif isinstance(data_item, (dict,collections.OrderedDict)):
-                if data_item.get('raw',None): CGI_CLI.print_chunk(data_item.get('raw'), raw_log = True)
+                if data_item.get('raw',None): CGI_CLI.print_chunk(data_item.get('raw'), raw_log = True, printall = True)
                 elif data_item.get('textcontent',None):
                     CGI_CLI.print_chunk('<textarea type = "textcontent" name = "%s" cols = "40" rows = "4">%s</textarea>'%\
-                        (data_item.get('textcontent'), data_item.get('text','')), raw_log = True)
+                        (data_item.get('textcontent'), data_item.get('text','')), raw_log = True, printall = True)
                 elif data_item.get('text'):
                     CGI_CLI.print_chunk('%s: <input type = "text" name = "%s"><br />'%\
-                        (data_item.get('text','').replace('_',' '),data_item.get('text')), raw_log = True)
+                        (data_item.get('text','').replace('_',' '),data_item.get('text')), raw_log = True, printall = True)
                 elif data_item.get('password'):
                     CGI_CLI.print_chunk('%s: <input type = "password" name = "%s"><br />'%\
-                        (data_item.get('password','').replace('_',' '),data_item.get('password')), raw_log = True)
+                        (data_item.get('password','').replace('_',' '),data_item.get('password')), raw_log = True, printall = True)
                 elif data_item.get('radio'):
                     ### 'RADIO':'NAME__VALUE' ###
                     if isinstance(data_item.get('radio'), (list,tuple)):
@@ -429,28 +475,32 @@ class CGI_CLI(object):
                             except: value, name = radiobutton, 'radio'
                             CGI_CLI.print_chunk('<input type = "radio" name = "%s" value = "%s" /> %s %s'%\
                                 (name,value,value.replace('_',' '), \
-                                list_separator if list_separator else str()), raw_log = True)
+                                list_separator if list_separator else str()), raw_log = True, printall = True)
                     else:
                         try:
                             value = data_item.get('radio').split('__')[1]
                             name = data_item.get('radio').split('__')[0]
                         except: value, name = data_item.get('radio'), 'radio'
-                        CGI_CLI.print_chunk('<input type = "radio" name = "%s" value = "%s" /> %s'%\
-                            (name,value,value.replace('_',' ')), raw_log = True)
+                        CGI_CLI.print_chunk('<input type = "radio" name = "%s" value = "%s" /> %s' %\
+                            (name,value,value.replace('_',' ')), raw_log = True, printall = True)
                 elif data_item.get('checkbox'):
-                    CGI_CLI.print_chunk('<input type = "checkbox" name = "%s" value = "on" /> %s'%\
-                        (data_item.get('checkbox'),data_item.get('checkbox','').replace('_',' ')), raw_log = True)
+                    CGI_CLI.print_chunk('<input type = "checkbox" name = "%s" value = "on" /> %s' \
+                        % (data_item.get('checkbox'),data_item.get('checkbox','').replace('_',' ')), \
+                        raw_log = True, printall = True)
                 elif data_item.get('dropdown'):
                     if len(data_item.get('dropdown').split(','))>0:
-                        CGI_CLI.print_chunk('<select name = "dropdown[%s]">'%(data_item.get('dropdown')), raw_log = True)
+                        CGI_CLI.print_chunk('<select name = "dropdown[%s]">' \
+                            %(data_item.get('dropdown')), raw_log = True, printall = True)
                         for option in data_item.get('dropdown').split(','):
-                            CGI_CLI.print_chunk('<option value = "%s">%s</option>'%(option,option), raw_log = True)
-                        CGI_CLI.print_chunk('</select>')
+                            CGI_CLI.print_chunk('<option value = "%s">%s</option>' \
+                                %(option,option), raw_log = True, printall = True)
+                        CGI_CLI.print_chunk('</select>', raw_log = True, printall = True)
                 elif data_item.get('file'):
-                   CGI_CLI.print_chunk('Upload file: <input type = "file" name = "file[%s]" />'%(data_item.get('file').replace('\\','/')), raw_log = True)
+                   CGI_CLI.print_chunk('Upload file: <input type = "file" name = "file[%s]" />' \
+                       % (data_item.get('file').replace('\\','/')), raw_log = True, printall = True)
                 elif data_item.get('submit'):
                     CGI_CLI.print_chunk('<input id = "%s" type = "submit" name = "submit" value = "%s" />'%\
-                        (data_item.get('submit'),data_item.get('submit')), raw_log = True)
+                        (data_item.get('submit'),data_item.get('submit')), raw_log = True, printall = True)
 
         ### START OF FORMPRINT ###
         formtypes = ['raw','text','checkbox','radio','submit','dropdown','textcontent']
@@ -459,33 +509,34 @@ class CGI_CLI(object):
         try: i_pyfile = i_pyfile.replace('\\','/').split('/')[-1].strip()
         except: i_pyfile = i_pyfile.strip()
         if CGI_CLI.cgi_active:
-            CGI_CLI.print_chunk('<br/>', raw_log = True)
-            if tag and 'h' in tag: CGI_CLI.print_chunk('<%s%s>'%(tag,' style="color:%s;"'%(color) if color else str()), raw_log = True)
-            if color or tag and 'p' in tag: tag = 'p'; CGI_CLI.print_chunk('<p%s>'%(' style="color:%s;"'%(color) if color else str()), raw_log = True)
+            CGI_CLI.print_chunk('<br/>', raw_log = True, printall = True)
+            if tag and 'h' in tag: CGI_CLI.print_chunk('<%s%s>'%(tag,' style="color:%s;"'%(color) if color else str()), raw_log = True, printall = True)
+            if color or tag and 'p' in tag: tag = 'p'; CGI_CLI.print_chunk('<p%s>'%(' style="color:%s;"'%(color) if color else str()), raw_log = True, printall = True)
             CGI_CLI.print_chunk('<form action = "/cgi-bin/%s" enctype = "multipart/form-data" action = "save_file.py" method = "post">'%\
-                (i_pyfile), raw_log = True)
+                (i_pyfile), raw_log = True, printall = True)
             ### RAW HTML ###
-            if isinstance(form_data, six.string_types): CGI_CLI.print_chunk(form_data, raw_log = True)
+            if isinstance(form_data, six.string_types):
+                CGI_CLI.print_chunk(form_data, raw_log = True, printall = True)
             ### STRUCT FORM DATA = LIST ###
             elif isinstance(form_data, (list,tuple)):
                 for data_item in form_data: subformprint(data_item)
             ### JUST ONE DICT ###
             elif isinstance(form_data, (dict,collections.OrderedDict)): subformprint(form_data)
             if i_submit_button: subformprint({'submit':i_submit_button})
-            CGI_CLI.print_chunk('</form>', raw_log = True)
-            if tag and 'p' in tag: CGI_CLI.print_chunk('</p>', raw_log = True)
-            if tag and 'h' in tag: CGI_CLI.print_chunk('</%s>'%(tag), raw_log = True)
+            CGI_CLI.print_chunk('</form>', raw_log = True, printall = True)
+            if tag and 'p' in tag: CGI_CLI.print_chunk('</p>', raw_log = True, printall = True)
+            if tag and 'h' in tag: CGI_CLI.print_chunk('</%s>'%(tag), raw_log = True, printall = True)
 
 
     @staticmethod
-    def html_selflink(submit_button = None):
-        if (submit_button and str(submit_button) == str(CGI_CLI.submit_form)) or not CGI_CLI.submit_form:
+    def html_selflink():
+        if not CGI_CLI.submit_form or CGI_CLI.submit_form in CGI_CLI.self_buttons:
             i_pyfile = sys.argv[0]
             try: pyfile = i_pyfile.replace('\\','/').split('/')[-1].strip()
             except: pyfile = i_pyfile.strip()
             if CGI_CLI.cgi_active:
-                CGI_CLI.print_chunk('<p id="scriptend"></p>', raw_log = True)
-                CGI_CLI.print_chunk('<br/><a href = "./%s">PAGE RELOAD</a>' % (pyfile), raw_log = True)
+                CGI_CLI.print_chunk('<p id="scriptend"></p>', raw_log = True, printall = True)
+                CGI_CLI.print_chunk('<br/><a href = "./%s">PAGE RELOAD</a>' % (pyfile), raw_log = True, printall = True)
 
 
     @staticmethod
@@ -498,7 +549,7 @@ class CGI_CLI(object):
         return time.strftime("%y.%m.%d_%H:%M",time.gmtime(file_time))
 
     @staticmethod
-    def print_args():
+    def print_args(ommit_print = None):
         from platform import python_version
         print_string = 'python[%s]\n' % (str(python_version()))
         print_string += 'version[%s], ' % (CGI_CLI.VERSION())
@@ -513,12 +564,62 @@ class CGI_CLI(object):
             try: print_string += 'CGI_CLI.data[%s] = %s\n' % (str(CGI_CLI.submit_form),str(json.dumps(CGI_CLI.data, indent = 4)))
             except: pass
         else: print_string += 'CLI_args = %s\nCGI_CLI.data = %s' % (str(sys.argv[1:]), str(json.dumps(CGI_CLI.data,indent = 4)))
-        CGI_CLI.uprint(print_string, tag = 'debug')
+        if not ommit_print: CGI_CLI.uprint(print_string, tag = 'debug', no_printall = not printall)
         return print_string
 
     @staticmethod
     def print_env():
-        CGI_CLI.uprint(dict(os.environ), name = 'os.environ', tag = 'debug', jsonprint = True)
+        CGI_CLI.uprint(dict(os.environ), name = 'os.environ', tag = 'debug', jsonprint = True, no_printall = not printall)
+
+    @staticmethod
+    def parse_input_data(key = None, key_in = None, \
+        append_to_list = None, replace_what = None, replace_by = None, \
+        ignore_list = None):
+        """
+        key - read value of inserted key
+        key_in - read part of key which contains key_in
+        append_to_list - address of list to append
+        replace_what, replace_by - values which will be changed
+        return result - string variable
+        """
+        result = str()
+        for data_key in CGI_CLI.data.keys():
+            try: data_value = copy.deepcopy(data_key)
+            except: data_value = str()
+
+            ### READ KEY VALUE OR KEY VALUES LIST #############################
+            if key and key == data_value:
+                value_found = copy.deepcopy(CGI_CLI.data.get(key,str()))
+                if value_found:
+                    if ',' in value_found:
+                        ### IF IGNORE_LIST USE ONLY FIRST DATA ################
+                        result = value_found.split(',')[0].strip().replace("'",'').replace(']','').replace('[','')
+                        if ignore_list:
+                            if isinstance(append_to_list, (list)): append_to_list.append(result)
+                            break
+                        else:
+                            for list_item in value_found.split(','):
+                                item = copy.deepcopy(list_item).strip().replace("'",'').replace(']','').replace('[','')
+                                if replace_what and replace_by:
+                                    item = item.replace(str(replace_what),str(replace_by))
+                                if isinstance(append_to_list, (list)): append_to_list.append(item)
+                    else:
+                        if replace_what and replace_by:
+                            value_found = value_found.replace(str(replace_what),str(replace_by)).strip().replace(",",'').replace(']','').replace('[','')
+                        result = value_found
+                        if isinstance(append_to_list, (list)): append_to_list.append(result)
+
+            ### READ PART OF KEY WHICH CONTAINES KEY_IN #######################
+            elif key_in and key_in in data_value:
+                data_value = data_value.replace(key_in,str()).strip().replace("'",'').replace(']','').replace('[','')
+                if replace_what and replace_by:
+                    data_value = data_value.replace(str(replace_what),str(replace_by))
+                if isinstance(append_to_list, (list)): append_to_list.append(data_value)
+
+        ### RETURN STRING VARIABLE, IGNORE LISTS ##############################
+        return result
+
+
 
 
 ##############################################################################
@@ -528,7 +629,7 @@ class RCMD(object):
 
     @staticmethod
     def connect(device = None, cmd_data = None, username = None, password = None, \
-        use_module = 'paramiko', logfilename = None, \
+        use_module = 'paramiko', \
         connection_timeout = 600, cmd_timeout = 60, \
         conf = None, sim_config = None, disconnect = None, printall = None, \
         do_not_final_print = None, commit_text = None, silent_mode = None, \
@@ -541,7 +642,6 @@ class RCMD(object):
         password   - string, remote password
         use_module - string, paramiko/netmiko
         disconnect - True/False, immediate disconnect after RCMD.connect and processing of cmd_data
-        logfilename - strng, name of logging file
         conf        - True/False, go to config mode
         NOTES:
         1. cmd_data is DEVICE TYPE INDEPENDENT and will be processed after device detection
@@ -561,9 +661,10 @@ class RCMD(object):
             RCMD.CONNECTION_TIMEOUT = int(connection_timeout)
             RCMD.CMD_TIMEOUT = int(cmd_timeout)
             RCMD.use_module = use_module
-            RCMD.logfilename = logfilename
             RCMD.USERNAME = username
             RCMD.PASSWORD = password
+            RCMD.vision_api_json_string = None
+            RCMD.ip_address = None
             RCMD.router_prompt = None
             RCMD.printall = printall
             RCMD.router_type = None
@@ -582,20 +683,24 @@ class RCMD(object):
             except: RCMD.DEVICE_PORT = '22'
 
             ### IS ALIVE TEST #################################################
+            RCMD.ip_address = RCMD.get_IP_from_vision(device)
+            device_id = RCMD.ip_address if RCMD.ip_address else device
             if not no_alive_test:
                 for i_repeat in range(3):
-                    if RCMD.is_alive(device): break
+                    if RCMD.is_alive(device_id): break
                 else:
-                    CGI_CLI.uprint('DEVICE %s is not ALIVE.' % (device), color = 'magenta')
+                    CGI_CLI.uprint('DEVICE %s (ip=%s) is not ALIVE.' % \
+                        (device, RCMD.ip_address), color = 'magenta')
                     return command_outputs
             ### START SSH CONNECTION ##########################################
-            if printall: CGI_CLI.uprint('DEVICE %s (host=%s, port=%s) START'\
-                %(device, RCMD.DEVICE_HOST, RCMD.DEVICE_PORT)+24 * '.', color = 'gray')
+            CGI_CLI.uprint('DEVICE %s (host=%s, port=%s) START'\
+                %(device, RCMD.DEVICE_HOST, RCMD.DEVICE_PORT)+24 * '.', color = 'gray', no_printall = not printall)
             try:
                 ### ONE_CONNECT DETECTION #####################################
                 RCMD.client = paramiko.SSHClient()
                 RCMD.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-                RCMD.client.connect(RCMD.DEVICE_HOST, port=int(RCMD.DEVICE_PORT), \
+                #RCMD.client.connect(RCMD.DEVICE_HOST, port=int(RCMD.DEVICE_PORT), \
+                RCMD.client.connect(device_id, port=int(RCMD.DEVICE_PORT), \
                     username=RCMD.USERNAME, password=RCMD.PASSWORD, \
                     banner_timeout = 10, \
                     ### AUTH_TIMEOUT MAKES PROBLEMS ON IPTAC1 ###
@@ -606,9 +711,9 @@ class RCMD(object):
                 if RCMD.ssh_connection:
                     RCMD.router_type, RCMD.router_prompt = RCMD.ssh_raw_detect_router_type(debug = None)
                     if not RCMD.router_type: CGI_CLI.uprint('DEVICE_TYPE NOT DETECTED!', color = 'red')
-                    elif RCMD.router_type in RCMD.KNOWN_OS_TYPES and printall:
+                    elif RCMD.router_type in RCMD.KNOWN_OS_TYPES:
                         CGI_CLI.uprint('DETECTED DEVICE_TYPE: %s' % (RCMD.router_type), \
-                            color = 'gray')
+                            color = 'gray', no_printall = not printall)
             except Exception as e:
                 if not RCMD.silent_mode:
                     CGI_CLI.uprint(str(device) + ' CONNECTION_PROBLEM[' + str(e) + ']', color = 'magenta')
@@ -738,7 +843,7 @@ class RCMD(object):
         if RCMD.ssh_connection and cmd_line:
             if ((sim_config or RCMD.sim_config) and (conf or RCMD.conf)) or sim_all: sim_mark = '(SIM)'
             if printall or RCMD.printall:
-                CGI_CLI.uprint('REMOTE_COMMAND' + sim_mark + ': ' + cmd_line, color = 'blue')
+                CGI_CLI.uprint('REMOTE_COMMAND' + sim_mark + ': ' + cmd_line, color = 'blue', ommit_logging = True)
             if not sim_mark:
                 if RCMD.use_module == 'netmiko':
                     last_output = RCMD.ssh_connection.send_command(cmd_line)
@@ -752,13 +857,19 @@ class RCMD(object):
                     if new_prompt: RCMD.DEVICE_PROMPTS.append(new_prompt)
             if printall or RCMD.printall:
                 if not long_lasting_mode:
-                    CGI_CLI.uprint(last_output, color = 'gray', timestamp = 'no', log = 'no')
+                    CGI_CLI.uprint(last_output, tag = 'pre', timestamp = 'no', ommit_logging = True)
             elif not RCMD.silent_mode:
                 if not long_lasting_mode:
-                    CGI_CLI.uprint(' . ', no_newlines = True, log = 'no')
-            ### LOG ALL ONLY ONCE, THAT IS BECAUSE PREVIOUS LINE log = 'no' ###
-            if RCMD.fp: RCMD.fp.write('REMOTE_COMMAND' + sim_mark + ': ' + \
-                            cmd_line + '\n' + last_output + '\n')
+                    CGI_CLI.uprint(' . ', no_newlines = True, ommit_logging = True)
+            ### LOG ALL ONLY ONCE, THAT IS BECAUSE PREVIOUS LINE ommit_logging = True ###
+            if CGI_CLI.cgi_active:
+                CGI_CLI.logtofile('<p style="color:blue;">REMOTE_COMMAND' + \
+                    sim_mark + ': ' + cmd_line + '</p>\n<pre>' + \
+                    CGI_CLI.html_escape(last_output, pre_tag = True) + \
+                    '\n</pre>\n', raw_log = True)
+            else: CGI_CLI.logtofile('REMOTE_COMMAND' + sim_mark + ': ' + \
+                      cmd_line + '\n' + last_output + '\n')
+
         return last_output
 
     @staticmethod
@@ -787,130 +898,126 @@ class RCMD(object):
 
         if RCMD.ssh_connection and len(cmd_list)>0:
             ### WORK REMOTE ================================================
-            if not RCMD.logfilename:
-                if 'WIN32' in sys.platform.upper(): RCMD.logfilename = 'nul'
-                else: RCMD.logfilename = '/dev/null'
-            with open(RCMD.logfilename,"a+") as RCMD.fp:
-                if RCMD.output: RCMD.fp.write(RCMD.output + '\n')
-                command_outputs, sim_mark = [], str()
-                ### CONFIG MODE FOR NETMIKO ####################################
-                if (conf or RCMD.conf) and RCMD.use_module == 'netmiko':
-                    if (sim_config or RCMD.sim_config): sim_mark, last_output = '(SIM)', str()
-                    else:
-                        ### PROCESS COMMANDS - PER COMMAND LIST! ###############
-                        last_output = RCMD.ssh_connection.send_config_set(cmd_list)
-                        if printall or RCMD.printall:
-                            CGI_CLI.uprint('REMOTE_COMMAND' + sim_mark + ': ' + str(cmd_list), color = 'blue')
-                            CGI_CLI.uprint(str(last_output), color = 'gray', timestamp = 'no')
-                        if RCMD.fp: RCMD.fp.write('REMOTE_COMMANDS' + sim_mark + ': ' \
-                            + str(cmd_list) + '\n' + str(last_output) + '\n')
-                        command_outputs = [last_output]
-                elif RCMD.use_module == 'paramiko':
-                    ### CONFIG MODE FOR PARAMIKO ###############################
-                    conf_output = ''
-                    if (conf or RCMD.conf) and RCMD.use_module == 'paramiko':
-                        if RCMD.router_type=='cisco_ios': conf_output = RCMD.run_command('config t', \
+            ### CGI_CLI.logtofile(RCMD.output + '\n')
+            command_outputs, sim_mark = [], str()
+            ### CONFIG MODE FOR NETMIKO ####################################
+            if (conf or RCMD.conf) and RCMD.use_module == 'netmiko':
+                if (sim_config or RCMD.sim_config): sim_mark, last_output = '(SIM)', str()
+                else:
+                    ### PROCESS COMMANDS - PER COMMAND LIST! ###############
+                    last_output = RCMD.ssh_connection.send_config_set(cmd_list)
+                    if printall or RCMD.printall:
+                        CGI_CLI.uprint('REMOTE_COMMAND' + sim_mark + ': ' + str(cmd_list), color = 'blue')
+                        CGI_CLI.uprint(str(last_output), color = 'gray', timestamp = 'no')
+                    CGI_CLI.logtofile('REMOTE_COMMANDS' + sim_mark + ': ' \
+                        + str(cmd_list) + '\n' + str(last_output) + '\n')
+                    command_outputs = [last_output]
+            elif RCMD.use_module == 'paramiko':
+                ### CONFIG MODE FOR PARAMIKO ###############################
+                conf_output = ''
+                if (conf or RCMD.conf) and RCMD.use_module == 'paramiko':
+                    if RCMD.router_type=='cisco_ios': conf_output = RCMD.run_command('config t', \
+                        conf = conf, sim_config = sim_config, printall = printall)
+                    elif RCMD.router_type=='cisco_xr': conf_output = RCMD.run_command('config t', \
+                        conf = conf, sim_config = sim_config, printall = printall)
+                    elif RCMD.router_type=='juniper': conf_output = RCMD.run_command('configure exclusive', \
+                        conf = conf, sim_config = sim_config , printall = printall)
+                    elif RCMD.router_type=='huawei':
+                        version_output = RCMD.run_command('display version | include software', \
+                            conf = False, sim_config = sim_config, printall = printall)
+                        try: RCMD.huawei_version = float(version_output.split('VRP (R) software, Version')[1].split()[0].strip())
+                        except: RCMD.huawei_version = 0
+                        conf_output = RCMD.run_command('system-view', \
                             conf = conf, sim_config = sim_config, printall = printall)
-                        elif RCMD.router_type=='cisco_xr': conf_output = RCMD.run_command('config t', \
-                            conf = conf, sim_config = sim_config, printall = printall)
-                        elif RCMD.router_type=='juniper': conf_output = RCMD.run_command('configure exclusive', \
-                            conf = conf, sim_config = sim_config , printall = printall)
-                        elif RCMD.router_type=='huawei':
-                            version_output = RCMD.run_command('display version | include software', \
-                                conf = False, sim_config = sim_config, printall = printall)
-                            try: RCMD.huawei_version = float(version_output.split('VRP (R) software, Version')[1].split()[0].strip())
-                            except: RCMD.huawei_version = 0
-                            conf_output = RCMD.run_command('system-view', \
-                                conf = conf, sim_config = sim_config, printall = printall)
-                    if conf_output: command_outputs.append(conf_output)
-                    ### PROCESS COMMANDS - PER COMMAND #########################
-                    for cmd_line in cmd_list:
-                        command_outputs.append(RCMD.run_command(cmd_line, \
-                            conf = conf, sim_config = sim_config, printall = printall,
-                            long_lasting_mode = long_lasting_mode, \
-                            ignore_prompt = ignore_prompt, \
-                            autoconfirm_mode = autoconfirm_mode))
-                    ### EXIT FROM CONFIG MODE FOR PARAMIKO #####################
-                    if (conf or RCMD.conf) and RCMD.use_module == 'paramiko':
-                        ### GO TO CONFIG TOP LEVEL SECTION ---------------------
-                        ### CISCO_IOS/XE has end command exiting from config ###
-                        if RCMD.router_type=='cisco_xr':
-                            for repeat_times in range(10):
-                                if '(config-' in ''.join(command_outputs[-1]):
-                                    command_outputs.append(RCMD.run_command('exit', \
-                                        conf = conf, sim_config = sim_config, printall = printall))
-                                else: break
-                        ### JUNOS - HAS (HOPEFULLY) NO CONFIG LEVELS ###
-                        elif RCMD.router_type=='huawei':
-                            for repeat_times in range(10):
-                                ### NEW HUAWEI has [~ or [* in config mode ###
-                                if re.search(r'\[[0-9a-zA-Z\~\*]+\-[0-9a-zA-Z\-\.\@\_]+\]', ''.join(command_outputs[-1:])):
-                                    command_outputs.append(RCMD.run_command('quit', \
-                                        conf = conf, sim_config = sim_config, printall = printall))
-                                else: break
-                        ### COMMIT SECTION -------------------------------------
-                        commit_output = ""
-                        if RCMD.router_type=='cisco_ios': pass
-                        elif RCMD.router_type=='cisco_xr':
-                            command_outputs.append(RCMD.run_command('commit', \
-                                conf = conf, sim_config = sim_config, printall = printall))
-                            if 'Failed to commit' in ''.join(command_outputs[-1:]):
-                                ### ALTERNATIVE COMMANDS: show commit changes diff, commit show-error
-                                command_outputs.append(RCMD.run_command('show configuration failed', \
+                if conf_output: command_outputs.append(conf_output)
+                ### PROCESS COMMANDS - PER COMMAND #########################
+                for cmd_line in cmd_list:
+                    command_outputs.append(RCMD.run_command(cmd_line, \
+                        conf = conf, sim_config = sim_config, printall = printall,
+                        long_lasting_mode = long_lasting_mode, \
+                        ignore_prompt = ignore_prompt, \
+                        autoconfirm_mode = autoconfirm_mode))
+                ### EXIT FROM CONFIG MODE FOR PARAMIKO #####################
+                if (conf or RCMD.conf) and RCMD.use_module == 'paramiko':
+                    ### GO TO CONFIG TOP LEVEL SECTION ---------------------
+                    ### CISCO_IOS/XE has end command exiting from config ###
+                    if RCMD.router_type=='cisco_xr':
+                        for repeat_times in range(10):
+                            if '(config-' in ''.join(command_outputs[-1]):
+                                command_outputs.append(RCMD.run_command('exit', \
                                     conf = conf, sim_config = sim_config, printall = printall))
-                        elif RCMD.router_type=='juniper': command_outputs.append(RCMD.run_command('commit and-quit', \
+                            else: break
+                    ### JUNOS - HAS (HOPEFULLY) NO CONFIG LEVELS ###
+                    elif RCMD.router_type=='huawei':
+                        for repeat_times in range(10):
+                            ### NEW HUAWEI has [~ or [* in config mode ###
+                            if re.search(r'\[[0-9a-zA-Z\~\*]+\-[0-9a-zA-Z\-\.\@\_]+\]', ''.join(command_outputs[-1:])):
+                                command_outputs.append(RCMD.run_command('quit', \
+                                    conf = conf, sim_config = sim_config, printall = printall))
+                            else: break
+                    ### COMMIT SECTION -------------------------------------
+                    commit_output = ""
+                    if RCMD.router_type=='cisco_ios': pass
+                    elif RCMD.router_type=='cisco_xr':
+                        command_outputs.append(RCMD.run_command('commit', \
                             conf = conf, sim_config = sim_config, printall = printall))
-                        elif RCMD.router_type=='huawei' and RCMD.huawei_version >= 7:
-                            commit_output = command_outputs.append(RCMD.run_command('commit', \
+                        if 'Failed to commit' in ''.join(command_outputs[-1:]):
+                            ### ALTERNATIVE COMMANDS: show commit changes diff, commit show-error
+                            command_outputs.append(RCMD.run_command('show configuration failed', \
                                 conf = conf, sim_config = sim_config, printall = printall))
-                        ### EXIT CONFIG SECTION --------------------------------
-                        if RCMD.router_type=='cisco_ios': command_outputs.append(RCMD.run_command('end', \
+                    elif RCMD.router_type=='juniper': command_outputs.append(RCMD.run_command('commit and-quit', \
+                        conf = conf, sim_config = sim_config, printall = printall))
+                    elif RCMD.router_type=='huawei' and RCMD.huawei_version >= 7:
+                        commit_output = command_outputs.append(RCMD.run_command('commit', \
                             conf = conf, sim_config = sim_config, printall = printall))
-                        elif RCMD.router_type=='cisco_xr': command_outputs.append(RCMD.run_command('exit', \
-                            conf = conf, sim_config = sim_config, printall = printall))
-                        ### JUNOS IS ALREADY OUT OF CONFIG ###
-                        elif RCMD.router_type=='huawei':
-                            command_outputs.append(RCMD.run_command('quit', conf = conf, \
-                                sim_config = sim_config, printall = printall))
-                        ### NVRAM WRITE/SAVE SECTION - NO CONFIG MODE! ---------
-                        if RCMD.router_type=='cisco_ios':
-                            command_outputs.append(RCMD.run_command('write', conf = False, \
-                                sim_all = sim_config, printall = printall))
-                        elif RCMD.router_type=='huawei':
-                            ### ALL HUAWEI ROUTERS NEED SAVE ###
-                            command_outputs.append(RCMD.run_command('save', conf = False, \
-                                sim_all = sim_config, printall = printall))
-                            command_outputs.append(RCMD.run_command('yes', conf = False, \
-                                sim_all = sim_config, printall = printall))
-                ### CHECK CONF OUTPUTS #########################################
-                if (conf or RCMD.conf):
-                    RCMD.config_problem = None
-                    CGI_CLI.uprint('\nCHECKING COMMIT ERRORS...', tag = 'h1', color = 'blue')
-                    for rcmd_output in command_outputs:
-                        CGI_CLI.uprint(' . ', no_newlines = True)
-                        if 'INVALID INPUT' in rcmd_output.upper() \
-                            or 'INCOMPLETE COMMAND' in rcmd_output.upper() \
-                            or 'FAILED TO COMMIT' in rcmd_output.upper() \
-                            or 'UNRECOGNIZED COMMAND' in rcmd_output.upper() \
-                            or 'ERROR:' in rcmd_output.upper() \
-                            or 'SYNTAX ERROR' in rcmd_output.upper():
-                            RCMD.config_problem = True
-                            CGI_CLI.uprint('\nCONFIGURATION PROBLEM FOUND:', color = 'red')
-                            CGI_CLI.uprint('%s' % (rcmd_output), color = 'darkorchid')
-                    ### COMMIT TEXT ###
-                    if not (do_not_final_print or RCMD.do_not_final_print):
-                        text_to_commit = str()
-                        if not commit_text and not RCMD.commit_text: text_to_commit = 'COMMIT'
-                        elif commit_text: text_to_commit = commit_text
-                        elif RCMD.commit_text: text_to_commit = RCMD.commit_text
-                        if submit_result:
-                            if RCMD.config_problem:
-                                CGI_CLI.uprint('%s FAILED!' % (text_to_commit), tag = 'h1', tag_id = 'submit-result', color = 'red')
-                            else: CGI_CLI.uprint('%s SUCCESSFULL.' % (text_to_commit), tag = 'h1', tag_id = 'submit-result', color = 'green')
-                        else:
-                            if RCMD.config_problem:
-                                CGI_CLI.uprint('%s FAILED!' % (text_to_commit), tag = 'h1', color = 'red')
-                            else: CGI_CLI.uprint('%s SUCCESSFULL.' % (text_to_commit), tag = 'h1', color = 'green')
+                    ### EXIT CONFIG SECTION --------------------------------
+                    if RCMD.router_type=='cisco_ios': command_outputs.append(RCMD.run_command('end', \
+                        conf = conf, sim_config = sim_config, printall = printall))
+                    elif RCMD.router_type=='cisco_xr': command_outputs.append(RCMD.run_command('exit', \
+                        conf = conf, sim_config = sim_config, printall = printall))
+                    ### JUNOS IS ALREADY OUT OF CONFIG ###
+                    elif RCMD.router_type=='huawei':
+                        command_outputs.append(RCMD.run_command('quit', conf = conf, \
+                            sim_config = sim_config, printall = printall))
+                    ### NVRAM WRITE/SAVE SECTION - NO CONFIG MODE! ---------
+                    if RCMD.router_type=='cisco_ios':
+                        command_outputs.append(RCMD.run_command('write', conf = False, \
+                            sim_all = sim_config, printall = printall))
+                    elif RCMD.router_type=='huawei':
+                        ### ALL HUAWEI ROUTERS NEED SAVE ###
+                        command_outputs.append(RCMD.run_command('save', conf = False, \
+                            sim_all = sim_config, printall = printall))
+                        command_outputs.append(RCMD.run_command('yes', conf = False, \
+                            sim_all = sim_config, printall = printall))
+            ### CHECK CONF OUTPUTS #########################################
+            if (conf or RCMD.conf):
+                RCMD.config_problem = None
+                CGI_CLI.uprint('\nCHECKING COMMIT ERRORS...', tag = 'h1', color = 'blue')
+                for rcmd_output in command_outputs:
+                    CGI_CLI.uprint(' . ', no_newlines = True, ommit_logging = True)
+                    if 'INVALID INPUT' in rcmd_output.upper() \
+                        or 'INCOMPLETE COMMAND' in rcmd_output.upper() \
+                        or 'FAILED TO COMMIT' in rcmd_output.upper() \
+                        or 'UNRECOGNIZED COMMAND' in rcmd_output.upper() \
+                        or 'ERROR:' in rcmd_output.upper() \
+                        or 'SYNTAX ERROR' in rcmd_output.upper():
+                        RCMD.config_problem = True
+                        CGI_CLI.uprint('\nCONFIGURATION PROBLEM FOUND:', color = 'red')
+                        CGI_CLI.uprint('%s' % (rcmd_output), color = 'darkorchid')
+                ### COMMIT TEXT ###
+                if not (do_not_final_print or RCMD.do_not_final_print):
+                    text_to_commit = str()
+                    if not commit_text and not RCMD.commit_text: text_to_commit = 'COMMIT'
+                    elif commit_text: text_to_commit = commit_text
+                    elif RCMD.commit_text: text_to_commit = RCMD.commit_text
+                    if submit_result:
+                        if RCMD.config_problem:
+                            CGI_CLI.uprint('%s FAILED!' % (text_to_commit), tag = 'h1', tag_id = 'submit-result', color = 'red')
+                        else: CGI_CLI.uprint('%s SUCCESSFULL.' % (text_to_commit), tag = 'h1', tag_id = 'submit-result', color = 'green')
+                    else:
+                        if RCMD.config_problem:
+                            CGI_CLI.uprint('%s FAILED!' % (text_to_commit), tag = 'h1', color = 'red')
+                        else: CGI_CLI.uprint('%s SUCCESSFULL.' % (text_to_commit), tag = 'h1', color = 'green')
         return command_outputs
 
     @staticmethod
@@ -1184,77 +1291,102 @@ class RCMD(object):
         if router_os == 'vrp': netmiko_os = 'huawei'
         return netmiko_os, prompt
 
+    @staticmethod
+    def get_json_from_vision(URL = None):
+        global vision_api_json_string
+        if RCMD.USERNAME and RCMD.PASSWORD:
+            os.environ['CURL_AUTH_STRING'] = '%s:%s' % \
+                (RCMD.USERNAME,RCMD.PASSWORD)
+            if URL: url = URL
+            else: url = 'https://vision.opentransit.net/onv/api/nodes/'
+            local_command = 'curl -u ${CURL_AUTH_STRING} %s' % (url)
+            RCMD.vision_api_json_string = LCMD.run_commands(\
+                {'unix':[local_command]}, printall = None)
+            os.environ['CURL_AUTH_STRING'] = '-'
+
+    @staticmethod
+    def get_IP_from_vision(DEVICE_NAME = None):
+        device_ip_address = str()
+        if not RCMD.vision_api_json_string: RCMD.get_json_from_vision()
+        if RCMD.vision_api_json_string and DEVICE_NAME:
+            try:
+                device_ip_address = str(RCMD.vision_api_json_string[0].split(DEVICE_NAME.upper())[1].\
+                    splitlines()[1].\
+                    split('"ip":')[1].replace('"','').replace(',','')).strip()
+            except: pass
+        return device_ip_address
+
+
+
 
 
 class LCMD(object):
 
     @staticmethod
-    def init(logfilename = None, printall = None):
+    def init(printall = None):
         LCMD.initialized = True
-        if logfilename: LCMD.logfilename = logfilename
-        else:
-            if 'WIN32' in sys.platform.upper(): LCMD.logfilename = 'nul'
-            else: LCMD.logfilename = '/dev/null'
         LCMD.printall = printall
 
     @staticmethod
-    def init_log_and_print(logfilename = None, printall = None):
+    def run_command(cmd_line = None, printall = None,
+        chunked = None, timeout_sec = 5000):
+        os_output, cmd_list, timer_counter_100ms = str(), None, 0
         ### RUN INIT DURING FIRST RUN IF NO INIT BEFORE
         try:
             if LCMD.initialized: pass
-        except: LCMD.init(logfilename = logfilename, printall = printall)
-        ### LOCAL PRINTALL AND LOGFILENAME OVERWRITES GLOBAL
-        if not printall: printall = LCMD.printall
-        if not logfilename: logfilename = LCMD.logfilename
-        return logfilename, printall
-
-    @staticmethod
-    def run_command(cmd_line = None, logfilename = None, printall = None,
-        chunked = None, timeout_sec = 5000):
-        os_output, cmd_list, timer_counter_100ms = str(), None, 0
-        logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
+        except: LCMD.init(printall = printall)
         if cmd_line:
-            with open(logfilename,"a+") as LCMD.fp:
-                if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line), color = 'blue')
-                LCMD.fp.write('LOCAL_COMMAND: ' + str(cmd_line) + '\n')
-                try:
-                    if chunked:
-                        os_output, timer_counter_100ms = str(), 0
-                        CommandObject = subprocess.Popen(cmd_line,
-                                                   stdout=subprocess.PIPE,
-                                                   stderr=subprocess.STDOUT, shell=True)
-                        while CommandObject.poll() is None:
+            if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line), color = 'blue', ommit_logging = True)
+            if CGI_CLI.cgi_active:
+                CGI_CLI.logtofile('<p style="color:blue;">' + 'LOCAL_COMMAND: ' + cmd_line + '</p>', raw_log = True)
+            else:
+                CGI_CLI.logtofile('LOCAL_COMMAND: ' + str(cmd_line) + '\n')
+            try:
+                if chunked:
+                    os_output, timer_counter_100ms = str(), 0
+                    CommandObject = subprocess.Popen(cmd_line,
+                                               stdout=subprocess.PIPE,
+                                               stderr=subprocess.STDOUT, shell=True)
+                    while CommandObject.poll() is None:
+                        stdoutput = str(CommandObject.stdout.readline())
+                        while stdoutput:
+                            if stdoutput:
+                                os_output += copy.deepcopy(stdoutput) + '\n'
+                                if printall:
+                                    CGI_CLI.uprint(stdoutput.strip(), color = 'gray')
                             stdoutput = str(CommandObject.stdout.readline())
-                            while stdoutput:
-                                if stdoutput:
-                                    os_output += copy.deepcopy(stdoutput) + '\n'
-                                    if printall:
-                                        CGI_CLI.uprint(stdoutput.strip(), color = 'gray')
-                                stdoutput = str(CommandObject.stdout.readline())
-                            time.sleep(0.1)
-                            timer_counter_100ms += 1
-                            if timer_counter_100ms > timeout_sec * 10:
-                                CommandObject.terminate()
-                                break
-                    else:
-                        os_output = subprocess.check_output(str(cmd_line), \
-                            stderr=subprocess.STDOUT, shell=True).decode("utf-8")
-                except (subprocess.CalledProcessError) as e:
-                    os_output = str(e.output.decode("utf-8"))
-                    if printall: CGI_CLI.uprint('EXITCODE: %s' % (str(e.returncode)))
-                    LCMD.fp.write('EXITCODE: %s\n' % (str(e.returncode)))
-                except:
-                    exc_text = traceback.format_exc()
-                    CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
-                    LCMD.fp.write(exc_text + '\n')
-                if not chunked and os_output and printall: CGI_CLI.uprint(os_output, color = 'gray', timestamp = 'no')
-                LCMD.fp.write(os_output + '\n')
+                        time.sleep(0.1)
+                        timer_counter_100ms += 1
+                        if timer_counter_100ms > timeout_sec * 10:
+                            CommandObject.terminate()
+                            break
+                else:
+                    os_output = subprocess.check_output(str(cmd_line), \
+                        stderr=subprocess.STDOUT, shell=True).decode("utf-8")
+            except (subprocess.CalledProcessError) as e:
+                os_output = str(e.output.decode("utf-8"))
+                if printall: CGI_CLI.uprint('EXITCODE: %s' % (str(e.returncode)))
+                CGI_CLI.logtofile('EXITCODE: %s\n' % (str(e.returncode)))
+            except:
+                exc_text = traceback.format_exc()
+                CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
+                CGI_CLI.logtofile(exc_text + '\n')
+            if not chunked and os_output and printall:
+                CGI_CLI.uprint(os_output, tag = 'pre', timestamp = 'no', ommit_logging = True)
+            if CGI_CLI.cgi_active:
+                CGI_CLI.logtofile('\n<pre>' + \
+                    CGI_CLI.html_escape(os_output, pre_tag = True) + \
+                    '\n</pre>\n', raw_log = True)
+            else: CGI_CLI.logtofile(os_output + '\n')
         return os_output
 
     @staticmethod
-    def run_paralel_commands(cmd_data = None, logfilename = None, printall = None, \
+    def run_paralel_commands(cmd_data = None, printall = None, \
         timeout_sec = 5000, custom_text = None, check_exitcode = None):
-        logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
+        ### RUN INIT DURING FIRST RUN IF NO INIT BEFORE
+        try:
+            if LCMD.initialized: pass
+        except: LCMD.init(printall = printall)
         commands_ok = None
         if cmd_data and isinstance(cmd_data, (dict,collections.OrderedDict)):
             if 'WIN32' in sys.platform.upper(): cmd_list = cmd_data.get('windows',[])
@@ -1264,62 +1396,61 @@ class LCMD(object):
         else: cmd_list = []
         if len(cmd_list)>0:
             commands_ok = True
-            with open(logfilename,"a+") as LCMD.fp:
-                ### START LOOP ###
-                CommandObjectList = []
-                for cmd_line in cmd_list:
-                    os_output = str()
-                    try:
-                        actual_CommandObject = subprocess.Popen(cmd_line, \
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-                        CommandObjectList.append(actual_CommandObject)
-                        if printall: CGI_CLI.uprint("LOCAL_COMMAND_(START)[%s]: %s" % (str(actual_CommandObject), str(cmd_line)), color = 'blue')
-                        LCMD.fp.write('LOCAL_COMMAND_(START)[%s]: %s' % (str(actual_CommandObject), str(cmd_line)) + '\n')
-                    except (subprocess.CalledProcessError) as e:
-                        os_output = str(e.output.decode("utf-8"))
-                        if printall: CGI_CLI.uprint('EXITCODE: %s' % (str(e.returncode)))
-                        LCMD.fp.write('EXITCODE: %s\n' % (str(e.returncode)))
+            ### START LOOP ###
+            CommandObjectList = []
+            for cmd_line in cmd_list:
+                os_output = str()
+                try:
+                    actual_CommandObject = subprocess.Popen(cmd_line, \
+                        stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+                    CommandObjectList.append(actual_CommandObject)
+                    if printall: CGI_CLI.uprint("LOCAL_COMMAND_(START)[%s]: %s" % (str(actual_CommandObject), str(cmd_line)), color = 'blue')
+                    CGI_CLI.logtofile('LOCAL_COMMAND_(START)[%s]: %s' % (str(actual_CommandObject), str(cmd_line)) + '\n')
+                except (subprocess.CalledProcessError) as e:
+                    os_output = str(e.output.decode("utf-8"))
+                    if printall: CGI_CLI.uprint('EXITCODE: %s' % (str(e.returncode)))
+                    CGI_CLI.logtofile('EXITCODE: %s\n' % (str(e.returncode)))
+                    commands_ok = False
+                except:
+                    exc_text = traceback.format_exc()
+                    CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
+                    CGI_CLI.logtofile(exc_text + '\n')
+                    commands_ok = False
+            if not printall:
+                CGI_CLI.uprint("%s: %d   " % (str(custom_text) if custom_text else "RUNNING LOCAL_COMMANDS", len(CommandObjectList)), no_newlines = True)
+            ### LOOP WAITING END ###
+            timer_counter_100ms = 0
+            while len(CommandObjectList)>0:
+                for actual_CommandObject in CommandObjectList:
+                    timer_counter_100ms += 1
+                    time.sleep(0.1)
+                    outputs = str()
+                    actual_poll = actual_CommandObject.poll()
+                    if actual_poll is None: pass
+                    else:
+                        StdOutText, StdErrText = actual_CommandObject.communicate()
+                        outputs = '\n'.join([StdOutText.decode(), StdErrText.decode()])
+                        ExitCode = actual_CommandObject.returncode
+                        if check_exitcode and ExitCode != 0: commands_ok = False
+                        if printall: CGI_CLI.uprint("LOCAL_COMMAND_(END)[%s]: %s\n%s" % (str(actual_CommandObject), str(cmd_line), outputs), color = 'gray')
+                        CGI_CLI.logtofile('LOCAL_COMMAND_(END)[%s]: %s\n%s\n' % (str(actual_CommandObject), str(cmd_line), outputs))
+                        CommandObjectList.remove(actual_CommandObject)
+                        continue
+                    if timer_counter_100ms % 10 == 0:
+                        if printall: CGI_CLI.uprint("%d LOCAL_COMMAND%s RUNNING." % (len(CommandObjectList), 'S are' if len(CommandObjectList) > 1 else ' is'))
+                        else: CGI_CLI.uprint(" %d   " % (len(CommandObjectList)), no_newlines = True)
+                    if timer_counter_100ms % 300 == 0: CGI_CLI.uprint('\n')
+                    if timer_counter_100ms > timeout_sec * 10:
+                        if printall: CGI_CLI.uprint("LOCAL_COMMAND_(TIMEOUT)[%s]: %s\n%s" % (str(actual_CommandObject), str(cmd_line), outputs), color = 'red')
+                        CGI_CLI.logtofile('LOCAL_COMMAND_(TIMEOUT)[%s]: %s\n%s\n' % (str(actual_CommandObject), str(cmd_line), outputs))
+                        actual_CommandObject.terminate()
+                        CommandObjectList.remove(actual_CommandObject)
                         commands_ok = False
-                    except:
-                        exc_text = traceback.format_exc()
-                        CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
-                        LCMD.fp.write(exc_text + '\n')
-                        commands_ok = False
-                if not printall:
-                    CGI_CLI.uprint("%s: %d   " % (str(custom_text) if custom_text else "RUNNING LOCAL_COMMANDS", len(CommandObjectList)), no_newlines = True)
-                ### LOOP WAITING END ###
-                timer_counter_100ms = 0
-                while len(CommandObjectList)>0:
-                    for actual_CommandObject in CommandObjectList:
-                        timer_counter_100ms += 1
-                        time.sleep(0.1)
-                        outputs = str()
-                        actual_poll = actual_CommandObject.poll()
-                        if actual_poll is None: pass
-                        else:
-                            StdOutText, StdErrText = actual_CommandObject.communicate()
-                            outputs = '\n'.join([StdOutText.decode(), StdErrText.decode()])
-                            ExitCode = actual_CommandObject.returncode
-                            if check_exitcode and ExitCode != 0: commands_ok = False
-                            if printall: CGI_CLI.uprint("LOCAL_COMMAND_(END)[%s]: %s\n%s" % (str(actual_CommandObject), str(cmd_line), outputs), color = 'gray')
-                            LCMD.fp.write('LOCAL_COMMAND_(END)[%s]: %s\n%s\n' % (str(actual_CommandObject), str(cmd_line), outputs))
-                            CommandObjectList.remove(actual_CommandObject)
-                            continue
-                        if timer_counter_100ms % 10 == 0:
-                            if printall: CGI_CLI.uprint("%d LOCAL_COMMAND%s RUNNING." % (len(CommandObjectList), 'S are' if len(CommandObjectList) > 1 else ' is'))
-                            else: CGI_CLI.uprint(" %d   " % (len(CommandObjectList)), no_newlines = True)
-                        if timer_counter_100ms % 300 == 0: CGI_CLI.uprint('\n')
-                        if timer_counter_100ms > timeout_sec * 10:
-                            if printall: CGI_CLI.uprint("LOCAL_COMMAND_(TIMEOUT)[%s]: %s\n%s" % (str(actual_CommandObject), str(cmd_line), outputs), color = 'red')
-                            LCMD.fp.write('LOCAL_COMMAND_(TIMEOUT)[%s]: %s\n%s\n' % (str(actual_CommandObject), str(cmd_line), outputs))
-                            actual_CommandObject.terminate()
-                            CommandObjectList.remove(actual_CommandObject)
-                            commands_ok = False
             if not printall: CGI_CLI.uprint("\n")
         return commands_ok
 
     @staticmethod
-    def run_commands(cmd_data = None, logfilename = None, printall = None):
+    def run_commands(cmd_data = None, printall = None):
         """
         FUNCTION: LCMD.run_commands(), RETURN: list of command_outputs
         PARAMETERS:
@@ -1327,7 +1458,10 @@ class LCMD(object):
                  - list of strings or string, OS TYPE DEPENDENT
         """
         os_outputs =  None
-        logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
+                ### RUN INIT DURING FIRST RUN IF NO INIT BEFORE
+        try:
+            if LCMD.initialized: pass
+        except: LCMD.init(printall = printall)
         if cmd_data and isinstance(cmd_data, (dict,collections.OrderedDict)):
             if 'WIN32' in sys.platform.upper(): cmd_list = cmd_data.get('windows',[])
             else: cmd_list = cmd_data.get('unix',[])
@@ -1336,70 +1470,80 @@ class LCMD(object):
         else: cmd_list = []
         if len(cmd_list)>0:
             os_outputs = []
-            with open(logfilename,"a+") as LCMD.fp:
-                for cmd_line in cmd_list:
-                    os_output = str()
-                    if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line), color = 'blue')
-                    LCMD.fp.write('LOCAL_COMMAND: ' + str(cmd_line) + '\n')
-                    try: os_output = subprocess.check_output(str(cmd_line), stderr=subprocess.STDOUT, shell=True).decode("utf-8")
-                    except (subprocess.CalledProcessError) as e:
-                        os_output = str(e.output.decode("utf-8"))
-                        if printall: CGI_CLI.uprint('EXITCODE: %s' % (str(e.returncode)))
-                        LCMD.fp.write('EXITCODE: %s\n' % (str(e.returncode)))
-                    except:
-                        exc_text = traceback.format_exc()
-                        CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
-                        LCMD.fp.write(exc_text + '\n')
-                    if os_output and printall: CGI_CLI.uprint(os_output, color = 'gray', timestamp = 'no')
-                    LCMD.fp.write(os_output + '\n')
-                    os_outputs.append(os_output)
+            for cmd_line in cmd_list:
+                os_output = str()
+                if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line), color = 'blue', ommit_logging = True)
+                if CGI_CLI.cgi_active:
+                    CGI_CLI.logtofile('<p style="color:blue;">' + 'LOCAL_COMMAND: ' + cmd_line + '</p>', raw_log = True)
+                else:
+                    CGI_CLI.logtofile('LOCAL_COMMAND: ' + str(cmd_line) + '\n')
+                try: os_output = subprocess.check_output(str(cmd_line), stderr=subprocess.STDOUT, shell=True).decode("utf-8")
+                except (subprocess.CalledProcessError) as e:
+                    os_output = str(e.output.decode("utf-8"))
+                    if printall: CGI_CLI.uprint('EXITCODE: %s' % (str(e.returncode)))
+                    CGI_CLI.logtofile('EXITCODE: %s\n' % (str(e.returncode)))
+                except:
+                    exc_text = traceback.format_exc()
+                    CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
+                    CGI_CLI.logtofile(exc_text + '\n')
+                if os_output and printall: CGI_CLI.uprint(os_output, tag = 'pre', timestamp = 'no')
+                if CGI_CLI.cgi_active:
+                    CGI_CLI.logtofile('\n<pre>' + \
+                        CGI_CLI.html_escape(os_output, pre_tag = True) + \
+                        '\n</pre>\n', raw_log = True)
+                else: CGI_CLI.logtofile(os_output + '\n')
+                os_outputs.append(os_output)
         return os_outputs
 
     @staticmethod
-    def eval_command(cmd_data = None, logfilename = None, printall = None):
+    def eval_command(cmd_data = None, printall = None):
         """
         NOTE: by default - '\\n' = insert newline to text, '\n' = interpreted line
         """
         local_output = None
-        logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
+        ### RUN INIT DURING FIRST RUN IF NO INIT BEFORE
+        try:
+            if LCMD.initialized: pass
+        except: LCMD.init(printall = printall)
         if cmd_data and isinstance(cmd_data, (six.string_types)):
-            with open(logfilename,"a+") as LCMD.fp:
-                if printall: CGI_CLI.uprint("EVAL: %s" % (cmd_data))
-                try:
-                    local_output = eval(cmd_data)
-                    if printall: CGI_CLI.uprint(str(local_output), color= 'gray', timestamp = 'no')
-                    LCMD.fp.write('EVAL: ' + cmd_data + '\n' + str(local_output) + '\n')
-                except Exception as e:
-                    if printall:CGI_CLI.uprint('EVAL_PROBLEM[' + str(e) + ']')
-                    LCMD.fp.write('EVAL_PROBLEM[' + str(e) + ']\n', color = 'magenta')
+            if printall: CGI_CLI.uprint("EVAL: %s" % (cmd_data))
+            try:
+                local_output = eval(cmd_data)
+                if printall: CGI_CLI.uprint(str(local_output), color= 'gray', timestamp = 'no')
+                CGI_CLI.logtofile('EVAL: ' + cmd_data + '\n' + str(local_output) + '\n')
+            except Exception as e:
+                if printall:CGI_CLI.uprint('EVAL_PROBLEM[' + str(e) + ']')
+                CGI_CLI.logtofile('EVAL_PROBLEM[' + str(e) + ']\n', color = 'magenta')
         return local_output
 
     @staticmethod
-    def exec_command(cmd_data = None, logfilename = None, printall = None, escape_newline = None):
+    def exec_command(cmd_data = None, printall = None, escape_newline = None):
         """
         NOTE:
               escape_newline = None, ==> '\\n' = insert newline to text, '\n' = interpreted line
               escape_newline = True, ==> '\n' = insert newline to text
         """
-        logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
+        ### RUN INIT DURING FIRST RUN IF NO INIT BEFORE
+        try:
+            if LCMD.initialized: pass
+        except: LCMD.init(printall = printall)
         if cmd_data and isinstance(cmd_data, (six.string_types)):
-            with open(logfilename,"a+") as LCMD.fp:
-                if printall: CGI_CLI.uprint("EXEC: %s" % (cmd_data))
-                LCMD.fp.write('EXEC: ' + cmd_data + '\n')
-                ### EXEC CODE WORKAROUND for OLD PYTHON v2.7.5
-                try:
-                    if escape_newline:
-                        edict = {}; eval(compile(cmd_data.replace('\n', '\\n'),\
-                            '<string>', 'exec'), globals(), edict)
-                    else: edict = {}; eval(compile(cmd_data, '<string>', 'exec'), globals(), edict)
-                except Exception as e:
-                    if printall:CGI_CLI.uprint('EXEC_PROBLEM[' + str(e) + ']', color = 'magenta')
-                    LCMD.fp.write('EXEC_PROBLEM[' + str(e) + ']\n')
+            if printall: CGI_CLI.uprint("EXEC: %s" % (cmd_data))
+            CGI_CLI.logtofile('EXEC: ' + cmd_data + '\n')
+            ### EXEC CODE WORKAROUND for OLD PYTHON v2.7.5
+            try:
+                if escape_newline:
+                    edict = {}; eval(compile(cmd_data.replace('\n', '\\n'),\
+                        '<string>', 'exec'), globals(), edict)
+                else: edict = {}; eval(compile(cmd_data, '<string>', 'exec'), globals(), edict)
+            except Exception as e:
+                if printall:CGI_CLI.uprint('EXEC_PROBLEM[' + str(e) + ']', color = 'magenta')
+                CGI_CLI.logtofile('EXEC_PROBLEM[' + str(e) + ']\n')
         return None
 
 
     @staticmethod
-    def exec_command_try_except(cmd_data = None, logfilename = None, \
+    def exec_command_try_except(cmd_data = None, \
         printall = None, escape_newline = None):
         """
         NOTE: This method can access global variable, expects '=' in expression,
@@ -1408,33 +1552,35 @@ class LCMD(object):
               escape_newline = None, ==> '\\n' = insert newline to text, '\n' = interpreted line
               escape_newline = True, ==> '\n' = insert newline to text
         """
-        logfilename, printall = LCMD.init_log_and_print(logfilename, printall)
+        ### RUN INIT DURING FIRST RUN IF NO INIT BEFORE
+        try:
+            if LCMD.initialized: pass
+        except: LCMD.init(printall = printall)
         if cmd_data and isinstance(cmd_data, (six.string_types)):
-            with open(logfilename,"a+") as LCMD.fp:
-                try:
-                    if '=' in cmd_data:
-                        if escape_newline:
-                            cmd_ex_data = 'global %s\ntry: %s = %s \nexcept: %s = None' % \
-                                (cmd_data.replace('\n', '\\n').split('=')[0].\
-                                strip().split('[')[0],cmd_data.split('=')[0].strip(), \
-                                cmd_data.replace('\n', '\\n').split('=')[1].strip(), \
-                                cmd_data.split('=')[0].strip())
-                        else:
-                            cmd_ex_data = 'global %s\ntry: %s = %s \nexcept: %s = None' % \
-                                (cmd_data.split('=')[0].strip().split('[')[0], \
-                                cmd_data.split('=')[0].strip(), \
-                                cmd_data.split('=')[1].strip(), \
-                                cmd_data.split('=')[0].strip())
-                    else: cmd_ex_data = cmd_data
-                    if printall: CGI_CLI.uprint("EXEC: \n%s" % (cmd_ex_data))
-                    LCMD.fp.write('EXEC: \n' + cmd_ex_data + '\n')
-                    ### EXEC CODE WORKAROUND for OLD PYTHON v2.7.5
-                    edict = {}; eval(compile(cmd_ex_data, '<string>', 'exec'), globals(), edict)
-                    #CGI_CLI.uprint("%s" % (eval(cmd_data.split('=')[0].strip())))
-                except Exception as e:
-                    if printall: CGI_CLI.uprint('EXEC_PROBLEM[' + str(e) + ']', \
-                                     color = 'magenta')
-                    LCMD.fp.write('EXEC_PROBLEM[' + str(e) + ']\n')
+            try:
+                if '=' in cmd_data:
+                    if escape_newline:
+                        cmd_ex_data = 'global %s\ntry: %s = %s \nexcept: %s = None' % \
+                            (cmd_data.replace('\n', '\\n').split('=')[0].\
+                            strip().split('[')[0],cmd_data.split('=')[0].strip(), \
+                            cmd_data.replace('\n', '\\n').split('=')[1].strip(), \
+                            cmd_data.split('=')[0].strip())
+                    else:
+                        cmd_ex_data = 'global %s\ntry: %s = %s \nexcept: %s = None' % \
+                            (cmd_data.split('=')[0].strip().split('[')[0], \
+                            cmd_data.split('=')[0].strip(), \
+                            cmd_data.split('=')[1].strip(), \
+                            cmd_data.split('=')[0].strip())
+                else: cmd_ex_data = cmd_data
+                if printall: CGI_CLI.uprint("EXEC: \n%s" % (cmd_ex_data))
+                CGI_CLI.logtofile('EXEC: \n' + cmd_ex_data + '\n')
+                ### EXEC CODE WORKAROUND for OLD PYTHON v2.7.5
+                edict = {}; eval(compile(cmd_ex_data, '<string>', 'exec'), globals(), edict)
+                #CGI_CLI.uprint("%s" % (eval(cmd_data.split('=')[0].strip())))
+            except Exception as e:
+                if printall: CGI_CLI.uprint('EXEC_PROBLEM[' + str(e) + ']', \
+                                 color = 'magenta')
+                CGI_CLI.logtofile('EXEC_PROBLEM[' + str(e) + ']\n')
         return None
 
 ###############################################################################
@@ -1496,7 +1642,23 @@ class sql_interface():
             except Exception as e: CGI_CLI.uprint(' ==> SQL problem [%s]' % (str(e)), color = 'magenta')
             try: cursor.close()
             except: pass
+            if len(columns) == 0:
+                CGI_CLI.uprint('SQL PROBLEM[%s table has no existing columns]' % \
+                    (table_name), tag = 'h3',color = 'magenta')
         return columns
+
+    def sql_read_all_table_columns_to_void_dict(self, table_name, \
+        ommit_columns = None):
+        '''
+        ommit_columns - list of columns which will be ignored
+        '''
+        data = collections.OrderedDict()
+        columns = self.sql_read_all_table_columns(table_name)
+        for column in columns:
+            if ommit_columns:
+                if column in ommit_columns or column.upper() in ommit_columns: continue
+            data[column] = str()
+        return data
 
     def sql_read_sql_command(self, sql_command):
         '''NOTE: FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE'''
@@ -1536,52 +1698,73 @@ class sql_interface():
             except Exception as e: CGI_CLI.uprint(' ==> SQL problem [%s]' % (str(e)), color = 'magenta')
             try: cursor.close()
             except: pass
+            CGI_CLI.uprint('SQL_CMD[%s]' % (sql_command))
         return None
 
-    def sql_write_table_from_dict(self, table_name, dict_data, update = None):  ###'ipxt_data_collector'
-       if self.sql_is_connected():
-           existing_sql_table_columns = self.sql_read_all_table_columns(table_name)
-           if existing_sql_table_columns:
-               columns_string, values_string = str(), str()
-               ### ASSUMPTION: LIST OF COLUMNS HAS CORRECT ORDER!!!
-               for key in existing_sql_table_columns:
-                   if key in list(dict_data.keys()):
-                        if len(columns_string) > 0: columns_string += ','
-                        if len(values_string) > 0: values_string += ','
-                        ### WRITE KEY/COLUMNS_STRING
-                        columns_string += '`' + key + '`'
-                        ### BE AWARE OF DATA TYPE
-                        if isinstance(dict_data.get(key,""), (list,tuple)):
-                            item_string = str()
-                            for item in dict_data.get(key,""):
-                                ### LIST TO COMMA SEPARATED STRING
-                                if isinstance(item, (six.string_types)):
-                                    if len(item_string) > 0: item_string += ','
-                                    item_string += item
-                                ### DICTIONARY TO COMMA SEPARATED STRING
-                                elif isinstance(item, (dict,collections.OrderedDict)):
-                                    for i in item:
-                                        if len(item_string) > 0: item_string += ','
-                                        item_string += item.get(i,"")
-                            values_string += "'" + item_string + "'"
-                        elif isinstance(dict_data.get(key,""), (six.string_types)):
-                            values_string += "'" + str(dict_data.get(key,"")) + "'"
-                        else:
-                            values_string += "'" + str(dict_data.get(key,"")) + "'"
-               ### FINALIZE SQL_STRING - INSERT
-               if not update:
-                   sql_string = """INSERT INTO `%s` (%s) VALUES (%s);""" \
-                       % (table_name,columns_string,values_string)
-                   if columns_string:
-                       self.sql_write_sql_command("""INSERT INTO `%s`
-                           (%s) VALUES (%s);""" %(table_name,columns_string,values_string))
-               else:
-                   sql_string = """UPDATE `%s` (%s) VALUES (%s);""" \
-                       % (table_name,columns_string,values_string)
-                   if columns_string:
-                       self.sql_write_sql_command("""UPDATE `%s`
-                           (%s) VALUES (%s);""" %(table_name,columns_string,values_string))
-       return None
+    def sql_write_table_from_dict(self, table_name, dict_data, \
+        where_string = None, update = None):
+
+        columns_string, values_string = str(), str()
+        name_equals_value_string = str()
+
+        ### EXIT IF NOT CONNECTED #############################################
+        if not self.sql_is_connected(): return None
+
+        ### EXIT IF TABLE COLUMNS DOES NOT EXISTS #############################
+        existing_sql_table_columns = self.sql_read_all_table_columns(table_name)
+        if len(existing_sql_table_columns) == 0: return None
+
+        ### ASSUMPTION: LIST OF COLUMNS HAS CORRECT ORDER!!! ##################
+        for key in existing_sql_table_columns:
+            if key in list(dict_data.keys()):
+                if len(columns_string) > 0: columns_string += ','
+                if len(values_string) > 0: values_string += ','
+                if len(name_equals_value_string) > 0:
+                    name_equals_value_string += ','
+                ### WRITE KEY/COLUMNS_STRING ##################################
+                columns_string += '`' + key + '`'
+                name_equals_value_string += key + '='
+                ### BE AWARE OF (LIST/STRING) DATA TYPE #######################
+                if isinstance(dict_data.get(key,""), (list,tuple)):
+                    item_string = str()
+                    for item in dict_data.get(key,""):
+                        ### LIST TO COMMA SEPARATED STRING
+                        if isinstance(item, (six.string_types)):
+                            if len(item_string) > 0: item_string += ','
+                            item_string += item
+                        ### DICTIONARY TO COMMA SEPARATED STRING
+                        elif isinstance(item, (dict,collections.OrderedDict)):
+                            for i in item:
+                                if len(item_string) > 0: item_string += ','
+                                item_string += item.get(i,"")
+                    values_string += "'" + item_string + "'"
+                    name_equals_value_string += "'" + item_string + "'"
+                ### STRING TYPE ###############################################
+                elif isinstance(dict_data.get(key,""), (six.string_types)):
+                    values_string += "'" + str(dict_data.get(key,"")) + "'"
+                    name_equals_value_string += "'" + str(dict_data.get(key,"")) + "'"
+                else:
+                    values_string += "'" + str(dict_data.get(key,"")) + "'"
+                    name_equals_value_string += "'" + str(dict_data.get(key,"")) + "'"
+
+        ### FINALIZE SQL_STRING - INSERT ######################################
+        if not update:
+            if table_name and columns_string:
+               sql_string = """INSERT INTO `%s` (%s) VALUES (%s);""" \
+                   % (table_name, columns_string, values_string)
+               self.sql_write_sql_command(sql_string)
+               return True
+        else:
+            ### SQL UPDATE ####################################################
+            # UPDATE Customers
+            # SET ContactName = 'Alfred Schmidt', City= 'Frankfurt'
+            # WHERE CustomerID = 1;
+            if table_name and name_equals_value_string and where_string:
+                sql_string = """UPDATE %s SET %s WHERE %s;""" % \
+                    (table_name, name_equals_value_string, where_string)
+                self.sql_write_sql_command(sql_string)
+                return True
+        return None
 
     def sql_read_table_last_record(self, select_string = None, from_string = None, where_string = None):
         """NOTE: FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE"""
@@ -1600,7 +1783,7 @@ class sql_interface():
                 check_data = self.sql_read_sql_command(sql_string)
         return check_data
 
-    def sql_read_last_record_to_dict(table_name = None, from_string = None, \
+    def sql_read_last_record_to_dict(self, table_name = None, from_string = None, \
         select_string = None, where_string = None, delete_columns = None):
         """sql_read_last_record_to_dict - MAKE DICTIONARY FROM LAST TABLE RECORD
            NOTES: -'table_name' is alternative name to 'from_string'
@@ -1612,8 +1795,8 @@ class sql_interface():
         if not select_string: select_string = '*'
         if table_name:  table_name_or_from_string = table_name
         if from_string: table_name_or_from_string = from_string
-        columns_list = sql_inst.sql_read_all_table_columns(table_name_or_from_string)
-        data_list = sql_inst.sql_read_table_last_record( \
+        columns_list = self.sql_read_all_table_columns(table_name_or_from_string)
+        data_list = self.sql_read_table_last_record( \
             from_string = table_name_or_from_string, \
             select_string = select_string, where_string = where_string)
         if columns_list and data_list:
@@ -1643,7 +1826,7 @@ class sql_interface():
                 check_data = self.sql_read_sql_command(sql_string)
         return check_data
 
-    def sql_read_records_to_dict_list(table_name = None, from_string = None, \
+    def sql_read_records_to_dict_list(self, table_name = None, from_string = None, \
         select_string = None, where_string = None, order_by = None, \
         delete_columns = None):
         """sql_read_last_record_to_dict - MAKE DICTIONARY FROM LAST TABLE RECORD
@@ -1657,8 +1840,8 @@ class sql_interface():
         if not select_string: select_string = '*'
         if table_name:  table_name_or_from_string = table_name
         if from_string: table_name_or_from_string = from_string
-        columns_list = sql_inst.sql_read_all_table_columns(table_name_or_from_string)
-        data_list = sql_inst.sql_read_table_records( \
+        columns_list = self.sql_read_all_table_columns(table_name_or_from_string)
+        data_list = self.sql_read_table_records( \
             from_string = table_name_or_from_string, \
             select_string = select_string, where_string = where_string,
             order_by = order_by)
@@ -1915,8 +2098,7 @@ warning {
     interface_id_list = []
 
     ### GCI_CLI INIT ##########################################################
-    USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = False, css_style = CSS_STYLE, \
-        log = None, html_logging = None)
+    USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = False, css_style = CSS_STYLE)
     LCMD.init()
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
     printall = CGI_CLI.data.get("printall")
