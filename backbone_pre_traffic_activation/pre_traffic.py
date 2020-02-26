@@ -2661,6 +2661,7 @@ authentication {
                         'show rsvp interface %s' % (interface_id),
 
                         'show interfaces %s' % (undotted_interface_id),
+                        'show interfaces description'
                     ],
 
                     'cisco_xr':[
@@ -2677,6 +2678,7 @@ authentication {
                         'show rsvp interface %s' % (interface_id),
 
                         'show interfaces %s' % (undotted_interface_id),
+                        'show interfaces description'
                     ],
 
                     'juniper': [
@@ -2696,6 +2698,7 @@ authentication {
                         'show configuration groups mtu-default | display set',
                         'show configuration protocols isis interface %s' % (interface_id),
                         'show interfaces %s' % (undotted_interface_id),
+                        'show interfaces descriptions'
                     ],
 
                     'huawei': [
@@ -2712,6 +2715,7 @@ authentication {
                         'display mpls rsvp-te interface %s' % (interface_id),
 
                         'display interface %s' % (undotted_interface_id),
+                        'display interface description'
                     ]
                 }
 
@@ -2722,7 +2726,7 @@ authentication {
                     autoconfirm_mode = True, \
                     printall = printall)
 
-                ###CGI_CLI.uprint('\n')
+
 
                 ### def PROCEED COMMON 1st CMDS ###############################
                 try: interface_data['mtu'] = collect_if_config_rcmd_outputs[0].split('mtu ')[1].splitlines()[0].strip()
@@ -2787,6 +2791,16 @@ authentication {
                         try: interface_data['rsvp interface'] = collect_if_config_rcmd_outputs[9].split('------')[-1].splitlines()[1].split()[0].strip()
                         except: interface_data['rsvp interface'] = str()
 
+                    ### BACKUP INTERFACES ###
+                    try:
+                        backup_if_list = []
+                        if interface_data.get('name_of_remote_device'):
+                            for line in collect_if_config_rcmd_outputs[11]:
+                                if '%s FROM %s' % (interface_data.get('name_of_remote_device',str()), device) in line.upper():
+                                    backup_if_list.append(str(line.split()[0]).replace('GE','Gi'))
+                        interface_data['backup_interface_list'] = backup_if_list
+                    except: interface_data['backup_interface_list'] = []
+
                     ### WARNINGS ###
                     try: interface_warning_data['input_errors'] = collect_if_config_rcmd_outputs[10].split('input errors')[0].splitlines()[-1].split()[0].strip()
                     except: interface_warning_data['input_errors'] = str()
@@ -2849,6 +2863,16 @@ authentication {
 
                     try: interface_data['rsvp interface'] = collect_if_config_rcmd_outputs[9].split('Interface')[1].splitlines()[1].split()[0]
                     except: interface_data['rsvp interface'] = str()
+
+                    ### BACKUP INTERFACES ###
+                    try:
+                        backup_if_list = []
+                        if interface_data.get('name_of_remote_device'):
+                            for line in collect_if_config_rcmd_outputs[14]:
+                                if '%s FROM %s' % (interface_data.get('name_of_remote_device',str()), device) in line.upper():
+                                    backup_if_list.append(str(line.split()[0]).replace('GE','Gi'))
+                        interface_data['backup_interface_list'] = backup_if_list
+                    except: interface_data['backup_interface_list'] = []
 
                     ### WARNINGS ###
                     try: interface_warning_data['Active alarms'] = collect_if_config_rcmd_outputs[13].split('Active alarms  : ')[1].split()[0].strip()
@@ -2918,6 +2942,16 @@ authentication {
 
                     try: interface_data['rsvp interface'] = collect_if_config_rcmd_outputs[9].split('Interface:')[1].split()[0]
                     except: interface_data['rsvp interface'] = str()
+
+                    ### BACKUP INTERFACES ###
+                    try:
+                        backup_if_list = []
+                        if interface_data.get('name_of_remote_device'):
+                            for line in collect_if_config_rcmd_outputs[11]:
+                                if '%s FROM %s' % (interface_data.get('name_of_remote_device',str()), device) in line.upper():
+                                    backup_if_list.append(str(line.split()[0]).replace('GE','Gi'))
+                        interface_data['backup_interface_list'] = backup_if_list
+                    except: interface_data['backup_interface_list'] = []
 
                     ### WARNINGS ###
                     try: interface_warning_data['Rx Power'] = collect_if_config_rcmd_outputs[10].split('Rx Power: ')[1].split()[0].strip().replace(',','')
