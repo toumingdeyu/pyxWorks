@@ -2867,6 +2867,22 @@ authentication {
                         interface_data['parallel_interfaces'] = copy.deepcopy(backup_if_list)
                     except: interface_data['parallel_interfaces'] = []
 
+                    ### TRAFFIC ###
+                    if not precheck_mode:
+                        try: interface_data['txload'] = collect_if_config_rcmd_outputs[10].split('Output rate    :')[1].split()[0].replace(',','').strip()
+                        except: interface_data['txload'] = str()
+                        try: interface_data['rxload'] = collect_if_config_rcmd_outputs[10].split('Input rate     :')[1].split()[0].replace(',','').strip()
+                        except: interface_data['rxload'] = str()
+                        multiplikator = 1
+                        if interface_data.get('bandwidth') and 'g' in interface_data.get('bandwidth'): multiplikator = 1073741824
+                        if interface_data.get('bandwidth') and 'm' in interface_data.get('bandwidth'): multiplikator = 1048576
+                        if interface_data.get('txload'):
+                            try: interface_data['txload_percent'] = 100 * float(interface_data.get('txload')) / (float(interface_data.get('bandwidth').replace('m','').replace('g','')) * multiplikator)
+                            except: interface_data['txload_percent'] = str()
+                        if interface_data.get('rxload'):
+                            try: interface_data['rxload_percent'] = 100 * float(interface_data.get('rxload')) / (float(interface_data.get('bandwidth').replace('m','').replace('g','')) * multiplikator)
+                            except: interface_data['rxload_percent'] = str()
+
                     ### WARNINGS ###
                     try: interface_warning_data['Active alarms'] = collect_if_config_rcmd_outputs[13].split('Active alarms  : ')[1].split()[0].strip()
                     except: interface_warning_data['Active alarms'] = str()
