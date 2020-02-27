@@ -3181,7 +3181,7 @@ authentication {
                                 CGI_CLI.uprint('Ipv6 L2 metric missing on Interface %s !' % (interface_id), color = 'red')
 
                         elif RCMD.router_type == 'juniper':
-                            try: L2_metric = parralel_cmd_output.upper().split('L2 METRIC')[1].split(parallel_interface.upper()).splitlines()[0].split()[-1].split('/')[1]
+                            try: L2_metric = parralel_cmd_output.upper().split('L2 METRIC')[1].split(parallel_interface.upper())[1].splitlines()[0].split()[-1].split('/')[1]
                             except: pass
 
                             if interface_data.get('metric'):
