@@ -2613,6 +2613,8 @@ authentication {
                 if precheck_mode: CGI_CLI.uprint('Monitoring/precheck mode.')
                 else: CGI_CLI.uprint('Traffic/postcheck mode.')
 
+                CGI_CLI.logtofile('\nDETECTED DEVICE_TYPE: %s\n' % (RCMD.router_type))
+
                 interface_data = collections.OrderedDict()
                 interface_data['interface_id'] = interface_id
                 interface_warning_data = collections.OrderedDict()
