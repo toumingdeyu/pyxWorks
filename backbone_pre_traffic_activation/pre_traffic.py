@@ -3193,73 +3193,69 @@ authentication {
                     CGI_CLI.uprint('\n'.join(None_elements), color = 'red')
 
                 if not precheck_mode:
-                    for parralel_cmd_output, parallel_interface in zip(parrallel_interfaces_outputs, interface_data.get('parallel_interfaces',[])):
-                        L2_metric, ipv6_L2_metric = None, None
-                        if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
-                            try: L2_metric = parralel_cmd_output.split(' Unicast Topology:')[1].split('Metric (L1/L2):')[1].split()[0].split('/')[1]
-                            except: pass
-                            try: ipv6_L2_metric = parralel_cmd_output.split('IPv6 Unicast Topology:')[1].split('Metric (L1/L2):')[1].split()[0].split('/')[1]
-                            except: pass
+                    if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr' and not interface_data.get('ipv4_metric') \
+                        or RCMD.router_type == 'juniper' and not interface_data.get('metric') \
+                        or RCMD.router_type == 'huawei' and  interface_data.get('isis cost'):
+                            check_interface_result_ok = False
+                            CGI_CLI.uprint('Ipv4 L2 metric missing on Interface %s !' % (interface_id), color = 'red')
+                    elif RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr' and not interface_data.get('ipv6_metric') \
+                        or RCMD.router_type == 'huawei' and interface_data.get('isis ipv6 cost'):
+                            check_interface_result_ok = False
+                            CGI_CLI.uprint('Ipv6 L2 metric missing on Interface %s !' % (interface_id), color = 'red')
+                    else:
+                        for parralel_cmd_output, parallel_interface in zip(parrallel_interfaces_outputs, interface_data.get('parallel_interfaces',[])):
+                            L2_metric, ipv6_L2_metric = None, None
+                            if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
+                                try: L2_metric = parralel_cmd_output.split(' Unicast Topology:')[1].split('Metric (L1/L2):')[1].split()[0].split('/')[1]
+                                except: pass
+                                try: ipv6_L2_metric = parralel_cmd_output.split('IPv6 Unicast Topology:')[1].split('Metric (L1/L2):')[1].split()[0].split('/')[1]
+                                except: pass
 
-                            if interface_data.get('ipv4_metric'):
-                                if interface_data.get('ipv4_metric') != L2_metric:
-                                    check_interface_result_ok = False
-                                    CGI_CLI.uprint('Ipv4 L2 Metric (%s) on Interface %s is different from metric (%s) on Interface %s !' \
-                                        % (L2_metric, parallel_interface, interface_data.get('ipv4_metric'), interface_id), color = 'red')
-                                else: CGI_CLI.logtofile("Ipv4 L2 Metric (%s) check on Interface %s = OK.\n" % (L2_metric, parallel_interface))
-                            else:
-                                check_interface_result_ok = False
-                                CGI_CLI.uprint('Ipv4 L2 metric missing on Interface %s !' % (interface_id), color = 'red')
+                                if interface_data.get('ipv4_metric'):
+                                    if interface_data.get('ipv4_metric') != L2_metric:
+                                        check_interface_result_ok = False
+                                        CGI_CLI.uprint('Ipv4 L2 Metric (%s) on Interface %s is different from metric (%s) on Interface %s !' \
+                                            % (L2_metric, parallel_interface, interface_data.get('ipv4_metric'), interface_id), color = 'red')
+                                    else: CGI_CLI.logtofile("Ipv4 L2 Metric (%s) check on Interface %s = OK.\n" % (L2_metric, parallel_interface))
 
-                            if interface_data.get('ipv6_metric'):
-                                if interface_data.get('ipv6_metric') != L2_metric:
-                                    check_interface_result_ok = False
-                                    CGI_CLI.uprint('Ipv6 L2 Metric (%s) on Interface %s is different from metric (%s) on Interface %s !' \
-                                        % (ipv6_L2_metric, parallel_interface, interface_data.get('ipv6_metric'), interface_id), color = 'red')
-                                else: CGI_CLI.logtofile("Ipv6 L2 Metric (%s) check on Interface %s = OK.\n" % (ipv6_L2_metric, parallel_interface))
-                            else:
-                                check_interface_result_ok = False
-                                CGI_CLI.uprint('Ipv6 L2 metric missing on Interface %s !' % (interface_id), color = 'red')
+                                if interface_data.get('ipv6_metric'):
+                                    if interface_data.get('ipv6_metric') != L2_metric:
+                                        check_interface_result_ok = False
+                                        CGI_CLI.uprint('Ipv6 L2 Metric (%s) on Interface %s is different from metric (%s) on Interface %s !' \
+                                            % (ipv6_L2_metric, parallel_interface, interface_data.get('ipv6_metric'), interface_id), color = 'red')
+                                    else: CGI_CLI.logtofile("Ipv6 L2 Metric (%s) check on Interface %s = OK.\n" % (ipv6_L2_metric, parallel_interface))
 
-                        elif RCMD.router_type == 'juniper':
-                            try: L2_metric = parralel_cmd_output.upper().split('L2 METRIC')[1].split(parallel_interface.upper())[1].splitlines()[0].split()[-1].split('/')[1]
-                            except: pass
+                            elif RCMD.router_type == 'juniper':
+                                try: L2_metric = parralel_cmd_output.upper().split('L2 METRIC')[1].split(parallel_interface.upper())[1].splitlines()[0].split()[-1].split('/')[1]
+                                except: pass
 
-                            if interface_data.get('metric'):
-                                if interface_data.get('metric') != L2_metric:
-                                    check_interface_result_ok = False
-                                    CGI_CLI.uprint('Ipv4 L2 Metric (%s) on Interface %s is different from metric (%s) on Interface %s !' \
-                                        % (L2_metric, parallel_interface, interface_data.get('metric'), interface_id), color = 'red')
-                                else: CGI_CLI.logtofile("Ipv4 L2 Metric (%s) check on Interface %s = OK.\n" % (L2_metric, parallel_interface))
-                            else:
-                                check_interface_result_ok = False
-                                CGI_CLI.uprint('Ipv4 L2 metric missing on Interface %s !' % (interface_id), color = 'red')
+                                if interface_data.get('metric'):
+                                    if interface_data.get('metric') != L2_metric:
+                                        check_interface_result_ok = False
+                                        CGI_CLI.uprint('Ipv4 L2 Metric (%s) on Interface %s is different from metric (%s) on Interface %s !' \
+                                            % (L2_metric, parallel_interface, interface_data.get('metric'), interface_id), color = 'red')
+                                    else: CGI_CLI.logtofile("Ipv4 L2 Metric (%s) check on Interface %s = OK.\n" % (L2_metric, parallel_interface))
 
-                        elif RCMD.router_type == 'huawei':
-                            try: L2_metric = parralel_cmd_output.split('Cost                        :')[1].splitlines()[0].split()[-1]
-                            except: pass
-                            try: ipv6_L2_metric = parralel_cmd_output.split('Ipv6 Cost                   :')[1].splitlines()[0].split()[-1]
-                            except: pass
+                            elif RCMD.router_type == 'huawei':
+                                try: L2_metric = parralel_cmd_output.split('Cost                        :')[1].splitlines()[0].split()[-1]
+                                except: pass
+                                try: ipv6_L2_metric = parralel_cmd_output.split('Ipv6 Cost                   :')[1].splitlines()[0].split()[-1]
+                                except: pass
 
-                            if interface_data.get('isis cost'):
-                                if interface_data.get('isis cost') != L2_metric:
-                                    check_interface_result_ok = False
-                                    CGI_CLI.uprint('Ipv4 L2 Metric (%s) on Interface %s is different from metric (%s) on Interface %s !' \
-                                        % (L2_metric, parallel_interface, interface_data.get('isis cost'), interface_id), color = 'red')
-                                else: CGI_CLI.logtofile("Ipv4 L2 Metric (%s) check on Interface %s = OK.\n" % (L2_metric, parallel_interface))
-                            else:
-                                check_interface_result_ok = False
-                                CGI_CLI.uprint('Ipv4 L2 metric missing on Interface %s !' % (interface_id), color = 'red')
+                                if interface_data.get('isis cost'):
+                                    if interface_data.get('isis cost') != L2_metric:
+                                        check_interface_result_ok = False
+                                        CGI_CLI.uprint('Ipv4 L2 Metric (%s) on Interface %s is different from metric (%s) on Interface %s !' \
+                                            % (L2_metric, parallel_interface, interface_data.get('isis cost'), interface_id), color = 'red')
+                                    else: CGI_CLI.logtofile("Ipv4 L2 Metric (%s) check on Interface %s = OK.\n" % (L2_metric, parallel_interface))
 
-                            if interface_data.get('isis ipv6 cost'):
-                                if interface_data.get('isis ipv6 cost') != L2_metric:
-                                    check_interface_result_ok = False
-                                    CGI_CLI.uprint('Ipv6 L2 Metric (%s) on Interface %s is different from metric (%s) on Interface %s !' \
-                                        % (ipv6_L2_metric, parallel_interface, interface_data.get('isis ipv6 cost'), interface_id), color = 'red')
-                                else: CGI_CLI.logtofile("Ipv6 L2 Metric (%s) check on Interface %s = OK.\n" % (ipv6_L2_metric, parallel_interface))
-                            else:
-                                check_interface_result_ok = False
-                                CGI_CLI.uprint('Ipv6 L2 metric missing on Interface %s !' % (interface_id), color = 'red')
+                                if interface_data.get('isis ipv6 cost'):
+                                    if interface_data.get('isis ipv6 cost') != L2_metric:
+                                        check_interface_result_ok = False
+                                        CGI_CLI.uprint('Ipv6 L2 Metric (%s) on Interface %s is different from metric (%s) on Interface %s !' \
+                                            % (ipv6_L2_metric, parallel_interface, interface_data.get('isis ipv6 cost'), interface_id), color = 'red')
+                                    else: CGI_CLI.logtofile("Ipv6 L2 Metric (%s) check on Interface %s = OK.\n" % (ipv6_L2_metric, parallel_interface))
+
 
                 ### TRAFFIC CHECK #############################################
                 low_percent = 3
