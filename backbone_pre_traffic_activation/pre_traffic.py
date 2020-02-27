@@ -3239,23 +3239,23 @@ authentication {
                 if interface_data.get('txload_percent'):
                     if interface_data.get('txload_percent') < low_percent:
                         check_warning_interface_result_ok = False
-                        CGI_CLI.uprint('Tx Traffic on Interface %s is below %d% !' % (interface_id, low_percent), color = 'orange')
+                        CGI_CLI.uprint('Tx Traffic on Interface %s is below %d%% !' % (interface_id, low_percent), color = 'orange')
                     elif interface_data.get('txload_percent') > high_percent:
-                        CGI_CLI.uprint('Tx Traffic on Interface %s is over %d% !' % (interface_id, high_percent), color = 'orange')
+                        CGI_CLI.uprint('Tx Traffic on Interface %s is over %d%% !' % (interface_id, high_percent), color = 'orange')
                         check_warning_interface_result_ok = False
-                    else: CGI_CLI.logtofile('Tx Traffic on Interface %s is %d% = OK.' % (interface_id, high_percent))
+                    else: CGI_CLI.logtofile('Tx Traffic on Interface %s is %.2f%% = OK.\n' % (interface_id, interface_data.get('txload_percent')))
                 else:
                     CGI_CLI.uprint('Tx Traffic on Interface %s not found !' % (interface_id), color = 'orange')
                     check_warning_interface_result_ok = False
 
                 if interface_data.get('rxload_percent'):
                     if interface_data.get('rxload_percent') < low_percent:
-                        CGI_CLI.uprint('Rx Traffic on Interface %s is below %d% !' % (interface_id, low_percent), color = 'orange')
+                        CGI_CLI.uprint('Rx Traffic on Interface %s is below %d%% !' % (interface_id, low_percent), color = 'orange')
                         check_warning_interface_result_ok = False
                     elif interface_data.get('rxload_percent') > high_percent:
-                        CGI_CLI.uprint('Rx Traffic on Interface %s is over %d% !' % (interface_id, high_percent), color = 'orange')
+                        CGI_CLI.uprint('Rx Traffic on Interface %s is over %d%% !' % (interface_id, high_percent), color = 'orange')
                         check_warning_interface_result_ok = False
-                    else: CGI_CLI.logtofile('Rx Traffic on Interface %s is %d% = OK.' % (interface_id, high_percent))
+                    else: CGI_CLI.logtofile('Rx Traffic on Interface %s is %.2f%% = OK.\n' % (interface_id, interface_data.get('rxload_percent')))
                 else:
                     CGI_CLI.uprint('Rx Traffic on Interface %s not found !' % (interface_id), color = 'orange')
                     check_warning_interface_result_ok = False
