@@ -2209,30 +2209,6 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
 
 
 ###############################################################################
-# vision_api_json_string = None
-# def get_IP_from_vision(DEVICE_NAME = None):
-    # def get_json_from_vision(URL = None):
-        # global vision_api_json_string
-        # if USERNAME and PASSWORD:
-            # os.environ['CURL_AUTH_STRING'] = '%s:%s' % (USERNAME,PASSWORD)
-            #time.sleep(0.1)
-            # if URL: url = URL
-            # else: url = 'https://vision.opentransit.net/onv/api/nodes/'
-            # local_command = 'curl -u ${CURL_AUTH_STRING} %s' % (url)
-            # vision_api_json_string = LCMD.run_commands({'unix':[local_command]}, \
-                # printall = None)
-            # os.environ['CURL_AUTH_STRING'] = '-'
-    # device_ip_address = str()
-    # if not vision_api_json_string: get_json_from_vision()
-    # if vision_api_json_string and DEVICE_NAME:
-        # try:
-            # device_ip_address = str(vision_api_json_string[0].split(DEVICE_NAME.upper())[1].\
-                # splitlines()[1].\
-                # split('"ip":')[1].replace('"','').replace(',','')).strip()
-        # except: pass
-    # return device_ip_address
-
-###############################################################################
 
 
 ###############################################################################
@@ -2800,8 +2776,8 @@ authentication {
                                     local_backup_interface = str(line.split()[0]).replace('GE','Gi')
                                     if '(' in local_backup_interface: local_backup_interface = local_backup_interface.split('(')[0]
                                     backup_if_list.append(copy.deepcopy(local_backup_interface))
-                        interface_data['backup_interface_list'] = copy.deepcopy(backup_if_list)
-                    except: interface_data['backup_interface_list'] = []
+                        interface_data['parallel_interfaces'] = copy.deepcopy(backup_if_list)
+                    except: interface_data['parallel_interfaces'] = []
 
                     ### WARNINGS ###
                     try: interface_warning_data['input_errors'] = collect_if_config_rcmd_outputs[10].split('input errors')[0].splitlines()[-1].split()[0].strip()
@@ -2875,8 +2851,8 @@ authentication {
                                     local_backup_interface = str(line.split()[0]).replace('GE','Gi')
                                     if '(' in local_backup_interface: local_backup_interface = local_backup_interface.split('(')[0]
                                     backup_if_list.append(copy.deepcopy(local_backup_interface))
-                        interface_data['backup_interface_list'] = copy.deepcopy(backup_if_list)
-                    except: interface_data['backup_interface_list'] = []
+                        interface_data['parallel_interfaces'] = copy.deepcopy(backup_if_list)
+                    except: interface_data['parallel_interfaces'] = []
 
                     ### WARNINGS ###
                     try: interface_warning_data['Active alarms'] = collect_if_config_rcmd_outputs[13].split('Active alarms  : ')[1].split()[0].strip()
@@ -2956,8 +2932,8 @@ authentication {
                                     local_backup_interface = str(line.split()[0]).replace('GE','Gi')
                                     if '(' in local_backup_interface: local_backup_interface = local_backup_interface.split('(')[0]
                                     backup_if_list.append(copy.deepcopy(local_backup_interface))
-                        interface_data['backup_interface_list'] = copy.deepcopy(backup_if_list)
-                    except: interface_data['backup_interface_list'] = []
+                        interface_data['parallel_interfaces'] = copy.deepcopy(backup_if_list)
+                    except: interface_data['parallel_interfaces'] = []
 
                     ### WARNINGS ###
                     try: interface_warning_data['Rx Power'] = collect_if_config_rcmd_outputs[10].split('Rx Power: ')[1].split()[0].strip().replace(',','')
@@ -3133,6 +3109,92 @@ authentication {
                         except: interface_data['ping_v6_%success'] = str()
                         try: interface_data['ping_v6_mtu_%success'] = str(100 - float(ping4_config_rcmds_outputs[1].split('% packet loss')[0].splitlines()[-1].strip()))
                         except: interface_data['ping_v6_mtu_%success'] = str()
+
+
+                if not precheck_mode:
+                    ### def PARALLEL INTERFACES COMMAND LIST ##################
+                    parrallel_interfaces_rcmds = collections.OrderedDict()
+                    parrallel_interfaces_rcmds['cisco_ios'] = []
+                    parrallel_interfaces_rcmds['cisco_xr'] = []
+                    parrallel_interfaces_rcmds['juniper'] = []
+                    parrallel_interfaces_rcmds['huawei'] = []
+                    for parallel_interface in interface_data.get('parallel_interfaces',[]):
+                        parrallel_interfaces_rcmds['cisco_ios'].append('sh isis interface %s' % (parallel_interface))
+                        parrallel_interfaces_rcmds['cisco_xr'].append('sh isis interface %s' % (parallel_interface))
+                        parrallel_interfaces_rcmds['juniper'].append('show isis interface %s' % (parallel_interface))
+                        parrallel_interfaces_rcmds['huawei'].append('display isis interface %s verbose' % (parallel_interface))
+
+                    parrallel_interfaces_outputs = RCMD.run_commands(parrallel_interfaces_rcmds, \
+                        autoconfirm_mode = True, \
+                        printall = printall)
+
+                    for parralel_cmd_output, parallel_interface in zip(parrallel_interfaces_outputs, interface_data.get('parallel_interfaces',[])):
+                        L2_metric, ipv6_L2_metric = None, None
+                        if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
+                            try: L2_metric = parralel_cmd_output.split(' Unicast Topology:')[1].split('Metric (L1/L2):')[1].split()[0].split('/')[1]
+                            except: pass
+                            try: ipv6_L2_metric = parralel_cmd_output.split('IPv6 Unicast Topology:')[1].split('Metric (L1/L2):')[1].split()[0].split('/')[1]
+                            except: pass
+
+                            if interface_data.get('ipv4_metric'):
+                                if interface_data.get('ipv4_metric') != L2_metric:
+                                    check_interface_result_ok = False
+                                    CGI_CLI.uprint('Ipv4 L2 Metric (%s) on Interface %s is different from metric (%s)on Interface %s !' \
+                                        % (L2_metric, parallel_interface, interface_data.get('ipv4_metric'), interface_id), color = 'red')
+                                else: CGI_CLI.logtofile("Ipv4 L2 Metric check on Interface %s = OK." % (parallel_interface))
+                            else:
+                                check_interface_result_ok = False
+                                CGI_CLI.uprint('Ipv4 L2 metric missing on Interface %s !' % (interface_id), color = 'red')
+
+                            if interface_data.get('ipv6_metric'):
+                                if interface_data.get('ipv6_metric') != L2_metric:
+                                    check_interface_result_ok = False
+                                    CGI_CLI.uprint('Ipv6 L2 Metric (%s) on Interface %s is different from metric (%s)on Interface %s !' \
+                                        % (ipv6_L2_metric, parallel_interface, interface_data.get('ipv6_metric'), interface_id), color = 'red')
+                                else: CGI_CLI.logtofile("Ipv6 L2 Metric check on Interface %s = OK." % (parallel_interface))
+                            else:
+                                check_interface_result_ok = False
+                                CGI_CLI.uprint('Ipv6 L2 metric missing on Interface %s !' % (interface_id), color = 'red')
+
+                        elif RCMD.router_type == 'juniper':
+                            try: L2_metric = parralel_cmd_output.upper().split('L2 METRIC')[1].split(parallel_interface.upper()).splitlines()[0].split()[-1].split('/')[1]
+                            except: pass
+
+                            if interface_data.get('metric'):
+                                if interface_data.get('metric') != L2_metric:
+                                    check_interface_result_ok = False
+                                    CGI_CLI.uprint('Ipv4 L2 Metric (%s) on Interface %s is different from metric (%s)on Interface %s !' \
+                                        % (L2_metric, parallel_interface, interface_data.get('metric'), interface_id), color = 'red')
+                                else: CGI_CLI.logtofile("Ipv4 L2 Metric check on Interface %s = OK." % (parallel_interface))
+                            else:
+                                check_interface_result_ok = False
+                                CGI_CLI.uprint('Ipv4 L2 metric missing on Interface %s !' % (interface_id), color = 'red')
+
+                        elif RCMD.router_type == 'huawei':
+                            try: L2_metric = parralel_cmd_output.split('Cost                        :')[1].splitlines()[0].split()[-1]
+                            except: pass
+                            try: ipv6_L2_metric = parralel_cmd_output.split('Ipv6 Cost                   :')[1].splitlines()[0].split()[-1]
+                            except: pass
+
+                            if interface_data.get('isis cost'):
+                                if interface_data.get('isis cost') != L2_metric:
+                                    check_interface_result_ok = False
+                                    CGI_CLI.uprint('Ipv4 L2 Metric (%s) on Interface %s is different from metric (%s)on Interface %s !' \
+                                        % (L2_metric, parallel_interface, interface_data.get('isis cost'), interface_id), color = 'red')
+                                else: CGI_CLI.logtofile("Ipv4 L2 Metric check on Interface %s = OK." % (parallel_interface))
+                            else:
+                                check_interface_result_ok = False
+                                CGI_CLI.uprint('Ipv4 L2 metric missing on Interface %s !' % (interface_id), color = 'red')
+
+                            if interface_data.get('isis ipv6 cost'):
+                                if interface_data.get('isis ipv6 cost') != L2_metric:
+                                    check_interface_result_ok = False
+                                    CGI_CLI.uprint('Ipv6 L2 Metric (%s) on Interface %s is different from metric (%s)on Interface %s !' \
+                                        % (ipv6_L2_metric, parallel_interface, interface_data.get('isis ipv6 cost'), interface_id), color = 'red')
+                                else: CGI_CLI.logtofile("Ipv6 L2 Metric check on Interface %s = OK." % (parallel_interface))
+                            else:
+                                check_interface_result_ok = False
+                                CGI_CLI.uprint('Ipv6 L2 metric missing on Interface %s !' % (interface_id), color = 'red')
 
 
                 ### PRINT \n AFTER COLLECTING OF DATA #########################
