@@ -2040,7 +2040,7 @@ def get_interface_list_per_device(device = None, action_type = None):
             except: pass
 
             for in_line_orig in if_lines:
-                if_line = in_line_orig.replace('                                               ','').replace('GE','Gi').strip()
+                if_line = in_line_orig.replace('                                               ','').strip()
                 if if_line.strip() == '{master}': continue
 
                 if action_type == 'bbactivation':
@@ -2052,10 +2052,15 @@ def get_interface_list_per_device(device = None, action_type = None):
                         or '-PUBPEER' in if_line.strip().upper(): continue
                     if 'LOOPBACK' in if_line.strip().upper(): continue
 
+
                 try: if_name = if_line.split()[0]
                 except: if_name = str()
+
+                if not '100GE' in if_name: if_name = if_name.replace('GE','Gi')
+
                 try: if_name = if_name.split('(')[0]
                 except: pass
+
                 try: if_line_mod = if_name + ' - ' + ' '.join(if_line.split()[3:])
                 except: if_line_mod = str()
                 if if_name and if_line_mod: interface_list.append([if_line_mod, if_name])
