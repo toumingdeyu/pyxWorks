@@ -2948,6 +2948,13 @@ authentication {
                         interface_data['parallel_interfaces'] = copy.deepcopy(backup_if_list)
                     except: interface_data['parallel_interfaces'] = []
 
+                    ### TRAFFIC ###
+                    if not precheck_mode:
+                        try: interface_data['txload_percent'] = float(collect_if_config_rcmd_outputs[10].split('output utility rate:')[1].split()[0].replace('%','').strip())
+                        except: interface_data['txload_percent'] = str()
+                        try: interface_data['rxload_percent'] = float(collect_if_config_rcmd_outputs[10].split('input utility rate:')[1].split()[0].replace('%','').strip())
+                        except: interface_data['rxload_percent'] = str()
+
                     ### WARNINGS ###
                     try: interface_warning_data['Rx Power'] = collect_if_config_rcmd_outputs[10].split('Rx Power: ')[1].split()[0].strip().replace(',','')
                     except: interface_warning_data['Rx Power'] = str()
