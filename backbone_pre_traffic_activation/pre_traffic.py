@@ -3245,7 +3245,7 @@ authentication {
                         check_warning_interface_result_ok = False
                     else: CGI_CLI.logtofile('Tx Traffic on Interface %s is %d% = OK.' % (interface_id, high_percent))
                 else:
-                    CGI_CLI.uprint('Tx Traffic on Interface %s not found !' % (interface_id, high_percent), color = 'orange')
+                    CGI_CLI.uprint('Tx Traffic on Interface %s not found !' % (interface_id), color = 'orange')
                     check_warning_interface_result_ok = False
 
                 if interface_data.get('rxload_percent'):
@@ -3257,7 +3257,7 @@ authentication {
                         check_warning_interface_result_ok = False
                     else: CGI_CLI.logtofile('Rx Traffic on Interface %s is %d% = OK.' % (interface_id, high_percent))
                 else:
-                    CGI_CLI.uprint('Rx Traffic on Interface %s not found !' % (interface_id, high_percent), color = 'orange')
+                    CGI_CLI.uprint('Rx Traffic on Interface %s not found !' % (interface_id), color = 'orange')
                     check_warning_interface_result_ok = False
 
                 ### def CONTENT ELEMENT CHECK #################################
