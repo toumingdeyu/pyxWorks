@@ -2794,9 +2794,9 @@ authentication {
                     ### BACKUP INTERFACES ###
                     try:
                         backup_if_list = []
-                        if interface_data.get('name_of_remote_device').splitlines():
-                            for line in collect_if_config_rcmd_outputs[11]:
-                                if '%s FROM %s' % (interface_data.get('name_of_remote_device',str()), device) in line.upper():
+                        if interface_data.get('name_of_remote_device'):
+                            for line in collect_if_config_rcmd_outputs[11].splitlines():
+                                if '%s FROM %s' % (interface_data.get('name_of_remote_device',str()).upper(), device.upper()) in line.upper():
                                     local_backup_interface = str(line.split()[0]).replace('GE','Gi')
                                     if '(' in local_backup_interface: local_backup_interface = local_backup_interface.split('(')[0]
                                     backup_if_list.append(copy.deepcopy(local_backup_interface))
@@ -2869,9 +2869,9 @@ authentication {
                     ### BACKUP INTERFACES ###
                     try:
                         backup_if_list = []
-                        if interface_data.get('name_of_remote_device').splitlines():
-                            for line in collect_if_config_rcmd_outputs[14]:
-                                if '%s FROM %s' % (interface_data.get('name_of_remote_device',str()), device) in line.upper():
+                        if interface_data.get('name_of_remote_device'):
+                            for line in collect_if_config_rcmd_outputs[14].splitlines():
+                                if '%s FROM %s' % (interface_data.get('name_of_remote_device',str()).upper(), device.upper()) in line.upper():
                                     local_backup_interface = str(line.split()[0]).replace('GE','Gi')
                                     if '(' in local_backup_interface: local_backup_interface = local_backup_interface.split('(')[0]
                                     backup_if_list.append(copy.deepcopy(local_backup_interface))
@@ -2950,9 +2950,9 @@ authentication {
                     ### BACKUP INTERFACES ###
                     try:
                         backup_if_list = []
-                        if interface_data.get('name_of_remote_device').splitlines():
-                            for line in collect_if_config_rcmd_outputs[11]:
-                                if '%s FROM %s' % (interface_data.get('name_of_remote_device',str()), device) in line.upper():
+                        if interface_data.get('name_of_remote_device'):
+                            for line in collect_if_config_rcmd_outputs[11].splitlines():
+                                if '%s FROM %s' % (interface_data.get('name_of_remote_device',str()).upper(), device.upper()) in line.upper():
                                     local_backup_interface = str(line.split()[0]).replace('GE','Gi')
                                     if '(' in local_backup_interface: local_backup_interface = local_backup_interface.split('(')[0]
                                     backup_if_list.append(copy.deepcopy(local_backup_interface))
