@@ -2883,15 +2883,28 @@ authentication {
                         except: interface_data['txload'] = str()
                         try: interface_data['rxload'] = collect_if_config_rcmd_outputs[10].split('Input rate     :')[1].split()[0].replace(',','').strip()
                         except: interface_data['rxload'] = str()
+                        try: interface_data['Speed'] = collect_if_config_rcmd_outputs[10].split('Speed:')[1].split()[1].replace(',','').strip()
+                        except: interface_data['Speed'] = str()
+
                         multiplikator = 1
-                        if interface_data.get('bandwidth') and 'g' in interface_data.get('bandwidth'): multiplikator = 1073741824
-                        if interface_data.get('bandwidth') and 'm' in interface_data.get('bandwidth'): multiplikator = 1048576
+                        if interface_data.get('Speed') and 'Gbps' in interface_data.get('Speed'): multiplikator = 1073741824
+                        if interface_data.get('Speed') and 'Mbps' in interface_data.get('Speed'): multiplikator = 1048576
                         if interface_data.get('txload'):
-                            try: interface_data['txload_percent'] = 100 * float(interface_data.get('txload')) / (float(interface_data.get('bandwidth').replace('m','').replace('g','')) * multiplikator)
+                            try: interface_data['txload_percent'] = 100 * float(interface_data.get('txload')) / (float(interface_data.get('Speed').replace('Gbps','').replace('Mbps','')) * multiplikator)
                             except: pass
                         if interface_data.get('rxload'):
-                            try: interface_data['rxload_percent'] = 100 * float(interface_data.get('rxload')) / (float(interface_data.get('bandwidth').replace('m','').replace('g','')) * multiplikator)
+                            try: interface_data['rxload_percent'] = 100 * float(interface_data.get('rxload')) / (float(interface_data.get('Speed').replace('Gbps','').replace('Mbps','')) * multiplikator)
                             except: pass
+
+                        # multiplikator = 1
+                        # if interface_data.get('bandwidth') and 'g' in interface_data.get('bandwidth'): multiplikator = 1073741824
+                        # if interface_data.get('bandwidth') and 'm' in interface_data.get('bandwidth'): multiplikator = 1048576
+                        # if interface_data.get('txload'):
+                            # try: interface_data['txload_percent'] = 100 * float(interface_data.get('txload')) / (float(interface_data.get('bandwidth').replace('m','').replace('g','')) * multiplikator)
+                            # except: pass
+                        # if interface_data.get('rxload'):
+                            # try: interface_data['rxload_percent'] = 100 * float(interface_data.get('rxload')) / (float(interface_data.get('bandwidth').replace('m','').replace('g','')) * multiplikator)
+                            # except: pass
 
                     ### WARNINGS ###
                     try: interface_warning_data['Active alarms'] = collect_if_config_rcmd_outputs[13].split('Active alarms  : ')[1].split()[0].strip()
