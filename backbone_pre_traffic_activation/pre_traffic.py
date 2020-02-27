@@ -3163,9 +3163,9 @@ authentication {
                             if interface_data.get('ipv4_metric'):
                                 if interface_data.get('ipv4_metric') != L2_metric:
                                     check_interface_result_ok = False
-                                    CGI_CLI.uprint('Ipv4 L2 Metric (%s) on Interface %s is different from metric (%s)on Interface %s !' \
+                                    CGI_CLI.uprint('Ipv4 L2 Metric (%s) on Interface %s is different from metric (%s) on Interface %s !' \
                                         % (L2_metric, parallel_interface, interface_data.get('ipv4_metric'), interface_id), color = 'red')
-                                else: CGI_CLI.logtofile("Ipv4 L2 Metric check on Interface %s = OK.\n" % (parallel_interface))
+                                else: CGI_CLI.logtofile("Ipv4 L2 Metric (%s) check on Interface %s = OK.\n" % (L2_metric, parallel_interface))
                             else:
                                 check_interface_result_ok = False
                                 CGI_CLI.uprint('Ipv4 L2 metric missing on Interface %s !' % (interface_id), color = 'red')
@@ -3173,9 +3173,9 @@ authentication {
                             if interface_data.get('ipv6_metric'):
                                 if interface_data.get('ipv6_metric') != L2_metric:
                                     check_interface_result_ok = False
-                                    CGI_CLI.uprint('Ipv6 L2 Metric (%s) on Interface %s is different from metric (%s)on Interface %s !' \
+                                    CGI_CLI.uprint('Ipv6 L2 Metric (%s) on Interface %s is different from metric (%s) on Interface %s !' \
                                         % (ipv6_L2_metric, parallel_interface, interface_data.get('ipv6_metric'), interface_id), color = 'red')
-                                else: CGI_CLI.logtofile("Ipv6 L2 Metric check on Interface %s = OK.\n" % (parallel_interface))
+                                else: CGI_CLI.logtofile("Ipv6 L2 Metric (%s) check on Interface %s = OK.\n" % (ipv6_L2_metric, parallel_interface))
                             else:
                                 check_interface_result_ok = False
                                 CGI_CLI.uprint('Ipv6 L2 metric missing on Interface %s !' % (interface_id), color = 'red')
@@ -3187,9 +3187,9 @@ authentication {
                             if interface_data.get('metric'):
                                 if interface_data.get('metric') != L2_metric:
                                     check_interface_result_ok = False
-                                    CGI_CLI.uprint('Ipv4 L2 Metric (%s) on Interface %s is different from metric (%s)on Interface %s !' \
+                                    CGI_CLI.uprint('Ipv4 L2 Metric (%s) on Interface %s is different from metric (%s) on Interface %s !' \
                                         % (L2_metric, parallel_interface, interface_data.get('metric'), interface_id), color = 'red')
-                                else: CGI_CLI.logtofile("Ipv4 L2 Metric check on Interface %s = OK.\n" % (parallel_interface))
+                                else: CGI_CLI.logtofile("Ipv4 L2 Metric (%s) check on Interface %s = OK.\n" % (L2_metric, parallel_interface))
                             else:
                                 check_interface_result_ok = False
                                 CGI_CLI.uprint('Ipv4 L2 metric missing on Interface %s !' % (interface_id), color = 'red')
@@ -3203,9 +3203,9 @@ authentication {
                             if interface_data.get('isis cost'):
                                 if interface_data.get('isis cost') != L2_metric:
                                     check_interface_result_ok = False
-                                    CGI_CLI.uprint('Ipv4 L2 Metric (%s) on Interface %s is different from metric (%s)on Interface %s !' \
+                                    CGI_CLI.uprint('Ipv4 L2 Metric (%s) on Interface %s is different from metric (%s) on Interface %s !' \
                                         % (L2_metric, parallel_interface, interface_data.get('isis cost'), interface_id), color = 'red')
-                                else: CGI_CLI.logtofile("Ipv4 L2 Metric check on Interface %s = OK.\n" % (parallel_interface))
+                                else: CGI_CLI.logtofile("Ipv4 L2 Metric (%s) check on Interface %s = OK.\n" % (L2_metric, parallel_interface))
                             else:
                                 check_interface_result_ok = False
                                 CGI_CLI.uprint('Ipv4 L2 metric missing on Interface %s !' % (interface_id), color = 'red')
@@ -3213,9 +3213,9 @@ authentication {
                             if interface_data.get('isis ipv6 cost'):
                                 if interface_data.get('isis ipv6 cost') != L2_metric:
                                     check_interface_result_ok = False
-                                    CGI_CLI.uprint('Ipv6 L2 Metric (%s) on Interface %s is different from metric (%s)on Interface %s !' \
+                                    CGI_CLI.uprint('Ipv6 L2 Metric (%s) on Interface %s is different from metric (%s) on Interface %s !' \
                                         % (ipv6_L2_metric, parallel_interface, interface_data.get('isis ipv6 cost'), interface_id), color = 'red')
-                                else: CGI_CLI.logtofile("Ipv6 L2 Metric check on Interface %s = OK.\n" % (parallel_interface))
+                                else: CGI_CLI.logtofile("Ipv6 L2 Metric (%s) check on Interface %s = OK.\n" % (ipv6_L2_metric, parallel_interface))
                             else:
                                 check_interface_result_ok = False
                                 CGI_CLI.uprint('Ipv6 L2 metric missing on Interface %s !' % (interface_id), color = 'red')
