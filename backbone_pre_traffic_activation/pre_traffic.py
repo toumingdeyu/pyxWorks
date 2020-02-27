@@ -2789,8 +2789,8 @@ authentication {
                             try: interface_data['txload_percent'] = 100 * float(interface_data.get('txload').split('/')[0]) / float(interface_data.get('txload').split('/')[1])
                             except: interface_data['txload_percent'] = str()
                         if interface_data.get('rxload'):
-                        try: interface_data['rxload_percent'] = 100 * float(interface_data.get('rxload').split('/')[0]) / float(interface_data.get('rxload').split('/')[1])
-                        except: interface_data['rxload_percent'] = str()
+                            try: interface_data['rxload_percent'] = 100 * float(interface_data.get('rxload').split('/')[0]) / float(interface_data.get('rxload').split('/')[1])
+                            except: interface_data['rxload_percent'] = str()
 
                     ### WARNINGS ###
                     try: interface_warning_data['input_errors'] = collect_if_config_rcmd_outputs[10].split('input errors')[0].splitlines()[-1].split()[0].strip()
@@ -3233,18 +3233,32 @@ authentication {
                                 check_interface_result_ok = False
                                 CGI_CLI.uprint('Ipv6 L2 metric missing on Interface %s !' % (interface_id), color = 'red')
 
+                ### TRAFFIC CHECK #############################################
                 low_percent = 3
-                if interface_data.get('txload_percent') and interface_data.get('txload_percent') < low_percent:
-                    CGI_CLI.uprint('Tx Traffic on Interface %s is below %d% !' % (interface_id, low_percent), color = 'red')
-                if interface_data.get('rxload_percent') and interface_data.get('rxload_percent') < low_percent:
-                    CGI_CLI.uprint('Rx Traffic on Interface %s is below %d% !' % (interface_id, low_percent), color = 'red')
-
                 high_percent = 90
-                if interface_data.get('txload_percent') and interface_data.get('txload_percent') > high_percent:
-                    CGI_CLI.uprint('Tx Traffic on Interface %s is over %d% !' % (interface_id, high_percent), color = 'red')
-                if interface_data.get('rxload_percent') and interface_data.get('rxload_percent') > high_percent:
-                    CGI_CLI.uprint('Rx Traffic on Interface %s is over %d% !' % (interface_id, high_percent), color = 'red')
+                if interface_data.get('txload_percent'):
+                    if interface_data.get('txload_percent') < low_percent:
+                        check_warning_interface_result_ok = False
+                        CGI_CLI.uprint('Tx Traffic on Interface %s is below %d% !' % (interface_id, low_percent), color = 'orange')
+                    elif interface_data.get('txload_percent') > high_percent:
+                        CGI_CLI.uprint('Tx Traffic on Interface %s is over %d% !' % (interface_id, high_percent), color = 'orange')
+                        check_warning_interface_result_ok = False
+                    else: CGI_CLI.logtofile('Tx Traffic on Interface %s is %d% = OK.' % (interface_id, high_percent))
+                else:
+                    CGI_CLI.uprint('Tx Traffic on Interface %s not found !' % (interface_id, high_percent), color = 'orange')
+                    check_warning_interface_result_ok = False
 
+                if interface_data.get('rxload_percent'):
+                    if interface_data.get('rxload_percent') < low_percent:
+                        CGI_CLI.uprint('Rx Traffic on Interface %s is below %d% !' % (interface_id, low_percent), color = 'orange')
+                        check_warning_interface_result_ok = False
+                    elif interface_data.get('rxload_percent') > high_percent:
+                        CGI_CLI.uprint('Rx Traffic on Interface %s is over %d% !' % (interface_id, high_percent), color = 'orange')
+                        check_warning_interface_result_ok = False
+                    else: CGI_CLI.logtofile('Rx Traffic on Interface %s is %d% = OK.' % (interface_id, high_percent))
+                else:
+                    CGI_CLI.uprint('Rx Traffic on Interface %s not found !' % (interface_id, high_percent), color = 'orange')
+                    check_warning_interface_result_ok = False
 
                 ### def CONTENT ELEMENT CHECK #################################
                 check_interface_data_content('ping_v4_%success', '100')
