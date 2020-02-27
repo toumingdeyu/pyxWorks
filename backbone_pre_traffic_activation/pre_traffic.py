@@ -2613,7 +2613,7 @@ authentication {
                 if precheck_mode: CGI_CLI.uprint('Monitoring/precheck mode.')
                 else: CGI_CLI.uprint('Traffic/postcheck mode.')
 
-                CGI_CLI.logtofile('\nDETECTED DEVICE_TYPE: %s\n' % (RCMD.router_type))
+                CGI_CLI.logtofile('\nDETECTED DEVICE_TYPE: %s\n\n' % (RCMD.router_type))
 
                 interface_data = collections.OrderedDict()
                 interface_data['interface_id'] = interface_id
@@ -2723,6 +2723,9 @@ authentication {
                 try: interface_data['ipv4_addr_rem'] = collect_if_config_rcmd_outputs[0].split('description')[1].splitlines()[0].split('@')[1].split()[0]
                 except: interface_data['ipv4_addr_rem'] = str()
 
+                interface_data['rxload_percent'] = -1
+                interface_data['txload_percent'] = -1
+
                 ### def CISCO XR+XE 1st CMDS ##################################
                 if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
                     try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv4 address ')[1].split()[0]
@@ -2789,10 +2792,10 @@ authentication {
                         except: interface_data['rxload'] = str()
                         if interface_data.get('txload'):
                             try: interface_data['txload_percent'] = 100 * float(interface_data.get('txload').split('/')[0]) / float(interface_data.get('txload').split('/')[1])
-                            except: interface_data['txload_percent'] = str()
+                            except: pass
                         if interface_data.get('rxload'):
                             try: interface_data['rxload_percent'] = 100 * float(interface_data.get('rxload').split('/')[0]) / float(interface_data.get('rxload').split('/')[1])
-                            except: interface_data['rxload_percent'] = str()
+                            except: pass
 
                     ### WARNINGS ###
                     try: interface_warning_data['input_errors'] = collect_if_config_rcmd_outputs[10].split('input errors')[0].splitlines()[-1].split()[0].strip()
@@ -2880,10 +2883,10 @@ authentication {
                         if interface_data.get('bandwidth') and 'm' in interface_data.get('bandwidth'): multiplikator = 1048576
                         if interface_data.get('txload'):
                             try: interface_data['txload_percent'] = 100 * float(interface_data.get('txload')) / (float(interface_data.get('bandwidth').replace('m','').replace('g','')) * multiplikator)
-                            except: interface_data['txload_percent'] = str()
+                            except: pass
                         if interface_data.get('rxload'):
                             try: interface_data['rxload_percent'] = 100 * float(interface_data.get('rxload')) / (float(interface_data.get('bandwidth').replace('m','').replace('g','')) * multiplikator)
-                            except: interface_data['rxload_percent'] = str()
+                            except: pass
 
                     ### WARNINGS ###
                     try: interface_warning_data['Active alarms'] = collect_if_config_rcmd_outputs[13].split('Active alarms  : ')[1].split()[0].strip()
@@ -2969,9 +2972,9 @@ authentication {
                     ### TRAFFIC ###
                     if not precheck_mode:
                         try: interface_data['txload_percent'] = float(collect_if_config_rcmd_outputs[10].split('output utility rate:')[1].split()[0].replace('%','').strip())
-                        except: interface_data['txload_percent'] = str()
+                        except: pass
                         try: interface_data['rxload_percent'] = float(collect_if_config_rcmd_outputs[10].split('input utility rate:')[1].split()[0].replace('%','').strip())
-                        except: interface_data['rxload_percent'] = str()
+                        except: pass
 
                     ### WARNINGS ###
                     try: interface_warning_data['Rx Power'] = collect_if_config_rcmd_outputs[10].split('Rx Power: ')[1].split()[0].strip().replace(',','')
@@ -3261,7 +3264,7 @@ authentication {
                 ### TRAFFIC CHECK #############################################
                 low_percent = 3
                 high_percent = 90
-                if interface_data.get('txload_percent'):
+                if interface_data.get('txload_percent') >= 0:
                     if interface_data.get('txload_percent') < low_percent:
                         check_warning_interface_result_ok = False
                         CGI_CLI.uprint('Tx Traffic on Interface %s is below %d%% !' % (interface_id, low_percent), color = 'orange')
@@ -3273,7 +3276,7 @@ authentication {
                     CGI_CLI.uprint('Tx Traffic on Interface %s not found !' % (interface_id), color = 'orange')
                     check_warning_interface_result_ok = False
 
-                if interface_data.get('rxload_percent'):
+                if interface_data.get('rxload_percent') >= 0:
                     if interface_data.get('rxload_percent') < low_percent:
                         CGI_CLI.uprint('Rx Traffic on Interface %s is below %d%% !' % (interface_id, low_percent), color = 'orange')
                         check_warning_interface_result_ok = False
