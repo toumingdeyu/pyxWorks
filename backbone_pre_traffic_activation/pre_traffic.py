@@ -2208,27 +2208,27 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
         if where_value:
             if exact_value_yes:
                 if exact_value_yes.upper() == where_value.upper():
-                    CGI_CLI.logtofile("CHECK['%s' == '%s'] = OK.\n" % (exact_value_yes, where))
+                    CGI_CLI.logtofile("CHECK['%s' == '%s'] = OK\n" % (exact_value_yes, where))
                 else:
                     if warning:
                         check_warning_interface_result_ok = False
-                        CGI_CLI.uprint("CHECK['%s' != '%s'] = WARNING." % (exact_value_yes, where),
+                        CGI_CLI.uprint("CHECK['%s' != '%s'] = WARNING" % (exact_value_yes, where),
                             color = 'orange')
                     else:
                         check_interface_result_ok = False
-                        CGI_CLI.uprint("CHECK['%s' != '%s'] = NOT OK." % (exact_value_yes, where),
+                        CGI_CLI.uprint("CHECK['%s' != '%s'] = NOT OK" % (exact_value_yes, where),
                             color = 'red')
             else:
                 if what_yes_in.upper() in where_value.upper():
-                    CGI_CLI.logtofile("CHECK['%s' in '%s'] = OK.\n" % (what_yes_in, where))
+                    CGI_CLI.logtofile("CHECK['%s' in '%s'] = OK\n" % (what_yes_in, where))
                 else:
                     if warning:
                         check_warning_interface_result_ok = False
-                        CGI_CLI.uprint("CHECK['%s' not in '%s'] = WARNING." % (what_yes_in, where),
+                        CGI_CLI.uprint("CHECK['%s' not in '%s'] = WARNING" % (what_yes_in, where),
                             color = 'orange')
                     else:
                         check_interface_result_ok = False
-                        CGI_CLI.uprint("CHECK['%s' not in '%s'] = NOT OK." % (what_yes_in, where),
+                        CGI_CLI.uprint("CHECK['%s' not in '%s'] = NOT OK" % (what_yes_in, where),
                             color = 'red')
     if what_not and where:
 
@@ -2244,22 +2244,22 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
             if local_check_interface_result_ok == len(what_not):
                 if warning:
                     check_warning_interface_result_ok = False
-                    CGI_CLI.uprint("CHECK[" + ' AND '.join(Alarm_text) + '] = WARNING.', color = 'orange')
+                    CGI_CLI.uprint("CHECK[" + ' AND '.join(Alarm_text) + '] = WARNING', color = 'orange')
                 else:
                     check_interface_result_ok = False
-                    CGI_CLI.uprint("CHECK[" + ' AND '.join(Alarm_text) + '] = NOT OK.', color = 'red')
+                    CGI_CLI.uprint("CHECK[" + ' AND '.join(Alarm_text) + '] = NOT OK', color = 'red')
             else: CGI_CLI.logtofile("CHECK[ ['%s'] not in '%s'] = OK.\n" % (','.join(what_not), where))
         else:
             if what_not.upper() in where_value.upper():
                 if warning:
                     check_warning_interface_result_ok = False
-                    CGI_CLI.uprint("CHECK['%s' in '%s'] = WARNING." % (what_not, where),
+                    CGI_CLI.uprint("CHECK['%s' in '%s'] = WARNING" % (what_not, where),
                         color = 'orange')
                 else:
                     check_interface_result_ok = False
-                    CGI_CLI.uprint("CHECK['%s' in '%s'] = NOT OK." % (what_not, where),
+                    CGI_CLI.uprint("CHECK['%s' in '%s'] = NOT OK" % (what_not, where),
                         color = 'red')
-            else: CGI_CLI.logtofile("CHECK['%s' not in '%s'] = OK.\n" % (what_not, where))
+            else: CGI_CLI.logtofile("CHECK['%s' not in '%s'] = OK\n" % (what_not, where))
 
 
 ###############################################################################
@@ -3280,11 +3280,11 @@ authentication {
                         or RCMD.router_type == 'juniper' and not interface_data.get('metric') \
                         or RCMD.router_type == 'huawei' and  interface_data.get('isis cost'):
                             check_interface_result_ok = False
-                            CGI_CLI.uprint('Ipv4 L2 metric missing on Interface %s !' % (interface_id), color = 'red')
+                            CGI_CLI.uprint('Ipv4 L2 metric missing on Interface %s = NOT OK' % (interface_id), color = 'red')
                     elif RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr' and not interface_data.get('ipv6_metric') \
                         or RCMD.router_type == 'huawei' and interface_data.get('isis ipv6 cost'):
                             check_interface_result_ok = False
-                            CGI_CLI.uprint('Ipv6 L2 metric missing on Interface %s !' % (interface_id), color = 'red')
+                            CGI_CLI.uprint('Ipv6 L2 metric missing on Interface %s = NOT OK' % (interface_id), color = 'red')
                     else:
                         for parralel_cmd_output, parallel_interface in zip(parrallel_interfaces_outputs, interface_data.get('parallel_interfaces',[])):
                             L2_metric, ipv6_L2_metric = None, None
@@ -3297,16 +3297,16 @@ authentication {
                                 if interface_data.get('ipv4_metric'):
                                     if interface_data.get('ipv4_metric') != L2_metric:
                                         check_interface_result_ok = False
-                                        CGI_CLI.uprint('Ipv4 L2 Metric (%s) on Interface %s is different from metric (%s) on Interface %s !' \
+                                        CGI_CLI.uprint('Ipv4 L2 Metric (%s) on Interface %s is different from metric (%s) on Interface %s = NOT OK' \
                                             % (L2_metric, parallel_interface, interface_data.get('ipv4_metric'), interface_id), color = 'red')
-                                    else: CGI_CLI.logtofile("Ipv4 L2 Metric (%s) check on Interface %s = OK.\n" % (L2_metric, parallel_interface))
+                                    else: CGI_CLI.logtofile("Ipv4 L2 Metric (%s) check on Interface %s = OK\n" % (L2_metric, parallel_interface))
 
                                 if interface_data.get('ipv6_metric'):
                                     if interface_data.get('ipv6_metric') != L2_metric:
                                         check_interface_result_ok = False
-                                        CGI_CLI.uprint('Ipv6 L2 Metric (%s) on Interface %s is different from metric (%s) on Interface %s !' \
+                                        CGI_CLI.uprint('Ipv6 L2 Metric (%s) on Interface %s is different from metric (%s) on Interface %s = NOT OK' \
                                             % (ipv6_L2_metric, parallel_interface, interface_data.get('ipv6_metric'), interface_id), color = 'red')
-                                    else: CGI_CLI.logtofile("Ipv6 L2 Metric (%s) check on Interface %s = OK.\n" % (ipv6_L2_metric, parallel_interface))
+                                    else: CGI_CLI.logtofile("Ipv6 L2 Metric (%s) check on Interface %s = OK\n" % (ipv6_L2_metric, parallel_interface))
 
                             elif RCMD.router_type == 'juniper':
                                 try: L2_metric = parralel_cmd_output.upper().split('L2 METRIC')[1].split(parallel_interface.upper())[1].splitlines()[0].split()[-1].split('/')[1]
@@ -3315,9 +3315,9 @@ authentication {
                                 if interface_data.get('metric'):
                                     if interface_data.get('metric') != L2_metric:
                                         check_interface_result_ok = False
-                                        CGI_CLI.uprint('Ipv4 L2 Metric (%s) on Interface %s is different from metric (%s) on Interface %s !' \
+                                        CGI_CLI.uprint('Ipv4 L2 Metric (%s) on Interface %s is different from metric (%s) on Interface %s = NOT OK' \
                                             % (L2_metric, parallel_interface, interface_data.get('metric'), interface_id), color = 'red')
-                                    else: CGI_CLI.logtofile("Ipv4 L2 Metric (%s) check on Interface %s = OK.\n" % (L2_metric, parallel_interface))
+                                    else: CGI_CLI.logtofile("Ipv4 L2 Metric (%s) check on Interface %s = OK\n" % (L2_metric, parallel_interface))
 
                             elif RCMD.router_type == 'huawei':
                                 try: L2_metric = parralel_cmd_output.split('Cost                        :')[1].splitlines()[0].split()[-1]
@@ -3328,16 +3328,16 @@ authentication {
                                 if interface_data.get('isis cost'):
                                     if interface_data.get('isis cost') != L2_metric:
                                         check_interface_result_ok = False
-                                        CGI_CLI.uprint('Ipv4 L2 Metric (%s) on Interface %s is different from metric (%s) on Interface %s !' \
+                                        CGI_CLI.uprint('Ipv4 L2 Metric (%s) on Interface %s is different from metric (%s) on Interface %s = NOT OK' \
                                             % (L2_metric, parallel_interface, interface_data.get('isis cost'), interface_id), color = 'red')
-                                    else: CGI_CLI.logtofile("Ipv4 L2 Metric (%s) check on Interface %s = OK.\n" % (L2_metric, parallel_interface))
+                                    else: CGI_CLI.logtofile("Ipv4 L2 Metric (%s) check on Interface %s = OK\n" % (L2_metric, parallel_interface))
 
                                 if interface_data.get('isis ipv6 cost'):
                                     if interface_data.get('isis ipv6 cost') != L2_metric:
                                         check_interface_result_ok = False
-                                        CGI_CLI.uprint('Ipv6 L2 Metric (%s) on Interface %s is different from metric (%s) on Interface %s !' \
+                                        CGI_CLI.uprint('Ipv6 L2 Metric (%s) on Interface %s is different from metric (%s) on Interface %s = NOT OK' \
                                             % (ipv6_L2_metric, parallel_interface, interface_data.get('isis ipv6 cost'), interface_id), color = 'red')
-                                    else: CGI_CLI.logtofile("Ipv6 L2 Metric (%s) check on Interface %s = OK.\n" % (ipv6_L2_metric, parallel_interface))
+                                    else: CGI_CLI.logtofile("Ipv6 L2 Metric (%s) check on Interface %s = OK\n" % (ipv6_L2_metric, parallel_interface))
 
 
                 ### TRAFFIC CHECK #############################################
@@ -3346,26 +3346,26 @@ authentication {
                 if interface_data.get('txload_percent') >= 0:
                     if interface_data.get('txload_percent') < low_percent:
                         check_warning_interface_result_ok = False
-                        CGI_CLI.uprint('Tx Traffic on Interface %s is below %d%% !' % (interface_id, low_percent), color = 'orange')
+                        CGI_CLI.uprint('Tx Traffic (%.2f%%) on Interface %s is below %d%%. = WARNING' % (interface_data.get('txload_percent'), interface_id, low_percent), color = 'orange')
                     elif interface_data.get('txload_percent') > high_percent:
-                        CGI_CLI.uprint('Tx Traffic on Interface %s is over %d%% !' % (interface_id, high_percent), color = 'orange')
+                        CGI_CLI.uprint('Tx Traffic (%.2f%%) on Interface %s is over %d%%. = WARNING' % (interface_data.get('txload_percent'), interface_id, high_percent), color = 'orange')
                         check_warning_interface_result_ok = False
                     else: CGI_CLI.logtofile('Tx Traffic on Interface %s is %.2f%% = OK.\n' % (interface_id, interface_data.get('txload_percent')))
                 else:
-                    CGI_CLI.uprint('Tx Traffic on Interface %s not found !' % (interface_id), color = 'orange')
-                    check_warning_interface_result_ok = False
+                    CGI_CLI.uprint('Tx Traffic on Interface %s not found !' % (interface_id), color = 'red')
+                    check_interface_result_ok = False
 
                 if interface_data.get('rxload_percent') >= 0:
                     if interface_data.get('rxload_percent') < low_percent:
-                        CGI_CLI.uprint('Rx Traffic on Interface %s is below %d%% !' % (interface_id, low_percent), color = 'orange')
+                        CGI_CLI.uprint('Rx Traffic (%.2f%%) on Interface %s is below %d%%. = WARNING' % (interface_data.get('rxload_percent'), interface_id, low_percent), color = 'orange')
                         check_warning_interface_result_ok = False
                     elif interface_data.get('rxload_percent') > high_percent:
-                        CGI_CLI.uprint('Rx Traffic on Interface %s is over %d%% !' % (interface_id, high_percent), color = 'orange')
+                        CGI_CLI.uprint('Rx Traffic (%.2f%%) on Interface %s is over %d%%. = WARNING' % (interface_data.get('rxload_percent'), interface_id, high_percent), color = 'orange')
                         check_warning_interface_result_ok = False
-                    else: CGI_CLI.logtofile('Rx Traffic on Interface %s is %.2f%% = OK.\n' % (interface_id, interface_data.get('rxload_percent')))
+                    else: CGI_CLI.logtofile('Rx Traffic on Interface %s is %.2f%% = OK\n' % (interface_id, interface_data.get('rxload_percent')))
                 else:
-                    CGI_CLI.uprint('Rx Traffic on Interface %s not found !' % (interface_id), color = 'orange')
-                    check_warning_interface_result_ok = False
+                    CGI_CLI.uprint('Rx Traffic on Interface %s not found !' % (interface_id), color = 'red')
+                    check_interface_result_ok = False
 
                 ### def CONTENT ELEMENT CHECK #################################
                 check_interface_data_content('ping_v4_%success', '100')
