@@ -2485,6 +2485,7 @@ authentication {
                 interface_menu_list.append('</authentication>')
 
             CGI_CLI.formprint(interface_menu_list + ['<br/>',\
+                '<br/>', {'checkbox':'timestamps'}, '<br/>',\
                 {'checkbox':'printall'},'<br/>','<br/>'],\
                 submit_button = CGI_CLI.self_buttons[0], \
                 pyfile = None, tag = None, color = None)
