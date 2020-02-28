@@ -2343,10 +2343,12 @@ authentication {
         or CGI_CLI.data.get("radio",str()) == 'postcheck' \
         or CGI_CLI.data.get('submit-type',str()) == 'submit-with-postcheck' \
         or CGI_CLI.data.get('submit',str()) == 'Run postcheck'\
-        or CGI_CLI.data.get('submit',str()) == 'Run+postcheck+on+all+interfaces':
+        or CGI_CLI.data.get('submit',str()) == 'Run+postcheck+on+all+interfaces'\
+        or CGI_CLI.data.get('submit',str()) == 'Run postcheck on all interfaces':
             precheck_mode = False
     elif CGI_CLI.data.get("precheck") \
         or CGI_CLI.data.get('submit',str()) == 'Run+precheck+on+all+interfaces' \
+        or CGI_CLI.data.get('submit',str()) == 'Run precheck on all interfaces' \
         or CGI_CLI.data.get("radio",str()) == 'precheck' \
         or CGI_CLI.data.get('submit-type',str()) == 'submit-with-precheck' \
         or CGI_CLI.data.get('submit',str()) == 'Run precheck':
@@ -2951,7 +2953,7 @@ authentication {
                             except: interface_warning_data['txload'] = str()
                             try: interface_warning_data['rxload'] = collect_if_config_rcmd_outputs[13].split('Input rate     :')[1].split()[0].replace(',','').strip()
                             except: interface_warning_data['rxload'] = str()
-                            try: interface_warning_data['Speed'] = collect_if_config_rcmd_outputs[13].split('Speed:')[1].split()[1].replace(',','').strip()
+                            try: interface_warning_data['Speed'] = collect_if_config_rcmd_outputs[13].split('Speed:')[1].split()[0].replace(',','').strip()
                             except: interface_warning_data['Speed'] = str()
 
                             multiplikator = 1
