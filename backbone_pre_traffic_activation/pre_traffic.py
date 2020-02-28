@@ -2865,10 +2865,10 @@ authentication {
                             try: interface_warning_data['rxload'] = collect_if_config_rcmd_outputs[10].split('rxload')[1].split()[0].replace(',','').strip()
                             except: interface_warning_data['rxload'] = str()
                             if interface_warning_data.get('txload'):
-                                try: interface_warning_data['txload_percent'] = 100 * float(interface_data.get('txload').split('/')[0]) / float(interface_data.get('txload').split('/')[1])
+                                try: interface_warning_data['txload_percent'] = 100 * float(interface_warning_data.get('txload').split('/')[0]) / float(interface_warning_data.get('txload').split('/')[1])
                                 except: pass
                             if interface_warning_data.get('rxload'):
-                                try: interface_warning_data['rxload_percent'] = 100 * float(interface_data.get('rxload').split('/')[0]) / float(interface_data.get('rxload').split('/')[1])
+                                try: interface_warning_data['rxload_percent'] = 100 * float(interface_warning_data.get('rxload').split('/')[0]) / float(interface_warning_data.get('rxload').split('/')[1])
                                 except: pass
 
                     ### WARNINGS ###
