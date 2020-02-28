@@ -2841,30 +2841,31 @@ authentication {
                         try: interface_data['rsvp interface'] = collect_if_config_rcmd_outputs[9].split('------')[-1].splitlines()[1].split()[0].strip()
                         except: interface_data['rsvp interface'] = str()
 
-                    ### BACKUP INTERFACES ###
-                    try:
-                        backup_if_list = []
-                        if interface_data.get('name_of_remote_device'):
-                            for line in collect_if_config_rcmd_outputs[11].splitlines():
-                                if '%s FROM %s' % (interface_data.get('name_of_remote_device',str()).upper(), device.upper()) in line.upper():
-                                    local_backup_interface = str(line.split()[0]).replace('GE','Gi')
-                                    if '(' in local_backup_interface: local_backup_interface = local_backup_interface.split('(')[0]
-                                    backup_if_list.append(copy.deepcopy(local_backup_interface))
-                        interface_data['parallel_interfaces'] = copy.deepcopy(backup_if_list)
-                    except: interface_data['parallel_interfaces'] = []
-
-                    ### TRAFFIC ###
                     if not precheck_mode:
-                        try: interface_data['txload'] = collect_if_config_rcmd_outputs[10].split('txload')[1].split()[0].replace(',','').strip()
-                        except: interface_data['txload'] = str()
-                        try: interface_data['rxload'] = collect_if_config_rcmd_outputs[10].split('rxload')[1].split()[0].replace(',','').strip()
-                        except: interface_data['rxload'] = str()
-                        if interface_data.get('txload'):
-                            try: interface_data['txload_percent'] = 100 * float(interface_data.get('txload').split('/')[0]) / float(interface_data.get('txload').split('/')[1])
-                            except: pass
-                        if interface_data.get('rxload'):
-                            try: interface_data['rxload_percent'] = 100 * float(interface_data.get('rxload').split('/')[0]) / float(interface_data.get('rxload').split('/')[1])
-                            except: pass
+                        ### BACKUP INTERFACES ###
+                        try:
+                            backup_if_list = []
+                            if interface_data.get('name_of_remote_device'):
+                                for line in collect_if_config_rcmd_outputs[11].splitlines():
+                                    if '%s FROM %s' % (interface_data.get('name_of_remote_device',str()).upper(), device.upper()) in line.upper():
+                                        local_backup_interface = str(line.split()[0]).replace('GE','Gi')
+                                        if '(' in local_backup_interface: local_backup_interface = local_backup_interface.split('(')[0]
+                                        backup_if_list.append(copy.deepcopy(local_backup_interface))
+                            interface_data['parallel_interfaces'] = copy.deepcopy(backup_if_list)
+                        except: interface_data['parallel_interfaces'] = []
+
+                        ### TRAFFIC ###
+                        if not precheck_mode:
+                            try: interface_data['txload'] = collect_if_config_rcmd_outputs[10].split('txload')[1].split()[0].replace(',','').strip()
+                            except: interface_data['txload'] = str()
+                            try: interface_data['rxload'] = collect_if_config_rcmd_outputs[10].split('rxload')[1].split()[0].replace(',','').strip()
+                            except: interface_data['rxload'] = str()
+                            if interface_data.get('txload'):
+                                try: interface_data['txload_percent'] = 100 * float(interface_data.get('txload').split('/')[0]) / float(interface_data.get('txload').split('/')[1])
+                                except: pass
+                            if interface_data.get('rxload'):
+                                try: interface_data['rxload_percent'] = 100 * float(interface_data.get('rxload').split('/')[0]) / float(interface_data.get('rxload').split('/')[1])
+                                except: pass
 
                     ### WARNINGS ###
                     try: interface_warning_data['input_errors'] = collect_if_config_rcmd_outputs[10].split('input errors')[0].splitlines()[-1].split()[0].strip()
@@ -2929,46 +2930,47 @@ authentication {
                     try: interface_data['rsvp interface'] = collect_if_config_rcmd_outputs[9].split('Interface')[1].splitlines()[1].split()[0]
                     except: interface_data['rsvp interface'] = str()
 
-                    ### BACKUP INTERFACES ###
-                    try:
-                        backup_if_list = []
-                        if interface_data.get('name_of_remote_device'):
-                            for line in collect_if_config_rcmd_outputs[14].splitlines():
-                                if '%s FROM %s' % (interface_data.get('name_of_remote_device',str()).upper(), device.upper()) in line.upper():
-                                    local_backup_interface = str(line.split()[0]).replace('GE','Gi')
-                                    if '(' in local_backup_interface: local_backup_interface = local_backup_interface.split('(')[0]
-                                    backup_if_list.append(copy.deepcopy(local_backup_interface))
-                        interface_data['parallel_interfaces'] = copy.deepcopy(backup_if_list)
-                    except: interface_data['parallel_interfaces'] = []
-
-                    ### TRAFFIC ###
                     if not precheck_mode:
-                        try: interface_data['txload'] = collect_if_config_rcmd_outputs[10].split('Output rate    :')[1].split()[0].replace(',','').strip()
-                        except: interface_data['txload'] = str()
-                        try: interface_data['rxload'] = collect_if_config_rcmd_outputs[10].split('Input rate     :')[1].split()[0].replace(',','').strip()
-                        except: interface_data['rxload'] = str()
-                        try: interface_data['Speed'] = collect_if_config_rcmd_outputs[10].split('Speed:')[1].split()[1].replace(',','').strip()
-                        except: interface_data['Speed'] = str()
+                        ### BACKUP INTERFACES ###
+                        try:
+                            backup_if_list = []
+                            if interface_data.get('name_of_remote_device'):
+                                for line in collect_if_config_rcmd_outputs[14].splitlines():
+                                    if '%s FROM %s' % (interface_data.get('name_of_remote_device',str()).upper(), device.upper()) in line.upper():
+                                        local_backup_interface = str(line.split()[0]).replace('GE','Gi')
+                                        if '(' in local_backup_interface: local_backup_interface = local_backup_interface.split('(')[0]
+                                        backup_if_list.append(copy.deepcopy(local_backup_interface))
+                            interface_data['parallel_interfaces'] = copy.deepcopy(backup_if_list)
+                        except: interface_data['parallel_interfaces'] = []
 
-                        multiplikator = 1
-                        if interface_data.get('Speed') and 'Gbps' in interface_data.get('Speed'): multiplikator = 1073741824
-                        if interface_data.get('Speed') and 'Mbps' in interface_data.get('Speed'): multiplikator = 1048576
-                        if interface_data.get('txload'):
-                            try: interface_data['txload_percent'] = 100 * float(interface_data.get('txload')) / (float(interface_data.get('Speed').replace('Gbps','').replace('Mbps','')) * multiplikator)
-                            except: pass
-                        if interface_data.get('rxload'):
-                            try: interface_data['rxload_percent'] = 100 * float(interface_data.get('rxload')) / (float(interface_data.get('Speed').replace('Gbps','').replace('Mbps','')) * multiplikator)
-                            except: pass
+                        ### TRAFFIC ###
+                        if not precheck_mode:
+                            try: interface_data['txload'] = collect_if_config_rcmd_outputs[10].split('Output rate    :')[1].split()[0].replace(',','').strip()
+                            except: interface_data['txload'] = str()
+                            try: interface_data['rxload'] = collect_if_config_rcmd_outputs[10].split('Input rate     :')[1].split()[0].replace(',','').strip()
+                            except: interface_data['rxload'] = str()
+                            try: interface_data['Speed'] = collect_if_config_rcmd_outputs[10].split('Speed:')[1].split()[1].replace(',','').strip()
+                            except: interface_data['Speed'] = str()
 
-                        # multiplikator = 1
-                        # if interface_data.get('bandwidth') and 'g' in interface_data.get('bandwidth'): multiplikator = 1073741824
-                        # if interface_data.get('bandwidth') and 'm' in interface_data.get('bandwidth'): multiplikator = 1048576
-                        # if interface_data.get('txload'):
-                            # try: interface_data['txload_percent'] = 100 * float(interface_data.get('txload')) / (float(interface_data.get('bandwidth').replace('m','').replace('g','')) * multiplikator)
-                            # except: pass
-                        # if interface_data.get('rxload'):
-                            # try: interface_data['rxload_percent'] = 100 * float(interface_data.get('rxload')) / (float(interface_data.get('bandwidth').replace('m','').replace('g','')) * multiplikator)
-                            # except: pass
+                            multiplikator = 1
+                            if interface_data.get('Speed') and 'Gbps' in interface_data.get('Speed'): multiplikator = 1073741824
+                            if interface_data.get('Speed') and 'Mbps' in interface_data.get('Speed'): multiplikator = 1048576
+                            if interface_data.get('txload'):
+                                try: interface_data['txload_percent'] = 100 * float(interface_data.get('txload')) / (float(interface_data.get('Speed').replace('Gbps','').replace('Mbps','')) * multiplikator)
+                                except: pass
+                            if interface_data.get('rxload'):
+                                try: interface_data['rxload_percent'] = 100 * float(interface_data.get('rxload')) / (float(interface_data.get('Speed').replace('Gbps','').replace('Mbps','')) * multiplikator)
+                                except: pass
+
+                            # multiplikator = 1
+                            # if interface_data.get('bandwidth') and 'g' in interface_data.get('bandwidth'): multiplikator = 1073741824
+                            # if interface_data.get('bandwidth') and 'm' in interface_data.get('bandwidth'): multiplikator = 1048576
+                            # if interface_data.get('txload'):
+                                # try: interface_data['txload_percent'] = 100 * float(interface_data.get('txload')) / (float(interface_data.get('bandwidth').replace('m','').replace('g','')) * multiplikator)
+                                # except: pass
+                            # if interface_data.get('rxload'):
+                                # try: interface_data['rxload_percent'] = 100 * float(interface_data.get('rxload')) / (float(interface_data.get('bandwidth').replace('m','').replace('g','')) * multiplikator)
+                                # except: pass
 
                     ### WARNINGS ###
                     try: interface_warning_data['Active alarms'] = collect_if_config_rcmd_outputs[13].split('Active alarms  : ')[1].split()[0].strip()
@@ -3039,25 +3041,26 @@ authentication {
                     try: interface_data['rsvp interface'] = collect_if_config_rcmd_outputs[9].split('Interface:')[1].split()[0]
                     except: interface_data['rsvp interface'] = str()
 
-                    ### BACKUP INTERFACES ###
-                    try:
-                        backup_if_list = []
-                        if interface_data.get('name_of_remote_device'):
-                            for line in collect_if_config_rcmd_outputs[11].splitlines():
-                                if '%s FROM %s' % (interface_data.get('name_of_remote_device',str()).upper(), device.upper()) in line.upper():
-                                    local_backup_interface = str(line.split()[0])
-                                    if not '100GE' in local_backup_interface: local_backup_interface = local_backup_interface.replace('GE','Gi')
-                                    if '(' in local_backup_interface: local_backup_interface = local_backup_interface.split('(')[0]
-                                    backup_if_list.append(copy.deepcopy(local_backup_interface))
-                        interface_data['parallel_interfaces'] = copy.deepcopy(backup_if_list)
-                    except: interface_data['parallel_interfaces'] = []
-
-                    ### TRAFFIC ###
                     if not precheck_mode:
-                        try: interface_data['txload_percent'] = float(collect_if_config_rcmd_outputs[10].split('output utility rate:')[1].split()[0].replace('%','').strip())
-                        except: pass
-                        try: interface_data['rxload_percent'] = float(collect_if_config_rcmd_outputs[10].split('input utility rate:')[1].split()[0].replace('%','').strip())
-                        except: pass
+                        ### BACKUP INTERFACES ###
+                        try:
+                            backup_if_list = []
+                            if interface_data.get('name_of_remote_device'):
+                                for line in collect_if_config_rcmd_outputs[11].splitlines():
+                                    if '%s FROM %s' % (interface_data.get('name_of_remote_device',str()).upper(), device.upper()) in line.upper():
+                                        local_backup_interface = str(line.split()[0])
+                                        if not '100GE' in local_backup_interface: local_backup_interface = local_backup_interface.replace('GE','Gi')
+                                        if '(' in local_backup_interface: local_backup_interface = local_backup_interface.split('(')[0]
+                                        backup_if_list.append(copy.deepcopy(local_backup_interface))
+                            interface_data['parallel_interfaces'] = copy.deepcopy(backup_if_list)
+                        except: interface_data['parallel_interfaces'] = []
+
+                        ### TRAFFIC ###
+                        if not precheck_mode:
+                            try: interface_data['txload_percent'] = float(collect_if_config_rcmd_outputs[10].split('output utility rate:')[1].split()[0].replace('%','').strip())
+                            except: pass
+                            try: interface_data['rxload_percent'] = float(collect_if_config_rcmd_outputs[10].split('input utility rate:')[1].split()[0].replace('%','').strip())
+                            except: pass
 
                     ### WARNINGS ###
                     try: interface_warning_data['Rx Power'] = collect_if_config_rcmd_outputs[10].split('Rx Power: ')[1].split()[0].strip().replace(',','')
@@ -3340,32 +3343,32 @@ authentication {
                                     else: CGI_CLI.logtofile("Ipv6 L2 Metric (%s) check on Interface %s = OK\n" % (ipv6_L2_metric, parallel_interface))
 
 
-                ### TRAFFIC CHECK #############################################
-                low_percent = 3
-                high_percent = 90
-                if interface_data.get('txload_percent') >= 0:
-                    if interface_data.get('txload_percent') < low_percent:
-                        check_warning_interface_result_ok = False
-                        CGI_CLI.uprint('Tx Traffic (%.2f%%) on Interface %s is below %d%%. = WARNING' % (interface_data.get('txload_percent'), interface_id, low_percent), color = 'orange')
-                    elif interface_data.get('txload_percent') > high_percent:
-                        CGI_CLI.uprint('Tx Traffic (%.2f%%) on Interface %s is over %d%%. = WARNING' % (interface_data.get('txload_percent'), interface_id, high_percent), color = 'orange')
-                        check_warning_interface_result_ok = False
-                    else: CGI_CLI.logtofile('Tx Traffic on Interface %s is %.2f%% = OK.\n' % (interface_id, interface_data.get('txload_percent')))
-                else:
-                    CGI_CLI.uprint('Tx Traffic on Interface %s not found !' % (interface_id), color = 'red')
-                    check_interface_result_ok = False
+                    ### TRAFFIC CHECK #############################################
+                    low_percent = 3
+                    high_percent = 90
+                    if interface_data.get('txload_percent') >= 0:
+                        if interface_data.get('txload_percent') < low_percent:
+                            check_warning_interface_result_ok = False
+                            CGI_CLI.uprint('Tx Traffic (%.2f%%) on Interface %s is below %d%%. = WARNING' % (interface_data.get('txload_percent'), interface_id, low_percent), color = 'orange')
+                        elif interface_data.get('txload_percent') > high_percent:
+                            CGI_CLI.uprint('Tx Traffic (%.2f%%) on Interface %s is over %d%%. = WARNING' % (interface_data.get('txload_percent'), interface_id, high_percent), color = 'orange')
+                            check_warning_interface_result_ok = False
+                        else: CGI_CLI.logtofile('Tx Traffic on Interface %s is %.2f%% = OK.\n' % (interface_id, interface_data.get('txload_percent')))
+                    else:
+                        CGI_CLI.uprint('Tx Traffic on Interface %s not found !' % (interface_id), color = 'red')
+                        check_interface_result_ok = False
 
-                if interface_data.get('rxload_percent') >= 0:
-                    if interface_data.get('rxload_percent') < low_percent:
-                        CGI_CLI.uprint('Rx Traffic (%.2f%%) on Interface %s is below %d%%. = WARNING' % (interface_data.get('rxload_percent'), interface_id, low_percent), color = 'orange')
-                        check_warning_interface_result_ok = False
-                    elif interface_data.get('rxload_percent') > high_percent:
-                        CGI_CLI.uprint('Rx Traffic (%.2f%%) on Interface %s is over %d%%. = WARNING' % (interface_data.get('rxload_percent'), interface_id, high_percent), color = 'orange')
-                        check_warning_interface_result_ok = False
-                    else: CGI_CLI.logtofile('Rx Traffic on Interface %s is %.2f%% = OK\n' % (interface_id, interface_data.get('rxload_percent')))
-                else:
-                    CGI_CLI.uprint('Rx Traffic on Interface %s not found !' % (interface_id), color = 'red')
-                    check_interface_result_ok = False
+                    if interface_data.get('rxload_percent') >= 0:
+                        if interface_data.get('rxload_percent') < low_percent:
+                            CGI_CLI.uprint('Rx Traffic (%.2f%%) on Interface %s is below %d%%. = WARNING' % (interface_data.get('rxload_percent'), interface_id, low_percent), color = 'orange')
+                            check_warning_interface_result_ok = False
+                        elif interface_data.get('rxload_percent') > high_percent:
+                            CGI_CLI.uprint('Rx Traffic (%.2f%%) on Interface %s is over %d%%. = WARNING' % (interface_data.get('rxload_percent'), interface_id, high_percent), color = 'orange')
+                            check_warning_interface_result_ok = False
+                        else: CGI_CLI.logtofile('Rx Traffic on Interface %s is %.2f%% = OK\n' % (interface_id, interface_data.get('rxload_percent')))
+                    else:
+                        CGI_CLI.uprint('Rx Traffic on Interface %s not found !' % (interface_id), color = 'red')
+                        check_interface_result_ok = False
 
                 ### def CONTENT ELEMENT CHECK #################################
                 check_interface_data_content('ping_v4_%success', '100')
