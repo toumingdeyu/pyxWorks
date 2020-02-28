@@ -2248,7 +2248,7 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
                 else:
                     check_interface_result_ok = False
                     CGI_CLI.uprint("CHECK[" + ' AND '.join(Alarm_text) + '] = NOT OK', color = 'red')
-            else: CGI_CLI.logtofile("CHECK[ ['%s'] not in '%s'] = OK.\n" % (','.join(what_not), where))
+            else: CGI_CLI.logtofile("CHECK[ ['%s'] not in '%s'] = OK\n" % (','.join(what_not), where))
         else:
             if what_not.upper() in where_value.upper():
                 if warning:
@@ -3350,7 +3350,7 @@ authentication {
                         elif interface_warning_data.get('txload_percent') > high_percent:
                             CGI_CLI.uprint('Tx Traffic (%.2f%%) on Interface %s is over %d%%. = WARNING' % (interface_warning_data.get('txload_percent'), interface_id, high_percent), color = 'orange')
                             check_warning_interface_result_ok = False
-                        else: CGI_CLI.logtofile('Tx Traffic on Interface %s is %.2f%% = OK.\n' % (interface_id, interface_warning_data.get('txload_percent')))
+                        else: CGI_CLI.logtofile('Tx Traffic on Interface %s is %.2f%% = OK\n' % (interface_id, interface_warning_data.get('txload_percent')))
 
                     if isinstance(interface_warning_data.get('rxload_percent'), (str,basestring,six.string_types)):
                         CGI_CLI.uprint('Rx Traffic on Interface %s not found !' % (interface_id), color = 'red')
