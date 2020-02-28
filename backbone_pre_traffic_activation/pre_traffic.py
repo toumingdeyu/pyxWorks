@@ -131,7 +131,7 @@ class CGI_CLI(object):
     @staticmethod
     def __cleanup__():
         if CGI_CLI.timestamp:
-            CGI_CLI.uprint('\nEND.\n', no_printall = not printall, tag = 'debug')
+            CGI_CLI.uprint('END.\n', no_printall = not printall, tag = 'debug')
         CGI_CLI.html_selflink()
         if CGI_CLI.cgi_active:
             CGI_CLI.print_chunk("</body></html>",
@@ -2792,8 +2792,9 @@ authentication {
                 try: interface_data['ipv4_addr_rem'] = collect_if_config_rcmd_outputs[0].split('description')[1].splitlines()[0].split('@')[1].split()[0]
                 except: interface_data['ipv4_addr_rem'] = str()
 
-                interface_data['rxload_percent'] = -1
-                interface_data['txload_percent'] = -1
+                if not precheck_mode:
+                    interface_data['rxload_percent'] = -1
+                    interface_data['txload_percent'] = -1
 
                 ### def CISCO XR+XE 1st CMDS ##################################
                 if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
