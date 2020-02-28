@@ -2321,7 +2321,7 @@ authentication {
     precheck_mode = True
     global_logfilename = str()
 
-    last_updated_number_format = True
+    last_updated_number_format = False
 
     ### GCI_CLI INIT ##########################################################
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = None, css_style = CSS_STYLE)
