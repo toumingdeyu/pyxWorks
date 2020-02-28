@@ -312,6 +312,11 @@ class CGI_CLI(object):
                 replace('<','&lt;').replace('>','&gt;'))
         return escaped_text
 
+    @staticmethod
+    def get_timestamp():
+        return '@%s[%.2fs] ' % \
+            (datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S'), \
+            time.time() - CGI_CLI.START_EPOCH)
 
     @staticmethod
     def print_chunk(msg = None, no_newlines = None, raw_log = None, \
@@ -375,8 +380,7 @@ class CGI_CLI(object):
                 if str(timestamp).upper() == 'NO': timestamp_yes = False
             except: pass
             if timestamp_yes:
-                timestamp_string = '@%s[%.2fs] ' % \
-                    (datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S'), time.time() - CGI_CLI.START_EPOCH)
+                timestamp_string = get_timestamp()
 
         ### CGI MODE ##########################################################
         if CGI_CLI.cgi_active:
@@ -861,7 +865,7 @@ class RCMD(object):
                     CGI_CLI.uprint(last_output, tag = 'pre', timestamp = 'no', ommit_logging = True)
             elif not RCMD.silent_mode:
                 if not long_lasting_mode:
-                    CGI_CLI.uprint(' . ', no_newlines = True, ommit_logging = True)
+                    CGI_CLI.uprint(' . ', no_newlines = True, timestamp = 'no', ommit_logging = True)
             ### LOG ALL ONLY ONCE, THAT IS BECAUSE PREVIOUS LINE ommit_logging = True ###
             if CGI_CLI.cgi_active:
                 CGI_CLI.logtofile('<p style="color:blue;">REMOTE_COMMAND' + \
@@ -1004,7 +1008,7 @@ class RCMD(object):
                         or 'SYNTAX ERROR' in rcmd_output.upper():
                         RCMD.config_problem = True
                         CGI_CLI.uprint('\nCONFIGURATION PROBLEM FOUND:', color = 'red')
-                        CGI_CLI.uprint('%s' % (rcmd_output), color = 'darkorchid')
+                        CGI_CLI.uprint('%s' % (rcmd_output), color = 'darkorchid', timestamp = 'no')
                 ### COMMIT TEXT ###
                 if not (do_not_final_print or RCMD.do_not_final_print):
                     text_to_commit = str()
@@ -1354,7 +1358,7 @@ class LCMD(object):
                             if stdoutput:
                                 os_output += copy.deepcopy(stdoutput) + '\n'
                                 if printall:
-                                    CGI_CLI.uprint(stdoutput.strip(), color = 'gray')
+                                    CGI_CLI.uprint(stdoutput.strip(), timestamp = 'no' , color = 'gray')
                             stdoutput = str(CommandObject.stdout.readline())
                         time.sleep(0.1)
                         timer_counter_100ms += 1
@@ -1440,14 +1444,14 @@ class LCMD(object):
                     if timer_counter_100ms % 10 == 0:
                         if printall: CGI_CLI.uprint("%d LOCAL_COMMAND%s RUNNING." % (len(CommandObjectList), 'S are' if len(CommandObjectList) > 1 else ' is'))
                         else: CGI_CLI.uprint(" %d   " % (len(CommandObjectList)), no_newlines = True)
-                    if timer_counter_100ms % 300 == 0: CGI_CLI.uprint('\n')
+                    if timer_counter_100ms % 300 == 0: CGI_CLI.uprint('\n', timestamp = 'no')
                     if timer_counter_100ms > timeout_sec * 10:
                         if printall: CGI_CLI.uprint("LOCAL_COMMAND_(TIMEOUT)[%s]: %s\n%s" % (str(actual_CommandObject), str(cmd_line), outputs), color = 'red')
                         CGI_CLI.logtofile('LOCAL_COMMAND_(TIMEOUT)[%s]: %s\n%s\n' % (str(actual_CommandObject), str(cmd_line), outputs))
                         actual_CommandObject.terminate()
                         CommandObjectList.remove(actual_CommandObject)
                         commands_ok = False
-            if not printall: CGI_CLI.uprint("\n")
+            if not printall: CGI_CLI.uprint("\n", timestamp = 'no')
         return commands_ok
 
     @staticmethod
@@ -2269,7 +2273,7 @@ authentication {
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
     printall = CGI_CLI.data.get("printall")
     #printall = True
-
+    CGI_CLI.uprint('SCRIPT START:')
 
     ### ACTION TYPE ###########################################################
     action_type = 'bbactivation'
@@ -2485,7 +2489,7 @@ authentication {
                 interface_menu_list.append('</authentication>')
 
             CGI_CLI.formprint(interface_menu_list + ['<br/>',\
-                '<br/>', {'checkbox':'timestamps'}, '<br/>',\
+                {'checkbox':'timestamps'}, '<br/>',\
                 {'checkbox':'printall'},'<br/>','<br/>'],\
                 submit_button = CGI_CLI.self_buttons[0], \
                 pyfile = None, tag = None, color = None)
@@ -2531,6 +2535,7 @@ authentication {
                 {'radio':['precheck','postcheck']},'<br/>','<br/>',\
                 {'text':'swan_id'},\
                 {'checkbox':'reinit_swan_id'},'<br/>','<br/>',\
+                {'checkbox':'timestamps'}, '<br/>',\
                 {'checkbox':'send_email'},'<br/>',\
                 {'checkbox':'chunked_mode'},'<br/>',\
                 {'checkbox':'printall'},'<br/>','<br/>'], \
@@ -3190,7 +3195,7 @@ authentication {
                         printall = printall)
 
                 ### PRINT \n AFTER COLLECTING OF DATA #########################
-                CGI_CLI.uprint('\n')
+                CGI_CLI.uprint('\n', timestamp = 'no')
 
                 ### def PRINT RESULTS PER INTERFACE ###########################
                 CGI_CLI.uprint(interface_data, name = 'Device:%s' % (device), \
@@ -3210,7 +3215,7 @@ authentication {
                     check_interface_result_ok = False
                     CGI_CLI.uprint('UNSET CONFIG ELEMENTS ON INTERFACE %s:' % \
                         (interface_data.get('interface_id')), tag = 'h3', color = 'red')
-                    CGI_CLI.uprint('\n'.join(None_elements), color = 'red')
+                    CGI_CLI.uprint('\n'.join(None_elements), color = 'red', timestamp = 'no')
 
                 if not precheck_mode:
                     if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr' and not interface_data.get('ipv4_metric') \
