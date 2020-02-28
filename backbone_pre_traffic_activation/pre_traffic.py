@@ -130,7 +130,8 @@ class CGI_CLI(object):
 
     @staticmethod
     def __cleanup__():
-        ### CGI_CLI.uprint('\nEND[script runtime = %d sec]. '%(time.time() - CGI_CLI.START_EPOCH))
+        if CGI_CLI.timestamp:
+            CGI_CLI.uprint('\nEND.\n', no_printall = not printall, tag = 'debug')
         CGI_CLI.html_selflink()
         if CGI_CLI.cgi_active:
             CGI_CLI.print_chunk("</body></html>",
@@ -380,7 +381,7 @@ class CGI_CLI(object):
                 if str(timestamp).upper() == 'NO': timestamp_yes = False
             except: pass
             if timestamp_yes:
-                timestamp_string = get_timestamp()
+                timestamp_string = CGI_CLI.get_timestamp()
 
         ### CGI MODE ##########################################################
         if CGI_CLI.cgi_active:
@@ -687,8 +688,17 @@ class RCMD(object):
             try: RCMD.DEVICE_PORT = device.split(':')[1]
             except: RCMD.DEVICE_PORT = '22'
 
+            if CGI_CLI.timestamp:
+                CGI_CLI.uprint('RCMD.connect - start.\n', \
+                    no_printall = not printall, tag = 'debug')
+
             ### IS ALIVE TEST #################################################
             RCMD.ip_address = RCMD.get_IP_from_vision(device)
+
+            if CGI_CLI.timestamp:
+                    CGI_CLI.uprint('RCMD.connect - after get_IP_from_vision.\n', \
+                        no_printall = not printall, tag = 'debug')
+
             device_id = RCMD.ip_address if RCMD.ip_address else device
             if not no_alive_test:
                 for i_repeat in range(3):
@@ -697,13 +707,28 @@ class RCMD(object):
                     CGI_CLI.uprint('DEVICE %s (ip=%s) is not ALIVE.' % \
                         (device, RCMD.ip_address), color = 'magenta')
                     return command_outputs
+
+            if CGI_CLI.timestamp:
+                    CGI_CLI.uprint('RCMD.connect - after pingtest.\n', \
+                        no_printall = not printall, tag = 'debug')
+
             ### START SSH CONNECTION ##########################################
             CGI_CLI.uprint('DEVICE %s (host=%s, port=%s) START'\
                 %(device, RCMD.DEVICE_HOST, RCMD.DEVICE_PORT)+24 * '.', color = 'gray', no_printall = not printall)
             try:
                 ### ONE_CONNECT DETECTION #####################################
                 RCMD.client = paramiko.SSHClient()
+
+                if CGI_CLI.timestamp:
+                    CGI_CLI.uprint('RCMD.connect - before RCMD.client.set_missing_host_key_policy.\n', \
+                        no_printall = not printall, tag = 'debug')
+
                 RCMD.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+                if CGI_CLI.timestamp:
+                    CGI_CLI.uprint('RCMD.connect - before RCMD.client.connect.\n', \
+                        no_printall = not printall, tag = 'debug')
+
                 #RCMD.client.connect(RCMD.DEVICE_HOST, port=int(RCMD.DEVICE_PORT), \
                 RCMD.client.connect(device_id, port=int(RCMD.DEVICE_PORT), \
                     username=RCMD.USERNAME, password=RCMD.PASSWORD, \
@@ -712,7 +737,17 @@ class RCMD(object):
                     #auth_timeout = 10, \
                     timeout = RCMD.CONNECTION_TIMEOUT, \
                     look_for_keys = False)
+
+                if CGI_CLI.timestamp:
+                    CGI_CLI.uprint('RCMD.connect - after RCMD.client.connect.\n', \
+                        no_printall = not printall, tag = 'debug')
+
                 RCMD.ssh_connection = RCMD.client.invoke_shell()
+
+                if CGI_CLI.timestamp:
+                    CGI_CLI.uprint('RCMD.connect - after RCMD.client.invoke_shell.\n', \
+                        no_printall = not printall, tag = 'debug')
+
                 if RCMD.ssh_connection:
                     RCMD.router_type, RCMD.router_prompt = RCMD.ssh_raw_detect_router_type(debug = None)
                     if not RCMD.router_type: CGI_CLI.uprint('DEVICE_TYPE NOT DETECTED!', color = 'red')
@@ -1259,7 +1294,17 @@ class RCMD(object):
         ### 1-CONNECTION ONLY, connection opened in RCMD.connect ###
         # prevent --More-- in log banner (space=page, enter=1line,tab=esc)
         # \n\n get prompt as last line
+
+        if CGI_CLI.timestamp:
+            CGI_CLI.uprint('RCMD.connect - before ssh_raw_detect_prompt.\n', \
+                no_printall = not printall, tag = 'debug')
+
         prompt = ssh_raw_detect_prompt(RCMD.ssh_connection, debug=debug)
+
+        if CGI_CLI.timestamp:
+            CGI_CLI.uprint('RCMD.connect - after ssh_raw_detect_prompt.\n', \
+                no_printall = not printall, tag = 'debug')
+
         ### test if this is HUAWEI VRP
         if prompt and not router_os:
             command = 'display version | include (Huawei)\n'
@@ -2219,6 +2264,15 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
 
 ###############################################################################
 
+def last_updated(number_format = None):
+    '''HH:MM DD-MM-YYY'''
+    if number_format:
+        return '%d' % (long(datetime.datetime.now().strftime('%H%M%d%m%Y')))
+    else: return '%s' % (datetime.datetime.now().strftime('%H:%M %d-%m-%Y'))
+
+
+
+###############################################################################
 
 ###############################################################################
 #
@@ -2267,13 +2321,14 @@ authentication {
     precheck_mode = True
     global_logfilename = str()
 
+    last_updated_number_format = True
+
     ### GCI_CLI INIT ##########################################################
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = None, css_style = CSS_STYLE)
     LCMD.init()
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
     printall = CGI_CLI.data.get("printall")
     #printall = True
-    CGI_CLI.uprint('SCRIPT START:')
 
     ### ACTION TYPE ###########################################################
     action_type = 'bbactivation'
@@ -2345,6 +2400,9 @@ authentication {
                 [dash_interface]])
         except: pass
 
+    if CGI_CLI.timestamp:
+        CGI_CLI.uprint('After parsing of input data.\n', \
+            no_printall = not printall, tag = 'debug')
 
     ### TESTSERVER WORKAROUND #################################################
     iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
@@ -3405,10 +3463,10 @@ authentication {
                 ### AVOID OF REWRITING SQL PRE/POST DB FIELDS #################
                 if precheck_mode:
                     pre_post_template = sql_inst.sql_read_all_table_columns_to_void_dict(\
-                        'pre_post_result', ommit_columns = ['id','last_updated','postcheck_result','postcheck_log'])
+                        'pre_post_result', ommit_columns = ['id','postcheck_result','postcheck_log'])
                 else:
                      pre_post_template = sql_inst.sql_read_all_table_columns_to_void_dict(\
-                        'pre_post_result', ommit_columns = ['id','last_updated','precheck_result','precheck_log'])
+                        'pre_post_result', ommit_columns = ['id','precheck_result','precheck_log'])
 
                 pre_post_template['swan_id'] = swan_id
                 pre_post_template['router_name'] = device.upper()
@@ -3417,9 +3475,11 @@ authentication {
                 if precheck_mode:
                     pre_post_template['precheck_result'] = interface_result
                     pre_post_template['precheck_log'] = copy.deepcopy(logfilename)
+                    pre_post_template['last_updated_precheck'] = last_updated(number_format = last_updated_number_format)
                 else:
                     pre_post_template['postcheck_result'] = interface_result
                     pre_post_template['postcheck_log'] = copy.deepcopy(logfilename)
+                    pre_post_template['last_updated_postcheck'] = last_updated(number_format = last_updated_number_format)
 
                 CGI_CLI.uprint(pre_post_template, name = True, jsonprint = True)
 
@@ -3441,12 +3501,13 @@ authentication {
                     if precheck_mode:
                         sql_read_data[0]['precheck_log'] = copy.deepcopy(logfilename)
                         sql_read_data[0]['precheck_result'] = interface_result
+                        sql_read_data[0]['last_updated_precheck'] = last_updated(number_format = last_updated_number_format)
                     else:
                         sql_read_data[0]['postcheck_log'] = copy.deepcopy(logfilename)
                         sql_read_data[0]['postcheck_result'] = interface_result
+                        sql_read_data[0]['last_updated_postcheck'] = last_updated(number_format = last_updated_number_format)
                     try:
                         del sql_read_data[0]['id']
-                        del sql_read_data[0]['last_updated']
                     except: pass
                     sql_inst.sql_write_table_from_dict('pre_post_result', sql_read_data[0],
                         where_string = "swan_id='%s' and router_name='%s' and int_name='%s'" \
