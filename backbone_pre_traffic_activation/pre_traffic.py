@@ -570,12 +570,12 @@ class CGI_CLI(object):
             try: print_string += 'CGI_CLI.data[%s] = %s\n' % (str(CGI_CLI.submit_form),str(json.dumps(CGI_CLI.data, indent = 4)))
             except: pass
         else: print_string += 'CLI_args = %s\nCGI_CLI.data = %s' % (str(sys.argv[1:]), str(json.dumps(CGI_CLI.data,indent = 4)))
-        if not ommit_print: CGI_CLI.uprint(print_string, tag = 'debug', no_printall = not printall)
+        if not ommit_print: CGI_CLI.uprint(print_string, tag = 'debug', no_printall = not printall, timestamp = 'no')
         return print_string
 
     @staticmethod
     def print_env():
-        CGI_CLI.uprint(dict(os.environ), name = 'os.environ', tag = 'debug', jsonprint = True, no_printall = not printall)
+        CGI_CLI.uprint(dict(os.environ), name = 'os.environ', tag = 'debug', jsonprint = True, no_printall = not printall, timestamp = 'no')
 
     @staticmethod
     def parse_input_data(key = None, key_in = None, \
@@ -1034,7 +1034,7 @@ class RCMD(object):
                 RCMD.config_problem = None
                 CGI_CLI.uprint('\nCHECKING COMMIT ERRORS...', tag = 'h1', color = 'blue')
                 for rcmd_output in command_outputs:
-                    CGI_CLI.uprint(' . ', no_newlines = True, ommit_logging = True)
+                    CGI_CLI.uprint(' . ', no_newlines = True, ommit_logging = True, timestamp = 'no')
                     if 'INVALID INPUT' in rcmd_output.upper() \
                         or 'INCOMPLETE COMMAND' in rcmd_output.upper() \
                         or 'FAILED TO COMMIT' in rcmd_output.upper() \
@@ -1042,7 +1042,7 @@ class RCMD(object):
                         or 'ERROR:' in rcmd_output.upper() \
                         or 'SYNTAX ERROR' in rcmd_output.upper():
                         RCMD.config_problem = True
-                        CGI_CLI.uprint('\nCONFIGURATION PROBLEM FOUND:', color = 'red')
+                        CGI_CLI.uprint('\nCONFIGURATION PROBLEM FOUND:', color = 'red', timestamp = 'no')
                         CGI_CLI.uprint('%s' % (rcmd_output), color = 'darkorchid', timestamp = 'no')
                 ### COMMIT TEXT ###
                 if not (do_not_final_print or RCMD.do_not_final_print):
