@@ -2343,7 +2343,7 @@ authentication {
         or CGI_CLI.data.get("radio",str()) == 'postcheck' \
         or CGI_CLI.data.get('submit-type',str()) == 'submit-with-postcheck' \
         or CGI_CLI.data.get('submit',str()) == 'Run postcheck'\
-        or CGI_CLI.data.get('submit',str()) == 'Run+precheck+on+all+interfaces':
+        or CGI_CLI.data.get('submit',str()) == 'Run+postcheck+on+all+interfaces':
             precheck_mode = False
     elif CGI_CLI.data.get("precheck") \
         or CGI_CLI.data.get('submit',str()) == 'Run+precheck+on+all+interfaces' \
@@ -2947,11 +2947,11 @@ authentication {
 
                         ### TRAFFIC ###
                         if not precheck_mode:
-                            try: interface_warning_data['txload'] = collect_if_config_rcmd_outputs[10].split('Output rate    :')[1].split()[0].replace(',','').strip()
+                            try: interface_warning_data['txload'] = collect_if_config_rcmd_outputs[13].split('Output rate    :')[1].split()[0].replace(',','').strip()
                             except: interface_warning_data['txload'] = str()
-                            try: interface_warning_data['rxload'] = collect_if_config_rcmd_outputs[10].split('Input rate     :')[1].split()[0].replace(',','').strip()
+                            try: interface_warning_data['rxload'] = collect_if_config_rcmd_outputs[13].split('Input rate     :')[1].split()[0].replace(',','').strip()
                             except: interface_warning_data['rxload'] = str()
-                            try: interface_warning_data['Speed'] = collect_if_config_rcmd_outputs[10].split('Speed:')[1].split()[1].replace(',','').strip()
+                            try: interface_warning_data['Speed'] = collect_if_config_rcmd_outputs[13].split('Speed:')[1].split()[1].replace(',','').strip()
                             except: interface_warning_data['Speed'] = str()
 
                             multiplikator = 1
@@ -3340,7 +3340,7 @@ authentication {
                     high_percent = 90
                     if isinstance(interface_warning_data.get('txload_percent'), (str,basestring,six.string_types)):
                         CGI_CLI.uprint('Tx Traffic on Interface %s not found !' % (interface_id), color = 'red')
-                        check_interface_result_ok = False  
+                        check_interface_result_ok = False
                     elif interface_warning_data.get('txload_percent') >= 0:
                         if interface_warning_data.get('txload_percent') < low_percent:
                             check_warning_interface_result_ok = False
@@ -3352,7 +3352,7 @@ authentication {
 
                     if isinstance(interface_warning_data.get('rxload_percent'), (str,basestring,six.string_types)):
                         CGI_CLI.uprint('Rx Traffic on Interface %s not found !' % (interface_id), color = 'red')
-                        check_interface_result_ok = False                    
+                        check_interface_result_ok = False
                     elif interface_warning_data.get('rxload_percent') >= 0:
                         if interface_warning_data.get('rxload_percent') < low_percent:
                             CGI_CLI.uprint('Rx Traffic (%.2f%%) on Interface %s is below %d%%. = WARNING' % (interface_warning_data.get('rxload_percent'), interface_id, low_percent), color = 'orange')
