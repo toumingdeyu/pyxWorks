@@ -53,6 +53,8 @@ pexpect
 matplotlib
 mpld3
 vue
+threading
+logging
 """
 
 ### MAIN ######################################################################
