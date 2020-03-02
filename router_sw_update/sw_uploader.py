@@ -3146,10 +3146,13 @@ def copy_files_to_devices(true_sw_release_files_on_server = None, \
                                 [device], USERNAME, PASSWORD, \
                                 device_drive_string = device_drive_string, \
                                 printall = printall, router_type = router_type)
+
+                            ### SOME DELAY ####################################
+                            time.sleep(1)
             else: break
         if scp_fails >= MAX_SCP_FAILS:
             CGI_CLI.uprint('ERROR - MULTIPLE (%d) SCP STALLS & RESTARTS of %s file on device %s !!!' \
-                % (device_file, device), tag = 'h1', color = 'red')
+                % (MAX_SCP_FAILS, device_file, device), tag = 'h1', color = 'red')
 
 ##############################################################################
 
