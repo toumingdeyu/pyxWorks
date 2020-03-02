@@ -2703,7 +2703,7 @@ authentication {
                 ### def LOGFILENAME GENERATION, DO LOGGING ONLY WHEN DEVICE LIST EXISTS ###
                 html_extention = 'htm' if CGI_CLI.cgi_active else str()
                 logfilename = generate_logfilename(
-                    prefix = str('PRECHECK' if precheck_mode else 'POSTCHECK') + \
+                    prefix = str(swan_id) + '-' if swan_id else str() + str('PRECHECK' if precheck_mode else 'POSTCHECK') + \
                     '_' + device.upper() + '_' + interface_id.replace('/','-'), \
                     USERNAME = USERNAME, suffix = '%slog' % (html_extention))
                 ### NO WINDOWS LOGGING ########################################
