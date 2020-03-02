@@ -2253,7 +2253,7 @@ def kill_stalled_scp_processes(device_file = None, printall = None):
         return pid_list
 
     ### KILL PS ###
-    def do_kill_ps(pid_list = None, minus_nine = None):
+    def do_kill_ps(pid_list = None, printall = None, minus_nine = None):
         minus_nine_string = str()
         if len(pid_list) > 0:
             if minus_nine: minus_nine_string = '-9 '
@@ -2262,15 +2262,15 @@ def kill_stalled_scp_processes(device_file = None, printall = None):
                 kill_cmds['unix'].append("kill %s%s" % str(minus_nine_string,pid))
             my_ps_result = LCMD.run_commands(kill_cmds, printall = printall)
 
-    pid_list = do_check_ps(device_file = None, printall = None)
+    pid_list = do_check_ps(device_file = None, printall = printall)
     if len(pid_list) > 0:
-        do_kill_ps(do_kill_ps)
-        time.sleep(2)
+        do_kill_ps(do_kill_ps, printall = printall)
+        time.sleep(3)
 
-    pid_list = do_check_ps(device_file = None, printall = None)
+    pid_list = do_check_ps(device_file = None, printall = printall)
     if len(pid_list) > 0:
-        do_kill_ps(do_kill_ps,minus_nine = True)
-        time.sleep(2)
+        do_kill_ps(do_kill_ps, printall = printall, minus_nine = True)
+        time.sleep(3)
 
 
 
