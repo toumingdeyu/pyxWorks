@@ -2237,7 +2237,7 @@ def does_run_script_processes(my_pid_only = None, printall = None):
 
 def kill_stalled_scp_processes(device_file = None, printall = None):
     pid_list = []
-    split_string = 'scp -v -o StrictHostKeyChecking=no'
+    split_string = 'scp -v '
     my_ps_result = LCMD.run_commands({'unix':["ps -ef | grep -v grep | grep scp"]},
         printall = printall)
     if my_ps_result:
@@ -2253,6 +2253,7 @@ def kill_stalled_scp_processes(device_file = None, printall = None):
             for pid in pid_list:
                 kill_cmds['unix'].append("kill %s" % str(pid))
             my_ps_result = LCMD.run_commands(kill_cmds, printall = printall)
+            time.sleep(1)
 
 ###############################################################################
 
