@@ -4370,7 +4370,7 @@ try:
 
     if all_files_on_all_devices_ok and not CGI_CLI.data.get('delete_device_sw_files_on_end'):
         CGI_CLI.uprint('FILE COPYING - OK!' , tag = 'h1', color = 'green')
-    if all_files_on_all_devices_ok and CGI_CLI.data.get('delete_device_sw_files_on_end'):
+    elif all_files_on_all_devices_ok and CGI_CLI.data.get('delete_device_sw_files_on_end'):
         CGI_CLI.uprint('FILE COPYING - OK, FILES DELETED!' , tag = 'h1', color = 'green')
     else: CGI_CLI.uprint('FILE COPYING - FAILED!' , tag = 'h1', color = 'red')
 
