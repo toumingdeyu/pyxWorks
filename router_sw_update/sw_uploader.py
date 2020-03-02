@@ -2264,12 +2264,12 @@ def kill_stalled_scp_processes(device_file = None, printall = None):
 
     pid_list = do_check_ps(device_file = device_file, printall = printall)
     if len(pid_list) > 0:
-        do_kill_ps(do_kill_ps, printall = printall)
+        do_kill_ps(pid_list = pid_list, printall = printall)
         time.sleep(5)
 
         pid_list = do_check_ps(device_file = device_file, printall = printall)
         if len(pid_list) > 0:
-            do_kill_ps(do_kill_ps, printall = printall, minus_nine = True)
+            do_kill_ps(pid_list = pid_list, printall = printall, minus_nine = True)
             time.sleep(5)
         pid_list = do_check_ps(device_file = device_file, printall = printall)
         try_it = 0
