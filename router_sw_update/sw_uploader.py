@@ -41,6 +41,9 @@ class CGI_CLI(object):
     ### TO BE PLACED - IN BODY ###
     JS_RELOAD_BUTTON = """<input type="button" value="Reload Page" onClick="document.location.reload(true)">"""
 
+    STOP_APPLICATION_BUTTON = '<form action = "/cgi-bin/%s"><p hidden><input type="checkbox" name="pidtokill" value="%s" checked="checked"></p><input id="OK" type="submit" name="submit" value="STOP"></form>' \
+        % (sys.argv[0].replace('\\','/').split('/')[-1].strip() if '/' or '\\' in sys.argv[0] else sys.argv[0],str(os.getpid()))
+
     class bcolors:
             DEFAULT    = '\033[99m'
             WHITE      = '\033[97m'
@@ -174,7 +177,7 @@ class CGI_CLI(object):
         """
         log - start to log all after logfilename is inserted
         """
-        CGI_CLI.self_buttons = ['OK']
+        CGI_CLI.self_buttons = ['OK','STOP']
         CGI_CLI.START_EPOCH = time.time()
         CGI_CLI.http_status = 200
         CGI_CLI.http_status_text = 'OK'
@@ -3569,6 +3572,12 @@ try:
 
     printall = True if CGI_CLI.data.get("printall",False) else False
 
+    ### KILLING APLICATION PROCESS ############################################
+    if CGI_CLI.data.get('submit',str()) == 'STOP' and CGI_CLI.data.get('pidtokill'):
+        LCMD.run_commands({'unix':['kill %s' % (CGI_CLI.data.get('pidtokill',str()))]}, printall = None)
+        CGI_CLI.uprint('Application PID%s stopped.' % (CGI_CLI.data.get('pidtokill',str())))
+        sys.exit(0)
+
     ### GENERATE DEVICE LIST ##################################################
     devices_string = CGI_CLI.data.get("device",str())
     if devices_string:
@@ -3594,8 +3603,8 @@ try:
     ### START PRINTING AND LOGGING ########################################
     changelog = 'https://github.com/peteneme/pyxWorks/commits/master/router_sw_update/sw_uploader.py'
     if CGI_CLI.cgi_active:
-        CGI_CLI.uprint('<h1 style="color:blue;">SW UPLOADER <a href="%s" style="text-decoration: none">(v.%s)</a></h1>' % \
-            (changelog, CGI_CLI.VERSION()), raw = True)
+        CGI_CLI.uprint('<h1 style="color:blue;">SW UPLOADER <a href="%s" style="text-decoration: none">(v.%s)</a></h1>%s' % \
+            (changelog, CGI_CLI.VERSION(), CGI_CLI.STOP_APPLICATION_BUTTON), raw = True)
     else: CGI_CLI.uprint('SW UPLOADER (v.%s)' % (CGI_CLI.VERSION()), \
               tag = 'h1', color = 'blue')
     CGI_CLI.print_args()
