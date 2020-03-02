@@ -3344,6 +3344,28 @@ def do_scp_disable(printall = None):
 
 ###############################################################################
 
+def check_ssh_flow_rate(printall = None):
+    flow_rate_cmds = {
+        'cisco_xr':['sh run | include flow ssh known rate'],
+        'cisco_ios':['sh run | include flow ssh known rate'],
+        'huawei':[],
+        'juniper':[]
+        }
+
+    flow_rate_outputs = RCMD.run_commands(flow_rate_cmds, printall = printall)
+    
+    if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
+        try: flow_rate = float(flow_rate_outputs[0].split('flow ssh known rate')[-1].split()[0].strip())
+        except: flow_rate = None
+        
+        if flow_rate and flow_rate < 500: 
+            CGI_CLI.uprint("WARNING: flow ssh known rate is below 500! SCP can stall!", \
+                tag = 'warning')
+
+
+
+###############################################################################
+
 def send_me_email(subject = str(), email_body = str(), file_name = None, attachments = None, \
     email_address = None, cc = None, bcc = None, username = None):
     """
