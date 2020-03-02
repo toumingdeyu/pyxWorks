@@ -3118,7 +3118,8 @@ def copy_files_to_devices(true_sw_release_files_on_server = None, \
 
         ### DO SCP LIST AGAIN AND WAIT TILL END OF YOUR SCP SESSIONS ###
         actual_scp_devices_in_scp_list = True
-        while actual_scp_devices_in_scp_list:
+        scp_fails = 0
+        while (actual_scp_devices_in_scp_list and scp_fails <= MAX_SCP_FAILS):
             actual_scp_devices_in_scp_list = False
 
             scp_list, forget_it = does_run_scp_processes(printall = printall)
@@ -3133,6 +3134,7 @@ def copy_files_to_devices(true_sw_release_files_on_server = None, \
                     if old_file_status in files_status:
                         device, device_file, percentage = old_file_status
                         if percentage > 0 and percentage < 100:
+                            scp_fails += 1
                             CGI_CLI.uprint('WARNING: Device=%s, File=%s, Percent copied=%.2f HAS STALLED, KILLING SCP PROCESSES!' % \
                                 (device, device_file, percentage), tag = 'warning')
                             kill_stalled_scp_processes(device_file = device_file, printall = printall)
@@ -3145,6 +3147,9 @@ def copy_files_to_devices(true_sw_release_files_on_server = None, \
                                 device_drive_string = device_drive_string, \
                                 printall = printall, router_type = router_type)
             else: break
+        if scp_fails >= MAX_SCP_FAILS:
+            CGI_CLI.uprint('ERROR - MULTIPLE (%d) SCP STALLS & RESTARTS of %s file on device %s !!!' \
+                % (device_file, device), tag = 'h1', color = 'red')
 
 ##############################################################################
 
@@ -3497,6 +3502,8 @@ try:
     ### def GLOBAL CONSTANTS #################################################
     device_expected_MB_free = 100
     total_number_of_scp_attempts = 3
+    MAX_SCP_FAILS = 3
+
 
     SCRIPT_ACTIONS_LIST = [
     #'copy_tar_files','do_sw_upgrade',
