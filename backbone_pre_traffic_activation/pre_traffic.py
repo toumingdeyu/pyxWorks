@@ -321,7 +321,7 @@ class CGI_CLI(object):
 
     @staticmethod
     def get_date_and_time():
-        return '%s' % (datetime.datetime.now().strftime('%y-%m-%d_%H:%M'))
+        return '%s' % (datetime.datetime.now().strftime('%H:%M %d-%m-%Y'))
 
     @staticmethod
     def print_chunk(msg = None, no_newlines = None, raw_log = None, \
@@ -2268,12 +2268,6 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
 
 ###############################################################################
 
-def last_updated(number_format = None):
-    '''HH:MM DD-MM-YYY'''
-    if number_format:
-        return '%d' % (long(datetime.datetime.now().strftime('%H%M%d%m%Y')))
-    else: return '%s' % (datetime.datetime.now().strftime('%H:%M %d-%m-%Y'))
-
 
 
 ###############################################################################
@@ -2324,8 +2318,6 @@ authentication {
     swan_id = str()
     precheck_mode = True
     global_logfilename = str()
-
-    last_updated_number_format = False
 
     ### GCI_CLI INIT ##########################################################
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = None, css_style = CSS_STYLE)
@@ -3519,11 +3511,11 @@ authentication {
                 if precheck_mode:
                     pre_post_template['precheck_result'] = interface_result
                     pre_post_template['precheck_log'] = copy.deepcopy(logfilename)
-                    pre_post_template['last_updated_precheck'] = last_updated(number_format = last_updated_number_format)
+                    pre_post_template['last_updated_precheck'] = CGI_CLI.get_date_and_time()
                 else:
                     pre_post_template['postcheck_result'] = interface_result
                     pre_post_template['postcheck_log'] = copy.deepcopy(logfilename)
-                    pre_post_template['last_updated_postcheck'] = last_updated(number_format = last_updated_number_format)
+                    pre_post_template['last_updated_postcheck'] = CGI_CLI.get_date_and_time()
 
                 CGI_CLI.uprint(pre_post_template, name = True, jsonprint = True)
 
@@ -3545,11 +3537,11 @@ authentication {
                     if precheck_mode:
                         sql_read_data[0]['precheck_log'] = copy.deepcopy(logfilename)
                         sql_read_data[0]['precheck_result'] = interface_result
-                        sql_read_data[0]['last_updated_precheck'] = last_updated(number_format = last_updated_number_format)
+                        sql_read_data[0]['last_updated_precheck'] = CGI_CLI.get_date_and_time()
                     else:
                         sql_read_data[0]['postcheck_log'] = copy.deepcopy(logfilename)
                         sql_read_data[0]['postcheck_result'] = interface_result
-                        sql_read_data[0]['last_updated_postcheck'] = last_updated(number_format = last_updated_number_format)
+                        sql_read_data[0]['last_updated_postcheck'] = CGI_CLI.get_date_and_time()
                     try:
                         del sql_read_data[0]['id']
                     except: pass
