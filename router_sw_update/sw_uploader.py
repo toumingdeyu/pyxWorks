@@ -2259,7 +2259,7 @@ def kill_stalled_scp_processes(device_file = None, printall = None):
             if minus_nine: minus_nine_string = '-9 '
             kill_cmds = {'unix':[]}
             for pid in pid_list:
-                kill_cmds['unix'].append("kill %s%s" % str(minus_nine_string,pid))
+                kill_cmds['unix'].append("kill %s%s" % (minus_nine_string,str(pid))
             my_ps_result = LCMD.run_commands(kill_cmds, printall = printall)
 
     pid_list = do_check_ps(device_file = device_file, printall = printall)
