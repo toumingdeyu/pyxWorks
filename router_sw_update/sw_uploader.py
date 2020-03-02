@@ -2365,6 +2365,9 @@ def get_device_drive_string(device_list = None, \
                 continue
             device_drive_string = RCMD.drive_string
             router_type = RCMD.router_type
+
+            check_ssh_flow_rate(printall = printall)
+
             RCMD.disconnect()
             break
     return device_drive_string, router_type
@@ -2395,6 +2398,8 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
             nr_of_connected_devices += 1
             device_drive_string = RCMD.drive_string
             router_type = RCMD.router_type
+
+            check_ssh_flow_rate(printall = printall)
 
             ### MAKE UNIQUE DIRECTORY LIST ####################################
             redundant_dev_dir_list = [ dev_dir for directory,dev_dir,file,md5,fsize in true_sw_release_files_on_server ]
@@ -3353,12 +3358,12 @@ def check_ssh_flow_rate(printall = None):
         }
 
     flow_rate_outputs = RCMD.run_commands(flow_rate_cmds, printall = printall)
-    
+
     if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
         try: flow_rate = float(flow_rate_outputs[0].split('flow ssh known rate')[-1].split()[0].strip())
         except: flow_rate = None
-        
-        if flow_rate and flow_rate < 500: 
+
+        if flow_rate and flow_rate < 500:
             CGI_CLI.uprint("WARNING: flow ssh known rate is below 500! SCP can stall!", \
                 tag = 'warning')
 
