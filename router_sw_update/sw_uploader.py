@@ -2236,24 +2236,43 @@ def does_run_script_processes(my_pid_only = None, printall = None):
 ##############################################################################
 
 def kill_stalled_scp_processes(device_file = None, printall = None):
-    pid_list = []
-    split_string = 'scp -v '
-    my_ps_result = LCMD.run_commands({'unix':["ps -ef | grep -v grep | grep scp"]},
-        printall = printall)
-    if my_ps_result:
-        for line in str(my_ps_result[0]).splitlines():
-            try: scp_ps_list.append(line.split()[1])
-            except: pass
-            if split_string in line:
-                if str(device_file) in line:
-                    try: pid_list.append(line.split()[1])
-                    except: pass
+    ### CHECK PS ###
+    def do_check_ps(device_file = None, printall = None):
+        pid_list = []
+        split_string = 'scp -v '
+        my_ps_result = LCMD.run_commands({'unix':["ps -ef | grep -v grep | grep scp"]},
+            printall = printall)
+        if my_ps_result:
+            for line in str(my_ps_result[0]).splitlines():
+                try: scp_ps_list.append(line.split()[1])
+                except: pass
+                if split_string in line:
+                    if str(device_file) in line:
+                        try: pid_list.append(line.split()[1])
+                        except: pass
+        return pid_list
+
+    ### KILL PS ###
+    def do_kill_ps(pid_list = None, minus_nine = None):
+        minus_nine_string = str()
         if len(pid_list) > 0:
+            if minus_nine: minus_nine_string = '-9 '
             kill_cmds = {'unix':[]}
             for pid in pid_list:
-                kill_cmds['unix'].append("kill %s" % str(pid))
+                kill_cmds['unix'].append("kill %s%s" % str(minus_nine_string,pid))
             my_ps_result = LCMD.run_commands(kill_cmds, printall = printall)
-            time.sleep(1)
+
+    pid_list = do_check_ps(device_file = None, printall = None)
+    if len(pid_list) > 0:
+        do_kill_ps(do_kill_ps)
+        time.sleep(2)
+
+    pid_list = do_check_ps(device_file = None, printall = None)
+    if len(pid_list) > 0:
+        do_kill_ps(do_kill_ps,minus_nine = True)
+        time.sleep(2)
+
+
 
 ###############################################################################
 
