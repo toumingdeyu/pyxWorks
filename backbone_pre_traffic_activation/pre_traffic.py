@@ -320,6 +320,10 @@ class CGI_CLI(object):
             time.time() - CGI_CLI.START_EPOCH)
 
     @staticmethod
+    def get_date_and_time():
+        return '%s' % (datetime.datetime.now().strftime('%y-%m-%d_%H:%M'))
+
+    @staticmethod
     def print_chunk(msg = None, no_newlines = None, raw_log = None, \
         ommit_logging = None, printall = None):
         """
@@ -2447,6 +2451,49 @@ authentication {
     if not swan_id and CGI_CLI.data.get('swan-id'):
         swan_id = CGI_CLI.data.get('swan-id')
 
+    ### SIGN BUTTON ###########################################################
+    if swan_id and (CGI_CLI.data.get('submit',str()) == 'Sign precheck' \
+        or CGI_CLI.data.get('submit',str()) == 'Sign postcheck'):
+
+        for device, interface_list in device_interface_id_list:
+            for interface_id in interface_list:
+
+                ### TEST IF SWAN ALREADY RECORD EXISTS ########################
+                sql_read_data = sql_inst.sql_read_records_to_dict_list( \
+                    table_name = 'pre_post_result', \
+                    where_string = "swan_id='%s' and router_name='%s' and int_name='%s'" \
+                         % (swan_id, device.upper(), interface_id) )
+
+                CGI_CLI.uprint(sql_read_data, name = True, jsonprint = True)
+
+                ### WARNING MESSAGE ###########################################
+                if len(sql_read_data) > 0:
+                    if CGI_CLI.data.get('submit',str()) == 'Sign precheck':
+                        sql_read_data[0]['precheck_signed'] = '%s %s' % (CGI_CLI.get_date_and_time(), USERNAME)
+                        sql_inst.sql_write_table_from_dict('pre_post_result', sql_read_data[0],
+                            where_string = "swan_id='%s' and router_name='%s' and int_name='%s'" \
+                            % (swan_id, device.upper(), interface_id), update = True)
+                        sql_read_data = sql_inst.sql_read_records_to_dict_list( \
+                            table_name = 'pre_post_result', \
+                            where_string = "swan_id='%s' and router_name='%s' and int_name='%s'" \
+                                 % (swan_id, device.upper(), interface_id) )
+                    if CGI_CLI.data.get('submit',str()) == 'Sign postcheck':
+                        sql_read_data[0]['postcheck_signed'] = '%s %s' % (CGI_CLI.get_date_and_time(), USERNAME)
+                        sql_inst.sql_write_table_from_dict('pre_post_result', sql_read_data[0],
+                            where_string = "swan_id='%s' and router_name='%s' and int_name='%s'" \
+                            % (swan_id, device.upper(), interface_id), update = True)
+                        sql_read_data = sql_inst.sql_read_records_to_dict_list( \
+                            table_name = 'pre_post_result', \
+                            where_string = "swan_id='%s' and router_name='%s' and int_name='%s'" \
+                                 % (swan_id, device.upper(), interface_id) )
+                else: CGI_CLI.uprint("No record found in db!", tag = 'warning')
+        sys.exit(0)
+
+
+
+
+
+    ### MAKE SQL TABLE RECORD ONLY AND EXIT ###################################
     if (swan_id and CGI_CLI.data.get('submit',str()) == 'SUBMIT+STEP+2') \
         or (swan_id \
         and not (CGI_CLI.data.get('submit-type',str()) == 'submit-with-precheck' \
@@ -2468,7 +2515,6 @@ authentication {
                 CGI_CLI.uprint("WARNING: swan_id='%s' record(s) already exist(s) in pre_post_result table in DB! Aborting..." \
                      % (swan_id), color = 'red')
                 sys.exit(0)
-
 
         for device, interface_list in device_interface_id_list:
             for interface_id in interface_list:
