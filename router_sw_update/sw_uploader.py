@@ -2262,16 +2262,25 @@ def kill_stalled_scp_processes(device_file = None, printall = None):
                 kill_cmds['unix'].append("kill %s%s" % str(minus_nine_string,pid))
             my_ps_result = LCMD.run_commands(kill_cmds, printall = printall)
 
-    pid_list = do_check_ps(device_file = None, printall = printall)
+    pid_list = do_check_ps(device_file = device_file, printall = printall)
     if len(pid_list) > 0:
         do_kill_ps(do_kill_ps, printall = printall)
-        time.sleep(3)
+        time.sleep(5)
 
-    pid_list = do_check_ps(device_file = None, printall = printall)
-    if len(pid_list) > 0:
-        do_kill_ps(do_kill_ps, printall = printall, minus_nine = True)
-        time.sleep(3)
-
+        pid_list = do_check_ps(device_file = device_file, printall = printall)
+        if len(pid_list) > 0:
+            do_kill_ps(do_kill_ps, printall = printall, minus_nine = True)
+            time.sleep(5)
+        pid_list = do_check_ps(device_file = device_file, printall = printall)
+        try_it = 0
+        while (len(pid_list) > 0 and try_it < 4):
+            try_it += 1
+            time.sleep(5)
+            pid_list = do_check_ps(device_file = device_file, printall = printall)
+        if len(pid_list) > 0:
+            CGI_CLI.uprint('PROBLEM TO KILL PROCESSES [%s] !' % (','.join(pid_list)), \
+                tag = 'h1', color = 'red')
+            sys.exit(0)
 
 
 ###############################################################################
