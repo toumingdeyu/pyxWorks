@@ -25,7 +25,6 @@ from mako.lookup import TemplateLookup
 
 
 
-
 class CGI_CLI(object):
     """
     class CGI_handle - Simple statis class for handling CGI parameters and
@@ -154,7 +153,8 @@ class CGI_CLI(object):
 
     @staticmethod
     def __cleanup__():
-        ### CGI_CLI.uprint('\nEND[script runtime = %d sec]. '%(time.time() - CGI_CLI.START_EPOCH))
+        if CGI_CLI.timestamp:
+            CGI_CLI.uprint('END.\n', no_printall = not printall, tag = 'debug')
         CGI_CLI.html_selflink()
         if CGI_CLI.cgi_active:
             CGI_CLI.print_chunk("</body></html>",
@@ -303,8 +303,11 @@ class CGI_CLI(object):
                         % (CGI_CLI.logfilename)
                 ### CONVERT TEXT TO HTML FORMAT ###############################
                 if not raw_log and msg:
-                    html_msg = CGI_CLI.html_escape(msg)
-                    msg_to_file += html_msg
+                    msg_to_file += str(msg.replace('&','&amp;').\
+                        replace('<','&lt;').\
+                        replace('>','&gt;').replace(' ','&nbsp;').\
+                        replace('"','&quot;').replace("'",'&apos;').\
+                        replace('\n','<br/>'))
                 elif msg: msg_to_file += msg
                 ### ADD HTML FOOTER ###########################################
                 if end_log: msg_to_file += '</body></html>'
@@ -317,8 +320,6 @@ class CGI_CLI(object):
                     del msg_to_file
             ### ON END: LOGFILE SET TO VOID, AVOID OF MULTIPLE FOOTERS ########
             if end_log: CGI_CLI.logfilename = None
-            del msg_to_file
-            del html_msg
 
     @staticmethod
     def html_escape(text = None, pre_tag = None):
@@ -335,6 +336,11 @@ class CGI_CLI(object):
                 replace('<','&lt;').replace('>','&gt;'))
         return escaped_text
 
+    @staticmethod
+    def get_timestamp():
+        return '@%s[%.2fs] ' % \
+            (datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S'), \
+            time.time() - CGI_CLI.START_EPOCH)
 
     @staticmethod
     def print_chunk(msg = None, no_newlines = None, raw_log = None, \
@@ -398,11 +404,9 @@ class CGI_CLI(object):
                 if str(timestamp).upper() == 'NO': timestamp_yes = False
             except: pass
             if timestamp_yes:
-                timestamp_string = '@%s[%.2fs] ' % \
-                    (datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S'), time.time() - CGI_CLI.START_EPOCH)
+                timestamp_string = CGI_CLI.get_timestamp()
 
         ### CGI MODE ##########################################################
-        html_text = None
         if CGI_CLI.cgi_active:
             if raw:
                 CGI_CLI.print_chunk(print_text, raw_log = True, \
@@ -426,8 +430,12 @@ class CGI_CLI(object):
                         if tag_id else str(),' style="color:%s;"' % (color) if color else str()),\
                         raw_log = True, printall = printall_yes)
                 if isinstance(print_text, six.string_types):
-                    html_text = CGI_CLI.html_escape(print_text)
-                CGI_CLI.print_chunk(timestamp_string + print_name + html_text, \
+                    print_text = str(print_text.replace('&','&amp;').\
+                        replace('<','&lt;').\
+                        replace('>','&gt;').replace(' ','&nbsp;').\
+                        replace('"','&quot;').replace("'",'&apos;').\
+                        replace('\n','<br/>'))
+                CGI_CLI.print_chunk(timestamp_string + print_name + print_text, \
                     raw_log = True, ommit_logging = ommit_logging, printall = printall_yes)
         else:
             ### CLI MODE ######################################################
@@ -447,8 +455,6 @@ class CGI_CLI(object):
                 CGI_CLI.bcolors.ENDC if text_color else str()), \
                 raw_log = True, printall = printall_yes, no_newlines = no_newlines)
 
-            del text_color
-
         ### PRINT END OF TAGS #################################################
         if CGI_CLI.cgi_active and not raw:
             if tag:
@@ -461,8 +467,11 @@ class CGI_CLI(object):
             elif not no_newlines:
                 CGI_CLI.print_chunk('<br/>', raw_log = True, printall = printall_yes)
 
-        ### CLEANUP ###########################################################
-        del print_text, html_text, print_name
+            ### PRINT PER TAG #################################################
+            #CGI_CLI.print_chunk(print_per_tag, printall = printall_yes)
+
+        ### COPY CLEANUP ######################################################
+        del print_text
         return None
 
     @staticmethod
@@ -584,12 +593,12 @@ class CGI_CLI(object):
             try: print_string += 'CGI_CLI.data[%s] = %s\n' % (str(CGI_CLI.submit_form),str(json.dumps(CGI_CLI.data, indent = 4)))
             except: pass
         else: print_string += 'CLI_args = %s\nCGI_CLI.data = %s' % (str(sys.argv[1:]), str(json.dumps(CGI_CLI.data,indent = 4)))
-        if not ommit_print: CGI_CLI.uprint(print_string, tag = 'debug', no_printall = not printall)
+        if not ommit_print: CGI_CLI.uprint(print_string, tag = 'debug', no_printall = not printall, timestamp = 'no')
         return print_string
 
     @staticmethod
     def print_env():
-        CGI_CLI.uprint(dict(os.environ), name = 'os.environ', tag = 'debug', jsonprint = True, no_printall = not printall)
+        CGI_CLI.uprint(dict(os.environ), name = 'os.environ', tag = 'debug', jsonprint = True, no_printall = not printall, timestamp = 'no')
 
     @staticmethod
     def parse_input_data(key = None, key_in = None, \
@@ -702,8 +711,17 @@ class RCMD(object):
             try: RCMD.DEVICE_PORT = device.split(':')[1]
             except: RCMD.DEVICE_PORT = '22'
 
+            if CGI_CLI.timestamp:
+                CGI_CLI.uprint('RCMD.connect - start.\n', \
+                    no_printall = not printall, tag = 'debug')
+
             ### IS ALIVE TEST #################################################
             RCMD.ip_address = RCMD.get_IP_from_vision(device)
+
+            if CGI_CLI.timestamp:
+                    CGI_CLI.uprint('RCMD.connect - after get_IP_from_vision.\n', \
+                        no_printall = not printall, tag = 'debug')
+
             device_id = RCMD.ip_address if RCMD.ip_address else device
             if not no_alive_test:
                 for i_repeat in range(3):
@@ -712,13 +730,28 @@ class RCMD(object):
                     CGI_CLI.uprint('DEVICE %s (ip=%s) is not ALIVE.' % \
                         (device, RCMD.ip_address), color = 'magenta')
                     return command_outputs
+
+            if CGI_CLI.timestamp:
+                    CGI_CLI.uprint('RCMD.connect - after pingtest.\n', \
+                        no_printall = not printall, tag = 'debug')
+
             ### START SSH CONNECTION ##########################################
             CGI_CLI.uprint('DEVICE %s (host=%s, port=%s) START'\
                 %(device, RCMD.DEVICE_HOST, RCMD.DEVICE_PORT)+24 * '.', color = 'gray', no_printall = not printall)
             try:
                 ### ONE_CONNECT DETECTION #####################################
                 RCMD.client = paramiko.SSHClient()
+
+                if CGI_CLI.timestamp:
+                    CGI_CLI.uprint('RCMD.connect - before RCMD.client.set_missing_host_key_policy.\n', \
+                        no_printall = not printall, tag = 'debug')
+
                 RCMD.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+                if CGI_CLI.timestamp:
+                    CGI_CLI.uprint('RCMD.connect - before RCMD.client.connect.\n', \
+                        no_printall = not printall, tag = 'debug')
+
                 #RCMD.client.connect(RCMD.DEVICE_HOST, port=int(RCMD.DEVICE_PORT), \
                 RCMD.client.connect(device_id, port=int(RCMD.DEVICE_PORT), \
                     username=RCMD.USERNAME, password=RCMD.PASSWORD, \
@@ -727,7 +760,17 @@ class RCMD(object):
                     #auth_timeout = 10, \
                     timeout = RCMD.CONNECTION_TIMEOUT, \
                     look_for_keys = False)
+
+                if CGI_CLI.timestamp:
+                    CGI_CLI.uprint('RCMD.connect - after RCMD.client.connect.\n', \
+                        no_printall = not printall, tag = 'debug')
+
                 RCMD.ssh_connection = RCMD.client.invoke_shell()
+
+                if CGI_CLI.timestamp:
+                    CGI_CLI.uprint('RCMD.connect - after RCMD.client.invoke_shell.\n', \
+                        no_printall = not printall, tag = 'debug')
+
                 if RCMD.ssh_connection:
                     RCMD.router_type, RCMD.router_prompt = RCMD.ssh_raw_detect_router_type(debug = None)
                     if not RCMD.router_type: CGI_CLI.uprint('DEVICE_TYPE NOT DETECTED!', color = 'red')
@@ -880,7 +923,7 @@ class RCMD(object):
                     CGI_CLI.uprint(last_output, tag = 'pre', timestamp = 'no', ommit_logging = True)
             elif not RCMD.silent_mode:
                 if not long_lasting_mode:
-                    CGI_CLI.uprint(' . ', no_newlines = True, ommit_logging = True)
+                    CGI_CLI.uprint(' . ', no_newlines = True, timestamp = 'no', ommit_logging = True)
             ### LOG ALL ONLY ONCE, THAT IS BECAUSE PREVIOUS LINE ommit_logging = True ###
             if CGI_CLI.cgi_active:
                 CGI_CLI.logtofile('<p style="color:blue;">REMOTE_COMMAND' + \
@@ -1014,7 +1057,7 @@ class RCMD(object):
                 RCMD.config_problem = None
                 CGI_CLI.uprint('\nCHECKING COMMIT ERRORS...', tag = 'h1', color = 'blue')
                 for rcmd_output in command_outputs:
-                    CGI_CLI.uprint(' . ', no_newlines = True, ommit_logging = True)
+                    CGI_CLI.uprint(' . ', no_newlines = True, ommit_logging = True, timestamp = 'no')
                     if 'INVALID INPUT' in rcmd_output.upper() \
                         or 'INCOMPLETE COMMAND' in rcmd_output.upper() \
                         or 'FAILED TO COMMIT' in rcmd_output.upper() \
@@ -1022,8 +1065,8 @@ class RCMD(object):
                         or 'ERROR:' in rcmd_output.upper() \
                         or 'SYNTAX ERROR' in rcmd_output.upper():
                         RCMD.config_problem = True
-                        CGI_CLI.uprint('\nCONFIGURATION PROBLEM FOUND:', color = 'red')
-                        CGI_CLI.uprint('%s' % (rcmd_output), color = 'darkorchid')
+                        CGI_CLI.uprint('\nCONFIGURATION PROBLEM FOUND:', color = 'red', timestamp = 'no')
+                        CGI_CLI.uprint('%s' % (rcmd_output), color = 'darkorchid', timestamp = 'no')
                 ### COMMIT TEXT ###
                 if not (do_not_final_print or RCMD.do_not_final_print):
                     text_to_commit = str()
@@ -1274,7 +1317,17 @@ class RCMD(object):
         ### 1-CONNECTION ONLY, connection opened in RCMD.connect ###
         # prevent --More-- in log banner (space=page, enter=1line,tab=esc)
         # \n\n get prompt as last line
+
+        if CGI_CLI.timestamp:
+            CGI_CLI.uprint('RCMD.connect - before ssh_raw_detect_prompt.\n', \
+                no_printall = not printall, tag = 'debug')
+
         prompt = ssh_raw_detect_prompt(RCMD.ssh_connection, debug=debug)
+
+        if CGI_CLI.timestamp:
+            CGI_CLI.uprint('RCMD.connect - after ssh_raw_detect_prompt.\n', \
+                no_printall = not printall, tag = 'debug')
+
         ### test if this is HUAWEI VRP
         if prompt and not router_os:
             command = 'display version | include (Huawei)\n'
@@ -1373,7 +1426,7 @@ class LCMD(object):
                             if stdoutput:
                                 os_output += copy.deepcopy(stdoutput) + '\n'
                                 if printall:
-                                    CGI_CLI.uprint(stdoutput.strip(), color = 'gray')
+                                    CGI_CLI.uprint(stdoutput.strip(), timestamp = 'no' , color = 'gray')
                             stdoutput = str(CommandObject.stdout.readline())
                         time.sleep(0.1)
                         timer_counter_100ms += 1
@@ -1459,14 +1512,14 @@ class LCMD(object):
                     if timer_counter_100ms % 10 == 0:
                         if printall: CGI_CLI.uprint("%d LOCAL_COMMAND%s RUNNING." % (len(CommandObjectList), 'S are' if len(CommandObjectList) > 1 else ' is'))
                         else: CGI_CLI.uprint(" %d   " % (len(CommandObjectList)), no_newlines = True)
-                    if timer_counter_100ms % 300 == 0: CGI_CLI.uprint('\n')
+                    if timer_counter_100ms % 300 == 0: CGI_CLI.uprint('\n', timestamp = 'no')
                     if timer_counter_100ms > timeout_sec * 10:
                         if printall: CGI_CLI.uprint("LOCAL_COMMAND_(TIMEOUT)[%s]: %s\n%s" % (str(actual_CommandObject), str(cmd_line), outputs), color = 'red')
                         CGI_CLI.logtofile('LOCAL_COMMAND_(TIMEOUT)[%s]: %s\n%s\n' % (str(actual_CommandObject), str(cmd_line), outputs))
                         actual_CommandObject.terminate()
                         CommandObjectList.remove(actual_CommandObject)
                         commands_ok = False
-            if not printall: CGI_CLI.uprint("\n")
+            if not printall: CGI_CLI.uprint("\n", timestamp = 'no')
         return commands_ok
 
     @staticmethod
@@ -2196,8 +2249,10 @@ def kill_stalled_scp_processes(device_file = None, printall = None):
                     try: pid_list.append(line.split()[1])
                     except: pass
         if len(pid_list) > 0:
-            my_ps_result = LCMD.run_commands({'unix':["kill %s" % ','.join(pid_list)]},
-            printall = printall)
+            kill_cmds = {'unix':[]}
+            for pid in pid_list:
+                kill_cmds['unix'].append("kill %s" % str(pid))
+            my_ps_result = LCMD.run_commands(kill_cmds, printall = printall)
 
 ###############################################################################
 
@@ -3049,7 +3104,7 @@ def copy_files_to_devices(true_sw_release_files_on_server = None, \
                         device, device_file, percentage = old_file_status
                         if percentage > 0 and percentage < 100:
                             CGI_CLI.uprint('WARNING: Device=%s, File=%s, Percent copied=%.2f HAS STALLED, KILLING SCP PROCESSES!' % \
-                                (device, device_file, percentage), color = 'red')
+                                (device, device_file, percentage), tag = 'warning')
                             kill_stalled_scp_processes(device_file = device_file, printall = printall)
             else: break
 
@@ -3188,7 +3243,7 @@ def juniper_copy_device_files_to_other_routing_engine(true_sw_release_files_on_s
 
     if len(missing_backup_re_list) > 0:
         CGI_CLI.uprint('BACKUP routing engine is NOT PRESENT on device(s) %s!' % (','.join(missing_backup_re_list)), \
-            tag = 'warning' , color = 'red')
+            tag = 'warning')
     return missing_backup_re_list
 
 
@@ -3371,14 +3426,6 @@ def send_me_email(subject = str(), email_body = str(), file_name = None, attachm
 if __name__ != "__main__": sys.exit(0)
 try:
     CSS_STYLE = """
-debug {
-  background-color: lightgray;
-}
-
-warning {
-  color: red;
-  background-color: yellow;
-}
 """
 
     # goto_webpage_end_by_javascript = """
@@ -3480,7 +3527,7 @@ warning {
     does_run_script_processes(printall = printall)
     scp_list, foreign_scp_ps_list = does_run_scp_processes(printall = printall)
     if len(scp_list)>0:
-        CGI_CLI.uprint('WARNING: Running scp copy...', tag = 'h2', color = 'magenta')
+        CGI_CLI.uprint('WARNING: Running scp copy...', tag = 'warning')
         for server_file, device_file, device, device_user, pid, ppid in scp_list:
             if device:
                 CGI_CLI.uprint('USER=%s, DEVICE=%s, FILE=%s, COPYING_TO=%s, PID=%s, PPID=%s' % \
@@ -3878,7 +3925,7 @@ warning {
 
             ### PRINT WARNING #####################################################
             if not IS_DIRECTORY_OR_FILE_FOUND:
-                CGI_CLI.uprint('Path for %s is NOT FOUND!' % (actual_file_type), color = 'red')
+                CGI_CLI.uprint('Path for %s is NOT FOUND!' % (actual_file_type), tag = 'warning')
 
         ### EXIT if DIRECTORY LIST IS VOID ########################################
         if len(directory_list) == 0:
