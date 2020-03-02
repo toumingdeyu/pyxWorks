@@ -3153,6 +3153,7 @@ def copy_files_to_devices(true_sw_release_files_on_server = None, \
         if scp_fails >= MAX_SCP_FAILS:
             CGI_CLI.uprint('ERROR - MULTIPLE (%d) SCP STALLS & RESTARTS of %s file on device %s !!!' \
                 % (MAX_SCP_FAILS, device_file, device), tag = 'h1', color = 'red')
+            sys.exit(0)
 
 ##############################################################################
 
