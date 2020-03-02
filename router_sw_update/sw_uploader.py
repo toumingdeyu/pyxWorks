@@ -1374,7 +1374,7 @@ class RCMD(object):
             else: url = 'https://vision.opentransit.net/onv/api/nodes/'
             local_command = 'curl -u ${CURL_AUTH_STRING} %s' % (url)
             RCMD.vision_api_json_string = LCMD.run_commands(\
-                {'unix':[local_command]}, printall = None)
+                {'unix':[local_command]}, printall = None, ommit_logging = True)
             os.environ['CURL_AUTH_STRING'] = '-'
 
     @staticmethod
@@ -1523,7 +1523,7 @@ class LCMD(object):
         return commands_ok
 
     @staticmethod
-    def run_commands(cmd_data = None, printall = None):
+    def run_commands(cmd_data = None, printall = None, ommit_logging = None):
         """
         FUNCTION: LCMD.run_commands(), RETURN: list of command_outputs
         PARAMETERS:
@@ -1548,7 +1548,7 @@ class LCMD(object):
                 if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line), color = 'blue', ommit_logging = True)
                 if CGI_CLI.cgi_active:
                     CGI_CLI.logtofile('<p style="color:blue;">' + 'LOCAL_COMMAND: ' + cmd_line + '</p>', raw_log = True)
-                else:
+                elif not ommit_logging:
                     CGI_CLI.logtofile('LOCAL_COMMAND: ' + str(cmd_line) + '\n')
                 try: os_output = subprocess.check_output(str(cmd_line), stderr=subprocess.STDOUT, shell=True).decode("utf-8")
                 except (subprocess.CalledProcessError) as e:
@@ -1561,9 +1561,10 @@ class LCMD(object):
                     CGI_CLI.logtofile(exc_text + '\n')
                 if os_output and printall: CGI_CLI.uprint(os_output, tag = 'pre', timestamp = 'no')
                 if CGI_CLI.cgi_active:
-                    CGI_CLI.logtofile('\n<pre>' + \
-                        CGI_CLI.html_escape(os_output, pre_tag = True) + \
-                        '\n</pre>\n', raw_log = True)
+                    if not ommit_logging:
+                        CGI_CLI.logtofile('\n<pre>' + \
+                            CGI_CLI.html_escape(os_output, pre_tag = True) + \
+                            '\n</pre>\n', raw_log = True)
                 else: CGI_CLI.logtofile(os_output + '\n')
                 os_outputs.append(os_output)
         return os_outputs
