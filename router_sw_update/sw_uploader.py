@@ -3115,6 +3115,7 @@ def copy_files_to_devices(true_sw_release_files_on_server = None, \
                         device_list, USERNAME, PASSWORD, \
                         device_drive_string = device_drive_string, \
                         printall = printall, router_type = router_type)
+                        
         ### DO SCP LIST AGAIN AND WAIT TILL END OF YOUR SCP SESSIONS ###
         actual_scp_devices_in_scp_list = True
         while actual_scp_devices_in_scp_list:
@@ -3123,18 +3124,26 @@ def copy_files_to_devices(true_sw_release_files_on_server = None, \
             scp_list, forget_it = does_run_scp_processes(printall = printall)
             for server_file, device_file, scp_device, device_user, pid, ppid in scp_list:
                 if scp_device in device_list: actual_scp_devices_in_scp_list = True
-            if len(scp_list) > 0:
-                old_files_status = files_status
-                time.sleep(1)
-                files_status = check_percentage_of_copied_files(scp_list, USERNAME, PASSWORD, printall)
-                ### CHECKED STALLED COPYING ###################################
-                for old_file_status in old_files_status:
-                    if old_file_status in files_status:
-                        device, device_file, percentage = old_file_status
-                        if percentage > 0 and percentage < 100:
-                            CGI_CLI.uprint('WARNING: Device=%s, File=%s, Percent copied=%.2f HAS STALLED, KILLING SCP PROCESSES!' % \
-                                (device, device_file, percentage), tag = 'warning')
-                            kill_stalled_scp_processes(device_file = device_file, printall = printall)
+                if len(scp_list) > 0:
+                    old_files_status = files_status
+                    time.sleep(1)
+                    files_status = check_percentage_of_copied_files(scp_list, USERNAME, PASSWORD, printall)
+                    ### CHECKED STALLED COPYING ###################################
+                    for old_file_status in old_files_status:
+                        if old_file_status in files_status:
+                            device, device_file, percentage = old_file_status
+                            if percentage > 0 and percentage < 100:
+                                CGI_CLI.uprint('WARNING: Device=%s, File=%s, Percent copied=%.2f HAS STALLED, KILLING SCP PROCESSES!' % \
+                                    (device, device_file, percentage), tag = 'warning')
+                                kill_stalled_scp_processes(device_file = device_file, printall = printall)
+                                                            
+                                ### RESTART KILLED SCP ############################
+                                do_scp_one_file_to_more_devices_per_needed_to_copy_list( \
+                                    true_sw_release_file_on_server, \
+                                    missing_files_per_device_list, \
+                                    [device], USERNAME, PASSWORD, \
+                                    device_drive_string = device_drive_string, \
+                                    printall = printall, router_type = router_type)                            
             else: break
 
 ##############################################################################
