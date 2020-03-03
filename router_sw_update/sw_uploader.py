@@ -3132,6 +3132,16 @@ def copy_files_to_devices(true_sw_release_files_on_server = None, \
                 CGI_CLI.uprint('FILE %s is already copying to device %s, ommiting new scp copying!' % \
                     (device_file, scp_device))
             else:
+                CGI_CLI.uprint(force_rewrite, name = 'force_rewrite', \
+                    no_printall = not printall, tag = 'debug')
+                CGI_CLI.uprint(true_sw_release_file_on_server, \
+                    name = 'true_sw_release_file_on_server', jsonprint = True, no_printall = not printall, tag = 'debug')
+                CGI_CLI.uprint(device_list, name = 'device_list', \
+                    jsonprint = True, no_printall = not printall, tag = 'debug')
+                CGI_CLI.uprint(missing_files_per_device_list, \
+                    name = 'missing_files_per_device_list', jsonprint = True, \
+                    no_printall = not printall, tag = 'debug')
+
                 if force_rewrite:
                     do_scp_one_file_to_more_devices(true_sw_release_file_on_server, device_list, \
                         USERNAME, PASSWORD, device_drive_string = device_drive_string, \
@@ -3177,7 +3187,7 @@ def copy_files_to_devices(true_sw_release_files_on_server = None, \
                                 printall = printall, router_type = router_type)
 
                         ### JUNOS MADTR6 WORKARROUND - SCP 100%/ERROR HANGING #
-                        elif percentage == 100:
+                        elif percentage == 100 and router_type == 'juniper':
                             time.sleep(5)
                             CGI_CLI.uprint('JUNIPER KILL HANGING SCP WORKARROUND.', \
                                 no_printall = not printall)
