@@ -41,7 +41,7 @@ class CGI_CLI(object):
     ### TO BE PLACED - IN BODY ###
     JS_RELOAD_BUTTON = """<input type="button" value="Reload Page" onClick="document.location.reload(true)">"""
 
-    STOP_APPLICATION_BUTTON = '<form action = "/cgi-bin/%s"><p hidden><input type="checkbox" name="pidtokill" value="%s" checked="checked"></p><input id="OK" type="submit" name="submit" value="STOP"></form>' \
+    STOP_APPLICATION_BUTTON = '<form action = "/cgi-bin/%s" target="_blank"><p hidden><input type="checkbox" name="pidtokill" value="%s" checked="checked"></p><input type="submit" name="submit" value="STOP"></form>' \
         % (sys.argv[0].replace('\\','/').split('/')[-1].strip() if '/' or '\\' in sys.argv[0] else sys.argv[0],str(os.getpid()))
 
     class bcolors:
@@ -374,7 +374,7 @@ class CGI_CLI(object):
     @staticmethod
     def uprint(text = None, tag = None, tag_id = None, color = None, name = None, jsonprint = None, \
         ommit_logging = None, no_newlines = None, start_tag = None, end_tag = None, raw = None, \
-        timestamp = None, printall = None, no_printall = None):
+        timestamp = None, printall = None, no_printall = None, stop_button = None):
         """NOTE: name parameter could be True or string.
            start_tag - starts tag and needs to be ended next time by end_tag
            raw = True , print text as it is, not convert to html. Intended i.e. for javascript
@@ -464,6 +464,9 @@ class CGI_CLI(object):
 
         ### PRINT END OF TAGS #################################################
         if CGI_CLI.cgi_active and not raw:
+            if stop_button:
+                CGI_CLI.print_chunk(CGI_CLI.stop_pid_button(pid = str(stop_button)),\
+                    ommit_logging = True, printall = True)
             if tag:
                 CGI_CLI.print_chunk('</%s>' % (tag), raw_log = True, printall = printall_yes)
                 ### USER DEFINED TAGS DOES NOT PROVIDE NEWLINES!!! ############
@@ -655,7 +658,12 @@ class CGI_CLI(object):
         ### RETURN STRING VARIABLE, IGNORE LISTS ##############################
         return result
 
-
+    @staticmethod
+    def stop_pid_button(pid = None):
+        if pid:
+            return '<form action = "/cgi-bin/%s" target="_blank"><p hidden><input type="checkbox" name="pidtokill" value="%s" checked="checked"></p><input type="submit" name="submit" value="STOP"></form>' \
+                % (sys.argv[0].replace('\\','/').split('/')[-1].strip() if '/' or '\\' in sys.argv[0] else sys.argv[0],str(pid))
+        return str()
 
 
 ##############################################################################
@@ -2238,7 +2246,7 @@ def does_run_script_processes(my_pid_only = None, printall = None):
                     if my_pid != line.split()[1]:
                         running_pid_list.append(line.split()[1])
                         CGI_CLI.uprint('WARNING: Running %s process PID = %s !' % \
-                            (split_string, line.split()[1]), tag = 'warning')
+                            (split_string, line.split()[1]), tag = 'warning', stop_button = line.split()[1])
                 except: pass
     return running_pid_list
 
@@ -3708,7 +3716,8 @@ try:
         for server_file, device_file, device, device_user, pid, ppid in scp_list:
             if device:
                 CGI_CLI.uprint('USER=%s, DEVICE=%s, FILE=%s, COPYING_TO=%s, PID=%s, PPID=%s' % \
-                    (device_user, device, server_file, device_file, pid, ppid), tag = 'warning')
+                    (device_user, device, server_file, device_file, pid, ppid), \
+                    tag = 'warning', stop_button = pid)
 
     ### GET sw_release FROM cli ###############################################
     sw_release = CGI_CLI.data.get('sw_release',str())
