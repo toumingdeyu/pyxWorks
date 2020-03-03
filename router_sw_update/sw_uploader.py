@@ -4279,6 +4279,7 @@ try:
             missing_files_per_device_list = disk_ok_missing_files_per_device_list
             device_list = disk_ok_device_list
 
+
     ### def LOOP TILL ALL FILES ARE COPIED OK #################################
     counter_of_scp_attempts = 0
     while not all_files_on_all_devices_ok:
@@ -4305,6 +4306,13 @@ try:
         ### FORCE REWRITE ONLY ONCE ###########################################
         if CGI_CLI.data.get('force_rewrite_sw_files_on_device') and counter_of_scp_attempts <= 1:
             force_rewrite = True
+
+            ### DELETE FILES BEFORE REWRITE - JUNIPER WORKARROUND #############
+            delete_files(device = device, \
+                unique_device_directory_list = unique_device_directory_list, \
+                true_sw_release_files_on_server = true_sw_release_files_on_server,\
+                printall = printall)
+
         else: force_rewrite = False
 
         ### DO SCP COPYING - FORCE REWRITE HAS A SENSE FIRST TIME ONLY ########
