@@ -918,6 +918,7 @@ class RCMD(object):
         output, output2, new_prompt = str(), str(), str()
         exit_loop, exit_loop2 = False, False
         timeout_counter_100msec, timeout_counter_100msec_2 = 0, 0
+        last_line_original = str()
 
         ### FLUSH BUFFERS FROM PREVIOUS COMMANDS IF THEY ARE ALREADY BUFFERED ###
         if chan.recv_ready(): flush_buffer = chan.recv(9999)

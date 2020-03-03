@@ -1123,6 +1123,7 @@ class RCMD(object):
         exit_loop = False
         no_rx_data_counter_100msec, command_counter_100msec = 0, 0
         after_enter_counter_100msec, possible_prompts = 0, []
+        last_line_original = str()
 
         ### FLUSH BUFFERS FROM PREVIOUS COMMANDS IF THEY ARE ALREADY BUFFERED ###
         if chan.recv_ready(): flush_buffer = chan.recv(9999)
@@ -3603,7 +3604,7 @@ try:
     ### START PRINTING AND LOGGING ########################################
     changelog = 'https://github.com/peteneme/pyxWorks/commits/master/router_sw_update/sw_uploader.py'
     if CGI_CLI.cgi_active:
-        CGI_CLI.uprint('<h1 style="color:blue;">SW UPLOADER <a href="%s" style="text-decoration: none">(v.%s)</a></h1>%s' % \
+        CGI_CLI.uprint('<h1 style="color:blue;">SW UPLOADER <a href="%s" style="text-decoration: none">(v.%s)</a>%s</h1>' % \
             (changelog, CGI_CLI.VERSION(), CGI_CLI.STOP_APPLICATION_BUTTON), raw = True)
     else: CGI_CLI.uprint('SW UPLOADER (v.%s)' % (CGI_CLI.VERSION()), \
               tag = 'h1', color = 'blue')
