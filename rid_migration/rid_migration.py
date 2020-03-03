@@ -913,6 +913,7 @@ class RCMD(object):
         exit_loop = False
         no_rx_data_counter_100msec, command_counter_100msec = 0, 0
         after_enter_counter_100msec, possible_prompts = 0, []
+        last_line_original = str()
 
         ### FLUSH BUFFERS FROM PREVIOUS COMMANDS IF THEY ARE ALREADY BUFFERED ###
         if chan.recv_ready(): flush_buffer = chan.recv(9999)
