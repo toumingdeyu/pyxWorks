@@ -1983,6 +1983,9 @@ def generate_logfilename(prefix = None, USERNAME = None, suffix = None, \
 def do_scp_one_file_to_more_devices(true_sw_release_file_on_server = None, \
     device_list = None, USERNAME = None, PASSWORD = None , device_drive_string = None, \
     printall = None, router_type = None):
+    """
+    COPY ALL FILES FROM SERVER TO DEVICE
+    """
     if true_sw_release_file_on_server and len(device_list)>0:
         os.environ['SSHPASS'] = PASSWORD
         time.sleep(2)
@@ -2019,6 +2022,9 @@ def do_scp_one_file_to_more_devices_per_needed_to_copy_list(\
     true_sw_release_file_on_server = None, missing_files_per_device_list = None,\
     device_list = None, USERNAME = None, PASSWORD = None , device_drive_string = None, \
     printall = None, router_type = None):
+    """
+    COPY MISSING FILES FROM SERVER TO DEVICE
+    """
     if true_sw_release_file_on_server and len(device_list)>0:
         os.environ['SSHPASS'] = PASSWORD
         time.sleep(2)
@@ -3121,7 +3127,7 @@ def copy_files_to_devices(true_sw_release_files_on_server = None, \
 
         ### IF SCP_LIST IS NOT VOID CHECK AND COPY ONLY NOT RUNNING ###
         for server_file, device_file, scp_device, device_user, pid, ppid in scp_list:
-            CGI_CLI.uprint('%s=%s, %s=%s' %(scp_device, device_list, device_file, os.path.join(dev_dir, file)))
+            #CGI_CLI.uprint('%s=%s, %s=%s' %(scp_device, device_list, device_file, os.path.join(dev_dir, file)))
             if scp_device in device_list and device_file == os.path.join(dev_dir, file):
                 CGI_CLI.uprint('FILE %s is already copying to device %s, ommiting new scp copying!' % \
                     (device_file, scp_device))
@@ -3155,6 +3161,7 @@ def copy_files_to_devices(true_sw_release_files_on_server = None, \
                 for old_file_status in old_files_status:
                     if old_file_status in files_status:
                         device, device_file, percentage = old_file_status
+                        ### COPYING IN PROGRESS ###############################
                         if percentage > 0 and percentage < 100:
                             scp_fails += 1
                             CGI_CLI.uprint('WARNING: Device=%s, File=%s, Percent copied=%.2f HAS STALLED, KILLING SCP PROCESSES!' % \
@@ -3168,6 +3175,13 @@ def copy_files_to_devices(true_sw_release_files_on_server = None, \
                                 [device], USERNAME, PASSWORD, \
                                 device_drive_string = device_drive_string, \
                                 printall = printall, router_type = router_type)
+
+                        ### JUNOS MADTR6 WORKARROUND - SCP 100%/ERROR HANGING #
+                        elif percentage == 100:
+                            time.sleep(5)
+                            CGI_CLI.uprint('JUNIPER KILL HANGING SCP WORKARROUND.', \
+                                no_printall = not printall)
+                            kill_stalled_scp_processes(device_file = device_file, printall = printall)
 
                             ### SOME DELAY ####################################
                             time.sleep(1)
