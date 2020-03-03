@@ -2258,7 +2258,7 @@ def does_run_script_processes(my_pid_only = None, printall = None):
 
 ##############################################################################
 
-def kill_stalled_scp_processes(device_file = None, printall = None):
+def kill_stalled_scp_processes(device = None, device_file = None, printall = None):
     ### CHECK PS ###
     def do_check_ps(device_file = None, printall = None):
         pid_list = []
@@ -2270,7 +2270,8 @@ def kill_stalled_scp_processes(device_file = None, printall = None):
                 try: scp_ps_list.append(line.split()[1])
                 except: pass
                 if split_string in line:
-                    if str(device_file) in line:
+                    if str(device_file) in line and \
+                        str(device).upper() in line.upper():
                         try: pid_list.append(line.split()[1])
                         except: pass
         return pid_list
@@ -3180,7 +3181,8 @@ def copy_files_to_devices(true_sw_release_files_on_server = None, \
                             scp_fails += 1
                             CGI_CLI.uprint('WARNING: Device=%s, File=%s, Percent copied=%.2f HAS STALLED, KILLING SCP PROCESSES!' % \
                                 (device, device_file, percentage), tag = 'warning')
-                            kill_stalled_scp_processes(device_file = device_file, printall = printall)
+                            kill_stalled_scp_processes(device = device, \
+                                device_file = device_file, printall = printall)
 
                             ### RESTART KILLED SCP ############################
                             do_scp_one_file_to_more_devices_per_needed_to_copy_list( \
@@ -3195,7 +3197,8 @@ def copy_files_to_devices(true_sw_release_files_on_server = None, \
                             time.sleep(5)
                             CGI_CLI.uprint('JUNIPER KILL HANGING SCP WORKARROUND.', \
                                 no_printall = not printall)
-                            kill_stalled_scp_processes(device_file = device_file, printall = printall)
+                            kill_stalled_scp_processes(device = device, \
+                                device_file = device_file, printall = printall)
 
                             ### SOME DELAY ####################################
                             time.sleep(1)
