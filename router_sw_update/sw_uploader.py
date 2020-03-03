@@ -3132,12 +3132,12 @@ def copy_files_to_devices(true_sw_release_files_on_server = None, \
                 CGI_CLI.uprint('FILE %s is already copying to device %s, ommiting new scp copying!' % \
                     (device_file, scp_device))
             else:
-                CGI_CLI.uprint(force_rewrite, name = 'force_rewrite', \
-                    no_printall = not printall, tag = 'debug')
+                CGI_CLI.uprint('force_rewrite = %s' % (str(force_rewrite)), no_printall = not printall, tag = 'debug')
                 CGI_CLI.uprint(true_sw_release_file_on_server, \
-                    name = 'true_sw_release_file_on_server', jsonprint = True, no_printall = not printall, tag = 'debug')
-                CGI_CLI.uprint(device_list, name = 'device_list', \
+                    name = 'true_sw_release_file_on_server', \
                     jsonprint = True, no_printall = not printall, tag = 'debug')
+                CGI_CLI.uprint('device_list = [%s]' % (','.join(device_list) if device_list else str()), \
+                    no_printall = not printall, tag = 'debug')
                 CGI_CLI.uprint(missing_files_per_device_list, \
                     name = 'missing_files_per_device_list', jsonprint = True, \
                     no_printall = not printall, tag = 'debug')
@@ -3160,13 +3160,17 @@ def copy_files_to_devices(true_sw_release_files_on_server = None, \
         while (actual_scp_devices_in_scp_list and scp_fails <= MAX_SCP_FAILS):
             actual_scp_devices_in_scp_list = False
 
+            my_own_scp_list = []
             scp_list, forget_it = does_run_scp_processes(printall = printall)
             for server_file, device_file, scp_device, device_user, pid, ppid in scp_list:
-                if scp_device in device_list: actual_scp_devices_in_scp_list = True
-            if len(scp_list) > 0:
+                if scp_device in device_list:
+                    actual_scp_devices_in_scp_list = True
+                    my_own_scp_list.append([server_file, device_file, scp_device, device_user, pid, ppid])
+
+            if len(my_own_scp_list) > 0:
                 old_files_status = files_status
                 time.sleep(1)
-                files_status = check_percentage_of_copied_files(scp_list, USERNAME, PASSWORD, printall)
+                files_status = check_percentage_of_copied_files(my_own_scp_list, USERNAME, PASSWORD, printall)
                 ### CHECKED STALLED COPYING ###################################
                 for old_file_status in old_files_status:
                     if old_file_status in files_status:
