@@ -3501,6 +3501,92 @@ def send_me_email(subject = str(), email_body = str(), file_name = None, attachm
     return email_sent
 
 ###############################################################################
+
+def delete_files(device = None, unique_device_directory_list = None, \
+    true_sw_release_files_on_server = None, printall = None):
+
+    local_connect = None
+    if device:
+        if not RCMD.ssh_connection:
+            local_connect = True
+            RCMD.connect(device, username = USERNAME, password = PASSWORD, \
+                printall = printall)
+
+        if not RCMD.ssh_connection:
+            CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), color = 'red')
+            RCMD.disconnect()
+            return
+
+        del_files_cmds = {'cisco_xr':[], 'cisco_ios':[], \
+            'huawei':[], 'juniper':[]}
+
+        for unique_dir in unique_device_directory_list:
+            for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
+                if unique_dir == dev_dir:
+                    del_files_cmds['cisco_xr'].append( \
+                        'del %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
+
+                    del_files_cmds['cisco_ios'].append( \
+                        'del %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
+
+                    del_files_cmds['huawei'].append( \
+                        'del /unreserved %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
+                    del_files_cmds['huawei'].append( \
+                        'del /unreserved slave#%s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
+
+                    del_files_cmds['juniper'].append( \
+                        'file delete re0:%s' % (os.path.join(dev_dir, file)))
+                    if not CGI_CLI.data.get('ignore_missing_backup_re_on_junos'):
+                        del_files_cmds['juniper'].append( \
+                            'file delete re1:%s' % (os.path.join(dev_dir, file)))
+
+        CGI_CLI.uprint('deleting sw release files on %s' % (device), \
+            no_newlines = None if printall else True)
+        forget_it = RCMD.run_commands(del_files_cmds, \
+            autoconfirm_mode = True, printall = printall)
+
+        ### CHECK FILES DELETION ##################################
+        check_dir_files_cmds = {'cisco_xr':[],'cisco_ios':[], \
+            'huawei':[], 'juniper':[]}
+        for unique_dir in unique_device_directory_list:
+            for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
+                if unique_dir == dev_dir:
+                    check_dir_files_cmds['cisco_xr'].append( \
+                        'dir %s%s' % (RCMD.drive_string, dev_dir))
+                    check_dir_files_cmds['cisco_ios'].append( \
+                        'dir %s%s' % (RCMD.drive_string, dev_dir))
+                    check_dir_files_cmds['huawei'].append( \
+                        'dir %s%s/' % (RCMD.drive_string, dev_dir if dev_dir != '/' else str()))
+                    check_dir_files_cmds['huawei'].append( \
+                        'dir slave#%s%s/' % (RCMD.drive_string, dev_dir if dev_dir != '/' else str()))
+                    check_dir_files_cmds['juniper'].append( \
+                        'file list re0:%s' % (dev_dir))
+                    if not CGI_CLI.data.get('ignore_missing_backup_re_on_junos'):
+                        check_dir_files_cmds['juniper'].append( \
+                            'file list re1:%s' % (dev_dir))
+        time.sleep(0.5)
+        dir_outputs_after_deletion = RCMD.run_commands(check_dir_files_cmds, \
+            printall = printall)
+        CGI_CLI.uprint('\n')
+        file_not_deleted = False
+        for unique_dir in unique_device_directory_list:
+            for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
+                if unique_dir == dev_dir:
+                    for dir_output in dir_outputs_after_deletion:
+                        if file in dir_output:
+                            CGI_CLI.uprint('File %s not deleted from %s on %s!' \
+                                % (file,unique_dir, device), color = 'red')
+                            file_not_deleted = True
+        if file_not_deleted: CGI_CLI.uprint('%s delete problem!' % (device), color = 'red')
+        else: CGI_CLI.uprint('%s delete done!' % (device), color = 'green')
+
+        ### DISCONNECT ################################################
+        if local_connect: RCMD.disconnect()
+
+
+
+
+###############################################################################
 #
 # def BEGIN MAIN
 #
@@ -3580,7 +3666,7 @@ try:
     ### KILLING APLICATION PROCESS ############################################
     if CGI_CLI.data.get('submit',str()) == 'STOP' and CGI_CLI.data.get('pidtokill'):
         LCMD.run_commands({'unix':['kill %s' % (CGI_CLI.data.get('pidtokill',str()))]}, printall = None)
-        CGI_CLI.uprint('Application PID%s stopped.' % (CGI_CLI.data.get('pidtokill',str())))
+        CGI_CLI.uprint('PID%s stopped.' % (CGI_CLI.data.get('pidtokill',str())))
         sys.exit(0)
 
     ### GENERATE DEVICE LIST ##################################################
@@ -4342,70 +4428,12 @@ try:
                         else: CGI_CLI.uprint('%s backup config to slave#cfcard problem!' % (device), color = 'red')
 
 
-                ### def DELETE TAR FILES ON END ###############################
+                ### def DELETE FILES ON END ###################################
                 if CGI_CLI.data.get('delete_device_sw_files_on_end'):
-                    del_files_cmds = {'cisco_xr':[], 'cisco_ios':[], \
-                        'huawei':[], 'juniper':[]}
-
-                    for unique_dir in unique_device_directory_list:
-                        for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
-                            if unique_dir == dev_dir:
-                                del_files_cmds['cisco_xr'].append( \
-                                    'del %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
-
-                                del_files_cmds['cisco_ios'].append( \
-                                    'del %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
-
-                                del_files_cmds['huawei'].append( \
-                                    'del /unreserved %s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
-                                del_files_cmds['huawei'].append( \
-                                    'del /unreserved slave#%s%s' % (RCMD.drive_string, os.path.join(dev_dir, file)))
-
-                                del_files_cmds['juniper'].append( \
-                                    'file delete re0:%s' % (os.path.join(dev_dir, file)))
-                                if not CGI_CLI.data.get('ignore_missing_backup_re_on_junos'):
-                                    del_files_cmds['juniper'].append( \
-                                        'file delete re1:%s' % (os.path.join(dev_dir, file)))
-
-                    CGI_CLI.uprint('deleting sw release files on %s' % (device), \
-                        no_newlines = None if printall else True)
-                    forget_it = RCMD.run_commands(del_files_cmds, \
-                        autoconfirm_mode = True, printall = printall)
-
-                    ### CHECK FILES DELETION ##################################
-                    check_dir_files_cmds = {'cisco_xr':[],'cisco_ios':[], \
-                        'huawei':[], 'juniper':[]}
-                    for unique_dir in unique_device_directory_list:
-                        for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
-                            if unique_dir == dev_dir:
-                                check_dir_files_cmds['cisco_xr'].append( \
-                                    'dir %s%s' % (RCMD.drive_string, dev_dir))
-                                check_dir_files_cmds['cisco_ios'].append( \
-                                    'dir %s%s' % (RCMD.drive_string, dev_dir))
-                                check_dir_files_cmds['huawei'].append( \
-                                    'dir %s%s/' % (RCMD.drive_string, dev_dir if dev_dir != '/' else str()))
-                                check_dir_files_cmds['huawei'].append( \
-                                    'dir slave#%s%s/' % (RCMD.drive_string, dev_dir if dev_dir != '/' else str()))
-                                check_dir_files_cmds['juniper'].append( \
-                                    'file list re0:%s' % (dev_dir))
-                                if not CGI_CLI.data.get('ignore_missing_backup_re_on_junos'):
-                                    check_dir_files_cmds['juniper'].append( \
-                                        'file list re1:%s' % (dev_dir))
-                    time.sleep(0.5)
-                    dir_outputs_after_deletion = RCMD.run_commands(check_dir_files_cmds, \
+                    delete_files(device = device, \
+                        unique_device_directory_list = unique_device_directory_list, \
+                        true_sw_release_files_on_server = true_sw_release_files_on_server,\
                         printall = printall)
-                    CGI_CLI.uprint('\n')
-                    file_not_deleted = False
-                    for unique_dir in unique_device_directory_list:
-                        for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
-                            if unique_dir == dev_dir:
-                                for dir_output in dir_outputs_after_deletion:
-                                    if file in dir_output:
-                                        CGI_CLI.uprint('File %s not deleted from %s on %s!' \
-                                            % (file,unique_dir, device), color = 'red')
-                                        file_not_deleted = True
-                    if file_not_deleted: CGI_CLI.uprint('%s delete problem!' % (device), color = 'red')
-                    else: CGI_CLI.uprint('%s delete done!' % (device), color = 'green')
 
                 ### def DISABLE SCP ###########################################
                 if CGI_CLI.data.get('disable_device_scp_after_copying'):
