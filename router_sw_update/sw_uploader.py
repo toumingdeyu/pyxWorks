@@ -346,6 +346,10 @@ class CGI_CLI(object):
             time.time() - CGI_CLI.START_EPOCH)
 
     @staticmethod
+    def get_date_and_time():
+        return '%s' % (datetime.datetime.now().strftime('%H:%M %d-%m-%Y'))
+
+    @staticmethod
     def print_chunk(msg = None, no_newlines = None, raw_log = None, \
         ommit_logging = None, printall = None):
         """
@@ -463,7 +467,7 @@ class CGI_CLI(object):
             if tag:
                 CGI_CLI.print_chunk('</%s>' % (tag), raw_log = True, printall = printall_yes)
                 ### USER DEFINED TAGS DOES NOT PROVIDE NEWLINES!!! ############
-                if tag in ['debug','warning']:
+                if tag in ['debug','warning','error']:
                     CGI_CLI.print_chunk('<br/>', raw_log = True, printall = printall_yes)
             elif end_tag:
                 CGI_CLI.print_chunk('</%s>' % (end_tag), raw_log = True, printall = printall_yes)
