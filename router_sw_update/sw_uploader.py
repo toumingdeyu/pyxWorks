@@ -2478,6 +2478,10 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
             bad_files = [ file for file, file_found_on_device, file_size_ok_on_device in \
                 filecheck_list if not file_found_on_device and not file_size_ok_on_device]
 
+            CGI_CLI.uprint(bad_files, \
+                name = 'bad_files', jsonprint = True, \
+                no_printall = not printall, tag = 'debug')
+
             ### CHECK FILE(S) AND MD5(S) FIRST PER ALL DEVICE TYPES FIRST #####
             xr_md5_cmds, xe_md5_cmds, huawei_md5_cmds, juniper_md5_cmds = [], [], [], []
             for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
@@ -2503,6 +2507,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                 'huawei':huawei_md5_cmds, 'juniper':juniper_md5_cmds}, \
                 printall = printall, autoconfirm_mode = True,
                 long_lasting_mode = True)
+
             ### CHECK MD5 RESULTS IN LOOP #####################################
             if RCMD.router_type == 'huawei':
                 for files_list in true_sw_release_files_on_server:
@@ -3088,11 +3093,11 @@ def check_free_disk_space_on_devices(device_list = None, \
                     float(disk_free)/1048576, \
                     float(slave_disk_free)/1048576), color = 'red')
 
-        ### JUNIPER NEEDS TWICE SPACE FOR LOCAL COPY OF FILES ON RE0 ##########
+        ### JUNIPER NEEDS TWICE SPACE FOR LOCAL COPY OF FILES ON RE0 AND RE1 ###
         elif RCMD.router_type == 'juniper' and \
             ((disk_free + (device_expected_MB_free * 1048576) < disk_reguired + maximal_filesize) \
-            and slave_disk_free != -1):
-
+            or (slave_disk_free != -1 \
+            and (slave_disk_free + (device_expected_MB_free * 1048576)) < disk_reguired + maximal_filesize)):
                 error_string += 'Not enough space to copy files from re0 to re1 on %s!\n' % (device)
                 error_string += 'NOTE: Copy of files needs twice as space as max. filesize on re0.\n'
                 disk_low_space_devices.append(device)
