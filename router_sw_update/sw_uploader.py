@@ -3999,14 +3999,12 @@ function validateForm() {
             main_menu_list.append({'text':'additional_files_to_copy'})
             main_menu_list.append('<br/>')
 
-
-
             main_menu_list += ['<h3>REMAINING DEVICE DISK FREE (optional) [default &gt %.2f MB]:</h3>'%(device_expected_MB_free),\
             {'text':'remaining_device_disk_free_MB'}, '<br/>',\
             '<br/><authentication>LDAP authentication (required):<br/><br/>',\
             {'text':'username'}, \
             '<br/>', {'password':'password'},
-            '</authentication>','<br/>','<br/>']
+            '</authentication>','<br/>']
 
             if len(SCRIPT_ACTIONS_LIST)>0: main_menu_list.append({'radio':[ 'script_action__' + action for action in SCRIPT_ACTIONS_LIST ]})
 
