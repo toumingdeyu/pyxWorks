@@ -2410,6 +2410,7 @@ authentication {
     CGI_CLI.parse_input_data(key = 'routertest', append_to_list = device_list, ignore_list = True)
 
     router = CGI_CLI.parse_input_data(key = 'device')
+    if not router: router = CGI_CLI.parse_input_data(key = 'routertest')
     if not router: router = CGI_CLI.parse_input_data(key = 'router')
     router2 = CGI_CLI.parse_input_data(key = 'router2')
     router3 = CGI_CLI.parse_input_data(key = 'router3')
@@ -2423,8 +2424,8 @@ authentication {
 
     if len(interface_id_list1) == 0:
         CGI_CLI.parse_input_data(key = 'interface', append_to_list = interface_id_list1)
-    if len(interface_id_list1) == 0:
-        CGI_CLI.parse_input_data(key = 'interface_id[]', append_to_list = interface_id_list1)
+
+    CGI_CLI.parse_input_data(key = 'interface_id[]', append_to_list = interface_id_list1)
     CGI_CLI.parse_input_data(key = 'interface_id2[]', append_to_list = interface_id_list2)
     CGI_CLI.parse_input_data(key = 'interface_id3[]', append_to_list = interface_id_list3)
 
