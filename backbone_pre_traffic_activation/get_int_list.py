@@ -2250,6 +2250,13 @@ warning {
         if ',' in devices_string:
             device_list = [ dev_mix_case.upper() for dev_mix_case in devices_string.split(',') ]
         else: device_list.append(devices_string.upper())
+        
+    ### GENERATE DEVICE LIST ##################################################
+    devices_string = CGI_CLI.data.get("devicetest",str())
+    if devices_string:
+        if ',' in devices_string:
+            device_list = [ dev_mix_case.upper() for dev_mix_case in devices_string.split(',') ]
+        else: device_list.append(devices_string.upper())        
 
     ### type=bbactivation #####################################################
     type_content = CGI_CLI.data.get("type",str())
