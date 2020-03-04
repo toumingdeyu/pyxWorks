@@ -1168,13 +1168,13 @@ class RCMD(object):
                         replace('\x0d','').replace('\x07','').\
                         replace('\x08','').replace(' \x1b[1D','').replace(u'\u2013',''))
                     output += buff_read
-                except: 
-                    try: 
+                except:
+                    try:
                         buff_read = str(buff.decode(encoding='cp1252').\
                             replace('\x0d','').replace('\x07','').\
                             replace('\x08','').replace(' \x1b[1D','').replace(u'\u2013',''))
-                        output += buff_read                   
-                    except: 
+                        output += buff_read
+                    except:
                         CGI_CLI.uprint('BUFF_ERR[%s][%s]'%(buff,type(buff)), color = 'red')
                         CGI_CLI.uprint(traceback.format_exc(), color = 'magenta')
 
@@ -1294,11 +1294,11 @@ class RCMD(object):
                     try:
                         output += str(buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
                             replace('\x1b[K','').replace('\n{master}\n','').replace(u'\u2013',''))
-                    except: 
+                    except:
                         try:
                             output += str(buff.decode("cp1252").replace('\r','').replace('\x07','').replace('\x08','').\
-                            replace('\x1b[K','').replace('\n{master}\n','').replace(u'\u2013',''))                   
-                        except: pass                    
+                            replace('\x1b[K','').replace('\n{master}\n','').replace(u'\u2013',''))
+                        except: pass
                     if '--More--' or '---(more' in buff.strip():
                         chan.send('\x20')
                         if debug: CGI_CLI.uprint('SPACE_SENT.', color = 'blue')
@@ -1329,10 +1329,10 @@ class RCMD(object):
                 try:
                     output += str(buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
                         replace('\x1b[K','').replace('\n{master}\n','').replace(u'\u2013',''))
-                except:        
+                except:
                     try:
                         output += str(buff.decode("cp1252").replace('\r','').replace('\x07','').replace('\x08','').\
-                            replace('\x1b[K','').replace('\n{master}\n','').replace(u'\u2013',''))                        
+                            replace('\x1b[K','').replace('\n{master}\n','').replace(u'\u2013',''))
                     except: pass
                 if '--More--' or '---(more' in buff.strip():
                     chan.send('\x20')
@@ -1475,7 +1475,7 @@ class LCMD(object):
                             stderr=subprocess.STDOUT, shell=True).decode("utf-8")
                     except:
                         os_output = subprocess.check_output(str(cmd_line), \
-                            stderr=subprocess.STDOUT, shell=True).decode("cp1252")                    
+                            stderr=subprocess.STDOUT, shell=True).decode("cp1252")
             except (subprocess.CalledProcessError) as e:
                 try: os_output = str(e.output.decode("utf-8"))
                 except: os_output = str(e.output.decode("cp1252"))
@@ -1522,7 +1522,7 @@ class LCMD(object):
                     CGI_CLI.logtofile('LOCAL_COMMAND_(START)[%s]: %s' % (str(actual_CommandObject), str(cmd_line)) + '\n')
                 except (subprocess.CalledProcessError) as e:
                     try: os_output = str(e.output.decode("utf-8"))
-                    except: os_output = str(e.output.decode("cp1252")) 
+                    except: os_output = str(e.output.decode("cp1252"))
                     if printall: CGI_CLI.uprint('EXITCODE: %s' % (str(e.returncode)))
                     CGI_CLI.logtofile('EXITCODE: %s\n' % (str(e.returncode)))
                     commands_ok = False
@@ -1593,8 +1593,8 @@ class LCMD(object):
                 elif not ommit_logging:
                     CGI_CLI.logtofile('LOCAL_COMMAND: ' + str(cmd_line) + '\n')
                 try: os_output = subprocess.check_output(str(cmd_line), stderr=subprocess.STDOUT, shell=True).decode("utf-8")
-                except: 
-                    try: os_output = subprocess.check_output(str(cmd_line), stderr=subprocess.STDOUT, shell=True).decode("cp1252")                
+                except:
+                    try: os_output = subprocess.check_output(str(cmd_line), stderr=subprocess.STDOUT, shell=True).decode("cp1252")
                     except (subprocess.CalledProcessError) as e:
                         os_output = str(e.output.decode("utf-8"))
                         if printall: CGI_CLI.uprint('EXITCODE: %s' % (str(e.returncode)))
