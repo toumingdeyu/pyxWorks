@@ -382,7 +382,9 @@ class CGI_CLI(object):
            timestamp = 'no' - locally disable even if CGI_CLI.timestamp == True
            Use 'no_printall = not printall' instead of printall = False
         """
-        if not text: return None
+        if not text and not name: return None
+
+        print_text = str()
 
         ### PRINTALL LOGIC ####################################################
         if not printall and not no_printall: printall_yes = True
@@ -392,7 +394,8 @@ class CGI_CLI(object):
         if jsonprint:
             if isinstance(text, (dict,collections.OrderedDict,list,tuple)):
                 try: print_text = str(json.dumps(text, indent = 4))
-                except Exception as e: CGI_CLI.print_chunk('JSON_PROBLEM[' + str(e) + ']', printall = printall_yes)
+                except Exception as e:
+                    CGI_CLI.print_chunk('JSON_PROBLEM[' + str(e) + ']', printall = printall_yes)
         else: print_text = str(copy.deepcopy(text))
 
         print_name = str()
@@ -2756,7 +2759,32 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
             else:
                 CGI_CLI.uprint('%s    slave#%s' % \
                     (device, device_drive_string + os.path.join(dev_dir, file)))
-        CGI_CLI.uprint(end_tag = 'p')
+        CGI_CLI.uprint(end_tag = 'p', timestamp = 'no')
+
+    ### DEBUG PRINTOUTS #######################################################
+    CGI_CLI.uprint(true_sw_release_files_on_server, \
+        name = 'true_sw_release_files_on_server', jsonprint = True, \
+        no_printall = not printall, tag = 'debug')
+
+    CGI_CLI.uprint(str(nr_of_connected_devices), \
+        name = 'nr_of_connected_devices', \
+        no_printall = not printall, tag = 'debug')
+
+    CGI_CLI.uprint(device_list, \
+        name = 'device_list', jsonprint = True, \
+        no_printall = not printall, tag = 'debug')
+
+    CGI_CLI.uprint(missing_files_per_device_list, \
+        name = 'missing_files_per_device_list', jsonprint = True, \
+        no_printall = not printall, tag = 'debug')
+
+    CGI_CLI.uprint(slave_missing_files_per_device_list, \
+        name = 'slave_missing_files_per_device_list', jsonprint = True, \
+        no_printall = not printall, tag = 'debug')
+
+    CGI_CLI.uprint(compatibility_problem_list, \
+        name = 'compatibility_problem_list', jsonprint = True, \
+        no_printall = not printall, tag = 'debug')
 
     ### SET FLAG FILES OK #####################################################
     if len(missing_files_per_device_list) == 0 \
@@ -4236,13 +4264,25 @@ try:
         CGI_CLI.uprint(end_tag = 'p')
 
     elif len(selected_sw_file_types_list) > 0 or sw_release:
-        ### CHECK EXISTING FILES ON DEVICES ###################################
-        all_files_on_all_devices_ok, missing_files_per_device_list, \
-            device_drive_string, router_type, compatibility_problem_list = \
-            check_files_on_devices(device_list = device_list, \
-            true_sw_release_files_on_server = true_sw_release_files_on_server, \
-            USERNAME = USERNAME, PASSWORD = PASSWORD, \
-            printall = printall, disk_low_space_devices = disk_low_space_devices)
+        if CGI_CLI.data.get('check_device_sw_files_only'):
+            ### CHECK EXISTING FILES ON DEVICES ###################################
+            all_files_on_all_devices_ok, missing_files_per_device_list, \
+                device_drive_string, router_type, compatibility_problem_list = \
+                check_files_on_devices(device_list = device_list, \
+                true_sw_release_files_on_server = true_sw_release_files_on_server, \
+                USERNAME = USERNAME, PASSWORD = PASSWORD, \
+                printall = printall, disk_low_space_devices = disk_low_space_devices,\
+                check_mode = True)
+        else:
+            ### CHECK EXISTING FILES ON DEVICES ###################################
+            all_files_on_all_devices_ok, missing_files_per_device_list, \
+                device_drive_string, router_type, compatibility_problem_list = \
+                check_files_on_devices(device_list = device_list, \
+                true_sw_release_files_on_server = true_sw_release_files_on_server, \
+                USERNAME = USERNAME, PASSWORD = PASSWORD, \
+                printall = printall, disk_low_space_devices = disk_low_space_devices,\
+                check_mode = False)
+
 
     ### FIND MAX FILE SIZE, FOR JUNIPER RE0 LOCAL COPY DISK CHECK #############
     max_file_size_even_if_already_exists_on_device = 0
