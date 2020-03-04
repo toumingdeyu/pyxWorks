@@ -489,10 +489,12 @@ class CGI_CLI(object):
 
     @staticmethod
     def formprint(form_data = None, submit_button = None, pyfile = None, tag = None, \
-        color = None, list_separator = None, printall = None):
+        color = None, list_separator = None, printall = None, name = None, on_submit = None):
         """ formprint() - print simple HTML form
             form_data - string, just html raw OR list or dict values = ['raw','text','checkbox','radio','submit','dropdown','textcontent']
                       - value in dictionary means cgi variable name / printed componenet value
+            name - name of form, could be used for javascript actions
+            on_submit - ob submit action (javascript function)
         """
         def subformprint(data_item):
             if isinstance(data_item, six.string_types):  CGI_CLI.print_chunk(data_item, raw_log = True, printall = True)
@@ -554,8 +556,9 @@ class CGI_CLI(object):
             CGI_CLI.print_chunk('<br/>', raw_log = True, printall = True)
             if tag and 'h' in tag: CGI_CLI.print_chunk('<%s%s>'%(tag,' style="color:%s;"'%(color) if color else str()), raw_log = True, printall = True)
             if color or tag and 'p' in tag: tag = 'p'; CGI_CLI.print_chunk('<p%s>'%(' style="color:%s;"'%(color) if color else str()), raw_log = True, printall = True)
-            CGI_CLI.print_chunk('<form action = "/cgi-bin/%s" enctype = "multipart/form-data" action = "save_file.py" method = "post">'%\
-                (i_pyfile), raw_log = True, printall = True)
+            CGI_CLI.print_chunk('<form %saction = "/cgi-bin/%s" enctype = "multipart/form-data" action = "save_file.py" %smethod = "post">'%\
+                ('name="%s" ' % (str(name)) if name else str(), i_pyfile, 'onsubmit="%s" ' % (str(on_submit)) if on_submit else str()), \
+                raw_log = True, printall = True)
             ### RAW HTML ###
             if isinstance(form_data, six.string_types):
                 CGI_CLI.print_chunk(form_data, raw_log = True, printall = True)
@@ -3685,6 +3688,10 @@ def delete_files(device = None, unique_device_directory_list = None, \
 if __name__ != "__main__": sys.exit(0)
 try:
     CSS_STYLE = """
+authentication {
+  color: #cc0000;
+  font-size: x-large;
+  font-weight: bold;
 """
 
     # goto_webpage_end_by_javascript = """
@@ -3710,6 +3717,24 @@ try:
   # }
 # }
 # </script>"""
+
+
+
+    on_submit_action = """<script>
+function validateForm() {
+  var x = document.forms["mainForm"]["username"].value;
+  var y = document.forms["mainForm"]["password"].value;
+  if (x == "") {
+    alert("Username must be filled out");
+    return false;
+  }
+  if (y == "") {
+    alert("Password must be filled out");
+    return false;
+  }
+}
+</script>
+"""
 
     logging.raiseExceptions=False
     goto_webpage_end_by_javascript = str()
@@ -3978,8 +4003,10 @@ try:
 
             main_menu_list += ['<h3>REMAINING DEVICE DISK FREE (optional) [default &gt %.2f MB]:</h3>'%(device_expected_MB_free),\
             {'text':'remaining_device_disk_free_MB'}, '<br/>',\
-            '<h3>LDAP authentication (required):</h3>',{'text':'username'}, \
-            '<br/>', {'password':'password'}, '<br/>','<br/>']
+            '<br/><authentication>LDAP authentication (required):<br/><br/>',\
+            {'text':'username'}, \
+            '<br/>', {'password':'password'},
+            '</authentication>','<br/>','<br/>']
 
             if len(SCRIPT_ACTIONS_LIST)>0: main_menu_list.append({'radio':[ 'script_action__' + action for action in SCRIPT_ACTIONS_LIST ]})
 
@@ -3993,11 +4020,13 @@ try:
                 {'checkbox':'backup_configs_to_device_disk'},'<br/>',\
                 {'checkbox':'delete_device_sw_files_on_end'},'<br/>',\
                 '<br/>', {'checkbox':'timestamps'}, \
-                '<br/>', {'checkbox':'printall'}
+                '<br/>', {'checkbox':'printall'}, \
+                on_submit_action
                 ]
 
         CGI_CLI.formprint( main_menu_list + ['<br/>','<br/>'], submit_button = 'OK', \
-            pyfile = None, tag = None, color = None , list_separator = '&emsp;')
+            pyfile = None, tag = None, color = None , list_separator = '&emsp;', \
+            name = 'mainForm', on_submit = 'return validateForm()')
 
         ### SHOW HTML MENU AND EXIT ###########################################
         sys.exit(0)
