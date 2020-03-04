@@ -2478,9 +2478,9 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
             bad_files = [ file for file, file_found_on_device, file_size_ok_on_device in \
                 filecheck_list if not file_found_on_device and not file_size_ok_on_device]
 
-            CGI_CLI.uprint(bad_files, \
-                name = 'bad_files', jsonprint = True, \
-                no_printall = not printall, tag = 'debug')
+            # CGI_CLI.uprint(bad_files, \
+                # name = 'bad_files', jsonprint = True, \
+                # no_printall = not printall, tag = 'debug')
 
             ### CHECK FILE(S) AND MD5(S) FIRST PER ALL DEVICE TYPES FIRST #####
             xr_md5_cmds, xe_md5_cmds, huawei_md5_cmds, juniper_md5_cmds = [], [], [], []
@@ -2747,6 +2747,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
             RCMD.disconnect()
 
     ### PRINT HEADERS RED OR BLUE #############################################
+    files_color = None
     if len(missing_files_per_device_list) > 0 or len(slave_missing_files_per_device_list)>0:
 
         if CGI_CLI.data.get('check_device_sw_files_only') or check_mode:
@@ -2756,27 +2757,31 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                 and len(missing_files_per_device_list) == 0 \
                 and len(slave_missing_files_per_device_list)>0: pass
             else:
-                CGI_CLI.uprint('Device    Bad_or_missing_file(s):', tag = 'h3', color = 'red')
-                CGI_CLI.uprint(no_newlines = True, start_tag = 'p', color = 'red')
+                CGI_CLI.uprint('Device    Bad_or_missing_file(s):', tag = 'h3', color = 'red', timestamp = 'no')
+                CGI_CLI.uprint(no_newlines = True, start_tag = 'p', color = 'red', timestamp = 'no')
+                files_color = 'red'
         else:
             CGI_CLI.uprint('Device    File(s)_to_copy:', tag = 'h3', color = 'blue')
-            CGI_CLI.uprint(no_newlines = True, start_tag = 'p', color = 'blue')
+            CGI_CLI.uprint(no_newlines = True, start_tag = 'p', color = 'blue', timestamp = 'no')
+            files_color = 'blue'
 
         ### PRINT RED OR BLUE FILES TO COPY OR MISSING/BAD ####################
         for device,missing_or_bad_files_per_device in missing_files_per_device_list:
             directory, dev_dir, file, md5, fsize = missing_or_bad_files_per_device
             CGI_CLI.uprint('%s    %s' % \
-                    (device, device_drive_string + os.path.join(dev_dir, file)))
+                    (device, device_drive_string + os.path.join(dev_dir, file)),\
+                    color = files_color)
         ### PRINT SLAVE/BACKUP RE FILES #######################################
         for device,missing_or_bad_files_per_device in slave_missing_files_per_device_list:
             directory, dev_dir, file, md5, fsize = missing_or_bad_files_per_device
             if RCMD.router_type == 'juniper':
                 if CGI_CLI.data.get('ignore_missing_backup_re_on_junos'): pass
                 else: CGI_CLI.uprint('%s    re1:%s' % \
-                        (device, os.path.join(dev_dir, file)))
+                        (device, os.path.join(dev_dir, file)), color = files_color)
             else:
                 CGI_CLI.uprint('%s    slave#%s' % \
-                    (device, device_drive_string + os.path.join(dev_dir, file)))
+                    (device, device_drive_string + os.path.join(dev_dir, file)),\
+                    color = files_color)
         CGI_CLI.uprint(end_tag = 'p', timestamp = 'no')
 
     ### DEBUG PRINTOUTS #######################################################
