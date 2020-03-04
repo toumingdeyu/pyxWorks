@@ -423,7 +423,7 @@ class CGI_CLI(object):
                     ommit_logging = ommit_logging, printall = printall_yes)
             else:
                 ### WORKARROUND FOR COLORING OF SIMPLE TEXT ###################
-                if color and not (tag or start_tag): tag = 'p';
+                if color and not (tag or start_tag): tag = 'void';
                 if tag:
                     if str(tag) == 'warning':
                         CGI_CLI.print_chunk('<%s style="color:red; background-color:yellow;">'%(tag),\
@@ -473,7 +473,7 @@ class CGI_CLI(object):
             if tag:
                 CGI_CLI.print_chunk('</%s>' % (tag), raw_log = True, printall = printall_yes)
                 ### USER DEFINED TAGS DOES NOT PROVIDE NEWLINES!!! ############
-                if tag in ['debug','warning','error']:
+                if tag in ['debug','warning','error','void']:
                     CGI_CLI.print_chunk('<br/>', raw_log = True, printall = printall_yes)
             elif end_tag:
                 CGI_CLI.print_chunk('</%s>' % (end_tag), raw_log = True, printall = printall_yes)
