@@ -3323,11 +3323,11 @@ authentication {
                 if not precheck_mode:
                     if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr' and not interface_data.get('ipv4_metric') \
                         or RCMD.router_type == 'juniper' and not interface_data.get('metric') \
-                        or RCMD.router_type == 'huawei' and  interface_data.get('isis cost'):
+                        or RCMD.router_type == 'huawei' and not interface_data.get('isis cost'):
                             check_interface_result_ok = False
                             CGI_CLI.uprint('Ipv4 L2 metric missing on Interface %s = NOT OK' % (interface_id), color = 'red')
                     elif RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr' and not interface_data.get('ipv6_metric') \
-                        or RCMD.router_type == 'huawei' and interface_data.get('isis ipv6 cost'):
+                        or RCMD.router_type == 'huawei' and not interface_data.get('isis ipv6 cost'):
                             check_interface_result_ok = False
                             CGI_CLI.uprint('Ipv6 L2 metric missing on Interface %s = NOT OK' % (interface_id), color = 'red')
                     else:
