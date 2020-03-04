@@ -2407,6 +2407,7 @@ authentication {
     CGI_CLI.parse_input_data(key = 'router', append_to_list = device_list, ignore_list = True)
     CGI_CLI.parse_input_data(key = 'router2', append_to_list = device_list, ignore_list = True)
     CGI_CLI.parse_input_data(key = 'router3', append_to_list = device_list, ignore_list = True)
+    CGI_CLI.parse_input_data(key = 'routertest', append_to_list = device_list, ignore_list = True)
 
     router = CGI_CLI.parse_input_data(key = 'device')
     if not router: router = CGI_CLI.parse_input_data(key = 'router')
