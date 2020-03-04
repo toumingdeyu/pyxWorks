@@ -2540,30 +2540,43 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                             md5_ok = True
                     md5check_list.append([file,md5_ok])
 
-            ### CHECK IF DEVICE FILES ARE OK (file on device,filesize,md5) ####
-            CGI_CLI.uprint('\n', timestamp = 'no')
-            for md5list,filelist in zip(md5check_list,filecheck_list):
-                 file1, md5_ok = md5list
-                 file2, file_found_on_device, file_size_ok_on_device = filelist
-                 if file1==file2:
-                    if file_found_on_device and md5_ok and file_size_ok_on_device: pass
-                    else:
-                        for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
-                            if file == file1:
-                                missing_files_per_device_list.append( \
-                                    [device,[directory, dev_dir, file, md5, fsize]])
-                    if RCMD.router_type == 'juniper':
-                        CGI_CLI.uprint('Device=%s, re0_File=%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
-                            (device,file1,file_found_on_device,md5_ok,file_size_ok_on_device), \
-                            tag = 'debug', no_printall = not printall)
-                    else:
-                        CGI_CLI.uprint('Device=%s, File=%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
-                            (device,file1,file_found_on_device,md5_ok,file_size_ok_on_device), \
-                            tag = 'debug', no_printall = not printall)
+            ### DEBUG PRINTOUTS ###############################################
+            # CGI_CLI.uprint(filecheck_list, \
+                # name = 'filecheck_list', jsonprint = True, \
+                # no_printall = not printall, tag = 'debug')
 
-            ### ===================================================================
-            ### JUNIPER RE1 CHECK #################################################
-            ### ===================================================================
+            # CGI_CLI.uprint(md5check_list, \
+                # name = 'md5check_list', jsonprint = True, \
+                # no_printall = not printall, tag = 'debug')
+
+            ### ===============================================================
+            ### CHECK IF DEVICE FILES ARE OK (file on device,filesize,md5) ####
+            ### ===============================================================
+            CGI_CLI.uprint('\n', timestamp = 'no')
+            for md5list in md5check_list:
+                 file1, md5_ok = md5list
+                 for filelist in filecheck_list:
+                     file2, file_found_on_device, file_size_ok_on_device = filelist
+                     if file1==file2:
+                        if file_found_on_device and md5_ok and file_size_ok_on_device: pass
+                        else:
+                            for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
+                                if file == file1:
+                                    missing_files_per_device_list.append( \
+                                        [device,[directory, dev_dir, file, md5, fsize]])
+                        if RCMD.router_type == 'juniper':
+                            CGI_CLI.uprint('Device=%s, re0_File=%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
+                                (device,file1,file_found_on_device,md5_ok,file_size_ok_on_device), \
+                                tag = 'debug', no_printall = not printall)
+                        else:
+                            CGI_CLI.uprint('Device=%s, File=%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
+                                (device,file1,file_found_on_device,md5_ok,file_size_ok_on_device), \
+                                tag = 'debug', no_printall = not printall)
+
+
+            ### ===============================================================
+            ### JUNIPER RE1 CHECK #############################################
+            ### ===============================================================
             if RCMD.router_type == 'juniper':
                 re1_filecheck_list = []
                 CGI_CLI.uprint('checking existing device re1 file(s) on %s' \
@@ -2767,29 +2780,29 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
         CGI_CLI.uprint(end_tag = 'p', timestamp = 'no')
 
     ### DEBUG PRINTOUTS #######################################################
-    CGI_CLI.uprint(true_sw_release_files_on_server, \
-        name = 'true_sw_release_files_on_server', jsonprint = True, \
-        no_printall = not printall, tag = 'debug')
+    # CGI_CLI.uprint(true_sw_release_files_on_server, \
+        # name = 'true_sw_release_files_on_server', jsonprint = True, \
+        # no_printall = not printall, tag = 'debug')
 
-    CGI_CLI.uprint(str(nr_of_connected_devices), \
-        name = 'nr_of_connected_devices', \
-        no_printall = not printall, tag = 'debug')
+    # CGI_CLI.uprint(str(nr_of_connected_devices), \
+        # name = 'nr_of_connected_devices', \
+        # no_printall = not printall, tag = 'debug')
 
-    CGI_CLI.uprint(device_list, \
-        name = 'device_list', jsonprint = True, \
-        no_printall = not printall, tag = 'debug')
+    # CGI_CLI.uprint(device_list, \
+        # name = 'device_list', jsonprint = True, \
+        # no_printall = not printall, tag = 'debug')
 
-    CGI_CLI.uprint(missing_files_per_device_list, \
-        name = 'missing_files_per_device_list', jsonprint = True, \
-        no_printall = not printall, tag = 'debug')
+    # CGI_CLI.uprint(missing_files_per_device_list, \
+        # name = 'missing_files_per_device_list', jsonprint = True, \
+        # no_printall = not printall, tag = 'debug')
 
-    CGI_CLI.uprint(slave_missing_files_per_device_list, \
-        name = 'slave_missing_files_per_device_list', jsonprint = True, \
-        no_printall = not printall, tag = 'debug')
+    # CGI_CLI.uprint(slave_missing_files_per_device_list, \
+        # name = 'slave_missing_files_per_device_list', jsonprint = True, \
+        # no_printall = not printall, tag = 'debug')
 
-    CGI_CLI.uprint(compatibility_problem_list, \
-        name = 'compatibility_problem_list', jsonprint = True, \
-        no_printall = not printall, tag = 'debug')
+    # CGI_CLI.uprint(compatibility_problem_list, \
+        # name = 'compatibility_problem_list', jsonprint = True, \
+        # no_printall = not printall, tag = 'debug')
 
     ### SET FLAG FILES OK #####################################################
     if len(missing_files_per_device_list) == 0 \
