@@ -370,7 +370,7 @@ class CGI_CLI(object):
         if CGI_CLI.logfilename and (log or CGI_CLI.log):
             with open(CGI_CLI.logfilename,"a+") as CGI_CLI.fp:
                 CGI_CLI.fp.write(print_name + log_text + '\n')
-                del log_text
+        del log_text
 
 
     @staticmethod
@@ -918,6 +918,7 @@ class RCMD(object):
         output, output2, new_prompt = str(), str(), str()
         exit_loop, exit_loop2 = False, False
         timeout_counter_100msec, timeout_counter_100msec_2 = 0, 0
+        last_line_original = str()
 
         ### FLUSH BUFFERS FROM PREVIOUS COMMANDS IF THEY ARE ALREADY BUFFERED ###
         if chan.recv_ready(): flush_buffer = chan.recv(9999)
@@ -1759,9 +1760,25 @@ warning {
     ### def APPEND ISIS OUTPUT TO POSTCHECK LOGFILE IN 1 DEVICE CLI MODE ONLY
     if CGI_CLI.data.get("append_logfile",str()):
         logfilename = CGI_CLI.data.get("append_logfile",str())
+
+        logdata = str()
+
+        ### TEST IF LOGFILE IS WRITABLE/APPENDABLE ###
+        if logfilename:
+            try:
+                with open(logfilename,"a+") as file:
+                    logdata = file.read()
+            except: logfilename = str()
+
+        ### TEST IF ISIS IS ALREADY IN LOGFILE ###
+        if logfilename:
+            with open(logfilename,'r') as file:
+                logdata = file.read()
+            if 'REMOTE_COMMAND' in logdata: logfilename = str()
+
+        del logdata
+
         if logfilename: CGI_CLI.set_logfile(logfilename = logfilename)
-
-
 
 
     device_list = []
