@@ -2533,7 +2533,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                     md5check_list.append([file,md5_ok])
 
             ### CHECK IF DEVICE FILES ARE OK (file on device,filesize,md5) ####
-            CGI_CLI.uprint('\n')
+            CGI_CLI.uprint('\n', timestamp = 'no')
             for md5list,filelist in zip(md5check_list,filecheck_list):
                  file1, md5_ok = md5list
                  file2, file_found_on_device, file_size_ok_on_device = filelist
@@ -2604,7 +2604,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                                 md5_ok = True
                         re1_md5check_list.append([file,md5_ok])
                 ### CHECK IF DEVICE FILES ARE OK (file on device,filesize,md5) ####
-                CGI_CLI.uprint('\n')
+                CGI_CLI.uprint('\n', timestamp = 'no')
                 for md5list,filelist in zip(re1_md5check_list,re1_filecheck_list):
                      file1, md5_ok = md5list
                      file2, file_found_on_device, file_size_ok_on_device = filelist
@@ -2722,7 +2722,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                     if 'check hardware-compatibility failed!' in compatibility_output:
                         compatibility_problem_list.append([device,os.path.join(dev_dir, file)])
             ###################################################################
-            CGI_CLI.uprint('\n')
+            CGI_CLI.uprint('\n', timestamp = 'no')
             RCMD.disconnect()
 
     ### PRINT HEADERS RED OR BLUE #############################################
@@ -2971,7 +2971,7 @@ def check_free_disk_space_on_devices(device_list = None, \
                 'huawei':huawei_device_mkdir_list
             }
             forget_it = RCMD.run_commands(mkdir_device_cmds)
-            CGI_CLI.uprint('\n')
+            CGI_CLI.uprint('\n', timestamp = 'no')
 
             ### CALCULATE NEEDED SPACE ON DEVICE FORM MISSING FILES ###########
             needed_device_free_space_in_bytes, maximal_filesize = 0, 0
@@ -3247,7 +3247,7 @@ def huawei_copy_device_files_to_slave_cfcard(true_sw_release_files_on_server = N
                 time.sleep(0.5)
                 dir_outputs_after_copy = RCMD.run_commands(check_dir_files_cmds, \
                     printall = printall)
-                CGI_CLI.uprint('\n')
+                CGI_CLI.uprint('\n', timestamp = 'no')
 
                 file_not_found_list = []
                 for unique_dir, dir_output_after_copy in zip(unique_device_directory_list, dir_outputs_after_copy):
@@ -3297,7 +3297,7 @@ def juniper_copy_device_files_to_other_routing_engine(true_sw_release_files_on_s
                         backup_re = 're1'
                 except: pass
 
-                CGI_CLI.uprint('\n')
+                CGI_CLI.uprint('\n', timestamp = 'no')
                 CGI_CLI.uprint('Routing engine MASTER=%s, BACKUP=%s on device %s' % \
                     (master_re, str(backup_re), device), tag = 'debug', no_printall = not printall)
 
@@ -3327,7 +3327,7 @@ def juniper_copy_device_files_to_other_routing_engine(true_sw_release_files_on_s
                     time.sleep(0.5)
                     dir_outputs_after_copy = RCMD.run_commands(check_dir_files_cmds, \
                         printall = printall)
-                    CGI_CLI.uprint('\n')
+                    CGI_CLI.uprint('\n', timestamp = 'no')
 
                     file_not_found_list = []
                     for unique_dir, dir_output_after_copy in zip(unique_device_directory_list, dir_outputs_after_copy):
@@ -3606,7 +3606,7 @@ def delete_files(device = None, unique_device_directory_list = None, \
         time.sleep(0.5)
         dir_outputs_after_deletion = RCMD.run_commands(check_dir_files_cmds, \
             printall = printall)
-        CGI_CLI.uprint('\n')
+        CGI_CLI.uprint('\n', timestamp = 'no')
         file_not_deleted = False
         for unique_dir in unique_device_directory_list:
             for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
@@ -4208,7 +4208,7 @@ try:
                 ('\n'.join([ '%s/%s    %s    %s    %.2fMB' % \
                 (directory,file,md5,dev_dir,float(fsize)/1048576) for directory,dev_dir,file,md5,fsize in true_sw_release_files_on_server ])),\
                 color = 'blue')
-            CGI_CLI.uprint('\n')
+            CGI_CLI.uprint('\n', timestamp = 'no')
         else: sys.exit(0)
 
     ### MAKE ALL SUB-DIRECTORIES ONE BY ONE ###################################
@@ -4263,7 +4263,7 @@ try:
                         unique_device_directory_list = unique_device_directory_list, \
                         true_sw_release_files_on_server = true_sw_release_files_on_server,\
                         printall = printall)
-            
+
                 disk_low_space_devices = check_free_disk_space_on_devices(\
                     device_list = device_list, \
                     missing_files_per_device_list = missing_files_per_device_list, \
@@ -4434,7 +4434,7 @@ try:
 
                     cfgfiles_cmds_outputs = RCMD.run_commands(check_dir_cfgfiles_cmds, \
                         autoconfirm_mode = True, printall = printall)
-                    CGI_CLI.uprint('\n')
+                    CGI_CLI.uprint('\n', timestamp = 'no')
 
                     if RCMD.router_type == 'cisco_xr':
                         if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[0] \
