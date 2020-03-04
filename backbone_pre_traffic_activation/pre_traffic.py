@@ -2319,6 +2319,9 @@ authentication {
     swan_id = str()
     precheck_mode = True
     global_logfilename = str()
+    test_mode = None
+    table_test_extension = str()
+
 
     ### GCI_CLI INIT ##########################################################
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = None, css_style = CSS_STYLE)
@@ -2326,6 +2329,12 @@ authentication {
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
     printall = CGI_CLI.data.get("printall")
     #printall = True
+
+    if CGI_CLI.data.get("test-version",str()) == 'test-mode' \
+        or CGI_CLI.data.get("test-version",str()) == 'test mode':
+            test_mode = True
+            table_test_extension = '_test'
+
 
     ### ACTION TYPE ###########################################################
     action_type = 'bbactivation'
@@ -2453,7 +2462,7 @@ authentication {
 
                 ### TEST IF SWAN ALREADY RECORD EXISTS ########################
                 sql_read_data = sql_inst.sql_read_records_to_dict_list( \
-                    table_name = 'pre_post_result', \
+                    table_name = 'pre_post_result' + table_test_extension, \
                     where_string = "swan_id='%s' and router_name='%s' and int_name='%s'" \
                          % (swan_id, device.upper(), interface_id) )
 
@@ -2463,20 +2472,20 @@ authentication {
                 if len(sql_read_data) > 0:
                     if CGI_CLI.data.get('submit',str()) == 'Sign precheck':
                         sql_read_data[0]['precheck_signed'] = '%s %s' % (CGI_CLI.get_date_and_time(), USERNAME)
-                        sql_inst.sql_write_table_from_dict('pre_post_result', sql_read_data[0],
+                        sql_inst.sql_write_table_from_dict('pre_post_result' + table_test_extension, sql_read_data[0],
                             where_string = "swan_id='%s' and router_name='%s' and int_name='%s'" \
                             % (swan_id, device.upper(), interface_id), update = True)
                         sql_read_data = sql_inst.sql_read_records_to_dict_list( \
-                            table_name = 'pre_post_result', \
+                            table_name = 'pre_post_result' + table_test_extension, \
                             where_string = "swan_id='%s' and router_name='%s' and int_name='%s'" \
                                  % (swan_id, device.upper(), interface_id) )
                     if CGI_CLI.data.get('submit',str()) == 'Sign postcheck':
                         sql_read_data[0]['postcheck_signed'] = '%s %s' % (CGI_CLI.get_date_and_time(), USERNAME)
-                        sql_inst.sql_write_table_from_dict('pre_post_result', sql_read_data[0],
+                        sql_inst.sql_write_table_from_dict('pre_post_result' + table_test_extension, sql_read_data[0],
                             where_string = "swan_id='%s' and router_name='%s' and int_name='%s'" \
                             % (swan_id, device.upper(), interface_id), update = True)
                         sql_read_data = sql_inst.sql_read_records_to_dict_list( \
-                            table_name = 'pre_post_result', \
+                            table_name = 'pre_post_result' + table_test_extension, \
                             where_string = "swan_id='%s' and router_name='%s' and int_name='%s'" \
                                  % (swan_id, device.upper(), interface_id) )
                 else: CGI_CLI.uprint("No record found in db!", tag = 'warning')
@@ -2496,23 +2505,23 @@ authentication {
 
         ### TEST IF SWAN ALREADY RECORD EXISTS ########################
         sql_read_data = sql_inst.sql_read_records_to_dict_list( \
-            table_name = 'pre_post_result', \
+            table_name = 'pre_post_result' + table_test_extension, \
             where_string = "swan_id='%s'" % (swan_id) )
 
         ### WARNING MESSAGE ###########################################
         if len(sql_read_data) > 0:
             if CGI_CLI.data.get('reinit_swan_id'):
-                CGI_CLI.uprint("WARNING: REINIT swan_id='%s' record(s) in pre_post_result table in DB." \
-                     % (swan_id), color = 'red')
+                CGI_CLI.uprint("WARNING: REINIT swan_id='%s' record(s) in pre_post_result%s table in DB." \
+                     % (swan_id, table_test_extension), color = 'red')
             else:
-                CGI_CLI.uprint("WARNING: swan_id='%s' record(s) already exist(s) in pre_post_result table in DB! Aborting..." \
-                     % (swan_id), color = 'red')
+                CGI_CLI.uprint("WARNING: swan_id='%s' record(s) already exist(s) in pre_post_result%s table in DB! Aborting..." \
+                     % (swan_id, table_test_extension), color = 'red')
                 sys.exit(0)
 
         for device, interface_list in device_interface_id_list:
             for interface_id in interface_list:
                 pre_post_template = sql_inst.sql_read_all_table_columns_to_void_dict(\
-                    'pre_post_result', ommit_columns = ['id','last_updated'])
+                    'pre_post_result' + table_test_extension, ommit_columns = ['id','last_updated'])
 
                 pre_post_template['swan_id'] = swan_id
                 pre_post_template['router_name'] = device.upper()
@@ -2524,7 +2533,7 @@ authentication {
 
                 ### TEST IF SWAN ALREADY RECORD EXISTS ########################
                 sql_read_data = sql_inst.sql_read_records_to_dict_list( \
-                    table_name = 'pre_post_result', \
+                    table_name = 'pre_post_result' + table_test_extension, \
                     where_string = "swan_id='%s' and router_name='%s' and int_name='%s'" \
                          % (swan_id, device.upper(), interface_id) )
 
@@ -2543,18 +2552,18 @@ authentication {
                         del sql_read_data[0]['id']
                         del sql_read_data[0]['last_updated']
                     except: pass
-                    sql_inst.sql_write_table_from_dict('pre_post_result', sql_read_data[0],
+                    sql_inst.sql_write_table_from_dict('pre_post_result' + table_test_extension, sql_read_data[0],
                         where_string = "swan_id='%s' and router_name='%s' and int_name='%s'" \
                             % (swan_id, device.upper(), interface_id), update = True)
 
                 else:
-                    sql_inst.sql_write_table_from_dict('pre_post_result', pre_post_template)
+                    sql_inst.sql_write_table_from_dict('pre_post_result' + table_test_extension, pre_post_template)
                     CGI_CLI.uprint ("RECORD swan_id='%s' and router_name='%s' and int_name='%s' DONE." \
                         % (swan_id, device.upper(), interface_id))
 
                 ### TEST IF SWAN ALREADY RECORD EXISTS ########################
                 sql_read_data = sql_inst.sql_read_records_to_dict_list( \
-                    table_name = 'pre_post_result', \
+                    table_name = 'pre_post_result' + table_test_extension, \
                     where_string = "swan_id='%s' and router_name='%s' and int_name='%s'" \
                          % (swan_id, device.upper(), interface_id) )
                 CGI_CLI.uprint(sql_read_data, name = 'DB_READ_CHECK', jsonprint = True)
@@ -3500,10 +3509,10 @@ authentication {
                 ### AVOID OF REWRITING SQL PRE/POST DB FIELDS #################
                 if precheck_mode:
                     pre_post_template = sql_inst.sql_read_all_table_columns_to_void_dict(\
-                        'pre_post_result', ommit_columns = ['id','postcheck_result','postcheck_log'])
+                        'pre_post_result' + table_test_extension, ommit_columns = ['id','postcheck_result','postcheck_log'])
                 else:
                      pre_post_template = sql_inst.sql_read_all_table_columns_to_void_dict(\
-                        'pre_post_result', ommit_columns = ['id','precheck_result','precheck_log'])
+                        'pre_post_result' + table_test_extension, ommit_columns = ['id','precheck_result','precheck_log'])
 
                 pre_post_template['swan_id'] = swan_id
                 pre_post_template['router_name'] = device.upper()
@@ -3522,7 +3531,7 @@ authentication {
 
                 ### TEST IF SWAN ALREADY RECORD EXISTS ########################
                 sql_read_data = sql_inst.sql_read_records_to_dict_list( \
-                    table_name = 'pre_post_result', \
+                    table_name = 'pre_post_result' + table_test_extension, \
                     where_string = "swan_id='%s' and router_name='%s' and int_name='%s'" \
                          % (swan_id, device.upper(), interface_id) )
 
@@ -3546,15 +3555,15 @@ authentication {
                     try:
                         del sql_read_data[0]['id']
                     except: pass
-                    sql_inst.sql_write_table_from_dict('pre_post_result', sql_read_data[0],
+                    sql_inst.sql_write_table_from_dict('pre_post_result' + table_test_extension, sql_read_data[0],
                         where_string = "swan_id='%s' and router_name='%s' and int_name='%s'" \
                             % (swan_id, device.upper(), interface_id), update = True)
                 else:
-                    sql_inst.sql_write_table_from_dict('pre_post_result', pre_post_template)
+                    sql_inst.sql_write_table_from_dict('pre_post_result' + table_test_extension, pre_post_template)
 
                 ### TEST IF SWAN ALREADY RECORD EXISTS ########################
                 sql_read_data = sql_inst.sql_read_records_to_dict_list( \
-                    table_name = 'pre_post_result', \
+                    table_name = 'pre_post_result' + table_test_extension, \
                     where_string = "swan_id='%s' and router_name='%s' and int_name='%s'" \
                          % (swan_id, device.upper(), interface_id) )
                 CGI_CLI.uprint(sql_read_data, name = 'DB_READ_CHECK', jsonprint = True)
