@@ -2570,11 +2570,11 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                         if RCMD.router_type == 'juniper':
                             CGI_CLI.uprint('Device=%s, re0_File=%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
                                 (device,file1,file_found_on_device,md5_ok,file_size_ok_on_device), \
-                                tag = 'debug', no_printall = not printall)
+                                tag = 'debug', no_printall = not printall, timestamp = 'no')
                         else:
                             CGI_CLI.uprint('Device=%s, File=%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
                                 (device,file1,file_found_on_device,md5_ok,file_size_ok_on_device), \
-                                tag = 'debug', no_printall = not printall)
+                                tag = 'debug', no_printall = not printall, timestamp = 'no')
 
 
             ### ===============================================================
@@ -2642,7 +2642,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                                         [device,[directory, dev_dir, file, md5, fsize]])
                         CGI_CLI.uprint('Device=%s, re1_File=%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
                             (device, file1, file_found_on_device, md5_ok, file_size_ok_on_device), \
-                            tag = 'debug', no_printall = not printall)
+                            tag = 'debug', no_printall = not printall, timestamp = 'no')
 
             ### HUAWEI SLAVE#CFCARD FILES CHECK ###############################
             if RCMD.router_type == 'huawei':
@@ -2722,7 +2722,7 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                                         [device,[directory, dev_dir, file, md5, fsize]])
                         CGI_CLI.uprint('Device=%s, SlaveFile=%s, found=%s, md5_ok=%s, filesize_ok=%s' % \
                             (device, file1,file_found_on_device,md5_ok,file_size_ok_on_device), \
-                            tag = 'debug', no_printall = not printall)
+                            tag = 'debug', no_printall = not printall, timestamp = 'no')
 
 
             ### HUAWEI COMPATIBILITY CHECK ####################################
@@ -2773,18 +2773,19 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
             directory, dev_dir, file, md5, fsize = missing_or_bad_files_per_device
             CGI_CLI.uprint('%s    %s' % \
                     (device, device_drive_string + os.path.join(dev_dir, file)),\
-                    color = files_color)
+                    color = files_color, timestamp = 'no')
         ### PRINT SLAVE/BACKUP RE FILES #######################################
         for device,missing_or_bad_files_per_device in slave_missing_files_per_device_list:
             directory, dev_dir, file, md5, fsize = missing_or_bad_files_per_device
             if RCMD.router_type == 'juniper':
                 if CGI_CLI.data.get('ignore_missing_backup_re_on_junos'): pass
                 else: CGI_CLI.uprint('%s    re1:%s' % \
-                        (device, os.path.join(dev_dir, file)), color = files_color)
+                        (device, os.path.join(dev_dir, file)), color = files_color, \
+                        timestamp = 'no')
             else:
                 CGI_CLI.uprint('%s    slave#%s' % \
                     (device, device_drive_string + os.path.join(dev_dir, file)),\
-                    color = files_color)
+                    color = files_color, timestamp = 'no')
         CGI_CLI.uprint(end_tag = 'p', timestamp = 'no')
 
     ### DEBUG PRINTOUTS #######################################################
@@ -3052,10 +3053,10 @@ def check_free_disk_space_on_devices(device_list = None, \
     ### JUST PRINT TABLE HEADER ###
     if RCMD.router_type == 'juniper':
         CGI_CLI.uprint('Device    Disk_needed    re0_Disk_free    re1_Disk_free:', \
-            tag = 'h3' , color = 'blue')
+            tag = 'h3' , color = 'blue', timestamp = 'no')
     else:
         CGI_CLI.uprint('Device    Disk_needed    Disk_free    (Slave)Disk_free:', \
-            tag = 'h3' , color = 'blue')
+            tag = 'h3' , color = 'blue', timestamp = 'no')
 
 
     ### CHECK FREE SPACE ######################################################
@@ -3072,12 +3073,12 @@ def check_free_disk_space_on_devices(device_list = None, \
             if slave_disk_free == -1:
                 CGI_CLI.uprint('%s    %.2f MB    %.2f MB    ---' % (device, \
                     float(disk_reguired)/1048576, \
-                    float(disk_free)/1048576), color = 'red')
+                    float(disk_free)/1048576), color = 'red', timestamp = 'no')
             else:
                 CGI_CLI.uprint('%s    %.2f MB    %.2f MB    %.2f MB' % (device, \
                     float(disk_reguired)/1048576, \
                     float(disk_free)/1048576, \
-                    float(slave_disk_free)/1048576), color = 'red')
+                    float(slave_disk_free)/1048576), color = 'red', timestamp = 'no')
 
         ### FREE SPACE BELOW MINIMUM ##########################################
         elif disk_free < (device_expected_MB_free * 1048576) or \
@@ -3089,12 +3090,12 @@ def check_free_disk_space_on_devices(device_list = None, \
             if slave_disk_free == -1:
                 CGI_CLI.uprint('%s    %.2f MB    %.2f MB    ---' % (device, \
                     float(disk_reguired)/1048576, \
-                    float(disk_free)/1048576), color = 'red')
+                    float(disk_free)/1048576), color = 'red', timestamp = 'no')
             else:
                 CGI_CLI.uprint('%s    %.2f MB    %.2f MB    %.2f MB' % (device, \
                     float(disk_reguired)/1048576, \
                     float(disk_free)/1048576, \
-                    float(slave_disk_free)/1048576), color = 'red')
+                    float(slave_disk_free)/1048576), color = 'red', timestamp = 'no')
 
         ### SOME GB FREE EXPECTED (1MB=1048576, 1GB=1073741824) ###############
         elif (disk_free + (device_expected_MB_free * 1048576) < disk_reguired) \
@@ -3107,12 +3108,12 @@ def check_free_disk_space_on_devices(device_list = None, \
             if slave_disk_free == -1:
                 CGI_CLI.uprint('%s    %.2f MB    %.2f MB    ---' % (device, \
                     float(disk_reguired)/1048576, \
-                    float(disk_free)/1048576), color = 'red')
+                    float(disk_free)/1048576), color = 'red', timestamp = 'no')
             else:
                 CGI_CLI.uprint('%s    %.2f MB    %.2f MB    %.2f MB' % (device, \
                     float(disk_reguired)/1048576, \
                     float(disk_free)/1048576, \
-                    float(slave_disk_free)/1048576), color = 'red')
+                    float(slave_disk_free)/1048576), color = 'red', timestamp = 'no')
 
         ### JUNIPER NEEDS TWICE SPACE FOR LOCAL COPY OF FILES ON RE0 AND RE1 ###
         elif RCMD.router_type == 'juniper' and \
@@ -3126,22 +3127,22 @@ def check_free_disk_space_on_devices(device_list = None, \
                 if slave_disk_free == -1:
                     CGI_CLI.uprint('%s    %.2f MB    %.2f MB    ---' % (device, \
                         float(disk_reguired)/1048576, \
-                        float(disk_free)/1048576), color = 'red')
+                        float(disk_free)/1048576), color = 'red', timestamp = 'no')
                 else:
                     CGI_CLI.uprint('%s    %.2f MB    %.2f MB    %.2f MB' % (device, \
                         float(disk_reguired)/1048576, \
                         float(disk_free)/1048576, \
-                        float(slave_disk_free)/1048576), color = 'red')
+                        float(slave_disk_free)/1048576), color = 'red', timestamp = 'no')
         else:
             if slave_disk_free == -1:
                 CGI_CLI.uprint('%s    %.2f MB    %.2f MB    ---' % (device,
                     float(disk_reguired)/1048576, \
-                    float(disk_free)/1048576), color = 'blue')
+                    float(disk_free)/1048576), color = 'blue', timestamp = 'no')
             else:
                 CGI_CLI.uprint('%s    %.2f MB    %.2f MB    %.2f MB' % (device,
                     float(disk_reguired)/1048576, \
                     float(disk_free)/1048576, \
-                    float(slave_disk_free)/1048576), color = 'blue')
+                    float(slave_disk_free)/1048576), color = 'blue', timestamp = 'no')
 
     ### PRINT SPACE CHECK RESULTS ############################################
     if len(disk_low_space_devices) > 0:
