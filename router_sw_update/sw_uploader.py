@@ -2882,7 +2882,8 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
     elif CGI_CLI.data.get('check_device_sw_files_only') or check_mode:
         if len(missing_files_per_device_list) == 0 and len(compatibility_problem_list) == 0: pass
         else:
-            CGI_CLI.uprint('Sw release file(s) on device(s) - CHECK FAILED!' , tag = 'h1', color = 'red')
+            result = 'Sw release file(s) on device(s) - CHECK FAILED!'
+            CGI_CLI.uprint(result , tag = 'h1', color = 'red')
             global_result_list.append([copy.deepcopy(result),False])
 
     ### END IN CHECK_DEVICE_FILES_ONLY MODE, BECAUSE OF X TIMES SCP TRIES #####
