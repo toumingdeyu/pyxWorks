@@ -3767,7 +3767,6 @@ def terminate_process_term(signalNumber, frame):
     CGI_CLI.uprint(result, color = 'magenta')
     CGI_CLI.result_list.append([copy.deepcopy(result), 'magenta'])
     RCMD.disconnect()
-    send_log_by_email()
     sys.exit(0)
 
 ###############################################################################
