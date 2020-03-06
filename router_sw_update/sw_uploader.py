@@ -517,7 +517,7 @@ class CGI_CLI(object):
                     for column in table_line_list:
                         CGI_CLI.uprint(format_string % (column), color = color, printall = True)
         if CGI_CLI.cgi_active and end_table:
-            CGI_CLI.print_chunk('</table>', raw_log = True, printall = True)
+            CGI_CLI.print_chunk('</table><br/>', raw_log = True, printall = True)
 
 
 
@@ -3268,7 +3268,7 @@ def check_free_disk_space_on_devices(device_list = None, \
             first_only += 1
             ### JUST PRINT TABLE HEADER ###
             if RCMD.router_type == 'juniper':
-                if slave_disk_free == -1:
+                if slave_disk_free != -1:
                     CGI_CLI.tableprint(['Device', 'Disk_needed', 're0 disk free', 're1 disk free'], header = True, color = 'blue')
                 else:
                     CGI_CLI.tableprint(['Device', 'Disk_needed', 're0 disk free'], header = True, color = 'blue')
