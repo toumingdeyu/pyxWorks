@@ -3276,11 +3276,27 @@ def check_free_disk_space_on_devices(device_list = None, \
                     float(slave_disk_free)/1048576), color = 'red', timestamp = 'no')
 
         ### SOME GB FREE EXPECTED (1MB=1048576, 1GB=1073741824) ###############
-        elif (disk_free + (device_expected_MB_free * 1048576) < disk_reguired) \
-            or (slave_disk_free != -1 \
-            and (slave_disk_free + (device_expected_MB_free * 1048576) < disk_reguired)):
+        elif (disk_free <= disk_reguired) \
+            or (slave_disk_free != -1 and (slave_disk_free <= disk_reguired)):
 
-            error_string += 'Not enough space to copy files on %s!\n' % (device)
+            error_string += 'Not enough space to copy files on %s! Not possible to copy files.\n' % (device)
+            disk_low_space_devices.append(device)
+
+            if slave_disk_free == -1:
+                CGI_CLI.uprint('%s    %.2f MB    %.2f MB    ---' % (device, \
+                    float(disk_reguired)/1048576, \
+                    float(disk_free)/1048576), color = 'red', timestamp = 'no')
+            else:
+                CGI_CLI.uprint('%s    %.2f MB    %.2f MB    %.2f MB' % (device, \
+                    float(disk_reguired)/1048576, \
+                    float(disk_free)/1048576, \
+                    float(slave_disk_free)/1048576), color = 'red', timestamp = 'no')
+
+        ### SOME GB FREE EXPECTED (1MB=1048576, 1GB=1073741824) ###############
+        elif (disk_free <= disk_reguired + (device_expected_MB_free * 1048576)) \
+            or (slave_disk_free != -1 and (slave_disk_free < disk_reguired + (device_expected_MB_free * 1048576))):
+
+            error_string += 'Not enough space to copy files on %s! Space after copy will be less than %sMB!\n' % (device,str(device_expected_MB_free))
             disk_low_space_devices.append(device)
 
             if slave_disk_free == -1:
