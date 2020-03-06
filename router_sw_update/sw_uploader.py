@@ -496,16 +496,16 @@ class CGI_CLI(object):
             color_string = ' style="color:%s;"' % (color) if color else str()
             if CGI_CLI.cgi_active:
                 if header:
-                    CGI_CLI.print_chunk('<table style="width:70%"><tr>', raw_log = True)
+                    CGI_CLI.print_chunk('<table style="width:70%"><tr>', raw_log = True, printall = True)
                     for column in table_line_list:
                         CGI_CLI.print_chunk('<th%s>%s</th>' % \
-                            (color_string, table_line_list), raw_log = True)
+                            (color_string, column), raw_log = True,, printall = True)
                 else:
                     for column in table_line_list:
                         CGI_CLI.print_chunk('<td%s>%s</td>' % \
-                            (color_string, table_line_list), raw_log = True)
+                            (color_string, column), raw_log = True, printall = True)
                 if table_line_list and len (table_line_list) > 0:
-                    CGI_CLI.print_chunk('</tr>', raw_log = True)
+                    CGI_CLI.print_chunk('</tr>', raw_log = True, printall = True)
             else:
                 chars_per_column = 0
                 if table_line_list and len(table_line_list) > 0:
@@ -515,9 +515,9 @@ class CGI_CLI(object):
                     for column in table_line_list:
                         format_string += '%ds' % (chars_per_column)
                     for column in table_line_list:
-                        CGI_CLI.uprint(format_string % (column), color = color)
+                        CGI_CLI.uprint(format_string % (column), color = color, printall = True)
         if CGI_CLI.cgi_active and end_table:
-            CGI_CLI.print_chunk('</table>', raw_log = True)
+            CGI_CLI.print_chunk('</table>', raw_log = True, printall = True)
 
 
 
