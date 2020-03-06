@@ -3765,7 +3765,7 @@ def delete_files(device = None, unique_device_directory_list = None, \
 def terminate_process_term(signalNumber, frame):
     result = 'SIGTERM RECEIVED - terminating the process'
     CGI_CLI.uprint(result, color = 'magenta')
-    CGI_CLI.CGI_CLI.result_list.append([copy.deepcopy(result), 'magenta'])
+    CGI_CLI.result_list.append([copy.deepcopy(result), 'magenta'])
     RCMD.disconnect()
     send_log_by_email()
     sys.exit(0)
