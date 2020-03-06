@@ -496,7 +496,7 @@ class CGI_CLI(object):
             color_string = ' style="color:%s;"' % (color) if color else str()
             if CGI_CLI.cgi_active:
                 if header:
-                    CGI_CLI.print_chunk('<table style="width:70%"><tr>', raw_log = True, printall = True)
+                    CGI_CLI.print_chunk('<table border="1" style="width:70%"><tr>', raw_log = True, printall = True)
                     for column in table_line_list:
                         CGI_CLI.print_chunk('<th%s>%s</th>' % \
                             (color_string, column), raw_log = True, printall = True)
