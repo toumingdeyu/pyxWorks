@@ -16,6 +16,7 @@ import glob
 import socket
 import six
 import collections
+import signal
 
 import cgi
 #import cgitb; cgitb.enable()
@@ -3151,23 +3152,23 @@ def check_free_disk_space_on_devices(device_list = None, \
                     float(slave_disk_free)/1048576), color = 'red', timestamp = 'no')
 
         ### JUNIPER NEEDS TWICE SPACE FOR LOCAL COPY OF FILES ON RE0 AND RE1 ###
-        elif RCMD.router_type == 'juniper' and \
-            ((disk_free + (device_expected_MB_free * 1048576) < disk_reguired + maximal_filesize) \
-            or (slave_disk_free != -1 \
-            and (slave_disk_free + (device_expected_MB_free * 1048576)) < disk_reguired + maximal_filesize)):
-                error_string += 'Not enough space to copy files from re0 to re1 on %s!\n' % (device)
-                error_string += 'NOTE: Copy of files needs twice as space as max. filesize on re0.\n'
-                disk_low_space_devices.append(device)
+        # elif RCMD.router_type == 'juniper' and \
+            # ((disk_free + (device_expected_MB_free * 1048576) < disk_reguired + maximal_filesize) \
+            # or (slave_disk_free != -1 \
+            # and (slave_disk_free + (device_expected_MB_free * 1048576)) < disk_reguired + maximal_filesize)):
+                # error_string += 'Not enough space to copy files from master re to backup re on %s!\n' % (device)
+                # error_string += 'NOTE: Copy of files needs twice as space as max. filesize on re0.\n'
+                # disk_low_space_devices.append(device)
 
-                if slave_disk_free == -1:
-                    CGI_CLI.uprint('%s    %.2f MB    %.2f MB    ---' % (device, \
-                        float(disk_reguired)/1048576, \
-                        float(disk_free)/1048576), color = 'red', timestamp = 'no')
-                else:
-                    CGI_CLI.uprint('%s    %.2f MB    %.2f MB    %.2f MB' % (device, \
-                        float(disk_reguired)/1048576, \
-                        float(disk_free)/1048576, \
-                        float(slave_disk_free)/1048576), color = 'red', timestamp = 'no')
+                # if slave_disk_free == -1:
+                    # CGI_CLI.uprint('%s    %.2f MB    %.2f MB    ---' % (device, \
+                        # float(disk_reguired)/1048576, \
+                        # float(disk_free)/1048576), color = 'red', timestamp = 'no')
+                # else:
+                    # CGI_CLI.uprint('%s    %.2f MB    %.2f MB    %.2f MB' % (device, \
+                        # float(disk_reguired)/1048576, \
+                        # float(disk_free)/1048576, \
+                        # float(slave_disk_free)/1048576), color = 'red', timestamp = 'no')
         else:
             if slave_disk_free == -1:
                 CGI_CLI.uprint('%s    %.2f MB    %.2f MB    ---' % (device,
@@ -3741,7 +3742,46 @@ def delete_files(device = None, unique_device_directory_list = None, \
         ### DISCONNECT ################################################
         if local_connect: RCMD.disconnect()
 
+###############################################################################
 
+def send_log_by_email():
+    if logfilename:
+        if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, logfilename)
+        else: logviewer = './logviewer.py?logfile=%s' % (logfilename)
+        if CGI_CLI.cgi_active:
+            CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
+                % (logviewer, logfilename), raw = True, color = 'blue')
+            CGI_CLI.uprint('<br/>', raw_log = True)
+        else:
+            CGI_CLI.uprint(' ==> File %s created.\n\n' % (logfilename))
+
+        CGI_CLI.set_logfile(logfilename = None)
+
+        ### SEND EMAIL WITH LOGFILE ###########################################
+        send_me_email( \
+            subject = logfilename.replace('\\','/').split('/')[-1] if logfilename else None, \
+            file_name = logfilename, username = USERNAME)
+
+###############################################################################
+
+def print_results():
+    CGI_CLI.uprint('\nResults:', tag = 'h1')
+    for result, color in global_result_list:
+        CGI_CLI.uprint(result , tag = 'h1', color = color)
+
+###############################################################################
+
+def terminate_process_term(signalNumber, frame):
+    global global_result_list
+    result = 'SIGTERM RECEIVED - terminating the process'
+    CGI_CLI.uprint(result, color = 'magenta')
+    global_result_list.append([copy.deepcopy(result), 'magenta'])    
+    RCMD.disconnect()
+    print_results()
+    send_log_by_email()
+    sys.exit(0)
+
+###############################################################################
 
 
 ###############################################################################
@@ -3752,6 +3792,9 @@ def delete_files(device = None, unique_device_directory_list = None, \
 
 if __name__ != "__main__": sys.exit(0)
 try:
+
+    signal.signal(signal.SIGTERM, terminate_process_term)
+
     CSS_STYLE = """
 authentication {
   color: #cc0000;
@@ -4682,33 +4725,16 @@ function validateForm() {
                 RCMD.disconnect()
 
     ### FINAL RESULT PRINTOUTS ################################################
-    CGI_CLI.uprint('\nResults:', tag = 'h1')
-    for result, color in global_result_list:
-        CGI_CLI.uprint(result , tag = 'h1', color = color)
+    print_results()
 
     del sql_inst
 except SystemExit: pass
 except:
     traceback_found = True
-    CGI_CLI.uprint(traceback.format_exc(), tag = 'h3',color = 'magenta')
+    CGI_CLI.uprint(traceback.format_exc(), tag = 'h3', color = 'magenta')
 
 ### PRINT LOGFILENAME #########################################################
-if logfilename:
-    if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, logfilename)
-    else: logviewer = './logviewer.py?logfile=%s' % (logfilename)
-    if CGI_CLI.cgi_active:
-        CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
-            % (logviewer, logfilename), raw = True, color = 'blue')
-        CGI_CLI.uprint('<br/>', raw_log = True)
-    else:
-        CGI_CLI.uprint(' ==> File %s created.\n\n' % (logfilename))
-
-    CGI_CLI.set_logfile(logfilename = None)
-
-    ### SEND EMAIL WITH LOGFILE ###############################################
-    send_me_email( \
-        subject = logfilename.replace('\\','/').split('/')[-1] if logfilename else None, \
-        file_name = logfilename, username = USERNAME)
+send_log_by_email()
 
 ### SEND EMAIL WITH ERROR/TRACEBACK LOGFILE TO SUPPORT ########################
 if traceback_found:
