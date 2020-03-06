@@ -178,6 +178,7 @@ class CGI_CLI(object):
         """
         log - start to log all after logfilename is inserted
         """
+        CGI_CLI.result_list = []
         CGI_CLI.self_buttons = ['OK','STOP']
         CGI_CLI.START_EPOCH = time.time()
         CGI_CLI.http_status = 200
@@ -580,6 +581,7 @@ class CGI_CLI(object):
             i_pyfile = sys.argv[0]
             try: pyfile = i_pyfile.replace('\\','/').split('/')[-1].strip()
             except: pyfile = i_pyfile.strip()
+            CGI_CLI.print_result_summary()
             if CGI_CLI.cgi_active:
                 CGI_CLI.print_chunk('<p id="scriptend"></p>', raw_log = True, printall = True)
                 CGI_CLI.print_chunk('<br/><a href = "./%s">PAGE RELOAD</a>' % (pyfile), raw_log = True, printall = True)
@@ -671,6 +673,148 @@ class CGI_CLI(object):
             return '<form action = "/cgi-bin/%s" target="_blank"><p hidden><input type="checkbox" name="pidtokill" value="%s" checked="checked"></p><input type="submit" name="submit" value="STOP"></form>' \
                 % (sys.argv[0].replace('\\','/').split('/')[-1].strip() if '/' or '\\' in sys.argv[0] else sys.argv[0],str(pid))
         return str()
+
+    @staticmethod
+    def send_me_email(subject = str(), email_body = str(), file_name = None, attachments = None, \
+        email_address = None, cc = None, bcc = None, username = None):
+        """
+        FUCTION: send_me_email, RETURNS: True/None, Successfully send email or not
+        INPUT PARAMETERS:
+        email_address - string, email address if is known, otherwise use username parameter
+        username    - string, system username from which could be generated email
+        subject     - string, email subject
+        email_body  - string, email body
+        cc, bcc     - list or string, in case of list possibility to insert more email addresses
+        attachments - list or string , possibility to attach more files
+        file_name   - string, simple file attachment option
+        """
+        def send_unix_email_body(mail_command):
+            email_success = None
+            try:
+                forget_it = subprocess.check_output(mail_command, shell=True)
+                CGI_CLI.uprint(' ==> Email sent. Subject:"%s" SentTo:%s by COMMAND=[%s] with RESULT=[%s]...'\
+                    %(subject,sugested_email_address,mail_command,forget_it), color = 'green')
+                email_success = True
+            except Exception as e:
+                CGI_CLI.uprint(" ==> Problem to send email by COMMAND=[%s], PROBLEM=[%s]\n"\
+                    % (mail_command,str(e)) ,color = 'magenta', no_printall = not printall)
+            return email_success
+
+        ### FUCTION send_me_email START ###########################################
+        email_sent, sugested_email_address = None, str()
+        if username: my_account = username
+        else: my_account = subprocess.check_output('whoami', shell=True).strip()
+        if email_address: sugested_email_address = email_address
+        if not 'WIN32' in sys.platform.upper():
+            try:
+                ldapsearch_output = subprocess.check_output('ldapsearch -LLL -x uid=%s mail' % (my_account), shell=True)
+                ldap_email_address = ldapsearch_output.decode("utf-8").split('mail:')[1].splitlines()[0].strip()
+            except: ldap_email_address = None
+            if ldap_email_address: sugested_email_address = ldap_email_address
+            else:
+                try: sugested_email_address = os.environ['NEWR_EMAIL']
+                except: pass
+                if not sugested_email_address:
+                    try:
+                        my_getent_line = ' '.join((subprocess.check_output('getent passwd "%s"'% \
+                            (my_account.strip()), shell=True)).split(':')[4].split()[:2])
+                        my_name = my_getent_line.splitlines()[0].split()[0]
+                        my_surname = my_getent_line.splitlines()[0].split()[1]
+                        if my_name and my_surname:
+                            sugested_email_address = '%s.%s@orange.com' % (my_name, my_surname)
+                    except: pass
+
+            ### UNIX - MAILX ######################################################
+            mail_command = 'echo \'%s\' | mailx -s "%s" ' % (email_body,subject)
+            if cc:
+                if isinstance(cc, six.string_types): mail_command += '-c %s' % (cc)
+                if cc and isinstance(cc, (list,tuple)): mail_command += ''.join([ '-c %s ' % (bcc_email) for bcc_email in bcc ])
+            if bcc:
+                if isinstance(bcc, six.string_types): mail_command += '-b %s' % (bcc)
+                if bcc and isinstance(bcc, (list,tuple)): mail_command += ''.join([ '-b %s ' % (bcc_email) for bcc_email in bcc ])
+            if file_name and isinstance(file_name, six.string_types) and os.path.exists(file_name):
+                mail_command += '-a %s ' % (file_name)
+            if attachments:
+                if isinstance(attachments, (list,tuple)):
+                    mail_command += ''.join([ '-a %s ' % (attach_file) for attach_file in attachments if os.path.exists(attach_file) ])
+                if isinstance(attachments, six.string_types) and os.path.exists(attachments):
+                    mail_command += '-a %s ' % (attachments)
+
+            ### IF EMAIL ADDRESS FOUND , SEND EMAIL ###############################
+            if not sugested_email_address:
+                CGI_CLI.uprint('Email Address not found!', color = 'magenta', no_printall = not printall)
+            else:
+                mail_command += '%s' % (sugested_email_address)
+                email_sent = send_unix_email_body(mail_command)
+
+                ### UNIX - MUTT ###################################################
+                if not email_sent and file_name:
+                    mail_command = 'echo | mutt -s "%s" -a %s -- %s' % \
+                        (subject, file_name, sugested_email_address)
+                    email_sent = send_unix_email_body(mail_command)
+
+
+        ### WINDOWS OS PART #######################################################
+        if 'WIN32' in sys.platform.upper():
+            ### NEEDED 'pip install pywin32'
+            #if not 'win32com.client' in sys.modules: import win32com.client
+            import win32com.client
+            olMailItem, email_application = 0, 'Outlook.Application'
+            try:
+                ol = win32com.client.Dispatch(email_application)
+                msg = ol.CreateItem(olMailItem)
+                if email_address:
+                    msg.Subject, msg.Body = subject, email_body
+                    if email_address:
+                        if isinstance(email_address, six.string_types): msg.To = email_address
+                        if email_address and isinstance(email_address, (list,tuple)):
+                            msg.To = ';'.join([ eadress for eadress in email_address if eadress != "" ])
+                    if cc:
+                        if isinstance(cc, six.string_types): msg.CC = cc
+                        if cc and isinstance(cc, (list,tuple)):
+                            msg.CC = ';'.join([ eadress for eadress in cc if eadress != "" ])
+                    if bcc:
+                        if isinstance(bcc, six.string_types): msg.BCC = bcc
+                        if bcc and isinstance(bcc, (list,tuple)):
+                            msg.BCC = ';'.join([ eadress for eadress in bcc if eadress != "" ])
+                    if file_name and isinstance(file_name, six.string_types) and os.path.exists(file_name):
+                        msg.Attachments.Add(file_name)
+                    if attachments:
+                        if isinstance(attachments, (list,tuple)):
+                            for attach_file in attachments:
+                                if os.path.exists(attach_file): msg.Attachments.Add(attach_file)
+                        if isinstance(attachments, six.string_types) and os.path.exists(attachments):
+                            msg.Attachments.Add(attachments)
+
+                msg.Send()
+                ol.Quit()
+                CGI_CLI.uprint(' ==> Email sent. Subject:"%s" SentTo:%s by APPLICATION=[%s].'\
+                    %(subject,sugested_email_address,email_application), color = 'green')
+                email_sent = True
+            except Exception as e: CGI_CLI.uprint(" ==> Problem to send email by APPLICATION=[%s], PROBLEM=[%s]\n"\
+                    % (email_application,str(e)) ,color = 'magenta')
+        return email_sent
+
+    @staticmethod
+    def print_result_summary():
+        if len(CGI_CLI.result_list) > 0: CGI_CLI.uprint('\nRESULT SUMMARY:', tag = 'h1')
+        for result, color in CGI_CLI.result_list:
+            CGI_CLI.uprint(result , tag = 'h1', color = color)
+        if logfilename:
+            if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, logfilename)
+            else: logviewer = './logviewer.py?logfile=%s' % (logfilename)
+            if CGI_CLI.cgi_active:
+                CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
+                    % (logviewer, logfilename), raw = True, color = 'blue')
+                CGI_CLI.uprint('<br/>', raw = True)
+            else:
+                CGI_CLI.uprint(' ==> File %s created.\n\n' % (logfilename))
+            CGI_CLI.set_logfile(logfilename = None)
+            ### SEND EMAIL WITH LOGFILE ###########################################
+            CGI_CLI.send_me_email( \
+                subject = logfilename.replace('\\','/').split('/')[-1] if logfilename else None, \
+                file_name = logfilename, username = USERNAME)
+
 
 
 ##############################################################################
@@ -2331,8 +2475,9 @@ def kill_stalled_scp_processes(device = None, device_file = None, printall = Non
             time.sleep(5)
             pid_list = do_check_ps(device_file = device_file, printall = printall)
         if len(pid_list) > 0:
-            CGI_CLI.uprint('PROBLEM TO KILL PROCESSES [%s] !' % (','.join(pid_list)), \
-                tag = 'h1', color = 'red')
+            result = 'PROBLEM TO KILL PROCESSES [%s] !' % (','.join(pid_list))
+            CGI_CLI.uprint(result , color = 'red')
+            CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
             sys.exit(0)
 
 
@@ -2434,7 +2579,6 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
     check_mode = True,  check device files and print failed checks
     check_mode = False, just get files needed to copy to device
     """
-    global global_result_list
     nr_of_connected_devices = 0
     all_files_on_all_devices_ok = None
     missing_files_per_device_list, slave_missing_files_per_device_list = [], []
@@ -2864,28 +3008,28 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                 color = 'red')
             result = '\nIncompatible file(s) on device(s)!'
             CGI_CLI.uprint(result, tag = 'h1', color = 'red')
-            global_result_list.append([copy.deepcopy(result), 'red'])
+            CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
 
     ### PRINT CHECK RESULTS ###################################################
     if all_files_on_all_devices_ok and len(disk_low_space_devices) == 0:
         result = 'Sw release %s file(s) on device(s) %s - CHECK OK.' % (sw_release, ', '.join(device_list))
         CGI_CLI.uprint(result, tag = 'h1', color='green')
-        global_result_list.append([copy.deepcopy(result), 'green'])
+        CGI_CLI.result_list.append([copy.deepcopy(result), 'green'])
     elif all_files_on_all_devices_ok and len(disk_low_space_devices) > 0:
         result = 'Sw release %s file(s) on device(s) %s - CHECK OK.' % \
             (sw_release, ', '.join(device_list))
         CGI_CLI.uprint(result, tag = 'h1', color='green')
-        global_result_list.append([copy.deepcopy(result), 'green'])
+        CGI_CLI.result_list.append([copy.deepcopy(result), 'green'])
         result = 'Disk space problems & sw release file(s) on device(s) %s - CHECK FAILED!' % \
             (', '.join(disk_low_space_devices))
-        global_result_list.append([copy.deepcopy(result), 'green'])
+        CGI_CLI.result_list.append([copy.deepcopy(result), 'green'])
         CGI_CLI.uprint(result, tag = 'h1', color = 'red')
     elif CGI_CLI.data.get('check_device_sw_files_only') or check_mode:
         if len(missing_files_per_device_list) == 0 and len(compatibility_problem_list) == 0: pass
         else:
             result = 'Sw release file(s) on device(s) - CHECK FAILED!'
             CGI_CLI.uprint(result , tag = 'h1', color = 'red')
-            global_result_list.append([copy.deepcopy(result), 'green'])
+            CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
 
     ### END IN CHECK_DEVICE_FILES_ONLY MODE, BECAUSE OF X TIMES SCP TRIES #####
     if CGI_CLI.data.get('check_device_sw_files_only') \
@@ -2905,8 +3049,6 @@ def check_free_disk_space_on_devices(device_list = None, \
     missing_files_per_device_list = None, \
     USERNAME = None, PASSWORD = None, printall = None, \
     max_file_size_even_if_already_exists_on_device = None):
-
-    global global_result_list
 
     ### SPACE = -1 MEANS UNTOUCHED/UNKNOWN/NOT EXISTENT SPACE #################
     device_free_space_in_bytes, slave_device_free_space_in_bytes = -1, -1
@@ -3183,14 +3325,14 @@ def check_free_disk_space_on_devices(device_list = None, \
     ### PRINT SPACE CHECK RESULTS ############################################
     if len(disk_low_space_devices) > 0:
         if error_string: CGI_CLI.uprint(error_string, color = 'red')
-        global_result_list.append([copy.deepcopy(error_string), 'red'])
+        CGI_CLI.result_list.append([copy.deepcopy(error_string), 'red'])
         result = 'Disk space - CHECK FAIL!'
         CGI_CLI.uprint(result, tag='h1', color = 'red')
-        global_result_list.append([copy.deepcopy(result), 'red'])
+        CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
     else:
         result = 'Disk space - CHECK OK'
         CGI_CLI.uprint(result, color = 'green')
-        global_result_list.append([copy.deepcopy(result), 'green'])
+        CGI_CLI.result_list.append([copy.deepcopy(result), 'green'])
     return disk_low_space_devices
 
 ##############################################################################
@@ -3301,16 +3443,16 @@ def copy_files_to_devices(true_sw_release_files_on_server = None, \
                             time.sleep(1)
             else: break
         if scp_fails >= MAX_SCP_FAILS:
-            CGI_CLI.uprint('ERROR - MULTIPLE (%d) SCP STALLS & RESTARTS of %s file on device %s !!!' \
-                % (MAX_SCP_FAILS, device_file, device), tag = 'h1', color = 'red')
+            result = 'ERROR - MULTIPLE (%d) SCP STALLS & RESTARTS of %s file on device %s !!!' \
+                % (MAX_SCP_FAILS, device_file, device)
+            CGI_CLI.uprint(result , tag = 'h1', color = 'red')
+            CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
             sys.exit(0)
 
 ##############################################################################
 
 def huawei_copy_device_files_to_slave_cfcard(true_sw_release_files_on_server = None,
     unique_device_directory_list = None):
-
-    global global_result_list
 
     if RCMD.router_type == 'huawei':
         for device in device_list:
@@ -3358,7 +3500,7 @@ def huawei_copy_device_files_to_slave_cfcard(true_sw_release_files_on_server = N
                 if len(file_not_found_list) > 0:
                     result = 'Copy problem from cfcard to slave#cfcard [%s] on %s!' % (','.join(file_not_found_list), device)
                     CGI_CLI.uprint(result , color = 'red')
-                    global_result_list.append([copy.deepcopy(result), 'red'])
+                    CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
                 ### DISCONNECT ################################################
                 RCMD.disconnect()
                 time.sleep(3)
@@ -3368,8 +3510,6 @@ def huawei_copy_device_files_to_slave_cfcard(true_sw_release_files_on_server = N
 
 def juniper_copy_device_files_to_other_routing_engine(true_sw_release_files_on_server = None,
     unique_device_directory_list = None):
-
-    global global_result_list
 
     missing_backup_re_list = []
     for device in device_list:
@@ -3446,7 +3586,7 @@ def juniper_copy_device_files_to_other_routing_engine(true_sw_release_files_on_s
                     if len(file_not_found_list) > 0:
                         result = 'Copy problem from master re to backup re [%s] on %s!' % (','.join(file_not_found_list), device)
                         CGI_CLI.uprint(result, color = 'red')
-                        global_result_list.append([copy.deepcopy(result), 'red'])
+                        CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
             ### DISCONNECT ################################################
             RCMD.disconnect()
             time.sleep(3)
@@ -3455,7 +3595,7 @@ def juniper_copy_device_files_to_other_routing_engine(true_sw_release_files_on_s
         result = 'BACKUP routing engine is NOT PRESENT on device(s) %s!' % (','.join(missing_backup_re_list))
         CGI_CLI.uprint(result, \
             tag = 'warning')
-        global_result_list.append([copy.deepcopy(result), 'orange'])
+        CGI_CLI.result_list.append([copy.deepcopy(result), 'orange'])
     return missing_backup_re_list
 
 
@@ -3527,136 +3667,10 @@ def check_ssh_flow_rate(printall = None):
             CGI_CLI.uprint("WARNING: flow ssh known rate is below 500! SCP can stall!", \
                 tag = 'warning')
 
-
-
-###############################################################################
-
-def send_me_email(subject = str(), email_body = str(), file_name = None, attachments = None, \
-    email_address = None, cc = None, bcc = None, username = None):
-    """
-    FUCTION: send_me_email, RETURNS: True/None, Successfully send email or not
-    INPUT PARAMETERS:
-    email_address - string, email address if is known, otherwise use username parameter
-    username    - string, system username from which could be generated email
-    subject     - string, email subject
-    email_body  - string, email body
-    cc, bcc     - list or string, in case of list possibility to insert more email addresses
-    attachments - list or string , possibility to attach more files
-    file_name   - string, simple file attachment option
-    """
-    def send_unix_email_body(mail_command):
-        email_success = None
-        try:
-            forget_it = subprocess.check_output(mail_command, shell=True)
-            CGI_CLI.uprint(' ==> Email sent. Subject:"%s" SentTo:%s by COMMAND=[%s] with RESULT=[%s]...'\
-                %(subject,sugested_email_address,mail_command,forget_it), color = 'green')
-            email_success = True
-        except Exception as e:
-            CGI_CLI.uprint(" ==> Problem to send email by COMMAND=[%s], PROBLEM=[%s]\n"\
-                % (mail_command,str(e)) ,color = 'magenta', no_printall = not printall)
-        return email_success
-
-    ### FUCTION send_me_email START ###########################################
-    email_sent, sugested_email_address = None, str()
-    if username: my_account = username
-    else: my_account = subprocess.check_output('whoami', shell=True).strip()
-    if email_address: sugested_email_address = email_address
-    if not 'WIN32' in sys.platform.upper():
-        try:
-            ldapsearch_output = subprocess.check_output('ldapsearch -LLL -x uid=%s mail' % (my_account), shell=True)
-            ldap_email_address = ldapsearch_output.decode("utf-8").split('mail:')[1].splitlines()[0].strip()
-        except: ldap_email_address = None
-        if ldap_email_address: sugested_email_address = ldap_email_address
-        else:
-            try: sugested_email_address = os.environ['NEWR_EMAIL']
-            except: pass
-            if not sugested_email_address:
-                try:
-                    my_getent_line = ' '.join((subprocess.check_output('getent passwd "%s"'% \
-                        (my_account.strip()), shell=True)).split(':')[4].split()[:2])
-                    my_name = my_getent_line.splitlines()[0].split()[0]
-                    my_surname = my_getent_line.splitlines()[0].split()[1]
-                    if my_name and my_surname:
-                        sugested_email_address = '%s.%s@orange.com' % (my_name, my_surname)
-                except: pass
-
-        ### UNIX - MAILX ######################################################
-        mail_command = 'echo \'%s\' | mailx -s "%s" ' % (email_body,subject)
-        if cc:
-            if isinstance(cc, six.string_types): mail_command += '-c %s' % (cc)
-            if cc and isinstance(cc, (list,tuple)): mail_command += ''.join([ '-c %s ' % (bcc_email) for bcc_email in bcc ])
-        if bcc:
-            if isinstance(bcc, six.string_types): mail_command += '-b %s' % (bcc)
-            if bcc and isinstance(bcc, (list,tuple)): mail_command += ''.join([ '-b %s ' % (bcc_email) for bcc_email in bcc ])
-        if file_name and isinstance(file_name, six.string_types) and os.path.exists(file_name):
-            mail_command += '-a %s ' % (file_name)
-        if attachments:
-            if isinstance(attachments, (list,tuple)):
-                mail_command += ''.join([ '-a %s ' % (attach_file) for attach_file in attachments if os.path.exists(attach_file) ])
-            if isinstance(attachments, six.string_types) and os.path.exists(attachments):
-                mail_command += '-a %s ' % (attachments)
-
-        ### IF EMAIL ADDRESS FOUND , SEND EMAIL ###############################
-        if not sugested_email_address:
-            CGI_CLI.uprint('Email Address not found!', color = 'magenta', no_printall = not printall)
-        else:
-            mail_command += '%s' % (sugested_email_address)
-            email_sent = send_unix_email_body(mail_command)
-
-            ### UNIX - MUTT ###################################################
-            if not email_sent and file_name:
-                mail_command = 'echo | mutt -s "%s" -a %s -- %s' % \
-                    (subject, file_name, sugested_email_address)
-                email_sent = send_unix_email_body(mail_command)
-
-
-    ### WINDOWS OS PART #######################################################
-    if 'WIN32' in sys.platform.upper():
-        ### NEEDED 'pip install pywin32'
-        #if not 'win32com.client' in sys.modules: import win32com.client
-        import win32com.client
-        olMailItem, email_application = 0, 'Outlook.Application'
-        try:
-            ol = win32com.client.Dispatch(email_application)
-            msg = ol.CreateItem(olMailItem)
-            if email_address:
-                msg.Subject, msg.Body = subject, email_body
-                if email_address:
-                    if isinstance(email_address, six.string_types): msg.To = email_address
-                    if email_address and isinstance(email_address, (list,tuple)):
-                        msg.To = ';'.join([ eadress for eadress in email_address if eadress != "" ])
-                if cc:
-                    if isinstance(cc, six.string_types): msg.CC = cc
-                    if cc and isinstance(cc, (list,tuple)):
-                        msg.CC = ';'.join([ eadress for eadress in cc if eadress != "" ])
-                if bcc:
-                    if isinstance(bcc, six.string_types): msg.BCC = bcc
-                    if bcc and isinstance(bcc, (list,tuple)):
-                        msg.BCC = ';'.join([ eadress for eadress in bcc if eadress != "" ])
-                if file_name and isinstance(file_name, six.string_types) and os.path.exists(file_name):
-                    msg.Attachments.Add(file_name)
-                if attachments:
-                    if isinstance(attachments, (list,tuple)):
-                        for attach_file in attachments:
-                            if os.path.exists(attach_file): msg.Attachments.Add(attach_file)
-                    if isinstance(attachments, six.string_types) and os.path.exists(attachments):
-                        msg.Attachments.Add(attachments)
-
-            msg.Send()
-            ol.Quit()
-            CGI_CLI.uprint(' ==> Email sent. Subject:"%s" SentTo:%s by APPLICATION=[%s].'\
-                %(subject,sugested_email_address,email_application), color = 'green')
-            email_sent = True
-        except Exception as e: CGI_CLI.uprint(" ==> Problem to send email by APPLICATION=[%s], PROBLEM=[%s]\n"\
-                % (email_application,str(e)) ,color = 'magenta')
-    return email_sent
-
 ###############################################################################
 
 def delete_files(device = None, unique_device_directory_list = None, \
     true_sw_release_files_on_server = None, printall = None):
-
-    global global_result_list
 
     local_connect = None
     if device:
@@ -3733,51 +3747,26 @@ def delete_files(device = None, unique_device_directory_list = None, \
         if file_not_deleted:
             result = '%s delete problem!' % (device)
             CGI_CLI.uprint(result, color = 'red')
-            global_result_list.append([copy.deepcopy(result), 'red'])
+            CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
         else:
             result = '%s delete done!' % (device)
             CGI_CLI.uprint(result, color = 'green')
-            global_result_list.append([copy.deepcopy(result), 'green'])
+            CGI_CLI.result_list.append([copy.deepcopy(result), 'green'])
 
         ### DISCONNECT ################################################
         if local_connect: RCMD.disconnect()
 
 ###############################################################################
 
-def send_log_by_email():
-    if logfilename:
-        if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, logfilename)
-        else: logviewer = './logviewer.py?logfile=%s' % (logfilename)
-        if CGI_CLI.cgi_active:
-            CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
-                % (logviewer, logfilename), raw = True, color = 'blue')
-            CGI_CLI.uprint('<br/>', raw = True)
-        else:
-            CGI_CLI.uprint(' ==> File %s created.\n\n' % (logfilename))
 
-        CGI_CLI.set_logfile(logfilename = None)
-
-        ### SEND EMAIL WITH LOGFILE ###########################################
-        send_me_email( \
-            subject = logfilename.replace('\\','/').split('/')[-1] if logfilename else None, \
-            file_name = logfilename, username = USERNAME)
-
-###############################################################################
-
-def print_results():
-    CGI_CLI.uprint('\nResults:', tag = 'h1')
-    for result, color in global_result_list:
-        CGI_CLI.uprint(result , tag = 'h1', color = color)
 
 ###############################################################################
 
 def terminate_process_term(signalNumber, frame):
-    global global_result_list
     result = 'SIGTERM RECEIVED - terminating the process'
     CGI_CLI.uprint(result, color = 'magenta')
-    global_result_list.append([copy.deepcopy(result), 'magenta'])    
+    CGI_CLI.CGI_CLI.result_list.append([copy.deepcopy(result), 'magenta'])
     RCMD.disconnect()
-    print_results()
     send_log_by_email()
     sys.exit(0)
 
@@ -3878,9 +3867,6 @@ function validateForm() {
     all_files_on_all_devices_ok = None
     disk_low_space_devices, compatibility_problem_list = [], []
     router_type_id_string, router_id_string = "router_type", '__'
-
-    ### [[STRING,BOOLEAN],...] ################################################
-    global_result_list = []
 
     ### GCI_CLI INIT ##########################################################
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True, css_style = CSS_STYLE)
@@ -4215,15 +4201,21 @@ function validateForm() {
     exit_due_to_error = None
 
     if len(device_list) == 0:
-        CGI_CLI.uprint('DEVICE NAME(S) NOT INSERTED!', tag = 'h2', color = 'red')
+        result = 'DEVICE NAME(S) NOT INSERTED!'
+        CGI_CLI.uprint(result, tag = 'h2', color = 'red')
+        CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
         exit_due_to_error = True
 
     if not USERNAME:
-        CGI_CLI.uprint('USERNAME NOT INSERTED!', tag = 'h2', color = 'red')
+        result = 'USERNAME NOT INSERTED!'
+        CGI_CLI.uprint(result, tag = 'h2', color = 'red')
+        CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
         exit_due_to_error = True
 
     if not PASSWORD:
-        CGI_CLI.uprint('PASSWORD NOT INSERTED!', tag = 'h2', color = 'red')
+        result = 'PASSWORD NOT INSERTED!'
+        CGI_CLI.uprint(result, tag = 'h2', color = 'red')
+        CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
         exit_due_to_error = True
 
     if exit_due_to_error: sys.exit(0)
@@ -4335,7 +4327,9 @@ function validateForm() {
 
         ### EXIT if DIRECTORY LIST IS VOID ########################################
         if len(directory_list) == 0:
-           CGI_CLI.uprint('Server install directories NOT FOUND!', color = 'red')
+           result = 'Server install directories NOT FOUND!'
+           CGI_CLI.uprint(result, color = 'red')
+           CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
            sys.exit(0)
         else:
            CGI_CLI.uprint(directory_list, name = 'directory_list', tag = 'debug', no_printall = not printall)
@@ -4389,7 +4383,9 @@ function validateForm() {
                         if not [directory,device_directory,true_file_name,md5_sum,filesize_in_bytes] in true_sw_release_files_on_server:
                             true_sw_release_files_on_server.append([directory,device_directory,true_file_name,md5_sum,filesize_in_bytes])
             if no_such_files_in_directory:
-                CGI_CLI.uprint('Specified %s file(s) NOT FOUND in %s!' % (actual_file_name,directory), color = 'red')
+                result = 'Specified %s file(s) NOT FOUND in %s!' % (actual_file_name,directory)
+                CGI_CLI.uprint(result, color = 'red')
+                CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
 
         ### PRINT LIST OF FILES OR END SCRIPT #################################
         if len(true_sw_release_files_on_server) > 0:
@@ -4412,11 +4408,12 @@ function validateForm() {
             printall = printall, \
             silent_mode = True)
 
-        ### DELETE FILES ON START - JUNIPER SHOWS BAD SIZE WHEN REWRITES ######
-        delete_files(device = device, \
-            unique_device_directory_list = unique_device_directory_list, \
-            true_sw_release_files_on_server = true_sw_release_files_on_server,\
-            printall = printall)
+        for device in device_list:
+            ### DELETE FILES ON START - JUNIPER SHOWS BAD SIZE WHEN REWRITES ##
+            delete_files(device = device, \
+                unique_device_directory_list = unique_device_directory_list, \
+                true_sw_release_files_on_server = true_sw_release_files_on_server,\
+                printall = printall)
 
         CGI_CLI.uprint('Device    All_File(s)_to_copy:', tag = 'h3', color = 'blue')
         CGI_CLI.uprint(no_newlines = True, start_tag = 'p', color = 'blue')
@@ -4643,49 +4640,49 @@ function validateForm() {
                             and not 'No such file or directory' in cfgfiles_cmds_outputs[0]:
                             result = '%s backup config done!' % (device)
                             CGI_CLI.uprint(result, color = 'green')
-                            global_result_list.append([copy.deepcopy(result), 'green'])
+                            CGI_CLI.result_list.append([copy.deepcopy(result), 'green'])
                         else: CGI_CLI.uprint('%s backup config problem!' % (device), color = 'red')
                         if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[2] \
                             and not 'No such file or directory' in cfgfiles_cmds_outputs[2]:
                             result = '%s backup admin config done!' % (device)
                             CGI_CLI.uprint(result, color = 'green')
-                            global_result_list.append([copy.deepcopy(result), 'green'])
+                            CGI_CLI.result_list.append([copy.deepcopy(result), 'green'])
                         else:
                             result = '%s backup admin config problem!' % (device)
                             CGI_CLI.uprint(result, color = 'red')
-                            global_result_list.append([copy.deepcopy(result), 'red'])
+                            CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
 
                     elif RCMD.router_type == 'cisco_ios':
                         if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[0] \
                             and not 'No such file or directory' in cfgfiles_cmds_outputs[0]:
                             result = '%s backup config done!' % (device)
                             CGI_CLI.uprint(result, color = 'green')
-                            global_result_list.append([copy.deepcopy(result), 'green'])
+                            CGI_CLI.result_list.append([copy.deepcopy(result), 'green'])
                         else:
                             result = '%s backup config problem!' % (device)
                             CGI_CLI.uprint(result, color = 'red')
-                            global_result_list.append([copy.deepcopy(result),'red'])
+                            CGI_CLI.result_list.append([copy.deepcopy(result),'red'])
 
                     elif RCMD.router_type == 'juniper':
                         if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[0] \
                             and not 'No such file or directory' in cfgfiles_cmds_outputs[0]:
                             result = '%s backup config to re0 done!' % (device)
                             CGI_CLI.uprint(result, color = 'green')
-                            global_result_list.append([copy.deepcopy(result), 'green'])
+                            CGI_CLI.result_list.append([copy.deepcopy(result), 'green'])
                         else:
                             result = '%s backup config to re0 problem!' % (device)
                             CGI_CLI.uprint(result, color = 'red')
-                            global_result_list.append([copy.deepcopy(result), 'red'])
+                            CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
                         if not CGI_CLI.data.get('ignore_missing_backup_re_on_junos'):
                             if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[1] \
                                 and not 'No such file or directory' in cfgfiles_cmds_outputs[1]:
                                 result = '%s backup config to re1 done!' % (device)
                                 CGI_CLI.uprint(result, color = 'green')
-                                global_result_list.append([copy.deepcopy(result), 'green'])
+                                CGI_CLI.result_list.append([copy.deepcopy(result), 'green'])
                             else:
                                 result = '%s backup config to re1 problem!' % (device)
                                 CGI_CLI.uprint(result, color = 'red')
-                                global_result_list.append([copy.deepcopy(result),'red'])
+                                CGI_CLI.result_list.append([copy.deepcopy(result),'red'])
 
                     elif RCMD.router_type == 'huawei':
                         if '%s-config.cfg' % (actual_date_string) in cfgfiles_cmds_outputs[0] \
@@ -4693,21 +4690,21 @@ function validateForm() {
                             and not "Such file or path doesn't exist." in cfgfiles_cmds_outputs[0]:
                             result = '%s backup config to cfcard done!' % (device)
                             CGI_CLI.uprint(result, color = 'green')
-                            global_result_list.append([copy.deepcopy(result), 'green'])
+                            CGI_CLI.result_list.append([copy.deepcopy(result), 'green'])
                         else:
                             result = '%s backup config to cfcard problem!' % (device)
                             CGI_CLI.uprint(result, color = 'red')
-                            global_result_list.append([copy.deepcopy(result), 'red'])
+                            CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
                         if '%s-config.cfg' % (actual_date_string) in cfgfiles_cmds_outputs[1] \
                             and not 'No such file or directory' in cfgfiles_cmds_outputs[1] \
                             and not "Such file or path doesn't exist." in cfgfiles_cmds_outputs[0]:
                             result = '%s backup config to slave#cfcard done!' % (device)
                             CGI_CLI.uprint(result, color = 'green')
-                            global_result_list.append([copy.deepcopy(result), 'green'])
+                            CGI_CLI.result_list.append([copy.deepcopy(result), 'green'])
                         else:
                             result = '%s backup config to slave#cfcard problem!' % (device)
                             CGI_CLI.uprint(result, color = 'red')
-                            global_result_list.append([copy.deepcopy(result), 'red'])
+                            CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
 
 
                 ### def DELETE FILES ON END ###################################
@@ -4724,21 +4721,19 @@ function validateForm() {
                 ### DISCONNECT ################################################
                 RCMD.disconnect()
 
-    ### FINAL RESULT PRINTOUTS ################################################
-    print_results()
-
     del sql_inst
-except SystemExit: pass
+except SystemExit:
+    pass
 except:
     traceback_found = True
     CGI_CLI.uprint(traceback.format_exc(), tag = 'h3', color = 'magenta')
 
-### PRINT LOGFILENAME #########################################################
-send_log_by_email()
+    ### SEND EMAIL WITH ERROR/TRACEBACK LOGFILE TO SUPPORT ########################
+    if traceback_found:
+        send_me_email( \
+            subject = 'TRACEBACK-SW_ULOADER-' + logfilename.replace('\\','/').\
+            split('/')[-1] if logfilename else str(), \
+            file_name = logfilename, username = 'pnemec')
 
-### SEND EMAIL WITH ERROR/TRACEBACK LOGFILE TO SUPPORT ########################
-if traceback_found:
-    send_me_email( \
-        subject = 'TRACEBACK-SW_ULOADER-' + logfilename.replace('\\','/').\
-        split('/')[-1] if logfilename else str(), \
-        file_name = logfilename, username = 'pnemec')
+
+
