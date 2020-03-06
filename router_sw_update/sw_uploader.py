@@ -3751,7 +3751,7 @@ def send_log_by_email():
         if CGI_CLI.cgi_active:
             CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
                 % (logviewer, logfilename), raw = True, color = 'blue')
-            CGI_CLI.uprint('<br/>', raw_log = True)
+            CGI_CLI.uprint('<br/>', raw = True)
         else:
             CGI_CLI.uprint(' ==> File %s created.\n\n' % (logfilename))
 
