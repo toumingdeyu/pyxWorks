@@ -2863,28 +2863,28 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                 color = 'red')
             result = '\nIncompatible file(s) on device(s)!'
             CGI_CLI.uprint(result, tag = 'h1', color = 'red')
-            global_result_list.append([copy.deepcopy(result),True])
+            global_result_list.append([copy.deepcopy(result), 'red'])
 
     ### PRINT CHECK RESULTS ###################################################
     if all_files_on_all_devices_ok and len(disk_low_space_devices) == 0:
         result = 'Sw release %s file(s) on device(s) %s - CHECK OK.' % (sw_release, ', '.join(device_list))
         CGI_CLI.uprint(result, tag = 'h1', color='green')
-        global_result_list.append([copy.deepcopy(result),True])
+        global_result_list.append([copy.deepcopy(result), 'green'])
     elif all_files_on_all_devices_ok and len(disk_low_space_devices) > 0:
         result = 'Sw release %s file(s) on device(s) %s - CHECK OK.' % \
             (sw_release, ', '.join(device_list))
         CGI_CLI.uprint(result, tag = 'h1', color='green')
-        global_result_list.append([copy.deepcopy(result),True])
+        global_result_list.append([copy.deepcopy(result), 'green'])
         result = 'Disk space problems & sw release file(s) on device(s) %s - CHECK FAILED!' % \
             (', '.join(disk_low_space_devices))
-        global_result_list.append([copy.deepcopy(result),False])
+        global_result_list.append([copy.deepcopy(result), 'green'])
         CGI_CLI.uprint(result, tag = 'h1', color = 'red')
     elif CGI_CLI.data.get('check_device_sw_files_only') or check_mode:
         if len(missing_files_per_device_list) == 0 and len(compatibility_problem_list) == 0: pass
         else:
             result = 'Sw release file(s) on device(s) - CHECK FAILED!'
             CGI_CLI.uprint(result , tag = 'h1', color = 'red')
-            global_result_list.append([copy.deepcopy(result),False])
+            global_result_list.append([copy.deepcopy(result), 'green'])
 
     ### END IN CHECK_DEVICE_FILES_ONLY MODE, BECAUSE OF X TIMES SCP TRIES #####
     if CGI_CLI.data.get('check_device_sw_files_only') \
@@ -3182,14 +3182,14 @@ def check_free_disk_space_on_devices(device_list = None, \
     ### PRINT SPACE CHECK RESULTS ############################################
     if len(disk_low_space_devices) > 0:
         if error_string: CGI_CLI.uprint(error_string, color = 'red')
-        global_result_list.append([copy.deepcopy(error_string),False])
+        global_result_list.append([copy.deepcopy(error_string), 'red'])
         result = 'Disk space - CHECK FAIL!'
         CGI_CLI.uprint(result, tag='h1', color = 'red')
-        global_result_list.append([copy.deepcopy(result),False])
+        global_result_list.append([copy.deepcopy(result), 'red'])
     else:
         result = 'Disk space - CHECK OK'
         CGI_CLI.uprint(result, color = 'green')
-        global_result_list.append([copy.deepcopy(result),True])
+        global_result_list.append([copy.deepcopy(result), 'green'])
     return disk_low_space_devices
 
 ##############################################################################
@@ -3357,7 +3357,7 @@ def huawei_copy_device_files_to_slave_cfcard(true_sw_release_files_on_server = N
                 if len(file_not_found_list) > 0:
                     result = 'Copy problem from cfcard to slave#cfcard [%s] on %s!' % (','.join(file_not_found_list), device)
                     CGI_CLI.uprint(result , color = 'red')
-                    global_result_list.append([copy.deepcopy(result),False])
+                    global_result_list.append([copy.deepcopy(result), 'red'])
                 ### DISCONNECT ################################################
                 RCMD.disconnect()
                 time.sleep(3)
@@ -3412,9 +3412,12 @@ def juniper_copy_device_files_to_other_routing_engine(true_sw_release_files_on_s
                     for unique_dir in unique_device_directory_list:
                         for directory, dev_dir, file, md5, fsize in true_sw_release_files_on_server:
                             if unique_dir == dev_dir:
-                                copy_files_cmds['juniper'].append('file copy %s:%s %s:%s' % \
-                                    (master_re, os.path.join(dev_dir, file), \
-                                    backup_re, os.path.join(dev_dir, file)))
+                                # copy_files_cmds['juniper'].append('file copy %s:%s %s:%s' % \
+                                    # (master_re, os.path.join(dev_dir, file), \
+                                    # backup_re, os.path.join(dev_dir, file)))
+                                ### PRATIMA'S JUNOS HINT TO PREVENT TWICE SPACE NEEDED ON MASTER ###
+                                copy_files_cmds['juniper'].append('file copy %s %s:%s' % \
+                                    (os.path.join(dev_dir, file), backup_re, dev_dir))
 
                     CGI_CLI.uprint('copying sw release files on %s to other (backup) routing engine' % (device), \
                         no_newlines = None if printall else True)
@@ -3440,9 +3443,9 @@ def juniper_copy_device_files_to_other_routing_engine(true_sw_release_files_on_s
                                 if file in dir_output_after_copy: pass
                                 else: file_not_found_list.append(dev_dir + file)
                     if len(file_not_found_list) > 0:
-                        result = 'Copy problem from re0 to re1 [%s] on %s!' % (','.join(file_not_found_list), device)
+                        result = 'Copy problem from master re to backup re [%s] on %s!' % (','.join(file_not_found_list), device)
                         CGI_CLI.uprint(result, color = 'red')
-                        global_result_list.append([copy.deepcopy(result),False])
+                        global_result_list.append([copy.deepcopy(result), 'red'])
             ### DISCONNECT ################################################
             RCMD.disconnect()
             time.sleep(3)
@@ -3451,7 +3454,7 @@ def juniper_copy_device_files_to_other_routing_engine(true_sw_release_files_on_s
         result = 'BACKUP routing engine is NOT PRESENT on device(s) %s!' % (','.join(missing_backup_re_list))
         CGI_CLI.uprint(result, \
             tag = 'warning')
-        global_result_list.append([copy.deepcopy(result),False])
+        global_result_list.append([copy.deepcopy(result), 'orange'])
     return missing_backup_re_list
 
 
@@ -3729,11 +3732,11 @@ def delete_files(device = None, unique_device_directory_list = None, \
         if file_not_deleted:
             result = '%s delete problem!' % (device)
             CGI_CLI.uprint(result, color = 'red')
-            global_result_list.append([copy.deepcopy(result),True])
+            global_result_list.append([copy.deepcopy(result), 'red'])
         else:
             result = '%s delete done!' % (device)
             CGI_CLI.uprint(result, color = 'green')
-            global_result_list.append([copy.deepcopy(result),True])
+            global_result_list.append([copy.deepcopy(result), 'green'])
 
         ### DISCONNECT ################################################
         if local_connect: RCMD.disconnect()
@@ -4366,6 +4369,12 @@ function validateForm() {
             printall = printall, \
             silent_mode = True)
 
+        ### DELETE FILES ON START - JUNIPER SHOWS BAD SIZE WHEN REWRITES ######
+        delete_files(device = device, \
+            unique_device_directory_list = unique_device_directory_list, \
+            true_sw_release_files_on_server = true_sw_release_files_on_server,\
+            printall = printall)
+
         CGI_CLI.uprint('Device    All_File(s)_to_copy:', tag = 'h3', color = 'blue')
         CGI_CLI.uprint(no_newlines = True, start_tag = 'p', color = 'blue')
 
@@ -4380,7 +4389,7 @@ function validateForm() {
 
     elif len(selected_sw_file_types_list) > 0 or sw_release:
         if CGI_CLI.data.get('check_device_sw_files_only'):
-            ### CHECK EXISTING FILES ON DEVICES ###################################
+            ### CHECK EXISTING FILES ON DEVICES ###############################
             all_files_on_all_devices_ok, missing_files_per_device_list, \
                 device_drive_string, router_type, compatibility_problem_list = \
                 check_files_on_devices(device_list = device_list, \
@@ -4389,7 +4398,7 @@ function validateForm() {
                 printall = printall, disk_low_space_devices = disk_low_space_devices,\
                 check_mode = True)
         else:
-            ### CHECK EXISTING FILES ON DEVICES ###################################
+            ### CHECK EXISTING FILES ON DEVICES ###############################
             all_files_on_all_devices_ok, missing_files_per_device_list, \
                 device_drive_string, router_type, compatibility_problem_list = \
                 check_files_on_devices(device_list = device_list, \
@@ -4401,30 +4410,25 @@ function validateForm() {
 
     ### FIND MAX FILE SIZE, FOR JUNIPER RE0 LOCAL COPY DISK CHECK #############
     max_file_size_even_if_already_exists_on_device = 0
-    for directory,dev_dir,file,md5,fsize in true_sw_release_files_on_server:
-        if fsize > max_file_size_even_if_already_exists_on_device:
-            max_file_size_even_if_already_exists_on_device = fsize
+    ### PRATIMA'S HINT WORKARROUND ############################################
+    # for directory,dev_dir,file,md5,fsize in true_sw_release_files_on_server:
+        # if fsize > max_file_size_even_if_already_exists_on_device:
+            # max_file_size_even_if_already_exists_on_device = fsize
 
-    ### CHECK DISK SPACE ON DEVICES ###########################################
-    disk_low_space_devices = []
+
+    ### def CHECK DISK SPACE ON DEVICES #######################################
     original_device_list = copy.deepcopy(device_list)
     if not CGI_CLI.data.get('check_device_sw_files_only'):
         if len(selected_sw_file_types_list) > 0 or sw_release:
             if all_files_on_all_devices_ok: pass
             else:
-                if CGI_CLI.data.get('force_rewrite_sw_files_on_device'):
-                    ### DELETE FILES BEFORE REWRITE - JUNIPER WORKARROUND #####
-                    delete_files(device = device, \
-                        unique_device_directory_list = unique_device_directory_list, \
-                        true_sw_release_files_on_server = true_sw_release_files_on_server,\
-                        printall = printall)
-
                 disk_low_space_devices = check_free_disk_space_on_devices(\
                     device_list = device_list, \
                     missing_files_per_device_list = missing_files_per_device_list, \
                     USERNAME = USERNAME, PASSWORD = PASSWORD, \
                     printall = printall, \
-                    max_file_size_even_if_already_exists_on_device = max_file_size_even_if_already_exists_on_device)
+                    max_file_size_even_if_already_exists_on_device = \
+                        max_file_size_even_if_already_exists_on_device)
 
         ### DELETE NOT-OK DISK SPACE DEVICES FROM COPY LIST ###################
         if len(disk_low_space_devices) > 0:
@@ -4596,49 +4600,49 @@ function validateForm() {
                             and not 'No such file or directory' in cfgfiles_cmds_outputs[0]:
                             result = '%s backup config done!' % (device)
                             CGI_CLI.uprint(result, color = 'green')
-                            global_result_list.append([copy.deepcopy(result),True])
+                            global_result_list.append([copy.deepcopy(result), 'green'])
                         else: CGI_CLI.uprint('%s backup config problem!' % (device), color = 'red')
                         if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[2] \
                             and not 'No such file or directory' in cfgfiles_cmds_outputs[2]:
                             result = '%s backup admin config done!' % (device)
                             CGI_CLI.uprint(result, color = 'green')
-                            global_result_list.append([copy.deepcopy(result),True])
+                            global_result_list.append([copy.deepcopy(result), 'green'])
                         else:
                             result = '%s backup admin config problem!' % (device)
                             CGI_CLI.uprint(result, color = 'red')
-                            global_result_list.append([copy.deepcopy(result),False])
+                            global_result_list.append([copy.deepcopy(result), 'red'])
 
                     elif RCMD.router_type == 'cisco_ios':
                         if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[0] \
                             and not 'No such file or directory' in cfgfiles_cmds_outputs[0]:
                             result = '%s backup config done!' % (device)
                             CGI_CLI.uprint(result, color = 'green')
-                            global_result_list.append([copy.deepcopy(result),True])
+                            global_result_list.append([copy.deepcopy(result), 'green'])
                         else:
                             result = '%s backup config problem!' % (device)
                             CGI_CLI.uprint(result, color = 'red')
-                            global_result_list.append([copy.deepcopy(result),False])
+                            global_result_list.append([copy.deepcopy(result),'red'])
 
                     elif RCMD.router_type == 'juniper':
                         if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[0] \
                             and not 'No such file or directory' in cfgfiles_cmds_outputs[0]:
                             result = '%s backup config to re0 done!' % (device)
                             CGI_CLI.uprint(result, color = 'green')
-                            global_result_list.append([copy.deepcopy(result),True])
+                            global_result_list.append([copy.deepcopy(result), 'green'])
                         else:
                             result = '%s backup config to re0 problem!' % (device)
                             CGI_CLI.uprint(result, color = 'red')
-                            global_result_list.append([copy.deepcopy(result),False])
+                            global_result_list.append([copy.deepcopy(result), 'red'])
                         if not CGI_CLI.data.get('ignore_missing_backup_re_on_junos'):
                             if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[1] \
                                 and not 'No such file or directory' in cfgfiles_cmds_outputs[1]:
                                 result = '%s backup config to re1 done!' % (device)
                                 CGI_CLI.uprint(result, color = 'green')
-                                global_result_list.append([copy.deepcopy(result),True])
+                                global_result_list.append([copy.deepcopy(result), 'green'])
                             else:
                                 result = '%s backup config to re1 problem!' % (device)
                                 CGI_CLI.uprint(result, color = 'red')
-                                global_result_list.append([copy.deepcopy(result),False])
+                                global_result_list.append([copy.deepcopy(result),'red'])
 
                     elif RCMD.router_type == 'huawei':
                         if '%s-config.cfg' % (actual_date_string) in cfgfiles_cmds_outputs[0] \
@@ -4646,21 +4650,21 @@ function validateForm() {
                             and not "Such file or path doesn't exist." in cfgfiles_cmds_outputs[0]:
                             result = '%s backup config to cfcard done!' % (device)
                             CGI_CLI.uprint(result, color = 'green')
-                            global_result_list.append([copy.deepcopy(result),True])
+                            global_result_list.append([copy.deepcopy(result), 'green'])
                         else:
                             result = '%s backup config to cfcard problem!' % (device)
                             CGI_CLI.uprint(result, color = 'red')
-                            global_result_list.append([copy.deepcopy(result),False])
+                            global_result_list.append([copy.deepcopy(result), 'red'])
                         if '%s-config.cfg' % (actual_date_string) in cfgfiles_cmds_outputs[1] \
                             and not 'No such file or directory' in cfgfiles_cmds_outputs[1] \
                             and not "Such file or path doesn't exist." in cfgfiles_cmds_outputs[0]:
                             result = '%s backup config to slave#cfcard done!' % (device)
                             CGI_CLI.uprint(result, color = 'green')
-                            global_result_list.append([copy.deepcopy(result),True])
+                            global_result_list.append([copy.deepcopy(result), 'green'])
                         else:
                             result = '%s backup config to slave#cfcard problem!' % (device)
                             CGI_CLI.uprint(result, color = 'red')
-                            global_result_list.append([copy.deepcopy(result),False])
+                            global_result_list.append([copy.deepcopy(result), 'red'])
 
 
                 ### def DELETE FILES ON END ###################################
@@ -4678,9 +4682,9 @@ function validateForm() {
                 RCMD.disconnect()
 
     ### FINAL RESULT PRINTOUTS ################################################
-    CGI_CLI.uprint('Results:', tag = 'h1', color = 'blue')
-    for result, ok_or_not in global_result_list:
-        CGI_CLI.uprint(result , tag = 'h1', color = 'green' if ok_or_not else 'red')
+    CGI_CLI.uprint('\nResults:', tag = 'h1')
+    for result, color in global_result_list:
+        CGI_CLI.uprint(result , tag = 'h1', color = color)
 
     del sql_inst
 except SystemExit: pass
