@@ -491,7 +491,7 @@ class CGI_CLI(object):
 
     @staticmethod
     def tableprint(table_line_list = None, header = None, end_table = None, \
-        color = None):        
+        color = None):
         if table_line_list and len(table_line_list) > 0:
             color_string = ' style="color:%s;"' % (color) if color else str()
             if CGI_CLI.cgi_active:
@@ -504,7 +504,7 @@ class CGI_CLI(object):
                     for column in table_line_list:
                         CGI_CLI.print_chunk('<td%s>%s</td>' % \
                             (color_string, table_line_list), raw_log = True)
-                if table_line_list and len (table_line_list) > 0: 
+                if table_line_list and len (table_line_list) > 0:
                     CGI_CLI.print_chunk('</tr>', raw_log = True)
             else:
                 chars_per_column = 0
@@ -516,7 +516,7 @@ class CGI_CLI(object):
                         format_string += '%ds' % (chars_per_column)
                     for column in table_line_list:
                         CGI_CLI.uprint(format_string % (column), color = color)
-        if CGI_CLI.cgi_active and end_table: 
+        if CGI_CLI.cgi_active and end_table:
             CGI_CLI.print_chunk('</table>', raw_log = True)
 
 
@@ -3260,20 +3260,21 @@ def check_free_disk_space_on_devices(device_list = None, \
                 maximal_filesize])
             RCMD.disconnect()
 
-    ### JUST PRINT TABLE HEADER ###
-    if RCMD.router_type == 'juniper':
-        if slave_disk_free == -1:    
-            CGI_CLI.tableprint(['Device', 'Disk_needed', 're0 disk free', 're1 disk free'], header = True, color = 'blue')
-        else:
-            CGI_CLI.tableprint(['Device', 'Disk_needed', 're0 disk free'], header = True, color = 'blue')
-    elif RCMD.router_type == 'huawei':
-        CGI_CLI.tableprint(['Device','Disk_needed','cfcard free','Slave cfcard free'], header = True, color = 'blue')
-    else: CGI_CLI.tableprint(['Device','Disk_needed','Disk_free'], header = True, color = 'blue')
-
-
     ### CHECK FREE SPACE ######################################################
-    error_string = str()
+    error_string, first_only = str(), 0
     for device, disk_free, slave_disk_free, disk_reguired, maximal_filesize in disk_free_list:
+
+        if first_only == 0:
+            first_only += 1
+            ### JUST PRINT TABLE HEADER ###
+            if RCMD.router_type == 'juniper':
+                if slave_disk_free == -1:
+                    CGI_CLI.tableprint(['Device', 'Disk_needed', 're0 disk free', 're1 disk free'], header = True, color = 'blue')
+                else:
+                    CGI_CLI.tableprint(['Device', 'Disk_needed', 're0 disk free'], header = True, color = 'blue')
+            elif RCMD.router_type == 'huawei':
+                CGI_CLI.tableprint(['Device','Disk_needed','cfcard free','Slave cfcard free'], header = True, color = 'blue')
+            else: CGI_CLI.tableprint(['Device','Disk_needed','Disk_free'], header = True, color = 'blue')
 
         ### ZERO SPACE OR JUNOS COULD HAVE NEGATIVE FREE SPACE ################
         if disk_free < -1 or slave_disk_free < -1 \
