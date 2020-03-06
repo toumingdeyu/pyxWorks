@@ -499,7 +499,7 @@ class CGI_CLI(object):
                     CGI_CLI.print_chunk('<table style="width:70%"><tr>', raw_log = True, printall = True)
                     for column in table_line_list:
                         CGI_CLI.print_chunk('<th%s>%s</th>' % \
-                            (color_string, column), raw_log = True,, printall = True)
+                            (color_string, column), raw_log = True, printall = True)
                 else:
                     for column in table_line_list:
                         CGI_CLI.print_chunk('<td%s>%s</td>' % \
