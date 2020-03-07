@@ -498,11 +498,11 @@ class CGI_CLI(object):
                 if header:
                     CGI_CLI.print_chunk('<table border="1" style="width:70%"><tr>', raw_log = True, printall = True)
                     for column in table_line_list:
-                        CGI_CLI.print_chunk('<th%s>%s</th>' % \
+                        CGI_CLI.print_chunk('<th><void%s>%s</void></th>' % \
                             (color_string, column), raw_log = True, printall = True)
                 else:
                     for column in table_line_list:
-                        CGI_CLI.print_chunk('<td%s>%s</td>' % \
+                        CGI_CLI.print_chunk('<td><void%s>%s</void></td>' % \
                             (color_string, column), raw_log = True, printall = True)
                 if table_line_list and len (table_line_list) > 0:
                     CGI_CLI.print_chunk('</tr>', raw_log = True, printall = True)
