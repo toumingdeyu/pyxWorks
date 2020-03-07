@@ -490,13 +490,18 @@ class CGI_CLI(object):
         return None
 
     @staticmethod
-    def tableprint(table_line_list = None, header = None, end_table = None, \
-        color = None):
+    def tableprint(table_line_list = None, column_percents = None, \
+        header = None, end_table = None, color = None):
+        """
+        table_line_list - table line is list of table columns
+        column_percents - optional column space in % of line
+        """
         if table_line_list and len(table_line_list) > 0:
             color_string = ' style="color:%s;"' % (color) if color else str()
             if CGI_CLI.cgi_active:
                 if header:
-                    CGI_CLI.print_chunk('<table border="1" style="width:70%"><tr>', raw_log = True, printall = True)
+                    CGI_CLI.print_chunk('<table style="width:70%"><tr>', \
+                        raw_log = True, printall = True)
                     for column in table_line_list:
                         CGI_CLI.print_chunk('<th><void%s>%s</void></th>' % \
                             (color_string, column), raw_log = True, printall = True)
@@ -507,15 +512,21 @@ class CGI_CLI(object):
                 if table_line_list and len (table_line_list) > 0:
                     CGI_CLI.print_chunk('</tr>', raw_log = True, printall = True)
             else:
+                line_lenght = 130
                 chars_per_column = 0
-                if table_line_list and len(table_line_list) > 0:
-                    chars_per_column = int(80 / len(table_line_list))
-                if chars_per_column:
-                    format_string = str()
+                format_string = str()
+                if column_percents and len(column_percents) == len(table_line_list):
+                    for percent in column_percents:
+                        format_string += '%%%ds ' % int(percent * line_lenght/100)
+                else:
+                    chars_per_column = int(line_lenght / len(table_line_list))
+                    if chars_per_column:
+                        for column in table_line_list:
+                            format_string += '%%%ds ' % (chars_per_column)
+                if format_string:
                     for column in table_line_list:
-                        format_string += '%ds' % (chars_per_column)
-                    for column in table_line_list:
-                        CGI_CLI.uprint(format_string % (column), color = color, printall = True)
+                        CGI_CLI.uprint(format_string % (column), \
+                            color = color, printall = True)
         if CGI_CLI.cgi_active and end_table:
             CGI_CLI.print_chunk('</table><br/>', raw_log = True, printall = True)
 
@@ -3830,6 +3841,13 @@ authentication {
   color: #cc0000;
   font-size: x-large;
   font-weight: bold;
+table, th, td {
+  border: 1px solid black;
+  border-collapse: collapse;
+}
+th {
+  text-align: left;
+}
 """
 
     # goto_webpage_end_by_javascript = """
