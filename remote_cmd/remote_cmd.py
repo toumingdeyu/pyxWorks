@@ -530,7 +530,6 @@ class CGI_CLI(object):
                             format_string = '%%-%ds ' % (chars_per_column)
                             print_string += format_string % (column)
                 if format_string:
-                    for column in table_line_list:
                         CGI_CLI.uprint(print_string, color = color, printall = True)
         if CGI_CLI.cgi_active and end_table:
             CGI_CLI.print_chunk('</table><br/>', raw_log = True, printall = True)
