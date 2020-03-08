@@ -158,7 +158,7 @@ class CGI_CLI(object):
     @staticmethod
     def __cleanup__():
         if CGI_CLI.timestamp:
-            CGI_CLI.uprint('END.\n', no_printall = not printall, tag = 'debug')
+            CGI_CLI.uprint('END.\n', no_printall = not CGI_CLI.printall, tag = 'debug')
         CGI_CLI.html_selflink()
         if CGI_CLI.cgi_active:
             CGI_CLI.print_chunk("</body></html>",
@@ -187,6 +187,7 @@ class CGI_CLI(object):
         CGI_CLI.timestamp = timestamp
         CGI_CLI.CSS_STYLE = css_style if css_style else str()
         CGI_CLI.cgi_active = None
+        CGI_CLI.printall = None
         CGI_CLI.initialized = True
         getpass_done = None
         CGI_CLI.data, CGI_CLI.submit_form, CGI_CLI.username, CGI_CLI.password = \
@@ -204,6 +205,7 @@ class CGI_CLI(object):
             if variable == "submit": CGI_CLI.submit_form = value
             if variable == "username": CGI_CLI.username = value
             if variable == "password": CGI_CLI.password = value
+            if variable == "printall": CGI_CLI.printall = True
 
             ### SET CHUNKED MODE BY CGI #######################################
             if variable == "chunked_mode":
@@ -491,10 +493,11 @@ class CGI_CLI(object):
 
     @staticmethod
     def tableprint(table_line_list = None, column_percents = None, \
-        header = None, end_table = None, color = None):
+        header = None, end_table = None, color = None, chars_per_line = None):
         """
         table_line_list - table line is list of table columns
         column_percents - optional column space in % of line
+        column_percents is needed only for CLI mode, HTML has table autospacing
         """
         if table_line_list and len(table_line_list) > 0:
             color_string = ' style="color:%s;"' % (color) if color else str()
@@ -503,7 +506,7 @@ class CGI_CLI(object):
                     CGI_CLI.print_chunk('<table style="width:70%"><tr>', \
                         raw_log = True, printall = True)
                     for column in table_line_list:
-                        CGI_CLI.print_chunk('<th><void%s>%s</void></th>' % \
+                        CGI_CLI.print_chunk('<th align="left"><void%s>%s</void></th>' % \
                             (color_string, column), raw_log = True, printall = True)
                 else:
                     for column in table_line_list:
@@ -512,25 +515,26 @@ class CGI_CLI(object):
                 if table_line_list and len (table_line_list) > 0:
                     CGI_CLI.print_chunk('</tr>', raw_log = True, printall = True)
             else:
-                line_lenght = 130
+                if not chars_per_line: line_lenght = 80
+                else: line_lenght = int(chars_per_line)
                 chars_per_column = 0
-                format_string = str()
+                format_string, print_string = str(), str()
                 if column_percents and len(column_percents) == len(table_line_list):
                     for percent in column_percents:
-                        format_string += '%%%ds ' % int(percent * line_lenght/100)
+                        ### %-Xs ==> left aligned string ###
+                        format_string = '%%-%ds ' % int(percent * line_lenght/100)
+                        print_string += format_string % (column)
                 else:
                     chars_per_column = int(line_lenght / len(table_line_list))
                     if chars_per_column:
                         for column in table_line_list:
-                            format_string += '%%%ds ' % (chars_per_column)
+                            ### %-Xs ==> left aligned string ###
+                            format_string = '%%-%ds ' % (chars_per_column)
+                            print_string += format_string % (column)
                 if format_string:
-                    for column in table_line_list:
-                        CGI_CLI.uprint(format_string % (column), \
-                            color = color, printall = True)
+                        CGI_CLI.uprint(print_string, color = color, printall = True)
         if CGI_CLI.cgi_active and end_table:
             CGI_CLI.print_chunk('</table><br/>', raw_log = True, printall = True)
-
-
 
     @staticmethod
     def formprint(form_data = None, submit_button = None, pyfile = None, tag = None, \
@@ -655,12 +659,12 @@ class CGI_CLI(object):
             try: print_string += 'CGI_CLI.data[%s] = %s\n' % (str(CGI_CLI.submit_form),str(json.dumps(CGI_CLI.data, indent = 4)))
             except: pass
         else: print_string += 'CLI_args = %s\nCGI_CLI.data = %s' % (str(sys.argv[1:]), str(json.dumps(CGI_CLI.data,indent = 4)))
-        if not ommit_print: CGI_CLI.uprint(print_string, tag = 'debug', no_printall = not printall, timestamp = 'no')
+        if not ommit_print: CGI_CLI.uprint(print_string, tag = 'debug', no_printall = not CGI_CLI.printall, timestamp = 'no')
         return print_string
 
     @staticmethod
     def print_env():
-        CGI_CLI.uprint(dict(os.environ), name = 'os.environ', tag = 'debug', jsonprint = True, no_printall = not printall, timestamp = 'no')
+        CGI_CLI.uprint(dict(os.environ), name = 'os.environ', tag = 'debug', jsonprint = True, no_printall = not CGI_CLI.printall, timestamp = 'no')
 
     @staticmethod
     def parse_input_data(key = None, key_in = None, \
@@ -740,7 +744,7 @@ class CGI_CLI(object):
                 email_success = True
             except Exception as e:
                 CGI_CLI.uprint(" ==> Problem to send email by COMMAND=[%s], PROBLEM=[%s]\n"\
-                    % (mail_command,str(e)) ,color = 'magenta', no_printall = not printall)
+                    % (mail_command,str(e)) ,color = 'magenta', no_printall = not CGI_CLI.printall)
             return email_success
 
         ### FUCTION send_me_email START ###########################################
@@ -785,7 +789,7 @@ class CGI_CLI(object):
 
             ### IF EMAIL ADDRESS FOUND , SEND EMAIL ###############################
             if not sugested_email_address:
-                CGI_CLI.uprint('Email Address not found!', color = 'magenta', no_printall = not printall)
+                CGI_CLI.uprint('Email Address not found!', color = 'magenta', no_printall = not CGI_CLI.printall)
             else:
                 mail_command += '%s' % (sugested_email_address)
                 email_sent = send_unix_email_body(mail_command)
@@ -843,7 +847,8 @@ class CGI_CLI(object):
         if len(CGI_CLI.result_list) > 0: CGI_CLI.uprint('\nRESULT SUMMARY:', tag = 'h1')
         for result, color in CGI_CLI.result_list:
             CGI_CLI.uprint(result , tag = 'h1', color = color)
-        if logfilename:
+        if CGI_CLI.logfilename:
+            logfilename = CGI_CLI.logfilename
             if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, logfilename)
             else: logviewer = './logviewer.py?logfile=%s' % (logfilename)
             if CGI_CLI.cgi_active:
@@ -1628,58 +1633,81 @@ class LCMD(object):
     def run_command(cmd_line = None, printall = None,
         chunked = None, timeout_sec = 5000):
         os_output, cmd_list, timer_counter_100ms = str(), None, 0
-        ### RUN INIT DURING FIRST RUN IF NO INIT BEFORE
-        try:
-            if LCMD.initialized: pass
-        except: LCMD.init(printall = printall)
-        if cmd_line:
+
+        if sys.version_info.major <= 2:
+            ### RUN INIT DURING FIRST RUN IF NO INIT BEFORE ###
+            try:
+                if LCMD.initialized: pass
+            except: LCMD.init(printall = printall)
+            if cmd_line:
+                if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line), color = 'blue', ommit_logging = True)
+                if CGI_CLI.cgi_active:
+                    CGI_CLI.logtofile('<p style="color:blue;">' + 'LOCAL_COMMAND: ' + cmd_line + '</p>', raw_log = True)
+                else:
+                    CGI_CLI.logtofile('LOCAL_COMMAND: ' + str(cmd_line) + '\n')
+                try:
+                    if chunked:
+                        os_output, timer_counter_100ms = str(), 0
+                        CommandObject = subprocess.Popen(cmd_line,
+                                                   stdout=subprocess.PIPE,
+                                                   stderr=subprocess.STDOUT, shell=True)
+                        while CommandObject.poll() is None:
+                            stdoutput = str(CommandObject.stdout.readline())
+                            while stdoutput:
+                                if stdoutput:
+                                    os_output += copy.deepcopy(stdoutput) + '\n'
+                                    if printall:
+                                        CGI_CLI.uprint(stdoutput.strip(), timestamp = 'no' , color = 'gray')
+                                stdoutput = str(CommandObject.stdout.readline())
+                            time.sleep(0.1)
+                            timer_counter_100ms += 1
+                            if timer_counter_100ms > timeout_sec * 10:
+                                CommandObject.terminate()
+                                break
+                    else:
+                        try:
+                            os_output = subprocess.check_output(str(cmd_line), \
+                                stderr=subprocess.STDOUT, shell=True).decode("utf-8")
+                        except:
+                            os_output = subprocess.check_output(str(cmd_line), \
+                                stderr=subprocess.STDOUT, shell=True).decode("cp1252")
+                except (subprocess.CalledProcessError) as e:
+                    try: os_output = str(e.output.decode("utf-8"))
+                    except: os_output = str(e.output.decode("cp1252"))
+                    if printall: CGI_CLI.uprint('EXITCODE: %s' % (str(e.returncode)))
+                    CGI_CLI.logtofile('EXITCODE: %s\n' % (str(e.returncode)))
+                except:
+                    exc_text = traceback.format_exc()
+                    CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
+                    CGI_CLI.logtofile(exc_text + '\n')
+        elif cmd_line:
+            ### PYTHON 3 ###
             if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line), color = 'blue', ommit_logging = True)
             if CGI_CLI.cgi_active:
                 CGI_CLI.logtofile('<p style="color:blue;">' + 'LOCAL_COMMAND: ' + cmd_line + '</p>', raw_log = True)
             else:
                 CGI_CLI.logtofile('LOCAL_COMMAND: ' + str(cmd_line) + '\n')
             try:
-                if chunked:
-                    os_output, timer_counter_100ms = str(), 0
-                    CommandObject = subprocess.Popen(cmd_line,
-                                               stdout=subprocess.PIPE,
-                                               stderr=subprocess.STDOUT, shell=True)
-                    while CommandObject.poll() is None:
-                        stdoutput = str(CommandObject.stdout.readline())
-                        while stdoutput:
-                            if stdoutput:
-                                os_output += copy.deepcopy(stdoutput) + '\n'
-                                if printall:
-                                    CGI_CLI.uprint(stdoutput.strip(), timestamp = 'no' , color = 'gray')
-                            stdoutput = str(CommandObject.stdout.readline())
-                        time.sleep(0.1)
-                        timer_counter_100ms += 1
-                        if timer_counter_100ms > timeout_sec * 10:
-                            CommandObject.terminate()
-                            break
-                else:
-                    try:
-                        os_output = subprocess.check_output(str(cmd_line), \
-                            stderr=subprocess.STDOUT, shell=True).decode("utf-8")
-                    except:
-                        os_output = subprocess.check_output(str(cmd_line), \
-                            stderr=subprocess.STDOUT, shell=True).decode("cp1252")
+                os_output = subprocess.run([cmd_line], check=True, \
+                    stdout=subprocess.PIPE, \
+                    stderr=subprocess.STDOUT, text=True)
             except (subprocess.CalledProcessError) as e:
-                try: os_output = str(e.output.decode("utf-8"))
-                except: os_output = str(e.output.decode("cp1252"))
+                os_output = str(e.output)
                 if printall: CGI_CLI.uprint('EXITCODE: %s' % (str(e.returncode)))
                 CGI_CLI.logtofile('EXITCODE: %s\n' % (str(e.returncode)))
             except:
                 exc_text = traceback.format_exc()
                 CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
                 CGI_CLI.logtofile(exc_text + '\n')
-            if not chunked and os_output and printall:
-                CGI_CLI.uprint(os_output, tag = 'pre', timestamp = 'no', ommit_logging = True)
-            if CGI_CLI.cgi_active:
-                CGI_CLI.logtofile('\n<pre>' + \
-                    CGI_CLI.html_escape(os_output, pre_tag = True) + \
-                    '\n</pre>\n', raw_log = True)
-            else: CGI_CLI.logtofile(os_output + '\n')
+
+        ### OUTPUT PRINTING AND LOGGING ####
+        if not chunked and os_output and printall:
+            CGI_CLI.uprint(os_output, tag = 'pre', timestamp = 'no', ommit_logging = True)
+        if CGI_CLI.cgi_active:
+            CGI_CLI.logtofile('\n<pre>' + \
+                CGI_CLI.html_escape(os_output, pre_tag = True) + \
+                '\n</pre>\n', raw_log = True)
+        else: CGI_CLI.logtofile(os_output + '\n')
         return os_output
 
     @staticmethod
@@ -2165,6 +2193,7 @@ class sql_interface():
                     del dict_data[column]
                 except: pass
         return dict_list
+
 
 
 
@@ -2971,58 +3000,31 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                 and len(missing_files_per_device_list) == 0 \
                 and len(slave_missing_files_per_device_list)>0: pass
             else:
-                CGI_CLI.uprint('Device    Bad_or_missing_file(s):', tag = 'h3', color = 'red', timestamp = 'no')
-                CGI_CLI.uprint(no_newlines = True, start_tag = 'p', color = 'red', timestamp = 'no')
+                CGI_CLI.tableprint('Device','Bad_or_missing_file(s):', \
+                    column_percents = [10,90], header = True, color = 'red')
                 files_color = 'red'
         else:
-            CGI_CLI.uprint('Device    File(s)_to_copy:', tag = 'h3', color = 'blue')
-            CGI_CLI.uprint(no_newlines = True, start_tag = 'p', color = 'blue', timestamp = 'no')
+            CGI_CLI.tableprint('Device','Bad_or_missing_file(s):', \
+                column_percents = [10,90], header = True, color = 'blue')
             files_color = 'blue'
 
         ### PRINT RED OR BLUE FILES TO COPY OR MISSING/BAD ####################
         for device,missing_or_bad_files_per_device in missing_files_per_device_list:
             directory, dev_dir, file, md5, fsize = missing_or_bad_files_per_device
-            CGI_CLI.uprint('%s    %s' % \
-                    (device, device_drive_string + os.path.join(dev_dir, file)),\
-                    color = files_color, timestamp = 'no')
+            CGI_CLI.tableprint([device, device_drive_string + os.path.join(dev_dir, file)],\
+                    color = files_color)
         ### PRINT SLAVE/BACKUP RE FILES #######################################
         for device,missing_or_bad_files_per_device in slave_missing_files_per_device_list:
             directory, dev_dir, file, md5, fsize = missing_or_bad_files_per_device
             if RCMD.router_type == 'juniper':
                 if CGI_CLI.data.get('ignore_missing_backup_re_on_junos'): pass
-                else: CGI_CLI.uprint('%s    re1:%s' % \
-                        (device, os.path.join(dev_dir, file)), color = files_color, \
-                        timestamp = 'no')
+                else:
+                    CGI_CLI.tableprint([device, 're1:%s' % (os.path.join(dev_dir, file))],\
+                        column_percents = [10,90], color = files_color)
             else:
-                CGI_CLI.uprint('%s    slave#%s' % \
-                    (device, device_drive_string + os.path.join(dev_dir, file)),\
-                    color = files_color, timestamp = 'no')
-        CGI_CLI.uprint(end_tag = 'p', timestamp = 'no')
-
-    ### DEBUG PRINTOUTS #######################################################
-    # CGI_CLI.uprint(true_sw_release_files_on_server, \
-        # name = 'true_sw_release_files_on_server', jsonprint = True, \
-        # no_printall = not printall, tag = 'debug')
-
-    # CGI_CLI.uprint(str(nr_of_connected_devices), \
-        # name = 'nr_of_connected_devices', \
-        # no_printall = not printall, tag = 'debug')
-
-    # CGI_CLI.uprint(device_list, \
-        # name = 'device_list', jsonprint = True, \
-        # no_printall = not printall, tag = 'debug')
-
-    # CGI_CLI.uprint(missing_files_per_device_list, \
-        # name = 'missing_files_per_device_list', jsonprint = True, \
-        # no_printall = not printall, tag = 'debug')
-
-    # CGI_CLI.uprint(slave_missing_files_per_device_list, \
-        # name = 'slave_missing_files_per_device_list', jsonprint = True, \
-        # no_printall = not printall, tag = 'debug')
-
-    # CGI_CLI.uprint(compatibility_problem_list, \
-        # name = 'compatibility_problem_list', jsonprint = True, \
-        # no_printall = not printall, tag = 'debug')
+                CGI_CLI.tableprint([device, 'slave#%s' % (os.path.join(dev_dir, file))],\
+                    column_percents = [10,90], color = files_color)
+        CGI_CLI.tableprint(end_table = True)
 
     ### SET FLAG FILES OK #####################################################
     if len(missing_files_per_device_list) == 0 \
@@ -3046,9 +3048,10 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
     if CGI_CLI.data.get('check_device_sw_files_only') or check_mode \
         or len(missing_files_per_device_list) == 0:
         if len(compatibility_problem_list) > 0:
-            CGI_CLI.uprint('\nDevice    Incompatible_file(s):', tag = 'h3', color = 'red')
-            CGI_CLI.uprint('\n'.join([ '%s    %s' % (device,devfile) for device,devfile in compatibility_problem_list ]),
-                color = 'red')
+            CGI_CLI.tableprint(['Device','Incompatible_file(s)'], column_percents = [10,90], header = True, color = 'red')
+            for device,devfile in compatibility_problem_list:
+                CGI_CLI.tableprint([device,devfile], column_percents = [10,90], color = 'red')
+            CGI_CLI.tableprint(end_table = True)
             result = '\nIncompatible file(s) on device(s)!'
             CGI_CLI.uprint(result, tag = 'h1', color = 'red')
             CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
