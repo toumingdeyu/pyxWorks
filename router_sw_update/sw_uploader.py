@@ -4451,7 +4451,7 @@ function validateForm() {
 
         ### PRINT LIST OF FILES OR END SCRIPT #################################
         if len(true_sw_release_files_on_server) > 0:
-            CGI_CLI.tableprint('File(s)','md5 checksum(s)','device folder(s)','filesize:', \
+            CGI_CLI.tableprint(['File(s)','md5 checksum(s)','device folder(s)','filesize:'], \
                 header = True, color = 'blue')
             for directory,dev_dir,file,md5,fsize in true_sw_release_files_on_server:
                 CGI_CLI.tableprint(['%s/%s' % (directory,file), md5, dev_dir, '%.2fMB' % (float(fsize)/1048576)],\
