@@ -12,7 +12,7 @@ call c:\Windows\System32\inetsrv\appcmd.exe set CONFIG "Default Web Site" -secti
 call c:\Windows\System32\inetsrv\appcmd.exe set CONFIG "Default Web Site" -section:system.webServer/cgi /timeout:"00:20:00" /commit:apphost
 
 REM - ADD CGI HANDLER - SPACE IS NEEDED %u0020
-call c:\Windows\System32\inetsrv\appcmd.exe set config /section:system.webServer/handlers /+[name='cgi-py',path='*.py',verb='*',modules='CgiModule',scriptProcessor='C:\python37\python.exe%u0020%s%u0020%s',resourceType='File',requireAccess='Script']
+call c:\Windows\System32\inetsrv\appcmd.exe set config /section:system.webServer/handlers /+[name='cgi-py',path='*.py',verb='*',modules='CgiModule',scriptProcessor='C:\python38\python.exe%u0020%s%u0020%s',resourceType='File',requireAccess='Script']
 
 REM - INSTALL IIS6 COMPATIBILITY
 rem IIS 6 Management Compatibility:IIS6 scripting Tools, IIS 6 Management Compatibility:IIS6 WMI compatibility
@@ -36,15 +36,15 @@ call cscript adsutil.vbs set /W3SVC/AspEnableChunkedEncoding "TRUE"
 rem call c:\windows\system32\inetsrv\iis.msc
 rem echo How-to:
 rem echo https://docs.microsoft.com/en-us/iis/configuration/system.webserver/fastcgi/index
-rem echo open Handler Mappings, add Script Map, 
-rem echo Reguest path: *.py, Executable: C:\python37\python.exe %s %s, Name: some_name
+rem echo open Handler Mappings, add Script Map,
+rem echo Reguest path: *.py, Executable: C:\python38\python.exe %s %s, Name: some_name
 
-rem <add name="cc" path="*.py" verb="*" modules="CgiModule" scriptProcessor="C:\python37\python.exe %s %s" resourceType="File" requireAccess="Script" />
+rem <add name="cc" path="*.py" verb="*" modules="CgiModule" scriptProcessor="C:\python38\python.exe %s %s" resourceType="File" requireAccess="Script" />
 rem call c:\Windows\System32\inetsrv\appcmd.exe list config /section:system.webServer/handlers
-rem call c:\Windows\System32\inetsrv\appcmd.exe set config /section:system.webServer/handlers /+[name=cgi-py',path='*.py',verb='*',modules="CgiModule",scriptProcessor="C:\python37\python.exe %s %s",resourceType="File" requireAccess="Script"]
-rem call c:\Windows\System32\inetsrv\appcmd.exe set config /section:system.webServer/handlers /+[@end,name='cgi-py',path='*.py',verb='*',modules='CgiModule',scriptProcessor='C:\python37\python.exe %s %s',resourceType='File',requireAccess='Script']
+rem call c:\Windows\System32\inetsrv\appcmd.exe set config /section:system.webServer/handlers /+[name=cgi-py',path='*.py',verb='*',modules="CgiModule",scriptProcessor="C:\python38\python.exe %s %s",resourceType="File" requireAccess="Script"]
+rem call c:\Windows\System32\inetsrv\appcmd.exe set config /section:system.webServer/handlers /+[@end,name='cgi-py',path='*.py',verb='*',modules='CgiModule',scriptProcessor='C:\python38\python.exe %s %s',resourceType='File',requireAccess='Script']
 
-rem c:\Windows\System32\inetsrv\appcmd.exe set config /section:system.webServer/handlers /+[name='cgi-py',path='*.py',verb='*',modules='CgiModule',scriptProcessor='C:\python37\python.exe',resourceType='File',requireAccess='Script']
+rem c:\Windows\System32\inetsrv\appcmd.exe set config /section:system.webServer/handlers /+[name='cgi-py',path='*.py',verb='*',modules='CgiModule',scriptProcessor='C:\python38\python.exe',resourceType='File',requireAccess='Script']
 
 
 
