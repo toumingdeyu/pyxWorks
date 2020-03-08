@@ -3000,11 +3000,11 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                 and len(missing_files_per_device_list) == 0 \
                 and len(slave_missing_files_per_device_list)>0: pass
             else:
-                CGI_CLI.tableprint('Device','Bad_or_missing_file(s):', \
+                CGI_CLI.tableprint(['Device','Bad_or_missing_file(s):'], \
                     column_percents = [10,90], header = True, color = 'red')
                 files_color = 'red'
         else:
-            CGI_CLI.tableprint('Device','Bad_or_missing_file(s):', \
+            CGI_CLI.tableprint(['Device','Bad_or_missing_file(s):'], \
                 column_percents = [10,90], header = True, color = 'blue')
             files_color = 'blue'
 
@@ -4451,10 +4451,12 @@ function validateForm() {
 
         ### PRINT LIST OF FILES OR END SCRIPT #################################
         if len(true_sw_release_files_on_server) > 0:
-            CGI_CLI.uprint('File(s),    md5 checksum(s),    device folder(s),    filesize:\n%s' % \
-                ('\n'.join([ '%s/%s    %s    %s    %.2fMB' % \
-                (directory,file,md5,dev_dir,float(fsize)/1048576) for directory,dev_dir,file,md5,fsize in true_sw_release_files_on_server ])),\
-                color = 'blue')
+            CGI_CLI.tableprint('File(s)','md5 checksum(s)','device folder(s)','filesize:', \
+                header = True, color = 'blue')
+            for directory,dev_dir,file,md5,fsize in true_sw_release_files_on_server:
+                CGI_CLI.tableprint(['%s/%s' % (directory,file), md5, dev_dir, '%.2fMB' % (float(fsize)/1048576)],\
+                    color = 'blue')
+            CGI_CLI.tableprint(end_table = True)
             CGI_CLI.uprint('\n', timestamp = 'no')
         else: sys.exit(0)
 
