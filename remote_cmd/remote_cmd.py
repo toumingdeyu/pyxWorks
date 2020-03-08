@@ -515,19 +515,22 @@ class CGI_CLI(object):
             else:
                 line_lenght = 130
                 chars_per_column = 0
-                format_string = str()
+                format_string, print_string = str(), str()
                 if column_percents and len(column_percents) == len(table_line_list):
                     for percent in column_percents:
-                        format_string += '%%%ds ' % int(percent * line_lenght/100)
+                        ### %-Xs ==> left aligned string ###
+                        format_string = '%%-%ds ' % int(percent * line_lenght/100)
+                        print_string += format_string % (column)
                 else:
                     chars_per_column = int(line_lenght / len(table_line_list))
                     if chars_per_column:
                         for column in table_line_list:
-                            format_string += '%%%ds ' % (chars_per_column)
+                            ### %-Xs ==> left aligned string ###
+                            format_string = '%%-%ds ' % (chars_per_column)
+                            print_string += format_string % (column)
                 if format_string:
                     for column in table_line_list:
-                        CGI_CLI.uprint(format_string % (column), \
-                            color = color, printall = True)
+                        CGI_CLI.uprint(print_string, color = color, printall = True)
         if CGI_CLI.cgi_active and end_table:
             CGI_CLI.print_chunk('</table><br/>', raw_log = True, printall = True)
 
