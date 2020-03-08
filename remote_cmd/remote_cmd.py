@@ -491,7 +491,7 @@ class CGI_CLI(object):
 
     @staticmethod
     def tableprint(table_line_list = None, column_percents = None, \
-        header = None, end_table = None, color = None):
+        header = None, end_table = None, color = None, chars_per_line = None):
         """
         table_line_list - table line is list of table columns
         column_percents - optional column space in % of line
@@ -513,7 +513,8 @@ class CGI_CLI(object):
                 if table_line_list and len (table_line_list) > 0:
                     CGI_CLI.print_chunk('</tr>', raw_log = True, printall = True)
             else:
-                line_lenght = 130
+                if not chars_per_line: line_lenght = 80
+                else: line_lenght = int(chars_per_line)
                 chars_per_column = 0
                 format_string, print_string = str(), str()
                 if column_percents and len(column_percents) == len(table_line_list):
