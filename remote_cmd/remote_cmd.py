@@ -495,6 +495,7 @@ class CGI_CLI(object):
         """
         table_line_list - table line is list of table columns
         column_percents - optional column space in % of line
+        column_percents is needed only for CLI mode, HTML has table autospacing
         """
         if table_line_list and len(table_line_list) > 0:
             color_string = ' style="color:%s;"' % (color) if color else str()
@@ -503,7 +504,7 @@ class CGI_CLI(object):
                     CGI_CLI.print_chunk('<table style="width:70%"><tr>', \
                         raw_log = True, printall = True)
                     for column in table_line_list:
-                        CGI_CLI.print_chunk('<th><void%s>%s</void></th>' % \
+                        CGI_CLI.print_chunk('<th align="left"><void%s>%s</void></th>' % \
                             (color_string, column), raw_log = True, printall = True)
                 else:
                     for column in table_line_list:
@@ -529,8 +530,6 @@ class CGI_CLI(object):
                             color = color, printall = True)
         if CGI_CLI.cgi_active and end_table:
             CGI_CLI.print_chunk('</table><br/>', raw_log = True, printall = True)
-
-
 
     @staticmethod
     def formprint(form_data = None, submit_button = None, pyfile = None, tag = None, \
@@ -1629,58 +1628,81 @@ class LCMD(object):
     def run_command(cmd_line = None, printall = None,
         chunked = None, timeout_sec = 5000):
         os_output, cmd_list, timer_counter_100ms = str(), None, 0
-        ### RUN INIT DURING FIRST RUN IF NO INIT BEFORE
-        try:
-            if LCMD.initialized: pass
-        except: LCMD.init(printall = printall)
-        if cmd_line:
+
+        if sys.version_info.major <= 2:
+            ### RUN INIT DURING FIRST RUN IF NO INIT BEFORE ###
+            try:
+                if LCMD.initialized: pass
+            except: LCMD.init(printall = printall)
+            if cmd_line:
+                if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line), color = 'blue', ommit_logging = True)
+                if CGI_CLI.cgi_active:
+                    CGI_CLI.logtofile('<p style="color:blue;">' + 'LOCAL_COMMAND: ' + cmd_line + '</p>', raw_log = True)
+                else:
+                    CGI_CLI.logtofile('LOCAL_COMMAND: ' + str(cmd_line) + '\n')
+                try:
+                    if chunked:
+                        os_output, timer_counter_100ms = str(), 0
+                        CommandObject = subprocess.Popen(cmd_line,
+                                                   stdout=subprocess.PIPE,
+                                                   stderr=subprocess.STDOUT, shell=True)
+                        while CommandObject.poll() is None:
+                            stdoutput = str(CommandObject.stdout.readline())
+                            while stdoutput:
+                                if stdoutput:
+                                    os_output += copy.deepcopy(stdoutput) + '\n'
+                                    if printall:
+                                        CGI_CLI.uprint(stdoutput.strip(), timestamp = 'no' , color = 'gray')
+                                stdoutput = str(CommandObject.stdout.readline())
+                            time.sleep(0.1)
+                            timer_counter_100ms += 1
+                            if timer_counter_100ms > timeout_sec * 10:
+                                CommandObject.terminate()
+                                break
+                    else:
+                        try:
+                            os_output = subprocess.check_output(str(cmd_line), \
+                                stderr=subprocess.STDOUT, shell=True).decode("utf-8")
+                        except:
+                            os_output = subprocess.check_output(str(cmd_line), \
+                                stderr=subprocess.STDOUT, shell=True).decode("cp1252")
+                except (subprocess.CalledProcessError) as e:
+                    try: os_output = str(e.output.decode("utf-8"))
+                    except: os_output = str(e.output.decode("cp1252"))
+                    if printall: CGI_CLI.uprint('EXITCODE: %s' % (str(e.returncode)))
+                    CGI_CLI.logtofile('EXITCODE: %s\n' % (str(e.returncode)))
+                except:
+                    exc_text = traceback.format_exc()
+                    CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
+                    CGI_CLI.logtofile(exc_text + '\n')
+        elif cmd_line:
+            ### PYTHON 3 ###
             if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line), color = 'blue', ommit_logging = True)
             if CGI_CLI.cgi_active:
                 CGI_CLI.logtofile('<p style="color:blue;">' + 'LOCAL_COMMAND: ' + cmd_line + '</p>', raw_log = True)
             else:
                 CGI_CLI.logtofile('LOCAL_COMMAND: ' + str(cmd_line) + '\n')
             try:
-                if chunked:
-                    os_output, timer_counter_100ms = str(), 0
-                    CommandObject = subprocess.Popen(cmd_line,
-                                               stdout=subprocess.PIPE,
-                                               stderr=subprocess.STDOUT, shell=True)
-                    while CommandObject.poll() is None:
-                        stdoutput = str(CommandObject.stdout.readline())
-                        while stdoutput:
-                            if stdoutput:
-                                os_output += copy.deepcopy(stdoutput) + '\n'
-                                if printall:
-                                    CGI_CLI.uprint(stdoutput.strip(), timestamp = 'no' , color = 'gray')
-                            stdoutput = str(CommandObject.stdout.readline())
-                        time.sleep(0.1)
-                        timer_counter_100ms += 1
-                        if timer_counter_100ms > timeout_sec * 10:
-                            CommandObject.terminate()
-                            break
-                else:
-                    try:
-                        os_output = subprocess.check_output(str(cmd_line), \
-                            stderr=subprocess.STDOUT, shell=True).decode("utf-8")
-                    except:
-                        os_output = subprocess.check_output(str(cmd_line), \
-                            stderr=subprocess.STDOUT, shell=True).decode("cp1252")
+                os_output = subprocess.run([cmd_line], check=True, \
+                    stdout=subprocess.PIPE, \
+                    stderr=subprocess.STDOUT, text=True)
             except (subprocess.CalledProcessError) as e:
-                try: os_output = str(e.output.decode("utf-8"))
-                except: os_output = str(e.output.decode("cp1252"))
+                os_output = str(e.output)
                 if printall: CGI_CLI.uprint('EXITCODE: %s' % (str(e.returncode)))
                 CGI_CLI.logtofile('EXITCODE: %s\n' % (str(e.returncode)))
             except:
                 exc_text = traceback.format_exc()
                 CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
                 CGI_CLI.logtofile(exc_text + '\n')
-            if not chunked and os_output and printall:
-                CGI_CLI.uprint(os_output, tag = 'pre', timestamp = 'no', ommit_logging = True)
-            if CGI_CLI.cgi_active:
-                CGI_CLI.logtofile('\n<pre>' + \
-                    CGI_CLI.html_escape(os_output, pre_tag = True) + \
-                    '\n</pre>\n', raw_log = True)
-            else: CGI_CLI.logtofile(os_output + '\n')
+
+        ### OUTPUT PRINTING AND LOGGING ####
+        if not chunked and os_output and printall:
+            CGI_CLI.uprint(os_output, tag = 'pre', timestamp = 'no', ommit_logging = True)
+        if CGI_CLI.cgi_active:
+            CGI_CLI.logtofile('\n<pre>' + \
+                CGI_CLI.html_escape(os_output, pre_tag = True) + \
+                '\n</pre>\n', raw_log = True)
+        else: CGI_CLI.logtofile(os_output + '\n')
         return os_output
 
     @staticmethod
@@ -2190,7 +2212,25 @@ if __name__ != "__main__": sys.exit(0)
 # }
 ##############################################################################
 
-USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = None)
+CSS_STYLE = """
+authentication {
+  color: #cc0000;
+  font-size: x-large;
+  font-weight: bold;
+table, th, td {
+  border: 1px solid black;
+  border-collapse: collapse;
+}
+th {
+  text-align: left;
+}
+"""
+
+
+
+
+USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = None, css_style = CSS_STYLE)
+CGI_CLI.printall = True
 CGI_CLI.print_args()
 device = CGI_CLI.data.get("device",None)
 printall = CGI_CLI.data.get("printall",None)
@@ -2260,37 +2300,12 @@ LCMD.eval_command('b',printall = True)
 #LCMD.exec_command('print("11line\\n22line")')
 #print(LCMD.eval_command('"111line\\n222line"'))
 
-for i in range(0,20):
-    time.sleep(1)
-    CGI_CLI.uprint( "%s" % ( i ) )
+# for i in range(0,20):
+    # time.sleep(1)
+    # CGI_CLI.uprint( "%s" % ( i ) )
 
 #CGI_CLI.uprint(CGI_CLI.args, jsonprint=True)
 
-# 127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
-# ::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
-# 127.0.1.1   iptac5
-# 10.253.58.126   iptac5 iptac5.oakhill.lab
-
-# # Oak Hill Lab
-# 192.168.122.2   NSO2_HOST
-# 192.168.122.3   NSO_SERVER
-# 192.168.122.4   pronghong
-
-# # vASR9K's
-# 192.168.122.140 PARTR0  - XR
-# 192.168.122.141 NYKTR0
-
-# # vMX-x's
-# 192.168.122.150 PARCR0
-# 192.168.122.151 NYKCR0
-
-# # vASR1K's
-# 192.168.122.160 PARPE0  - XE
-# 192.168.122.161 NYKPE0
-# 192.168.122.170 PARCE0
-# 192.168.122.171 NYKCE0
-
-# 192.168.122.253 LABSW1
-# 192.168.122.252 OAKPE0  - HUAWEI
-
+CGI_CLI.tableprint(['Device', 'Disk_needed', 're0 disk free', 're1 disk free'], header = True, color = 'blue')
+CGI_CLI.tableprint(['Device', 'Disk_needed', 're0 disk free', 're1 disk free 1111111111111111111111111111'], color = 'red')
 
