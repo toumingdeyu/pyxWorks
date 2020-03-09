@@ -4455,8 +4455,8 @@ function validateForm() {
                             true_sw_release_files_on_server.append([directory,device_directory,true_file_name,md5_sum,filesize_in_bytes])
             if no_such_files_in_directory:
                 result = 'Specified %s file(s) NOT FOUND in %s!' % (actual_file_name,directory)
-                CGI_CLI.uprint(result, tag = 'h2', color = 'red')
-                CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
+                CGI_CLI.uprint(result, tag = 'h2', color = 'orange')
+                CGI_CLI.result_list.append([copy.deepcopy(result), 'orange'])
 
         ### PRINT LIST OF FILES OR END SCRIPT #################################
         if len(true_sw_release_files_on_server) > 0:
