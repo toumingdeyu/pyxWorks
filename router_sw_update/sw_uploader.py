@@ -3960,8 +3960,9 @@ function validateForm() {
 
     ### def LOGFILENAME GENERATION, DO LOGGING ONLY WHEN DEVICE LIST EXISTS ###
     if device_list:
+        html_extention = 'htm' if CGI_CLI.cgi_active else str()
         logfilename = generate_logfilename(prefix = ('_'.join(device_list)).upper(), \
-            USERNAME = USERNAME, suffix = str('scp') + '.log')
+            USERNAME = USERNAME, suffix = str('scp') + '.%slog' % (html_extention))
         ### NO WINDOWS LOGGING ################################################
         if 'WIN32' in sys.platform.upper(): logfilename = None
         if logfilename: CGI_CLI.set_logfile(logfilename = logfilename)
