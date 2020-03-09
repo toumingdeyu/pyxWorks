@@ -3026,8 +3026,9 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                 else:
                     CGI_CLI.tableprint([device, 're1:%s' % (os.path.join(dev_dir, file))],\
                         column_percents = [10,90], color = files_color)
-            else:
-                CGI_CLI.tableprint([device, 'slave#%s' % (os.path.join(dev_dir, file))],\
+            elif RCMD.router_type == 'huawei':
+                CGI_CLI.tableprint([device, 'slave#%s' % ( \
+                    device_drive_string + os.path.join(dev_dir, file))],\
                     column_percents = [10,90], color = files_color)
         CGI_CLI.tableprint(end_table = True)
 
