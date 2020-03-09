@@ -3605,8 +3605,10 @@ def juniper_copy_device_files_to_other_routing_engine(true_sw_release_files_on_s
                 except: pass
 
                 CGI_CLI.uprint('\n', timestamp = 'no')
-                CGI_CLI.uprint('Routing engine MASTER=%s, BACKUP=%s on device %s' % \
-                    (master_re, str(backup_re), device), tag = 'debug', no_printall = not printall)
+                result = '\nDevice %s routing engines: MASTER=%s, BACKUP=%s.' % \
+                    (device, master_re, str(backup_re))
+                CGI_CLI.uprint(result, tag = 'h2', printall = True)
+                CGI_CLI.result_list.append([copy.deepcopy(result), 'default'])
 
                 if not backup_re: missing_backup_re_list.append(device)
                 else:
@@ -3622,7 +3624,7 @@ def juniper_copy_device_files_to_other_routing_engine(true_sw_release_files_on_s
                                 copy_files_cmds['juniper'].append('file copy %s %s:%s' % \
                                     (os.path.join(dev_dir, file), backup_re, dev_dir))
 
-                    CGI_CLI.uprint('copying sw release files on %s to other (backup) routing engine' % (device), \
+                    CGI_CLI.uprint('copying sw release files on %s to backup routing engine' % (device), \
                         no_newlines = None if printall else True)
                     forget_it = RCMD.run_commands(copy_files_cmds, \
                         autoconfirm_mode = True, printall = printall)
