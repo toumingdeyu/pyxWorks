@@ -1249,7 +1249,7 @@ if device:
               RCMD.disconnect()
               sys.exit(0)
 
-        try: set_text = rcmd_outputs[1].split('set')[1].split('\n')[0]
+        try: set_text = rcmd_outputs[1].split('set')[-1].split('\n')[0]
         except: set_text = str()
         if set_text: primary_ipv6 = 'set' + set_text + ' primary\n'
         else: primary_ipv6 = str()
@@ -1260,8 +1260,8 @@ if device:
         converted_ipv4 = ipv4_to_ipv6_obs(ipv4)[0]
 
         data = {}
-        data['converted_ipv4'] = converted_ipv4
-        data['primary_ipv6'] = primary_ipv6
+        data['converted_ipv4'] = copy.deepcopy(converted_ipv4)
+        data['primary_ipv6'] = copy.deepcopy(primary_ipv6)
 
         CGI_CLI.uprint(data, name = True, jsonprint = True, color = 'blue')
         CGI_CLI.uprint('\n\n')
