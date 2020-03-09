@@ -503,7 +503,7 @@ class CGI_CLI(object):
             color_string = ' style="color:%s;"' % (color) if color else str()
             if CGI_CLI.cgi_active:
                 if header:
-                    CGI_CLI.print_chunk('<table style="width:70%"><tr>', \
+                    CGI_CLI.print_chunk('<br/><table style="width:70%"><tr>', \
                         raw_log = True, printall = True)
                     for column in table_line_list:
                         CGI_CLI.print_chunk('<th align="left"><void%s>%s</void></th>' % \
@@ -844,9 +844,9 @@ class CGI_CLI(object):
 
     @staticmethod
     def print_result_summary():
-        if len(CGI_CLI.result_list) > 0: CGI_CLI.uprint('\nRESULT SUMMARY:', tag = 'h1')
+        if len(CGI_CLI.result_list) > 0: CGI_CLI.uprint('\n\nRESULT SUMMARY:', tag = 'h1')
         for result, color in CGI_CLI.result_list:
-            CGI_CLI.uprint(result , tag = 'h2', color = color)
+            CGI_CLI.uprint(result , tag = 'h3', color = color)
         if CGI_CLI.logfilename:
             logfilename = CGI_CLI.logfilename
             if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, logfilename)
@@ -1269,7 +1269,7 @@ class RCMD(object):
             ### CHECK CONF OUTPUTS #########################################
             if (conf or RCMD.conf):
                 RCMD.config_problem = None
-                CGI_CLI.uprint('\nCHECKING COMMIT ERRORS...', tag = 'h1', color = 'blue')
+                CGI_CLI.uprint('\nCHECKING COMMIT ERRORS...', tag = 'h2', color = 'blue')
                 for rcmd_output in command_outputs:
                     CGI_CLI.uprint(' . ', no_newlines = True, ommit_logging = True, timestamp = 'no')
                     if 'INVALID INPUT' in rcmd_output.upper() \
@@ -1289,12 +1289,12 @@ class RCMD(object):
                     elif RCMD.commit_text: text_to_commit = RCMD.commit_text
                     if submit_result:
                         if RCMD.config_problem:
-                            CGI_CLI.uprint('%s FAILED!' % (text_to_commit), tag = 'h1', tag_id = 'submit-result', color = 'red')
-                        else: CGI_CLI.uprint('%s SUCCESSFULL.' % (text_to_commit), tag = 'h1', tag_id = 'submit-result', color = 'green')
+                            CGI_CLI.uprint('%s FAILED!' % (text_to_commit), tag = 'h2', tag_id = 'submit-result', color = 'red')
+                        else: CGI_CLI.uprint('%s SUCCESSFULL.' % (text_to_commit), tag = 'h2', tag_id = 'submit-result', color = 'green')
                     else:
                         if RCMD.config_problem:
-                            CGI_CLI.uprint('%s FAILED!' % (text_to_commit), tag = 'h1', color = 'red')
-                        else: CGI_CLI.uprint('%s SUCCESSFULL.' % (text_to_commit), tag = 'h1', color = 'green')
+                            CGI_CLI.uprint('%s FAILED!' % (text_to_commit), tag = 'h2', color = 'red')
+                        else: CGI_CLI.uprint('%s SUCCESSFULL.' % (text_to_commit), tag = 'h2', color = 'green')
         return command_outputs
 
     @staticmethod
@@ -3054,28 +3054,28 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                 CGI_CLI.tableprint([device,devfile], column_percents = [10,90], color = 'red')
             CGI_CLI.tableprint(end_table = True)
             result = '\nIncompatible file(s) on device(s)!'
-            CGI_CLI.uprint(result, tag = 'h1', color = 'red')
+            CGI_CLI.uprint(result, tag = 'h2', color = 'red')
             CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
 
     ### PRINT CHECK RESULTS ###################################################
     if all_files_on_all_devices_ok and len(disk_low_space_devices) == 0:
         result = 'Sw release %s file(s) on device(s) %s - CHECK OK.' % (sw_release, ', '.join(device_list))
-        CGI_CLI.uprint(result, tag = 'h1', color='green')
+        CGI_CLI.uprint(result, tag = 'h2', color='green')
         CGI_CLI.result_list.append([copy.deepcopy(result), 'green'])
     elif all_files_on_all_devices_ok and len(disk_low_space_devices) > 0:
         result = 'Sw release %s file(s) on device(s) %s - CHECK OK.' % \
             (sw_release, ', '.join(device_list))
-        CGI_CLI.uprint(result, tag = 'h1', color='green')
+        CGI_CLI.uprint(result, tag = 'h2', color='green')
         CGI_CLI.result_list.append([copy.deepcopy(result), 'green'])
         result = 'Disk space problems & sw release file(s) on device(s) %s - CHECK FAILED!' % \
             (', '.join(disk_low_space_devices))
         CGI_CLI.result_list.append([copy.deepcopy(result), 'green'])
-        CGI_CLI.uprint(result, tag = 'h1', color = 'red')
+        CGI_CLI.uprint(result, tag = 'h2', color = 'red')
     elif CGI_CLI.data.get('check_device_sw_files_only') or check_mode:
         if len(missing_files_per_device_list) == 0 and len(compatibility_problem_list) == 0: pass
         else:
             result = 'Sw release file(s) on device(s) - CHECK FAILED!'
-            CGI_CLI.uprint(result , tag = 'h1', color = 'red')
+            CGI_CLI.uprint(result , tag = 'h2', color = 'red')
             CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
 
     ### END IN CHECK_DEVICE_FILES_ONLY MODE, BECAUSE OF X TIMES SCP TRIES #####
@@ -3384,11 +3384,11 @@ def check_free_disk_space_on_devices(device_list = None, \
         if error_string: CGI_CLI.uprint(error_string, color = 'red')
         CGI_CLI.result_list.append([copy.deepcopy(error_string), 'red'])
         result = 'Disk space - CHECK FAIL!'
-        CGI_CLI.uprint(result, tag='h1', color = 'red')
+        CGI_CLI.uprint(result, tag='h2', color = 'red')
         CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
     else:
         result = 'Disk space - CHECK OK'
-        CGI_CLI.uprint(result, color = 'green')
+        CGI_CLI.uprint(result, tag='h2', color = 'green')
         CGI_CLI.result_list.append([copy.deepcopy(result), 'green'])
     return disk_low_space_devices
 
@@ -3502,7 +3502,7 @@ def copy_files_to_devices(true_sw_release_files_on_server = None, \
         if scp_fails >= MAX_SCP_FAILS:
             result = 'ERROR - MULTIPLE (%d) SCP STALLS & RESTARTS of %s file on device %s !!!' \
                 % (MAX_SCP_FAILS, device_file, device)
-            CGI_CLI.uprint(result , tag = 'h1', color = 'red')
+            CGI_CLI.uprint(result , tag = 'h2', color = 'red')
             CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
             sys.exit(0)
 
@@ -4573,7 +4573,7 @@ function validateForm() {
         if counter_of_scp_attempts > total_number_of_scp_attempts:
             result = 'Multiple (%d) scp attempts failed!' % \
                 (total_number_of_scp_attempts)
-            CGI_CLI.uprint(result, color = 'red')
+            CGI_CLI.uprint(result, color = 'red', tag = 'h2')
             CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
             break
 
