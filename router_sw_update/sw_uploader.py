@@ -2210,9 +2210,10 @@ def generate_logfilename(prefix = None, USERNAME = None, suffix = None, \
     if DIR: LOGDIR      = os.path.join(DIR,'logs')
     if not os.path.exists(LOGDIR): os.makedirs(LOGDIR)
     if os.path.exists(LOGDIR):
+        html_extention = 'htm' if CGI_CLI.cgi_active else str()
         if not prefix: filename_prefix = os.path.join(LOGDIR,'device')
         else: filename_prefix = prefix
-        if not suffix: filename_suffix = 'log'
+        if not suffix: filename_suffix = '%slog' % (html_extention)
         else: filename_suffix = suffix
         now = datetime.datetime.now()
         filename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s-%s-%s" % \
