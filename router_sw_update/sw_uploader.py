@@ -846,7 +846,7 @@ class CGI_CLI(object):
     def print_result_summary():
         if len(CGI_CLI.result_list) > 0: CGI_CLI.uprint('\nRESULT SUMMARY:', tag = 'h1')
         for result, color in CGI_CLI.result_list:
-            CGI_CLI.uprint(result , tag = 'h1', color = color)
+            CGI_CLI.uprint(result , tag = 'h2', color = color)
         if CGI_CLI.logfilename:
             logfilename = CGI_CLI.logfilename
             if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, logfilename)
@@ -4571,8 +4571,10 @@ function validateForm() {
 
         ### TRY SCP X TIMES, THEN END #########################################
         if counter_of_scp_attempts > total_number_of_scp_attempts:
-            CGI_CLI.uprint('Multiple (%d) scp attempts failed!' % \
-                (total_number_of_scp_attempts), tag = 'h1', color = 'red')
+            result = 'Multiple (%d) scp attempts failed!' % \
+                (total_number_of_scp_attempts)
+            CGI_CLI.uprint(result, color = 'red')
+            CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
             break
 
         ### FORCE REWRITE ONLY ONCE ###########################################
