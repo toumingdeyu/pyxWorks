@@ -493,25 +493,29 @@ class CGI_CLI(object):
 
     @staticmethod
     def tableprint(table_line_list = None, column_percents = None, \
-        header = None, end_table = None, color = None, chars_per_line = None):
+        header = None, end_table = None, color = None, chars_per_line = None, \
+        tag = None):
         """
         table_line_list - table line is list of table columns
         column_percents - optional column space in % of line
         column_percents is needed only for CLI mode, HTML has table autospacing
         """
         if table_line_list and len(table_line_list) > 0:
+            tag_string = str(tag) if tag else 'void'
             color_string = ' style="color:%s;"' % (color) if color else str()
             if CGI_CLI.cgi_active:
                 if header:
                     CGI_CLI.print_chunk('<br/><table style="width:70%"><tr>', \
                         raw_log = True, printall = True)
                     for column in table_line_list:
-                        CGI_CLI.print_chunk('<th align="left"><void%s>%s</void></th>' % \
-                            (color_string, column), raw_log = True, printall = True)
+                        CGI_CLI.print_chunk('<th align="left"><%s%s>%s</%s></th>' % \
+                            (tag_string, color_string, column, tag_string), \
+                            raw_log = True, printall = True)
                 else:
                     for column in table_line_list:
-                        CGI_CLI.print_chunk('<td><void%s>%s</void></td>' % \
-                            (color_string, column), raw_log = True, printall = True)
+                        CGI_CLI.print_chunk('<td><%s%s>%s</%s></td>' % \
+                            (tag_string, color_string, column, tag_string),\
+                            raw_log = True, printall = True)
                 if table_line_list and len (table_line_list) > 0:
                     CGI_CLI.print_chunk('</tr>', raw_log = True, printall = True)
             else:
@@ -3556,7 +3560,7 @@ def huawei_copy_device_files_to_slave_cfcard(true_sw_release_files_on_server = N
                             else: file_not_found_list.append(dev_dir + file)
                 if len(file_not_found_list) > 0:
                     result = 'Copy problem from cfcard to slave#cfcard [%s] on %s!' % (','.join(file_not_found_list), device)
-                    CGI_CLI.uprint(result , color = 'red')
+                    CGI_CLI.uprint(result , tag = 'h2', color = 'red')
                     CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
                 ### DISCONNECT ################################################
                 RCMD.disconnect()
@@ -3642,7 +3646,7 @@ def juniper_copy_device_files_to_other_routing_engine(true_sw_release_files_on_s
                                 else: file_not_found_list.append(dev_dir + file)
                     if len(file_not_found_list) > 0:
                         result = 'Copy problem from master re to backup re [%s] on %s!' % (','.join(file_not_found_list), device)
-                        CGI_CLI.uprint(result, color = 'red')
+                        CGI_CLI.uprint(result, tag = 'h2', color = 'red')
                         CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
             ### DISCONNECT ################################################
             RCMD.disconnect()
@@ -3721,8 +3725,9 @@ def check_ssh_flow_rate(printall = None):
         except: flow_rate = None
 
         if flow_rate and flow_rate < 500:
-            CGI_CLI.uprint("WARNING: flow ssh known rate is below 500! SCP can stall!", \
-                tag = 'warning')
+            result = "WARNING: flow ssh known rate is below 500! SCP can stall!"
+            CGI_CLI.uprint(result, tag = 'warning')
+            CGI_CLI.result_list.append([copy.deepcopy(result), 'orange'])
 
 ###############################################################################
 
@@ -3737,7 +3742,9 @@ def delete_files(device = None, unique_device_directory_list = None, \
                 printall = printall)
 
         if not RCMD.ssh_connection:
-            CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), color = 'red')
+            result = 'PROBLEM TO CONNECT TO %s DEVICE.' % (device)
+            CGI_CLI.uprint(result, tag = 'h2', color = 'red')
+            CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
             RCMD.disconnect()
             return
 
@@ -4392,7 +4399,7 @@ function validateForm() {
         ### EXIT if DIRECTORY LIST IS VOID ########################################
         if len(directory_list) == 0:
            result = 'Server install directories NOT FOUND!'
-           CGI_CLI.uprint(result, color = 'red')
+           CGI_CLI.uprint(result, tag = 'h2', color = 'red')
            CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
            sys.exit(0)
         else:
@@ -4448,7 +4455,7 @@ function validateForm() {
                             true_sw_release_files_on_server.append([directory,device_directory,true_file_name,md5_sum,filesize_in_bytes])
             if no_such_files_in_directory:
                 result = 'Specified %s file(s) NOT FOUND in %s!' % (actual_file_name,directory)
-                CGI_CLI.uprint(result, color = 'red')
+                CGI_CLI.uprint(result, tag = 'h2', color = 'red')
                 CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
 
         ### PRINT LIST OF FILES OR END SCRIPT #################################
@@ -4632,7 +4639,9 @@ function validateForm() {
                     printall = printall)
 
                 if not RCMD.ssh_connection:
-                    CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), color = 'red')
+                    result = 'PROBLEM TO CONNECT TO %s DEVICE.' % (device)
+                    CGI_CLI.uprint(result, tag = 'h2', color = 'red')
+                    CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
                     RCMD.disconnect()
                     continue
 
@@ -4707,49 +4716,49 @@ function validateForm() {
                         if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[0] \
                             and not 'No such file or directory' in cfgfiles_cmds_outputs[0]:
                             result = '%s backup config done!' % (device)
-                            CGI_CLI.uprint(result, color = 'green')
+                            CGI_CLI.uprint(result, tag = 'h2', color = 'green')
                             CGI_CLI.result_list.append([copy.deepcopy(result), 'green'])
-                        else: CGI_CLI.uprint('%s backup config problem!' % (device), color = 'red')
+                        else: CGI_CLI.uprint('%s backup config problem!' % (device), tag = 'h2', color = 'red')
                         if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[2] \
                             and not 'No such file or directory' in cfgfiles_cmds_outputs[2]:
                             result = '%s backup admin config done!' % (device)
-                            CGI_CLI.uprint(result, color = 'green')
+                            CGI_CLI.uprint(result, tag = 'h2', color = 'green')
                             CGI_CLI.result_list.append([copy.deepcopy(result), 'green'])
                         else:
                             result = '%s backup admin config problem!' % (device)
-                            CGI_CLI.uprint(result, color = 'red')
+                            CGI_CLI.uprint(result, tag = 'h2', color = 'red')
                             CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
 
                     elif RCMD.router_type == 'cisco_ios':
                         if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[0] \
                             and not 'No such file or directory' in cfgfiles_cmds_outputs[0]:
                             result = '%s backup config done!' % (device)
-                            CGI_CLI.uprint(result, color = 'green')
+                            CGI_CLI.uprint(result, tag = 'h2', color = 'green')
                             CGI_CLI.result_list.append([copy.deepcopy(result), 'green'])
                         else:
                             result = '%s backup config problem!' % (device)
-                            CGI_CLI.uprint(result, color = 'red')
-                            CGI_CLI.result_list.append([copy.deepcopy(result),'red'])
+                            CGI_CLI.uprint(result, tag = 'h2', color = 'red')
+                            CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
 
                     elif RCMD.router_type == 'juniper':
                         if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[0] \
                             and not 'No such file or directory' in cfgfiles_cmds_outputs[0]:
                             result = '%s backup config to re0 done!' % (device)
-                            CGI_CLI.uprint(result, color = 'green')
+                            CGI_CLI.uprint(result, tag = 'h2', color = 'green')
                             CGI_CLI.result_list.append([copy.deepcopy(result), 'green'])
                         else:
                             result = '%s backup config to re0 problem!' % (device)
-                            CGI_CLI.uprint(result, color = 'red')
+                            CGI_CLI.uprint(result, tag = 'h2', color = 'red')
                             CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
                         if not CGI_CLI.data.get('ignore_missing_backup_re_on_junos'):
                             if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[1] \
                                 and not 'No such file or directory' in cfgfiles_cmds_outputs[1]:
                                 result = '%s backup config to re1 done!' % (device)
-                                CGI_CLI.uprint(result, color = 'green')
+                                CGI_CLI.uprint(result, tag = 'h2', color = 'green')
                                 CGI_CLI.result_list.append([copy.deepcopy(result), 'green'])
                             else:
                                 result = '%s backup config to re1 problem!' % (device)
-                                CGI_CLI.uprint(result, color = 'red')
+                                CGI_CLI.uprint(result, tag = 'h2', color = 'red')
                                 CGI_CLI.result_list.append([copy.deepcopy(result),'red'])
 
                     elif RCMD.router_type == 'huawei':
@@ -4757,21 +4766,21 @@ function validateForm() {
                             and not 'No such file or directory' in cfgfiles_cmds_outputs[0] \
                             and not "Such file or path doesn't exist." in cfgfiles_cmds_outputs[0]:
                             result = '%s backup config to cfcard done!' % (device)
-                            CGI_CLI.uprint(result, color = 'green')
+                            CGI_CLI.uprint(result, tag = 'h2', color = 'green')
                             CGI_CLI.result_list.append([copy.deepcopy(result), 'green'])
                         else:
                             result = '%s backup config to cfcard problem!' % (device)
-                            CGI_CLI.uprint(result, color = 'red')
+                            CGI_CLI.uprint(result, tag = 'h2', color = 'red')
                             CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
                         if '%s-config.cfg' % (actual_date_string) in cfgfiles_cmds_outputs[1] \
                             and not 'No such file or directory' in cfgfiles_cmds_outputs[1] \
                             and not "Such file or path doesn't exist." in cfgfiles_cmds_outputs[0]:
                             result = '%s backup config to slave#cfcard done!' % (device)
-                            CGI_CLI.uprint(result, color = 'green')
+                            CGI_CLI.uprint(result, tag = 'h2', color = 'green')
                             CGI_CLI.result_list.append([copy.deepcopy(result), 'green'])
                         else:
                             result = '%s backup config to slave#cfcard problem!' % (device)
-                            CGI_CLI.uprint(result, color = 'red')
+                            CGI_CLI.uprint(result, tag = 'h2', color = 'red')
                             CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
 
 
