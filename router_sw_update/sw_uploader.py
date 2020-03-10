@@ -853,6 +853,9 @@ class CGI_CLI(object):
             CGI_CLI.uprint(result , tag = 'h3', color = color)
         if CGI_CLI.logfilename:
             logfilename = CGI_CLI.logfilename
+            iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
+            if iptac_server == 'iptac5': urllink = 'https://10.253.58.126/cgi-bin/'
+            else: urllink = 'https://%s/cgi-bin/' % (iptac_server)
             if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, logfilename)
             else: logviewer = './logviewer.py?logfile=%s' % (logfilename)
             if CGI_CLI.cgi_active:
@@ -4810,7 +4813,7 @@ except:
 
     ### SEND EMAIL WITH ERROR/TRACEBACK LOGFILE TO SUPPORT ########################
     if traceback_found:
-        send_me_email( \
+        CGI_CLI.send_me_email( \
             subject = 'TRACEBACK-SW_ULOADER-' + logfilename.replace('\\','/').\
             split('/')[-1] if logfilename else str(), \
             file_name = logfilename, username = 'pnemec')
