@@ -2686,9 +2686,6 @@ authentication {
     if iptac_server == 'iptac5': urllink = 'https://10.253.58.126/cgi-bin/'
     else: urllink = 'https://%s/cgi-bin/' % (iptac_server)
 
-    if not (USERNAME and PASSWORD):
-        if iptac_server == 'iptac5': USERNAME, PASSWORD = 'iptac', 'paiiUNDO'
-
 
     ### def CREATE ALL INTERFACES LIST PER DEVICE ##############################
     if len(device_list) > 0 and len(interface_id_list) == 0:
