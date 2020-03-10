@@ -858,7 +858,7 @@ class CGI_CLI(object):
             CGI_CLI.uprint(result , tag = 'h3', color = color)
         if CGI_CLI.logfilename:
             logfilename = CGI_CLI.logfilename
-            iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
+            iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None, ommit_logging = True).strip()
             if iptac_server == 'iptac5': urllink = 'https://10.253.58.126/cgi-bin/'
             else: urllink = 'https://%s/cgi-bin/' % (iptac_server)
             if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, logfilename)
@@ -1644,7 +1644,7 @@ class LCMD(object):
 
     @staticmethod
     def run_command(cmd_line = None, printall = None,
-        chunked = None, timeout_sec = 5000):
+        chunked = None, timeout_sec = 5000, ommit_logging = None):
         os_output, cmd_list, timer_counter_100ms = str(), None, 0
 
         if sys.version_info.major <= 2:
@@ -1654,10 +1654,11 @@ class LCMD(object):
             except: LCMD.init(printall = printall)
             if cmd_line:
                 if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line), color = 'blue', ommit_logging = True)
-                if CGI_CLI.cgi_active:
-                    CGI_CLI.logtofile('<p style="color:blue;">' + 'LOCAL_COMMAND: ' + cmd_line + '</p>', raw_log = True)
-                else:
-                    CGI_CLI.logtofile('LOCAL_COMMAND: ' + str(cmd_line) + '\n')
+                if not ommit_logging:
+                    if CGI_CLI.cgi_active:
+                        CGI_CLI.logtofile('<p style="color:blue;">' + 'LOCAL_COMMAND: ' + cmd_line + '</p>', raw_log = True)
+                    else:
+                        CGI_CLI.logtofile('LOCAL_COMMAND: ' + str(cmd_line) + '\n')
                 try:
                     if chunked:
                         os_output, timer_counter_100ms = str(), 0
@@ -1692,10 +1693,11 @@ class LCMD(object):
         elif cmd_line:
             ### PYTHON 3 ###
             if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line), color = 'blue', ommit_logging = True)
-            if CGI_CLI.cgi_active:
-                CGI_CLI.logtofile('<p style="color:blue;">' + 'LOCAL_COMMAND: ' + cmd_line + '</p>', raw_log = True)
-            else:
-                CGI_CLI.logtofile('LOCAL_COMMAND: ' + str(cmd_line) + '\n')
+            if not ommit_logging:
+                if CGI_CLI.cgi_active:
+                    CGI_CLI.logtofile('<p style="color:blue;">' + 'LOCAL_COMMAND: ' + cmd_line + '</p>', raw_log = True)
+                else:
+                    CGI_CLI.logtofile('LOCAL_COMMAND: ' + str(cmd_line) + '\n')
             try:
                 os_output = subprocess.run([cmd_line], check=True, \
                     stdout=subprocess.PIPE, \
@@ -1712,11 +1714,12 @@ class LCMD(object):
         ### OUTPUT PRINTING AND LOGGING ####
         if not chunked and os_output and printall:
             CGI_CLI.uprint(os_output, tag = 'pre', timestamp = 'no', ommit_logging = True)
-        if CGI_CLI.cgi_active:
-            CGI_CLI.logtofile('\n<pre>' + \
-                CGI_CLI.html_escape(os_output, pre_tag = True) + \
-                '\n</pre>\n', raw_log = True)
-        else: CGI_CLI.logtofile(os_output + '\n')
+        if not ommit_logging:
+            if CGI_CLI.cgi_active:
+                CGI_CLI.logtofile('\n<pre>' + \
+                    CGI_CLI.html_escape(os_output, pre_tag = True) + \
+                    '\n</pre>\n', raw_log = True)
+            else: CGI_CLI.logtofile(os_output + '\n')
         return os_output
 
     @staticmethod
@@ -1812,10 +1815,11 @@ class LCMD(object):
             for cmd_line in cmd_list:
                 os_output = str()
                 if printall: CGI_CLI.uprint("LOCAL_COMMAND: " + str(cmd_line), color = 'blue', ommit_logging = True)
-                if CGI_CLI.cgi_active:
-                    CGI_CLI.logtofile('<p style="color:blue;">' + 'LOCAL_COMMAND: ' + cmd_line + '</p>', raw_log = True)
-                elif not ommit_logging:
-                    CGI_CLI.logtofile('LOCAL_COMMAND: ' + str(cmd_line) + '\n')
+                if not ommit_logging:
+                    if CGI_CLI.cgi_active:
+                        CGI_CLI.logtofile('<p style="color:blue;">' + 'LOCAL_COMMAND: ' + cmd_line + '</p>', raw_log = True)
+                    else:
+                        CGI_CLI.logtofile('LOCAL_COMMAND: ' + str(cmd_line) + '\n')
                 try: os_output = subprocess.check_output(str(cmd_line), stderr=subprocess.STDOUT, shell=True).decode(sys_stdout_encoding)
                 except (subprocess.CalledProcessError) as e:
                     os_output = str(e.output)
@@ -1826,12 +1830,12 @@ class LCMD(object):
                     CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
                     CGI_CLI.logtofile(exc_text + '\n')
                 if os_output and printall: CGI_CLI.uprint(os_output, tag = 'pre', timestamp = 'no')
-                if CGI_CLI.cgi_active:
-                    if not ommit_logging:
+                if not ommit_logging:
+                    if CGI_CLI.cgi_active:
                         CGI_CLI.logtofile('\n<pre>' + \
                             CGI_CLI.html_escape(os_output, pre_tag = True) + \
                             '\n</pre>\n', raw_log = True)
-                else: CGI_CLI.logtofile(os_output + '\n')
+                    else: CGI_CLI.logtofile(os_output + '\n')
                 os_outputs.append(os_output)
         return os_outputs
 
