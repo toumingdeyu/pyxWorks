@@ -4818,14 +4818,15 @@ function validateForm() {
 except SystemExit:
     pass
 except:
-    traceback_found = True
-    CGI_CLI.uprint(traceback.format_exc(), tag = 'h3', color = 'magenta')
+    traceback_found = traceback.format_exc()
+    CGI_CLI.uprint(str(traceback_found), tag = CGI_CLI.result_tag, color = 'magenta')
 
     ### SEND EMAIL WITH ERROR/TRACEBACK LOGFILE TO SUPPORT ########################
     if traceback_found:
         CGI_CLI.send_me_email( \
             subject = 'TRACEBACK-SW_ULOADER-' + logfilename.replace('\\','/').\
             split('/')[-1] if logfilename else str(), \
+            email_body = str(traceback_found),\
             file_name = logfilename, username = 'pnemec')
 
 
