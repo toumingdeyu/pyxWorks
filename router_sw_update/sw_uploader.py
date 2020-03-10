@@ -29,6 +29,8 @@ import sys
 try: sys_stdout_encoding = sys.stdout.encoding
 except: sys_stdout_encoding = None
 if not sys_stdout_encoding: sys_stdout_encoding = 'UTF-8'
+###############################################################################
+
 
 
 class CGI_CLI(object):
@@ -183,6 +185,7 @@ class CGI_CLI(object):
         """
         log - start to log all after logfilename is inserted
         """
+        CGI_CLI.result_tag = 'h3'
         CGI_CLI.result_list = []
         CGI_CLI.self_buttons = ['OK','STOP']
         CGI_CLI.START_EPOCH = time.time()
@@ -1281,7 +1284,7 @@ class RCMD(object):
             ### CHECK CONF OUTPUTS #########################################
             if (conf or RCMD.conf):
                 RCMD.config_problem = None
-                CGI_CLI.uprint('\nCHECKING COMMIT ERRORS...', tag = 'h2', color = 'blue')
+                CGI_CLI.uprint('\nCHECKING COMMIT ERRORS...', tag = CGI_CLI.result_tag, color = 'blue')
                 for rcmd_output in command_outputs:
                     CGI_CLI.uprint(' . ', no_newlines = True, ommit_logging = True, timestamp = 'no')
                     if 'INVALID INPUT' in rcmd_output.upper() \
@@ -1301,12 +1304,12 @@ class RCMD(object):
                     elif RCMD.commit_text: text_to_commit = RCMD.commit_text
                     if submit_result:
                         if RCMD.config_problem:
-                            CGI_CLI.uprint('%s FAILED!' % (text_to_commit), tag = 'h2', tag_id = 'submit-result', color = 'red')
-                        else: CGI_CLI.uprint('%s SUCCESSFULL.' % (text_to_commit), tag = 'h2', tag_id = 'submit-result', color = 'green')
+                            CGI_CLI.uprint('%s FAILED!' % (text_to_commit), tag = CGI_CLI.result_tag, tag_id = 'submit-result', color = 'red')
+                        else: CGI_CLI.uprint('%s SUCCESSFULL.' % (text_to_commit), tag = CGI_CLI.result_tag, tag_id = 'submit-result', color = 'green')
                     else:
                         if RCMD.config_problem:
-                            CGI_CLI.uprint('%s FAILED!' % (text_to_commit), tag = 'h2', color = 'red')
-                        else: CGI_CLI.uprint('%s SUCCESSFULL.' % (text_to_commit), tag = 'h2', color = 'green')
+                            CGI_CLI.uprint('%s FAILED!' % (text_to_commit), tag = CGI_CLI.result_tag, color = 'red')
+                        else: CGI_CLI.uprint('%s SUCCESSFULL.' % (text_to_commit), tag = CGI_CLI.result_tag, color = 'green')
         return command_outputs
 
     @staticmethod
@@ -3065,28 +3068,28 @@ def check_files_on_devices(device_list = None, true_sw_release_files_on_server =
                 CGI_CLI.tableprint([device,devfile], column_percents = [10,90], color = 'red')
             CGI_CLI.tableprint(end_table = True)
             result = '\nIncompatible file(s) on device(s)!'
-            CGI_CLI.uprint(result, tag = 'h2', color = 'red')
+            CGI_CLI.uprint(result, tag = CGI_CLI.result_tag, color = 'red')
             CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
 
     ### PRINT CHECK RESULTS ###################################################
     if all_files_on_all_devices_ok and len(disk_low_space_devices) == 0:
         result = 'Sw release %s file(s) on device(s) %s - CHECK OK.' % (sw_release, ', '.join(device_list))
-        CGI_CLI.uprint(result, tag = 'h2', color='green')
+        CGI_CLI.uprint(result, tag = CGI_CLI.result_tag, color='green')
         CGI_CLI.result_list.append([copy.deepcopy(result), 'green'])
     elif all_files_on_all_devices_ok and len(disk_low_space_devices) > 0:
         result = 'Sw release %s file(s) on device(s) %s - CHECK OK.' % \
             (sw_release, ', '.join(device_list))
-        CGI_CLI.uprint(result, tag = 'h2', color='green')
+        CGI_CLI.uprint(result, tag = CGI_CLI.result_tag, color='green')
         CGI_CLI.result_list.append([copy.deepcopy(result), 'green'])
         result = 'Disk space problems & sw release file(s) on device(s) %s - CHECK FAILED!' % \
             (', '.join(disk_low_space_devices))
         CGI_CLI.result_list.append([copy.deepcopy(result), 'green'])
-        CGI_CLI.uprint(result, tag = 'h2', color = 'red')
+        CGI_CLI.uprint(result, tag = CGI_CLI.result_tag, color = 'red')
     elif CGI_CLI.data.get('check_device_sw_files_only') or check_mode:
         if len(missing_files_per_device_list) == 0 and len(compatibility_problem_list) == 0: pass
         else:
             result = 'Sw release file(s) on device(s) - CHECK FAILED!'
-            CGI_CLI.uprint(result , tag = 'h2', color = 'red')
+            CGI_CLI.uprint(result , tag = CGI_CLI.result_tag, color = 'red')
             CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
 
     ### END IN CHECK_DEVICE_FILES_ONLY MODE, BECAUSE OF X TIMES SCP TRIES #####
@@ -3395,11 +3398,11 @@ def check_free_disk_space_on_devices(device_list = None, \
         if error_string: CGI_CLI.uprint(error_string, color = 'red')
         CGI_CLI.result_list.append([copy.deepcopy(error_string), 'red'])
         result = 'Disk space - CHECK FAIL!'
-        CGI_CLI.uprint(result, tag='h2', color = 'red')
+        CGI_CLI.uprint(result, tag = CGI_CLI.result_tag, color = 'red')
         CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
     else:
         result = 'Disk space - CHECK OK'
-        CGI_CLI.uprint(result, tag='h2', color = 'green')
+        CGI_CLI.uprint(result, tag = CGI_CLI.result_tag, color = 'green')
         CGI_CLI.result_list.append([copy.deepcopy(result), 'green'])
     return disk_low_space_devices
 
@@ -3513,7 +3516,7 @@ def copy_files_to_devices(true_sw_release_files_on_server = None, \
         if scp_fails >= MAX_SCP_FAILS:
             result = 'ERROR - MULTIPLE (%d) SCP STALLS & RESTARTS of %s file on device %s !!!' \
                 % (MAX_SCP_FAILS, device_file, device)
-            CGI_CLI.uprint(result , tag = 'h2', color = 'red')
+            CGI_CLI.uprint(result , tag = CGI_CLI.result_tag, color = 'red')
             CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
             sys.exit(0)
 
@@ -3567,7 +3570,7 @@ def huawei_copy_device_files_to_slave_cfcard(true_sw_release_files_on_server = N
                             else: file_not_found_list.append(dev_dir + file)
                 if len(file_not_found_list) > 0:
                     result = 'Copy problem from cfcard to slave#cfcard [%s] on %s!' % (','.join(file_not_found_list), device)
-                    CGI_CLI.uprint(result , tag = 'h2', color = 'red')
+                    CGI_CLI.uprint(result , tag = CGI_CLI.result_tag, color = 'red')
                     CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
                 ### DISCONNECT ################################################
                 RCMD.disconnect()
@@ -3613,7 +3616,7 @@ def juniper_copy_device_files_to_other_routing_engine(true_sw_release_files_on_s
                 CGI_CLI.uprint('\n', timestamp = 'no')
                 result = '\nDevice %s routing engines: MASTER=%s, BACKUP=%s.' % \
                     (device, master_re, str(backup_re))
-                CGI_CLI.uprint(result, tag = 'h2', printall = True)
+                CGI_CLI.uprint(result, tag = CGI_CLI.result_tag, printall = True)
                 CGI_CLI.result_list.append([copy.deepcopy(result), 'default'])
 
                 if not backup_re: missing_backup_re_list.append(device)
@@ -3655,7 +3658,7 @@ def juniper_copy_device_files_to_other_routing_engine(true_sw_release_files_on_s
                                 else: file_not_found_list.append(dev_dir + file)
                     if len(file_not_found_list) > 0:
                         result = 'Copy problem from master re to backup re [%s] on %s!' % (','.join(file_not_found_list), device)
-                        CGI_CLI.uprint(result, tag = 'h2', color = 'red')
+                        CGI_CLI.uprint(result, tag = CGI_CLI.result_tag, color = 'red')
                         CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
             ### DISCONNECT ################################################
             RCMD.disconnect()
@@ -3752,7 +3755,7 @@ def delete_files(device = None, unique_device_directory_list = None, \
 
         if not RCMD.ssh_connection:
             result = 'PROBLEM TO CONNECT TO %s DEVICE.' % (device)
-            CGI_CLI.uprint(result, tag = 'h2', color = 'red')
+            CGI_CLI.uprint(result, tag = CGI_CLI.result_tag, color = 'red')
             CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
             RCMD.disconnect()
             return
@@ -3994,7 +3997,7 @@ function validateForm() {
     CGI_CLI.print_args()
 
     #CGI_CLI.uprint(sys.modules.keys())
-    CGI_CLI.uprint("ENCODING='%s'" % sys_stdout_encoding)
+    CGI_CLI.uprint("ENCODING='%s'" % sys_stdout_encoding, no_printall = not printall, tag = 'debug')
 
     ### CHECK RUNNING SCP PROCESSES ON START ##################################
     does_run_script_processes(printall = printall)
@@ -4286,19 +4289,19 @@ function validateForm() {
 
     if len(device_list) == 0:
         result = 'DEVICE NAME(S) NOT INSERTED!'
-        CGI_CLI.uprint(result, tag = 'h2', color = 'red')
+        CGI_CLI.uprint(result, tag = CGI_CLI.result_tag, color = 'red')
         CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
         exit_due_to_error = True
 
     if not USERNAME:
         result = 'USERNAME NOT INSERTED!'
-        CGI_CLI.uprint(result, tag = 'h2', color = 'red')
+        CGI_CLI.uprint(result, tag = CGI_CLI.result_tag, color = 'red')
         CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
         exit_due_to_error = True
 
     if not PASSWORD:
         result = 'PASSWORD NOT INSERTED!'
-        CGI_CLI.uprint(result, tag = 'h2', color = 'red')
+        CGI_CLI.uprint(result, tag = CGI_CLI.result_tag, color = 'red')
         CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
         exit_due_to_error = True
 
@@ -4308,7 +4311,7 @@ function validateForm() {
 
     if type_subdir and brand_subdir \
         and len(selected_sw_file_types_list) > 0:
-        CGI_CLI.uprint('Server %s checks:\n' % (iptac_server), tag = 'h2', color = 'blue')
+        CGI_CLI.uprint('Server %s checks:\n' % (iptac_server), tag = CGI_CLI.result_tag, color = 'blue')
 
         ### def CHECK LOCAL SW DIRECTORIES ########################################
         directory_list = []
@@ -4412,7 +4415,7 @@ function validateForm() {
         ### EXIT if DIRECTORY LIST IS VOID ########################################
         if len(directory_list) == 0:
            result = 'Server install directories NOT FOUND!'
-           CGI_CLI.uprint(result, tag = 'h2', color = 'red')
+           CGI_CLI.uprint(result, tag = CGI_CLI.result_tag, color = 'red')
            CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
            sys.exit(0)
         else:
@@ -4468,7 +4471,7 @@ function validateForm() {
                             true_sw_release_files_on_server.append([directory,device_directory,true_file_name,md5_sum,filesize_in_bytes])
             if no_such_files_in_directory:
                 result = 'Specified %s file(s) NOT FOUND in %s!' % (actual_file_name,directory)
-                CGI_CLI.uprint(result, tag = 'h2', color = 'orange')
+                CGI_CLI.uprint(result, tag = CGI_CLI.result_tag, color = 'orange')
                 CGI_CLI.result_list.append([copy.deepcopy(result), 'orange'])
 
         ### PRINT LIST OF FILES OR END SCRIPT #################################
@@ -4593,7 +4596,7 @@ function validateForm() {
         if counter_of_scp_attempts > total_number_of_scp_attempts:
             result = 'Multiple (%d) scp attempts failed!' % \
                 (total_number_of_scp_attempts)
-            CGI_CLI.uprint(result, color = 'red', tag = 'h2')
+            CGI_CLI.uprint(result, color = 'red', tag = CGI_CLI.result_tag)
             CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
             break
 
@@ -4653,7 +4656,7 @@ function validateForm() {
 
                 if not RCMD.ssh_connection:
                     result = 'PROBLEM TO CONNECT TO %s DEVICE.' % (device)
-                    CGI_CLI.uprint(result, tag = 'h2', color = 'red')
+                    CGI_CLI.uprint(result, tag = CGI_CLI.result_tag, color = 'red')
                     CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
                     RCMD.disconnect()
                     continue
@@ -4729,49 +4732,49 @@ function validateForm() {
                         if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[0] \
                             and not 'No such file or directory' in cfgfiles_cmds_outputs[0]:
                             result = '%s backup config done!' % (device)
-                            CGI_CLI.uprint(result, tag = 'h2', color = 'green')
+                            CGI_CLI.uprint(result, tag = CGI_CLI.result_tag, color = 'green')
                             CGI_CLI.result_list.append([copy.deepcopy(result), 'green'])
-                        else: CGI_CLI.uprint('%s backup config problem!' % (device), tag = 'h2', color = 'red')
+                        else: CGI_CLI.uprint('%s backup config problem!' % (device), tag = CGI_CLI.result_tag, color = 'red')
                         if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[2] \
                             and not 'No such file or directory' in cfgfiles_cmds_outputs[2]:
                             result = '%s backup admin config done!' % (device)
-                            CGI_CLI.uprint(result, tag = 'h2', color = 'green')
+                            CGI_CLI.uprint(result, tag = CGI_CLI.result_tag, color = 'green')
                             CGI_CLI.result_list.append([copy.deepcopy(result), 'green'])
                         else:
                             result = '%s backup admin config problem!' % (device)
-                            CGI_CLI.uprint(result, tag = 'h2', color = 'red')
+                            CGI_CLI.uprint(result, tag = CGI_CLI.result_tag, color = 'red')
                             CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
 
                     elif RCMD.router_type == 'cisco_ios':
                         if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[0] \
                             and not 'No such file or directory' in cfgfiles_cmds_outputs[0]:
                             result = '%s backup config done!' % (device)
-                            CGI_CLI.uprint(result, tag = 'h2', color = 'green')
+                            CGI_CLI.uprint(result, tag = CGI_CLI.result_tag, color = 'green')
                             CGI_CLI.result_list.append([copy.deepcopy(result), 'green'])
                         else:
                             result = '%s backup config problem!' % (device)
-                            CGI_CLI.uprint(result, tag = 'h2', color = 'red')
+                            CGI_CLI.uprint(result, tag = CGI_CLI.result_tag, color = 'red')
                             CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
 
                     elif RCMD.router_type == 'juniper':
                         if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[0] \
                             and not 'No such file or directory' in cfgfiles_cmds_outputs[0]:
                             result = '%s backup config to re0 done!' % (device)
-                            CGI_CLI.uprint(result, tag = 'h2', color = 'green')
+                            CGI_CLI.uprint(result, tag = CGI_CLI.result_tag, color = 'green')
                             CGI_CLI.result_list.append([copy.deepcopy(result), 'green'])
                         else:
                             result = '%s backup config to re0 problem!' % (device)
-                            CGI_CLI.uprint(result, tag = 'h2', color = 'red')
+                            CGI_CLI.uprint(result, tag = CGI_CLI.result_tag, color = 'red')
                             CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
                         if not CGI_CLI.data.get('ignore_missing_backup_re_on_junos'):
                             if '%s-config.txt' % (actual_date_string) in cfgfiles_cmds_outputs[1] \
                                 and not 'No such file or directory' in cfgfiles_cmds_outputs[1]:
                                 result = '%s backup config to re1 done!' % (device)
-                                CGI_CLI.uprint(result, tag = 'h2', color = 'green')
+                                CGI_CLI.uprint(result, tag = CGI_CLI.result_tag, color = 'green')
                                 CGI_CLI.result_list.append([copy.deepcopy(result), 'green'])
                             else:
                                 result = '%s backup config to re1 problem!' % (device)
-                                CGI_CLI.uprint(result, tag = 'h2', color = 'red')
+                                CGI_CLI.uprint(result, tag = CGI_CLI.result_tag, color = 'red')
                                 CGI_CLI.result_list.append([copy.deepcopy(result),'red'])
 
                     elif RCMD.router_type == 'huawei':
@@ -4779,21 +4782,21 @@ function validateForm() {
                             and not 'No such file or directory' in cfgfiles_cmds_outputs[0] \
                             and not "Such file or path doesn't exist." in cfgfiles_cmds_outputs[0]:
                             result = '%s backup config to cfcard done!' % (device)
-                            CGI_CLI.uprint(result, tag = 'h2', color = 'green')
+                            CGI_CLI.uprint(result, tag = CGI_CLI.result_tag, color = 'green')
                             CGI_CLI.result_list.append([copy.deepcopy(result), 'green'])
                         else:
                             result = '%s backup config to cfcard problem!' % (device)
-                            CGI_CLI.uprint(result, tag = 'h2', color = 'red')
+                            CGI_CLI.uprint(result, tag = CGI_CLI.result_tag, color = 'red')
                             CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
                         if '%s-config.cfg' % (actual_date_string) in cfgfiles_cmds_outputs[1] \
                             and not 'No such file or directory' in cfgfiles_cmds_outputs[1] \
                             and not "Such file or path doesn't exist." in cfgfiles_cmds_outputs[0]:
                             result = '%s backup config to slave#cfcard done!' % (device)
-                            CGI_CLI.uprint(result, tag = 'h2', color = 'green')
+                            CGI_CLI.uprint(result, tag = CGI_CLI.result_tag, color = 'green')
                             CGI_CLI.result_list.append([copy.deepcopy(result), 'green'])
                         else:
                             result = '%s backup config to slave#cfcard problem!' % (device)
-                            CGI_CLI.uprint(result, tag = 'h2', color = 'red')
+                            CGI_CLI.uprint(result, tag = CGI_CLI.result_tag, color = 'red')
                             CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
 
 
