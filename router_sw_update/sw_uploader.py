@@ -4019,9 +4019,6 @@ function validateForm() {
     if iptac_server == 'iptac5': urllink = 'https://10.253.58.126/cgi-bin/'
     else: urllink = 'https://%s/cgi-bin/' % (iptac_server)
 
-    if CGI_CLI.cgi_active and not (USERNAME and PASSWORD):
-        if iptac_server == 'iptac5': USERNAME, PASSWORD = 'iptac', 'paiiUNDO'
-
     ### GENERATE selected_sw_file_types_list ##################################
     selected_sw_file_types_list = []
     selected_files_types_string = '_file(s)'
