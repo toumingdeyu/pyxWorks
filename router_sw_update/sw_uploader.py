@@ -2,7 +2,8 @@
 
 ###!/usr/bin/python36
 
-import sys, os, io, paramiko, json, copy, html, logging
+
+import os, io, paramiko, json, copy, html, logging
 import traceback
 import getopt
 import getpass
@@ -24,6 +25,10 @@ import requests
 from mako.template import Template
 from mako.lookup import TemplateLookup
 
+import sys
+try: sys_stdout_encoding = sys.stdout.encoding
+except: sys_stdout_encoding = None
+if not sys_stdout_encoding: sys_stdout_encoding = 'UTF-8'
 
 
 class CGI_CLI(object):
@@ -225,7 +230,7 @@ class CGI_CLI(object):
         ### HTTP/1.1 ???
         CGI_CLI.status_line = \
             "Status: %s %s%s" % (CGI_CLI.http_status, CGI_CLI.http_status_text, CGI_CLI.newline)
-        CGI_CLI.content_type_line = 'Content-type:text/html; charset=utf-8%s' % (CGI_CLI.newline)
+        CGI_CLI.content_type_line = 'Content-type:text/html; charset=%s%s' % (str(sys_stdout_encoding), CGI_CLI.newline)
 
         ### DECIDE - CLI OR CGI MODE ##########################################
         CGI_CLI.remote_addr =  dict(os.environ).get('REMOTE_ADDR','')
@@ -759,7 +764,7 @@ class CGI_CLI(object):
         if not 'WIN32' in sys.platform.upper():
             try:
                 ldapsearch_output = subprocess.check_output('ldapsearch -LLL -x uid=%s mail' % (my_account), shell=True)
-                ldap_email_address = ldapsearch_output.decode("utf-8").split('mail:')[1].splitlines()[0].strip()
+                ldap_email_address = ldapsearch_output.decode(sys_stdout_encoding).split('mail:')[1].splitlines()[0].strip()
             except: ldap_email_address = None
             if ldap_email_address: sugested_email_address = ldap_email_address
             else:
@@ -1104,7 +1109,7 @@ class RCMD(object):
                 command = 'ping %s -n 1' % (device_without_port)
             else: command = 'ping %s -c 1' % (device_without_port)
             try: os_output = subprocess.check_output(str(command), \
-                stderr=subprocess.STDOUT, shell=True).decode("utf-8")
+                stderr=subprocess.STDOUT, shell=True).decode(sys_stdout_encoding)
             except: os_output = str()
             if 'Packets: Sent = 1, Received = 1' in os_output \
                 or '1 packets transmitted, 1 received,' in os_output:
@@ -1344,8 +1349,9 @@ class RCMD(object):
         last_line_original = str()
 
         ### FLUSH BUFFERS FROM PREVIOUS COMMANDS IF THEY ARE ALREADY BUFFERED ###
-        if chan.recv_ready(): flush_buffer = chan.recv(9999)
-        time.sleep(0.1)
+        if chan.recv_ready():
+            flush_buffer = chan.recv(9999)
+            time.sleep(0.3)
         chan.send(send_data + '\n')
         time.sleep(0.1)
 
@@ -1608,7 +1614,7 @@ class RCMD(object):
                 (RCMD.USERNAME,RCMD.PASSWORD)
             if URL: url = URL
             else: url = 'https://vision.opentransit.net/onv/api/nodes/'
-            local_command = 'curl -u ${CURL_AUTH_STRING} %s' % (url)
+            local_command = 'curl -u ${CURL_AUTH_STRING} -m 1 %s' % (url)
             RCMD.vision_api_json_string = LCMD.run_commands(\
                 {'unix':[local_command]}, printall = None, ommit_logging = True)
             os.environ['CURL_AUTH_STRING'] = '-'
@@ -1672,15 +1678,11 @@ class LCMD(object):
                                 CommandObject.terminate()
                                 break
                     else:
-                        try:
-                            os_output = subprocess.check_output(str(cmd_line), \
-                                stderr=subprocess.STDOUT, shell=True).decode("utf-8")
-                        except:
-                            os_output = subprocess.check_output(str(cmd_line), \
-                                stderr=subprocess.STDOUT, shell=True).decode("cp1252")
+                        os_output = subprocess.check_output(str(cmd_line), \
+                            stderr=subprocess.STDOUT, shell=True).decode(sys_stdout_encoding)
+
                 except (subprocess.CalledProcessError) as e:
-                    try: os_output = str(e.output.decode("utf-8"))
-                    except: os_output = str(e.output.decode("cp1252"))
+                    os_output = str(e.output)
                     if printall: CGI_CLI.uprint('EXITCODE: %s' % (str(e.returncode)))
                     CGI_CLI.logtofile('EXITCODE: %s\n' % (str(e.returncode)))
                 except:
@@ -1744,8 +1746,7 @@ class LCMD(object):
                     if printall: CGI_CLI.uprint("LOCAL_COMMAND_(START)[%s]: %s" % (str(actual_CommandObject), str(cmd_line)), color = 'blue')
                     CGI_CLI.logtofile('LOCAL_COMMAND_(START)[%s]: %s' % (str(actual_CommandObject), str(cmd_line)) + '\n')
                 except (subprocess.CalledProcessError) as e:
-                    try: os_output = str(e.output.decode("utf-8"))
-                    except: os_output = str(e.output.decode("cp1252"))
+                    os_output = str(e.output)
                     if printall: CGI_CLI.uprint('EXITCODE: %s' % (str(e.returncode)))
                     CGI_CLI.logtofile('EXITCODE: %s\n' % (str(e.returncode)))
                     commands_ok = False
@@ -1815,17 +1816,15 @@ class LCMD(object):
                     CGI_CLI.logtofile('<p style="color:blue;">' + 'LOCAL_COMMAND: ' + cmd_line + '</p>', raw_log = True)
                 elif not ommit_logging:
                     CGI_CLI.logtofile('LOCAL_COMMAND: ' + str(cmd_line) + '\n')
-                try: os_output = subprocess.check_output(str(cmd_line), stderr=subprocess.STDOUT, shell=True).decode("utf-8")
+                try: os_output = subprocess.check_output(str(cmd_line), stderr=subprocess.STDOUT, shell=True).decode(sys_stdout_encoding)
+                except (subprocess.CalledProcessError) as e:
+                    os_output = str(e.output)
+                    if printall: CGI_CLI.uprint('EXITCODE: %s' % (str(e.returncode)))
+                    CGI_CLI.logtofile('EXITCODE: %s\n' % (str(e.returncode)))
                 except:
-                    try: os_output = subprocess.check_output(str(cmd_line), stderr=subprocess.STDOUT, shell=True).decode("cp1252")
-                    except (subprocess.CalledProcessError) as e:
-                        os_output = str(e.output.decode("utf-8"))
-                        if printall: CGI_CLI.uprint('EXITCODE: %s' % (str(e.returncode)))
-                        CGI_CLI.logtofile('EXITCODE: %s\n' % (str(e.returncode)))
-                    except:
-                        exc_text = traceback.format_exc()
-                        CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
-                        CGI_CLI.logtofile(exc_text + '\n')
+                    exc_text = traceback.format_exc()
+                    CGI_CLI.uprint('PROBLEM[%s]' % str(exc_text), color = 'magenta')
+                    CGI_CLI.logtofile(exc_text + '\n')
                 if os_output and printall: CGI_CLI.uprint(os_output, tag = 'pre', timestamp = 'no')
                 if CGI_CLI.cgi_active:
                     if not ommit_logging:
@@ -1977,7 +1976,7 @@ class sql_interface():
                 ### 4TH COLUMN IS COLUMN NAME
                 ### OUTPUTDATA STRUCTURE IS: '[(SQL_RESULT)]' --> records[0] = UNPACK []
                 for item in records:
-                    try: new_item = item[3].decode('utf-8')
+                    try: new_item = item[3].decode(sys_stdout_encoding)
                     except: new_item = item[3]
                     columns.append(new_item)
             except Exception as e: CGI_CLI.uprint(' ==> SQL problem [%s]' % (str(e)), color = 'magenta')
@@ -2014,7 +2013,7 @@ class sql_interface():
                 for line in records:
                     columns = []
                     for item in line:
-                        try: new_item = item.decode('utf-8')
+                        try: new_item = item.decode(sys_stdout_encoding)
                         except:
                            try: new_item = str(item)
                            except: new_item = item
@@ -3849,9 +3848,10 @@ def terminate_process_term(signalNumber, frame):
 ###############################################################################
 
 if __name__ != "__main__": sys.exit(0)
-try:
 
-    signal.signal(signal.SIGTERM, terminate_process_term)
+signal.signal(signal.SIGTERM, terminate_process_term)
+
+try:
 
     CSS_STYLE = """
 authentication {
@@ -3988,6 +3988,9 @@ function validateForm() {
     else: CGI_CLI.uprint('SW UPLOADER (v.%s)' % (CGI_CLI.VERSION()), \
               tag = 'h1', color = 'blue')
     CGI_CLI.print_args()
+
+    #CGI_CLI.uprint(sys.modules.keys())
+    CGI_CLI.uprint("ENCODING='%s'" % sys_stdout_encoding)
 
     ### CHECK RUNNING SCP PROCESSES ON START ##################################
     does_run_script_processes(printall = printall)
