@@ -3,7 +3,7 @@
 ###!/usr/bin/python36
 
 
-import os, io, paramiko, json, copy, html, logging
+import sys, os, io, paramiko, json, copy, html, logging
 import traceback
 import getopt
 import getpass
@@ -25,10 +25,6 @@ import requests
 from mako.template import Template
 from mako.lookup import TemplateLookup
 
-import sys
-try: sys_stdout_encoding = sys.stdout.encoding
-except: sys_stdout_encoding = None
-if not sys_stdout_encoding: sys_stdout_encoding = 'UTF-8'
 ###############################################################################
 
 
@@ -183,8 +179,10 @@ class CGI_CLI(object):
     def init_cgi(chunked = None, css_style = None, newline = None, \
         timestamp = None):
         """
-        log - start to log all after logfilename is inserted
         """
+        try: CGI_CLI.sys_stdout_encoding = sys.stdout.encoding
+        except: CGI_CLI.sys_stdout_encoding = None
+        if not CGI_CLI.sys_stdout_encoding: CGI_CLI.sys_stdout_encoding = 'UTF-8'
         CGI_CLI.result_tag = 'h3'
         CGI_CLI.result_list = []
         CGI_CLI.self_buttons = ['OK','STOP']
@@ -233,7 +231,7 @@ class CGI_CLI(object):
         ### HTTP/1.1 ???
         CGI_CLI.status_line = \
             "Status: %s %s%s" % (CGI_CLI.http_status, CGI_CLI.http_status_text, CGI_CLI.newline)
-        CGI_CLI.content_type_line = 'Content-type:text/html; charset=%s%s' % (str(sys_stdout_encoding), CGI_CLI.newline)
+        CGI_CLI.content_type_line = 'Content-type:text/html; charset=%s%s' % (str(CGI_CLI.sys_stdout_encoding), CGI_CLI.newline)
 
         ### DECIDE - CLI OR CGI MODE ##########################################
         CGI_CLI.remote_addr =  dict(os.environ).get('REMOTE_ADDR','')
@@ -767,7 +765,7 @@ class CGI_CLI(object):
         if not 'WIN32' in sys.platform.upper():
             try:
                 ldapsearch_output = subprocess.check_output('ldapsearch -LLL -x uid=%s mail' % (my_account), shell=True)
-                ldap_email_address = ldapsearch_output.decode(sys_stdout_encoding).split('mail:')[1].splitlines()[0].strip()
+                ldap_email_address = ldapsearch_output.decode(CGI_CLI.sys_stdout_encoding).split('mail:')[1].splitlines()[0].strip()
             except: ldap_email_address = None
             if ldap_email_address: sugested_email_address = ldap_email_address
             else:
@@ -1112,7 +1110,7 @@ class RCMD(object):
                 command = 'ping %s -n 1' % (device_without_port)
             else: command = 'ping %s -c 1' % (device_without_port)
             try: os_output = subprocess.check_output(str(command), \
-                stderr=subprocess.STDOUT, shell=True).decode(sys_stdout_encoding)
+                stderr=subprocess.STDOUT, shell=True).decode(CGI_CLI.sys_stdout_encoding)
             except: os_output = str()
             if 'Packets: Sent = 1, Received = 1' in os_output \
                 or '1 packets transmitted, 1 received,' in os_output:
@@ -1683,7 +1681,7 @@ class LCMD(object):
                                 break
                     else:
                         os_output = subprocess.check_output(str(cmd_line), \
-                            stderr=subprocess.STDOUT, shell=True).decode(sys_stdout_encoding)
+                            stderr=subprocess.STDOUT, shell=True).decode(CGI_CLI.sys_stdout_encoding)
 
                 except (subprocess.CalledProcessError) as e:
                     os_output = str(e.output)
@@ -1823,7 +1821,7 @@ class LCMD(object):
                         CGI_CLI.logtofile('<p style="color:blue;">' + 'LOCAL_COMMAND: ' + cmd_line + '</p>', raw_log = True)
                     else:
                         CGI_CLI.logtofile('LOCAL_COMMAND: ' + str(cmd_line) + '\n')
-                try: os_output = subprocess.check_output(str(cmd_line), stderr=subprocess.STDOUT, shell=True).decode(sys_stdout_encoding)
+                try: os_output = subprocess.check_output(str(cmd_line), stderr=subprocess.STDOUT, shell=True).decode(CGI_CLI.sys_stdout_encoding)
                 except (subprocess.CalledProcessError) as e:
                     os_output = str(e.output)
                     if printall: CGI_CLI.uprint('EXITCODE: %s' % (str(e.returncode)))
@@ -1983,7 +1981,7 @@ class sql_interface():
                 ### 4TH COLUMN IS COLUMN NAME
                 ### OUTPUTDATA STRUCTURE IS: '[(SQL_RESULT)]' --> records[0] = UNPACK []
                 for item in records:
-                    try: new_item = item[3].decode(sys_stdout_encoding)
+                    try: new_item = item[3].decode(CGI_CLI.sys_stdout_encoding)
                     except: new_item = item[3]
                     columns.append(new_item)
             except Exception as e: CGI_CLI.uprint(' ==> SQL problem [%s]' % (str(e)), color = 'magenta')
@@ -2020,7 +2018,7 @@ class sql_interface():
                 for line in records:
                     columns = []
                     for item in line:
-                        try: new_item = item.decode(sys_stdout_encoding)
+                        try: new_item = item.decode(CGI_CLI.sys_stdout_encoding)
                         except:
                            try: new_item = str(item)
                            except: new_item = item
@@ -3997,7 +3995,7 @@ function validateForm() {
     CGI_CLI.print_args()
 
     #CGI_CLI.uprint(sys.modules.keys())
-    CGI_CLI.uprint("ENCODING='%s'" % sys_stdout_encoding, no_printall = not printall, tag = 'debug')
+    CGI_CLI.uprint("ENCODING='%s'" % CGI_CLI.sys_stdout_encoding, no_printall = not printall, tag = 'debug')
 
     ### CHECK RUNNING SCP PROCESSES ON START ##################################
     does_run_script_processes(printall = printall)
