@@ -1244,10 +1244,10 @@ if CGI_CLI.cgi_active and not CGI_CLI.submit_form:
     sys.exit(0)
 else:
     ### READ SCRIPT ACTION ###
-    if (CGI_CLI.data.get("script_action") or CGI_CLI.data.get("shut") or CGI_CLI.data.get("noshut")):
+    if (CGI_CLI.data.get("script_action") or CGI_CLI.data.get("shut") or CGI_CLI.data.get("noshut") or CGI_CLI.data.get("radio")):
         if CGI_CLI.data.get("script_action"): SCRIPT_ACTION = CGI_CLI.data.get("script_action")
-        elif CGI_CLI.data.get("shut"):        SCRIPT_ACTION = 'shut'
-        elif  CGI_CLI.data.get("noshut"):     SCRIPT_ACTION = 'noshut'
+        elif CGI_CLI.data.get("radio") == 'shut' or CGI_CLI.data.get("shut"):        SCRIPT_ACTION = 'shut'
+        elif CGI_CLI.data.get("radio") == 'noshut' or CGI_CLI.data.get("noshut"):     SCRIPT_ACTION = 'noshut'
     else:
         CGI_CLI.uprint('Please specify --shut or --noshut ... ', color = 'magenta')
         sys.exit(0)
@@ -1261,12 +1261,12 @@ logfilename = generate_file_name(prefix = device.upper(), USERNAME = USERNAME, s
 ### LAST RED ASKING MESSAGE BEFORE ACTION ###
 if CGI_CLI.cgi_active or CGI_CLI.data.get("show_config_only"): pass
 else:
-    if CGI_CLI.data.get("shut"):
+    if SCRIPT_ACTION == 'shut':
         if not 'WIN32' in sys.platform.upper():
             CGI_CLI.uprint("You are about to shut down all the BGP sessions on %s do you want to continue? (Y/N) [Enter]:", color = 'red')
             continue_or_not = LCMD.run_command('read var;echo $var')
             if continue_or_not.strip().upper() != "Y": sys.exit(0)
-    elif CGI_CLI.data.get("noshut"):
+    elif SCRIPT_ACTION == 'noshut':
         if not 'WIN32' in sys.platform.upper():
             CGI_CLI.uprint("You are about to switch-on all the BGP sessions on %s do you want to continue? (Y/N) [Enter]:", color = 'red')
             continue_or_not = LCMD.run_command('read var;echo $var')
