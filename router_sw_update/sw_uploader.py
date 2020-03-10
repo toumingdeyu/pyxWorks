@@ -3921,7 +3921,7 @@ function validateForm() {
     traceback_found = None
 
     ### def GLOBAL CONSTANTS #################################################
-    device_expected_MB_free = 100
+    device_expected_MB_free = 1
     total_number_of_scp_attempts = 3
     MAX_SCP_FAILS = 3
 
