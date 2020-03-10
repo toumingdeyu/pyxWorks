@@ -625,7 +625,7 @@ class RCMD(object):
                         command_outputs = [last_output]
                 elif RCMD.use_module == 'paramiko':
                     ### CONFIG MODE FOR PARAMIKO ###############################
-                    conf_output = ''
+                    conf_output = None
                     if (conf or RCMD.conf) and RCMD.use_module == 'paramiko':
                         if RCMD.router_type=='cisco_ios': conf_output = RCMD.run_command('config t', \
                             conf = conf, sim_config = sim_config, printall = printall)
@@ -753,9 +753,9 @@ class RCMD(object):
         timeout_counter, timeout_counter2 = 0, 0
         # FLUSH BUFFERS FROM PREVIOUS COMMANDS IF THEY ARE ALREADY BUFFERD
         if chan.recv_ready(): flush_buffer = chan.recv(9999)
-        time.sleep(0.1)
+        time.sleep(0.3)
         chan.send(send_data + '\n')
-        time.sleep(0.2)
+        time.sleep(0.3)
         while not exit_loop:
             if chan.recv_ready():
                 # workarround for discontious outputs from routers
