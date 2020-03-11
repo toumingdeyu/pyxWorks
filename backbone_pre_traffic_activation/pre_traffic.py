@@ -956,7 +956,7 @@ class RCMD(object):
                 #RCMD.client.connect(RCMD.DEVICE_HOST, port=int(RCMD.DEVICE_PORT), \
                 RCMD.client.connect(device_id, port=int(RCMD.DEVICE_PORT), \
                     username=RCMD.USERNAME, password=RCMD.PASSWORD, \
-                    banner_timeout = 10, \
+                    banner_timeout = 15, \
                     ### AUTH_TIMEOUT MAKES PROBLEMS ON IPTAC1 ###
                     #auth_timeout = 10, \
                     timeout = RCMD.CONNECTION_TIMEOUT, \
@@ -2692,7 +2692,7 @@ authentication {
         for device in device_list:
             device_interface_list = get_interface_list_per_device(device, action_type = action_type)
         CGI_CLI.uprint(device_interface_list, name='%s_interface_list' % (device), \
-            jsonprint = True, no_printall = not printall)
+            jsonprint = True, no_printall = not printall, tag = 'debug')
 
 
     ### START PRINTING AND LOGGING ############################################
