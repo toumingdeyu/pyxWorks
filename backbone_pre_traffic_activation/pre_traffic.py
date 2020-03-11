@@ -3604,7 +3604,7 @@ authentication {
                 CGI_CLI.uprint('\n', timestamp = 'no')
 
                 if LOCAL_AS_NUMBER:
-                    CGI_CLI.uprint('AS=%s'%(LOCAL_AS_NUMBER), name = True , color = 'blue', log = True)
+                    CGI_CLI.uprint('AS=%s'%(LOCAL_AS_NUMBER), name = True , color = 'blue')
                 else:
                     CGI_CLI.uprint("PROBLEM TO PARSE LOCAL AS NUMBER on device %s!" \
                         % (device), color = 'red', tag = 'h1',  log = True)
