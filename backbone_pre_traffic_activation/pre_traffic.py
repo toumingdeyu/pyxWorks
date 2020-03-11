@@ -3007,6 +3007,49 @@ authentication {
                 try: undotted_interface_id = interface_id.split('.')[0]
                 except: undotted_interface_id = interface_id
 
+
+                CGI_CLI.uprint('Collecting %s data on %s' % (interface_id, device), \
+                    no_newlines = None if printall else True)
+
+
+                ### LOCAL AS NUMBER COMMANDS ##################################
+                collector_cmds = {
+                    'cisco_ios':['show bgp summary',
+                                 'show bgp vpnv4 unicast summary',
+                                ],
+
+                    'cisco_xr': ['show bgp summary',
+                                 'show bgp vpnv4 unicast summary',
+                                ],
+
+                    'juniper':  ['show bgp neighbor | match "Group:|Peer:" | except "NLRI|Restart"',
+                                ],
+
+                    'huawei':   ['display bgp peer',
+                                ]
+                }
+
+                ### RUN START COLLETING OF DATA ###
+                rcmd_outputs = RCMD.run_commands(collector_cmds, \
+                    autoconfirm_mode = True, \
+                    printall = printall)
+
+                ### FIND LOCAL AS NUMBER ###
+                LOCAL_AS_NUMBER = None
+                if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
+                    try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("local AS number")[1].splitlines()[0].strip()
+                    except: pass
+                    if not LOCAL_AS_NUMBER:
+                        try: LOCAL_AS_NUMBER = rcmd_outputs[1].split("local AS number")[1].splitlines()[0].strip()
+                        except: pass
+                elif RCMD.router_type == 'juniper':
+                    try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("Local:")[1].splitlines()[0].split('AS')[1].strip()
+                    except: pass
+                elif RCMD.router_type == 'huawei':
+                    try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("Local AS number :")[1].splitlines()[0].strip()
+                    except: pass
+
+
                 ### def COLLECT COMMAND LIST ##################################
                 collect_if_data_rcmds = {
                     'cisco_ios':[
@@ -3081,13 +3124,9 @@ authentication {
                     ]
                 }
 
-                CGI_CLI.uprint('Collecting %s data on %s' % (interface_id, device), \
-                    no_newlines = None if printall else True)
-
                 collect_if_config_rcmd_outputs = RCMD.run_commands(collect_if_data_rcmds, \
                     autoconfirm_mode = True, \
                     printall = printall)
-
 
 
                 ### def PROCEED COMMON 1st CMDS ###############################
@@ -3563,6 +3602,12 @@ authentication {
 
                 ### PRINT \n AFTER COLLECTING OF DATA #########################
                 CGI_CLI.uprint('\n', timestamp = 'no')
+
+                if LOCAL_AS_NUMBER:
+                    CGI_CLI.uprint('AS=%s'%(LOCAL_AS_NUMBER), name = True , color = 'blue', log = True)
+                else:
+                    CGI_CLI.uprint("PROBLEM TO PARSE LOCAL AS NUMBER on device %s!" \
+                        % (device), color = 'red', tag = 'h1',  log = True)
 
                 ### def PRINT RESULTS PER INTERFACE ###########################
                 CGI_CLI.uprint(interface_data, name = 'Device:%s' % (device), \
