@@ -982,7 +982,7 @@ class RCMD(object):
                 #RCMD.client.connect(RCMD.DEVICE_HOST, port=int(RCMD.DEVICE_PORT), \
                 RCMD.client.connect(device_id, port=int(RCMD.DEVICE_PORT), \
                     username=RCMD.USERNAME, password=RCMD.PASSWORD, \
-                    banner_timeout = 10, \
+                    banner_timeout = 15, \
                     ### AUTH_TIMEOUT MAKES PROBLEMS ON IPTAC1 ###
                     #auth_timeout = 10, \
                     timeout = RCMD.CONNECTION_TIMEOUT, \
