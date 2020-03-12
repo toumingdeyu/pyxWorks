@@ -2481,7 +2481,7 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
 
     if lower_than and where:
         try:
-            if float(lower_than) <= float(where_value):
+            if float(where_value) <= float(lower_than):
                 CGI_CLI.logtofile("CHECK['%s' < '%.2f'] = OK\n" % (where, float(lower_than)))
             else:
                 if warning:
@@ -2494,7 +2494,7 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
 
     if higher_than and where:
         try:
-            if float(higher_than) >= float(where_value):
+            if float(where_value) >= float(higher_than):
                 CGI_CLI.logtofile("CHECK['%s' > '%.2f'] = OK\n" % (where, float(higher_than)))
             else:
                 if warning:
