@@ -3450,11 +3450,11 @@ authentication {
                     except: interface_warning_data['Rx_Power_Warning_range_dBm_1'] = str()
 
                     try: interface_warning_data['Rx_Power_Warning_range_dBm_2'] = collect_if_config_rcmd_outputs[10].split('Rx Power: ')[1].split('Warning range: ')[1].\
-                             splitlines()[0].strip().replace(',','').replace('dBm','').replace('[','').replace(']','').split()[0]
+                             splitlines()[0].strip().replace(',','').replace('dBm','').replace('[','').replace(']','').split()[1]
                     except: interface_warning_data['Rx_Power_Warning_range_dBm_2'] = str()
 
                     try: interface_warning_data['Tx_Power_Warning_range_dBm_1'] = collect_if_config_rcmd_outputs[10].split('Tx Power: ')[1].split('Warning range: ')[1].\
-                             splitlines()[0].strip().replace(',','').replace('dBm','').replace('[','').replace(']','').split()[1]
+                             splitlines()[0].strip().replace(',','').replace('dBm','').replace('[','').replace(']','').split()[0]
                     except: interface_warning_data['Tx_Power_Warning_range_dBm_1'] = str()
 
                     try: interface_warning_data['Tx_Power_Warning_range_dBm_2'] = collect_if_config_rcmd_outputs[10].split('Tx Power: ')[1].split('Warning range: ')[1].\
@@ -3980,7 +3980,7 @@ authentication {
                     check_interface_data_content('Rx_Power_dBm', lower_than = interface_warning_data.get('Rx_Power_Warning_range_dBm_2'), warning = True)
 
                     check_interface_data_content('Tx_Power_dBm', higher_than = interface_warning_data.get('Tx_Power_Warning_range_dBm_1'), warning = True)
-                    check_interface_data_content('Tx_Power_dBm', lower_than = interface_warning_data.get('Tx_Power_Warning_range_dBm_3'), warning = True)
+                    check_interface_data_content('Tx_Power_dBm', lower_than = interface_warning_data.get('Tx_Power_Warning_range_dBm_2'), warning = True)
 
                     check_interface_data_content('Rx_Power_dBm_After_ping', higher_than = interface_warning_data.get('Rx_Power_Warning_range_dBm_1'), warning = True)
                     check_interface_data_content('Rx_Power_dBm_After_ping', lower_than = interface_warning_data.get('Rx_Power_Warning_range_dBm_2'), warning = True)
