@@ -2477,7 +2477,7 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
 
     CGI_CLI.uprint('CHECK[%s, where_value=%s, what_yes_in=%s, what_not=%s, exact_value_yes=%s, lower_than=%s, higher_than=%s, warning=%s]' \
         % (where, where_value, what_yes_in, what_not, exact_value_yes, lower_than, higher_than, warning),\
-        tag = 'debug')
+        tag = 'debug', no_printall = not CGI_CLI.printall)
 
     if lower_than and where:
         try:
@@ -3771,10 +3771,10 @@ authentication {
                 CGI_CLI.uprint('\n', timestamp = 'no')
 
                 if LOCAL_AS_NUMBER:
-                    CGI_CLI.uprint('AS=%s'%(LOCAL_AS_NUMBER), name = True , color = 'blue', timestamp = 'no')
+                    CGI_CLI.uprint('LOCAL_AS = %s'%(LOCAL_AS_NUMBER), name = True , color = 'blue', timestamp = 'no')
                 else:
                     CGI_CLI.uprint("PROBLEM TO PARSE LOCAL AS NUMBER on device %s!" \
-                        % (device), color = 'red', tag = 'h1', timestamp = 'no')
+                        % (device), color = 'red', timestamp = 'no')
 
                 ### def PRINT RESULTS PER INTERFACE ###########################
                 CGI_CLI.uprint(interface_data, name = 'Device:%s' % (device), \
