@@ -3976,17 +3976,17 @@ authentication {
                     #check_interface_data_content('Rx_Power_dBm_Difference', what_yes_in = '0.0', warning = True)
                     #check_interface_data_content('Tx_Power_dBm_Difference', what_yes_in = '0.0', warning = True)
 
-                    check_interface_data_content('Rx_Power_Warning_range_dBm_1', higher_than = interface_warning_data.get('Rx_Power_dBm'), warning = True)
-                    check_interface_data_content('Rx_Power_Warning_range_dBm_2', lower_than = interface_warning_data.get('Rx_Power_dBm'), warning = True)
+                    check_interface_data_content('Rx_Power_dBm', higher_than = interface_warning_data.get('Rx_Power_Warning_range_dBm_1'), warning = True)
+                    check_interface_data_content('Rx_Power_dBm', lower_than = interface_warning_data.get('Rx_Power_Warning_range_dBm_2'), warning = True)
 
-                    check_interface_data_content('Tx_Power_Warning_range_dBm_1', higher_than = interface_warning_data.get('Tx_Power_dBm'), warning = True)
-                    check_interface_data_content('Tx_Power_Warning_range_dBm_2', lower_than = interface_warning_data.get('Tx_Power_dBm'), warning = True)
+                    check_interface_data_content('Tx_Power_dBm', higher_than = interface_warning_data.get('Tx_Power_Warning_range_dBm_1'), warning = True)
+                    check_interface_data_content('Tx_Power_dBm', lower_than = interface_warning_data.get('Tx_Power_Warning_range_dBm_3'), warning = True)
 
-                    check_interface_data_content('Rx_Power_Warning_range_dBm_1', higher_than = interface_warning_data.get('Rx_Power_dBm_After_ping'), warning = True)
-                    check_interface_data_content('Rx_Power_Warning_range_dBm_2', lower_than = interface_warning_data.get('Rx_Power_dBm_After_ping'), warning = True)
+                    check_interface_data_content('Rx_Power_dBm_After_ping', higher_than = interface_warning_data.get('Rx_Power_Warning_range_dBm_1'), warning = True)
+                    check_interface_data_content('Rx_Power_dBm_After_ping', lower_than = interface_warning_data.get('Rx_Power_Warning_range_dBm_2'), warning = True)
 
-                    check_interface_data_content('Tx_Power_Warning_range_dBm_1', higher_than = interface_warning_data.get('Tx_Power_dBm_After_ping'), warning = True)
-                    check_interface_data_content('Tx_Power_Warning_range_dBm_2', lower_than = interface_warning_data.get('Tx_Power_dBm_After_ping'), warning = True)
+                    check_interface_data_content('Tx_Power_dBm_After_ping', higher_than = interface_warning_data.get('Tx_Power_Warning_range_dBm_1'), warning = True)
+                    check_interface_data_content('Tx_Power_dBm_After_ping', lower_than = interface_warning_data.get('Tx_Power_Warning_range_dBm_2'), warning = True)
 
                     check_interface_data_content('CRC_Difference', exact_value_yes = '0', warning = True)
                     check_interface_data_content('Overrun_Difference', exact_value_yes = '0', warning = True)
