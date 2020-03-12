@@ -3645,13 +3645,9 @@ authentication {
                 elif RCMD.router_type == 'juniper':
                     try:    interface_warning_data['Active_alarms_After_ping'] = collect_if_config_rcmd_outputs[0].split('Active alarms  : ')[1].split()[0].strip()
                     except: interface_warning_data['Active_alarms_After_ping'] = str()
-                    try:    interface_warning_data['Active_alarms_Difference'] = str(int(interface_warning_data['Active_alarms_After_ping']) - int(interface_warning_data['Active_alarms']))
-                    except: interface_warning_data['Active_alarms_Difference'] = str()
 
                     try:    interface_warning_data['Active_defects_After_ping'] = collect_if_config_rcmd_outputs[0].split('Active defects : ')[1].split()[0].strip()
                     except: interface_warning_data['Active_defects_After_ping'] = str()
-                    try:    interface_warning_data['Active_defects_Difference'] = str(int(interface_warning_data['Active_defects_After_ping']) - int(interface_warning_data['Active_defects']))
-                    except: interface_warning_data['Active_defects_Difference'] = str()
 
                     try:    interface_warning_data['Bit_errors_After_ping'] = collect_if_config_rcmd_outputs[0].split('Bit errors ')[1].split()[0].strip()
                     except: interface_warning_data['Bit_errors_After_ping'] = str()
@@ -3665,8 +3661,6 @@ authentication {
 
                     try:    interface_warning_data['Ethernet_FEC_statistics_After_ping'] = collect_if_config_rcmd_outputs[0].split('Ethernet FEC statistics ')[1].split()[0].strip()
                     except: interface_warning_data['Ethernet_FEC_statistics_After_ping'] = str()
-                    try:    interface_warning_data['Ethernet_FEC_statistics_Difference'] = str(int(interface_warning_data['Ethernet_FEC_statistics_After_ping']) - int(interface_warning_data['Ethernet_FEC_statistics']))
-                    except: interface_warning_data['Ethernet_FEC_statistics_Difference'] = str()
 
                     try:    interface_warning_data['FEC_Corrected_Errors_After_ping'] = collect_if_config_rcmd_outputs[0].split('FEC Corrected Errors ')[1].split()[0].strip()
                     except: interface_warning_data['FEC_Corrected_Errors_After_ping'] = str()
@@ -3736,13 +3730,10 @@ authentication {
 
                     try:    interface_warning_data['Local_fault_After_ping'] = collect_if_config_rcmd_outputs[0].split('Local fault: ')[1].split()[0].strip().replace('.','')
                     except: interface_warning_data['Local_fault_After_ping'] = str()
-                    try:    interface_warning_data['Local_fault_Difference'] = str(int(interface_warning_data['Local_fault_After_ping']) - int(interface_warning_data['Local_fault']))
-                    except: interface_warning_data['Local_fault_Difference'] = str()
 
                     try:    interface_warning_data['Remote_fault_After_ping'] = collect_if_config_rcmd_outputs[0].split('Remote fault: ')[1].split()[0].strip().replace('.','')
                     except: interface_warning_data['Remote_fault_After_ping'] = str()
-                    try:    interface_warning_data['Remote_fault_Difference'] = str(int(interface_warning_data['Remote_fault_After_ping']) - int(interface_warning_data['Remote_fault']))
-                    except: interface_warning_data['Remote_fault_Difference'] = str()
+
 
 
                 ### PRINT \n AFTER COLLECTING OF DATA #########################
@@ -3913,14 +3904,17 @@ authentication {
                     else:
                         check_interface_data_content('metric', None,  '99999')
 
-                    check_interface_data_content('Active alarms', 'None', warning = True)
-                    check_interface_data_content('Active defects', 'None', warning = True)
+                    check_interface_data_content('Active_alarms', 'None', warning = True)
+                    check_interface_data_content('Active_defects', 'None', warning = True)
 
-                    check_interface_data_content('Active_alarms_Difference', exact_value_yes = '0', warning = True)
-                    check_interface_data_content('Active_defects_Difference', exact_value_yes = '0', warning = True)
+                    check_interface_data_content('Active_alarms_After_ping', 'None', warning = True)
+                    check_interface_data_content('Active_defects_After_ping', 'None', warning = True)
+
+                    #check_interface_data_content('Ethernet_FEC_statistics_After_ping', what_not = 'Errors', warning = True)
+                    #check_interface_data_content('Ethernet_FEC_statistics_After_ping', what_not = 'Errors', warning = True)
+
                     check_interface_data_content('Bit_errors_Difference', exact_value_yes = '0', warning = True)
                     check_interface_data_content('Errored_blocks_Difference', exact_value_yes = '0', warning = True)
-                    check_interface_data_content('Ethernet_FEC_statistics_Difference', exact_value_yes = '0', warning = True)
                     check_interface_data_content('FEC_Corrected_Errors_Difference', exact_value_yes = '0', warning = True)
                     check_interface_data_content('FEC_Uncorrected_Errors_Difference', exact_value_yes = '0', warning = True)
                     check_interface_data_content('FEC_Corrected_Errors_Rate_Difference', exact_value_yes = '0', warning = True)
@@ -3939,8 +3933,11 @@ authentication {
                         check_interface_data_content('isis cost', None, '99999')
                         check_interface_data_content('isis ipv6 cost', None, '99999')
 
-                    check_interface_data_content('Local fault', 'NORMAL', warning = True)
-                    check_interface_data_content('Remote fault', 'NORMAL', warning = True)
+                    check_interface_data_content('Local_fault', 'NORMAL', warning = True)
+                    check_interface_data_content('Remote_fault', 'NORMAL', warning = True)
+
+                    check_interface_data_content('Local_fault_After_ping', 'NORMAL', warning = True)
+                    check_interface_data_content('Remote_fault_After_ping', 'NORMAL', warning = True)
 
                     check_interface_data_content('Rx_Power_Difference', exact_value_yes = '0', warning = True)
                     check_interface_data_content('Tx_Power_Difference', exact_value_yes = '0', warning = True)
@@ -3951,8 +3948,6 @@ authentication {
                     check_interface_data_content('Lost_Difference', exact_value_yes = '0', warning = True)
                     check_interface_data_content('Overflow_Difference', exact_value_yes = '0', warning = True)
                     check_interface_data_content('Underrun_Difference', exact_value_yes = '0', warning = True)
-                    check_interface_data_content('Local_fault_Difference', exact_value_yes = '0', warning = True)
-                    check_interface_data_content('Remote_fault_Difference', exact_value_yes = '0', warning = True)
 
                 ### def INTERFACE RESULTS #####################################
                 interface_result = 'WARNING'
