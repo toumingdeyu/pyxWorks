@@ -3627,111 +3627,111 @@ authentication {
                     printall = printall)
 
                 if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
-                    try:    interface_warning_data['input_errors_After_ping'] = collect_if_config_rcmd_outputs[0].split('input errors')[0].splitlines()[-1].split()[0].strip()
+                    try:    interface_warning_data['input_errors_After_ping'] = err_check_after_pings_outputs[0].split('input errors')[0].splitlines()[-1].split()[0].strip()
                     except: interface_warning_data['input_errors_After_ping'] = str()
                     try:    interface_warning_data['input_errors_Difference'] = str(int(interface_warning_data['input_errors_After_ping']) - int(interface_warning_data['input_errors']))
                     except: interface_warning_data['input_errors_Difference'] = str()
 
-                    try:    interface_warning_data['input_CRC_After_ping'] = collect_if_config_rcmd_outputs[0].split('input errors,')[1].split('CRC,')[0].strip()
+                    try:    interface_warning_data['input_CRC_After_ping'] = err_check_after_pings_outputs[0].split('input errors,')[1].split('CRC,')[0].strip()
                     except: interface_warning_data['input_CRC_After_ping'] = str()
                     try:    interface_warning_data['input_CRC_Difference'] = str(int(interface_warning_data['input_CRC_After_ping']) - int(interface_warning_data['input_CRC']))
                     except: interface_warning_data['input_CRC_Difference'] = str()
 
-                    try:    interface_warning_data['output_errors_After_ping'] = collect_if_config_rcmd_outputs[0].split('output errors')[0].splitlines()[-1].split()[0].strip()
+                    try:    interface_warning_data['output_errors_After_ping'] = err_check_after_pings_outputs[0].split('output errors')[0].splitlines()[-1].split()[0].strip()
                     except: interface_warning_data['output_errors_After_ping'] = str()
                     try:    interface_warning_data['output_errors_Difference'] = str(int(interface_warning_data['output_errors_After_ping']) - int(interface_warning_data['output_errors']))
                     except: interface_warning_data['output_errors_Difference'] = str()
 
                 elif RCMD.router_type == 'juniper':
-                    try:    interface_warning_data['Active_alarms_After_ping'] = collect_if_config_rcmd_outputs[0].split('Active alarms  : ')[1].split()[0].strip()
+                    try:    interface_warning_data['Active_alarms_After_ping'] = err_check_after_pings_outputs[0].split('Active alarms  : ')[1].split()[0].strip()
                     except: interface_warning_data['Active_alarms_After_ping'] = str()
 
-                    try:    interface_warning_data['Active_defects_After_ping'] = collect_if_config_rcmd_outputs[0].split('Active defects : ')[1].split()[0].strip()
+                    try:    interface_warning_data['Active_defects_After_ping'] = err_check_after_pings_outputs[0].split('Active defects : ')[1].split()[0].strip()
                     except: interface_warning_data['Active_defects_After_ping'] = str()
 
-                    try:    interface_warning_data['Bit_errors_After_ping'] = collect_if_config_rcmd_outputs[0].split('Bit errors ')[1].split()[0].strip()
+                    try:    interface_warning_data['Bit_errors_After_ping'] = err_check_after_pings_outputs[0].split('Bit errors ')[1].split()[0].strip()
                     except: interface_warning_data['Bit_errors_After_ping'] = str()
                     try:    interface_warning_data['Bit_errors_Difference'] = str(int(interface_warning_data['Bit_errors_After_ping']) - int(interface_warning_data['Bit_errors']))
                     except: interface_warning_data['Bit_errors_Difference'] = str()
 
-                    try:    interface_warning_data['Errored_blocks_After_ping'] = collect_if_config_rcmd_outputs[0].split('Errored blocks ')[1].split()[0].strip()
+                    try:    interface_warning_data['Errored_blocks_After_ping'] = err_check_after_pings_outputs[0].split('Errored blocks ')[1].split()[0].strip()
                     except: interface_warning_data['Errored_blocks_After_ping'] = str()
                     try:    interface_warning_data['Errored_blocks_Difference'] = str(int(interface_warning_data['Errored_blocks_After_ping']) - int(interface_warning_data['Errored_blocks']))
                     except: interface_warning_data['Errored_blocks_Difference'] = str()
 
-                    try:    interface_warning_data['Ethernet_FEC_statistics_After_ping'] = collect_if_config_rcmd_outputs[0].split('Ethernet FEC statistics ')[1].split()[0].strip()
+                    try:    interface_warning_data['Ethernet_FEC_statistics_After_ping'] = err_check_after_pings_outputs[0].split('Ethernet FEC statistics ')[1].split()[0].strip()
                     except: interface_warning_data['Ethernet_FEC_statistics_After_ping'] = str()
 
-                    try:    interface_warning_data['FEC_Corrected_Errors_After_ping'] = collect_if_config_rcmd_outputs[0].split('FEC Corrected Errors ')[1].split()[0].strip()
+                    try:    interface_warning_data['FEC_Corrected_Errors_After_ping'] = err_check_after_pings_outputs[0].split('FEC Corrected Errors ')[1].split()[0].strip()
                     except: interface_warning_data['FEC_Corrected_Errors_After_ping'] = str()
                     try:    interface_warning_data['FEC_Corrected_Errors_Difference'] = str(int(interface_warning_data['FEC_Corrected_Errors_After_ping']) - int(interface_warning_data['FEC_Corrected_Errors']))
                     except: interface_warning_data['FEC_Corrected_Errors_Difference'] = str()
 
-                    try:    interface_warning_data['FEC_Uncorrected_Errors_After_ping'] = collect_if_config_rcmd_outputs[0].split('FEC Uncorrected Errors ')[1].split()[0].strip()
+                    try:    interface_warning_data['FEC_Uncorrected_Errors_After_ping'] = err_check_after_pings_outputs[0].split('FEC Uncorrected Errors ')[1].split()[0].strip()
                     except: interface_warning_data['FEC_Uncorrected_Errors_After_ping'] = str()
                     try:    interface_warning_data['FEC_Uncorrected_Errors_Difference'] = str(int(interface_warning_data['FEC_Uncorrected_Errors_After_ping']) - int(interface_warning_data['FEC_Uncorrected_Errors']))
                     except: interface_warning_data['FEC_Uncorrected_Errors_Difference'] = str()
 
-                    try:    interface_warning_data['FEC_Corrected_Errors_Rate_After_ping'] = collect_if_config_rcmd_outputs[0].split('FEC Corrected Errors Rate ')[1].split()[0].strip()
+                    try:    interface_warning_data['FEC_Corrected_Errors_Rate_After_ping'] = err_check_after_pings_outputs[0].split('FEC Corrected Errors Rate ')[1].split()[0].strip()
                     except: interface_warning_data['FEC_Corrected_Errors_Rate_After_ping'] = str()
                     try:    interface_warning_data['FEC_Corrected_Errors_Rate_Difference'] = str(int(interface_warning_data['FEC_Corrected_Errors_Rate_After_ping']) - int(interface_warning_data['FEC_Corrected_Errors_Rate']))
                     except: interface_warning_data['FEC_Corrected_Errors_Rate_Difference'] = str()
 
-                    try:    interface_warning_data['FEC_Uncorrected_Errors_Rate_After_ping'] = collect_if_config_rcmd_outputs[0].split('FEC Uncorrected Errors Rate ')[1].split()[0].strip()
+                    try:    interface_warning_data['FEC_Uncorrected_Errors_Rate_After_ping'] = err_check_after_pings_outputs[0].split('FEC Uncorrected Errors Rate ')[1].split()[0].strip()
                     except: interface_warning_data['FEC_Uncorrected_Errors_Rate_After_ping'] = str()
                     try:    interface_warning_data['FEC_Uncorrected_Errors_Rate_Difference'] = str(int(interface_warning_data['FEC_Uncorrected_Errors_Rate_After_ping']) - int(interface_warning_data['FEC_Uncorrected_Errors_Rate']))
                     except: interface_warning_data['FEC_Uncorrected_Errors_Rate_Difference'] = str()
 
                 elif RCMD.router_type == 'huawei':
-                    try:    interface_warning_data['Rx_Power_After_ping'] = collect_if_config_rcmd_outputs[0].split('Rx Power: ')[1].split()[0].strip().replace(',','')
+                    try:    interface_warning_data['Rx_Power_After_ping'] = err_check_after_pings_outputs[0].split('Rx Power: ')[1].split()[0].strip().replace(',','')
                     except: interface_warning_data['Rx_Power_After_ping'] = str()
                     try:    interface_warning_data['Rx_Power_Difference'] = str(int(interface_warning_data['Rx_Power_After_ping']) - int(interface_warning_data['Rx_Power']))
                     except: interface_warning_data['Rx_Power_Difference'] = str()
 
-                    try:    interface_warning_data['Tx_Power_After_ping'] = collect_if_config_rcmd_outputs[0].split('Tx Power: ')[1].split()[0].strip().replace(',','')
+                    try:    interface_warning_data['Tx_Power_After_ping'] = err_check_after_pings_outputs[0].split('Tx Power: ')[1].split()[0].strip().replace(',','')
                     except: interface_warning_data['Tx_Power_After_ping'] = str()
                     try:    interface_warning_data['Tx_Power_Difference'] = str(int(interface_warning_data['Tx_Power_After_ping']) - int(interface_warning_data['Tx_Power']))
                     except: interface_warning_data['Tx_Power_Difference'] = str()
 
-                    try:    interface_warning_data['Rx_Power_Warning_range_After_ping'] = collect_if_config_rcmd_outputs[0].split('Rx Power: ')[1].split('Warning range: ')[1].splitlines()[0].strip().replace(',','')
+                    try:    interface_warning_data['Rx_Power_Warning_range_After_ping'] = err_check_after_pings_outputs[0].split('Rx Power: ')[1].split('Warning range: ')[1].splitlines()[0].strip().replace(',','')
                     except: interface_warning_data['Rx_Power_Warning_range_After_ping'] = str()
                     try:    interface_warning_data['Rx_Power_Warning_range_Difference'] = str(int(interface_warning_data['Rx_Power_Warning_range_After_ping']) - int(interface_warning_data['Rx_Power_Warning_range']))
                     except: interface_warning_data['Rx_Power_Warning_range_Difference'] = str()
 
-                    try:    interface_warning_data['Tx_Power_Warning_range_After_ping'] = collect_if_config_rcmd_outputs[0].split('Tx Power: ')[1].split('Warning range: ')[1].splitlines()[0].strip().replace(',','')
+                    try:    interface_warning_data['Tx_Power_Warning_range_After_ping'] = err_check_after_pings_outputs[0].split('Tx Power: ')[1].split('Warning range: ')[1].splitlines()[0].strip().replace(',','')
                     except: interface_warning_data['Tx_Power_Warning_range_After_ping'] = str()
                     try:    interface_warning_data['Tx_Power_Warning_range_Difference'] = str(int(interface_warning_data['Tx_Power_Warning_range_After_ping']) - int(interface_warning_data['Tx_Power_Warning_range']))
                     except: interface_warning_data['Tx_Power_Warning_range_Difference'] = str()
 
-                    try:    interface_warning_data['CRC_After_ping'] = collect_if_config_rcmd_outputs[0].split('CRC: ')[1].split()[0].strip()
+                    try:    interface_warning_data['CRC_After_ping'] = err_check_after_pings_outputs[0].split('CRC: ')[1].split()[0].strip()
                     except: interface_warning_data['CRC_After_ping'] = str()
                     try:    interface_warning_data['CRC_Difference'] = str(int(interface_warning_data['CRC_After_ping']) - int(interface_warning_data['CRC']))
                     except: interface_warning_data['CRC_Difference'] = str()
 
-                    try:    interface_warning_data['Overrun_After_ping'] = collect_if_config_rcmd_outputs[0].split('Overrun: ')[1].split()[0].strip()
+                    try:    interface_warning_data['Overrun_After_ping'] = err_check_after_pings_outputs[0].split('Overrun: ')[1].split()[0].strip()
                     except: interface_warning_data['Overrun_After_ping'] = str()
                     try:    interface_warning_data['Overrun_Difference'] = str(int(interface_warning_data['Overrun_After_ping']) - int(interface_warning_data['Overrun']))
                     except: interface_warning_data['Overrun_Difference'] = str()
 
-                    try:    interface_warning_data['Lost_After_ping'] = collect_if_config_rcmd_outputs[0].split('Lost: ')[1].split()[0].strip()
+                    try:    interface_warning_data['Lost_After_ping'] = err_check_after_pings_outputs[0].split('Lost: ')[1].split()[0].strip()
                     except: interface_warning_data['Lost_After_ping'] = str()
                     try:    interface_warning_data['Lost_Difference'] = str(int(interface_warning_data['Lost_After_ping']) - int(interface_warning_data['Lost']))
                     except: interface_warning_data['Lost_Difference'] = str()
 
-                    try:    interface_warning_data['Overflow_After_ping'] = collect_if_config_rcmd_outputs[0].split('Overflow: ')[1].split()[0].strip()
+                    try:    interface_warning_data['Overflow_After_ping'] = err_check_after_pings_outputs[0].split('Overflow: ')[1].split()[0].strip()
                     except: interface_warning_data['Overflow_After_ping'] = str()
                     try:    interface_warning_data['Overflow_Difference'] = str(int(interface_warning_data['Overflow_After_ping']) - int(interface_warning_data['Overflow']))
                     except: interface_warning_data['Overflow_Difference'] = str()
 
-                    try:    interface_warning_data['Underrun_After_ping'] = collect_if_config_rcmd_outputs[0].split('Underrun: ')[1].split()[0].strip()
+                    try:    interface_warning_data['Underrun_After_ping'] = err_check_after_pings_outputs[0].split('Underrun: ')[1].split()[0].strip()
                     except: interface_warning_data['Underrun_After_ping'] = str()
                     try:    interface_warning_data['Underrun_Difference'] = str(int(interface_warning_data['Underrun_After_ping']) - int(interface_warning_data['Underrun']))
                     except: interface_warning_data['Underrun_Difference'] = str()
 
-                    try:    interface_warning_data['Local_fault_After_ping'] = collect_if_config_rcmd_outputs[0].split('Local fault: ')[1].split()[0].strip().replace('.','')
+                    try:    interface_warning_data['Local_fault_After_ping'] = err_check_after_pings_outputs[0].split('Local fault: ')[1].split()[0].strip().replace('.','')
                     except: interface_warning_data['Local_fault_After_ping'] = str()
 
-                    try:    interface_warning_data['Remote_fault_After_ping'] = collect_if_config_rcmd_outputs[0].split('Remote fault: ')[1].split()[0].strip().replace('.','')
+                    try:    interface_warning_data['Remote_fault_After_ping'] = err_check_after_pings_outputs[0].split('Remote fault: ')[1].split()[0].strip().replace('.','')
                     except: interface_warning_data['Remote_fault_After_ping'] = str()
 
 
