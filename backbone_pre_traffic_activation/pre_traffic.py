@@ -2461,7 +2461,7 @@ def get_fiblist(input_text = None):
 
 check_interface_result_ok, check_warning_interface_result_ok = True, True
 def check_interface_data_content(where = None, what_yes_in = None, what_not = None, \
-    exact_value_yes = None, warning = None):
+    exact_value_yes = None, lower_than = None, higher_than = None, warning = None):
     """
     what_yes_in - string = if occurs in where then OK.
     what_not - list = if all items from list occurs, then FAIL. Otherwise OK.
@@ -2471,11 +2471,36 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
     global check_warning_interface_result_ok
     local_check_interface_result_ok, Alarm_text = 0, []
 
+    if warning: where_value = interface_warning_data.get(where, str())
+    else: where_value = interface_data.get(where, str())
+
+    if lower_than and where:
+        try: 
+            if float(lower_than) <= float(where_value):
+                CGI_CLI.logtofile("CHECK['%s' < '%.2f'] = OK\n" % (where, float(lower_than)))
+            else:
+                if warning:
+                    check_warning_interface_result_ok = False                
+                    CGI_CLI.logtofile("CHECK['%s' < '%.2f'] = WARNING\n" % (where, float(lower_than)), color = 'orange')
+                else:
+                    check_interface_result_ok = False                
+                    CGI_CLI.logtofile("CHECK['%s' < '%.2f'] = NOT OK\n" % (where, float(lower_than)), color = 'red')
+        except: CGI_CLI.logtofile("CHECK['%s' < '%.s'] = NaN\n" % (where, lower_than))
+        
+    if higher_than and where:
+        try: 
+            if float(higher_than) >= float(where_value):
+                CGI_CLI.logtofile("CHECK['%s' > '%.2f'] = OK\n" % (where, float(higher_than)))
+            else:
+                if warning:
+                    check_warning_interface_result_ok = False                
+                    CGI_CLI.logtofile("CHECK['%s' > '%.2f'] = WARNING\n" % (where, float(higher_than)), color = 'orange')
+                else:
+                    check_interface_result_ok = False                
+                    CGI_CLI.logtofile("CHECK['%s' > '%.2f'] = NOT OK\n" % (where, float(higher_than)), color = 'red')
+        except: CGI_CLI.logtofile("CHECK['%s' > '%.s'] = NaN\n" % (where, higher_than)) 
+
     if what_yes_in and where or exact_value_yes and where:
-
-        if warning: where_value = interface_warning_data.get(where, str())
-        else: where_value = interface_data.get(where, str())
-
         if exact_value_yes:
             if exact_value_yes.upper() == where_value.upper():
                 CGI_CLI.logtofile("CHECK['%s' == '%s'] = OK\n" % (exact_value_yes, where))
@@ -2502,10 +2527,6 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
                         color = 'red')
 
     if what_not and where:
-
-        if warning: where_value = interface_warning_data.get(where, str())
-        else: where_value = interface_data.get(where, str())
-
         if isinstance(what_not, (list,tuple)):
             for item in what_not:
                 if item.upper() in where_value.upper():
@@ -3412,17 +3433,27 @@ authentication {
                             except: pass
 
                     ### WARNINGS ###
-                    try: interface_warning_data['Rx_Power'] = collect_if_config_rcmd_outputs[10].split('Rx Power: ')[1].split()[0].strip().replace(',','')
-                    except: interface_warning_data['Rx_Power'] = str()
+                    try: interface_warning_data['Rx_Power_dBm'] = collect_if_config_rcmd_outputs[10].split('Rx Power: ')[1].split()[0].strip().replace(',','').replace('dBm','')
+                    except: interface_warning_data['Rx_Power_dBm'] = str()
 
-                    try: interface_warning_data['Tx_Power'] = collect_if_config_rcmd_outputs[10].split('Tx Power: ')[1].split()[0].strip().replace(',','')
-                    except: interface_warning_data['Tx_Power'] = str()
+                    try: interface_warning_data['Tx_Power_dBm'] = collect_if_config_rcmd_outputs[10].split('Tx Power: ')[1].split()[0].strip().replace(',','').replace('dBm','')
+                    except: interface_warning_data['Tx_Power_dBm'] = str()
 
-                    try: interface_warning_data['Rx_Power_Warning_range'] = collect_if_config_rcmd_outputs[10].split('Rx Power: ')[1].split('Warning range: ')[1].splitlines()[0].strip().replace(',','')
-                    except: interface_warning_data['Rx_Power_Warning_range'] = str()
+                    try: interface_warning_data['Rx_Power_Warning_range_dBm_1'] = collect_if_config_rcmd_outputs[10].split('Rx Power: ')[1].split('Warning range: ')[1].\
+                             splitlines()[0].strip().replace(',','').replace('dBm','').replace('[','').replace(']','').split()[0]
+                    except: interface_warning_data['Rx_Power_Warning_range_dBm_1'] = str()
+                    
+                    try: interface_warning_data['Rx_Power_Warning_range_dBm_2'] = collect_if_config_rcmd_outputs[10].split('Rx Power: ')[1].split('Warning range: ')[1].\
+                             splitlines()[0].strip().replace(',','').replace('dBm','').replace('[','').replace(']','').split()[0]
+                    except: interface_warning_data['Rx_Power_Warning_range_dBm_2'] = str()                    
 
-                    try: interface_warning_data['Tx_Power_Warning_range'] = collect_if_config_rcmd_outputs[10].split('Tx Power: ')[1].split('Warning range: ')[1].splitlines()[0].strip().replace(',','')
-                    except: interface_warning_data['Tx_Power_Warning_range'] = str()
+                    try: interface_warning_data['Tx_Power_Warning_range_dBm_1'] = collect_if_config_rcmd_outputs[10].split('Tx Power: ')[1].split('Warning range: ')[1].\
+                             splitlines()[0].strip().replace(',','').replace('dBm','').replace('[','').replace(']','').split()[1]
+                    except: interface_warning_data['Tx_Power_Warning_range_dBm_1'] = str()
+                    
+                    try: interface_warning_data['Tx_Power_Warning_range_dBm_2'] = collect_if_config_rcmd_outputs[10].split('Tx Power: ')[1].split('Warning range: ')[1].\
+                             splitlines()[0].strip().replace(',','').replace('dBm','').replace('[','').replace(']','').split()[1]
+                    except: interface_warning_data['Tx_Power_Warning_range_dBm_2'] = str()                    
 
                     try: interface_warning_data['CRC'] = collect_if_config_rcmd_outputs[10].split('CRC: ')[1].split()[0].strip()
                     except: interface_warning_data['CRC'] = str()
@@ -3687,25 +3718,15 @@ authentication {
                     except: interface_warning_data['FEC_Uncorrected_Errors_Rate_Difference'] = str()
 
                 elif RCMD.router_type == 'huawei':
-                    try:    interface_warning_data['Rx_Power_After_ping'] = err_check_after_pings_outputs[0].split('Rx Power: ')[1].split()[0].strip().replace(',','')
-                    except: interface_warning_data['Rx_Power_After_ping'] = str()
-                    try:    interface_warning_data['Rx_Power_Difference'] = str(int(interface_warning_data['Rx_Power_After_ping']) - int(interface_warning_data['Rx_Power']))
-                    except: interface_warning_data['Rx_Power_Difference'] = str()
+                    try:    interface_warning_data['Rx_Power_dBm_After_ping'] = err_check_after_pings_outputs[0].split('Rx Power: ')[1].split()[0].strip().replace(',','').replace('dBm','')
+                    except: interface_warning_data['Rx_Power_dBm_After_ping'] = str()
+                    try:    interface_warning_data['Rx_Power_dBm_Difference'] = str(float(interface_warning_data['Rx_Power_dBm_After_ping']) - float(interface_warning_data['Rx_Power_dBm']))
+                    except: interface_warning_data['Rx_Power_dBm_Difference'] = str()
 
-                    try:    interface_warning_data['Tx_Power_After_ping'] = err_check_after_pings_outputs[0].split('Tx Power: ')[1].split()[0].strip().replace(',','')
-                    except: interface_warning_data['Tx_Power_After_ping'] = str()
-                    try:    interface_warning_data['Tx_Power_Difference'] = str(int(interface_warning_data['Tx_Power_After_ping']) - int(interface_warning_data['Tx_Power']))
-                    except: interface_warning_data['Tx_Power_Difference'] = str()
-
-                    try:    interface_warning_data['Rx_Power_Warning_range_After_ping'] = err_check_after_pings_outputs[0].split('Rx Power: ')[1].split('Warning range: ')[1].splitlines()[0].strip().replace(',','')
-                    except: interface_warning_data['Rx_Power_Warning_range_After_ping'] = str()
-                    try:    interface_warning_data['Rx_Power_Warning_range_Difference'] = str(int(interface_warning_data['Rx_Power_Warning_range_After_ping']) - int(interface_warning_data['Rx_Power_Warning_range']))
-                    except: interface_warning_data['Rx_Power_Warning_range_Difference'] = str()
-
-                    try:    interface_warning_data['Tx_Power_Warning_range_After_ping'] = err_check_after_pings_outputs[0].split('Tx Power: ')[1].split('Warning range: ')[1].splitlines()[0].strip().replace(',','')
-                    except: interface_warning_data['Tx_Power_Warning_range_After_ping'] = str()
-                    try:    interface_warning_data['Tx_Power_Warning_range_Difference'] = str(int(interface_warning_data['Tx_Power_Warning_range_After_ping']) - int(interface_warning_data['Tx_Power_Warning_range']))
-                    except: interface_warning_data['Tx_Power_Warning_range_Difference'] = str()
+                    try:    interface_warning_data['Tx_Power_dBm_After_ping'] = err_check_after_pings_outputs[0].split('Tx Power: ')[1].split()[0].strip().replace(',','').replace('dBm','')
+                    except: interface_warning_data['Tx_Power_dBm_After_ping'] = str()
+                    try:    interface_warning_data['Tx_Power_dBm_Difference'] = str(float(interface_warning_data['Tx_Power_dBm_After_ping']) - float(interface_warning_data['Tx_Power_dBm']))
+                    except: interface_warning_data['Tx_Power_dBm_Difference'] = str()
 
                     try:    interface_warning_data['CRC_After_ping'] = err_check_after_pings_outputs[0].split('CRC: ')[1].split()[0].strip()
                     except: interface_warning_data['CRC_After_ping'] = str()
@@ -3943,10 +3964,21 @@ authentication {
                     check_interface_data_content('Local_fault_After_ping', 'NORMAL', warning = True)
                     check_interface_data_content('Remote_fault_After_ping', 'NORMAL', warning = True)
 
-                    check_interface_data_content('Rx_Power_Difference', exact_value_yes = '0', warning = True)
-                    check_interface_data_content('Tx_Power_Difference', exact_value_yes = '0', warning = True)
-                    check_interface_data_content('Rx_Power_Warning_range_Difference', exact_value_yes = '0', warning = True)
-                    check_interface_data_content('Tx_Power_Warning_range_Difference', exact_value_yes = '0', warning = True)
+                    check_interface_data_content('Rx_Power_dBm_Difference', what_yes_in = '0.0', warning = True)
+                    check_interface_data_content('Tx_Power_dBm_Difference', what_yes_in = '0.0', warning = True)
+                                        
+                    check_interface_data_content('Rx_Power_Warning_range_dBm_1', higher_than = interface_warning_data.get('Rx_Power_dBm'), warning = True)
+                    check_interface_data_content('Rx_Power_Warning_range_dBm_2', lower_than = interface_warning_data.get('Rx_Power_dBm'), warning = True)
+
+                    check_interface_data_content('Tx_Power_Warning_range_dBm_1', higher_than = interface_warning_data.get('Tx_Power_dBm'), warning = True)
+                    check_interface_data_content('Tx_Power_Warning_range_dBm_2', lower_than = interface_warning_data.get('Tx_Power_dBm'), warning = True)
+
+                    check_interface_data_content('Rx_Power_Warning_range_dBm_1', higher_than = interface_warning_data.get('Rx_Power_dBm_After_ping'), warning = True)
+                    check_interface_data_content('Rx_Power_Warning_range_dBm_2', lower_than = interface_warning_data.get('Rx_Power_dBm_After_ping'), warning = True)
+
+                    check_interface_data_content('Tx_Power_Warning_range_dBm_1', higher_than = interface_warning_data.get('Tx_Power_dBm_After_ping'), warning = True)
+                    check_interface_data_content('Tx_Power_Warning_range_dBm_2', lower_than = interface_warning_data.get('Tx_Power_dBm_After_ping'), warning = True)                    
+                                        
                     check_interface_data_content('CRC_Difference', exact_value_yes = '0', warning = True)
                     check_interface_data_content('Overrun_Difference', exact_value_yes = '0', warning = True)
                     check_interface_data_content('Lost_Difference', exact_value_yes = '0', warning = True)
