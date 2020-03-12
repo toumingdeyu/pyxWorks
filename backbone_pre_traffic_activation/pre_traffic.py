@@ -2481,11 +2481,11 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
             else:
                 if warning:
                     check_warning_interface_result_ok = False
-                    CGI_CLI.logtofile("CHECK['%s' < '%.2f'] = WARNING\n" % (where, float(lower_than)), color = 'orange')
+                    CGI_CLI.uprint("CHECK['%s' > '%.2f'] = WARNING\n" % (where, float(lower_than)), color = 'orange')
                 else:
                     check_interface_result_ok = False
-                    CGI_CLI.logtofile("CHECK['%s' < '%.2f'] = NOT OK\n" % (where, float(lower_than)), color = 'red')
-        except: CGI_CLI.logtofile("CHECK['%s' < '%.s'] = NaN\n" % (where, lower_than))
+                    CGI_CLI.uprint("CHECK['%s' > '%.2f'] = NOT OK\n" % (where, float(lower_than)), color = 'red')
+        except: CGI_CLI.logtofile("CHECK['%s' < '%s'] = NaN\n" % (where, str(lower_than)))
 
     if higher_than and where:
         try:
@@ -2494,11 +2494,11 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
             else:
                 if warning:
                     check_warning_interface_result_ok = False
-                    CGI_CLI.logtofile("CHECK['%s' > '%.2f'] = WARNING\n" % (where, float(higher_than)), color = 'orange')
+                    CGI_CLI.uprint("CHECK['%s' < '%.2f'] = WARNING\n" % (where, float(higher_than)), color = 'orange')
                 else:
                     check_interface_result_ok = False
-                    CGI_CLI.logtofile("CHECK['%s' > '%.2f'] = NOT OK\n" % (where, float(higher_than)), color = 'red')
-        except: CGI_CLI.logtofile("CHECK['%s' > '%.s'] = NaN\n" % (where, higher_than))
+                    CGI_CLI.uprint("CHECK['%s' < '%.2f'] = NOT OK\n" % (where, float(higher_than)), color = 'red')
+        except: CGI_CLI.logtofile("CHECK['%s' > '%s'] = NaN\n" % (where, str(higher_than)))
 
     if what_yes_in and where or exact_value_yes and where:
         if exact_value_yes:
@@ -3789,8 +3789,10 @@ authentication {
                     CGI_CLI.uprint('UNSET CONFIG ELEMENTS ON INTERFACE %s:' % \
                         (interface_data.get('interface_id')), tag = 'h3', color = 'red', timestamp = 'no')
                     CGI_CLI.uprint('\n'.join(None_elements), color = 'red', timestamp = 'no')
-                    CGI_CLI.uprint('\n', timestamp = 'no')
+                    CGI_CLI.uprint('\n\n', timestamp = 'no')
 
+
+                CGI_CLI.uprint('CHECKS:', timestamp = 'no', tag = 'h3')
                 if not precheck_mode:
                     if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr' and not interface_data.get('ipv4_metric') \
                         or RCMD.router_type == 'juniper' and not interface_data.get('metric') \
