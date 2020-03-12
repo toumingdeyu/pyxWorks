@@ -2475,30 +2475,30 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
     else: where_value = interface_data.get(where, str())
 
     if lower_than and where:
-        try: 
+        try:
             if float(lower_than) <= float(where_value):
                 CGI_CLI.logtofile("CHECK['%s' < '%.2f'] = OK\n" % (where, float(lower_than)))
             else:
                 if warning:
-                    check_warning_interface_result_ok = False                
+                    check_warning_interface_result_ok = False
                     CGI_CLI.logtofile("CHECK['%s' < '%.2f'] = WARNING\n" % (where, float(lower_than)), color = 'orange')
                 else:
-                    check_interface_result_ok = False                
+                    check_interface_result_ok = False
                     CGI_CLI.logtofile("CHECK['%s' < '%.2f'] = NOT OK\n" % (where, float(lower_than)), color = 'red')
         except: CGI_CLI.logtofile("CHECK['%s' < '%.s'] = NaN\n" % (where, lower_than))
-        
+
     if higher_than and where:
-        try: 
+        try:
             if float(higher_than) >= float(where_value):
                 CGI_CLI.logtofile("CHECK['%s' > '%.2f'] = OK\n" % (where, float(higher_than)))
             else:
                 if warning:
-                    check_warning_interface_result_ok = False                
+                    check_warning_interface_result_ok = False
                     CGI_CLI.logtofile("CHECK['%s' > '%.2f'] = WARNING\n" % (where, float(higher_than)), color = 'orange')
                 else:
-                    check_interface_result_ok = False                
+                    check_interface_result_ok = False
                     CGI_CLI.logtofile("CHECK['%s' > '%.2f'] = NOT OK\n" % (where, float(higher_than)), color = 'red')
-        except: CGI_CLI.logtofile("CHECK['%s' > '%.s'] = NaN\n" % (where, higher_than)) 
+        except: CGI_CLI.logtofile("CHECK['%s' > '%.s'] = NaN\n" % (where, higher_than))
 
     if what_yes_in and where or exact_value_yes and where:
         if exact_value_yes:
@@ -3442,18 +3442,18 @@ authentication {
                     try: interface_warning_data['Rx_Power_Warning_range_dBm_1'] = collect_if_config_rcmd_outputs[10].split('Rx Power: ')[1].split('Warning range: ')[1].\
                              splitlines()[0].strip().replace(',','').replace('dBm','').replace('[','').replace(']','').split()[0]
                     except: interface_warning_data['Rx_Power_Warning_range_dBm_1'] = str()
-                    
+
                     try: interface_warning_data['Rx_Power_Warning_range_dBm_2'] = collect_if_config_rcmd_outputs[10].split('Rx Power: ')[1].split('Warning range: ')[1].\
                              splitlines()[0].strip().replace(',','').replace('dBm','').replace('[','').replace(']','').split()[0]
-                    except: interface_warning_data['Rx_Power_Warning_range_dBm_2'] = str()                    
+                    except: interface_warning_data['Rx_Power_Warning_range_dBm_2'] = str()
 
                     try: interface_warning_data['Tx_Power_Warning_range_dBm_1'] = collect_if_config_rcmd_outputs[10].split('Tx Power: ')[1].split('Warning range: ')[1].\
                              splitlines()[0].strip().replace(',','').replace('dBm','').replace('[','').replace(']','').split()[1]
                     except: interface_warning_data['Tx_Power_Warning_range_dBm_1'] = str()
-                    
+
                     try: interface_warning_data['Tx_Power_Warning_range_dBm_2'] = collect_if_config_rcmd_outputs[10].split('Tx Power: ')[1].split('Warning range: ')[1].\
                              splitlines()[0].strip().replace(',','').replace('dBm','').replace('[','').replace(']','').split()[1]
-                    except: interface_warning_data['Tx_Power_Warning_range_dBm_2'] = str()                    
+                    except: interface_warning_data['Tx_Power_Warning_range_dBm_2'] = str()
 
                     try: interface_warning_data['CRC'] = collect_if_config_rcmd_outputs[10].split('CRC: ')[1].split()[0].strip()
                     except: interface_warning_data['CRC'] = str()
@@ -3765,17 +3765,17 @@ authentication {
                 CGI_CLI.uprint('\n', timestamp = 'no')
 
                 if LOCAL_AS_NUMBER:
-                    CGI_CLI.uprint('AS=%s'%(LOCAL_AS_NUMBER), name = True , color = 'blue')
+                    CGI_CLI.uprint('AS=%s'%(LOCAL_AS_NUMBER), name = True , color = 'blue', timestamp = 'no')
                 else:
                     CGI_CLI.uprint("PROBLEM TO PARSE LOCAL AS NUMBER on device %s!" \
-                        % (device), color = 'red', tag = 'h1')
+                        % (device), color = 'red', tag = 'h1', timestamp = 'no')
 
                 ### def PRINT RESULTS PER INTERFACE ###########################
                 CGI_CLI.uprint(interface_data, name = 'Device:%s' % (device), \
-                    jsonprint = True, color = 'blue')
+                    jsonprint = True, color = 'blue', timestamp = 'no')
 
                 CGI_CLI.uprint(interface_warning_data, name = 'POSSIBLE WARNINGS on Device:%s' % (device), \
-                    jsonprint = True, color = 'blue')
+                    jsonprint = True, color = 'blue', timestamp = 'no')
 
                 ### START OF CHECKS PER INTERFACE #############################
                 check_interface_result_ok, check_warning_interface_result_ok = True, True
@@ -3787,8 +3787,9 @@ authentication {
                 if len(None_elements) > 0:
                     check_interface_result_ok = False
                     CGI_CLI.uprint('UNSET CONFIG ELEMENTS ON INTERFACE %s:' % \
-                        (interface_data.get('interface_id')), tag = 'h3', color = 'red')
+                        (interface_data.get('interface_id')), tag = 'h3', color = 'red', timestamp = 'no')
                     CGI_CLI.uprint('\n'.join(None_elements), color = 'red', timestamp = 'no')
+                    CGI_CLI.uprint('\n', timestamp = 'no')
 
                 if not precheck_mode:
                     if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr' and not interface_data.get('ipv4_metric') \
@@ -3911,9 +3912,9 @@ authentication {
                         check_interface_data_content('ipv4_metric', None, '99999')
                         check_interface_data_content('ipv6_metric', None, '99999')
 
-                    check_interface_data_content('input_errors', exact_value_yes = '0', warning = True)
-                    check_interface_data_content('input_CRC', exact_value_yes = '0', warning = True)
-                    check_interface_data_content('output_errors', exact_value_yes = '0', warning = True)
+                    #check_interface_data_content('input_errors', exact_value_yes = '0', warning = True)
+                    #check_interface_data_content('input_CRC', exact_value_yes = '0', warning = True)
+                    #check_interface_data_content('output_errors', exact_value_yes = '0', warning = True)
 
                     check_interface_data_content('input_errors_Difference', exact_value_yes = '0', warning = True)
                     check_interface_data_content('input_CRC_Difference', exact_value_yes = '0', warning = True)
@@ -3966,7 +3967,7 @@ authentication {
 
                     check_interface_data_content('Rx_Power_dBm_Difference', what_yes_in = '0.0', warning = True)
                     check_interface_data_content('Tx_Power_dBm_Difference', what_yes_in = '0.0', warning = True)
-                                        
+
                     check_interface_data_content('Rx_Power_Warning_range_dBm_1', higher_than = interface_warning_data.get('Rx_Power_dBm'), warning = True)
                     check_interface_data_content('Rx_Power_Warning_range_dBm_2', lower_than = interface_warning_data.get('Rx_Power_dBm'), warning = True)
 
@@ -3977,8 +3978,8 @@ authentication {
                     check_interface_data_content('Rx_Power_Warning_range_dBm_2', lower_than = interface_warning_data.get('Rx_Power_dBm_After_ping'), warning = True)
 
                     check_interface_data_content('Tx_Power_Warning_range_dBm_1', higher_than = interface_warning_data.get('Tx_Power_dBm_After_ping'), warning = True)
-                    check_interface_data_content('Tx_Power_Warning_range_dBm_2', lower_than = interface_warning_data.get('Tx_Power_dBm_After_ping'), warning = True)                    
-                                        
+                    check_interface_data_content('Tx_Power_Warning_range_dBm_2', lower_than = interface_warning_data.get('Tx_Power_dBm_After_ping'), warning = True)
+
                     check_interface_data_content('CRC_Difference', exact_value_yes = '0', warning = True)
                     check_interface_data_content('Overrun_Difference', exact_value_yes = '0', warning = True)
                     check_interface_data_content('Lost_Difference', exact_value_yes = '0', warning = True)
