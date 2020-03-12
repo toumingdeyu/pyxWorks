@@ -3744,7 +3744,7 @@ authentication {
                     CGI_CLI.uprint('AS=%s'%(LOCAL_AS_NUMBER), name = True , color = 'blue')
                 else:
                     CGI_CLI.uprint("PROBLEM TO PARSE LOCAL AS NUMBER on device %s!" \
-                        % (device), color = 'red', tag = 'h1',  log = True)
+                        % (device), color = 'red', tag = 'h1')
 
                 ### def PRINT RESULTS PER INTERFACE ###########################
                 CGI_CLI.uprint(interface_data, name = 'Device:%s' % (device), \
