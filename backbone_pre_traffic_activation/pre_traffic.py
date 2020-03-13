@@ -3671,7 +3671,7 @@ authentication {
                             try: interface_data['ping_v4_percent_success_%spings' % (ping_counts)] = str(100 - float(ping4_config_rcmds_outputs[0].split('% packet loss')[0].splitlines()[-1].strip()))
                             except: interface_data['ping_v4_percent_success_%spings' % (ping_counts)] = str()
 
-                if '100' in interface_data.get('ping_v4_mtu_percent_success',str()):
+                if '100' in interface_warning_data.get('ping_v4_mtu_percent_success',str()):
                     ### def "THOUSANDS" PINGv4 MTU COMMAND LIST ###################
                     if interface_data.get('ipv4_addr_rem',str()):
                         ping4_config_rcmds = {
@@ -3745,7 +3745,7 @@ authentication {
                             try: interface_data['ping_v6_percent_success_%spings' % (ping_counts)] = str(100 - float(ping4_config_rcmds_outputs[0].split('% packet loss')[0].splitlines()[-1].strip()))
                             except: interface_data['ping_v6_percent_success_%spings' % (ping_counts)] = str()
 
-                if '100' in interface_data.get('ping_v6_mtu_percent_success',str()):
+                if '100' in interface_warning_data.get('ping_v6_mtu_percent_success',str()):
                     ### def "THOUSANDS" PINGv6 COMMAND LIST ###################
                     if interface_data.get('ipv6_addr_rem',str()):
                         ping6_config_rcmds = {
