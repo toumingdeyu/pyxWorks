@@ -2487,10 +2487,10 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
             else:
                 if warning:
                     check_warning_interface_result_ok = False
-                    CGI_CLI.uprint("CHECK['%s' > '%.2f'] = WARNING\n" % (where, float(lower_than)), color = 'orange')
+                    CGI_CLI.uprint("CHECK['%s' > '%.2f'] = WARNING\n" % (where, float(lower_than)), color = 'orange', timestamp = 'no')
                 else:
                     check_interface_result_ok = False
-                    CGI_CLI.uprint("CHECK['%s' > '%.2f'] = NOT OK\n" % (where, float(lower_than)), color = 'red')
+                    CGI_CLI.uprint("CHECK['%s' > '%.2f'] = NOT OK\n" % (where, float(lower_than)), color = 'red', timestamp = 'no')
         except: CGI_CLI.logtofile("CHECK['%s' < '%s'] = NaN\n" % (where, str(lower_than)))
 
     if higher_than and where:
@@ -2500,10 +2500,10 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
             else:
                 if warning:
                     check_warning_interface_result_ok = False
-                    CGI_CLI.uprint("CHECK['%s' < '%.2f'] = WARNING\n" % (where, float(higher_than)), color = 'orange')
+                    CGI_CLI.uprint("CHECK['%s' < '%.2f'] = WARNING\n" % (where, float(higher_than)), color = 'orange', timestamp = 'no')
                 else:
                     check_interface_result_ok = False
-                    CGI_CLI.uprint("CHECK['%s' < '%.2f'] = NOT OK\n" % (where, float(higher_than)), color = 'red')
+                    CGI_CLI.uprint("CHECK['%s' < '%.2f'] = NOT OK\n" % (where, float(higher_than)), color = 'red', , timestamp = 'no')
         except: CGI_CLI.logtofile("CHECK['%s' > '%s'] = NaN\n" % (where, str(higher_than)))
 
     if exact_value_yes and where:
@@ -2513,11 +2513,11 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
             if warning:
                 check_warning_interface_result_ok = False
                 CGI_CLI.uprint("CHECK['%s' != '%s'] = WARNING" % (exact_value_yes, where),
-                    color = 'orange')
+                    color = 'orange', timestamp = 'no')
             else:
                 check_interface_result_ok = False
                 CGI_CLI.uprint("CHECK['%s' != '%s'] = NOT OK" % (exact_value_yes, where),
-                    color = 'red')
+                    color = 'red', timestamp = 'no')
 
     if what_yes_in and where:
         if what_yes_in.upper() in where_value.upper():
@@ -2526,11 +2526,11 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
             if warning:
                 check_warning_interface_result_ok = False
                 CGI_CLI.uprint("CHECK['%s' not in '%s'] = WARNING" % (what_yes_in, where),
-                    color = 'orange')
+                    color = 'orange', timestamp = 'no')
             else:
                 check_interface_result_ok = False
                 CGI_CLI.uprint("CHECK['%s' not in '%s'] = NOT OK" % (what_yes_in, where),
-                    color = 'red')
+                    color = 'red', timestamp = 'no')
 
     if what_not and where:
         if isinstance(what_not, (list,tuple)):
@@ -2542,21 +2542,21 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
             if local_check_interface_result_ok == len(what_not):
                 if warning:
                     check_warning_interface_result_ok = False
-                    CGI_CLI.uprint("CHECK[" + ' AND '.join(Alarm_text) + '] = WARNING', color = 'orange')
+                    CGI_CLI.uprint("CHECK[" + ' AND '.join(Alarm_text) + '] = WARNING', color = 'orange', timestamp = 'no')
                 else:
                     check_interface_result_ok = False
-                    CGI_CLI.uprint("CHECK[" + ' AND '.join(Alarm_text) + '] = NOT OK', color = 'red')
+                    CGI_CLI.uprint("CHECK[" + ' AND '.join(Alarm_text) + '] = NOT OK', color = 'red', timestamp = 'no')
             else: CGI_CLI.logtofile("CHECK[ ['%s'] not in '%s'] = OK\n" % (','.join(what_not), where))
         else:
             if what_not.upper() in where_value.upper():
                 if warning:
                     check_warning_interface_result_ok = False
                     CGI_CLI.uprint("CHECK['%s' in '%s'] = WARNING" % (str(what_not), where),
-                        color = 'orange')
+                        color = 'orange', timestamp = 'no')
                 else:
                     check_interface_result_ok = False
                     CGI_CLI.uprint("CHECK['%s' in '%s'] = NOT OK" % (str(what_not), where),
-                        color = 'red')
+                        color = 'red', timestamp = 'no')
             else: CGI_CLI.logtofile("CHECK['%s' not in '%s'] = OK\n" % (str(what_not), where))
 
 
