@@ -2503,7 +2503,7 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
                     CGI_CLI.uprint("CHECK['%s' < '%.2f'] = WARNING\n" % (where, float(higher_than)), color = 'orange', timestamp = 'no')
                 else:
                     check_interface_result_ok = False
-                    CGI_CLI.uprint("CHECK['%s' < '%.2f'] = NOT OK\n" % (where, float(higher_than)), color = 'red', , timestamp = 'no')
+                    CGI_CLI.uprint("CHECK['%s' < '%.2f'] = NOT OK\n" % (where, float(higher_than)), color = 'red', timestamp = 'no')
         except: CGI_CLI.logtofile("CHECK['%s' > '%s'] = NaN\n" % (where, str(higher_than)))
 
     if exact_value_yes and where:
