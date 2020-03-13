@@ -2615,13 +2615,14 @@ authentication {
     global_logfilename = str()
     test_mode = None
     table_test_extension = str()
-
+    ping_counts = '20'
 
     ### GCI_CLI INIT ##########################################################
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = None, css_style = CSS_STYLE)
     LCMD.init()
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
     printall = CGI_CLI.data.get("printall")
+    ping_counts = CGI_CLI.data.get("ping_counts",str(ping_counts))
     #printall = True
 
     if CGI_CLI.data.get("test-version",str()) == 'test-mode' \
@@ -2937,6 +2938,8 @@ authentication {
                 {'radio':['precheck','postcheck']},'<br/>','<br/>',\
                 {'text':'swan_id'},\
                 {'checkbox':'reinit_swan_id'},'<br/>','<br/>',\
+                'Default ping_counts=%s.' % (ping_counts),\
+                '<br/>',{'text':'ping_counts'},'<br/>',\
                 {'checkbox':'timestamps'}, '<br/>',\
                 {'checkbox':'send_email'},'<br/>',\
                 {'checkbox':'chunked_mode'},'<br/>',\
@@ -3626,8 +3629,6 @@ authentication {
 
 
                 ### "THOUSANDS" PINGs TEST ####################################
-                ping_counts = '20'
-
                 interface_data['ping_v4_percent_success_%spings' % (ping_counts)] = str()
                 interface_data['ping_v6_percent_success_%spings' % (ping_counts)] = str()
                 interface_warning_data['ping_v4_mtu_percent_success_%spings' % (ping_counts)] = str()
