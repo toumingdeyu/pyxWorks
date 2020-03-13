@@ -3680,7 +3680,7 @@ authentication {
                             ],
 
                             'cisco_xr':[
-                                'ping %s size %s df-bit' % (interface_data.get('ipv4_addr_rem',str()), str(mtu_size - 14))
+                                'ping %s size %s df-bit count %s' % (interface_data.get('ipv4_addr_rem',str()), str(mtu_size - 14), ping_counts)
                             ],
 
                             'juniper': [
@@ -3717,7 +3717,7 @@ authentication {
                             ],
 
                             'cisco_xr':[
-                                'ping ipv6 %s' % (interface_data.get('ipv6_addr_rem',str())),
+                                'ping ipv6 %s count %s' % (interface_data.get('ipv6_addr_rem',str()), ping_counts),
                             ],
 
                             'juniper': [
