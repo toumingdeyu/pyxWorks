@@ -2989,7 +2989,7 @@ authentication {
 
                 ### DEVICE CONNECT ############################################
                 RCMD.connect(device, username = USERNAME, password = PASSWORD, \
-                    printall = printall)
+                    printall = printall, cmd_timeout = 300)
 
                 if not RCMD.ssh_connection:
                     CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), \
