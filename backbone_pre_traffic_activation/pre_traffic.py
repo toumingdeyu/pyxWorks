@@ -2476,9 +2476,9 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
     else: where_value = interface_data.get(where, str())
 
 
-    CGI_CLI.uprint('CHECK[%s, where_value=%s, what_yes_in=%s, what_not=%s, exact_value_yes=%s, lower_than=%s, higher_than=%s, warning=%s]' \
-        % (where, where_value, what_yes_in, what_not, exact_value_yes, lower_than, higher_than, warning),\
-        tag = 'debug', no_printall = not CGI_CLI.printall)
+    #CGI_CLI.uprint('CHECK[%s, where_value=%s, what_yes_in=%s, what_not=%s, exact_value_yes=%s, lower_than=%s, higher_than=%s, warning=%s]' \
+    #    % (where, where_value, what_yes_in, what_not, exact_value_yes, lower_than, higher_than, warning),\
+    #    tag = 'debug', no_printall = not CGI_CLI.printall)
 
     if lower_than and where:
         try:
@@ -3234,7 +3234,7 @@ authentication {
                                     if '%s FROM %s' % (interface_data.get('name_of_remote_device',str()).upper(), device.upper()) in line.upper():
                                         local_backup_interface = str(line.split()[0]).replace('GE','Gi')
                                         if '(' in local_backup_interface: local_backup_interface = local_backup_interface.split('(')[0]
-                                        if ' TESTING ' or ' OLD ' in line: pass
+                                        if ' TESTING ' in line or ' OLD ' in line: pass
                                         else: backup_if_list.append(copy.deepcopy(local_backup_interface))
                             interface_data['parallel_interfaces'] = copy.deepcopy(backup_if_list)
                         except: interface_data['parallel_interfaces'] = []
@@ -3324,7 +3324,7 @@ authentication {
                                     if '%s FROM %s' % (interface_data.get('name_of_remote_device',str()).upper(), device.upper()) in line.upper():
                                         local_backup_interface = str(line.split()[0]).replace('GE','Gi')
                                         if '(' in local_backup_interface: local_backup_interface = local_backup_interface.split('(')[0]
-                                        if ' TESTING ' or ' OLD ' in line: pass
+                                        if ' TESTING ' in line or ' OLD ' in line: pass
                                         else: backup_if_list.append(copy.deepcopy(local_backup_interface))
                             interface_data['parallel_interfaces'] = copy.deepcopy(backup_if_list)
                         except: interface_data['parallel_interfaces'] = []
@@ -3427,7 +3427,7 @@ authentication {
                                         local_backup_interface = str(line.split()[0])
                                         if not '100GE' in local_backup_interface: local_backup_interface = local_backup_interface.replace('GE','Gi')
                                         if '(' in local_backup_interface: local_backup_interface = local_backup_interface.split('(')[0]
-                                        if ' TESTING ' or ' OLD ' in line: pass
+                                        if ' TESTING ' in line or ' OLD ' in line: pass
                                         else: backup_if_list.append(copy.deepcopy(local_backup_interface))
                             interface_data['parallel_interfaces'] = copy.deepcopy(backup_if_list)
                         except: interface_data['parallel_interfaces'] = []
