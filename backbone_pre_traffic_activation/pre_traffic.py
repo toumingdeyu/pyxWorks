@@ -3657,6 +3657,7 @@ authentication {
 
                         ping4_config_rcmds_outputs = RCMD.run_commands(ping4_config_rcmds, \
                             autoconfirm_mode = True, \
+                            long_lasting_mode = True, \
                             printall = printall)
 
                         if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
@@ -3694,6 +3695,7 @@ authentication {
 
                         ping4_config_rcmds_outputs = RCMD.run_commands(ping4_config_rcmds, \
                             autoconfirm_mode = True, \
+                            long_lasting_mode = True, \
                             printall = printall)
 
                         if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
@@ -3731,6 +3733,7 @@ authentication {
 
                         ping6_config_rcmds_outputs = RCMD.run_commands(ping6_config_rcmds, \
                             autoconfirm_mode = True, \
+                            long_lasting_mode = True, \
                             printall = printall)
 
                         if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
@@ -3767,6 +3770,7 @@ authentication {
 
                         ping6_config_rcmds_outputs = RCMD.run_commands(ping6_config_rcmds, \
                             autoconfirm_mode = True, \
+                            long_lasting_mode = True, \
                             printall = printall)
 
                         if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
