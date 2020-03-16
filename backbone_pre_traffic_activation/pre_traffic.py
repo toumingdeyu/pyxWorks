@@ -3058,6 +3058,7 @@ authentication {
                                 ],
 
                     'huawei':   ['display bgp peer',
+                                 'disp bgp vpnv4 all peer',
                                 ]
                 }
 
@@ -3080,7 +3081,9 @@ authentication {
                 elif RCMD.router_type == 'huawei':
                     try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("Local AS number :")[1].splitlines()[0].strip()
                     except: pass
-
+                    if not LOCAL_AS_NUMBER:
+                        try: LOCAL_AS_NUMBER = rcmd_outputs[1].split("Local AS number :")[1].splitlines()[0].strip()
+                        except: pass
 
                 ### def COLLECT COMMAND LIST ##################################
                 collect_if_data_rcmds = {
