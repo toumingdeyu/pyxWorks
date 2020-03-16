@@ -3004,7 +3004,8 @@ authentication {
 
                 ### DEVICE CONNECT ############################################
                 RCMD.connect(device, username = USERNAME, password = PASSWORD, \
-                    printall = printall, cmd_timeout = 300)
+                    printall = printall, \
+                    connection_timeout = 10000, cmd_timeout = 2200)
 
                 if not RCMD.ssh_connection:
                     CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), \
