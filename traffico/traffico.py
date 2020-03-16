@@ -1326,7 +1326,8 @@ if device:
 
         'huawei':   ['display bgp peer',
                      'display bgp ipv6 peer',
-                     'disp bgp vpnv4 all peer | exclude 2300'
+                     'disp bgp vpnv4 all peer | exclude 2300',
+                     'disp bgp vpnv4 all peer',
                     ]
     }
 
@@ -1349,6 +1350,9 @@ if device:
     elif RCMD.router_type == 'huawei':
         try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("Local AS number :")[1].splitlines()[0].strip()
         except: pass
+        if not LOCAL_AS_NUMBER:
+            try: LOCAL_AS_NUMBER = rcmd_outputs[3].split("Local AS number :")[1].splitlines()[0].strip()
+            except: pass
 
     if LOCAL_AS_NUMBER:
         CGI_CLI.uprint(LOCAL_AS_NUMBER, name = True , color = 'blue', log = True)
