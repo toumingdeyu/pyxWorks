@@ -2645,8 +2645,8 @@ authentication {
     action_type = 'bbactivation'
     action_type_list = ['bbactivation', 'bbmigration', 'custommigration']
 
-    if CGI_CLI.data.get('custommigration'):
-        action_type = custommigration
+    if CGI_CLI.data.get('customer_interfaces'):
+        action_type = 'custommigration'
 
     if CGI_CLI.data.get("type"):
         if CGI_CLI.data.get("type") in action_type_list:
@@ -2906,7 +2906,7 @@ authentication {
                 interface_menu_list.append('</authentication>')
 
             CGI_CLI.formprint(interface_menu_list + ['<br/>',\
-                {'checkbox':'custommigration'}, '<br/>',\
+                {'checkbox':'customer_interfaces'}, '<br/>',\
                 {'checkbox':'timestamps'}, '<br/>',\
                 {'checkbox':'printall'},'<br/>','<br/>'],\
                 submit_button = CGI_CLI.self_buttons[0], \
