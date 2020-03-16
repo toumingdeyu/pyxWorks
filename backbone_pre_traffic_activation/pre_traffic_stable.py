@@ -2461,8 +2461,9 @@ def get_fiblist(input_text = None):
 
 check_interface_result_ok, check_warning_interface_result_ok = True, True
 def check_interface_data_content(where = None, what_yes_in = None, what_not = None, \
-    exact_value_yes = None, warning = None):
+    exact_value_yes = None, lower_than = None, higher_than = None, warning = None):
     """
+    multiple tests in once are possible
     what_yes_in - string = if occurs in where then OK.
     what_not - list = if all items from list occurs, then FAIL. Otherwise OK.
     what_not - string = if string occurs in text, then FAIL.
@@ -2470,41 +2471,68 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
     global check_interface_result_ok
     global check_warning_interface_result_ok
     local_check_interface_result_ok, Alarm_text = 0, []
-    if what_yes_in and where or exact_value_yes and where:
 
-        if warning: where_value = interface_warning_data.get(where, str())
-        else: where_value = interface_data.get(where, str())
+    if warning: where_value = interface_warning_data.get(where, str())
+    else: where_value = interface_data.get(where, str())
 
-        if where_value:
-            if exact_value_yes:
-                if exact_value_yes.upper() == where_value.upper():
-                    CGI_CLI.logtofile("CHECK['%s' == '%s'] = OK\n" % (exact_value_yes, where))
-                else:
-                    if warning:
-                        check_warning_interface_result_ok = False
-                        CGI_CLI.uprint("CHECK['%s' != '%s'] = WARNING" % (exact_value_yes, where),
-                            color = 'orange')
-                    else:
-                        check_interface_result_ok = False
-                        CGI_CLI.uprint("CHECK['%s' != '%s'] = NOT OK" % (exact_value_yes, where),
-                            color = 'red')
+
+    #CGI_CLI.uprint('CHECK[%s, where_value=%s, what_yes_in=%s, what_not=%s, exact_value_yes=%s, lower_than=%s, higher_than=%s, warning=%s]' \
+    #    % (where, where_value, what_yes_in, what_not, exact_value_yes, lower_than, higher_than, warning),\
+    #    tag = 'debug', no_printall = not CGI_CLI.printall)
+
+    if lower_than and where:
+        try:
+            if float(where_value) <= float(lower_than):
+                CGI_CLI.logtofile("CHECK['%s' < '%.2f'] = OK\n" % (where, float(lower_than)))
             else:
-                if what_yes_in.upper() in where_value.upper():
-                    CGI_CLI.logtofile("CHECK['%s' in '%s'] = OK\n" % (what_yes_in, where))
+                if warning:
+                    check_warning_interface_result_ok = False
+                    CGI_CLI.uprint("CHECK['%s' > '%.2f'] = WARNING\n" % (where, float(lower_than)), color = 'orange', timestamp = 'no')
                 else:
-                    if warning:
-                        check_warning_interface_result_ok = False
-                        CGI_CLI.uprint("CHECK['%s' not in '%s'] = WARNING" % (what_yes_in, where),
-                            color = 'orange')
-                    else:
-                        check_interface_result_ok = False
-                        CGI_CLI.uprint("CHECK['%s' not in '%s'] = NOT OK" % (what_yes_in, where),
-                            color = 'red')
+                    check_interface_result_ok = False
+                    CGI_CLI.uprint("CHECK['%s' > '%.2f'] = NOT OK\n" % (where, float(lower_than)), color = 'red', timestamp = 'no')
+        except: CGI_CLI.logtofile("CHECK['%s' < '%s'] = NaN\n" % (where, str(lower_than)))
+
+    if higher_than and where:
+        try:
+            if float(where_value) >= float(higher_than):
+                CGI_CLI.logtofile("CHECK['%s' > '%.2f'] = OK\n" % (where, float(higher_than)))
+            else:
+                if warning:
+                    check_warning_interface_result_ok = False
+                    CGI_CLI.uprint("CHECK['%s' < '%.2f'] = WARNING\n" % (where, float(higher_than)), color = 'orange', timestamp = 'no')
+                else:
+                    check_interface_result_ok = False
+                    CGI_CLI.uprint("CHECK['%s' < '%.2f'] = NOT OK\n" % (where, float(higher_than)), color = 'red', timestamp = 'no')
+        except: CGI_CLI.logtofile("CHECK['%s' > '%s'] = NaN\n" % (where, str(higher_than)))
+
+    if exact_value_yes and where:
+        if exact_value_yes.upper() == where_value.upper():
+            CGI_CLI.logtofile("CHECK['%s' == '%s'] = OK\n" % (exact_value_yes, where))
+        else:
+            if warning:
+                check_warning_interface_result_ok = False
+                CGI_CLI.uprint("CHECK['%s' != '%s'] = WARNING" % (exact_value_yes, where),
+                    color = 'orange', timestamp = 'no')
+            else:
+                check_interface_result_ok = False
+                CGI_CLI.uprint("CHECK['%s' != '%s'] = NOT OK" % (exact_value_yes, where),
+                    color = 'red', timestamp = 'no')
+
+    if what_yes_in and where:
+        if what_yes_in.upper() in where_value.upper():
+            CGI_CLI.logtofile("CHECK['%s' in '%s'] = OK\n" % (what_yes_in, where))
+        else:
+            if warning:
+                check_warning_interface_result_ok = False
+                CGI_CLI.uprint("CHECK['%s' not in '%s'] = WARNING" % (what_yes_in, where),
+                    color = 'orange', timestamp = 'no')
+            else:
+                check_interface_result_ok = False
+                CGI_CLI.uprint("CHECK['%s' not in '%s'] = NOT OK" % (what_yes_in, where),
+                    color = 'red', timestamp = 'no')
+
     if what_not and where:
-
-        if warning: where_value = interface_warning_data.get(where, str())
-        else: where_value = interface_data.get(where, str())
-
         if isinstance(what_not, (list,tuple)):
             for item in what_not:
                 if item.upper() in where_value.upper():
@@ -2514,22 +2542,23 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
             if local_check_interface_result_ok == len(what_not):
                 if warning:
                     check_warning_interface_result_ok = False
-                    CGI_CLI.uprint("CHECK[" + ' AND '.join(Alarm_text) + '] = WARNING', color = 'orange')
+                    CGI_CLI.uprint("CHECK[" + ' AND '.join(Alarm_text) + '] = WARNING', color = 'orange', timestamp = 'no')
                 else:
                     check_interface_result_ok = False
-                    CGI_CLI.uprint("CHECK[" + ' AND '.join(Alarm_text) + '] = NOT OK', color = 'red')
+                    CGI_CLI.uprint("CHECK[" + ' AND '.join(Alarm_text) + '] = NOT OK', color = 'red', timestamp = 'no')
             else: CGI_CLI.logtofile("CHECK[ ['%s'] not in '%s'] = OK\n" % (','.join(what_not), where))
         else:
             if what_not.upper() in where_value.upper():
                 if warning:
                     check_warning_interface_result_ok = False
-                    CGI_CLI.uprint("CHECK['%s' in '%s'] = WARNING" % (what_not, where),
-                        color = 'orange')
+                    CGI_CLI.uprint("CHECK['%s' in '%s'] = WARNING" % (str(what_not), where),
+                        color = 'orange', timestamp = 'no')
                 else:
                     check_interface_result_ok = False
-                    CGI_CLI.uprint("CHECK['%s' in '%s'] = NOT OK" % (what_not, where),
-                        color = 'red')
-            else: CGI_CLI.logtofile("CHECK['%s' not in '%s'] = OK\n" % (what_not, where))
+                    CGI_CLI.uprint("CHECK['%s' in '%s'] = NOT OK" % (str(what_not), where),
+                        color = 'red', timestamp = 'no')
+            else: CGI_CLI.logtofile("CHECK['%s' not in '%s'] = OK\n" % (str(what_not), where))
+
 
 
 ###############################################################################
@@ -2586,13 +2615,14 @@ authentication {
     global_logfilename = str()
     test_mode = None
     table_test_extension = str()
-
+    ping_counts = '0'
 
     ### GCI_CLI INIT ##########################################################
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = None, css_style = CSS_STYLE)
     LCMD.init()
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
     printall = CGI_CLI.data.get("printall")
+    ping_counts = CGI_CLI.data.get("ping_counts",str(ping_counts))
     #printall = True
 
     if CGI_CLI.data.get("test-version",str()) == 'test-mode' \
@@ -2908,6 +2938,8 @@ authentication {
                 {'radio':['precheck','postcheck']},'<br/>','<br/>',\
                 {'text':'swan_id'},\
                 {'checkbox':'reinit_swan_id'},'<br/>','<br/>',\
+                'Additional ping_counts=%s.' % (ping_counts),\
+                '<br/>',{'text':'ping_counts'},'<br/>',\
                 {'checkbox':'timestamps'}, '<br/>',\
                 {'checkbox':'send_email'},'<br/>',\
                 {'checkbox':'chunked_mode'},'<br/>',\
@@ -2957,7 +2989,7 @@ authentication {
 
                 ### DEVICE CONNECT ############################################
                 RCMD.connect(device, username = USERNAME, password = PASSWORD, \
-                    printall = printall)
+                    printall = printall, cmd_timeout = 300)
 
                 if not RCMD.ssh_connection:
                     CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), \
@@ -3026,6 +3058,7 @@ authentication {
                                 ],
 
                     'huawei':   ['display bgp peer',
+                                 'disp bgp vpnv4 all peer',
                                 ]
                 }
 
@@ -3048,7 +3081,9 @@ authentication {
                 elif RCMD.router_type == 'huawei':
                     try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("Local AS number :")[1].splitlines()[0].strip()
                     except: pass
-
+                    if not LOCAL_AS_NUMBER:
+                        try: LOCAL_AS_NUMBER = rcmd_outputs[1].split("Local AS number :")[1].splitlines()[0].strip()
+                        except: pass
 
                 ### def COLLECT COMMAND LIST ##################################
                 collect_if_data_rcmds = {
@@ -3205,7 +3240,8 @@ authentication {
                                     if '%s FROM %s' % (interface_data.get('name_of_remote_device',str()).upper(), device.upper()) in line.upper():
                                         local_backup_interface = str(line.split()[0]).replace('GE','Gi')
                                         if '(' in local_backup_interface: local_backup_interface = local_backup_interface.split('(')[0]
-                                        backup_if_list.append(copy.deepcopy(local_backup_interface))
+                                        if ' TESTING ' in line or ' OLD ' in line: pass
+                                        else: backup_if_list.append(copy.deepcopy(local_backup_interface))
                             interface_data['parallel_interfaces'] = copy.deepcopy(backup_if_list)
                         except: interface_data['parallel_interfaces'] = []
 
@@ -3294,7 +3330,8 @@ authentication {
                                     if '%s FROM %s' % (interface_data.get('name_of_remote_device',str()).upper(), device.upper()) in line.upper():
                                         local_backup_interface = str(line.split()[0]).replace('GE','Gi')
                                         if '(' in local_backup_interface: local_backup_interface = local_backup_interface.split('(')[0]
-                                        backup_if_list.append(copy.deepcopy(local_backup_interface))
+                                        if ' TESTING ' in line or ' OLD ' in line: pass
+                                        else: backup_if_list.append(copy.deepcopy(local_backup_interface))
                             interface_data['parallel_interfaces'] = copy.deepcopy(backup_if_list)
                         except: interface_data['parallel_interfaces'] = []
 
@@ -3318,32 +3355,32 @@ authentication {
                                 except: pass
 
                     ### WARNINGS ###
-                    try: interface_warning_data['Active alarms'] = collect_if_config_rcmd_outputs[13].split('Active alarms  : ')[1].split()[0].strip()
-                    except: interface_warning_data['Active alarms'] = str()
+                    try: interface_warning_data['Active_alarms'] = collect_if_config_rcmd_outputs[13].split('Active alarms  : ')[1].split()[0].strip()
+                    except: interface_warning_data['Active_alarms'] = str()
 
-                    try: interface_warning_data['Active defects'] = collect_if_config_rcmd_outputs[13].split('Active defects : ')[1].split()[0].strip()
-                    except: interface_warning_data['Active defects : '] = str()
+                    try: interface_warning_data['Active_defects'] = collect_if_config_rcmd_outputs[13].split('Active defects : ')[1].split()[0].strip()
+                    except: interface_warning_data['Active_defects'] = str()
 
-                    try: interface_warning_data['Bit errors'] = collect_if_config_rcmd_outputs[13].split('Bit errors ')[1].split()[0].strip()
-                    except: interface_warning_data['Bit errors'] = str()
+                    try: interface_warning_data['Bit_errors'] = collect_if_config_rcmd_outputs[13].split('Bit errors ')[1].split()[0].strip()
+                    except: interface_warning_data['Bit_errors'] = str()
 
-                    try: interface_warning_data['Errored blocks'] = collect_if_config_rcmd_outputs[13].split('Errored blocks ')[1].split()[0].strip()
-                    except: interface_warning_data['Errored blocks'] = str()
+                    try: interface_warning_data['Errored_blocks'] = collect_if_config_rcmd_outputs[13].split('Errored blocks ')[1].split()[0].strip()
+                    except: interface_warning_data['Errored_blocks'] = str()
 
-                    try: interface_warning_data['Ethernet FEC statistics'] = collect_if_config_rcmd_outputs[13].split('Ethernet FEC statistics ')[1].split()[0].strip()
-                    except: interface_warning_data['Ethernet FEC statistics'] = str()
+                    try: interface_warning_data['Ethernet_FEC_statistics'] = collect_if_config_rcmd_outputs[13].split('Ethernet FEC statistics ')[1].split()[0].strip()
+                    except: interface_warning_data['Ethernet_FEC_statistics'] = str()
 
-                    try: interface_warning_data['FEC Corrected Errors'] = collect_if_config_rcmd_outputs[13].split('FEC Corrected Errors ')[1].split()[0].strip()
-                    except: interface_warning_data['FEC Corrected Errors'] = str()
+                    try: interface_warning_data['FEC_Corrected_Errors'] = collect_if_config_rcmd_outputs[13].split('FEC Corrected Errors ')[1].split()[0].strip()
+                    except: interface_warning_data['FEC_Corrected_Errors'] = str()
 
-                    try: interface_warning_data['FEC Uncorrected Errors'] = collect_if_config_rcmd_outputs[13].split('FEC Uncorrected Errors ')[1].split()[0].strip()
-                    except: interface_warning_data['FEC Uncorrected Errors'] = str()
+                    try: interface_warning_data['FEC_Uncorrected_Errors'] = collect_if_config_rcmd_outputs[13].split('FEC Uncorrected Errors ')[1].split()[0].strip()
+                    except: interface_warning_data['FEC_Uncorrected_Errors'] = str()
 
-                    try: interface_warning_data['FEC Corrected Errors Rate'] = collect_if_config_rcmd_outputs[13].split('FEC Corrected Errors Rate ')[1].split()[0].strip()
-                    except: interface_warning_data['FEC Corrected Errors Rate'] = str()
+                    try: interface_warning_data['FEC_Corrected_Errors_Rate'] = collect_if_config_rcmd_outputs[13].split('FEC Corrected Errors Rate ')[1].split()[0].strip()
+                    except: interface_warning_data['FEC_Corrected_Errors_Rate'] = str()
 
-                    try: interface_warning_data['FEC Uncorrected Errors Rate'] = collect_if_config_rcmd_outputs[13].split('FEC Uncorrected Errors Rate ')[1].split()[0].strip()
-                    except: interface_warning_data['FEC Uncorrected Errors Rate'] = str()
+                    try: interface_warning_data['FEC_Uncorrected_Errors_Rate'] = collect_if_config_rcmd_outputs[13].split('FEC Uncorrected Errors Rate ')[1].split()[0].strip()
+                    except: interface_warning_data['FEC_Uncorrected_Errors_Rate'] = str()
 
                 ### def HUAWEI 1st CMDS #######################################
                 elif RCMD.router_type == 'huawei':
@@ -3396,7 +3433,8 @@ authentication {
                                         local_backup_interface = str(line.split()[0])
                                         if not '100GE' in local_backup_interface: local_backup_interface = local_backup_interface.replace('GE','Gi')
                                         if '(' in local_backup_interface: local_backup_interface = local_backup_interface.split('(')[0]
-                                        backup_if_list.append(copy.deepcopy(local_backup_interface))
+                                        if ' TESTING ' in line or ' OLD ' in line: pass
+                                        else: backup_if_list.append(copy.deepcopy(local_backup_interface))
                             interface_data['parallel_interfaces'] = copy.deepcopy(backup_if_list)
                         except: interface_data['parallel_interfaces'] = []
 
@@ -3408,17 +3446,27 @@ authentication {
                             except: pass
 
                     ### WARNINGS ###
-                    try: interface_warning_data['Rx Power'] = collect_if_config_rcmd_outputs[10].split('Rx Power: ')[1].split()[0].strip().replace(',','')
-                    except: interface_warning_data['Rx Power'] = str()
+                    try: interface_warning_data['Rx_Power_dBm'] = collect_if_config_rcmd_outputs[10].split('Rx Power: ')[1].split()[0].strip().replace(',','').replace('dBm','')
+                    except: interface_warning_data['Rx_Power_dBm'] = str()
 
-                    try: interface_warning_data['Tx Power'] = collect_if_config_rcmd_outputs[10].split('Tx Power: ')[1].split()[0].strip().replace(',','')
-                    except: interface_warning_data['Tx Power'] = str()
+                    try: interface_warning_data['Tx_Power_dBm'] = collect_if_config_rcmd_outputs[10].split('Tx Power: ')[1].split()[0].strip().replace(',','').replace('dBm','')
+                    except: interface_warning_data['Tx_Power_dBm'] = str()
 
-                    try: interface_warning_data['Rx Power Warning range'] = collect_if_config_rcmd_outputs[10].split('Rx Power: ')[1].split('Warning range: ')[1].splitlines()[0].strip().replace(',','')
-                    except: interface_warning_data['Rx Power Warning range'] = str()
+                    try: interface_warning_data['Rx_Power_Warning_range_dBm_1'] = collect_if_config_rcmd_outputs[10].split('Rx Power: ')[1].split('Warning range: ')[1].\
+                             splitlines()[0].strip().replace(',','').replace('dBm','').replace('[','').replace(']','').split()[0]
+                    except: interface_warning_data['Rx_Power_Warning_range_dBm_1'] = str()
 
-                    try: interface_warning_data['Tx Power Warning range'] = collect_if_config_rcmd_outputs[10].split('Tx Power: ')[1].split('Warning range: ')[1].splitlines()[0].strip().replace(',','')
-                    except: interface_warning_data['Tx Power Warning range'] = str()
+                    try: interface_warning_data['Rx_Power_Warning_range_dBm_2'] = collect_if_config_rcmd_outputs[10].split('Rx Power: ')[1].split('Warning range: ')[1].\
+                             splitlines()[0].strip().replace(',','').replace('dBm','').replace('[','').replace(']','').split()[1]
+                    except: interface_warning_data['Rx_Power_Warning_range_dBm_2'] = str()
+
+                    try: interface_warning_data['Tx_Power_Warning_range_dBm_1'] = collect_if_config_rcmd_outputs[10].split('Tx Power: ')[1].split('Warning range: ')[1].\
+                             splitlines()[0].strip().replace(',','').replace('dBm','').replace('[','').replace(']','').split()[0]
+                    except: interface_warning_data['Tx_Power_Warning_range_dBm_1'] = str()
+
+                    try: interface_warning_data['Tx_Power_Warning_range_dBm_2'] = collect_if_config_rcmd_outputs[10].split('Tx Power: ')[1].split('Warning range: ')[1].\
+                             splitlines()[0].strip().replace(',','').replace('dBm','').replace('[','').replace(']','').split()[1]
+                    except: interface_warning_data['Tx_Power_Warning_range_dBm_2'] = str()
 
                     try: interface_warning_data['CRC'] = collect_if_config_rcmd_outputs[10].split('CRC: ')[1].split()[0].strip()
                     except: interface_warning_data['CRC'] = str()
@@ -3435,11 +3483,11 @@ authentication {
                     try: interface_warning_data['Underrun'] = collect_if_config_rcmd_outputs[10].split('Underrun: ')[1].split()[0].strip()
                     except: interface_warning_data['Underrun'] = str()
 
-                    try: interface_warning_data['Local fault'] = collect_if_config_rcmd_outputs[10].split('Local fault: ')[1].split()[0].strip().replace('.','')
-                    except: interface_warning_data['Local fault'] = str()
+                    try: interface_warning_data['Local_fault'] = collect_if_config_rcmd_outputs[10].split('Local fault: ')[1].split()[0].strip().replace('.','')
+                    except: interface_warning_data['Local_fault'] = str()
 
-                    try: interface_warning_data['Remote fault'] = collect_if_config_rcmd_outputs[10].split('Remote fault: ')[1].split()[0].strip().replace('.','')
-                    except: interface_warning_data['Remote fault'] = str()
+                    try: interface_warning_data['Remote_fault'] = collect_if_config_rcmd_outputs[10].split('Remote fault: ')[1].split()[0].strip().replace('.','')
+                    except: interface_warning_data['Remote_fault'] = str()
 
                 ### def COLLECT SECOND COMMAND LIST ###########################
                 if RCMD.router_type == 'juniper':
@@ -3583,6 +3631,168 @@ authentication {
                         except: interface_warning_data['ping_v6_mtu_percent_success'] = str()
 
 
+
+                ### "THOUSANDS" PINGs TEST ####################################
+                if ping_counts and int(ping_counts) > 0:
+
+                    interface_data['ping_v4_percent_success_%spings' % (ping_counts)] = str()
+                    interface_data['ping_v6_percent_success_%spings' % (ping_counts)] = str()
+                    interface_warning_data['ping_v4_mtu_percent_success_%spings' % (ping_counts)] = str()
+                    interface_warning_data['ping_v6_mtu_percent_success_%spings' % (ping_counts)] = str()
+
+                    if '100' in interface_data.get('ping_v4_percent_success',str()):
+                        ### def "THOUSANDS" PINGv4 COMMAND LIST ###################
+                        if interface_data.get('ipv4_addr_rem',str()):
+                            ping4_config_rcmds = {
+                                'cisco_ios':[
+                                    'ping %s count %s' % (interface_data.get('ipv4_addr_rem',str()), ping_counts),
+                                ],
+
+                                'cisco_xr':[
+                                    'ping %s' % (interface_data.get('ipv4_addr_rem',str())),
+                                ],
+
+                                'juniper': [
+                                    'ping %s count %s' % (interface_data.get('ipv4_addr_rem',str()), ping_counts),
+                                ],
+
+                                'huawei': [
+                                    'ping -c %s %s' % (ping_counts, interface_data.get('ipv4_addr_rem',str())),
+                                ]
+                            }
+
+                            ping4_config_rcmds_outputs = RCMD.run_commands(ping4_config_rcmds, \
+                                autoconfirm_mode = True, \
+                                long_lasting_mode = True, \
+                                printall = printall)
+
+                            if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
+                                try: interface_data['ping_v4_percent_success_%spings' % (ping_counts)] = ping4_config_rcmds_outputs[0].split('Success rate is ')[1].splitlines()[0].split('percent')[0].strip()
+                                except: interface_data['ping_v4_percent_success_%spings' % (ping_counts)] = str()
+
+                            elif RCMD.router_type == 'juniper':
+                                try: interface_data['ping_v4_percent_success_%spings' % (ping_counts)] = str(100 - float(ping4_config_rcmds_outputs[0].split('received,')[1].splitlines()[0].split('%')[0].strip()))
+                                except: interface_data['ping_v4_percent_success_%spings' % (ping_counts)] = str()
+
+                            elif RCMD.router_type == 'huawei':
+                                try: interface_data['ping_v4_percent_success_%spings' % (ping_counts)] = str(100 - float(ping4_config_rcmds_outputs[0].split('% packet loss')[0].splitlines()[-1].strip()))
+                                except: interface_data['ping_v4_percent_success_%spings' % (ping_counts)] = str()
+
+                    if '100' in interface_warning_data.get('ping_v4_mtu_percent_success',str()):
+                        ### def "THOUSANDS" PINGv4 MTU COMMAND LIST ###################
+                        if interface_data.get('ipv4_addr_rem',str()):
+                            ping4_config_rcmds = {
+                                'cisco_ios':[
+                                    'ping %s size %s df-bit count %s' % (interface_data.get('ipv4_addr_rem',str()), str(mtu_size), ping_counts)
+                                ],
+
+                                'cisco_xr':[
+                                    'ping %s size %s df-bit count %s' % (interface_data.get('ipv4_addr_rem',str()), str(mtu_size - 14), ping_counts)
+                                ],
+
+                                'juniper': [
+                                    'ping %s count %s size %s' % (interface_data.get('ipv4_addr_rem',str()), ping_counts, str(mtu_size - 42))
+                                ],
+
+                                'huawei': [
+                                    'ping -s %s -c %s %s' % (str(mtu_size), ping_counts, interface_data.get('ipv4_addr_rem',str()))
+                                ]
+                            }
+
+                            ping4_config_rcmds_outputs = RCMD.run_commands(ping4_config_rcmds, \
+                                autoconfirm_mode = True, \
+                                long_lasting_mode = True, \
+                                printall = printall)
+
+                            if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
+                                try: interface_warning_data['ping_v4_mtu_percent_success_%spings' % (ping_counts)] = ping4_config_rcmds_outputs[0].split('Success rate is ')[1].splitlines()[0].split('percent')[0].strip()
+                                except: interface_warning_data['ping_v4_mtu_percent_success_%spings' % (ping_counts)] = str()
+
+                            elif RCMD.router_type == 'juniper':
+                                try: interface_warning_data['ping_v4_mtu_percent_success_%spings' % (ping_counts)] = str(100 - float(ping4_config_rcmds_outputs[0].split('received,')[1].splitlines()[0].split('%')[0].strip()))
+                                except: interface_warning_data['ping_v4_mtu_percent_success_%spings' % (ping_counts)] = str()
+
+                            elif RCMD.router_type == 'huawei':
+                                try: interface_warning_data['ping_v4_mtu_percent_success_%spings' % (ping_counts)] = str(100 - float(ping4_config_rcmds_outputs[0].split('% packet loss')[0].splitlines()[-1].strip()))
+                                except: interface_warning_data['ping_v4_mtu_percent_success_%spings' % (ping_counts)] = str()
+
+                    if '100' in interface_data.get('ping_v6_percent_success',str()):
+                        ### def "THOUSANDS" PINGv6 COMMAND LIST ###################
+                        if interface_data.get('ipv6_addr_rem',str()):
+                            ping6_config_rcmds = {
+                                'cisco_ios':[
+                                    'ping ipv6 %s count %s' % (interface_data.get('ipv6_addr_rem',str()), ping_counts),
+                                ],
+
+                                'cisco_xr':[
+                                    'ping ipv6 %s count %s' % (interface_data.get('ipv6_addr_rem',str()), ping_counts),
+                                ],
+
+                                'juniper': [
+                                    'ping inet6 %s count %s' % (interface_data.get('ipv6_addr_rem',str()), ping_counts),
+                                ],
+
+                                'huawei': [
+                                    'ping ipv6 -c %s %s' % (ping_counts, interface_data.get('ipv6_addr_rem',str())),
+                                ]
+                            }
+
+                            ping6_config_rcmds_outputs = RCMD.run_commands(ping6_config_rcmds, \
+                                autoconfirm_mode = True, \
+                                long_lasting_mode = True, \
+                                printall = printall)
+
+                            if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
+                                try: interface_data['ping_v6_percent_success_%spings' % (ping_counts)] = ping4_config_rcmds_outputs[0].split('Success rate is ')[1].splitlines()[0].split('percent')[0].strip()
+                                except: interface_data['ping_v6_percent_success_%spings' % (ping_counts)] = str()
+
+                            elif RCMD.router_type == 'juniper':
+                                try: interface_data['ping_v6_percent_success_%spings' % (ping_counts)] = str(100 - float(ping4_config_rcmds_outputs[0].split('received,')[1].splitlines()[0].split('%')[0].strip()))
+                                except: interface_data['ping_v6_percent_success_%spings' % (ping_counts)] = str()
+
+                            elif RCMD.router_type == 'huawei':
+                                try: interface_data['ping_v6_percent_success_%spings' % (ping_counts)] = str(100 - float(ping4_config_rcmds_outputs[0].split('% packet loss')[0].splitlines()[-1].strip()))
+                                except: interface_data['ping_v6_percent_success_%spings' % (ping_counts)] = str()
+
+                    if '100' in interface_warning_data.get('ping_v6_mtu_percent_success',str()):
+                        ### def "THOUSANDS" PINGv6 COMMAND LIST ###################
+                        if interface_data.get('ipv6_addr_rem',str()):
+                            ping6_config_rcmds = {
+                                'cisco_ios':[
+                                    'ping ipv6 %s size %s count %s' % (interface_data.get('ipv6_addr_rem',str()), str(mtu_size), ping_counts)
+                                ],
+                                'cisco_xr':[
+                                    'ping ipv6 %s size %s' % (interface_data.get('ipv6_addr_rem',str()), str(mtu_size - 14))
+                                ],
+
+                                'juniper': [
+                                    'ping inet6 %s count %s size %s' % (interface_data.get('ipv6_addr_rem',str()), ping_counts, str(mtu_size - 42)),
+                                ],
+
+                                'huawei': [
+                                    'ping ipv6 -s %s -c %s %s' % (str(mtu_size), ping_counts, interface_data.get('ipv6_addr_rem',str())),
+                                ]
+                            }
+
+                            ping6_config_rcmds_outputs = RCMD.run_commands(ping6_config_rcmds, \
+                                autoconfirm_mode = True, \
+                                long_lasting_mode = True, \
+                                printall = printall)
+
+                            if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
+                                try: interface_warning_data['ping_v6_mtu_percent_success_%spings' % (ping_counts)] = ping4_config_rcmds_outputs[0].split('Success rate is ')[1].splitlines()[0].split('percent')[0].strip()
+                                except: interface_warning_data['ping_v6_mtu_percent_success_%spings' % (ping_counts)] = str()
+
+                            elif RCMD.router_type == 'juniper':
+                                try: interface_warning_data['ping_v6_mtu_percent_success_%spings' % (ping_counts)] = str(100 - float(ping4_config_rcmds_outputs[0].split('received,')[1].splitlines()[0].split('%')[0].strip()))
+                                except: interface_warning_data['ping_v6_mtu_percent_success_%spings' % (ping_counts)] = str()
+
+                            elif RCMD.router_type == 'huawei':
+                                try: interface_warning_data['ping_v6_mtu_percent_success_%spings' % (ping_counts)] = str(100 - float(ping4_config_rcmds_outputs[0].split('% packet loss')[0].splitlines()[-1].strip()))
+                                except: interface_warning_data['ping_v6_mtu_percent_success_%spings' % (ping_counts)] = str()
+
+
+
                 if not precheck_mode:
                     ### def PARALLEL INTERFACES COMMAND LIST ##################
                     parrallel_interfaces_rcmds = collections.OrderedDict()
@@ -3600,21 +3810,148 @@ authentication {
                         autoconfirm_mode = True, \
                         printall = printall)
 
+
+
+                ### def INCREMENTAL ERROR CHECK AFTER PINGS ###############
+                if ping_counts and int(ping_counts) > 0:
+                    err_check_after_pings_data_rcmds = {
+                        'cisco_ios':[
+                            'show interfaces %s' % (undotted_interface_id),
+                        ],
+
+                        'cisco_xr':[
+                            'show interfaces %s' % (undotted_interface_id),
+                        ],
+
+                        'juniper': [
+                            'show interfaces %s' % (undotted_interface_id),
+                        ],
+
+                        'huawei': [
+                            'display interface %s' % (undotted_interface_id),
+                        ]
+                    }
+
+                    err_check_after_pings_outputs = RCMD.run_commands( \
+                        err_check_after_pings_data_rcmds, \
+                        autoconfirm_mode = True, \
+                        printall = printall)
+
+                    if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
+                        try:    interface_warning_data['input_errors_After_ping'] = err_check_after_pings_outputs[0].split('input errors')[0].splitlines()[-1].split()[0].strip()
+                        except: interface_warning_data['input_errors_After_ping'] = str()
+                        try:    interface_warning_data['input_errors_Difference'] = str(int(interface_warning_data['input_errors_After_ping']) - int(interface_warning_data['input_errors']))
+                        except: interface_warning_data['input_errors_Difference'] = str()
+
+                        try:    interface_warning_data['input_CRC_After_ping'] = err_check_after_pings_outputs[0].split('input errors,')[1].split('CRC,')[0].strip()
+                        except: interface_warning_data['input_CRC_After_ping'] = str()
+                        try:    interface_warning_data['input_CRC_Difference'] = str(int(interface_warning_data['input_CRC_After_ping']) - int(interface_warning_data['input_CRC']))
+                        except: interface_warning_data['input_CRC_Difference'] = str()
+
+                        try:    interface_warning_data['output_errors_After_ping'] = err_check_after_pings_outputs[0].split('output errors')[0].splitlines()[-1].split()[0].strip()
+                        except: interface_warning_data['output_errors_After_ping'] = str()
+                        try:    interface_warning_data['output_errors_Difference'] = str(int(interface_warning_data['output_errors_After_ping']) - int(interface_warning_data['output_errors']))
+                        except: interface_warning_data['output_errors_Difference'] = str()
+
+                    elif RCMD.router_type == 'juniper':
+                        try:    interface_warning_data['Active_alarms_After_ping'] = err_check_after_pings_outputs[0].split('Active alarms  : ')[1].split()[0].strip()
+                        except: interface_warning_data['Active_alarms_After_ping'] = str()
+
+                        try:    interface_warning_data['Active_defects_After_ping'] = err_check_after_pings_outputs[0].split('Active defects : ')[1].split()[0].strip()
+                        except: interface_warning_data['Active_defects_After_ping'] = str()
+
+                        try:    interface_warning_data['Bit_errors_After_ping'] = err_check_after_pings_outputs[0].split('Bit errors ')[1].split()[0].strip()
+                        except: interface_warning_data['Bit_errors_After_ping'] = str()
+                        try:    interface_warning_data['Bit_errors_Difference'] = str(int(interface_warning_data['Bit_errors_After_ping']) - int(interface_warning_data['Bit_errors']))
+                        except: interface_warning_data['Bit_errors_Difference'] = str()
+
+                        try:    interface_warning_data['Errored_blocks_After_ping'] = err_check_after_pings_outputs[0].split('Errored blocks ')[1].split()[0].strip()
+                        except: interface_warning_data['Errored_blocks_After_ping'] = str()
+                        try:    interface_warning_data['Errored_blocks_Difference'] = str(int(interface_warning_data['Errored_blocks_After_ping']) - int(interface_warning_data['Errored_blocks']))
+                        except: interface_warning_data['Errored_blocks_Difference'] = str()
+
+                        try:    interface_warning_data['Ethernet_FEC_statistics_After_ping'] = err_check_after_pings_outputs[0].split('Ethernet FEC statistics ')[1].split()[0].strip()
+                        except: interface_warning_data['Ethernet_FEC_statistics_After_ping'] = str()
+
+                        try:    interface_warning_data['FEC_Corrected_Errors_After_ping'] = err_check_after_pings_outputs[0].split('FEC Corrected Errors ')[1].split()[0].strip()
+                        except: interface_warning_data['FEC_Corrected_Errors_After_ping'] = str()
+                        try:    interface_warning_data['FEC_Corrected_Errors_Difference'] = str(int(interface_warning_data['FEC_Corrected_Errors_After_ping']) - int(interface_warning_data['FEC_Corrected_Errors']))
+                        except: interface_warning_data['FEC_Corrected_Errors_Difference'] = str()
+
+                        try:    interface_warning_data['FEC_Uncorrected_Errors_After_ping'] = err_check_after_pings_outputs[0].split('FEC Uncorrected Errors ')[1].split()[0].strip()
+                        except: interface_warning_data['FEC_Uncorrected_Errors_After_ping'] = str()
+                        try:    interface_warning_data['FEC_Uncorrected_Errors_Difference'] = str(int(interface_warning_data['FEC_Uncorrected_Errors_After_ping']) - int(interface_warning_data['FEC_Uncorrected_Errors']))
+                        except: interface_warning_data['FEC_Uncorrected_Errors_Difference'] = str()
+
+                        try:    interface_warning_data['FEC_Corrected_Errors_Rate_After_ping'] = err_check_after_pings_outputs[0].split('FEC Corrected Errors Rate ')[1].split()[0].strip()
+                        except: interface_warning_data['FEC_Corrected_Errors_Rate_After_ping'] = str()
+                        try:    interface_warning_data['FEC_Corrected_Errors_Rate_Difference'] = str(int(interface_warning_data['FEC_Corrected_Errors_Rate_After_ping']) - int(interface_warning_data['FEC_Corrected_Errors_Rate']))
+                        except: interface_warning_data['FEC_Corrected_Errors_Rate_Difference'] = str()
+
+                        try:    interface_warning_data['FEC_Uncorrected_Errors_Rate_After_ping'] = err_check_after_pings_outputs[0].split('FEC Uncorrected Errors Rate ')[1].split()[0].strip()
+                        except: interface_warning_data['FEC_Uncorrected_Errors_Rate_After_ping'] = str()
+                        try:    interface_warning_data['FEC_Uncorrected_Errors_Rate_Difference'] = str(int(interface_warning_data['FEC_Uncorrected_Errors_Rate_After_ping']) - int(interface_warning_data['FEC_Uncorrected_Errors_Rate']))
+                        except: interface_warning_data['FEC_Uncorrected_Errors_Rate_Difference'] = str()
+
+                    elif RCMD.router_type == 'huawei':
+                        try:    interface_warning_data['Rx_Power_dBm_After_ping'] = err_check_after_pings_outputs[0].split('Rx Power: ')[1].split()[0].strip().replace(',','').replace('dBm','')
+                        except: interface_warning_data['Rx_Power_dBm_After_ping'] = str()
+                        try:    interface_warning_data['Rx_Power_dBm_Difference'] = str(float(interface_warning_data['Rx_Power_dBm_After_ping']) - float(interface_warning_data['Rx_Power_dBm']))
+                        except: interface_warning_data['Rx_Power_dBm_Difference'] = str()
+
+                        try:    interface_warning_data['Tx_Power_dBm_After_ping'] = err_check_after_pings_outputs[0].split('Tx Power: ')[1].split()[0].strip().replace(',','').replace('dBm','')
+                        except: interface_warning_data['Tx_Power_dBm_After_ping'] = str()
+                        try:    interface_warning_data['Tx_Power_dBm_Difference'] = str(float(interface_warning_data['Tx_Power_dBm_After_ping']) - float(interface_warning_data['Tx_Power_dBm']))
+                        except: interface_warning_data['Tx_Power_dBm_Difference'] = str()
+
+                        try:    interface_warning_data['CRC_After_ping'] = err_check_after_pings_outputs[0].split('CRC: ')[1].split()[0].strip()
+                        except: interface_warning_data['CRC_After_ping'] = str()
+                        try:    interface_warning_data['CRC_Difference'] = str(int(interface_warning_data['CRC_After_ping']) - int(interface_warning_data['CRC']))
+                        except: interface_warning_data['CRC_Difference'] = str()
+
+                        try:    interface_warning_data['Overrun_After_ping'] = err_check_after_pings_outputs[0].split('Overrun: ')[1].split()[0].strip()
+                        except: interface_warning_data['Overrun_After_ping'] = str()
+                        try:    interface_warning_data['Overrun_Difference'] = str(int(interface_warning_data['Overrun_After_ping']) - int(interface_warning_data['Overrun']))
+                        except: interface_warning_data['Overrun_Difference'] = str()
+
+                        try:    interface_warning_data['Lost_After_ping'] = err_check_after_pings_outputs[0].split('Lost: ')[1].split()[0].strip()
+                        except: interface_warning_data['Lost_After_ping'] = str()
+                        try:    interface_warning_data['Lost_Difference'] = str(int(interface_warning_data['Lost_After_ping']) - int(interface_warning_data['Lost']))
+                        except: interface_warning_data['Lost_Difference'] = str()
+
+                        try:    interface_warning_data['Overflow_After_ping'] = err_check_after_pings_outputs[0].split('Overflow: ')[1].split()[0].strip()
+                        except: interface_warning_data['Overflow_After_ping'] = str()
+                        try:    interface_warning_data['Overflow_Difference'] = str(int(interface_warning_data['Overflow_After_ping']) - int(interface_warning_data['Overflow']))
+                        except: interface_warning_data['Overflow_Difference'] = str()
+
+                        try:    interface_warning_data['Underrun_After_ping'] = err_check_after_pings_outputs[0].split('Underrun: ')[1].split()[0].strip()
+                        except: interface_warning_data['Underrun_After_ping'] = str()
+                        try:    interface_warning_data['Underrun_Difference'] = str(int(interface_warning_data['Underrun_After_ping']) - int(interface_warning_data['Underrun']))
+                        except: interface_warning_data['Underrun_Difference'] = str()
+
+                        try:    interface_warning_data['Local_fault_After_ping'] = err_check_after_pings_outputs[0].split('Local fault: ')[1].split()[0].strip().replace('.','')
+                        except: interface_warning_data['Local_fault_After_ping'] = str()
+
+                        try:    interface_warning_data['Remote_fault_After_ping'] = err_check_after_pings_outputs[0].split('Remote fault: ')[1].split()[0].strip().replace('.','')
+                        except: interface_warning_data['Remote_fault_After_ping'] = str()
+
+
+
                 ### PRINT \n AFTER COLLECTING OF DATA #########################
                 CGI_CLI.uprint('\n', timestamp = 'no')
 
                 if LOCAL_AS_NUMBER:
-                    CGI_CLI.uprint('AS=%s'%(LOCAL_AS_NUMBER), name = True , color = 'blue')
+                    CGI_CLI.uprint('LOCAL_AS = %s'%(LOCAL_AS_NUMBER), name = True , color = 'blue', timestamp = 'no')
                 else:
                     CGI_CLI.uprint("PROBLEM TO PARSE LOCAL AS NUMBER on device %s!" \
-                        % (device), color = 'red', tag = 'h1',  log = True)
+                        % (device), color = 'red', timestamp = 'no')
 
                 ### def PRINT RESULTS PER INTERFACE ###########################
                 CGI_CLI.uprint(interface_data, name = 'Device:%s' % (device), \
-                    jsonprint = True, color = 'blue')
+                    jsonprint = True, color = 'blue', timestamp = 'no')
 
                 CGI_CLI.uprint(interface_warning_data, name = 'POSSIBLE WARNINGS on Device:%s' % (device), \
-                    jsonprint = True, color = 'blue')
+                    jsonprint = True, color = 'blue', timestamp = 'no')
 
                 ### START OF CHECKS PER INTERFACE #############################
                 check_interface_result_ok, check_warning_interface_result_ok = True, True
@@ -3626,9 +3963,12 @@ authentication {
                 if len(None_elements) > 0:
                     check_interface_result_ok = False
                     CGI_CLI.uprint('UNSET CONFIG ELEMENTS ON INTERFACE %s:' % \
-                        (interface_data.get('interface_id')), tag = 'h3', color = 'red')
+                        (interface_data.get('interface_id')), tag = 'h3', color = 'red', timestamp = 'no')
                     CGI_CLI.uprint('\n'.join(None_elements), color = 'red', timestamp = 'no')
+                    CGI_CLI.uprint('\n\n', timestamp = 'no')
 
+
+                CGI_CLI.uprint('CHECKS:', timestamp = 'no', tag = 'h3')
                 if not precheck_mode:
                     if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr' and not interface_data.get('ipv4_metric') \
                         or RCMD.router_type == 'juniper' and not interface_data.get('metric') \
@@ -3737,8 +4077,13 @@ authentication {
                 check_interface_data_content('ping_v4_mtu_percent_success', '100', warning = True)
                 check_interface_data_content('ping_v6_percent_success', '100')
                 check_interface_data_content('ping_v6_mtu_percent_success', '100', warning = True)
-                check_interface_data_content('ipv4_addr_rem_calculated', \
-                    interface_data.get('ipv4_addr_rem'))
+                check_interface_data_content('ipv4_addr_rem_calculated', interface_data.get('ipv4_addr_rem'))
+
+                if ping_counts and int(ping_counts) > 0:
+                    check_interface_data_content('ping_v4_percent_success_%spings' % (ping_counts), '100')
+                    check_interface_data_content('ping_v6_percent_success_%spings' % (ping_counts), '100')
+                    check_interface_data_content('ping_v4_mtu_percent_success_%spings' % (ping_counts), '100', warning = True)
+                    check_interface_data_content('ping_v6_mtu_percent_success_%spings' % (ping_counts), '100', warning = True)
 
                 if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
                     check_interface_data_content('line protocol is', 'UP')
@@ -3750,9 +4095,14 @@ authentication {
                         check_interface_data_content('ipv4_metric', None, '99999')
                         check_interface_data_content('ipv6_metric', None, '99999')
 
-                    check_interface_data_content('input_errors', exact_value_yes = '0', warning = True)
-                    check_interface_data_content('input_CRC', exact_value_yes = '0', warning = True)
-                    check_interface_data_content('output_errors', exact_value_yes = '0', warning = True)
+                    if ping_counts and int(ping_counts) > 0:
+                        check_interface_data_content('input_errors_Difference', exact_value_yes = '0', warning = True)
+                        check_interface_data_content('input_CRC_Difference', exact_value_yes = '0', warning = True)
+                        check_interface_data_content('output_errors_Difference', exact_value_yes = '0', warning = True)
+                    else:
+                        check_interface_data_content('input_errors', exact_value_yes = '0', warning = True)
+                        check_interface_data_content('input_CRC', exact_value_yes = '0', warning = True)
+                        check_interface_data_content('output_errors', exact_value_yes = '0', warning = True)
 
                 elif RCMD.router_type == 'juniper':
                     check_interface_data_content('Flags', 'UP')
@@ -3764,9 +4114,19 @@ authentication {
                     else:
                         check_interface_data_content('metric', None,  '99999')
 
-                    check_interface_data_content('Active alarms', 'None', warning = True)
-                    check_interface_data_content('Active defects', 'None', warning = True)
+                    check_interface_data_content('Active_alarms', 'None', warning = True)
+                    check_interface_data_content('Active_defects', 'None', warning = True)
 
+                    if ping_counts and int(ping_counts) > 0:
+                        check_interface_data_content('Active_alarms_After_ping', 'None', warning = True)
+                        check_interface_data_content('Active_defects_After_ping', 'None', warning = True)
+
+                        check_interface_data_content('Bit_errors_Difference', exact_value_yes = '0', warning = True)
+                        check_interface_data_content('Errored_blocks_Difference', exact_value_yes = '0', warning = True)
+                        check_interface_data_content('FEC_Corrected_Errors_Difference', exact_value_yes = '0', warning = True)
+                        check_interface_data_content('FEC_Uncorrected_Errors_Difference', exact_value_yes = '0', warning = True)
+                        check_interface_data_content('FEC_Corrected_Errors_Rate_Difference', exact_value_yes = '0', warning = True)
+                        check_interface_data_content('FEC_Uncorrected_Errors_Rate_Difference', exact_value_yes = '0', warning = True)
 
                 elif RCMD.router_type == 'huawei':
                     check_interface_data_content('isis ldp-sync', 'Achieved')
@@ -3781,8 +4141,31 @@ authentication {
                         check_interface_data_content('isis cost', None, '99999')
                         check_interface_data_content('isis ipv6 cost', None, '99999')
 
-                    check_interface_data_content('Local fault', 'NORMAL', warning = True)
-                    check_interface_data_content('Remote fault', 'NORMAL', warning = True)
+                    check_interface_data_content('Local_fault', 'NORMAL', warning = True)
+                    check_interface_data_content('Remote_fault', 'NORMAL', warning = True)
+
+                    if ping_counts and int(ping_counts) > 0:
+                        check_interface_data_content('Local_fault_After_ping', 'NORMAL', warning = True)
+                        check_interface_data_content('Remote_fault_After_ping', 'NORMAL', warning = True)
+
+                    check_interface_data_content('Rx_Power_dBm', higher_than = interface_warning_data.get('Rx_Power_Warning_range_dBm_1'), warning = True)
+                    check_interface_data_content('Rx_Power_dBm', lower_than = interface_warning_data.get('Rx_Power_Warning_range_dBm_2'), warning = True)
+
+                    check_interface_data_content('Tx_Power_dBm', higher_than = interface_warning_data.get('Tx_Power_Warning_range_dBm_1'), warning = True)
+                    check_interface_data_content('Tx_Power_dBm', lower_than = interface_warning_data.get('Tx_Power_Warning_range_dBm_2'), warning = True)
+
+                    if ping_counts and int(ping_counts) > 0:
+                        check_interface_data_content('Rx_Power_dBm_After_ping', higher_than = interface_warning_data.get('Rx_Power_Warning_range_dBm_1'), warning = True)
+                        check_interface_data_content('Rx_Power_dBm_After_ping', lower_than = interface_warning_data.get('Rx_Power_Warning_range_dBm_2'), warning = True)
+
+                        check_interface_data_content('Tx_Power_dBm_After_ping', higher_than = interface_warning_data.get('Tx_Power_Warning_range_dBm_1'), warning = True)
+                        check_interface_data_content('Tx_Power_dBm_After_ping', lower_than = interface_warning_data.get('Tx_Power_Warning_range_dBm_2'), warning = True)
+
+                        check_interface_data_content('CRC_Difference', exact_value_yes = '0', warning = True)
+                        check_interface_data_content('Overrun_Difference', exact_value_yes = '0', warning = True)
+                        check_interface_data_content('Lost_Difference', exact_value_yes = '0', warning = True)
+                        check_interface_data_content('Overflow_Difference', exact_value_yes = '0', warning = True)
+                        check_interface_data_content('Underrun_Difference', exact_value_yes = '0', warning = True)
 
                 ### def INTERFACE RESULTS #####################################
                 interface_result = 'WARNING'
