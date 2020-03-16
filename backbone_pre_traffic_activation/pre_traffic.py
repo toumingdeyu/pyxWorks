@@ -2616,6 +2616,8 @@ authentication {
     test_mode = None
     table_test_extension = str()
     ping_counts = '0'
+    OTI_LOCAL_AS = '5511'
+    IMN_LOCAL_AS = '2300'
 
     ### GCI_CLI INIT ##########################################################
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = None, css_style = CSS_STYLE)
@@ -3189,21 +3191,27 @@ authentication {
                 if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
                     try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv4 address ')[1].split()[0]
                     except: interface_data['ipv4_addr_loc'] = str()
-                    try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
-                    except: interface_data['ipv6_addr_loc'] = str()
+
+                    if LOCAL_AS_NUMBER != IMN_LOCAL_AS:
+                        try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
+                        except: interface_data['ipv6_addr_loc'] = str()
+
                     interface_data['dampening'] = True if 'dampening' in collect_if_config_rcmd_outputs[0] else str()
                     try: interface_data['flow ipv4 monitor'] = collect_if_config_rcmd_outputs[0].split('flow ipv4 monitor ')[1].split()[0]
                     except: interface_data['flow ipv4 monitor'] = str()
-                    try: interface_data['flow ipv6 monitor'] = collect_if_config_rcmd_outputs[0].split('flow ipv4 monitor ')[1].split()[0]
-                    except: interface_data['flow ipv6 monitor'] = str()
+
+                    if LOCAL_AS_NUMBER != IMN_LOCAL_AS:
+                        try: interface_data['flow ipv6 monitor'] = collect_if_config_rcmd_outputs[0].split('flow ipv4 monitor ')[1].split()[0]
+                        except: interface_data['flow ipv6 monitor'] = str()
 
                     interface_data['mpls ldp sync'] = True if 'mpls ldp sync' in collect_if_config_rcmd_outputs[1] else str()
 
                     try: interface_data['ipv4_metric'] = collect_if_config_rcmd_outputs[1].split('address-family ipv4 unicast')[1].splitlines()[1].split('metric ')[1].split()[0]
                     except: interface_data['ipv4_metric'] = str()
 
-                    try: interface_data['ipv6_metric'] = collect_if_config_rcmd_outputs[1].split('address-family ipv6 unicast')[1].splitlines()[1].split('metric ')[1].split()[0]
-                    except: interface_data['ipv6_metric'] = str()
+                    if LOCAL_AS_NUMBER != IMN_LOCAL_AS:
+                        try: interface_data['ipv6_metric'] = collect_if_config_rcmd_outputs[1].split('address-family ipv6 unicast')[1].splitlines()[1].split('metric ')[1].split()[0]
+                        except: interface_data['ipv6_metric'] = str()
 
                     try: interface_data['run mpls traffic-eng interface'] = collect_if_config_rcmd_outputs[2].split('interface')[1].split()[0]
                     except: interface_data['run mpls traffic-eng interface'] = str()
@@ -3273,8 +3281,11 @@ authentication {
                 elif RCMD.router_type == 'juniper':
                     try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet address ')[1].split()[0].split('/')[0].replace(';','')
                     except: interface_data['ipv4_addr_loc'] = str()
-                    try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet6 address ')[1].split()[0].split('/')[0].replace(';','')
-                    except: interface_data['ipv6_addr_loc'] = str()
+
+                    if LOCAL_AS_NUMBER != IMN_LOCAL_AS:
+                        try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet6 address ')[1].split()[0].split('/')[0].replace(';','')
+                        except: interface_data['ipv6_addr_loc'] = str()
+
                     try: interface_data['scheduler-map'] = collect_if_config_rcmd_outputs[10].split('scheduler-map ')[1].split()[0].split('/')[0].replace(';','')
                     except: interface_data['scheduler-map'] = str()
 
@@ -3386,8 +3397,10 @@ authentication {
                 elif RCMD.router_type == 'huawei':
                     try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[0]
                     except: interface_data['ipv4_addr_loc'] = str()
-                    try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
-                    except: interface_data['ipv6_addr_loc'] = str()
+
+                    if LOCAL_AS_NUMBER != IMN_LOCAL_AS:
+                        try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
+                        except: interface_data['ipv6_addr_loc'] = str()
 
                     ### BANDWITH IS OPTIONABLE --> AVOID FROM VOID CHECK ######
                     if not interface_data.get('bandwidth'):
@@ -3397,8 +3410,10 @@ authentication {
 
                     try: interface_data['isis cost'] = collect_if_config_rcmd_outputs[1].split('isis cost ')[1].split()[0]
                     except: interface_data['isis cost'] = str()
-                    try: interface_data['isis ipv6 cost'] = collect_if_config_rcmd_outputs[1].split('isis ipv6 cost ')[1].split()[0]
-                    except: interface_data['isis ipv6 cost'] = str()
+
+                    if LOCAL_AS_NUMBER != IMN_LOCAL_AS:
+                        try: interface_data['isis ipv6 cost'] = collect_if_config_rcmd_outputs[1].split('isis ipv6 cost ')[1].split()[0]
+                        except: interface_data['isis ipv6 cost'] = str()
 
                     interface_data['mpls te'] = True if 'mpls te' in collect_if_config_rcmd_outputs[2] else str()
                     interface_data['mpls ldp'] = True if 'mpls ldp' in collect_if_config_rcmd_outputs[3] else str()
@@ -3410,8 +3425,9 @@ authentication {
                     try: interface_data['isis interface IPV4.State'] = collect_if_config_rcmd_outputs[6].split(' Type')[1].split(' DIS')[1].split()[2]
                     except: interface_data['isis interface IPV4.State'] = str()
 
-                    try: interface_data['isis interface IPV6.State'] = collect_if_config_rcmd_outputs[6].split(' Type')[1].split(' DIS')[1].split()[3]
-                    except: interface_data['isis interface IPV6.State'] = str()
+                    if LOCAL_AS_NUMBER != IMN_LOCAL_AS:
+                        try: interface_data['isis interface IPV6.State'] = collect_if_config_rcmd_outputs[6].split(' Type')[1].split(' DIS')[1].split()[3]
+                        except: interface_data['isis interface IPV6.State'] = str()
 
                     find_time = re.findall(r'[0-9]{2,4}\:[0-9]{2}\:[0-9]{2}', collect_if_config_rcmd_outputs[7].strip())
                     if len(find_time) == 1: interface_data['Up time'] = find_time[0]
@@ -3524,14 +3540,15 @@ authentication {
                         if str(addr) == str(interface_data.get('ipv4_addr_loc')): pass
                         else: interface_data['ipv4_addr_rem_calculated'] = str(addr)
 
-                if interface_data.get('ipv6_addr_loc'):
-                    interface = ipaddress.IPv6Interface(u'%s/127'% (interface_data.get('ipv6_addr_loc')))
-                    ipv6_network = interface.network
-                    for addr in ipaddress.IPv6Network(ipv6_network):
-                        if str(addr) == str(interface_data.get('ipv6_addr_loc')): pass
-                        else:
-                            interface_data['ipv6_addr_rem_calculated'] = str(addr)
-                            interface_data['ipv6_addr_rem'] = str(addr)
+                if LOCAL_AS_NUMBER != IMN_LOCAL_AS:
+                    if interface_data.get('ipv6_addr_loc'):
+                        interface = ipaddress.IPv6Interface(u'%s/127'% (interface_data.get('ipv6_addr_loc')))
+                        ipv6_network = interface.network
+                        for addr in ipaddress.IPv6Network(ipv6_network):
+                            if str(addr) == str(interface_data.get('ipv6_addr_loc')): pass
+                            else:
+                                interface_data['ipv6_addr_rem_calculated'] = str(addr)
+                                interface_data['ipv6_addr_rem'] = str(addr)
 
 
                 ### MTU #######################################################
@@ -3586,59 +3603,61 @@ authentication {
                         except: interface_warning_data['ping_v4_mtu_percent_success'] = str()
 
                 ### def PINGv6 COMMAND LIST ###################################
-                if interface_data.get('ipv6_addr_rem',str()):
-                    ping6_config_rcmds = {
-                        'cisco_ios':[
-                            'ping ipv6 %s' % (interface_data.get('ipv6_addr_rem',str())),
-                            'ping ipv6 %s size %s' % (interface_data.get('ipv6_addr_rem',str()), str(mtu_size))
-                        ],
-                        'cisco_xr':[
-                            'ping ipv6 %s' % (interface_data.get('ipv6_addr_rem',str())),
-                            'ping ipv6 %s size %s' % (interface_data.get('ipv6_addr_rem',str()), str(mtu_size - 14))
-                        ],
+                if LOCAL_AS_NUMBER != IMN_LOCAL_AS:
+                    if interface_data.get('ipv6_addr_rem',str()):
+                        ping6_config_rcmds = {
+                            'cisco_ios':[
+                                'ping ipv6 %s' % (interface_data.get('ipv6_addr_rem',str())),
+                                'ping ipv6 %s size %s' % (interface_data.get('ipv6_addr_rem',str()), str(mtu_size))
+                            ],
+                            'cisco_xr':[
+                                'ping ipv6 %s' % (interface_data.get('ipv6_addr_rem',str())),
+                                'ping ipv6 %s size %s' % (interface_data.get('ipv6_addr_rem',str()), str(mtu_size - 14))
+                            ],
 
-                        'juniper': [
-                            'ping inet6 %s count 5' % (interface_data.get('ipv6_addr_rem',str())),
-                            'ping inet6 %s count 5 size %s' % (interface_data.get('ipv6_addr_rem',str()), str(mtu_size - 42)),
-                        ],
+                            'juniper': [
+                                'ping inet6 %s count 5' % (interface_data.get('ipv6_addr_rem',str())),
+                                'ping inet6 %s count 5 size %s' % (interface_data.get('ipv6_addr_rem',str()), str(mtu_size - 42)),
+                            ],
 
-                        'huawei': [
-                            'ping ipv6 %s' % (interface_data.get('ipv6_addr_rem',str())),
-                            'ping ipv6 -s %s %s' % (str(mtu_size), interface_data.get('ipv6_addr_rem',str())),
-                        ]
-                    }
+                            'huawei': [
+                                'ping ipv6 %s' % (interface_data.get('ipv6_addr_rem',str())),
+                                'ping ipv6 -s %s %s' % (str(mtu_size), interface_data.get('ipv6_addr_rem',str())),
+                            ]
+                        }
 
-                    ping6_config_rcmds_outputs = RCMD.run_commands(ping6_config_rcmds, \
-                        autoconfirm_mode = True, \
-                        printall = printall)
+                        ping6_config_rcmds_outputs = RCMD.run_commands(ping6_config_rcmds, \
+                            autoconfirm_mode = True, \
+                            printall = printall)
 
-                    if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
-                        try: interface_data['ping_v6_percent_success'] = ping4_config_rcmds_outputs[0].split('Success rate is ')[1].splitlines()[0].split('percent')[0].strip()
-                        except: interface_data['ping_v6_percent_success'] = str()
-                        try: interface_warning_data['ping_v6_mtu_percent_success'] = ping4_config_rcmds_outputs[1].split('Success rate is ')[1].splitlines()[0].split('percent')[0].strip()
-                        except: interface_warning_data['ping_v6_mtu_percent_success'] = str()
+                        if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
+                            try: interface_data['ping_v6_percent_success'] = ping4_config_rcmds_outputs[0].split('Success rate is ')[1].splitlines()[0].split('percent')[0].strip()
+                            except: interface_data['ping_v6_percent_success'] = str()
+                            try: interface_warning_data['ping_v6_mtu_percent_success'] = ping4_config_rcmds_outputs[1].split('Success rate is ')[1].splitlines()[0].split('percent')[0].strip()
+                            except: interface_warning_data['ping_v6_mtu_percent_success'] = str()
 
-                    elif RCMD.router_type == 'juniper':
-                        try: interface_data['ping_v6_percent_success'] = str(100 - float(ping4_config_rcmds_outputs[0].split('received,')[1].splitlines()[0].split('%')[0].strip()))
-                        except: interface_data['ping_v6_percent_success'] = str()
-                        try: interface_warning_data['ping_v6_mtu_percent_success'] = str(100 - float(ping4_config_rcmds_outputs[1].split('received,')[1].splitlines()[0].split('%')[0].strip()))
-                        except: interface_warning_data['ping_v6_mtu_percent_success'] = str()
+                        elif RCMD.router_type == 'juniper':
+                            try: interface_data['ping_v6_percent_success'] = str(100 - float(ping4_config_rcmds_outputs[0].split('received,')[1].splitlines()[0].split('%')[0].strip()))
+                            except: interface_data['ping_v6_percent_success'] = str()
+                            try: interface_warning_data['ping_v6_mtu_percent_success'] = str(100 - float(ping4_config_rcmds_outputs[1].split('received,')[1].splitlines()[0].split('%')[0].strip()))
+                            except: interface_warning_data['ping_v6_mtu_percent_success'] = str()
 
-                    elif RCMD.router_type == 'huawei':
-                        try: interface_data['ping_v6_percent_success'] = str(100 - float(ping4_config_rcmds_outputs[0].split('% packet loss')[0].splitlines()[-1].strip()))
-                        except: interface_data['ping_v6_percent_success'] = str()
-                        try: interface_warning_data['ping_v6_mtu_percent_success'] = str(100 - float(ping4_config_rcmds_outputs[1].split('% packet loss')[0].splitlines()[-1].strip()))
-                        except: interface_warning_data['ping_v6_mtu_percent_success'] = str()
-
+                        elif RCMD.router_type == 'huawei':
+                            try: interface_data['ping_v6_percent_success'] = str(100 - float(ping4_config_rcmds_outputs[0].split('% packet loss')[0].splitlines()[-1].strip()))
+                            except: interface_data['ping_v6_percent_success'] = str()
+                            try: interface_warning_data['ping_v6_mtu_percent_success'] = str(100 - float(ping4_config_rcmds_outputs[1].split('% packet loss')[0].splitlines()[-1].strip()))
+                            except: interface_warning_data['ping_v6_mtu_percent_success'] = str()
 
 
                 ### "THOUSANDS" PINGs TEST ####################################
                 if ping_counts and int(ping_counts) > 0:
 
                     interface_data['ping_v4_percent_success_%spings' % (ping_counts)] = str()
-                    interface_data['ping_v6_percent_success_%spings' % (ping_counts)] = str()
                     interface_warning_data['ping_v4_mtu_percent_success_%spings' % (ping_counts)] = str()
-                    interface_warning_data['ping_v6_mtu_percent_success_%spings' % (ping_counts)] = str()
+
+                    if LOCAL_AS_NUMBER != IMN_LOCAL_AS:
+                        interface_data['ping_v6_percent_success_%spings' % (ping_counts)] = str()
+                        interface_warning_data['ping_v6_mtu_percent_success_%spings' % (ping_counts)] = str()
 
                     if '100' in interface_data.get('ping_v4_percent_success',str()):
                         ### def "THOUSANDS" PINGv4 COMMAND LIST ###################
@@ -3716,80 +3735,81 @@ authentication {
                                 try: interface_warning_data['ping_v4_mtu_percent_success_%spings' % (ping_counts)] = str(100 - float(ping4_config_rcmds_outputs[0].split('% packet loss')[0].splitlines()[-1].strip()))
                                 except: interface_warning_data['ping_v4_mtu_percent_success_%spings' % (ping_counts)] = str()
 
-                    if '100' in interface_data.get('ping_v6_percent_success',str()):
-                        ### def "THOUSANDS" PINGv6 COMMAND LIST ###################
-                        if interface_data.get('ipv6_addr_rem',str()):
-                            ping6_config_rcmds = {
-                                'cisco_ios':[
-                                    'ping ipv6 %s count %s' % (interface_data.get('ipv6_addr_rem',str()), ping_counts),
-                                ],
+                    if LOCAL_AS_NUMBER != IMN_LOCAL_AS:
+                        if '100' in interface_data.get('ping_v6_percent_success',str()):
+                            ### def "THOUSANDS" PINGv6 COMMAND LIST ###################
+                            if interface_data.get('ipv6_addr_rem',str()):
+                                ping6_config_rcmds = {
+                                    'cisco_ios':[
+                                        'ping ipv6 %s count %s' % (interface_data.get('ipv6_addr_rem',str()), ping_counts),
+                                    ],
 
-                                'cisco_xr':[
-                                    'ping ipv6 %s count %s' % (interface_data.get('ipv6_addr_rem',str()), ping_counts),
-                                ],
+                                    'cisco_xr':[
+                                        'ping ipv6 %s count %s' % (interface_data.get('ipv6_addr_rem',str()), ping_counts),
+                                    ],
 
-                                'juniper': [
-                                    'ping inet6 %s count %s' % (interface_data.get('ipv6_addr_rem',str()), ping_counts),
-                                ],
+                                    'juniper': [
+                                        'ping inet6 %s count %s' % (interface_data.get('ipv6_addr_rem',str()), ping_counts),
+                                    ],
 
-                                'huawei': [
-                                    'ping ipv6 -c %s %s' % (ping_counts, interface_data.get('ipv6_addr_rem',str())),
-                                ]
-                            }
+                                    'huawei': [
+                                        'ping ipv6 -c %s %s' % (ping_counts, interface_data.get('ipv6_addr_rem',str())),
+                                    ]
+                                }
 
-                            ping6_config_rcmds_outputs = RCMD.run_commands(ping6_config_rcmds, \
-                                autoconfirm_mode = True, \
-                                long_lasting_mode = True, \
-                                printall = printall)
+                                ping6_config_rcmds_outputs = RCMD.run_commands(ping6_config_rcmds, \
+                                    autoconfirm_mode = True, \
+                                    long_lasting_mode = True, \
+                                    printall = printall)
 
-                            if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
-                                try: interface_data['ping_v6_percent_success_%spings' % (ping_counts)] = ping4_config_rcmds_outputs[0].split('Success rate is ')[1].splitlines()[0].split('percent')[0].strip()
-                                except: interface_data['ping_v6_percent_success_%spings' % (ping_counts)] = str()
+                                if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
+                                    try: interface_data['ping_v6_percent_success_%spings' % (ping_counts)] = ping4_config_rcmds_outputs[0].split('Success rate is ')[1].splitlines()[0].split('percent')[0].strip()
+                                    except: interface_data['ping_v6_percent_success_%spings' % (ping_counts)] = str()
 
-                            elif RCMD.router_type == 'juniper':
-                                try: interface_data['ping_v6_percent_success_%spings' % (ping_counts)] = str(100 - float(ping4_config_rcmds_outputs[0].split('received,')[1].splitlines()[0].split('%')[0].strip()))
-                                except: interface_data['ping_v6_percent_success_%spings' % (ping_counts)] = str()
+                                elif RCMD.router_type == 'juniper':
+                                    try: interface_data['ping_v6_percent_success_%spings' % (ping_counts)] = str(100 - float(ping4_config_rcmds_outputs[0].split('received,')[1].splitlines()[0].split('%')[0].strip()))
+                                    except: interface_data['ping_v6_percent_success_%spings' % (ping_counts)] = str()
 
-                            elif RCMD.router_type == 'huawei':
-                                try: interface_data['ping_v6_percent_success_%spings' % (ping_counts)] = str(100 - float(ping4_config_rcmds_outputs[0].split('% packet loss')[0].splitlines()[-1].strip()))
-                                except: interface_data['ping_v6_percent_success_%spings' % (ping_counts)] = str()
+                                elif RCMD.router_type == 'huawei':
+                                    try: interface_data['ping_v6_percent_success_%spings' % (ping_counts)] = str(100 - float(ping4_config_rcmds_outputs[0].split('% packet loss')[0].splitlines()[-1].strip()))
+                                    except: interface_data['ping_v6_percent_success_%spings' % (ping_counts)] = str()
 
-                    if '100' in interface_warning_data.get('ping_v6_mtu_percent_success',str()):
-                        ### def "THOUSANDS" PINGv6 COMMAND LIST ###################
-                        if interface_data.get('ipv6_addr_rem',str()):
-                            ping6_config_rcmds = {
-                                'cisco_ios':[
-                                    'ping ipv6 %s size %s count %s' % (interface_data.get('ipv6_addr_rem',str()), str(mtu_size), ping_counts)
-                                ],
-                                'cisco_xr':[
-                                    'ping ipv6 %s size %s' % (interface_data.get('ipv6_addr_rem',str()), str(mtu_size - 14))
-                                ],
+                        if '100' in interface_warning_data.get('ping_v6_mtu_percent_success',str()):
+                            ### def "THOUSANDS" PINGv6 COMMAND LIST ###################
+                            if interface_data.get('ipv6_addr_rem',str()):
+                                ping6_config_rcmds = {
+                                    'cisco_ios':[
+                                        'ping ipv6 %s size %s count %s' % (interface_data.get('ipv6_addr_rem',str()), str(mtu_size), ping_counts)
+                                    ],
+                                    'cisco_xr':[
+                                        'ping ipv6 %s size %s' % (interface_data.get('ipv6_addr_rem',str()), str(mtu_size - 14))
+                                    ],
 
-                                'juniper': [
-                                    'ping inet6 %s count %s size %s' % (interface_data.get('ipv6_addr_rem',str()), ping_counts, str(mtu_size - 42)),
-                                ],
+                                    'juniper': [
+                                        'ping inet6 %s count %s size %s' % (interface_data.get('ipv6_addr_rem',str()), ping_counts, str(mtu_size - 42)),
+                                    ],
 
-                                'huawei': [
-                                    'ping ipv6 -s %s -c %s %s' % (str(mtu_size), ping_counts, interface_data.get('ipv6_addr_rem',str())),
-                                ]
-                            }
+                                    'huawei': [
+                                        'ping ipv6 -s %s -c %s %s' % (str(mtu_size), ping_counts, interface_data.get('ipv6_addr_rem',str())),
+                                    ]
+                                }
 
-                            ping6_config_rcmds_outputs = RCMD.run_commands(ping6_config_rcmds, \
-                                autoconfirm_mode = True, \
-                                long_lasting_mode = True, \
-                                printall = printall)
+                                ping6_config_rcmds_outputs = RCMD.run_commands(ping6_config_rcmds, \
+                                    autoconfirm_mode = True, \
+                                    long_lasting_mode = True, \
+                                    printall = printall)
 
-                            if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
-                                try: interface_warning_data['ping_v6_mtu_percent_success_%spings' % (ping_counts)] = ping4_config_rcmds_outputs[0].split('Success rate is ')[1].splitlines()[0].split('percent')[0].strip()
-                                except: interface_warning_data['ping_v6_mtu_percent_success_%spings' % (ping_counts)] = str()
+                                if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
+                                    try: interface_warning_data['ping_v6_mtu_percent_success_%spings' % (ping_counts)] = ping4_config_rcmds_outputs[0].split('Success rate is ')[1].splitlines()[0].split('percent')[0].strip()
+                                    except: interface_warning_data['ping_v6_mtu_percent_success_%spings' % (ping_counts)] = str()
 
-                            elif RCMD.router_type == 'juniper':
-                                try: interface_warning_data['ping_v6_mtu_percent_success_%spings' % (ping_counts)] = str(100 - float(ping4_config_rcmds_outputs[0].split('received,')[1].splitlines()[0].split('%')[0].strip()))
-                                except: interface_warning_data['ping_v6_mtu_percent_success_%spings' % (ping_counts)] = str()
+                                elif RCMD.router_type == 'juniper':
+                                    try: interface_warning_data['ping_v6_mtu_percent_success_%spings' % (ping_counts)] = str(100 - float(ping4_config_rcmds_outputs[0].split('received,')[1].splitlines()[0].split('%')[0].strip()))
+                                    except: interface_warning_data['ping_v6_mtu_percent_success_%spings' % (ping_counts)] = str()
 
-                            elif RCMD.router_type == 'huawei':
-                                try: interface_warning_data['ping_v6_mtu_percent_success_%spings' % (ping_counts)] = str(100 - float(ping4_config_rcmds_outputs[0].split('% packet loss')[0].splitlines()[-1].strip()))
-                                except: interface_warning_data['ping_v6_mtu_percent_success_%spings' % (ping_counts)] = str()
+                                elif RCMD.router_type == 'huawei':
+                                    try: interface_warning_data['ping_v6_mtu_percent_success_%spings' % (ping_counts)] = str(100 - float(ping4_config_rcmds_outputs[0].split('% packet loss')[0].splitlines()[-1].strip()))
+                                    except: interface_warning_data['ping_v6_mtu_percent_success_%spings' % (ping_counts)] = str()
 
 
 
@@ -3977,8 +3997,9 @@ authentication {
                             CGI_CLI.uprint('Ipv4 L2 metric missing on Interface %s = NOT OK' % (interface_id), color = 'red')
                     elif RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr' and not interface_data.get('ipv6_metric') \
                         or RCMD.router_type == 'huawei' and not interface_data.get('isis ipv6 cost'):
-                            check_interface_result_ok = False
-                            CGI_CLI.uprint('Ipv6 L2 metric missing on Interface %s = NOT OK' % (interface_id), color = 'red')
+                            if LOCAL_AS_NUMBER != IMN_LOCAL_AS:
+                                check_interface_result_ok = False
+                                CGI_CLI.uprint('Ipv6 L2 metric missing on Interface %s = NOT OK' % (interface_id), color = 'red')
                     else:
                         for parralel_cmd_output, parallel_interface in zip(parrallel_interfaces_outputs, interface_data.get('parallel_interfaces',[])):
                             L2_metric, ipv6_L2_metric = None, None
@@ -3997,14 +4018,15 @@ authentication {
                                             % (L2_metric, parallel_interface, interface_data.get('ipv4_metric'), interface_id), color = 'red')
                                     else: CGI_CLI.logtofile("Ipv4 L2 Metric (%s) check on Interface %s = OK\n" % (L2_metric, parallel_interface))
 
-                                if interface_data.get('ipv6_metric'):
-                                    if ipv6_L2_metric == '99999':
-                                        CGI_CLI.logtofile("Ipv6 L2 Metric (99999) check on Interface %s = IGNORE\n" % (parallel_interface))
-                                    elif interface_data.get('ipv6_metric') != L2_metric:
-                                        check_interface_result_ok = False
-                                        CGI_CLI.uprint('Ipv6 L2 Metric (%s) on Interface %s is different from metric (%s) on Interface %s = NOT OK' \
-                                            % (ipv6_L2_metric, parallel_interface, interface_data.get('ipv6_metric'), interface_id), color = 'red')
-                                    else: CGI_CLI.logtofile("Ipv6 L2 Metric (%s) check on Interface %s = OK\n" % (ipv6_L2_metric, parallel_interface))
+                                if LOCAL_AS_NUMBER != IMN_LOCAL_AS:
+                                    if interface_data.get('ipv6_metric'):
+                                        if ipv6_L2_metric == '99999':
+                                            CGI_CLI.logtofile("Ipv6 L2 Metric (99999) check on Interface %s = IGNORE\n" % (parallel_interface))
+                                        elif interface_data.get('ipv6_metric') != L2_metric:
+                                            check_interface_result_ok = False
+                                            CGI_CLI.uprint('Ipv6 L2 Metric (%s) on Interface %s is different from metric (%s) on Interface %s = NOT OK' \
+                                                % (ipv6_L2_metric, parallel_interface, interface_data.get('ipv6_metric'), interface_id), color = 'red')
+                                        else: CGI_CLI.logtofile("Ipv6 L2 Metric (%s) check on Interface %s = OK\n" % (ipv6_L2_metric, parallel_interface))
 
                             elif RCMD.router_type == 'juniper':
                                 try: L2_metric = parralel_cmd_output.upper().split('L2 METRIC')[1].split(parallel_interface.upper())[1].splitlines()[0].split()[-1].split('/')[1]
@@ -4034,14 +4056,15 @@ authentication {
                                             % (L2_metric, parallel_interface, interface_data.get('isis cost'), interface_id), color = 'red')
                                     else: CGI_CLI.logtofile("Ipv4 L2 Metric (%s) check on Interface %s = OK\n" % (L2_metric, parallel_interface))
 
-                                if interface_data.get('isis ipv6 cost'):
-                                    if ipv6_L2_metric == '99999':
-                                        CGI_CLI.logtofile("Ipv4 L2 Metric (99999) check on Interface %s = IGNORE\n" % (parallel_interface))
-                                    elif interface_data.get('isis ipv6 cost') != L2_metric:
-                                        check_interface_result_ok = False
-                                        CGI_CLI.uprint('Ipv6 L2 Metric (%s) on Interface %s is different from metric (%s) on Interface %s = NOT OK' \
-                                            % (ipv6_L2_metric, parallel_interface, interface_data.get('isis ipv6 cost'), interface_id), color = 'red')
-                                    else: CGI_CLI.logtofile("Ipv6 L2 Metric (%s) check on Interface %s = OK\n" % (ipv6_L2_metric, parallel_interface))
+                                if LOCAL_AS_NUMBER != IMN_LOCAL_AS:
+                                    if interface_data.get('isis ipv6 cost'):
+                                        if ipv6_L2_metric == '99999':
+                                            CGI_CLI.logtofile("Ipv4 L2 Metric (99999) check on Interface %s = IGNORE\n" % (parallel_interface))
+                                        elif interface_data.get('isis ipv6 cost') != L2_metric:
+                                            check_interface_result_ok = False
+                                            CGI_CLI.uprint('Ipv6 L2 Metric (%s) on Interface %s is different from metric (%s) on Interface %s = NOT OK' \
+                                                % (ipv6_L2_metric, parallel_interface, interface_data.get('isis ipv6 cost'), interface_id), color = 'red')
+                                        else: CGI_CLI.logtofile("Ipv6 L2 Metric (%s) check on Interface %s = OK\n" % (ipv6_L2_metric, parallel_interface))
 
 
                     ### TRAFFIC CHECK #############################################
@@ -4075,25 +4098,34 @@ authentication {
                 ### def CONTENT ELEMENT CHECK #################################
                 check_interface_data_content('ping_v4_percent_success', '100')
                 check_interface_data_content('ping_v4_mtu_percent_success', '100', warning = True)
-                check_interface_data_content('ping_v6_percent_success', '100')
-                check_interface_data_content('ping_v6_mtu_percent_success', '100', warning = True)
+
+                if LOCAL_AS_NUMBER != IMN_LOCAL_AS:
+                    check_interface_data_content('ping_v6_percent_success', '100')
+                    check_interface_data_content('ping_v6_mtu_percent_success', '100', warning = True)
+
                 check_interface_data_content('ipv4_addr_rem_calculated', interface_data.get('ipv4_addr_rem'))
 
                 if ping_counts and int(ping_counts) > 0:
                     check_interface_data_content('ping_v4_percent_success_%spings' % (ping_counts), '100')
                     check_interface_data_content('ping_v6_percent_success_%spings' % (ping_counts), '100')
-                    check_interface_data_content('ping_v4_mtu_percent_success_%spings' % (ping_counts), '100', warning = True)
-                    check_interface_data_content('ping_v6_mtu_percent_success_%spings' % (ping_counts), '100', warning = True)
+
+                    if LOCAL_AS_NUMBER != IMN_LOCAL_AS:
+                        check_interface_data_content('ping_v4_mtu_percent_success_%spings' % (ping_counts), '100', warning = True)
+                        check_interface_data_content('ping_v6_mtu_percent_success_%spings' % (ping_counts), '100', warning = True)
 
                 if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
                     check_interface_data_content('line protocol is', 'UP')
 
                     if precheck_mode:
                         check_interface_data_content('ipv4_metric', '99999')
-                        check_interface_data_content('ipv6_metric', '99999')
+
+                        if LOCAL_AS_NUMBER != IMN_LOCAL_AS:
+                            check_interface_data_content('ipv6_metric', '99999')
                     else:
                         check_interface_data_content('ipv4_metric', None, '99999')
-                        check_interface_data_content('ipv6_metric', None, '99999')
+
+                        if LOCAL_AS_NUMBER != IMN_LOCAL_AS:
+                            check_interface_data_content('ipv6_metric', None, '99999')
 
                     if ping_counts and int(ping_counts) > 0:
                         check_interface_data_content('input_errors_Difference', exact_value_yes = '0', warning = True)
@@ -4132,14 +4164,20 @@ authentication {
                     check_interface_data_content('isis ldp-sync', 'Achieved')
                     check_interface_data_content('Line protocol current state', 'UP')
                     check_interface_data_content('isis interface IPV4.State', 'UP')
-                    check_interface_data_content('isis interface IPV6.State', 'UP')
+
+                    if LOCAL_AS_NUMBER != IMN_LOCAL_AS:
+                        check_interface_data_content('isis interface IPV6.State', 'UP')
 
                     if precheck_mode:
                         check_interface_data_content('isis cost', '99999')
-                        check_interface_data_content('isis ipv6 cost', '99999')
+
+                        if LOCAL_AS_NUMBER != IMN_LOCAL_AS:
+                            check_interface_data_content('isis ipv6 cost', '99999')
                     else:
                         check_interface_data_content('isis cost', None, '99999')
-                        check_interface_data_content('isis ipv6 cost', None, '99999')
+
+                        if LOCAL_AS_NUMBER != IMN_LOCAL_AS:
+                            check_interface_data_content('isis ipv6 cost', None, '99999')
 
                     check_interface_data_content('Local_fault', 'NORMAL', warning = True)
                     check_interface_data_content('Remote_fault', 'NORMAL', warning = True)
