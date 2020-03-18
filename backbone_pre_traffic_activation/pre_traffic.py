@@ -2510,6 +2510,7 @@ authentication {
     ping_counts = '0'
     OTI_LOCAL_AS = '5511'
     IMN_LOCAL_AS = '2300'
+    LOCAL_AS_NUMBER = OTI_LOCAL_AS
     chunked_mode = None
 
     ### GCI_CLI INIT ##########################################################
