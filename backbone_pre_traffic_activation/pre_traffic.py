@@ -3010,451 +3010,511 @@ authentication {
                         try: LOCAL_AS_NUMBER = rcmd_outputs[1].split("Local AS number :")[1].splitlines()[0].strip()
                         except: pass
 
-                ### def COLLECT COMMAND LIST ##################################
-                collect_if_data_rcmds = {
-                    'cisco_ios':[
-                        'show run interface %s' % (interface_id),
-                        'show run router isis PAII interface %s ' % (interface_id),
-                        'show run mpls traffic-eng interface %s' % (interface_id),
-                        'show run mpls ldp interface %s' % (interface_id),
-                        'show run rsvp interface %s' % (interface_id),
 
-                        'show interface %s' % (interface_id),
-                        'show isis neighbors %s' % (interface_id),
-                        'show mpls ldp neighbor %s' % (interface_id),
-                        'show mpls ldp igp sync interface %s' % (interface_id),
-                        'show rsvp interface %s' % (interface_id),
-
-                        'show interfaces %s' % (undotted_interface_id),
-                        'show interfaces description'
-                    ],
-
-                    'cisco_xr':[
-                        'show run interface %s' % (interface_id),
-                        'show run router isis PAII interface %s ' % (interface_id),
-                        'show run mpls traffic-eng interface %s' % (interface_id),
-                        'show run mpls ldp interface %s' % (interface_id),
-                        'show run rsvp interface %s' % (interface_id),
-
-                        'show interface %s' % (interface_id),
-                        'show isis neighbors %s' % (interface_id),
-                        'show mpls ldp neighbor %s' % (interface_id),
-                        'show mpls ldp igp sync interface %s' % (interface_id),
-                        'show rsvp interface %s' % (interface_id),
-
-                        'show interfaces %s' % (undotted_interface_id),
-                        'show interfaces description'
-                    ],
-
-                    'juniper': [
-                        'show configuration interfaces %s | display set' % (interface_id),
-                        'show isis interface %s' % (interface_id),
-                        'show configuration protocols mpls',
-                        'show configuration protocols ldp | match %s' % (interface_id),
-                        'show configuration protocols rsvp | match %s' % (interface_id),
-
-                        'show interfaces brief %s' % (undotted_interface_id),
-                        'show isis adjacency | match %s' % (interface_id),
-                        'show ldp neighbor | match %s' % (interface_id),
-                        'show isis interface %s extensive' % (interface_id),
-                        'show rsvp interface %s' % (interface_id),
-
-                        'show configuration class-of-service interfaces %s | display set'  % (undotted_interface_id),
-                        'show configuration groups mtu-default | display set',
-                        'show configuration protocols isis interface %s' % (interface_id),
-                        'show interfaces %s' % (undotted_interface_id),
-                        'show interfaces descriptions'
-                    ],
-
-                    'huawei': [
-                        'display current-configuration interface %s' % (interface_id),
-                        'display current-configuration interface %s | i isis' % (interface_id),
-                        'display current-configuration interface %s | i  mpls te' % (interface_id),
-                        'display current-configuration interface %s | i mpls ldp' % (interface_id),
-                        'display current-configuration interface %s | i rsvp' % (interface_id),
-
-                        'display interface %s' % (interface_id),
-                        'display isis interface %s' % (interface_id),
-                        'display mpls ldp adjacency interface %s' % (interface_id),
-                        'display isis ldp-sync interface | i %s' % (interface_id.upper().replace('GI','GE')),
-                        'display mpls rsvp-te interface %s' % (interface_id),
-
-                        'display interface %s' % (undotted_interface_id),
-                        'display interface description'
-                    ]
-                }
-
-                collect_if_config_rcmd_outputs = RCMD.run_commands(collect_if_data_rcmds, \
-                    autoconfirm_mode = True, \
-                    printall = printall)
-
-
-                ### def PROCEED COMMON 1st CMDS ###############################
-                try: interface_data['mtu'] = collect_if_config_rcmd_outputs[0].split('mtu ')[1].splitlines()[0].strip()
-                except: interface_data['mtu'] = str()
-
-                try: interface_data['bandwidth'] = collect_if_config_rcmd_outputs[0].\
-                         split('bandwidth ')[1].splitlines()[0].strip().replace(';','')
-                except: interface_data['bandwidth'] = str()
-
-                try: interface_data['fib_number(s)'] = ','.join(get_fiblist(collect_if_config_rcmd_outputs[0].split('description')[1].splitlines()[0]))
-                except: interface_data['fib_number'] = str()
-
-                try: interface_data['name_of_remote_device'] = collect_if_config_rcmd_outputs[0].upper().split('DESCRIPTION')[1].splitlines()[0].split('FROM')[0].strip().replace('"','')
-                except: interface_data['name_of_remote_device'] = str()
-
-                if 'PE' in interface_data.get('name_of_remote_device').upper() or 'PE' in device.upper():
-                    IMN_INTERFACE = True
-
-                try: interface_data['ipv4_addr_rem'] = collect_if_config_rcmd_outputs[0].split('description')[1].splitlines()[0].split('@')[1].split()[0]
-                except: interface_data['ipv4_addr_rem'] = str()
-
-                if not precheck_mode:
-                    interface_warning_data['rxload_percent'] = '-'
-                    interface_warning_data['txload_percent'] = '-'
-
-                ### def CISCO XR+XE 1st CMDS ##################################
-                if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
-                    try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv4 address ')[1].split()[0]
-                    except: interface_data['ipv4_addr_loc'] = str()
-
-                    if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
-                        try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
-                        except: interface_data['ipv6_addr_loc'] = str()
-
-                    interface_data['dampening'] = True if 'dampening' in collect_if_config_rcmd_outputs[0] else str()
-                    try: interface_data['flow ipv4 monitor'] = collect_if_config_rcmd_outputs[0].split('flow ipv4 monitor ')[1].split()[0]
-                    except: interface_data['flow ipv4 monitor'] = str()
-
-                    if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
-                        try: interface_data['flow ipv6 monitor'] = collect_if_config_rcmd_outputs[0].split('flow ipv4 monitor ')[1].split()[0]
-                        except: interface_data['flow ipv6 monitor'] = str()
-
-                    interface_data['mpls ldp sync'] = True if 'mpls ldp sync' in collect_if_config_rcmd_outputs[1] else str()
-
-                    try: interface_data['ipv4_metric'] = collect_if_config_rcmd_outputs[1].split('address-family ipv4 unicast')[1].splitlines()[1].split('metric ')[1].split()[0]
-                    except: interface_data['ipv4_metric'] = str()
-
-                    if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
-                        try: interface_data['ipv6_metric'] = collect_if_config_rcmd_outputs[1].split('address-family ipv6 unicast')[1].splitlines()[1].split('metric ')[1].split()[0]
-                        except: interface_data['ipv6_metric'] = str()
-
-                    try: interface_data['run mpls traffic-eng interface'] = collect_if_config_rcmd_outputs[2].split('interface')[1].split()[0]
-                    except: interface_data['run mpls traffic-eng interface'] = str()
-
-                    try: interface_data['run mpls ldp interface'] = collect_if_config_rcmd_outputs[3].split('interface')[1].split()[0]
-                    except: interface_data['run mpls ldp interface'] = str()
-
-                    try: interface_data['run mpls rsvp interface'] = collect_if_config_rcmd_outputs[4].split('interface')[1].split()[0]
-                    except: interface_data['run mpls rsvp interface'] = str()
-
-                    try: interface_data['line protocol is'] = collect_if_config_rcmd_outputs[5].split('line protocol is ')[1].split()[0]
-                    except: interface_data['line protocol is'] = str()
-
-                    try: interface_data['isis neighbors'] = collect_if_config_rcmd_outputs[6].split(interface_data.get('name_of_remote_device','XXYYZZ').upper())[1].split(interface_id)[1].split()[1].strip()
-                    except: interface_data['isis neighbors'] = str()
-
-                    try: interface_data['Up time'] = collect_if_config_rcmd_outputs[7].split('Up time:')[1].split()[0]
-                    except: interface_data['Up time'] = str()
-
-                    try: interface_data['Sync status'] = collect_if_config_rcmd_outputs[8].split('Sync status:')[1].split()[0]
-                    except: interface_data['Sync status'] = str()
-
-                    if 'Requested item does not exist' in collect_if_config_rcmd_outputs[9]: interface_data['rsvp interface'] = str()
-                    else:
-                        try: interface_data['rsvp interface'] = collect_if_config_rcmd_outputs[9].split('------')[-1].splitlines()[1].split()[0].strip()
-                        except: interface_data['rsvp interface'] = str()
-
-                    if not precheck_mode:
-                        ### BACKUP INTERFACES ###
-                        try:
-                            backup_if_list = []
-                            if interface_data.get('name_of_remote_device'):
-                                for line in collect_if_config_rcmd_outputs[11].splitlines():
-                                    if '%s FROM %s' % (interface_data.get('name_of_remote_device',str()).upper(), device.upper()) in line.upper():
-                                        local_backup_interface = str(line.split()[0]).replace('GE','Gi')
-                                        if '(' in local_backup_interface: local_backup_interface = local_backup_interface.split('(')[0]
-                                        if ' TESTING ' in line or ' OLD ' in line: pass
-                                        else: backup_if_list.append(copy.deepcopy(local_backup_interface))
-                            interface_data['parallel_interfaces'] = copy.deepcopy(backup_if_list)
-                        except: interface_data['parallel_interfaces'] = []
-
-                        ### TRAFFIC ###
-                        if not precheck_mode:
-                            try: interface_warning_data['txload'] = collect_if_config_rcmd_outputs[10].split('txload')[1].split()[0].replace(',','').strip()
-                            except: interface_warning_data['txload'] = str()
-                            try: interface_warning_data['rxload'] = collect_if_config_rcmd_outputs[10].split('rxload')[1].split()[0].replace(',','').strip()
-                            except: interface_warning_data['rxload'] = str()
-                            if interface_warning_data.get('txload'):
-                                try: interface_warning_data['txload_percent'] = 100 * float(interface_warning_data.get('txload').split('/')[0]) / float(interface_warning_data.get('txload').split('/')[1])
-                                except: pass
-                            if interface_warning_data.get('rxload'):
-                                try: interface_warning_data['rxload_percent'] = 100 * float(interface_warning_data.get('rxload').split('/')[0]) / float(interface_warning_data.get('rxload').split('/')[1])
-                                except: pass
-
-                    ### WARNINGS ###
-                    try: interface_warning_data['input_errors'] = collect_if_config_rcmd_outputs[10].split('input errors')[0].splitlines()[-1].split()[0].strip()
-                    except: interface_warning_data['input_errors'] = str()
-
-                    try: interface_warning_data['input_CRC'] = collect_if_config_rcmd_outputs[10].split('input errors,')[1].split('CRC,')[0].strip()
-                    except: interface_warning_data['input_CRC'] = str()
-
-                    try: interface_warning_data['output_errors'] = collect_if_config_rcmd_outputs[10].split('output errors')[0].splitlines()[-1].split()[0].strip()
-                    except: interface_warning_data['output_errors'] = str()
-
-
-                ### def JUNIPER 1st CMDS ######################################
-                elif RCMD.router_type == 'juniper':
-                    try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet address ')[1].split()[0].split('/')[0].replace(';','')
-                    except: interface_data['ipv4_addr_loc'] = str()
-
-                    if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
-                        try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet6 address ')[1].split()[0].split('/')[0].replace(';','')
-                        except: interface_data['ipv6_addr_loc'] = str()
-
-                    try: interface_data['scheduler-map'] = collect_if_config_rcmd_outputs[10].split('scheduler-map ')[1].split()[0].split('/')[0].replace(';','')
-                    except: interface_data['scheduler-map'] = str()
-
-                    try: interface_prefix = interface_id[0:2]
-                    except: interface_prefix = str()
-
-                    if interface_prefix:
-                        try: interface_data['mtu'] = collect_if_config_rcmd_outputs[11].split('<' + interface_prefix).split('mtu ')[1].splitlines()[0].strip()
-                        except: interface_data['mtu'] = str()
-
-                    if not interface_data.get('mtu'):
-                        try: interface_data['mtu'] = collect_if_config_rcmd_outputs[11].split('mtu ')[1].splitlines()[0].strip()
-                        except: interface_data['mtu'] = str()
-
-                    interface_data['ldp-synchronization;'] = True if 'ldp-synchronization;' in collect_if_config_rcmd_outputs[12] else str()
-
-                    try: interface_data['metric'] = collect_if_config_rcmd_outputs[12].split('metric ')[1].split()[0].replace(';','').strip()
-                    except: interface_data['metric'] = str()
-
-                    interface_data['traffic-engineering;'] = True if 'traffic-engineering;' in collect_if_config_rcmd_outputs[2] else str()
-                    interface_plus_interface_id = 'interface %s'% (interface_id)
-
-                    interface_data['configuration protocols mpls interface %s' % (interface_id)] = True if interface_plus_interface_id in collect_if_config_rcmd_outputs[2] else str()
-                    interface_data['configuration protocols ldp interface %s' % (interface_id)] = True if interface_plus_interface_id in collect_if_config_rcmd_outputs[3] else str()
-                    interface_data['configuration protocols rsvp interface %s' % (interface_id)] = True if interface_plus_interface_id in collect_if_config_rcmd_outputs[4] else str()
-
-                    try: interface_data['Physical link is'] = collect_if_config_rcmd_outputs[5].split('Physical link is ')[1].split()[0]
-                    except: interface_data['Physical link is'] = str()
-
-                    try: interface_data['Flags'] = collect_if_config_rcmd_outputs[5].split('Flags:')[1].split()[0]
-                    except: interface_data['Flags'] = str()
-
-                    try: interface_data['isis adjacency'] = collect_if_config_rcmd_outputs[6].split(interface_data.get('name_of_remote_device','XXYYZZ').upper())[1].splitlines()[0].split()[1]
-                    except: interface_data['isis adjacency'] = str()
-
-                    find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ', collect_if_config_rcmd_outputs[7].strip())
-
-                    if len(find_ip) == 1: interface_data['ldp_neighbor_ip'] = find_ip[0].strip()
-                    else: interface_data['ldp_neighbor_ip'] = str()
-
-                    try: interface_data['LDP sync state'] = collect_if_config_rcmd_outputs[8].split('LDP sync state:')[1].split(',')[0].strip()
-                    except: interface_data['LDP sync state'] = str()
-
-                    try: interface_data['rsvp interface'] = collect_if_config_rcmd_outputs[9].split('Interface')[1].splitlines()[1].split()[0]
-                    except: interface_data['rsvp interface'] = str()
-
-                    if not precheck_mode:
-                        ### BACKUP INTERFACES ###
-                        try:
-                            backup_if_list = []
-                            if interface_data.get('name_of_remote_device'):
-                                for line in collect_if_config_rcmd_outputs[14].splitlines():
-                                    if '%s FROM %s' % (interface_data.get('name_of_remote_device',str()).upper(), device.upper()) in line.upper():
-                                        local_backup_interface = str(line.split()[0]).replace('GE','Gi')
-                                        if '(' in local_backup_interface: local_backup_interface = local_backup_interface.split('(')[0]
-                                        if ' TESTING ' in line or ' OLD ' in line: pass
-                                        else: backup_if_list.append(copy.deepcopy(local_backup_interface))
-                            interface_data['parallel_interfaces'] = copy.deepcopy(backup_if_list)
-                        except: interface_data['parallel_interfaces'] = []
-
-                        ### TRAFFIC ###
-                        if not precheck_mode:
-                            try: interface_warning_data['txload'] = collect_if_config_rcmd_outputs[13].split('Output rate    :')[1].split()[0].replace(',','').strip()
-                            except: interface_warning_data['txload'] = str()
-                            try: interface_warning_data['rxload'] = collect_if_config_rcmd_outputs[13].split('Input rate     :')[1].split()[0].replace(',','').strip()
-                            except: interface_warning_data['rxload'] = str()
-                            try: interface_warning_data['Speed'] = collect_if_config_rcmd_outputs[13].split('Speed:')[1].split()[0].replace(',','').strip()
-                            except: interface_warning_data['Speed'] = str()
-
-                            multiplikator = 1
-                            if interface_warning_data.get('Speed') and 'Gbps' in interface_warning_data.get('Speed'): multiplikator = 1073741824
-                            if interface_warning_data.get('Speed') and 'Mbps' in interface_warning_data.get('Speed'): multiplikator = 1048576
-                            if interface_warning_data.get('txload'):
-                                try: interface_warning_data['txload_percent'] = 100 * float(interface_warning_data.get('txload')) / (float(interface_warning_data.get('Speed').replace('Gbps','').replace('Mbps','')) * multiplikator)
-                                except: pass
-                            if interface_warning_data.get('rxload'):
-                                try: interface_warning_data['rxload_percent'] = 100 * float(interface_warning_data.get('rxload')) / (float(interface_warning_data.get('Speed').replace('Gbps','').replace('Mbps','')) * multiplikator)
-                                except: pass
-
-                    ### WARNINGS ###
-                    try: interface_warning_data['Active_alarms'] = collect_if_config_rcmd_outputs[13].split('Active alarms  : ')[1].split()[0].strip()
-                    except: interface_warning_data['Active_alarms'] = str()
-
-                    try: interface_warning_data['Active_defects'] = collect_if_config_rcmd_outputs[13].split('Active defects : ')[1].split()[0].strip()
-                    except: interface_warning_data['Active_defects'] = str()
-
-                    try: interface_warning_data['Bit_errors'] = collect_if_config_rcmd_outputs[13].split('Bit errors ')[1].split()[0].strip()
-                    except: interface_warning_data['Bit_errors'] = str()
-
-                    try: interface_warning_data['Errored_blocks'] = collect_if_config_rcmd_outputs[13].split('Errored blocks ')[1].split()[0].strip()
-                    except: interface_warning_data['Errored_blocks'] = str()
-
-                    try: interface_warning_data['Ethernet_FEC_statistics'] = collect_if_config_rcmd_outputs[13].split('Ethernet FEC statistics ')[1].split()[0].strip()
-                    except: interface_warning_data['Ethernet_FEC_statistics'] = str()
-
-                    try: interface_warning_data['FEC_Corrected_Errors'] = collect_if_config_rcmd_outputs[13].split('FEC Corrected Errors ')[1].split()[0].strip()
-                    except: interface_warning_data['FEC_Corrected_Errors'] = str()
-
-                    try: interface_warning_data['FEC_Uncorrected_Errors'] = collect_if_config_rcmd_outputs[13].split('FEC Uncorrected Errors ')[1].split()[0].strip()
-                    except: interface_warning_data['FEC_Uncorrected_Errors'] = str()
-
-                    try: interface_warning_data['FEC_Corrected_Errors_Rate'] = collect_if_config_rcmd_outputs[13].split('FEC Corrected Errors Rate ')[1].split()[0].strip()
-                    except: interface_warning_data['FEC_Corrected_Errors_Rate'] = str()
-
-                    try: interface_warning_data['FEC_Uncorrected_Errors_Rate'] = collect_if_config_rcmd_outputs[13].split('FEC Uncorrected Errors Rate ')[1].split()[0].strip()
-                    except: interface_warning_data['FEC_Uncorrected_Errors_Rate'] = str()
-
-                ### def HUAWEI 1st CMDS #######################################
-                elif RCMD.router_type == 'huawei':
-                    try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[0]
-                    except: interface_data['ipv4_addr_loc'] = str()
-
-                    if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
-                        try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
-                        except: interface_data['ipv6_addr_loc'] = str()
-
-                    ### BANDWITH IS OPTIONABLE --> AVOID FROM VOID CHECK ######
-                    if not interface_data.get('bandwidth'):
-                        del interface_data['bandwidth']
-
-                    interface_data['isis ldp-sync'] = True if 'isis ldp-sync' in collect_if_config_rcmd_outputs[1] else str()
-
-                    try: interface_data['isis cost'] = collect_if_config_rcmd_outputs[1].split('isis cost ')[1].split()[0]
-                    except: interface_data['isis cost'] = str()
-
-                    if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
-                        try: interface_data['isis ipv6 cost'] = collect_if_config_rcmd_outputs[1].split('isis ipv6 cost ')[1].split()[0]
-                        except: interface_data['isis ipv6 cost'] = str()
-
-                    interface_data['mpls te'] = True if 'mpls te' in collect_if_config_rcmd_outputs[2] else str()
-                    interface_data['mpls ldp'] = True if 'mpls ldp' in collect_if_config_rcmd_outputs[3] else str()
-                    interface_data['mpls rsvp-te'] = True if 'mpls rsvp-te' in collect_if_config_rcmd_outputs[4] else str()
-
-                    try: interface_data['Line protocol current state'] = collect_if_config_rcmd_outputs[5].split('Line protocol current state :')[1].split()[0]
-                    except: interface_data['Line protocol current state'] = str()
-
-                    try: interface_data['isis interface IPV4.State'] = collect_if_config_rcmd_outputs[6].split(' Type')[1].split(' DIS')[1].split()[2]
-                    except: interface_data['isis interface IPV4.State'] = str()
-
-                    if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
-                        try: interface_data['isis interface IPV6.State'] = collect_if_config_rcmd_outputs[6].split(' Type')[1].split(' DIS')[1].split()[3]
-                        except: interface_data['isis interface IPV6.State'] = str()
-
-                    find_time = re.findall(r'[0-9]{2,4}\:[0-9]{2}\:[0-9]{2}', collect_if_config_rcmd_outputs[7].strip())
-                    if len(find_time) == 1: interface_data['Up time'] = find_time[0]
-                    else: interface_data['Up time'] = str()
-
-                    try: interface_data['isis ldp-sync'] = collect_if_config_rcmd_outputs[8].split('Sync State')[1].split(interface_id.upper().replace('GI','GE'))[1].split()[3].strip()
-                    except: interface_data['isis ldp-sync'] = str()
-
-                    try: interface_data['rsvp interface'] = collect_if_config_rcmd_outputs[9].split('Interface:')[1].split()[0]
-                    except: interface_data['rsvp interface'] = str()
-
-                    if not precheck_mode:
-                        ### BACKUP INTERFACES ###
-                        try:
-                            backup_if_list = []
-                            if interface_data.get('name_of_remote_device'):
-                                for line in collect_if_config_rcmd_outputs[11].splitlines():
-                                    if '%s FROM %s' % (interface_data.get('name_of_remote_device',str()).upper(), device.upper()) in line.upper():
-                                        local_backup_interface = str(line.split()[0])
-                                        if not '100GE' in local_backup_interface: local_backup_interface = local_backup_interface.replace('GE','Gi')
-                                        if '(' in local_backup_interface: local_backup_interface = local_backup_interface.split('(')[0]
-                                        if ' TESTING ' in line or ' OLD ' in line: pass
-                                        else: backup_if_list.append(copy.deepcopy(local_backup_interface))
-                            interface_data['parallel_interfaces'] = copy.deepcopy(backup_if_list)
-                        except: interface_data['parallel_interfaces'] = []
-
-                        ### TRAFFIC ###
-                        if not precheck_mode:
-                            try: interface_warning_data['txload_percent'] = float(collect_if_config_rcmd_outputs[10].split('output utility rate:')[1].split()[0].replace('%','').strip())
-                            except: pass
-                            try: interface_warning_data['rxload_percent'] = float(collect_if_config_rcmd_outputs[10].split('input utility rate:')[1].split()[0].replace('%','').strip())
-                            except: pass
-
-                    ### WARNINGS ###
-                    try: interface_warning_data['Rx_Power_dBm'] = collect_if_config_rcmd_outputs[10].split('Rx Power: ')[1].split()[0].strip().replace(',','').replace('dBm','')
-                    except: interface_warning_data['Rx_Power_dBm'] = str()
-
-                    try: interface_warning_data['Tx_Power_dBm'] = collect_if_config_rcmd_outputs[10].split('Tx Power: ')[1].split()[0].strip().replace(',','').replace('dBm','')
-                    except: interface_warning_data['Tx_Power_dBm'] = str()
-
-                    try: interface_warning_data['Rx_Power_Warning_range_dBm_1'] = collect_if_config_rcmd_outputs[10].split('Rx Power: ')[1].split('Warning range: ')[1].\
-                             splitlines()[0].strip().replace(',','').replace('dBm','').replace('[','').replace(']','').split()[0]
-                    except: interface_warning_data['Rx_Power_Warning_range_dBm_1'] = str()
-
-                    try: interface_warning_data['Rx_Power_Warning_range_dBm_2'] = collect_if_config_rcmd_outputs[10].split('Rx Power: ')[1].split('Warning range: ')[1].\
-                             splitlines()[0].strip().replace(',','').replace('dBm','').replace('[','').replace(']','').split()[1]
-                    except: interface_warning_data['Rx_Power_Warning_range_dBm_2'] = str()
-
-                    try: interface_warning_data['Tx_Power_Warning_range_dBm_1'] = collect_if_config_rcmd_outputs[10].split('Tx Power: ')[1].split('Warning range: ')[1].\
-                             splitlines()[0].strip().replace(',','').replace('dBm','').replace('[','').replace(']','').split()[0]
-                    except: interface_warning_data['Tx_Power_Warning_range_dBm_1'] = str()
-
-                    try: interface_warning_data['Tx_Power_Warning_range_dBm_2'] = collect_if_config_rcmd_outputs[10].split('Tx Power: ')[1].split('Warning range: ')[1].\
-                             splitlines()[0].strip().replace(',','').replace('dBm','').replace('[','').replace(']','').split()[1]
-                    except: interface_warning_data['Tx_Power_Warning_range_dBm_2'] = str()
-
-                    try: interface_warning_data['CRC'] = collect_if_config_rcmd_outputs[10].split('CRC: ')[1].split()[0].strip()
-                    except: interface_warning_data['CRC'] = str()
-
-                    try: interface_warning_data['Overrun'] = collect_if_config_rcmd_outputs[10].split('Overrun: ')[1].split()[0].strip()
-                    except: interface_warning_data['Overrun'] = str()
-
-                    try: interface_warning_data['Lost'] = collect_if_config_rcmd_outputs[10].split('Lost: ')[1].split()[0].strip()
-                    except: interface_warning_data['Lost'] = str()
-
-                    try: interface_warning_data['Overflow'] = collect_if_config_rcmd_outputs[10].split('Overflow: ')[1].split()[0].strip()
-                    except: interface_warning_data['Overflow'] = str()
-
-                    try: interface_warning_data['Underrun'] = collect_if_config_rcmd_outputs[10].split('Underrun: ')[1].split()[0].strip()
-                    except: interface_warning_data['Underrun'] = str()
-
-                    try: interface_warning_data['Local_fault'] = collect_if_config_rcmd_outputs[10].split('Local fault: ')[1].split()[0].strip().replace('.','')
-                    except: interface_warning_data['Local_fault'] = str()
-
-                    try: interface_warning_data['Remote_fault'] = collect_if_config_rcmd_outputs[10].split('Remote fault: ')[1].split()[0].strip().replace('.','')
-                    except: interface_warning_data['Remote_fault'] = str()
-
-                ### def COLLECT SECOND COMMAND LIST ###########################
-                if RCMD.router_type == 'juniper':
-                    second_collect_if_data_rcmds = {
+                if PING_ONLY:
+                    ### def PING COLLECT COMMAND LIST #########################
+                    collect_if_data_rcmds = {
                         'cisco_ios':[
+                            'show run interface %s' % (interface_id),
                         ],
 
                         'cisco_xr':[
+                            'show run interface %s' % (interface_id),
                         ],
 
                         'juniper': [
-                            'show ldp neighbor %s extensive' % (interface_data.get('ldp_neighbor_ip',str()))
+                            'show configuration interfaces %s | display set' % (interface_id),
                         ],
 
                         'huawei': [
+                            'display current-configuration interface %s' % (interface_id),
                         ]
                     }
 
-                    second_collect_if_config_rcmd_outputs = RCMD.run_commands(second_collect_if_data_rcmds, \
+                    collect_if_config_rcmd_outputs = RCMD.run_commands(collect_if_data_rcmds, \
                         autoconfirm_mode = True, \
                         printall = printall)
 
+                    try: interface_data['name_of_remote_device'] = collect_if_config_rcmd_outputs[0].upper().split('DESCRIPTION')[1].splitlines()[0].split('FROM')[0].strip().replace('"','')
+                    except: interface_data['name_of_remote_device'] = str()
+
+                    if 'PE' in interface_data.get('name_of_remote_device').upper() or 'PE' in device.upper():
+                        IMN_INTERFACE = True
+
+                    try: interface_data['ipv4_addr_rem'] = collect_if_config_rcmd_outputs[0].split('description')[1].splitlines()[0].split('@')[1].split()[0]
+                    except: interface_data['ipv4_addr_rem'] = str()
+
+                    ### def CISCO XR+XE 1st CMDS ##################################
+                    if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
+                        try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv4 address ')[1].split()[0]
+                        except: interface_data['ipv4_addr_loc'] = str()
+
+                        if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
+                            try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
+                            except: interface_data['ipv6_addr_loc'] = str()
+
+                    elif RCMD.router_type == 'juniper':
+                        try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet address ')[1].split()[0].split('/')[0].replace(';','')
+                        except: interface_data['ipv4_addr_loc'] = str()
+
+                        if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
+                            try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet6 address ')[1].split()[0].split('/')[0].replace(';','')
+                            except: interface_data['ipv6_addr_loc'] = str()
+
+                    elif RCMD.router_type == 'huawei':
+                        try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[0]
+                        except: interface_data['ipv4_addr_loc'] = str()
+
+                        if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
+                            try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
+                            except: interface_data['ipv6_addr_loc'] = str()
+
+                else:
+                    ### def COLLECT COMMAND LIST ##################################
+                    collect_if_data_rcmds = {
+                        'cisco_ios':[
+                            'show run interface %s' % (interface_id),
+                            'show run router isis PAII interface %s ' % (interface_id),
+                            'show run mpls traffic-eng interface %s' % (interface_id),
+                            'show run mpls ldp interface %s' % (interface_id),
+                            'show run rsvp interface %s' % (interface_id),
+
+                            'show interface %s' % (interface_id),
+                            'show isis neighbors %s' % (interface_id),
+                            'show mpls ldp neighbor %s' % (interface_id),
+                            'show mpls ldp igp sync interface %s' % (interface_id),
+                            'show rsvp interface %s' % (interface_id),
+
+                            'show interfaces %s' % (undotted_interface_id),
+                            'show interfaces description'
+                        ],
+
+                        'cisco_xr':[
+                            'show run interface %s' % (interface_id),
+                            'show run router isis PAII interface %s ' % (interface_id),
+                            'show run mpls traffic-eng interface %s' % (interface_id),
+                            'show run mpls ldp interface %s' % (interface_id),
+                            'show run rsvp interface %s' % (interface_id),
+
+                            'show interface %s' % (interface_id),
+                            'show isis neighbors %s' % (interface_id),
+                            'show mpls ldp neighbor %s' % (interface_id),
+                            'show mpls ldp igp sync interface %s' % (interface_id),
+                            'show rsvp interface %s' % (interface_id),
+
+                            'show interfaces %s' % (undotted_interface_id),
+                            'show interfaces description'
+                        ],
+
+                        'juniper': [
+                            'show configuration interfaces %s | display set' % (interface_id),
+                            'show isis interface %s' % (interface_id),
+                            'show configuration protocols mpls',
+                            'show configuration protocols ldp | match %s' % (interface_id),
+                            'show configuration protocols rsvp | match %s' % (interface_id),
+
+                            'show interfaces brief %s' % (undotted_interface_id),
+                            'show isis adjacency | match %s' % (interface_id),
+                            'show ldp neighbor | match %s' % (interface_id),
+                            'show isis interface %s extensive' % (interface_id),
+                            'show rsvp interface %s' % (interface_id),
+
+                            'show configuration class-of-service interfaces %s | display set'  % (undotted_interface_id),
+                            'show configuration groups mtu-default | display set',
+                            'show configuration protocols isis interface %s' % (interface_id),
+                            'show interfaces %s' % (undotted_interface_id),
+                            'show interfaces descriptions'
+                        ],
+
+                        'huawei': [
+                            'display current-configuration interface %s' % (interface_id),
+                            'display current-configuration interface %s | i isis' % (interface_id),
+                            'display current-configuration interface %s | i  mpls te' % (interface_id),
+                            'display current-configuration interface %s | i mpls ldp' % (interface_id),
+                            'display current-configuration interface %s | i rsvp' % (interface_id),
+
+                            'display interface %s' % (interface_id),
+                            'display isis interface %s' % (interface_id),
+                            'display mpls ldp adjacency interface %s' % (interface_id),
+                            'display isis ldp-sync interface | i %s' % (interface_id.upper().replace('GI','GE')),
+                            'display mpls rsvp-te interface %s' % (interface_id),
+
+                            'display interface %s' % (undotted_interface_id),
+                            'display interface description'
+                        ]
+                    }
+
+                    collect_if_config_rcmd_outputs = RCMD.run_commands(collect_if_data_rcmds, \
+                        autoconfirm_mode = True, \
+                        printall = printall)
+
+
+                    ### def PROCEED COMMON 1st CMDS ###############################
+                    try: interface_data['mtu'] = collect_if_config_rcmd_outputs[0].split('mtu ')[1].splitlines()[0].strip()
+                    except: interface_data['mtu'] = str()
+
+                    try: interface_data['bandwidth'] = collect_if_config_rcmd_outputs[0].\
+                             split('bandwidth ')[1].splitlines()[0].strip().replace(';','')
+                    except: interface_data['bandwidth'] = str()
+
+                    try: interface_data['fib_number(s)'] = ','.join(get_fiblist(collect_if_config_rcmd_outputs[0].split('description')[1].splitlines()[0]))
+                    except: interface_data['fib_number'] = str()
+
+                    try: interface_data['name_of_remote_device'] = collect_if_config_rcmd_outputs[0].upper().split('DESCRIPTION')[1].splitlines()[0].split('FROM')[0].strip().replace('"','')
+                    except: interface_data['name_of_remote_device'] = str()
+
+                    if 'PE' in interface_data.get('name_of_remote_device').upper() or 'PE' in device.upper():
+                        IMN_INTERFACE = True
+
+                    try: interface_data['ipv4_addr_rem'] = collect_if_config_rcmd_outputs[0].split('description')[1].splitlines()[0].split('@')[1].split()[0]
+                    except: interface_data['ipv4_addr_rem'] = str()
+
+                    if not precheck_mode:
+                        interface_warning_data['rxload_percent'] = '-'
+                        interface_warning_data['txload_percent'] = '-'
+
+                    ### def CISCO XR+XE 1st CMDS ##################################
+                    if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
+                        try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv4 address ')[1].split()[0]
+                        except: interface_data['ipv4_addr_loc'] = str()
+
+                        if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
+                            try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
+                            except: interface_data['ipv6_addr_loc'] = str()
+
+                        interface_data['dampening'] = True if 'dampening' in collect_if_config_rcmd_outputs[0] else str()
+                        try: interface_data['flow ipv4 monitor'] = collect_if_config_rcmd_outputs[0].split('flow ipv4 monitor ')[1].split()[0]
+                        except: interface_data['flow ipv4 monitor'] = str()
+
+                        if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
+                            try: interface_data['flow ipv6 monitor'] = collect_if_config_rcmd_outputs[0].split('flow ipv4 monitor ')[1].split()[0]
+                            except: interface_data['flow ipv6 monitor'] = str()
+
+                        interface_data['mpls ldp sync'] = True if 'mpls ldp sync' in collect_if_config_rcmd_outputs[1] else str()
+
+                        try: interface_data['ipv4_metric'] = collect_if_config_rcmd_outputs[1].split('address-family ipv4 unicast')[1].splitlines()[1].split('metric ')[1].split()[0]
+                        except: interface_data['ipv4_metric'] = str()
+
+                        if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
+                            try: interface_data['ipv6_metric'] = collect_if_config_rcmd_outputs[1].split('address-family ipv6 unicast')[1].splitlines()[1].split('metric ')[1].split()[0]
+                            except: interface_data['ipv6_metric'] = str()
+
+                        try: interface_data['run mpls traffic-eng interface'] = collect_if_config_rcmd_outputs[2].split('interface')[1].split()[0]
+                        except: interface_data['run mpls traffic-eng interface'] = str()
+
+                        try: interface_data['run mpls ldp interface'] = collect_if_config_rcmd_outputs[3].split('interface')[1].split()[0]
+                        except: interface_data['run mpls ldp interface'] = str()
+
+                        try: interface_data['run mpls rsvp interface'] = collect_if_config_rcmd_outputs[4].split('interface')[1].split()[0]
+                        except: interface_data['run mpls rsvp interface'] = str()
+
+                        try: interface_data['line protocol is'] = collect_if_config_rcmd_outputs[5].split('line protocol is ')[1].split()[0]
+                        except: interface_data['line protocol is'] = str()
+
+                        try: interface_data['isis neighbors'] = collect_if_config_rcmd_outputs[6].split(interface_data.get('name_of_remote_device','XXYYZZ').upper())[1].split(interface_id)[1].split()[1].strip()
+                        except: interface_data['isis neighbors'] = str()
+
+                        try: interface_data['Up time'] = collect_if_config_rcmd_outputs[7].split('Up time:')[1].split()[0]
+                        except: interface_data['Up time'] = str()
+
+                        try: interface_data['Sync status'] = collect_if_config_rcmd_outputs[8].split('Sync status:')[1].split()[0]
+                        except: interface_data['Sync status'] = str()
+
+                        if 'Requested item does not exist' in collect_if_config_rcmd_outputs[9]: interface_data['rsvp interface'] = str()
+                        else:
+                            try: interface_data['rsvp interface'] = collect_if_config_rcmd_outputs[9].split('------')[-1].splitlines()[1].split()[0].strip()
+                            except: interface_data['rsvp interface'] = str()
+
+                        if not precheck_mode:
+                            ### BACKUP INTERFACES ###
+                            try:
+                                backup_if_list = []
+                                if interface_data.get('name_of_remote_device'):
+                                    for line in collect_if_config_rcmd_outputs[11].splitlines():
+                                        if '%s FROM %s' % (interface_data.get('name_of_remote_device',str()).upper(), device.upper()) in line.upper():
+                                            local_backup_interface = str(line.split()[0]).replace('GE','Gi')
+                                            if '(' in local_backup_interface: local_backup_interface = local_backup_interface.split('(')[0]
+                                            if ' TESTING ' in line or ' OLD ' in line: pass
+                                            else: backup_if_list.append(copy.deepcopy(local_backup_interface))
+                                interface_data['parallel_interfaces'] = copy.deepcopy(backup_if_list)
+                            except: interface_data['parallel_interfaces'] = []
+
+                            ### TRAFFIC ###
+                            if not precheck_mode:
+                                try: interface_warning_data['txload'] = collect_if_config_rcmd_outputs[10].split('txload')[1].split()[0].replace(',','').strip()
+                                except: interface_warning_data['txload'] = str()
+                                try: interface_warning_data['rxload'] = collect_if_config_rcmd_outputs[10].split('rxload')[1].split()[0].replace(',','').strip()
+                                except: interface_warning_data['rxload'] = str()
+                                if interface_warning_data.get('txload'):
+                                    try: interface_warning_data['txload_percent'] = 100 * float(interface_warning_data.get('txload').split('/')[0]) / float(interface_warning_data.get('txload').split('/')[1])
+                                    except: pass
+                                if interface_warning_data.get('rxload'):
+                                    try: interface_warning_data['rxload_percent'] = 100 * float(interface_warning_data.get('rxload').split('/')[0]) / float(interface_warning_data.get('rxload').split('/')[1])
+                                    except: pass
+
+                        ### WARNINGS ###
+                        try: interface_warning_data['input_errors'] = collect_if_config_rcmd_outputs[10].split('input errors')[0].splitlines()[-1].split()[0].strip()
+                        except: interface_warning_data['input_errors'] = str()
+
+                        try: interface_warning_data['input_CRC'] = collect_if_config_rcmd_outputs[10].split('input errors,')[1].split('CRC,')[0].strip()
+                        except: interface_warning_data['input_CRC'] = str()
+
+                        try: interface_warning_data['output_errors'] = collect_if_config_rcmd_outputs[10].split('output errors')[0].splitlines()[-1].split()[0].strip()
+                        except: interface_warning_data['output_errors'] = str()
+
+
+                    ### def JUNIPER 1st CMDS ######################################
+                    elif RCMD.router_type == 'juniper':
+                        try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet address ')[1].split()[0].split('/')[0].replace(';','')
+                        except: interface_data['ipv4_addr_loc'] = str()
+
+                        if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
+                            try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet6 address ')[1].split()[0].split('/')[0].replace(';','')
+                            except: interface_data['ipv6_addr_loc'] = str()
+
+                        try: interface_data['scheduler-map'] = collect_if_config_rcmd_outputs[10].split('scheduler-map ')[1].split()[0].split('/')[0].replace(';','')
+                        except: interface_data['scheduler-map'] = str()
+
+                        try: interface_prefix = interface_id[0:2]
+                        except: interface_prefix = str()
+
+                        if interface_prefix:
+                            try: interface_data['mtu'] = collect_if_config_rcmd_outputs[11].split('<' + interface_prefix).split('mtu ')[1].splitlines()[0].strip()
+                            except: interface_data['mtu'] = str()
+
+                        if not interface_data.get('mtu'):
+                            try: interface_data['mtu'] = collect_if_config_rcmd_outputs[11].split('mtu ')[1].splitlines()[0].strip()
+                            except: interface_data['mtu'] = str()
+
+                        interface_data['ldp-synchronization;'] = True if 'ldp-synchronization;' in collect_if_config_rcmd_outputs[12] else str()
+
+                        try: interface_data['metric'] = collect_if_config_rcmd_outputs[12].split('metric ')[1].split()[0].replace(';','').strip()
+                        except: interface_data['metric'] = str()
+
+                        interface_data['traffic-engineering;'] = True if 'traffic-engineering;' in collect_if_config_rcmd_outputs[2] else str()
+                        interface_plus_interface_id = 'interface %s'% (interface_id)
+
+                        interface_data['configuration protocols mpls interface %s' % (interface_id)] = True if interface_plus_interface_id in collect_if_config_rcmd_outputs[2] else str()
+                        interface_data['configuration protocols ldp interface %s' % (interface_id)] = True if interface_plus_interface_id in collect_if_config_rcmd_outputs[3] else str()
+                        interface_data['configuration protocols rsvp interface %s' % (interface_id)] = True if interface_plus_interface_id in collect_if_config_rcmd_outputs[4] else str()
+
+                        try: interface_data['Physical link is'] = collect_if_config_rcmd_outputs[5].split('Physical link is ')[1].split()[0]
+                        except: interface_data['Physical link is'] = str()
+
+                        try: interface_data['Flags'] = collect_if_config_rcmd_outputs[5].split('Flags:')[1].split()[0]
+                        except: interface_data['Flags'] = str()
+
+                        try: interface_data['isis adjacency'] = collect_if_config_rcmd_outputs[6].split(interface_data.get('name_of_remote_device','XXYYZZ').upper())[1].splitlines()[0].split()[1]
+                        except: interface_data['isis adjacency'] = str()
+
+                        find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ', collect_if_config_rcmd_outputs[7].strip())
+
+                        if len(find_ip) == 1: interface_data['ldp_neighbor_ip'] = find_ip[0].strip()
+                        else: interface_data['ldp_neighbor_ip'] = str()
+
+                        try: interface_data['LDP sync state'] = collect_if_config_rcmd_outputs[8].split('LDP sync state:')[1].split(',')[0].strip()
+                        except: interface_data['LDP sync state'] = str()
+
+                        try: interface_data['rsvp interface'] = collect_if_config_rcmd_outputs[9].split('Interface')[1].splitlines()[1].split()[0]
+                        except: interface_data['rsvp interface'] = str()
+
+                        if not precheck_mode:
+                            ### BACKUP INTERFACES ###
+                            try:
+                                backup_if_list = []
+                                if interface_data.get('name_of_remote_device'):
+                                    for line in collect_if_config_rcmd_outputs[14].splitlines():
+                                        if '%s FROM %s' % (interface_data.get('name_of_remote_device',str()).upper(), device.upper()) in line.upper():
+                                            local_backup_interface = str(line.split()[0]).replace('GE','Gi')
+                                            if '(' in local_backup_interface: local_backup_interface = local_backup_interface.split('(')[0]
+                                            if ' TESTING ' in line or ' OLD ' in line: pass
+                                            else: backup_if_list.append(copy.deepcopy(local_backup_interface))
+                                interface_data['parallel_interfaces'] = copy.deepcopy(backup_if_list)
+                            except: interface_data['parallel_interfaces'] = []
+
+                            ### TRAFFIC ###
+                            if not precheck_mode:
+                                try: interface_warning_data['txload'] = collect_if_config_rcmd_outputs[13].split('Output rate    :')[1].split()[0].replace(',','').strip()
+                                except: interface_warning_data['txload'] = str()
+                                try: interface_warning_data['rxload'] = collect_if_config_rcmd_outputs[13].split('Input rate     :')[1].split()[0].replace(',','').strip()
+                                except: interface_warning_data['rxload'] = str()
+                                try: interface_warning_data['Speed'] = collect_if_config_rcmd_outputs[13].split('Speed:')[1].split()[0].replace(',','').strip()
+                                except: interface_warning_data['Speed'] = str()
+
+                                multiplikator = 1
+                                if interface_warning_data.get('Speed') and 'Gbps' in interface_warning_data.get('Speed'): multiplikator = 1073741824
+                                if interface_warning_data.get('Speed') and 'Mbps' in interface_warning_data.get('Speed'): multiplikator = 1048576
+                                if interface_warning_data.get('txload'):
+                                    try: interface_warning_data['txload_percent'] = 100 * float(interface_warning_data.get('txload')) / (float(interface_warning_data.get('Speed').replace('Gbps','').replace('Mbps','')) * multiplikator)
+                                    except: pass
+                                if interface_warning_data.get('rxload'):
+                                    try: interface_warning_data['rxload_percent'] = 100 * float(interface_warning_data.get('rxload')) / (float(interface_warning_data.get('Speed').replace('Gbps','').replace('Mbps','')) * multiplikator)
+                                    except: pass
+
+                        ### WARNINGS ###
+                        try: interface_warning_data['Active_alarms'] = collect_if_config_rcmd_outputs[13].split('Active alarms  : ')[1].split()[0].strip()
+                        except: interface_warning_data['Active_alarms'] = str()
+
+                        try: interface_warning_data['Active_defects'] = collect_if_config_rcmd_outputs[13].split('Active defects : ')[1].split()[0].strip()
+                        except: interface_warning_data['Active_defects'] = str()
+
+                        try: interface_warning_data['Bit_errors'] = collect_if_config_rcmd_outputs[13].split('Bit errors ')[1].split()[0].strip()
+                        except: interface_warning_data['Bit_errors'] = str()
+
+                        try: interface_warning_data['Errored_blocks'] = collect_if_config_rcmd_outputs[13].split('Errored blocks ')[1].split()[0].strip()
+                        except: interface_warning_data['Errored_blocks'] = str()
+
+                        try: interface_warning_data['Ethernet_FEC_statistics'] = collect_if_config_rcmd_outputs[13].split('Ethernet FEC statistics ')[1].split()[0].strip()
+                        except: interface_warning_data['Ethernet_FEC_statistics'] = str()
+
+                        try: interface_warning_data['FEC_Corrected_Errors'] = collect_if_config_rcmd_outputs[13].split('FEC Corrected Errors ')[1].split()[0].strip()
+                        except: interface_warning_data['FEC_Corrected_Errors'] = str()
+
+                        try: interface_warning_data['FEC_Uncorrected_Errors'] = collect_if_config_rcmd_outputs[13].split('FEC Uncorrected Errors ')[1].split()[0].strip()
+                        except: interface_warning_data['FEC_Uncorrected_Errors'] = str()
+
+                        try: interface_warning_data['FEC_Corrected_Errors_Rate'] = collect_if_config_rcmd_outputs[13].split('FEC Corrected Errors Rate ')[1].split()[0].strip()
+                        except: interface_warning_data['FEC_Corrected_Errors_Rate'] = str()
+
+                        try: interface_warning_data['FEC_Uncorrected_Errors_Rate'] = collect_if_config_rcmd_outputs[13].split('FEC Uncorrected Errors Rate ')[1].split()[0].strip()
+                        except: interface_warning_data['FEC_Uncorrected_Errors_Rate'] = str()
+
+                    ### def HUAWEI 1st CMDS #######################################
+                    elif RCMD.router_type == 'huawei':
+                        try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[0]
+                        except: interface_data['ipv4_addr_loc'] = str()
+
+                        if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
+                            try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
+                            except: interface_data['ipv6_addr_loc'] = str()
+
+                        ### BANDWITH IS OPTIONABLE --> AVOID FROM VOID CHECK ######
+                        if not interface_data.get('bandwidth'):
+                            del interface_data['bandwidth']
+
+                        interface_data['isis ldp-sync'] = True if 'isis ldp-sync' in collect_if_config_rcmd_outputs[1] else str()
+
+                        try: interface_data['isis cost'] = collect_if_config_rcmd_outputs[1].split('isis cost ')[1].split()[0]
+                        except: interface_data['isis cost'] = str()
+
+                        if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
+                            try: interface_data['isis ipv6 cost'] = collect_if_config_rcmd_outputs[1].split('isis ipv6 cost ')[1].split()[0]
+                            except: interface_data['isis ipv6 cost'] = str()
+
+                        interface_data['mpls te'] = True if 'mpls te' in collect_if_config_rcmd_outputs[2] else str()
+                        interface_data['mpls ldp'] = True if 'mpls ldp' in collect_if_config_rcmd_outputs[3] else str()
+                        interface_data['mpls rsvp-te'] = True if 'mpls rsvp-te' in collect_if_config_rcmd_outputs[4] else str()
+
+                        try: interface_data['Line protocol current state'] = collect_if_config_rcmd_outputs[5].split('Line protocol current state :')[1].split()[0]
+                        except: interface_data['Line protocol current state'] = str()
+
+                        try: interface_data['isis interface IPV4.State'] = collect_if_config_rcmd_outputs[6].split(' Type')[1].split(' DIS')[1].split()[2]
+                        except: interface_data['isis interface IPV4.State'] = str()
+
+                        if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
+                            try: interface_data['isis interface IPV6.State'] = collect_if_config_rcmd_outputs[6].split(' Type')[1].split(' DIS')[1].split()[3]
+                            except: interface_data['isis interface IPV6.State'] = str()
+
+                        find_time = re.findall(r'[0-9]{2,4}\:[0-9]{2}\:[0-9]{2}', collect_if_config_rcmd_outputs[7].strip())
+                        if len(find_time) == 1: interface_data['Up time'] = find_time[0]
+                        else: interface_data['Up time'] = str()
+
+                        try: interface_data['isis ldp-sync'] = collect_if_config_rcmd_outputs[8].split('Sync State')[1].split(interface_id.upper().replace('GI','GE'))[1].split()[3].strip()
+                        except: interface_data['isis ldp-sync'] = str()
+
+                        try: interface_data['rsvp interface'] = collect_if_config_rcmd_outputs[9].split('Interface:')[1].split()[0]
+                        except: interface_data['rsvp interface'] = str()
+
+                        if not precheck_mode:
+                            ### BACKUP INTERFACES ###
+                            try:
+                                backup_if_list = []
+                                if interface_data.get('name_of_remote_device'):
+                                    for line in collect_if_config_rcmd_outputs[11].splitlines():
+                                        if '%s FROM %s' % (interface_data.get('name_of_remote_device',str()).upper(), device.upper()) in line.upper():
+                                            local_backup_interface = str(line.split()[0])
+                                            if not '100GE' in local_backup_interface: local_backup_interface = local_backup_interface.replace('GE','Gi')
+                                            if '(' in local_backup_interface: local_backup_interface = local_backup_interface.split('(')[0]
+                                            if ' TESTING ' in line or ' OLD ' in line: pass
+                                            else: backup_if_list.append(copy.deepcopy(local_backup_interface))
+                                interface_data['parallel_interfaces'] = copy.deepcopy(backup_if_list)
+                            except: interface_data['parallel_interfaces'] = []
+
+                            ### TRAFFIC ###
+                            if not precheck_mode:
+                                try: interface_warning_data['txload_percent'] = float(collect_if_config_rcmd_outputs[10].split('output utility rate:')[1].split()[0].replace('%','').strip())
+                                except: pass
+                                try: interface_warning_data['rxload_percent'] = float(collect_if_config_rcmd_outputs[10].split('input utility rate:')[1].split()[0].replace('%','').strip())
+                                except: pass
+
+                        ### WARNINGS ###
+                        try: interface_warning_data['Rx_Power_dBm'] = collect_if_config_rcmd_outputs[10].split('Rx Power: ')[1].split()[0].strip().replace(',','').replace('dBm','')
+                        except: interface_warning_data['Rx_Power_dBm'] = str()
+
+                        try: interface_warning_data['Tx_Power_dBm'] = collect_if_config_rcmd_outputs[10].split('Tx Power: ')[1].split()[0].strip().replace(',','').replace('dBm','')
+                        except: interface_warning_data['Tx_Power_dBm'] = str()
+
+                        try: interface_warning_data['Rx_Power_Warning_range_dBm_1'] = collect_if_config_rcmd_outputs[10].split('Rx Power: ')[1].split('Warning range: ')[1].\
+                                 splitlines()[0].strip().replace(',','').replace('dBm','').replace('[','').replace(']','').split()[0]
+                        except: interface_warning_data['Rx_Power_Warning_range_dBm_1'] = str()
+
+                        try: interface_warning_data['Rx_Power_Warning_range_dBm_2'] = collect_if_config_rcmd_outputs[10].split('Rx Power: ')[1].split('Warning range: ')[1].\
+                                 splitlines()[0].strip().replace(',','').replace('dBm','').replace('[','').replace(']','').split()[1]
+                        except: interface_warning_data['Rx_Power_Warning_range_dBm_2'] = str()
+
+                        try: interface_warning_data['Tx_Power_Warning_range_dBm_1'] = collect_if_config_rcmd_outputs[10].split('Tx Power: ')[1].split('Warning range: ')[1].\
+                                 splitlines()[0].strip().replace(',','').replace('dBm','').replace('[','').replace(']','').split()[0]
+                        except: interface_warning_data['Tx_Power_Warning_range_dBm_1'] = str()
+
+                        try: interface_warning_data['Tx_Power_Warning_range_dBm_2'] = collect_if_config_rcmd_outputs[10].split('Tx Power: ')[1].split('Warning range: ')[1].\
+                                 splitlines()[0].strip().replace(',','').replace('dBm','').replace('[','').replace(']','').split()[1]
+                        except: interface_warning_data['Tx_Power_Warning_range_dBm_2'] = str()
+
+                        try: interface_warning_data['CRC'] = collect_if_config_rcmd_outputs[10].split('CRC: ')[1].split()[0].strip()
+                        except: interface_warning_data['CRC'] = str()
+
+                        try: interface_warning_data['Overrun'] = collect_if_config_rcmd_outputs[10].split('Overrun: ')[1].split()[0].strip()
+                        except: interface_warning_data['Overrun'] = str()
+
+                        try: interface_warning_data['Lost'] = collect_if_config_rcmd_outputs[10].split('Lost: ')[1].split()[0].strip()
+                        except: interface_warning_data['Lost'] = str()
+
+                        try: interface_warning_data['Overflow'] = collect_if_config_rcmd_outputs[10].split('Overflow: ')[1].split()[0].strip()
+                        except: interface_warning_data['Overflow'] = str()
+
+                        try: interface_warning_data['Underrun'] = collect_if_config_rcmd_outputs[10].split('Underrun: ')[1].split()[0].strip()
+                        except: interface_warning_data['Underrun'] = str()
+
+                        try: interface_warning_data['Local_fault'] = collect_if_config_rcmd_outputs[10].split('Local fault: ')[1].split()[0].strip().replace('.','')
+                        except: interface_warning_data['Local_fault'] = str()
+
+                        try: interface_warning_data['Remote_fault'] = collect_if_config_rcmd_outputs[10].split('Remote fault: ')[1].split()[0].strip().replace('.','')
+                        except: interface_warning_data['Remote_fault'] = str()
+
+                    ### def COLLECT SECOND COMMAND LIST ###########################
                     if RCMD.router_type == 'juniper':
-                        try: interface_data['Up for'] = second_collect_if_config_rcmd_outputs[0].split('Up for ')[1].splitlines()[0].strip()
-                        except: interface_data['Up for'] = str()
+                        second_collect_if_data_rcmds = {
+                            'cisco_ios':[
+                            ],
+
+                            'cisco_xr':[
+                            ],
+
+                            'juniper': [
+                                'show ldp neighbor %s extensive' % (interface_data.get('ldp_neighbor_ip',str()))
+                            ],
+
+                            'huawei': [
+                            ]
+                        }
+
+                        second_collect_if_config_rcmd_outputs = RCMD.run_commands(second_collect_if_data_rcmds, \
+                            autoconfirm_mode = True, \
+                            printall = printall)
+
+                        if RCMD.router_type == 'juniper':
+                            try: interface_data['Up for'] = second_collect_if_config_rcmd_outputs[0].split('Up for ')[1].splitlines()[0].strip()
+                            except: interface_data['Up for'] = str()
 
 
                 ### def CALCULATE REMOTE IP ADDRESES: THE OTHER IP IN NETWORK #
@@ -3993,7 +4053,7 @@ authentication {
                                         else: CGI_CLI.logtofile("Ipv6 L2 Metric (%s) check on Interface %s = OK\n" % (ipv6_L2_metric, parallel_interface))
 
 
-                    if not PING_ONLY: 
+                    if not PING_ONLY:
                         ### TRAFFIC CHECK #############################################
                         low_percent = 3
                         high_percent = 90
