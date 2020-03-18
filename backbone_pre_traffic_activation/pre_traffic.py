@@ -3633,7 +3633,7 @@ authentication {
                     else: mtu_size = 4470
                 else: mtu_size = int(interface_data.get('mtu'))
 
-                ### def PINGv4 COMMAND LIST ###################################
+                ### def FIRST PINGv4 COMMAND LIST ###################################
                 if interface_data.get('ipv4_addr_rem',str()):
                     ping4_config_rcmds = {
                         'cisco_ios':[
@@ -3678,7 +3678,7 @@ authentication {
                         try: interface_warning_data['ping_v4_mtu_percent_success'] = str(100 - float(ping4_config_rcmds_outputs[1].split('% packet loss')[0].splitlines()[-1].strip()))
                         except: interface_warning_data['ping_v4_mtu_percent_success'] = str()
 
-                ### def PINGv6 COMMAND LIST ###################################
+                ### def FIRST PINGv6 COMMAND LIST ###################################
                 if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
                     if interface_data.get('ipv6_addr_rem',str()):
                         ping6_config_rcmds = {
@@ -3744,7 +3744,7 @@ authentication {
                                 ],
 
                                 'cisco_xr':[
-                                    'ping %s' % (interface_data.get('ipv4_addr_rem',str())),
+                                    'ping %s count %s' % (interface_data.get('ipv4_addr_rem',str()), ping_counts),
                                 ],
 
                                 'juniper': [
@@ -3858,7 +3858,7 @@ authentication {
                                         'ping ipv6 %s size %s count %s' % (interface_data.get('ipv6_addr_rem',str()), str(mtu_size), ping_counts)
                                     ],
                                     'cisco_xr':[
-                                        'ping ipv6 %s size %s' % (interface_data.get('ipv6_addr_rem',str()), str(mtu_size - 14))
+                                        'ping ipv6 %s size %s count %s' % (interface_data.get('ipv6_addr_rem',str()), str(mtu_size - 14), ping_counts)
                                     ],
 
                                     'juniper': [
@@ -3905,7 +3905,6 @@ authentication {
                     parrallel_interfaces_outputs = RCMD.run_commands(parrallel_interfaces_rcmds, \
                         autoconfirm_mode = True, \
                         printall = printall)
-
 
 
                 ### def INCREMENTAL ERROR CHECK AFTER PINGS ###############
