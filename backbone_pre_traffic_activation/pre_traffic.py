@@ -3915,7 +3915,7 @@ authentication {
 
 
                 CGI_CLI.uprint('CHECKS:', timestamp = 'no', tag = 'h3')
-                if not precheck_mode:
+                if not PING_ONLY and not precheck_mode:
                     if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr' and not interface_data.get('ipv4_metric') \
                         or RCMD.router_type == 'juniper' and not interface_data.get('metric') \
                         or RCMD.router_type == 'huawei' and not interface_data.get('isis cost'):
@@ -3993,32 +3993,33 @@ authentication {
                                         else: CGI_CLI.logtofile("Ipv6 L2 Metric (%s) check on Interface %s = OK\n" % (ipv6_L2_metric, parallel_interface))
 
 
-                    ### TRAFFIC CHECK #############################################
-                    low_percent = 3
-                    high_percent = 90
-                    if isinstance(interface_warning_data.get('txload_percent'), (str,basestring,six.string_types)):
-                        CGI_CLI.uprint('Tx Traffic on Interface %s not found !' % (interface_id), color = 'red')
-                        check_interface_result_ok = False
-                    elif interface_warning_data.get('txload_percent') >= 0:
-                        if interface_warning_data.get('txload_percent') < low_percent:
-                            check_warning_interface_result_ok = False
-                            CGI_CLI.uprint('Tx Traffic (%.2f%%) on Interface %s is below %d%%. = WARNING' % (interface_warning_data.get('txload_percent'), interface_id, low_percent), color = 'orange')
-                        elif interface_warning_data.get('txload_percent') > high_percent:
-                            CGI_CLI.uprint('Tx Traffic (%.2f%%) on Interface %s is over %d%%. = WARNING' % (interface_warning_data.get('txload_percent'), interface_id, high_percent), color = 'orange')
-                            check_warning_interface_result_ok = False
-                        else: CGI_CLI.logtofile('Tx Traffic on Interface %s is %.2f%% = OK\n' % (interface_id, interface_warning_data.get('txload_percent')))
+                    if not PING_ONLY: 
+                        ### TRAFFIC CHECK #############################################
+                        low_percent = 3
+                        high_percent = 90
+                        if isinstance(interface_warning_data.get('txload_percent'), (str,basestring,six.string_types)):
+                            CGI_CLI.uprint('Tx Traffic on Interface %s not found !' % (interface_id), color = 'red')
+                            check_interface_result_ok = False
+                        elif interface_warning_data.get('txload_percent') >= 0:
+                            if interface_warning_data.get('txload_percent') < low_percent:
+                                check_warning_interface_result_ok = False
+                                CGI_CLI.uprint('Tx Traffic (%.2f%%) on Interface %s is below %d%%. = WARNING' % (interface_warning_data.get('txload_percent'), interface_id, low_percent), color = 'orange')
+                            elif interface_warning_data.get('txload_percent') > high_percent:
+                                CGI_CLI.uprint('Tx Traffic (%.2f%%) on Interface %s is over %d%%. = WARNING' % (interface_warning_data.get('txload_percent'), interface_id, high_percent), color = 'orange')
+                                check_warning_interface_result_ok = False
+                            else: CGI_CLI.logtofile('Tx Traffic on Interface %s is %.2f%% = OK\n' % (interface_id, interface_warning_data.get('txload_percent')))
 
-                    if isinstance(interface_warning_data.get('rxload_percent'), (str,basestring,six.string_types)):
-                        CGI_CLI.uprint('Rx Traffic on Interface %s not found !' % (interface_id), color = 'red')
-                        check_interface_result_ok = False
-                    elif interface_warning_data.get('rxload_percent') >= 0:
-                        if interface_warning_data.get('rxload_percent') < low_percent:
-                            CGI_CLI.uprint('Rx Traffic (%.2f%%) on Interface %s is below %d%%. = WARNING' % (interface_warning_data.get('rxload_percent'), interface_id, low_percent), color = 'orange')
-                            check_warning_interface_result_ok = False
-                        elif interface_warning_data.get('rxload_percent') > high_percent:
-                            CGI_CLI.uprint('Rx Traffic (%.2f%%) on Interface %s is over %d%%. = WARNING' % (interface_warning_data.get('rxload_percent'), interface_id, high_percent), color = 'orange')
-                            check_warning_interface_result_ok = False
-                        else: CGI_CLI.logtofile('Rx Traffic on Interface %s is %.2f%% = OK\n' % (interface_id, interface_warning_data.get('rxload_percent')))
+                        if isinstance(interface_warning_data.get('rxload_percent'), (str,basestring,six.string_types)):
+                            CGI_CLI.uprint('Rx Traffic on Interface %s not found !' % (interface_id), color = 'red')
+                            check_interface_result_ok = False
+                        elif interface_warning_data.get('rxload_percent') >= 0:
+                            if interface_warning_data.get('rxload_percent') < low_percent:
+                                CGI_CLI.uprint('Rx Traffic (%.2f%%) on Interface %s is below %d%%. = WARNING' % (interface_warning_data.get('rxload_percent'), interface_id, low_percent), color = 'orange')
+                                check_warning_interface_result_ok = False
+                            elif interface_warning_data.get('rxload_percent') > high_percent:
+                                CGI_CLI.uprint('Rx Traffic (%.2f%%) on Interface %s is over %d%%. = WARNING' % (interface_warning_data.get('rxload_percent'), interface_id, high_percent), color = 'orange')
+                                check_warning_interface_result_ok = False
+                            else: CGI_CLI.logtofile('Rx Traffic on Interface %s is %.2f%% = OK\n' % (interface_id, interface_warning_data.get('rxload_percent')))
 
 
                 ### def CONTENT ELEMENT CHECK #################################
@@ -4040,18 +4041,19 @@ authentication {
                         check_interface_data_content('ping_v6_mtu_percent_success_%spings' % (ping_counts), '100', warning = True)
 
                 if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
-                    check_interface_data_content('line protocol is', 'UP')
+                    if not PING_ONLY:
+                        check_interface_data_content('line protocol is', 'UP')
 
-                    if precheck_mode:
-                        check_interface_data_content('ipv4_metric', '99999')
+                        if precheck_mode:
+                            check_interface_data_content('ipv4_metric', '99999')
 
-                        if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
-                            check_interface_data_content('ipv6_metric', '99999')
-                    else:
-                        check_interface_data_content('ipv4_metric', None, '99999')
+                            if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
+                                check_interface_data_content('ipv6_metric', '99999')
+                        else:
+                            check_interface_data_content('ipv4_metric', None, '99999')
 
-                        if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
-                            check_interface_data_content('ipv6_metric', None, '99999')
+                            if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
+                                check_interface_data_content('ipv6_metric', None, '99999')
 
                     if ping_counts and int(ping_counts) > 0:
                         check_interface_data_content('input_errors_Difference', exact_value_yes = '0', warning = True)
@@ -4063,17 +4065,18 @@ authentication {
                         check_interface_data_content('output_errors', exact_value_yes = '0', warning = True)
 
                 elif RCMD.router_type == 'juniper':
-                    check_interface_data_content('Flags', 'UP')
-                    check_interface_data_content('Physical link is', 'UP')
-                    check_interface_data_content('LDP sync state', 'in sync')
+                    if not PING_ONLY:
+                        check_interface_data_content('Flags', 'UP')
+                        check_interface_data_content('Physical link is', 'UP')
+                        check_interface_data_content('LDP sync state', 'in sync')
 
-                    if precheck_mode:
-                        check_interface_data_content('metric', '99999')
-                    else:
-                        check_interface_data_content('metric', None,  '99999')
+                        if precheck_mode:
+                            check_interface_data_content('metric', '99999')
+                        else:
+                            check_interface_data_content('metric', None,  '99999')
 
-                    check_interface_data_content('Active_alarms', 'None', warning = True)
-                    check_interface_data_content('Active_defects', 'None', warning = True)
+                        check_interface_data_content('Active_alarms', 'None', warning = True)
+                        check_interface_data_content('Active_defects', 'None', warning = True)
 
                     if ping_counts and int(ping_counts) > 0:
                         check_interface_data_content('Active_alarms_After_ping', 'None', warning = True)
@@ -4087,26 +4090,27 @@ authentication {
                         check_interface_data_content('FEC_Uncorrected_Errors_Rate_Difference', exact_value_yes = '0', warning = True)
 
                 elif RCMD.router_type == 'huawei':
-                    check_interface_data_content('isis ldp-sync', 'Achieved')
-                    check_interface_data_content('Line protocol current state', 'UP')
-                    check_interface_data_content('isis interface IPV4.State', 'UP')
-
-                    if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
-                        check_interface_data_content('isis interface IPV6.State', 'UP')
-
-                    if precheck_mode:
-                        check_interface_data_content('isis cost', '99999')
+                    if not PING_ONLY:
+                        check_interface_data_content('isis ldp-sync', 'Achieved')
+                        check_interface_data_content('Line protocol current state', 'UP')
+                        check_interface_data_content('isis interface IPV4.State', 'UP')
 
                         if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
-                            check_interface_data_content('isis ipv6 cost', '99999')
-                    else:
-                        check_interface_data_content('isis cost', None, '99999')
+                            check_interface_data_content('isis interface IPV6.State', 'UP')
 
-                        if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
-                            check_interface_data_content('isis ipv6 cost', None, '99999')
+                        if precheck_mode:
+                            check_interface_data_content('isis cost', '99999')
 
-                    check_interface_data_content('Local_fault', 'NORMAL', warning = True)
-                    check_interface_data_content('Remote_fault', 'NORMAL', warning = True)
+                            if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
+                                check_interface_data_content('isis ipv6 cost', '99999')
+                        else:
+                            check_interface_data_content('isis cost', None, '99999')
+
+                            if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
+                                check_interface_data_content('isis ipv6 cost', None, '99999')
+
+                        check_interface_data_content('Local_fault', 'NORMAL', warning = True)
+                        check_interface_data_content('Remote_fault', 'NORMAL', warning = True)
 
                     if ping_counts and int(ping_counts) > 0:
                         check_interface_data_content('Local_fault_After_ping', 'NORMAL', warning = True)
