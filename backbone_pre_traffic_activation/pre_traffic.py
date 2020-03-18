@@ -3748,7 +3748,7 @@ authentication {
                                 ],
 
                                 'juniper': [
-                                    'ping %s count %s' % (interface_data.get('ipv4_addr_rem',str()), ping_counts),
+                                    'ping %s rapid count %s' % (interface_data.get('ipv4_addr_rem',str()), ping_counts),
                                 ],
 
                                 'huawei': [
@@ -3786,7 +3786,7 @@ authentication {
                                 ],
 
                                 'juniper': [
-                                    'ping %s count %s size %s' % (interface_data.get('ipv4_addr_rem',str()), ping_counts, str(mtu_size - 42))
+                                    'ping %s rapid count %s size %s' % (interface_data.get('ipv4_addr_rem',str()), ping_counts, str(mtu_size - 42))
                                 ],
 
                                 'huawei': [
@@ -3825,7 +3825,7 @@ authentication {
                                     ],
 
                                     'juniper': [
-                                        'ping inet6 %s count %s' % (interface_data.get('ipv6_addr_rem',str()), ping_counts),
+                                        'ping inet6 %s rapid count %s' % (interface_data.get('ipv6_addr_rem',str()), ping_counts),
                                     ],
 
                                     'huawei': [
@@ -3862,7 +3862,7 @@ authentication {
                                     ],
 
                                     'juniper': [
-                                        'ping inet6 %s count %s size %s' % (interface_data.get('ipv6_addr_rem',str()), ping_counts, str(mtu_size - 42)),
+                                        'ping inet6 %s rapid count %s size %s' % (interface_data.get('ipv6_addr_rem',str()), ping_counts, str(mtu_size - 42)),
                                     ],
 
                                     'huawei': [
