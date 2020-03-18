@@ -617,6 +617,12 @@ class CGI_CLI(object):
                 CGI_CLI.print_chunk('<p id="scriptend"></p>', raw_log = True, printall = True)
                 CGI_CLI.print_chunk('<br/><a href = "./%s">PAGE RELOAD</a>' % (pyfile), raw_log = True, printall = True)
 
+    @staticmethod
+    def get_scriptname():
+        i_pyfile = sys.argv[0]
+        try: pyfile = i_pyfile.replace('\\','/').split('/')[-1].strip()
+        except: pyfile = i_pyfile.strip()
+        return pyfile
 
     @staticmethod
     def VERSION(path_to_file = str(os.path.abspath(__file__))):
@@ -1134,7 +1140,7 @@ class RCMD(object):
             else: CGI_CLI.logtofile('REMOTE_COMMAND' + sim_mark + ': ' + \
                       cmd_line + '\n' + last_output + '\n')
 
-        return last_output
+        return str(last_output)
 
     @staticmethod
     def run_commands(cmd_data = None, printall = None, conf = None, sim_config = None, \
@@ -1694,8 +1700,8 @@ class LCMD(object):
                 CGI_CLI.logtofile('\n<pre>' + \
                     CGI_CLI.html_escape(os_output, pre_tag = True) + \
                     '\n</pre>\n', raw_log = True)
-            else: CGI_CLI.logtofile(os_output + '\n')
-        return os_output
+            else: CGI_CLI.logtofile(str(os_output) + '\n')
+        return str(os_output)
 
     @staticmethod
     def run_paralel_commands(cmd_data = None, printall = None, \
@@ -2208,128 +2214,6 @@ def generate_logfilename(prefix = None, USERNAME = None, suffix = None, \
         filenamewithpath = str(os.path.join(LOGDIR,filename))
     return filenamewithpath
 
-##############################################################################
-
-def send_me_email(subject = str(), email_body = str(), file_name = None, attachments = None, \
-    email_address = None, cc = None, bcc = None, username = None):
-    """
-    FUCTION: send_me_email, RETURNS: True/None, Successfully send email or not
-    INPUT PARAMETERS:
-    email_address - string, email address if is known, otherwise use username parameter
-    username    - string, system username from which could be generated email
-    subject     - string, email subject
-    email_body  - string, email body
-    cc, bcc     - list or string, in case of list possibility to insert more email addresses
-    attachments - list or string , possibility to attach more files
-    file_name   - string, simple file attachment option
-    """
-    def send_unix_email_body(mail_command):
-        email_success = None
-        try:
-            forget_it = subprocess.check_output(mail_command, shell=True)
-            CGI_CLI.uprint(' ==> Email sent. Subject:"%s" SentTo:%s by COMMAND=[%s] with RESULT=[%s]...'\
-                %(subject,sugested_email_address,mail_command,forget_it), color = 'green')
-            email_success = True
-        except Exception as e:
-            CGI_CLI.uprint(" ==> Problem to send email by COMMAND=[%s], PROBLEM=[%s]\n"\
-                % (mail_command,str(e)) ,color = 'magenta', no_printall = not printall)
-        return email_success
-
-    ### FUCTION send_me_email START ###########################################
-    email_sent, sugested_email_address = None, str()
-    if username: my_account = username
-    else: my_account = subprocess.check_output('whoami', shell=True).strip()
-    if email_address: sugested_email_address = email_address
-    if not 'WIN32' in sys.platform.upper():
-        try:
-            ldapsearch_output = subprocess.check_output('ldapsearch -LLL -x uid=%s mail' % (my_account), shell=True)
-            ldap_email_address = ldapsearch_output.decode("utf-8").split('mail:')[1].splitlines()[0].strip()
-        except: ldap_email_address = None
-        if ldap_email_address: sugested_email_address = ldap_email_address
-        else:
-            try: sugested_email_address = os.environ['NEWR_EMAIL']
-            except: pass
-            if not sugested_email_address:
-                try:
-                    my_getent_line = ' '.join((subprocess.check_output('getent passwd "%s"'% \
-                        (my_account.strip()), shell=True)).split(':')[4].split()[:2])
-                    my_name = my_getent_line.splitlines()[0].split()[0]
-                    my_surname = my_getent_line.splitlines()[0].split()[1]
-                    if my_name and my_surname:
-                        sugested_email_address = '%s.%s@orange.com' % (my_name, my_surname)
-                except: pass
-
-        ### UNIX - MAILX ######################################################
-        mail_command = 'echo \'%s\' | mailx -s "%s" ' % (email_body,subject)
-        if cc:
-            if isinstance(cc, six.string_types): mail_command += '-c %s' % (cc)
-            if cc and isinstance(cc, (list,tuple)): mail_command += ''.join([ '-c %s ' % (bcc_email) for bcc_email in bcc ])
-        if bcc:
-            if isinstance(bcc, six.string_types): mail_command += '-b %s' % (bcc)
-            if bcc and isinstance(bcc, (list,tuple)): mail_command += ''.join([ '-b %s ' % (bcc_email) for bcc_email in bcc ])
-        if file_name and isinstance(file_name, six.string_types) and os.path.exists(file_name):
-            mail_command += '-a %s ' % (file_name)
-        if attachments:
-            if isinstance(attachments, (list,tuple)):
-                mail_command += ''.join([ '-a %s ' % (attach_file) for attach_file in attachments if os.path.exists(attach_file) ])
-            if isinstance(attachments, six.string_types) and os.path.exists(attachments):
-                mail_command += '-a %s ' % (attachments)
-
-        ### IF EMAIL ADDRESS FOUND , SEND EMAIL ###############################
-        if not sugested_email_address:
-            CGI_CLI.uprint('Email Address not found!', color = 'magenta', no_printall = not printall)
-        else:
-            mail_command += '%s' % (sugested_email_address)
-            email_sent = send_unix_email_body(mail_command)
-
-            ### UNIX - MUTT ###################################################
-            if not email_sent and file_name:
-                mail_command = 'echo | mutt -s "%s" -a %s -- %s' % \
-                    (subject, file_name, sugested_email_address)
-                email_sent = send_unix_email_body(mail_command)
-
-
-    ### WINDOWS OS PART #######################################################
-    if 'WIN32' in sys.platform.upper():
-        ### NEEDED 'pip install pywin32'
-        #if not 'win32com.client' in sys.modules: import win32com.client
-        import win32com.client
-        olMailItem, email_application = 0, 'Outlook.Application'
-        try:
-            ol = win32com.client.Dispatch(email_application)
-            msg = ol.CreateItem(olMailItem)
-            if email_address:
-                msg.Subject, msg.Body = subject, email_body
-                if email_address:
-                    if isinstance(email_address, six.string_types): msg.To = email_address
-                    if email_address and isinstance(email_address, (list,tuple)):
-                        msg.To = ';'.join([ eadress for eadress in email_address if eadress != "" ])
-                if cc:
-                    if isinstance(cc, six.string_types): msg.CC = cc
-                    if cc and isinstance(cc, (list,tuple)):
-                        msg.CC = ';'.join([ eadress for eadress in cc if eadress != "" ])
-                if bcc:
-                    if isinstance(bcc, six.string_types): msg.BCC = bcc
-                    if bcc and isinstance(bcc, (list,tuple)):
-                        msg.BCC = ';'.join([ eadress for eadress in bcc if eadress != "" ])
-                if file_name and isinstance(file_name, six.string_types) and os.path.exists(file_name):
-                    msg.Attachments.Add(file_name)
-                if attachments:
-                    if isinstance(attachments, (list,tuple)):
-                        for attach_file in attachments:
-                            if os.path.exists(attach_file): msg.Attachments.Add(attach_file)
-                    if isinstance(attachments, six.string_types) and os.path.exists(attachments):
-                        msg.Attachments.Add(attachments)
-
-            msg.Send()
-            ol.Quit()
-            CGI_CLI.uprint(' ==> Email sent. Subject:"%s" SentTo:%s by APPLICATION=[%s].'\
-                %(subject,sugested_email_address,email_application), color = 'green')
-            email_sent = True
-        except Exception as e: CGI_CLI.uprint(" ==> Problem to send email by APPLICATION=[%s], PROBLEM=[%s]\n"\
-                % (email_application,str(e)) ,color = 'magenta')
-    return email_sent
-
 ###############################################################################
 
 def get_interface_list_per_device(device = None, action_type = None):
@@ -2626,14 +2510,21 @@ authentication {
     ping_counts = '0'
     OTI_LOCAL_AS = '5511'
     IMN_LOCAL_AS = '2300'
+    chunked_mode = None
 
     ### GCI_CLI INIT ##########################################################
-    USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = None, css_style = CSS_STYLE)
+    PING_ONLY = True if 'ping_only' in CGI_CLI.get_scriptname() else False
+
+    if PING_ONLY:
+        ping_counts = '1000'
+        chunked_mode = True
+
+    USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = chunked_mode, css_style = CSS_STYLE)
     LCMD.init()
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
     printall = CGI_CLI.data.get("printall")
+
     ping_counts = CGI_CLI.data.get("ping_counts",str(ping_counts))
-    #printall = True
 
     if CGI_CLI.data.get("test-version",str()) == 'test-mode' \
         or CGI_CLI.data.get("test-version",str()) == 'test mode':
@@ -2741,7 +2632,12 @@ authentication {
 
     ### START PRINTING AND LOGGING ############################################
     changelog = 'https://github.com/peteneme/pyxWorks/commits/master/backbone_pre_traffic_activation/pre_traffic.py'
-    SCRIPT_NAME = 'Interface (Backbone/Custom) pre traffic activation check'
+
+    if PING_ONLY:
+        SCRIPT_NAME = 'Interface pre traffic ping check'
+    else:
+        SCRIPT_NAME = 'Interface (Backbone/Custom) pre traffic activation check'
+
     if CGI_CLI.cgi_active:
         CGI_CLI.uprint('<h1 style="color:blue;">%s <a href="%s" style="text-decoration: none">(v.%s)</a></h1>' % \
             (SCRIPT_NAME, changelog, CGI_CLI.VERSION()), raw = True)
@@ -2762,7 +2658,7 @@ authentication {
         swan_id = CGI_CLI.data.get('swan-id')
 
     ### SIGN BUTTON ###########################################################
-    if swan_id and (CGI_CLI.data.get('submit',str()) == 'Sign precheck' \
+    if not PING_ONLY and swan_id and (CGI_CLI.data.get('submit',str()) == 'Sign precheck' \
         or CGI_CLI.data.get('submit',str()) == 'Sign postcheck'):
 
         for device, interface_list in device_interface_id_list:
@@ -2804,12 +2700,13 @@ authentication {
 
 
     ### MAKE SQL TABLE RECORD ONLY AND EXIT ###################################
-    if (swan_id and CGI_CLI.data.get('submit',str()) == 'SUBMIT+STEP+2') \
+    if not PING_ONLY and ( \
+        (swan_id and CGI_CLI.data.get('submit',str()) == 'SUBMIT+STEP+2') \
         or (swan_id \
         and not (CGI_CLI.data.get('submit-type',str()) == 'submit-with-precheck' \
         or CGI_CLI.data.get('submit-type',str()) == 'submit-with-precheck' \
         or CGI_CLI.data.get('submit',str()) == 'Run precheck' \
-        or CGI_CLI.data.get('submit',str()) == 'Run postcheck')):
+        or CGI_CLI.data.get('submit',str()) == 'Run postcheck'))):
 
         ### TEST IF SWAN ALREADY RECORD EXISTS ########################
         sql_read_data = sql_inst.sql_read_records_to_dict_list( \
@@ -2947,14 +2844,23 @@ authentication {
                 interface_menu_list.append('<br/>')
                 interface_menu_list.append({'password':'password'})
                 interface_menu_list.append('<br/>')
+                interface_menu_list.append('<br/>')
+                interface_menu_list.append('<br/>')
+
+            if not PING_ONLY:
+                interface_menu_list.append({'radio':['precheck','postcheck']})
+                interface_menu_list.append('<br/>')
+                interface_menu_list.append('<br/>')
+                interface_menu_list.append({'text':'swan_id'})
+                interface_menu_list.append({'checkbox':'reinit_swan_id'})
+                interface_menu_list.append('<br/>')
+                interface_menu_list.append('<br/>')
+                interface_menu_list.append('Additional ping_counts = %s' % (ping_counts))
+            else:
+                interface_menu_list.append('Default ping_counts = %s' % (ping_counts))
 
             CGI_CLI.formprint( interface_menu_list + \
-                ['<br/>','<br/>',\
-                {'radio':['precheck','postcheck']},'<br/>','<br/>',\
-                {'text':'swan_id'},\
-                {'checkbox':'reinit_swan_id'},'<br/>','<br/>',\
-                'Additional ping_counts=%s.' % (ping_counts),\
-                '<br/>',{'text':'ping_counts'},'<br/>',\
+                ['<br/>',{'text':'ping_counts'},'<br/>',\
                 {'checkbox':'timestamps'}, '<br/>',\
                 {'checkbox':'send_email'},'<br/>',\
                 {'checkbox':'chunked_mode'},'<br/>',\
@@ -3060,46 +2966,47 @@ authentication {
                     no_newlines = None if printall else True)
 
 
-                ### LOCAL AS NUMBER COMMANDS ##################################
-                collector_cmds = {
-                    'cisco_ios':['show bgp summary',
-                                 'show bgp vpnv4 unicast summary',
-                                ],
+                if not PING_ONLY:
+                    ### LOCAL AS NUMBER COMMANDS ##################################
+                    collector_cmds = {
+                        'cisco_ios':['show bgp summary',
+                                     'show bgp vpnv4 unicast summary',
+                                    ],
 
-                    'cisco_xr': ['show bgp summary',
-                                 'show bgp vpnv4 unicast summary',
-                                ],
+                        'cisco_xr': ['show bgp summary',
+                                     'show bgp vpnv4 unicast summary',
+                                    ],
 
-                    'juniper':  ['show bgp neighbor | match "Group:|Peer:" | except "NLRI|Restart"',
-                                ],
+                        'juniper':  ['show bgp neighbor | match "Group:|Peer:" | except "NLRI|Restart"',
+                                    ],
 
-                    'huawei':   ['display bgp peer',
-                                 'disp bgp vpnv4 all peer',
-                                ]
-                }
+                        'huawei':   ['display bgp peer',
+                                     'disp bgp vpnv4 all peer',
+                                    ]
+                    }
 
-                ### RUN START COLLETING OF DATA ###
-                rcmd_outputs = RCMD.run_commands(collector_cmds, \
-                    autoconfirm_mode = True, \
-                    printall = printall)
+                    ### RUN START COLLETING OF DATA ###
+                    rcmd_outputs = RCMD.run_commands(collector_cmds, \
+                        autoconfirm_mode = True, \
+                        printall = printall)
 
-                ### FIND LOCAL AS NUMBER ###
-                LOCAL_AS_NUMBER = None
-                if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
-                    try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("local AS number")[1].splitlines()[0].strip()
-                    except: pass
-                    if not LOCAL_AS_NUMBER:
-                        try: LOCAL_AS_NUMBER = rcmd_outputs[1].split("local AS number")[1].splitlines()[0].strip()
+                    ### FIND LOCAL AS NUMBER ###
+                    LOCAL_AS_NUMBER = None
+                    if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
+                        try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("local AS number")[1].splitlines()[0].strip()
                         except: pass
-                elif RCMD.router_type == 'juniper':
-                    try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("Local:")[1].splitlines()[0].split('AS')[1].strip()
-                    except: pass
-                elif RCMD.router_type == 'huawei':
-                    try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("Local AS number :")[1].splitlines()[0].strip()
-                    except: pass
-                    if not LOCAL_AS_NUMBER:
-                        try: LOCAL_AS_NUMBER = rcmd_outputs[1].split("Local AS number :")[1].splitlines()[0].strip()
+                        if not LOCAL_AS_NUMBER:
+                            try: LOCAL_AS_NUMBER = rcmd_outputs[1].split("local AS number")[1].splitlines()[0].strip()
+                            except: pass
+                    elif RCMD.router_type == 'juniper':
+                        try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("Local:")[1].splitlines()[0].split('AS')[1].strip()
                         except: pass
+                    elif RCMD.router_type == 'huawei':
+                        try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("Local AS number :")[1].splitlines()[0].strip()
+                        except: pass
+                        if not LOCAL_AS_NUMBER:
+                            try: LOCAL_AS_NUMBER = rcmd_outputs[1].split("Local AS number :")[1].splitlines()[0].strip()
+                            except: pass
 
                 ### def COLLECT COMMAND LIST ##################################
                 collect_if_data_rcmds = {
@@ -4381,7 +4288,7 @@ except:
 
 if global_logfilename and CGI_CLI.data.get("send_email"):
     ### SEND EMAIL WITH LOGFILE ###############################################
-    send_me_email( \
+    CGI_CLI.send_me_email( \
         subject = str(global_logfilename).replace('\\','/').split('/')[-1] if global_logfilename else None, \
         file_name = str(global_logfilename), username = USERNAME)
 
@@ -4393,7 +4300,7 @@ if global_logfilename and CGI_CLI.data.get("send_email"):
 
 ### def SEND EMAIL WITH ERROR/TRACEBACK LOGFILE TO SUPPORT ####################
 if traceback_found:
-    send_me_email( \
+    CGI_CLI.send_me_email( \
         subject = 'TRACEBACK-PRE_TRAFFIC-' + global_logfilename.replace('\\','/').\
         split('/')[-1] if global_logfilename else str(),
         email_body = str(traceback_found),\
