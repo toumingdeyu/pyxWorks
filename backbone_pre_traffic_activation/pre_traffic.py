@@ -273,10 +273,10 @@ class CGI_CLI(object):
         set_logfile(logfilename) - uses inserted logfilename
         NOTE: Add html footer to logfile if exists, Add html header to logfile
         """
-        CGI_CLI.logtofile(end_log = True)
+        CGI_CLI.logtofile(end_log = True, ommit_timestamp = True)
         CGI_CLI.logfilename = logfilename
         time.sleep(0.1)
-        CGI_CLI.logtofile(start_log = True)
+        CGI_CLI.logtofile(start_log = True, ommit_timestamp = True)
 
     @staticmethod
     def logtofile(msg = None, raw_log = None, start_log = None, end_log = None, \
@@ -1702,8 +1702,8 @@ class LCMD(object):
             if CGI_CLI.cgi_active:
                 CGI_CLI.logtofile('\n<pre>' + \
                     CGI_CLI.html_escape(os_output, pre_tag = True) + \
-                    '\n</pre>\n', raw_log = True)
-            else: CGI_CLI.logtofile(str(os_output) + '\n')
+                    '\n</pre>\n', raw_log = True, ommit_timestamp = True)
+            else: CGI_CLI.logtofile(str(os_output) + '\n', ommit_timestamp = True)
         return str(os_output)
 
     @staticmethod
@@ -1818,8 +1818,8 @@ class LCMD(object):
                     if CGI_CLI.cgi_active:
                         CGI_CLI.logtofile('\n<pre>' + \
                             CGI_CLI.html_escape(os_output, pre_tag = True) + \
-                            '\n</pre>\n', raw_log = True)
-                    else: CGI_CLI.logtofile(os_output + '\n')
+                            '\n</pre>\n', raw_log = True, ommit_timestamp = True)
+                    else: CGI_CLI.logtofile(os_output + '\n', ommit_timestamp = True)
                 os_outputs.append(os_output)
         return os_outputs
 
@@ -2378,7 +2378,7 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
     if lower_than and where:
         try:
             if float(where_value) <= float(lower_than):
-                CGI_CLI.logtofile("CHECK['%s' < '%.2f'] = OK\n" % (where, float(lower_than)))
+                CGI_CLI.logtofile("CHECK['%s' < '%.2f'] = OK\n" % (where, float(lower_than)), ommit_timestamp = True)
             else:
                 if warning:
                     check_warning_interface_result_ok = False
@@ -2386,12 +2386,12 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
                 else:
                     check_interface_result_ok = False
                     CGI_CLI.uprint("CHECK['%s' > '%.2f'] = NOT OK\n" % (where, float(lower_than)), color = 'red', timestamp = 'no')
-        except: CGI_CLI.logtofile("CHECK['%s' < '%s'] = NaN\n" % (where, str(lower_than)))
+        except: CGI_CLI.logtofile("CHECK['%s' < '%s'] = NaN\n" % (where, str(lower_than)), ommit_timestamp = True)
 
     if higher_than and where:
         try:
             if float(where_value) >= float(higher_than):
-                CGI_CLI.logtofile("CHECK['%s' > '%.2f'] = OK\n" % (where, float(higher_than)))
+                CGI_CLI.logtofile("CHECK['%s' > '%.2f'] = OK\n" % (where, float(higher_than)), ommit_timestamp = True)
             else:
                 if warning:
                     check_warning_interface_result_ok = False
@@ -2399,11 +2399,11 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
                 else:
                     check_interface_result_ok = False
                     CGI_CLI.uprint("CHECK['%s' < '%.2f'] = NOT OK\n" % (where, float(higher_than)), color = 'red', timestamp = 'no')
-        except: CGI_CLI.logtofile("CHECK['%s' > '%s'] = NaN\n" % (where, str(higher_than)))
+        except: CGI_CLI.logtofile("CHECK['%s' > '%s'] = NaN\n" % (where, str(higher_than)), ommit_timestamp = True)
 
     if exact_value_yes and where:
         if exact_value_yes.upper() == where_value.upper():
-            CGI_CLI.logtofile("CHECK['%s' == '%s'] = OK\n" % (exact_value_yes, where))
+            CGI_CLI.logtofile("CHECK['%s' == '%s'] = OK\n" % (exact_value_yes, where), ommit_timestamp = True)
         else:
             if warning:
                 check_warning_interface_result_ok = False
@@ -2416,7 +2416,7 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
 
     if what_yes_in and where:
         if what_yes_in.upper() in where_value.upper():
-            CGI_CLI.logtofile("CHECK['%s' in '%s'] = OK\n" % (what_yes_in, where))
+            CGI_CLI.logtofile("CHECK['%s' in '%s'] = OK\n" % (what_yes_in, where), ommit_timestamp = True)
         else:
             if warning:
                 check_warning_interface_result_ok = False
@@ -2441,7 +2441,7 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
                 else:
                     check_interface_result_ok = False
                     CGI_CLI.uprint("CHECK[" + ' AND '.join(Alarm_text) + '] = NOT OK', color = 'red', timestamp = 'no')
-            else: CGI_CLI.logtofile("CHECK[ ['%s'] not in '%s'] = OK\n" % (','.join(what_not), where))
+            else: CGI_CLI.logtofile("CHECK[ ['%s'] not in '%s'] = OK\n" % (','.join(what_not), where), ommit_timestamp = True)
         else:
             if what_not.upper() in where_value.upper():
                 if warning:
@@ -2452,7 +2452,7 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
                     check_interface_result_ok = False
                     CGI_CLI.uprint("CHECK['%s' in '%s'] = NOT OK" % (str(what_not), where),
                         color = 'red', timestamp = 'no')
-            else: CGI_CLI.logtofile("CHECK['%s' not in '%s'] = OK\n" % (str(what_not), where))
+            else: CGI_CLI.logtofile("CHECK['%s' not in '%s'] = OK\n" % (str(what_not), where), ommit_timestamp = True)
 
 
 
@@ -2952,10 +2952,10 @@ authentication {
 
                 if CGI_CLI.cgi_active:
                     CGI_CLI.logtofile('<h1 style="color:blue;">%s <a href="%s" style="text-decoration: none">(v.%s)</a></h1>' % \
-                        (SCRIPT_NAME, changelog, CGI_CLI.VERSION()), raw_log = True)
-                else: CGI_CLI.logtofile('%s (v.%s)' % (SCRIPT_NAME,CGI_CLI.VERSION()))
+                        (SCRIPT_NAME, changelog, CGI_CLI.VERSION()), raw_log = True, ommit_timestamp = True)
+                else: CGI_CLI.logtofile('%s (v.%s)' % (SCRIPT_NAME,CGI_CLI.VERSION()), ommit_timestamp = True)
 
-                CGI_CLI.logtofile(CGI_CLI.print_args(ommit_print = True) + '\n\n')
+                CGI_CLI.logtofile(CGI_CLI.print_args(ommit_print = True) + '\n\n', ommit_timestamp = True)
 
                 if swan_id: CGI_CLI.uprint('SWAN_ID=%s' % (swan_id))
 
@@ -3710,21 +3710,21 @@ authentication {
                             printall = printall)
 
                         if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
-                            try: interface_data['ping_v6_percent_success'] = ping4_config_rcmds_outputs[0].split('Success rate is ')[1].splitlines()[0].split('percent')[0].strip()
+                            try: interface_data['ping_v6_percent_success'] = ping6_config_rcmds_outputs[0].split('Success rate is ')[1].splitlines()[0].split('percent')[0].strip()
                             except: interface_data['ping_v6_percent_success'] = str()
-                            try: interface_warning_data['ping_v6_mtu_percent_success'] = ping4_config_rcmds_outputs[1].split('Success rate is ')[1].splitlines()[0].split('percent')[0].strip()
+                            try: interface_warning_data['ping_v6_mtu_percent_success'] = ping6_config_rcmds_outputs[1].split('Success rate is ')[1].splitlines()[0].split('percent')[0].strip()
                             except: interface_warning_data['ping_v6_mtu_percent_success'] = str()
 
                         elif RCMD.router_type == 'juniper':
-                            try: interface_data['ping_v6_percent_success'] = str(100 - float(ping4_config_rcmds_outputs[0].split('received,')[1].splitlines()[0].split('%')[0].strip()))
+                            try: interface_data['ping_v6_percent_success'] = str(100 - float(ping6_config_rcmds_outputs[0].split('received,')[1].splitlines()[0].split('%')[0].strip()))
                             except: interface_data['ping_v6_percent_success'] = str()
-                            try: interface_warning_data['ping_v6_mtu_percent_success'] = str(100 - float(ping4_config_rcmds_outputs[1].split('received,')[1].splitlines()[0].split('%')[0].strip()))
+                            try: interface_warning_data['ping_v6_mtu_percent_success'] = str(100 - float(ping6_config_rcmds_outputs[1].split('received,')[1].splitlines()[0].split('%')[0].strip()))
                             except: interface_warning_data['ping_v6_mtu_percent_success'] = str()
 
                         elif RCMD.router_type == 'huawei':
-                            try: interface_data['ping_v6_percent_success'] = str(100 - float(ping4_config_rcmds_outputs[0].split('% packet loss')[0].splitlines()[-1].strip()))
+                            try: interface_data['ping_v6_percent_success'] = str(100 - float(ping6_config_rcmds_outputs[0].split('% packet loss')[0].splitlines()[-1].strip()))
                             except: interface_data['ping_v6_percent_success'] = str()
-                            try: interface_warning_data['ping_v6_mtu_percent_success'] = str(100 - float(ping4_config_rcmds_outputs[1].split('% packet loss')[0].splitlines()[-1].strip()))
+                            try: interface_warning_data['ping_v6_mtu_percent_success'] = str(100 - float(ping6_config_rcmds_outputs[1].split('% packet loss')[0].splitlines()[-1].strip()))
                             except: interface_warning_data['ping_v6_mtu_percent_success'] = str()
 
 
@@ -4089,22 +4089,22 @@ authentication {
 
                                 if interface_data.get('ipv4_metric'):
                                     if L2_metric == '99999':
-                                        CGI_CLI.logtofile("Ipv4 L2 Metric (99999) check on Interface %s = IGNORE\n" % (parallel_interface))
+                                        CGI_CLI.logtofile("Ipv4 L2 Metric (99999) check on Interface %s = IGNORE\n" % (parallel_interface), ommit_timestamp = True)
                                     elif interface_data.get('ipv4_metric') != L2_metric:
                                         check_interface_result_ok = False
                                         CGI_CLI.uprint('Ipv4 L2 Metric (%s) on Interface %s is different from metric (%s) on Interface %s = NOT OK' \
                                             % (L2_metric, parallel_interface, interface_data.get('ipv4_metric'), interface_id), color = 'red')
-                                    else: CGI_CLI.logtofile("Ipv4 L2 Metric (%s) check on Interface %s = OK\n" % (L2_metric, parallel_interface))
+                                    else: CGI_CLI.logtofile("Ipv4 L2 Metric (%s) check on Interface %s = OK\n" % (L2_metric, parallel_interface), ommit_timestamp = True)
 
                                 if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
                                     if interface_data.get('ipv6_metric'):
                                         if ipv6_L2_metric == '99999':
-                                            CGI_CLI.logtofile("Ipv6 L2 Metric (99999) check on Interface %s = IGNORE\n" % (parallel_interface))
+                                            CGI_CLI.logtofile("Ipv6 L2 Metric (99999) check on Interface %s = IGNORE\n" % (parallel_interface), ommit_timestamp = True)
                                         elif interface_data.get('ipv6_metric') != L2_metric:
                                             check_interface_result_ok = False
                                             CGI_CLI.uprint('Ipv6 L2 Metric (%s) on Interface %s is different from metric (%s) on Interface %s = NOT OK' \
                                                 % (ipv6_L2_metric, parallel_interface, interface_data.get('ipv6_metric'), interface_id), color = 'red')
-                                        else: CGI_CLI.logtofile("Ipv6 L2 Metric (%s) check on Interface %s = OK\n" % (ipv6_L2_metric, parallel_interface))
+                                        else: CGI_CLI.logtofile("Ipv6 L2 Metric (%s) check on Interface %s = OK\n" % (ipv6_L2_metric, parallel_interface), ommit_timestamp = True)
 
                             elif RCMD.router_type == 'juniper':
                                 try: L2_metric = parralel_cmd_output.upper().split('L2 METRIC')[1].split(parallel_interface.upper())[1].splitlines()[0].split()[-1].split('/')[1]
@@ -4112,12 +4112,12 @@ authentication {
 
                                 if interface_data.get('metric'):
                                     if L2_metric == '99999':
-                                        CGI_CLI.logtofile("Ipv4 L2 Metric (99999) check on Interface %s = IGNORE\n" % (parallel_interface))
+                                        CGI_CLI.logtofile("Ipv4 L2 Metric (99999) check on Interface %s = IGNORE\n" % (parallel_interface), ommit_timestamp = True)
                                     elif interface_data.get('metric') != L2_metric:
                                         check_interface_result_ok = False
                                         CGI_CLI.uprint('Ipv4 L2 Metric (%s) on Interface %s is different from metric (%s) on Interface %s = NOT OK' \
                                             % (L2_metric, parallel_interface, interface_data.get('metric'), interface_id), color = 'red')
-                                    else: CGI_CLI.logtofile("Ipv4 L2 Metric (%s) check on Interface %s = OK\n" % (L2_metric, parallel_interface))
+                                    else: CGI_CLI.logtofile("Ipv4 L2 Metric (%s) check on Interface %s = OK\n" % (L2_metric, parallel_interface), ommit_timestamp = True)
 
                             elif RCMD.router_type == 'huawei':
                                 try: L2_metric = parralel_cmd_output.split('Cost                        :')[1].splitlines()[0].split()[-1]
@@ -4127,22 +4127,22 @@ authentication {
 
                                 if interface_data.get('isis cost'):
                                     if L2_metric == '99999':
-                                        CGI_CLI.logtofile("Ipv4 L2 Metric (99999) check on Interface %s = IGNORE\n" % (parallel_interface))
+                                        CGI_CLI.logtofile("Ipv4 L2 Metric (99999) check on Interface %s = IGNORE\n" % (parallel_interface), ommit_timestamp = True)
                                     elif interface_data.get('isis cost') != L2_metric:
                                         check_interface_result_ok = False
                                         CGI_CLI.uprint('Ipv4 L2 Metric (%s) on Interface %s is different from metric (%s) on Interface %s = NOT OK' \
                                             % (L2_metric, parallel_interface, interface_data.get('isis cost'), interface_id), color = 'red')
-                                    else: CGI_CLI.logtofile("Ipv4 L2 Metric (%s) check on Interface %s = OK\n" % (L2_metric, parallel_interface))
+                                    else: CGI_CLI.logtofile("Ipv4 L2 Metric (%s) check on Interface %s = OK\n" % (L2_metric, parallel_interface), ommit_timestamp = True)
 
                                 if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
                                     if interface_data.get('isis ipv6 cost'):
                                         if ipv6_L2_metric == '99999':
-                                            CGI_CLI.logtofile("Ipv4 L2 Metric (99999) check on Interface %s = IGNORE\n" % (parallel_interface))
+                                            CGI_CLI.logtofile("Ipv4 L2 Metric (99999) check on Interface %s = IGNORE\n" % (parallel_interface), ommit_timestamp = True)
                                         elif interface_data.get('isis ipv6 cost') != L2_metric:
                                             check_interface_result_ok = False
                                             CGI_CLI.uprint('Ipv6 L2 Metric (%s) on Interface %s is different from metric (%s) on Interface %s = NOT OK' \
                                                 % (ipv6_L2_metric, parallel_interface, interface_data.get('isis ipv6 cost'), interface_id), color = 'red')
-                                        else: CGI_CLI.logtofile("Ipv6 L2 Metric (%s) check on Interface %s = OK\n" % (ipv6_L2_metric, parallel_interface))
+                                        else: CGI_CLI.logtofile("Ipv6 L2 Metric (%s) check on Interface %s = OK\n" % (ipv6_L2_metric, parallel_interface), ommit_timestamp = True)
 
 
                     if not PING_ONLY:
@@ -4159,7 +4159,7 @@ authentication {
                             elif interface_warning_data.get('txload_percent') > high_percent:
                                 CGI_CLI.uprint('Tx Traffic (%.2f%%) on Interface %s is over %d%%. = WARNING' % (interface_warning_data.get('txload_percent'), interface_id, high_percent), color = 'orange')
                                 check_warning_interface_result_ok = False
-                            else: CGI_CLI.logtofile('Tx Traffic on Interface %s is %.2f%% = OK\n' % (interface_id, interface_warning_data.get('txload_percent')))
+                            else: CGI_CLI.logtofile('Tx Traffic on Interface %s is %.2f%% = OK\n' % (interface_id, interface_warning_data.get('txload_percent')), ommit_timestamp = True)
 
                         if isinstance(interface_warning_data.get('rxload_percent'), (str,basestring,six.string_types)):
                             CGI_CLI.uprint('Rx Traffic on Interface %s not found !' % (interface_id), color = 'red')
@@ -4171,7 +4171,7 @@ authentication {
                             elif interface_warning_data.get('rxload_percent') > high_percent:
                                 CGI_CLI.uprint('Rx Traffic (%.2f%%) on Interface %s is over %d%%. = WARNING' % (interface_warning_data.get('rxload_percent'), interface_id, high_percent), color = 'orange')
                                 check_warning_interface_result_ok = False
-                            else: CGI_CLI.logtofile('Rx Traffic on Interface %s is %.2f%% = OK\n' % (interface_id, interface_warning_data.get('rxload_percent')))
+                            else: CGI_CLI.logtofile('Rx Traffic on Interface %s is %.2f%% = OK\n' % (interface_id, interface_warning_data.get('rxload_percent')), ommit_timestamp = True)
 
 
                 ### def CONTENT ELEMENT CHECK #################################
@@ -4406,17 +4406,17 @@ authentication {
 
         if CGI_CLI.cgi_active:
             CGI_CLI.logtofile('<h1 style="color:blue;">%s <a href="%s" style="text-decoration: none">(v.%s)</a></h1>' % \
-                (SCRIPT_NAME, changelog, CGI_CLI.VERSION()), raw_log = True)
-            if swan_id: CGI_CLI.logtofile('<p>SWAN_ID=%s</p>' %(swan_id), raw_log = True)
-            if precheck_mode: CGI_CLI.logtofile('<p>Monitoring/precheck mode.</p>', raw_log = True)
+                (SCRIPT_NAME, changelog, CGI_CLI.VERSION()), raw_log = True, ommit_timestamp = True)
+            if swan_id: CGI_CLI.logtofile('<p>SWAN_ID=%s</p>' %(swan_id), raw_log = True, ommit_timestamp = True)
+            if precheck_mode: CGI_CLI.logtofile('<p>Monitoring/precheck mode.</p>', raw_log = True, ommit_timestamp = True)
             else: CGI_CLI.logtofile('<p>Traffic/postcheck mode.</p>', raw_log = True)
-            CGI_CLI.logtofile('<p>LOGFILES:</p>' , raw_log = True)
+            CGI_CLI.logtofile('<p>LOGFILES:</p>' , raw_log = True, ommit_timestamp = True)
         else:
-            CGI_CLI.logtofile('%s (v.%s)' % (SCRIPT_NAME,CGI_CLI.VERSION()))
+            CGI_CLI.logtofile('%s (v.%s)' % (SCRIPT_NAME,CGI_CLI.VERSION()), ommit_timestamp = True)
             if swan_id: CGI_CLI.logtofile('SWAN_ID=%s\n' %(swan_id))
             if precheck_mode: CGI_CLI.logtofile('Monitoring/precheck mode.\n')
-            else: CGI_CLI.logtofile('Traffic/postcheck mode.\n')
-            CGI_CLI.logtofile('\nLOGFILES:\n')
+            else: CGI_CLI.logtofile('Traffic/postcheck mode.\n', ommit_timestamp = True)
+            CGI_CLI.logtofile('\nLOGFILES:\n', ommit_timestamp = True)
 
         for logfilename, interface_result in zip(logfilename_list, interface_results):
             device, interface_id, interface_result = interface_result
@@ -4426,21 +4426,21 @@ authentication {
             if CGI_CLI.cgi_active:
                 if interface_result == 'NOT OK':
                     CGI_CLI.logtofile('<p style="color:red;">Device=%s, Interface=%s  -  RESULT = %s</p>' \
-                        % (device, interface_id, interface_result), raw_log = True)
+                        % (device, interface_id, interface_result), raw_log = True, ommit_timestamp = True)
                 elif interface_result == 'WARNING':
                     CGI_CLI.logtofile('<p style="color:orange;">Device=%s, Interface=%s  -  RESULT = %s</p>' \
-                        % (device, interface_id, interface_result), raw_log = True)
+                        % (device, interface_id, interface_result), raw_log = True, ommit_timestamp = True)
                 else: CGI_CLI.logtofile('<p style="color:green;">Device=%s, Interface=%s  -  RESULT = %s</p>' \
-                          % (device, interface_id, interface_result), raw_log = True)
+                          % (device, interface_id, interface_result), raw_log = True, ommit_timestamp = True)
                 CGI_CLI.logtofile('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
-                    % (logviewer, logfilename), raw_log = True)
-                CGI_CLI.logtofile('<br/>', raw_log = True)
+                    % (logviewer, logfilename), raw_log = True, ommit_timestamp = True)
+                CGI_CLI.logtofile('<br/>', raw_log = True, ommit_timestamp = True)
             else:
-                CGI_CLI.logtofile('Device=%s, Interface=%s  -  RESULT = %s\n' % (device, interface_id, interface_result))
-                CGI_CLI.logtofile(' ==> File %s created.\n\n' % (logfilename))
+                CGI_CLI.logtofile('Device=%s, Interface=%s  -  RESULT = %s\n' % (device, interface_id, interface_result), ommit_timestamp = True)
+                CGI_CLI.logtofile(' ==> File %s created.\n\n' % (logfilename), ommit_timestamp = True)
 
         ### CLOSE GLOBAL LOGFILE ##############################################
-        CGI_CLI.logtofile(end_log = True)
+        CGI_CLI.logtofile(end_log = True, ommit_timestamp = True)
 
 except SystemExit: pass
 except:
