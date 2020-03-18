@@ -279,7 +279,8 @@ class CGI_CLI(object):
         CGI_CLI.logtofile(start_log = True)
 
     @staticmethod
-    def logtofile(msg = None, raw_log = None, start_log = None, end_log = None):
+    def logtofile(msg = None, raw_log = None, start_log = None, end_log = None, \
+        ommit_timestamp = None):
         msg_to_file = str()
         if CGI_CLI.logfilename:
             ### HTML LOGGING ##################################################
@@ -290,6 +291,7 @@ class CGI_CLI(object):
                         % (CGI_CLI.logfilename)
                 ### CONVERT TEXT TO HTML FORMAT ###############################
                 if not raw_log and msg:
+                    msg_to_file += CGI_CLI.get_timestamp() if not ommit_timestamp else str()
                     msg_to_file += str(msg.replace('&','&amp;').\
                         replace('<','&lt;').\
                         replace('>','&gt;').replace(' ','&nbsp;').\
@@ -353,7 +355,8 @@ class CGI_CLI(object):
                         sys.stdout.flush()
                     else:
                         print(msg)
-            if not ommit_logging: CGI_CLI.logtofile(msg = msg, raw_log = raw_log)
+            if not ommit_logging: CGI_CLI.logtofile(msg = msg, raw_log = raw_log, \
+                                      ommit_timestamp = True)
 
     @staticmethod
     def uprint(text = None, tag = None, tag_id = None, color = None, name = None, jsonprint = None, \
