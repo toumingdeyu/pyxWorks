@@ -2934,8 +2934,12 @@ authentication {
 
                 ### def LOGFILENAME GENERATION, DO LOGGING ONLY WHEN DEVICE LIST EXISTS ###
                 html_extention = 'htm' if CGI_CLI.cgi_active else str()
+
+                PREFIX_PART = str('PRECHECK' if precheck_mode else 'POSTCHECK')
+                if PING_ONLY: PREFIX_PART = 'PINGCHECK'
+
                 logfilename = generate_logfilename(
-                    prefix = str(swan_id) + '-' if swan_id else str() + str('PRECHECK' if precheck_mode else 'POSTCHECK') + \
+                    prefix = str(swan_id) + '-' if swan_id else str() + PREFIX_PART + \
                     '_' + device.upper() + '_' + interface_id.replace('/','-'), \
                     USERNAME = USERNAME, suffix = '%slog' % (html_extention))
                 ### NO WINDOWS LOGGING ########################################
