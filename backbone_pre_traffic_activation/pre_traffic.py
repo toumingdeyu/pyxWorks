@@ -3730,14 +3730,6 @@ authentication {
 
                 ### "THOUSANDS" PINGs TEST ####################################
                 if ping_counts and int(ping_counts) > 0:
-
-                    interface_data['ping_v4_percent_success_%spings' % (ping_counts)] = str()
-                    interface_warning_data['ping_v4_mtu_percent_success_%spings' % (ping_counts)] = str()
-
-                    if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
-                        interface_data['ping_v6_percent_success_%spings' % (ping_counts)] = str()
-                        interface_warning_data['ping_v6_mtu_percent_success_%spings' % (ping_counts)] = str()
-
                     if '100' in interface_warning_data.get('ping_v4_mtu_percent_success',str()):
                         ### def "THOUSANDS" PINGv4 MTU COMMAND LIST ###################
                         if interface_data.get('ipv4_addr_rem',str()):
