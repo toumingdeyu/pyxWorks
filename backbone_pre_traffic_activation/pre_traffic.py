@@ -4181,13 +4181,22 @@ authentication {
 
                 check_interface_data_content('ipv4_addr_rem_calculated', interface_data.get('ipv4_addr_rem'))
 
+
                 if ping_counts and int(ping_counts) > 0:
-                    check_interface_data_content('ping_v4_percent_success_%spings' % (ping_counts), '100')
-                    check_interface_data_content('ping_v6_percent_success_%spings' % (ping_counts), '100')
+
+                    if '100' in interface_warning_data.get('ping_v4_mtu_percent_success',str()): pass
+                    else:check_interface_data_content('ping_v4_percent_success_%spings' % (ping_counts), '100')
+
+                    if '100' in interface_warning_data.get('ping_v6_mtu_percent_success',str()): pass
+                    else: check_interface_data_content('ping_v6_percent_success_%spings' % (ping_counts), '100')
 
                     if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
-                        check_interface_data_content('ping_v4_mtu_percent_success_%spings' % (ping_counts), '100', warning = True)
-                        check_interface_data_content('ping_v6_mtu_percent_success_%spings' % (ping_counts), '100', warning = True)
+
+                        if '100' in interface_warning_data.get('ping_v4_mtu_percent_success',str()):
+                            check_interface_data_content('ping_v4_mtu_percent_success_%spings' % (ping_counts), '100', warning = True)
+
+                        if '100' in interface_warning_data.get('ping_v6_mtu_percent_success',str()):
+                            check_interface_data_content('ping_v6_mtu_percent_success_%spings' % (ping_counts), '100', warning = True)
 
                 if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
                     if not PING_ONLY:
