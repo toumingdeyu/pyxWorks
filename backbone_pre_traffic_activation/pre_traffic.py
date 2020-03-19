@@ -2842,36 +2842,39 @@ authentication {
             if counter != 0: router_type_menu_list.append('</tr>')
             interface_menu_list.append('</table>')
             interface_menu_list.append('</div>')
+            interface_menu_list.append('<br/><br/>')
 
             if not (USERNAME and PASSWORD):
                 interface_menu_list.append('<h3>LDAP authentication (required):</h3>')
                 interface_menu_list.append({'text':'username'})
                 interface_menu_list.append('<br/>')
                 interface_menu_list.append({'password':'password'})
-                interface_menu_list.append('<br/>')
-                interface_menu_list.append('<br/>')
-                interface_menu_list.append('<br/>')
+                interface_menu_list.append('<br/><br/><br/>')
 
             if not PING_ONLY:
                 interface_menu_list.append({'radio':['precheck','postcheck']})
-                interface_menu_list.append('<br/>')
-                interface_menu_list.append('<br/>')
+                interface_menu_list.append('<br/><br/>')
                 interface_menu_list.append({'text':'swan_id'})
                 interface_menu_list.append({'checkbox':'reinit_swan_id'})
-                interface_menu_list.append('<br/>')
-                interface_menu_list.append('<br/>')
+                interface_menu_list.append('<br/><br/>')
                 interface_menu_list.append('Additional ping_counts = %s' % (ping_counts))
             else:
-                interface_menu_list.append('<br/>')
-                interface_menu_list.append('<br/>')
+                interface_menu_list.append('<br/><br/>')
                 interface_menu_list.append('Default ping_counts = %s' % (ping_counts))
 
+
+            interface_menu_list.append('<br/>')
+            interface_menu_list.append({'text':'ping_counts'})
+            interface_menu_list.append('<br/>')
+
+            if not PING_ONLY:
+                interface_menu_list.append({'checkbox':'chunked_mode'})
+                interface_menu_list.append('<br/>')
+
             CGI_CLI.formprint( interface_menu_list + \
-                ['<br/>',{'text':'ping_counts'},'<br/>',\
-                {'checkbox':'timestamps'}, '<br/>',\
+                [ {'checkbox':'timestamps'}, '<br/>',\
                 {'checkbox':'send_email'},'<br/>',\
-                {'checkbox':'chunked_mode'},'<br/>',\
-                {'checkbox':'printall'},'<br/>','<br/>'], \
+                {'checkbox':'printall'},'<br/>','<br/>' ], \
                 submit_button = CGI_CLI.self_buttons[0],
                 pyfile = None, tag = None, color = None , list_separator = '&emsp;')
             ### EXIT AFTER MENU PRINTING ######################################
