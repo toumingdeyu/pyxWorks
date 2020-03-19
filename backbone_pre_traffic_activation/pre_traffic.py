@@ -289,9 +289,11 @@ class CGI_CLI(object):
                 if start_log:
                     msg_to_file += '<!DOCTYPE html><html><head><title>%s</title></head><body>'\
                         % (CGI_CLI.logfilename)
+                    msg_to_file += '\n<br/>%sLOG_START:<br/>' % ( CGI_CLI.get_timestamp())
+
                 ### CONVERT TEXT TO HTML FORMAT ###############################
                 if msg:
-                    msg_to_file += CGI_CLI.get_timestamp() if not ommit_timestamp else str()
+                    msg_to_file += '\n<br/>' + CGI_CLI.get_timestamp() if not ommit_timestamp else str()
                     if not raw_log:
                         msg_to_file += str(msg.replace('&','&amp;').\
                             replace('<','&lt;').\
@@ -299,17 +301,30 @@ class CGI_CLI(object):
                             replace('"','&quot;').replace("'",'&apos;').\
                             replace('\n','<br/>'))
                     else: msg_to_file += msg
+
                 ### ADD HTML FOOTER ###########################################
-                if end_log: msg_to_file += '</body></html>'
+                if end_log:
+                    msg_to_file += '\n<br/>%sLOG_END.<br/>' % ( CGI_CLI.get_timestamp())
+                    msg_to_file += '</body></html>'
+
             ### CLI LOGGING ###################################################
-            elif msg:
-                msg_to_file += CGI_CLI.get_timestamp() if not ommit_timestamp else str()
-                msg_to_file = msg + '\n'
+            else:
+                if start_log:
+                    msg_to_file += '\n%sLOG_START:\n' % ( CGI_CLI.get_timestamp())
+
+                if msg:
+                    msg_to_file += '\n' + CGI_CLI.get_timestamp() if not ommit_timestamp else str()
+                    msg_to_file = msg + '\n'
+
+                if end_log:
+                    msg_to_file += '\n%sLOG_END.\n' % ( CGI_CLI.get_timestamp())
+
             ### LOG CLI OR HTML MODE ##########################################
             if msg_to_file:
                 with open(CGI_CLI.logfilename,"a+") as CGI_CLI.fp:
                     CGI_CLI.fp.write(msg_to_file)
                     del msg_to_file
+
             ### ON END: LOGFILE SET TO VOID, AVOID OF MULTIPLE FOOTERS ########
             if end_log: CGI_CLI.logfilename = None
 
