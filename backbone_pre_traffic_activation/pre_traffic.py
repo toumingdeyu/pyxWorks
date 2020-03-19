@@ -1121,7 +1121,7 @@ class RCMD(object):
             if long_lasting_mode:
                 if CGI_CLI.cgi_active:
                     CGI_CLI.logtofile('<p style="color:blue;">REMOTE_COMMAND' + \
-                        sim_mark + ': ' + cmd_line, raw_log = True)
+                        sim_mark + ': ' + cmd_line + '</p>\n', raw_log = True)
                 else: CGI_CLI.logtofile('REMOTE_COMMAND' + sim_mark + ': ' + cmd_line + '\n' )
 
             if not sim_mark:
@@ -1397,7 +1397,7 @@ class RCMD(object):
                         CGI_CLI.uprint('%s' % (buff_read), color = 'gray', \
                             no_newlines = True, ommit_logging = True)
 
-                    CGI_CLI.logtofile('%s' % (buff_read))
+                    CGI_CLI.logtofile('%s\n' % (buff_read))
 
                 ### PROMPT IN LAST LINE = PROPER END OF COMMAND ###############
                 for actual_prompt in prompts:
