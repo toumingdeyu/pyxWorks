@@ -1117,6 +1117,13 @@ class RCMD(object):
             if ((sim_config or RCMD.sim_config) and (conf or RCMD.conf)) or sim_all: sim_mark = '(SIM)'
             if printall or RCMD.printall:
                 CGI_CLI.uprint('REMOTE_COMMAND' + sim_mark + ': ' + cmd_line, color = 'blue', ommit_logging = True)
+
+            if long_lasting_mode:
+                if CGI_CLI.cgi_active:
+                    CGI_CLI.logtofile('<p style="color:blue;">REMOTE_COMMAND' + \
+                        sim_mark + ': ' + cmd_line, raw_log = True)
+                else: CGI_CLI.logtofile('REMOTE_COMMAND' + sim_mark + ': ' + cmd_line + '\n' )
+
             if not sim_mark:
                 if RCMD.use_module == 'netmiko':
                     last_output = RCMD.ssh_connection.send_command(cmd_line)
@@ -1390,7 +1397,7 @@ class RCMD(object):
                         CGI_CLI.uprint('%s' % (buff_read), color = 'gray', \
                             no_newlines = True, ommit_logging = True)
 
-                    CGI_CLI.logtofile('%s%s' % (CGI_CLI.get_timestamp(), buff_read))
+                    CGI_CLI.logtofile('%s' % (buff_read))
 
                 ### PROMPT IN LAST LINE = PROPER END OF COMMAND ###############
                 for actual_prompt in prompts:
