@@ -1128,20 +1128,20 @@ class RCMD(object):
                         ignore_prompt = ignore_prompt, \
                         printall = printall)
                     if new_prompt: RCMD.DEVICE_PROMPTS.append(new_prompt)
-            if printall or RCMD.printall:
-                if not long_lasting_mode:
-                    CGI_CLI.uprint(last_output, tag = 'pre', timestamp = 'no', ommit_logging = True)
-            elif not RCMD.silent_mode:
-                if not long_lasting_mode:
-                    CGI_CLI.uprint(' . ', no_newlines = True, timestamp = 'no', ommit_logging = True)
-            ### LOG ALL ONLY ONCE, THAT IS BECAUSE PREVIOUS LINE ommit_logging = True ###
-            if CGI_CLI.cgi_active:
-                CGI_CLI.logtofile('<p style="color:blue;">REMOTE_COMMAND' + \
-                    sim_mark + ': ' + cmd_line + '</p>\n<pre>' + \
-                    CGI_CLI.html_escape(last_output, pre_tag = True) + \
-                    '\n</pre>\n', raw_log = True)
-            else: CGI_CLI.logtofile('REMOTE_COMMAND' + sim_mark + ': ' + \
-                      cmd_line + '\n' + last_output + '\n')
+
+            if not long_lasting_mode:
+                if printall or RCMD.printall:
+                        CGI_CLI.uprint(last_output, tag = 'pre', timestamp = 'no', ommit_logging = True)
+                elif not RCMD.silent_mode:
+                        CGI_CLI.uprint(' . ', no_newlines = True, timestamp = 'no', ommit_logging = True)
+                ### LOG ALL ONLY ONCE, THAT IS BECAUSE PREVIOUS LINE ommit_logging = True ###
+                if CGI_CLI.cgi_active:
+                    CGI_CLI.logtofile('<p style="color:blue;">REMOTE_COMMAND' + \
+                        sim_mark + ': ' + cmd_line + '</p>\n<pre>' + \
+                        CGI_CLI.html_escape(last_output, pre_tag = True) + \
+                        '\n</pre>\n', raw_log = True)
+                else: CGI_CLI.logtofile('REMOTE_COMMAND' + sim_mark + ': ' + \
+                          cmd_line + '\n' + last_output + '\n')
 
         return str(last_output)
 
@@ -1385,8 +1385,12 @@ class RCMD(object):
                         else: last_line_edited = last_line_original
 
                 ### PRINT LONG LASTING OUTPUTS PER PARTS ######################
-                if printall and long_lasting_mode and buff_read and not RCMD.silent_mode:
-                    CGI_CLI.uprint('%s' % (buff_read), color = 'gray', no_newlines = True)
+                if long_lasting_mode:
+                    if printall and buff_read and not RCMD.silent_mode:
+                        CGI_CLI.uprint('%s' % (buff_read), color = 'gray', \
+                            no_newlines = True, ommit_logging = True)
+
+                    CGI_CLI.logtofile('%s%s' % (CGI_CLI.get_timestamp(), buff_read))
 
                 ### PROMPT IN LAST LINE = PROPER END OF COMMAND ###############
                 for actual_prompt in prompts:
@@ -4185,7 +4189,7 @@ authentication {
                 if ping_counts and int(ping_counts) > 0:
 
                     if '100' in interface_warning_data.get('ping_v4_mtu_percent_success',str()): pass
-                    else:check_interface_data_content('ping_v4_percent_success_%spings' % (ping_counts), '100')
+                    else: check_interface_data_content('ping_v4_percent_success_%spings' % (ping_counts), '100')
 
                     if '100' in interface_warning_data.get('ping_v6_mtu_percent_success',str()): pass
                     else: check_interface_data_content('ping_v6_percent_success_%spings' % (ping_counts), '100')
