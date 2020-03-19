@@ -290,18 +290,21 @@ class CGI_CLI(object):
                     msg_to_file += '<!DOCTYPE html><html><head><title>%s</title></head><body>'\
                         % (CGI_CLI.logfilename)
                 ### CONVERT TEXT TO HTML FORMAT ###############################
-                if not raw_log and msg:
+                if msg:
                     msg_to_file += CGI_CLI.get_timestamp() if not ommit_timestamp else str()
-                    msg_to_file += str(msg.replace('&','&amp;').\
-                        replace('<','&lt;').\
-                        replace('>','&gt;').replace(' ','&nbsp;').\
-                        replace('"','&quot;').replace("'",'&apos;').\
-                        replace('\n','<br/>'))
-                elif msg: msg_to_file += msg
+                    if not raw_log:
+                        msg_to_file += str(msg.replace('&','&amp;').\
+                            replace('<','&lt;').\
+                            replace('>','&gt;').replace(' ','&nbsp;').\
+                            replace('"','&quot;').replace("'",'&apos;').\
+                            replace('\n','<br/>'))
+                    else: msg_to_file += msg
                 ### ADD HTML FOOTER ###########################################
                 if end_log: msg_to_file += '</body></html>'
             ### CLI LOGGING ###################################################
-            elif msg: msg_to_file = msg + '\n'
+            elif msg:
+                msg_to_file += CGI_CLI.get_timestamp() if not ommit_timestamp else str()
+                msg_to_file = msg + '\n'
             ### LOG CLI OR HTML MODE ##########################################
             if msg_to_file:
                 with open(CGI_CLI.logfilename,"a+") as CGI_CLI.fp:
