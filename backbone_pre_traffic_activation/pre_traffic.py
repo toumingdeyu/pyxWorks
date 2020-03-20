@@ -185,6 +185,8 @@ class CGI_CLI(object):
             if variable == "submit": CGI_CLI.submit_form = value
             if variable == "username": CGI_CLI.username = value
             if variable == "password": CGI_CLI.password = value
+            if variable == "cusername": CGI_CLI.username = value.decode('base64','strict')
+            if variable == "cpassword": CGI_CLI.password = value.decode('base64','strict')
             if variable == "printall": CGI_CLI.printall = True
 
             ### SET CHUNKED MODE BY CGI #######################################
@@ -385,7 +387,7 @@ class CGI_CLI(object):
            raw = True , print text as it is, not convert to html. Intended i.e. for javascript
            timestamp = True - locally allow (CGI_CLI.timestamp = True has priority)
            timestamp = 'no' - locally disable even if CGI_CLI.timestamp == True
-           Use 'no_printall = not printall' instead of printall = False
+           Use 'no_printall = not CGI_CLI.printall' instead of printall = False
         """
         if not text and not name: return None
 
@@ -464,6 +466,9 @@ class CGI_CLI(object):
                 elif 'GREY' in color.upper():    text_color = CGI_CLI.bcolors.GREY
                 elif 'GRAY' in color.upper():    text_color = CGI_CLI.bcolors.GREY
                 elif 'YELLOW' in color.upper():  text_color = CGI_CLI.bcolors.YELLOW
+
+            if tag == 'warning': text_color = CGI_CLI.bcolors.YELLOW
+            if tag == 'debug': text_color = CGI_CLI.bcolors.CYAN
 
             CGI_CLI.print_chunk("%s%s%s%s%s" % \
                 (text_color, timestamp_string, print_name, print_text, \
@@ -1449,6 +1454,7 @@ class RCMD(object):
             if not long_lasting_mode:
                 ### COMMAND TIMEOUT EXIT ######################################
                 if command_counter_100msec > RCMD.CMD_TIMEOUT*10:
+                    CGI_CLI.uprint("COMMAND TIMEOUT!!", tag = 'warning')
                     exit_loop = True
                     break
 
@@ -1460,7 +1466,7 @@ class RCMD(object):
 
             ### EXIT SOONER THAN CONNECTION TIMEOUT IF LONG LASTING OR NOT ####
             if command_counter_100msec + 100 > RCMD.CONNECTION_TIMEOUT*10:
-                CGI_CLI.uprint("LONG LASTING COMMAND TIMEOUT!!", color = 'red')
+                CGI_CLI.uprint("LONG LASTING COMMAND TIMEOUT!!", tag = 'warning')
                 exit_loop = True
                 break
 
@@ -1493,6 +1499,8 @@ class RCMD(object):
                     possible_prompts.append(copy.deepcopy(last_line_edited))
                 if last_line_actual: possible_prompts.append(last_line_actual)
                 chan.send('\n')
+                CGI_CLI.uprint("ENTER INSERTED AFTER DEVICE INACTIVITY!!", \
+                    tag = 'debug', no_printall = not CGI_CLI.printall)
                 time.sleep(0.1)
                 after_enter_counter_100msec = 1
         return output, new_prompt
@@ -2852,10 +2860,10 @@ authentication {
             interface_menu_list = [
                 '<p hidden><input type="checkbox" name="device" value="%s" checked="checked"></p>' \
                     % (','.join(device_list) if len(device_list) > 0 else str()),
-                '<p hidden><input type="checkbox" name="username" value="%s" checked="checked"></p>' \
-                    % (USERNAME),
-                '<p hidden><input type="checkbox" name="password" value="%s" checked="checked"></p>' \
-                    % (PASSWORD),
+                '<p hidden><input type="checkbox" name="cusername" value="%s" checked="checked"></p>' \
+                    % (USERNAME.encode('base64','strict')),
+                '<p hidden><input type="checkbox" name="cpassword" value="%s" checked="checked"></p>' \
+                    % (PASSWORD.encode('base64','strict')),
                 '<h2>Select interface on %s:</h2>' % (device if device else str()),
                 '<div align="left">', '<table style="width:90%">']
 
