@@ -1138,14 +1138,19 @@ class RCMD(object):
         last_output, sim_mark = str(), str()
         if RCMD.ssh_connection and cmd_line:
             if ((sim_config or RCMD.sim_config) and (conf or RCMD.conf)) or sim_all: sim_mark = '(SIM)'
+
             if printall or RCMD.printall:
-                CGI_CLI.uprint('REMOTE_COMMAND' + sim_mark + ': ' + cmd_line, color = 'blue', ommit_logging = True)
+                if not RCMD.silent_mode:
+                    CGI_CLI.uprint('REMOTE_COMMAND' + sim_mark + ': ' + cmd_line, color = 'blue', ommit_logging = True)
 
             if long_lasting_mode:
                 if CGI_CLI.cgi_active:
                     CGI_CLI.logtofile('<p style="color:blue;">REMOTE_COMMAND' + \
                         sim_mark + ': ' + cmd_line + '</p>\n<pre>\n', raw_log = True)
-                else: CGI_CLI.logtofile('REMOTE_COMMAND' + sim_mark + ': ' + cmd_line + '\n' )
+                    if not RCMD.silent_mode and printall or RCMD.printall:
+                        CGI_CLI.uprint('<pre>\n', timestamp = 'no', raw = True, ommit_logging = True)
+                elif not RCMD.silent_mode:
+                    CGI_CLI.logtofile('REMOTE_COMMAND' + sim_mark + ': ' + cmd_line + '\n' )
 
             if not sim_mark:
                 if RCMD.use_module == 'netmiko':
@@ -1173,10 +1178,19 @@ class RCMD(object):
                 else: CGI_CLI.logtofile('REMOTE_COMMAND' + sim_mark + ': ' + \
                           cmd_line + '\n' + last_output + '\n')
             else:
-                if printall or RCMD.printall:
-                    CGI_CLI.uprint('\n</pre>\n', timestamp = 'no', ommit_logging = True, raw_log = True)
-                elif not RCMD.silent_mode:
-                    CGI_CLI.uprint(' . ', no_newlines = True, timestamp = 'no', ommit_logging = True)
+                if CGI_CLI.cgi_active:
+                    CGI_CLI.logtofile('\n</pre>\n', raw_log = True)
+                    if not RCMD.silent_mode:
+                        if printall or RCMD.printall:
+                            CGI_CLI.uprint('\n</pre>\n', timestamp = 'no', raw = True, ommit_logging = True)
+                        else:
+                            CGI_CLI.uprint(' . ', no_newlines = True, timestamp = 'no', ommit_logging = True)
+                else:
+                    if not RCMD.silent_mode:
+                        if printall or RCMD.printall:
+                            CGI_CLI.uprint('\n', timestamp = 'no', ommit_logging = True)
+                        else:
+                            CGI_CLI.uprint(' . ', no_newlines = True, timestamp = 'no', ommit_logging = True)
         return str(last_output)
 
     @staticmethod
