@@ -1172,7 +1172,11 @@ class RCMD(object):
                         '\n</pre>\n', raw_log = True)
                 else: CGI_CLI.logtofile('REMOTE_COMMAND' + sim_mark + ': ' + \
                           cmd_line + '\n' + last_output + '\n')
-
+            else:
+                if printall or RCMD.printall:
+                    CGI_CLI.uprint('\n', timestamp = 'no', ommit_logging = True)
+                elif not RCMD.silent_mode:
+                    CGI_CLI.uprint(' . ', no_newlines = True, timestamp = 'no', ommit_logging = True)
         return str(last_output)
 
     @staticmethod
@@ -1464,6 +1468,10 @@ class RCMD(object):
                     CGI_CLI.uprint("<script>console.log('10s...');</script>", \
                         raw = True)
                     CGI_CLI.logtofile('[+10sec_MARK]<br/>')
+
+                    if printall and buff_read and not RCMD.silent_mode:
+                        CGI_CLI.uprint('_', no_newlines = True, \
+                            timestamp = 'no', ommit_logging = True)
 
             ### EXIT SOONER THAN CONNECTION TIMEOUT IF LONG LASTING OR NOT ####
             if command_counter_100msec + 100 > RCMD.CONNECTION_TIMEOUT*10:
