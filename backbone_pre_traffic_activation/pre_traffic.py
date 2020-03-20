@@ -4329,7 +4329,9 @@ authentication {
                             if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
                                 check_interface_data_content('isis ipv6 cost', None, '99999')
 
-                        check_interface_data_content('Local_fault', 'NORMAL', warning = True)
+                        if interface_warning_data.get('Local_fault'):
+                            check_interface_data_content('Local_fault', 'NORMAL', warning = True)
+
                         check_interface_data_content('Remote_fault', 'NORMAL', warning = True)
 
                     if ping_counts and int(ping_counts) > 0:
