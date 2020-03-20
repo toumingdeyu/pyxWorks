@@ -3681,8 +3681,8 @@ authentication {
                         ],
 
                         'juniper': [
-                            'ping %s count 5' % (interface_data.get('ipv4_addr_rem',str())),
-                            'ping %s count 5 size %s' % (interface_data.get('ipv4_addr_rem',str()), str(mtu_size - 42))
+                            'ping %s rapid count 5' % (interface_data.get('ipv4_addr_rem',str())),
+                            'ping %s rapid count 5 size %s' % (interface_data.get('ipv4_addr_rem',str()), str(mtu_size - 42))
                         ],
 
                         'huawei': [
@@ -3693,6 +3693,7 @@ authentication {
 
                     ping4_config_rcmds_outputs = RCMD.run_commands(ping4_config_rcmds, \
                         autoconfirm_mode = True, \
+                        long_lasting_mode = True, \
                         printall = printall)
 
                     if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
@@ -3727,8 +3728,8 @@ authentication {
                             ],
 
                             'juniper': [
-                                'ping inet6 %s count 5' % (interface_data.get('ipv6_addr_rem',str())),
-                                'ping inet6 %s count 5 size %s' % (interface_data.get('ipv6_addr_rem',str()), str(mtu_size - 42)),
+                                'ping inet6 %s rapid count 5' % (interface_data.get('ipv6_addr_rem',str())),
+                                'ping inet6 %s rapid count 5 size %s' % (interface_data.get('ipv6_addr_rem',str()), str(mtu_size - 42)),
                             ],
 
                             'huawei': [
@@ -3739,6 +3740,7 @@ authentication {
 
                         ping6_config_rcmds_outputs = RCMD.run_commands(ping6_config_rcmds, \
                             autoconfirm_mode = True, \
+                            long_lasting_mode = True, \
                             printall = printall)
 
                         if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
