@@ -1417,10 +1417,10 @@ class RCMD(object):
                 ### PRINT LONG LASTING OUTPUTS PER PARTS ######################
                 if long_lasting_mode:
                     if printall and buff_read and not RCMD.silent_mode:
-                        CGI_CLI.uprint('%s' % (buff_read), color = 'gray', \
-                            no_newlines = True, ommit_logging = True)
+                        CGI_CLI.uprint('%s' % (buff_read), no_newlines = True, \
+                            ommit_logging = True)
 
-                    CGI_CLI.logtofile('%s\n' % (buff_read))
+                    CGI_CLI.logtofile('%s' % (buff_read), ommit_timestamp = True)
 
                 ### PROMPT IN LAST LINE = PROPER END OF COMMAND ###############
                 for actual_prompt in prompts:
@@ -1463,6 +1463,7 @@ class RCMD(object):
                 if not command_counter_100msec%100 and CGI_CLI.cgi_active:
                     CGI_CLI.uprint("<script>console.log('10s...');</script>", \
                         raw = True)
+                    CGI_CLI.logtofile('[+10sec_MARK]<br/>')
 
             ### EXIT SOONER THAN CONNECTION TIMEOUT IF LONG LASTING OR NOT ####
             if command_counter_100msec + 100 > RCMD.CONNECTION_TIMEOUT*10:
