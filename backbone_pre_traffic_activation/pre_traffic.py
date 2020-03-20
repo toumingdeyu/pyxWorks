@@ -1144,7 +1144,7 @@ class RCMD(object):
             if long_lasting_mode:
                 if CGI_CLI.cgi_active:
                     CGI_CLI.logtofile('<p style="color:blue;">REMOTE_COMMAND' + \
-                        sim_mark + ': ' + cmd_line + '</p>\n', raw_log = True)
+                        sim_mark + ': ' + cmd_line + '</p>\n<pre>\n', raw_log = True)
                 else: CGI_CLI.logtofile('REMOTE_COMMAND' + sim_mark + ': ' + cmd_line + '\n' )
 
             if not sim_mark:
@@ -1174,7 +1174,7 @@ class RCMD(object):
                           cmd_line + '\n' + last_output + '\n')
             else:
                 if printall or RCMD.printall:
-                    CGI_CLI.uprint('\n', timestamp = 'no', ommit_logging = True)
+                    CGI_CLI.uprint('\n</pre>\n', timestamp = 'no', ommit_logging = True, raw_log = True)
                 elif not RCMD.silent_mode:
                     CGI_CLI.uprint(' . ', no_newlines = True, timestamp = 'no', ommit_logging = True)
         return str(last_output)
@@ -1467,7 +1467,7 @@ class RCMD(object):
                 if not command_counter_100msec%100 and CGI_CLI.cgi_active:
                     CGI_CLI.uprint("<script>console.log('10s...');</script>", \
                         raw = True)
-                    CGI_CLI.logtofile('[+10sec_MARK]<br/>')
+                    CGI_CLI.logtofile('[+10sec_MARK]\n')
 
                     if printall and buff_read and not RCMD.silent_mode:
                         CGI_CLI.uprint('_', no_newlines = True, \
