@@ -3112,7 +3112,7 @@ authentication {
                     try: interface_data['name_of_remote_device'] = collect_if_config_rcmd_outputs[0].upper().split('DESCRIPTION')[1].splitlines()[0].split('FROM')[0].strip().replace('"','')
                     except: interface_data['name_of_remote_device'] = str()
 
-                    if 'PE' in interface_data.get('name_of_remote_device').upper() or 'PE' in device.upper():
+                    if 'PE' in interface_data.get('name_of_remote_device',str()).upper() or 'PE' in device.upper():
                         IMN_INTERFACE = True
 
                     try: interface_data['ipv4_addr_rem'] = collect_if_config_rcmd_outputs[0].split('description')[1].splitlines()[0].split('@')[1].split()[0]
@@ -4098,7 +4098,9 @@ authentication {
                 CGI_CLI.uprint('\n', timestamp = 'no')
 
                 if LOCAL_AS_NUMBER:
-                    CGI_CLI.uprint('LOCAL_AS = %s' % (LOCAL_AS_NUMBER), name = True , color = 'blue', timestamp = 'no')
+                    CGI_CLI.uprint('LOCAL_AS = %s, IMN_INTERFACE = %s' % \
+                        (LOCAL_AS_NUMBER, str(IMN_INTERFACE)), \
+                        color = 'blue', timestamp = 'no')
                 else:
                     CGI_CLI.uprint("PROBLEM TO PARSE LOCAL AS NUMBER on device %s!" \
                         % (device), color = 'red', timestamp = 'no')
@@ -4246,19 +4248,17 @@ authentication {
 
                 if ping_counts and int(ping_counts) > 0:
 
-                    if '100' in interface_warning_data.get('ping_v4_mtu_percent_success',str()): pass
-                    else: check_interface_data_content('ping_v4_percent_success_%spings' % (ping_counts), '100')
-
-                    if '100' in interface_warning_data.get('ping_v6_mtu_percent_success',str()): pass
-                    else: check_interface_data_content('ping_v6_percent_success_%spings' % (ping_counts), '100')
+                    if '100' in interface_warning_data.get('ping_v4_mtu_percent_success',str()):
+                        check_interface_data_content('ping_v4_mtu_percent_success_%spings' % (ping_counts), '100', warning = True)
+                    else:
+                        check_interface_data_content('ping_v4_percent_success_%spings' % (ping_counts), '100')
 
                     if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
 
-                        if '100' in interface_warning_data.get('ping_v4_mtu_percent_success',str()):
-                            check_interface_data_content('ping_v4_mtu_percent_success_%spings' % (ping_counts), '100', warning = True)
-
                         if '100' in interface_warning_data.get('ping_v6_mtu_percent_success',str()):
                             check_interface_data_content('ping_v6_mtu_percent_success_%spings' % (ping_counts), '100', warning = True)
+                        else:
+                            check_interface_data_content('ping_v6_percent_success_%spings' % (ping_counts), '100')
 
                 if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
                     if not PING_ONLY:
