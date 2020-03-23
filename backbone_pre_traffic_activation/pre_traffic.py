@@ -2317,7 +2317,7 @@ def get_interface_list_per_device(device = None, action_type = None):
                     if '- PUBPEER' in if_line.strip().upper() \
                         or '-PUBPEER' in if_line.strip().upper(): continue
                     if 'LOOPBACK' in if_line.strip().upper(): continue
-                elif action_type == 'custommigration':
+                elif action_type == 'custommigration' or action_type == 'customactivation':
                     if '- BACKBONE' in if_line.strip().upper() \
                         or '-BACKBONE' in if_line.strip().upper(): continue
                     if '- PRIVPEER' in if_line.strip().upper() \
@@ -2599,7 +2599,7 @@ authentication {
 
     ### ACTION TYPE ###########################################################
     action_type = 'bbactivation'
-    action_type_list = ['bbactivation', 'bbmigration', 'custommigration']
+    action_type_list = ['bbactivation', 'bbmigration', 'custommigration','customactivation']
 
     if CGI_CLI.data.get('customer_interfaces'):
         action_type = 'custommigration'
@@ -3328,6 +3328,9 @@ authentication {
                     if not precheck_mode:
                         interface_warning_data['rxload_percent'] = '-'
                         interface_warning_data['txload_percent'] = '-'
+
+                    ### CUSTOMER ###
+                    if action_type == 'custommigration' or action_type == 'customactivation': pass
 
                     ### def CISCO XR+XE 1st CMDS ##################################
                     if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
