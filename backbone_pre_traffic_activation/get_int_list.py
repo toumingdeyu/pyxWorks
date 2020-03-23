@@ -2438,6 +2438,14 @@ def get_interface_list_per_device(device = None, action_type = None):
                     if '- PUBPEER' in if_line.strip().upper() \
                         or '-PUBPEER' in if_line.strip().upper(): continue
                     if 'LOOPBACK' in if_line.strip().upper(): continue
+                elif action_type == 'custommigration' or action_type == 'customactivation':
+                    if '- BACKBONE' in if_line.strip().upper() \
+                        or '-BACKBONE' in if_line.strip().upper(): continue
+                    if '- PRIVPEER' in if_line.strip().upper() \
+                        or '-PRIVPEER' in if_line.strip().upper(): continue
+                    if '- PUBPEER' in if_line.strip().upper() \
+                        or '-PUBPEER' in if_line.strip().upper(): continue
+                    if 'LOOPBACK' in if_line.strip().upper(): continue
 
 
                 try: if_name = if_line.split()[0]
@@ -2497,7 +2505,7 @@ warning {
 
     ### ACTION TYPE ###########################################################
     action_type = 'bbactivation'
-    action_type_list = ['bbactivation', 'bbmigration', 'custommigration']
+    action_type_list = ['bbactivation', 'bbmigration', 'custommigration','customactivation']
     if CGI_CLI.data.get("type"):
         if CGI_CLI.data.get("type") in action_type_list:
             action_type = CGI_CLI.data.get("type")
@@ -2542,13 +2550,13 @@ warning {
         if ',' in devices_string:
             device_list = [ dev_mix_case.upper() for dev_mix_case in devices_string.split(',') ]
         else: device_list.append(devices_string.upper())
-        
+
     ### GENERATE DEVICE LIST ##################################################
     devices_string = CGI_CLI.data.get("devicetest",str())
     if devices_string:
         if ',' in devices_string:
             device_list = [ dev_mix_case.upper() for dev_mix_case in devices_string.split(',') ]
-        else: device_list.append(devices_string.upper())        
+        else: device_list.append(devices_string.upper())
 
     ### type=bbactivation #####################################################
     type_content = CGI_CLI.data.get("type",str())
