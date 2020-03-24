@@ -2717,6 +2717,10 @@ authentication {
     else: CGI_CLI.uprint('%s (v.%s)' % (SCRIPT_NAME,CGI_CLI.VERSION()), \
               tag = 'h1', color = 'blue')
     CGI_CLI.print_args()
+    
+    CGI_CLI.uprint('BB_MODE = %s, CUSTOMER_MODE = %s, PING_ONLY = %s' % \
+        (str(BB_MODE),str(CUSTOMER_MODE),str(PING_ONLY)), \
+        no_printall = not printall, tag = 'debug')
 
     ### def SQL INIT ##########################################################
     sql_inst = sql_interface(host='localhost', user='cfgbuilder', \
@@ -2895,6 +2899,8 @@ authentication {
                     % (USERNAME.encode('base64','strict')),
                 '<p hidden><input type="checkbox" name="cpassword" value="%s" checked="checked"></p>' \
                     % (PASSWORD.encode('base64','strict')),
+                '<p hidden><input type="checkbox" name="type" value="%s" checked="checked"></p>' \
+                    % (str(action_type)),                    
                 '<h2>Select interface on %s:</h2>' % (device if device else str()),
                 '<div align="left">', '<table style="width:90%">']
 
