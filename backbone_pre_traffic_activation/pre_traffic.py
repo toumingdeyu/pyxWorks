@@ -2608,6 +2608,10 @@ authentication {
             test_mode = True
             table_test_extension = '_test'
 
+    if '_test' in CGI_CLI.get_scriptname():
+        test_mode = True
+        table_test_extension = '_test'
+
 
     ### ACTION TYPE ###########################################################
     action_type = 'bbactivation'
