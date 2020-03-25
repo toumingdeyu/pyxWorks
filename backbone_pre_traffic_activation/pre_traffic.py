@@ -2744,6 +2744,8 @@ authentication {
               tag = 'h1', color = 'blue')
     CGI_CLI.print_args()
 
+    CGI_CLI.uprint('action_type = "%s"' % (action_type))
+
     CGI_CLI.uprint('BB_MODE = %s, CUSTOMER_MODE = %s, PING_ONLY = %s' % \
         (str(BB_MODE),str(CUSTOMER_MODE),str(PING_ONLY)), \
         no_printall = not printall, tag = 'debug')
