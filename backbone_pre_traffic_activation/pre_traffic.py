@@ -2622,8 +2622,15 @@ authentication {
 
     if CGI_CLI.data.get("type"):
         if isinstance(CGI_CLI.data.get("type"), (str,basestring,six.string_types)):
-            if CGI_CLI.data.get("type") in action_type_list:
+            if '[' in CGI_CLI.data.get("type"):
+                ### fake_list_is_string ###
+                for list_item in action_type_list:
+                    if list_item in CGI_CLI.data.get("type"):
+                        action_type = list_item
+
+            elif CGI_CLI.data.get("type") in action_type_list:
                 action_type = CGI_CLI.data.get("type")
+
         elif isinstance(CGI_CLI.data.get("type"), (list,tuple)):
             for type_item in CGI_CLI.data.get("type"):
                 if type_item in action_type_list:
