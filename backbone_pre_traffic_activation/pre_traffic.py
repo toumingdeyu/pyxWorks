@@ -2621,8 +2621,13 @@ authentication {
         action_type = 'custommigration'
 
     if CGI_CLI.data.get("type"):
-        if CGI_CLI.data.get("type") in action_type_list:
-            action_type = CGI_CLI.data.get("type")
+        if isinstance(CGI_CLI.data.get("type"), (str,basestring,six.string_types)):
+            if CGI_CLI.data.get("type") in action_type_list:
+                action_type = CGI_CLI.data.get("type")
+        elif isinstance(CGI_CLI.data.get("type"), (list,tuple)):
+            for type_item in CGI_CLI.data.get("type"):
+                if type_item in action_type_list:
+                    action_type = type_item
 
     if action_type == 'bbactivation' or action_type == 'bbmigration':
         BB_MODE = True
