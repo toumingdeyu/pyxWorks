@@ -2717,7 +2717,7 @@ authentication {
     else: CGI_CLI.uprint('%s (v.%s)' % (SCRIPT_NAME,CGI_CLI.VERSION()), \
               tag = 'h1', color = 'blue')
     CGI_CLI.print_args()
-    
+
     CGI_CLI.uprint('BB_MODE = %s, CUSTOMER_MODE = %s, PING_ONLY = %s' % \
         (str(BB_MODE),str(CUSTOMER_MODE),str(PING_ONLY)), \
         no_printall = not printall, tag = 'debug')
@@ -2813,6 +2813,9 @@ authentication {
                 pre_post_template['precheck_log'] = str()
                 pre_post_template['postcheck_log'] = str()
 
+                if 'operation_type' in pre_post_template.keys():
+                    pre_post_template['operation_type'] = str(action_type)
+
                 ### TEST IF SWAN ALREADY RECORD EXISTS ########################
                 sql_read_data = sql_inst.sql_read_records_to_dict_list( \
                     table_name = 'pre_post_result' + table_test_extension, \
@@ -2830,6 +2833,10 @@ authentication {
                     sql_read_data[0]['postcheck_result'] = '-'
                     sql_read_data[0]['precheck_log'] = str()
                     sql_read_data[0]['postcheck_log'] = str()
+
+                    if 'operation_type' in sql_read_data[0].keys():
+                        sql_read_data[0]['operation_type'] = str(action_type)
+
                     try:
                         del sql_read_data[0]['id']
                         del sql_read_data[0]['last_updated']
@@ -2900,7 +2907,7 @@ authentication {
                 '<p hidden><input type="checkbox" name="cpassword" value="%s" checked="checked"></p>' \
                     % (PASSWORD.encode('base64','strict')),
                 '<p hidden><input type="checkbox" name="type" value="%s" checked="checked"></p>' \
-                    % (str(action_type)),                    
+                    % (str(action_type)),
                 '<h2>Select interface on %s:</h2>' % (device if device else str()),
                 '<div align="left">', '<table style="width:90%">']
 
@@ -4370,8 +4377,9 @@ authentication {
                         except: interface_warning_data['Remote_fault_After_ping'] = str()
 
 
-
+                ###############################################################
                 ### PRINT \n AFTER COLLECTING OF DATA #########################
+                ###############################################################
                 CGI_CLI.uprint('\n', timestamp = 'no')
 
                 if LOCAL_AS_NUMBER:
@@ -4405,7 +4413,7 @@ authentication {
 
 
                 CGI_CLI.uprint('CHECKS:', timestamp = 'no', tag = 'h3')
-                if not PING_ONLY and not precheck_mode:
+                if BB_MODE and not precheck_mode:
                     if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr' and not interface_data.get('ipv4_metric') \
                         or RCMD.router_type == 'juniper' and not interface_data.get('metric') \
                         or RCMD.router_type == 'huawei' and not interface_data.get('isis cost'):
@@ -4483,7 +4491,7 @@ authentication {
                                         else: CGI_CLI.logtofile("Ipv6 L2 Metric (%s) check on Interface %s = OK\n" % (ipv6_L2_metric, parallel_interface), ommit_timestamp = True)
 
 
-                    if not PING_ONLY:
+                    if BB_MODE:
                         ### TRAFFIC CHECK #############################################
                         low_percent = 3
                         high_percent = 90
@@ -4538,7 +4546,7 @@ authentication {
                             check_interface_data_content('ping_v6_percent_success_%spings' % (ping_counts), '100')
 
                 if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
-                    if not PING_ONLY:
+                    if BB_MODE:
                         check_interface_data_content('line protocol is', 'UP')
 
                         if precheck_mode:
@@ -4562,7 +4570,7 @@ authentication {
                         check_interface_data_content('output_errors', exact_value_yes = '0', warning = True)
 
                 elif RCMD.router_type == 'juniper':
-                    if not PING_ONLY:
+                    if BB_MODE:
                         check_interface_data_content('Flags', 'UP')
                         check_interface_data_content('Physical link is', 'UP')
                         check_interface_data_content('LDP sync state', 'in sync')
@@ -4587,7 +4595,7 @@ authentication {
                         check_interface_data_content('FEC_Uncorrected_Errors_Rate_Difference', exact_value_yes = '0', warning = True)
 
                 elif RCMD.router_type == 'huawei':
-                    if not PING_ONLY:
+                    if BB_MODE:
                         check_interface_data_content('isis ldp-sync', 'Achieved')
                         check_interface_data_content('Line protocol current state', 'UP')
                         check_interface_data_content('isis interface IPV4.State', 'UP')
@@ -4687,6 +4695,9 @@ authentication {
                 pre_post_template['router_name'] = device.upper()
                 pre_post_template['int_name'] = interface_id
 
+                if 'operation_type' in pre_post_template.keys():
+                    pre_post_template['operation_type'] = str(action_type)
+
                 if precheck_mode:
                     pre_post_template['precheck_result'] = interface_result
                     pre_post_template['precheck_log'] = copy.deepcopy(logfilename)
@@ -4713,6 +4724,10 @@ authentication {
 
                 ### UPDATE OR INSERT ##########################################
                 if len(sql_read_data) > 0:
+
+                    if 'operation_type' in sql_read_data[0].keys():
+                        sql_read_data[0]['operation_type'] = str(action_type)
+
                     if precheck_mode:
                         sql_read_data[0]['precheck_log'] = copy.deepcopy(logfilename)
                         sql_read_data[0]['precheck_result'] = interface_result
