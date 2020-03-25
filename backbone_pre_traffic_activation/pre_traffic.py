@@ -2636,12 +2636,6 @@ authentication {
                 if type_item in action_type_list:
                     action_type = type_item
 
-    if action_type == 'bbactivation' or action_type == 'bbmigration':
-        BB_MODE = True
-    elif action_type == 'custommigration' or action_type == 'customactivation':
-        CUSTOMER_MODE = True
-
-
     ### MULTIPLE INPUTS FROM MORE MARTIN'S PAGES ##############################
     swan_id = CGI_CLI.data.get("swan",str())
     if CGI_CLI.data.get("postcheck") \
@@ -2698,17 +2692,31 @@ authentication {
 
     ### MARTIN'S SPECIAL FORM OF SENDING DATA #################################
     testint_list = []
+    operation_type = str()
     CGI_CLI.parse_input_data(key = 'testint', append_to_list = testint_list)
 
+    ### SWAN-DEVICE-INTERFACE-MODE ############################################
     for testint in testint_list:
+        try: dash_interface = testint.split('--')[2].strip()
+        except: dash_interface = str()
+
         try:
-            dash_interface = testint.split('-')[2].strip() + '-' + testint.split('-')[3].strip()
-        except: dash_interface = testint.split('-')[2].strip()
-        try:
-            swan_id = testint.split('-')[0].strip()
-            device_interface_id_list.append([testint.split('-')[1].strip(),\
+            swan_id = testint.split('--')[0].strip()
+            device_interface_id_list.append([testint.split('--')[1].strip(),\
                 [dash_interface]])
         except: pass
+
+        try: operation_type = testint.split('--')[3].strip()
+        except: operation_type = str()
+
+    if operation_type:
+        if operation_type in action_type_list:
+            action_type = type_item
+
+    if action_type == 'bbactivation' or action_type == 'bbmigration':
+        BB_MODE = True
+    elif action_type == 'custommigration' or action_type == 'customactivation':
+        CUSTOMER_MODE = True
 
     if CGI_CLI.timestamp:
         CGI_CLI.uprint('After parsing of input data.\n', \
