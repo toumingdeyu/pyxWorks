@@ -2416,7 +2416,8 @@ def get_fiblist(input_text = None):
 
 check_interface_result_ok, check_warning_interface_result_ok = True, True
 def check_interface_data_content(where = None, what_yes_in = None, what_not = None, \
-    exact_value_yes = None, lower_than = None, higher_than = None, warning = None):
+    exact_value_yes = None, lower_than = None, higher_than = None, warning = None, \
+    ignore_data_existence = None):
     """
     multiple tests in once are possible
     what_yes_in - string = if occurs in where then OK.
@@ -2426,10 +2427,19 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
     global check_interface_result_ok
     global check_warning_interface_result_ok
     local_check_interface_result_ok, Alarm_text = 0, []
+    key_exists = False
 
-    if warning: where_value = interface_warning_data.get(where, str())
-    else: where_value = interface_data.get(where, str())
+    if warning:
+        where_value = interface_warning_data.get(where, str())
+        if where in interface_warning_data.keys(): key_exists = True
+    else:
+        where_value = interface_data.get(where, str())
+        if where in interface_warning_data.keys(): key_exists = True
 
+    if ignore_data_existence:
+        if not key_exists:
+            CGI_CLI.logtofile("DATA '%s' DOES NOT EXISTS.\n" % (where), ommit_timestamp = True)
+            return None
 
     #CGI_CLI.uprint('CHECK[%s, where_value=%s, what_yes_in=%s, what_not=%s, exact_value_yes=%s, lower_than=%s, higher_than=%s, warning=%s]' \
     #    % (where, where_value, what_yes_in, what_not, exact_value_yes, lower_than, higher_than, warning),\
@@ -2886,8 +2896,8 @@ authentication {
                 interface_menu_list.append('<br/>')
                 interface_menu_list.append('</authentication>')
 
-            CGI_CLI.formprint(interface_menu_list + ['<br/>',\
-                {'checkbox':'customer_interfaces'}, '<br/>',\
+            CGI_CLI.formprint(interface_menu_list + ['<br/><b>',\
+                {'checkbox':'customer_interfaces'}, '</b><br/>',\
                 {'checkbox':'timestamps'}, '<br/>',\
                 {'checkbox':'printall'},'<br/>','<br/>'],\
                 submit_button = CGI_CLI.self_buttons[0], \
@@ -2953,8 +2963,8 @@ authentication {
                 interface_menu_list.append('<br/>')
 
             CGI_CLI.formprint( interface_menu_list + \
-                [ {'checkbox':'timestamps'}, '<br/>',\
-                {'checkbox':'send_email'},'<br/>',\
+                [ {'checkbox':'timestamps'}, '<br/><b>',\
+                {'checkbox':'send_email'},'</b><br/>',\
                 {'checkbox':'printall'},'<br/>','<br/>' ], \
                 submit_button = CGI_CLI.self_buttons[0],
                 pyfile = None, tag = None, color = None , list_separator = '&emsp;')
@@ -4391,10 +4401,10 @@ authentication {
                         % (device), color = 'red', timestamp = 'no')
 
                 ### def PRINT RESULTS PER INTERFACE ###########################
-                CGI_CLI.uprint(interface_data, name = 'Device:%s' % (device), \
+                CGI_CLI.uprint(interface_data, name = 'Collected data on Device:%s' % (device), \
                     jsonprint = True, color = 'blue', timestamp = 'no')
 
-                CGI_CLI.uprint(interface_warning_data, name = 'POSSIBLE WARNINGS on Device:%s' % (device), \
+                CGI_CLI.uprint(interface_warning_data, name = 'Collected warning data on Device:%s' % (device), \
                     jsonprint = True, color = 'blue', timestamp = 'no')
 
                 ### START OF CHECKS PER INTERFACE #############################
@@ -4521,14 +4531,14 @@ authentication {
 
 
                 ### def CONTENT ELEMENT CHECK #################################
-                check_interface_data_content('ping_v4_percent_success', '100')
-                check_interface_data_content('ping_v4_mtu_percent_success', '100', warning = True)
+                check_interface_data_content('ping_v4_percent_success', '100', ignore_data_existence = True)
+                check_interface_data_content('ping_v4_mtu_percent_success', '100', warning = True, ignore_data_existence = True)
 
                 if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
-                    check_interface_data_content('ping_v6_percent_success', '100')
-                    check_interface_data_content('ping_v6_mtu_percent_success', '100', warning = True)
+                    check_interface_data_content('ping_v6_percent_success', '100', ignore_data_existence = True)
+                    check_interface_data_content('ping_v6_mtu_percent_success', '100', warning = True, ignore_data_existence = True)
 
-                check_interface_data_content('ipv4_addr_rem_calculated', interface_data.get('ipv4_addr_rem'))
+                check_interface_data_content('ipv4_addr_rem_calculated', interface_data.get('ipv4_addr_rem'), ignore_data_existence = True)
 
 
                 if ping_counts and int(ping_counts) > 0:
