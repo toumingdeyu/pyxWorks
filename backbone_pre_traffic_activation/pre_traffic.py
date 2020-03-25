@@ -2695,7 +2695,7 @@ authentication {
     operation_type = str()
     CGI_CLI.parse_input_data(key = 'testint', append_to_list = testint_list)
 
-    ### SWAN-DEVICE-INTERFACE-MODE ############################################
+    ### LIST FORMAT: SWAN--DEVICE--INTERFACE--MODE ############################
     for testint in testint_list:
         try: dash_interface = testint.split('--')[2].strip()
         except: dash_interface = str()
@@ -2711,7 +2711,7 @@ authentication {
 
     if operation_type:
         if operation_type in action_type_list:
-            action_type = type_item
+            action_type = operation_type
 
     if action_type == 'bbactivation' or action_type == 'bbmigration':
         BB_MODE = True
