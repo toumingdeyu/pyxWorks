@@ -2572,7 +2572,7 @@ authentication {
     LDP_neighbor_IP = str()
     device_interface_list = []
     interface_cgi_string = 'interface__'
-    interface_id_list = []
+    interface_line_list = []
     logfilename_list = []
     global_logfilename = str()
     swan_id = str()
@@ -2669,26 +2669,26 @@ authentication {
 
     ### COLLECT INTERFACE LISTS ###############################################
     interface_id_list1, interface_id_list2, interface_id_list3 = [], [], []
-    CGI_CLI.parse_input_data(key_in = interface_cgi_string, append_to_list = interface_id_list)
+    CGI_CLI.parse_input_data(key_in = interface_cgi_string, append_to_list = interface_line_list)
 
     ### FILTER MY OWN RECEIVED INTERFACE LINE TO INTERFACE_LIST to LIST1 ######
-    interface_id_list1 = [ interface_line.split()[0] for interface_line in interface_id_list ]
+    interface_id_list1 = [ interface_line.split()[0] for interface_line in interface_line_list ]
 
-    if len(interface_id_list1) == 0:
-        CGI_CLI.parse_input_data(key = 'interface', append_to_list = interface_id_list1)
+    #if len(interface_id_list1) == 0:
+    CGI_CLI.parse_input_data(key = 'interface', append_to_list = interface_id_list1)
 
     CGI_CLI.parse_input_data(key = 'interface_id[]', append_to_list = interface_id_list1)
     CGI_CLI.parse_input_data(key = 'interface_id2[]', append_to_list = interface_id_list2)
     CGI_CLI.parse_input_data(key = 'interface_id3[]', append_to_list = interface_id_list3)
 
     ### def COLLECT DEVICE INTERFACE LIST #####################################
-    device_interface_id_list = []
+    devices_interfaces_list = []
     if router and len(interface_id_list1) > 0:
-        device_interface_id_list.append([router.upper(), interface_id_list1])
+        devices_interfaces_list.append([router.upper(), interface_id_list1])
     if router2 and len(interface_id_list2) > 0:
-        device_interface_id_list.append([router2.upper(), interface_id_list2])
+        devices_interfaces_list.append([router2.upper(), interface_id_list2])
     if router3 and len(interface_id_list3) > 0:
-        device_interface_id_list.append([router3.upper(), interface_id_list3])
+        devices_interfaces_list.append([router3.upper(), interface_id_list3])
 
     ### MARTIN'S SPECIAL FORM OF SENDING DATA #################################
     testint_list = []
@@ -2702,7 +2702,7 @@ authentication {
 
         try:
             swan_id = testint.split('--')[0].strip()
-            device_interface_id_list.append([testint.split('--')[1].strip(),\
+            devices_interfaces_list.append([testint.split('--')[1].strip(),\
                 [dash_interface]])
         except: pass
 
@@ -2730,7 +2730,7 @@ authentication {
 
 
     ### def CREATE ALL INTERFACES LIST PER DEVICE ##############################
-    if len(device_list) > 0 and len(interface_id_list) == 0:
+    if len(device_list) > 0 and len(interface_line_list) == 0:
         for device in device_list:
             device_interface_list = get_interface_list_per_device(device, action_type = action_type)
         CGI_CLI.uprint(device_interface_list, name='%s_interface_list' % (device), \
@@ -2774,7 +2774,7 @@ authentication {
     if not PING_ONLY and swan_id and (CGI_CLI.data.get('submit',str()) == 'Sign precheck' \
         or CGI_CLI.data.get('submit',str()) == 'Sign postcheck'):
 
-        for device, interface_list in device_interface_id_list:
+        for device, interface_list in devices_interfaces_list:
             for interface_id in interface_list:
 
                 ### TEST IF SWAN ALREADY RECORD EXISTS ########################
@@ -2836,7 +2836,7 @@ authentication {
                      % (swan_id, table_test_extension), color = 'red')
                 sys.exit(0)
 
-        for device, interface_list in device_interface_id_list:
+        for device, interface_list in devices_interfaces_list:
             for interface_id in interface_list:
                 pre_post_template = sql_inst.sql_read_all_table_columns_to_void_dict(\
                     'pre_post_result' + table_test_extension, ommit_columns = ['id','last_updated'])
@@ -2903,7 +2903,7 @@ authentication {
         ### OTHER SUBMIT BUTTONS THAN OK ALLOWS "REMOTE" CGI CONTROL ##########
 
         ### MAIN MENU #########################################################
-        if len(device_list) == 0 and len(interface_id_list) == 0 \
+        if len(device_list) == 0 and len(interface_line_list) == 0 \
             and len(device_interface_list) == 0:
 
             interface_menu_list = [{'text':'device'},'<br/>', \
@@ -2932,7 +2932,7 @@ authentication {
             sys.exit(0)
 
         ### INTERFACE MENU PART ###############################################
-        elif len(device_interface_list) > 0:
+        elif len(devices_interfaces_list) == 0 and len(device_interface_list) > 0:
             table_rows = 1
             counter = 0
             interface_menu_list = [
@@ -3003,7 +3003,7 @@ authentication {
     ### END DUE TO MISSING INPUT DATA #########################################
     exit_due_to_error = None
 
-    if len(device_interface_id_list) == 0:
+    if len(devices_interfaces_list) == 0:
         CGI_CLI.uprint('Interface id NOT INSERTED!', tag = 'h2', color = 'red')
         exit_due_to_error = True
 
@@ -3018,14 +3018,14 @@ authentication {
     if exit_due_to_error: sys.exit(0)
 
     ### PRINT SELECTED DEVICE AND INTERFACE ###################################
-    CGI_CLI.uprint(device_interface_id_list, name = 'device_interface_id_list',\
+    CGI_CLI.uprint(devices_interfaces_list, name = 'devices_interfaces_list',\
             jsonprint = True, color = 'blue')
 
 
     ### def REMOTE DEVICE OPERATIONS ##########################################
     device_data, interface_results = [], []
     old_device = str()
-    for device, interface_list in device_interface_id_list:
+    for device, interface_list in devices_interfaces_list:
         if device:
             ### DISCONNECT, IF DEVICE IS NOT THE SAME AS BEFORE ###############
             if old_device and old_device != device: RCMD.disconnect()
@@ -4890,7 +4890,7 @@ authentication {
     RCMD.disconnect()
 
     ### def GLOBAL_LOGFILENAME, DO LOG ONLY WHEN DEVICE LIST EXISTS ###########
-    if len(device_interface_id_list) > 0:
+    if len(devices_interfaces_list) > 0:
         html_extention = 'htm' if CGI_CLI.cgi_active else str()
         global_logfilename = copy.deepcopy(generate_logfilename( \
             prefix = '%s' % ('PRECHECK' if precheck_mode else 'POSTCHECK'), \
