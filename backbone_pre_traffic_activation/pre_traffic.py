@@ -2922,8 +2922,8 @@ authentication {
                 interface_menu_list.append('<br/>')
                 interface_menu_list.append('</authentication>')
 
-            CGI_CLI.formprint(interface_menu_list + ['<br/><b>',\
-                {'checkbox':'customer_interfaces'}, '</b><br/>',\
+            CGI_CLI.formprint(interface_menu_list + ['<br/><b><u>',\
+                {'checkbox':'customer_interfaces'}, '</u></b><br/>',\
                 {'checkbox':'timestamps'}, '<br/>',\
                 {'checkbox':'printall'},'<br/>','<br/>'],\
                 submit_button = CGI_CLI.self_buttons[0], \
@@ -2985,12 +2985,13 @@ authentication {
             interface_menu_list.append('<br/>')
 
             if not PING_ONLY:
+                interface_menu_list.append('NOTE: chunked mode is longtime running mode without http connection timeout.<br/>')
                 interface_menu_list.append({'checkbox':'chunked_mode'})
                 interface_menu_list.append('<br/>')
 
             CGI_CLI.formprint( interface_menu_list + \
-                [ {'checkbox':'timestamps'}, '<br/><b>',\
-                {'checkbox':'send_email'},'</b><br/>',\
+                [ {'checkbox':'timestamps'}, '<br/><b><u>',\
+                {'checkbox':'send_email'},'</u></b><br/>',\
                 {'checkbox':'printall'},'<br/>','<br/>' ], \
                 submit_button = CGI_CLI.self_buttons[0],
                 pyfile = None, tag = None, color = None , list_separator = '&emsp;')
@@ -3284,7 +3285,7 @@ authentication {
 
 
                 ###############################################################
-                ### def BB_MODE - COLLECT COMMAND LIST ########################
+                ### def BB_MODE - 1st COLLECT COMMAND LIST ####################
                 ###############################################################
                 elif BB_MODE:
                     collect_if_data_rcmds = {
@@ -3338,7 +3339,7 @@ authentication {
                             'show configuration class-of-service interfaces %s | display set'  % (undotted_interface_id),
                             'show configuration groups mtu-default | display set',
                             'show configuration protocols isis interface %s' % (interface_id),
-                            'show interfaces %s' % (undotted_interface_id),
+                            'show interfaces %s extensive' % (undotted_interface_id),
                             'show interfaces descriptions'
                         ],
 
@@ -3593,6 +3594,12 @@ authentication {
 
                         try: interface_warning_data['FEC_Uncorrected_Errors_Rate'] = collect_if_config_rcmd_outputs[13].split('FEC Uncorrected Errors Rate ')[1].split()[0].strip()
                         except: interface_warning_data['FEC_Uncorrected_Errors_Rate'] = str()
+
+                        try: interface_warning_data['Input_errors'] = collect_if_config_rcmd_outputs[13].split('Input errors:')[1].strip().splitlines()[0].strip()
+                        except: interface_warning_data['Input_errors'] = str()
+
+                        try: interface_warning_data['Output_errors'] = collect_if_config_rcmd_outputs[13].split('Output errors:')[1].strip().splitlines()[0].strip()
+                        except: interface_warning_data['Output_errors'] = str()
 
                     ### HUAWEI 1st CMDS ###########################################
                     elif RCMD.router_type == 'huawei':
@@ -4301,7 +4308,7 @@ authentication {
                         ],
 
                         'juniper': [
-                            'show interfaces %s' % (undotted_interface_id),
+                            'show interfaces %s extensive' % (undotted_interface_id),
                         ],
 
                         'huawei': [
@@ -4369,6 +4376,12 @@ authentication {
                         except: interface_warning_data['FEC_Uncorrected_Errors_Rate_After_ping'] = str()
                         try:    interface_warning_data['FEC_Uncorrected_Errors_Rate_Difference'] = str(int(interface_warning_data['FEC_Uncorrected_Errors_Rate_After_ping']) - int(interface_warning_data['FEC_Uncorrected_Errors_Rate']))
                         except: interface_warning_data['FEC_Uncorrected_Errors_Rate_Difference'] = str()
+
+                        try: interface_warning_data['Input_errors_After_ping'] = collect_if_config_rcmd_outputs[13].split('Input errors:')[1].strip().splitlines()[0].strip()
+                        except: interface_warning_data['Input_errors_After_ping'] = str()
+
+                        try: interface_warning_data['Output_errors_After_ping'] = collect_if_config_rcmd_outputs[13].split('Output errors:')[1].strip().splitlines()[0].strip()
+                        except: interface_warning_data['Output_errors_After_ping'] = str()
 
                     elif RCMD.router_type == 'huawei':
                         try:    interface_warning_data['Rx_Power_dBm_After_ping'] = err_check_after_pings_outputs[0].split('Rx Power: ')[1].split()[0].strip().replace(',','').replace('dBm','')
@@ -4698,6 +4711,9 @@ authentication {
                 if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, logfilename)
                 else: logviewer = './logviewer.py?logfile=%s' % (logfilename)
                 if CGI_CLI.cgi_active:
+                    if interface_result == 'NOT_OK':
+                        CGI_CLI.uprint('<p style="color:red;">The selected backbone interface %s on device %s does not comply to the required parameters for traffic activation./p>' % (interface_id, device), raw = True)
+
                     CGI_CLI.uprint('Device=%s, Interface=%s  -  RESULT = %s' \
                         % (device, interface_id, interface_result), color = html_color, tag = 'h2')
                     CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
@@ -4823,6 +4839,7 @@ authentication {
             else: logviewer = './logviewer.py?logfile=%s' % (logfilename)
             if CGI_CLI.cgi_active:
                 if interface_result == 'NOT OK':
+                    CGI_CLI.logtofile('<p style="color:red;">The selected backbone interface %s on device %s does not comply to the required parameters for traffic activation./p>' % (interface_id, device))
                     CGI_CLI.logtofile('<p style="color:red;">Device=%s, Interface=%s  -  RESULT = %s</p>' \
                         % (device, interface_id, interface_result), raw_log = True, ommit_timestamp = True)
                 elif interface_result == 'WARNING':
