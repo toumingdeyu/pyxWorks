@@ -4445,8 +4445,8 @@ authentication {
 
                         try:    interface_warning_data['Output_errors__Collisions_After_ping'] = err_check_after_pings_outputs[0].split('Output errors:')[1].strip().splitlines()[0].strip().split('Collisions: ')[1].split()[0].replace(',','')
                         except: interface_warning_data['Output_errors__Collisions_After_ping'] = str()
-                        try:    interface_warning_data['Output_errors__Collisions_After_Difference'] = str(int(interface_warning_data['Output_errors__Collisions_After_After_ping']) - int(interface_warning_data['Output_errors__Collisions_After']))
-                        except: interface_warning_data['Output_errors__Collisions_After_Difference'] = str()
+                        try:    interface_warning_data['Output_errors__Collisions_Difference'] = str(int(interface_warning_data['Output_errors__Collisions_After_ping']) - int(interface_warning_data['Output_errors__Collisions']))
+                        except: interface_warning_data['Output_errors__Collisions_Difference'] = str()
 
                         try:    interface_warning_data['Output_errors__Aged_packets_After_ping'] = err_check_after_pings_outputs[0].split('Output errors:')[1].strip().splitlines()[0].strip().split('Aged packets: ')[1].split()[0].replace(',','')
                         except: interface_warning_data['Output_errors__Aged_packets_After_ping'] = str()
