@@ -191,9 +191,9 @@ class CGI_CLI(object):
         if not CGI_CLI.cgi_active: CGI_CLI.data = vars(CGI_CLI.args)
         if CGI_CLI.cgi_active:
             CGI_CLI.chunked = chunked
-            sys.stdout.write("%sContent-type:text/html\r\n" % 
+            sys.stdout.write("%sContent-type:text/html\r\n" %
                 (CGI_CLI.chunked_transfer_encoding_string if CGI_CLI.chunked else str()))
-            sys.stdout.flush()    
+            sys.stdout.flush()
             CGI_CLI.print_chunk("\r\n\r\n<html><head><title>%s</title></head><body>" %
                 (CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit'))
         import atexit; atexit.register(CGI_CLI.__cleanup__)
@@ -260,11 +260,11 @@ class CGI_CLI(object):
     def print_chunk(msg=""):
         ### sys.stdout.write is printing without \n , print adds \n == +1BYTE ###
         if CGI_CLI.chunked and CGI_CLI.cgi_active:
-            if len(msg)>0:        
+            if len(msg)>0:
                 sys.stdout.write("\r\n%X\r\n%s" % (len(msg), msg))
                 sys.stdout.flush()
         ### CLI MODE ###
-        else: print(msg)        
+        else: print(msg)
 
     @staticmethod
     def uprint(text, tag = None, tag_id = None, color = None, name = None, jsonprint = None, \
@@ -303,7 +303,7 @@ class CGI_CLI(object):
                 elif 'CYAN' in color.upper():    text_color = CGI_CLI.bcolors.CYAN
                 elif 'GREY' in color.upper():    text_color = CGI_CLI.bcolors.GREY
                 elif 'YELLOW' in color.upper():  text_color = CGI_CLI.bcolors.YELLOW
-            ### CLI_MODE ###    
+            ### CLI_MODE ###
             if no_newlines:
                 sys.stdout.write(text_color + print_name + print_text + CGI_CLI.bcolors.ENDC)
                 sys.stdout.flush()
@@ -314,7 +314,7 @@ class CGI_CLI(object):
             if tag: CGI_CLI.print_chunk('</%s>'%(tag))
             elif not no_newlines: CGI_CLI.print_chunk('<br/>');
             ### PRINT PER TAG ###
-            CGI_CLI.print_chunk(print_per_tag)    
+            CGI_CLI.print_chunk(print_per_tag)
         ### LOGGING ###
         if CGI_CLI.logfilename and log:
             with open(CGI_CLI.logfilename,"a+") as CGI_CLI.fp:
@@ -473,11 +473,11 @@ def generate_file_name(prefix = None, suffix = None , directory = None):
             replace(':','_').replace('.','_').replace('\\','/')\
             .split('/')[-1],USERNAME,filename_suffix)
         filenamewithpath = str(os.path.join(LOGDIR,filename))
-    return filenamewithpath         
+    return filenamewithpath
 
 
 def dict_to_json_string(dict_data = None, indent = None):
-    if not indent: indent = 4 
+    if not indent: indent = 4
     try: json_data = json.dumps(dict_data, indent = indent)
     except: json_data = ''
     return json_data
@@ -500,7 +500,7 @@ def find_last_logfile():
     log_filenames = glob.glob(log_file_name)
     if len(log_filenames) == 0:
         CGI_CLI.uprint(" ... Can't find any proper (%s) log file.\n"%(log_file_name))
-    else:    
+    else:
         most_recent_logfile = log_filenames[0]
         for item in log_filenames:
             filecreation = os.path.getctime(item)
@@ -528,13 +528,13 @@ def find_duplicate_keys_in_dictionaries(data1, data2):
 class sql_interface():
     ### import mysql.connector
     ### MARIADB - By default AUTOCOMMIT is disabled
-                    
-    def __init__(self, host = None, user = None, password = None, database = None):    
+
+    def __init__(self, host = None, user = None, password = None, database = None):
         if int(sys.version_info[0]) == 3 and not 'pymysql.connect' in sys.modules: import pymysql
         elif int(sys.version_info[0]) == 2 and not 'mysql.connector' in sys.modules: import mysql.connector
         default_ipxt_data_collector_delete_columns = ['id','last_updated']
         self.sql_connection = None
-        try: 
+        try:
             if CGI_CLI.initialized: pass
             else: CGI_CLI.init_cgi(); CGI_CLI.print_args()
         except: pass
@@ -544,63 +544,63 @@ class sql_interface():
                 self.sql_connection = pymysql.connect( \
                     host = host, user = user, password = password, \
                     database = database, autocommit = True)
-            else: 
+            else:
                 self.sql_connection = mysql.connector.connect( \
                     host = host, user = user, password = password,\
                     database = database, autocommit = True)
-                       
-            #CGI_CLI.uprint("SQL connection is open.")    
-        except Exception as e: print(e)           
-    
+
+            #CGI_CLI.uprint("SQL connection is open.")
+        except Exception as e: print(e)
+
     def __del__(self):
         if self.sql_connection and self.sql_connection.is_connected():
-            self.sql_connection.close()            
+            self.sql_connection.close()
             #CGI_CLI.uprint("SQL connection is closed.")
 
     def sql_is_connected(self):
-        if self.sql_connection: 
+        if self.sql_connection:
             if int(sys.version_info[0]) == 3 and self.sql_connection.open:
                 return True
             elif int(sys.version_info[0]) == 2 and self.sql_connection.is_connected():
                 return True
         return None
-        
+
     def sql_read_all_table_columns(self, table_name):
         columns = None
         if self.sql_is_connected():
             cursor = self.sql_connection.cursor()
-            try: 
+            try:
                 cursor.execute("select * from INFORMATION_SCHEMA.COLUMNS where TABLE_NAME='%s';"%(table_name))
                 records = cursor.fetchall()
                 columns = [item[3] for item in records]
             except Exception as e: print(e)
             try: cursor.close()
             except: pass
-        return columns 
+        return columns
 
     def sql_read_sql_command(self, sql_command):
         '''NOTE: FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE'''
         records = None
         if self.sql_is_connected():
             cursor = self.sql_connection.cursor()
-            try: 
+            try:
                 cursor.execute(sql_command)
                 records = cursor.fetchall()
             except Exception as e: print(e)
             try: cursor.close()
             except: pass
             ### FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE
-        return records 
+        return records
 
     def sql_write_sql_command(self, sql_command):
-        if self.sql_is_connected(): 
+        if self.sql_is_connected():
             if int(sys.version_info[0]) == 3:
                 cursor = self.sql_connection.cursor()
-            elif int(sys.version_info[0]) == 2:        
+            elif int(sys.version_info[0]) == 2:
                 cursor = self.sql_connection.cursor(prepared=True)
-            try: 
+            try:
                 cursor.execute(sql_command)
-                ### DO NOT COMMIT IF AUTOCOMMIT IS SET 
+                ### DO NOT COMMIT IF AUTOCOMMIT IS SET
                 if not self.sql_connection.autocommit: self.sql_connection.commit()
             except Exception as e: print(e)
             try: cursor.close()
@@ -609,7 +609,7 @@ class sql_interface():
 
     def sql_write_table_from_dict(self, table_name, dict_data, update = None):  ###'ipxt_data_collector'
        if self.sql_is_connected():
-           existing_sql_table_columns = self.sql_read_all_table_columns(table_name) 
+           existing_sql_table_columns = self.sql_read_all_table_columns(table_name)
            if existing_sql_table_columns:
                columns_string, values_string = str(), str()
                ### ASSUMPTION: LIST OF COLUMNS HAS CORRECT ORDER!!!
@@ -627,7 +627,7 @@ class sql_interface():
                                 if isinstance(item, (six.string_types)):
                                     if len(item_string) > 0: item_string += ','
                                     item_string += item
-                                ### DICTIONARY TO COMMA SEPARATED STRING    
+                                ### DICTIONARY TO COMMA SEPARATED STRING
                                 elif isinstance(item, (dict,collections.OrderedDict)):
                                     for i in item:
                                         if len(item_string) > 0: item_string += ','
@@ -640,24 +640,24 @@ class sql_interface():
                ### FINALIZE SQL_STRING - INSERT
                if not update:
                    sql_string = """INSERT INTO `%s` (%s) VALUES (%s);""" \
-                       % (table_name,columns_string,values_string)   
+                       % (table_name,columns_string,values_string)
                    if columns_string:
                        self.sql_write_sql_command("""INSERT INTO `%s`
                            (%s) VALUES (%s);""" %(table_name,columns_string,values_string))
                else:
                    sql_string = """UPDATE `%s` (%s) VALUES (%s);""" \
-                       % (table_name,columns_string,values_string)   
+                       % (table_name,columns_string,values_string)
                    if columns_string:
                        self.sql_write_sql_command("""UPDATE `%s`
-                           (%s) VALUES (%s);""" %(table_name,columns_string,values_string))                        
-       return None                
-   
+                           (%s) VALUES (%s);""" %(table_name,columns_string,values_string))
+       return None
+
     def sql_read_table_last_record(self, select_string = None, from_string = None, where_string = None):
         """NOTE: FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE"""
         check_data = None
         if not select_string: select_string = '*'
         #SELECT vlan_id FROM ipxt_data_collector WHERE id=(SELECT max(id) FROM ipxt_data_collector \
-        #WHERE username='mkrupa' AND device_name='AUVPE3'); 
+        #WHERE username='mkrupa' AND device_name='AUVPE3');
         if self.sql_is_connected():
             if from_string:
                 if where_string:
@@ -666,41 +666,41 @@ class sql_interface():
                 else:
                     sql_string = "SELECT %s FROM %s WHERE id=(SELECT max(id) FROM %s);" \
                         %(select_string, from_string, from_string)
-                check_data = self.sql_read_sql_command(sql_string)                          
+                check_data = self.sql_read_sql_command(sql_string)
         return check_data
 
     def sql_read_last_record_to_dict(table_name = None, from_string = None, \
         select_string = None, where_string = None, delete_columns = None):
-        """sql_read_last_record_to_dict - MAKE DICTIONARY FROM LAST TABLE RECORD 
+        """sql_read_last_record_to_dict - MAKE DICTIONARY FROM LAST TABLE RECORD
            NOTES: -'table_name' is alternative name to 'from_string'
                   - it always read last record dependent on 'where_string'
-                    which contains(=filters by) username,device_name,vpn_name                  
+                    which contains(=filters by) username,device_name,vpn_name
         """
         dict_data = collections.OrderedDict()
         table_name_or_from_string = None
         if not select_string: select_string = '*'
         if table_name:  table_name_or_from_string = table_name
-        if from_string: table_name_or_from_string = from_string     
+        if from_string: table_name_or_from_string = from_string
         columns_list = sql_inst.sql_read_all_table_columns(table_name_or_from_string)
         data_list = sql_inst.sql_read_table_last_record( \
             from_string = table_name_or_from_string, \
             select_string = select_string, where_string = where_string)
-        if columns_list and data_list: 
+        if columns_list and data_list:
             dict_data = collections.OrderedDict(zip(columns_list, data_list[0]))
         if delete_columns:
-            for column in delete_columns:   
+            for column in delete_columns:
                 try:
                     ### DELETE NOT VALID (AUXILIARY) TABLE COLUMNS
                     del dict_data[column]
-                except: pass  
-        return dict_data      
+                except: pass
+        return dict_data
 
     def sql_read_table_records(self, select_string = None, from_string = None, where_string = None):
         """NOTE: FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE"""
         check_data = None
         if not select_string: select_string = '*'
         #SELECT vlan_id FROM ipxt_data_collector WHERE id=(SELECT max(id) FROM ipxt_data_collector \
-        #WHERE username='mkrupa' AND device_name='AUVPE3'); 
+        #WHERE username='mkrupa' AND device_name='AUVPE3');
         if self.sql_is_connected():
             if from_string:
                 if where_string:
@@ -709,21 +709,21 @@ class sql_interface():
                 else:
                     sql_string = "SELECT %s FROM %s;" \
                         %(select_string, from_string )
-                check_data = self.sql_read_sql_command(sql_string)                          
+                check_data = self.sql_read_sql_command(sql_string)
         return check_data
 
     def sql_read_records_to_dict_list(table_name = None, from_string = None, \
         select_string = None, where_string = None, delete_columns = None):
-        """sql_read_last_record_to_dict - MAKE DICTIONARY FROM LAST TABLE RECORD 
+        """sql_read_last_record_to_dict - MAKE DICTIONARY FROM LAST TABLE RECORD
            NOTES: -'table_name' is alternative name to 'from_string'
                   - it always read last record dependent on 'where_string'
-                    which contains(=filters by) username,device_name,vpn_name                  
+                    which contains(=filters by) username,device_name,vpn_name
         """
         dict_data, dict_list = collections.OrderedDict(), []
         table_name_or_from_string = None
         if not select_string: select_string = '*'
         if table_name:  table_name_or_from_string = table_name
-        if from_string: table_name_or_from_string = from_string     
+        if from_string: table_name_or_from_string = from_string
         columns_list = sql_inst.sql_read_all_table_columns(table_name_or_from_string)
         data_list = sql_inst.sql_read_table_records( \
             from_string = table_name_or_from_string, \
@@ -733,24 +733,24 @@ class sql_interface():
                 dict_data = collections.OrderedDict(zip(columns_list, line_list))
                 dict_list.append(dict_data)
         if delete_columns:
-            for column in delete_columns:   
+            for column in delete_columns:
                 try:
                     ### DELETE NOT VALID (AUXILIARY) TABLE COLUMNS
                     del dict_data[column]
-                except: pass     
+                except: pass
         return dict_list
 
 
 ###############################################################################
 pre_GW_vrf_definition_templ = """vrf definition LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
  description Local vrf for tunnel ${cgi_data.get('vlan-id','UNKNOWN')} - ${cgi_data.get('vpn','UNKNOWN')}
-<% 
+<%
 big_rd = ''.join([ str(item.get('as_id','')) for item in private_as_test if item.get('cust_name','')==cgi_data.get('customer_name',"UNKNOWN") ])
-rd3 = '0' 
+rd3 = '0'
 if big_rd: rd4 = str(big_rd)
 else: rd4 = '0'
-if big_rd and int(big_rd) > 256: 
-  rd3 = str(int(int(big_rd)/256)) 
+if big_rd and int(big_rd) > 256:
+  rd3 = str(int(int(big_rd)/256))
   rd4 = str(int(big_rd)%256)
 %>
   rd 0.0.${rd3}.${rd4}:${cgi_data.get('vlan-id','UNKNOWN')}
@@ -771,7 +771,7 @@ pre_GW_tunnel_interface_templ = """interface Tunnel${cgi_data.get('vlan-id','UNK
  tunnel mode ipsec ipv4
  tunnel destination ${cgi_data.get('ipsec-tunnel-dest','UNKNOWN')}
  tunnel protection ipsec profile ${(cgi_data.get('customer_name','UNKNOWN')).upper()}-IPXT
-! 
+!
 """
 
 pre_GW_interface_tovards_huawei_templ = """interface GigabitEthernet0/0/2
@@ -808,19 +808,19 @@ pre_GW_router_bgp_templ = """router bgp 2300
 ################################################################################
 def generate_verification_GW_router_config(data = None):
     config_string = str()
-    
+
     mytemplate = Template(pre_GW_vrf_definition_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'    
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
 
     mytemplate = Template(pre_GW_tunnel_interface_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n' 
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
 
     mytemplate = Template(pre_GW_interface_tovards_huawei_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n' 
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
 
     mytemplate = Template(pre_GW_router_bgp_templ,strict_undefined=True)
     config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
-        
+
     return config_string
 ###############################################################################
 
@@ -838,9 +838,9 @@ def generate_verification_PE_router_config(dict_data = None):
 
     mytemplate = Template(pre_PE_bundl_eether_interface_templ,strict_undefined=True)
     config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
-     
-    return config_string 
-    
+
+    return config_string
+
 ###############################################################################
 
 
@@ -861,17 +861,17 @@ GW_preparation_interconnect_interface_templ = """interface ${''.join([ str(item.
 """
 
 def generate_preparation_GW_router_config(data = None):
-    config_string = str()     
+    config_string = str()
 
     mytemplate = Template(GW_preparation_interconnect_interface_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'      
-       
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
+
     return config_string
-    
+
 ###############################################################################
 
-    
-    
+
+
 ###############################################################################
 ### MIGRATON GW
 ###############################################################################
@@ -890,13 +890,13 @@ shutdown
 GW_migration_check_vrf_and_crypto_templ = """!
 vrf definition LOCAL.${cgi_data.get('vlan-id','UNKNOWN')}
  description Local vrf for tunnel ${cgi_data.get('vlan-id','UNKNOWN')} - ${cgi_data.get('vpn','UNKNOWN')}
-<% 
+<%
 big_rd = ''.join([ str(item.get('as_id','')) for item in private_as_test if item.get('cust_name','')==cgi_data.get('customer_name',"UNKNOWN") ])
-rd3 = '0' 
+rd3 = '0'
 if big_rd: rd4 = str(big_rd)
 else: rd4 = '0'
-if big_rd and int(big_rd) > 256: 
-  rd3 = str(int(int(big_rd)/256)) 
+if big_rd and int(big_rd) > 256:
+  rd3 = str(int(int(big_rd)/256))
   rd4 = str(int(big_rd)%256)
 %>
  rd 0.0.${rd3}.${rd4}:${cgi_data.get('vlan-id','UNKNOWN')}
@@ -952,7 +952,7 @@ GW_migration_interconnect_interface_templ = """interface ${''.join([ str(item.ge
 !
 """
 # GW_migration_customer_router_templ = """!<% list = cgi_data.get('ipv4-acl','').split(',') %>
-# ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 0.0.0.0 0.0.0.0 ${''.join([ str(item.get('ipsec_int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('pe-ip-address','UNKNOWN')} 
+# ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 0.0.0.0 0.0.0.0 ${''.join([ str(item.get('ipsec_int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('pe-ip-address','UNKNOWN')}
 # ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} ${''.join([ str(item.get('peer_address','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} 255.255.255.255 Tunnel${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('bgp-peer-address','UNKNOWN')}
 # % for i in range(int(len(list)/2)):
 # <%
@@ -962,13 +962,13 @@ GW_migration_interconnect_interface_templ = """interface ${''.join([ str(item.ge
 # elif '.' in input_mask:
   # wildchard_list = []
   # wildchard_mask = ''
-  # for mask_part in input_mask.split('.'):    
+  # for mask_part in input_mask.split('.'):
     # try: wildchard_list.append(str(int(mask_part)^255))
     # except: wildchard_list.append('255')
   # for i_order in range(4):
     # try: wildchard_mask += wildchard_list[i_order]
     # except: wildchard_mask += '255'
-    # if i_order<3: wildchard_mask += '.'  
+    # if i_order<3: wildchard_mask += '.'
 # #wildchard_mask = '.'.join([ str(int(mask_item)^255) for mask_item in cgi_data.get('ipv4-acl','').split(',')[2*i+1].split('.') if '.' in cgi_data.get('ipv4-acl','').split(',')[2*i+1] and not "" in mask_item ])}
 # %>
 # ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('ipv4-acl','').split(',')[2*i]} ${wildchard_mask} Tunnel${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('bgp-peer-address','UNKNOWN')}
@@ -978,7 +978,7 @@ GW_migration_interconnect_interface_templ = """interface ${''.join([ str(item.ge
 
 
 GW_migration_customer_router_templ = """!<% list = cgi_data.get('ipv4-acl','').split(',') %>
-ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 0.0.0.0 0.0.0.0 ${''.join([ str(item.get('ipsec_int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('pe-ip-address','UNKNOWN')} 
+ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 0.0.0.0 0.0.0.0 ${''.join([ str(item.get('ipsec_int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('pe-ip-address','UNKNOWN')}
 % for i in range(int(len(list)/2)):
 <%
 avoid_address = ''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])
@@ -988,13 +988,13 @@ elif input_mask == '': wildchard_mask = '255.255.255.255'
 elif '.' in input_mask:
   wildchard_list = []
   wildchard_mask = ''
-  for mask_part in input_mask.split('.'):    
+  for mask_part in input_mask.split('.'):
     try: wildchard_list.append(str(int(mask_part)^255))
     except: wildchard_list.append('255')
   for i_order in range(4):
     try: wildchard_mask += wildchard_list[i_order]
     except: wildchard_mask += '255'
-    if i_order<3: wildchard_mask += '.'  
+    if i_order<3: wildchard_mask += '.'
 #wildchard_mask = '.'.join([ str(int(mask_item)^255) for mask_item in cgi_data.get('ipv4-acl','').split(',')[2*i+1].split('.') if '.' in cgi_data.get('ipv4-acl','').split(',')[2*i+1] and not "" in mask_item ])}
 %>
 % if avoid_address and avoid_address != cgi_data.get('ipv4-acl','').split(',')[2*i]:
@@ -1018,26 +1018,26 @@ def generate_migration_GW_router_config(data = None):
     config_string = str()
 
     mytemplate = Template(GW_migration_shutdown_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n' 
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
 
     mytemplate = Template(GW_migration_check_vrf_and_crypto_templ,strict_undefined=True)
-    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'  
-    
+    config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
+
     # mytemplate = Template(GW_migration_tunnel_interface_templ,strict_undefined=True)
-    # config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'      
+    # config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
 
     # mytemplate = Template(GW_migration_port_channel_interface_templ,strict_undefined=True)
-    # config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'      
-    
+    # config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
+
     # mytemplate = Template(GW_migration_interconnect_interface_templ,strict_undefined=True)
-    # config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'   
+    # config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
 
     mytemplate = Template(GW_migration_customer_router_templ,strict_undefined=True)
     config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
 
     # mytemplate = Template(GW_migration_unshut_if_templ,strict_undefined=True)
     # config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n') + '\n'
-       
+
     return config_string
 
 ###############################################################################
@@ -1055,17 +1055,17 @@ vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')}
  import route-target
 % for item in ''.join([ str(item.get('rt_import','')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ]).split(','):
   ${item}
-% endfor  
+% endfor
  exit
  export route-target
-% for item in ''.join([ str(item.get('rt_export','')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ]).split(','): 
+% for item in ''.join([ str(item.get('rt_export','')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ]).split(','):
   ${item}
-% endfor  
+% endfor
   exit
  exit
 !
 """
- 
+
 PE_preparation_acl_config_templ = """!<% rule_num = 20; list = cgi_data.get('ipv4-acl','').split(',') %>
 ipv4 access-list ${cgi_data.get('vpn','UNKNOWN')}-IN
  10 permit ipv4 ${cgi_data.get('pe-ip-address','')} 0.0.0.1 any
@@ -1079,26 +1079,26 @@ ipv4 access-list ${cgi_data.get('vpn','UNKNOWN')}-IN
 PE_preparation_prefix_config_templ = """!
 prefix-set ${cgi_data.get('vpn','UNKNOWN')}-IN
 <%
-import ipaddress 
-splitted_list = cgi_data.get('ipv4-acl','').split(',') 
+import ipaddress
+splitted_list = cgi_data.get('ipv4-acl','').split(',')
 netlines = []
-for i in range(int(len(splitted_list)/2)): 
+for i in range(int(len(splitted_list)/2)):
     if splitted_list[2*i] == ''.join([ str(item.get('gw_peer_address_ibgp','')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ]):
         net = None
     else:
-        try:    
-            if splitted_list[2*i+1] == "0": net = splitted_list[2*i]+"/32" 
+        try:
+            if splitted_list[2*i+1] == "0": net = splitted_list[2*i]+"/32"
             else:
                 try: net = ipaddress.ip_network(splitted_list[2*i]+'/'+splitted_list[2*i+1], strict=True)
                 except: net = splitted_list[2*i] + '/32'
-        except: net = splitted_list[2*i]+"/32"                
+        except: net = splitted_list[2*i]+"/32"
     if net: netlines.append(str(net) + ' le 32,')
 try: netlines[-1] = netlines[-1].replace(',','')
 except: pass
 %>
 % for item in netlines:
 ${item}
-% endfor 
+% endfor
 end-set
 !
 """
@@ -1107,16 +1107,16 @@ PE_preparation_policy_map_templ = """!
 policy-map IPXT.${cgi_data.get('customer_name','UNKNOWN')}-IN
  class class-default
   service-policy IPXT.COS-IN
-  police rate ${cgi_data.get('int-bw','UNKNOWN')} mbps 
+  police rate ${cgi_data.get('int-bw','UNKNOWN')} mbps
 end-policy-map
-! 
+!
 policy-map IPXT.${cgi_data.get('customer_name','UNKNOWN')}-OUT
  class class-default
   service-policy IPXT.COS-OUT
   shape average ${cgi_data.get('int-bw','UNKNOWN')} mbps
- ! 
+ !
 end-policy-map
-! 
+!
 !
 """
 
@@ -1132,7 +1132,7 @@ PE_preparation_customer_interface_templ = """interface ${''.join([ str(item.get(
  encapsulation dot1Q ${cgi_data.get('vlan-id','UNKNOWN')}
  description TESTING ${cgi_data.get('customer_name','UNKNOWN')} :IPXT ASN${cgi_data.get('bgp-customer-as','UNKNOWN')} @${cgi_data.get('gw-ip-address','UNKNOWN')} - IPX ${cgi_data.get('ld-number','UNKNOWN')} TunnelIpsec${cgi_data.get('vlan-id','UNKNOWN')} - Custom
  bandwidth ${cgi_data.get('int-bw','UNKNOWN')}000
- vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')} 
+ vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')}
  ipv4 address ${cgi_data.get('pe-ip-address','UNKNOWN')} 255.255.255.254
  flow ipv4 monitor ICX sampler ICX ingress
  ipv4 access-group ${cgi_data.get('vpn','UNKNOWN')}-IN ingress
@@ -1148,7 +1148,7 @@ route-policy ${cgi_data.get('vpn','UNKNOWN')}-IN
   endif
   if community matches-any (2300:80) then
     set local-preference 80
-    set community (${''.join([ str(item.get('bgp_community_1','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}) 
+    set community (${''.join([ str(item.get('bgp_community_1','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])})
     set community (${''.join([ str(item.get('bgp_community_2','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}) additive
   elseif community matches-any (2300:90) then
     set local-preference 90
@@ -1159,7 +1159,7 @@ route-policy ${cgi_data.get('vpn','UNKNOWN')}-IN
     set community (${''.join([ str(item.get('bgp_community_1','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])})
     set community (${''.join([ str(item.get('bgp_community_2','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}) additive
   endif
-end-policy 
+end-policy
 !
 """
 
@@ -1168,31 +1168,31 @@ router bgp 2300<% try: is_number = int(cgi_data.get('bgp-hop-count',''))
 except: is_number = None %>
  neighbor-group ${cgi_data.get('vpn','UNKNOWN')}
   remote-as ${cgi_data.get('bgp-customer-as','UNKNOWN')}
-% if cgi_data.get('bgp-md5','') and cgi_data.get('bgp-md5','UNKNOWN') != 'dummy_value': 
+% if cgi_data.get('bgp-md5','') and cgi_data.get('bgp-md5','UNKNOWN') != 'dummy_value':
   password clear ${cgi_data.get('bgp-md5','')}
-% endif   
-% if is_number and cgi_data.get('bgp-hop-count','') and cgi_data.get('bgp-hop-count','') != 'dummy_value': 
+% endif
+% if is_number and cgi_data.get('bgp-hop-count','') and cgi_data.get('bgp-hop-count','') != 'dummy_value':
   ebgp-multihop ${cgi_data.get('bgp-hop-count','UNKNOWN')}
-% endif  
+% endif
   advertisement-interval 0
   address-family ipv4 unicast
    send-community-ebgp
    route-policy DENY-ALL in<% try: is_number = ''.join([ str(item.get('pref_limit','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])
-except: is_number = None %>    
-% if is_number and cgi_data.get('bgp-max-pref','') and cgi_data.get('bgp-max-pref','') != 'dummy_value': 
+except: is_number = None %>
+% if is_number and cgi_data.get('bgp-max-pref','') and cgi_data.get('bgp-max-pref','') != 'dummy_value':
   maximum-prefix ${cgi_data.get('bgp-max-pref','')} 90
-% endif    
+% endif
    route-policy DENY-ALL out
-   soft-reconfiguration inbound
+   soft-reconfiguration inbound always
   !
- vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')} 
-<% 
+ vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')}
+<%
 big_rd = ''.join([ str(item.get('as_id','')) for item in private_as_test if item.get('cust_name','')==cgi_data.get('customer_name',"UNKNOWN") ])
-rd3 = '0' 
+rd3 = '0'
 if big_rd: rd4 = str(big_rd)
 else: rd4 = '0'
-if big_rd and int(big_rd) > 256: 
-  rd3 = str(int(int(big_rd)/256)) 
+if big_rd and int(big_rd) > 256:
+  rd3 = str(int(int(big_rd)/256))
   rd4 = str(int(big_rd)%256)
 %>
   rd 0.0.${rd3}.${rd4}:${cgi_data.get('vlan-id','UNKNOWN')}
@@ -1208,22 +1208,22 @@ if big_rd and int(big_rd) > 256:
 
 PE_preparation_static_route_config_templ = """!
 router static
- vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')} 
+ vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')}
   address-family ipv4 unicast
   ${''.join([ str(item.get('peer_address','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}/32 ${''.join([ str(item.get('int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('gw-ip-address','UNKNOWN')}
 !
 !
 """
-   
+
 def generate_preparation_PE_router_config(dict_data = None):
     config_string = str()
 
     mytemplate = Template(PE_preparation_vrf_config_templ,strict_undefined=True)
     config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
-    
+
     mytemplate = Template(PE_preparation_acl_config_templ,strict_undefined=True)
     config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
-    
+
     mytemplate = Template(PE_preparation_prefix_config_templ,strict_undefined=True)
     config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
 
@@ -1242,7 +1242,7 @@ def generate_preparation_PE_router_config(dict_data = None):
     mytemplate = Template(PE_preparation_static_route_config_templ,strict_undefined=True)
     config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
 
-    return config_string 
+    return config_string
 
 ###############################################################################
 
@@ -1250,7 +1250,7 @@ def generate_preparation_PE_router_config(dict_data = None):
 
 ###############################################################################
 ### MIGRATION PE
-###############################################################################   
+###############################################################################
 
 # PE_migration_bgp_config_templ = """!
 # router bgp 2300
@@ -1273,7 +1273,7 @@ PE_migration_bgp_config_templ = """!
 router bgp 2300
  neighbor-group ${cgi_data.get('vpn','UNKNOWN')}
   address-family ipv4 unicast
-  route-policy ${cgi_data.get('vpn','UNKNOWN')}-IN in 
+  route-policy ${cgi_data.get('vpn','UNKNOWN')}-IN in
   route-policy PASS-ALL out
  !
 !
@@ -1285,14 +1285,14 @@ def generate_migration_PE_router_config(dict_data = None):
     mytemplate = Template(PE_migration_bgp_config_templ,strict_undefined=True)
     config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
 
-    return config_string 
+    return config_string
 
 ###############################################################################
-    
-    
+
+
 ###############################################################################
 ### MIGRATION OLD_PE
-###############################################################################   
+###############################################################################
 
 old_PE_migration_shut_if_templ = """#
 interface ${''.join([ str(item.get('old_pe_interface','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])}
@@ -1316,8 +1316,8 @@ def generate_migration_OLD_PE_router_shut_config(dict_data = None):
     mytemplate = Template(old_PE_migration_shut_if_templ,strict_undefined=True)
     config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
 
-    return config_string     
-        
+    return config_string
+
 ###############################################################################
 
 
@@ -1326,7 +1326,7 @@ def generate_migration_OLD_PE_router_shut_config(dict_data = None):
 ###############################################################################
 ### UNDO PREPARATION PE
 ###############################################################################
- 
+
 undo_preparation_PE_undo_templ = """!
 no vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')}
 !
@@ -1358,8 +1358,8 @@ def generate_undo_preparation_PE_config(dict_data = None):
     mytemplate = Template(undo_preparation_PE_undo_templ, strict_undefined=True)
     config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
 
-    return config_string     
-        
+    return config_string
+
 ###############################################################################
 
 
@@ -1379,8 +1379,8 @@ def generate_undo_preparation_GW_config(dict_data = None):
     mytemplate = Template(undo_preparation_GW_undo_templ, strict_undefined=True)
     config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
 
-    return config_string     
-        
+    return config_string
+
 ###############################################################################
 
 
@@ -1404,8 +1404,8 @@ def generate_undo_migration_PE_config(dict_data = None):
     mytemplate = Template(undo_migration_PE_undo_templ, strict_undefined=True)
     config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
 
-    return config_string     
-        
+    return config_string
+
 ###############################################################################
 
 
@@ -1425,8 +1425,8 @@ def generate_undo_migration_PE_config(dict_data = None):
 # !
 # !
 # !<% list = cgi_data.get('ipv4-acl','').split(',') %>
-# ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 0.0.0.0 0.0.0.0 ${''.join([ str(item.get('ipsec_int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('pe-ip-address','UNKNOWN')} 
-# ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} ${''.join([ str(item.get('peer_address','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} 255.255.255.255 ${''.join([ str(item.get('ipsec_int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('pe-ip-address','UNKNOWN')} 
+# ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 0.0.0.0 0.0.0.0 ${''.join([ str(item.get('ipsec_int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('pe-ip-address','UNKNOWN')}
+# ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} ${''.join([ str(item.get('peer_address','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])} 255.255.255.255 ${''.join([ str(item.get('ipsec_int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('pe-ip-address','UNKNOWN')}
 # % for i in range(int(len(list)/2)):
 # <%
 # input_mask = cgi_data.get('ipv4-acl','').split(',')[2*i+1]
@@ -1435,13 +1435,13 @@ def generate_undo_migration_PE_config(dict_data = None):
 # elif '.' in input_mask:
   # wildchard_list = []
   # wildchard_mask = ''
-  # for mask_part in input_mask.split('.'):    
+  # for mask_part in input_mask.split('.'):
     # try: wildchard_list.append(str(int(mask_part)^255))
     # except: wildchard_list.append('255')
   # for i_order in range(4):
     # try: wildchard_mask += wildchard_list[i_order]
     # except: wildchard_mask += '255'
-    # if i_order<3: wildchard_mask += '.'  
+    # if i_order<3: wildchard_mask += '.'
 # #wildchard_mask = '.'.join([ str(int(mask_item)^255) for mask_item in cgi_data.get('ipv4-acl','').split(',')[2*i+1].split('.') if '.' in cgi_data.get('ipv4-acl','').split(',')[2*i+1] and not "" in mask_item ])}
 # %>
 # no ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('ipv4-acl','').split(',')[2*i]} ${wildchard_mask} Tunnel${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('bgp-peer-address','UNKNOWN')}
@@ -1461,7 +1461,7 @@ no shutdown
 !
 !
 !<% list = cgi_data.get('ipv4-acl','').split(',') %>
-no ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 0.0.0.0 0.0.0.0 ${''.join([ str(item.get('ipsec_int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('pe-ip-address','UNKNOWN')} 
+no ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 0.0.0.0 0.0.0.0 ${''.join([ str(item.get('ipsec_int_id','UNKNOWN')) for item in ipsec_ipxt_table if item.get('ipsec_rtr_name','UNKNOWN')==cgi_data.get('ipsec-gw-router',"UNKNOWN") ])}.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('pe-ip-address','UNKNOWN')}
 % for i in range(int(len(list)/2)):
 <%
 input_mask = cgi_data.get('ipv4-acl','').split(',')[2*i+1]
@@ -1470,13 +1470,13 @@ elif input_mask == '': wildchard_mask = '255.255.255.255'
 elif '.' in input_mask:
   wildchard_list = []
   wildchard_mask = ''
-  for mask_part in input_mask.split('.'):    
+  for mask_part in input_mask.split('.'):
     try: wildchard_list.append(str(int(mask_part)^255))
     except: wildchard_list.append('255')
   for i_order in range(4):
     try: wildchard_mask += wildchard_list[i_order]
     except: wildchard_mask += '255'
-    if i_order<3: wildchard_mask += '.'  
+    if i_order<3: wildchard_mask += '.'
 #wildchard_mask = '.'.join([ str(int(mask_item)^255) for mask_item in cgi_data.get('ipv4-acl','').split(',')[2*i+1].split('.') if '.' in cgi_data.get('ipv4-acl','').split(',')[2*i+1] and not "" in mask_item ])}
 %>
 no ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('ipv4-acl','').split(',')[2*i]} ${wildchard_mask} Tunnel${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('bgp-peer-address','UNKNOWN')}
@@ -1490,8 +1490,8 @@ def generate_undo_migration_GW_config(dict_data = None):
     mytemplate = Template(undo_migration_GW_undo_templ, strict_undefined=True)
     config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
 
-    return config_string     
-        
+    return config_string
+
 ###############################################################################
 
 
@@ -1521,8 +1521,8 @@ def generate_undo_migration_OLD_PE_config(dict_data = None):
     mytemplate = Template(undo_migration_OLD_PE_undo_templ, strict_undefined=True)
     config_string += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
 
-    return config_string     
-        
+    return config_string
+
 ###############################################################################
 
 
@@ -1530,33 +1530,33 @@ def send_me_email(subject = str(), email_body = str(), file_name = None, attachm
         email_address = None, cc = None, bcc = None, username = None):
     def send_unix_email_body(mail_command):
         email_success = None
-        try: 
+        try:
             forget_it = subprocess.check_output(mail_command, shell=True)
             CGI_CLI.uprint(' ==> Email sent. Subject:"%s" SentTo:%s by COMMAND=[%s] with RESULT=[%s]...'\
                 %(subject,sugested_email_address,mail_command,forget_it), color = 'blue')
-            email_success = True    
+            email_success = True
         except Exception as e: CGI_CLI.uprint(" ==> Problem to send email by COMMAND=[%s], PROBLEM=[%s]\n"\
                 % (mail_command,str(e)) ,color = 'red')
-        return email_success        
-    ### FUCTION send_me_email START ----------------------------------------                    
+        return email_success
+    ### FUCTION send_me_email START ----------------------------------------
     email_sent, sugested_email_address = None, str()
-    if username: my_account = username        
-    else: my_account = subprocess.check_output('whoami', shell=True).strip()    
-    if email_address: sugested_email_address = email_address    
-    if not 'WIN32' in sys.platform.upper():        
-        try: 
+    if username: my_account = username
+    else: my_account = subprocess.check_output('whoami', shell=True).strip()
+    if email_address: sugested_email_address = email_address
+    if not 'WIN32' in sys.platform.upper():
+        try:
             ldapsearch_output = subprocess.check_output('ldapsearch -LLL -x uid=%s mail' % (my_account), shell=True)
             ldap_email_address = ldapsearch_output.decode("utf-8").split('mail:')[1].splitlines()[0].strip()
-        except: ldap_email_address = None        
+        except: ldap_email_address = None
         if ldap_email_address: sugested_email_address = ldap_email_address
         else:
-            try: 
+            try:
                 my_getent_line = ' '.join((subprocess.check_output('getent passwd "%s"'% \
                     (my_account.strip()), shell=True)).split(':')[4].split()[:2])
                 my_name = my_getent_line.splitlines()[0].split()[0]
                 my_surname = my_getent_line.splitlines()[0].split()[1]
-                sugested_email_address = '%s.%s@orange.com' % (my_name, my_surname)    
-            except: pass        
+                sugested_email_address = '%s.%s@orange.com' % (my_name, my_surname)
+            except: pass
 
         ### UNIX - MAILX ----------------------------------------------------
         mail_command = 'echo \'%s\' | mailx -s "%s" ' % (email_body,subject)
@@ -1565,15 +1565,15 @@ def send_me_email(subject = str(), email_body = str(), file_name = None, attachm
             if cc and isinstance(cc, (list,tuple)): mail_command += ''.join([ '-c %s ' % (bcc_email) for bcc_email in bcc ])
         if bcc:
             if isinstance(bcc, six.string_types): mail_command += '-b %s' % (bcc)
-            if bcc and isinstance(bcc, (list,tuple)): mail_command += ''.join([ '-b %s ' % (bcc_email) for bcc_email in bcc ])    
-        if file_name and isinstance(file_name, six.string_types) and os.path.exists(file_name): 
+            if bcc and isinstance(bcc, (list,tuple)): mail_command += ''.join([ '-b %s ' % (bcc_email) for bcc_email in bcc ])
+        if file_name and isinstance(file_name, six.string_types) and os.path.exists(file_name):
             mail_command += '-a %s ' % (file_name)
         if attachments:
-            if isinstance(attachments, (list,tuple)): 
-                mail_command += ''.join([ '-a %s ' % (attach_file) for attach_file in attachments if os.path.exists(attach_file) ])      
+            if isinstance(attachments, (list,tuple)):
+                mail_command += ''.join([ '-a %s ' % (attach_file) for attach_file in attachments if os.path.exists(attach_file) ])
             if isinstance(attachments, six.string_types) and os.path.exists(attachments):
                 mail_command += '-a %s ' % (attachments)
-        mail_command += '%s' % (sugested_email_address)            
+        mail_command += '%s' % (sugested_email_address)
         email_sent = send_unix_email_body(mail_command)
 
     if 'WIN32' in sys.platform.upper():
@@ -1588,32 +1588,32 @@ def send_me_email(subject = str(), email_body = str(), file_name = None, attachm
                 msg.Subject, msg.Body = subject, email_body
                 if email_address:
                     if isinstance(email_address, six.string_types): msg.To = email_address
-                    if email_address and isinstance(email_address, (list,tuple)): 
-                        msg.To = ';'.join([ eadress for eadress in email_address if eadress != "" ])                
+                    if email_address and isinstance(email_address, (list,tuple)):
+                        msg.To = ';'.join([ eadress for eadress in email_address if eadress != "" ])
                 if cc:
                     if isinstance(cc, six.string_types): msg.CC = cc
-                    if cc and isinstance(cc, (list,tuple)): 
+                    if cc and isinstance(cc, (list,tuple)):
                         msg.CC = ';'.join([ eadress for eadress in cc if eadress != "" ])
                 if bcc:
                     if isinstance(bcc, six.string_types): msg.BCC = bcc
-                    if bcc and isinstance(bcc, (list,tuple)): 
-                        msg.BCC = ';'.join([ eadress for eadress in bcc if eadress != "" ])             
-                if file_name and isinstance(file_name, six.string_types) and os.path.exists(file_name): 
+                    if bcc and isinstance(bcc, (list,tuple)):
+                        msg.BCC = ';'.join([ eadress for eadress in bcc if eadress != "" ])
+                if file_name and isinstance(file_name, six.string_types) and os.path.exists(file_name):
                     msg.Attachments.Add(file_name)
                 if attachments:
-                    if isinstance(attachments, (list,tuple)): 
+                    if isinstance(attachments, (list,tuple)):
                         for attach_file in attachments:
-                            if os.path.exists(attach_file): msg.Attachments.Add(attach_file)      
+                            if os.path.exists(attach_file): msg.Attachments.Add(attach_file)
                     if isinstance(attachments, six.string_types) and os.path.exists(attachments):
                         msg.Attachments.Add(attachments)
-               
+
             msg.Send()
             ol.Quit()
             CGI_CLI.uprint(' ==> Email sent. Subject:"%s" SentTo:%s by APPLICATION=[%s].'\
                 %(subject,sugested_email_address,email_application), color = 'blue')
-            email_sent = True    
+            email_sent = True
         except Exception as e: CGI_CLI.uprint(" ==> Problem to send email by APPLICATION=[%s], PROBLEM=[%s]\n"\
-                % (email_application,str(e)) ,color = 'red')            
+                % (email_application,str(e)) ,color = 'red')
     return email_sent
 
 
@@ -1625,16 +1625,16 @@ def send_me_email(subject = str(), email_body = str(), file_name = None, attachm
 ##############################################################################
 if __name__ != "__main__": sys.exit(0)
 
-configtext = str() 
+configtext = str()
 
 ### CGI-BIN READ FORM ############################################
 CGI_CLI.init_cgi()
 #CGI_CLI.print_args()
 
-if CGI_CLI.username: USERNAME = CGI_CLI.username 
+if CGI_CLI.username: USERNAME = CGI_CLI.username
 if CGI_CLI.password: PASSWORD =  CGI_CLI.password
 
-script_action = CGI_CLI.submit_form.replace(' ','_') if CGI_CLI.submit_form else 'unknown_action' 
+script_action = CGI_CLI.submit_form.replace(' ','_') if CGI_CLI.submit_form else 'unknown_action'
 device_name = CGI_CLI.data.get('device','')
 huawei_device_name = CGI_CLI.data.get('huawei-router-name','')
 vpn_name = CGI_CLI.data.get('vpn','')
@@ -1645,7 +1645,7 @@ data = collections.OrderedDict()
 cgi_data = copy.deepcopy(CGI_CLI.data)
 data['cgi_data'] = cgi_data
 
-### JUST OMMIT READING FROM LOGFILE BECAUSE OF WEB FORM POSSIBILITY OF DATA EDITING  
+### JUST OMMIT READING FROM LOGFILE BECAUSE OF WEB FORM POSSIBILITY OF DATA EDITING
 ### bgp_data = copy.deepcopy(read_data_json_from_logfile(find_last_logfile()))
 ### data['bgp_data'] = bgp_data
 
@@ -1657,56 +1657,56 @@ data['ipxt_data_collector'] = sql_inst.sql_read_records_to_dict_list(from_string
 ### PRINT OF ALL DATA IN STRUCTURE DATA
 CGI_CLI.uprint(get_json_with_variable_name(data))
 
-    
+
 if data:
     gw_verification_config_text = generate_verification_GW_router_config(data)
     pe_verification_config_text = generate_verification_PE_router_config(data)
 
     gw_preparation_config_text = generate_preparation_GW_router_config(data)
     pe_preparation_config_text = generate_preparation_PE_router_config(data)
-    
+
     gw_migration_config_text = generate_migration_GW_router_config(data)
     pe_migration_config_text = generate_migration_PE_router_config(data)
 
     old_pe_migration_config_text_shut = generate_migration_OLD_PE_router_shut_config(data)
 
-    
+
     undo_pe_preparation_config   = generate_undo_preparation_PE_config(data)
-    undo_gw_preparation_config   = generate_undo_preparation_GW_config(data)   
+    undo_gw_preparation_config   = generate_undo_preparation_GW_config(data)
     undo_pe_migration_config     = generate_undo_migration_PE_config(data)
     undo_gw_migration_config     = generate_undo_migration_GW_config(data)
     undo_old_pe_migration_config = generate_undo_migration_OLD_PE_config(data)
-    
+
     CGI_CLI.uprint('\nGW ROUTER (%s) VERIFICATION-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()), tag = 'h1')
-    CGI_CLI.uprint(gw_verification_config_text)    
+    CGI_CLI.uprint(gw_verification_config_text)
     CGI_CLI.uprint('\nPE ROUTER (%s) VERIFICATION-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()), tag = 'h1')
     CGI_CLI.uprint(pe_verification_config_text)
 
     CGI_CLI.uprint('\nGW ROUTER (%s) PREPARATION-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()), tag = 'h1')
-    CGI_CLI.uprint(gw_preparation_config_text)    
+    CGI_CLI.uprint(gw_preparation_config_text)
     CGI_CLI.uprint('\nPE ROUTER (%s) PREPARATION-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()), tag = 'h1')
     CGI_CLI.uprint(pe_preparation_config_text)
 
     CGI_CLI.uprint('\nGW ROUTER (%s) MIGRATION-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()), tag = 'h1')
-    CGI_CLI.uprint(gw_migration_config_text)    
+    CGI_CLI.uprint(gw_migration_config_text)
     CGI_CLI.uprint('\nPE ROUTER (%s) MIGRATION-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()), tag = 'h1')
     CGI_CLI.uprint(pe_migration_config_text)
 
     CGI_CLI.uprint('\nOLD PE ROUTER (%s) MIGRATION-CONFIG SHUT: \n' %(data['cgi_data'].get('huawei-router','UNKNOWN').upper()), tag = 'h1')
-    CGI_CLI.uprint(old_pe_migration_config_text_shut)  
+    CGI_CLI.uprint(old_pe_migration_config_text_shut)
 
     CGI_CLI.uprint('\nPE ROUTER (%s) ROLLBACK-PREPARATION-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()), tag = 'h1')
     CGI_CLI.uprint(undo_pe_preparation_config)
-    CGI_CLI.uprint('\nGW ROUTER (%s) ROLLBACK-PREPARATION-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()), tag = 'h1')    
+    CGI_CLI.uprint('\nGW ROUTER (%s) ROLLBACK-PREPARATION-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()), tag = 'h1')
     CGI_CLI.uprint(undo_gw_preparation_config)
-    CGI_CLI.uprint('\nPE ROUTER (%s) ROLLBACK-MIGRATION-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()), tag = 'h1')    
+    CGI_CLI.uprint('\nPE ROUTER (%s) ROLLBACK-MIGRATION-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()), tag = 'h1')
     CGI_CLI.uprint(undo_pe_migration_config)
-    CGI_CLI.uprint('\nGW ROUTER (%s) ROLLBACK-MIGRATION-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()), tag = 'h1')    
-    CGI_CLI.uprint(undo_gw_migration_config)     
+    CGI_CLI.uprint('\nGW ROUTER (%s) ROLLBACK-MIGRATION-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()), tag = 'h1')
+    CGI_CLI.uprint(undo_gw_migration_config)
     CGI_CLI.uprint('\nOLD PE ROUTER (%s) ROLLBACK-MIGRATION-CONFIG SHUT: \n' %(data['cgi_data'].get('huawei-router','UNKNOWN').upper()), tag = 'h1')
-    CGI_CLI.uprint(undo_old_pe_migration_config) 
+    CGI_CLI.uprint(undo_old_pe_migration_config)
 
-    
+
     # MariaDB [rtr_configuration]> select * from ipsec_ipxt_table_new;
     # +----+----------------+-----------------+---------------+----------+---------------+
     # | id | ipsec_rtr_name | loc_tun_addr    | ipsec_int_id  | rtr_name | int_id        |
@@ -1715,8 +1715,8 @@ if data:
     # |  2 | PASPE4         | 193.251.245.107 | Port-channel1 | PASPE3   | Bundle-Ether1 |
     # |  3 | HKGPE4         | 81.52.185.1     | Port-channel1 | HKGPE6   | Bundle-Ether1 |
     # |  4 | SINPE5         | 81.52.185.5     | Port-channel1 | SINPE6   | Bundle-Ether1 |
-    # +----+----------------+-----------------+---------------+----------+---------------+ 
-     
+    # +----+----------------+-----------------+---------------+----------+---------------+
+
     # describe ipxt_configurations;
     # +------------------------+--------------+------+-----+---------+----------------+
     # | Field                  | Type         | Null | Key | Default | Extra          |
@@ -1737,47 +1737,47 @@ if data:
     # | gw_migration_done      | varchar(10)  | NO   |     | NULL    |                |
     # +------------------------+--------------+------+-----+---------+----------------+
 
- 
+
     # | rollback_oldpe_migration     | text         | YES  |     | NULL    |                |
     # | rollback_gw_migration        | text         | YES  |     | NULL    |                |
     # | rollback_pe_migration        | text         | YES  |     | NULL    |                |
     # | rollback_gw_preparation      | text         | YES  |     | NULL    |                |
-    # | rollback_pe_preparation      | text         | YES  |     | NULL    |                | 
+    # | rollback_pe_preparation      | text         | YES  |     | NULL    |                |
 
-    
+
     config_data['session_id'] = data['cgi_data'].get('session_id','UNKNOWN')
     config_data['username'] = CGI_CLI.username
     config_data['device_name'] = data['cgi_data'].get('huawei-router','UNKNOWN')
-    
+
     config_data['gw_preparation_done'] = 'no'
     config_data['pe_preparation_done'] = 'no'
     config_data['gw_migration_done'] = 'no'
-    config_data['pe_migration_done'] = 'no'    
-    
-    config_data['gw_config_verification'] = gw_verification_config_text
-    config_data['pe_config_verification'] = pe_verification_config_text     
-    
-    config_data['gw_config_preparation'] = gw_preparation_config_text
-    config_data['pe_config_preparation'] = pe_preparation_config_text          
-    
-    config_data['gw_config_migration'] = gw_migration_config_text
-    config_data['pe_config_migration'] = pe_migration_config_text  
-    
-    config_data['old_pe_config_migration_shut'] = old_pe_migration_config_text_shut     
+    config_data['pe_migration_done'] = 'no'
 
-    config_data['rollback_pe_preparation'] = undo_pe_preparation_config 
-    config_data['rollback_gw_preparation'] = undo_gw_preparation_config      
-    config_data['rollback_pe_migration'] = undo_pe_migration_config    
-    config_data['rollback_gw_migration'] = undo_gw_migration_config     
-    config_data['rollback_oldpe_migration'] = undo_old_pe_migration_config 
-    
-    sql_inst.sql_write_table_from_dict('ipxt_configurations', config_data) 
+    config_data['gw_config_verification'] = gw_verification_config_text
+    config_data['pe_config_verification'] = pe_verification_config_text
+
+    config_data['gw_config_preparation'] = gw_preparation_config_text
+    config_data['pe_config_preparation'] = pe_preparation_config_text
+
+    config_data['gw_config_migration'] = gw_migration_config_text
+    config_data['pe_config_migration'] = pe_migration_config_text
+
+    config_data['old_pe_config_migration_shut'] = old_pe_migration_config_text_shut
+
+    config_data['rollback_pe_preparation'] = undo_pe_preparation_config
+    config_data['rollback_gw_preparation'] = undo_gw_preparation_config
+    config_data['rollback_pe_migration'] = undo_pe_migration_config
+    config_data['rollback_gw_migration'] = undo_gw_migration_config
+    config_data['rollback_oldpe_migration'] = undo_old_pe_migration_config
+
+    sql_inst.sql_write_table_from_dict('ipxt_configurations', config_data)
 
     CGI_CLI.uprint('\nCONFIGS READ FROM SQL: \n', tag = 'h1')
-    config_data_read_from_sql = sql_inst.sql_read_last_record_to_dict(from_string = 'ipxt_configurations')    
+    config_data_read_from_sql = sql_inst.sql_read_last_record_to_dict(from_string = 'ipxt_configurations')
     CGI_CLI.uprint(config_data_read_from_sql, name = True, jsonprint = True, color = 'blue')
-        
-    ### MAKE LOGFILE STEP2 + SEND EMAIL    
+
+    ### MAKE LOGFILE STEP2 + SEND EMAIL
     if CGI_CLI.cgi_active and data:
         logfilename = data['cgi_data'].get('session_id',str()).replace('Submit_step_1','Submit_step_2').strip()
         cfgfilename = logfilename.replace('Submit_step_2-log','config')
@@ -1787,14 +1787,14 @@ if data:
             with open(logfilename,"w") as fp:
                 fp.write('DATA = ' + get_json_with_variable_name(data) + "\n\n\n")
                 fp.write('\nGW ROUTER (%s) VERIFICATION-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper())+ 60*'-' + '\n\n')
-                fp.write(gw_verification_config_text)    
+                fp.write(gw_verification_config_text)
                 fp.write('\nPE ROUTER (%s) VERIFICATION-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper())+ 60*'-' + '\n\n')
                 fp.write(pe_verification_config_text)
                 fp.write('\n\n')
                 configtext = 'IPSEC GW ROUTER (%s) PREPARATION-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()) + 60*'-' + '\n\n'
                 configtext += gw_preparation_config_text
                 configtext += '\n\nPE ROUTER (%s) PREPARATION-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()) + 60*'-' + '\n\n'
-                configtext += pe_preparation_config_text 
+                configtext += pe_preparation_config_text
                 configtext += '\n\nIPSEC GW ROUTER (%s) MIGRATION-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()) + 60*'-' + '\n'
                 configtext += gw_migration_config_text
                 configtext += '\n\nPE ROUTER (%s) MIGRATION-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()) + 60*'-' + '\n'
@@ -1803,19 +1803,19 @@ if data:
                 configtext += old_pe_migration_config_text_shut
                 configtext += '\n\nPE ROUTER (%s) ROLLBACK-PREPARATION-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()) + 60*'-' + '\n\n'
                 configtext += undo_pe_preparation_config
-                configtext += '\n\nGW ROUTER (%s) ROLLBACK-PREPARATION-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()) + 60*'-' + '\n\n'  
+                configtext += '\n\nGW ROUTER (%s) ROLLBACK-PREPARATION-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()) + 60*'-' + '\n\n'
                 configtext += undo_gw_preparation_config
-                configtext += '\n\nPE ROUTER (%s) ROLLBACK-MIGRATION-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()) + 60*'-' + '\n\n'    
+                configtext += '\n\nPE ROUTER (%s) ROLLBACK-MIGRATION-CONFIG: \n' % (data['cgi_data'].get('pe-router','UNKNOWN').upper()) + 60*'-' + '\n\n'
                 configtext += undo_pe_migration_config
-                configtext += '\n\nGW ROUTER (%s) ROLLBACK-MIGRATION-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()) + 60*'-' + '\n\n'   
-                configtext += undo_gw_migration_config    
+                configtext += '\n\nGW ROUTER (%s) ROLLBACK-MIGRATION-CONFIG: \n' %(data['cgi_data'].get('ipsec-gw-router','UNKNOWN').upper()) + 60*'-' + '\n\n'
+                configtext += undo_gw_migration_config
                 configtext += '\n\nOLD PE ROUTER (%s) ROLLBACK-MIGRATION-CONFIG SHUT: \n' %(data['cgi_data'].get('huawei-router','UNKNOWN').upper()) + 60*'-' + '\n\n'
-                configtext += undo_old_pe_migration_config                 
+                configtext += undo_old_pe_migration_config
                 fp.write(configtext)
             ### MAKE READABLE for THE OTHERS
             try: dummy = subprocess.check_output('chmod +r %s' % (logfilename), shell=True)
             except: pass
-           
+
         if cfgfilename:
             try: dummy = subprocess.check_output('rm -rf %s' % (cfgfilename), shell=True)
             except: pass
@@ -1824,8 +1824,7 @@ if data:
             ### MAKE READABLE for THE OTHERS
             try: dummy = subprocess.check_output('chmod +r %s' % (cfgfilename), shell=True)
             except: pass
-            
-        if logfilename and cfgfilename and os.path.exists(logfilename) and os.path.exists(cfgfilename):           
+
+        if logfilename and cfgfilename and os.path.exists(logfilename) and os.path.exists(cfgfilename):
             send_me_email(subject = cfgfilename.replace('\\','/').split('/')[-1], \
                 attachments = [logfilename,cfgfilename], email_body = configtext, username = USERNAME)
-            
