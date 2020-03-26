@@ -4794,7 +4794,7 @@ authentication {
                 else: logviewer = './logviewer.py?logfile=%s' % (logfilename)
                 if CGI_CLI.cgi_active:
                     if interface_result == 'NOT_OK':
-                        CGI_CLI.uprint('<p style="color:red;">The selected backbone interface %s on device %s does not comply to the required parameters for traffic activation./p>' % (interface_id, device), raw = True)
+                        CGI_CLI.uprint('<p style="color:red;">The selected backbone interface %s on device %s does not comply to the required parameters for traffic activation.</p>' % (interface_id, device), raw = True)
 
                     CGI_CLI.uprint('Device=%s, Interface=%s  -  RESULT = %s' \
                         % (device, interface_id, interface_result), color = html_color, tag = 'h2')
@@ -4921,7 +4921,7 @@ authentication {
             else: logviewer = './logviewer.py?logfile=%s' % (logfilename)
             if CGI_CLI.cgi_active:
                 if interface_result == 'NOT OK':
-                    CGI_CLI.logtofile('<p style="color:red;">The selected backbone interface %s on device %s does not comply to the required parameters for traffic activation./p>' % (interface_id, device))
+                    CGI_CLI.logtofile('<p style="color:red;">The selected backbone interface %s on device %s does not comply to the required parameters for traffic activation.</p>' % (interface_id, device)raw_log = True, ommit_timestamp = True)
                     CGI_CLI.logtofile('<p style="color:red;">Device=%s, Interface=%s  -  RESULT = %s</p>' \
                         % (device, interface_id, interface_result), raw_log = True, ommit_timestamp = True)
                 elif interface_result == 'WARNING':
