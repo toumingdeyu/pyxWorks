@@ -2985,9 +2985,9 @@ authentication {
             interface_menu_list.append('<br/>')
 
             if not PING_ONLY:
-                interface_menu_list.append('NOTE: chunked mode is longtime running mode without http connection timeout.<br/>')
+                interface_menu_list.append('<br/><b>NOTE: chunked mode is longtime running mode without http connection timeout.</b><br/>')
                 interface_menu_list.append({'checkbox':'chunked_mode'})
-                interface_menu_list.append('<br/>')
+                interface_menu_list.append('<br/><br/>')
 
             CGI_CLI.formprint( interface_menu_list + \
                 [ {'checkbox':'timestamps'}, '<br/><b><u>',\
@@ -3595,11 +3595,35 @@ authentication {
                         try: interface_warning_data['FEC_Uncorrected_Errors_Rate'] = collect_if_config_rcmd_outputs[13].split('FEC Uncorrected Errors Rate ')[1].split()[0].strip()
                         except: interface_warning_data['FEC_Uncorrected_Errors_Rate'] = str()
 
-                        try: interface_warning_data['Input_errors'] = collect_if_config_rcmd_outputs[13].split('Input errors:')[1].strip().splitlines()[0].strip()
+                        try: interface_warning_data['Input_errors'] = collect_if_config_rcmd_outputs[13].split('Input errors:')[1].strip().splitlines()[0].strip().split('Errors: ')[1].split()[0].replace(',','')
                         except: interface_warning_data['Input_errors'] = str()
 
-                        try: interface_warning_data['Output_errors'] = collect_if_config_rcmd_outputs[13].split('Output errors:')[1].strip().splitlines()[0].strip()
+                        try: interface_warning_data['Input_errors__Drops'] = collect_if_config_rcmd_outputs[13].split('Input errors:')[1].strip().splitlines()[0].strip().split('Drops: ')[1].split()[0].replace(',','')
+                        except: interface_warning_data['Input_errors__Drops'] = str()
+
+                        try: interface_warning_data['Input_errors__Framing_errors'] = collect_if_config_rcmd_outputs[13].split('Input errors:')[1].strip().splitlines()[0].strip().split('Framing errors: ')[1].split()[0].replace(',','')
+                        except: interface_warning_data['Input_errors__Framing_errors'] = str()
+
+                        try: interface_warning_data['Input_errors__Runts'] = collect_if_config_rcmd_outputs[13].split('Input errors:')[1].strip().splitlines()[0].strip().split('Runts: ')[1].split()[0].replace(',','')
+                        except: interface_warning_data['Input_errors__Runts'] = str()
+
+                        try: interface_warning_data['Input_errors__Policed_discards'] = collect_if_config_rcmd_outputs[13].split('Input errors:')[1].strip().splitlines()[0].strip().split('Policed discards: ')[1].split()[0].replace(',','')
+                        except: interface_warning_data['Input_errors__Policed_discards'] = str()
+
+                        try: interface_warning_data['Output_errors'] = collect_if_config_rcmd_outputs[13].split('Output errors:')[1].strip().splitlines()[0].strip().split('Errors: ')[1].split()[0].replace(',','')
                         except: interface_warning_data['Output_errors'] = str()
+
+                        try: interface_warning_data['Output_errors__Carrier_transitions'] = collect_if_config_rcmd_outputs[13].split('Output errors:')[1].strip().splitlines()[0].strip().split('Carrier transitions: ')[1].split()[0].replace(',','')
+                        except: interface_warning_data['Output_errors__Carrier_transitions'] = str()
+
+                        try: interface_warning_data['Output_errors__Drops'] = collect_if_config_rcmd_outputs[13].split('Output errors:')[1].strip().splitlines()[0].strip().split('Drops: ')[1].split()[0].replace(',','')
+                        except: interface_warning_data['Output_errors__Drops'] = str()
+
+                        try: interface_warning_data['Output_errors__Collisions'] = collect_if_config_rcmd_outputs[13].split('Output errors:')[1].strip().splitlines()[0].strip().split('Collisions: ')[1].split()[0].replace(',','')
+                        except: interface_warning_data['Output_errors__Collisions'] = str()
+
+                        try: interface_warning_data['Output_errors__Aged_packets'] = collect_if_config_rcmd_outputs[13].split('Output errors:')[1].strip().splitlines()[0].strip().split('Aged packets: ')[1].split()[0].replace(',','')
+                        except: interface_warning_data['Output_errors__Aged_packets'] = str()
 
                     ### HUAWEI 1st CMDS ###########################################
                     elif RCMD.router_type == 'huawei':
@@ -4377,11 +4401,35 @@ authentication {
                         try:    interface_warning_data['FEC_Uncorrected_Errors_Rate_Difference'] = str(int(interface_warning_data['FEC_Uncorrected_Errors_Rate_After_ping']) - int(interface_warning_data['FEC_Uncorrected_Errors_Rate']))
                         except: interface_warning_data['FEC_Uncorrected_Errors_Rate_Difference'] = str()
 
-                        try: interface_warning_data['Input_errors_After_ping'] = collect_if_config_rcmd_outputs[13].split('Input errors:')[1].strip().splitlines()[0].strip()
-                        except: interface_warning_data['Input_errors_After_ping'] = str()
+                        try: interface_warning_data['Input_errors'] = collect_if_config_rcmd_outputs[0].split('Input errors:')[1].strip().splitlines()[0].strip().split('Errors: ')[1].split()[0].replace(',','')
+                        except: interface_warning_data['Input_errors'] = str()
 
-                        try: interface_warning_data['Output_errors_After_ping'] = collect_if_config_rcmd_outputs[13].split('Output errors:')[1].strip().splitlines()[0].strip()
-                        except: interface_warning_data['Output_errors_After_ping'] = str()
+                        try: interface_warning_data['Input_errors__Drops'] = collect_if_config_rcmd_outputs[0].split('Input errors:')[1].strip().splitlines()[0].strip().split('Drops: ')[1].split()[0].replace(',','')
+                        except: interface_warning_data['Input_errors__Drops'] = str()
+
+                        try: interface_warning_data['Input_errors__Framing_errors'] = collect_if_config_rcmd_outputs[0].split('Input errors:')[1].strip().splitlines()[0].strip().split('Framing errors: ')[1].split()[0].replace(',','')
+                        except: interface_warning_data['Input_errors__Framing_errors'] = str()
+
+                        try: interface_warning_data['Input_errors__Runts'] = collect_if_config_rcmd_outputs[0].split('Input errors:')[1].strip().splitlines()[0].strip().split('Runts: ')[1].split()[0].replace(',','')
+                        except: interface_warning_data['Input_errors__Runts'] = str()
+
+                        try: interface_warning_data['Input_errors__Policed_discards'] = collect_if_config_rcmd_outputs[0].split('Input errors:')[1].strip().splitlines()[0].strip().split('Policed discards: ')[1].split()[0].replace(',','')
+                        except: interface_warning_data['Input_errors__Policed_discards'] = str()
+
+                        try: interface_warning_data['Output_errors'] = collect_if_config_rcmd_outputs[0].split('Output errors:')[1].strip().splitlines()[0].strip().split('Errors: ')[1].split()[0].replace(',','')
+                        except: interface_warning_data['Output_errors'] = str()
+
+                        try: interface_warning_data['Output_errors__Carrier_transitions'] = collect_if_config_rcmd_outputs[0].split('Output errors:')[1].strip().splitlines()[0].strip().split('Carrier transitions: ')[1].split()[0].replace(',','')
+                        except: interface_warning_data['Output_errors__Carrier_transitions'] = str()
+
+                        try: interface_warning_data['Output_errors__Drops'] = collect_if_config_rcmd_outputs[0].split('Output errors:')[1].strip().splitlines()[0].strip().split('Drops: ')[1].split()[0].replace(',','')
+                        except: interface_warning_data['Output_errors__Drops'] = str()
+
+                        try: interface_warning_data['Output_errors__Collisions'] = collect_if_config_rcmd_outputs[0].split('Output errors:')[1].strip().splitlines()[0].strip().split('Collisions: ')[1].split()[0].replace(',','')
+                        except: interface_warning_data['Output_errors__Collisions'] = str()
+
+                        try: interface_warning_data['Output_errors__Aged_packets'] = collect_if_config_rcmd_outputs[0].split('Output errors:')[1].strip().splitlines()[0].strip().split('Aged packets: ')[1].split()[0].replace(',','')
+                        except: interface_warning_data['Output_errors__Aged_packets'] = str()
 
                     elif RCMD.router_type == 'huawei':
                         try:    interface_warning_data['Rx_Power_dBm_After_ping'] = err_check_after_pings_outputs[0].split('Rx Power: ')[1].split()[0].strip().replace(',','').replace('dBm','')
