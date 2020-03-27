@@ -2524,11 +2524,82 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
                         color = 'red', timestamp = 'no')
             else: CGI_CLI.logtofile("CHECK['%s' not in '%s'] = OK\n" % (str(what_not), where), ommit_timestamp = True)
 
+###############################################################################
 
+def do_ping(address = None, mtu = None, count = None, ipv6 = None):
+    """
+    ipv6 is flag True/False
+    count is number of pings
+    mtu is mtu size
+    returns 0..100% ping success
+    """
+    percent_success = 0
+    ping_counts = str(count) if ping_count else '4'
+    if address:
+        ping4_config_rcmds = {
+            'cisco_ios':[
+                'ping %s%s size %s %scount %s' % \
+                    ('ipv6 ' if ipv6 else str(), address, str(mtu), \
+                    'df-bit ' if not ipv6 else str(), ping_counts)
+            ],
+            'cisco_xr':[
+                'ping %s%s size %s %scount %s' % \
+                    ('ipv6 ' if ipv6 else str(), address, str(mtu), \
+                    'df-bit ' if not ipv6 else str(), ping_counts)
+            ],
+            'juniper': [
+                'ping %s%s rapid count %s size %s' % \
+                    ('inet6 ' if ipv6 else str(), address, ping_counts, str(mtu))
+            ],
+            'huawei': [
+                'ping %s-s %s -c %s %s' % \
+                    ('ipv6 ' if ipv6 else str(),str(mtu), ping_counts, address)
+            ]
+        }
+
+        ping4_config_rcmds_outputs = RCMD.run_commands(ping4_config_rcmds, \
+            autoconfirm_mode = True, \
+            long_lasting_mode = True, \
+            printall = CGI_CLI.printall)
+
+        if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
+            try: percent_success = float(ping4_config_rcmds_outputs[0].\
+                     split('Success rate is ')[1].splitlines()[0].split('percent')[0].strip())
+            except: pass
+
+        elif RCMD.router_type == 'juniper':
+            try: percent_success = 100 - float(ping4_config_rcmds_outputs[0].\
+                     split('received,')[1].splitlines()[0].split('%')[0].strip())
+            except: pass
+
+        elif RCMD.router_type == 'huawei':
+            try: percent_success = 100 - float(ping4_config_rcmds_outputs[0].\
+                     split('% packet loss')[0].splitlines()[-1].strip())
+            except: pass
+    return percent_success
 
 ###############################################################################
 
-
+def find_max_mtu(address = None, ipv6 = None):
+    """
+    ipv6 is flag True/False
+    count is number of pings
+    """
+    max_mtu = 9100
+    looping = True
+    max_success_mtu = 0
+    mtu = max_mtu
+    while looping:
+        CGI_CLI.uprint('ipv6 = %s, mtu = %s' % (str(ipv6), str(mtu)))
+        if do_ping(address = address, mtu = mtu, count = 3, ipv6 = ipv6) > 0:
+            if max_success_mtu and mtu >= max_success_mtu or max_success_mtu == 0:
+                max_success_mtu = mtu
+            elif max_success_mtu and mtu < max_success_mtu:
+                looping = False
+                break
+            mtu = int(mtu*2)
+        else: mtu = int(mtu/2)
+    return max_success_mtu
 
 ###############################################################################
 
@@ -3595,34 +3666,34 @@ authentication {
                         try: interface_warning_data['FEC_Uncorrected_Errors_Rate'] = collect_if_config_rcmd_outputs[13].split('FEC Uncorrected Errors Rate ')[1].split()[0].strip()
                         except: interface_warning_data['FEC_Uncorrected_Errors_Rate'] = str()
 
-                        try: interface_warning_data['Input_errors'] = collect_if_config_rcmd_outputs[13].split('Input errors:')[1].strip().splitlines()[0].strip().split('Errors: ')[1].split()[0].replace(',','')
+                        try: interface_warning_data['Input_errors'] = collect_if_config_rcmd_outputs[13].split('Input errors:')[1].strip().split('Output errors:')[0].strip().split('Errors: ')[1].split()[0].replace(',','')
                         except: interface_warning_data['Input_errors'] = str()
 
-                        try: interface_warning_data['Input_errors__Drops'] = collect_if_config_rcmd_outputs[13].split('Input errors:')[1].strip().splitlines()[0].strip().split('Drops: ')[1].split()[0].replace(',','')
+                        try: interface_warning_data['Input_errors__Drops'] = collect_if_config_rcmd_outputs[13].split('Input errors:')[1].strip().split('Output errors:')[0].strip().split('Drops: ')[1].split()[0].replace(',','')
                         except: interface_warning_data['Input_errors__Drops'] = str()
 
-                        try: interface_warning_data['Input_errors__Framing_errors'] = collect_if_config_rcmd_outputs[13].split('Input errors:')[1].strip().splitlines()[0].strip().split('Framing errors: ')[1].split()[0].replace(',','')
+                        try: interface_warning_data['Input_errors__Framing_errors'] = collect_if_config_rcmd_outputs[13].split('Input errors:')[1].strip().split('Output errors:')[0].strip().split('Framing errors: ')[1].split()[0].replace(',','')
                         except: interface_warning_data['Input_errors__Framing_errors'] = str()
 
-                        try: interface_warning_data['Input_errors__Runts'] = collect_if_config_rcmd_outputs[13].split('Input errors:')[1].strip().splitlines()[0].strip().split('Runts: ')[1].split()[0].replace(',','')
+                        try: interface_warning_data['Input_errors__Runts'] = collect_if_config_rcmd_outputs[13].split('Input errors:')[1].strip().split('Output errors:')[0].strip().split('Runts: ')[1].split()[0].replace(',','')
                         except: interface_warning_data['Input_errors__Runts'] = str()
 
-                        try: interface_warning_data['Input_errors__Policed_discards'] = collect_if_config_rcmd_outputs[13].split('Input errors:')[1].strip().splitlines()[0].strip().split('Policed discards: ')[1].split()[0].replace(',','')
+                        try: interface_warning_data['Input_errors__Policed_discards'] = collect_if_config_rcmd_outputs[13].split('Input errors:')[1].strip().split('Output errors:')[0].strip().split('Policed discards: ')[1].split()[0].replace(',','')
                         except: interface_warning_data['Input_errors__Policed_discards'] = str()
 
-                        try: interface_warning_data['Output_errors'] = collect_if_config_rcmd_outputs[13].split('Output errors:')[1].strip().splitlines()[0].strip().split('Errors: ')[1].split()[0].replace(',','')
+                        try: interface_warning_data['Output_errors'] = collect_if_config_rcmd_outputs[13].split('Output errors:')[1].strip().split('Active alarms')[0].strip().split('Errors: ')[1].split()[0].replace(',','')
                         except: interface_warning_data['Output_errors'] = str()
 
-                        try: interface_warning_data['Output_errors__Carrier_transitions'] = collect_if_config_rcmd_outputs[13].split('Output errors:')[1].strip().splitlines()[0].strip().split('Carrier transitions: ')[1].split()[0].replace(',','')
+                        try: interface_warning_data['Output_errors__Carrier_transitions'] = collect_if_config_rcmd_outputs[13].split('Output errors:')[1].strip().split('Active alarms')[0].strip().split('Carrier transitions: ')[1].split()[0].replace(',','')
                         except: interface_warning_data['Output_errors__Carrier_transitions'] = str()
 
-                        try: interface_warning_data['Output_errors__Drops'] = collect_if_config_rcmd_outputs[13].split('Output errors:')[1].strip().splitlines()[0].strip().split('Drops: ')[1].split()[0].replace(',','')
+                        try: interface_warning_data['Output_errors__Drops'] = collect_if_config_rcmd_outputs[13].split('Output errors:')[1].strip().split('Active alarms')[0].strip().split('Drops: ')[1].split()[0].replace(',','')
                         except: interface_warning_data['Output_errors__Drops'] = str()
 
-                        try: interface_warning_data['Output_errors__Collisions'] = collect_if_config_rcmd_outputs[13].split('Output errors:')[1].strip().splitlines()[0].strip().split('Collisions: ')[1].split()[0].replace(',','')
+                        try: interface_warning_data['Output_errors__Collisions'] = collect_if_config_rcmd_outputs[13].split('Output errors:')[1].strip().split('Active alarms')[0].strip().split('Collisions: ')[1].split()[0].replace(',','')
                         except: interface_warning_data['Output_errors__Collisions'] = str()
 
-                        try: interface_warning_data['Output_errors__Aged_packets'] = collect_if_config_rcmd_outputs[13].split('Output errors:')[1].strip().splitlines()[0].strip().split('Aged packets: ')[1].split()[0].replace(',','')
+                        try: interface_warning_data['Output_errors__Aged_packets'] = collect_if_config_rcmd_outputs[13].split('Output errors:')[1].strip().split('Active alarms')[0].strip().split('Aged packets: ')[1].split()[0].replace(',','')
                         except: interface_warning_data['Output_errors__Aged_packets'] = str()
 
                     ### HUAWEI 1st CMDS ###########################################
@@ -4403,52 +4474,52 @@ authentication {
                         try:    interface_warning_data['FEC_Uncorrected_Errors_Rate_Difference'] = str(int(interface_warning_data['FEC_Uncorrected_Errors_Rate_After_ping']) - int(interface_warning_data['FEC_Uncorrected_Errors_Rate']))
                         except: interface_warning_data['FEC_Uncorrected_Errors_Rate_Difference'] = str()
 
-                        try:    interface_warning_data['Input_errors_After_ping'] = err_check_after_pings_outputs[0].split('Input errors:')[1].strip().splitlines()[0].strip().split('Errors: ')[1].split()[0].replace(',','')
+                        try:    interface_warning_data['Input_errors_After_ping'] = err_check_after_pings_outputs[0].split('Input errors:')[1].strip().split('Output errors:')[0].strip().split('Errors: ')[1].split()[0].replace(',','')
                         except: interface_warning_data['Input_errors_After_ping'] = str()
                         try:    interface_warning_data['Input_errors_Difference'] = str(int(interface_warning_data['Input_errors_After_ping']) - int(interface_warning_data['Input_errors']))
                         except: interface_warning_data['Input_errors_Difference'] = str()
 
-                        try:    interface_warning_data['Input_errors__Drops_After_ping'] = err_check_after_pings_outputs[0].split('Input errors:')[1].strip().splitlines()[0].strip().split('Drops: ')[1].split()[0].replace(',','')
+                        try:    interface_warning_data['Input_errors__Drops_After_ping'] = err_check_after_pings_outputs[0].split('Input errors:')[1].strip().split('Output errors:')[0].strip().split('Drops: ')[1].split()[0].replace(',','')
                         except: interface_warning_data['Input_errors__Drops_After_ping'] = str()
                         try:    interface_warning_data['Input_errors__Drops_Difference'] = str(int(interface_warning_data['Input_errors__Drops_After_ping']) - int(interface_warning_data['Input_errors__Drops']))
                         except: interface_warning_data['Input_errors__Drops_Difference'] = str()
 
-                        try:    interface_warning_data['Input_errors__Framing_errors_After_ping'] = err_check_after_pings_outputs[0].split('Input errors:')[1].strip().splitlines()[0].strip().split('Framing errors: ')[1].split()[0].replace(',','')
+                        try:    interface_warning_data['Input_errors__Framing_errors_After_ping'] = err_check_after_pings_outputs[0].split('Input errors:')[1].strip().split('Output errors:')[0].strip().split('Framing errors: ')[1].split()[0].replace(',','')
                         except: interface_warning_data['Input_errors__Framing_errors_After_ping'] = str()
                         try:    interface_warning_data['Input_errors__Framing_errors_Difference'] = str(int(interface_warning_data['Input_errors__Framing_errors_After_ping']) - int(interface_warning_data['Input_errors__Framing_errors']))
                         except: interface_warning_data['Input_errors__Framing_errors_Difference'] = str()
 
-                        try:    interface_warning_data['Input_errors__Runts_After_ping'] = err_check_after_pings_outputs[0].split('Input errors:')[1].strip().splitlines()[0].strip().split('Runts: ')[1].split()[0].replace(',','')
+                        try:    interface_warning_data['Input_errors__Runts_After_ping'] = err_check_after_pings_outputs[0].split('Input errors:')[1].strip().split('Output errors:')[0].strip().split('Runts: ')[1].split()[0].replace(',','')
                         except: interface_warning_data['Input_errors__Runts_After_ping'] = str()
                         try:    interface_warning_data['Input_errors__Runts_Difference'] = str(int(interface_warning_data['Input_errors__Runts_After_ping']) - int(interface_warning_data['Input_errors__Runts']))
                         except: interface_warning_data['Input_errors__Runts_Difference'] = str()
 
-                        try:    interface_warning_data['Input_errors__Policed_discards_After_ping'] = err_check_after_pings_outputs[0].split('Input errors:')[1].strip().splitlines()[0].strip().split('Policed discards: ')[1].split()[0].replace(',','')
+                        try:    interface_warning_data['Input_errors__Policed_discards_After_ping'] = err_check_after_pings_outputs[0].split('Input errors:')[1].strip().split('Output errors:')[0].strip().split('Policed discards: ')[1].split()[0].replace(',','')
                         except: interface_warning_data['Input_errors__Policed_discards_After_ping'] = str()
                         try:    interface_warning_data['Input_errors__Policed_discards_Difference'] = str(int(interface_warning_data['Input_errors__Policed_discards_After_ping']) - int(interface_warning_data['Input_errors__Policed_discards']))
                         except: interface_warning_data['Input_errors__Policed_discards_Difference'] = str()
 
-                        try:    interface_warning_data['Output_errors_After_ping'] = err_check_after_pings_outputs[0].split('Output errors:')[1].strip().splitlines()[0].strip().split('Errors: ')[1].split()[0].replace(',','')
+                        try:    interface_warning_data['Output_errors_After_ping'] = err_check_after_pings_outputs[0].split('Output errors:')[1].strip().split('Active alarms')[0].strip().split('Errors: ')[1].split()[0].replace(',','')
                         except: interface_warning_data['Output_errors_After_ping'] = str()
                         try:    interface_warning_data['Output_errors_Difference'] = str(int(interface_warning_data['Output_errors_After_ping']) - int(interface_warning_data['Output_errors']))
                         except: interface_warning_data['Output_errors_Difference'] = str()
 
-                        try:    interface_warning_data['Output_errors__Carrier_transitions_After_ping'] = err_check_after_pings_outputs[0].split('Output errors:')[1].strip().splitlines()[0].strip().split('Carrier transitions: ')[1].split()[0].replace(',','')
+                        try:    interface_warning_data['Output_errors__Carrier_transitions_After_ping'] = err_check_after_pings_outputs[0].split('Output errors:')[1].strip().split('Active alarms')[0].strip().split('Carrier transitions: ')[1].split()[0].replace(',','')
                         except: interface_warning_data['Output_errors__Carrier_transitions_After_ping'] = str()
                         try:    interface_warning_data['Output_errors__Carrier_transitions_Difference'] = str(int(interface_warning_data['Output_errors__Carrier_transitions_After_ping']) - int(interface_warning_data['Output_errors__Carrier_transitions']))
                         except: interface_warning_data['Output_errors__Carrier_transitions_Difference'] = str()
 
-                        try:    interface_warning_data['Output_errors__Drops_After_ping'] = err_check_after_pings_outputs[0].split('Output errors:')[1].strip().splitlines()[0].strip().split('Drops: ')[1].split()[0].replace(',','')
+                        try:    interface_warning_data['Output_errors__Drops_After_ping'] = err_check_after_pings_outputs[0].split('Output errors:')[1].strip().split('Active alarms')[0].strip().split('Drops: ')[1].split()[0].replace(',','')
                         except: interface_warning_data['Output_errors__Drops_After_ping'] = str()
                         try:    interface_warning_data['Output_errors__Drops_Difference'] = str(int(interface_warning_data['Output_errors__Drops_After_ping']) - int(interface_warning_data['Output_errors__Drops']))
                         except: interface_warning_data['Output_errors__Drops_Difference'] = str()
 
-                        try:    interface_warning_data['Output_errors__Collisions_After_ping'] = err_check_after_pings_outputs[0].split('Output errors:')[1].strip().splitlines()[0].strip().split('Collisions: ')[1].split()[0].replace(',','')
+                        try:    interface_warning_data['Output_errors__Collisions_After_ping'] = err_check_after_pings_outputs[0].split('Output errors:')[1].strip().split('Active alarms')[0].strip().split('Collisions: ')[1].split()[0].replace(',','')
                         except: interface_warning_data['Output_errors__Collisions_After_ping'] = str()
                         try:    interface_warning_data['Output_errors__Collisions_Difference'] = str(int(interface_warning_data['Output_errors__Collisions_After_ping']) - int(interface_warning_data['Output_errors__Collisions']))
                         except: interface_warning_data['Output_errors__Collisions_Difference'] = str()
 
-                        try:    interface_warning_data['Output_errors__Aged_packets_After_ping'] = err_check_after_pings_outputs[0].split('Output errors:')[1].strip().splitlines()[0].strip().split('Aged packets: ')[1].split()[0].replace(',','')
+                        try:    interface_warning_data['Output_errors__Aged_packets_After_ping'] = err_check_after_pings_outputs[0].split('Output errors:')[1].strip().split('Active alarms')[0].strip().split('Aged packets: ')[1].split()[0].replace(',','')
                         except: interface_warning_data['Output_errors__Aged_packets_After_ping'] = str()
                         try:    interface_warning_data['Output_errors__Aged_packets_Difference'] = str(int(interface_warning_data['Output_errors__Aged_packets_After_ping']) - int(interface_warning_data['Output_errors__Aged_packets']))
                         except: interface_warning_data['Output_errors__Aged_packets_Difference'] = str()
