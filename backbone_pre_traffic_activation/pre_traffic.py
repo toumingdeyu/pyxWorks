@@ -3225,7 +3225,7 @@ authentication {
 
                         'juniper': [
                             'show configuration interfaces %s | display set' % (interface_id),
-                            'show interfaces %s' % (undotted_interface_id),
+                            'show interfaces %s extensive' % (undotted_interface_id),
                         ],
 
                         'huawei': [
@@ -3301,6 +3301,36 @@ authentication {
 
                         try: interface_warning_data['FEC_Uncorrected_Errors_Rate'] = collect_if_config_rcmd_outputs[1].split('FEC Uncorrected Errors Rate ')[1].split()[0].strip()
                         except: interface_warning_data['FEC_Uncorrected_Errors_Rate'] = str()
+
+                        try: interface_warning_data['Input_errors'] = collect_if_config_rcmd_outputs[1].split('Input errors:')[1].strip().split('Output errors:')[0].strip().split('Errors: ')[1].split()[0].replace(',','')
+                        except: interface_warning_data['Input_errors'] = str()
+
+                        try: interface_warning_data['Input_errors__Drops'] = collect_if_config_rcmd_outputs[1].split('Input errors:')[1].strip().split('Output errors:')[0].strip().split('Drops: ')[1].split()[0].replace(',','')
+                        except: interface_warning_data['Input_errors__Drops'] = str()
+
+                        try: interface_warning_data['Input_errors__Framing_errors'] = collect_if_config_rcmd_outputs[1].split('Input errors:')[1].strip().split('Output errors:')[0].strip().split('Framing errors: ')[1].split()[0].replace(',','')
+                        except: interface_warning_data['Input_errors__Framing_errors'] = str()
+
+                        try: interface_warning_data['Input_errors__Runts'] = collect_if_config_rcmd_outputs[1].split('Input errors:')[1].strip().split('Output errors:')[0].strip().split('Runts: ')[1].split()[0].replace(',','')
+                        except: interface_warning_data['Input_errors__Runts'] = str()
+
+                        try: interface_warning_data['Input_errors__Policed_discards'] = collect_if_config_rcmd_outputs[1].split('Input errors:')[1].strip().split('Output errors:')[0].strip().split('Policed discards: ')[1].split()[0].replace(',','')
+                        except: interface_warning_data['Input_errors__Policed_discards'] = str()
+
+                        try: interface_warning_data['Output_errors'] = collect_if_config_rcmd_outputs[1].split('Output errors:')[1].strip().split('Active alarms')[0].strip().split('Errors: ')[1].split()[0].replace(',','')
+                        except: interface_warning_data['Output_errors'] = str()
+
+                        try: interface_warning_data['Output_errors__Carrier_transitions'] = collect_if_config_rcmd_outputs[1].split('Output errors:')[1].strip().split('Active alarms')[0].strip().split('Carrier transitions: ')[1].split()[0].replace(',','')
+                        except: interface_warning_data['Output_errors__Carrier_transitions'] = str()
+
+                        try: interface_warning_data['Output_errors__Drops'] = collect_if_config_rcmd_outputs[1].split('Output errors:')[1].strip().split('Active alarms')[0].strip().split('Drops: ')[1].split()[0].replace(',','')
+                        except: interface_warning_data['Output_errors__Drops'] = str()
+
+                        try: interface_warning_data['Output_errors__Collisions'] = collect_if_config_rcmd_outputs[1].split('Output errors:')[1].strip().split('Active alarms')[0].strip().split('Collisions: ')[1].split()[0].replace(',','')
+                        except: interface_warning_data['Output_errors__Collisions'] = str()
+
+                        try: interface_warning_data['Output_errors__Aged_packets'] = collect_if_config_rcmd_outputs[1].split('Output errors:')[1].strip().split('Active alarms')[0].strip().split('Aged packets: ')[1].split()[0].replace(',','')
+                        except: interface_warning_data['Output_errors__Aged_packets'] = str()
 
                     elif RCMD.router_type == 'huawei':
                         try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[0]
@@ -3410,7 +3440,7 @@ authentication {
                             'show configuration class-of-service interfaces %s | display set'  % (undotted_interface_id),
                             'show configuration groups mtu-default | display set',
                             'show configuration protocols isis interface %s' % (interface_id),
-                            'show interfaces %s extensive' % (undotted_interface_id),
+                            'show interfaces %s extensive' % (undotted_interface_id), ### ???
                             'show interfaces descriptions'
                         ],
 
