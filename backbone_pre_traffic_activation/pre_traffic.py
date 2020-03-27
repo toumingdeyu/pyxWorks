@@ -2662,6 +2662,7 @@ authentication {
 
     ### GCI_CLI INIT ##########################################################
     PING_ONLY = True if 'ping_only' in CGI_CLI.get_scriptname() else False
+    action_type = 'ping_only' if 'ping_only' in CGI_CLI.get_scriptname() else 'bbactivation'
 
     if PING_ONLY:
         ping_counts = '1000'
@@ -2685,8 +2686,8 @@ authentication {
 
 
     ### ACTION TYPE ###########################################################
-    action_type = 'bbactivation'
-    action_type_list = ['bbactivation', 'bbmigration', 'custommigration','customactivation']
+
+    action_type_list = ['bbactivation', 'bbmigration', 'custommigration','customactivation','ping_only']
 
     if CGI_CLI.data.get('customer_interfaces'):
         action_type = 'custommigration'
