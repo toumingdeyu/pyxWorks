@@ -2597,8 +2597,8 @@ def find_max_mtu(address = None, ipv6 = None):
             elif max_success_mtu and mtu < max_success_mtu:
                 looping = False
                 break
-            mtu = int(mtu*2)
-        else: mtu = int(mtu/2)
+            mtu = int(mtu + mtu/2)
+        else: mtu = int(mtu - mtu/2)
     return max_success_mtu
 
 ###############################################################################
