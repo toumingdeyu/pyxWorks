@@ -2447,54 +2447,54 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
 
     if lower_than and where:
         try:
-            if float(where_value) <= float(lower_than):
-                CGI_CLI.logtofile("CHECK['%s' < '%.2f'] = OK\n" % (where, float(lower_than)), ommit_timestamp = True)
+            if float(where_value) < float(lower_than):
+                CGI_CLI.logtofile("CHECK['%s'(%s) < '%.2f'] = OK\n" % (where, str(where_value), float(lower_than)), ommit_timestamp = True)
             else:
                 if warning:
                     check_warning_interface_result_ok = False
-                    CGI_CLI.uprint("CHECK['%s' > '%.2f'] = WARNING\n" % (where, float(lower_than)), color = 'orange', timestamp = 'no')
+                    CGI_CLI.uprint("CHECK['%s'(%s) < '%.2f'] = WARNING\n" % (where, str(where_value), float(lower_than)), color = 'orange', timestamp = 'no')
                 else:
                     check_interface_result_ok = False
-                    CGI_CLI.uprint("CHECK['%s' > '%.2f'] = NOT OK\n" % (where, float(lower_than)), color = 'red', timestamp = 'no')
-        except: CGI_CLI.logtofile("CHECK['%s' < '%s'] = NaN\n" % (where, str(lower_than)), ommit_timestamp = True)
+                    CGI_CLI.uprint("CHECK['%s'(%s) < '%.2f'] = NOT OK\n" % (where, str(where_value), float(lower_than)), color = 'red', timestamp = 'no')
+        except: CGI_CLI.logtofile("CHECK['%s'(%s) < '%s'] = NaN\n" % (where, str(where_value), str(lower_than)), ommit_timestamp = True)
 
     if higher_than and where:
         try:
-            if float(where_value) >= float(higher_than):
-                CGI_CLI.logtofile("CHECK['%s' > '%.2f'] = OK\n" % (where, float(higher_than)), ommit_timestamp = True)
+            if float(where_value) > float(higher_than):
+                CGI_CLI.logtofile("CHECK['%s'(%s) > '%.2f'] = OK\n" % (where, str(where_value), float(higher_than)), ommit_timestamp = True)
             else:
                 if warning:
                     check_warning_interface_result_ok = False
-                    CGI_CLI.uprint("CHECK['%s' < '%.2f'] = WARNING\n" % (where, float(higher_than)), color = 'orange', timestamp = 'no')
+                    CGI_CLI.uprint("CHECK['%s'(%s) > '%.2f'] = WARNING\n" % (where, str(where_value), float(higher_than)), color = 'orange', timestamp = 'no')
                 else:
                     check_interface_result_ok = False
-                    CGI_CLI.uprint("CHECK['%s' < '%.2f'] = NOT OK\n" % (where, float(higher_than)), color = 'red', timestamp = 'no')
-        except: CGI_CLI.logtofile("CHECK['%s' > '%s'] = NaN\n" % (where, str(higher_than)), ommit_timestamp = True)
+                    CGI_CLI.uprint("CHECK['%s'(%s) > '%.2f'] = NOT OK\n" % (where, str(where_value), float(higher_than)), color = 'red', timestamp = 'no')
+        except: CGI_CLI.logtofile("CHECK['%s'(%s) > '%s'] = NaN\n" % (where, str(where_value), str(higher_than)), ommit_timestamp = True)
 
     if exact_value_yes and where:
         if exact_value_yes.upper() == where_value.upper():
-            CGI_CLI.logtofile("CHECK['%s' == '%s'] = OK\n" % (exact_value_yes, where), ommit_timestamp = True)
+            CGI_CLI.logtofile("CHECK['%s' == '%s'(%s)] = OK\n" % (exact_value_yes, where, str(where_value)), ommit_timestamp = True)
         else:
             if warning:
                 check_warning_interface_result_ok = False
-                CGI_CLI.uprint("CHECK['%s' != '%s'] = WARNING" % (exact_value_yes, where),
+                CGI_CLI.uprint("CHECK['%s' != '%s'(%s)] = WARNING" % (exact_value_yes, where, str(where_value)),
                     color = 'orange', timestamp = 'no')
             else:
                 check_interface_result_ok = False
-                CGI_CLI.uprint("CHECK['%s' != '%s'] = NOT OK" % (exact_value_yes, where),
+                CGI_CLI.uprint("CHECK['%s' != '%s'(%s)] = NOT OK" % (exact_value_yes, where, str(where_value)),
                     color = 'red', timestamp = 'no')
 
     if what_yes_in and where:
         if what_yes_in.upper() in where_value.upper():
-            CGI_CLI.logtofile("CHECK['%s' in '%s'] = OK\n" % (what_yes_in, where), ommit_timestamp = True)
+            CGI_CLI.logtofile("CHECK['%s' in '%s'(%s)] = OK\n" % (what_yes_in, where, str(where_value)), ommit_timestamp = True)
         else:
             if warning:
                 check_warning_interface_result_ok = False
-                CGI_CLI.uprint("CHECK['%s' not in '%s'] = WARNING" % (what_yes_in, where),
+                CGI_CLI.uprint("CHECK['%s' not in '%s'(%s)] = WARNING" % (what_yes_in, where, str(where_value)),
                     color = 'orange', timestamp = 'no')
             else:
                 check_interface_result_ok = False
-                CGI_CLI.uprint("CHECK['%s' not in '%s'] = NOT OK" % (what_yes_in, where),
+                CGI_CLI.uprint("CHECK['%s' not in '%s'(%s)] = NOT OK" % (what_yes_in, where, str(where_value)),
                     color = 'red', timestamp = 'no')
 
     if what_not and where:
@@ -2516,13 +2516,13 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
             if what_not.upper() in where_value.upper():
                 if warning:
                     check_warning_interface_result_ok = False
-                    CGI_CLI.uprint("CHECK['%s' in '%s'] = WARNING" % (str(what_not), where),
+                    CGI_CLI.uprint("CHECK['%s' in '%s'(%s)] = WARNING" % (str(what_not), where, str(where_value)),
                         color = 'orange', timestamp = 'no')
                 else:
                     check_interface_result_ok = False
-                    CGI_CLI.uprint("CHECK['%s' in '%s'] = NOT OK" % (str(what_not), where),
+                    CGI_CLI.uprint("CHECK['%s' in '%s'(%s)] = NOT OK" % (str(what_not), where, str(where_value)),
                         color = 'red', timestamp = 'no')
-            else: CGI_CLI.logtofile("CHECK['%s' not in '%s'] = OK\n" % (str(what_not), where), ommit_timestamp = True)
+            else: CGI_CLI.logtofile("CHECK['%s' not in '%s'(%s)] = OK\n" % (str(what_not), where, str(where_value)), ommit_timestamp = True)
 
 ###############################################################################
 
