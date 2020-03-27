@@ -4245,6 +4245,16 @@ authentication {
                             try: interface_warning_data['ping_v6_mtu_percent_success'] = str(100 - float(ping6_config_rcmds_outputs[1].split('% packet loss')[0].splitlines()[-1].strip()))
                             except: interface_warning_data['ping_v6_mtu_percent_success'] = str()
 
+                ### def FIND MAX MTU ##########################################
+                if PING_ONLY:
+                    max_mtu_ipv4, max_mtu_ipv6 = 0, 0
+                    if interface_data.get('ipv4_addr_rem',str()):
+                        max_mtu_ipv4 = find_max_mtu(interface_data.get('ipv4_addr_rem',str()))
+                        interface_data['max_mtu_ipv4'] = max_mtu_ipv4
+
+                    if interface_data.get('ipv6_addr_rem',str()):
+                        max_mtu_ipv6 = find_max_mtu(interface_data.get('ipv6_addr_rem',str()), ipv6 = True)
+                        interface_data['max_mtu_ipv6'] = max_mtu_ipv6
 
                 ### "THOUSANDS" PINGs TEST ####################################
                 if ping_counts and int(ping_counts) > 0:
