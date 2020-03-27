@@ -2585,20 +2585,25 @@ def find_max_mtu(address = None, ipv6 = None):
     ipv6 is flag True/False
     count is number of pings
     """
-    max_mtu = 9100
-    looping = True
-    max_success_mtu = 0
-    mtu = max_mtu
-    while looping:
-        CGI_CLI.uprint('ipv6 = %s, mtu = %s' % (str(ipv6), str(mtu)))
+    max_mtu = 65536
+    mtu, diff_mtu = max_mtu, max_mtu
+    looping, max_success_mtu = 0, 0
+
+    while looping < 18:
+        looping += 1
+        diff_mtu = int(diff_mtu/2)
+        if diff_mtu == 0: diff_mtu = 1
+
+        CGI_CLI.uprint('ipv6 = %s, diff_mtu = %s, mtu = %s' % (str(ipv6),str(diff_mtu),  str(mtu)))
+        
         if do_ping(address = address, mtu = mtu, count = 3, ipv6 = ipv6) > 0:
-            if max_success_mtu and mtu >= max_success_mtu or max_success_mtu == 0:
+            if max_success_mtu and mtu > max_success_mtu or max_success_mtu == 0:
                 max_success_mtu = mtu
-            elif max_success_mtu and mtu < max_success_mtu:
+            elif max_success_mtu and mtu <= max_success_mtu:
                 looping = False
                 break
-            mtu = int(mtu + mtu/2)
-        else: mtu = int(mtu - mtu/2)
+            mtu = int(mtu + diff_mtu)
+        else: mtu = int(mtu - diff_mtu)
     return max_success_mtu
 
 ###############################################################################
