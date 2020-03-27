@@ -2534,7 +2534,7 @@ def do_ping(address = None, mtu = None, count = None, ipv6 = None):
     returns 0..100% ping success
     """
     percent_success = 0
-    ping_counts = str(count) if ping_count else '4'
+    ping_counts = str(count) if count else '4'
     if address:
         ping4_config_rcmds = {
             'cisco_ios':[
