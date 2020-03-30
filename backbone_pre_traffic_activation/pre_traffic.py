@@ -4257,13 +4257,13 @@ authentication {
                     max_mtu_ipv4, max_mtu_ipv6 = 0, 0
                     if interface_data.get('ipv4_addr_rem',str()):
                         max_mtu_ipv4 = find_max_mtu(interface_data.get('ipv4_addr_rem',str()))
-                        interface_data['max_working_mtu_ipv4'] = max_mtu_ipv4
+                        interface_data['max_working_mtu_ipv4'] = str(max_mtu_ipv4)
 
                     if interface_data.get('ipv6_addr_rem',str()):
                         max_mtu_ipv6 = find_max_mtu(interface_data.get('ipv6_addr_rem',str()), ipv6 = True)
-                        interface_data['max_working_mtu_ipv6'] = max_mtu_ipv6
+                        interface_data['max_working_mtu_ipv6'] = str(max_mtu_ipv6)
 
-                    if interface_warning_data.get('max_working_mtu_ipv4'):
+                    if interface_data.get('max_working_mtu_ipv4'):
                         interface_data['ping_v4_max_working_mtu_percent_success_%spings' % (ping_counts)] = \
                             do_ping(address = interface_data.get('ipv4_addr_rem',str()), \
                             mtu = interface_warning_data.get('max_working_mtu_ipv4'), \
@@ -4357,7 +4357,7 @@ authentication {
 
 
                     if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE \
-                        and not interface_data.get('ping_v6_max_working_mtu_percent_success_%spings' % (ping_counts)):
+                        and not interface_warning_data.get('ping_v6_max_working_mtu_percent_success_%spings' % (ping_counts)):
                         if '100' in interface_warning_data.get('ping_v6_mtu_percent_success',str()):
                             ### def "THOUSANDS" PINGv6 COMMAND LIST ###################
                             if interface_data.get('ipv6_addr_rem',str()):
@@ -4781,7 +4781,7 @@ authentication {
                 if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
                     check_interface_data_content('ping_v6_percent_success', '100', ignore_data_existence = True)
                     check_interface_data_content('ping_v6_mtu_percent_success', '100', warning = True, ignore_data_existence = True)
-                    check_interface_data_content('ping_v4_max_working_mtu_percent_success_%spings' % (ping_counts), '100', ignore_data_existence = True)
+                    check_interface_data_content('ping_v6_max_working_mtu_percent_success_%spings' % (ping_counts), '100', warning = True, ignore_data_existence = True)
 
                 check_interface_data_content('ipv4_addr_rem_calculated', interface_data.get('ipv4_addr_rem'), ignore_data_existence = True)
 
