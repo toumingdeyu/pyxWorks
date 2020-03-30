@@ -2431,19 +2431,20 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
 
     if warning:
         where_value = interface_warning_data.get(where, str())
-        if where in interface_warning_data.keys(): key_exists = True
+        if str(where) in interface_warning_data.keys(): key_exists = True
     else:
         where_value = interface_data.get(where, str())
-        if where in interface_warning_data.keys(): key_exists = True
+        if str(where) in interface_data.keys(): key_exists = True
 
-    if not key_exists:
+    #CGI_CLI.uprint('CHECK[%s, where_value=%s, what_yes_in=%s, what_not=%s, exact_value_yes=%s, lower_than=%s, higher_than=%s, warning=%s, key_exists=%s, ignore_data_existence=%s]' \
+    #    % (where, where_value, what_yes_in, what_not, exact_value_yes, lower_than, higher_than, warning, str(key_exists), str(ignore_data_existence)),\
+    #    tag = 'debug', no_printall = not CGI_CLI.printall)
+
+    if key_exists: pass
+    else:
         if ignore_data_existence: pass
         else: CGI_CLI.logtofile("DATA '%s' DOES NOT EXISTS.\n" % (where), ommit_timestamp = True)
         return None
-
-    #CGI_CLI.uprint('CHECK[%s, where_value=%s, what_yes_in=%s, what_not=%s, exact_value_yes=%s, lower_than=%s, higher_than=%s, warning=%s]' \
-    #    % (where, where_value, what_yes_in, what_not, exact_value_yes, lower_than, higher_than, warning),\
-    #    tag = 'debug', no_printall = not CGI_CLI.printall)
 
     if lower_than and where:
         try:
