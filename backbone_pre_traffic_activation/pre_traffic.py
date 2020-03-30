@@ -3219,7 +3219,7 @@ authentication {
 
 
                 if PING_ONLY:
-                    ### def PING COMMAND LIST #########################
+                    ### def PING_ONLY COMMAND LIST #########################
                     collect_if_data_rcmds = {
                         'cisco_ios':[
                             'show run interface %s' % (interface_id),
@@ -3258,11 +3258,11 @@ authentication {
                     ### CISCO XR+XE ping CMDS ##################################
                     if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
                         try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv4 address ')[1].split()[0]
-                        except: interface_data['ipv4_addr_loc'] = str()
+                        except: pass
 
                         if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
                             try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
-                            except: interface_data['ipv6_addr_loc'] = str()
+                            except: pass
 
                         ### WARNINGS ###
                         try: interface_warning_data['input_errors'] = collect_if_config_rcmd_outputs[1].split('input errors')[0].splitlines()[-1].split()[0].strip()
@@ -3276,11 +3276,11 @@ authentication {
 
                     elif RCMD.router_type == 'juniper':
                         try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet address ')[1].split()[0].split('/')[0].replace(';','')
-                        except: interface_data['ipv4_addr_loc'] = str()
+                        except: pass
 
                         if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
                             try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet6 address ')[1].split()[0].split('/')[0].replace(';','')
-                            except: interface_data['ipv6_addr_loc'] = str()
+                            except: pass
 
                         ### WARNINGS ###
                         try: interface_warning_data['Active_alarms'] = collect_if_config_rcmd_outputs[1].split('Active alarms  : ')[1].split()[0].strip()
@@ -3342,11 +3342,11 @@ authentication {
 
                     elif RCMD.router_type == 'huawei':
                         try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[0]
-                        except: interface_data['ipv4_addr_loc'] = str()
+                        except: pass
 
                         if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
                             try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
-                            except: interface_data['ipv6_addr_loc'] = str()
+                            except: pass
 
                         ### WARNINGS ###
                         try: interface_warning_data['Rx_Power_dBm'] = collect_if_config_rcmd_outputs[1].split('Rx Power: ')[1].split()[0].strip().replace(',','').replace('dBm','')
