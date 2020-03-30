@@ -4164,9 +4164,6 @@ authentication {
                         try: interface_data['MTU'] = collect_if_config_rcmd_outputs[2].split('MTU ')[1].splitlines()[0].split()[0].strip()
                         except: interface_data['MTU'] = str()
 
-                        try: interface_data['ipv4_addr_rem'] = collect_if_config_rcmd_outputs[2].split('Description:')[1].splitlines()[0].split('@')[1].split()[0].strip()
-                        except: interface_data['ipv4_addr_rem'] = str()
-
                         try: interface_data['Full-duplex_bandwith'] = collect_if_config_rcmd_outputs[2].split('Full-duplex,')[1].splitlines()[0].split()[0].replace(',','').strip()
                         except: interface_data['Full-duplex_bandwith'] = str()
 
@@ -4184,12 +4181,12 @@ authentication {
                     collect2_if_data_rcmds = {
                         'cisco_ios':[
                             'show running-config router bgp 5511 neighbor %s' % (interface_data.get('ipv4_addr_rem')) if interface_data.get('ipv4_addr_rem') else str(),
-                            'show running-config router bgp 5511 neighbor %s' % (interface_data.get('ipv6_addr_rem')) if interface_data.get('ipv4_addr_rem') else str(),
+                            'show running-config router bgp 5511 neighbor %s' % (interface_data.get('ipv6_addr_rem')) if interface_data.get('ipv6_addr_rem') else str(),
                         ],
 
                         'cisco_xr':[
                             'show running-config router bgp 5511 neighbor %s' % (interface_data.get('ipv4_addr_rem')) if interface_data.get('ipv4_addr_rem') else str(),
-                            'show running-config router bgp 5511 neighbor %s' % (interface_data.get('ipv6_addr_rem')) if interface_data.get('ipv4_addr_rem') else str(),
+                            'show running-config router bgp 5511 neighbor %s' % (interface_data.get('ipv6_addr_rem')) if interface_data.get('ipv6_addr_rem') else str(),
                         ],
 
                         'juniper': [
@@ -4206,20 +4203,23 @@ authentication {
                         printall = printall)
 
                     if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
+                        try: interface_data['neighbor'] = collect2_if_config_rcmd_outputs[0].split('neighbor ')[1].splitlines()[0].strip()
+                        except: interface_data['neighbor'] = str()
+
                         try: interface_data['use_neighbor-group'] = collect2_if_config_rcmd_outputs[0].split('use neighbor-group ')[1].splitlines()[0].strip()
                         except: interface_data['use_neighbor-group'] = str()
 
                         try: interface_data['router_bgp_5511__address-family_ipv4'] = collect2_if_config_rcmd_outputs[0].split('address-family ipv4 ')[1].splitlines()[0].strip()
                         except: interface_data['router_bgp_5511__address-family_ipv4'] = str()
 
-                        try: interface_data['router_bgp_5511__address-family_ipv6'] = collect2_if_config_rcmd_outputs[0].split('address-family ipv6 ')[1].splitlines()[0].strip()
-                        except: interface_data['router_bgp_5511__address-family_ipv6'] = str()
+                        try: interface_data['neighbor_ipv6'] = collect2_if_config_rcmd_outputs[1].split('neighbor ')[1].splitlines()[0].strip()
+                        except: pass
 
-                        try: interface_data['neighbor'] = collect2_if_config_rcmd_outputs[1].split('neighbor ')[1].splitlines()[0].strip()
-                        except: interface_data['neighbor'] = str()
+                        try: interface_data['use_neighbor-group_ipv6'] = collect2_if_config_rcmd_outputs[1].split('use neighbor-group ')[1].splitlines()[0].strip()
+                        except: pass
 
-                        try: interface_data['use_neighbor-group'] = collect2_if_config_rcmd_outputs[1].split('use neighbor-group ')[1].splitlines()[0].strip()
-                        except: interface_data['use_neighbor-group'] = str()
+                        try: interface_data['router_bgp_5511__address-family_ipv6'] = collect2_if_config_rcmd_outputs[1].split('address-family ipv6 ')[1].splitlines()[0].strip()
+                        except: pass
 
                     elif RCMD.router_type == 'huawei':
                         pass
@@ -4235,7 +4235,7 @@ authentication {
                     collect3_if_data_rcmds = {
                         'cisco_ios':[
                             'show running-config router bgp 5511 neighbor-group %s' % (interface_data.get('use_neighbor-group',str()).split('-')[0]) if interface_data.get('use_neighbor-group') else str(),
-                            'show running-config router bgp 5511 neighbor-group %s' % (interface_data.get('use_neighbor-group',str())) if interface_data.get('use_neighbor-group') else str(),
+                            'show running-config router bgp 5511 neighbor-group %s' % (interface_data.get('use_neighbor-group_ipv6',str())) if interface_data.get('use_neighbor-group_ipv6') else str(),
 
                          ],
 
