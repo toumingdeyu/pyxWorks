@@ -2437,8 +2437,8 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
         if where in interface_warning_data.keys(): key_exists = True
 
     if not key_exists:
-        if not ignore_data_existence:
-            CGI_CLI.logtofile("DATA '%s' DOES NOT EXISTS.\n" % (where), ommit_timestamp = True)
+        if ignore_data_existence: pass
+        else: CGI_CLI.logtofile("DATA '%s' DOES NOT EXISTS.\n" % (where), ommit_timestamp = True)
         return None
 
     #CGI_CLI.uprint('CHECK[%s, where_value=%s, what_yes_in=%s, what_not=%s, exact_value_yes=%s, lower_than=%s, higher_than=%s, warning=%s]' \
@@ -4789,16 +4789,16 @@ authentication {
                 if ping_counts and int(ping_counts) > 0:
 
                     if '100' in interface_warning_data.get('ping_v4_mtu_percent_success',str()):
-                        check_interface_data_content('ping_v4_mtu_percent_success_%spings' % (ping_counts), '100', warning = True)
+                        check_interface_data_content('ping_v4_mtu_percent_success_%spings' % (ping_counts), '100', warning = True, ignore_data_existence = True)
                     else:
-                        check_interface_data_content('ping_v4_percent_success_%spings' % (ping_counts), '100')
+                        check_interface_data_content('ping_v4_percent_success_%spings' % (ping_counts), '100', ignore_data_existence = True)
 
                     if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
 
                         if '100' in interface_warning_data.get('ping_v6_mtu_percent_success',str()):
-                            check_interface_data_content('ping_v6_mtu_percent_success_%spings' % (ping_counts), '100', warning = True)
+                            check_interface_data_content('ping_v6_mtu_percent_success_%spings' % (ping_counts), '100', warning = True, ignore_data_existence = True)
                         else:
-                            check_interface_data_content('ping_v6_percent_success_%spings' % (ping_counts), '100')
+                            check_interface_data_content('ping_v6_percent_success_%spings' % (ping_counts), '100', ignore_data_existence = True)
 
                 if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
                     if BB_MODE:
