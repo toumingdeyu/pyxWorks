@@ -2436,10 +2436,10 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
         where_value = interface_data.get(where, str())
         if where in interface_warning_data.keys(): key_exists = True
 
-    if ignore_data_existence:
-        if not key_exists:
+    if not key_exists:
+        if not ignore_data_existence:
             CGI_CLI.logtofile("DATA '%s' DOES NOT EXISTS.\n" % (where), ommit_timestamp = True)
-            return None
+        return None
 
     #CGI_CLI.uprint('CHECK[%s, where_value=%s, what_yes_in=%s, what_not=%s, exact_value_yes=%s, lower_than=%s, higher_than=%s, warning=%s]' \
     #    % (where, where_value, what_yes_in, what_not, exact_value_yes, lower_than, higher_than, warning),\
@@ -2594,8 +2594,10 @@ def find_max_mtu(address = None, ipv6 = None):
         diff_mtu = int(diff_mtu/2)
         if diff_mtu == 0: diff_mtu = 1
 
-        CGI_CLI.uprint('ipv6 = %s, diff_mtu = %s, mtu = %s' % (str(ipv6),str(diff_mtu),  str(mtu)))
-        
+        CGI_CLI.uprint('ipv6 = %s, diff_mtu = %s, mtu = %s' % \
+            (str(ipv6),str(diff_mtu),  str(mtu)), \
+            no_printall = not printall, tag = 'debug')
+
         if do_ping(address = address, mtu = mtu, count = 3, ipv6 = ipv6) > 0:
             if max_success_mtu and mtu > max_success_mtu or max_success_mtu == 0:
                 max_success_mtu = mtu
@@ -4255,14 +4257,28 @@ authentication {
                     max_mtu_ipv4, max_mtu_ipv6 = 0, 0
                     if interface_data.get('ipv4_addr_rem',str()):
                         max_mtu_ipv4 = find_max_mtu(interface_data.get('ipv4_addr_rem',str()))
-                        interface_data['max_mtu_ipv4'] = max_mtu_ipv4
+                        interface_data['max_working_mtu_ipv4'] = max_mtu_ipv4
 
                     if interface_data.get('ipv6_addr_rem',str()):
                         max_mtu_ipv6 = find_max_mtu(interface_data.get('ipv6_addr_rem',str()), ipv6 = True)
-                        interface_data['max_mtu_ipv6'] = max_mtu_ipv6
+                        interface_data['max_working_mtu_ipv6'] = max_mtu_ipv6
+
+                    if interface_warning_data.get('max_working_mtu_ipv4'):
+                        interface_data['ping_v4_max_working_mtu_percent_success_%spings' % (ping_counts)] = \
+                            do_ping(address = interface_data.get('ipv4_addr_rem',str()), \
+                            mtu = interface_warning_data.get('max_working_mtu_ipv4'), \
+                            count = 1000, ipv6 = None)
+
+                    if interface_warning_data.get('max_working_mtu_ipv6'):
+                        interface_warning_data['ping_v6_max_working_mtu_percent_success_%spings' % (ping_counts)] = \
+                            do_ping(address = interface_data.get('ipv6_addr_rem',str()), \
+                            mtu = interface_warning_data.get('max_working_mtu_ipv6'), \
+                            count = 1000, ipv6 = True)
+
 
                 ### "THOUSANDS" PINGs TEST ####################################
-                if ping_counts and int(ping_counts) > 0:
+                if not interface_data.get('ping_v4_max_working_mtu_percent_success_%spings' % (ping_counts)) \
+                    and ping_counts and int(ping_counts) > 0:
                     if '100' in interface_warning_data.get('ping_v4_mtu_percent_success',str()):
                         ### def "THOUSANDS" PINGv4 MTU COMMAND LIST ###################
                         if interface_data.get('ipv4_addr_rem',str()):
@@ -4340,7 +4356,8 @@ authentication {
                                 except: interface_data['ping_v4_percent_success_%spings' % (ping_counts)] = str()
 
 
-                    if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
+                    if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE \
+                        and not interface_data.get('ping_v6_max_working_mtu_percent_success_%spings' % (ping_counts)):
                         if '100' in interface_warning_data.get('ping_v6_mtu_percent_success',str()):
                             ### def "THOUSANDS" PINGv6 COMMAND LIST ###################
                             if interface_data.get('ipv6_addr_rem',str()):
@@ -4759,10 +4776,12 @@ authentication {
                 ### def CONTENT ELEMENT CHECK #################################
                 check_interface_data_content('ping_v4_percent_success', '100', ignore_data_existence = True)
                 check_interface_data_content('ping_v4_mtu_percent_success', '100', warning = True, ignore_data_existence = True)
+                check_interface_data_content('ping_v4_max_working_mtu_percent_success_%spings' % (ping_counts), '100', ignore_data_existence = True)
 
                 if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
                     check_interface_data_content('ping_v6_percent_success', '100', ignore_data_existence = True)
                     check_interface_data_content('ping_v6_mtu_percent_success', '100', warning = True, ignore_data_existence = True)
+                    check_interface_data_content('ping_v4_max_working_mtu_percent_success_%spings' % (ping_counts), '100', ignore_data_existence = True)
 
                 check_interface_data_content('ipv4_addr_rem_calculated', interface_data.get('ipv4_addr_rem'), ignore_data_existence = True)
 
