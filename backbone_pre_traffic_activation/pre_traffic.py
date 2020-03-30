@@ -4264,16 +4264,16 @@ authentication {
                         interface_data['max_working_mtu_ipv6'] = str(max_mtu_ipv6)
 
                     if interface_data.get('max_working_mtu_ipv4'):
-                        interface_data['ping_v4_max_working_mtu_percent_success_%spings' % (ping_counts)] = \
+                        interface_data['ping_v4_max_working_mtu_percent_success_%spings' % (ping_counts)] = str(\
                             do_ping(address = interface_data.get('ipv4_addr_rem',str()), \
-                            mtu = interface_warning_data.get('max_working_mtu_ipv4'), \
-                            count = 1000, ipv6 = None)
+                            mtu = interface_data.get('max_working_mtu_ipv4'), \
+                            count = 1000, ipv6 = None))
 
-                    if interface_warning_data.get('max_working_mtu_ipv6'):
-                        interface_warning_data['ping_v6_max_working_mtu_percent_success_%spings' % (ping_counts)] = \
+                    if interface_data.get('max_working_mtu_ipv6'):
+                        interface_warning_data['ping_v6_max_working_mtu_percent_success_%spings' % (ping_counts)] = str(\
                             do_ping(address = interface_data.get('ipv6_addr_rem',str()), \
-                            mtu = interface_warning_data.get('max_working_mtu_ipv6'), \
-                            count = 1000, ipv6 = True)
+                            mtu = interface_data.get('max_working_mtu_ipv6'), \
+                            count = 1000, ipv6 = True))
 
 
                 ### "THOUSANDS" PINGs TEST ####################################
