@@ -1066,15 +1066,32 @@ vrf ${cgi_data.get('vpn','UNKNOWN').replace('.','@')}
 !
 """
 
+# PE_preparation_acl_config_templ = """!<% rule_num = 20; list = cgi_data.get('ipv4-acl','').split(',') %>
+# ipv4 access-list ${cgi_data.get('vpn','UNKNOWN')}-IN
+ # 10 permit ipv4 ${cgi_data.get('pe-ip-address','')} 0.0.0.1 any
+# % for i in range(int(len(list)/2)):
+ # ${rule_num} permit ipv4 ${cgi_data.get('ipv4-acl','').split(',')[2*i]} ${cgi_data.get('ipv4-acl','').split(',')[2*i+1] if cgi_data.get('ipv4-acl','').split(',')[2*i+1] != '0' else '0.0.0.0'} any<% rule_num += 10 %>
+# % endfor
+ # 1000 deny ipv4 any any
+# !
+# """
+
+### ommit bgp_data["ip_address_customer"] from ACL ###
+
 PE_preparation_acl_config_templ = """!<% rule_num = 20; list = cgi_data.get('ipv4-acl','').split(',') %>
 ipv4 access-list ${cgi_data.get('vpn','UNKNOWN')}-IN
  10 permit ipv4 ${cgi_data.get('pe-ip-address','')} 0.0.0.1 any
+<% avoid_address = ''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ]) %>
 % for i in range(int(len(list)/2)):
+% if avoid_address and avoid_address != cgi_data.get('ipv4-acl','').split(',')[2*i]:
  ${rule_num} permit ipv4 ${cgi_data.get('ipv4-acl','').split(',')[2*i]} ${cgi_data.get('ipv4-acl','').split(',')[2*i+1] if cgi_data.get('ipv4-acl','').split(',')[2*i+1] != '0' else '0.0.0.0'} any<% rule_num += 10 %>
+% endif
 % endfor
  1000 deny ipv4 any any
 !
 """
+
+
 
 PE_preparation_prefix_config_templ = """!
 prefix-set ${cgi_data.get('vpn','UNKNOWN')}-IN
