@@ -2581,13 +2581,16 @@ def do_ping(address = None, mtu = None, count = None, ipv6 = None):
 
 ###############################################################################
 
-def find_max_mtu(address = None, ipv6 = None):
+def find_max_mtu(address = None, ipv6 = None, max_mtu = None):
     """
     ipv6 is flag True/False
     count is number of pings
     """
-    max_mtu = 65536
-    mtu, diff_mtu = max_mtu, max_mtu
+    max_mtu_size = 65536
+    try:
+        if max_mtu: max_mtu_size = int(max_mtu)
+    except: pass
+    mtu, diff_mtu = max_mtu_size, max_mtu_size
     looping, max_success_mtu = 0, 0
 
     while looping < 18:
@@ -4304,13 +4307,15 @@ authentication {
                 ### def FIND MAX MTU ##########################################
                 if PING_ONLY:
                     max_mtu_ipv4, max_mtu_ipv6 = 0, 0
-                    if interface_data.get('ipv4_addr_rem',str()):
-                        max_mtu_ipv4 = find_max_mtu(interface_data.get('ipv4_addr_rem',str()))
-                        interface_data['max_working_mtu_ipv4'] = str(max_mtu_ipv4)
+                    if int(interface_data.get('ping_v4_percent_success','0')) > 0:
+                        if interface_data.get('ipv4_addr_rem',str()):
+                            max_mtu_ipv4 = find_max_mtu(interface_data.get('ipv4_addr_rem',str()), max_mtu = 9300)
+                            interface_data['max_working_mtu_ipv4'] = str(max_mtu_ipv4)
 
-                    if interface_data.get('ipv6_addr_rem',str()):
-                        max_mtu_ipv6 = find_max_mtu(interface_data.get('ipv6_addr_rem',str()), ipv6 = True)
-                        interface_data['max_working_mtu_ipv6'] = str(max_mtu_ipv6)
+                    if int(interface_data.get('ping_v6_percent_success','0')) > 0:
+                        if interface_data.get('ipv6_addr_rem',str()):
+                            max_mtu_ipv6 = find_max_mtu(interface_data.get('ipv6_addr_rem',str()), ipv6 = True)
+                            interface_data['max_working_mtu_ipv6'] = str(max_mtu_ipv6)
 
                     if int(interface_data.get('max_working_mtu_ipv4', 0)) > 0:
                         interface_data['ping_v4_max_working_mtu_percent_success_%spings' % (ping_counts)] = str(\
