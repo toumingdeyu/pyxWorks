@@ -2652,11 +2652,14 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
         try:    interface_data['bundle_members_nr'] = int(err_check_after_pings_outputs[0].split('No. of members in this bundle:')[1].splitlines()[0].strip())
         except: pass
 
+        inactive_bundle_members = str()
         for number in range(interface_data.get('bundle_members_nr',0)):
             try:    interface_line = err_check_after_pings_outputs[0].split('No. of members in this bundle:')[1].splitlines()[number + 1].strip()
             except: interface_line = str()
             if 'Active' in interface_line: pass
-            else: interface_data['inactive_bundle_members'] = interface_data.get('inactive_bundle_members',str()) + interface_line.split()[0] + ' '
+            else: inactive_bundle_members += interface_line.split()[0] + ' '
+        if inactive_bundle_members:
+            interface_data['inactive_bundle_members'] = inactive_bundle_members
 
         try:    interface_warning_data['input_errors%s' % (after_string)] = err_check_after_pings_outputs[0].split('input errors')[0].splitlines()[-1].split()[0].strip()
         except: interface_warning_data['input_errors%s' % (after_string)] = str()
@@ -2680,11 +2683,25 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
         try:    interface_data['bundle_members_nr'] = int(err_check_after_pings_outputs[0].split('Aggregate member links:')[1].splitlines()[0].strip())
         except: pass
 
+        inactive_bundle_members = str()
         for number in range(interface_data.get('bundle_members_nr',0)):
             try:    interface_line = err_check_after_pings_outputs[0].split('Interfaces:')[1].splitlines()[number + 1].strip()
             except: interface_line = str()
             if 'Up' in interface_line: pass
-            else: interface_data['inactive_bundle_members'] = interface_data.get('inactive_bundle_members',str()) + interface_line.split()[0] + ' '
+            else: inactive_bundle_members += interface_line.split()[0] + ' '
+        if inactive_bundle_members:
+            interface_data['inactive_bundle_members'] = inactive_bundle_members
+
+
+        inactive_bundle_members = str()
+        for number in range(interface_data.get('bundle_members_nr',0)):
+            try:    interface_line = err_check_after_pings_outputs[0].split('No. of members in this bundle:')[1].splitlines()[number + 1].strip()
+            except: interface_line = str()
+            if 'Active' in interface_line: pass
+            else: inactive_bundle_members += interface_line.split()[0] + ' '
+        if inactive_bundle_members:
+            interface_data['inactive_bundle_members'] = inactive_bundle_members
+
 
         try:    interface_warning_data['Active_alarms%s' % (after_string)] = err_check_after_pings_outputs[0].split('Active alarms  : ')[1].split()[0].strip()
         except: interface_warning_data['Active_alarms%s' % (after_string)] = str()
@@ -2795,12 +2812,15 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
         try:    interface_lines = err_check_after_pings_outputs[0].split('PortName ')[1].splitlines()[2:]
         except: interface_lines = str()
 
+        inactive_bundle_members = str()
         bundle_members_nr = 0
         for line in interface_lines:
             if '-----' in line: break
             bundle_members_nr += 1
             if 'UP' in interface_line: pass
-            else: interface_data['inactive_bundle_members'] = interface_data.get('inactive_bundle_members',str()) + interface_line.split()[0] + ' '
+            else: inactive_bundle_members += interface_line.split()[0] + ' '
+        if inactive_bundle_members:
+            interface_data['inactive_bundle_members'] = inactive_bundle_members
 
         if bundle_members_nr > 0: interface_data['bundle_members_nr'] = bundle_members_nr
 
