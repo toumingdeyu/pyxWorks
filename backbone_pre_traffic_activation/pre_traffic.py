@@ -2607,6 +2607,9 @@ def find_max_mtu(address = None, ipv6 = None):
                 break
             mtu = int(mtu + diff_mtu)
         else: mtu = int(mtu - diff_mtu)
+        if mtu <= 0:
+            looping = False
+            break
     return max_success_mtu
 
 ###############################################################################
@@ -4309,13 +4312,13 @@ authentication {
                         max_mtu_ipv6 = find_max_mtu(interface_data.get('ipv6_addr_rem',str()), ipv6 = True)
                         interface_data['max_working_mtu_ipv6'] = str(max_mtu_ipv6)
 
-                    if interface_data.get('max_working_mtu_ipv4'):
+                    if int(interface_data.get('max_working_mtu_ipv4', 0)) > 0:
                         interface_data['ping_v4_max_working_mtu_percent_success_%spings' % (ping_counts)] = str(\
                             do_ping(address = interface_data.get('ipv4_addr_rem',str()), \
                             mtu = interface_data.get('max_working_mtu_ipv4'), \
                             count = 1000, ipv6 = None))
 
-                    if interface_data.get('max_working_mtu_ipv6'):
+                    if int(interface_data.get('max_working_mtu_ipv6', 0)) > 0:
                         interface_warning_data['ping_v6_max_working_mtu_percent_success_%spings' % (ping_counts)] = str(\
                             do_ping(address = interface_data.get('ipv6_addr_rem',str()), \
                             mtu = interface_data.get('max_working_mtu_ipv6'), \
