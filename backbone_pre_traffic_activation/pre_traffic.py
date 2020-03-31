@@ -4226,7 +4226,7 @@ authentication {
                 if interface_data.get('ipv4_addr_rem',str()):
                     interface_data['ping_v4_percent_success'] = str(do_ping( \
                         address = interface_data.get('ipv4_addr_rem',str()), \
-                        mtu = None, count = 5, ipv6 = None))
+                        mtu = 100, count = 5, ipv6 = None))
 
                     interface_warning_data['ping_v4_mtu_percent_success'] = str(do_ping( \
                         address = interface_data.get('ipv4_addr_rem',str()), \
@@ -4238,7 +4238,7 @@ authentication {
                     if interface_warning_data.get('ipv6_addr_rem',str()):
                         interface_data['ping_v6_percent_success'] = str(do_ping( \
                         address = interface_data.get('ipv6_addr_rem',str()), \
-                        mtu = None, count = 5, ipv6 = True))
+                        mtu = 100, count = 5, ipv6 = True))
 
                     interface_warning_data['ping_v6_mtu_percent_success'] = str(do_ping( \
                         address = interface_data.get('ipv6_addr_rem',str()), \
@@ -4261,13 +4261,13 @@ authentication {
                         interface_data['ping_v4_max_working_mtu_percent_success_%spings' % (ping_counts)] = str(\
                             do_ping(address = interface_data.get('ipv4_addr_rem',str()), \
                             mtu = interface_data.get('max_working_mtu_ipv4'), \
-                            count = 1000, ipv6 = None))
+                            count = ping_counts, ipv6 = None))
 
                     if int(interface_data.get('max_working_mtu_ipv6', 0)) > 0:
                         interface_warning_data['ping_v6_max_working_mtu_percent_success_%spings' % (ping_counts)] = str(\
                             do_ping(address = interface_data.get('ipv6_addr_rem',str()), \
                             mtu = interface_data.get('max_working_mtu_ipv6'), \
-                            count = 1000, ipv6 = True))
+                            count = ping_counts, ipv6 = True))
 
 
                 ### "THOUSANDS" PINGs TEST ####################################
@@ -4287,7 +4287,7 @@ authentication {
 
                             interface_data['ping_v4_percent_success_%spings' % (ping_counts)] = str(do_ping( \
                                 address = interface_data.get('ipv4_addr_rem',str()), \
-                                mtu = None, count = ping_counts, ipv6 = None))
+                                mtu = 100, count = ping_counts, ipv6 = None))
 
                     if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE \
                         and not interface_warning_data.get('ping_v6_max_working_mtu_percent_success_%spings' % (ping_counts)):
@@ -4305,7 +4305,7 @@ authentication {
 
                                 interface_warning_data['ping_v6_percent_success_%spings' % (ping_counts)] = str(do_ping( \
                                     address = interface_data.get('ipv6_addr_rem',str()), \
-                                    mtu = None, count = ping_counts, ipv6 = True))
+                                    mtu = 100, count = ping_counts, ipv6 = True))
 
                 if not precheck_mode:
                     ### def PARALLEL INTERFACES COMMAND LIST ##################
