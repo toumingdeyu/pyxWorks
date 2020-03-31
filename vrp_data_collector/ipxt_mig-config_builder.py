@@ -1099,17 +1099,20 @@ prefix-set ${cgi_data.get('vpn','UNKNOWN')}-IN
 import ipaddress
 splitted_list = cgi_data.get('ipv4-acl','').split(',')
 netlines = []
+net = None
+avoid_address = ''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])
 for i in range(int(len(splitted_list)/2)):
-    if splitted_list[2*i] == ''.join([ str(item.get('gw_peer_address_ibgp','')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ]):
-        net = None
-    else:
-        try:
-            if splitted_list[2*i+1] == "0": net = splitted_list[2*i]+"/32"
-            else:
-                try: net = ipaddress.ip_network(splitted_list[2*i]+'/'+splitted_list[2*i+1], strict=True)
-                except: net = splitted_list[2*i] + '/32'
-        except: net = splitted_list[2*i]+"/32"
-    if net: netlines.append(str(net) + ' le 32,')
+    if avoid_address != splitted_list[2*i]:
+        if splitted_list[2*i] == ''.join([ str(item.get('gw_peer_address_ibgp','')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ]):
+            net = None
+        else:
+            try:
+                if splitted_list[2*i+1] == "0": net = splitted_list[2*i]+"/32"
+                else:
+                    try: net = ipaddress.ip_network(splitted_list[2*i]+'/'+splitted_list[2*i+1], strict=True)
+                    except: net = splitted_list[2*i] + '/32'
+            except: net = splitted_list[2*i]+"/32"
+        if net: netlines.append(str(net) + ' le 32,')
 try: netlines[-1] = netlines[-1].replace(',','')
 except: pass
 %>
