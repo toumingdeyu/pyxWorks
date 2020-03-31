@@ -2613,6 +2613,7 @@ def find_max_mtu(address = None, ipv6 = None):
 
 def interface_traffic_errors_check(undotted_interface_id = None, after_ping = None):
     global interface_warning_data
+    global interface_data
 
     after_string = '_After_ping' if after_ping else str()
     err_check_after_pings_data_rcmds = {
@@ -2638,7 +2639,19 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
         autoconfirm_mode = True, \
         printall = CGI_CLI.printall)
 
+    try:    interface_data['ASN'] = err_check_after_pings_outputs[0].split('Description:')[1].splitlines()[0].split(' ASN')[1].split()[0].strip()
+    except: pass
+
     if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
+        try:    interface_data['bundle_members_nr'] = int(err_check_after_pings_outputs[0].split('No. of members in this bundle:')[1].splitlines()[0].strip())
+        except: pass
+
+        for number in range(interface_data.get('bundle_members_nr',0)):
+            try:    interface_line = err_check_after_pings_outputs[0].split('No. of members in this bundle:')[1].splitlines()[number + 1].strip()
+            except: interface_line = str()
+            if 'Active' in interface_line: pass
+            else: interface_data['inactive_bundle_members'] = interface_data.get('inactive_bundle_members',str()) + interface_line.split()[0] + ' '
+
         try:    interface_warning_data['input_errors%s' % (after_string)] = err_check_after_pings_outputs[0].split('input errors')[0].splitlines()[-1].split()[0].strip()
         except: interface_warning_data['input_errors%s' % (after_string)] = str()
         if after_ping:
@@ -2658,6 +2671,15 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
             except: interface_warning_data['output_errors_Difference'] = str()
 
     elif RCMD.router_type == 'juniper':
+        try:    interface_data['bundle_members_nr'] = int(err_check_after_pings_outputs[0].split('Aggregate member links:')[1].splitlines()[0].strip())
+        except: pass
+
+        for number in range(interface_data.get('bundle_members_nr',0)):
+            try:    interface_line = err_check_after_pings_outputs[0].split('Interfaces:')[1].splitlines()[number + 1].strip()
+            except: interface_line = str()
+            if 'Up' in interface_line: pass
+            else: interface_data['inactive_bundle_members'] = interface_data.get('inactive_bundle_members',str()) + interface_line.split()[0] + ' '
+
         try:    interface_warning_data['Active_alarms%s' % (after_string)] = err_check_after_pings_outputs[0].split('Active alarms  : ')[1].split()[0].strip()
         except: interface_warning_data['Active_alarms%s' % (after_string)] = str()
 
@@ -2764,6 +2786,18 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
             except: interface_warning_data['Output_errors__Aged_packets_Difference'] = str()
 
     elif RCMD.router_type == 'huawei':
+        try:    interface_lines = err_check_after_pings_outputs[0].split('PortName ')[1].splitlines()[2:]
+        except: interface_lines = str()
+
+        bundle_members_nr = 0
+        for line in interface_lines:
+            if '-----' in line: break
+            bundle_members_nr += 1
+            if 'UP' in interface_line: pass
+            else: interface_data['inactive_bundle_members'] = interface_data.get('inactive_bundle_members',str()) + interface_line.split()[0] + ' '
+
+        if bundle_members_nr > 0: interface_data['bundle_members_nr'] = bundle_members_nr
+
         try:    interface_warning_data['Rx_Power_dBm%s' % (after_string)] = err_check_after_pings_outputs[0].split('Rx Power: ')[1].split()[0].strip().replace(',','').replace('dBm','')
         except: interface_warning_data['Rx_Power_dBm%s' % (after_string)] = str()
         if after_ping:
@@ -2813,6 +2847,8 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
         except: interface_warning_data['Remote_fault%s' % (after_string)] = str()
 
 ###############################################################################
+
+
 
 
 
@@ -3382,15 +3418,19 @@ authentication {
                 CGI_CLI.uprint('Collecting %s data on %s' % (interface_id, device), \
                     no_newlines = None if printall else True)
 
+                ### def START OF DATA COLLECTION ##############################
+                interface_traffic_errors_check(undotted_interface_id)
 
                 ### LOCAL AS NUMBER COMMANDS ##################################
                 collector_cmds = {
                     'cisco_ios':['show bgp summary',
                                  'show bgp vpnv4 unicast summary',
+                                 'show bgp ipv6 unicast summary',
                                 ],
 
                     'cisco_xr': ['show bgp summary',
                                  'show bgp vpnv4 unicast summary',
+                                 'show bgp ipv6 unicast summary',
                                 ],
 
                     'juniper':  ['show bgp neighbor | match "Group:|Peer:" | except "NLRI|Restart"',
@@ -3413,9 +3453,20 @@ authentication {
                     if not LOCAL_AS_NUMBER:
                         try: LOCAL_AS_NUMBER = rcmd_outputs[1].split("local AS number")[1].splitlines()[0].strip()
                         except: pass
+
+                if interface_data.get('ASN'):
+                    try: interface_data['ipv4_addr_rem'] = rcmd_outputs[0].split(str(' ' + interface_data.get('ASN') + ' '))[0].splitlines()[-1].split()[0].strip()
+                    except: pass
+
+                    try: interface_data['ipv6_addr_rem'] = rcmd_outputs[2].split(str(' ' + interface_data.get('ASN') + ' '))[0].splitlines()[-2].strip()
+                    except: pass
+
+
                 elif RCMD.router_type == 'juniper':
                     try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("Local:")[1].splitlines()[0].split('AS')[1].strip()
                     except: pass
+
+
                 elif RCMD.router_type == 'huawei':
                     try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("Local AS number :")[1].splitlines()[0].strip()
                     except: pass
@@ -3470,16 +3521,6 @@ authentication {
                             try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
                             except: pass
 
-                        ### WARNINGS ###
-                        try: interface_warning_data['input_errors'] = collect_if_config_rcmd_outputs[1].split('input errors')[0].splitlines()[-1].split()[0].strip()
-                        except: interface_warning_data['input_errors'] = str()
-
-                        try: interface_warning_data['input_CRC'] = collect_if_config_rcmd_outputs[1].split('input errors,')[1].split('CRC,')[0].strip()
-                        except: interface_warning_data['input_CRC'] = str()
-
-                        try: interface_warning_data['output_errors'] = collect_if_config_rcmd_outputs[1].split('output errors')[0].splitlines()[-1].split()[0].strip()
-                        except: interface_warning_data['output_errors'] = str()
-
                     elif RCMD.router_type == 'juniper':
                         try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet address ')[1].split()[0].split('/')[0].replace(';','')
                         except: pass
@@ -3488,64 +3529,6 @@ authentication {
                             try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet6 address ')[1].split()[0].split('/')[0].replace(';','')
                             except: pass
 
-                        ### WARNINGS ###
-                        try: interface_warning_data['Active_alarms'] = collect_if_config_rcmd_outputs[1].split('Active alarms  : ')[1].split()[0].strip()
-                        except: interface_warning_data['Active_alarms'] = str()
-
-                        try: interface_warning_data['Active_defects'] = collect_if_config_rcmd_outputs[1].split('Active defects : ')[1].split()[0].strip()
-                        except: interface_warning_data['Active_defects'] = str()
-
-                        try: interface_warning_data['Bit_errors'] = collect_if_config_rcmd_outputs[1].split('Bit errors ')[1].split()[0].strip()
-                        except: interface_warning_data['Bit_errors'] = str()
-
-                        try: interface_warning_data['Errored_blocks'] = collect_if_config_rcmd_outputs[1].split('Errored blocks ')[1].split()[0].strip()
-                        except: interface_warning_data['Errored_blocks'] = str()
-
-                        try: interface_warning_data['Ethernet_FEC_statistics'] = collect_if_config_rcmd_outputs[1].split('Ethernet FEC statistics ')[1].split()[0].strip()
-                        except: interface_warning_data['Ethernet_FEC_statistics'] = str()
-
-                        try: interface_warning_data['FEC_Corrected_Errors'] = collect_if_config_rcmd_outputs[1].split('FEC Corrected Errors ')[1].split()[0].strip()
-                        except: interface_warning_data['FEC_Corrected_Errors'] = str()
-
-                        try: interface_warning_data['FEC_Uncorrected_Errors'] = collect_if_config_rcmd_outputs[1].split('FEC Uncorrected Errors ')[1].split()[0].strip()
-                        except: interface_warning_data['FEC_Uncorrected_Errors'] = str()
-
-                        try: interface_warning_data['FEC_Corrected_Errors_Rate'] = collect_if_config_rcmd_outputs[1].split('FEC Corrected Errors Rate ')[1].split()[0].strip()
-                        except: interface_warning_data['FEC_Corrected_Errors_Rate'] = str()
-
-                        try: interface_warning_data['FEC_Uncorrected_Errors_Rate'] = collect_if_config_rcmd_outputs[1].split('FEC Uncorrected Errors Rate ')[1].split()[0].strip()
-                        except: interface_warning_data['FEC_Uncorrected_Errors_Rate'] = str()
-
-                        try: interface_warning_data['Input_errors'] = collect_if_config_rcmd_outputs[1].split('Input errors:')[1].strip().split('Output errors:')[0].strip().split('Errors: ')[1].split()[0].replace(',','')
-                        except: interface_warning_data['Input_errors'] = str()
-
-                        try: interface_warning_data['Input_errors__Drops'] = collect_if_config_rcmd_outputs[1].split('Input errors:')[1].strip().split('Output errors:')[0].strip().split('Drops: ')[1].split()[0].replace(',','')
-                        except: interface_warning_data['Input_errors__Drops'] = str()
-
-                        try: interface_warning_data['Input_errors__Framing_errors'] = collect_if_config_rcmd_outputs[1].split('Input errors:')[1].strip().split('Output errors:')[0].strip().split('Framing errors: ')[1].split()[0].replace(',','')
-                        except: interface_warning_data['Input_errors__Framing_errors'] = str()
-
-                        try: interface_warning_data['Input_errors__Runts'] = collect_if_config_rcmd_outputs[1].split('Input errors:')[1].strip().split('Output errors:')[0].strip().split('Runts: ')[1].split()[0].replace(',','')
-                        except: interface_warning_data['Input_errors__Runts'] = str()
-
-                        try: interface_warning_data['Input_errors__Policed_discards'] = collect_if_config_rcmd_outputs[1].split('Input errors:')[1].strip().split('Output errors:')[0].strip().split('Policed discards: ')[1].split()[0].replace(',','')
-                        except: interface_warning_data['Input_errors__Policed_discards'] = str()
-
-                        try: interface_warning_data['Output_errors'] = collect_if_config_rcmd_outputs[1].split('Output errors:')[1].strip().split('Active alarms')[0].strip().split('Errors: ')[1].split()[0].replace(',','')
-                        except: interface_warning_data['Output_errors'] = str()
-
-                        try: interface_warning_data['Output_errors__Carrier_transitions'] = collect_if_config_rcmd_outputs[1].split('Output errors:')[1].strip().split('Active alarms')[0].strip().split('Carrier transitions: ')[1].split()[0].replace(',','')
-                        except: interface_warning_data['Output_errors__Carrier_transitions'] = str()
-
-                        try: interface_warning_data['Output_errors__Drops'] = collect_if_config_rcmd_outputs[1].split('Output errors:')[1].strip().split('Active alarms')[0].strip().split('Drops: ')[1].split()[0].replace(',','')
-                        except: interface_warning_data['Output_errors__Drops'] = str()
-
-                        try: interface_warning_data['Output_errors__Collisions'] = collect_if_config_rcmd_outputs[1].split('Output errors:')[1].strip().split('Active alarms')[0].strip().split('Collisions: ')[1].split()[0].replace(',','')
-                        except: interface_warning_data['Output_errors__Collisions'] = str()
-
-                        try: interface_warning_data['Output_errors__Aged_packets'] = collect_if_config_rcmd_outputs[1].split('Output errors:')[1].strip().split('Active alarms')[0].strip().split('Aged packets: ')[1].split()[0].replace(',','')
-                        except: interface_warning_data['Output_errors__Aged_packets'] = str()
-
                     elif RCMD.router_type == 'huawei':
                         try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[0]
                         except: pass
@@ -3553,50 +3536,6 @@ authentication {
                         if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
                             try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
                             except: pass
-
-                        ### WARNINGS ###
-                        try: interface_warning_data['Rx_Power_dBm'] = collect_if_config_rcmd_outputs[1].split('Rx Power: ')[1].split()[0].strip().replace(',','').replace('dBm','')
-                        except: interface_warning_data['Rx_Power_dBm'] = str()
-
-                        try: interface_warning_data['Tx_Power_dBm'] = collect_if_config_rcmd_outputs[1].split('Tx Power: ')[1].split()[0].strip().replace(',','').replace('dBm','')
-                        except: interface_warning_data['Tx_Power_dBm'] = str()
-
-                        try: interface_warning_data['Rx_Power_Warning_range_dBm_1'] = collect_if_config_rcmd_outputs[1].split('Rx Power: ')[1].split('Warning range: ')[1].\
-                                 splitlines()[0].strip().replace(',','').replace('dBm','').replace('[','').replace(']','').split()[0]
-                        except: interface_warning_data['Rx_Power_Warning_range_dBm_1'] = str()
-
-                        try: interface_warning_data['Rx_Power_Warning_range_dBm_2'] = collect_if_config_rcmd_outputs[1].split('Rx Power: ')[1].split('Warning range: ')[1].\
-                                 splitlines()[0].strip().replace(',','').replace('dBm','').replace('[','').replace(']','').split()[1]
-                        except: interface_warning_data['Rx_Power_Warning_range_dBm_2'] = str()
-
-                        try: interface_warning_data['Tx_Power_Warning_range_dBm_1'] = collect_if_config_rcmd_outputs[1].split('Tx Power: ')[1].split('Warning range: ')[1].\
-                                 splitlines()[0].strip().replace(',','').replace('dBm','').replace('[','').replace(']','').split()[0]
-                        except: interface_warning_data['Tx_Power_Warning_range_dBm_1'] = str()
-
-                        try: interface_warning_data['Tx_Power_Warning_range_dBm_2'] = collect_if_config_rcmd_outputs[1].split('Tx Power: ')[1].split('Warning range: ')[1].\
-                                 splitlines()[0].strip().replace(',','').replace('dBm','').replace('[','').replace(']','').split()[1]
-                        except: interface_warning_data['Tx_Power_Warning_range_dBm_2'] = str()
-
-                        try: interface_warning_data['CRC'] = collect_if_config_rcmd_outputs[1].split('CRC: ')[1].split()[0].strip()
-                        except: interface_warning_data['CRC'] = str()
-
-                        try: interface_warning_data['Overrun'] = collect_if_config_rcmd_outputs[1].split('Overrun: ')[1].split()[0].strip()
-                        except: interface_warning_data['Overrun'] = str()
-
-                        try: interface_warning_data['Lost'] = collect_if_config_rcmd_outputs[1].split('Lost: ')[1].split()[0].strip()
-                        except: interface_warning_data['Lost'] = str()
-
-                        try: interface_warning_data['Overflow'] = collect_if_config_rcmd_outputs[1].split('Overflow: ')[1].split()[0].strip()
-                        except: interface_warning_data['Overflow'] = str()
-
-                        try: interface_warning_data['Underrun'] = collect_if_config_rcmd_outputs[1].split('Underrun: ')[1].split()[0].strip()
-                        except: interface_warning_data['Underrun'] = str()
-
-                        try: interface_warning_data['Local_fault'] = collect_if_config_rcmd_outputs[1].split('Local fault: ')[1].split()[0].strip().replace('.','')
-                        except: interface_warning_data['Local_fault'] = str()
-
-                        try: interface_warning_data['Remote_fault'] = collect_if_config_rcmd_outputs[1].split('Remote fault: ')[1].split()[0].strip().replace('.','')
-                        except: interface_warning_data['Remote_fault'] = str()
 
 
                 ###############################################################
@@ -3783,17 +3722,6 @@ authentication {
                                     try: interface_warning_data['rxload_percent'] = 100 * float(interface_warning_data.get('rxload').split('/')[0]) / float(interface_warning_data.get('rxload').split('/')[1])
                                     except: pass
 
-                        ### WARNINGS ###
-                        try: interface_warning_data['input_errors'] = collect_if_config_rcmd_outputs[10].split('input errors')[0].splitlines()[-1].split()[0].strip()
-                        except: interface_warning_data['input_errors'] = str()
-
-                        try: interface_warning_data['input_CRC'] = collect_if_config_rcmd_outputs[10].split('input errors,')[1].split('CRC,')[0].strip()
-                        except: interface_warning_data['input_CRC'] = str()
-
-                        try: interface_warning_data['output_errors'] = collect_if_config_rcmd_outputs[10].split('output errors')[0].splitlines()[-1].split()[0].strip()
-                        except: interface_warning_data['output_errors'] = str()
-
-
                     ### JUNIPER 1st CMDS ##########################################
                     elif RCMD.router_type == 'juniper':
                         try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet address ')[1].split()[0].split('/')[0].replace(';','')
@@ -3882,64 +3810,6 @@ authentication {
                                     try: interface_warning_data['rxload_percent'] = 100 * float(interface_warning_data.get('rxload')) / (float(interface_warning_data.get('Speed').replace('Gbps','').replace('Mbps','')) * multiplikator)
                                     except: pass
 
-                        ### WARNINGS ###
-                        try: interface_warning_data['Active_alarms'] = collect_if_config_rcmd_outputs[13].split('Active alarms  : ')[1].split()[0].strip()
-                        except: interface_warning_data['Active_alarms'] = str()
-
-                        try: interface_warning_data['Active_defects'] = collect_if_config_rcmd_outputs[13].split('Active defects : ')[1].split()[0].strip()
-                        except: interface_warning_data['Active_defects'] = str()
-
-                        try: interface_warning_data['Bit_errors'] = collect_if_config_rcmd_outputs[13].split('Bit errors ')[1].split()[0].strip()
-                        except: interface_warning_data['Bit_errors'] = str()
-
-                        try: interface_warning_data['Errored_blocks'] = collect_if_config_rcmd_outputs[13].split('Errored blocks ')[1].split()[0].strip()
-                        except: interface_warning_data['Errored_blocks'] = str()
-
-                        try: interface_warning_data['Ethernet_FEC_statistics'] = collect_if_config_rcmd_outputs[13].split('Ethernet FEC statistics ')[1].split()[0].strip()
-                        except: interface_warning_data['Ethernet_FEC_statistics'] = str()
-
-                        try: interface_warning_data['FEC_Corrected_Errors'] = collect_if_config_rcmd_outputs[13].split('FEC Corrected Errors ')[1].split()[0].strip()
-                        except: interface_warning_data['FEC_Corrected_Errors'] = str()
-
-                        try: interface_warning_data['FEC_Uncorrected_Errors'] = collect_if_config_rcmd_outputs[13].split('FEC Uncorrected Errors ')[1].split()[0].strip()
-                        except: interface_warning_data['FEC_Uncorrected_Errors'] = str()
-
-                        try: interface_warning_data['FEC_Corrected_Errors_Rate'] = collect_if_config_rcmd_outputs[13].split('FEC Corrected Errors Rate ')[1].split()[0].strip()
-                        except: interface_warning_data['FEC_Corrected_Errors_Rate'] = str()
-
-                        try: interface_warning_data['FEC_Uncorrected_Errors_Rate'] = collect_if_config_rcmd_outputs[13].split('FEC Uncorrected Errors Rate ')[1].split()[0].strip()
-                        except: interface_warning_data['FEC_Uncorrected_Errors_Rate'] = str()
-
-                        try: interface_warning_data['Input_errors'] = collect_if_config_rcmd_outputs[13].split('Input errors:')[1].strip().split('Output errors:')[0].strip().split('Errors: ')[1].split()[0].replace(',','')
-                        except: interface_warning_data['Input_errors'] = str()
-
-                        try: interface_warning_data['Input_errors__Drops'] = collect_if_config_rcmd_outputs[13].split('Input errors:')[1].strip().split('Output errors:')[0].strip().split('Drops: ')[1].split()[0].replace(',','')
-                        except: interface_warning_data['Input_errors__Drops'] = str()
-
-                        try: interface_warning_data['Input_errors__Framing_errors'] = collect_if_config_rcmd_outputs[13].split('Input errors:')[1].strip().split('Output errors:')[0].strip().split('Framing errors: ')[1].split()[0].replace(',','')
-                        except: interface_warning_data['Input_errors__Framing_errors'] = str()
-
-                        try: interface_warning_data['Input_errors__Runts'] = collect_if_config_rcmd_outputs[13].split('Input errors:')[1].strip().split('Output errors:')[0].strip().split('Runts: ')[1].split()[0].replace(',','')
-                        except: interface_warning_data['Input_errors__Runts'] = str()
-
-                        try: interface_warning_data['Input_errors__Policed_discards'] = collect_if_config_rcmd_outputs[13].split('Input errors:')[1].strip().split('Output errors:')[0].strip().split('Policed discards: ')[1].split()[0].replace(',','')
-                        except: interface_warning_data['Input_errors__Policed_discards'] = str()
-
-                        try: interface_warning_data['Output_errors'] = collect_if_config_rcmd_outputs[13].split('Output errors:')[1].strip().split('Active alarms')[0].strip().split('Errors: ')[1].split()[0].replace(',','')
-                        except: interface_warning_data['Output_errors'] = str()
-
-                        try: interface_warning_data['Output_errors__Carrier_transitions'] = collect_if_config_rcmd_outputs[13].split('Output errors:')[1].strip().split('Active alarms')[0].strip().split('Carrier transitions: ')[1].split()[0].replace(',','')
-                        except: interface_warning_data['Output_errors__Carrier_transitions'] = str()
-
-                        try: interface_warning_data['Output_errors__Drops'] = collect_if_config_rcmd_outputs[13].split('Output errors:')[1].strip().split('Active alarms')[0].strip().split('Drops: ')[1].split()[0].replace(',','')
-                        except: interface_warning_data['Output_errors__Drops'] = str()
-
-                        try: interface_warning_data['Output_errors__Collisions'] = collect_if_config_rcmd_outputs[13].split('Output errors:')[1].strip().split('Active alarms')[0].strip().split('Collisions: ')[1].split()[0].replace(',','')
-                        except: interface_warning_data['Output_errors__Collisions'] = str()
-
-                        try: interface_warning_data['Output_errors__Aged_packets'] = collect_if_config_rcmd_outputs[13].split('Output errors:')[1].strip().split('Active alarms')[0].strip().split('Aged packets: ')[1].split()[0].replace(',','')
-                        except: interface_warning_data['Output_errors__Aged_packets'] = str()
-
                     ### HUAWEI 1st CMDS ###########################################
                     elif RCMD.router_type == 'huawei':
                         try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[0]
@@ -4008,50 +3878,6 @@ authentication {
                                 try: interface_warning_data['rxload_percent'] = float(collect_if_config_rcmd_outputs[10].split('input utility rate:')[1].split()[0].replace('%','').strip())
                                 except: pass
 
-                        ### WARNINGS ###
-                        try: interface_warning_data['Rx_Power_dBm'] = collect_if_config_rcmd_outputs[10].split('Rx Power: ')[1].split()[0].strip().replace(',','').replace('dBm','')
-                        except: interface_warning_data['Rx_Power_dBm'] = str()
-
-                        try: interface_warning_data['Tx_Power_dBm'] = collect_if_config_rcmd_outputs[10].split('Tx Power: ')[1].split()[0].strip().replace(',','').replace('dBm','')
-                        except: interface_warning_data['Tx_Power_dBm'] = str()
-
-                        try: interface_warning_data['Rx_Power_Warning_range_dBm_1'] = collect_if_config_rcmd_outputs[10].split('Rx Power: ')[1].split('Warning range: ')[1].\
-                                 splitlines()[0].strip().replace(',','').replace('dBm','').replace('[','').replace(']','').split()[0]
-                        except: interface_warning_data['Rx_Power_Warning_range_dBm_1'] = str()
-
-                        try: interface_warning_data['Rx_Power_Warning_range_dBm_2'] = collect_if_config_rcmd_outputs[10].split('Rx Power: ')[1].split('Warning range: ')[1].\
-                                 splitlines()[0].strip().replace(',','').replace('dBm','').replace('[','').replace(']','').split()[1]
-                        except: interface_warning_data['Rx_Power_Warning_range_dBm_2'] = str()
-
-                        try: interface_warning_data['Tx_Power_Warning_range_dBm_1'] = collect_if_config_rcmd_outputs[10].split('Tx Power: ')[1].split('Warning range: ')[1].\
-                                 splitlines()[0].strip().replace(',','').replace('dBm','').replace('[','').replace(']','').split()[0]
-                        except: interface_warning_data['Tx_Power_Warning_range_dBm_1'] = str()
-
-                        try: interface_warning_data['Tx_Power_Warning_range_dBm_2'] = collect_if_config_rcmd_outputs[10].split('Tx Power: ')[1].split('Warning range: ')[1].\
-                                 splitlines()[0].strip().replace(',','').replace('dBm','').replace('[','').replace(']','').split()[1]
-                        except: interface_warning_data['Tx_Power_Warning_range_dBm_2'] = str()
-
-                        try: interface_warning_data['CRC'] = collect_if_config_rcmd_outputs[10].split('CRC: ')[1].split()[0].strip()
-                        except: interface_warning_data['CRC'] = str()
-
-                        try: interface_warning_data['Overrun'] = collect_if_config_rcmd_outputs[10].split('Overrun: ')[1].split()[0].strip()
-                        except: interface_warning_data['Overrun'] = str()
-
-                        try: interface_warning_data['Lost'] = collect_if_config_rcmd_outputs[10].split('Lost: ')[1].split()[0].strip()
-                        except: interface_warning_data['Lost'] = str()
-
-                        try: interface_warning_data['Overflow'] = collect_if_config_rcmd_outputs[10].split('Overflow: ')[1].split()[0].strip()
-                        except: interface_warning_data['Overflow'] = str()
-
-                        try: interface_warning_data['Underrun'] = collect_if_config_rcmd_outputs[10].split('Underrun: ')[1].split()[0].strip()
-                        except: interface_warning_data['Underrun'] = str()
-
-                        try: interface_warning_data['Local_fault'] = collect_if_config_rcmd_outputs[10].split('Local fault: ')[1].split()[0].strip().replace('.','')
-                        except: interface_warning_data['Local_fault'] = str()
-
-                        try: interface_warning_data['Remote_fault'] = collect_if_config_rcmd_outputs[10].split('Remote fault: ')[1].split()[0].strip().replace('.','')
-                        except: interface_warning_data['Remote_fault'] = str()
-
 
                     ###########################################################
                     ### def BB_MODE - 2nd COLLECT COMMAND LIST ################
@@ -4085,9 +3911,6 @@ authentication {
                 ### def CUSTOMER_MODE - COLLECT COMMAND LIST ##################
                 ###############################################################
                 elif CUSTOMER_MODE:
-                    interface_traffic_errors_check(\
-                        undotted_interface_id = undotted_interface_id, after_ping = None)
-
                     collect_if_data_rcmds = {
                         'cisco_ios':[
                             'show run interface %s' % (interface_id),
@@ -4828,6 +4651,10 @@ authentication {
 
 
                 ### def CONTENT ELEMENT CHECK #################################
+                if interface_data.get('inactive_bundle_members'):
+                    check_interface_result_ok = False
+                    CGI_CLI.uprint('Inactive bundle interfaces found: %s' % (interface_data.get('inactive_bundle_members')), color = 'red')
+
                 check_interface_data_content('ping_v4_percent_success', '100', ignore_data_existence = True)
                 check_interface_data_content('ping_v4_mtu_percent_success', '100', warning = True, ignore_data_existence = True)
                 check_interface_data_content('ping_v4_max_working_mtu_percent_success_%spings' % (ping_counts), '100', ignore_data_existence = True)
@@ -4838,7 +4665,6 @@ authentication {
                     check_interface_data_content('ping_v6_max_working_mtu_percent_success_%spings' % (ping_counts), '100', warning = True, ignore_data_existence = True)
 
                 check_interface_data_content('ipv4_addr_rem_calculated', interface_data.get('ipv4_addr_rem'), ignore_data_existence = True)
-
 
                 if ping_counts and int(ping_counts) > 0:
 
