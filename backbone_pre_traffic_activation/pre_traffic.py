@@ -4247,23 +4247,23 @@ authentication {
                 ### def FIND MAX MTU ##########################################
                 if PING_ONLY:
                     max_mtu_ipv4, max_mtu_ipv6 = 0, 0
-                    if int(interface_data.get('ping_v4_percent_success','0')) > 0:
+                    if float(interface_data.get('ping_v4_percent_success','0')) > 0:
                         if interface_data.get('ipv4_addr_rem',str()):
                             max_mtu_ipv4 = find_max_mtu(interface_data.get('ipv4_addr_rem',str()), max_mtu = 9300)
                             interface_data['max_working_mtu_ipv4'] = str(max_mtu_ipv4)
 
-                    if int(interface_warning_data.get('ping_v6_percent_success','0')) > 0:
+                    if float(interface_warning_data.get('ping_v6_percent_success','0')) > 0:
                         if interface_data.get('ipv6_addr_rem',str()):
                             max_mtu_ipv6 = find_max_mtu(interface_data.get('ipv6_addr_rem',str()), ipv6 = True)
                             interface_data['max_working_mtu_ipv6'] = str(max_mtu_ipv6)
 
-                    if int(interface_data.get('max_working_mtu_ipv4', 0)) > 0:
+                    if float(interface_data.get('max_working_mtu_ipv4', 0)) > 0:
                         interface_data['ping_v4_max_working_mtu_percent_success_%spings' % (ping_counts)] = str(\
                             do_ping(address = interface_data.get('ipv4_addr_rem',str()), \
                             mtu = interface_data.get('max_working_mtu_ipv4'), \
                             count = ping_counts, ipv6 = None))
 
-                    if int(interface_data.get('max_working_mtu_ipv6', 0)) > 0:
+                    if float(interface_data.get('max_working_mtu_ipv6', 0)) > 0:
                         interface_warning_data['ping_v6_max_working_mtu_percent_success_%spings' % (ping_counts)] = str(\
                             do_ping(address = interface_data.get('ipv6_addr_rem',str()), \
                             mtu = interface_data.get('max_working_mtu_ipv6'), \
