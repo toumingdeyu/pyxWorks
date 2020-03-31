@@ -2912,7 +2912,7 @@ authentication {
     traceback_found = None
     device_list = []
     logfilename = None
-    mtu_size = 9100
+    mtu_size = 0
     ipv4_addr_rem = str()
     ipv6_addr_rem = str()
     LDP_neighbor_IP = str()
@@ -4213,116 +4213,36 @@ authentication {
 
                 ### MTU #######################################################
                 if not interface_data.get('mtu'):
-                    if RCMD.router_type == 'huawei': mtu_size = 4484
-                    else: mtu_size = 4470
+                    if BB_MODE:
+                        if RCMD.router_type == 'huawei': mtu_size = 4484
+                        else: mtu_size = 4470
+                    if CUSTOMER_MODE: mtu_size = 1500
+                    if PING_ONLY: mtu_size = 1500
                 else: mtu_size = int(interface_data.get('mtu'))
+
+                interface_data['intended_mtu_size'] = mtu_size
 
                 ### def FIRST PINGv4 COMMAND LIST ###################################
                 if interface_data.get('ipv4_addr_rem',str()):
-                    ping4_config_rcmds = {
-                        'cisco_ios':[
-                            'ping %s' % (interface_data.get('ipv4_addr_rem',str())),
-                            'ping %s size %s df-bit' % (interface_data.get('ipv4_addr_rem',str()), str(mtu_size))
-                        ],
-                        'cisco_xr':[
-                            'ping %s' % (interface_data.get('ipv4_addr_rem',str())),
-                            'ping %s size %s df-bit' % (interface_data.get('ipv4_addr_rem',str()), str(mtu_size - 14))
-                        ],
+                    interface_data['ping_v4_percent_success'] = str(do_ping( \
+                        address = interface_data.get('ipv4_addr_rem',str()), \
+                        mtu = None, count = 5, ipv6 = None))
 
-                        'juniper': [
-                            'ping %s rapid count 5' % (interface_data.get('ipv4_addr_rem',str())),
-                            'ping %s rapid count 5 size %s' % (interface_data.get('ipv4_addr_rem',str()), str(mtu_size - 42))
-                        ],
+                    interface_warning_data['ping_v4_mtu_percent_success'] = str(do_ping( \
+                        address = interface_data.get('ipv4_addr_rem',str()), \
+                        mtu = mtu_size, count = 5, ipv6 = None))
 
-                        'huawei': [
-                            'ping %s' % (interface_data.get('ipv4_addr_rem',str())),
-                            'ping -s %s %s' % (str(mtu_size), interface_data.get('ipv4_addr_rem',str()))
-                        ]
-                    }
-
-                    ping4_config_rcmds_outputs = RCMD.run_commands(ping4_config_rcmds, \
-                        autoconfirm_mode = True, \
-                        long_lasting_mode = True, \
-                        printall = printall)
-
-                    if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
-                        try: interface_data['ping_v4_percent_success'] = ping4_config_rcmds_outputs[0].split('Success rate is ')[1].splitlines()[0].split('percent')[0].strip()
-                        except: interface_data['ping_v4_percent_success'] = str()
-
-                        if interface_data.get('mtu'):
-                            try: interface_warning_data['ping_v4_mtu_percent_success'] = ping4_config_rcmds_outputs[1].split('Success rate is ')[1].splitlines()[0].split('percent')[0].strip()
-                            except: interface_warning_data['ping_v4_mtu_percent_success'] = str()
-
-                    elif RCMD.router_type == 'juniper':
-                        try: interface_data['ping_v4_percent_success'] = str(100 - float(ping4_config_rcmds_outputs[0].split('received,')[1].splitlines()[0].split('%')[0].strip()))
-                        except: interface_data['ping_v4_percent_success'] = str()
-
-                        if interface_data.get('mtu'):
-                            try: interface_warning_data['ping_v4_mtu_percent_success'] = str(100 - float(ping4_config_rcmds_outputs[1].split('received,')[1].splitlines()[0].split('%')[0].strip()))
-                            except: interface_warning_data['ping_v4_mtu_percent_success'] = str()
-
-                    elif RCMD.router_type == 'huawei':
-                        try: interface_data['ping_v4_percent_success'] = str(100 - float(ping4_config_rcmds_outputs[0].split('% packet loss')[0].splitlines()[-1].strip()))
-                        except: interface_data['ping_v4_percent_success'] = str()
-
-                        if interface_data.get('mtu'):
-                            try: interface_warning_data['ping_v4_mtu_percent_success'] = str(100 - float(ping4_config_rcmds_outputs[1].split('% packet loss')[0].splitlines()[-1].strip()))
-                            except: interface_warning_data['ping_v4_mtu_percent_success'] = str()
 
                 ### def FIRST PINGv6 COMMAND LIST ###################################
                 if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
-                    if interface_data.get('ipv6_addr_rem',str()):
-                        ping6_config_rcmds = {
-                            'cisco_ios':[
-                                'ping ipv6 %s' % (interface_data.get('ipv6_addr_rem',str())),
-                                'ping ipv6 %s size %s' % (interface_data.get('ipv6_addr_rem',str()), str(mtu_size))
-                            ],
-                            'cisco_xr':[
-                                'ping ipv6 %s' % (interface_data.get('ipv6_addr_rem',str())),
-                                'ping ipv6 %s size %s' % (interface_data.get('ipv6_addr_rem',str()), str(mtu_size - 14))
-                            ],
+                    if interface_warning_data.get('ipv6_addr_rem',str()):
+                        interface_data['ping_v6_percent_success'] = str(do_ping( \
+                        address = interface_data.get('ipv6_addr_rem',str()), \
+                        mtu = None, count = 5, ipv6 = True))
 
-                            'juniper': [
-                                'ping inet6 %s rapid count 5' % (interface_data.get('ipv6_addr_rem',str())),
-                                'ping inet6 %s rapid count 5 size %s' % (interface_data.get('ipv6_addr_rem',str()), str(mtu_size - 42)),
-                            ],
-
-                            'huawei': [
-                                'ping ipv6 %s' % (interface_data.get('ipv6_addr_rem',str())),
-                                'ping ipv6 -s %s %s' % (str(mtu_size), interface_data.get('ipv6_addr_rem',str())),
-                            ]
-                        }
-
-                        ping6_config_rcmds_outputs = RCMD.run_commands(ping6_config_rcmds, \
-                            autoconfirm_mode = True, \
-                            long_lasting_mode = True, \
-                            printall = printall)
-
-                        if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
-                            try: interface_warning_data['ping_v6_percent_success'] = ping6_config_rcmds_outputs[0].split('Success rate is ')[1].splitlines()[0].split('percent')[0].strip()
-                            except: interface_warning_data['ping_v6_percent_success'] = str()
-
-                            if interface_data.get('mtu'):
-                                try: interface_warning_data['ping_v6_mtu_percent_success'] = ping6_config_rcmds_outputs[1].split('Success rate is ')[1].splitlines()[0].split('percent')[0].strip()
-                                except: interface_warning_data['ping_v6_mtu_percent_success'] = str()
-
-                        elif RCMD.router_type == 'juniper':
-                            try: interface_warning_data['ping_v6_percent_success'] = str(100 - float(ping6_config_rcmds_outputs[0].split('received,')[1].splitlines()[0].split('%')[0].strip()))
-                            except: interface_warning_data['ping_v6_percent_success'] = str()
-
-                            if interface_data.get('mtu'):
-                                try: interface_warning_data['ping_v6_mtu_percent_success'] = str(100 - float(ping6_config_rcmds_outputs[1].split('received,')[1].splitlines()[0].split('%')[0].strip()))
-                                except: interface_warning_data['ping_v6_mtu_percent_success'] = str()
-
-                        elif RCMD.router_type == 'huawei':
-                            try: interface_warning_data['ping_v6_percent_success'] = str(100 - float(ping6_config_rcmds_outputs[0].split('% packet loss')[0].splitlines()[-1].strip()))
-                            except: interface_warning_data['ping_v6_percent_success'] = str()
-
-                            if interface_data.get('mtu'):
-                                try: interface_warning_data['ping_v6_mtu_percent_success'] = str(100 - float(ping6_config_rcmds_outputs[1].split('% packet loss')[0].splitlines()[-1].strip()))
-                                except: interface_warning_data['ping_v6_mtu_percent_success'] = str()
-                                try: interface_warning_data['ping_v6_mtu_percent_success'] = str(100 - float(ping6_config_rcmds_outputs[1].split('% packet loss')[0].splitlines()[-1].strip()))
-                                except: interface_warning_data['ping_v6_mtu_percent_success'] = str()
+                    interface_warning_data['ping_v6_mtu_percent_success'] = str(do_ping( \
+                        address = interface_data.get('ipv6_addr_rem',str()), \
+                        mtu = mtu_size, count = 5, ipv6 = True))
 
                 ### def FIND MAX MTU ##########################################
                 if PING_ONLY:
@@ -4356,159 +4276,36 @@ authentication {
                     if '100' in interface_warning_data.get('ping_v4_mtu_percent_success',str()):
                         ### def "THOUSANDS" PINGv4 MTU COMMAND LIST ###################
                         if interface_data.get('ipv4_addr_rem',str()):
-                            ping4_config_rcmds = {
-                                'cisco_ios':[
-                                    'ping %s size %s df-bit count %s' % (interface_data.get('ipv4_addr_rem',str()), str(mtu_size), ping_counts)
-                                ],
 
-                                'cisco_xr':[
-                                    'ping %s size %s df-bit count %s' % (interface_data.get('ipv4_addr_rem',str()), str(mtu_size - 14), ping_counts)
-                                ],
-
-                                'juniper': [
-                                    'ping %s rapid count %s size %s' % (interface_data.get('ipv4_addr_rem',str()), ping_counts, str(mtu_size - 42))
-                                ],
-
-                                'huawei': [
-                                    'ping -s %s -c %s %s' % (str(mtu_size), ping_counts, interface_data.get('ipv4_addr_rem',str()))
-                                ]
-                            }
-
-                            ping4_config_rcmds_outputs = RCMD.run_commands(ping4_config_rcmds, \
-                                autoconfirm_mode = True, \
-                                long_lasting_mode = True, \
-                                printall = printall)
-
-                            if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
-                                try: interface_warning_data['ping_v4_mtu_percent_success_%spings' % (ping_counts)] = ping4_config_rcmds_outputs[0].split('Success rate is ')[1].splitlines()[0].split('percent')[0].strip()
-                                except: interface_warning_data['ping_v4_mtu_percent_success_%spings' % (ping_counts)] = str()
-
-                            elif RCMD.router_type == 'juniper':
-                                try: interface_warning_data['ping_v4_mtu_percent_success_%spings' % (ping_counts)] = str(100 - float(ping4_config_rcmds_outputs[0].split('received,')[1].splitlines()[0].split('%')[0].strip()))
-                                except: interface_warning_data['ping_v4_mtu_percent_success_%spings' % (ping_counts)] = str()
-
-                            elif RCMD.router_type == 'huawei':
-                                try: interface_warning_data['ping_v4_mtu_percent_success_%spings' % (ping_counts)] = str(100 - float(ping4_config_rcmds_outputs[0].split('% packet loss')[0].splitlines()[-1].strip()))
-                                except: interface_warning_data['ping_v4_mtu_percent_success_%spings' % (ping_counts)] = str()
+                            interface_warning_data['ping_v4_mtu_percent_success_%spings' % (ping_counts)] = str(do_ping( \
+                                address = interface_data.get('ipv4_addr_rem',str()), \
+                                mtu = mtu_size, count = ping_counts, ipv6 = None))
 
                     elif '100' in interface_data.get('ping_v4_percent_success',str()):
                         ### def "THOUSANDS" PINGv4 COMMAND LIST ###################
                         if interface_data.get('ipv4_addr_rem',str()):
-                            ping4_config_rcmds = {
-                                'cisco_ios':[
-                                    'ping %s count %s' % (interface_data.get('ipv4_addr_rem',str()), ping_counts),
-                                ],
 
-                                'cisco_xr':[
-                                    'ping %s count %s' % (interface_data.get('ipv4_addr_rem',str()), ping_counts),
-                                ],
-
-                                'juniper': [
-                                    'ping %s rapid count %s' % (interface_data.get('ipv4_addr_rem',str()), ping_counts),
-                                ],
-
-                                'huawei': [
-                                    'ping -c %s %s' % (ping_counts, interface_data.get('ipv4_addr_rem',str())),
-                                ]
-                            }
-
-                            ping4_config_rcmds_outputs = RCMD.run_commands(ping4_config_rcmds, \
-                                autoconfirm_mode = True, \
-                                long_lasting_mode = True, \
-                                printall = printall)
-
-                            if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
-                                try: interface_data['ping_v4_percent_success_%spings' % (ping_counts)] = ping4_config_rcmds_outputs[0].split('Success rate is ')[1].splitlines()[0].split('percent')[0].strip()
-                                except: interface_data['ping_v4_percent_success_%spings' % (ping_counts)] = str()
-
-                            elif RCMD.router_type == 'juniper':
-                                try: interface_data['ping_v4_percent_success_%spings' % (ping_counts)] = str(100 - float(ping4_config_rcmds_outputs[0].split('received,')[1].splitlines()[0].split('%')[0].strip()))
-                                except: interface_data['ping_v4_percent_success_%spings' % (ping_counts)] = str()
-
-                            elif RCMD.router_type == 'huawei':
-                                try: interface_data['ping_v4_percent_success_%spings' % (ping_counts)] = str(100 - float(ping4_config_rcmds_outputs[0].split('% packet loss')[0].splitlines()[-1].strip()))
-                                except: interface_data['ping_v4_percent_success_%spings' % (ping_counts)] = str()
-
+                            interface_data['ping_v4_percent_success_%spings' % (ping_counts)] = str(do_ping( \
+                                address = interface_data.get('ipv4_addr_rem',str()), \
+                                mtu = None, count = ping_counts, ipv6 = None))
 
                     if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE \
                         and not interface_warning_data.get('ping_v6_max_working_mtu_percent_success_%spings' % (ping_counts)):
                         if '100' in interface_warning_data.get('ping_v6_mtu_percent_success',str()):
                             ### def "THOUSANDS" PINGv6 COMMAND LIST ###################
                             if interface_data.get('ipv6_addr_rem',str()):
-                                long_mtu_ping6_config_rcmds = {
-                                    'cisco_ios':[
-                                        'ping ipv6 %s size %s count %s' % (interface_data.get('ipv6_addr_rem',str()), str(mtu_size), ping_counts)
-                                    ],
-                                    'cisco_xr':[
-                                        'ping ipv6 %s size %s count %s' % (interface_data.get('ipv6_addr_rem',str()), str(mtu_size - 14), ping_counts)
-                                    ],
 
-                                    'juniper': [
-                                        'ping inet6 %s rapid count %s size %s' % (interface_data.get('ipv6_addr_rem',str()), ping_counts, str(mtu_size - 42)),
-                                    ],
-
-                                    'huawei': [
-                                        'ping ipv6 -s %s -c %s %s' % (str(mtu_size), ping_counts, interface_data.get('ipv6_addr_rem',str())),
-                                    ]
-                                }
-
-                                long_mtu_ping6_config_rcmds_outputs = RCMD.run_commands(long_mtu_ping6_config_rcmds, \
-                                    autoconfirm_mode = True, \
-                                    long_lasting_mode = True, \
-                                    printall = printall)
-
-                                if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
-                                    try: interface_warning_data['ping_v6_mtu_percent_success_%spings' % (ping_counts)] = long_mtu_ping6_config_rcmds_outputs[0].split('Success rate is ')[1].splitlines()[0].split('percent')[0].strip()
-                                    except: interface_warning_data['ping_v6_mtu_percent_success_%spings' % (ping_counts)] = str()
-
-                                elif RCMD.router_type == 'juniper':
-                                    try: interface_warning_data['ping_v6_mtu_percent_success_%spings' % (ping_counts)] = str(100 - float(long_mtu_ping6_config_rcmds_outputs[0].split('received,')[1].splitlines()[0].split('%')[0].strip()))
-                                    except: interface_warning_data['ping_v6_mtu_percent_success_%spings' % (ping_counts)] = str()
-
-                                elif RCMD.router_type == 'huawei':
-                                    try: interface_warning_data['ping_v6_mtu_percent_success_%spings' % (ping_counts)] = str(100 - float(long_mtu_ping6_config_rcmds_outputs[0].split('% packet loss')[0].splitlines()[-1].strip()))
-                                    except: interface_warning_data['ping_v6_mtu_percent_success_%spings' % (ping_counts)] = str()
+                                interface_warning_data['ping_v6_mtu_percent_success_%spings' % (ping_counts)] = str(do_ping( \
+                                    address = interface_data.get('ipv6_addr_rem',str()), \
+                                    mtu = mtu_size, count = ping_counts, ipv6 = True))
 
                         elif '100' in interface_warning_data.get('ping_v6_percent_success',str()):
                             ### def "THOUSANDS" PINGv6 COMMAND LIST ###################
                             if interface_data.get('ipv6_addr_rem',str()):
-                                long_ping6_config_rcmds = {
-                                    'cisco_ios':[
-                                        'ping ipv6 %s count %s' % (interface_data.get('ipv6_addr_rem',str()), ping_counts),
-                                    ],
 
-                                    'cisco_xr':[
-                                        'ping ipv6 %s count %s' % (interface_data.get('ipv6_addr_rem',str()), ping_counts),
-                                    ],
-
-                                    'juniper': [
-                                        'ping inet6 %s rapid count %s' % (interface_data.get('ipv6_addr_rem',str()), ping_counts),
-                                    ],
-
-                                    'huawei': [
-                                        'ping ipv6 -c %s %s' % (ping_counts, interface_data.get('ipv6_addr_rem',str())),
-                                    ]
-                                }
-
-                                long_ping6_config_rcmds_outputs = RCMD.run_commands(long_ping6_config_rcmds, \
-                                    autoconfirm_mode = True, \
-                                    long_lasting_mode = True, \
-                                    printall = printall)
-
-                                if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
-                                    try:    interface_warning_data['ping_v6_percent_success_%spings' % (ping_counts)] = long_ping6_config_rcmds_outputs[0].split('Success rate is ')[1].splitlines()[0].split('percent')[0].strip()
-                                    except: interface_warning_data['ping_v6_percent_success_%spings' % (ping_counts)] = str()
-
-                                elif RCMD.router_type == 'juniper':
-                                    try:    interface_warning_data['ping_v6_percent_success_%spings' % (ping_counts)] = str(100 - float(long_ping6_config_rcmds_outputs[0].split('received,')[1].splitlines()[0].split('%')[0].strip()))
-                                    except: interface_warning_data['ping_v6_percent_success_%spings' % (ping_counts)] = str()
-
-                                elif RCMD.router_type == 'huawei':
-                                    try:    interface_warning_data['ping_v6_percent_success_%spings' % (ping_counts)] = str(100 - float(long_ping6_config_rcmds_outputs[0].split('% packet loss')[0].splitlines()[-1].strip()))
-                                    except: interface_warning_data['ping_v6_percent_success_%spings' % (ping_counts)] = str()
-
-
-
+                                interface_warning_data['ping_v6_percent_success_%spings' % (ping_counts)] = str(do_ping( \
+                                    address = interface_data.get('ipv6_addr_rem',str()), \
+                                    mtu = None, count = ping_counts, ipv6 = True))
 
                 if not precheck_mode:
                     ### def PARALLEL INTERFACES COMMAND LIST ##################
