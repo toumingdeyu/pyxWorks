@@ -4097,8 +4097,10 @@ authentication {
                          ],
 
                         'cisco_xr':[
+                            'show running-config router bgp 5511 neighbor-group %s' % (interface_data.get('use_neighbor-group',str())) if interface_data.get('use_neighbor-group') else str(),
                             'show running-config router bgp 5511 neighbor-group %s address-family ipv4 unicast' % (interface_data.get('use_neighbor-group',str())) if interface_data.get('use_neighbor-group') else str(),
                             'show running-config router bgp 5511 neighbor-group %s address-family ipv4 multicast' % (interface_data.get('use_neighbor-group',str())) if interface_data.get('use_neighbor-group') else str(),
+                            'show running-config router bgp 5511 neighbor-group %s' % (interface_data.get('use_neighbor-group_ipv6',str())) if interface_data.get('use_neighbor-group_ipv6') else str(),
                             'show running-config router bgp 5511 neighbor-group %s address-family ipv6 unicast' % (interface_data.get('use_neighbor-group_ipv6',str())) if interface_data.get('use_neighbor-group_ipv6') else str(),
                             'show running-config router bgp 5511 neighbor-group %s address-family ipv6 multicast' % (interface_data.get('use_neighbor-group_ipv6',str())) if interface_data.get('use_neighbor-group_ipv6') else str(),
                          ],
@@ -4124,47 +4126,47 @@ authentication {
                             try: interface_data['ipv4_password_encrypted'] = collect3_if_config_rcmd_outputs[0].split('password encrypted ')[1].splitlines()[0].strip()
                             except: interface_data['ipv4_password_encrypted'] = str()
 
-                            try: interface_data['ipv4_unicast_route-policy_in'] = collect3_if_config_rcmd_outputs[0].split('address-family ipv4 unicast')[1].split('route-policy ')[1].splitlines()[0].split()[0].strip()
+                            try: interface_data['ipv4_unicast_route-policy_in'] = collect3_if_config_rcmd_outputs[1].split('address-family ipv4 unicast')[1].split('route-policy ')[1].splitlines()[0].split()[0].strip()
                             except: interface_data['ipv4_unicast_route-policy_in'] = str()
 
-                            try: interface_data['ipv4_unicast_maximum-prefix'] = collect3_if_config_rcmd_outputs[0].split('address-family ipv4 unicast')[1].split('maximum-prefix ')[1].splitlines()[0].split()[0].strip()
+                            try: interface_data['ipv4_unicast_maximum-prefix'] = collect3_if_config_rcmd_outputs[1].split('address-family ipv4 unicast')[1].split('maximum-prefix ')[1].splitlines()[0].split()[0].strip()
                             except: interface_data['ipv4_unicast_maximum-prefix'] = str()
 
-                            try: interface_data['ipv4_unicast_route-policy_out'] = collect3_if_config_rcmd_outputs[0].split('address-family ipv4 unicast')[1].split('route-policy ')[2].splitlines()[0].split()[0].strip()
+                            try: interface_data['ipv4_unicast_route-policy_out'] = collect3_if_config_rcmd_outputs[1].split('address-family ipv4 unicast')[1].split('route-policy ')[2].splitlines()[0].split()[0].strip()
                             except: interface_data['ipv4_unicast_route-policy_out'] = str()
 
-                            try: interface_data['ipv4_multicast_route-policy_in'] = collect3_if_config_rcmd_outputs[1].split('address-family ipv4 multicast')[1].split('route-policy ')[1].splitlines()[0].split()[0].strip()
+                            try: interface_data['ipv4_multicast_route-policy_in'] = collect3_if_config_rcmd_outputs[2].split('address-family ipv4 multicast')[1].split('route-policy ')[1].splitlines()[0].split()[0].strip()
                             except: pass
 
-                            try: interface_data['ipv4_multicast_maximum-prefix'] = collect3_if_config_rcmd_outputs[1].split('address-family ipv4 multicast')[1].split('maximum-prefix ')[1].splitlines()[0].split()[0].strip()
+                            try: interface_data['ipv4_multicast_maximum-prefix'] = collect3_if_config_rcmd_outputs[2].split('address-family ipv4 multicast')[1].split('maximum-prefix ')[1].splitlines()[0].split()[0].strip()
                             except: pass
 
-                            try: interface_data['ipv4_multicast_route-policy_out'] = collect3_if_config_rcmd_outputs[1].split('address-family ipv4 multicast')[1].split('route-policy ')[2].splitlines()[0].split()[0].strip()
+                            try: interface_data['ipv4_multicast_route-policy_out'] = collect3_if_config_rcmd_outputs[2].split('address-family ipv4 multicast')[1].split('route-policy ')[2].splitlines()[0].split()[0].strip()
                             except: pass
 
                         if interface_data.get('use_neighbor-group_ipv6'):
-                            try: interface_data['ipv6_remote-as'] = collect3_if_config_rcmd_outputs[1].split('remote-as ')[2].splitlines()[0].strip()
+                            try: interface_data['ipv6_remote-as'] = collect3_if_config_rcmd_outputs[3].split('remote-as ')[2].splitlines()[0].strip()
                             except: interface_data['ipv6_remote-as'] = str()
 
-                            try: interface_data['ipv6_password_encrypted'] = collect3_if_config_rcmd_outputs[2].split('password encrypted ')[1].splitlines()[0].strip()
+                            try: interface_data['ipv6_password_encrypted'] = collect3_if_config_rcmd_outputs[3].split('password encrypted ')[1].splitlines()[0].strip()
                             except: interface_data['ipv6_password_encrypted'] = str()
 
-                            try: interface_data['ipv6_unicast_route-policy_in'] = collect3_if_config_rcmd_outputs[2].split('address-family ipv6 unicast')[1].split('route-policy ')[1].splitlines()[0].split()[0].strip()
+                            try: interface_data['ipv6_unicast_route-policy_in'] = collect3_if_config_rcmd_outputs[4].split('address-family ipv6 unicast')[1].split('route-policy ')[1].splitlines()[0].split()[0].strip()
                             except: interface_data['ipv6_unicast_route-policy_in'] = str()
 
-                            try: interface_data['ipv6_unicast_maximum-prefix'] = collect3_if_config_rcmd_outputs[2].split('address-family ipv6 unicast')[1].split('maximum-prefix ')[1].splitlines()[0].split()[0].strip()
+                            try: interface_data['ipv6_unicast_maximum-prefix'] = collect3_if_config_rcmd_outputs[4].split('address-family ipv6 unicast')[1].split('maximum-prefix ')[1].splitlines()[0].split()[0].strip()
                             except: interface_data['ipv6_unicast_maximum-prefix'] = str()
 
-                            try: interface_data['ipv6_unicast_route-policy_out'] = collect3_if_config_rcmd_outputs[2].split('address-family ipv6 unicast')[1].split('route-policy ')[2].splitlines()[0].split()[0].strip()
+                            try: interface_data['ipv6_unicast_route-policy_out'] = collect3_if_config_rcmd_outputs[4].split('address-family ipv6 unicast')[1].split('route-policy ')[2].splitlines()[0].split()[0].strip()
                             except: interface_data['ipv6_unicast_route-policy_out'] = str()
 
-                            try: interface_data['ipv6_multicast_route-policy_in'] = collect3_if_config_rcmd_outputs[3].split('address-family ipv6 multicast')[1].split('route-policy ')[1].splitlines()[0].split()[0].strip()
+                            try: interface_data['ipv6_multicast_route-policy_in'] = collect3_if_config_rcmd_outputs[5].split('address-family ipv6 multicast')[1].split('route-policy ')[1].splitlines()[0].split()[0].strip()
                             except: pass
 
-                            try: interface_data['ipv6_multicast_maximum-prefix'] = collect3_if_config_rcmd_outputs[3].split('address-family ipv6 multicast')[1].split('maximum-prefix ')[1].splitlines()[0].split()[0].strip()
+                            try: interface_data['ipv6_multicast_maximum-prefix'] = collect3_if_config_rcmd_outputs[5].split('address-family ipv6 multicast')[1].split('maximum-prefix ')[1].splitlines()[0].split()[0].strip()
                             except: pass
 
-                            try: interface_data['ipv6_multicast_route-policy_out'] = collect3_if_config_rcmd_outputs[3].split('address-family ipv6 multicast')[1].split('route-policy ')[2].splitlines()[0].split()[0].strip()
+                            try: interface_data['ipv6_multicast_route-policy_out'] = collect3_if_config_rcmd_outputs[5].split('address-family ipv6 multicast')[1].split('route-policy ')[2].splitlines()[0].split()[0].strip()
                             except: pass
 
                     elif RCMD.router_type == 'huawei':
@@ -4180,10 +4182,15 @@ authentication {
                     ###########################################################
                     collect4_if_data_rcmds = {
                         'cisco_ios':[
-                            'show running-config route-policy %s' % (interface_data.get('ipv4_unicast_route-policy_in',str()).split('-')[0]) if interface_data.get('use_neighbor-group') else str(),
-                            'show running-config route-policy %s' % (interface_data.get('ipv4_unicast_route-policy_out',str())) if interface_data.get('use_neighbor-group') else str(),
-                            'show running-config route-policy %s' % (interface_data.get('ipv6_unicast_route-policy_in',str()).split('-')[0]) if interface_data.get('use_neighbor-group') else str(),
-                            'show running-config route-policy %s' % (interface_data.get('ipv6_unicast_route-policy_out',str())) if interface_data.get('use_neighbor-group') else str(),
+                            'show running-config route-policy %s' % (interface_data.get('ipv4_unicast_route-policy_in',str())) if interface_data.get('ipv4_unicast_route-policy_in') else str(),
+                            'show running-config route-policy %s' % (interface_data.get('ipv4_unicast_route-policy_out',str())) if interface_data.get('ipv4_unicast_route-policy_out') else str(),
+                            'show running-config route-policy %s' % (interface_data.get('ipv4_multicast_route-policy_in',str())) if interface_data.get('ipv4_multicast_route-policy_in') else str(),
+                            'show running-config route-policy %s' % (interface_data.get('ipv4_multicast_route-policy_out',str())) if interface_data.get('ipv4_multicast_route-policy_out') else str(),
+ 
+                            'show running-config route-policy %s' % (interface_data.get('ipv6_unicast_route-policy_in',str())) if interface_data.get('ipv6_unicast_route-policy_in') else str(),
+                            'show running-config route-policy %s' % (interface_data.get('ipv6_unicast_route-policy_out',str())) if interface_data.get('ipv6_unicast_route-policy_out') else str(),
+                            'show running-config route-policy %s' % (interface_data.get('ipv6_multicast_route-policy_in',str())) if interface_data.get('ipv6_multicast_route-policy_in') else str(),
+                            'show running-config route-policy %s' % (interface_data.get('ipv6_multicast_route-policy_out',str())) if interface_data.get('ipv6_multicast_route-policy_out') else str(),
                          ],
 
                         'cisco_xr':[
