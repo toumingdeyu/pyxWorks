@@ -4090,11 +4090,13 @@ authentication {
                     ###########################################################
                     collect3_if_data_rcmds = {
                         'cisco_ios':[
+                            'show running-config router bgp 5511 neighbor-group %s' % (interface_data.get('use_neighbor-group',str())) if interface_data.get('use_neighbor-group') else str(),
                             'show running-config router bgp 5511 neighbor-group %s address-family ipv4 unicast' % (interface_data.get('use_neighbor-group',str())) if interface_data.get('use_neighbor-group') else str(),
                             'show running-config router bgp 5511 neighbor-group %s address-family ipv4 multicast' % (interface_data.get('use_neighbor-group',str())) if interface_data.get('use_neighbor-group') else str(),
+                            'show running-config router bgp 5511 neighbor-group %s' % (interface_data.get('use_neighbor-group_ipv6',str())) if interface_data.get('use_neighbor-group_ipv6') else str(),
                             'show running-config router bgp 5511 neighbor-group %s address-family ipv6 unicast' % (interface_data.get('use_neighbor-group_ipv6',str())) if interface_data.get('use_neighbor-group_ipv6') else str(),
                             'show running-config router bgp 5511 neighbor-group %s address-family ipv6 multicast' % (interface_data.get('use_neighbor-group_ipv6',str())) if interface_data.get('use_neighbor-group_ipv6') else str(),
-                         ],
+                          ],
 
                         'cisco_xr':[
                             'show running-config router bgp 5511 neighbor-group %s' % (interface_data.get('use_neighbor-group',str())) if interface_data.get('use_neighbor-group') else str(),
@@ -4145,7 +4147,7 @@ authentication {
                             except: pass
 
                         if interface_data.get('use_neighbor-group_ipv6'):
-                            try: interface_data['ipv6_remote-as'] = collect3_if_config_rcmd_outputs[3].split('remote-as ')[2].splitlines()[0].strip()
+                            try: interface_data['ipv6_remote-as'] = collect3_if_config_rcmd_outputs[3].split('remote-as ')[1].splitlines()[0].strip()
                             except: interface_data['ipv6_remote-as'] = str()
 
                             try: interface_data['ipv6_password_encrypted'] = collect3_if_config_rcmd_outputs[3].split('password encrypted ')[1].splitlines()[0].strip()
@@ -4186,7 +4188,7 @@ authentication {
                             'show running-config route-policy %s' % (interface_data.get('ipv4_unicast_route-policy_out',str())) if interface_data.get('ipv4_unicast_route-policy_out') else str(),
                             'show running-config route-policy %s' % (interface_data.get('ipv4_multicast_route-policy_in',str())) if interface_data.get('ipv4_multicast_route-policy_in') else str(),
                             'show running-config route-policy %s' % (interface_data.get('ipv4_multicast_route-policy_out',str())) if interface_data.get('ipv4_multicast_route-policy_out') else str(),
- 
+
                             'show running-config route-policy %s' % (interface_data.get('ipv6_unicast_route-policy_in',str())) if interface_data.get('ipv6_unicast_route-policy_in') else str(),
                             'show running-config route-policy %s' % (interface_data.get('ipv6_unicast_route-policy_out',str())) if interface_data.get('ipv6_unicast_route-policy_out') else str(),
                             'show running-config route-policy %s' % (interface_data.get('ipv6_multicast_route-policy_in',str())) if interface_data.get('ipv6_multicast_route-policy_in') else str(),
