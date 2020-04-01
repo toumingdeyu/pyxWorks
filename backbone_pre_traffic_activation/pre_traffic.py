@@ -4417,12 +4417,13 @@ authentication {
                     CGI_CLI.uprint('\n'.join(None_elements), color = 'red', timestamp = 'no')
                     CGI_CLI.uprint('\n\n', timestamp = 'no')
 
-                if len(None_warning_elements) > 0:
-                    check_warning_interface_result_ok = False
-                    CGI_CLI.uprint('UNSET WARNING CONFIG ELEMENTS ON INTERFACE %s:' % \
-                        (interface_data.get('interface_id')), tag = 'h3', color = 'orange', timestamp = 'no')
-                    CGI_CLI.uprint('\n'.join(None_warning_elements), color = 'orange', timestamp = 'no')
-                    CGI_CLI.uprint('\n\n', timestamp = 'no')
+                if CUSTOMER_MODE:
+                    if len(None_warning_elements) > 0:
+                        check_warning_interface_result_ok = False
+                        CGI_CLI.uprint('UNSET WARNING CONFIG ELEMENTS ON INTERFACE %s:' % \
+                            (interface_data.get('interface_id')), tag = 'h3', color = 'orange', timestamp = 'no')
+                        CGI_CLI.uprint('\n'.join(None_warning_elements), color = 'orange', timestamp = 'no')
+                        CGI_CLI.uprint('\n\n', timestamp = 'no')
 
 
                 CGI_CLI.uprint('CHECKS:', timestamp = 'no', tag = 'h3')
@@ -4804,14 +4805,28 @@ authentication {
             CGI_CLI.logtofile('<h1 style="color:blue;">%s <a href="%s" style="text-decoration: none">(v.%s)</a></h1>' % \
                 (SCRIPT_NAME, changelog, CGI_CLI.VERSION()), raw_log = True, ommit_timestamp = True)
             if swan_id: CGI_CLI.logtofile('<p>SWAN_ID=%s</p>' %(swan_id), raw_log = True, ommit_timestamp = True)
-            if precheck_mode: CGI_CLI.logtofile('<p>Monitoring/precheck mode.</p>', raw_log = True, ommit_timestamp = True)
-            else: CGI_CLI.logtofile('<p>Traffic/postcheck mode.</p>', raw_log = True)
+
+            if BB_MODE:
+                if precheck_mode: CGI_CLI.logtofile('<p>Backbone onitoring/precheck mode.</p>', raw_log = True, ommit_timestamp = True)
+                else: CGI_CLI.logtofile('<p>Backbone traffic/postcheck mode.</p>', raw_log = True)
+            elif CUSTOMER_MODE:
+                if precheck_mode: CGI_CLI.logtofile('<p>Customer onitoring/precheck mode.</p>', raw_log = True, ommit_timestamp = True)
+                else: CGI_CLI.logtofile('<p>Customer traffic/postcheck mode.</p>', raw_log = True)
+            elif PING_ONLY: CGI_CLI.logtofile('<p>Ping only mode.</p>', ommit_timestamp = True)
+
             CGI_CLI.logtofile('<p>LOGFILES:</p>' , raw_log = True, ommit_timestamp = True)
         else:
             CGI_CLI.logtofile('%s (v.%s)' % (SCRIPT_NAME,CGI_CLI.VERSION()), ommit_timestamp = True)
             if swan_id: CGI_CLI.logtofile('SWAN_ID=%s\n' %(swan_id))
-            if precheck_mode: CGI_CLI.logtofile('Monitoring/precheck mode.\n')
-            else: CGI_CLI.logtofile('Traffic/postcheck mode.\n', ommit_timestamp = True)
+
+            if BB_MODE:
+                if precheck_mode: CGI_CLI.logtofile('Backbone monitoring/precheck mode.\n')
+                else: CGI_CLI.logtofile('Backbone traffic/postcheck mode.\n', ommit_timestamp = True)
+            elif CUSTOMER_MODE:
+                if precheck_mode: CGI_CLI.logtofile('Customer monitoring/precheck mode.\n')
+                else: CGI_CLI.logtofile('Customer traffic/postcheck mode.\n', ommit_timestamp = True)
+            elif PING_ONLY: CGI_CLI.logtofile('Ping only mode.\n', ommit_timestamp = True)
+
             CGI_CLI.logtofile('\nLOGFILES:\n', ommit_timestamp = True)
 
         for logfilename, interface_result in zip(logfilename_list, interface_results):
