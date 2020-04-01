@@ -3474,12 +3474,12 @@ authentication {
                         try: LOCAL_AS_NUMBER = rcmd_outputs[1].split("local AS number")[1].splitlines()[0].strip()
                         except: pass
 
-                if interface_data.get('ASN'):
-                    try: interface_data['ipv4_addr_rem'] = rcmd_outputs[0].split(str(' ' + interface_data.get('ASN') + ' '))[0].splitlines()[-1].split()[0].strip()
-                    except: pass
+                    if interface_data.get('ASN'):
+                        try: interface_data['ipv4_addr_rem'] = rcmd_outputs[0].split(str(' ' + interface_data.get('ASN') + ' '))[0].splitlines()[-1].split()[0].strip()
+                        except: pass
 
-                    try: interface_data['ipv6_addr_rem'] = rcmd_outputs[2].split(str(' ' + interface_data.get('ASN') + ' '))[0].splitlines()[-2].strip()
-                    except: pass
+                        try: interface_data['ipv6_addr_rem'] = rcmd_outputs[2].split(str(' ' + interface_data.get('ASN') + ' '))[0].splitlines()[-2].strip()
+                        except: pass
 
 
                 elif RCMD.router_type == 'juniper':
