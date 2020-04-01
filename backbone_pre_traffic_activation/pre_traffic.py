@@ -2685,7 +2685,7 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
 
         inactive_bundle_members = str()
         for number in range(interface_data.get('bundle_members_nr',0)):
-            try:    interface_line = err_check_after_pings_outputs[0].split('Interfaces:')[1].splitlines()[number + 1].strip()
+            try:    interface_line = err_check_after_pings_outputs[0].split('Interfaces:')[1].strip().splitlines()[number].strip()
             except: interface_line = str()
             if 'Up' in interface_line: pass
             else: inactive_bundle_members += interface_line.split()[0] + ' '
