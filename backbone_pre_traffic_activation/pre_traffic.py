@@ -4198,22 +4198,25 @@ authentication {
                 ### def CALCULATE REMOTE IP ADDRESES: THE OTHER IP IN NETWORK #
                 ###############################################################
                 list_of_ipv4_network, list_of_ipv6_network = [], []
-                if interface_data.get('ipv4_addr_loc'):
-                    interface = ipaddress.IPv4Interface(u'%s/31'% (interface_data.get('ipv4_addr_loc')))
-                    ipv4_network = interface.network
-                    for addr in ipaddress.IPv4Network(ipv4_network):
-                        if str(addr) == str(interface_data.get('ipv4_addr_loc')): pass
-                        else: interface_data['ipv4_addr_rem_calculated'] = str(addr)
+                if BB_MODE:
+                    if interface_data.get('ipv4_addr_loc'):
+                        interface = ipaddress.IPv4Interface(u'%s/31' % \
+                            (interface_data.get('ipv4_addr_loc')))
+                        ipv4_network = interface.network
+                        for addr in ipaddress.IPv4Network(ipv4_network):
+                            if str(addr) == str(interface_data.get('ipv4_addr_loc')): pass
+                            else: interface_data['ipv4_addr_rem_calculated'] = str(addr)
 
-                if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
-                    if interface_data.get('ipv6_addr_loc'):
-                        interface = ipaddress.IPv6Interface(u'%s/127'% (interface_data.get('ipv6_addr_loc')))
-                        ipv6_network = interface.network
-                        for addr in ipaddress.IPv6Network(ipv6_network):
-                            if str(addr) == str(interface_data.get('ipv6_addr_loc')): pass
-                            else:
-                                interface_data['ipv6_addr_rem_calculated'] = str(addr)
-                                interface_data['ipv6_addr_rem'] = str(addr)
+                    if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
+                        if interface_data.get('ipv6_addr_loc'):
+                            interface = ipaddress.IPv6Interface(u'%s/127' % \
+                                (interface_data.get('ipv6_addr_loc')))
+                            ipv6_network = interface.network
+                            for addr in ipaddress.IPv6Network(ipv6_network):
+                                if str(addr) == str(interface_data.get('ipv6_addr_loc')): pass
+                                else:
+                                    interface_data['ipv6_addr_rem_calculated'] = str(addr)
+                                    interface_data['ipv6_addr_rem'] = str(addr)
 
 
                 ### MTU #######################################################
@@ -4227,7 +4230,7 @@ authentication {
 
                 interface_data['intended_mtu_size'] = mtu_size
 
-                ### def FIRST PINGv4 COMMAND LIST ###################################
+                ### def FIRST PINGv4 COMMAND LIST #############################
                 if interface_data.get('ipv4_addr_rem',str()):
                     interface_data['ping_v4_percent_success'] = str(do_ping( \
                         address = interface_data.get('ipv4_addr_rem',str()), \
@@ -4240,14 +4243,14 @@ authentication {
 
                 ### def FIRST PINGv6 COMMAND LIST ###################################
                 if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
-                    if interface_warning_data.get('ipv6_addr_rem',str()):
+                    if interface_data.get('ipv6_addr_rem',str()):
                         interface_warning_data['ping_v6_percent_success'] = str(do_ping( \
-                        address = interface_data.get('ipv6_addr_rem',str()), \
-                        mtu = 100, count = 5, ipv6 = True))
+                            address = interface_data.get('ipv6_addr_rem',str()), \
+                            mtu = 100, count = 5, ipv6 = True))
 
-                    interface_warning_data['ping_v6_mtu_percent_success'] = str(do_ping( \
-                        address = interface_data.get('ipv6_addr_rem',str()), \
-                        mtu = mtu_size, count = 5, ipv6 = True))
+                        interface_warning_data['ping_v6_mtu_percent_success'] = str(do_ping( \
+                            address = interface_data.get('ipv6_addr_rem',str()), \
+                            mtu = mtu_size, count = 5, ipv6 = True))
 
                 ### def FIND MAX MTU ##########################################
                 if PING_ONLY:
