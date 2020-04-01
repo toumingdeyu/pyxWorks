@@ -4053,7 +4053,10 @@ authentication {
                             try: interface_data['neighbor'] = collect2_if_config_rcmd_outputs[0].split('use neighbor-group')[0].split('neighbor ')[-1].splitlines()[0].strip()
                             except: interface_data['neighbor'] = str()
 
-                            try: interface_data['address-family_ipv4'] = collect2_if_config_rcmd_outputs[0].split('address-family ipv4 ')[1].splitlines()[0].strip()
+                            try: interface_data['address-family_ipv4_unicast'] = True if 'address-family ipv4 unicast' in collect2_if_config_rcmd_outputs[0] else str()
+                            except: pass
+
+                            try: interface_warning_data['address-family_ipv4_multicast'] = True if 'address-family ipv4 multicast' in collect2_if_config_rcmd_outputs[0] else str()
                             except: pass
 
                         if interface_data.get('ipv6_addr_rem'):
@@ -4063,7 +4066,10 @@ authentication {
                             try: interface_data['neighbor_ipv6'] = collect2_if_config_rcmd_outputs[1].split('use neighbor-group')[0].split('neighbor ')[-1].splitlines()[0].strip()
                             except: pass
 
-                            try: interface_data['address-family_ipv6'] = collect2_if_config_rcmd_outputs[1].split('address-family ipv6 ')[1].splitlines()[0].strip()
+                            try: interface_warning_data['address-family_ipv6_unicast'] = True if 'address-family ipv6 unicast' in collect2_if_config_rcmd_outputs[1] else str()
+                            except: pass
+
+                            try: interface_warning_data['address-family_ipv6_multicast'] = True if 'address-family ipv6 multicast' in collect2_if_config_rcmd_outputs[1] else str()
                             except: pass
 
                     elif RCMD.router_type == 'huawei':
@@ -4383,11 +4389,21 @@ authentication {
                 None_elements = get_void_json_elements(interface_data, \
                     no_equal_sign = True, no_root_backslash = True)
 
+                None_warning_elements = get_void_json_elements(interface_warning_data, \
+                    no_equal_sign = True, no_root_backslash = True)
+
                 if len(None_elements) > 0:
                     check_interface_result_ok = False
                     CGI_CLI.uprint('UNSET CONFIG ELEMENTS ON INTERFACE %s:' % \
                         (interface_data.get('interface_id')), tag = 'h3', color = 'red', timestamp = 'no')
                     CGI_CLI.uprint('\n'.join(None_elements), color = 'red', timestamp = 'no')
+                    CGI_CLI.uprint('\n\n', timestamp = 'no')
+
+                if len(None_warning_elements) > 0:
+                    check_warning_interface_result_ok = False
+                    CGI_CLI.uprint('UNSET WARNING CONFIG ELEMENTS ON INTERFACE %s:' % \
+                        (interface_data.get('interface_id')), tag = 'h3', color = 'orange', timestamp = 'no')
+                    CGI_CLI.uprint('\n'.join(None_warning_elements), color = 'orange', timestamp = 'no')
                     CGI_CLI.uprint('\n\n', timestamp = 'no')
 
 
