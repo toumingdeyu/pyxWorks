@@ -3537,6 +3537,9 @@ authentication {
                         try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv4 address ')[1].split()[0]
                         except: pass
 
+                        try: interface_data['ipv4_mask_loc'] = collect_if_config_rcmd_outputs[0].split('ipv4 address ')[1].split()[1]
+                        except: pass
+
                         if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
                             try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
                             except: pass
@@ -3545,12 +3548,18 @@ authentication {
                         try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet address ')[1].split()[0].split('/')[0].replace(';','')
                         except: pass
 
+                        try: interface_data['ipv4_mask_loc'] = collect_if_config_rcmd_outputs[0].split('family inet address ')[1].split()[0].split('/')[1].replace(';','')
+                        except: pass
+
                         if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
                             try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet6 address ')[1].split()[0].split('/')[0].replace(';','')
                             except: pass
 
                     elif RCMD.router_type == 'huawei':
                         try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[0]
+                        except: pass
+
+                        try: interface_data['ipv4_mask_loc'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[1]
                         except: pass
 
                         if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
@@ -3668,6 +3677,9 @@ authentication {
                         try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv4 address ')[1].split()[0]
                         except: interface_data['ipv4_addr_loc'] = str()
 
+                        try: interface_data['ipv4_mask_loc'] = collect_if_config_rcmd_outputs[0].split('ipv4 address ')[1].split()[1]
+                        except: interface_data['ipv4_mask_loc'] = str()
+
                         if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
                             try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
                             except: interface_data['ipv6_addr_loc'] = str()
@@ -3724,7 +3736,7 @@ authentication {
                                         if '%s FROM %s' % (interface_data.get('name_of_remote_device',str()).upper(), device.upper()) in line.upper():
                                             local_backup_interface = str(line.split()[0]).replace('GE','Gi')
                                             if '(' in local_backup_interface: local_backup_interface = local_backup_interface.split('(')[0]
-                                            if ' TESTING ' in line or ' OLD ' in line: pass
+                                            if ' TESTING ' in line or ' OLD ' in line.upper(): pass
                                             else: backup_if_list.append(copy.deepcopy(local_backup_interface))
                                 interface_data['parallel_interfaces'] = copy.deepcopy(backup_if_list)
                             except: interface_data['parallel_interfaces'] = []
@@ -3746,6 +3758,9 @@ authentication {
                     elif RCMD.router_type == 'juniper':
                         try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet address ')[1].split()[0].split('/')[0].replace(';','')
                         except: interface_data['ipv4_addr_loc'] = str()
+
+                        try: interface_data['ipv4_mask_loc'] = collect_if_config_rcmd_outputs[0].split('family inet address ')[1].split()[0].split('/')[1].replace(';','')
+                        except: interface_data['ipv4_mask_loc'] = str()
 
                         if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
                             try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet6 address ')[1].split()[0].split('/')[0].replace(';','')
@@ -3834,6 +3849,10 @@ authentication {
                     elif RCMD.router_type == 'huawei':
                         try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[0]
                         except: interface_data['ipv4_addr_loc'] = str()
+
+                        try: interface_data['ipv4_mask_loc'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[1]
+                        except: interface_data['ipv4_mask_loc'] = str()
+
 
                         if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
                             try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
@@ -4004,8 +4023,8 @@ authentication {
                         try: interface_data['router_isis_PAII__address-family_ipv6'] = collect_if_config_rcmd_outputs[1].split('address-family ipv6 ')[1].splitlines()[0].strip()
                         except: interface_data['router_isis_PAII__address-family_ipv6'] = str()
 
-                        try: interface_data['MTU'] = collect_if_config_rcmd_outputs[2].split('MTU ')[1].splitlines()[0].split()[0].strip()
-                        except: interface_data['MTU'] = str()
+                        #try: interface_data['MTU'] = collect_if_config_rcmd_outputs[2].split('MTU ')[1].splitlines()[0].split()[0].strip()
+                        #except: interface_data['MTU'] = str()
 
                         try: interface_data['Full-duplex_bandwith'] = collect_if_config_rcmd_outputs[2].split('Full-duplex,')[1].splitlines()[0].split()[0].replace(',','').strip()
                         except: interface_data['Full-duplex_bandwith'] = str()
@@ -4050,8 +4069,8 @@ authentication {
                             try: interface_data['use_neighbor-group'] = collect2_if_config_rcmd_outputs[0].split('use neighbor-group ')[1].splitlines()[0].strip()
                             except: interface_data['use_neighbor-group'] = str()
 
-                            try: interface_data['neighbor'] = collect2_if_config_rcmd_outputs[0].split('use neighbor-group')[0].split('neighbor ')[-1].splitlines()[0].strip()
-                            except: interface_data['neighbor'] = str()
+                            #try: interface_data['neighbor'] = collect2_if_config_rcmd_outputs[0].split('use neighbor-group')[0].split('neighbor ')[-1].splitlines()[0].strip()
+                            #except: interface_data['neighbor'] = str()
 
                             try: interface_data['address-family_ipv4_unicast'] = True if 'address-family ipv4 unicast' in collect2_if_config_rcmd_outputs[0] else str()
                             except: pass
@@ -4063,8 +4082,8 @@ authentication {
                             try: interface_data['use_neighbor-group_ipv6'] = collect2_if_config_rcmd_outputs[1].split('use neighbor-group ')[1].splitlines()[0].strip()
                             except: pass
 
-                            try: interface_data['neighbor_ipv6'] = collect2_if_config_rcmd_outputs[1].split('use neighbor-group')[0].split('neighbor ')[-1].splitlines()[0].strip()
-                            except: pass
+                            #try: interface_data['neighbor_ipv6'] = collect2_if_config_rcmd_outputs[1].split('use neighbor-group')[0].split('neighbor ')[-1].splitlines()[0].strip()
+                            #except: pass
 
                             try: interface_warning_data['address-family_ipv6_unicast'] = True if 'address-family ipv6 unicast' in collect2_if_config_rcmd_outputs[1] else str()
                             except: pass
@@ -4120,8 +4139,8 @@ authentication {
                             try: interface_data['ipv4_remote-as'] = collect3_if_config_rcmd_outputs[0].split('remote-as ')[1].splitlines()[0].strip()
                             except: interface_data['ipv4_remote-as'] = str()
 
-                            try: interface_data['ipv4_password_encrypted'] = collect3_if_config_rcmd_outputs[0].split('password encrypted ')[1].splitlines()[0].strip()
-                            except: interface_data['ipv4_password_encrypted'] = str()
+                            #try: interface_data['ipv4_password_encrypted'] = collect3_if_config_rcmd_outputs[0].split('password encrypted ')[1].splitlines()[0].strip()
+                            #except: interface_data['ipv4_password_encrypted'] = str()
 
                             try: interface_data['ipv4_unicast_route-policy_in'] = collect3_if_config_rcmd_outputs[1].split('address-family ipv4 unicast')[1].split('route-policy ')[1].splitlines()[0].split()[0].strip()
                             except: interface_data['ipv4_unicast_route-policy_in'] = str()
@@ -4145,17 +4164,17 @@ authentication {
                             try: interface_data['ipv6_remote-as'] = collect3_if_config_rcmd_outputs[3].split('remote-as ')[1].splitlines()[0].strip()
                             except: interface_data['ipv6_remote-as'] = str()
 
-                            try: interface_data['ipv6_password_encrypted'] = collect3_if_config_rcmd_outputs[3].split('password encrypted ')[1].splitlines()[0].strip()
-                            except: interface_data['ipv6_password_encrypted'] = str()
+                            #try: interface_data['ipv6_password_encrypted'] = collect3_if_config_rcmd_outputs[3].split('password encrypted ')[1].splitlines()[0].strip()
+                            #except: interface_data['ipv6_password_encrypted'] = str()
 
                             try: interface_data['ipv6_unicast_route-policy_in'] = collect3_if_config_rcmd_outputs[4].split('address-family ipv6 unicast')[1].split('route-policy ')[1].splitlines()[0].split()[0].strip()
-                            except: interface_data['ipv6_unicast_route-policy_in'] = str()
+                            except: pass
 
                             try: interface_data['ipv6_unicast_maximum-prefix'] = collect3_if_config_rcmd_outputs[4].split('address-family ipv6 unicast')[1].split('maximum-prefix ')[1].splitlines()[0].split()[0].strip()
-                            except: interface_data['ipv6_unicast_maximum-prefix'] = str()
+                            except: pass
 
                             try: interface_data['ipv6_unicast_route-policy_out'] = collect3_if_config_rcmd_outputs[4].split('address-family ipv6 unicast')[1].split('route-policy ')[2].splitlines()[0].split()[0].strip()
-                            except: interface_data['ipv6_unicast_route-policy_out'] = str()
+                            except: pass
 
                             try: interface_data['ipv6_multicast_route-policy_in'] = collect3_if_config_rcmd_outputs[5].split('address-family ipv6 multicast')[1].split('route-policy ')[1].splitlines()[0].split()[0].strip()
                             except: pass
@@ -4198,7 +4217,6 @@ authentication {
                         ],
 
                         'huawei': [
-
                         ]
                     }
 
