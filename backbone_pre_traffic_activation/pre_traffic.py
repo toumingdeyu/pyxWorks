@@ -4241,7 +4241,7 @@ authentication {
                 ### def FIRST PINGv6 COMMAND LIST ###################################
                 if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
                     if interface_warning_data.get('ipv6_addr_rem',str()):
-                        interface_data['ping_v6_percent_success'] = str(do_ping( \
+                        interface_warning_data['ping_v6_percent_success'] = str(do_ping( \
                         address = interface_data.get('ipv6_addr_rem',str()), \
                         mtu = 100, count = 5, ipv6 = True))
 
