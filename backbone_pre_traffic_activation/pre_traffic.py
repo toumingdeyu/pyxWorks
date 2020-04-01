@@ -2692,17 +2692,6 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
         if inactive_bundle_members:
             interface_data['inactive_bundle_members'] = inactive_bundle_members
 
-
-        inactive_bundle_members = str()
-        for number in range(interface_data.get('bundle_members_nr',0)):
-            try:    interface_line = err_check_after_pings_outputs[0].split('No. of members in this bundle:')[1].splitlines()[number + 1].strip()
-            except: interface_line = str()
-            if 'Active' in interface_line: pass
-            else: inactive_bundle_members += interface_line.split()[0] + ' '
-        if inactive_bundle_members:
-            interface_data['inactive_bundle_members'] = inactive_bundle_members
-
-
         try:    interface_warning_data['Active_alarms%s' % (after_string)] = err_check_after_pings_outputs[0].split('Active alarms  : ')[1].split()[0].strip()
         except: interface_warning_data['Active_alarms%s' % (after_string)] = str()
 
