@@ -3427,8 +3427,13 @@ authentication {
 
                 if swan_id: CGI_CLI.uprint('SWAN_ID=%s' % (swan_id))
 
-                if precheck_mode: CGI_CLI.uprint('Monitoring/precheck mode.')
-                else: CGI_CLI.uprint('Traffic/postcheck mode.')
+                if BB_MODE:
+                    if precheck_mode: CGI_CLI.uprint('Backbone monitoring/precheck mode.')
+                    else: CGI_CLI.uprint('Backbone traffic/postcheck mode.')
+                elif CUSTOMER_MODE:
+                    if precheck_mode: CGI_CLI.uprint('Customer monitoring/precheck mode.')
+                    else: CGI_CLI.uprint('Customer traffic/postcheck mode.')
+                elif PING_ONLY: CGI_CLI.uprint('Ping only mode.')
 
                 CGI_CLI.logtofile('\nDETECTED DEVICE_TYPE: %s\n\n' % (RCMD.router_type))
 
