@@ -181,7 +181,7 @@ class CGI_CLI(object):
             try: value = str(form.getvalue(variable))
             except: value = str(','.join(form.getlist(name)))
             if variable and value and \
-                not variable in ["username", "password", "cusername"," cpassword"]:
+                not variable in ["username", "password", "cusername", "cpassword"]:
                 CGI_CLI.data[variable] = value
             if variable == "submit": CGI_CLI.submit_form = value
             if variable == "username": CGI_CLI.username = value
