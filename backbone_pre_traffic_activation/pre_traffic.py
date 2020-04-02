@@ -4245,7 +4245,7 @@ authentication {
                         ipv4_network = interface.network
                         for addr in ipaddress.IPv4Network(ipv4_network):
                             if str(addr) == str(interface_data.get('ipv4_addr_loc')): pass
-                            else: interface_data['ipv4_addr_rem_calculated'] = str(addr)
+                            else: interface_warning_data['ipv4_addr_rem_calculated'] = str(addr)
 
                     if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
                         if interface_data.get('ipv6_addr_loc'):
@@ -4255,8 +4255,8 @@ authentication {
                             for addr in ipaddress.IPv6Network(ipv6_network):
                                 if str(addr) == str(interface_data.get('ipv6_addr_loc')): pass
                                 else:
-                                    interface_data['ipv6_addr_rem_calculated'] = str(addr)
-                                    interface_data['ipv6_addr_rem'] = str(addr)
+                                    interface_warning_data['ipv6_addr_rem_calculated'] = str(addr)
+                                    interface_warning_data['ipv6_addr_rem'] = str(addr)
 
 
                 ### MTU #######################################################
@@ -4548,8 +4548,8 @@ authentication {
                     check_interface_data_content('ping_v6_mtu_percent_success', '100', warning = True, ignore_data_existence = True)
                     check_interface_data_content('ping_v6_max_working_mtu_percent_success_%spings' % (ping_counts), '100', warning = True, ignore_data_existence = True)
 
-                if BB_MODE:
-                    check_interface_data_content('ipv4_addr_rem_calculated', interface_data.get('ipv4_addr_rem'), ignore_data_existence = True)
+                #if BB_MODE:
+                #    check_interface_data_content('ipv4_addr_rem_calculated', interface_data.get('ipv4_addr_rem'), ignore_data_existence = True, warning = True)
 
                 if ping_counts and int(ping_counts) > 0:
 
