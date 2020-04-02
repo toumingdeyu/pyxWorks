@@ -180,7 +180,8 @@ class CGI_CLI(object):
             variable = str(key)
             try: value = str(form.getvalue(variable))
             except: value = str(','.join(form.getlist(name)))
-            if variable and value and not variable in ["username","password"]:
+            if variable and value and \
+                not variable in ["username", "password", "cusername"," cpassword"]:
                 CGI_CLI.data[variable] = value
             if variable == "submit": CGI_CLI.submit_form = value
             if variable == "username": CGI_CLI.username = value
@@ -3537,7 +3538,7 @@ authentication {
                         try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv4 address ')[1].split()[0]
                         except: pass
 
-                        try: interface_data['ipv4_mask_loc'] = collect_if_config_rcmd_outputs[0].split('ipv4 address ')[1].split()[1]
+                        try: interface_data['ipv4_mask_loc_dotted'] = collect_if_config_rcmd_outputs[0].split('ipv4 address ')[1].split()[1]
                         except: pass
 
                         if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
@@ -3559,7 +3560,7 @@ authentication {
                         try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[0]
                         except: pass
 
-                        try: interface_data['ipv4_mask_loc'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[1]
+                        try: interface_data['ipv4_mask_loc_dotted'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[1]
                         except: pass
 
                         if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
@@ -3677,8 +3678,8 @@ authentication {
                         try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv4 address ')[1].split()[0]
                         except: interface_data['ipv4_addr_loc'] = str()
 
-                        try: interface_data['ipv4_mask_loc'] = collect_if_config_rcmd_outputs[0].split('ipv4 address ')[1].split()[1]
-                        except: interface_data['ipv4_mask_loc'] = str()
+                        try: interface_data['ipv4_mask_loc_dotted'] = collect_if_config_rcmd_outputs[0].split('ipv4 address ')[1].split()[1]
+                        except: pass
 
                         if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
                             try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
@@ -3864,8 +3865,8 @@ authentication {
                         try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[0]
                         except: interface_data['ipv4_addr_loc'] = str()
 
-                        try: interface_data['ipv4_mask_loc'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[1]
-                        except: interface_data['ipv4_mask_loc'] = str()
+                        try: interface_data['ipv4_mask_loc_dotted'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[1]
+                        except: pass
 
 
                         if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
@@ -4011,8 +4012,8 @@ authentication {
                         try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv4 address ')[1].split()[0]
                         except: interface_data['ipv4_addr_loc'] = str()
 
-                        try: interface_data['ipv4_addr_loc_mask'] = collect_if_config_rcmd_outputs[0].split('ipv4 address ')[1].split()[1]
-                        except: interface_data['ipv4_addr_loc_mask'] = str()
+                        try: interface_data['ipv4_mask_loc_dotted'] = collect_if_config_rcmd_outputs[0].split('ipv4 address ')[1].split()[1]
+                        except: pass
 
                         try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
                         except: interface_data['ipv6_addr_loc'] = str()
@@ -4255,12 +4256,21 @@ authentication {
                 list_of_ipv4_network, list_of_ipv6_network = [], []
                 if BB_MODE:
                     if interface_data.get('ipv4_addr_loc'):
-                        interface = ipaddress.IPv4Interface(u'%s/31' % \
-                            (interface_data.get('ipv4_addr_loc')))
-                        ipv4_network = interface.network
-                        for addr in ipaddress.IPv4Network(ipv4_network):
-                            if str(addr) == str(interface_data.get('ipv4_addr_loc')): pass
-                            else: interface_warning_data['ipv4_addr_rem_calculated'] = str(addr)
+                        if interface_data.get('ipv4_mask_loc_dotted',str()) == '255.255.255.254':
+                            interface_data['ipv4_mask_loc'] = '31'
+                        if interface_data.get('ipv4_mask_loc_dotted',str()) == '255.255.255.252':
+                            interface_data['ipv4_mask_loc'] = '30'
+                        if interface_data.get('ipv4_mask_loc'):
+                            interface = ipaddress.IPv4Interface(u'%s/%s' % \
+                                (interface_data.get('ipv4_addr_loc'), \
+                                interface_data.get('ipv4_mask_loc')))
+
+                            ipv4_network = interface.network
+                            if interface_data.get('ipv4_mask_loc') == '31':
+                                for addr in ipaddress.IPv4Network(ipv4_network):
+                                    CGI_CLI.uprint("addr=%s" % (addr), tag = 'debug', no_printall = not CGI_CLI.printall)
+                                    if str(addr) == str(interface_data.get('ipv4_addr_loc')): pass
+                                    else: interface_warning_data['ipv4_addr_rem_calculated'] = str(addr)
 
                     if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
                         if interface_data.get('ipv6_addr_loc'):
@@ -4563,8 +4573,8 @@ authentication {
                     check_interface_data_content('ping_v6_mtu_percent_success', '100', warning = True, ignore_data_existence = True)
                     check_interface_data_content('ping_v6_max_working_mtu_percent_success_%spings' % (ping_counts), '100', warning = True, ignore_data_existence = True)
 
-                #if BB_MODE:
-                #    check_interface_data_content('ipv4_addr_rem_calculated', interface_data.get('ipv4_addr_rem'), ignore_data_existence = True, warning = True)
+                if BB_MODE and interface_warning_data.get('ipv4_addr_rem_calculated'):
+                    check_interface_data_content('ipv4_addr_rem_calculated', interface_data.get('ipv4_addr_rem'), ignore_data_existence = True, warning = True)
 
                 if ping_counts and int(ping_counts) > 0:
 
