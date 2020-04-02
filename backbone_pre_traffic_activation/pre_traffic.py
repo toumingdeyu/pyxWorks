@@ -2857,10 +2857,10 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
             except: interface_warning_data['Underrun_Difference'] = str()
 
         try:    interface_warning_data['Local_fault%s' % (after_string)] = err_check_after_pings_outputs[0].split('Local fault: ')[1].split()[0].strip().replace('.','')
-        except: interface_warning_data['Local_fault%s' % (after_string)] = str()
+        except: pass
 
         try:    interface_warning_data['Remote_fault%s' % (after_string)] = err_check_after_pings_outputs[0].split('Remote fault: ')[1].split()[0].strip().replace('.','')
-        except: interface_warning_data['Remote_fault%s' % (after_string)] = str()
+        except: pass
 
 ###############################################################################
 
@@ -4676,7 +4676,8 @@ authentication {
                         if interface_warning_data.get('Local_fault'):
                             check_interface_data_content('Local_fault', 'NORMAL', warning = True)
 
-                        check_interface_data_content('Remote_fault', 'NORMAL', warning = True)
+                        if interface_warning_data.get('Remote_fault'):
+                            check_interface_data_content('Remote_fault', 'NORMAL', warning = True)
 
                     if ping_counts and int(ping_counts) > 0:
                         check_interface_data_content('Local_fault_After_ping', 'NORMAL', warning = True)
