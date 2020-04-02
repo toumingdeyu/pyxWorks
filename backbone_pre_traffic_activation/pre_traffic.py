@@ -3832,6 +3832,20 @@ authentication {
                                 except: interface_warning_data['txload'] = str()
                                 try: interface_warning_data['rxload'] = collect_if_config_rcmd_outputs[13].split('Input rate     :')[1].split()[0].replace(',','').strip()
                                 except: interface_warning_data['rxload'] = str()
+
+                                # """Traffic statistics:
+                                #    Input  bytes  :     5256259942920724           8772959240 bps
+                                #    Output bytes  :     1519104622857050           3748473568 bps"""
+
+                                if not interface_warning_data.get('txload'):
+                                    try: interface_warning_data['txload'] = collect_if_config_rcmd_outputs[13].split('Input  bytes  :')[1].split()[1].strip()
+                                    except: pass
+
+                                if not interface_warning_data.get('rxload'):
+                                    try: interface_warning_data['rxload'] = collect_if_config_rcmd_outputs[13].split('Input  bytes  :')[1].split()[1].strip()
+                                    except: pass
+
+
                                 try: interface_warning_data['Speed'] = collect_if_config_rcmd_outputs[13].split('Speed:')[1].split()[0].replace(',','').strip()
                                 except: interface_warning_data['Speed'] = str()
 
