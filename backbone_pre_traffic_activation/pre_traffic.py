@@ -2503,7 +2503,7 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
             for item in what_not:
                 if item.upper() in where_value.upper():
                     local_check_interface_result_ok += 1
-                    Alarm_text.append("'%s' in '%s'" % (item, where))
+                    Alarm_text.append("'%s' not in '%s'(%s)" % (item, where, str(where_value)))
             ### ALL FAIL LOGIC ###
             if local_check_interface_result_ok == len(what_not):
                 if warning:
@@ -2517,11 +2517,11 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
             if what_not.upper() in where_value.upper():
                 if warning:
                     check_warning_interface_result_ok = False
-                    CGI_CLI.uprint("CHECK['%s' in '%s'(%s)] = WARNING" % (str(what_not), where, str(where_value)),
+                    CGI_CLI.uprint("CHECK['%s' not in '%s'(%s)] = WARNING" % (str(what_not), where, str(where_value)),
                         color = 'orange', timestamp = 'no')
                 else:
                     check_interface_result_ok = False
-                    CGI_CLI.uprint("CHECK['%s' in '%s'(%s)] = NOT OK" % (str(what_not), where, str(where_value)),
+                    CGI_CLI.uprint("CHECK['%s' not in '%s'(%s)] = NOT OK" % (str(what_not), where, str(where_value)),
                         color = 'red', timestamp = 'no')
             else: CGI_CLI.logtofile("CHECK['%s' not in '%s'(%s)] = OK\n" % (str(what_not), where, str(where_value)), ommit_timestamp = True)
 
@@ -4251,6 +4251,7 @@ authentication {
                 ###############################################################
                 ### def CALCULATE REMOTE IP ADDRESES: THE OTHER IP IN NETWORK #
                 ###############################################################
+                ### https://cpython-test-docs.readthedocs.io/en/latest/howto/ipaddress.html
                 list_of_ipv4_network, list_of_ipv6_network = [], []
                 if BB_MODE:
                     if interface_data.get('ipv4_addr_loc'):
