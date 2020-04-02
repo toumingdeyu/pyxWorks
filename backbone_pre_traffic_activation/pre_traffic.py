@@ -3838,7 +3838,7 @@ authentication {
                                 #Output bytes  :     1519104622857050           3748473568 bps"""
 
                                 if not interface_warning_data.get('txload'):
-                                    try: interface_warning_data['txload'] = collect_if_config_rcmd_outputs[13].split('Input  bytes  :')[1].split()[1].strip()
+                                    try: interface_warning_data['txload'] = collect_if_config_rcmd_outputs[13].split('Output  bytes  :')[1].split()[1].strip()
                                     except: pass
 
                                 if not interface_warning_data.get('rxload'):
