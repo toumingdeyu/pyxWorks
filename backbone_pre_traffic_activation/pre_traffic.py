@@ -4285,14 +4285,16 @@ authentication {
 
 
                 ### MTU #######################################################
-                if not interface_data.get('mtu'):
-                    if BB_MODE:
-                        if RCMD.router_type == 'huawei': mtu_size = 4484
-                        else: mtu_size = 4470
-                    if CUSTOMER_MODE: mtu_size = 1500
-                    if PING_ONLY: mtu_size = 1500
-                else: mtu_size = int(interface_data.get('mtu'))
-
+                mtu_size, default_mtu = 0, 0
+                if interface_data.get('mtu'):
+                    default_mtu = int(interface_data.get('mtu'))
+                else:
+                    if BB_MODE: default_mtu = 4484
+                    if CUSTOMER_MODE or PING_ONLY: mtu_size = 1500
+                if mtu_size == 0:
+                    if RCMD.router_type == 'huawei': mtu_size = default_mtu
+                    elif RCMD.router_type == 'juniper': mtu_size = (default_mtu - 42) ### or (-28 or -42)?
+                    else: mtu_size = (default_mtu - 14)
                 interface_data['intended_mtu_size'] = mtu_size
 
                 ### def FIRST PINGv4 COMMAND LIST #############################
