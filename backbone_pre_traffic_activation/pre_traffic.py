@@ -3479,18 +3479,25 @@ authentication {
                         interface_data['ipv4_addr_rem_from_ASN'] = []
                         for line in rcmd_outputs[0].splitlines():
                             try:
-                                if str(line.split()[1]) == interface_data.get('ASN'):
+                                if str(line.split()[1]) == interface_data.get('ASN') or str(line.split()[2]) == interface_data.get('ASN'):
                                     interface_data['ipv4_addr_rem_from_ASN'].append(line.split()[0])
                             except: pass
+                        if len(interface_data['ipv4_addr_rem_from_ASN']) == 0:
+                            del interface_data['ipv4_addr_rem_from_ASN']
 
                         interface_warning_data['ipv6_addr_rem_from_ASN'] = []
-                        for line in rcmd_outputs[2].splitlines():
+                        previous_line = str()
+                        for line in rcmd_outputs[2].splitlines() or str(line.split()[2]) == interface_data.get('ASN'):
                             try:
                                 if str(line.split()[1]) == interface_data.get('ASN'):
-                                    interface_warning_data['ipv6_addr_rem_from_ASN'].append(line.split()[0])
+                                    if ':' in line.split()[0]:
+                                        interface_warning_data['ipv6_addr_rem_from_ASN'].append(line.split()[0])
+                                    elif ':' in previous_line:
+                                        interface_warning_data['ipv6_addr_rem_from_ASN'].append(previous_line.split()[0])
                             except: pass
-
-
+                            previous_line = line
+                        if len(interface_warning_data['ipv6_addr_rem_from_ASN']) == 0:
+                            del interface_warning_data['ipv6_addr_rem_from_ASN']
 
                 elif RCMD.router_type == 'juniper':
                     try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("Local:")[1].splitlines()[0].split('AS')[1].strip()
