@@ -2694,10 +2694,10 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
             interface_data['inactive_bundle_members'] = inactive_bundle_members
 
         try:    interface_warning_data['Active_alarms%s' % (after_string)] = err_check_after_pings_outputs[0].split('Active alarms  : ')[1].split()[0].strip()
-        except: interface_warning_data['Active_alarms%s' % (after_string)] = str()
+        except: pass
 
         try:    interface_warning_data['Active_defects%s' % (after_string)] = err_check_after_pings_outputs[0].split('Active defects : ')[1].split()[0].strip()
-        except: interface_warning_data['Active_defects%s' % (after_string)] = str()
+        except: pass
 
         try:    interface_warning_data['Bit_errors%s' % (after_string)] = err_check_after_pings_outputs[0].split('Bit errors ')[1].split()[0].strip()
         except: interface_warning_data['Bit_errors%s' % (after_string)] = str()
