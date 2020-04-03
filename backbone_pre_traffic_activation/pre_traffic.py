@@ -2712,31 +2712,31 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
             except: interface_warning_data['Errored_blocks_Difference'] = str()
 
         try:    interface_warning_data['Ethernet_FEC_statistics%s' % (after_string)] = err_check_after_pings_outputs[0].split('Ethernet FEC statistics ')[1].split()[0].strip()
-        except: interface_warning_data['Ethernet_FEC_statistics%s' % (after_string)] = str()
+        except: pass
 
         try:    interface_warning_data['FEC_Corrected_Errors%s' % (after_string)] = err_check_after_pings_outputs[0].split('FEC Corrected Errors ')[1].split()[0].strip()
-        except: interface_warning_data['FEC_Corrected_Errors%s' % (after_string)] = str()
+        except: pass
         if after_ping:
             try:    interface_warning_data['FEC_Corrected_Errors_Difference'] = str(int(interface_warning_data['FEC_Corrected_Errors_After_ping']) - int(interface_warning_data['FEC_Corrected_Errors']))
-            except: interface_warning_data['FEC_Corrected_Errors_Difference'] = str()
+            except: pass
 
         try:    interface_warning_data['FEC_Uncorrected_Errors%s' % (after_string)] = err_check_after_pings_outputs[0].split('FEC Uncorrected Errors ')[1].split()[0].strip()
-        except: interface_warning_data['FEC_Uncorrected_Errors%s' % (after_string)] = str()
+        except: pass
         if after_ping:
             try:    interface_warning_data['FEC_Uncorrected_Errors_Difference'] = str(int(interface_warning_data['FEC_Uncorrected_Errors_After_ping']) - int(interface_warning_data['FEC_Uncorrected_Errors']))
-            except: interface_warning_data['FEC_Uncorrected_Errors_Difference'] = str()
+            except: pass
 
         try:    interface_warning_data['FEC_Corrected_Errors_Rate%s' % (after_string)] = err_check_after_pings_outputs[0].split('FEC Corrected Errors Rate ')[1].split()[0].strip()
-        except: interface_warning_data['FEC_Corrected_Errors_Rate%s' % (after_string)] = str()
+        except: pass
         if after_ping:
             try:    interface_warning_data['FEC_Corrected_Errors_Rate_Difference'] = str(int(interface_warning_data['FEC_Corrected_Errors_Rate_After_ping']) - int(interface_warning_data['FEC_Corrected_Errors_Rate']))
-            except: interface_warning_data['FEC_Corrected_Errors_Rate_Difference'] = str()
+            except: pass
 
         try:    interface_warning_data['FEC_Uncorrected_Errors_Rate%s' % (after_string)] = err_check_after_pings_outputs[0].split('FEC Uncorrected Errors Rate ')[1].split()[0].strip()
-        except: interface_warning_data['FEC_Uncorrected_Errors_Rate%s' % (after_string)] = str()
+        except: pass
         if after_ping:
             try:    interface_warning_data['FEC_Uncorrected_Errors_Rate_Difference'] = str(int(interface_warning_data['FEC_Uncorrected_Errors_Rate_After_ping']) - int(interface_warning_data['FEC_Uncorrected_Errors_Rate']))
-            except: interface_warning_data['FEC_Uncorrected_Errors_Rate_Difference'] = str()
+            except: pass
 
         try:    interface_warning_data['Input_errors%s' % (after_string)] = err_check_after_pings_outputs[0].split('Input errors:')[1].strip().split('Output errors:')[0].strip().split('Errors: ')[1].split()[0].replace(',','')
         except: interface_warning_data['Input_errors%s' % (after_string)] = str()
@@ -4697,10 +4697,10 @@ authentication {
 
                         check_interface_data_content('Bit_errors_Difference', exact_value_yes = '0', warning = True)
                         check_interface_data_content('Errored_blocks_Difference', exact_value_yes = '0', warning = True)
-                        check_interface_data_content('FEC_Corrected_Errors_Difference', exact_value_yes = '0', warning = True)
-                        check_interface_data_content('FEC_Uncorrected_Errors_Difference', exact_value_yes = '0', warning = True)
-                        check_interface_data_content('FEC_Corrected_Errors_Rate_Difference', exact_value_yes = '0', warning = True)
-                        check_interface_data_content('FEC_Uncorrected_Errors_Rate_Difference', exact_value_yes = '0', warning = True)
+                        check_interface_data_content('FEC_Corrected_Errors_Difference', exact_value_yes = '0', warning = True, ignore_data_existence = True)
+                        check_interface_data_content('FEC_Uncorrected_Errors_Difference', exact_value_yes = '0', warning = True, ignore_data_existence = True)
+                        check_interface_data_content('FEC_Corrected_Errors_Rate_Difference', exact_value_yes = '0', warning = True, ignore_data_existence = True)
+                        check_interface_data_content('FEC_Uncorrected_Errors_Rate_Difference', exact_value_yes = '0', warning = True, ignore_data_existence = True)
 
                 elif RCMD.router_type == 'huawei':
                     if BB_MODE:
