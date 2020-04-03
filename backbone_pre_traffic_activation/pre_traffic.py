@@ -2696,8 +2696,15 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
         try:    interface_warning_data['Active_alarms%s' % (after_string)] = err_check_after_pings_outputs[0].split('Active alarms  : ')[1].split()[0].strip()
         except: pass
 
+        if str(interface_warning_data.get('Active_alarms%s' % (after_string))).strip() == str():
+            del interface_warning_data['Active_alarms%s' % (after_string)]
+
+
         try:    interface_warning_data['Active_defects%s' % (after_string)] = err_check_after_pings_outputs[0].split('Active defects : ')[1].split()[0].strip()
         except: pass
+
+        if str(interface_warning_data.get('Active_defects%s' % (after_string))).strip() == str():
+            del interface_warning_data['Active_defects%s' % (after_string)]
 
         try:    interface_warning_data['Bit_errors%s' % (after_string)] = err_check_after_pings_outputs[0].split('Bit errors ')[1].split()[0].strip()
         except: interface_warning_data['Bit_errors%s' % (after_string)] = str()
@@ -4676,12 +4683,12 @@ authentication {
                         else:
                             check_interface_data_content('metric', None,  '99999')
 
-                        check_interface_data_content('Active_alarms', 'None', warning = True)
-                        check_interface_data_content('Active_defects', 'None', warning = True)
+                        check_interface_data_content('Active_alarms', 'None', warning = True, ignore_data_existence = True)
+                        check_interface_data_content('Active_defects', 'None', warning = True, ignore_data_existence = True)
 
                     if ping_counts and int(ping_counts) > 0:
-                        check_interface_data_content('Active_alarms_After_ping', 'None', warning = True)
-                        check_interface_data_content('Active_defects_After_ping', 'None', warning = True)
+                        check_interface_data_content('Active_alarms_After_ping', 'None', warning = True, ignore_data_existence = True)
+                        check_interface_data_content('Active_defects_After_ping', 'None', warning = True, ignore_data_existence = True)
 
                         check_interface_data_content('Input_errors_Difference', exact_value_yes = '0', warning = True)
                         check_interface_data_content('Input_errors__Drops_Difference', exact_value_yes = '0', warning = True)
