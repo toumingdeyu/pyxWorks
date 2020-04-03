@@ -2372,14 +2372,14 @@ def get_void_json_elements(json_data, ignore_void_strings = None, \
                       elif str(key)[0]=='@': json_deeper_references.append((parrent_xpath+'['+key+'="'+key_content+'"]',key_content))
                       else: json_deeper_references.append((parrent_xpath+'/'+key+'="'+str(key_content)+'"',key_content))
                 elif key_content == None:
-                    json_deeper_references.append((parrent_xpath+'/'+key+'="'+str(key_content)+'"',key_content))
+                    json_deeper_references.append((parrent_xpath+'/'+key+'='+str(key_content),key_content))
         return json_deeper_references
     ### FUNCTION -----------------------------------------------------------------
     references,xpath_list = [], []
     references.append(('',json_data))
     while len(references)>0:
         add_references=get_dictionary_subreferences(references[0])
-        if '="None"' in references[0][0]\
+        if '=None' in references[0][0]\
             or not ignore_void_strings and '=""' in references[0][0]\
             or not ignore_void_lists and '=[]' in references[0][0]:
             if no_equal_sign and no_root_backslash: xpath_list.append(str(references[0][0].split('=')[0][1:]))
@@ -2693,18 +2693,17 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
         if inactive_bundle_members:
             interface_data['inactive_bundle_members'] = inactive_bundle_members
 
-        try:    interface_warning_data['Active_alarms%s' % (after_string)] = err_check_after_pings_outputs[0].split('Active alarms  : ')[1].split()[0].strip()
+        try:
+            active_alarms = err_check_after_pings_outputs[0].split('Active alarms  : ')[1].split()[0].strip()
+            if active_alarms:
+                interface_warning_data['Active_alarms%s' % (after_string)] = active_alarms
         except: pass
 
-        if str(interface_warning_data.get('Active_alarms%s' % (after_string))).strip() == str():
-            del interface_warning_data['Active_alarms%s' % (after_string)]
-
-
-        try:    interface_warning_data['Active_defects%s' % (after_string)] = err_check_after_pings_outputs[0].split('Active defects : ')[1].split()[0].strip()
+        try:
+            active_defects = err_check_after_pings_outputs[0].split('Active defects : ')[1].split()[0].strip()
+            if active_defects:
+                interface_warning_data['Active_defects%s' % (after_string)] = active_defects
         except: pass
-
-        if str(interface_warning_data.get('Active_defects%s' % (after_string))).strip() == str():
-            del interface_warning_data['Active_defects%s' % (after_string)]
 
         try:    interface_warning_data['Bit_errors%s' % (after_string)] = err_check_after_pings_outputs[0].split('Bit errors ')[1].split()[0].strip()
         except: interface_warning_data['Bit_errors%s' % (after_string)] = str()
