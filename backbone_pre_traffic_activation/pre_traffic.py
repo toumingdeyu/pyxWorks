@@ -3476,11 +3476,20 @@ authentication {
                         except: pass
 
                     if interface_data.get('ASN'):
-                        try: interface_data['ipv4_addr_rem'] = rcmd_outputs[0].split(str(' ' + interface_data.get('ASN') + ' '))[0].splitlines()[-1].split()[0].strip()
-                        except: pass
+                        interface_data['ipv4_addr_rem_from_ASN'] = []
+                        for line in rcmd_outputs[0].splitlines():
+                            try:
+                                if str(line.split()[1]) == interface_data.get('ASN'):
+                                    interface_data['ipv4_addr_rem_from_ASN'].append(line.split()[0])
+                            except: pass
 
-                        try: interface_data['ipv6_addr_rem'] = rcmd_outputs[2].split(str(' ' + interface_data.get('ASN') + ' '))[0].splitlines()[-2].strip()
-                        except: pass
+                        interface_warning_data['ipv6_addr_rem_from_ASN'] = []
+                        for line in rcmd_outputs[2].splitlines():
+                            try:
+                                if str(line.split()[1]) == interface_data.get('ASN'):
+                                    interface_warning_data['ipv6_addr_rem_from_ASN'].append(line.split()[0])
+                            except: pass
+
 
 
                 elif RCMD.router_type == 'juniper':
@@ -4003,6 +4012,9 @@ authentication {
                         try: interface_data['mtu'] = collect_if_config_rcmd_outputs[0].split('mtu ')[1].splitlines()[0].strip()
                         except: interface_data['mtu'] = str()
 
+                        try: interface_data['ipv4_addr_rem_from_DESCRIPTION'] = collect_if_config_rcmd_outputs[0].split('description')[1].splitlines()[0].split('@')[1].split()[0]
+                        except: pass
+
                         try: interface_data['service-policy_input'] = collect_if_config_rcmd_outputs[0].split('service-policy input ')[1].splitlines()[0].strip()
                         except: interface_data['service-policy_input'] = str()
 
@@ -4058,12 +4070,12 @@ authentication {
                     collect2_if_data_rcmds = {
                         'cisco_ios':[
                             'show running-config router bgp 5511 neighbor %s' % (interface_data.get('ipv4_addr_rem')) if interface_data.get('ipv4_addr_rem') else str(),
-                            'show running-config router bgp 5511 neighbor %s' % (interface_data.get('ipv6_addr_rem')) if interface_data.get('ipv6_addr_rem') else str(),
+                            'show running-config router bgp 5511 neighbor %s' % (interface_warning_data.get('ipv6_addr_rem')) if interface_warning_data.get('ipv6_addr_rem') else str(),
                         ],
 
                         'cisco_xr':[
                             'show running-config router bgp 5511 neighbor %s' % (interface_data.get('ipv4_addr_rem')) if interface_data.get('ipv4_addr_rem') else str(),
-                            'show running-config router bgp 5511 neighbor %s' % (interface_data.get('ipv6_addr_rem')) if interface_data.get('ipv6_addr_rem') else str(),
+                            'show running-config router bgp 5511 neighbor %s' % (interface_warning_data.get('ipv6_addr_rem')) if interface_warning_data.get('ipv6_addr_rem') else str(),
                         ],
 
                         'juniper': [
@@ -4087,7 +4099,7 @@ authentication {
                             #try: interface_data['neighbor'] = collect2_if_config_rcmd_outputs[0].split('use neighbor-group')[0].split('neighbor ')[-1].splitlines()[0].strip()
                             #except: interface_data['neighbor'] = str()
 
-                        if interface_data.get('ipv6_addr_rem'):
+                        if interface_warning_data.get('ipv6_addr_rem'):
                             try: interface_data['use_neighbor-group_ipv6'] = collect2_if_config_rcmd_outputs[1].split('use neighbor-group ')[1].splitlines()[0].strip()
                             except: pass
 
@@ -4264,6 +4276,22 @@ authentication {
 
 
                 ###############################################################
+                ### def FIND REMOTE IP ADDRESES: THE OTHER IP IN NETWORK ######
+                ###############################################################
+                if CUSTOMER_MODE:
+                    if len(interface_data.get('ipv4_addr_rem_from_ASN')) == 1:
+                        interface_data['ipv4_addr_rem'] = \
+                            interface_data.get('ipv4_addr_rem_from_ASN')
+                    elif interface_data.get('ipv4_addr_rem_from_DESCRIPTION') and \
+                        len(interface_data.get('ipv4_addr_rem_from_ASN')) > 1:
+                            interface_data['ipv4_addr_rem'] = \
+                                interface_data.get('ipv4_addr_rem_from_DESCRIPTION')
+
+                    if len(interface_data.get('ipv4_addr_rem_from_ASN')) > 0:
+                        interface_data['ipv4_addr_rem'] = \
+                            interface_data.get('ipv4_addr_rem_from_ASN')[0]
+
+                ###############################################################
                 ### def CALCULATE REMOTE IP ADDRESES: THE OTHER IP IN NETWORK #
                 ###############################################################
                 ### https://cpython-test-docs.readthedocs.io/en/latest/howto/ipaddress.html
@@ -4324,13 +4352,13 @@ authentication {
 
                 ### def FIRST PINGv6 COMMAND LIST ###################################
                 if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
-                    if interface_data.get('ipv6_addr_rem',str()):
+                    if interface_warning_data.get('ipv6_addr_rem',str()):
                         interface_warning_data['ping_v6_percent_success'] = str(do_ping( \
-                            address = interface_data.get('ipv6_addr_rem',str()), \
+                            address = interface_warning_data.get('ipv6_addr_rem',str()), \
                             mtu = 100, count = 5, ipv6 = True))
 
                         interface_warning_data['ping_v6_mtu_percent_success'] = str(do_ping( \
-                            address = interface_data.get('ipv6_addr_rem',str()), \
+                            address = interface_warning_data.get('ipv6_addr_rem',str()), \
                             mtu = mtu_size, count = 5, ipv6 = True))
 
                 ### def FIND MAX MTU ##########################################
@@ -4342,8 +4370,8 @@ authentication {
                             interface_data['max_working_mtu_ipv4'] = str(max_mtu_ipv4)
 
                     if float(interface_warning_data.get('ping_v6_percent_success','0')) > 0:
-                        if interface_data.get('ipv6_addr_rem',str()):
-                            max_mtu_ipv6 = find_max_mtu(interface_data.get('ipv6_addr_rem',str()), ipv6 = True)
+                        if interface_warning_data.get('ipv6_addr_rem',str()):
+                            max_mtu_ipv6 = find_max_mtu(interface_warning_data.get('ipv6_addr_rem',str()), ipv6 = True)
                             interface_data['max_working_mtu_ipv6'] = str(max_mtu_ipv6)
 
                     if float(interface_data.get('max_working_mtu_ipv4', 0)) > 0:
@@ -4354,7 +4382,7 @@ authentication {
 
                     if float(interface_data.get('max_working_mtu_ipv6', 0)) > 0:
                         interface_warning_data['ping_v6_max_working_mtu_percent_success_%spings' % (ping_counts)] = str(\
-                            do_ping(address = interface_data.get('ipv6_addr_rem',str()), \
+                            do_ping(address = interface_warning_data.get('ipv6_addr_rem',str()), \
                             mtu = interface_data.get('max_working_mtu_ipv6'), \
                             count = ping_counts, ipv6 = True))
 
@@ -4382,18 +4410,18 @@ authentication {
                         and not interface_warning_data.get('ping_v6_max_working_mtu_percent_success_%spings' % (ping_counts)):
                         if '100' in interface_warning_data.get('ping_v6_mtu_percent_success',str()):
                             ### def "THOUSANDS" PINGv6 COMMAND LIST ###################
-                            if interface_data.get('ipv6_addr_rem',str()):
+                            if interface_warning_data.get('ipv6_addr_rem',str()):
 
                                 interface_warning_data['ping_v6_mtu_percent_success_%spings' % (ping_counts)] = str(do_ping( \
-                                    address = interface_data.get('ipv6_addr_rem',str()), \
+                                    address = interface_warning_data.get('ipv6_addr_rem',str()), \
                                     mtu = mtu_size, count = ping_counts, ipv6 = True))
 
                         elif '100' in interface_warning_data.get('ping_v6_percent_success',str()):
                             ### def "THOUSANDS" PINGv6 COMMAND LIST ###################
-                            if interface_data.get('ipv6_addr_rem',str()):
+                            if interface_warning_data.get('ipv6_addr_rem',str()):
 
                                 interface_warning_data['ping_v6_percent_success_%spings' % (ping_counts)] = str(do_ping( \
-                                    address = interface_data.get('ipv6_addr_rem',str()), \
+                                    address = interface_warning_data.get('ipv6_addr_rem',str()), \
                                     mtu = 100, count = ping_counts, ipv6 = True))
 
                 if not precheck_mode:
