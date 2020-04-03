@@ -4294,7 +4294,7 @@ authentication {
                 if CUSTOMER_MODE:
                     if len(interface_data.get('ipv4_addr_rem_from_ASN',[])) == 1:
                         interface_data['ipv4_addr_rem'] = \
-                            interface_data.get('ipv4_addr_rem_from_ASN')
+                            interface_data.get('ipv4_addr_rem_from_ASN')[0]
                     elif interface_data.get('ipv4_addr_rem_from_DESCRIPTION') and \
                         len(interface_data.get('ipv4_addr_rem_from_ASN',[])) > 1:
                             interface_data['ipv4_addr_rem'] = \
