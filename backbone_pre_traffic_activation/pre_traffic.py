@@ -4286,17 +4286,17 @@ authentication {
                 ### def FIND REMOTE IP ADDRESES: THE OTHER IP IN NETWORK ######
                 ###############################################################
                 if CUSTOMER_MODE:
-                    if len(interface_data.get('ipv4_addr_rem_from_ASN')) == 1:
+                    if len(interface_data.get('ipv4_addr_rem_from_ASN',[])) == 1:
                         interface_data['ipv4_addr_rem'] = \
                             interface_data.get('ipv4_addr_rem_from_ASN')
                     elif interface_data.get('ipv4_addr_rem_from_DESCRIPTION') and \
-                        len(interface_data.get('ipv4_addr_rem_from_ASN')) > 1:
+                        len(interface_data.get('ipv4_addr_rem_from_ASN',[])) > 1:
                             interface_data['ipv4_addr_rem'] = \
                                 interface_data.get('ipv4_addr_rem_from_DESCRIPTION')
 
-                    if len(interface_data.get('ipv4_addr_rem_from_ASN')) > 0:
-                        interface_data['ipv4_addr_rem'] = \
-                            interface_data.get('ipv4_addr_rem_from_ASN')[0]
+                    if len(interface_warning_data.get('ipv6_addr_rem_from_ASN',[])) > 0:
+                        interface_warning_data['ipv6_addr_rem'] = \
+                            interface_warning_data.get('ipv6_addr_rem_from_ASN')[0]
 
                 ###############################################################
                 ### def CALCULATE REMOTE IP ADDRESES: THE OTHER IP IN NETWORK #
