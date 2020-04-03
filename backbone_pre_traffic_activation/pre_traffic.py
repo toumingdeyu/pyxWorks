@@ -2479,11 +2479,11 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
         else:
             if warning:
                 check_warning_interface_result_ok = False
-                CGI_CLI.uprint("CHECK['%s' != '%s'(%s)] = WARNING" % (exact_value_yes, where, str(where_value)),
+                CGI_CLI.uprint("CHECK['%s' == '%s'(%s)] = WARNING" % (exact_value_yes, where, str(where_value)),
                     color = 'orange', timestamp = 'no')
             else:
                 check_interface_result_ok = False
-                CGI_CLI.uprint("CHECK['%s' != '%s'(%s)] = NOT OK" % (exact_value_yes, where, str(where_value)),
+                CGI_CLI.uprint("CHECK['%s' == '%s'(%s)] = NOT OK" % (exact_value_yes, where, str(where_value)),
                     color = 'red', timestamp = 'no')
 
     if what_yes_in and where:
@@ -2492,11 +2492,11 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
         else:
             if warning:
                 check_warning_interface_result_ok = False
-                CGI_CLI.uprint("CHECK['%s' not in '%s'(%s)] = WARNING" % (what_yes_in, where, str(where_value)),
+                CGI_CLI.uprint("CHECK['%s' in '%s'(%s)] = WARNING" % (what_yes_in, where, str(where_value)),
                     color = 'orange', timestamp = 'no')
             else:
                 check_interface_result_ok = False
-                CGI_CLI.uprint("CHECK['%s' not in '%s'(%s)] = NOT OK" % (what_yes_in, where, str(where_value)),
+                CGI_CLI.uprint("CHECK['%s' in '%s'(%s)] = NOT OK" % (what_yes_in, where, str(where_value)),
                     color = 'red', timestamp = 'no')
 
     if what_not and where:
