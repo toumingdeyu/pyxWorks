@@ -3595,6 +3595,9 @@ authentication {
                             try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
                             except: pass
 
+                            try: interface_data['ipv6_mask_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[1]
+                            except: pass
+
                     elif RCMD.router_type == 'juniper':
                         try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet address ')[1].split()[0].split('/')[0].replace(';','')
                         except: pass
@@ -3604,6 +3607,9 @@ authentication {
 
                         if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
                             try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet6 address ')[1].split()[0].split('/')[0].replace(';','')
+                            except: pass
+
+                            try: interface_data['ipv6_mask_loc'] = collect_if_config_rcmd_outputs[0].split('family inet6 address ')[1].split()[0].split('/')[1].replace(';','')
                             except: pass
 
                     elif RCMD.router_type == 'huawei':
@@ -3617,6 +3623,8 @@ authentication {
                             try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
                             except: pass
 
+                            try: interface_data['ipv6_mask_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[1]
+                            except: pass
 
                 ###############################################################
                 ### def BB_MODE - 1st COLLECT COMMAND LIST ####################
@@ -3733,7 +3741,10 @@ authentication {
 
                         if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
                             try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
-                            except: interface_data['ipv6_addr_loc'] = str()
+                            except: pass
+
+                            try: interface_data['ipv6_mask_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[1]
+                            except: pass
 
                         interface_data['dampening'] = True if 'dampening' in collect_if_config_rcmd_outputs[0] else str()
                         try: interface_data['flow ipv4 monitor'] = collect_if_config_rcmd_outputs[0].split('flow ipv4 monitor ')[1].split()[0]
@@ -3815,7 +3826,10 @@ authentication {
 
                         if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
                             try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet6 address ')[1].split()[0].split('/')[0].replace(';','')
-                            except: interface_data['ipv6_addr_loc'] = str()
+                            except: pass
+
+                            try: interface_data['ipv6_mask_loc'] = collect_if_config_rcmd_outputs[0].split('family inet6 address ')[1].split()[0].split('/')[1].replace(';','')
+                            except: pass
 
                         try: interface_data['scheduler-map'] = collect_if_config_rcmd_outputs[10].split('scheduler-map ')[1].split()[0].split('/')[0].replace(';','')
                         except: interface_data['scheduler-map'] = str()
@@ -3921,7 +3935,10 @@ authentication {
 
                         if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
                             try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
-                            except: interface_data['ipv6_addr_loc'] = str()
+                            except: pass
+
+                            try: interface_data['ipv6_mask_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[1]
+                            except: pass
 
                         ### BANDWITH IS OPTIONABLE --> AVOID FROM VOID CHECK ######
                         if not interface_data.get('bandwidth'):
@@ -4366,15 +4383,30 @@ authentication {
                                     i_counter += 1
 
                     if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
-                        if interface_data.get('ipv6_addr_loc'):
-                            interface = ipaddress.IPv6Interface(u'%s/127' % \
-                                (interface_data.get('ipv6_addr_loc')))
+                        if interface_data.get('ipv6_addr_loc') and interface_data.get('ipv6_mask_loc'):
+                            interface = ipaddress.IPv6Interface(u'%s/%s' % \
+                                (interface_data.get('ipv6_addr_loc'),interface_data.get('ipv6_mask_loc')))
+
                             ipv6_network = interface.network
-                            for addr in ipaddress.IPv6Network(ipv6_network):
-                                if str(addr) == str(interface_data.get('ipv6_addr_loc')): pass
-                                else:
-                                    interface_warning_data['ipv6_addr_rem_calculated'] = str(addr)
-                                    interface_warning_data['ipv6_addr_rem'] = str(addr)
+
+                            if interface_data.get('ipv4_mask_loc') == '127':
+                                for addr in ipaddress.IPv6Network(ipv6_network):
+                                    CGI_CLI.uprint("addr=%s" % (addr), tag = 'debug', no_printall = not CGI_CLI.printall)
+                                    if str(addr) == str(interface_data.get('ipv6_addr_loc')): pass
+                                    else:
+                                        interface_warning_data['ipv6_addr_rem_calculated'] = str(addr)
+                                        interface_warning_data['ipv6_addr_rem'] = str(addr)
+
+                            if interface_data.get('ipv4_mask_loc') == '126':
+                                i_counter = 0
+                                for addr in ipaddress.IPv6Network(ipv6_network):
+                                    CGI_CLI.uprint("addr=%s" % (addr), tag = 'debug', no_printall = not CGI_CLI.printall)
+                                    if i_counter == 1 or i_counter == 2:
+                                        if str(addr) == str(interface_data.get('ipv6_addr_loc')): pass
+                                        else:
+                                            interface_warning_data['ipv6_addr_rem_calculated'] = str(addr)
+                                            interface_warning_data['ipv6_addr_rem'] = str(addr)
+                                    i_counter += 1
 
 
                 ### MTU #######################################################
