@@ -4349,7 +4349,7 @@ authentication {
                                 interface_data.get('ipv4_mask_loc')))
 
                             ipv4_network = interface.network
-                            
+
                             if interface_data.get('ipv4_mask_loc') == '31':
                                 for addr in ipaddress.IPv4Network(ipv4_network):
                                     CGI_CLI.uprint("addr=%s" % (addr), tag = 'debug', no_printall = not CGI_CLI.printall)
