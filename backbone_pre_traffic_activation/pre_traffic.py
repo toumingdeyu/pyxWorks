@@ -4349,8 +4349,15 @@ authentication {
                                 interface_data.get('ipv4_mask_loc')))
 
                             ipv4_network = interface.network
+                            
                             if interface_data.get('ipv4_mask_loc') == '31':
                                 for addr in ipaddress.IPv4Network(ipv4_network):
+                                    CGI_CLI.uprint("addr=%s" % (addr), tag = 'debug', no_printall = not CGI_CLI.printall)
+                                    if str(addr) == str(interface_data.get('ipv4_addr_loc')): pass
+                                    else: interface_warning_data['ipv4_addr_rem_calculated'] = str(addr)
+
+                            if interface_data.get('ipv4_mask_loc') == '30':
+                                for addr in ipaddress.IPv4Network(ipv4_network)[1:-1]:
                                     CGI_CLI.uprint("addr=%s" % (addr), tag = 'debug', no_printall = not CGI_CLI.printall)
                                     if str(addr) == str(interface_data.get('ipv4_addr_loc')): pass
                                     else: interface_warning_data['ipv4_addr_rem_calculated'] = str(addr)
