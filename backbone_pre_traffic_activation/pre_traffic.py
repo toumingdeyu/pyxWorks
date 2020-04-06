@@ -4357,10 +4357,13 @@ authentication {
                                     else: interface_warning_data['ipv4_addr_rem_calculated'] = str(addr)
 
                             if interface_data.get('ipv4_mask_loc') == '30':
-                                for addr in ipaddress.IPv4Network(ipv4_network)[1:-1]:
+                                i_counter = 0
+                                for addr in ipaddress.IPv4Network(ipv4_network):
                                     CGI_CLI.uprint("addr=%s" % (addr), tag = 'debug', no_printall = not CGI_CLI.printall)
-                                    if str(addr) == str(interface_data.get('ipv4_addr_loc')): pass
-                                    else: interface_warning_data['ipv4_addr_rem_calculated'] = str(addr)
+                                    if i_counter == 1 or i_counter == 2:
+                                        if str(addr) == str(interface_data.get('ipv4_addr_loc')): pass
+                                        else: interface_warning_data['ipv4_addr_rem_calculated'] = str(addr)
+                                    i_counter += 1
 
                     if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
                         if interface_data.get('ipv6_addr_loc'):
