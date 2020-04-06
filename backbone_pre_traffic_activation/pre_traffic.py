@@ -2582,7 +2582,7 @@ def do_ping(address = None, mtu = None, count = None, ipv6 = None, source = None
             'huawei': [
                 'ping %s-s %s -c %s %s%s' % \
                     ('ipv6 ' if ipv6 else str(),str(mtu_size), ping_counts, address,
-                    ' source %s' % (str(source)) if source else str())
+                    ' -a %s' % (str(source)) if source else str())
             ]
         }
 
