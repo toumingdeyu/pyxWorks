@@ -3705,6 +3705,7 @@ authentication {
                             interface_data.get('ipv4_mask_loc')))
 
                         ipv4_network = interface.network
+                        CGI_CLI.uprint('network:' + str(ipv4_network), tag = 'debug', no_printall = not CGI_CLI.printall)
 
                         if interface_data.get('ipv4_mask_loc') == '31':
                             for addr in ipaddress.IPv4Network(ipv4_network):
@@ -3721,33 +3722,38 @@ authentication {
                                     else: interface_warning_data['ipv4_addr_rem_calculated'] = str(addr)
                                 i_counter += 1
 
-                if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
-                    if interface_data.get('ipv6_addr_loc') and interface_data.get('ipv6_mask_loc'):
-                        interface = ipaddress.IPv6Interface(u'%s/%s' % \
-                            (interface_data.get('ipv6_addr_loc'),interface_data.get('ipv6_mask_loc')))
+                #if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
 
-                        ipv6_network = interface.network
+                CGI_CLI.uprint(interface_data.get('ipv6_addr_loc'), tag = 'debug', no_printall = not CGI_CLI.printall)
+                CGI_CLI.uprint(interface_data.get('ipv6_mask_loc'), tag = 'debug', no_printall = not CGI_CLI.printall)
 
-                        if interface_data.get('ipv4_mask_loc') == '127':
-                            for addr in ipaddress.IPv6Network(ipv6_network):
-                                CGI_CLI.uprint("addr=%s" % (addr), tag = 'debug', no_printall = not CGI_CLI.printall)
+                if interface_data.get('ipv6_addr_loc') and interface_data.get('ipv6_mask_loc'):
+                    interface = ipaddress.IPv6Interface(u'%s/%s' % \
+                        (interface_data.get('ipv6_addr_loc'),interface_data.get('ipv6_mask_loc')))
+
+                    ipv6_network = interface.network
+                    CGI_CLI.uprint('network:' + str(ipv6_network), tag = 'debug', no_printall = not CGI_CLI.printall)
+
+                    if interface_data.get('ipv6_mask_loc') == '127':
+                        for addr in ipaddress.IPv6Network(ipv6_network):
+                            CGI_CLI.uprint("addr=%s" % (addr), tag = 'debug', no_printall = not CGI_CLI.printall)
+                            if str(addr) == str(interface_data.get('ipv6_addr_loc')): pass
+                            else:
+                                interface_warning_data['ipv6_addr_rem_calculated'] = str(addr)
+                                if not interface_warning_data.get('ipv6_addr_rem'):
+                                    interface_warning_data['ipv6_addr_rem'] = str(addr)
+
+                    if interface_data.get('ipv6_mask_loc') == '126':
+                        i_counter = 0
+                        for addr in ipaddress.IPv6Network(ipv6_network):
+                            CGI_CLI.uprint("addr=%s" % (addr), tag = 'debug', no_printall = not CGI_CLI.printall)
+                            if i_counter == 1 or i_counter == 2:
                                 if str(addr) == str(interface_data.get('ipv6_addr_loc')): pass
                                 else:
                                     interface_warning_data['ipv6_addr_rem_calculated'] = str(addr)
                                     if not interface_warning_data.get('ipv6_addr_rem'):
                                         interface_warning_data['ipv6_addr_rem'] = str(addr)
-
-                        if interface_data.get('ipv4_mask_loc') == '126':
-                            i_counter = 0
-                            for addr in ipaddress.IPv6Network(ipv6_network):
-                                CGI_CLI.uprint("addr=%s" % (addr), tag = 'debug', no_printall = not CGI_CLI.printall)
-                                if i_counter == 1 or i_counter == 2:
-                                    if str(addr) == str(interface_data.get('ipv6_addr_loc')): pass
-                                    else:
-                                        interface_warning_data['ipv6_addr_rem_calculated'] = str(addr)
-                                        if not interface_warning_data.get('ipv6_addr_rem'):
-                                            interface_warning_data['ipv6_addr_rem'] = str(addr)
-                                i_counter += 1
+                            i_counter += 1
 
 
                 ###############################################################
