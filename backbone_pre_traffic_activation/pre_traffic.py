@@ -3596,7 +3596,7 @@ authentication {
                 ### CISCO XR+XE ping CMDS ##################################
                 if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
                     try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv4 address ')[1].split()[0]
-                    except: pass
+                    except: interface_data['ipv4_addr_loc'] = str()
 
                     try: interface_data['ipv4_mask_loc_dotted'] = collect_if_config_rcmd_outputs[0].split('ipv4 address ')[1].split()[1]
                     except: pass
@@ -3641,7 +3641,7 @@ authentication {
 
                 elif RCMD.router_type == 'juniper':
                     try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet address ')[1].split()[0].split('/')[0].replace(';','')
-                    except: pass
+                    except: interface_data['ipv4_addr_loc'] = str()
 
                     try: interface_data['ipv4_mask_loc'] = collect_if_config_rcmd_outputs[0].split('family inet address ')[1].split()[0].split('/')[1].replace(';','')
                     except: pass
@@ -3655,7 +3655,7 @@ authentication {
 
                 elif RCMD.router_type == 'huawei':
                     try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[0]
-                    except: pass
+                    except: interface_data['ipv4_addr_loc'] = str()
 
                     try: interface_data['ipv4_mask_loc_dotted'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[1]
                     except: pass
