@@ -4668,7 +4668,7 @@ authentication {
                     check_interface_data_content('ipv4_addr_rem_calculated', interface_data.get('ipv4_addr_rem'), ignore_data_existence = True, warning = True)
 
                 if interface_warning_data.get('ipv6_addr_rem_calculated'):
-                     check_interface_data_content('ipv6_addr_rem_calculated', interface_data.get('ipv6_addr_rem'), ignore_data_existence = True, warning = True)
+                     check_interface_data_content('ipv6_addr_rem_calculated', interface_warning_data.get('ipv6_addr_rem'), ignore_data_existence = True, warning = True)
 
                 if ping_counts and int(ping_counts) > 0:
 
