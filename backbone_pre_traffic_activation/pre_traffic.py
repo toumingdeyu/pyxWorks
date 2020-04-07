@@ -3433,8 +3433,9 @@ authentication {
                 ### def LOGFILENAME GENERATION, DO LOGGING ONLY WHEN DEVICE LIST EXISTS ###
                 html_extention = 'htm' if CGI_CLI.cgi_active else str()
 
-                PREFIX_PART = str('PRECHECK' if precheck_mode else 'POSTCHECK')
-                if PING_ONLY: PREFIX_PART = 'PINGCHECK'
+                if BB_MODE: PREFIX_PART = str('BB_PRECHECK' if precheck_mode else 'BB_POSTCHECK')
+                elif CUSTOMER_MODE: PREFIX_PART = str('CUST_PRECHECK' if precheck_mode else 'CUST_POSTCHECK')
+                elif PING_ONLY: PREFIX_PART = 'PINGCHECK'
 
                 logfilename = generate_logfilename(
                     prefix = str(swan_id) + '-' if swan_id else str() + PREFIX_PART + \
@@ -4166,15 +4167,9 @@ authentication {
                             try: interface_data['use_neighbor-group'] = collect2_if_config_rcmd_outputs[0].split('use neighbor-group ')[1].splitlines()[0].strip()
                             except: interface_data['use_neighbor-group'] = str()
 
-                            #try: interface_data['neighbor'] = collect2_if_config_rcmd_outputs[0].split('use neighbor-group')[0].split('neighbor ')[-1].splitlines()[0].strip()
-                            #except: interface_data['neighbor'] = str()
-
                         if interface_warning_data.get('ipv6_addr_rem'):
                             try: interface_data['use_neighbor-group_ipv6'] = collect2_if_config_rcmd_outputs[1].split('use neighbor-group ')[1].splitlines()[0].strip()
                             except: pass
-
-                            #try: interface_data['neighbor_ipv6'] = collect2_if_config_rcmd_outputs[1].split('use neighbor-group')[0].split('neighbor ')[-1].splitlines()[0].strip()
-                            #except: pass
 
                     elif RCMD.router_type == 'huawei':
                         pass
@@ -4258,7 +4253,7 @@ authentication {
                                 try: interface_data['ipv4_multicast_route-policy_out'] = collect3_if_config_rcmd_outputs[2].split('address-family ipv4 multicast')[1].split('route-policy ')[2].splitlines()[0].split()[0].strip()
                                 except: pass
 
-                        if interface_data.get('use_neighbor-group_ipv6'):
+                        if USE_IPV6 and interface_data.get('use_neighbor-group_ipv6'):
                             interface_warning_data['address-family_ipv6'] = []
                             try:
                                 if 'address-family ipv6 unicast' in collect3_if_config_rcmd_outputs[3]:
@@ -4272,9 +4267,6 @@ authentication {
 
                             try: interface_data['ipv6_remote-as'] = collect3_if_config_rcmd_outputs[3].split('remote-as ')[1].splitlines()[0].strip()
                             except: interface_data['ipv6_remote-as'] = str()
-
-                            #try: interface_data['ipv6_password_encrypted'] = collect3_if_config_rcmd_outputs[3].split('password encrypted ')[1].splitlines()[0].strip()
-                            #except: interface_data['ipv6_password_encrypted'] = str()
 
                             if 'unicast' in interface_warning_data.get('address-family_ipv6',str()):
                                 try: interface_data['ipv6_unicast_route-policy_in'] = collect3_if_config_rcmd_outputs[4].split('address-family ipv6 unicast')[1].split('route-policy ')[1].splitlines()[0].split()[0].strip()
@@ -4906,9 +4898,18 @@ authentication {
     ### def GLOBAL_LOGFILENAME, DO LOG ONLY WHEN DEVICE LIST EXISTS ###########
     if len(devices_interfaces_list) > 0:
         html_extention = 'htm' if CGI_CLI.cgi_active else str()
-        global_logfilename = copy.deepcopy(generate_logfilename( \
-            prefix = '%s' % ('PRECHECK' if precheck_mode else 'POSTCHECK'), \
-            USERNAME = USERNAME, suffix = str('%slog' % (html_extention))))
+        if BB_MODE:
+            global_logfilename = copy.deepcopy(generate_logfilename( \
+                prefix = '%s' % ('BB_PRECHECK' if precheck_mode else 'BB_POSTCHECK'), \
+                USERNAME = USERNAME, suffix = str('%slog' % (html_extention))))
+        elif CUSTOMER_MODE:
+            global_logfilename = copy.deepcopy(generate_logfilename( \
+                prefix = '%s' % ('CUST_PRECHECK' if precheck_mode else 'CUST_POSTCHECK'), \
+                USERNAME = USERNAME, suffix = str('%slog' % (html_extention))))
+        elif PING_ONLY:
+            global_logfilename = copy.deepcopy(generate_logfilename( \
+                prefix = '%s' % ('PINGCHECK'), \
+                USERNAME = USERNAME, suffix = str('%slog' % (html_extention))))
 
         ### NO WINDOWS LOGGING ################################################
         if 'WIN32' in sys.platform.upper(): global_logfilename = None
