@@ -2960,6 +2960,7 @@ authentication {
     IMN_INTERFACE = False
     CUSTOMER_MODE = False
     BB_MODE = False
+    USE_IPV6 = False
 
     ### GCI_CLI INIT ##########################################################
     PING_ONLY = True if 'ping_only' in CGI_CLI.get_scriptname() else False
@@ -3586,9 +3587,6 @@ authentication {
                 try: interface_data['fib_number(s)'] = ','.join(get_fiblist(collect_if_config_rcmd_outputs[0].split('description')[1].splitlines()[0]))
                 except: interface_data['fib_number'] = str()
 
-                if 'PE' in interface_data.get('name_of_remote_device').upper() or 'PE' in device.upper():
-                    IMN_INTERFACE = True
-
                 if not precheck_mode:
                     interface_warning_data['rxload_percent'] = '-'
                     interface_warning_data['txload_percent'] = '-'
@@ -3601,12 +3599,11 @@ authentication {
                     try: interface_data['ipv4_mask_loc_dotted'] = collect_if_config_rcmd_outputs[0].split('ipv4 address ')[1].split()[1]
                     except: pass
 
-                    if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
-                        try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
-                        except: pass
+                    try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
+                    except: pass
 
-                        try: interface_data['ipv6_mask_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[1]
-                        except: pass
+                    try: interface_data['ipv6_mask_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[1]
+                    except: pass
 
                     try: interface_data['MTU_configured'] = collect_if_config_rcmd_outputs[0].split('mtu ')[1].splitlines()[0].strip()
                     except: interface_data['MTU_configured'] = str()
@@ -3616,9 +3613,8 @@ authentication {
                         try: interface_data['flow ipv4 monitor'] = collect_if_config_rcmd_outputs[0].split('flow ipv4 monitor ')[1].split()[0]
                         except: interface_data['flow ipv4 monitor'] = str()
 
-                        if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
-                            try: interface_data['flow ipv6 monitor'] = collect_if_config_rcmd_outputs[0].split('flow ipv4 monitor ')[1].split()[0]
-                            except: interface_data['flow ipv6 monitor'] = str()
+                        try: interface_data['flow ipv6 monitor'] = collect_if_config_rcmd_outputs[0].split('flow ipv4 monitor ')[1].split()[0]
+                        except: pass
 
                     elif CUSTOMER_MODE:
                         try: interface_data['service-policy_input'] = collect_if_config_rcmd_outputs[0].split('service-policy input ')[1].splitlines()[0].strip()
@@ -3646,12 +3642,11 @@ authentication {
                     try: interface_data['ipv4_mask_loc'] = collect_if_config_rcmd_outputs[0].split('family inet address ')[1].split()[0].split('/')[1].replace(';','')
                     except: pass
 
-                    if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
-                        try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet6 address ')[1].split()[0].split('/')[0].replace(';','')
-                        except: pass
+                    try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet6 address ')[1].split()[0].split('/')[0].replace(';','')
+                    except: pass
 
-                        try: interface_data['ipv6_mask_loc'] = collect_if_config_rcmd_outputs[0].split('family inet6 address ')[1].split()[0].split('/')[1].replace(';','')
-                        except: pass
+                    try: interface_data['ipv6_mask_loc'] = collect_if_config_rcmd_outputs[0].split('family inet6 address ')[1].split()[0].split('/')[1].replace(';','')
+                    except: pass
 
                 elif RCMD.router_type == 'huawei':
                     try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[0]
@@ -3660,12 +3655,18 @@ authentication {
                     try: interface_data['ipv4_mask_loc_dotted'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[1]
                     except: pass
 
-                    if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
-                        try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
-                        except: pass
+                    try: interface_data['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
+                    except: pass
 
-                        try: interface_data['ipv6_mask_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[1]
-                        except: pass
+                    try: interface_data['ipv6_mask_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[1]
+                    except: pass
+
+
+                ### def IPV6 CONDITION - YES OR NO ############################
+                ### OTI_LOCAL_AS = '5511'
+                ### IMN_LOCAL_AS = '2300'
+                if (LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE) \
+                    or interface_data.get('ipv6_addr_loc'): USE_IPV6 = True
 
 
                 ###############################################################
@@ -3719,11 +3720,6 @@ authentication {
                                     if str(addr) == str(interface_data.get('ipv4_addr_loc')): pass
                                     else: interface_warning_data['ipv4_addr_rem_calculated'] =  copy.deepcopy(str(addr))
                                 i_counter += 1
-
-                #if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
-
-                #CGI_CLI.uprint(interface_data.get('ipv6_addr_loc'), tag = 'debug', no_printall = not CGI_CLI.printall)
-                #CGI_CLI.uprint(interface_data.get('ipv6_mask_loc'), tag = 'debug', no_printall = not CGI_CLI.printall)
 
                 if interface_data.get('ipv6_addr_loc') and interface_data.get('ipv6_mask_loc'):
                     interface = ipaddress.IPv6Interface(u'%s/%s' % \
@@ -3838,7 +3834,7 @@ authentication {
                         try: interface_data['ipv4_metric'] = collect_if_config_rcmd_outputs[0].split('address-family ipv4 unicast')[1].splitlines()[1].split('metric ')[1].split()[0]
                         except: interface_data['ipv4_metric'] = str()
 
-                        if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
+                        if USE_IPV6:
                             try: interface_data['ipv6_metric'] = collect_if_config_rcmd_outputs[0].split('address-family ipv6 unicast')[1].splitlines()[1].split('metric ')[1].split()[0]
                             except: interface_data['ipv6_metric'] = str()
 
@@ -4002,7 +3998,7 @@ authentication {
                         try: interface_data['isis cost'] = collect_if_config_rcmd_outputs[0].split('isis cost ')[1].split()[0]
                         except: interface_data['isis cost'] = str()
 
-                        if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
+                        if USE_IPV6:
                             try: interface_data['isis ipv6 cost'] = collect_if_config_rcmd_outputs[0].split('isis ipv6 cost ')[1].split()[0]
                             except: interface_data['isis ipv6 cost'] = str()
 
@@ -4016,7 +4012,7 @@ authentication {
                         try: interface_data['isis interface IPV4.State'] = collect_if_config_rcmd_outputs[5].split(' Type')[1].split(' DIS')[1].split()[2]
                         except: interface_data['isis interface IPV4.State'] = str()
 
-                        if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
+                        if USE_IPV6:
                             try: interface_data['isis interface IPV6.State'] = collect_if_config_rcmd_outputs[5].split(' Type')[1].split(' DIS')[1].split()[3]
                             except: interface_data['isis interface IPV6.State'] = str()
 
@@ -4375,7 +4371,7 @@ authentication {
 
 
                 ### def FIRST PINGv6 COMMAND LIST ###################################
-                if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
+                if USE_IPV6:
                     if interface_warning_data.get('ipv6_addr_rem',str()):
                         interface_warning_data['ping_v6_percent_success'] = str(do_ping( \
                             address = interface_warning_data.get('ipv6_addr_rem',str()), \
@@ -4438,7 +4434,7 @@ authentication {
                                     mtu = 100, count = ping_counts, ipv6 = None, \
                                     source = interface_data.get('ipv4_addr_loc',str())))
 
-                    if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE \
+                    if USE_IPV6 \
                         and not interface_warning_data.get('ping_v6_max_working_mtu_percent_success_%spings' % (ping_counts)):
                         if '100' in interface_warning_data.get('ping_v6_mtu_percent_success',str()):
                             ### def "THOUSANDS" PINGv6 COMMAND LIST ###################
@@ -4538,7 +4534,7 @@ authentication {
                             CGI_CLI.uprint('Ipv4 L2 metric missing on Interface %s = NOT OK' % (interface_id), color = 'red')
                     elif RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr' and not interface_data.get('ipv6_metric') \
                         or RCMD.router_type == 'huawei' and not interface_data.get('isis ipv6 cost'):
-                            if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
+                            if USE_IPV6 and BB_MODE:
                                 check_interface_result_ok = False
                                 CGI_CLI.uprint('Ipv6 L2 metric missing on Interface %s = NOT OK' % (interface_id), color = 'red')
                     else:
@@ -4559,7 +4555,7 @@ authentication {
                                             % (L2_metric, parallel_interface, interface_data.get('ipv4_metric'), interface_id), color = 'red')
                                     else: CGI_CLI.logtofile("Ipv4 L2 Metric (%s) check on Interface %s = OK\n" % (L2_metric, parallel_interface), ommit_timestamp = True)
 
-                                if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
+                                if USE_IPV6 and BB_MODE:
                                     if interface_data.get('ipv6_metric'):
                                         if ipv6_L2_metric == '99999':
                                             CGI_CLI.logtofile("Ipv6 L2 Metric (99999) check on Interface %s = IGNORE\n" % (parallel_interface), ommit_timestamp = True)
@@ -4597,7 +4593,7 @@ authentication {
                                             % (L2_metric, parallel_interface, interface_data.get('isis cost'), interface_id), color = 'red')
                                     else: CGI_CLI.logtofile("Ipv4 L2 Metric (%s) check on Interface %s = OK\n" % (L2_metric, parallel_interface), ommit_timestamp = True)
 
-                                if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
+                                if USE_IPV6 and BB_MODE:
                                     if interface_data.get('isis ipv6 cost'):
                                         if ipv6_L2_metric == '99999':
                                             CGI_CLI.logtofile("Ipv4 L2 Metric (99999) check on Interface %s = IGNORE\n" % (parallel_interface), ommit_timestamp = True)
@@ -4652,7 +4648,7 @@ authentication {
                     check_interface_data_content('ping_v4_mtu_percent_success', '100', warning = True, ignore_data_existence = True)
                     check_interface_data_content('ping_v4_max_working_mtu_percent_success_%spings' % (ping_counts), '100', ignore_data_existence = True)
 
-                if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
+                if USE_IPV6:
                     check_interface_data_content('ping_v6_percent_success', '100', warning = True, ignore_data_existence = True)
 
                     if RCMD.router_type == 'juniper':
@@ -4675,8 +4671,7 @@ authentication {
                     else:
                         check_interface_data_content('ping_v4_percent_success_%spings' % (ping_counts), '100', ignore_data_existence = True)
 
-                    if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
-
+                    if USE_IPV6:
                         if '100' in interface_warning_data.get('ping_v6_mtu_percent_success',str()):
                             check_interface_data_content('ping_v6_mtu_percent_success_%spings' % (ping_counts), '100', warning = True, ignore_data_existence = True)
                         else:
@@ -4689,12 +4684,12 @@ authentication {
                         if precheck_mode:
                             check_interface_data_content('ipv4_metric', '99999')
 
-                            if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
+                            if USE_IPV6:
                                 check_interface_data_content('ipv6_metric', '99999')
                         else:
                             check_interface_data_content('ipv4_metric', None, '99999')
 
-                            if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
+                            if USE_IPV6:
                                 check_interface_data_content('ipv6_metric', None, '99999')
 
                     if ping_counts and int(ping_counts) > 0:
@@ -4749,18 +4744,18 @@ authentication {
                         check_interface_data_content('Line protocol current state', 'UP')
                         check_interface_data_content('isis interface IPV4.State', 'UP')
 
-                        if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
+                        if USE_IPV6:
                             check_interface_data_content('isis interface IPV6.State', 'UP')
 
                         if precheck_mode:
                             check_interface_data_content('isis cost', '99999')
 
-                            if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
+                            if USE_IPV6:
                                 check_interface_data_content('isis ipv6 cost', '99999')
                         else:
                             check_interface_data_content('isis cost', None, '99999')
 
-                            if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
+                            if USE_IPV6 and BB_MODE:
                                 check_interface_data_content('isis ipv6 cost', None, '99999')
 
                         if interface_warning_data.get('Local_fault'):
