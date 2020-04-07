@@ -3673,7 +3673,10 @@ authentication {
                 ###############################################################
                 ### def FIND REMOTE IP ADDRESES: THE OTHER IP IN NETWORK ######
                 ###############################################################
-                if CUSTOMER_MODE:
+                interface_data['ipv4_addr_rem'] = \
+                    interface_data.get('ipv4_addr_rem_from_DESCRIPTION')
+
+                if CUSTOMER_MODE or PING_ONLY:
                     if len(interface_data.get('ipv4_addr_rem_from_ASN',[])) == 1:
                         interface_data['ipv4_addr_rem'] = \
                             interface_data.get('ipv4_addr_rem_from_ASN')[0]
@@ -3691,61 +3694,60 @@ authentication {
                 ###############################################################
                 ### https://cpython-test-docs.readthedocs.io/en/latest/howto/ipaddress.html
                 list_of_ipv4_network, list_of_ipv6_network = [], []
-                if BB_MODE:
-                    if interface_data.get('ipv4_addr_loc'):
-                        if interface_data.get('ipv4_mask_loc_dotted',str()) == '255.255.255.254':
-                            interface_data['ipv4_mask_loc'] = '31'
-                        if interface_data.get('ipv4_mask_loc_dotted',str()) == '255.255.255.252':
-                            interface_data['ipv4_mask_loc'] = '30'
-                        if interface_data.get('ipv4_mask_loc'):
-                            interface = ipaddress.IPv4Interface(u'%s/%s' % \
-                                (interface_data.get('ipv4_addr_loc'), \
-                                interface_data.get('ipv4_mask_loc')))
+                if interface_data.get('ipv4_addr_loc'):
+                    if interface_data.get('ipv4_mask_loc_dotted',str()) == '255.255.255.254':
+                        interface_data['ipv4_mask_loc'] = '31'
+                    if interface_data.get('ipv4_mask_loc_dotted',str()) == '255.255.255.252':
+                        interface_data['ipv4_mask_loc'] = '30'
+                    if interface_data.get('ipv4_mask_loc'):
+                        interface = ipaddress.IPv4Interface(u'%s/%s' % \
+                            (interface_data.get('ipv4_addr_loc'), \
+                            interface_data.get('ipv4_mask_loc')))
 
-                            ipv4_network = interface.network
+                        ipv4_network = interface.network
 
-                            if interface_data.get('ipv4_mask_loc') == '31':
-                                for addr in ipaddress.IPv4Network(ipv4_network):
-                                    CGI_CLI.uprint("addr=%s" % (addr), tag = 'debug', no_printall = not CGI_CLI.printall)
+                        if interface_data.get('ipv4_mask_loc') == '31':
+                            for addr in ipaddress.IPv4Network(ipv4_network):
+                                CGI_CLI.uprint("addr=%s" % (addr), tag = 'debug', no_printall = not CGI_CLI.printall)
+                                if str(addr) == str(interface_data.get('ipv4_addr_loc')): pass
+                                else: interface_warning_data['ipv4_addr_rem_calculated'] = str(addr)
+
+                        if interface_data.get('ipv4_mask_loc') == '30':
+                            i_counter = 0
+                            for addr in ipaddress.IPv4Network(ipv4_network):
+                                CGI_CLI.uprint("addr=%s" % (addr), tag = 'debug', no_printall = not CGI_CLI.printall)
+                                if i_counter == 1 or i_counter == 2:
                                     if str(addr) == str(interface_data.get('ipv4_addr_loc')): pass
                                     else: interface_warning_data['ipv4_addr_rem_calculated'] = str(addr)
+                                i_counter += 1
 
-                            if interface_data.get('ipv4_mask_loc') == '30':
-                                i_counter = 0
-                                for addr in ipaddress.IPv4Network(ipv4_network):
-                                    CGI_CLI.uprint("addr=%s" % (addr), tag = 'debug', no_printall = not CGI_CLI.printall)
-                                    if i_counter == 1 or i_counter == 2:
-                                        if str(addr) == str(interface_data.get('ipv4_addr_loc')): pass
-                                        else: interface_warning_data['ipv4_addr_rem_calculated'] = str(addr)
-                                    i_counter += 1
+                if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
+                    if interface_data.get('ipv6_addr_loc') and interface_data.get('ipv6_mask_loc'):
+                        interface = ipaddress.IPv6Interface(u'%s/%s' % \
+                            (interface_data.get('ipv6_addr_loc'),interface_data.get('ipv6_mask_loc')))
 
-                    if LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE:
-                        if interface_data.get('ipv6_addr_loc') and interface_data.get('ipv6_mask_loc'):
-                            interface = ipaddress.IPv6Interface(u'%s/%s' % \
-                                (interface_data.get('ipv6_addr_loc'),interface_data.get('ipv6_mask_loc')))
+                        ipv6_network = interface.network
 
-                            ipv6_network = interface.network
+                        if interface_data.get('ipv4_mask_loc') == '127':
+                            for addr in ipaddress.IPv6Network(ipv6_network):
+                                CGI_CLI.uprint("addr=%s" % (addr), tag = 'debug', no_printall = not CGI_CLI.printall)
+                                if str(addr) == str(interface_data.get('ipv6_addr_loc')): pass
+                                else:
+                                    interface_warning_data['ipv6_addr_rem_calculated'] = str(addr)
+                                    if not interface_warning_data.get('ipv6_addr_rem'):
+                                        interface_warning_data['ipv6_addr_rem'] = str(addr)
 
-                            if interface_data.get('ipv4_mask_loc') == '127':
-                                for addr in ipaddress.IPv6Network(ipv6_network):
-                                    CGI_CLI.uprint("addr=%s" % (addr), tag = 'debug', no_printall = not CGI_CLI.printall)
+                        if interface_data.get('ipv4_mask_loc') == '126':
+                            i_counter = 0
+                            for addr in ipaddress.IPv6Network(ipv6_network):
+                                CGI_CLI.uprint("addr=%s" % (addr), tag = 'debug', no_printall = not CGI_CLI.printall)
+                                if i_counter == 1 or i_counter == 2:
                                     if str(addr) == str(interface_data.get('ipv6_addr_loc')): pass
                                     else:
                                         interface_warning_data['ipv6_addr_rem_calculated'] = str(addr)
                                         if not interface_warning_data.get('ipv6_addr_rem'):
                                             interface_warning_data['ipv6_addr_rem'] = str(addr)
-
-                            if interface_data.get('ipv4_mask_loc') == '126':
-                                i_counter = 0
-                                for addr in ipaddress.IPv6Network(ipv6_network):
-                                    CGI_CLI.uprint("addr=%s" % (addr), tag = 'debug', no_printall = not CGI_CLI.printall)
-                                    if i_counter == 1 or i_counter == 2:
-                                        if str(addr) == str(interface_data.get('ipv6_addr_loc')): pass
-                                        else:
-                                            interface_warning_data['ipv6_addr_rem_calculated'] = str(addr)
-                                            if not interface_warning_data.get('ipv6_addr_rem'):
-                                                interface_warning_data['ipv6_addr_rem'] = str(addr)
-                                    i_counter += 1
+                                i_counter += 1
 
 
                 ###############################################################
@@ -3848,7 +3850,7 @@ authentication {
                         try: interface_data['line protocol is'] = collect_if_config_rcmd_outputs[4].split('line protocol is ')[1].split()[0]
                         except: interface_data['line protocol is'] = str()
 
-                        try: interface_data['isis neighbors'] = collect_if_config_rcmd_outputs[6].split(interface_data.get('name_of_remote_device','XXYYZZ').upper())[1].split(interface_id)[1].split()[1].strip()
+                        try: interface_data['isis neighbors'] = collect_if_config_rcmd_outputs[5].split(interface_data.get('name_of_remote_device','XXYYZZ').upper())[1].split(interface_id)[1].split()[1].strip()
                         except: interface_data['isis neighbors'] = str()
 
                         try: interface_data['Up time'] = collect_if_config_rcmd_outputs[6].split('Up time:')[1].split()[0]
