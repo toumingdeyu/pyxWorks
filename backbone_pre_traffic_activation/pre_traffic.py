@@ -4123,8 +4123,8 @@ authentication {
                         try: interface_data['router_isis_PAII__address-family_ipv6'] = collect_if_config_rcmd_outputs[0].split('address-family ipv6 ')[1].splitlines()[0].strip()
                         except: interface_data['router_isis_PAII__address-family_ipv6'] = str()
 
-                        try: interface_data['MTU_default'] = collect_if_config_rcmd_outputs[1].split('MTU ')[1].splitlines()[0].split()[0].strip()
-                        except: interface_data['MTU_default'] = str()
+                        try: interface_warning_data['MTU_default'] = collect_if_config_rcmd_outputs[1].split('MTU ')[1].splitlines()[0].split()[0].strip()
+                        except: interface_warning_data['MTU_default'] = str()
 
                         try: interface_data['Full-duplex_bandwith'] = collect_if_config_rcmd_outputs[1].split('Full-duplex,')[1].splitlines()[0].split()[0].replace(',','').strip()
                         except: interface_data['Full-duplex_bandwith'] = str()
