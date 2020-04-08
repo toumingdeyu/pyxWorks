@@ -2487,17 +2487,30 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not_in =
                     color = 'red', timestamp = 'no')
 
     if what_yes_in and where:
-        if what_yes_in.upper() in where_value.upper():
-            CGI_CLI.logtofile("CHECK['%s' in '%s'(%s)] = OK\n" % (what_yes_in, where, str(where_value)), ommit_timestamp = True)
-        else:
-            if warning:
-                check_warning_interface_result_ok = False
-                CGI_CLI.uprint("CHECK['%s' in '%s'(%s)] = WARNING" % (what_yes_in, where, str(where_value)),
-                    color = 'orange', timestamp = 'no')
+        if isinstance(where, (list,tuple)): pass
+            if what_yes_in in where_value:
+                CGI_CLI.logtofile("CHECK['%s' in '%s'(%s)] = OK\n" % (what_yes_in, where, str(where_value)), ommit_timestamp = True)
             else:
-                check_interface_result_ok = False
-                CGI_CLI.uprint("CHECK['%s' in '%s'(%s)] = NOT OK" % (what_yes_in, where, str(where_value)),
-                    color = 'red', timestamp = 'no')
+                if warning:
+                    check_warning_interface_result_ok = False
+                    CGI_CLI.uprint("CHECK['%s' in '%s'(%s)] = WARNING" % (what_yes_in, where, str(where_value)),
+                        color = 'orange', timestamp = 'no')
+                else:
+                    check_interface_result_ok = False
+                    CGI_CLI.uprint("CHECK['%s' in '%s'(%s)] = NOT OK" % (what_yes_in, where, str(where_value)),
+                        color = 'red', timestamp = 'no')
+        else:
+            if what_yes_in.upper() in where_value.upper():
+                CGI_CLI.logtofile("CHECK['%s' in '%s'(%s)] = OK\n" % (what_yes_in, where, str(where_value)), ommit_timestamp = True)
+            else:
+                if warning:
+                    check_warning_interface_result_ok = False
+                    CGI_CLI.uprint("CHECK['%s' in '%s'(%s)] = WARNING" % (what_yes_in, where, str(where_value)),
+                        color = 'orange', timestamp = 'no')
+                else:
+                    check_interface_result_ok = False
+                    CGI_CLI.uprint("CHECK['%s' in '%s'(%s)] = NOT OK" % (what_yes_in, where, str(where_value)),
+                        color = 'red', timestamp = 'no')
 
     if what_not_in and where:
         if isinstance(what_not_in, (list,tuple)):
@@ -4783,6 +4796,9 @@ authentication {
                 if CUSTOMER_MODE:
                     ### def CUST - CHECKS #####################################
                     if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
+
+                        check_interface_data_content('address-family_ipv4', what_yes_in = 'unicast')
+
                         if precheck_mode:
                             check_interface_data_content('ipv4_unicast_route-policy_in', exact_value_yes = 'DENY-ALL')
                             check_interface_data_content('ipv4_unicast_route-policy_out', exact_value_yes = 'DENY-ALL')
