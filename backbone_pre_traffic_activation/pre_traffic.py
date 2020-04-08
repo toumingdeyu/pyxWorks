@@ -2750,16 +2750,16 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
         except: pass
 
         try:    interface_warning_data['Bit_errors%s' % (after_string)] = err_check_after_pings_outputs[0].split('Bit errors ')[1].split()[0].strip()
-        except: interface_warning_data['Bit_errors%s' % (after_string)] = str()
+        except: pass
         if after_ping:
             try:    interface_warning_data['Bit_errors_Difference'] = str(int(interface_warning_data['Bit_errors_After_ping']) - int(interface_warning_data['Bit_errors']))
-            except: interface_warning_data['Bit_errors_Difference'] = str()
+            except: pass
 
         try:    interface_warning_data['Errored_blocks%s' % (after_string)] = err_check_after_pings_outputs[0].split('Errored blocks ')[1].split()[0].strip()
-        except: interface_warning_data['Errored_blocks%s' % (after_string)] = str()
+        except: pass
         if after_ping:
             try:    interface_warning_data['Errored_blocks_Difference'] = str(int(interface_warning_data['Errored_blocks_After_ping']) - int(interface_warning_data['Errored_blocks']))
-            except: interface_warning_data['Errored_blocks_Difference'] = str()
+            except: pass
 
         try:    interface_warning_data['Ethernet_FEC_statistics%s' % (after_string)] = err_check_after_pings_outputs[0].split('Ethernet FEC statistics ')[1].split()[0].strip()
         except: pass
@@ -2837,16 +2837,16 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
             except: interface_warning_data['Output_errors__Drops_Difference'] = str()
 
         try:    interface_warning_data['Output_errors__Collisions%s' % (after_string)] = err_check_after_pings_outputs[0].split('Output errors:')[1].strip().split('Active alarms')[0].strip().split('Collisions: ')[1].split()[0].replace(',','')
-        except: interface_warning_data['Output_errors__Collisions%s' % (after_string)] = str()
+        except: pass
         if after_ping:
             try:    interface_warning_data['Output_errors__Collisions_Difference'] = str(int(interface_warning_data['Output_errors__Collisions_After_ping']) - int(interface_warning_data['Output_errors__Collisions']))
-            except: interface_warning_data['Output_errors__Collisions_Difference'] = str()
+            except: pass
 
         try:    interface_warning_data['Output_errors__Aged_packets%s' % (after_string)] = err_check_after_pings_outputs[0].split('Output errors:')[1].strip().split('Active alarms')[0].strip().split('Aged packets: ')[1].split()[0].replace(',','')
-        except: interface_warning_data['Output_errors__Aged_packets%s' % (after_string)] = str()
+        except: pass
         if after_ping:
             try:    interface_warning_data['Output_errors__Aged_packets_Difference'] = str(int(interface_warning_data['Output_errors__Aged_packets_After_ping']) - int(interface_warning_data['Output_errors__Aged_packets']))
-            except: interface_warning_data['Output_errors__Aged_packets_Difference'] = str()
+            except: pass
 
     elif RCMD.router_type == 'huawei':
         if not after_ping:
