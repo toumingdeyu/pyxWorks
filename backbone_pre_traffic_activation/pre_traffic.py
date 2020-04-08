@@ -3587,7 +3587,7 @@ authentication {
                     autoconfirm_mode = True, \
                     printall = printall)
 
-                try: interface_data['name_of_remote_device'] = collect_if_config_rcmd_outputs[0].upper().split('DESCRIPTION')[1].splitlines()[0].split('FROM')[0].strip().replace('"','')
+                try: interface_data['name_of_remote_device'] = collect_if_config_rcmd_outputs[0].upper().split('DESCRIPTION')[1].splitlines()[0].split('FROM')[0].split()[-1].strip().replace('"','')
                 except: interface_data['name_of_remote_device'] = str()
 
                 if 'PE' in interface_data.get('name_of_remote_device',str()).upper() or 'PE' in device.upper():
