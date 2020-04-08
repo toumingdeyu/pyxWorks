@@ -2416,14 +2416,14 @@ def get_fiblist(input_text = None):
 ###############################################################################
 
 check_interface_result_ok, check_warning_interface_result_ok = True, True
-def check_interface_data_content(where = None, what_yes_in = None, what_not = None, \
+def check_interface_data_content(where = None, what_yes_in = None, what_not_in = None, \
     exact_value_yes = None, lower_than = None, higher_than = None, warning = None, \
     ignore_data_existence = None):
     """
     multiple tests in once are possible
     what_yes_in - string = if occurs in where then OK.
-    what_not - list = if all items from list occurs, then FAIL. Otherwise OK.
-    what_not - string = if string occurs in text, then FAIL.
+    what_not_in - list = if all items from list occurs, then FAIL. Otherwise OK.
+    what_not_in - string = if string occurs in text, then FAIL.
     """
     global check_interface_result_ok
     global check_warning_interface_result_ok
@@ -2437,8 +2437,8 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
         where_value = interface_data.get(where, str())
         if str(where) in interface_data.keys(): key_exists = True
 
-    #CGI_CLI.uprint('CHECK[%s, where_value=%s, what_yes_in=%s, what_not=%s, exact_value_yes=%s, lower_than=%s, higher_than=%s, warning=%s, key_exists=%s, ignore_data_existence=%s]' \
-    #    % (where, where_value, what_yes_in, what_not, exact_value_yes, lower_than, higher_than, warning, str(key_exists), str(ignore_data_existence)),\
+    #CGI_CLI.uprint('CHECK[%s, where_value=%s, what_yes_in=%s, what_not_in=%s, exact_value_yes=%s, lower_than=%s, higher_than=%s, warning=%s, key_exists=%s, ignore_data_existence=%s]' \
+    #    % (where, where_value, what_yes_in, what_not_in, exact_value_yes, lower_than, higher_than, warning, str(key_exists), str(ignore_data_existence)),\
     #    tag = 'debug', no_printall = not CGI_CLI.printall)
 
     if key_exists: pass
@@ -2499,32 +2499,32 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not = No
                 CGI_CLI.uprint("CHECK['%s' in '%s'(%s)] = NOT OK" % (what_yes_in, where, str(where_value)),
                     color = 'red', timestamp = 'no')
 
-    if what_not and where:
-        if isinstance(what_not, (list,tuple)):
-            for item in what_not:
+    if what_not_in and where:
+        if isinstance(what_not_in, (list,tuple)):
+            for item in what_not_in:
                 if item.upper() in where_value.upper():
                     local_check_interface_result_ok += 1
                     Alarm_text.append("'%s' not in '%s'(%s)" % (item, where, str(where_value)))
             ### ALL FAIL LOGIC ###
-            if local_check_interface_result_ok == len(what_not):
+            if local_check_interface_result_ok == len(what_not_in):
                 if warning:
                     check_warning_interface_result_ok = False
                     CGI_CLI.uprint("CHECK[" + ' AND '.join(Alarm_text) + '] = WARNING', color = 'orange', timestamp = 'no')
                 else:
                     check_interface_result_ok = False
                     CGI_CLI.uprint("CHECK[" + ' AND '.join(Alarm_text) + '] = NOT OK', color = 'red', timestamp = 'no')
-            else: CGI_CLI.logtofile("CHECK[ ['%s'] not in '%s'] = OK\n" % (','.join(what_not), where), ommit_timestamp = True)
+            else: CGI_CLI.logtofile("CHECK[ ['%s'] not in '%s'] = OK\n" % (','.join(what_not_in), where), ommit_timestamp = True)
         else:
-            if what_not.upper() in where_value.upper():
+            if what_not_in.upper() in where_value.upper():
                 if warning:
                     check_warning_interface_result_ok = False
-                    CGI_CLI.uprint("CHECK['%s' not in '%s'(%s)] = WARNING" % (str(what_not), where, str(where_value)),
+                    CGI_CLI.uprint("CHECK['%s' not in '%s'(%s)] = WARNING" % (str(what_not_in), where, str(where_value)),
                         color = 'orange', timestamp = 'no')
                 else:
                     check_interface_result_ok = False
-                    CGI_CLI.uprint("CHECK['%s' not in '%s'(%s)] = NOT OK" % (str(what_not), where, str(where_value)),
+                    CGI_CLI.uprint("CHECK['%s' not in '%s'(%s)] = NOT OK" % (str(what_not_in), where, str(where_value)),
                         color = 'red', timestamp = 'no')
-            else: CGI_CLI.logtofile("CHECK['%s' not in '%s'(%s)] = OK\n" % (str(what_not), where, str(where_value)), ommit_timestamp = True)
+            else: CGI_CLI.logtofile("CHECK['%s' not in '%s'(%s)] = OK\n" % (str(what_not_in), where, str(where_value)), ommit_timestamp = True)
 
 ###############################################################################
 
@@ -2994,7 +2994,7 @@ authentication {
     if CGI_CLI.data.get('customer_interfaces'):
         action_type = 'custommigration'
 
-    if CGI_CLI.data.get("type"):
+    if not PING_ONLY and CGI_CLI.data.get("type"):
         if isinstance(CGI_CLI.data.get("type"), (str,basestring,six.string_types)):
             if '[' in CGI_CLI.data.get("type"):
                 ### fake_list_is_string ###
@@ -3009,6 +3009,8 @@ authentication {
             for type_item in CGI_CLI.data.get("type"):
                 if type_item in action_type_list:
                     action_type = type_item
+
+
 
     ### MULTIPLE INPUTS FROM MORE MARTIN'S PAGES ##############################
     swan_id = CGI_CLI.data.get("swan",str())
@@ -3606,8 +3608,8 @@ authentication {
                     try: interface_data['ipv6_mask_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[1]
                     except: pass
 
-                    try: interface_data['MTU_configured'] = collect_if_config_rcmd_outputs[0].split('mtu ')[1].splitlines()[0].strip()
-                    except: interface_data['MTU_configured'] = str()
+                    try: interface_warning_data['MTU_configured'] = collect_if_config_rcmd_outputs[0].split('mtu ')[1].splitlines()[0].strip()
+                    except: interface_warning_data['MTU_configured'] = str()
 
                     if BB_MODE:
                         interface_data['dampening'] = True if 'dampening' in collect_if_config_rcmd_outputs[0] else str()
@@ -3901,12 +3903,12 @@ authentication {
                         except: interface_prefix = str()
 
                         if interface_prefix:
-                            try: interface_data['MTU_configured'] = collect_if_config_rcmd_outputs[10].split('<' + interface_prefix).split('mtu ')[1].splitlines()[0].strip()
-                            except: interface_data['MTU_configured'] = str()
+                            try: interface_warning_data['MTU_configured'] = collect_if_config_rcmd_outputs[10].split('<' + interface_prefix).split('mtu ')[1].splitlines()[0].strip()
+                            except: interface_warning_data['MTU_configured'] = str()
 
-                        if not interface_data.get('MTU_configured'):
-                            try: interface_data['MTU_configured'] = collect_if_config_rcmd_outputs[10].split('mtu ')[1].splitlines()[0].strip()
-                            except: interface_data['MTU_configured'] = str()
+                        if not interface_warning_data.get('MTU_configured'):
+                            try: interface_warning_data['MTU_configured'] = collect_if_config_rcmd_outputs[10].split('mtu ')[1].splitlines()[0].strip()
+                            except: interface_warning_data['MTU_configured'] = str()
 
                         interface_data['ldp-synchronization;'] = True if 'ldp-synchronization;' in collect_if_config_rcmd_outputs[11] else str()
 
@@ -4338,8 +4340,8 @@ authentication {
 
                 ### def MTU ###################################################
                 mtu_size, default_mtu = 0, 0
-                if interface_data.get('MTU_configured'):
-                    default_mtu = int(interface_data.get('MTU_configured'))
+                if interface_warning_data.get('MTU_configured'):
+                    default_mtu = int(interface_warning_data.get('MTU_configured'))
                 else:
                     if BB_MODE: default_mtu = 4484
                     if CUSTOMER_MODE or PING_ONLY: mtu_size = 1500
@@ -4493,8 +4495,9 @@ authentication {
 
                 ### START OF CHECKS PER INTERFACE #############################
                 check_interface_result_ok, check_warning_interface_result_ok = True, True
+                CGI_CLI.uprint('CHECKS:', timestamp = 'no', tag = 'h2')
 
-                ### def VOID ELEMENTS CHECK ###################################
+                ### def ALL - VOID ELEMENTS CHECK #############################
                 None_elements = get_void_json_elements(interface_data, \
                     no_equal_sign = True, no_root_backslash = True)
 
@@ -4516,8 +4519,6 @@ authentication {
                         CGI_CLI.uprint('\n'.join(None_warning_elements), color = 'orange', timestamp = 'no')
                         CGI_CLI.uprint('\n\n', timestamp = 'no')
 
-
-                CGI_CLI.uprint('CHECKS:', timestamp = 'no', tag = 'h3')
                 if BB_MODE and not precheck_mode:
                     if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr' and not interface_data.get('ipv4_metric') \
                         or RCMD.router_type == 'juniper' and not interface_data.get('metric') \
@@ -4530,6 +4531,7 @@ authentication {
                                 check_interface_result_ok = False
                                 CGI_CLI.uprint('Ipv6 L2 metric missing on Interface %s = NOT OK' % (interface_id), color = 'red')
                     else:
+                        ### def BB - L2 METRIC POST-CHECK #####################
                         for parralel_cmd_output, parallel_interface in zip(parrallel_interfaces_outputs, interface_data.get('parallel_interfaces',[])):
                             L2_metric, ipv6_L2_metric = None, None
                             if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
@@ -4596,36 +4598,35 @@ authentication {
                                         else: CGI_CLI.logtofile("Ipv6 L2 Metric (%s) check on Interface %s = OK\n" % (ipv6_L2_metric, parallel_interface), ommit_timestamp = True)
 
 
-                    if BB_MODE:
-                        ### TRAFFIC CHECK #############################################
-                        low_percent = 3
-                        high_percent = 90
-                        if isinstance(interface_warning_data.get('txload_percent'), (str,basestring,six.string_types)):
-                            CGI_CLI.uprint('Tx Traffic on Interface %s not found !' % (interface_id), color = 'red')
-                            check_interface_result_ok = False
-                        elif interface_warning_data.get('txload_percent') >= 0:
-                            if interface_warning_data.get('txload_percent') < low_percent:
-                                check_warning_interface_result_ok = False
-                                CGI_CLI.uprint('Tx Traffic (%.2f%%) on Interface %s is below %d%%. = WARNING' % (interface_warning_data.get('txload_percent'), interface_id, low_percent), color = 'orange')
-                            elif interface_warning_data.get('txload_percent') > high_percent:
-                                CGI_CLI.uprint('Tx Traffic (%.2f%%) on Interface %s is over %d%%. = WARNING' % (interface_warning_data.get('txload_percent'), interface_id, high_percent), color = 'orange')
-                                check_warning_interface_result_ok = False
-                            else: CGI_CLI.logtofile('Tx Traffic on Interface %s is %.2f%% = OK\n' % (interface_id, interface_warning_data.get('txload_percent')), ommit_timestamp = True)
+                    ### def BB - TRAFFIC POST-CHECK ###########################
+                    low_percent = 3
+                    high_percent = 90
+                    if isinstance(interface_warning_data.get('txload_percent'), (str,basestring,six.string_types)):
+                        CGI_CLI.uprint('Tx Traffic on Interface %s not found !' % (interface_id), color = 'red')
+                        check_interface_result_ok = False
+                    elif interface_warning_data.get('txload_percent') >= 0:
+                        if interface_warning_data.get('txload_percent') < low_percent:
+                            check_warning_interface_result_ok = False
+                            CGI_CLI.uprint('Tx Traffic (%.2f%%) on Interface %s is below %d%%. = WARNING' % (interface_warning_data.get('txload_percent'), interface_id, low_percent), color = 'orange')
+                        elif interface_warning_data.get('txload_percent') > high_percent:
+                            CGI_CLI.uprint('Tx Traffic (%.2f%%) on Interface %s is over %d%%. = WARNING' % (interface_warning_data.get('txload_percent'), interface_id, high_percent), color = 'orange')
+                            check_warning_interface_result_ok = False
+                        else: CGI_CLI.logtofile('Tx Traffic on Interface %s is %.2f%% = OK\n' % (interface_id, interface_warning_data.get('txload_percent')), ommit_timestamp = True)
 
-                        if isinstance(interface_warning_data.get('rxload_percent'), (str,basestring,six.string_types)):
-                            CGI_CLI.uprint('Rx Traffic on Interface %s not found !' % (interface_id), color = 'red')
-                            check_interface_result_ok = False
-                        elif interface_warning_data.get('rxload_percent') >= 0:
-                            if interface_warning_data.get('rxload_percent') < low_percent:
-                                CGI_CLI.uprint('Rx Traffic (%.2f%%) on Interface %s is below %d%%. = WARNING' % (interface_warning_data.get('rxload_percent'), interface_id, low_percent), color = 'orange')
-                                check_warning_interface_result_ok = False
-                            elif interface_warning_data.get('rxload_percent') > high_percent:
-                                CGI_CLI.uprint('Rx Traffic (%.2f%%) on Interface %s is over %d%%. = WARNING' % (interface_warning_data.get('rxload_percent'), interface_id, high_percent), color = 'orange')
-                                check_warning_interface_result_ok = False
-                            else: CGI_CLI.logtofile('Rx Traffic on Interface %s is %.2f%% = OK\n' % (interface_id, interface_warning_data.get('rxload_percent')), ommit_timestamp = True)
+                    if isinstance(interface_warning_data.get('rxload_percent'), (str,basestring,six.string_types)):
+                        CGI_CLI.uprint('Rx Traffic on Interface %s not found !' % (interface_id), color = 'red')
+                        check_interface_result_ok = False
+                    elif interface_warning_data.get('rxload_percent') >= 0:
+                        if interface_warning_data.get('rxload_percent') < low_percent:
+                            CGI_CLI.uprint('Rx Traffic (%.2f%%) on Interface %s is below %d%%. = WARNING' % (interface_warning_data.get('rxload_percent'), interface_id, low_percent), color = 'orange')
+                            check_warning_interface_result_ok = False
+                        elif interface_warning_data.get('rxload_percent') > high_percent:
+                            CGI_CLI.uprint('Rx Traffic (%.2f%%) on Interface %s is over %d%%. = WARNING' % (interface_warning_data.get('rxload_percent'), interface_id, high_percent), color = 'orange')
+                            check_warning_interface_result_ok = False
+                        else: CGI_CLI.logtofile('Rx Traffic on Interface %s is %.2f%% = OK\n' % (interface_id, interface_warning_data.get('rxload_percent')), ommit_timestamp = True)
 
 
-                ### def CONTENT ELEMENT CHECK #################################
+                ### def ALL - CONTENT ELEMENT CHECK #############################
                 if interface_data.get('inactive_bundle_members'):
                     check_interface_result_ok = False
                     CGI_CLI.uprint('Inactive bundle interfaces found: %s' % (interface_data.get('inactive_bundle_members')), color = 'red')
@@ -4672,7 +4673,6 @@ authentication {
                 if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
                     if BB_MODE:
                         check_interface_data_content('line protocol is', 'UP')
-
                         if precheck_mode:
                             check_interface_data_content('ipv4_metric', '99999')
 
@@ -4779,7 +4779,25 @@ authentication {
                         check_interface_data_content('Overflow_Difference', exact_value_yes = '0', warning = True)
                         check_interface_data_content('Underrun_Difference', exact_value_yes = '0', warning = True)
 
+
+                if CUSTOMER_MODE:
+                    ### def CUST - CHECKS #####################################
+                    if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
+                        if precheck_mode:
+                            check_interface_data_content('ipv4_unicast_route-policy_in', exact_value_yes = 'DENY-ALL')
+                            check_interface_data_content('ipv4_unicast_route-policy_out', exact_value_yes = 'DENY-ALL')
+                        else:
+                            check_interface_data_content('ipv4_unicast_route-policy_in', what_not_in = 'DENY-ALL')
+                            check_interface_data_content('ipv4_unicast_route-policy_out', what_not_in = 'DENY-ALL')
+
+
+
+
+
+
+                ###############################################################
                 ### def INTERFACE RESULTS #####################################
+                ###############################################################
                 interface_result = 'WARNING'
                 html_color = 'orange'
 
