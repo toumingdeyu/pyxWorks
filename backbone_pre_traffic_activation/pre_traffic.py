@@ -4796,8 +4796,8 @@ authentication {
 
                         check_interface_data_content('address-family_ipv4', what_yes_in = 'unicast')
 
-                        check_interface_data_content('ipv4_addr_rem_from_ASN', what_yes_in = interface_warning_data.get('ipv4_addr_rem'))
-                        check_interface_data_content('ipv6_addr_rem_from_ASN', what_yes_in = interface_warning_data.get('ipv6_addr_rem'))
+                        check_interface_data_content('ipv4_addr_rem_from_ASN', what_yes_in = interface_data.get('ipv4_addr_rem'))
+                        check_interface_data_content('ipv6_addr_rem_from_ASN', what_yes_in = interface_warning_data.get('ipv6_addr_rem'), warning = True)
 
                         if precheck_mode:
                             check_interface_data_content('ipv4_unicast_route-policy_in', exact_value_yes = 'DENY-ALL')
