@@ -3689,7 +3689,7 @@ authentication {
                 ### def FIND REMOTE IP ADDRESES: THE OTHER IP IN NETWORK ######
                 ###############################################################
                 interface_data['ipv4_addr_rem'] = \
-                    interface_data.get('ipv4_addr_rem_from_DESCRIPTION')
+                    copy.deepcopy(interface_data.get('ipv4_addr_rem_from_DESCRIPTION'))
 
                 if CUSTOMER_MODE or PING_ONLY:
                     if len(interface_data.get('ipv4_addr_rem_from_ASN',[])) == 1:
@@ -3699,10 +3699,6 @@ authentication {
                         len(interface_data.get('ipv4_addr_rem_from_ASN',[])) > 1:
                             interface_data['ipv4_addr_rem'] = \
                                 interface_data.get('ipv4_addr_rem_from_DESCRIPTION')
-
-                    if len(interface_warning_data.get('ipv6_addr_rem_from_ASN',[])) > 0:
-                        interface_warning_data['ipv6_addr_rem'] = \
-                            interface_warning_data.get('ipv6_addr_rem_from_ASN')[0]
 
                 ###############################################################
                 ### def CALCULATE REMOTE IP ADDRESES: THE OTHER IP IN NETWORK #
@@ -3727,6 +3723,7 @@ authentication {
                                 CGI_CLI.uprint("addr4=%s" % (addr), tag = 'debug', no_printall = not CGI_CLI.printall)
                                 if str(addr) == str(interface_data.get('ipv4_addr_loc')): pass
                                 else: interface_warning_data['ipv4_addr_rem_calculated'] =  copy.deepcopy(str(addr))
+                                
 
                         if interface_data.get('ipv4_mask_loc') == '30':
                             i_counter = 0
@@ -4799,6 +4796,9 @@ authentication {
 
                         check_interface_data_content('address-family_ipv4', what_yes_in = 'unicast')
 
+                        check_interface_data_content('ipv4_addr_rem_from_ASN', what_yes_in = interface_warning_data.get('ipv4_addr_rem'))                        
+                        check_interface_data_content('ipv6_addr_rem_from_ASN', what_yes_in = interface_warning_data.get('ipv6_addr_rem'))
+                        
                         if precheck_mode:
                             check_interface_data_content('ipv4_unicast_route-policy_in', exact_value_yes = 'DENY-ALL')
                             check_interface_data_content('ipv4_unicast_route-policy_out', exact_value_yes = 'DENY-ALL')
