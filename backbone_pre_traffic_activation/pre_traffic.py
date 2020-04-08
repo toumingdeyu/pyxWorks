@@ -2487,7 +2487,7 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not_in =
                     color = 'red', timestamp = 'no')
 
     if what_yes_in and where:
-        if isinstance(where, (list,tuple)): pass
+        if isinstance(where, (list,tuple)):
             if what_yes_in in where_value:
                 CGI_CLI.logtofile("CHECK['%s' in '%s'(%s)] = OK\n" % (what_yes_in, where, str(where_value)), ommit_timestamp = True)
             else:
