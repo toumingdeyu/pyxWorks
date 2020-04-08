@@ -2500,7 +2500,7 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not_in =
                     CGI_CLI.uprint("CHECK['%s' in '%s'(%s)] = NOT OK" % (what_yes_in, where, str(where_value)),
                         color = 'red', timestamp = 'no')
         else:
-            if what_yes_in.upper() in where_value.upper():
+            if str(what_yes_in).upper() in str(where_value).upper():
                 CGI_CLI.logtofile("CHECK['%s' in '%s'(%s)] = OK\n" % (what_yes_in, where, str(where_value)), ommit_timestamp = True)
             else:
                 if warning:
