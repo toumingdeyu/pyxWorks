@@ -3722,7 +3722,7 @@ authentication {
                         if interface_data.get('ipv4_mask_loc') == '31':
                             for addr in ipaddress.IPv4Network(ipv4_network):
                                 CGI_CLI.uprint("addr4=%s" % (addr), tag = 'debug', no_printall = not CGI_CLI.printall)
-                                if str(addr) == str(interface_data.get('ipv4_addr_loc')): pass
+                                if str(addr).upper() == str(interface_data.get('ipv4_addr_loc')).upper(): pass
                                 else: interface_warning_data['ipv4_addr_rem_calculated'] =  copy.deepcopy(str(addr))
 
 
@@ -3731,7 +3731,7 @@ authentication {
                             for addr in ipaddress.IPv4Network(ipv4_network):
                                 CGI_CLI.uprint("addr4=%s" % (addr), tag = 'debug', no_printall = not CGI_CLI.printall)
                                 if i_counter == 1 or i_counter == 2:
-                                    if str(addr) == str(interface_data.get('ipv4_addr_loc')): pass
+                                    if str(addr).upper() == str(interface_data.get('ipv4_addr_loc')).upper(): pass
                                     else: interface_warning_data['ipv4_addr_rem_calculated'] =  copy.deepcopy(str(addr))
                                 i_counter += 1
 
@@ -3745,7 +3745,7 @@ authentication {
                     if interface_data.get('ipv6_mask_loc') == '127':
                         for addr in ipaddress.IPv6Network(ipv6_network):
                             CGI_CLI.uprint("addr6=%s" % (addr), tag = 'debug', no_printall = not CGI_CLI.printall)
-                            if str(addr) == str(interface_data.get('ipv6_addr_loc')): pass
+                            if str(addr).upper() == str(interface_data.get('ipv6_addr_loc')).upper(): pass
                             else:
                                 interface_warning_data['ipv6_addr_rem_calculated'] = copy.deepcopy(str(addr))
                                 if not interface_warning_data.get('ipv6_addr_rem'):
@@ -3756,7 +3756,7 @@ authentication {
                         for addr in ipaddress.IPv6Network(ipv6_network):
                             CGI_CLI.uprint("addr6=%s" % (addr), tag = 'debug', no_printall = not CGI_CLI.printall)
                             if i_counter == 1 or i_counter == 2:
-                                if str(addr) == str(interface_data.get('ipv6_addr_loc')): pass
+                                if str(addr).upper() == str(interface_data.get('ipv6_addr_loc')).upper(): pass
                                 else:
                                     interface_warning_data['ipv6_addr_rem_calculated'] =  copy.deepcopy(str(addr))
                                     if not interface_warning_data.get('ipv6_addr_rem'):
