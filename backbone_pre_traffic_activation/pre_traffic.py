@@ -2985,6 +2985,11 @@ authentication {
 
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = chunked_mode, css_style = CSS_STYLE)
     LCMD.init()
+
+    #CGI_CLI.printall = True
+    #CGI_CLI.timestamp = True
+    #printall = True
+
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
     printall = CGI_CLI.data.get("printall")
 
@@ -3118,14 +3123,6 @@ authentication {
     else: urllink = 'https://%s/cgi-bin/' % (iptac_server)
 
 
-    ### def CREATE ALL INTERFACES LIST PER DEVICE ##############################
-    if len(device_list) > 0 and len(interface_line_list) == 0:
-        for device in device_list:
-            device_interface_list = get_interface_list_per_device(device, action_type = action_type)
-        CGI_CLI.uprint(device_interface_list, name='%s_interface_list' % (device), \
-            jsonprint = True, no_printall = not printall, tag = 'debug')
-
-
     ### START PRINTING AND LOGGING ############################################
     changelog = 'https://github.com/peteneme/pyxWorks/commits/master/backbone_pre_traffic_activation/pre_traffic.py'
 
@@ -3196,9 +3193,6 @@ authentication {
                                  % (swan_id, device.upper(), interface_id) )
                 else: CGI_CLI.uprint("No record found in db!", tag = 'warning')
         sys.exit(0)
-
-
-
 
 
     ### MAKE SQL TABLE RECORD ONLY AND EXIT ###################################
@@ -3284,6 +3278,13 @@ authentication {
 
         sys.exit(0)
 
+
+    ### def CREATE ALL INTERFACES LIST PER DEVICE ##############################
+    if len(device_list) > 0 and len(interface_line_list) == 0:
+        for device in device_list:
+            device_interface_list = get_interface_list_per_device(device, action_type = action_type)
+        CGI_CLI.uprint(device_interface_list, name='%s_interface_list' % (device), \
+            jsonprint = True, no_printall = not printall, tag = 'debug')
 
 
     ### def HTML MENUS DISPLAYED ONLY IN CGI MODE #############################
