@@ -4414,6 +4414,58 @@ authentication {
                        pass
 
 
+                    ###########################################################
+                    ### def CUSTOMER_MODE - 5th DATA COLLECTION ###############
+                    ###########################################################
+                    if interface_data.get('ipv6_addr_rem'):
+                        collect6_if_data_rcmds = {
+                            'cisco_ios':[
+                                'show bgp neighbor %s' % (interface_data.get('ipv6_addr_rem')) if interface_data.get('ipv6_addr_rem') else str(),
+                                'show bgp neighbor %s advertised-count' % (interface_data.get('ipv6_addr_rem')) if interface_data.get('ipv6_addr_rem') else str(),
+                             ],
+
+                            'cisco_xr':[
+                                'show bgp neighbor %s' % (interface_data.get('ipv6_addr_rem')) if interface_data.get('ipv6_addr_rem') else str(),
+                                'show bgp neighbor %s advertised-count' % (interface_data.get('ipv6_addr_rem')) if interface_data.get('ipv6_addr_rem') else str(),
+                             ],
+
+                            'juniper': [
+
+                            ],
+
+                            'huawei': [
+                            ]
+                        }
+
+                        collect6_if_config_rcmd_outputs = RCMD.run_commands(collect6_if_data_rcmds, \
+                            autoconfirm_mode = True, \
+                            printall = printall)
+
+                        if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
+                            try: interface_data['IPV6 BGP state'] = collect6_if_config_rcmd_outputs[0].split('BGP state =')[1].split()[0].replace(',','')
+                            except: interface_data['IPV6 BGP state'] = str()
+
+                            try: interface_data['IPV6 Policy for incoming advertisements'] = collect6_if_config_rcmd_outputs[0].split('Policy for incoming advertisements is ')[1].split()[0]
+                            except: interface_data['IPV6 Policy for incoming advertisements'] = str()
+
+                            try: interface_data['IPV6 Policy for outgoing advertisements'] = collect6_if_config_rcmd_outputs[0].split('Policy for outgoing advertisements is ')[1].split()[0]
+                            except: interface_data['IPV6 Policy for outgoing advertisements'] = str()
+
+                            try: interface_data['IPV6 accepted prefixes'] = collect6_if_config_rcmd_outputs[0].split('accepted prefixes,')[0].splitlines()[-1].split()[0]
+                            except: interface_data['IPV6 accepted prefixes'] = str()
+                            
+                            try: interface_data['IPV6 bestpaths'] = collect6_if_config_rcmd_outputs[0].split('are bestpaths')[0].splitlines()[-1].split()[-1]
+                            except: interface_data['IPV6 bestpaths'] = str()
+
+                            try: interface_data['IPV6 No of prefixes Advertised'] = collect6_if_config_rcmd_outputs[1].split('No of prefixes Advertised:')[1].split()[0]
+                            except: interface_data['IPV6 No of prefixes Advertised'] = str()
+
+                        elif RCMD.router_type == 'huawei':
+                            pass
+
+                        elif RCMD.router_type == 'juniper':
+                           pass
+
 
 
 
