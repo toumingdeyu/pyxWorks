@@ -4831,7 +4831,7 @@ authentication {
                     CGI_CLI.uprint('Inactive bundle interfaces found: %s' % (interface_data.get('inactive_bundle_members')), color = 'red')
 
                 if interface_data.get('bundle_members_nr') and not interface_data.get('inactive_bundle_members'):
-                    CGI_CLI.logtofile('CHECK of bundle interfaces is OK.')
+                    CGI_CLI.logtofile('CHECK of bundle interfaces is OK.\n', ommit_timestamp = True)
 
                 check_interface_data_content('ping_v4_percent_success', '100', ignore_data_existence = True)
 
@@ -5011,7 +5011,7 @@ authentication {
 
 
 
-                    elif RCMD.router_type == 'huawei': 
+                    elif RCMD.router_type == 'huawei':
                         pass
 
 
