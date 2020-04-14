@@ -4400,7 +4400,7 @@ authentication {
 
                         try: interface_data['accepted prefixes'] = collect5_if_config_rcmd_outputs[0].split('accepted prefixes,')[0].splitlines()[-1].split()[0]
                         except: interface_data['accepted prefixes'] = str()
-                        
+
                         try: interface_data['bestpaths'] = collect5_if_config_rcmd_outputs[0].split('are bestpaths')[0].splitlines()[-1].split()[-1]
                         except: interface_data['bestpaths'] = str()
 
@@ -4453,7 +4453,7 @@ authentication {
 
                             try: interface_data['IPV6 accepted prefixes'] = collect6_if_config_rcmd_outputs[0].split('accepted prefixes,')[0].splitlines()[-1].split()[0]
                             except: interface_data['IPV6 accepted prefixes'] = str()
-                            
+
                             try: interface_data['IPV6 bestpaths'] = collect6_if_config_rcmd_outputs[0].split('are bestpaths')[0].splitlines()[-1].split()[-1]
                             except: interface_data['IPV6 bestpaths'] = str()
 
@@ -4763,6 +4763,9 @@ authentication {
                     check_interface_result_ok = False
                     CGI_CLI.uprint('Inactive bundle interfaces found: %s' % (interface_data.get('inactive_bundle_members')), color = 'red')
 
+                if interface_data.get('bundle_members_nr') and not interface_data.get('inactive_bundle_members'):
+                    CGI_CLI.logtofile('CHECK of bundle interfaces is OK.')
+
                 check_interface_data_content('ping_v4_percent_success', '100', ignore_data_existence = True)
 
                 if RCMD.router_type == 'juniper':
@@ -4926,14 +4929,14 @@ authentication {
                             check_interface_data_content('ipv4_unicast_route-policy_out', exact_value_yes = 'DENY-ALL')
 
                             check_interface_data_content('Policy for incoming advertisements', exact_value_yes = 'DENY-ALL')
-                            check_interface_data_content('Policy for outgoing advertisements', exact_value_yes = 'DENY-ALL')                                                         
+                            check_interface_data_content('Policy for outgoing advertisements', exact_value_yes = 'DENY-ALL')
                         else:
                             check_interface_data_content('ipv4_unicast_route-policy_in', what_not_in = 'DENY-ALL')
                             check_interface_data_content('ipv4_unicast_route-policy_out', what_not_in = 'DENY-ALL')
-                            
+
                             check_interface_data_content('Policy for incoming advertisements', what_not_in = 'DENY-ALL')
                             check_interface_data_content('Policy for outgoing advertisements', what_not_in = 'DENY-ALL')
-                            
+
                             check_interface_data_content('No of prefixes Advertised', higher_than = 0)
 
 
