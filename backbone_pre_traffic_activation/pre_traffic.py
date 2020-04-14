@@ -4482,7 +4482,7 @@ authentication {
 
 
                     ###########################################################
-                    ### def CUSTOMER_MODE - 5th DATA COLLECTION ###############
+                    ### def CUSTOMER_MODE - 6th DATA COLLECTION ###############
                     ###########################################################
                     if interface_data.get('ipv6_addr_rem'):
                         collect6_if_data_rcmds = {
@@ -5006,10 +5006,13 @@ authentication {
 
                             check_interface_data_content('No of prefixes Advertised', higher_than = 0)
 
+                    elif RCMD.router_type == 'juniper':
+                        check_interface_data_content('Flags', exact_value_yes = 'Up')
 
 
 
-
+                    elif RCMD.router_type == 'huawei': 
+                        pass
 
 
                 ###############################################################
