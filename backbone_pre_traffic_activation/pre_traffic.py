@@ -3673,15 +3673,11 @@ authentication {
                         for line in collect_if_config_rcmd_outputs[0].splitlines():
                             try: interface_data['inet filter input-list'].append(line.split('inet filter input-list ')[1].split()[0])
                             except: pass
-                    
+
                         interface_data['inet6 filter input-list'] = []
                         for line in collect_if_config_rcmd_outputs[0].splitlines():
                             try: interface_data['inet6 filter input-list'].append(line.split('inet6 filter input-list ')[1].split()[0])
                             except: pass
-                    
-                   
-                    
-                    
 
                 elif RCMD.router_type == 'huawei':
                     try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[0]
@@ -4158,12 +4154,65 @@ authentication {
                         try: interface_data['Full-duplex_bandwith'] = collect_if_config_rcmd_outputs[1].split('Full-duplex,')[1].splitlines()[0].split()[0].replace(',','').strip()
                         except: interface_data['Full-duplex_bandwith'] = str()
 
+                    elif RCMD.router_type == 'juniper':
+                        try: interface_data['scheduler-map'] = collect_if_config_rcmd_outputs[0].split('scheduler-map')[1].split()[0].replace(';','')
+                        except: interface_data['scheduler-map'] = str()
+
+                        try: interface_data['level'] = collect_if_config_rcmd_outputs[1].split('level')[1].split()[0]
+                        except: interface_data['level'] = str()
+
+                        try: interface_data['metric'] = collect_if_config_rcmd_outputs[1].split('metric')[1].split()[0].replace(';','')
+                        except: interface_data['metric'] = str()
+
+                        try: interface_data['passive'] = True if 'passive;' in collect_if_config_rcmd_outputs[1] else str()
+                        except: interface_data['passive'] = str()
+
+                        try: interface_data['Level 2 DR'] = collect_if_config_rcmd_outputs[2].split('L1/L2 Metric')[1].split(interface_id)[1].split()[3].replace(';','')
+                        except: interface_data['Level 2 DR'] = str()
+
+                        try: interface_data['L1 Metric'] = collect_if_config_rcmd_outputs[2].split('L1/L2 Metric')[1].split(interface_id)[1].split()[4].split('/')[0]
+                        except: interface_data['L1 Metric'] = str()
+
+                        try: interface_data['Flags'] = collect_if_config_rcmd_outputs[3].split('Flags:')[1].split()[0]
+                        except: interface_data['Flags'] = str()
+
+                        try: interface_data['inet'] = collect_if_config_rcmd_outputs[3].split('inet ')[1].split()[0]
+                        except: interface_data['inet'] = str()
+
+                        try: interface_data['inet6'] = collect_if_config_rcmd_outputs[3].split('inet6 ')[1].split()[0]
+                        except: interface_data['inet6'] = str()
+
+                        try: interface_data['multiservice'] = True if 'multiservice' in collect_if_config_rcmd_outputs[1] else str()
+                        except: interface_data['multiservice'] = str()
+
+                        try: interface_data['Protocol'] = collect_if_config_rcmd_outputs[4].split('Protocol ')[1].split()[0].replace(',','')
+                        except: interface_data['Protocol'] = str()
+
+                        try: interface_data['MTU_default'] = collect_if_config_rcmd_outputs[4].split('Protocol inet ')[1].split('MTU: ')[1].split()[0]
+                        except: interface_data['MTU_default'] = str()
+
+                        try: interface_data['Destination'] = collect_if_config_rcmd_outputs[4].split('Protocol inet ')[1].split('Destination: ')[1].split()[0].replace(',','')
+                        except: interface_data['Destination'] = str()
+
+                        try: interface_data['Local'] = collect_if_config_rcmd_outputs[4].split('Protocol inet ')[1].split('Local: ')[1].split()[0]
+                        except: interface_data['Local'] = str()
+
+                        try: interface_data['IPV6 Protocol'] = collect_if_config_rcmd_outputs[4].split('Protocol inet ')[1].split('Protocol ')[1].split()[0].replace(',','')
+                        except: interface_data['IPV6 Protocol'] = str()
+
+                        try: interface_data['IPV6 MTU_default'] = collect_if_config_rcmd_outputs[4].split('Protocol inet6')[1].split('MTU: ')[1].split()[0]
+                        except: interface_data['IPV6 MTU_default'] = str()
+
+                        try: interface_data['IPV6 Destination'] = collect_if_config_rcmd_outputs[4].split('Protocol inet6')[1].split('Destination: ')[1].split()[0].replace(',','')
+                        except: interface_data['IPV6 Destination'] = str()
+
+                        try: interface_data['IPV6 Local'] = collect_if_config_rcmd_outputs[4].split('Protocol inet6')[1].split('Local: ')[1].split()[0]
+                        except: interface_data['IPV6 Local'] = str()
+
+
                     elif RCMD.router_type == 'huawei':
                         pass
 
-
-                    elif RCMD.router_type == 'juniper':
-                       pass
 
 
                     ###########################################################
