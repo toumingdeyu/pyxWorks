@@ -4314,6 +4314,7 @@ authentication {
                     ###########################################################
                     collect4_if_data_rcmds = {
                         'cisco_ios':[
+                            'show running-config route-policy DENY-ALL',
                             'show running-config route-policy %s' % (interface_data.get('ipv4_unicast_route-policy_in',str())) if interface_data.get('ipv4_unicast_route-policy_in') else str(),
                             'show running-config route-policy %s' % (interface_data.get('ipv4_unicast_route-policy_out',str())) if interface_data.get('ipv4_unicast_route-policy_out') else str(),
                             'show running-config route-policy %s' % (interface_data.get('ipv4_multicast_route-policy_in',str())) if interface_data.get('ipv4_multicast_route-policy_in') else str(),
@@ -4326,6 +4327,16 @@ authentication {
                          ],
 
                         'cisco_xr':[
+                            'show running-config route-policy DENY-ALL',
+                            'show running-config route-policy %s' % (interface_data.get('ipv4_unicast_route-policy_in',str())) if interface_data.get('ipv4_unicast_route-policy_in') else str(),
+                            'show running-config route-policy %s' % (interface_data.get('ipv4_unicast_route-policy_out',str())) if interface_data.get('ipv4_unicast_route-policy_out') else str(),
+                            'show running-config route-policy %s' % (interface_data.get('ipv4_multicast_route-policy_in',str())) if interface_data.get('ipv4_multicast_route-policy_in') else str(),
+                            'show running-config route-policy %s' % (interface_data.get('ipv4_multicast_route-policy_out',str())) if interface_data.get('ipv4_multicast_route-policy_out') else str(),
+
+                            'show running-config route-policy %s' % (interface_data.get('ipv6_unicast_route-policy_in',str())) if interface_data.get('ipv6_unicast_route-policy_in') else str(),
+                            'show running-config route-policy %s' % (interface_data.get('ipv6_unicast_route-policy_out',str())) if interface_data.get('ipv6_unicast_route-policy_out') else str(),
+                            'show running-config route-policy %s' % (interface_data.get('ipv6_multicast_route-policy_in',str())) if interface_data.get('ipv6_multicast_route-policy_in') else str(),
+                            'show running-config route-policy %s' % (interface_data.get('ipv6_multicast_route-policy_out',str())) if interface_data.get('ipv6_multicast_route-policy_out') else str(),
                          ],
 
                         'juniper': [
@@ -4341,7 +4352,9 @@ authentication {
                         printall = printall)
 
                     if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
-                        pass
+                        for cmd_in,cmd_output in zip(collect4_if_data_rcmds, collect4_if_config_rcmd_outputs):
+                            if 'NO SUCH CONFIGURATION ITEM' in cmd_output.upper():
+                                interface_data[cmd_in] = str()
 
                     elif RCMD.router_type == 'huawei':
                         pass
