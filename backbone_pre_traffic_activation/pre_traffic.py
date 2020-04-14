@@ -4362,6 +4362,62 @@ authentication {
                     elif RCMD.router_type == 'juniper':
                        pass
 
+                    ###########################################################
+                    ### def CUSTOMER_MODE - 5th DATA COLLECTION ###############
+                    ###########################################################
+                    collect5_if_data_rcmds = {
+                        'cisco_ios':[
+                            'show bgp neighbor %s' % (interface_data.get('ipv4_addr_rem')) if interface_data.get('ipv4_addr_rem') else str(),
+                            'show bgp neighbor %s advertised-count' % (interface_data.get('ipv4_addr_rem')) if interface_data.get('ipv4_addr_rem') else str(),
+                         ],
+
+                        'cisco_xr':[
+                            'show bgp neighbor %s' % (interface_data.get('ipv4_addr_rem')) if interface_data.get('ipv4_addr_rem') else str(),
+                            'show bgp neighbor %s advertised-count' % (interface_data.get('ipv4_addr_rem')) if interface_data.get('ipv4_addr_rem') else str(),
+                         ],
+
+                        'juniper': [
+
+                        ],
+
+                        'huawei': [
+                        ]
+                    }
+
+                    collect5_if_config_rcmd_outputs = RCMD.run_commands(collect5_if_data_rcmds, \
+                        autoconfirm_mode = True, \
+                        printall = printall)
+
+                    if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
+                        try: interface_data['BGP state'] = collect5_if_config_rcmd_outputs[0].split('BGP state =')[1].split()[0].replace(',','')
+                        except: interface_data['BGP state'] = str()
+
+                        try: interface_data['Policy for incoming advertisements'] = collect5_if_config_rcmd_outputs[0].split('Policy for incoming advertisements is ')[1].split()[0]
+                        except: interface_data['Policy for incoming advertisements'] = str()
+
+                        try: interface_data['Policy for outgoing advertisements'] = collect5_if_config_rcmd_outputs[0].split('Policy for outgoing advertisements is ')[1].split()[0]
+                        except: interface_data['Policy for outgoing advertisements'] = str()
+
+                        try: interface_data['accepted prefixes'] = collect5_if_config_rcmd_outputs[0].split('accepted prefixes,')[0].splitlines()[-1].split()[0]
+                        except: interface_data['accepted prefixes'] = str()
+                        
+                        try: interface_data['bestpaths'] = collect5_if_config_rcmd_outputs[0].split('are bestpaths')[0].splitlines()[-1].split()[-1]
+                        except: interface_data['bestpaths'] = str()
+
+                        try: interface_data['No of prefixes Advertised'] = collect5_if_config_rcmd_outputs[1].split('No of prefixes Advertised:')[1].split()[0]
+                        except: interface_data['No of prefixes Advertised'] = str()
+
+                    elif RCMD.router_type == 'huawei':
+                        pass
+
+                    elif RCMD.router_type == 'juniper':
+                       pass
+
+
+
+
+
+
                 ### def MTU ###################################################
                 mtu_size, default_mtu = 0, 0
                 if interface_warning_data.get('MTU_configured'):
@@ -4816,9 +4872,18 @@ authentication {
                         if precheck_mode:
                             check_interface_data_content('ipv4_unicast_route-policy_in', exact_value_yes = 'DENY-ALL')
                             check_interface_data_content('ipv4_unicast_route-policy_out', exact_value_yes = 'DENY-ALL')
+
+                            check_interface_data_content('Policy for incoming advertisements', exact_value_yes = 'DENY-ALL')
+                            check_interface_data_content('Policy for outgoing advertisements', exact_value_yes = 'DENY-ALL')                                                         
                         else:
                             check_interface_data_content('ipv4_unicast_route-policy_in', what_not_in = 'DENY-ALL')
                             check_interface_data_content('ipv4_unicast_route-policy_out', what_not_in = 'DENY-ALL')
+                            
+                            check_interface_data_content('Policy for incoming advertisements', what_not_in = 'DENY-ALL')
+                            check_interface_data_content('Policy for outgoing advertisements', what_not_in = 'DENY-ALL')
+                            
+                            check_interface_data_content('No of prefixes Advertised', higher_than = 0)
+
 
 
 
