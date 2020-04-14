@@ -3509,6 +3509,7 @@ authentication {
                                 ],
 
                     'juniper':  ['show bgp neighbor | match "Group:|Peer:" | except "NLRI|Restart"',
+                                 'show bgp summary',
                                 ],
 
                     'huawei':   ['display bgp peer',
@@ -3557,6 +3558,21 @@ authentication {
                     try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("Local:")[1].splitlines()[0].split('AS')[1].strip()
                     except: pass
 
+                    if interface_data.get('ASN'):
+                        interface_data['ipv4_addr_rem_from_ASN'] = []
+                        interface_data['ipv6_addr_rem_from_ASN'] = []
+                        for line in rcmd_outputs[1].splitlines():
+                            try:
+                                if str(line.split()[1]) == interface_data.get('ASN'):
+                                    if '.' in line.split()[0]:
+                                        interface_data['ipv4_addr_rem_from_ASN'].append(line.split()[0])
+                                    elif ':' in line.split()[0]:
+                                        interface_data['ipv6_addr_rem_from_ASN'].append(line.split()[0])
+                            except: pass
+                        if len(interface_data['ipv4_addr_rem_from_ASN']) == 0:
+                            del interface_data['ipv4_addr_rem_from_ASN']
+                        if len(interface_data['ipv6_addr_rem_from_ASN']) == 0:
+                            del interface_data['ipv6_addr_rem_from_ASN']
 
                 elif RCMD.router_type == 'huawei':
                     try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("Local AS number :")[1].splitlines()[0].strip()
@@ -4230,7 +4246,8 @@ authentication {
                         ],
 
                         'juniper': [
-
+                            'show bgp neighbor %s | match Group:' % (interface_data.get('ipv4_addr_rem')) if interface_data.get('ipv4_addr_rem') else str(),
+                            'show bgp neighbor %s | match Group:' % (interface_data.get('ipv6_addr_rem')) if interface_data.get('ipv6_addr_rem') else str(),
                         ],
 
                         'huawei': [
@@ -4251,12 +4268,18 @@ authentication {
                             try: interface_data['use_neighbor-group_ipv6'] = collect2_if_config_rcmd_outputs[1].split('use neighbor-group ')[1].splitlines()[0].strip()
                             except: pass
 
+                    elif RCMD.router_type == 'juniper':
+                        if interface_data.get('ipv4_addr_rem'):
+                            try: interface_data['neighbor-group'] = collect2_if_config_rcmd_outputs[0].split('Group: ')[1].split()[0].strip()
+                            except: interface_data['neighbor-group'] = str()
+
+                        if interface_warning_data.get('ipv6_addr_rem'):
+                            try: interface_data['neighbor-group_ipv6'] = collect2_if_config_rcmd_outputs[1].split('Group: ')[1].split()[0].strip()
+                            except: pass  
+
                     elif RCMD.router_type == 'huawei':
                         pass
-
-
-                    elif RCMD.router_type == 'juniper':
-                       pass
+                     
 
 
                     ###########################################################
@@ -4282,7 +4305,8 @@ authentication {
                          ],
 
                         'juniper': [
-
+                            'show configuration protocols bgp group %s' % (interface_data.get('neighbor-group',str())) if interface_data.get('neighbor-group') else str(),
+                            'show configuration protocols bgp group %s' % (interface_data.get('neighbor-group_ipv6',str())) if interface_data.get('neighbor-group_ipv6') else str(),
                         ],
 
                         'huawei': [
@@ -4368,12 +4392,22 @@ authentication {
                                 try: interface_data['ipv6_multicast_route-policy_out'] = collect3_if_config_rcmd_outputs[5].split('address-family ipv6 multicast')[1].split('route-policy ')[2].splitlines()[0].split()[0].strip()
                                 except: pass
 
+                    elif RCMD.router_type == 'juniper':
+                        try: interface_data['ipv4_unicast_route-policy_in'] = collect3_if_config_rcmd_outputs[0].split('import [ ')[1].split()[0].strip()
+                        except: interface_data['ipv4_unicast_route-policy_in'] = str()
+
+                        try: interface_data['ipv4_unicast_route-policy_out'] = collect3_if_config_rcmd_outputs[0].split('export [ ')[1].split()[0].strip()
+                        except: interface_data['ipv4_unicast_route-policy_out'] = str()
+
+                        if USE_IPV6 and interface_data.get('neighbor-group_ipv6'):
+                            try: interface_data['ipv6_unicast_route-policy_in'] = collect3_if_config_rcmd_outputs[1].split('import [ ')[1].split()[0].strip()
+                            except: interface_data['ipv6_unicast_route-policy_in'] = str()
+
+                            try: interface_data['ipv6_unicast_route-policy_out'] = collect3_if_config_rcmd_outputs[1].split('export [ ')[1].split()[0].strip()
+                            except: interface_data['ipv6_unicast_route-policy_out'] = str()
+                        
                     elif RCMD.router_type == 'huawei':
                         pass
-
-
-                    elif RCMD.router_type == 'juniper':
-                       pass
 
 
                     ###########################################################
