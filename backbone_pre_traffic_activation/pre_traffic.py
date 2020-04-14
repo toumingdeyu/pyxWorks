@@ -3665,6 +3665,24 @@ authentication {
                     try: interface_data['ipv6_mask_loc'] = collect_if_config_rcmd_outputs[0].split('family inet6 address ')[1].split()[0].split('/')[1].replace(';','')
                     except: pass
 
+                    if CUSTOMER_MODE:
+                        #try: interface_data['bandwidth'] = collect_if_config_rcmd_outputs[0].split('bandwidth ')[1].split()[0]
+                        #except: pass
+
+                        interface_data['inet filter input-list'] = []
+                        for line in collect_if_config_rcmd_outputs[0].splitlines():
+                            try: interface_data['inet filter input-list'].append(line.split('inet filter input-list ')[1].split()[0])
+                            except: pass
+                    
+                        interface_data['inet6 filter input-list'] = []
+                        for line in collect_if_config_rcmd_outputs[0].splitlines():
+                            try: interface_data['inet6 filter input-list'].append(line.split('inet6 filter input-list ')[1].split()[0])
+                            except: pass
+                    
+                   
+                    
+                    
+
                 elif RCMD.router_type == 'huawei':
                     try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[0]
                     except: interface_data['ipv4_addr_loc'] = str()
