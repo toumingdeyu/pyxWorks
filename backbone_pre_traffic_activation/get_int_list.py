@@ -2430,7 +2430,7 @@ def get_interface_list_per_device(device = None, action_type = None):
                 if_line = in_line_orig.replace('                                               ','').strip()
                 if if_line.strip() == '{master}': continue
 
-                if action_type == 'bbactivation' or 'bbmigration':
+                if 'bb' in str(action_type):
                     if '- CUSTOM' in if_line.strip().upper() \
                         or '-CUSTOM' in if_line.strip().upper(): continue
                     if '- PRIVPEER' in if_line.strip().upper() \
@@ -2438,13 +2438,9 @@ def get_interface_list_per_device(device = None, action_type = None):
                     if '- PUBPEER' in if_line.strip().upper() \
                         or '-PUBPEER' in if_line.strip().upper(): continue
                     if 'LOOPBACK' in if_line.strip().upper(): continue
-                elif action_type == 'custommigration' or action_type == 'customactivation':
+                elif 'custom' in str(action_type):
                     if '- BACKBONE' in if_line.strip().upper() \
                         or '-BACKBONE' in if_line.strip().upper(): continue
-                    if '- PRIVPEER' in if_line.strip().upper() \
-                        or '-PRIVPEER' in if_line.strip().upper(): continue
-                    if '- PUBPEER' in if_line.strip().upper() \
-                        or '-PUBPEER' in if_line.strip().upper(): continue
                     if 'LOOPBACK' in if_line.strip().upper(): continue
 
 
@@ -2502,6 +2498,8 @@ warning {
     LCMD.init()
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
     printall = CGI_CLI.data.get("printall")
+    
+    if CGI_CLI.printall: CGI_CLI.print_args()
 
     ### ACTION TYPE ###########################################################
     action_type = 'bbactivation'
@@ -2513,19 +2511,19 @@ warning {
     if CGI_CLI.data.get('devicetest'):       action_type = 'bbactivation'
     if CGI_CLI.data.get('devicetestcustom'): action_type = 'customactivation'
 
-    ### READ INTERFACE ID LIST FROM CGI #######################################
-    for key in CGI_CLI.data.keys():
-        try: value = str(key)
-        except: value = str()
-        if interface_cgi_string in value:
-            try: interface_id_list.append(value.replace(interface_cgi_string,str()).split()[0].replace('GE','Gi'))
-            except: interface_id_list.append(value.replace(interface_cgi_string,str()).replace('GE','Gi'))
+    ## READ INTERFACE ID LIST FROM CGI #######################################
+    # for key in CGI_CLI.data.keys():
+        # try: value = str(key)
+        # except: value = str()
+        # if interface_cgi_string in value:
+            # try: interface_id_list.append(value.replace(interface_cgi_string,str()).split()[0].replace('GE','Gi'))
+            # except: interface_id_list.append(value.replace(interface_cgi_string,str()).replace('GE','Gi'))
 
-    ### APPEND INTERFACE LIST FROM CLI OR ADDITIONAL CGI INPUT ################
-    interface_line = CGI_CLI.data.get("interface",str())
-    if interface_line:
-        try: interface_id_list.append(CGI_CLI.data.get("interface",str()).split()[0].replace('GE','Gi'))
-        except: interface_id_list.append(CGI_CLI.data.get("interface",str()).replace('GE','Gi'))
+    ## APPEND INTERFACE LIST FROM CLI OR ADDITIONAL CGI INPUT ################
+    # interface_line = CGI_CLI.data.get("interface",str())
+    # if interface_line:
+        # try: interface_id_list.append(CGI_CLI.data.get("interface",str()).split()[0].replace('GE','Gi'))
+        # except: interface_id_list.append(CGI_CLI.data.get("interface",str()).replace('GE','Gi'))
 
     ### GENERATE DEVICE LIST ##################################################
     if CGI_CLI.data.get('devicetestcustom'):
@@ -2568,12 +2566,12 @@ warning {
         else: device_list.append(devices_string.upper())
 
     ### type=bbactivation #####################################################
-    type_content = CGI_CLI.data.get("type",str())
+    # type_content = CGI_CLI.data.get("type",str())
 
-    if type_content:
-        CGI_CLI.uprint( \
-            '<p hidden><input type="checkbox" name="type" value="%s" checked="checked"></p>' \
-            % (type_content), raw = True)
+    # if type_content:
+        # CGI_CLI.uprint( \
+            # '<p hidden><input type="checkbox" name="type" value="%s" checked="checked"></p>' \
+            # % (type_content), raw = True)
 
     ### GENERATE DEVICE INTERFACE LIST ########################################
     device_interface_list = []
