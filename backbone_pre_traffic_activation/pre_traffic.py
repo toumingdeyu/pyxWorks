@@ -3061,6 +3061,7 @@ authentication {
 
     router = CGI_CLI.parse_input_data(key = 'device')
     if not router: router = CGI_CLI.parse_input_data(key = 'routertest')
+    if not router: router = CGI_CLI.parse_input_data(key = 'routertestcustom')
     if not router: router = CGI_CLI.parse_input_data(key = 'router')
     router2 = CGI_CLI.parse_input_data(key = 'router2')
     router3 = CGI_CLI.parse_input_data(key = 'router3')
