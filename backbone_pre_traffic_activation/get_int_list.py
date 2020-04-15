@@ -2430,7 +2430,7 @@ def get_interface_list_per_device(device = None, action_type = None):
                 if_line = in_line_orig.replace('                                               ','').strip()
                 if if_line.strip() == '{master}': continue
 
-                if action_type == 'bbactivation':
+                if action_type == 'bbactivation' or 'bbmigration':
                     if '- CUSTOM' in if_line.strip().upper() \
                         or '-CUSTOM' in if_line.strip().upper(): continue
                     if '- PRIVPEER' in if_line.strip().upper() \
@@ -2510,6 +2510,9 @@ warning {
         if CGI_CLI.data.get("type") in action_type_list:
             action_type = CGI_CLI.data.get("type")
 
+    if CGI_CLI.data.get('devicetest'):       action_type = 'bbactivation'
+    if CGI_CLI.data.get('devicetestcustom'): action_type = 'customactivation'
+
     ### READ INTERFACE ID LIST FROM CGI #######################################
     for key in CGI_CLI.data.keys():
         try: value = str(key)
@@ -2524,18 +2527,24 @@ warning {
         try: interface_id_list.append(CGI_CLI.data.get("interface",str()).split()[0].replace('GE','Gi'))
         except: interface_id_list.append(CGI_CLI.data.get("interface",str()).replace('GE','Gi'))
 
-    ### TESTSERVER WORKAROUND #################################################
-    iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
-    if not (USERNAME and PASSWORD):
-        if iptac_server == 'iptac5': USERNAME, PASSWORD = 'iptac', 'paiiUNDO'
-
-
     ### GENERATE DEVICE LIST ##################################################
-    devices_string = CGI_CLI.data.get("device",str())
-    if devices_string:
-        if ',' in devices_string:
-            device_list = [ dev_mix_case.upper() for dev_mix_case in devices_string.split(',') ]
-        else: device_list.append(devices_string.upper())
+    if CGI_CLI.data.get('devicetestcustom'):
+        if ',' in CGI_CLI.data.get('devicetestcustom'):
+            for device_in in CGI_CLI.data.get('devicetestcustom').split(','):
+                device_list.append(device_in.upper())
+        else: device_list.append(CGI_CLI.data.get('devicetestcustom').upper())
+
+    if CGI_CLI.data.get('devicetest'):
+        if ',' in CGI_CLI.data.get('devicetest'):
+            for device_in in CGI_CLI.data.get('devicetest').split(','):
+                device_list.append(device_in.upper())
+        else: device_list.append(CGI_CLI.data.get('devicetest').upper())
+
+    if CGI_CLI.data.get('device'):
+        if ',' in CGI_CLI.data.get('device'):
+            for device_in in CGI_CLI.data.get('device').split(','):
+                device_list.append(device_in.upper())
+        else: device_list.append(CGI_CLI.data.get('device').upper())
 
     ### GENERATE DEVICE LIST ##################################################
     devices_string = CGI_CLI.data.get("device2",str())

@@ -2310,7 +2310,7 @@ def get_interface_list_per_device(device = None, action_type = None):
                 if_line = in_line_orig.replace('                                               ','').strip()
                 if if_line.strip() == '{master}': continue
 
-                if action_type == 'bbactivation':
+                if action_type == 'bbactivation' or 'bbmigration':
                     if '- CUSTOM' in if_line.strip().upper() \
                         or '-CUSTOM' in if_line.strip().upper(): continue
                     if '- PRIVPEER' in if_line.strip().upper() \
@@ -3031,7 +3031,8 @@ authentication {
                 if type_item in action_type_list:
                     action_type = type_item
 
-
+    if CGI_CLI.data.get('devicetest'):       action_type = 'bbactivation'
+    if CGI_CLI.data.get('devicetestcustom'): action_type = 'customactivation'
 
     ### MULTIPLE INPUTS FROM MORE MARTIN'S PAGES ##############################
     swan_id = CGI_CLI.data.get("swan",str())
@@ -3052,6 +3053,8 @@ authentication {
 
 
     ### def MAKE DEVICE LIST ##################################################
+    CGI_CLI.parse_input_data(key = 'devicetestcustom', append_to_list = device_list, ignore_list = True)
+    CGI_CLI.parse_input_data(key = 'devicetest', append_to_list = device_list, ignore_list = True)
     CGI_CLI.parse_input_data(key = 'device', append_to_list = device_list, ignore_list = True)
     CGI_CLI.parse_input_data(key = 'router', append_to_list = device_list, ignore_list = True)
     CGI_CLI.parse_input_data(key = 'router2', append_to_list = device_list, ignore_list = True)
