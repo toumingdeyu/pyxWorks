@@ -3671,9 +3671,9 @@ authentication {
                         try: interface_data['ipv6_access-group'] = collect_if_config_rcmd_outputs[0].split('ipv6 access-group ')[1].splitlines()[0].strip()
                         except: interface_data['ipv6_access-group'] = str()
 
-                    if interface_data.get('bundle_members_nr'):
-                            try: interface_data['LAG_member'] = 'yes' if 'bundle id ' in collect_if_config_rcmd_outputs[0] else 'no'
-                            except: interface_data['LAG_member'] = str()
+
+                    try: interface_data['LAG_member'] = 'yes' if 'bundle id ' in collect_if_config_rcmd_outputs[0] else 'no'
+                    except: interface_data['LAG_member'] = str()
 
 
                 elif RCMD.router_type == 'juniper':
@@ -3703,9 +3703,8 @@ authentication {
                             try: interface_data['inet6 filter input-list'].append(line.split('inet6 filter input-list ')[1].split()[0])
                             except: pass
 
-                    if interface_data.get('bundle_members_nr'):
-                            try: interface_data['LAG_member'] = 'yes' if 'gigether-options ' in collect_if_config_rcmd_outputs[0] else 'no'
-                            except: interface_data['LAG_member'] = str()
+                    try: interface_data['LAG_member'] = 'yes' if 'gigether-options ' in collect_if_config_rcmd_outputs[0] else 'no'
+                    except: interface_data['LAG_member'] = str()
 
                 elif RCMD.router_type == 'huawei':
                     try: interface_data['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[0]
@@ -3720,9 +3719,8 @@ authentication {
                     try: interface_data['ipv6_mask_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[1]
                     except: pass
 
-                    if interface_data.get('bundle_members_nr'):
-                            try: interface_data['LAG_member'] = 'yes' if 'eth-trunk ' in collect_if_config_rcmd_outputs[0] else 'no'
-                            except: interface_data['LAG_member'] = str()
+                    try: interface_data['LAG_member'] = 'yes' if 'eth-trunk ' in collect_if_config_rcmd_outputs[0] else 'no'
+                    except: interface_data['LAG_member'] = str()
 
                 ### def IPV6 CONDITION - YES OR NO ############################
                 ### OTI_LOCAL_AS = '5511'
@@ -4745,7 +4743,7 @@ authentication {
                 check_interface_result_ok, check_warning_interface_result_ok = True, True
                 CGI_CLI.uprint('CHECKS:', timestamp = 'no', tag = 'h2')
 
-                if interface_data.get('bundle_members_nr') \
+                if not interface_data.get('bundle_members_nr') \
                     and interface_data.get('LAG_member',str()) == 'yes':
                         CGI_CLI.uprint('This test is not intended for LAG member interface!', \
                             timestamp = 'no')
