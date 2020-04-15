@@ -3029,6 +3029,7 @@ authentication {
 
     if CGI_CLI.data.get('devicetest'):       action_type = 'bbactivation'
     if CGI_CLI.data.get('devicetestcustom'): action_type = 'customactivation'
+    if CGI_CLI.data.get('routertestcustom'): action_type = 'customactivation'
 
     ### MULTIPLE INPUTS FROM MORE MARTIN'S PAGES ##############################
     swan_id = CGI_CLI.data.get("swan",str())
@@ -3056,6 +3057,7 @@ authentication {
     CGI_CLI.parse_input_data(key = 'router2', append_to_list = device_list, ignore_list = True)
     CGI_CLI.parse_input_data(key = 'router3', append_to_list = device_list, ignore_list = True)
     CGI_CLI.parse_input_data(key = 'routertest', append_to_list = device_list, ignore_list = True)
+    CGI_CLI.parse_input_data(key = 'routertestcustom', append_to_list = device_list, ignore_list = True)
 
     router = CGI_CLI.parse_input_data(key = 'device')
     if not router: router = CGI_CLI.parse_input_data(key = 'routertest')
@@ -3562,19 +3564,19 @@ authentication {
 
                     if interface_data.get('ASN'):
                         interface_data['ipv4_addr_rem_from_ASN'] = []
-                        interface_data['ipv6_addr_rem_from_ASN'] = []
+                        interface_warning_data['ipv6_addr_rem_from_ASN'] = []
                         for line in rcmd_outputs[1].splitlines():
                             try:
                                 if str(line.split()[1]) == interface_data.get('ASN'):
                                     if '.' in line.split()[0]:
                                         interface_data['ipv4_addr_rem_from_ASN'].append(line.split()[0])
                                     elif ':' in line.split()[0]:
-                                        interface_data['ipv6_addr_rem_from_ASN'].append(line.split()[0])
+                                        interface_warning_data['ipv6_addr_rem_from_ASN'].append(line.split()[0])
                             except: pass
                         if len(interface_data['ipv4_addr_rem_from_ASN']) == 0:
                             del interface_data['ipv4_addr_rem_from_ASN']
-                        if len(interface_data['ipv6_addr_rem_from_ASN']) == 0:
-                            del interface_data['ipv6_addr_rem_from_ASN']
+                        if len(interface_warning_data['ipv6_addr_rem_from_ASN']) == 0:
+                            del interface_warning_data['ipv6_addr_rem_from_ASN']
 
                 elif RCMD.router_type == 'huawei':
                     try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("Local AS number :")[1].splitlines()[0].strip()
@@ -3791,7 +3793,7 @@ authentication {
                             else:
                                 interface_warning_data['ipv6_addr_rem_calculated'] = copy.deepcopy(str(addr))
                                 if not interface_warning_data.get('ipv6_addr_rem'):
-                                    interface_warning_data['ipv6_addr_rem'] =  copy.deepcopy(str(addr))
+                                    interface_warning_data['ipv6_addr_rem'] = interface_warning_data['ipv6_addr_rem_calculated']
 
                     if interface_data.get('ipv6_mask_loc') == '126':
                         i_counter = 0
@@ -3802,7 +3804,7 @@ authentication {
                                 else:
                                     interface_warning_data['ipv6_addr_rem_calculated'] =  copy.deepcopy(str(addr))
                                     if not interface_warning_data.get('ipv6_addr_rem'):
-                                        interface_warning_data['ipv6_addr_rem'] =  copy.deepcopy(str(addr))
+                                        interface_warning_data['ipv6_addr_rem'] = interface_warning_data['ipv6_addr_rem_calculated']
                             i_counter += 1
 
 
@@ -4259,7 +4261,7 @@ authentication {
 
                         'juniper': [
                             'show bgp neighbor %s | match Group:' % (interface_data.get('ipv4_addr_rem')) if interface_data.get('ipv4_addr_rem') else str(),
-                            'show bgp neighbor %s | match Group:' % (interface_data.get('ipv6_addr_rem')) if interface_data.get('ipv6_addr_rem') else str(),
+                            'show bgp neighbor %s | match Group:' % (interface_warning_data.get('ipv6_addr_rem')) if interface_warning_data.get('ipv6_addr_rem') else str(),
                         ],
 
                         'huawei': [
@@ -4530,16 +4532,16 @@ authentication {
                     ###########################################################
                     ### def CUSTOMER_MODE - 6th DATA COLLECTION ###############
                     ###########################################################
-                    if interface_data.get('ipv6_addr_rem'):
+                    if interface_warning_data.get('ipv6_addr_rem'):
                         collect6_if_data_rcmds = {
                             'cisco_ios':[
-                                'show bgp neighbor %s' % (interface_data.get('ipv6_addr_rem')) if interface_data.get('ipv6_addr_rem') else str(),
-                                'show bgp neighbor %s advertised-count' % (interface_data.get('ipv6_addr_rem')) if interface_data.get('ipv6_addr_rem') else str(),
+                                'show bgp neighbor %s' % (interface_warning_data.get('ipv6_addr_rem')) if interface_warning_data.get('ipv6_addr_rem') else str(),
+                                'show bgp neighbor %s advertised-count' % (interface_warning_data.get('ipv6_addr_rem')) if interface_warning_data.get('ipv6_addr_rem') else str(),
                              ],
 
                             'cisco_xr':[
-                                'show bgp neighbor %s' % (interface_data.get('ipv6_addr_rem')) if interface_data.get('ipv6_addr_rem') else str(),
-                                'show bgp neighbor %s advertised-count' % (interface_data.get('ipv6_addr_rem')) if interface_data.get('ipv6_addr_rem') else str(),
+                                'show bgp neighbor %s' % (interface_warning_data.get('ipv6_addr_rem')) if interface_warning_data.get('ipv6_addr_rem') else str(),
+                                'show bgp neighbor %s advertised-count' % (interface_warning_data.get('ipv6_addr_rem')) if interface_warning_data.get('ipv6_addr_rem') else str(),
                              ],
 
                             'juniper': [
