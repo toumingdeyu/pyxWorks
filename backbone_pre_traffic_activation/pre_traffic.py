@@ -2691,6 +2691,9 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
         try:    interface_data['ASN'] = err_check_after_pings_outputs[0].split('Description:')[1].splitlines()[0].split(' ASN')[1].split()[0].strip()
         except: pass
 
+        try:    interface_data['LAG'] = 'yes' if ' - LAG ' in err_check_after_pings_outputs[0].split('Description:')[1].splitlines()[0].upper() else 'no'
+        except: pass
+
     if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
         if not after_ping:
             try:    interface_data['bundle_members_nr'] = int(err_check_after_pings_outputs[0].split('No. of members in this bundle:')[1].splitlines()[0].strip())
@@ -4275,11 +4278,11 @@ authentication {
 
                         if interface_warning_data.get('ipv6_addr_rem'):
                             try: interface_data['neighbor-group_ipv6'] = collect2_if_config_rcmd_outputs[1].split('Group: ')[1].split()[0].strip()
-                            except: pass  
+                            except: pass
 
                     elif RCMD.router_type == 'huawei':
                         pass
-                     
+
 
 
                     ###########################################################
@@ -4405,7 +4408,7 @@ authentication {
 
                             try: interface_data['ipv6_unicast_route-policy_out'] = collect3_if_config_rcmd_outputs[1].split('export [ ')[1].split()[0].strip()
                             except: interface_data['ipv6_unicast_route-policy_out'] = str()
-                        
+
                     elif RCMD.router_type == 'huawei':
                         pass
 
@@ -4729,6 +4732,10 @@ authentication {
                 ### START OF CHECKS PER INTERFACE #############################
                 check_interface_result_ok, check_warning_interface_result_ok = True, True
                 CGI_CLI.uprint('CHECKS:', timestamp = 'no', tag = 'h2')
+
+                if interface_data.get('LAG',str()) == 'yes':
+                     CGI_CLI.uprint('WARNING: This TEST is not intended for LAG interface.', \
+                         timestamp = 'no', color = 'orange')
 
                 ### def ALL - VOID ELEMENTS CHECK #############################
                 None_elements = get_void_json_elements(interface_data, \
