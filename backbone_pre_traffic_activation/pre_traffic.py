@@ -3619,9 +3619,9 @@ authentication {
                 try: interface_data['ipv4_addr_rem_from_DESCRIPTION'] = collect_if_config_rcmd_outputs[0].split('description')[1].splitlines()[0].split('@')[1].split()[0]
                 except: pass
 
-                try: interface_data['bandwidth'] = collect_if_config_rcmd_outputs[0].\
+                try: interface_warning_data['bandwidth'] = collect_if_config_rcmd_outputs[0].\
                          split('bandwidth ')[1].splitlines()[0].strip().replace(';','')
-                except: interface_data['bandwidth'] = str()
+                except: interface_warning_data['bandwidth'] = str()
 
                 try: interface_data['fib_number(s)'] = ','.join(get_fiblist(collect_if_config_rcmd_outputs[0].split('description')[1].splitlines()[0]))
                 except: interface_data['fib_number'] = str()
@@ -3693,7 +3693,7 @@ authentication {
                     except: pass
 
                     if CUSTOMER_MODE:
-                        #try: interface_data['bandwidth'] = collect_if_config_rcmd_outputs[0].split('bandwidth ')[1].split()[0]
+                        #try: interface_warning_data['bandwidth'] = collect_if_config_rcmd_outputs[0].split('bandwidth ')[1].split()[0]
                         #except: pass
 
                         interface_data['inet filter input-list'] = []
@@ -4050,8 +4050,8 @@ authentication {
                     elif RCMD.router_type == 'huawei':
 
                         ### BANDWITH IS OPTIONABLE --> AVOID FROM VOID CHECK ######
-                        if not interface_data.get('bandwidth'):
-                            del interface_data['bandwidth']
+                        if not interface_warning_data.get('bandwidth'):
+                            del interface_warning_data['bandwidth']
 
                         interface_data['isis ldp-sync'] = True if 'isis ldp-sync' in collect_if_config_rcmd_outputs[0] else str()
 
