@@ -2310,7 +2310,7 @@ def get_interface_list_per_device(device = None, action_type = None):
                 if_line = in_line_orig.replace('                                               ','').strip()
                 if if_line.strip() == '{master}': continue
 
-                if action_type == 'bbactivation' or 'bbmigration':
+                if 'bb' in action_type:
                     if '- CUSTOM' in if_line.strip().upper() \
                         or '-CUSTOM' in if_line.strip().upper(): continue
                     if '- PRIVPEER' in if_line.strip().upper() \
@@ -2318,13 +2318,9 @@ def get_interface_list_per_device(device = None, action_type = None):
                     if '- PUBPEER' in if_line.strip().upper() \
                         or '-PUBPEER' in if_line.strip().upper(): continue
                     if 'LOOPBACK' in if_line.strip().upper(): continue
-                elif action_type == 'custommigration' or action_type == 'customactivation':
+                elif 'custom' in action_type:
                     if '- BACKBONE' in if_line.strip().upper() \
                         or '-BACKBONE' in if_line.strip().upper(): continue
-                    if '- PRIVPEER' in if_line.strip().upper() \
-                        or '-PRIVPEER' in if_line.strip().upper(): continue
-                    if '- PUBPEER' in if_line.strip().upper() \
-                        or '-PUBPEER' in if_line.strip().upper(): continue
                     if 'LOOPBACK' in if_line.strip().upper(): continue
 
 
