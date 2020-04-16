@@ -4505,12 +4505,24 @@ authentication {
                          ],
 
                         'juniper': [
-
+                            'show configuration policy-options policy-statement DENY-ALL',
                         ],
 
                         'huawei': [
                         ]
                     }
+
+                    for policy in interface_data.get('IPV4 unicast_route-policy_in',[]):
+                        collect4_if_data_rcmds['juniper'].append('show configuration policy-options policy-statement %s' % (policy))
+
+                    for policy in interface_data.get('IPV4 unicast_route-policy_out',[]):
+                        collect4_if_data_rcmds['juniper'].append('show configuration policy-options policy-statement %s' % (policy))
+
+                    for policy in interface_data.get('IPV6 unicast_route-policy_in',[]):
+                        collect4_if_data_rcmds['juniper'].append('show configuration policy-options policy-statement %s' % (policy))
+
+                    for policy in interface_data.get('IPV6 unicast_route-policy_out',[]):
+                        collect4_if_data_rcmds['juniper'].append('show configuration policy-options policy-statement %s' % (policy))
 
                     collect4_if_config_rcmd_outputs = RCMD.run_commands(collect4_if_data_rcmds, \
                         autoconfirm_mode = True, \
