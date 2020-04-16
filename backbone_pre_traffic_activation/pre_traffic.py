@@ -4292,7 +4292,7 @@ authentication {
                             except: interface_data['neighbor-group'] = str()
 
                         if interface_warning_data.get('ipv6_addr_rem'):
-                            try: interface_data['neighbor-group_ipv6'] = collect2_if_config_rcmd_outputs[1].split('match Group:')[1].split('Group: ')[1].split()[0].strip()
+                            try: interface_data['IPV6 neighbor-group'] = collect2_if_config_rcmd_outputs[1].split('match Group:')[1].split('Group: ')[1].split()[0].strip()
                             except: pass
 
                     elif RCMD.router_type == 'huawei':
@@ -4324,7 +4324,7 @@ authentication {
 
                         'juniper': [
                             'show configuration protocols bgp group %s | display set' % (interface_data.get('neighbor-group',str())) if interface_data.get('neighbor-group') else str(),
-                            'show configuration protocols bgp group %s | display set' % (interface_data.get('neighbor-group_ipv6',str())) if interface_data.get('neighbor-group_ipv6') else str(),
+                            'show configuration protocols bgp group %s | display set' % (interface_data.get('IPV6 neighbor-group',str())) if interface_data.get('IPV6 neighbor-group') else str(),
                         ],
 
                         'huawei': [
@@ -4440,7 +4440,7 @@ authentication {
 
                         interface_data['IPV4 multipath'] = True if 'multipath' in collect3_if_config_rcmd_outputs[0] else str()
 
-                        if USE_IPV6 and interface_data.get('neighbor-group_ipv6'):
+                        if USE_IPV6 and interface_data.get('IPV6 neighbor-group'):
                             interface_data['IPV6 unicast_route-policy_in'] = []
                             for line in collect3_if_config_rcmd_outputs[1].splitlines():
                                 if 'import ' in line:
@@ -4557,6 +4557,7 @@ authentication {
                          ],
 
                         'juniper': [
+                            'show bgp group %s' % (interface_data.get('neighbor-group')) if interface_data.get('neighbor-group') else str(),
 
                         ],
 
@@ -4610,7 +4611,7 @@ authentication {
                              ],
 
                             'juniper': [
-
+                                'show bgp group %s' % (interface_data.get('IPV6 neighbor-group')) if interface_data.get('IPV6 neighbor-group') else str(),
                             ],
 
                             'huawei': [
