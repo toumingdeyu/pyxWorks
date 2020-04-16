@@ -4533,11 +4533,14 @@ authentication {
                             if 'NO SUCH CONFIGURATION ITEM' in cmd_output.upper():
                                 interface_data[cmd_in] = str()
 
+                    elif RCMD.router_type == 'juniper':
+                        for cmd_in,cmd_output in zip(collect4_if_data_rcmds, collect4_if_config_rcmd_outputs):
+                            if not ';' in cmd_output.upper():
+                                interface_data[cmd_in] = str()
+
                     elif RCMD.router_type == 'huawei':
                         pass
 
-                    elif RCMD.router_type == 'juniper':
-                       pass
 
                     ###########################################################
                     ### def CUSTOMER_MODE - 5th DATA COLLECTION ###############
