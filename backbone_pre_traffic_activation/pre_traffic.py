@@ -4323,8 +4323,8 @@ authentication {
                          ],
 
                         'juniper': [
-                            'show configuration protocols bgp group %s' % (interface_data.get('neighbor-group',str())) if interface_data.get('neighbor-group') else str(),
-                            'show configuration protocols bgp group %s' % (interface_data.get('neighbor-group_ipv6',str())) if interface_data.get('neighbor-group_ipv6') else str(),
+                            'show configuration protocols bgp group %s | display set' % (interface_data.get('neighbor-group',str())) if interface_data.get('neighbor-group') else str(),
+                            'show configuration protocols bgp group %s | display set' % (interface_data.get('neighbor-group_ipv6',str())) if interface_data.get('neighbor-group_ipv6') else str(),
                         ],
 
                         'huawei': [
@@ -4411,18 +4411,64 @@ authentication {
                                 except: pass
 
                     elif RCMD.router_type == 'juniper':
-                        try: interface_data['ipv4_unicast_route-policy_in'] = collect3_if_config_rcmd_outputs[0].split('import [ ')[1].split()[0].strip()
-                        except: interface_data['ipv4_unicast_route-policy_in'] = str()
+                        interface_data['IPV4 unicast_route-policy_in'] = []
+                        for line in collect3_if_config_rcmd_outputs[0].splitlines():
+                            if 'import ' in line:
+                                try: interface_data['IPV4 unicast_route-policy_in'].append(line.split('import ')[1].split()[0])
+                                except: pass
 
-                        try: interface_data['ipv4_unicast_route-policy_out'] = collect3_if_config_rcmd_outputs[0].split('export [ ')[1].split()[0].strip()
-                        except: interface_data['ipv4_unicast_route-policy_out'] = str()
+                        interface_data['IPV4 unicast_route-policy_out'] = []
+                        for line in collect3_if_config_rcmd_outputs[0].splitlines():
+                            if 'import ' in line:
+                                try: interface_data['IPV4 unicast_route-policy_out'].append(line.split('export ')[1].split()[0])
+                                except: pass
+
+                        try: interface_data['IPV4 unicast prefix-limit maximum'] = collect3_if_config_rcmd_outputs[0].split('unicast prefix-limit maximum ')[1].split()[0]
+                        except: pass
+
+                        try: interface_data['IPV4 unicast prefix-limit teardown'] = collect3_if_config_rcmd_outputs[0].split('unicast prefix-limit teardown ')[1].split()[0]
+                        except: pass
+
+                        try: interface_data['IPV4 peer-as'] = collect3_if_config_rcmd_outputs[0].split('peer-as ')[1].split()[0]
+                        except: pass
+
+                        interface_data['IPV4 neighbors'] = []
+                        for line in collect3_if_config_rcmd_outputs[0].splitlines():
+                            if 'neighbor ' in line:
+                                try: interface_data['IPV4 neighbors'].append(line.split('neighbor ')[1].split()[0])
+                                except: pass
+
+                        interface_data['IPV4 multipath'] = True if 'multipath' in collect3_if_config_rcmd_outputs[0] else str()
 
                         if USE_IPV6 and interface_data.get('neighbor-group_ipv6'):
-                            try: interface_data['ipv6_unicast_route-policy_in'] = collect3_if_config_rcmd_outputs[1].split('import [ ')[1].split()[0].strip()
-                            except: interface_data['ipv6_unicast_route-policy_in'] = str()
+                            interface_data['IPV6 unicast_route-policy_in'] = []
+                            for line in collect3_if_config_rcmd_outputs[1].splitlines():
+                                if 'import ' in line:
+                                    try: interface_data['IPV6 unicast_route-policy_in'].append(line.split('import ')[1].split()[0])
+                                    except: pass
 
-                            try: interface_data['ipv6_unicast_route-policy_out'] = collect3_if_config_rcmd_outputs[1].split('export [ ')[1].split()[0].strip()
-                            except: interface_data['ipv6_unicast_route-policy_out'] = str()
+                            interface_data['IPV6 unicast_route-policy_out'] = []
+                            for line in collect3_if_config_rcmd_outputs[1].splitlines():
+                                if 'import ' in line:
+                                    try: interface_data['IPV6 unicast_route-policy_out'].append(line.split('export ')[1].split()[0])
+                                    except: pass
+
+                            try: interface_data['IPV6 unicast prefix-limit maximum'] = collect3_if_config_rcmd_outputs[1].split('unicast prefix-limit maximum ')[1].split()[0]
+                            except: pass
+
+                            try: interface_data['IPV6 unicast prefix-limit teardown'] = collect3_if_config_rcmd_outputs[1].split('unicast prefix-limit teardown ')[1].split()[0]
+                            except: pass
+
+                            try: interface_data['IPV6 peer-as'] = collect3_if_config_rcmd_outputs[1].split('peer-as ')[1].split()[0]
+                            except: pass
+
+                            interface_data['IPV6 neighbors'] = []
+                            for line in collect3_if_config_rcmd_outputs[0].splitlines():
+                                if 'neighbor ' in line:
+                                    try: interface_data['IPV6 neighbors'].append(line.split('neighbor ')[1].split()[0])
+                                    except: pass
+
+                            interface_data['IPV6 multipath'] = True if 'multipath' in collect3_if_config_rcmd_outputs[1] else str()
 
                     elif RCMD.router_type == 'huawei':
                         pass
