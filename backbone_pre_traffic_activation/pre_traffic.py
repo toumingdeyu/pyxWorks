@@ -4219,23 +4219,20 @@ authentication {
                         try: interface_data['inet6'] = collect_if_config_rcmd_outputs[3].split('inet6 ')[1].split()[0]
                         except: interface_data['inet6'] = str()
 
-                        try: interface_data['multiservice'] = True if 'multiservice' in collect_if_config_rcmd_outputs[1] else str()
+                        try: interface_data['multiservice'] = True if 'multiservice' in collect_if_config_rcmd_outputs[3] else str()
                         except: interface_data['multiservice'] = str()
 
-                        try: interface_data['Protocol'] = collect_if_config_rcmd_outputs[4].split('Protocol ')[1].split()[0].replace(',','')
-                        except: interface_data['Protocol'] = str()
-
-                        try: interface_data['MTU_default'] = collect_if_config_rcmd_outputs[4].split('Protocol inet ')[1].split('MTU: ')[1].split()[0]
+                        try: interface_data['MTU_default'] = collect_if_config_rcmd_outputs[4].split('Protocol inet, MTU:')[1].split()[0]
                         except: interface_data['MTU_default'] = str()
 
-                        try: interface_data['Destination'] = collect_if_config_rcmd_outputs[4].split('Protocol inet ')[1].split('Destination: ')[1].split()[0].replace(',','')
+                        try: interface_data['IPV6 MTU_default'] = collect_if_config_rcmd_outputs[4].split('Protocol inet6, MTU:')[1].split()[0]
+                        except: pass
+
+                        try: interface_data['Destination'] = collect_if_config_rcmd_outputs[4].split('Protocol inet,')[1].split('Destination: ')[1].split()[0].replace(',','')
                         except: interface_data['Destination'] = str()
 
-                        try: interface_data['Local'] = collect_if_config_rcmd_outputs[4].split('Protocol inet ')[1].split('Local: ')[1].split()[0]
+                        try: interface_data['Local'] = collect_if_config_rcmd_outputs[4].split('Protocol inet,')[1].split('Local: ')[1].split()[0]
                         except: interface_data['Local'] = str()
-
-                        try: interface_data['IPV6 Protocol'] = collect_if_config_rcmd_outputs[4].split('Protocol inet ')[1].split('Protocol ')[1].split()[0].replace(',','')
-                        except: interface_data['IPV6 Protocol'] = str()
 
                         try: interface_data['IPV6 MTU_default'] = collect_if_config_rcmd_outputs[4].split('Protocol inet6')[1].split('MTU: ')[1].split()[0]
                         except: interface_data['IPV6 MTU_default'] = str()
