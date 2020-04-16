@@ -3653,8 +3653,7 @@ authentication {
                         try: interface_data['flow ipv4 monitor'] = collect_if_config_rcmd_outputs[0].split('flow ipv4 monitor ')[1].split()[0]
                         except: interface_data['flow ipv4 monitor'] = str()
 
-                        if (LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE) \
-                            or interface_data.get('ipv6_addr_loc'):
+                        if interface_data.get('ipv6_addr_loc'):
                             try: interface_data['flow ipv6 monitor'] = collect_if_config_rcmd_outputs[0].split('flow ipv4 monitor ')[1].split()[0]
                             except: interface_data['flow ipv6 monitor'] = str()
 
@@ -3671,9 +3670,7 @@ authentication {
                         try: interface_data['ipv4_access-group'] = collect_if_config_rcmd_outputs[0].split('ipv4 access-group ')[1].splitlines()[0].strip()
                         except: interface_data['ipv4_access-group'] = str()
 
-                        if (LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE) \
-                            or interface_data.get('ipv6_addr_loc'):
-
+                        if interface_data.get('ipv6_addr_loc'):
                             try: interface_data['flow_ipv6_monitor'] = collect_if_config_rcmd_outputs[0].split('flow ipv6 monitor ')[1].splitlines()[0].strip()
                             except: interface_data['flow_ipv6_monitor'] = str()
 
@@ -3707,12 +3704,12 @@ authentication {
                             try: interface_data['inet filter input-list'].append(line.split('inet filter input-list ')[1].split()[0])
                             except: pass
 
-                            if (LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE) \
-                                or interface_data.get('ipv6_addr_loc'):
+                            if interface_data.get('ipv6_addr_loc'):
                                 interface_data['inet6 filter input-list'] = []
                                 for line in collect_if_config_rcmd_outputs[0].splitlines():
                                     try: interface_data['inet6 filter input-list'].append(line.split('inet6 filter input-list ')[1].split()[0])
                                     except: pass
+
 
                     try: interface_data['LAG_member'] = 'yes' if 'gigether-options ' in collect_if_config_rcmd_outputs[0] else 'no'
                     except: interface_data['LAG_member'] = str()
