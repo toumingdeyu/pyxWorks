@@ -1193,7 +1193,7 @@ class RCMD(object):
                         else:
                             CGI_CLI.uprint(' . ', no_newlines = True, timestamp = 'no', ommit_logging = True)
             if '^' in last_output:
-                CGI_CLI.uprint("SYNTAX ERROR in CMD: '%s' !" % (str(cmd_line)), timestamp = 'no', color = 'orange')
+                CGI_CLI.uprint("\nSYNTAX ERROR in CMD: '%s' !\n" % (str(cmd_line)), timestamp = 'no', color = 'orange')
         return str(last_output)
 
     @staticmethod
