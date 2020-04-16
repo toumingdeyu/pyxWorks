@@ -4419,7 +4419,7 @@ authentication {
 
                         interface_data['IPV4 unicast_route-policy_out'] = []
                         for line in collect3_if_config_rcmd_outputs[0].splitlines():
-                            if 'import ' in line:
+                            if 'export ' in line:
                                 try: interface_data['IPV4 unicast_route-policy_out'].append(line.split('export ')[1].split()[0])
                                 except: pass
 
@@ -4449,7 +4449,7 @@ authentication {
 
                             interface_data['IPV6 unicast_route-policy_out'] = []
                             for line in collect3_if_config_rcmd_outputs[1].splitlines():
-                                if 'import ' in line:
+                                if 'export ' in line:
                                     try: interface_data['IPV6 unicast_route-policy_out'].append(line.split('export ')[1].split()[0])
                                     except: pass
 
