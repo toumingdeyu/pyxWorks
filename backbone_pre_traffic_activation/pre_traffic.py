@@ -1192,6 +1192,8 @@ class RCMD(object):
                             CGI_CLI.uprint('\n', timestamp = 'no', ommit_logging = True)
                         else:
                             CGI_CLI.uprint(' . ', no_newlines = True, timestamp = 'no', ommit_logging = True)
+            if '^' in last_output:
+                CGI_CLI.uprint("SYNTAX ERROR in CMD: '%s' !" % (str(cmd_line)), timestamp = 'no', color = 'orange')
         return str(last_output)
 
     @staticmethod
@@ -4159,7 +4161,7 @@ authentication {
                         ],
 
                         'juniper': [
-                            'show configuration class-of-service interfaces %s' % (interface_id),
+                            'show configuration class-of-service interfaces %s' % (undotted_interface_id),
                             'show configuration protocols isis interface %s' % (interface_id),
                             'show isis interface %s' % (interface_id),
                             'show interfaces brief %s' % (interface_id),
