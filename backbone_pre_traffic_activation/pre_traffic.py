@@ -4288,11 +4288,11 @@ authentication {
 
                     elif RCMD.router_type == 'juniper':
                         if interface_data.get('ipv4_addr_rem'):
-                            try: interface_data['neighbor-group'] = collect2_if_config_rcmd_outputs[0].split('Group: ')[1].split()[0].strip()
+                            try: interface_data['neighbor-group'] = collect2_if_config_rcmd_outputs[0].split('match Group:')[1].split('Group: ')[1].split()[0].strip()
                             except: interface_data['neighbor-group'] = str()
 
                         if interface_warning_data.get('ipv6_addr_rem'):
-                            try: interface_data['neighbor-group_ipv6'] = collect2_if_config_rcmd_outputs[1].split('Group: ')[1].split()[0].strip()
+                            try: interface_data['neighbor-group_ipv6'] = collect2_if_config_rcmd_outputs[1].split('match Group:')[1].split('Group: ')[1].split()[0].strip()
                             except: pass
 
                     elif RCMD.router_type == 'huawei':
