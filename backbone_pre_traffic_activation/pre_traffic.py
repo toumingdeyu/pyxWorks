@@ -3705,9 +3705,9 @@ authentication {
                             except: pass
 
                             if interface_data.get('ipv6_addr_loc'):
-                                interface_data['inet6 filter input-list'] = []
+                                interface_data['inet6 filter input'] = []
                                 for line in collect_if_config_rcmd_outputs[0].splitlines():
-                                    try: interface_data['inet6 filter input-list'].append(line.split('inet6 filter input-list ')[1].split()[0])
+                                    try: interface_data['inet6 filter input'].append(line.split('inet6 filter input ')[1].split()[0])
                                     except: pass
 
 
