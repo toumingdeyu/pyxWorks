@@ -2498,7 +2498,7 @@ warning {
     LCMD.init()
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
     printall = CGI_CLI.data.get("printall")
-    
+
     if CGI_CLI.printall: CGI_CLI.print_args()
 
     ### ACTION TYPE ###########################################################
@@ -2553,13 +2553,6 @@ warning {
 
     ### GENERATE DEVICE LIST ##################################################
     devices_string = CGI_CLI.data.get("device3",str())
-    if devices_string:
-        if ',' in devices_string:
-            device_list = [ dev_mix_case.upper() for dev_mix_case in devices_string.split(',') ]
-        else: device_list.append(devices_string.upper())
-
-    ### GENERATE DEVICE LIST ##################################################
-    devices_string = CGI_CLI.data.get("devicetest",str())
     if devices_string:
         if ',' in devices_string:
             device_list = [ dev_mix_case.upper() for dev_mix_case in devices_string.split(',') ]
