@@ -2526,7 +2526,7 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not_in =
                     CGI_CLI.uprint("CHECK[" + ' AND '.join(Alarm_text) + '] = NOT OK', color = 'red', timestamp = 'no')
             else: CGI_CLI.logtofile("CHECK[ ['%s'] not in '%s'] = OK\n" % (','.join(what_not_in), where), ommit_timestamp = True)
         else:
-            if what_not_in.upper() in where_value.upper():
+            if str(what_not_in).upper() in str(where_value).upper():
                 if warning:
                     check_warning_interface_result_ok = False
                     CGI_CLI.uprint("CHECK['%s' not in '%s'(%s)] = WARNING" % (str(what_not_in), where, str(where_value)),
