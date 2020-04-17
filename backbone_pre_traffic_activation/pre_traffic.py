@@ -4438,7 +4438,7 @@ authentication {
                                 try: interface_data['IPV4 neighbors'].append(line.split('neighbor ')[1].split()[0])
                                 except: pass
 
-                        interface_data['IPV4 multipath'] = True if 'multipath' in collect3_if_config_rcmd_outputs[0] else str()
+                        # interface_data['IPV4 multipath'] = True if 'multipath' in collect3_if_config_rcmd_outputs[0] else str()
 
                         if USE_IPV6 and interface_data.get('IPV6 neighbor-group'):
                             interface_data['IPV6 unicast_route-policy_in'] = []
@@ -4468,7 +4468,7 @@ authentication {
                                     try: interface_data['IPV6 neighbors'].append(line.split('neighbor ')[1].split()[0])
                                     except: pass
 
-                            interface_data['IPV6 multipath'] = True if 'multipath' in collect3_if_config_rcmd_outputs[1] else str()
+                            # interface_data['IPV6 multipath'] = True if 'multipath' in collect3_if_config_rcmd_outputs[1] else str()
 
                     elif RCMD.router_type == 'huawei':
                         pass
@@ -5169,19 +5169,19 @@ authentication {
                                 neighbor_filtered = neighbor.split('+')[0]
                                 check_interface_data_content('IPV6 neighbors', what_yes_in = neighbor_filtered)
                             except: pass
-                            
+
                         if precheck_mode:
                             check_interface_data_content('IPV4 unicast_route-policy_in', what_yes_in = 'DENY-ALL')
                             check_interface_data_content('IPV4 unicast_route-policy_out', what_yes_in = 'DENY-ALL')
                             if USE_IPV6:
                                 check_interface_data_content('IPV6 unicast_route-policy_in', what_yes_in = 'DENY-ALL')
                                 check_interface_data_content('IPV6 unicast_route-policy_out', what_yes_in = 'DENY-ALL')
-                        else:        
+                        else:
                             check_interface_data_content('IPV4 unicast_route-policy_in', what_not_in = 'DENY-ALL')
                             check_interface_data_content('IPV4 unicast_route-policy_out', what_not_in = 'DENY-ALL')
                             if USE_IPV6:
                                 check_interface_data_content('IPV6 unicast_route-policy_in', what_not_in = 'DENY-ALL')
-                                check_interface_data_content('IPV6 unicast_route-policy_out', what_not_in = 'DENY-ALL')                         
+                                check_interface_data_content('IPV6 unicast_route-policy_out', what_not_in = 'DENY-ALL')
 
 
                     elif RCMD.router_type == 'huawei':
