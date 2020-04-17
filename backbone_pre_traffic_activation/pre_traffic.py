@@ -4463,7 +4463,7 @@ authentication {
                             except: pass
 
                             interface_data['IPV6 neighbors'] = []
-                            for line in collect3_if_config_rcmd_outputs[0].splitlines():
+                            for line in collect3_if_config_rcmd_outputs[1].splitlines():
                                 if 'neighbor ' in line:
                                     try: interface_data['IPV6 neighbors'].append(line.split('neighbor ')[1].split()[0])
                                     except: pass
