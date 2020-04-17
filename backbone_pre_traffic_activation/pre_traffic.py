@@ -5169,6 +5169,19 @@ authentication {
                                 neighbor_filtered = neighbor.split('+')[0]
                                 check_interface_data_content('IPV6 neighbors', what_yes_in = neighbor_filtered)
                             except: pass
+                            
+                        if precheck_mode:
+                            check_interface_data_content('IPV4 unicast_route-policy_in', what_yes_in = 'DENY-ALL')
+                            check_interface_data_content('IPV4 unicast_route-policy_out', what_yes_in = 'DENY-ALL')
+                            if USE_IPV6:
+                                check_interface_data_content('IPV6 unicast_route-policy_in', what_yes_in = 'DENY-ALL')
+                                check_interface_data_content('IPV6 unicast_route-policy_out', what_yes_in = 'DENY-ALL')
+                        else:        
+                            check_interface_data_content('IPV4 unicast_route-policy_in', what_not_in = 'DENY-ALL')
+                            check_interface_data_content('IPV4 unicast_route-policy_out', what_not_in = 'DENY-ALL')
+                            if USE_IPV6:
+                                check_interface_data_content('IPV6 unicast_route-policy_in', what_not_in = 'DENY-ALL')
+                                check_interface_data_content('IPV6 unicast_route-policy_out', what_not_in = 'DENY-ALL')                         
 
 
                     elif RCMD.router_type == 'huawei':
