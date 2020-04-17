@@ -4288,8 +4288,8 @@ authentication {
 
                     elif RCMD.router_type == 'juniper':
                         if interface_data.get('ipv4_addr_rem'):
-                            try: interface_data['neighbor-group'] = collect2_if_config_rcmd_outputs[0].split('match Group:')[1].split('Group: ')[1].split()[0].strip()
-                            except: interface_data['neighbor-group'] = str()
+                            try: interface_data['IPV4 neighbor-group'] = collect2_if_config_rcmd_outputs[0].split('match Group:')[1].split('Group: ')[1].split()[0].strip()
+                            except: interface_data['IPV4 neighbor-group'] = str()
 
                         if interface_warning_data.get('ipv6_addr_rem'):
                             try: interface_data['IPV6 neighbor-group'] = collect2_if_config_rcmd_outputs[1].split('match Group:')[1].split('Group: ')[1].split()[0].strip()
@@ -4323,7 +4323,7 @@ authentication {
                          ],
 
                         'juniper': [
-                            'show configuration protocols bgp group %s | display set' % (interface_data.get('neighbor-group',str())) if interface_data.get('neighbor-group') else str(),
+                            'show configuration protocols bgp group %s | display set' % (interface_data.get('IPV4 neighbor-group',str())) if interface_data.get('IPV4 neighbor-group') else str(),
                             'show configuration protocols bgp group %s | display set' % (interface_data.get('IPV6 neighbor-group',str())) if interface_data.get('IPV6 neighbor-group') else str(),
                         ],
 
@@ -4557,7 +4557,7 @@ authentication {
                          ],
 
                         'juniper': [
-                            'show bgp group %s' % (interface_data.get('neighbor-group')) if interface_data.get('neighbor-group') else str(),
+                            'show bgp group %s' % (interface_data.get('IPV4 neighbor-group')) if interface_data.get('IPV4 neighbor-group') else str(),
 
                         ],
 
