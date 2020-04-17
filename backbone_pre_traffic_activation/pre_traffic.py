@@ -4604,9 +4604,10 @@ authentication {
                         interface_data['IPV4 bgp group Peers'] = []
                         for line in collect5_if_config_rcmd_outputs[0].split('Established: ')[1].strip().splitlines():
                             if '.' in line:
-                                try: interface_data['IPV4 bgp group Peers'].append(str(line))
-                                except: pass
                                 if 'inet' in line: break
+                                interface_data['IPV4 bgp group Peers'].append(str(line))
+
+
 
                     elif RCMD.router_type == 'huawei':
                         pass
@@ -4675,8 +4676,9 @@ authentication {
                             interface_data['IPV6 bgp group Peers'] = []
                             for line in collect6_if_config_rcmd_outputs[0].split('Established: ')[1].strip().splitlines():
                                 if ':' in line:
-                                    interface_data['IPV6 bgp group Peers'].append(str(line))
                                     if 'inet6' in line: break
+                                    interface_data['IPV6 bgp group Peers'].append(str(line))
+
 
                         elif RCMD.router_type == 'huawei':
                             pass
