@@ -4604,7 +4604,7 @@ authentication {
                         interface_data['IPV4 bgp group Peers'] = []
                         for line in collect5_if_config_rcmd_outputs[0].split('Established: ')[1].strip():
                             if '.' in line:
-                                try: interface_data['IPV4 bgp group Peers'].append(line.split()[0])
+                                try: interface_data['IPV4 bgp group Peers'].append(str(line))
                                 except: pass
                                 if 'inet' in line: break
 
@@ -4660,23 +4660,22 @@ authentication {
                             except: interface_data['IPV6 No of prefixes Advertised'] = str()
 
                         elif RCMD.router_type == 'juniper':
-                            try: interface_data['IPV6 bgp group Name'] = collect5_if_config_rcmd_outputs[0].split('Name: ')[1].split()[0]
+                            try: interface_data['IPV6 bgp group Name'] = collect6_if_config_rcmd_outputs[0].split('Name: ')[1].split()[0]
                             except: interface_data['IPV6 bgp group Name'] = str()
 
-                            try: interface_data['IPV6 bgp group Export'] = collect5_if_config_rcmd_outputs[0].split('Export: [ ')[1].splitlines()[0].replace(']','').strip().split()
+                            try: interface_data['IPV6 bgp group Export'] = collect6_if_config_rcmd_outputs[0].split('Export: [ ')[1].splitlines()[0].replace(']','').strip().split()
                             except: interface_data['IPV6 bgp group Export'] = str()
 
-                            try: interface_data['IPV6 bgp group Total peers'] = collect5_if_config_rcmd_outputs[0].split('Total peers: ')[1].split()[0]
+                            try: interface_data['IPV6 bgp group Total peers'] = collect6_if_config_rcmd_outputs[0].split('Total peers: ')[1].split()[0]
                             except: interface_data['IPV6 bgp group Total peers'] = str()
 
-                            try: interface_data['IPV6 bgp group Established'] = collect5_if_config_rcmd_outputs[0].split('Established: ')[1].split()[0]
+                            try: interface_data['IPV6 bgp group Established'] = collect6_if_config_rcmd_outputs[0].split('Established: ')[1].split()[0]
                             except: interface_data['IPV6 bgp group Established'] = str()
 
                             interface_data['IPV6 bgp group Peers'] = []
-                            for line in collect5_if_config_rcmd_outputs[0].split('Established: ')[1].strip():
+                            for line in collect6_if_config_rcmd_outputs[0].split('Established: ')[1].strip():
                                 if ':' in line:
-                                    try: interface_data['IPV6 bgp group Peers'].append(line.split()[0])
-                                    except: pass
+                                    interface_data['IPV6 bgp group Peers'].append(str(line))
                                     if 'inet6' in line: break
 
                         elif RCMD.router_type == 'huawei':
