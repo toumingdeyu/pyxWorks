@@ -4605,9 +4605,7 @@ authentication {
                         for line in collect5_if_config_rcmd_outputs[0].split('Established: ')[1].strip().splitlines():
                             if '.' in line:
                                 if 'inet' in line: break
-                                interface_data['IPV4 bgp group Peers'].append(str(line))
-
-
+                                interface_data['IPV4 bgp group Peers'].append(str(line).strip())
 
                     elif RCMD.router_type == 'huawei':
                         pass
@@ -4677,8 +4675,7 @@ authentication {
                             for line in collect6_if_config_rcmd_outputs[0].split('Established: ')[1].strip().splitlines():
                                 if ':' in line:
                                     if 'inet6' in line: break
-                                    interface_data['IPV6 bgp group Peers'].append(str(line))
-
+                                    interface_data['IPV6 bgp group Peers'].append(str(line).strip())
 
                         elif RCMD.router_type == 'huawei':
                             pass
@@ -5161,6 +5158,17 @@ authentication {
                     elif RCMD.router_type == 'juniper':
                         check_interface_data_content('Flags', exact_value_yes = 'Up')
 
+                        for neighbor in interface_data.get('IPV4 bgp group Peers',[]):
+                            try:
+                                neighbor_filtered = neighbor.split('+')[0]
+                                check_interface_data_content('IPV4 neighbors', what_yes_in = neighbor_filtered)
+                            except: pass
+
+                        for neighbor in interface_data.get('IPV6 bgp group Peers',[]):
+                            try:
+                                neighbor_filtered = neighbor.split('+')[0]
+                                check_interface_data_content('IPV6 neighbors', what_yes_in = neighbor_filtered)
+                            except: pass
 
 
                     elif RCMD.router_type == 'huawei':
