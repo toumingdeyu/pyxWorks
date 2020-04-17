@@ -4602,7 +4602,7 @@ authentication {
                         except: interface_data['IPV4 bgp group Established'] = str()
 
                         interface_data['IPV4 bgp group Peers'] = []
-                        for line in collect5_if_config_rcmd_outputs[0].split('Established: ')[1].strip():
+                        for line in collect5_if_config_rcmd_outputs[0].split('Established: ')[1].strip().splitlines():
                             if '.' in line:
                                 try: interface_data['IPV4 bgp group Peers'].append(str(line))
                                 except: pass
@@ -4673,7 +4673,7 @@ authentication {
                             except: interface_data['IPV6 bgp group Established'] = str()
 
                             interface_data['IPV6 bgp group Peers'] = []
-                            for line in collect6_if_config_rcmd_outputs[0].split('Established: ')[1].strip():
+                            for line in collect6_if_config_rcmd_outputs[0].split('Established: ')[1].strip().splitlines():
                                 if ':' in line:
                                     interface_data['IPV6 bgp group Peers'].append(str(line))
                                     if 'inet6' in line: break
