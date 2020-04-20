@@ -3610,7 +3610,7 @@ authentication {
                     if interface_data.get('ASN'):
                         interface_data['ipv4_addr_rem_from_ASN'] = []
                         interface_warning_data['ipv6_addr_rem_from_ASN'] = []
-                        for line in rcmd_outputs[1].splitlines():
+                        for line in rcmd_outputs[0].splitlines():
                             try:
                                 if str(line.split()[2]) == interface_data.get('ASN'):
                                     if '.' in line.split()[0]:
