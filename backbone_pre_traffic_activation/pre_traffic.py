@@ -2915,6 +2915,24 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
         try:    interface_warning_data['Remote_fault%s' % (after_string)] = err_check_after_pings_outputs[0].split('Remote fault: ')[1].split()[0].strip().replace('.','')
         except: pass
 
+        if CUSTOMER_MODE:
+            try:    interface_warning_data['Line protocol current state'] = err_check_after_pings_outputs[0].split('Line protocol current state :')[1].split()[0]
+            except: pass
+
+            try:    interface_warning_data['Link quality grade'] = err_check_after_pings_outputs[0].split('Link quality grade :')[1].split()[0]
+            except: pass
+
+            try:    interface_warning_data['The Maximum Transmit Unit'] = err_check_after_pings_outputs[0].split('The Maximum Transmit Unit is')[1].split()[0]
+            except: pass
+
+            try:    interface_warning_data['Internet Address'] = err_check_after_pings_outputs[0].split('Internet Address is')[1].split()[0]
+            except: pass
+
+            try:    interface_warning_data['Port BW'] = err_check_after_pings_outputs[0].split('Port BW:')[1].split()[0].replace(',','')
+            except: pass
+
+
+
 ###############################################################################
 
 
@@ -3731,6 +3749,16 @@ authentication {
                     try: interface_data['LAG_member'] = 'yes' if 'eth-trunk ' in collect_if_config_rcmd_outputs[0] else 'no'
                     except: interface_data['LAG_member'] = str()
 
+                    try: interface_warning_data['MTU_configured'] = collect_if_config_rcmd_outputs[0].split('mtu ')[1].splitlines()[0].strip()
+                    except: interface_warning_data['MTU_configured'] = str()
+
+                    if CUSTOMER_MODE:
+                        try: interface_warning_data['traffic-policy'] = collect_if_config_rcmd_outputs[0].split('traffic-policy ')[1].split()[0].strip()
+                        except: interface_warning_data['traffic-policy'] = str()
+
+                        try: interface_warning_data['MTU_configured'] = collect_if_config_rcmd_outputs[0].split('mtu ')[1].splitlines()[0].strip()
+                        except: interface_warning_data['MTU_configured'] = str()
+
                 ### def IPV6 CONDITION - YES OR NO ############################
                 ### OTI_LOCAL_AS = '5511'
                 ### IMN_LOCAL_AS = '2300'
@@ -4168,7 +4196,6 @@ authentication {
 
                         'huawei': [
                             'display current-configuration interface %s | i isis' % (interface_id),
-                            'display interface %s' % (undotted_interface_id),
                             'display isis interface %s' % (interface_id),
                         ]
                     }
@@ -4246,7 +4273,10 @@ authentication {
 
 
                     elif RCMD.router_type == 'huawei':
-                        pass
+                        interface_warning_data['isis enable 5511'] = True if 'isis enable 5511' in collect_if_config_rcmd_outputs[0] else str()
+                        interface_warning_data['isis ipv6 enable 5511'] = True if 'isis ipv6 enable 5511' in collect_if_config_rcmd_outputs[0] else str()
+                        interface_warning_data['isis silent advertise-zero-cost'] = True if 'isis silent advertise-zero-cost' in collect_if_config_rcmd_outputs[0] else str()
+
 
 
 
