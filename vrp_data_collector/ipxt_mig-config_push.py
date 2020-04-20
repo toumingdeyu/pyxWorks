@@ -1393,7 +1393,8 @@ if CGI_CLI.cgi_active:
         'show class-map GOLD',
         'show class-map SILVER',
         'sh running-config | i route-policy %s-IN' % (data['ipxt_data_collector'].get('vrf_name','UNKNOWN')),
-        'show bgp neighbor-group %s configuration' % (data['ipxt_data_collector'].get('vrf_name','UNKNOWN')),
+        #'show bgp neighbor-group %s configuration' % (data['ipxt_data_collector'].get('vrf_name','UNKNOWN')),
+        'show bgp neighbor-group all configuration',
         'sh running-config | i route-policy DENY-ALL',
         'sh running-config | i route-policy NO-EXPORT-INTERCO',
         'show static vrf %s topology' % (data['ipxt_data_collector'].get('vrf_name','UNKNOWN').replace('.','@'))
