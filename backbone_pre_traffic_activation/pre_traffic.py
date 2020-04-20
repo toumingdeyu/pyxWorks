@@ -1192,8 +1192,9 @@ class RCMD(object):
                             CGI_CLI.uprint('\n', timestamp = 'no', ommit_logging = True)
                         else:
                             CGI_CLI.uprint(' . ', no_newlines = True, timestamp = 'no', ommit_logging = True)
-            if '^' in last_output:
-                CGI_CLI.uprint("\nSYNTAX ERROR in CMD: '%s' !\n" % (str(cmd_line)), timestamp = 'no', color = 'orange')
+            for line in last_output.splitlines():
+                if line.strip() == '^':
+                    CGI_CLI.uprint("\nSYNTAX ERROR in CMD: '%s' !\n" % (str(cmd_line)), timestamp = 'no', color = 'orange')
         return str(last_output)
 
     @staticmethod
