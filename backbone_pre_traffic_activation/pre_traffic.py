@@ -2916,19 +2916,19 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
         except: pass
 
         if CUSTOMER_MODE:
-            try:    interface_warning_data['Line protocol current state'] = err_check_after_pings_outputs[0].split('Line protocol current state :')[1].split()[0]
+            try:    interface_data['Line protocol current state'] = err_check_after_pings_outputs[0].split('Line protocol current state :')[1].split()[0]
             except: pass
 
-            try:    interface_warning_data['Link quality grade'] = err_check_after_pings_outputs[0].split('Link quality grade :')[1].split()[0]
+            try:    interface_data['Link quality grade'] = err_check_after_pings_outputs[0].split('Link quality grade :')[1].split()[0]
             except: pass
 
-            try:    interface_warning_data['The Maximum Transmit Unit'] = err_check_after_pings_outputs[0].split('The Maximum Transmit Unit is')[1].split()[0]
+            try:    interface_data['The Maximum Transmit Unit'] = err_check_after_pings_outputs[0].split('The Maximum Transmit Unit is')[1].split()[0]
             except: pass
 
-            try:    interface_warning_data['Internet Address'] = err_check_after_pings_outputs[0].split('Internet Address is')[1].split()[0]
+            try:    interface_data['Internet Address'] = err_check_after_pings_outputs[0].split('Internet Address is')[1].split()[0]
             except: pass
 
-            try:    interface_warning_data['Port BW'] = err_check_after_pings_outputs[0].split('Port BW:')[1].split()[0].replace(',','')
+            try:    interface_data['Port BW'] = err_check_after_pings_outputs[0].split('Port BW:')[1].split()[0].replace(',','')
             except: pass
 
 
@@ -3133,9 +3133,9 @@ authentication {
         if operation_type in action_type_list:
             action_type = operation_type
 
-    if action_type == 'bbactivation' or action_type == 'bbmigration':
+    if 'bb' in action_type:
         BB_MODE = True
-    elif action_type == 'custommigration' or action_type == 'customactivation':
+    elif 'custom' in action_type:
         CUSTOMER_MODE = True
 
     if CGI_CLI.timestamp:
@@ -4197,6 +4197,7 @@ authentication {
                         'huawei': [
                             'display current-configuration interface %s | i isis' % (interface_id),
                             'display isis interface %s' % (interface_id),
+
                         ]
                     }
 
@@ -4273,9 +4274,9 @@ authentication {
 
 
                     elif RCMD.router_type == 'huawei':
-                        interface_warning_data['isis enable 5511'] = True if 'isis enable 5511' in collect_if_config_rcmd_outputs[0] else str()
-                        interface_warning_data['isis ipv6 enable 5511'] = True if 'isis ipv6 enable 5511' in collect_if_config_rcmd_outputs[0] else str()
-                        interface_warning_data['isis silent advertise-zero-cost'] = True if 'isis silent advertise-zero-cost' in collect_if_config_rcmd_outputs[0] else str()
+                        interface_data['isis enable 5511'] = True if 'isis enable 5511' in collect_if_config_rcmd_outputs[0] else str()
+                        interface_data['isis ipv6 enable 5511'] = True if 'isis ipv6 enable 5511' in collect_if_config_rcmd_outputs[0] else str()
+                        interface_data['isis silent advertise-zero-cost'] = True if 'isis silent advertise-zero-cost' in collect_if_config_rcmd_outputs[0] else str()
 
 
 
@@ -5216,7 +5217,11 @@ authentication {
 
 
                     elif RCMD.router_type == 'huawei':
-                        pass
+                        check_interface_data_content('Line protocol current state', what_yes_in = 'UP')
+                        check_interface_data_content('Link quality grade', what_yes_in = 'GOOD')
+
+
+
 
 
                 ###############################################################
