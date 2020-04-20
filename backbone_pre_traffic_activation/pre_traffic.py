@@ -3539,7 +3539,7 @@ authentication {
                                 ],
 
                     'huawei':   ['display bgp peer',
-                                 'disp bgp vpnv4 all peer',
+                                 'display bgp vpnv4 all peer',
                                 ]
                 }
 
@@ -3606,6 +3606,24 @@ authentication {
                     if not LOCAL_AS_NUMBER:
                         try: LOCAL_AS_NUMBER = rcmd_outputs[1].split("Local AS number :")[1].splitlines()[0].strip()
                         except: pass
+
+                    if interface_data.get('ASN'):
+                        interface_data['ipv4_addr_rem_from_ASN'] = []
+                        interface_warning_data['ipv6_addr_rem_from_ASN'] = []
+                        for line in rcmd_outputs[1].splitlines():
+                            try:
+                                if str(line.split()[2]) == interface_data.get('ASN'):
+                                    if '.' in line.split()[0]:
+                                        interface_data['ipv4_addr_rem_from_ASN'].append(line.split()[0])
+                                    elif ':' in line.split()[0]:
+                                        interface_warning_data['ipv6_addr_rem_from_ASN'].append(line.split()[0])
+                            except: pass
+                        if len(interface_data['ipv4_addr_rem_from_ASN']) == 0:
+                            del interface_data['ipv4_addr_rem_from_ASN']
+                        if len(interface_warning_data['ipv6_addr_rem_from_ASN']) == 0:
+                            del interface_warning_data['ipv6_addr_rem_from_ASN']
+
+
 
                 ### def COMMON RUN INTERFACE LIST #########################
                 collect_if_data_rcmds = {
