@@ -2417,7 +2417,7 @@ def get_fiblist(input_text = None):
 check_interface_result_ok, check_warning_interface_result_ok = True, True
 def check_interface_data_content(where = None, what_yes_in = None, what_not_in = None, \
     exact_value_yes = None, lower_than = None, higher_than = None, warning = None, \
-    ignore_data_existence = None, where_sublevel = None):
+    ignore_data_existence = None):
     """
     multiple tests in once are possible
     what_yes_in - string = if occurs in where then OK.
@@ -2430,25 +2430,25 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not_in =
     key_exists = False
     where_value = str()
 
-    if where_sublevel:
-        if warning:
-            try:
-                where_value = eval('interface_warning_data%s' % (str(where_sublevel)))
-                key_exists = True
-            except: pass
-        else:
-            try:
-                where_value = eval('interface_data%s' % (str(where_sublevel)))
-                key_exists = True
-            except: pass
-    else:
-        if warning:
+    if warning:
+        try: 
             where_value = interface_warning_data.get(where, str())
             if str(where) in interface_warning_data.keys(): key_exists = True
-        else:
+        except:
+            try:
+                where_value = eval('interface_warning_data%s' % (str(where)))
+                key_exists = True
+            except: pass        
+    else:
+        try: 
             where_value = interface_data.get(where, str())
             if str(where) in interface_data.keys(): key_exists = True
-
+        except:    
+            try:
+                where_value = eval('interface_data%s' % (str(where)))
+                key_exists = True
+            except: pass
+                
     #CGI_CLI.uprint('CHECK[%s, where_value=%s, what_yes_in=%s, what_not_in=%s, exact_value_yes=%s, lower_than=%s, higher_than=%s, warning=%s, key_exists=%s, ignore_data_existence=%s]' \
     #    % (where, where_value, what_yes_in, what_not_in, exact_value_yes, lower_than, higher_than, warning, str(key_exists), str(ignore_data_existence)),\
     #    tag = 'debug', no_printall = not CGI_CLI.printall)
@@ -5210,17 +5210,17 @@ authentication {
                             check_interface_data_content('ipv4_unicast_route-policy_in', exact_value_yes = 'DENY-ALL')
                             check_interface_data_content('ipv4_unicast_route-policy_out', exact_value_yes = 'DENY-ALL')
 
-                            check_interface_data_content(where_sublevel = "['isis']['accepted prefixes']", exact_value_yes = '0')
-                            check_interface_data_content(where_sublevel = "['isis']['bestpaths']", exact_value_yes = '0')
-                            check_interface_data_content(where_sublevel = "['isis']['No of prefixes Advertised']", exact_value_yes = '0')
+                            check_interface_data_content("['isis']['accepted prefixes']", exact_value_yes = '0')
+                            check_interface_data_content("['isis']['bestpaths']", exact_value_yes = '0')
+                            check_interface_data_content("['isis']['No of prefixes Advertised']", exact_value_yes = '0')
 
                         else:
                             check_interface_data_content('ipv4_unicast_route-policy_in', what_not_in = 'DENY-ALL')
                             check_interface_data_content('ipv4_unicast_route-policy_out', what_not_in = 'DENY-ALL')
 
-                            check_interface_data_content(where_sublevel = "['isis']['accepted prefixes']", higher_than = 0)
-                            check_interface_data_content(where_sublevel = "['isis']['bestpaths']", higher_than = 0)
-                            check_interface_data_content(where_sublevel = "['isis']['No of prefixes Advertised']", higher_than = 0)
+                            check_interface_data_content("['isis']['accepted prefixes']", higher_than = 0)
+                            check_interface_data_content("['isis']['bestpaths']", higher_than = 0)
+                            check_interface_data_content("['isis']['No of prefixes Advertised']", higher_than = 0)
 
                     elif RCMD.router_type == 'juniper':
                         check_interface_data_content('Flags', exact_value_yes = 'Up')
