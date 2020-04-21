@@ -4643,6 +4643,8 @@ authentication {
                         try: interface_data['Policy for outgoing advertisements'] = collect5_if_config_rcmd_outputs[0].split('Policy for outgoing advertisements is ')[1].split()[0]
                         except: interface_data['Policy for outgoing advertisements'] = str()
 
+                        interface_data['isis'] = collections.OrderedDict()
+
                         try: interface_data['isis']['accepted prefixes'] = collect5_if_config_rcmd_outputs[0].split('accepted prefixes,')[0].splitlines()[-1].split()[0]
                         except: interface_data['isis']['accepted prefixes'] = str()
 
