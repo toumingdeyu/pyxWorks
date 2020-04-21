@@ -2431,24 +2431,25 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not_in =
     where_value = str()
 
     if warning:
-        try: 
-            where_value = interface_warning_data.get(where, str())
-            if str(where) in interface_warning_data.keys(): key_exists = True
+        try:
+            where_value = eval('interface_warning_data%s' % (str(where)))
+            key_exists = True
         except:
             try:
-                where_value = eval('interface_warning_data%s' % (str(where)))
-                key_exists = True
-            except: pass        
-    else:
-        try: 
-            where_value = interface_data.get(where, str())
-            if str(where) in interface_data.keys(): key_exists = True
-        except:    
-            try:
-                where_value = eval('interface_data%s' % (str(where)))
-                key_exists = True
+                where_value = interface_warning_data.get(where, str())
+                if str(where) in interface_warning_data.keys(): key_exists = True
             except: pass
-                
+
+    else:
+        try:
+            where_value = eval('interface_data%s' % (str(where)))
+            key_exists = True
+        except:
+            try:
+                where_value = interface_data.get(where, str())
+                if str(where) in interface_data.keys(): key_exists = True
+            except: pass
+
     #CGI_CLI.uprint('CHECK[%s, where_value=%s, what_yes_in=%s, what_not_in=%s, exact_value_yes=%s, lower_than=%s, higher_than=%s, warning=%s, key_exists=%s, ignore_data_existence=%s]' \
     #    % (where, where_value, what_yes_in, what_not_in, exact_value_yes, lower_than, higher_than, warning, str(key_exists), str(ignore_data_existence)),\
     #    tag = 'debug', no_printall = not CGI_CLI.printall)
@@ -5204,7 +5205,9 @@ authentication {
                         check_interface_data_content('address-family_ipv4', what_yes_in = 'unicast')
 
                         check_interface_data_content('ipv4_addr_rem_from_ASN', what_yes_in = interface_data.get('ipv4_addr_rem'))
-                        check_interface_data_content('ipv6_addr_rem_from_ASN', what_yes_in = interface_warning_data.get('ipv6_addr_rem'), warning = True)
+                        
+                        if USE_IPV6:
+                            check_interface_data_content('ipv6_addr_rem_from_ASN', what_yes_in = interface_warning_data.get('ipv6_addr_rem'), warning = True)
 
                         if precheck_mode:
                             check_interface_data_content('ipv4_unicast_route-policy_in', exact_value_yes = 'DENY-ALL')
