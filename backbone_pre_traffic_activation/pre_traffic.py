@@ -2417,7 +2417,7 @@ def get_fiblist(input_text = None):
 check_interface_result_ok, check_warning_interface_result_ok = True, True
 def check_interface_data_content(where = None, what_yes_in = None, what_not_in = None, \
     exact_value_yes = None, lower_than = None, higher_than = None, warning = None, \
-    ignore_data_existence = None):
+    ignore_data_existence = None, where_sublevel = None):
     """
     multiple tests in once are possible
     what_yes_in - string = if occurs in where then OK.
@@ -2428,13 +2428,26 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not_in =
     global check_warning_interface_result_ok
     local_check_interface_result_ok, Alarm_text = 0, []
     key_exists = False
+    where_value = str()
 
-    if warning:
-        where_value = interface_warning_data.get(where, str())
-        if str(where) in interface_warning_data.keys(): key_exists = True
+    if where_sublevel:
+        if warning:
+            try:
+                where_value = eval('interface_warning_data%s' % (str(where_sublevel)))
+                key_exists = True
+            except: pass
+        else:
+            try:
+                where_value = eval('interface_data%s' % (str(where_sublevel)))
+                key_exists = True
+            except: pass
     else:
-        where_value = interface_data.get(where, str())
-        if str(where) in interface_data.keys(): key_exists = True
+        if warning:
+            where_value = interface_warning_data.get(where, str())
+            if str(where) in interface_warning_data.keys(): key_exists = True
+        else:
+            where_value = interface_data.get(where, str())
+            if str(where) in interface_data.keys(): key_exists = True
 
     #CGI_CLI.uprint('CHECK[%s, where_value=%s, what_yes_in=%s, what_not_in=%s, exact_value_yes=%s, lower_than=%s, higher_than=%s, warning=%s, key_exists=%s, ignore_data_existence=%s]' \
     #    % (where, where_value, what_yes_in, what_not_in, exact_value_yes, lower_than, higher_than, warning, str(key_exists), str(ignore_data_existence)),\
@@ -4630,14 +4643,14 @@ authentication {
                         try: interface_data['Policy for outgoing advertisements'] = collect5_if_config_rcmd_outputs[0].split('Policy for outgoing advertisements is ')[1].split()[0]
                         except: interface_data['Policy for outgoing advertisements'] = str()
 
-                        try: interface_data['accepted prefixes'] = collect5_if_config_rcmd_outputs[0].split('accepted prefixes,')[0].splitlines()[-1].split()[0]
-                        except: interface_data['accepted prefixes'] = str()
+                        try: interface_data['isis']['accepted prefixes'] = collect5_if_config_rcmd_outputs[0].split('accepted prefixes,')[0].splitlines()[-1].split()[0]
+                        except: interface_data['isis']['accepted prefixes'] = str()
 
-                        try: interface_data['bestpaths'] = collect5_if_config_rcmd_outputs[0].split('are bestpaths')[0].splitlines()[-1].split()[-1]
-                        except: interface_data['bestpaths'] = str()
+                        try: interface_data['isis']['bestpaths'] = collect5_if_config_rcmd_outputs[0].split('are bestpaths')[0].splitlines()[-1].split()[-1]
+                        except: interface_data['isis']['bestpaths'] = str()
 
-                        try: interface_data['No of prefixes Advertised'] = collect5_if_config_rcmd_outputs[1].split('No of prefixes Advertised:')[1].split()[0]
-                        except: interface_data['No of prefixes Advertised'] = str()
+                        try: interface_data['isis']['No of prefixes Advertised'] = collect5_if_config_rcmd_outputs[1].split('No of prefixes Advertised:')[1].split()[0]
+                        except: interface_data['isis']['No of prefixes Advertised'] = str()
 
                     elif RCMD.router_type == 'juniper':
                         try: interface_data['IPV4 bgp group Name'] = collect5_if_config_rcmd_outputs[0].split('Name: ')[1].split()[0]
@@ -4700,14 +4713,14 @@ authentication {
                             try: interface_data['IPV6 Policy for outgoing advertisements'] = collect6_if_config_rcmd_outputs[0].split('Policy for outgoing advertisements is ')[1].split()[0]
                             except: interface_data['IPV6 Policy for outgoing advertisements'] = str()
 
-                            try: interface_data['IPV6 accepted prefixes'] = collect6_if_config_rcmd_outputs[0].split('accepted prefixes,')[0].splitlines()[-1].split()[0]
-                            except: interface_data['IPV6 accepted prefixes'] = str()
+                            try: interface_data['isis']['IPV6 accepted prefixes'] = collect6_if_config_rcmd_outputs[0].split('accepted prefixes,')[0].splitlines()[-1].split()[0]
+                            except: interface_data['isis']['IPV6 accepted prefixes'] = str()
 
-                            try: interface_data['IPV6 bestpaths'] = collect6_if_config_rcmd_outputs[0].split('are bestpaths')[0].splitlines()[-1].split()[-1]
-                            except: interface_data['IPV6 bestpaths'] = str()
+                            try: interface_data['isis']['IPV6 bestpaths'] = collect6_if_config_rcmd_outputs[0].split('are bestpaths')[0].splitlines()[-1].split()[-1]
+                            except: interface_data['isis']['IPV6 bestpaths'] = str()
 
-                            try: interface_data['IPV6 No of prefixes Advertised'] = collect6_if_config_rcmd_outputs[1].split('No of prefixes Advertised:')[1].split()[0]
-                            except: interface_data['IPV6 No of prefixes Advertised'] = str()
+                            try: interface_data['isis']['IPV6 No of prefixes Advertised'] = collect6_if_config_rcmd_outputs[1].split('No of prefixes Advertised:')[1].split()[0]
+                            except: interface_data['isis']['IPV6 No of prefixes Advertised'] = str()
 
                         elif RCMD.router_type == 'juniper':
                             try: interface_data['IPV6 bgp group Name'] = collect6_if_config_rcmd_outputs[0].split('Name: ')[1].split()[0]
@@ -5195,17 +5208,17 @@ authentication {
                             check_interface_data_content('ipv4_unicast_route-policy_in', exact_value_yes = 'DENY-ALL')
                             check_interface_data_content('ipv4_unicast_route-policy_out', exact_value_yes = 'DENY-ALL')
 
-                            check_interface_data_content('accepted prefixes', exact_value_yes = '0')
-                            check_interface_data_content('bestpaths', exact_value_yes = '0')
-                            check_interface_data_content('No of prefixes Advertised', exact_value_yes = '0')
+                            check_interface_data_content(where_sublevel = "['isis']['accepted prefixes']", exact_value_yes = '0')
+                            check_interface_data_content(where_sublevel = "['isis']['bestpaths']", exact_value_yes = '0')
+                            check_interface_data_content(where_sublevel = "['isis']['No of prefixes Advertised']", exact_value_yes = '0')
 
                         else:
                             check_interface_data_content('ipv4_unicast_route-policy_in', what_not_in = 'DENY-ALL')
                             check_interface_data_content('ipv4_unicast_route-policy_out', what_not_in = 'DENY-ALL')
 
-                            check_interface_data_content('accepted prefixes', higher_than = 0)
-                            check_interface_data_content('bestpaths', higher_than = 0)
-                            check_interface_data_content('No of prefixes Advertised', higher_than = 0)
+                            check_interface_data_content(where_sublevel = "['isis']['accepted prefixes']", higher_than = 0)
+                            check_interface_data_content(where_sublevel = "['isis']['bestpaths']", higher_than = 0)
+                            check_interface_data_content(where_sublevel = "['isis']['No of prefixes Advertised']", higher_than = 0)
 
                     elif RCMD.router_type == 'juniper':
                         check_interface_data_content('Flags', exact_value_yes = 'Up')
