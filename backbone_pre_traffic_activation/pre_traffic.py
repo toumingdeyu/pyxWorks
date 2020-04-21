@@ -4239,19 +4239,21 @@ authentication {
                         printall = printall)
 
                     if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
-                        interface_data['passive'] = True if 'passive' in collect_if_config_rcmd_outputs[0] else None
+                        interface_data['isis'] = collections.OrderedDict()
 
-                        try: interface_data['router_isis_PAII__address-family_ipv4'] = collect_if_config_rcmd_outputs[0].split('address-family ipv4 ')[1].splitlines()[0].strip()
-                        except: interface_data['router_isis_PAII__address-family_ipv4'] = str()
+                        interface_data['isis']['passive'] = True if 'passive' in collect_if_config_rcmd_outputs[0] else None
 
-                        try: interface_data['router_isis_PAII__address-family_ipv6'] = collect_if_config_rcmd_outputs[0].split('address-family ipv6 ')[1].splitlines()[0].strip()
-                        except: interface_data['router_isis_PAII__address-family_ipv6'] = str()
+                        try: interface_data['isis']['router_isis_PAII__address-family_ipv4'] = collect_if_config_rcmd_outputs[0].split('address-family ipv4 ')[1].splitlines()[0].strip()
+                        except: interface_data['isis']['router_isis_PAII__address-family_ipv4'] = str()
+
+                        try: interface_data['isis']['router_isis_PAII__address-family_ipv6'] = collect_if_config_rcmd_outputs[0].split('address-family ipv6 ')[1].splitlines()[0].strip()
+                        except: interface_data['isis']['router_isis_PAII__address-family_ipv6'] = str()
 
                         try: interface_warning_data['MTU_default'] = collect_if_config_rcmd_outputs[1].split('MTU ')[1].splitlines()[0].split()[0].strip()
                         except: interface_warning_data['MTU_default'] = str()
 
-                        try: interface_data['Full-duplex_bandwith'] = collect_if_config_rcmd_outputs[1].split('Full-duplex,')[1].splitlines()[0].split()[0].replace(',','').strip()
-                        except: interface_data['Full-duplex_bandwith'] = str()
+                        try: interface_data['isis']['Full-duplex_bandwith'] = collect_if_config_rcmd_outputs[1].split('Full-duplex,')[1].splitlines()[0].split()[0].replace(',','').strip()
+                        except: interface_data['isis']['Full-duplex_bandwith'] = str()
 
                     elif RCMD.router_type == 'juniper':
                         try: interface_data['scheduler-map'] = collect_if_config_rcmd_outputs[0].split('scheduler-map')[1].split()[0].replace(';','')
@@ -4644,16 +4646,16 @@ authentication {
                         try: interface_data['Policy for outgoing advertisements'] = collect5_if_config_rcmd_outputs[0].split('Policy for outgoing advertisements is ')[1].split()[0]
                         except: interface_data['Policy for outgoing advertisements'] = str()
 
-                        interface_data['isis'] = collections.OrderedDict()
+                        interface_data['bgp'] = collections.OrderedDict()
 
-                        try: interface_data['isis']['accepted prefixes'] = collect5_if_config_rcmd_outputs[0].split('accepted prefixes,')[0].splitlines()[-1].split()[0]
-                        except: interface_data['isis']['accepted prefixes'] = str()
+                        try: interface_data['bgp']['accepted prefixes'] = collect5_if_config_rcmd_outputs[0].split('accepted prefixes,')[0].splitlines()[-1].split()[0]
+                        except: interface_data['bgp']['accepted prefixes'] = str()
 
-                        try: interface_data['isis']['bestpaths'] = collect5_if_config_rcmd_outputs[0].split('are bestpaths')[0].splitlines()[-1].split()[-1]
-                        except: interface_data['isis']['bestpaths'] = str()
+                        try: interface_data['bgp']['bestpaths'] = collect5_if_config_rcmd_outputs[0].split('are bestpaths')[0].splitlines()[-1].split()[-1]
+                        except: interface_data['bgp']['bestpaths'] = str()
 
-                        try: interface_data['isis']['No of prefixes Advertised'] = collect5_if_config_rcmd_outputs[1].split('No of prefixes Advertised:')[1].split()[0]
-                        except: interface_data['isis']['No of prefixes Advertised'] = str()
+                        try: interface_data['bgp']['No of prefixes Advertised'] = collect5_if_config_rcmd_outputs[1].split('No of prefixes Advertised:')[1].split()[0]
+                        except: interface_data['bgp']['No of prefixes Advertised'] = str()
 
                     elif RCMD.router_type == 'juniper':
                         try: interface_data['IPV4 bgp group Name'] = collect5_if_config_rcmd_outputs[0].split('Name: ')[1].split()[0]
@@ -4716,14 +4718,14 @@ authentication {
                             try: interface_data['IPV6 Policy for outgoing advertisements'] = collect6_if_config_rcmd_outputs[0].split('Policy for outgoing advertisements is ')[1].split()[0]
                             except: interface_data['IPV6 Policy for outgoing advertisements'] = str()
 
-                            try: interface_data['isis']['IPV6 accepted prefixes'] = collect6_if_config_rcmd_outputs[0].split('accepted prefixes,')[0].splitlines()[-1].split()[0]
-                            except: interface_data['isis']['IPV6 accepted prefixes'] = str()
+                            try: interface_data['bgp']['IPV6 accepted prefixes'] = collect6_if_config_rcmd_outputs[0].split('accepted prefixes,')[0].splitlines()[-1].split()[0]
+                            except: interface_data['bgp']['IPV6 accepted prefixes'] = str()
 
-                            try: interface_data['isis']['IPV6 bestpaths'] = collect6_if_config_rcmd_outputs[0].split('are bestpaths')[0].splitlines()[-1].split()[-1]
-                            except: interface_data['isis']['IPV6 bestpaths'] = str()
+                            try: interface_data['bgp']['IPV6 bestpaths'] = collect6_if_config_rcmd_outputs[0].split('are bestpaths')[0].splitlines()[-1].split()[-1]
+                            except: interface_data['bgp']['IPV6 bestpaths'] = str()
 
-                            try: interface_data['isis']['IPV6 No of prefixes Advertised'] = collect6_if_config_rcmd_outputs[1].split('No of prefixes Advertised:')[1].split()[0]
-                            except: interface_data['isis']['IPV6 No of prefixes Advertised'] = str()
+                            try: interface_data['bgp']['IPV6 No of prefixes Advertised'] = collect6_if_config_rcmd_outputs[1].split('No of prefixes Advertised:')[1].split()[0]
+                            except: interface_data['bgp']['IPV6 No of prefixes Advertised'] = str()
 
                         elif RCMD.router_type == 'juniper':
                             try: interface_data['IPV6 bgp group Name'] = collect6_if_config_rcmd_outputs[0].split('Name: ')[1].split()[0]
@@ -5205,7 +5207,7 @@ authentication {
                         check_interface_data_content('address-family_ipv4', what_yes_in = 'unicast')
 
                         check_interface_data_content('ipv4_addr_rem_from_ASN', what_yes_in = interface_data.get('ipv4_addr_rem'))
-                        
+
                         if USE_IPV6:
                             check_interface_data_content('ipv6_addr_rem_from_ASN', what_yes_in = interface_warning_data.get('ipv6_addr_rem'), warning = True)
 
@@ -5213,17 +5215,20 @@ authentication {
                             check_interface_data_content('ipv4_unicast_route-policy_in', exact_value_yes = 'DENY-ALL')
                             check_interface_data_content('ipv4_unicast_route-policy_out', exact_value_yes = 'DENY-ALL')
 
-                            check_interface_data_content("['isis']['accepted prefixes']", exact_value_yes = '0')
-                            check_interface_data_content("['isis']['bestpaths']", exact_value_yes = '0')
-                            check_interface_data_content("['isis']['No of prefixes Advertised']", exact_value_yes = '0')
+                            check_interface_data_content("['bgp']['accepted prefixes']", exact_value_yes = '0')
+                            check_interface_data_content("['bgp']['bestpaths']", exact_value_yes = '0')
+                            check_interface_data_content("['bgp']['No of prefixes Advertised']", exact_value_yes = '0')
 
                         else:
                             check_interface_data_content('ipv4_unicast_route-policy_in', what_not_in = 'DENY-ALL')
                             check_interface_data_content('ipv4_unicast_route-policy_out', what_not_in = 'DENY-ALL')
 
-                            check_interface_data_content("['isis']['accepted prefixes']", higher_than = 0)
-                            check_interface_data_content("['isis']['bestpaths']", higher_than = 0)
-                            check_interface_data_content("['isis']['No of prefixes Advertised']", higher_than = 0)
+                            check_interface_data_content("['bgp']['accepted prefixes']", higher_than = 0)
+                            check_interface_data_content("['bgp']['bestpaths']", higher_than = 0)
+                            check_interface_data_content("['bgp']['No of prefixes Advertised']", higher_than = 0)
+
+
+
 
                     elif RCMD.router_type == 'juniper':
                         check_interface_data_content('Flags', exact_value_yes = 'Up')
