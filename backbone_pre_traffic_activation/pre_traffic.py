@@ -3648,8 +3648,9 @@ authentication {
                     autoconfirm_mode = True, \
                     printall = printall)
 
-                try: interface_data['name_of_remote_device'] = collect_if_config_rcmd_outputs[0].upper().split('DESCRIPTION')[1].splitlines()[0].split('FROM')[0].split()[-1].strip().replace('"','')
-                except: interface_data['name_of_remote_device'] = str()
+                if BB_MODE:
+                    try: interface_data['name_of_remote_device'] = collect_if_config_rcmd_outputs[0].upper().split('DESCRIPTION')[1].splitlines()[0].split('FROM')[0].split()[-1].strip().replace('"','')
+                    except: interface_data['name_of_remote_device'] = str()
 
                 if 'PE' in interface_data.get('name_of_remote_device',str()).upper() or 'PE' in device.upper():
                     IMN_INTERFACE = True
@@ -5194,15 +5195,16 @@ authentication {
                             check_interface_data_content('ipv4_unicast_route-policy_in', exact_value_yes = 'DENY-ALL')
                             check_interface_data_content('ipv4_unicast_route-policy_out', exact_value_yes = 'DENY-ALL')
 
-                            check_interface_data_content('Policy for incoming advertisements', exact_value_yes = 'DENY-ALL')
-                            check_interface_data_content('Policy for outgoing advertisements', exact_value_yes = 'DENY-ALL')
+                            check_interface_data_content('accepted prefixes', exact_value_yes = '0')
+                            check_interface_data_content('bestpaths', exact_value_yes = '0')
+                            check_interface_data_content('No of prefixes Advertised', exact_value_yes = '0')
+
                         else:
                             check_interface_data_content('ipv4_unicast_route-policy_in', what_not_in = 'DENY-ALL')
                             check_interface_data_content('ipv4_unicast_route-policy_out', what_not_in = 'DENY-ALL')
 
-                            check_interface_data_content('Policy for incoming advertisements', what_not_in = 'DENY-ALL')
-                            check_interface_data_content('Policy for outgoing advertisements', what_not_in = 'DENY-ALL')
-
+                            check_interface_data_content('accepted prefixes', higher_than = 0)
+                            check_interface_data_content('bestpaths', higher_than = 0)
                             check_interface_data_content('No of prefixes Advertised', higher_than = 0)
 
                     elif RCMD.router_type == 'juniper':
