@@ -3693,7 +3693,7 @@ authentication {
                     try: interface_data['interface_data']['ipv4_mask_loc_dotted'] = collect_if_config_rcmd_outputs[0].split('ipv4 address ')[1].split()[1]
                     except: pass
 
-                    try: interface_data['interface_data']['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
+                    try: interface_data['interface_data']['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0].replace(':0:','::')
                     except: pass
 
                     try: interface_data['interface_data']['ipv6_mask_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[1]
@@ -3743,7 +3743,7 @@ authentication {
                     try: interface_data['interface_data']['ipv4_mask_loc'] = collect_if_config_rcmd_outputs[0].split('family inet address ')[1].split()[0].split('/')[1].replace(';','')
                     except: pass
 
-                    try: interface_data['interface_data']['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet6 address ')[1].split()[0].split('/')[0].replace(';','')
+                    try: interface_data['interface_data']['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet6 address ')[1].split()[0].split('/')[0].replace(';','').replace(':0:','::')
                     except: pass
 
                     try: interface_data['interface_data']['ipv6_mask_loc'] = collect_if_config_rcmd_outputs[0].split('family inet6 address ')[1].split()[0].split('/')[1].replace(';','')
@@ -3771,7 +3771,7 @@ authentication {
                     try: interface_data['interface_data']['ipv4_mask_loc_dotted'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[1]
                     except: pass
 
-                    try: interface_data['interface_data']['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
+                    try: interface_data['interface_data']['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0].replace(':0:','::')
                     except: pass
 
                     try: interface_data['interface_data']['ipv6_mask_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[1]
