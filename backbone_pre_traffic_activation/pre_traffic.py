@@ -4050,7 +4050,7 @@ authentication {
                         try: interface_data['interface_data']['Flags'] = collect_if_config_rcmd_outputs[4].split('Flags:')[1].split()[0]
                         except: interface_data['interface_data']['Flags'] = str()
 
-                        try: interface_data['interface_data']['isis adjacency'] = collect_if_config_rcmd_outputs[5].split(interface_data.get('name_of_remote_device','XXYYZZ').upper())[1].splitlines()[0].split()[1]
+                        try: interface_data['interface_data']['isis adjacency'] = collect_if_config_rcmd_outputs[5].split(interface_data['interface_data'].get('name_of_remote_device','XXYYZZ').upper())[1].splitlines()[0].split()[1]
                         except: interface_data['interface_data']['isis adjacency'] = str()
 
                         find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ', collect_if_config_rcmd_outputs[6].strip())
