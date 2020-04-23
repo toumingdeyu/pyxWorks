@@ -3834,7 +3834,8 @@ authentication {
                             for addr in ipaddress.IPv4Network(ipv4_network):
                                 CGI_CLI.uprint("addr4=%s" % (addr), tag = 'debug', no_printall = not CGI_CLI.printall)
                                 if str(addr).upper() == str(interface_data['interface_data'].get('ipv4_addr_loc')).upper(): pass
-                                else: interface_warning_data['ipv4_addr_rem_calculated'] =  copy.deepcopy(str(addr))
+                                else: interface_warning_data['interface_data']['ipv4_addr_rem_calculated'] =  copy.deepcopy(str(addr))
+                                break
 
 
                         if interface_data['interface_data'].get('ipv4_mask_loc') == '30':
@@ -3844,6 +3845,7 @@ authentication {
                                 if i_counter == 1 or i_counter == 2:
                                     if str(addr).upper() == str(interface_data['interface_data'].get('ipv4_addr_loc')).upper(): pass
                                     else: interface_warning_data['interface_data']['ipv4_addr_rem_calculated'] =  copy.deepcopy(str(addr))
+                                    break
                                 i_counter += 1
 
                 if interface_data['interface_data'].get('ipv6_addr_loc') and interface_data['interface_data'].get('ipv6_mask_loc'):
@@ -3860,7 +3862,8 @@ authentication {
                             else:
                                 interface_warning_data['interface_data']['ipv6_addr_rem_calculated'] = copy.deepcopy(str(addr))
                                 if not interface_warning_data['interface_data'].get('ipv6_addr_rem'):
-                                    interface_warning_data['interface_data']['ipv6_addr_rem'] = interface_warning_data['interface_data']['ipv6_addr_rem_calculated']
+                                    interface_warning_data['interface_data']['ipv6_addr_rem'] = copy.deepcopy(str(addr))
+                                break
 
                     if interface_data['interface_data'].get('ipv6_mask_loc') == '126':
                         i_counter = 0
@@ -3869,9 +3872,10 @@ authentication {
                             if i_counter == 1 or i_counter == 2:
                                 if str(addr).upper() == str(interface_data['interface_data'].get('ipv6_addr_loc')).upper(): pass
                                 else:
-                                    interface_warning_data['interface_data']['ipv6_addr_rem_calculated'] =  copy.deepcopy(str(addr))
+                                    interface_warning_data['interface_data']['ipv6_addr_rem_calculated'] = copy.deepcopy(str(addr))
                                     if not interface_warning_data['interface_data'].get('ipv6_addr_rem'):
-                                        interface_warning_data['interface_data']['ipv6_addr_rem'] = interface_warning_data['interface_data']['ipv6_addr_rem_calculated']
+                                        interface_warning_data['interface_data']['ipv6_addr_rem'] = copy.deepcopy(str(addr))
+                                    break
                             i_counter += 1
 
 
