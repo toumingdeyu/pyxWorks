@@ -2946,7 +2946,12 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
 
 ###############################################################################
 
+def normalized_ipv6(ipv6 = None):
+    result = str()
+    if ipv6: result = str(ipv6).replace(':0:','::').replace(':::','::').replace('::::','::').replace(':::::','::')
+    return result
 
+###############################################################################
 
 
 
@@ -3693,7 +3698,7 @@ authentication {
                     try: interface_data['interface_data']['ipv4_mask_loc_dotted'] = collect_if_config_rcmd_outputs[0].split('ipv4 address ')[1].split()[1]
                     except: pass
 
-                    try: interface_data['interface_data']['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0].replace(':0:','::')
+                    try: interface_data['interface_data']['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
                     except: pass
 
                     try: interface_data['interface_data']['ipv6_mask_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[1]
@@ -3743,7 +3748,7 @@ authentication {
                     try: interface_data['interface_data']['ipv4_mask_loc'] = collect_if_config_rcmd_outputs[0].split('family inet address ')[1].split()[0].split('/')[1].replace(';','')
                     except: pass
 
-                    try: interface_data['interface_data']['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet6 address ')[1].split()[0].split('/')[0].replace(';','').replace(':0:','::')
+                    try: interface_data['interface_data']['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet6 address ')[1].split()[0].split('/')[0].replace(';','')
                     except: pass
 
                     try: interface_data['interface_data']['ipv6_mask_loc'] = collect_if_config_rcmd_outputs[0].split('family inet6 address ')[1].split()[0].split('/')[1].replace(';','')
@@ -3771,7 +3776,7 @@ authentication {
                     try: interface_data['interface_data']['ipv4_mask_loc_dotted'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[1]
                     except: pass
 
-                    try: interface_data['interface_data']['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0].replace(':0:','::')
+                    try: interface_data['interface_data']['ipv6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
                     except: pass
 
                     try: interface_data['interface_data']['ipv6_mask_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[1]
@@ -3858,7 +3863,7 @@ authentication {
                     if interface_data['interface_data'].get('ipv6_mask_loc') == '127':
                         for addr in ipaddress.IPv6Network(ipv6_network):
                             CGI_CLI.uprint("addr6=%s" % (addr), tag = 'debug', no_printall = not CGI_CLI.printall)
-                            if str(addr).upper() == str(interface_data['interface_data'].get('ipv6_addr_loc')).upper(): pass
+                            if normalized_ipv6(str(addr).upper()) == normalized_ipv6(str(interface_data['interface_data'].get('ipv6_addr_loc')).upper()): pass
                             else:
                                 interface_warning_data['interface_data']['ipv6_addr_rem_calculated'] = copy.deepcopy(str(addr))
                                 if not interface_warning_data['interface_data'].get('ipv6_addr_rem'):
@@ -3870,7 +3875,7 @@ authentication {
                         for addr in ipaddress.IPv6Network(ipv6_network):
                             CGI_CLI.uprint("addr6=%s" % (addr), tag = 'debug', no_printall = not CGI_CLI.printall)
                             if i_counter == 1 or i_counter == 2:
-                                if str(addr).upper() == str(interface_data['interface_data'].get('ipv6_addr_loc')).upper(): pass
+                                if normalized_ipv6(str(addr).upper()) == normalized_ipv6(str(interface_data['interface_data'].get('ipv6_addr_loc')).upper()): pass
                                 else:
                                     interface_warning_data['interface_data']['ipv6_addr_rem_calculated'] = copy.deepcopy(str(addr))
                                     if not interface_warning_data['interface_data'].get('ipv6_addr_rem'):
