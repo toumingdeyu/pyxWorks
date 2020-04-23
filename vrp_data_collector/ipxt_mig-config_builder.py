@@ -1211,7 +1211,7 @@ big_rd = ''.join([ str(item.get('as_id','')) for item in private_as_test if item
 rd3 = '0'
 if big_rd: rd4 = str(big_rd)
 else: rd4 = '0'
-if big_rd and int(big_rd) > 256:
+if big_rd and int(big_rd) >= 256:
   rd3 = str(int(int(big_rd)/256))
   rd4 = str(int(big_rd)%256)
 %>
