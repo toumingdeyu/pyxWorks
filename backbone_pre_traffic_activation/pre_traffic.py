@@ -2948,7 +2948,9 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
 
 def normalized_ipv6(ipv6 = None):
     result = str()
-    if ipv6: result = str(ipv6).replace(':0:','::').replace(':::','::').replace('::::','::').replace(':::::','::')
+    if ipv6:
+        result = str(ipv6).replace(':0',':').replace(':::::','::').replace('::::','::').replace(':::','::')
+        if result[-1] == ':' and ipv6[-1] == '0': result += '0'
     return result
 
 ###############################################################################
@@ -5077,7 +5079,7 @@ authentication {
                     check_interface_data_content("['interface_data']['ipv4_addr_rem_calculated']", interface_data['interface_data'].get('ipv4_addr_rem'), ignore_data_existence = True, warning = True)
 
                 if interface_warning_data['interface_data'].get('ipv6_addr_rem_calculated'):
-                     check_interface_data_content("['interface_data']['ipv6_addr_rem_calculated']", interface_warning_data['interface_data'].get('ipv6_addr_rem'), ignore_data_existence = True, warning = True)
+                     check_interface_data_content("['interface_data']['ipv6_addr_rem_calculated']", normalized_ipv6(interface_warning_data['interface_data'].get('ipv6_addr_rem')), ignore_data_existence = True, warning = True)
 
                 if ping_counts and int(ping_counts) > 0:
 
