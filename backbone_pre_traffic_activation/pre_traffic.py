@@ -2947,11 +2947,19 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
 ###############################################################################
 
 def normalized_ipv6(ipv6 = None):
-    result = str()
+    result_ipv6, doubledot_string = str(), str()
     if ipv6:
-        result = str(ipv6).replace(':0',':').replace(':::::','::').replace('::::','::').replace(':::','::')
-        if result[-1] == ':' and ipv6[-1] == '0': result += '0'
-    return result
+        ipv6 = str(ipv6).split('/')[0].replace('0000','0')
+        if str(ipv6)[-1] == ':': ipv6 += '0'
+        ### ip_number_count minus one because of :: 
+        ip_number_count = len(str(ipv6).split(':')) - 1
+        if len(ipv6.split('::')) == 2: 
+            before_doubledot, after_doubledot = ipv6.split('::')     
+            for i in range(8-int(ip_number_count)):
+                doubledot_string += ':0'    
+            result_ipv6 = before_doubledot + doubledot_string + ':' + after_doubledot
+        else: result_ipv6 = str(ipv6)
+    return result_ipv6
 
 ###############################################################################
 
