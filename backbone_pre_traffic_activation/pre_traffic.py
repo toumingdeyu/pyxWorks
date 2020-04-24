@@ -2951,12 +2951,12 @@ def normalized_ipv6(ipv6 = None):
     if ipv6:
         ipv6 = str(ipv6).split('/')[0].replace('0000','0')
         if str(ipv6)[-1] == ':': ipv6 += '0'
-        ### ip_number_count minus one because of :: 
+        ### ip_number_count minus one because of ::
         ip_number_count = len(str(ipv6).split(':')) - 1
-        if len(ipv6.split('::')) == 2: 
-            before_doubledot, after_doubledot = ipv6.split('::')     
+        if len(ipv6.split('::')) == 2:
+            before_doubledot, after_doubledot = ipv6.split('::')
             for i in range(8-int(ip_number_count)):
-                doubledot_string += ':0'    
+                doubledot_string += ':0'
             result_ipv6 = before_doubledot + doubledot_string + ':' + after_doubledot
         else: result_ipv6 = str(ipv6)
     return result_ipv6
@@ -3875,9 +3875,9 @@ authentication {
                             CGI_CLI.uprint("addr6=%s" % (addr), tag = 'debug', no_printall = not CGI_CLI.printall)
                             if normalized_ipv6(str(addr).upper()) == normalized_ipv6(str(interface_data['interface_data'].get('ipv6_addr_loc')).upper()): pass
                             else:
-                                interface_warning_data['interface_data']['ipv6_addr_rem_calculated'] = copy.deepcopy(str(addr))
+                                interface_warning_data['interface_data']['ipv6_addr_rem_calculated'] = copy.deepcopy(normalized_ipv6(addr))
                                 if not interface_warning_data['interface_data'].get('ipv6_addr_rem'):
-                                    interface_warning_data['interface_data']['ipv6_addr_rem'] = copy.deepcopy(str(addr))
+                                    interface_warning_data['interface_data']['ipv6_addr_rem'] = copy.deepcopy(normalized_ipv6(addr))
                                 break
 
                     if interface_data['interface_data'].get('ipv6_mask_loc') == '126':
@@ -3887,9 +3887,9 @@ authentication {
                             if i_counter == 1 or i_counter == 2:
                                 if normalized_ipv6(str(addr).upper()) == normalized_ipv6(str(interface_data['interface_data'].get('ipv6_addr_loc')).upper()): pass
                                 else:
-                                    interface_warning_data['interface_data']['ipv6_addr_rem_calculated'] = copy.deepcopy(str(addr))
+                                    interface_warning_data['interface_data']['ipv6_addr_rem_calculated'] = copy.deepcopy(normalized_ipv6(addr))
                                     if not interface_warning_data['interface_data'].get('ipv6_addr_rem'):
-                                        interface_warning_data['interface_data']['ipv6_addr_rem'] = copy.deepcopy(str(addr))
+                                        interface_warning_data['interface_data']['ipv6_addr_rem'] = copy.deepcopy(normalized_ipv6(addr))
                                     break
                             i_counter += 1
 
