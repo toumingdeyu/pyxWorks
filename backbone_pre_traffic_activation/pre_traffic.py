@@ -4532,7 +4532,7 @@ authentication {
                             interface_data['bgp']['IPV6 unicast_route-policy_out'] = []
                             for line in collect3_if_config_rcmd_outputs[1].splitlines():
                                 if 'export ' in line:
-                                    try: interface_data['IPV6 unicast_route-policy_out'].append(line.split('export ')[1].split()[0])
+                                    try: interface_data['bgp']['IPV6 unicast_route-policy_out'].append(line.split('export ')[1].split()[0])
                                     except: pass
 
                             try: interface_data['bgp']['IPV6 unicast prefix-limit maximum'] = collect3_if_config_rcmd_outputs[1].split('unicast prefix-limit maximum ')[1].split()[0]
