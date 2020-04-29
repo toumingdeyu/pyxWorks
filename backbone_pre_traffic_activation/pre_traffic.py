@@ -3333,7 +3333,7 @@ authentication {
 
 
     ### def CREATE ALL INTERFACES LIST PER DEVICE ##############################
-    if len(device_list) > 0 and len(interface_line_list) == 0:
+    if len(device_list) > 0 and len(devices_interfaces_list) == 0:
         for device in device_list:
             device_interface_list = get_interface_list_per_device(device, action_type = action_type)
         CGI_CLI.uprint(device_interface_list, name='%s_interface_list' % (device), \
@@ -4763,7 +4763,7 @@ authentication {
                             pass
 
 
-                ### def MTU ###################################################
+                ### def INTENDED MTU CALCULATIONS ############################
                 mtu_size, default_mtu = 0, 0
                 if interface_warning_data['interface_data'].get('MTU_configured'):
                     default_mtu = int(interface_warning_data['interface_data'].get('MTU_configured'))
@@ -4772,9 +4772,12 @@ authentication {
                     if CUSTOMER_MODE or PING_ONLY: mtu_size = 1500
                 if mtu_size == 0:
                     if RCMD.router_type == 'huawei': mtu_size = default_mtu
-                    elif RCMD.router_type == 'juniper': mtu_size = (default_mtu - 42) ### or (-28 or -42)?
+                    elif RCMD.router_type == 'juniper':
+                        ### PING6(4490=40+8+4442 bytes) #######################
+                        mtu_size = (default_mtu - 42) ### or (-28 or -42)?
                     else: mtu_size = (default_mtu - 14)
                 interface_data['interface_data']['intended_ping_MTU_size'] = mtu_size
+
 
                 ### def FIRST PINGv4 COMMAND LIST #############################
                 if interface_data['interface_data'].get('ipv4_addr_rem',str()):
