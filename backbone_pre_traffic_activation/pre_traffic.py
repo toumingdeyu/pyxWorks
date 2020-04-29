@@ -1618,8 +1618,7 @@ class RCMD(object):
         # Detect function start
         #asr1k_detection_string = 'CSR1000'
         #asr9k_detection_string = 'ASR9K|IOS-XRv 9000'
-        router_os, prompt = str(), str()
-
+        router_os, prompt, netmiko_os = str(), str(), str()
 
         ### AVOID SSH DETECTION COMMANDS TO SAVE TIME IF ROUTER TYPE WAS DETECTED ###
         if RCMD.router_os_by_snmp:
@@ -1673,7 +1672,7 @@ class RCMD(object):
 
         if not router_os:
             CGI_CLI.uprint("\nCannot find recognizable OS in %s" % (output), color = 'magenta')
-        netmiko_os = str()
+
         if router_os == 'ios-xe': netmiko_os = 'cisco_ios'
         if router_os == 'ios-xr': netmiko_os = 'cisco_xr'
         if router_os == 'junos': netmiko_os = 'juniper'
