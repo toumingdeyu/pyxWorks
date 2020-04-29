@@ -1615,7 +1615,7 @@ class RCMD(object):
         prompt = ssh_raw_detect_prompt(RCMD.ssh_connection, debug=debug)
 
         if CGI_CLI.timestamp:
-            CGI_CLI.uprint('RCMD.connect - after ssh_raw_detect_prompt.\n', \
+            CGI_CLI.uprint('RCMD.connect - after ssh_raw_detect_prompt(%s).\n' % (str(prompt)), \
                 no_printall = not printall, tag = 'debug')
 
         ### test if this is HUAWEI VRP
@@ -1644,6 +1644,11 @@ class RCMD(object):
             command = 'uname -a\n'
             output = ssh_raw_read_until_prompt(RCMD.ssh_connection, command, [prompt], debug=debug)
             if 'LINUX' in output.upper(): router_os = 'linux'
+
+        if CGI_CLI.timestamp:
+            CGI_CLI.uprint('RCMD.connect - after router type detection commands.\n', \
+                no_printall = not printall, tag = 'debug')
+
         if not router_os:
             CGI_CLI.uprint("\nCannot find recognizable OS in %s" % (output), color = 'magenta')
         netmiko_os = str()
