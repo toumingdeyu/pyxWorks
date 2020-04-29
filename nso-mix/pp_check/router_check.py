@@ -885,12 +885,12 @@ def send_me_email(subject='testmail', file_name='/dev/null'):
     except: pass
 
 def run_isis_check(logfilename = None):
-    command_string = '/var/www/cgi-bin/isis_check.py --device %s%s%s%s%s' % \
+    command_string = '/usr/local/bin/isis_check.py --device %s%s%s%s%s' % \
         (args.device.upper(), \
         ' --append_logfile %s' % (logfilename) if logfilename else str(), \
         ' --printall' if args.printall else str(), \
         ' --username %s' % (USERNAME), \
-        ' --password %s' % (PASSWORD) )       
+        ' --password %s' % (PASSWORD) )
     os.system(command_string)
 
 def GET_VERSION(path_to_file = str(os.path.abspath(__file__))):
