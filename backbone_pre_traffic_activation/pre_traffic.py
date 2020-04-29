@@ -4458,6 +4458,7 @@ authentication {
                                 except: pass
 
                         if USE_IPV6 and interface_data['bgp'].get('use_neighbor-group_ipv6'):
+                            interface_warning_data['bgp'] = collections.OrderedDict()
                             interface_warning_data['bgp']['address-family_ipv6'] = []
                             try:
                                 if 'address-family ipv6 unicast' in collect3_if_config_rcmd_outputs[3]:
