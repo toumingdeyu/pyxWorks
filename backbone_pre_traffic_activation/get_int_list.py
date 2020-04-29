@@ -179,7 +179,8 @@ class CGI_CLI(object):
             variable = str(key)
             try: value = str(form.getvalue(variable))
             except: value = str(','.join(form.getlist(name)))
-            if variable and value and not variable in ["username","password"]:
+            if variable and value and \
+                not variable in ["username", "password", "cusername", "cpassword"]:
                 CGI_CLI.data[variable] = value
             if variable == "submit": CGI_CLI.submit_form = value
             if variable == "username": CGI_CLI.username = value
@@ -640,7 +641,7 @@ class CGI_CLI(object):
             CGI_CLI.print_result_summary()
             if CGI_CLI.cgi_active:
                 CGI_CLI.print_chunk('<p id="scriptend"></p>', raw_log = True, printall = True)
-                #CGI_CLI.print_chunk('<br/><a href = "./%s">PAGE RELOAD</a>' % (pyfile), raw_log = True, printall = True)
+                CGI_CLI.print_chunk('<br/><a href = "./%s">PAGE RELOAD</a>' % (pyfile), raw_log = True, printall = True)
 
     @staticmethod
     def get_scriptname():
@@ -937,34 +938,50 @@ class RCMD(object):
             RCMD.commit_text = commit_text
             RCMD.do_not_final_print = do_not_final_print
             RCMD.drive_string = str()
+            RCMD.router_os_by_snmp = None
             RCMD.KNOWN_OS_TYPES = ['cisco_xr', 'cisco_ios', 'juniper', 'juniper_junos', 'huawei' ,'linux']
             try: RCMD.DEVICE_HOST = device.split(':')[0]
-            except: RCMD.DEVICE_HOST = str()
+            except: RCMD.DEVICE_HOST = str(device)
             try: RCMD.DEVICE_PORT = device.split(':')[1]
             except: RCMD.DEVICE_PORT = '22'
 
-            if CGI_CLI.timestamp:
-                CGI_CLI.uprint('RCMD.connect - start.\n', \
-                    no_printall = not printall, tag = 'debug')
 
-            ### IS ALIVE TEST #################################################
-            RCMD.ip_address = RCMD.get_IP_from_vision(device)
-
-            if CGI_CLI.timestamp:
-                    CGI_CLI.uprint('RCMD.connect - after get_IP_from_vision.\n', \
+            ### PING 1 = IS ALIVE TEST , IF NOT FIND IP ADDRESS ###############
+            if RCMD.is_alive(device):
+                if CGI_CLI.timestamp:
+                    CGI_CLI.uprint('RCMD.connect - ping DEVICE by name - OK.\n', \
+                        no_printall = not printall, tag = 'debug')
+                device_id = RCMD.DEVICE_HOST
+            else:
+                if CGI_CLI.timestamp:
+                    CGI_CLI.uprint('RCMD.connect - start.\n', \
                         no_printall = not printall, tag = 'debug')
 
-            device_id = RCMD.ip_address if RCMD.ip_address else device
-            if not no_alive_test:
-                for i_repeat in range(3):
-                    if RCMD.is_alive(device_id): break
-                else:
-                    CGI_CLI.uprint('DEVICE %s (ip=%s) is not ALIVE.' % \
-                        (device, RCMD.ip_address), color = 'magenta')
-                    return command_outputs
+                RCMD.ip_address = RCMD.get_IP_from_vision(device)
+
+                if CGI_CLI.timestamp:
+                        CGI_CLI.uprint('RCMD.connect - after get_IP_from_vision.\n', \
+                            no_printall = not printall, tag = 'debug')
+
+                device_id = RCMD.ip_address
+
+                if not no_alive_test:
+                    for i_repeat in range(3):
+                        if RCMD.is_alive(device_id): break
+                    else:
+                        CGI_CLI.uprint('DEVICE %s (ip=%s) is not ALIVE.' % \
+                            (device, RCMD.ip_address), color = 'magenta')
+                        return command_outputs
 
             if CGI_CLI.timestamp:
                     CGI_CLI.uprint('RCMD.connect - after pingtest.\n', \
+                        no_printall = not printall, tag = 'debug')
+
+            ### SNMP DETECTION ################################################
+            RCMD.router_os_by_snmp = RCMD.snmp_find_router_type(device_id)
+
+            if CGI_CLI.timestamp:
+                    CGI_CLI.uprint('RCMD.connect - after SNMP detection(%s).\n' % (str(RCMD.router_os_by_snmp)), \
                         no_printall = not printall, tag = 'debug')
 
             ### START SSH CONNECTION ##########################################
@@ -1190,6 +1207,9 @@ class RCMD(object):
                             CGI_CLI.uprint('\n', timestamp = 'no', ommit_logging = True)
                         else:
                             CGI_CLI.uprint(' . ', no_newlines = True, timestamp = 'no', ommit_logging = True)
+            for line in last_output.splitlines():
+                if line.strip() == '^':
+                    CGI_CLI.uprint("\nSYNTAX ERROR in CMD: '%s' !\n" % (str(cmd_line)), timestamp = 'no', color = 'orange')
         return str(last_output)
 
     @staticmethod
@@ -1597,7 +1617,12 @@ class RCMD(object):
         # Detect function start
         #asr1k_detection_string = 'CSR1000'
         #asr9k_detection_string = 'ASR9K|IOS-XRv 9000'
-        router_os, prompt = str(), str()
+        router_os, prompt, netmiko_os = str(), str(), str()
+
+        ### AVOID SSH DETECTION COMMANDS TO SAVE TIME IF ROUTER TYPE WAS DETECTED ###
+        if RCMD.router_os_by_snmp:
+            router_os = copy.deepcopy(RCMD.router_os_by_snmp)
+            netmiko_os = copy.deepcopy(RCMD.router_os_by_snmp)
 
         ### 1-CONNECTION ONLY, connection opened in RCMD.connect ###
         # prevent --More-- in log banner (space=page, enter=1line,tab=esc)
@@ -1610,7 +1635,7 @@ class RCMD(object):
         prompt = ssh_raw_detect_prompt(RCMD.ssh_connection, debug=debug)
 
         if CGI_CLI.timestamp:
-            CGI_CLI.uprint('RCMD.connect - after ssh_raw_detect_prompt.\n', \
+            CGI_CLI.uprint('RCMD.connect - after ssh_raw_detect_prompt(%s).\n' % (str(prompt)), \
                 no_printall = not printall, tag = 'debug')
 
         ### test if this is HUAWEI VRP
@@ -1639,9 +1664,14 @@ class RCMD(object):
             command = 'uname -a\n'
             output = ssh_raw_read_until_prompt(RCMD.ssh_connection, command, [prompt], debug=debug)
             if 'LINUX' in output.upper(): router_os = 'linux'
+
+        if CGI_CLI.timestamp:
+            CGI_CLI.uprint('RCMD.connect - after router type detection commands.\n', \
+                no_printall = not printall, tag = 'debug')
+
         if not router_os:
             CGI_CLI.uprint("\nCannot find recognizable OS in %s" % (output), color = 'magenta')
-        netmiko_os = str()
+
         if router_os == 'ios-xe': netmiko_os = 'cisco_ios'
         if router_os == 'ios-xr': netmiko_os = 'cisco_xr'
         if router_os == 'junos': netmiko_os = 'juniper'
@@ -1673,6 +1703,34 @@ class RCMD(object):
                     split('"ip":')[1].replace('"','').replace(',','')).strip()
             except: pass
         return device_ip_address
+
+    @staticmethod
+    def snmp_find_router_type(host = None):
+        router_os = None
+        if host:
+            SNMP_COMMUNITY = 'qLqVHPZUNnGB'
+            snmp_req = "snmpget -v1 -c " + SNMP_COMMUNITY + " -t 5 " + host + " sysDescr.0"
+            #return_stream = os.popen(snmp_req)
+            #retvalue = return_stream.readline()
+
+            os_output = None
+            if 'WIN32' in sys.platform.upper(): pass
+            else:
+                try: os_output = subprocess.check_output(str(snmp_req), \
+                         stderr = subprocess.STDOUT, shell = True).decode(CGI_CLI.sys_stdout_encoding)
+                except: pass
+
+            if os_output:
+                if 'Cisco IOS XR Software' in os_output:
+                    router_os = 'cisco_xr'
+                elif 'Cisco IOS Software' in os_output:
+                    router_os = 'cisco_ios'
+                elif 'Juniper Networks' in os_output:
+                    router_os = 'juniper'
+                elif 'Huawei' in os_output:
+                    router_os = 'huawei'
+        return router_os
+
 
 
 
