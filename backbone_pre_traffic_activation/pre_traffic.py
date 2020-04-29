@@ -939,6 +939,7 @@ class RCMD(object):
             RCMD.commit_text = commit_text
             RCMD.do_not_final_print = do_not_final_print
             RCMD.drive_string = str()
+            RCMD.router_os_by_snmp = None
             RCMD.KNOWN_OS_TYPES = ['cisco_xr', 'cisco_ios', 'juniper', 'juniper_junos', 'huawei' ,'linux']
             try: RCMD.DEVICE_HOST = device.split(':')[0]
             except: RCMD.DEVICE_HOST = str(device)
@@ -975,6 +976,13 @@ class RCMD(object):
 
             if CGI_CLI.timestamp:
                     CGI_CLI.uprint('RCMD.connect - after pingtest.\n', \
+                        no_printall = not printall, tag = 'debug')
+
+            ### SNMP DETECTION ################################################
+            RCMD.router_os_by_snmp = RCMD.snmp_find_router_type(device_id)
+
+            if CGI_CLI.timestamp:
+                    CGI_CLI.uprint('RCMD.connect - after SNMP detection(%s).\n' % (str(RCMD.router_os_by_snmp)), \
                         no_printall = not printall, tag = 'debug')
 
             ### START SSH CONNECTION ##########################################
@@ -1612,6 +1620,12 @@ class RCMD(object):
         #asr9k_detection_string = 'ASR9K|IOS-XRv 9000'
         router_os, prompt = str(), str()
 
+
+        ### AVOID SSH DETECTION COMMANDS TO SAVE TIME IF ROUTER TYPE WAS DETECTED ###
+        if RCMD.router_os_by_snmp:
+            router_os = copy.deepcopy(RCMD.router_os_by_snmp)
+            netmiko_os = copy.deepcopy(RCMD.router_os_by_snmp)
+
         ### 1-CONNECTION ONLY, connection opened in RCMD.connect ###
         # prevent --More-- in log banner (space=page, enter=1line,tab=esc)
         # \n\n get prompt as last line
@@ -1691,6 +1705,33 @@ class RCMD(object):
                     split('"ip":')[1].replace('"','').replace(',','')).strip()
             except: pass
         return device_ip_address
+
+    @staticmethod
+    def snmp_find_router_type(host = None):
+        router_os = None
+        if host:
+            snmp_req = "snmpget -v1 -c " + SNMP_COMMUNITY + " -t 5 " + host + " sysDescr.0"
+            #return_stream = os.popen(snmp_req)
+            #retvalue = return_stream.readline()
+
+            os_output = None
+            if 'WIN32' in sys.platform.upper(): pass
+            else:
+                try: os_output = subprocess.check_output(str(snmp_req), \
+                         stderr = subprocess.STDOUT, shell = True).decode(CGI_CLI.sys_stdout_encoding)
+                except: pass
+
+            if os_output:
+                if 'Cisco IOS XR Software' in os_output:
+                    router_os = 'cisco_xr'
+                elif 'Cisco IOS Software' in os_output:
+                    router_os = 'cisco_ios'
+                elif 'Juniper Networks' in os_output:
+                    router_os = 'juniper'
+                elif 'Huawei' in os_output:
+                    router_os = 'huawei'
+        return router_os
+
 
 
 
