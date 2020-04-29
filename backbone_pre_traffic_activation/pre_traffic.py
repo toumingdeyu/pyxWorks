@@ -941,29 +941,37 @@ class RCMD(object):
             RCMD.drive_string = str()
             RCMD.KNOWN_OS_TYPES = ['cisco_xr', 'cisco_ios', 'juniper', 'juniper_junos', 'huawei' ,'linux']
             try: RCMD.DEVICE_HOST = device.split(':')[0]
-            except: RCMD.DEVICE_HOST = str()
+            except: RCMD.DEVICE_HOST = str(device)
             try: RCMD.DEVICE_PORT = device.split(':')[1]
             except: RCMD.DEVICE_PORT = '22'
 
-            if CGI_CLI.timestamp:
-                CGI_CLI.uprint('RCMD.connect - start.\n', \
-                    no_printall = not printall, tag = 'debug')
 
-            ### IS ALIVE TEST #################################################
-            RCMD.ip_address = RCMD.get_IP_from_vision(device)
-
-            if CGI_CLI.timestamp:
-                    CGI_CLI.uprint('RCMD.connect - after get_IP_from_vision.\n', \
+            ### PING 1 = IS ALIVE TEST , IF NOT FIND IP ADDRESS ###############
+            if not RCMD.is_alive(device):
+                if CGI_CLI.timestamp:
+                    CGI_CLI.uprint('RCMD.connect - ping DEVICE by name - OK.\n', \
+                        no_printall = not printall, tag = 'debug')
+                device_id = RCMD.DEVICE_HOST
+            else:
+                if CGI_CLI.timestamp:
+                    CGI_CLI.uprint('RCMD.connect - start.\n', \
                         no_printall = not printall, tag = 'debug')
 
-            device_id = RCMD.ip_address if RCMD.ip_address else device
-            if not no_alive_test:
-                for i_repeat in range(3):
-                    if RCMD.is_alive(device_id): break
-                else:
-                    CGI_CLI.uprint('DEVICE %s (ip=%s) is not ALIVE.' % \
-                        (device, RCMD.ip_address), color = 'magenta')
-                    return command_outputs
+                RCMD.ip_address = RCMD.get_IP_from_vision(device)
+
+                if CGI_CLI.timestamp:
+                        CGI_CLI.uprint('RCMD.connect - after get_IP_from_vision.\n', \
+                            no_printall = not printall, tag = 'debug')
+
+                device_id = RCMD.ip_address
+
+                if not no_alive_test:
+                    for i_repeat in range(3):
+                        if RCMD.is_alive(device_id): break
+                    else:
+                        CGI_CLI.uprint('DEVICE %s (ip=%s) is not ALIVE.' % \
+                            (device, RCMD.ip_address), color = 'magenta')
+                        return command_outputs
 
             if CGI_CLI.timestamp:
                     CGI_CLI.uprint('RCMD.connect - after pingtest.\n', \
