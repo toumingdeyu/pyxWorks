@@ -947,7 +947,7 @@ class RCMD(object):
 
 
             ### PING 1 = IS ALIVE TEST , IF NOT FIND IP ADDRESS ###############
-            if not RCMD.is_alive(device):
+            if RCMD.is_alive(device):
                 if CGI_CLI.timestamp:
                     CGI_CLI.uprint('RCMD.connect - ping DEVICE by name - OK.\n', \
                         no_printall = not printall, tag = 'debug')
