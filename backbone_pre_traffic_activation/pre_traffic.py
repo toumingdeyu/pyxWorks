@@ -1710,6 +1710,7 @@ class RCMD(object):
     def snmp_find_router_type(host = None):
         router_os = None
         if host:
+            SNMP_COMMUNITY = 'qLqVHPZUNnGB'
             snmp_req = "snmpget -v1 -c " + SNMP_COMMUNITY + " -t 5 " + host + " sysDescr.0"
             #return_stream = os.popen(snmp_req)
             #retvalue = return_stream.readline()
