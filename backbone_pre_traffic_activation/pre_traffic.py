@@ -5006,6 +5006,7 @@ authentication {
                         CGI_CLI.uprint('\n'.join(None_warning_elements), color = 'orange', timestamp = 'no')
                         CGI_CLI.uprint('\n\n', timestamp = 'no')
 
+
                 if BB_MODE and not precheck_mode:
                     if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr' and not interface_data['interface_data'].get('ipv4_metric') \
                         or RCMD.router_type == 'juniper' and not interface_data['interface_data'].get('metric') \
@@ -5112,6 +5113,9 @@ authentication {
                             check_warning_interface_result_ok = False
                         else: CGI_CLI.logtofile('Rx Traffic on Interface %s is %.2f%% = OK\n' % (interface_id, interface_warning_data['interface_statistics'].get('rxload_percent')), ommit_timestamp = True)
 
+                ### def BB - REMOTE DEVICE CHECK ##############################
+                if BB_MODE:
+                    check_interface_data_content("['interface_data']['name_of_remote_device']", what_not_in = device)
 
                 ### def ALL - CONTENT ELEMENT CHECK #############################
                 if interface_data['interface_data'].get('inactive_bundle_members'):
