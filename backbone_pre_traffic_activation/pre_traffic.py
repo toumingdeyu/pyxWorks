@@ -3734,10 +3734,10 @@ authentication {
                     printall = printall)
 
                 if BB_MODE:
-                    try: interface_data['interface_data']['name_of_remote_device'] = collect_if_config_rcmd_outputs[0].upper().split('DESCRIPTION')[1].splitlines()[0].split('FROM')[0].split()[-1].strip().replace('"','')
-                    except: interface_data['interface_data']['name_of_remote_device'] = str()
+                    try: interface_data['interface_data']['name_of_remote_device_from_description'] = collect_if_config_rcmd_outputs[0].upper().split('DESCRIPTION')[1].splitlines()[0].split('FROM')[0].split()[-1].strip().replace('"','')
+                    except: interface_data['interface_data']['name_of_remote_device_from_description'] = str()
 
-                if 'PE' in interface_data['interface_data'].get('name_of_remote_device',str()).upper() or 'PE' in device.upper():
+                if 'PE' in interface_data['interface_data'].get('name_of_remote_device_from_description',str()).upper() or 'PE' in device.upper():
                     IMN_INTERFACE = True
 
                 try: interface_data['interface_data']['ipv4_addr_rem_from_DESCRIPTION'] = collect_if_config_rcmd_outputs[0].split('description')[1].splitlines()[0].split('@')[1].split()[0]
@@ -4048,7 +4048,7 @@ authentication {
                         try: interface_data['interface_data']['line protocol is'] = collect_if_config_rcmd_outputs[4].split('line protocol is ')[1].split()[0]
                         except: interface_data['interface_data']['line protocol is'] = str()
 
-                        try: interface_data['interface_data']['isis neighbors'] = collect_if_config_rcmd_outputs[5].split(interface_data['interface_data'].get('name_of_remote_device','XXYYZZ').upper())[1].split(interface_id)[1].split()[1].strip()
+                        try: interface_data['interface_data']['isis neighbors'] = collect_if_config_rcmd_outputs[5].split(interface_data['interface_data'].get('name_of_remote_device_from_description','XXYYZZ').upper())[1].split(interface_id)[1].split()[1].strip()
                         except: interface_data['interface_data']['isis neighbors'] = str()
 
                         try: interface_data['interface_data']['Up time'] = collect_if_config_rcmd_outputs[6].split('Up time:')[1].split()[0]
@@ -4066,9 +4066,9 @@ authentication {
                             ### BACKUP INTERFACES ###
                             try:
                                 backup_if_list = []
-                                if interface_data['interface_data'].get('name_of_remote_device'):
+                                if interface_data['interface_data'].get('name_of_remote_device_from_description'):
                                     for line in collect_if_config_rcmd_outputs[10].splitlines():
-                                        if '%s FROM %s' % (interface_data['interface_data'].get('name_of_remote_device',str()).upper(), device.upper()) in line.upper():
+                                        if '%s FROM %s' % (interface_data['interface_data'].get('name_of_remote_device_from_description',str()).upper(), device.upper()) in line.upper():
                                             local_backup_interface = str(line.split()[0]).replace('GE','Gi')
                                             if '(' in local_backup_interface: local_backup_interface = local_backup_interface.split('(')[0]
                                             if ' TESTING ' in line or ' OLD ' in line.upper(): pass
@@ -4123,7 +4123,7 @@ authentication {
                         try: interface_data['interface_data']['Flags'] = collect_if_config_rcmd_outputs[4].split('Flags:')[1].split()[0]
                         except: interface_data['interface_data']['Flags'] = str()
 
-                        try: interface_data['interface_data']['isis adjacency'] = collect_if_config_rcmd_outputs[5].split(interface_data['interface_data'].get('name_of_remote_device','XXYYZZ').upper())[1].splitlines()[0].split()[1]
+                        try: interface_data['interface_data']['isis adjacency'] = collect_if_config_rcmd_outputs[5].split(interface_data['interface_data'].get('name_of_remote_device_from_description','XXYYZZ').upper())[1].splitlines()[0].split()[1]
                         except: interface_data['interface_data']['isis adjacency'] = str()
 
                         find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ', collect_if_config_rcmd_outputs[6].strip())
@@ -4141,9 +4141,9 @@ authentication {
                             ### BACKUP INTERFACES ###
                             try:
                                 backup_if_list = []
-                                if interface_data['interface_data'].get('name_of_remote_device'):
+                                if interface_data['interface_data'].get('name_of_remote_device_from_description'):
                                     for line in collect_if_config_rcmd_outputs[13].splitlines():
-                                        if '%s FROM %s' % (interface_data['interface_data'].get('name_of_remote_device',str()).upper(), device.upper()) in line.upper():
+                                        if '%s FROM %s' % (interface_data['interface_data'].get('name_of_remote_device_from_description',str()).upper(), device.upper()) in line.upper():
                                             local_backup_interface = str(line.split()[0]).replace('GE','Gi')
                                             if '(' in local_backup_interface: local_backup_interface = local_backup_interface.split('(')[0]
                                             if ' TESTING ' in line or ' OLD ' in line: pass
@@ -4228,9 +4228,9 @@ authentication {
                             ### BACKUP INTERFACES ###
                             try:
                                 backup_if_list = []
-                                if interface_data['interface_data'].get('name_of_remote_device'):
+                                if interface_data['interface_data'].get('name_of_remote_device_from_description'):
                                     for line in collect_if_config_rcmd_outputs[10].splitlines():
-                                        if '%s FROM %s' % (interface_data['interface_data'].get('name_of_remote_device',str()).upper(), device.upper()) in line.upper():
+                                        if '%s FROM %s' % (interface_data['interface_data'].get('name_of_remote_device_from_description',str()).upper(), device.upper()) in line.upper():
                                             local_backup_interface = str(line.split()[0])
                                             if not '100GE' in local_backup_interface: local_backup_interface = local_backup_interface.replace('GE','Gi')
                                             if '(' in local_backup_interface: local_backup_interface = local_backup_interface.split('(')[0]
@@ -5115,7 +5115,7 @@ authentication {
 
                 ### def BB - REMOTE DEVICE CHECK ##############################
                 if BB_MODE:
-                    check_interface_data_content("['interface_data']['name_of_remote_device']", what_not_in = device)
+                    check_interface_data_content("['interface_data']['name_of_remote_device_from_description']", what_not_in = device)
 
                 ### def ALL - CONTENT ELEMENT CHECK #############################
                 if interface_data['interface_data'].get('inactive_bundle_members'):
