@@ -4792,9 +4792,51 @@ authentication {
                                 interface_data['bgp']['IPV4 bgp group Peers'].append(str(line).strip())
 
                     elif RCMD.router_type == 'huawei':
-                        pass
+                        try: interface_data['bgp']['IPV4 remote AS'] = collect5_if_config_rcmd_outputs[1].split('remote AS ')[1].split()[0]
+                        except: interface_data['bgp']['IPV4 remote AS'] = str()                     
+                    
+                        try: interface_data['bgp']['IPV4 Remote router ID'] = collect5_if_config_rcmd_outputs[1].split('Remote router ID ')[1].split()[0]
+                        except: interface_data['bgp']['IPV4 Remote router ID'] = str()                    
 
+                        try: interface_data['bgp']['IPV4 BGP current state'] = collect5_if_config_rcmd_outputs[1].split('BGP current state: ')[1].split()[0].replace(',','')
+                        except: interface_data['bgp']['IPV4 BGP current state'] = str()
+                        
+                        try: interface_data['bgp']['IPV4 BGP Up for'] = collect5_if_config_rcmd_outputs[1].split('Up for ')[1].split()[0].replace(',','')
+                        except: interface_data['bgp']['IPV4 BGP Up for'] = str()                        
 
+                        try: interface_data['bgp']['IPV4 Received total routes'] = collect5_if_config_rcmd_outputs[1].split('Received total routes: ')[1].split()[0].replace(',','')
+                        except: interface_data['bgp']['IPV4 Received total routes'] = str()                          
+
+                        try: interface_data['bgp']['IPV4 Advertised total routes'] = collect5_if_config_rcmd_outputs[1].split('Advertised total routes: ')[1].split()[0].replace(',','')
+                        except: interface_data['bgp']['IPV4 Advertised total routes'] = str()
+                        
+                        try: interface_data['bgp']['IPV4 Authentication type configured'] = collect6_if_config_rcmd_outputs[1].split('Authentication type configured: ')[1].split()[0].replace(',','')
+                        except: interface_data['bgp']['IPV4 Authentication type configured'] = str()
+                        
+                        try: interface_data['bgp']['IPV4 Maximum allowed route limit'] = collect5_if_config_rcmd_outputs[1].split('Maximum allowed route limit: ')[1].split()[0]
+                        except: interface_data['bgp']['IPV4 Maximum allowed route limit'] = str()                        
+
+                        try: interface_data['bgp']['IPV4 Threshold'] = collect5_if_config_rcmd_outputs[1].split('Threshold: ')[1].split()[0].replace(',','')
+                        except: interface_data['bgp']['IPV4 Threshold'] = str()
+
+                        try: interface_data['bgp']['IPV4 Parameter'] = collect5_if_config_rcmd_outputs[1].split(', Parameter: ')[1].split()[0].replace(',','')
+                        except: interface_data['bgp']['IPV4 Parameter'] = str()
+
+                        try: interface_data['bgp']['IPV4 Import prefix list is'] = collect5_if_config_rcmd_outputs[1].split('Import prefix list is: ')[1].split()[0].replace(',','')
+                        except: interface_data['bgp']['IPV4 Import prefix list is'] = str()                        
+
+                        try: interface_data['bgp']['IPV4 Export prefix list is:'] = collect5_if_config_rcmd_outputs[1].split('Export prefix list is: ')[1].split()[0].replace(',','')
+                        except: interface_data['bgp']['IPV4 Export prefix list is'] = str() 
+                        
+                        try: interface_data['bgp']['IPV4 Export prefix list is:'] = collect5_if_config_rcmd_outputs[1].split('Export prefix list is: ')[1].split()[0].replace(',','')
+                        except: interface_data['bgp']['IPV4 Export prefix list is'] = str() 
+
+                        try: interface_data['bgp']['IPV4 Import route policy is'] = collect5_if_config_rcmd_outputs[1].split('Import route policy is: ')[1].split()[0].replace(',','')
+                        except: interface_data['bgp']['IPV4 Import route policy is'] = str()
+
+                        try: interface_data['bgp']['IPV4 Export route policy is'] = collect5_if_config_rcmd_outputs[1].split('Export route policy is: ')[1].split()[0].replace(',','')
+                        except: interface_data['bgp']['IPV4 Export route policy is'] = str()
+                        
 
                     ###########################################################
                     ### def CUSTOMER_MODE - 6th DATA COLLECTION ###############
@@ -4864,7 +4906,51 @@ authentication {
                                     interface_data['bgp']['IPV6 bgp group Peers'].append(str(line).strip())
 
                         elif RCMD.router_type == 'huawei':
-                            pass
+                            try: interface_data['bgp']['IPV6 remote AS'] = collect6_if_config_rcmd_outputs[1].split('remote AS ')[1].split()[0]
+                            except: interface_data['bgp']['IPV6 remote AS'] = str() 
+                        
+                            try: interface_data['bgp']['IPV6 Remote router ID'] = collect6_if_config_rcmd_outputs[1].split('Remote router ID ')[1].split()[0]
+                            except: interface_data['bgp']['IPV6 Remote router ID'] = str()
+
+                            try: interface_data['bgp']['IPV6 BGP current state'] = collect6_if_config_rcmd_outputs[1].split('BGP current state: ')[1].split()[0].replace(',','')
+                            except: interface_data['bgp']['IPV6 BGP current state'] = str()                            
+
+                            try: interface_data['bgp']['IPV6 BGP Up for'] = collect6_if_config_rcmd_outputs[1].split('Up for ')[1].split()[0].replace(',','')
+                            except: interface_data['bgp']['IPV6 BGP Up for'] = str()                        
+
+                            try: interface_data['bgp']['IPV6 Received total routes'] = collect6_if_config_rcmd_outputs[1].split('Received total routes: ')[1].split()[0].replace(',','')
+                            except: interface_data['bgp']['IPV6 Received total routes'] = str()                          
+
+                            try: interface_data['bgp']['IPV6 Advertised total routes'] = collect6_if_config_rcmd_outputs[1].split('Advertised total routes: ')[1].split()[0].replace(',','')
+                            except: interface_data['bgp']['IPV6 Advertised total routes'] = str()
+
+                            try: interface_data['bgp']['IPV6 Authentication type configured'] = collect6_if_config_rcmd_outputs[1].split('Authentication type configured: ')[1].split()[0].replace(',','')
+                            except: interface_data['bgp']['IPV6 Authentication type configured'] = str()
+                            
+                            try: interface_data['bgp']['IPV6 Maximum allowed route limit'] = collect6_if_config_rcmd_outputs[1].split('Maximum allowed route limit: ')[1].split()[0]
+                            except: interface_data['bgp']['IPV6 Maximum allowed route limit'] = str()
+
+                            try: interface_data['bgp']['IPV6 Threshold'] = collect6_if_config_rcmd_outputs[1].split('Threshold: ')[1].split()[0].replace(',','')
+                            except: interface_data['bgp']['IPV6 Threshold'] = str()
+
+                            try: interface_data['bgp']['IPV6 Parameter'] = collect6_if_config_rcmd_outputs[1].split(', Parameter: ')[1].split()[0].replace(',','')
+                            except: interface_data['bgp']['IPV6 Parameter'] = str()
+
+                            try: interface_data['bgp']['IPV6 Import prefix list is'] = collect6_if_config_rcmd_outputs[1].split('Import prefix list is: ')[1].split()[0].replace(',','')
+                            except: interface_data['bgp']['IPV6 Import prefix list is'] = str()                        
+
+                            try: interface_data['bgp']['IPV6 Export prefix list is:'] = collect6_if_config_rcmd_outputs[1].split('Export prefix list is: ')[1].split()[0].replace(',','')
+                            except: interface_data['bgp']['IPV6 Export prefix list is'] = str() 
+                            
+                            try: interface_data['bgp']['IPV6 Export prefix list is:'] = collect6_if_config_rcmd_outputs[1].split('Export prefix list is: ')[1].split()[0].replace(',','')
+                            except: interface_data['bgp']['IPV6 Export prefix list is'] = str() 
+
+                            try: interface_data['bgp']['IPV6 Import route policy is'] = collect6_if_config_rcmd_outputs[1].split('Import route policy is: ')[1].split()[0].replace(',','')
+                            except: interface_data['bgp']['IPV6 Import route policy is'] = str()
+
+                            try: interface_data['bgp']['IPV6 Export route policy is'] = collect6_if_config_rcmd_outputs[1].split('Export route policy is: ')[1].split()[0].replace(',','')
+                            except: interface_data['bgp']['IPV6 Export route policy is'] = str()
+
 
 
                 ### def INTENDED MTU CALCULATIONS ############################
