@@ -4744,6 +4744,8 @@ authentication {
                         ],
 
                         'huawei': [
+                            'display bgp group %s' % (interface_data['bgp'].get('IPV4 neighbor-group')) if interface_data['bgp'].get('IPV4 neighbor-group') else str(),
+                            'display bgp peer %s verbose' % (interface_data['interface_data'].get('ipv4_addr_rem')) if interface_data['interface_data'].get('ipv4_addr_rem') else str(),
                         ]
                     }
 
@@ -4814,6 +4816,8 @@ authentication {
                             ],
 
                             'huawei': [
+                                'display bgp group %s' % (interface_data['bgp'].get('IPV6 neighbor-group')) if interface_data['bgp'].get('IPV6 neighbor-group') else str(),
+                                'display bgp peer %s verbose' % (interface_warning_data['interface_data'].get('ipv6_addr_rem')) if interface_warning_data['interface_data'].get('ipv6_addr_rem') else str(),
                             ]
                         }
 
