@@ -4276,7 +4276,7 @@ authentication {
 
 
                 ###############################################################
-                ### def CUSTOMER_MODE - COLLECT COMMAND LIST ##################
+                ### def CUSTOMER_MODE - ISIS COLLECT COMMAND LIST #############
                 ###############################################################
                 elif CUSTOMER_MODE:
                     interface_data['isis'] = collections.OrderedDict()
@@ -4408,7 +4408,8 @@ authentication {
                         ],
 
                         'huawei': [
-
+                            "display bgp peer %s verbose | i Peer's description" % (interface_data['interface_data'].get('ipv4_addr_rem')) if interface_data['interface_data'].get('ipv4_addr_rem') else str(),
+                            "display bgp peer %s verbose | i Peer's description" % (interface_warning_data['interface_data'].get('ipv6_addr_rem')) if interface_warning_data['interface_data'].get('ipv6_addr_rem') else str(),
                         ]
                     }
 
@@ -4435,7 +4436,13 @@ authentication {
                             except: pass
 
                     elif RCMD.router_type == 'huawei':
-                        pass
+                        if interface_data['interface_data'].get('ipv4_addr_rem'):
+                            try: interface_data['bgp']['IPV4 neighbor-group'] = collect2_if_config_rcmd_outputs[0].split("Peer's description:")[1].splitlines()[0].replace('"','').strip()
+                            except: interface_data['bgp']['IPV4 neighbor-group'] = str()
+
+                        if interface_warning_data['interface_data'].get('ipv6_addr_rem'):
+                            try: interface_data['bgp']['IPV6 neighbor-group'] = collect2_if_config_rcmd_outputs[1].split("Peer's description:")[1].splitlines()[0].replace('"','').strip()
+                            except: pass
 
 
 
@@ -4467,7 +4474,8 @@ authentication {
                         ],
 
                         'huawei': [
-
+                            'display current-configuration configuration bgp | i %s' % (interface_data['bgp'].get('IPV4 neighbor-group',str())) if interface_data['bgp'].get('IPV4 neighbor-group') else str(),
+                            'display current-configuration configuration bgp | i %s' % (interface_data['bgp'].get('IPV6 neighbor-group',str())) if interface_data['bgp'].get('IPV6 neighbor-group') else str(),
                         ]
                     }
 
@@ -4608,8 +4616,30 @@ authentication {
                             # interface_data['IPV6 multipath'] = True if 'multipath' in collect3_if_config_rcmd_outputs[1] else str()
 
                     elif RCMD.router_type == 'huawei':
-                        pass
+                        interface_data['bgp']['IPV4 unicast_route-policy_in'] = []
+                        for line in collect3_if_config_rcmd_outputs[0].splitlines():
+                            if '%s route-policy' % (interface_data['bgp'].get('IPV4 neighbor-group',str())) in line and 'import' in line:
+                                try: interface_data['bgp']['IPV4 unicast_route-policy_in'].append(line.split('route-policy ')[1].split()[0])
+                                except: pass
 
+                        interface_data['bgp']['IPV4 unicast_route-policy_out'] = []
+                        for line in collect3_if_config_rcmd_outputs[0].splitlines():
+                            if '%s route-policy' % (interface_data['bgp'].get('IPV4 neighbor-group',str())) in line and 'export' in line:
+                                try: interface_data['bgp']['IPV4 unicast_route-policy_out'].append(line.split('route-policy ')[1].split()[0])
+                                except: pass
+
+                        if USE_IPV6 and interface_data['bgp'].get('IPV6 neighbor-group'):
+                            interface_data['bgp']['IPV6 unicast_route-policy_in'] = []
+                            for line in collect3_if_config_rcmd_outputs[1].splitlines():
+                                if '%s route-policy' % (interface_data['bgp'].get('IPV6 neighbor-group',str())) in line and 'import' in line:
+                                    try: interface_data['bgp']['IPV6 unicast_route-policy_in'].append(line.split('route-policy ')[1].split()[0])
+                                    except: pass
+
+                            interface_data['bgp']['IPV6 unicast_route-policy_out'] = []
+                            for line in collect3_if_config_rcmd_outputs[1].splitlines():
+                                if '%s route-policy' % (interface_data['bgp'].get('IPV6 neighbor-group',str())) in line and 'export' in line:
+                                    try: interface_data['bgp']['IPV6 unicast_route-policy_out'].append(line.split('route-policy ')[1].split()[0])
+                                    except: pass
 
                     ###########################################################
                     ### def CUSTOMER_MODE - 4th DATA COLLECTION ###############
@@ -4645,6 +4675,7 @@ authentication {
                         ],
 
                         'huawei': [
+                            'display route-policy DENY-ALL',
                         ]
                     }
 
@@ -4659,6 +4690,19 @@ authentication {
 
                     for policy in interface_data['bgp'].get('IPV6 unicast_route-policy_out',[]):
                         collect4_if_data_rcmds['juniper'].append('show configuration policy-options policy-statement %s' % (policy))
+
+
+                    for policy in interface_data['bgp'].get('IPV4 unicast_route-policy_in',[]):
+                        collect4_if_data_rcmds['huawei'].append('display route-policy %s' % (policy))
+
+                    for policy in interface_data['bgp'].get('IPV4 unicast_route-policy_out',[]):
+                        collect4_if_data_rcmds['huawei'].append('display route-policy %s' % (policy))
+
+                    for policy in interface_data['bgp'].get('IPV6 unicast_route-policy_in',[]):
+                        collect4_if_data_rcmds['huawei'].append('display route-policy %s' % (policy))
+
+                    for policy in interface_data['bgp'].get('IPV6 unicast_route-policy_out',[]):
+                        collect4_if_data_rcmds['huawei'].append('display route-policy %s' % (policy))
 
                     collect4_if_config_rcmd_outputs = RCMD.run_commands(collect4_if_data_rcmds, \
                         autoconfirm_mode = True, \
@@ -4675,7 +4719,9 @@ authentication {
                                 interface_data[cmd_in] = str()
 
                     elif RCMD.router_type == 'huawei':
-                        pass
+                        for cmd_in,cmd_output in zip(collect4_if_data_rcmds, collect4_if_config_rcmd_outputs):
+                            if not ':' in cmd_output.upper():
+                                interface_data[cmd_in] = str()
 
 
                     ###########################################################
