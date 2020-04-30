@@ -5438,8 +5438,6 @@ authentication {
                             check_interface_data_content("['bgp']['No of prefixes Advertised']", higher_than = 0)
 
 
-
-
                     elif RCMD.router_type == 'juniper':
                         check_interface_data_content("['interface_data']['Flags']", exact_value_yes = 'Up')
 
@@ -5470,6 +5468,21 @@ authentication {
 
 
                     elif RCMD.router_type == 'huawei':
+                        check_interface_data_content("['bgp']['IPV4 BGP current state']", what_yes_in = 'Established')
+
+                        if precheck_mode:
+                            check_interface_data_content("['bgp']['IPV4 unicast_route-policy_in']", what_yes_in = 'DENY-ALL')
+                            check_interface_data_content("['bgp']['IPV4 unicast_route-policy_out']", what_yes_in = 'DENY-ALL')
+                            if USE_IPV6:
+                                check_interface_data_content("['bgp']['IPV6 unicast_route-policy_in']", what_yes_in = 'DENY-ALL')
+                                check_interface_data_content("['bgp']['IPV6 unicast_route-policy_out']", what_yes_in = 'DENY-ALL')
+                        else:
+                            check_interface_data_content("['bgp']['IPV4 unicast_route-policy_in']", what_not_in = 'DENY-ALL')
+                            check_interface_data_content("['bgp']['IPV4 unicast_route-policy_out']", what_not_in = 'DENY-ALL')
+                            if USE_IPV6:
+                                check_interface_data_content("['bgp']['IPV6 unicast_route-policy_in']", what_not_in = 'DENY-ALL')
+                                check_interface_data_content("['bgp']['IPV6 unicast_route-policy_out']", what_not_in = 'DENY-ALL')
+
                         check_interface_data_content("['interface_data']['Line protocol current state']", what_yes_in = 'UP')
                         check_interface_data_content("['interface_data']['Link quality grade']", what_yes_in = 'GOOD')
 
