@@ -885,6 +885,7 @@ def send_me_email(subject='testmail', file_name='/dev/null'):
     except: pass
 
 def run_isis_check(logfilename = None):
+    time.sleep(3)
     command_string = '/usr/local/bin/isis_check.py --device %s%s%s%s%s' % \
         (args.device.upper(), \
         ' --append_logfile %s' % (logfilename) if logfilename else str(), \
