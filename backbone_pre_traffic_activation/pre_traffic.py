@@ -4364,20 +4364,20 @@ authentication {
                         try: interface_data['interface_data']['IPV6 MTU_default'] = collect_if_config_rcmd_outputs[4].split('Protocol inet6, MTU:')[1].split()[0]
                         except: pass
 
-                        try: interface_data['interface_data']['Destination'] = collect_if_config_rcmd_outputs[4].split('Protocol inet,')[1].split('Destination: ')[1].split()[0].replace(',','')
-                        except: interface_data['interface_data']['Destination'] = str()
+                        try: interface_data['interface_data']['IPV4 Destination'] = collect_if_config_rcmd_outputs[4].split('Protocol inet,')[1].split('Destination: ')[1].split()[0].replace(',','')
+                        except: interface_data['interface_data']['IPV4 Destination'] = str()
 
-                        try: interface_data['interface_data']['Local'] = collect_if_config_rcmd_outputs[4].split('Protocol inet,')[1].split('Local: ')[1].split()[0]
-                        except: interface_data['interface_data']['Local'] = str()
+                        try: interface_data['interface_data']['IPV4 Local'] = collect_if_config_rcmd_outputs[4].split('Protocol inet,')[1].split('Local: ')[1].split()[0]
+                        except: interface_data['interface_data']['IPV4 Local'] = str()
 
                         try: interface_data['interface_data']['IPV6 MTU_default'] = collect_if_config_rcmd_outputs[4].split('Protocol inet6')[1].split('MTU: ')[1].split()[0]
-                        except: interface_data['interface_data']['IPV6 MTU_default'] = str()
+                        except: pass
 
                         try: interface_data['interface_data']['IPV6 Destination'] = collect_if_config_rcmd_outputs[4].split('Protocol inet6')[1].split('Destination: ')[1].split()[0].replace(',','')
-                        except: interface_data['interface_data']['IPV6 Destination'] = str()
+                        except: pass
 
                         try: interface_data['interface_data']['IPV6 Local'] = collect_if_config_rcmd_outputs[4].split('Protocol inet6')[1].split('Local: ')[1].split()[0]
-                        except: interface_data['interface_data']['IPV6 Local'] = str()
+                        except: pass
 
 
                     elif RCMD.router_type == 'huawei':
