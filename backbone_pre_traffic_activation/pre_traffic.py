@@ -4882,8 +4882,8 @@ authentication {
                         try: interface_data['bgp']['IPV4 Maximum allowed route limit'] = collect5_if_config_rcmd_outputs[1].split('Maximum allowed route limit: ')[1].split()[0]
                         except: interface_data['bgp']['IPV4 Maximum allowed route limit'] = str()
 
-                        try: interface_data['bgp']['IPV4 Received/maximum total routes percent'] = 100 * (float(interface_data['bgp']['IPV4 Received total routes') / float(interface_data['bgp']['IPV4 Maximum allowed route limit']))
-                        except:
+                        try: interface_data['bgp']['IPV4 Received/maximum total routes percent'] = 100 * (float(interface_data['bgp']['IPV4 Received total routes']) / float(interface_data['bgp']['IPV4 Maximum allowed route limit']))
+                        except: pass
 
                         try: interface_data['bgp']['IPV4 Threshold'] = collect5_if_config_rcmd_outputs[1].split('Threshold: ')[1].split()[0].replace(',','')
                         except: interface_data['bgp']['IPV4 Threshold'] = str()
