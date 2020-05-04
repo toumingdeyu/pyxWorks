@@ -3657,9 +3657,9 @@ authentication {
                             try:
                                 if str(line.split()[1]) == interface_data['interface_data'].get('ASN'):
                                     if ':' in line.split()[0]:
-                                        interface_warning_data['interface_data']['ipv6_addr_rem_from_ASN'].append(line.split()[0])
+                                        interface_warning_data['interface_data']['ipv6_addr_rem_from_ASN'].append(copy.deepcopy(line.split()[0]))
                                     elif ':' in previous_line:
-                                        interface_warning_data['interface_data']['ipv6_addr_rem_from_ASN'].append(previous_line.split()[0])
+                                        interface_warning_data['interface_data']['ipv6_addr_rem_from_ASN'].append(copy.deepcopy(previous_line.split()[0]))
                             except: pass
                             previous_line = line
                         if len(interface_warning_data['interface_data']['ipv6_addr_rem_from_ASN']) == 0:
@@ -3676,9 +3676,9 @@ authentication {
                             try:
                                 if str(line.split()[1]) == interface_data['interface_data'].get('ASN'):
                                     if '.' in line.split()[0]:
-                                        interface_data['interface_data']['ipv4_addr_rem_from_ASN'].append(line.split()[0])
+                                        interface_data['interface_data']['ipv4_addr_rem_from_ASN'].append(copy.deepcopy(line.split()[0]))
                                     elif ':' in line.split()[0]:
-                                        interface_warning_data['interface_data']['ipv6_addr_rem_from_ASN'].append(line.split()[0])
+                                        interface_warning_data['interface_data']['ipv6_addr_rem_from_ASN'].append(copy.deepcopy(line.split()[0]))
                             except: pass
                         if len(interface_data['interface_data']['ipv4_addr_rem_from_ASN']) == 0:
                             del interface_data['interface_data']['ipv4_addr_rem_from_ASN']
@@ -3699,9 +3699,9 @@ authentication {
                             try:
                                 if str(line.split()[2]) == interface_data['interface_data'].get('ASN'):
                                     if '.' in line.split()[0]:
-                                        interface_data['interface_data']['ipv4_addr_rem_from_ASN'].append(line.split()[0])
+                                        interface_data['interface_data']['ipv4_addr_rem_from_ASN'].append(copy.deepcopy(line.split()[0]))
                                     elif ':' in line.split()[0]:
-                                        interface_warning_data['interface_data']['ipv6_addr_rem_from_ASN'].append(line.split()[0])
+                                        interface_warning_data['interface_data']['ipv6_addr_rem_from_ASN'].append(copy.deepcopy(line.split()[0]))
                             except: pass
                         if len(interface_data['interface_data']['ipv4_addr_rem_from_ASN']) == 0:
                             del interface_data['interface_data']['ipv4_addr_rem_from_ASN']
@@ -4315,11 +4315,11 @@ authentication {
                     if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
                         interface_data['isis']['passive'] = True if 'passive' in collect_if_config_rcmd_outputs[0] else None
 
-                        try: interface_data['isis']['router_isis_PAII__address-family_ipv4'] = collect_if_config_rcmd_outputs[0].split('address-family ipv4 ')[1].splitlines()[0].strip()
-                        except: interface_data['isis']['router_isis_PAII__address-family_ipv4'] = str()
+                        try: interface_data['isis']['IPV4 address-family'] = collect_if_config_rcmd_outputs[0].split('address-family ipv4 ')[1].splitlines()[0].strip()
+                        except: interface_data['isis']['IPV4 address-family'] = str()
 
-                        try: interface_data['isis']['router_isis_PAII__address-family_ipv6'] = collect_if_config_rcmd_outputs[0].split('address-family ipv6 ')[1].splitlines()[0].strip()
-                        except: interface_data['isis']['router_isis_PAII__address-family_ipv6'] = str()
+                        try: interface_data['isis']['IPV6 address-family'] = collect_if_config_rcmd_outputs[0].split('address-family ipv6 ')[1].splitlines()[0].strip()
+                        except: interface_data['isis']['IPV6 address-family'] = str()
 
                         try: interface_warning_data['interface_data']['MTU_default'] = collect_if_config_rcmd_outputs[1].split('MTU ')[1].splitlines()[0].split()[0].strip()
                         except: interface_warning_data['interface_data']['MTU_default'] = str()
@@ -4419,11 +4419,11 @@ authentication {
 
                     if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
                         if interface_data['interface_data'].get('ipv4_addr_rem'):
-                            try: interface_data['bgp']['use_neighbor-group'] = collect2_if_config_rcmd_outputs[0].split('use neighbor-group ')[1].splitlines()[0].strip()
-                            except: interface_data['bgp']['use_neighbor-group'] = str()
+                            try: interface_data['bgp']['IPV4 use_neighbor-group'] = collect2_if_config_rcmd_outputs[0].split('use neighbor-group ')[1].splitlines()[0].strip()
+                            except: interface_data['bgp']['IPV4 use_neighbor-group'] = str()
 
                         if interface_warning_data['interface_data'].get('ipv6_addr_rem'):
-                            try: interface_data['bgp']['use_neighbor-group_ipv6'] = collect2_if_config_rcmd_outputs[1].split('use neighbor-group ')[1].splitlines()[0].strip()
+                            try: interface_data['bgp']['IPV6 use neighbor-group'] = collect2_if_config_rcmd_outputs[1].split('use neighbor-group ')[1].splitlines()[0].strip()
                             except: pass
 
                     elif RCMD.router_type == 'juniper':
@@ -4451,21 +4451,21 @@ authentication {
                     ###########################################################
                     collect3_if_data_rcmds = {
                         'cisco_ios':[
-                            'show running-config router bgp 5511 neighbor-group %s' % (interface_data['bgp'].get('use_neighbor-group',str())) if interface_data['bgp'].get('use_neighbor-group') else str(),
-                            'show running-config router bgp 5511 neighbor-group %s address-family ipv4 unicast' % (interface_data['bgp'].get('use_neighbor-group',str())) if interface_data['bgp'].get('use_neighbor-group') else str(),
-                            'show running-config router bgp 5511 neighbor-group %s address-family ipv4 multicast' % (interface_data['bgp'].get('use_neighbor-group',str())) if interface_data['bgp'].get('use_neighbor-group') else str(),
-                            'show running-config router bgp 5511 neighbor-group %s' % (interface_data['bgp'].get('use_neighbor-group_ipv6',str())) if interface_data['bgp'].get('use_neighbor-group_ipv6') else str(),
-                            'show running-config router bgp 5511 neighbor-group %s address-family ipv6 unicast' % (interface_data['bgp'].get('use_neighbor-group_ipv6',str())) if interface_data['bgp'].get('use_neighbor-group_ipv6') else str(),
-                            'show running-config router bgp 5511 neighbor-group %s address-family ipv6 multicast' % (interface_data['bgp'].get('use_neighbor-group_ipv6',str())) if interface_data['bgp'].get('use_neighbor-group_ipv6') else str(),
+                            'show running-config router bgp 5511 neighbor-group %s' % (interface_data['bgp'].get('IPV4 use_neighbor-group',str())) if interface_data['bgp'].get('IPV4 use_neighbor-group') else str(),
+                            'show running-config router bgp 5511 neighbor-group %s address-family ipv4 unicast' % (interface_data['bgp'].get('IPV4 use_neighbor-group',str())) if interface_data['bgp'].get('IPV4 use_neighbor-group') else str(),
+                            'show running-config router bgp 5511 neighbor-group %s address-family ipv4 multicast' % (interface_data['bgp'].get('IPV4 use_neighbor-group',str())) if interface_data['bgp'].get('IPV4 use_neighbor-group') else str(),
+                            'show running-config router bgp 5511 neighbor-group %s' % (interface_data['bgp'].get('IPV6 use neighbor-group',str())) if interface_data['bgp'].get('IPV6 use neighbor-group') else str(),
+                            'show running-config router bgp 5511 neighbor-group %s address-family ipv6 unicast' % (interface_data['bgp'].get('IPV6 use neighbor-group',str())) if interface_data['bgp'].get('IPV6 use neighbor-group') else str(),
+                            'show running-config router bgp 5511 neighbor-group %s address-family ipv6 multicast' % (interface_data['bgp'].get('IPV6 use neighbor-group',str())) if interface_data['bgp'].get('IPV6 use neighbor-group') else str(),
                           ],
 
                         'cisco_xr':[
-                            'show running-config router bgp 5511 neighbor-group %s' % (interface_data['bgp'].get('use_neighbor-group',str())) if interface_data['bgp'].get('use_neighbor-group') else str(),
-                            'show running-config router bgp 5511 neighbor-group %s address-family ipv4 unicast' % (interface_data['bgp'].get('use_neighbor-group',str())) if interface_data['bgp'].get('use_neighbor-group') else str(),
-                            'show running-config router bgp 5511 neighbor-group %s address-family ipv4 multicast' % (interface_data['bgp'].get('use_neighbor-group',str())) if interface_data['bgp'].get('use_neighbor-group') else str(),
-                            'show running-config router bgp 5511 neighbor-group %s' % (interface_data['bgp'].get('use_neighbor-group_ipv6',str())) if interface_data['bgp'].get('use_neighbor-group_ipv6') else str(),
-                            'show running-config router bgp 5511 neighbor-group %s address-family ipv6 unicast' % (interface_data['bgp'].get('use_neighbor-group_ipv6',str())) if interface_data['bgp'].get('use_neighbor-group_ipv6') else str(),
-                            'show running-config router bgp 5511 neighbor-group %s address-family ipv6 multicast' % (interface_data['bgp'].get('use_neighbor-group_ipv6',str())) if interface_data['bgp'].get('use_neighbor-group_ipv6') else str(),
+                            'show running-config router bgp 5511 neighbor-group %s' % (interface_data['bgp'].get('IPV4 use_neighbor-group',str())) if interface_data['bgp'].get('IPV4 use_neighbor-group') else str(),
+                            'show running-config router bgp 5511 neighbor-group %s address-family ipv4 unicast' % (interface_data['bgp'].get('IPV4 use_neighbor-group',str())) if interface_data['bgp'].get('IPV4 use_neighbor-group') else str(),
+                            'show running-config router bgp 5511 neighbor-group %s address-family ipv4 multicast' % (interface_data['bgp'].get('IPV4 use_neighbor-group',str())) if interface_data['bgp'].get('IPV4 use_neighbor-group') else str(),
+                            'show running-config router bgp 5511 neighbor-group %s' % (interface_data['bgp'].get('IPV6 use neighbor-group',str())) if interface_data['bgp'].get('IPV6 use neighbor-group') else str(),
+                            'show running-config router bgp 5511 neighbor-group %s address-family ipv6 unicast' % (interface_data['bgp'].get('IPV6 use neighbor-group',str())) if interface_data['bgp'].get('IPV6 use neighbor-group') else str(),
+                            'show running-config router bgp 5511 neighbor-group %s address-family ipv6 multicast' % (interface_data['bgp'].get('IPV6 use neighbor-group',str())) if interface_data['bgp'].get('IPV6 use neighbor-group') else str(),
                          ],
 
                         'juniper': [
@@ -4484,75 +4484,75 @@ authentication {
                         printall = printall)
 
                     if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
-                        if interface_data['bgp'].get('use_neighbor-group'):
-                            interface_data['bgp']['address-family_ipv4'] = []
+                        if interface_data['bgp'].get('IPV4 use_neighbor-group'):
+                            interface_data['bgp']['IPV4 address-family'] = []
                             try:
                                 if 'address-family ipv4 unicast' in collect3_if_config_rcmd_outputs[0]:
-                                    interface_data['bgp']['address-family_ipv4'].append('unicast')
+                                    interface_data['bgp']['IPV4 address-family'].append('unicast')
                             except: pass
 
                             try:
                                 if 'address-family ipv4 multicast' in collect3_if_config_rcmd_outputs[0]:
-                                    interface_data['bgp']['address-family_ipv4'].append('multicast')
+                                    interface_data['bgp']['IPV4 address-family'].append('multicast')
                             except: pass
 
-                            try: interface_data['bgp']['ipv4_remote-as'] = collect3_if_config_rcmd_outputs[0].split('remote-as ')[1].splitlines()[0].strip()
-                            except: interface_data['bgp']['ipv4_remote-as'] = str()
+                            try: interface_data['bgp']['IPV4 remote-as'] = collect3_if_config_rcmd_outputs[0].split('remote-as ')[1].splitlines()[0].strip()
+                            except: interface_data['bgp']['IPV4 remote-as'] = str()
 
-                            if 'unicast' in interface_data['bgp'].get('address-family_ipv4',str()):
-                                try: interface_data['bgp']['ipv4_unicast_route-policy_in'] = collect3_if_config_rcmd_outputs[1].split('address-family ipv4 unicast')[1].split('route-policy ')[1].splitlines()[0].split()[0].strip()
-                                except: interface_data['bgp']['ipv4_unicast_route-policy_in'] = str()
+                            if 'unicast' in interface_data['bgp'].get('IPV4 address-family',str()):
+                                try: interface_data['bgp']['IPV4 unicast route-policy in'] = collect3_if_config_rcmd_outputs[1].split('address-family ipv4 unicast')[1].split('route-policy ')[1].splitlines()[0].split()[0].strip()
+                                except: interface_data['bgp']['IPV4 unicast route-policy in'] = str()
 
-                                try: interface_data['bgp']['ipv4_unicast_maximum-prefix'] = collect3_if_config_rcmd_outputs[1].split('address-family ipv4 unicast')[1].split('maximum-prefix ')[1].splitlines()[0].split()[0].strip()
-                                except: interface_data['bgp']['ipv4_unicast_maximum-prefix'] = str()
+                                try: interface_data['bgp']['IPV4 unicast maximum-prefix'] = collect3_if_config_rcmd_outputs[1].split('address-family ipv4 unicast')[1].split('maximum-prefix ')[1].splitlines()[0].split()[0].strip()
+                                except: interface_data['bgp']['IPV4 unicast maximum-prefix'] = str()
 
-                                try: interface_data['bgp']['ipv4_unicast_route-policy_out'] = collect3_if_config_rcmd_outputs[1].split('address-family ipv4 unicast')[1].split('route-policy ')[2].splitlines()[0].split()[0].strip()
-                                except: interface_data['bgp']['ipv4_unicast_route-policy_out'] = str()
+                                try: interface_data['bgp']['IPV4 unicast route-policy out'] = collect3_if_config_rcmd_outputs[1].split('address-family ipv4 unicast')[1].split('route-policy ')[2].splitlines()[0].split()[0].strip()
+                                except: interface_data['bgp']['IPV4 unicast route-policy out'] = str()
 
-                            if 'multicast' in interface_data['bgp'].get('address-family_ipv4',str()):
-                                try: interface_data['bgp']['ipv4_multicast_route-policy_in'] = collect3_if_config_rcmd_outputs[2].split('address-family ipv4 multicast')[1].split('route-policy ')[1].splitlines()[0].split()[0].strip()
+                            if 'multicast' in interface_data['bgp'].get('IPV4 address-family',str()):
+                                try: interface_data['bgp']['IPV4 multicast route-policy in'] = collect3_if_config_rcmd_outputs[2].split('address-family ipv4 multicast')[1].split('route-policy ')[1].splitlines()[0].split()[0].strip()
                                 except: pass
 
-                                try: interface_data['bgp']['ipv4_multicast_maximum-prefix'] = collect3_if_config_rcmd_outputs[2].split('address-family ipv4 multicast')[1].split('maximum-prefix ')[1].splitlines()[0].split()[0].strip()
+                                try: interface_data['bgp']['IPV4 multicast maximum-prefix'] = collect3_if_config_rcmd_outputs[2].split('address-family ipv4 multicast')[1].split('maximum-prefix ')[1].splitlines()[0].split()[0].strip()
                                 except: pass
 
-                                try: interface_data['bgp']['ipv4_multicast_route-policy_out'] = collect3_if_config_rcmd_outputs[2].split('address-family ipv4 multicast')[1].split('route-policy ')[2].splitlines()[0].split()[0].strip()
+                                try: interface_data['bgp']['IPV4 multicast route-policy out'] = collect3_if_config_rcmd_outputs[2].split('address-family ipv4 multicast')[1].split('route-policy ')[2].splitlines()[0].split()[0].strip()
                                 except: pass
 
-                        if USE_IPV6 and interface_data['bgp'].get('use_neighbor-group_ipv6'):
+                        if USE_IPV6 and interface_data['bgp'].get('IPV6 use neighbor-group'):
                             interface_warning_data['bgp'] = collections.OrderedDict()
-                            interface_warning_data['bgp']['address-family_ipv6'] = []
+                            interface_warning_data['bgp']['IPV6 address-family'] = []
                             try:
                                 if 'address-family ipv6 unicast' in collect3_if_config_rcmd_outputs[3]:
-                                    interface_warning_data['bgp']['address-family_ipv6'].append('unicast')
+                                    interface_warning_data['bgp']['IPV6 address-family'].append('unicast')
                             except: pass
 
                             try:
                                 if 'address-family ipv6 multicast' in collect3_if_config_rcmd_outputs[3]:
-                                    interface_warning_data['bgp']['address-family_ipv6'].append('multicast')
+                                    interface_warning_data['bgp']['IPV6 address-family'].append('multicast')
                             except: pass
 
-                            try: interface_data['bgp']['ipv6_remote-as'] = collect3_if_config_rcmd_outputs[3].split('remote-as ')[1].splitlines()[0].strip()
-                            except: interface_data['bgp']['ipv6_remote-as'] = str()
+                            try: interface_data['bgp']['IPV6 remote-as'] = collect3_if_config_rcmd_outputs[3].split('remote-as ')[1].splitlines()[0].strip()
+                            except: interface_data['bgp']['IPV6 remote-as'] = str()
 
-                            if 'unicast' in interface_warning_data['bgp'].get('address-family_ipv6',str()):
-                                try: interface_data['bgp']['ipv6_unicast_route-policy_in'] = collect3_if_config_rcmd_outputs[4].split('address-family ipv6 unicast')[1].split('route-policy ')[1].splitlines()[0].split()[0].strip()
+                            if 'unicast' in interface_warning_data['bgp'].get('IPV6 address-family',str()):
+                                try: interface_data['bgp']['IPV6 unicast route-policy in'] = collect3_if_config_rcmd_outputs[4].split('address-family ipv6 unicast')[1].split('route-policy ')[1].splitlines()[0].split()[0].strip()
                                 except: pass
 
-                                try: interface_data['bgp']['ipv6_unicast_maximum-prefix'] = collect3_if_config_rcmd_outputs[4].split('address-family ipv6 unicast')[1].split('maximum-prefix ')[1].splitlines()[0].split()[0].strip()
+                                try: interface_data['bgp']['IPV6 unicast maximum-prefix'] = collect3_if_config_rcmd_outputs[4].split('address-family ipv6 unicast')[1].split('maximum-prefix ')[1].splitlines()[0].split()[0].strip()
                                 except: pass
 
-                                try: interface_data['bgp']['ipv6_unicast_route-policy_out'] = collect3_if_config_rcmd_outputs[4].split('address-family ipv6 unicast')[1].split('route-policy ')[2].splitlines()[0].split()[0].strip()
+                                try: interface_data['bgp']['IPV6 unicast route-policy out'] = collect3_if_config_rcmd_outputs[4].split('address-family ipv6 unicast')[1].split('route-policy ')[2].splitlines()[0].split()[0].strip()
                                 except: pass
 
-                            if 'multicast' in interface_warning_data['bgp'].get('address-family_ipv6',str()):
-                                try: interface_data['bgp']['ipv6_multicast_route-policy_in'] = collect3_if_config_rcmd_outputs[5].split('address-family ipv6 multicast')[1].split('route-policy ')[1].splitlines()[0].split()[0].strip()
+                            if 'multicast' in interface_warning_data['bgp'].get('IPV6 address-family',str()):
+                                try: interface_data['bgp']['IPV6 multicast route-policy in'] = collect3_if_config_rcmd_outputs[5].split('address-family ipv6 multicast')[1].split('route-policy ')[1].splitlines()[0].split()[0].strip()
                                 except: pass
 
-                                try: interface_data['bgp']['ipv6_multicast_maximum-prefix'] = collect3_if_config_rcmd_outputs[5].split('address-family ipv6 multicast')[1].split('maximum-prefix ')[1].splitlines()[0].split()[0].strip()
+                                try: interface_data['bgp']['IPV6 multicast maximum-prefix'] = collect3_if_config_rcmd_outputs[5].split('address-family ipv6 multicast')[1].split('maximum-prefix ')[1].splitlines()[0].split()[0].strip()
                                 except: pass
 
-                                try: interface_data['bgp']['ipv6_multicast_route-policy_out'] = collect3_if_config_rcmd_outputs[5].split('address-family ipv6 multicast')[1].split('route-policy ')[2].splitlines()[0].split()[0].strip()
+                                try: interface_data['bgp']['IPV6 multicast route-policy out'] = collect3_if_config_rcmd_outputs[5].split('address-family ipv6 multicast')[1].split('route-policy ')[2].splitlines()[0].split()[0].strip()
                                 except: pass
 
                     elif RCMD.router_type == 'juniper':
@@ -4647,28 +4647,28 @@ authentication {
                     collect4_if_data_rcmds = {
                         'cisco_ios':[
                             'show running-config route-policy DENY-ALL',
-                            'show running-config route-policy %s' % (interface_data['bgp'].get('ipv4_unicast_route-policy_in',str())) if interface_data['bgp'].get('ipv4_unicast_route-policy_in') else str(),
-                            'show running-config route-policy %s' % (interface_data['bgp'].get('ipv4_unicast_route-policy_out',str())) if interface_data['bgp'].get('ipv4_unicast_route-policy_out') else str(),
-                            'show running-config route-policy %s' % (interface_data['bgp'].get('ipv4_multicast_route-policy_in',str())) if interface_data['bgp'].get('ipv4_multicast_route-policy_in') else str(),
-                            'show running-config route-policy %s' % (interface_data['bgp'].get('ipv4_multicast_route-policy_out',str())) if interface_data['bgp'].get('ipv4_multicast_route-policy_out') else str(),
+                            'show running-config route-policy %s' % (interface_data['bgp'].get('IPV4 unicast route-policy in',str())) if interface_data['bgp'].get('IPV4 unicast route-policy in') else str(),
+                            'show running-config route-policy %s' % (interface_data['bgp'].get('IPV4 unicast route-policy out',str())) if interface_data['bgp'].get('IPV4 unicast route-policy out') else str(),
+                            'show running-config route-policy %s' % (interface_data['bgp'].get('IPV4 multicast route-policy in',str())) if interface_data['bgp'].get('IPV4 multicast route-policy in') else str(),
+                            'show running-config route-policy %s' % (interface_data['bgp'].get('IPV4 multicast route-policy out',str())) if interface_data['bgp'].get('IPV4 multicast route-policy out') else str(),
 
-                            'show running-config route-policy %s' % (interface_data['bgp'].get('ipv6_unicast_route-policy_in',str())) if interface_data['bgp'].get('ipv6_unicast_route-policy_in') else str(),
-                            'show running-config route-policy %s' % (interface_data['bgp'].get('ipv6_unicast_route-policy_out',str())) if interface_data['bgp'].get('ipv6_unicast_route-policy_out') else str(),
-                            'show running-config route-policy %s' % (interface_data['bgp'].get('ipv6_multicast_route-policy_in',str())) if interface_data['bgp'].get('ipv6_multicast_route-policy_in') else str(),
-                            'show running-config route-policy %s' % (interface_data['bgp'].get('ipv6_multicast_route-policy_out',str())) if interface_data['bgp'].get('ipv6_multicast_route-policy_out') else str(),
+                            'show running-config route-policy %s' % (interface_data['bgp'].get('IPV6 unicast route-policy in',str())) if interface_data['bgp'].get('IPV6 unicast route-policy in') else str(),
+                            'show running-config route-policy %s' % (interface_data['bgp'].get('IPV6 unicast route-policy out',str())) if interface_data['bgp'].get('IPV6 unicast route-policy out') else str(),
+                            'show running-config route-policy %s' % (interface_data['bgp'].get('IPV6 multicast route-policy in',str())) if interface_data['bgp'].get('IPV6 multicast route-policy in') else str(),
+                            'show running-config route-policy %s' % (interface_data['bgp'].get('IPV6 multicast route-policy out',str())) if interface_data['bgp'].get('IPV6 multicast route-policy out') else str(),
                          ],
 
                         'cisco_xr':[
                             'show running-config route-policy DENY-ALL',
-                            'show running-config route-policy %s' % (interface_data['bgp'].get('ipv4_unicast_route-policy_in',str())) if interface_data['bgp'].get('ipv4_unicast_route-policy_in') else str(),
-                            'show running-config route-policy %s' % (interface_data['bgp'].get('ipv4_unicast_route-policy_out',str())) if interface_data['bgp'].get('ipv4_unicast_route-policy_out') else str(),
-                            'show running-config route-policy %s' % (interface_data['bgp'].get('ipv4_multicast_route-policy_in',str())) if interface_data['bgp'].get('ipv4_multicast_route-policy_in') else str(),
-                            'show running-config route-policy %s' % (interface_data['bgp'].get('ipv4_multicast_route-policy_out',str())) if interface_data['bgp'].get('ipv4_multicast_route-policy_out') else str(),
+                            'show running-config route-policy %s' % (interface_data['bgp'].get('IPV4 unicast route-policy in',str())) if interface_data['bgp'].get('IPV4 unicast route-policy in') else str(),
+                            'show running-config route-policy %s' % (interface_data['bgp'].get('IPV4 unicast route-policy out',str())) if interface_data['bgp'].get('IPV4 unicast route-policy out') else str(),
+                            'show running-config route-policy %s' % (interface_data['bgp'].get('IPV4 multicast route-policy in',str())) if interface_data['bgp'].get('IPV4 multicast route-policy in') else str(),
+                            'show running-config route-policy %s' % (interface_data['bgp'].get('IPV4 multicast route-policy out',str())) if interface_data['bgp'].get('IPV4 multicast route-policy out') else str(),
 
-                            'show running-config route-policy %s' % (interface_data['bgp'].get('ipv6_unicast_route-policy_in',str())) if interface_data['bgp'].get('ipv6_unicast_route-policy_in') else str(),
-                            'show running-config route-policy %s' % (interface_data['bgp'].get('ipv6_unicast_route-policy_out',str())) if interface_data['bgp'].get('ipv6_unicast_route-policy_out') else str(),
-                            'show running-config route-policy %s' % (interface_data['bgp'].get('ipv6_multicast_route-policy_in',str())) if interface_data['bgp'].get('ipv6_multicast_route-policy_in') else str(),
-                            'show running-config route-policy %s' % (interface_data['bgp'].get('ipv6_multicast_route-policy_out',str())) if interface_data['bgp'].get('ipv6_multicast_route-policy_out') else str(),                         ],
+                            'show running-config route-policy %s' % (interface_data['bgp'].get('IPV6 unicast route-policy in',str())) if interface_data['bgp'].get('IPV6 unicast route-policy in') else str(),
+                            'show running-config route-policy %s' % (interface_data['bgp'].get('IPV6 unicast route-policy out',str())) if interface_data['bgp'].get('IPV6 unicast route-policy out') else str(),
+                            'show running-config route-policy %s' % (interface_data['bgp'].get('IPV6 multicast route-policy in',str())) if interface_data['bgp'].get('IPV6 multicast route-policy in') else str(),
+                            'show running-config route-policy %s' % (interface_data['bgp'].get('IPV6 multicast route-policy out',str())) if interface_data['bgp'].get('IPV6 multicast route-policy out') else str(),                         ],
 
                         'juniper': [
                             'show configuration policy-options policy-statement DENY-ALL',
@@ -4754,23 +4754,26 @@ authentication {
                         printall = printall)
 
                     if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
-                        try: interface_data['bgp']['BGP state'] = collect5_if_config_rcmd_outputs[0].split('BGP state =')[1].split()[0].replace(',','')
-                        except: interface_data['bgp']['BGP state'] = str()
+                        try: interface_data['bgp']['IPV4 BGP state'] = collect5_if_config_rcmd_outputs[0].split('BGP state =')[1].split()[0].replace(',','')
+                        except: interface_data['bgp']['IPV4 BGP state'] = str()
 
-                        try: interface_data['bgp']['Policy for incoming advertisements'] = collect5_if_config_rcmd_outputs[0].split('Policy for incoming advertisements is ')[1].split()[0]
-                        except: interface_data['bgp']['Policy for incoming advertisements'] = str()
+                        try: interface_data['bgp']['IPV4 Policy for incoming advertisements'] = collect5_if_config_rcmd_outputs[0].split('Policy for incoming advertisements is ')[1].split()[0]
+                        except: interface_data['bgp']['IPV4 Policy for incoming advertisements'] = str()
 
-                        try: interface_data['bgp']['Policy for outgoing advertisements'] = collect5_if_config_rcmd_outputs[0].split('Policy for outgoing advertisements is ')[1].split()[0]
-                        except: interface_data['bgp']['Policy for outgoing advertisements'] = str()
+                        try: interface_data['bgp']['IPV4 Policy for outgoing advertisements'] = collect5_if_config_rcmd_outputs[0].split('Policy for outgoing advertisements is ')[1].split()[0]
+                        except: interface_data['bgp']['IPV4 Policy for outgoing advertisements'] = str()
 
-                        try: interface_data['bgp']['accepted prefixes'] = collect5_if_config_rcmd_outputs[0].split('accepted prefixes,')[0].splitlines()[-1].split()[0]
-                        except: interface_data['bgp']['accepted prefixes'] = str()
+                        try: interface_data['bgp']['IPV4 accepted prefixes'] = collect5_if_config_rcmd_outputs[0].split('accepted prefixes,')[0].splitlines()[-1].split()[0]
+                        except: interface_data['bgp']['IPV4 accepted prefixes'] = str()
 
-                        try: interface_data['bgp']['bestpaths'] = collect5_if_config_rcmd_outputs[0].split('are bestpaths')[0].splitlines()[-1].split()[-1]
-                        except: interface_data['bgp']['bestpaths'] = str()
+                        try: interface_data['bgp']['IPV4 accepted/max prefixes percent'] = 100 * (float(interface_data['bgp']['IPV4 accepted prefixes']) / float(interface_data['bgp']['IPV4 unicast maximum-prefix']))
+                        except: pass
 
-                        try: interface_data['bgp']['No of prefixes Advertised'] = collect5_if_config_rcmd_outputs[1].split('No of prefixes Advertised:')[1].split()[0]
-                        except: interface_data['bgp']['No of prefixes Advertised'] = str()
+                        try: interface_data['bgp']['IPV4 bestpaths'] = collect5_if_config_rcmd_outputs[0].split('are bestpaths')[0].splitlines()[-1].split()[-1]
+                        except: interface_data['bgp']['IPV4 bestpaths'] = str()
+
+                        try: interface_data['bgp']['IPV4 No of prefixes Advertised'] = collect5_if_config_rcmd_outputs[1].split('No of prefixes Advertised:')[1].split()[0]
+                        except: interface_data['bgp']['IPV4 No of prefixes Advertised'] = str()
 
                     elif RCMD.router_type == 'juniper':
                         try: interface_data['bgp']['IPV4 bgp group Name'] = collect5_if_config_rcmd_outputs[0].split('Name: ')[1].split()[0]
@@ -4809,6 +4812,9 @@ authentication {
 
                         try: interface_data['bgp']['IPV4 Advertised total routes'] = collect5_if_config_rcmd_outputs[1].split('Advertised total routes: ')[1].split()[0].replace(',','')
                         except: interface_data['bgp']['IPV4 Advertised total routes'] = str()
+
+                        #try: interface_data['bgp']['IPV4 Advertised/Received total routes percent'] = 100 * float(interface_data['bgp']['IPV4 Advertised total routes']) / float(interface_data['bgp']['IPV4 Received total routes'])
+                        #except: pass
 
                         try: interface_data['bgp']['IPV4 Authentication type configured'] = collect5_if_config_rcmd_outputs[1].split('Authentication type configured: ')[1].split()[0].replace(',','')
                         except: interface_data['bgp']['IPV4 Authentication type configured'] = str()
@@ -5414,7 +5420,7 @@ authentication {
                     ### def CUST - CHECKS #####################################
                     if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
 
-                        check_interface_data_content("['bgp']['address-family_ipv4']", what_yes_in = 'unicast')
+                        check_interface_data_content("['bgp']['IPV4 address-family']", what_yes_in = 'unicast')
 
                         check_interface_data_content("['interface_data']['ipv4_addr_rem_from_ASN']", what_yes_in = interface_data['interface_data'].get('ipv4_addr_rem'))
 
@@ -5422,20 +5428,23 @@ authentication {
                             check_interface_data_content("['interface_data']['ipv6_addr_rem_from_ASN']", what_yes_in = interface_warning_data.get('ipv6_addr_rem'), warning = True)
 
                         if precheck_mode:
-                            check_interface_data_content("['bgp']['ipv4_unicast_route-policy_in']", exact_value_yes = 'DENY-ALL')
-                            check_interface_data_content("['bgp']['ipv4_unicast_route-policy_out']", exact_value_yes = 'DENY-ALL')
+                            check_interface_data_content("['bgp']['IPV4 unicast route-policy in']", exact_value_yes = 'DENY-ALL')
+                            check_interface_data_content("['bgp']['IPV4 unicast route-policy out']", exact_value_yes = 'DENY-ALL')
 
-                            check_interface_data_content("['bgp']['accepted prefixes']", exact_value_yes = '0')
-                            check_interface_data_content("['bgp']['bestpaths']", exact_value_yes = '0')
-                            check_interface_data_content("['bgp']['No of prefixes Advertised']", exact_value_yes = '0')
+                            check_interface_data_content("['bgp']['IPV4 accepted prefixes']", exact_value_yes = '0')
+                            check_interface_data_content("['bgp']['IPV4 bestpaths']", exact_value_yes = '0')
+                            check_interface_data_content("['bgp']['IPV4 No of prefixes Advertised']", exact_value_yes = '0')
 
                         else:
-                            check_interface_data_content("['bgp']['ipv4_unicast_route-policy_in']", what_not_in = 'DENY-ALL')
-                            check_interface_data_content("['bgp']['ipv4_unicast_route-policy_out']", what_not_in = 'DENY-ALL')
+                            check_interface_data_content("['bgp']['IPV4 unicast route-policy in']", what_not_in = 'DENY-ALL')
+                            check_interface_data_content("['bgp']['IPV4 unicast route-policy out']", what_not_in = 'DENY-ALL')
 
-                            check_interface_data_content("['bgp']['accepted prefixes']", higher_than = 0)
-                            check_interface_data_content("['bgp']['bestpaths']", higher_than = 0)
-                            check_interface_data_content("['bgp']['No of prefixes Advertised']", higher_than = 0)
+                            check_interface_data_content("['bgp']['IPV4 accepted prefixes']", higher_than = 0)
+                            check_interface_data_content("['bgp']['IPV4 bestpaths']", higher_than = 0)
+                            check_interface_data_content("['bgp']['IPV4 No of prefixes Advertised']", higher_than = 0)
+
+                            check_interface_data_content("['bgp']['IPV4 accepted/max prefixes percent']", lower_than = 90)
+
 
 
                     elif RCMD.router_type == 'juniper':
