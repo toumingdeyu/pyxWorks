@@ -4803,6 +4803,10 @@ authentication {
                         try: interface_data['bgp']['IPV4 Received prefixes'] = collect5_if_config_rcmd_outputs[0].split('Name: %s ' % (interface_data['bgp']['IPV4 neighbor-group']))[1].split('Received prefixes: ')[1].split()[0]
                         except: pass
 
+
+                        try: interface_data['bgp']['IPV4 Received/maximum prefixes percent'] = 100 * (float(interface_data['bgp']['IPV4 Received prefixes']) / float(interface_data['bgp']['IPV4 unicast prefix-limit maximum']))
+                        except: pass
+
                         try: interface_data['bgp']['IPV4 Accepted prefixes'] = collect5_if_config_rcmd_outputs[0].split('Name: %s ' % (interface_data['bgp']['IPV4 neighbor-group']))[1].split('Accepted prefixes: ')[1].split()[0]
                         except: pass
 
@@ -5539,6 +5543,8 @@ authentication {
                             if USE_IPV6:
                                 check_interface_data_content("['bgp']['IPV6 unicast_route-policy_in']", what_not_in = 'DENY-ALL')
                                 check_interface_data_content("['bgp']['IPV6 unicast_route-policy_out']", what_not_in = 'DENY-ALL')
+
+                        check_interface_data_content("['bgp']['IPV4 Received/maximum prefixes percent']", lower_than = 90)
 
 
                     elif RCMD.router_type == 'huawei':
