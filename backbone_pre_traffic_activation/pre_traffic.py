@@ -2758,7 +2758,8 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
         try:    interface_data['interface_data']['ASN'] = err_check_after_pings_outputs[0].split('Description:')[1].splitlines()[0].split(' ASN')[1].split()[0].strip()
         except: pass
 
-    interface_data['interface_data']['bundle_members'] = []
+    if not after_ping:
+        interface_data['interface_data']['bundle_members'] = []
 
     if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
         if not after_ping:
@@ -3006,6 +3007,40 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
     ### IF NOT BUNDLE DELETE DATA RECORD ######################################
     if len(interface_data['interface_data'].get('bundle_members',[])) == 0:
         del interface_data['interface_data']['bundle_members']
+
+    if not after_ping and len(interface_data['interface_data'].get('bundle_members',[])) > 0:
+        lag_data_rcmds = {
+            'cisco_ios':[],
+
+            'cisco_xr':[],
+
+            'juniper': [],
+
+            'huawei': []
+        }
+
+        for lag_member in interface_data['interface_data'].get('bundle_members',[]):
+            lag_data_rcmds['cisco_ios'].append('show bundle %s' % (str(undotted_interface_id)))
+            lag_data_rcmds['cisco_ios'].append('show run interface  %s' % (str(lag_member)))
+            lag_data_rcmds['cisco_ios'].append('show interface %s' % (str(lag_member)))
+            lag_data_rcmds['cisco_xr'].append('show bundle %s' % (str(undotted_interface_id)))
+            lag_data_rcmds['cisco_xr'].append('show run interface %s' % (str(lag_member)))
+            lag_data_rcmds['cisco_xr'].append('show interface %s' % (str(lag_member)))
+            lag_data_rcmds['juniper'].append('show configuration interfaces %s' % (str(lag_member)))
+            lag_data_rcmds['juniper'].append('show interface %s' % (str(lag_member)))
+            lag_data_rcmds['huawei'].append('display current-configuration interface %s' % (str(lag_member)))
+            lag_data_rcmds['huawei'].append('display interface %s' % (str(lag_member)))
+
+        lag_data_outputs = RCMD.run_commands( \
+            lag_data_rcmds, \
+            autoconfirm_mode = True, \
+            printall = CGI_CLI.printall)
+
+
+
+
+
+
 
 
 ###############################################################################
