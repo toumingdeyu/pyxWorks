@@ -3038,7 +3038,54 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
 
             interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))] = collections.OrderedDict()
 
-            if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr': pass
+            if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
+                try:    interface_data['interface_data']['LAG_interfaces']['Local links active'] = copy.deepcopy(lag_data_outputs[0].split('Local links <active/standby/configured>:')[1].split()[0].split('/')[0])
+                except: pass
+
+                try:    interface_data['interface_data']['LAG_interfaces']['Local links standby'] = copy.deepcopy(lag_data_outputs[0].split('Local links <active/standby/configured>:')[1].split()[0].split('/')[1])
+                except: pass
+
+                try:    interface_data['interface_data']['LAG_interfaces']['Local links configured'] = copy.deepcopy(lag_data_outputs[0].split('Local links <active/standby/configured>:')[1].split()[0].split('/')[2])
+                except: pass
+
+                try:    interface_data['interface_data']['LAG_interfaces']['Local bandwidth effective kbps'] = copy.deepcopy(lag_data_outputs[0].split('Local bandwidth <effective/available>:')[1].split()[0])
+                except: pass
+
+                try:    interface_data['interface_data']['LAG_interfaces']['Local bandwidth available kbps'] = copy.deepcopy(lag_data_outputs[0].split('Local bandwidth <effective/available>:')[1].split()[1].replace('(','').replace(')',''))
+                except: pass
+
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['State'] = copy.deepcopy(lag_data_outputs[0].split('%s' % (str(lag_member)))[1].splitlines()[0].split()[1])
+                except: pass
+
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['B/W kbps'] = copy.deepcopy(lag_data_outputs[0].split('%s' % (str(lag_member)))[1].splitlines()[0].split()[4])
+                except: pass
+
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['bundle id'] = copy.deepcopy(lag_data_outputs[1].split('bundle id')[1].splitlines()[0].strip())
+                except: pass
+
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['line protocol is'] = copy.deepcopy(lag_data_outputs[2].split('line protocol is')[1].split()[1])
+                except: pass
+
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['Internet address is'] = copy.deepcopy(lag_data_outputs[2].split('Internet address is')[1].split()[1])
+                except: pass
+
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['MTU'] = copy.deepcopy(lag_data_outputs[2].split('MTU ')[1].split()[1])
+                except: pass
+
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['BW Kbit'] = copy.deepcopy(lag_data_outputs[2].split(', BW ')[1].split()[1])
+                except: pass
+
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['Last link flapped'] = copy.deepcopy(lag_data_outputs[2].split('Last link flapped ')[1].split()[1])
+                except: pass
+
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['Last link flapped'] = copy.deepcopy(lag_data_outputs[2].split('Last link flapped ')[1].split()[1])
+                except: pass
+
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['input errors'] = copy.deepcopy(lag_data_outputs[2].split('input errors,')[0].split()[-1])
+                except: pass
+
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['CRC'] = copy.deepcopy(lag_data_outputs[2].split('CRC,')[0].split()[-1])
+                except: pass
 
             elif RCMD.router_type == 'juniper': pass
 
