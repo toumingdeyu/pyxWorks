@@ -3026,7 +3026,7 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
             lag_data_rcmds['cisco_xr'].append('show bundle %s' % (str(undotted_interface_id)))
             lag_data_rcmds['cisco_xr'].append('show run interface %s' % (str(lag_member)))
             lag_data_rcmds['cisco_xr'].append('show interface %s' % (str(lag_member)))
-            lag_data_rcmds['juniper'].append('show configuration interfaces %s' % (str(lag_member)))
+            lag_data_rcmds['juniper'].append('show configuration interfaces %s | display set' % (str(lag_member)))
             lag_data_rcmds['juniper'].append('show interface %s' % (str(lag_member)))
             lag_data_rcmds['huawei'].append('display current-configuration interface %s' % (str(lag_member)))
             lag_data_rcmds['huawei'].append('display interface %s' % (str(lag_member)))
@@ -3087,7 +3087,54 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
                 try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['CRC'] = copy.deepcopy(lag_data_outputs[2].split('CRC,')[0].split()[-1])
                 except: pass
 
-            elif RCMD.router_type == 'juniper': pass
+            elif RCMD.router_type == 'juniper':
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['gigether-options 802.3ad'] = copy.deepcopy(lag_data_outputs[0].split('gigether-options 802.3ad')[1].split()[0])
+                except: pass
+
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['Enabled'] = True if 'Enabled,' in lag_data_outputs[1] else str()
+                except: pass
+
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['Physical link is'] = copy.deepcopy(lag_data_outputs[1].split('Physical link is')[1].split()[0])
+                except: pass
+
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['MTU'] = copy.deepcopy(lag_data_outputs[1].split('MTU: ')[1].split()[0].replace(',',''))
+                except: pass
+
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['Last flapped'] = copy.deepcopy(lag_data_outputs[1].split('Last flapped   :')[1].splitlines()[0].strip())
+                except: pass
+
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['Statistics last cleared'] = copy.deepcopy(lag_data_outputs[1].split('Statistics last cleared:')[1].split()[0])
+                except: pass
+
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['Errors'] = copy.deepcopy(lag_data_outputs[1].split('Errors: ')[1].split()[0].replace(',',''))
+                except: pass
+
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['Drops'] = copy.deepcopy(lag_data_outputs[1].split('Drops: ')[1].split()[0].replace(',',''))
+                except: pass
+
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['Framing errors'] = copy.deepcopy(lag_data_outputs[1].split('Framing errors: ')[1].split()[0].replace(',',''))
+                except: pass
+
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['Runts'] = copy.deepcopy(lag_data_outputs[1].split('Runts: ')[1].split()[0].replace(',',''))
+                except: pass
+
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['Policed discards'] = copy.deepcopy(lag_data_outputs[1].split('Policed discards: ')[1].split()[0].replace(',',''))
+                except: pass
+
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['L3 incompletes'] = copy.deepcopy(lag_data_outputs[1].split('L3 incompletes: ')[1].split()[0].replace(',',''))
+                except: pass
+
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['L2 channel errors'] = copy.deepcopy(lag_data_outputs[1].split('L2 channel errors: ')[1].split()[0].replace(',',''))
+                except: pass
+
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['L2 mismatch timeouts'] = copy.deepcopy(lag_data_outputs[1].split('L2 mismatch timeouts: ')[1].split()[0].replace(',',''))
+                except: pass
+
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['FIFO errors'] = copy.deepcopy(lag_data_outputs[1].split('FIFO errors: ')[1].split()[0].replace(',',''))
+                except: pass
+
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['Resource errors'] = copy.deepcopy(lag_data_outputs[1].split('Resource errors: ')[1].split()[0].replace(',',''))
+                except: pass
 
             elif RCMD.router_type == 'huawei':
                 try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['eth-trunk'] = copy.deepcopy(lag_data_outputs[0].split('eth-trunk')[1].split()[0])
