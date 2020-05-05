@@ -3006,7 +3006,9 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
             except: pass
     ### IF NOT BUNDLE DELETE DATA RECORD ######################################
     if len(interface_data['interface_data'].get('bundle_members',[])) == 0:
-        del interface_data['interface_data']['bundle_members']
+        try:
+            del interface_data['interface_data']['bundle_members']
+        except: pass    
 
     if not after_ping and len(interface_data['interface_data'].get('bundle_members',[])) > 0:
 
