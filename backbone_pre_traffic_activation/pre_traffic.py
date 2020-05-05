@@ -2758,6 +2758,8 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
         try:    interface_data['interface_data']['ASN'] = err_check_after_pings_outputs[0].split('Description:')[1].splitlines()[0].split(' ASN')[1].split()[0].strip()
         except: pass
 
+    interface_data['interface_data']['bundle_members'] = []
+
     if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
         if not after_ping:
             try:    interface_data['interface_data']['bundle_members_nr'] = int(err_check_after_pings_outputs[0].split('No. of members in this bundle:')[1].splitlines()[0].strip())
@@ -2767,6 +2769,8 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
             for number in range(interface_data['interface_data'].get('bundle_members_nr',0)):
                 try:    interface_line = err_check_after_pings_outputs[0].split('No. of members in this bundle:')[1].splitlines()[number + 1].strip()
                 except: interface_line = str()
+                if interface_line:
+                    interface_data['interface_data']['bundle_members'].append(copy.deepcopy(interface_line.split()[0]))
                 if 'Active' in interface_line: pass
                 else: inactive_bundle_members += interface_line.split()[0] + ' '
             if inactive_bundle_members:
@@ -2799,6 +2803,8 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
             for number in range(interface_data['interface_data'].get('bundle_members_nr',0)):
                 try:    interface_line = err_check_after_pings_outputs[0].split('Interfaces:')[1].strip().splitlines()[number].strip()
                 except: interface_line = str()
+                if interface_line:
+                    interface_data['interface_data']['bundle_members'].append(copy.deepcopy(interface_line.split()[0]))
                 if 'Up' in interface_line: pass
                 else: inactive_bundle_members += interface_line.split()[0] + ' '
             if inactive_bundle_members:
@@ -2925,6 +2931,8 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
             for line in interface_lines:
                 if '-----' in line: break
                 bundle_members_nr += 1
+                if interface_line:
+                    interface_data['interface_data']['bundle_members'].append(copy.deepcopy(interface_line.split()[0]))
                 if 'UP' in interface_line: pass
                 else: inactive_bundle_members += interface_line.split()[0] + ' '
             if inactive_bundle_members:
@@ -2995,7 +3003,9 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
 
             try:    interface_data['interface_data']['Port BW'] = err_check_after_pings_outputs[0].split('Port BW:')[1].split()[0].replace(',','')
             except: pass
-
+    ### IF NOT BUNDLE DELETE DATA RECORD ######################################
+    if len(interface_data['interface_data'].get('bundle_members',[])) == 0:
+        del interface_data['interface_data']['bundle_members']
 
 
 ###############################################################################
