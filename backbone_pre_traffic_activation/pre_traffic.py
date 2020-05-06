@@ -3008,7 +3008,7 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
     if len(interface_data['interface_data'].get('bundle_members',[])) == 0:
         try:
             del interface_data['interface_data']['bundle_members']
-        except: pass    
+        except: pass
 
     if not after_ping and len(interface_data['interface_data'].get('bundle_members',[])) > 0:
 
@@ -3065,22 +3065,19 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
                 try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['bundle id'] = copy.deepcopy(lag_data_outputs[1].split('bundle id')[1].splitlines()[0].strip())
                 except: pass
 
-                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['line protocol is'] = copy.deepcopy(lag_data_outputs[2].split('line protocol is')[1].split()[1])
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['line protocol is'] = copy.deepcopy(lag_data_outputs[2].split('line protocol is')[1].split()[0])
                 except: pass
 
-                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['Internet address is'] = copy.deepcopy(lag_data_outputs[2].split('Internet address is')[1].split()[1])
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['Internet address is'] = copy.deepcopy(lag_data_outputs[2].split('Internet address is')[1].split()[0])
                 except: pass
 
-                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['MTU'] = copy.deepcopy(lag_data_outputs[2].split('MTU ')[1].split()[1])
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['MTU'] = copy.deepcopy(lag_data_outputs[2].split('MTU ')[1].split()[0])
                 except: pass
 
-                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['BW Kbit'] = copy.deepcopy(lag_data_outputs[2].split(', BW ')[1].split()[1])
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['BW Kbit'] = copy.deepcopy(lag_data_outputs[2].split(', BW ')[1].split()[0])
                 except: pass
 
-                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['Last link flapped'] = copy.deepcopy(lag_data_outputs[2].split('Last link flapped ')[1].split()[1])
-                except: pass
-
-                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['Last link flapped'] = copy.deepcopy(lag_data_outputs[2].split('Last link flapped ')[1].split()[1])
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['Last link flapped'] = copy.deepcopy(lag_data_outputs[2].split('Last link flapped ')[1].split()[0])
                 except: pass
 
                 try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['input errors'] = copy.deepcopy(lag_data_outputs[2].split('input errors,')[0].split()[-1])
