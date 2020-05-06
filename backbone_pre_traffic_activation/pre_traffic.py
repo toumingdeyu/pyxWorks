@@ -5411,7 +5411,7 @@ authentication {
 
                 if BB_MODE and not precheck_mode:
                     if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr' and not interface_data['interface_data'].get('ipv4_metric') \
-                        or RCMD.router_type == 'juniper' and not interface_data['interface_data'].get('metric') \
+                        or RCMD.router_type == 'juniper' and not interface_data['interface_data'].get('L2 metric') \
                         or RCMD.router_type == 'huawei' and not interface_data['interface_data'].get('isis cost'):
                             check_interface_result_ok = False
                             CGI_CLI.uprint('Ipv4 L2 metric missing on Interface %s = NOT OK' % (interface_id), color = 'red')
