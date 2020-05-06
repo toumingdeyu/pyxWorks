@@ -3063,13 +3063,16 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
                     try:    interface_data['interface_data']['LAG_interfaces']['Local bandwidth available kbps'] = copy.deepcopy(lag_data_outputs[2].split('Local bandwidth <effective/available>:')[1].split()[1].replace('(','').replace(')',''))
                     except: pass
 
-                    try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['State'] = copy.deepcopy(lag_data_outputs[2].split('%s' % (str(lag_member)))[1].splitlines()[0].split()[1])
-                    except: pass
-
                     try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['B/W kbps'] = copy.deepcopy(lag_data_outputs[2].split('%s' % (str(lag_member)))[1].splitlines()[0].split()[4])
                     except: pass
 
-                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['bundle id'] = copy.deepcopy(lag_data_outputs[0].split('bundle id')[1].splitlines()[0].strip())
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['bundle id'] = copy.deepcopy(lag_data_outputs[0].split('bundle id')[1].split()[0])
+                except: pass
+
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['mode active'] = True if 'mode active' in lag_data_outputs[0] else str()
+                except: pass
+
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['State'] = copy.deepcopy(lag_data_outputs[0].split(', line protocol is')[0].split()[-1])
                 except: pass
 
                 try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['line protocol is'] = copy.deepcopy(lag_data_outputs[1].split('line protocol is')[1].split()[0])
