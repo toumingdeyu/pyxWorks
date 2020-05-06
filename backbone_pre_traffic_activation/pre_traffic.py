@@ -3016,20 +3016,25 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
 
         lag_data_rcmds = {
             'cisco_ios':[],
-            'cisco_xr':[],
+            'cisco_xr': [],
             'juniper': [],
             'huawei': []
         }
 
+        i = 0
         for lag_member in interface_data['interface_data'].get('bundle_members',[]):
-            lag_data_rcmds['cisco_ios'].append('show bundle %s' % (str(undotted_interface_id)))
+            i += 1
             lag_data_rcmds['cisco_ios'].append('show run interface  %s' % (str(lag_member)))
             lag_data_rcmds['cisco_ios'].append('show interface %s' % (str(lag_member)))
-            lag_data_rcmds['cisco_xr'].append('show bundle %s' % (str(undotted_interface_id)))
+            if i == 1: lag_data_rcmds['cisco_ios'].append('show bundle %s' % (str(undotted_interface_id)))
+
             lag_data_rcmds['cisco_xr'].append('show run interface %s' % (str(lag_member)))
             lag_data_rcmds['cisco_xr'].append('show interface %s' % (str(lag_member)))
+            if i == 1: lag_data_rcmds['cisco_xr'].append('show bundle %s' % (str(undotted_interface_id)))
+
             lag_data_rcmds['juniper'].append('show configuration interfaces %s | display set' % (str(lag_member)))
             lag_data_rcmds['juniper'].append('show interface %s' % (str(lag_member)))
+
             lag_data_rcmds['huawei'].append('display current-configuration interface %s' % (str(lag_member)))
             lag_data_rcmds['huawei'].append('display interface %s' % (str(lag_member)))
 
@@ -3038,52 +3043,54 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
                 autoconfirm_mode = True, \
                 printall = CGI_CLI.printall)
 
+
             interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))] = collections.OrderedDict()
 
             if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
-                try:    interface_data['interface_data']['LAG_interfaces']['Local links active'] = copy.deepcopy(lag_data_outputs[0].split('Local links <active/standby/configured>:')[1].split()[0].split('/')[0])
+                if i == 1:
+                    try:    interface_data['interface_data']['LAG_interfaces']['Local links active'] = copy.deepcopy(lag_data_outputs[2].split('Local links <active/standby/configured>:')[1].split()[0].split('/')[0])
+                    except: pass
+
+                    try:    interface_data['interface_data']['LAG_interfaces']['Local links standby'] = copy.deepcopy(lag_data_outputs[2].split('Local links <active/standby/configured>:')[1].split()[0].split('/')[1])
+                    except: pass
+
+                    try:    interface_data['interface_data']['LAG_interfaces']['Local links configured'] = copy.deepcopy(lag_data_outputs[2].split('Local links <active/standby/configured>:')[1].split()[0].split('/')[2])
+                    except: pass
+
+                    try:    interface_data['interface_data']['LAG_interfaces']['Local bandwidth effective kbps'] = copy.deepcopy(lag_data_outputs[2].split('Local bandwidth <effective/available>:')[1].split()[0])
+                    except: pass
+
+                    try:    interface_data['interface_data']['LAG_interfaces']['Local bandwidth available kbps'] = copy.deepcopy(lag_data_outputs[2].split('Local bandwidth <effective/available>:')[1].split()[1].replace('(','').replace(')',''))
+                    except: pass
+
+                    try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['State'] = copy.deepcopy(lag_data_outputs[2].split('%s' % (str(lag_member)))[1].splitlines()[0].split()[1])
+                    except: pass
+
+                    try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['B/W kbps'] = copy.deepcopy(lag_data_outputs[2].split('%s' % (str(lag_member)))[1].splitlines()[0].split()[4])
+                    except: pass
+
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['bundle id'] = copy.deepcopy(lag_data_outputs[0].split('bundle id')[1].splitlines()[0].strip())
                 except: pass
 
-                try:    interface_data['interface_data']['LAG_interfaces']['Local links standby'] = copy.deepcopy(lag_data_outputs[0].split('Local links <active/standby/configured>:')[1].split()[0].split('/')[1])
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['line protocol is'] = copy.deepcopy(lag_data_outputs[1].split('line protocol is')[1].split()[0])
                 except: pass
 
-                try:    interface_data['interface_data']['LAG_interfaces']['Local links configured'] = copy.deepcopy(lag_data_outputs[0].split('Local links <active/standby/configured>:')[1].split()[0].split('/')[2])
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['Internet address is'] = copy.deepcopy(lag_data_outputs[1].split('Internet address is')[1].split()[0])
                 except: pass
 
-                try:    interface_data['interface_data']['LAG_interfaces']['Local bandwidth effective kbps'] = copy.deepcopy(lag_data_outputs[0].split('Local bandwidth <effective/available>:')[1].split()[0])
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['MTU'] = copy.deepcopy(lag_data_outputs[1].split('MTU ')[1].split()[0])
                 except: pass
 
-                try:    interface_data['interface_data']['LAG_interfaces']['Local bandwidth available kbps'] = copy.deepcopy(lag_data_outputs[0].split('Local bandwidth <effective/available>:')[1].split()[1].replace('(','').replace(')',''))
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['BW Kbit'] = copy.deepcopy(lag_data_outputs[1].split(', BW ')[1].split()[0])
                 except: pass
 
-                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['State'] = copy.deepcopy(lag_data_outputs[0].split('%s' % (str(lag_member)))[1].splitlines()[0].split()[1])
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['Last link flapped'] = copy.deepcopy(lag_data_outputs[1].split('Last link flapped ')[1].split()[0])
                 except: pass
 
-                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['B/W kbps'] = copy.deepcopy(lag_data_outputs[0].split('%s' % (str(lag_member)))[1].splitlines()[0].split()[4])
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['input errors'] = copy.deepcopy(lag_data_outputs[1].split('input errors,')[0].split()[-1])
                 except: pass
 
-                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['bundle id'] = copy.deepcopy(lag_data_outputs[1].split('bundle id')[1].splitlines()[0].strip())
-                except: pass
-
-                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['line protocol is'] = copy.deepcopy(lag_data_outputs[2].split('line protocol is')[1].split()[0])
-                except: pass
-
-                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['Internet address is'] = copy.deepcopy(lag_data_outputs[2].split('Internet address is')[1].split()[0])
-                except: pass
-
-                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['MTU'] = copy.deepcopy(lag_data_outputs[2].split('MTU ')[1].split()[0])
-                except: pass
-
-                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['BW Kbit'] = copy.deepcopy(lag_data_outputs[2].split(', BW ')[1].split()[0])
-                except: pass
-
-                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['Last link flapped'] = copy.deepcopy(lag_data_outputs[2].split('Last link flapped ')[1].split()[0])
-                except: pass
-
-                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['input errors'] = copy.deepcopy(lag_data_outputs[2].split('input errors,')[0].split()[-1])
-                except: pass
-
-                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['CRC'] = copy.deepcopy(lag_data_outputs[2].split('CRC,')[0].split()[-1])
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['CRC'] = copy.deepcopy(lag_data_outputs[1].split('CRC,')[0].split()[-1])
                 except: pass
 
             elif RCMD.router_type == 'juniper':
@@ -4572,8 +4579,8 @@ authentication {
                         ],
 
                         'juniper': [
-                            'show bgp neighbor %s | match Group:' % (interface_data['interface_data'].get('ipv4_addr_rem')) if interface_data['interface_data'].get('ipv4_addr_rem') else str(),
-                            'show bgp neighbor %s | match Group:' % (interface_warning_data['interface_data'].get('ipv6_addr_rem')) if interface_warning_data['interface_data'].get('ipv6_addr_rem') else str(),
+                            'show bgp neighbor %s' % (interface_data['interface_data'].get('ipv4_addr_rem')) if interface_data['interface_data'].get('ipv4_addr_rem') else str(),
+                            'show bgp neighbor %s' % (interface_warning_data['interface_data'].get('ipv6_addr_rem')) if interface_warning_data['interface_data'].get('ipv6_addr_rem') else str(),
                         ],
 
                         'huawei': [
@@ -4597,12 +4604,27 @@ authentication {
 
                     elif RCMD.router_type == 'juniper':
                         if interface_data['interface_data'].get('ipv4_addr_rem'):
-                            try: interface_data['bgp']['IPV4 neighbor-group'] = collect2_if_config_rcmd_outputs[0].split('match Group:')[1].split('Group: ')[1].split()[0].strip()
+                            try: interface_data['bgp']['IPV4 neighbor-group'] = collect2_if_config_rcmd_outputs[0].split('Group: ')[1].split()[0]
                             except: interface_data['bgp']['IPV4 neighbor-group'] = str()
 
                         if interface_warning_data['interface_data'].get('ipv6_addr_rem'):
-                            try: interface_data['bgp']['IPV6 neighbor-group'] = collect2_if_config_rcmd_outputs[1].split('match Group:')[1].split('Group: ')[1].split()[0].strip()
+                            try: interface_data['bgp']['IPV6 neighbor-group'] = collect2_if_config_rcmd_outputs[1].split('Group: ')[1].split()[0]
                             except: pass
+
+                        try: interface_data['bgp']['IPV4 Active prefixes'] = collect2_if_config_rcmd_outputs[0].split('Active prefixes: ')[1].split()[0]
+                        except: pass
+
+                        try: interface_data['bgp']['IPV4 Received prefixes'] = collect2_if_config_rcmd_outputs[0].split('Received prefixes: ')[1].split()[0]
+                        except: pass
+
+                        try: interface_data['bgp']['IPV4 Accepted prefixes'] = collect2_if_config_rcmd_outputs[0].split('Accepted prefixes: ')[1].split()[0]
+                        except: pass
+
+                        try: interface_data['bgp']['IPV4 Suppressed due to damping'] = collect2_if_config_rcmd_outputs[0].split('Suppressed due to damping: ')[1].split()[0]
+                        except: pass
+
+                        try: interface_data['bgp']['IPV4 Advertised prefixes'] = collect2_if_config_rcmd_outputs[0].split('Advertised prefixes: ')[1].split()[0]
+                        except: pass
 
                     elif RCMD.router_type == 'huawei':
                         if interface_data['interface_data'].get('ipv4_addr_rem'):
@@ -4738,6 +4760,9 @@ authentication {
                                 except: pass
 
                         try: interface_data['bgp']['IPV4 unicast prefix-limit maximum'] = collect3_if_config_rcmd_outputs[0].split('unicast prefix-limit maximum ')[1].split()[0]
+                        except: pass
+
+                        try: interface_data['bgp']['IPV4 Received/maximum prefixes percent'] = 100 * (float(interface_data['bgp']['IPV4 Received prefixes']) / float(interface_data['bgp']['IPV4 unicast prefix-limit maximum']))
                         except: pass
 
                         try: interface_data['bgp']['IPV4 unicast prefix-limit teardown'] = collect3_if_config_rcmd_outputs[0].split('unicast prefix-limit teardown ')[1].split()[0]
@@ -4966,24 +4991,24 @@ authentication {
                                 if 'inet' in line or 'Route Queue Timer' in line: break
                                 interface_data['bgp']['IPV4 bgp group Peers'].append(str(line).strip())
 
-                        try: interface_data['bgp']['IPV4 Active prefixes'] = collect5_if_config_rcmd_outputs[0].split('Name: %s ' % (interface_data['bgp']['IPV4 neighbor-group']))[1].split('Active prefixes: ')[1].split()[0]
-                        except: pass
+                        # try: interface_data['bgp']['IPV4 Active prefixes'] = collect5_if_config_rcmd_outputs[0].split('Name: %s ' % (interface_data['bgp']['IPV4 neighbor-group']))[1].split('Active prefixes: ')[1].split()[0]
+                        # except: pass
 
-                        try: interface_data['bgp']['IPV4 Received prefixes'] = collect5_if_config_rcmd_outputs[0].split('Name: %s ' % (interface_data['bgp']['IPV4 neighbor-group']))[1].split('Received prefixes: ')[1].split()[0]
-                        except: pass
+                        # try: interface_data['bgp']['IPV4 Received prefixes'] = collect5_if_config_rcmd_outputs[0].split('Name: %s ' % (interface_data['bgp']['IPV4 neighbor-group']))[1].split('Received prefixes: ')[1].split()[0]
+                        # except: pass
 
 
-                        try: interface_data['bgp']['IPV4 Received/maximum prefixes percent'] = 100 * (float(interface_data['bgp']['IPV4 Received prefixes']) / float(interface_data['bgp']['IPV4 unicast prefix-limit maximum']))
-                        except: pass
+                        # try: interface_data['bgp']['IPV4 Received/maximum prefixes percent'] = 100 * (float(interface_data['bgp']['IPV4 Received prefixes']) / float(interface_data['bgp']['IPV4 unicast prefix-limit maximum']))
+                        # except: pass
 
-                        try: interface_data['bgp']['IPV4 Accepted prefixes'] = collect5_if_config_rcmd_outputs[0].split('Name: %s ' % (interface_data['bgp']['IPV4 neighbor-group']))[1].split('Accepted prefixes: ')[1].split()[0]
-                        except: pass
+                        # try: interface_data['bgp']['IPV4 Accepted prefixes'] = collect5_if_config_rcmd_outputs[0].split('Name: %s ' % (interface_data['bgp']['IPV4 neighbor-group']))[1].split('Accepted prefixes: ')[1].split()[0]
+                        # except: pass
 
-                        try: interface_data['bgp']['IPV4 Suppressed due to damping'] = collect5_if_config_rcmd_outputs[0].split('Name: %s ' % (interface_data['bgp']['IPV4 neighbor-group']))[1].split('Suppressed due to damping: ')[1].split()[0]
-                        except: pass
+                        # try: interface_data['bgp']['IPV4 Suppressed due to damping'] = collect5_if_config_rcmd_outputs[0].split('Name: %s ' % (interface_data['bgp']['IPV4 neighbor-group']))[1].split('Suppressed due to damping: ')[1].split()[0]
+                        # except: pass
 
-                        try: interface_data['bgp']['IPV4 Advertised prefixes'] = collect5_if_config_rcmd_outputs[0].split('Name: %s ' % (interface_data['bgp']['IPV4 neighbor-group']))[1].split('Advertised prefixes: ')[1].split()[0]
-                        except: pass
+                        # try: interface_data['bgp']['IPV4 Advertised prefixes'] = collect5_if_config_rcmd_outputs[0].split('Name: %s ' % (interface_data['bgp']['IPV4 neighbor-group']))[1].split('Advertised prefixes: ')[1].split()[0]
+                        # except: pass
 
 
 
