@@ -4691,23 +4691,23 @@ authentication {
                             except: interface_data['bgp']['IPV4 remote-as'] = str()
 
                             if 'unicast' in interface_data['bgp'].get('IPV4 address-family',str()):
-                                try: interface_data['bgp']['IPV4 unicast route-policy in'] = collect3_if_config_rcmd_outputs[1].split('address-family ipv4 unicast')[1].split('route-policy ')[1].splitlines()[0].split()[0].strip()
+                                try: interface_data['bgp']['IPV4 unicast route-policy in'] = collect3_if_config_rcmd_outputs[1].split('route-policy ')[1].splitlines()[0].split()[0].strip()
                                 except: interface_data['bgp']['IPV4 unicast route-policy in'] = str()
 
-                                try: interface_data['bgp']['IPV4 unicast maximum-prefix'] = collect3_if_config_rcmd_outputs[1].split('address-family ipv4 unicast')[1].split('maximum-prefix ')[1].splitlines()[0].split()[0].strip()
+                                try: interface_data['bgp']['IPV4 unicast maximum-prefix'] = collect3_if_config_rcmd_outputs[1].split('maximum-prefix ')[1].splitlines()[0].split()[0].strip()
                                 except: interface_data['bgp']['IPV4 unicast maximum-prefix'] = str()
 
-                                try: interface_data['bgp']['IPV4 unicast route-policy out'] = collect3_if_config_rcmd_outputs[1].split('address-family ipv4 unicast')[1].split('route-policy ')[2].splitlines()[0].split()[0].strip()
+                                try: interface_data['bgp']['IPV4 unicast route-policy out'] = collect3_if_config_rcmd_outputs[1].split('route-policy ')[2].splitlines()[0].split()[0].strip()
                                 except: interface_data['bgp']['IPV4 unicast route-policy out'] = str()
 
                             if 'multicast' in interface_data['bgp'].get('IPV4 address-family',str()):
-                                try: interface_data['bgp']['IPV4 multicast route-policy in'] = collect3_if_config_rcmd_outputs[2].split('address-family ipv4 multicast')[1].split('route-policy ')[1].splitlines()[0].split()[0].strip()
+                                try: interface_data['bgp']['IPV4 multicast route-policy in'] = collect3_if_config_rcmd_outputs[2].split('route-policy ')[1].splitlines()[0].split()[0].strip()
                                 except: pass
 
-                                try: interface_data['bgp']['IPV4 multicast maximum-prefix'] = collect3_if_config_rcmd_outputs[2].split('address-family ipv4 multicast')[1].split('maximum-prefix ')[1].splitlines()[0].split()[0].strip()
+                                try: interface_data['bgp']['IPV4 multicast maximum-prefix'] = collect3_if_config_rcmd_outputs[2].split('maximum-prefix ')[1].splitlines()[0].split()[0].strip()
                                 except: pass
 
-                                try: interface_data['bgp']['IPV4 multicast route-policy out'] = collect3_if_config_rcmd_outputs[2].split('address-family ipv4 multicast')[1].split('route-policy ')[2].splitlines()[0].split()[0].strip()
+                                try: interface_data['bgp']['IPV4 multicast route-policy out'] = collect3_if_config_rcmd_outputs[2].split('route-policy ')[2].splitlines()[0].split()[0].strip()
                                 except: pass
 
                         if USE_IPV6 and interface_data['bgp'].get('IPV6 use neighbor-group'):
@@ -4727,23 +4727,23 @@ authentication {
                             except: interface_data['bgp']['IPV6 remote-as'] = str()
 
                             if 'unicast' in interface_warning_data['bgp'].get('IPV6 address-family',str()):
-                                try: interface_data['bgp']['IPV6 unicast route-policy in'] = collect3_if_config_rcmd_outputs[4].split('address-family ipv6 unicast')[1].split('route-policy ')[1].splitlines()[0].split()[0].strip()
+                                try: interface_data['bgp']['IPV6 unicast route-policy in'] = collect3_if_config_rcmd_outputs[4].split('route-policy ')[1].splitlines()[0].split()[0].strip()
                                 except: pass
 
-                                try: interface_data['bgp']['IPV6 unicast maximum-prefix'] = collect3_if_config_rcmd_outputs[4].split('address-family ipv6 unicast')[1].split('maximum-prefix ')[1].splitlines()[0].split()[0].strip()
+                                try: interface_data['bgp']['IPV6 unicast maximum-prefix'] = collect3_if_config_rcmd_outputs[4].split('maximum-prefix ')[1].splitlines()[0].split()[0].strip()
                                 except: pass
 
-                                try: interface_data['bgp']['IPV6 unicast route-policy out'] = collect3_if_config_rcmd_outputs[4].split('address-family ipv6 unicast')[1].split('route-policy ')[2].splitlines()[0].split()[0].strip()
+                                try: interface_data['bgp']['IPV6 unicast route-policy out'] = collect3_if_config_rcmd_outputs[4].split('route-policy ')[2].splitlines()[0].split()[0].strip()
                                 except: pass
 
                             if 'multicast' in interface_warning_data['bgp'].get('IPV6 address-family',str()):
-                                try: interface_data['bgp']['IPV6 multicast route-policy in'] = collect3_if_config_rcmd_outputs[5].split('address-family ipv6 multicast')[1].split('route-policy ')[1].splitlines()[0].split()[0].strip()
+                                try: interface_data['bgp']['IPV6 multicast route-policy in'] = collect3_if_config_rcmd_outputs[5].split('route-policy ')[1].splitlines()[0].split()[0].strip()
                                 except: pass
 
-                                try: interface_data['bgp']['IPV6 multicast maximum-prefix'] = collect3_if_config_rcmd_outputs[5].split('address-family ipv6 multicast')[1].split('maximum-prefix ')[1].splitlines()[0].split()[0].strip()
+                                try: interface_data['bgp']['IPV6 multicast maximum-prefix'] = collect3_if_config_rcmd_outputs[5].split('maximum-prefix ')[1].splitlines()[0].split()[0].strip()
                                 except: pass
 
-                                try: interface_data['bgp']['IPV6 multicast route-policy out'] = collect3_if_config_rcmd_outputs[5].split('address-family ipv6 multicast')[1].split('route-policy ')[2].splitlines()[0].split()[0].strip()
+                                try: interface_data['bgp']['IPV6 multicast route-policy out'] = collect3_if_config_rcmd_outputs[5].split('route-policy ')[2].splitlines()[0].split()[0].strip()
                                 except: pass
 
                     elif RCMD.router_type == 'juniper':
