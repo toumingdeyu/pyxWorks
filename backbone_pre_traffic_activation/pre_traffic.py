@@ -5737,11 +5737,13 @@ authentication {
 
                             check_interface_data_content("['bgp']['IPV4 unicast_route-policy_in']", what_not_in = 'DENY-ALL')
                             check_interface_data_content("['bgp']['IPV4 unicast_route-policy_out']", what_not_in = 'DENY-ALL')
+                            check_interface_data_content("['bgp']['IPV4 Received/maximum prefixes percent']", lower_than = 90)
+
                             if USE_IPV6:
                                 check_interface_data_content("['bgp']['IPV6 unicast_route-policy_in']", what_not_in = 'DENY-ALL')
                                 check_interface_data_content("['bgp']['IPV6 unicast_route-policy_out']", what_not_in = 'DENY-ALL')
 
-                        check_interface_data_content("['bgp']['IPV4 Received/maximum prefixes percent']", lower_than = 90)
+
 
 
                     elif RCMD.router_type == 'huawei':
@@ -5760,11 +5762,12 @@ authentication {
                             if USE_IPV6:
                                 check_interface_data_content("['bgp']['IPV6 unicast_route-policy_in']", what_not_in = 'DENY-ALL')
                                 check_interface_data_content("['bgp']['IPV6 unicast_route-policy_out']", what_not_in = 'DENY-ALL')
+                                check_interface_data_content("['bgp']['IPV4 Received/maximum total routes percent']", lower_than = 90)
 
                         check_interface_data_content("['interface_data']['Line protocol current state']", what_yes_in = 'UP')
                         check_interface_data_content("['interface_data']['Link quality grade']", what_yes_in = 'GOOD')
 
-                        check_interface_data_content("['bgp']['IPV4 Received/maximum total routes percent']", lower_than = 90)
+
 
 
 
