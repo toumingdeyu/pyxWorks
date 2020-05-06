@@ -4001,9 +4001,9 @@ authentication {
                             except: pass
 
                             if interface_data['interface_data'].get('ipv6_addr_loc'):
-                                interface_data['interface_data']['inet6 filter input'] = []
+                                interface_data['interface_data']['inet6 filter input-list'] = []
                                 for line in collect_if_config_rcmd_outputs[0].splitlines():
-                                    try: interface_data['interface_data']['inet6 filter input'].append(line.split('inet6 filter input ')[1].split()[0])
+                                    try: interface_data['interface_data']['inet6 filter input-list'].append(copy.deepcopy(line.split('inet6 filter input-list ')[1].split()[0]))
                                     except: pass
 
                     try: interface_data['interface_data']['LAG_member'] = 'yes' if 'gigether-options ' in collect_if_config_rcmd_outputs[0] else 'no'
