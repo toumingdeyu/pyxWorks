@@ -3072,7 +3072,7 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
                 try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['mode active'] = True if 'mode active' in lag_data_outputs[0] else str()
                 except: pass
 
-                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['State'] = copy.deepcopy(lag_data_outputs[0].split(', line protocol is')[0].split()[-1])
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['State'] = copy.deepcopy(lag_data_outputs[1].split(', line protocol is')[0].split()[-1])
                 except: pass
 
                 try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['line protocol is'] = copy.deepcopy(lag_data_outputs[1].split('line protocol is')[1].split()[0])
