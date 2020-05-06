@@ -2925,12 +2925,12 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
     elif RCMD.router_type == 'huawei':
         if not after_ping:
             try:    interface_lines = err_check_after_pings_outputs[0].split('PortName ')[1].splitlines()[2:]
-            except: interface_lines = str()
+            except: interface_lines = []
 
             inactive_bundle_members = str()
             bundle_members_nr = 0
-            for line in interface_lines:
-                if '-----' in line: break
+            for interface_line in interface_lines:
+                if '-----' in interface_line: break
                 bundle_members_nr += 1
                 if interface_line:
                     interface_data['interface_data']['bundle_members'].append(copy.deepcopy(interface_line.split()[0]))
