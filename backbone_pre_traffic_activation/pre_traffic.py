@@ -5600,9 +5600,9 @@ authentication {
                         check_interface_data_content("['interface_data']['LDP sync state']", 'in sync')
 
                         if precheck_mode:
-                            check_interface_data_content("['interface_statistics']['metric']", '99999')
+                            check_interface_data_content("['interface_data']['L2 metric']", '99999')
                         else:
-                            check_interface_data_content("['interface_statistics']['metric']", None,  '99999')
+                            check_interface_data_content("['interface_data']['L2 metric']", None,  '99999')
 
                         check_interface_data_content("['interface_statistics']['Active_alarms']", 'None', warning = True, ignore_data_existence = True)
                         check_interface_data_content("['interface_statistics']['Active_defects']", 'None', warning = True, ignore_data_existence = True)
