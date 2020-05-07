@@ -983,19 +983,31 @@ ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} 0.0.0.0 0.0.0.0 ${''.joi
 <%
 avoid_address = ''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])
 input_mask = cgi_data.get('ipv4-acl','').split(',')[2*i+1]
-if input_mask: wildchard_mask = '255.255.255.255'
-elif input_mask == '': wildchard_mask = '255.255.255.255'
-elif '.' in input_mask:
+wildchard_mask = '255.255.255.255'
+if input_mask and not '.' in str(input_mask):
+  if int(input_mask) < 33:
+    if int(input_mask) == 31:   wildchard_mask = '255.255.255.254'
+    elif int(input_mask) == 30: wildchard_mask = '255.255.255.252'
+    elif int(input_mask) == 29: wildchard_mask = '255.255.255.248'
+    elif int(input_mask) == 28: wildchard_mask = '255.255.255.240'
+    elif int(input_mask) == 27: wildchard_mask = '255.255.255.224'
+    elif int(input_mask) == 26: wildchard_mask = '255.255.255.192'
+    elif int(input_mask) == 25: wildchard_mask = '255.255.255.128'
+    elif int(input_mask) == 24: wildchard_mask = '255.255.255.0'
+    elif int(input_mask) == 23: wildchard_mask = '255.255.254.0'
+    elif int(input_mask) == 22: wildchard_mask = '255.255.252.0'
+    elif int(input_mask) == 21: wildchard_mask = '255.255.248.0'
+    elif int(input_mask) == 20: wildchard_mask = '255.255.240.0'
+elif input_mask and '.' in str(input_mask):
   wildchard_list = []
-  wildchard_mask = ''
-  for mask_part in input_mask.split('.'):
+  wildchard_mask = str()
+  for mask_part in str(input_mask).split('.'):
     try: wildchard_list.append(str(int(mask_part)^255))
     except: wildchard_list.append('255')
   for i_order in range(4):
     try: wildchard_mask += wildchard_list[i_order]
     except: wildchard_mask += '255'
     if i_order<3: wildchard_mask += '.'
-#wildchard_mask = '.'.join([ str(int(mask_item)^255) for mask_item in cgi_data.get('ipv4-acl','').split(',')[2*i+1].split('.') if '.' in cgi_data.get('ipv4-acl','').split(',')[2*i+1] and not "" in mask_item ])}
 %>
 % if avoid_address and avoid_address != cgi_data.get('ipv4-acl','').split(',')[2*i]:
 ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('ipv4-acl','').split(',')[2*i]} ${wildchard_mask} Tunnel${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('bgp-peer-address','UNKNOWN')}
