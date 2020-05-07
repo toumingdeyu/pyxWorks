@@ -2942,46 +2942,46 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
             if bundle_members_nr > 0: interface_data['interface_data']['bundle_members_nr'] = bundle_members_nr
 
         try:    interface_warning_data['interface_statistics']['Rx_Power_dBm%s' % (after_string)] = err_check_after_pings_outputs[0].split('Rx Power: ')[1].split()[0].strip().replace(',','').replace('dBm','')
-        except: interface_warning_data['interface_statistics']['Rx_Power_dBm%s' % (after_string)] = str()
+        except: pass
         if after_ping:
             try:    interface_warning_data['interface_statistics']['Rx_Power_dBm_Difference'] = str(float(interface_warning_data['interface_statistics']['Rx_Power_dBm_After_ping']) - float(interface_warning_data['interface_statistics']['Rx_Power_dBm']))
-            except: interface_warning_data['interface_statistics']['Rx_Power_dBm_Difference'] = str()
+            except: pass
 
         try:    interface_warning_data['interface_statistics']['Tx_Power_dBm%s' % (after_string)] = err_check_after_pings_outputs[0].split('Tx Power: ')[1].split()[0].strip().replace(',','').replace('dBm','')
-        except: interface_warning_data['interface_statistics']['Tx_Power_dBm%s' % (after_string)] = str()
+        except: pass
         if after_ping:
             try:    interface_warning_data['interface_statistics']['Tx_Power_dBm_Difference'] = str(float(interface_warning_data['interface_statistics']['Tx_Power_dBm_After_ping']) - float(interface_warning_data['interface_statistics']['Tx_Power_dBm']))
-            except: interface_warning_data['interface_statistics']['Tx_Power_dBm_Difference'] = str()
+            except: pass
 
         try:    interface_warning_data['interface_statistics']['CRC%s' % (after_string)] = err_check_after_pings_outputs[0].split('CRC: ')[1].split()[0].strip()
-        except: interface_warning_data['interface_statistics']['CRC%s' % (after_string)] = str()
+        except: pass
         if after_ping:
             try:    interface_warning_data['interface_statistics']['CRC_Difference'] = str(int(interface_warning_data['CRC_After_ping']) - int(interface_warning_data['CRC']))
-            except: interface_warning_data['interface_statistics']['CRC_Difference'] = str()
+            except: pass
 
         try:    interface_warning_data['interface_statistics']['Overrun%s' % (after_string)] = err_check_after_pings_outputs[0].split('Overrun: ')[1].split()[0].strip()
-        except: interface_warning_data['interface_statistics']['Overrun%s' % (after_string)] = str()
+        except: pass
         if after_ping:
             try:    interface_warning_data['interface_statistics']['Overrun_Difference'] = str(int(interface_warning_data['interface_statistics']['Overrun_After_ping']) - int(interface_warning_data['interface_statistics']['Overrun']))
-            except: interface_warning_data['interface_statistics']['Overrun_Difference'] = str()
+            except: pass
 
         try:    interface_warning_data['interface_statistics']['Lost%s' % (after_string)] = err_check_after_pings_outputs[0].split('Lost: ')[1].split()[0].strip()
-        except: interface_warning_data['interface_statistics']['Lost%s' % (after_string)] = str()
+        except: pass
         if after_ping:
             try:    interface_warning_data['interface_statistics']['Lost_Difference'] = str(int(interface_warning_data['Lost_After_ping']) - int(interface_warning_data['Lost']))
-            except: interface_warning_data['interface_statistics']['Lost_Difference'] = str()
+            except: pass
 
         try:    interface_warning_data['interface_statistics']['Overflow%s' % (after_string)] = err_check_after_pings_outputs[0].split('Overflow: ')[1].split()[0].strip()
-        except: interface_warning_data['interface_statistics']['Overflow%s' % (after_string)] = str()
+        except: pass
         if after_ping:
             try:    interface_warning_data['interface_statistics']['Overflow_Difference'] = str(int(interface_warning_data['interface_statistics']['Overflow_After_ping']) - int(interface_warning_data['interface_statistics']['Overflow']))
-            except: interface_warning_data['interface_statistics']['Overflow_Difference'] = str()
+            except: pass
 
         try:    interface_warning_data['interface_statistics']['Underrun%s' % (after_string)] = err_check_after_pings_outputs[0].split('Underrun: ')[1].split()[0].strip()
-        except: interface_warning_data['interface_statistics']['Underrun%s' % (after_string)] = str()
+        except: pass
         if after_ping:
             try:    interface_warning_data['interface_statistics']['Underrun_Difference'] = str(int(interface_warning_data['interface_statistics']['Underrun_After_ping']) - int(interface_warning_data['interface_statistics']['Underrun']))
-            except: interface_warning_data['interface_statistics']['Underrun_Difference'] = str()
+            except: pass
 
         try:    interface_warning_data['interface_statistics']['Local_fault%s' % (after_string)] = err_check_after_pings_outputs[0].split('Local fault: ')[1].split()[0].strip().replace('.','')
         except: pass
