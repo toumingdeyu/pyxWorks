@@ -5721,7 +5721,7 @@ authentication {
 
                         for neighbor in interface_data['bgp'].get('IPV6 bgp group Peers',[]):
                             try:
-                                neighbor_filtered = neighbor.split('+')[0]
+                                neighbor_filtered = normalized_ipv6(neighbor.split('+')[0])
                                 check_interface_data_content("['bgp']['IPV6 neighbors']", what_yes_in = neighbor_filtered)
                             except: pass
 
