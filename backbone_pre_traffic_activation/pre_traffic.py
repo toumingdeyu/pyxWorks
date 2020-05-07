@@ -3072,7 +3072,7 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
                 try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['mode active'] = True if 'mode active' in lag_data_outputs[0] else str()
                 except: pass
 
-                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['State'] = copy.deepcopy(lag_data_outputs[1].split(', line protocol is')[0].split()[-1])
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['is'] = copy.deepcopy(lag_data_outputs[1].split(', line protocol is')[0].split()[-1])
                 except: pass
 
                 try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['line protocol is'] = copy.deepcopy(lag_data_outputs[1].split('line protocol is')[1].split()[0])
@@ -5705,6 +5705,9 @@ authentication {
 
                             check_interface_data_content("['bgp']['IPV4 accepted/max prefixes percent']", lower_than = 90)
 
+                            for lag_member in interface_data['interface_data'].get('bundle_members',[]):
+                                check_interface_data_content("['interface_data']['LAG_interfaces']['%s']['is']" % (str(lag_member)), what_yes_in = 'UP')
+                                check_interface_data_content("['interface_data']['LAG_interfaces']['%s']['line protocol is']" % (str(lag_member)), what_yes_in = 'UP')
 
 
                     elif RCMD.router_type == 'juniper':
@@ -5746,7 +5749,9 @@ authentication {
                                 check_interface_data_content("['bgp']['IPV6 unicast_route-policy_in']", what_not_in = 'DENY-ALL')
                                 check_interface_data_content("['bgp']['IPV6 unicast_route-policy_out']", what_not_in = 'DENY-ALL')
 
-
+                            for lag_member in interface_data['interface_data'].get('bundle_members',[]):
+                                check_interface_data_content("['interface_data']['LAG_interfaces']['%s']['Enabled']" % (str(lag_member)), what_yes_in = True)
+                                check_interface_data_content("['interface_data']['LAG_interfaces']['%s']['Physical link is']" % (str(lag_member)), what_yes_in = 'UP')
 
 
                     elif RCMD.router_type == 'huawei':
@@ -5766,6 +5771,10 @@ authentication {
                                 check_interface_data_content("['bgp']['IPV6 unicast_route-policy_in']", what_not_in = 'DENY-ALL')
                                 check_interface_data_content("['bgp']['IPV6 unicast_route-policy_out']", what_not_in = 'DENY-ALL')
                                 check_interface_data_content("['bgp']['IPV4 Received/maximum total routes percent']", lower_than = 90)
+
+                            for lag_member in interface_data['interface_data'].get('bundle_members',[]):
+                                check_interface_data_content("['interface_data']['LAG_interfaces']['%s']['Line protocol current state']" % (str(lag_member)), what_yes_in = 'UP')
+                                check_interface_data_content("['interface_data']['LAG_interfaces']['%s']['Link quality grade']" % (str(lag_member)), what_yes_in = 'GOOD')
 
                         check_interface_data_content("['interface_data']['Line protocol current state']", what_yes_in = 'UP')
                         check_interface_data_content("['interface_data']['Link quality grade']", what_yes_in = 'GOOD')
