@@ -4807,7 +4807,7 @@ authentication {
                             interface_data['bgp']['IPV6 neighbors'] = []
                             for line in collect3_if_config_rcmd_outputs[1].splitlines():
                                 if 'neighbor ' in line:
-                                    try: interface_data['bgp']['IPV6 neighbors'].append(line.split('neighbor ')[1].split()[0])
+                                    try: interface_data['bgp']['IPV6 neighbors'].append(normalized_ipv6(line.split('neighbor ')[1].split()[0]))
                                     except: pass
 
                             # interface_data['IPV6 multipath'] = True if 'multipath' in collect3_if_config_rcmd_outputs[1] else str()
@@ -5384,7 +5384,7 @@ authentication {
                 if not interface_data['interface_data'].get('bundle_members_nr') \
                     and interface_data['interface_data'].get('LAG_member',str()) == 'yes':
                         CGI_CLI.uprint('This test is not intended for LAG member interface!', \
-                            timestamp = 'no')
+                            timestamp = 'no', color = 'red', tag = 'h2')
 
                 ### def ALL - VOID ELEMENTS CHECK #############################
                 None_elements = get_void_json_elements(interface_data, \
