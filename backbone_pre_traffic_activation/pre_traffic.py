@@ -2035,11 +2035,12 @@ class sql_interface():
     ### import mysql.connector
     ### MARIADB - By default AUTOCOMMIT is disabled
 
-    def __init__(self, host = None, user = None, password = None, database = None):
+    def __init__(self, host = None, user = None, password = None, database = None, printall = None):
         if int(sys.version_info[0]) == 3 and not 'pymysql.connect' in sys.modules: import pymysql
         elif int(sys.version_info[0]) == 2 and not 'mysql.connector' in sys.modules: import mysql.connector
         default_ipxt_data_collector_delete_columns = ['id','last_updated']
         self.sql_connection = None
+        self.printall = printall
         try:
             if not CGI_CLI.initialized:
                 CGI_CLI.init_cgi(chunked = True)
@@ -2144,7 +2145,7 @@ class sql_interface():
             except Exception as e: CGI_CLI.uprint(' ==> SQL problem [%s]' % (str(e)), color = 'magenta')
             try: cursor.close()
             except: pass
-            CGI_CLI.uprint('SQL_CMD[%s]' % (sql_command))
+            CGI_CLI.uprint('SQL_CMD[%s]' % (sql_command), printall = self.printall)
         return None
 
     def sql_write_table_from_dict(self, table_name, dict_data, \
@@ -3296,7 +3297,7 @@ authentication {
 
     action_type_list = ['bbactivation', 'bbmigration', 'custommigration','customactivation','ping_only']
 
-    if CGI_CLI.data.get('customer_interfaces'):
+    if not PING_ONLY and CGI_CLI.data.get('customer_interfaces'):
         action_type = 'custommigration'
 
     if not PING_ONLY and CGI_CLI.data.get("type"):
@@ -3315,26 +3316,27 @@ authentication {
                 if type_item in action_type_list:
                     action_type = type_item
 
-    if CGI_CLI.data.get('devicetest'):       action_type = 'bbactivation'
-    if CGI_CLI.data.get('devicetestcustom'): action_type = 'customactivation'
-    if CGI_CLI.data.get('routertestcustom'): action_type = 'customactivation'
+    if not PING_ONLY:
+        if CGI_CLI.data.get('devicetest'):       action_type = 'bbactivation'
+        if CGI_CLI.data.get('devicetestcustom'): action_type = 'customactivation'
+        if CGI_CLI.data.get('routertestcustom'): action_type = 'customactivation'
 
-    ### MULTIPLE INPUTS FROM MORE MARTIN'S PAGES ##############################
-    swan_id = CGI_CLI.data.get("swan",str())
-    if CGI_CLI.data.get("postcheck") \
-        or CGI_CLI.data.get("radio",str()) == 'postcheck' \
-        or CGI_CLI.data.get('submit-type',str()) == 'submit-with-postcheck' \
-        or CGI_CLI.data.get('submit',str()) == 'Run postcheck'\
-        or CGI_CLI.data.get('submit',str()) == 'Run+postcheck+on+all+interfaces'\
-        or CGI_CLI.data.get('submit',str()) == 'Run postcheck on all interfaces':
-            precheck_mode = False
-    elif CGI_CLI.data.get("precheck") \
-        or CGI_CLI.data.get('submit',str()) == 'Run+precheck+on+all+interfaces' \
-        or CGI_CLI.data.get('submit',str()) == 'Run precheck on all interfaces' \
-        or CGI_CLI.data.get("radio",str()) == 'precheck' \
-        or CGI_CLI.data.get('submit-type',str()) == 'submit-with-precheck' \
-        or CGI_CLI.data.get('submit',str()) == 'Run precheck':
-            precheck_mode = True
+        ### MULTIPLE INPUTS FROM MORE MARTIN'S PAGES ##############################
+        swan_id = CGI_CLI.data.get("swan",str())
+        if CGI_CLI.data.get("postcheck") \
+            or CGI_CLI.data.get("radio",str()) == 'postcheck' \
+            or CGI_CLI.data.get('submit-type',str()) == 'submit-with-postcheck' \
+            or CGI_CLI.data.get('submit',str()) == 'Run postcheck'\
+            or CGI_CLI.data.get('submit',str()) == 'Run+postcheck+on+all+interfaces'\
+            or CGI_CLI.data.get('submit',str()) == 'Run postcheck on all interfaces':
+                precheck_mode = False
+        elif CGI_CLI.data.get("precheck") \
+            or CGI_CLI.data.get('submit',str()) == 'Run+precheck+on+all+interfaces' \
+            or CGI_CLI.data.get('submit',str()) == 'Run precheck on all interfaces' \
+            or CGI_CLI.data.get("radio",str()) == 'precheck' \
+            or CGI_CLI.data.get('submit-type',str()) == 'submit-with-precheck' \
+            or CGI_CLI.data.get('submit',str()) == 'Run precheck':
+                precheck_mode = True
 
 
     ### def MAKE DEVICE LIST ##################################################
@@ -3396,14 +3398,15 @@ authentication {
         try: operation_type = testint.split('--')[3].strip()
         except: operation_type = str()
 
-    if operation_type:
-        if operation_type in action_type_list:
-            action_type = operation_type
+    if not PING_ONLY:
+        if operation_type:
+            if operation_type in action_type_list:
+                action_type = operation_type
 
-    if 'bb' in action_type:
-        BB_MODE = True
-    elif 'custom' in action_type:
-        CUSTOMER_MODE = True
+        if 'bb' in action_type:
+            BB_MODE = True
+        elif 'custom' in action_type:
+            CUSTOMER_MODE = True
 
     if CGI_CLI.timestamp:
         CGI_CLI.uprint('After parsing of input data.\n', \
@@ -5236,12 +5239,12 @@ authentication {
                 if interface_warning_data['interface_data'].get('MTU_configured'):
                     default_mtu = int(interface_warning_data['interface_data'].get('MTU_configured'))
                     default_mtu_v6 = int(interface_warning_data['interface_data'].get('MTU_configured'))
-                    
+
                 elif interface_warning_data['interface_data'].get('IPV4 MTU set'):
                     default_mtu = int(interface_warning_data['interface_data'].get('IPV4 MTU set'))
-                    
+
                     if interface_warning_data['interface_data'].get('IPV6 MTU set'):
-                        default_mtu_v6 = int(interface_warning_data['interface_data'].get('IPV6 MTU set'))                    
+                        default_mtu_v6 = int(interface_warning_data['interface_data'].get('IPV6 MTU set'))
                 else:
                     if BB_MODE: default_mtu = 4484
                     if CUSTOMER_MODE or PING_ONLY: default_mtu = 1500
@@ -5255,8 +5258,8 @@ authentication {
                 ## CISCO XR + XE ###
                 else: ping_header, ping_header_v6 = 14, 14
 
-                interface_data['interface_data']['IPV4 ping header size'] = ping_size
-                interface_data['interface_data']['IPV6 ping header size'] = ping_size_v6
+                interface_data['interface_data']['IPV4 ping header size'] = ping_header
+                interface_data['interface_data']['IPV6 ping header size'] = ping_header_v6
 
                 ping_size = default_mtu - ping_header if (default_mtu - ping_header) > 0 else 1
                 ping_size_v6 = default_mtu_v6 - ping_header_v6 if (default_mtu_v6 - ping_header_v6) > 0 else 1
@@ -5268,7 +5271,7 @@ authentication {
 
                 ### def FIRST PINGv4 COMMAND LIST #############################
                 if interface_data['interface_data'].get('ipv4_addr_rem',str()):
-                    interface_data['interface_statistics']['IPV4 (%spings) percent success'] = str(do_ping( \
+                    interface_data['interface_statistics']['IPV4 ping percent success'] = str(do_ping( \
                         address = interface_data['interface_data'].get('ipv4_addr_rem',str()), \
                         mtu = 100, count = 5, ipv6 = None, \
                         source = interface_data.get('ipv4_addr_loc',str())))
@@ -5282,7 +5285,7 @@ authentication {
                 ### def FIRST PINGv6 COMMAND LIST ###################################
                 if USE_IPV6:
                     if interface_warning_data['interface_data'].get('ipv6_addr_rem',str()):
-                        interface_warning_data['interface_statistics']['IPV6 (%spings) percent success'] = str(do_ping( \
+                        interface_warning_data['interface_statistics']['IPV6 ping percent success'] = str(do_ping( \
                             address = interface_warning_data['interface_data'].get('ipv6_addr_rem',str()), \
                             mtu = 100, count = 5, ipv6 = True, \
                             source = interface_data.get('ipv6_addr_loc',str())))
@@ -5295,13 +5298,13 @@ authentication {
                 ### def FIND MAX MTU ##########################################
                 if PING_ONLY:
                     max_pingsize_ipv4, max_pingsize_ipv6 = 0, 0
-                    if float(interface_data['interface_statistics'].get('IPV4 (%spings) percent success','0')) > 0:
+                    if float(interface_data['interface_statistics'].get('IPV4 ping percent success','0')) > 0:
                         if interface_data['interface_data'].get('ipv4_addr_rem',str()):
                             max_pingsize_ipv4 = find_max_pingsize(interface_data['interface_data'].get('ipv4_addr_rem',str()), max_mtu = 9300, \
                                 source = interface_data['interface_data'].get('ipv4_addr_loc',str()))
                             interface_data['interface_statistics']['IPV4 max working ping size'] = str(max_pingsize_ipv4)
 
-                    if float(interface_warning_data['interface_statistics'].get('IPV6 (%spings) percent success','0')) > 0:
+                    if float(interface_warning_data['interface_statistics'].get('IPV6 ping percent success','0')) > 0:
                         if interface_warning_data['interface_data'].get('ipv6_addr_rem',str()):
                             max_pingsize_ipv6 = find_max_pingsize(interface_warning_data['interface_data'].get('ipv6_addr_rem',str()), ipv6 = True, \
                                 source = interface_data['interface_data'].get('ipv6_addr_loc',str()))
@@ -5309,14 +5312,14 @@ authentication {
 
                     ### DO "THOUSANDS" PING ON MAX WORKING PING SIZE ##########
                     if float(interface_data['interface_statistics'].get('IPV4 max working ping size', 0)) > 0:
-                        interface_data['interface_statistics']['IPV4 (%spings) percent success on max working ping size' % (ping_counts)] = str(\
+                        interface_data['interface_statistics']['IPV4 %spings percent success on max working ping size' % (ping_counts)] = str(\
                             do_ping(address = interface_data['interface_data'].get('ipv4_addr_rem',str()), \
                                 mtu = interface_data['interface_data'].get('IPV4 max working ping size'), \
                                 count = ping_counts, ipv6 = None,
                                 source = interface_data['interface_data'].get('ipv4_addr_loc',str())))
 
                     if float(interface_data['interface_statistics'].get('IPV6 max working ping size', 0)) > 0:
-                        interface_warning_data['interface_statistics']['IPV6 (%spings) percent success on max working ping size' % (ping_counts)] = str(\
+                        interface_warning_data['interface_statistics']['IPV6 %spings percent success on max working ping size' % (ping_counts)] = str(\
                             do_ping(address = interface_warning_data['interface_data'].get('ipv6_addr_rem',str()), \
                                 mtu = interface_data['interface_data'].get('IPV6 max working ping size'), \
                                 count = ping_counts, ipv6 = True,
@@ -5324,42 +5327,42 @@ authentication {
 
 
                 ### "THOUSANDS" PINGs TEST ####################################
-                if not interface_data['interface_statistics'].get('IPV4 (%spings) percent success on max working ping size' % (ping_counts)) \
+                if not interface_data['interface_statistics'].get('IPV4 %spings percent success on max working ping size' % (ping_counts)) \
                     and ping_counts and int(ping_counts) > 0:
                     if '100' in interface_warning_data['interface_statistics'].get('IPV4 percent success on intended ping size',str()):
                         ### def "THOUSANDS" PINGv4 MTU COMMAND LIST ###################
                         if interface_data['interface_data'].get('ipv4_addr_rem',str()):
 
-                            interface_warning_data['interface_statistics']['IPV4 (%spings) percent success on intended ping size' % (ping_counts)] = \
+                            interface_warning_data['interface_statistics']['IPV4 %spings percent success on intended ping size' % (ping_counts)] = \
                                 str(do_ping(address = interface_data['interface_data'].get('ipv4_addr_rem',str()), \
                                     mtu = interface_data['interface_data']['IPV4 intended ping size'], count = ping_counts, ipv6 = None, \
                                     source = interface_data['interface_data'].get('ipv4_addr_loc',str())))
 
-                    elif '100' in interface_data['interface_statistics'].get('IPV4 (%spings) percent success',str()):
+                    elif '100' in interface_data['interface_statistics'].get('IPV4 ping percent success',str()):
                         ### def "THOUSANDS" PINGv4 COMMAND LIST ###################
                         if interface_data['interface_data'].get('ipv4_addr_rem',str()):
 
-                            interface_data['interface_statistics']['IPV4 (%spings) percent success_%spings' % (ping_counts)] = \
+                            interface_data['interface_statistics']['IPV4 %spings percent success' % (ping_counts)] = \
                                 str(do_ping(address = interface_data['interface_data'].get('ipv4_addr_rem',str()), \
                                     mtu = 100, count = ping_counts, ipv6 = None, \
                                     source = interface_data['interface_data'].get('ipv4_addr_loc',str())))
 
                     if USE_IPV6 \
-                        and not interface_warning_data['interface_statistics'].get('IPV6 (%spings) percent success on max working ping size' % (ping_counts)):
+                        and not interface_warning_data['interface_statistics'].get('IPV6 %spings percent success on max working ping size' % (ping_counts)):
                         if '100' in interface_warning_data['interface_statistics'].get('IPV6 percent success on intended ping size',str()):
                             ### def "THOUSANDS" PINGv6 COMMAND LIST ###################
                             if interface_warning_data['interface_data'].get('ipv6_addr_rem',str()):
 
-                                interface_warning_data['interface_statistics']['IPV6 (%spings) percent success on intended ping size' % (ping_counts)] = \
+                                interface_warning_data['interface_statistics']['IPV6 %spings percent success on intended ping size' % (ping_counts)] = \
                                     str(do_ping(address = interface_warning_data['interface_data'].get('ipv6_addr_rem',str()), \
                                         mtu = interface_data['interface_data']['IPV6 intended ping size'], count = ping_counts, ipv6 = True,
                                         source = interface_data['interface_data'].get('ipv6_addr_loc',str())))
 
-                        elif '100' in interface_warning_data['interface_statistics'].get('IPV6 (%spings) percent success',str()):
+                        elif '100' in interface_warning_data['interface_statistics'].get('IPV6 ping percent success',str()):
                             ### def "THOUSANDS" PINGv6 COMMAND LIST ###################
                             if interface_warning_data['interface_data'].get('ipv6_addr_rem',str()):
 
-                                interface_warning_data['interface_statistics']['IPV6 (%spings) percent success_%spings' % (ping_counts)] = \
+                                interface_warning_data['interface_statistics']['IPV6 %spings percent success' % (ping_counts)] = \
                                     str(do_ping(address = interface_warning_data['interface_data'].get('ipv6_addr_rem',str()), \
                                         mtu = 100, count = ping_counts, ipv6 = True, \
                                         source = interface_data['interface_data'].get('ipv6_addr_loc',str())))
@@ -5397,21 +5400,21 @@ authentication {
                 if LOCAL_AS_NUMBER:
                     CGI_CLI.uprint('LOCAL_AS = %s, IMN_INTERFACE = %s' % \
                         (LOCAL_AS_NUMBER, str(IMN_INTERFACE)), \
-                        color = 'blue', timestamp = 'no')
+                        color = 'blue', timestamp = 'no', no_printall = not printall)
                 else:
                     CGI_CLI.uprint("PROBLEM TO PARSE LOCAL AS NUMBER on device %s!" \
                         % (device), color = 'red', timestamp = 'no')
 
                 ### def PRINT RESULTS PER INTERFACE ###########################
                 CGI_CLI.uprint(interface_data, name = 'Collected data on Device:%s' % (device), \
-                    jsonprint = True, color = 'blue', timestamp = 'no')
+                    jsonprint = True, color = 'blue', timestamp = 'no', no_printall = not printall)
 
                 CGI_CLI.uprint(interface_warning_data, name = 'Collected warning data on Device:%s' % (device), \
-                    jsonprint = True, color = 'blue', timestamp = 'no')
+                    jsonprint = True, color = 'blue', timestamp = 'no', no_printall = not printall)
 
                 ### START OF CHECKS PER INTERFACE #############################
                 check_interface_result_ok, check_warning_interface_result_ok = True, True
-                CGI_CLI.uprint('CHECKS:', timestamp = 'no', tag = 'h2')
+                CGI_CLI.uprint('RESULTS:', timestamp = 'no', tag = 'h1')
 
                 if not interface_data['interface_data'].get('bundle_members_nr') \
                     and interface_data['interface_data'].get('LAG_member',str()) == 'yes':
@@ -5559,25 +5562,25 @@ authentication {
                 if interface_data['interface_data'].get('bundle_members_nr') and not interface_data['interface_data'].get('inactive_bundle_members'):
                     CGI_CLI.logtofile('CHECK of bundle interfaces is OK.\n', ommit_timestamp = True)
 
-                check_interface_data_content("['interface_statistics']['IPV4 (%spings) percent success']", '100', ignore_data_existence = True)
+                check_interface_data_content("['interface_statistics']['IPV4 ping percent success']", '100', ignore_data_existence = True)
 
                 if RCMD.router_type == 'juniper':
                     CGI_CLI.uprint('NOTE: Juniper control plane protection could drop some of longer ping packets, so ping success could be less than 100%.')
                     check_interface_data_content("['interface_statistics']['IPV4 percent success on intended ping size']", higher_than = 0, warning = True, ignore_data_existence = True)
-                    check_interface_data_content("['interface_statistics']['IPV4 (%spings) percent success on max working ping size']" % (ping_counts), higher_than = 0, ignore_data_existence = True)
+                    check_interface_data_content("['interface_statistics']['IPV4 %spings percent success on max working ping size']" % (ping_counts), higher_than = 0, ignore_data_existence = True)
                 else:
                     check_interface_data_content("['interface_statistics']['IPV4 percent success on intended ping size']", '100', warning = True, ignore_data_existence = True)
-                    check_interface_data_content("['interface_statistics']['IPV4 (%spings) percent success on max working ping size']" % (ping_counts), '100', ignore_data_existence = True)
+                    check_interface_data_content("['interface_statistics']['IPV4 %spings percent success on max working ping size']" % (ping_counts), '100', ignore_data_existence = True)
 
                 if USE_IPV6:
-                    check_interface_data_content("['interface_statistics']['IPV6 (%spings) percent success']", '100', warning = True, ignore_data_existence = True)
+                    check_interface_data_content("['interface_statistics']['IPV6 ping percent success']", '100', warning = True, ignore_data_existence = True)
 
                     if RCMD.router_type == 'juniper':
                         check_interface_data_content("['interface_statistics']['IPV6 percent success on intended ping size']", higher_than = 0, warning = True, ignore_data_existence = True)
-                        check_interface_data_content("['interface_statistics']['IPV6 (%spings) percent success on max working ping size']" % (ping_counts), higher_than = 0, warning = True, ignore_data_existence = True)
+                        check_interface_data_content("['interface_statistics']['IPV6 %spings percent success on max working ping size']" % (ping_counts), higher_than = 0, warning = True, ignore_data_existence = True)
                     else:
                         check_interface_data_content("['interface_statistics']['IPV6 percent success on intended ping size']", '100', warning = True, ignore_data_existence = True)
-                        check_interface_data_content("['interface_statistics']['IPV6 (%spings) percent success on max working ping size']" % (ping_counts), '100', warning = True, ignore_data_existence = True)
+                        check_interface_data_content("['interface_statistics']['IPV6 %spings percent success on max working ping size']" % (ping_counts), '100', warning = True, ignore_data_existence = True)
 
                 if interface_warning_data['interface_data'].get('ipv4_addr_rem_calculated'):
                     check_interface_data_content("['interface_data']['ipv4_addr_rem_calculated']", interface_data['interface_data'].get('ipv4_addr_rem'), ignore_data_existence = True, warning = True)
@@ -5588,15 +5591,15 @@ authentication {
                 if ping_counts and int(ping_counts) > 0:
 
                     if '100' in interface_warning_data['interface_statistics'].get('IPV4 percent success on intended ping size',str()):
-                        check_interface_data_content("['interface_statistics']['IPV4 (%spings) percent success on intended ping size']" % (ping_counts), '100', warning = True, ignore_data_existence = True)
+                        check_interface_data_content("['interface_statistics']['IPV4 %spings percent success on intended ping size']" % (ping_counts), '100', warning = True, ignore_data_existence = True)
                     else:
-                        check_interface_data_content("['interface_statistics']['IPV4 (%spings) percent success_%spings']" % (ping_counts), '100', ignore_data_existence = True)
+                        check_interface_data_content("['interface_statistics']['IPV4 %spings percent success']" % (ping_counts), '100', ignore_data_existence = True)
 
                     if USE_IPV6:
                         if '100' in interface_warning_data['interface_statistics'].get('IPV6 percent success on intended ping size',str()):
-                            check_interface_data_content("['interface_statistics']['IPV6 (%spings) percent success on intended ping size']" % (ping_counts), '100', warning = True, ignore_data_existence = True)
+                            check_interface_data_content("['interface_statistics']['IPV6 %spings percent success on intended ping size']" % (ping_counts), '100', warning = True, ignore_data_existence = True)
                         else:
-                            check_interface_data_content("['interface_statistics']['IPV6 (%spings) percent success_%spings']" % (ping_counts), '100', warning = True, ignore_data_existence = True)
+                            check_interface_data_content("['interface_statistics']['IPV6 %spings percent success']" % (ping_counts), '100', warning = True, ignore_data_existence = True)
 
                 if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
                     if BB_MODE:
