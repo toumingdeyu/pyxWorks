@@ -5550,11 +5550,11 @@ authentication {
                             check_warning_interface_result_ok = False
                         else: CGI_CLI.logtofile('Rx Traffic on Interface %s is %.2f%% = OK\n' % (interface_id, interface_warning_data['interface_statistics'].get('rxload_percent')), ommit_timestamp = True)
 
-                ### def BB - REMOTE DEVICE CHECK ##############################
+                ### def BB - REMOTE DEVICE CHECK #############################
                 if BB_MODE:
                     check_interface_data_content("['interface_data']['name_of_remote_device_from_description']", what_not_in = device)
 
-                ### def ALL - CONTENT ELEMENT CHECK #############################
+                ### def ALL - CONTENT ELEMENT CHECK ##########################
                 if interface_data['interface_data'].get('inactive_bundle_members'):
                     check_interface_result_ok = False
                     CGI_CLI.uprint('Inactive bundle interfaces found: %s' % (interface_data['interface_data'].get('inactive_bundle_members')), color = 'red')
@@ -5562,25 +5562,44 @@ authentication {
                 if interface_data['interface_data'].get('bundle_members_nr') and not interface_data['interface_data'].get('inactive_bundle_members'):
                     CGI_CLI.logtofile('CHECK of bundle interfaces is OK.\n', ommit_timestamp = True)
 
-                check_interface_data_content("['interface_statistics']['IPV4 ping percent success']", '100', ignore_data_existence = True)
 
+                ### def PING CHECKS ###########################################
                 if RCMD.router_type == 'juniper':
-                    CGI_CLI.uprint('NOTE: Juniper control plane protection could drop some of longer ping packets, so ping success could be less than 100%.')
-                    check_interface_data_content("['interface_statistics']['IPV4 percent success on intended ping size']", higher_than = 0, warning = True, ignore_data_existence = True)
-                    check_interface_data_content("['interface_statistics']['IPV4 %spings percent success on max working ping size']" % (ping_counts), higher_than = 0, ignore_data_existence = True)
-                else:
-                    check_interface_data_content("['interface_statistics']['IPV4 percent success on intended ping size']", '100', warning = True, ignore_data_existence = True)
-                    check_interface_data_content("['interface_statistics']['IPV4 %spings percent success on max working ping size']" % (ping_counts), '100', ignore_data_existence = True)
+                    CGI_CLI.uprint('NOTE: Juniper control plane protection could drop some of longer ping packets, so ping success could be less than 100%.', color = 'blue')
+
+                check_interface_data_content("['interface_statistics']['IPV4 ping percent success']", '100')
 
                 if USE_IPV6:
                     check_interface_data_content("['interface_statistics']['IPV6 ping percent success']", '100', warning = True, ignore_data_existence = True)
 
+
+                if BB_MODE or CUSTOMER_MODE:
                     if RCMD.router_type == 'juniper':
-                        check_interface_data_content("['interface_statistics']['IPV6 percent success on intended ping size']", higher_than = 0, warning = True, ignore_data_existence = True)
-                        check_interface_data_content("['interface_statistics']['IPV6 %spings percent success on max working ping size']" % (ping_counts), higher_than = 0, warning = True, ignore_data_existence = True)
+                        check_interface_data_content("['interface_statistics']['IPV4 percent success on intended ping size']", higher_than = 0, warning = True, ignore_data_existence = True)
                     else:
-                        check_interface_data_content("['interface_statistics']['IPV6 percent success on intended ping size']", '100', warning = True, ignore_data_existence = True)
-                        check_interface_data_content("['interface_statistics']['IPV6 %spings percent success on max working ping size']" % (ping_counts), '100', warning = True, ignore_data_existence = True)
+                        check_interface_data_content("['interface_statistics']['IPV4 percent success on intended ping size']", '100', warning = True, ignore_data_existence = True)
+
+                    if USE_IPV6:
+                        if RCMD.router_type == 'juniper':
+                            check_interface_data_content("['interface_statistics']['IPV6 percent success on intended ping size']", higher_than = 0, warning = True, ignore_data_existence = True)
+                        else:
+                            check_interface_data_content("['interface_statistics']['IPV6 percent success on intended ping size']", '100', warning = True, ignore_data_existence = True)
+
+
+                if PING_ONLY:
+                    if RCMD.router_type == 'juniper':
+                        check_interface_data_content("['interface_statistics']['IPV4 %spings percent success on max working ping size']" % (ping_counts), higher_than = 0)
+                    else:
+                        check_interface_data_content("['interface_statistics']['IPV4 %spings percent success on max working ping size']" % (ping_counts), '100')
+
+                    if USE_IPV6:
+                        if RCMD.router_type == 'juniper':
+                            check_interface_data_content("['interface_statistics']['IPV6 %spings percent success on max working ping size']" % (ping_counts), higher_than = 0, warning = True)
+                        else:
+                            check_interface_data_content("['interface_statistics']['IPV6 %spings percent success on max working ping size']" % (ping_counts), '100', warning = True)
+
+
+
 
                 if interface_warning_data['interface_data'].get('ipv4_addr_rem_calculated'):
                     check_interface_data_content("['interface_data']['ipv4_addr_rem_calculated']", interface_data['interface_data'].get('ipv4_addr_rem'), ignore_data_existence = True, warning = True)
