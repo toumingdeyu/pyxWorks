@@ -1143,7 +1143,7 @@ class RCMD(object):
     @staticmethod
     def run_command(cmd_line = None, printall = None, conf = None, \
         long_lasting_mode = None, autoconfirm_mode = None, \
-        sim_config = None, sim_all = None, ignore_prompt = None):
+        sim_config = None, sim_all = None, ignore_prompt = None, ignore_syntax_error = None):
         """
         cmd_line - string, DETECTED DEVICE TYPE DEPENDENT
         sim_all  - simulate execution of all commands, not only config commands
@@ -1208,15 +1208,17 @@ class RCMD(object):
                             CGI_CLI.uprint('\n', timestamp = 'no', ommit_logging = True)
                         else:
                             CGI_CLI.uprint(' . ', no_newlines = True, timestamp = 'no', ommit_logging = True)
-            for line in last_output.splitlines():
-                if line.strip() == '^':
-                    CGI_CLI.uprint("\nSYNTAX ERROR in CMD: '%s' !\n" % (str(cmd_line)), timestamp = 'no', color = 'orange')
+            if not ignore_syntax_error:
+                for line in last_output.splitlines():
+                    if line.strip() == '^':
+                        CGI_CLI.uprint("\nSYNTAX ERROR in CMD: '%s' !\n" % (str(cmd_line)), timestamp = 'no', color = 'orange')
         return str(last_output)
 
     @staticmethod
     def run_commands(cmd_data = None, printall = None, conf = None, sim_config = None, \
         do_not_final_print = None , commit_text = None, submit_result = None , \
-        long_lasting_mode = None, autoconfirm_mode = None, ignore_prompt = None):
+        long_lasting_mode = None, autoconfirm_mode = None, ignore_prompt = None, \
+        ignore_syntax_error = None):
         """
         FUNCTION: run_commands(), RETURN: list of command_outputs
         PARAMETERS:
@@ -1277,7 +1279,8 @@ class RCMD(object):
                         conf = conf, sim_config = sim_config, printall = printall,
                         long_lasting_mode = long_lasting_mode, \
                         ignore_prompt = ignore_prompt, \
-                        autoconfirm_mode = autoconfirm_mode))
+                        autoconfirm_mode = autoconfirm_mode, \
+                        ignore_syntax_error = ignore_syntax_error))
                 ### EXIT FROM CONFIG MODE FOR PARAMIKO #####################
                 if (conf or RCMD.conf) and RCMD.use_module == 'paramiko':
                     ### GO TO CONFIG TOP LEVEL SECTION ---------------------
@@ -2471,8 +2474,8 @@ def get_fiblist(input_text = None):
 
 check_interface_result_ok, check_warning_interface_result_ok = True, True
 def check_interface_data_content(where = None, what_yes_in = None, what_not_in = None, \
-    exact_value_yes = None, lower_than = None, higher_than = None, warning = None, \
-    ignore_data_existence = None):
+    exact_value_yes = None, lower_than = None, higher_than = None, equals_to = None,
+    warning = None, ignore_data_existence = None):
     """
     multiple tests in once are possible
     what_yes_in - string = if occurs in where then OK.
@@ -2505,9 +2508,9 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not_in =
                 if str(where) in interface_data.keys(): key_exists = True
             except: pass
 
-    #CGI_CLI.uprint('CHECK[%s, where_value=%s, what_yes_in=%s, what_not_in=%s, exact_value_yes=%s, lower_than=%s, higher_than=%s, warning=%s, key_exists=%s, ignore_data_existence=%s]' \
-    #    % (where, where_value, what_yes_in, what_not_in, exact_value_yes, lower_than, higher_than, warning, str(key_exists), str(ignore_data_existence)),\
-    #    tag = 'debug', no_printall = not CGI_CLI.printall)
+    #CGI_CLI.uprint('CHECK[%s, key_exists=%s ,where_value=%s, what_yes_in=%s, what_not_in=%s, exact_value_yes=%s, lower_than=%s, higher_than=%s, warning=%s, key_exists=%s, ignore_data_existence=%s]' \
+    #    % (where, key_exists, where_value, what_yes_in, what_not_in, exact_value_yes, lower_than, higher_than, warning, str(key_exists), str(ignore_data_existence)),\
+    #    tag = 'debug', no_printall = not CGI_CLI.printall, timestamp = 'no')
 
     if key_exists: pass
     else:
@@ -2515,7 +2518,8 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not_in =
         else: CGI_CLI.logtofile("DATA '%s' DOES NOT EXISTS.\n" % (where), ommit_timestamp = True)
         return None
 
-    if lower_than and where:
+    ### FLOAT ZERO WORKARROUND ###
+    if str(lower_than) and str(lower_than) != 'None':
         try:
             if float(where_value) < float(lower_than):
                 CGI_CLI.logtofile("CHECK['%s'(%s) < '%.2f'] = OK\n" % (where, str(where_value), float(lower_than)), ommit_timestamp = True)
@@ -2528,7 +2532,8 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not_in =
                     CGI_CLI.uprint("CHECK['%s'(%s) < '%.2f'] = NOT OK\n" % (where, str(where_value), float(lower_than)), color = 'red', timestamp = 'no')
         except: CGI_CLI.logtofile("CHECK['%s'(%s) < '%s'] = NaN\n" % (where, str(where_value), str(lower_than)), ommit_timestamp = True)
 
-    if higher_than and where:
+    ### FLOAT ZERO WORKARROUND ###
+    if str(higher_than) and str(higher_than) != 'None':
         try:
             if float(where_value) > float(higher_than):
                 CGI_CLI.logtofile("CHECK['%s'(%s) > '%.2f'] = OK\n" % (where, str(where_value), float(higher_than)), ommit_timestamp = True)
@@ -2541,8 +2546,22 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not_in =
                     CGI_CLI.uprint("CHECK['%s'(%s) > '%.2f'] = NOT OK\n" % (where, str(where_value), float(higher_than)), color = 'red', timestamp = 'no')
         except: CGI_CLI.logtofile("CHECK['%s'(%s) > '%s'] = NaN\n" % (where, str(where_value), str(higher_than)), ommit_timestamp = True)
 
-    if exact_value_yes and where:
-        if exact_value_yes.upper() == where_value.upper():
+    ### FLOAT ZERO WORKARROUND ###
+    if str(equals_to) and str(equals_to) != 'None':
+        try:
+            if float(where_value) > float(equals_to):
+                CGI_CLI.logtofile("CHECK['%s'(%s) == '%.2f'] = OK\n" % (where, str(where_value), float(equals_to)), ommit_timestamp = True)
+            else:
+                if warning:
+                    check_warning_interface_result_ok = False
+                    CGI_CLI.uprint("CHECK['%s'(%s) == '%.2f'] = WARNING\n" % (where, str(where_value), float(equals_to)), color = 'orange', timestamp = 'no')
+                else:
+                    check_interface_result_ok = False
+                    CGI_CLI.uprint("CHECK['%s'(%s) == '%.2f'] = NOT OK\n" % (where, str(where_value), float(equals_to)), color = 'red', timestamp = 'no')
+        except: CGI_CLI.logtofile("CHECK['%s'(%s) == '%s'] = NaN\n" % (where, str(where_value), str(equals_to)), ommit_timestamp = True)
+
+    if exact_value_yes:
+        if str(exact_value_yes).upper() == str(where_value).upper():
             CGI_CLI.logtofile("CHECK['%s' == '%s'(%s)] = OK\n" % (exact_value_yes, where, str(where_value)), ommit_timestamp = True)
         else:
             if warning:
@@ -2554,7 +2573,7 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not_in =
                 CGI_CLI.uprint("CHECK['%s' == '%s'(%s)] = NOT OK" % (exact_value_yes, where, str(where_value)),
                     color = 'red', timestamp = 'no')
 
-    if what_yes_in and where:
+    if what_yes_in:
         if isinstance(where, (list,tuple)):
             if what_yes_in in where_value:
                 CGI_CLI.logtofile("CHECK['%s' in '%s'(%s)] = OK\n" % (what_yes_in, where, str(where_value)), ommit_timestamp = True)
@@ -2580,7 +2599,7 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not_in =
                     CGI_CLI.uprint("CHECK['%s' in '%s'(%s)] = NOT OK" % (what_yes_in, where, str(where_value)),
                         color = 'red', timestamp = 'no')
 
-    if what_not_in and where:
+    if what_not_in:
         if isinstance(what_not_in, (list,tuple)):
             for item in what_not_in:
                 if item.upper() in where_value.upper():
@@ -2671,7 +2690,7 @@ def do_ping(address = None, mtu = None, count = None, ipv6 = None, source = None
         ping4_config_rcmds_outputs = RCMD.run_commands(ping4_config_rcmds, \
             autoconfirm_mode = True, \
             long_lasting_mode = True, \
-            printall = CGI_CLI.printall)
+            printall = CGI_CLI.printall, ignore_syntax_error = True)
 
         if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
             try: percent_success = float(ping4_config_rcmds_outputs[0].\
