@@ -2526,10 +2526,10 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not_in =
             else:
                 if warning:
                     check_warning_interface_result_ok = False
-                    CGI_CLI.uprint("CHECK['%s'(%s) < '%.2f'] = WARNING\n" % (where, str(where_value), float(lower_than)), color = 'orange', timestamp = 'no')
+                    CGI_CLI.uprint("CHECK['%s'(%s) < '%.2f'] = WARNING" % (where, str(where_value), float(lower_than)), color = 'orange', timestamp = 'no')
                 else:
                     check_interface_result_ok = False
-                    CGI_CLI.uprint("CHECK['%s'(%s) < '%.2f'] = NOT OK\n" % (where, str(where_value), float(lower_than)), color = 'red', timestamp = 'no')
+                    CGI_CLI.uprint("CHECK['%s'(%s) < '%.2f'] = NOT OK" % (where, str(where_value), float(lower_than)), color = 'red', timestamp = 'no')
         except: CGI_CLI.logtofile("CHECK['%s'(%s) < '%s'] = NaN\n" % (where, str(where_value), str(lower_than)), ommit_timestamp = True)
 
     ### FLOAT ZERO WORKARROUND ###
@@ -2540,10 +2540,10 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not_in =
             else:
                 if warning:
                     check_warning_interface_result_ok = False
-                    CGI_CLI.uprint("CHECK['%s'(%s) > '%.2f'] = WARNING\n" % (where, str(where_value), float(higher_than)), color = 'orange', timestamp = 'no')
+                    CGI_CLI.uprint("CHECK['%s'(%s) > '%.2f'] = WARNING" % (where, str(where_value), float(higher_than)), color = 'orange', timestamp = 'no')
                 else:
                     check_interface_result_ok = False
-                    CGI_CLI.uprint("CHECK['%s'(%s) > '%.2f'] = NOT OK\n" % (where, str(where_value), float(higher_than)), color = 'red', timestamp = 'no')
+                    CGI_CLI.uprint("CHECK['%s'(%s) > '%.2f'] = NOT OK" % (where, str(where_value), float(higher_than)), color = 'red', timestamp = 'no')
         except: CGI_CLI.logtofile("CHECK['%s'(%s) > '%s'] = NaN\n" % (where, str(where_value), str(higher_than)), ommit_timestamp = True)
 
     ### FLOAT ZERO WORKARROUND ###
@@ -2554,10 +2554,10 @@ def check_interface_data_content(where = None, what_yes_in = None, what_not_in =
             else:
                 if warning:
                     check_warning_interface_result_ok = False
-                    CGI_CLI.uprint("CHECK['%s'(%s) == '%.2f'] = WARNING\n" % (where, str(where_value), float(equals_to)), color = 'orange', timestamp = 'no')
+                    CGI_CLI.uprint("CHECK['%s'(%s) == '%.2f'] = WARNING" % (where, str(where_value), float(equals_to)), color = 'orange', timestamp = 'no')
                 else:
                     check_interface_result_ok = False
-                    CGI_CLI.uprint("CHECK['%s'(%s) == '%.2f'] = NOT OK\n" % (where, str(where_value), float(equals_to)), color = 'red', timestamp = 'no')
+                    CGI_CLI.uprint("CHECK['%s'(%s) == '%.2f'] = NOT OK" % (where, str(where_value), float(equals_to)), color = 'red', timestamp = 'no')
         except: CGI_CLI.logtofile("CHECK['%s'(%s) == '%s'] = NaN\n" % (where, str(where_value), str(equals_to)), ommit_timestamp = True)
 
     if exact_value_yes:
