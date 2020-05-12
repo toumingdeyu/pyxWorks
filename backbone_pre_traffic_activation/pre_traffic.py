@@ -2798,10 +2798,10 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
             if inactive_bundle_members:
                 interface_data['interface_data']['inactive_bundle_members'] = inactive_bundle_members
 
-            try: interface_warning_data['interface_data']['IPV4 MTU set'] = err_check_after_pings_outputs[0].split('mtu ')[1].split()[0]
+            try: interface_warning_data['interface_data']['IPV4 MTU set'] = err_check_after_pings_outputs[0].upper().split('MTU ')[1].split()[0]
             except: pass
 
-            try: interface_warning_data['interface_data']['IPV6 MTU set'] = err_check_after_pings_outputs[0].split('mtu ')[1].split()[0]
+            try: interface_warning_data['interface_data']['IPV6 MTU set'] = err_check_after_pings_outputs[0].upper().split('MTU ')[1].split()[0]
             except: pass
 
         try:    interface_warning_data['interface_statistics']['input_errors%s' % (after_string)] = err_check_after_pings_outputs[0].split('input errors')[0].splitlines()[-1].split()[0].strip()
