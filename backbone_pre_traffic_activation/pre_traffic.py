@@ -5286,34 +5286,34 @@ authentication {
                     L3_ping_header, L3_ping_header_v6 = 28, 48
                 else: L3_ping_header, L3_ping_header_v6 = 0, 0
 
-                interface_data['interface_data']['IPV4 L2 ping header size'] = L2_ping_header
-                interface_data['interface_data']['IPV6 L2 ping header size'] = L2_ping_header_v6
-                interface_data['interface_data']['IPV4 L3 ping header size'] = L3_ping_header
-                interface_data['interface_data']['IPV6 L3 ping header size'] = L3_ping_header_v6
+                interface_warning_data['interface_data']['IPV4 L2 ping header size'] = L2_ping_header
+                interface_warning_data['interface_data']['IPV6 L2 ping header size'] = L2_ping_header_v6
+                interface_warning_data['interface_data']['IPV4 L3 ping header size'] = L3_ping_header
+                interface_warning_data['interface_data']['IPV6 L3 ping header size'] = L3_ping_header_v6
 
-                if interface_warning_data['interface_data'].get('MTU_interface_configured'):
-                    ping_size = (int(interface_warning_data['interface_data'].get('MTU_interface_configured')) - L3_ping_header - L2_ping_header) if (default_mtu - L3_ping_header - L2_ping_header) > 0 else 1
-                    ping_size_v6 = (int(interface_warning_data['interface_data'].get('MTU_interface_configured')) - L3_ping_header_v6 - L2_ping_header_v6) if (default_mtu_v6 - L3_ping_header_v6 - L2_ping_header_v6) > 0 else 1
-
-                elif interface_warning_data['interface_data'].get('IPV4 MTU set'):
+                if interface_warning_data['interface_data'].get('IPV4 MTU set'):
                     if RCMD.router_type == 'cisco_xr':
-                        ping_size = (int(interface_warning_data['interface_data'].get('IPV4 MTU set')) - L3_ping_header - L2_ping_header) if (default_mtu - L3_ping_header - L2_ping_header) > 0 else 1
+                        ping_size = (int(interface_warning_data['interface_data'].get('IPV4 MTU set')) - L3_ping_header - L2_ping_header) if (int(interface_warning_data['interface_data'].get('IPV4 MTU set')) - L3_ping_header - L2_ping_header) > 0 else 1
                     else:
-                        ping_size = (int(interface_warning_data['interface_data'].get('IPV4 MTU set')) - L3_ping_header) if (default_mtu - L3_ping_header) > 0 else 1
+                        ping_size = (int(interface_warning_data['interface_data'].get('IPV4 MTU set')) - L3_ping_header) if (int(interface_warning_data['interface_data'].get('IPV4 MTU set')) - L3_ping_header) > 0 else 1
 
                     if interface_warning_data['interface_data'].get('IPV6 MTU set'):
                         if RCMD.router_type == 'cisco_xr':
-                            ping_size_v6 = (int(interface_warning_data['interface_data'].get('IPV6 MTU set')) - L3_ping_header_v6 - L2_ping_header) if (default_mtu_v6 - L3_ping_header_v6 - L2_ping_header) > 0 else 1
+                            ping_size_v6 = (int(interface_warning_data['interface_data'].get('IPV6 MTU set')) - L3_ping_header_v6 - L2_ping_header) if (int(interface_warning_data['interface_data'].get('IPV6 MTU set')) - L3_ping_header_v6 - L2_ping_header) > 0 else 1
                         else:
-                            ping_size_v6 = (int(interface_warning_data['interface_data'].get('IPV6 MTU set')) - L3_ping_header_v6) if (default_mtu_v6 - L3_ping_header_v6) > 0 else 1
+                            ping_size_v6 = (int(interface_warning_data['interface_data'].get('IPV6 MTU set')) - L3_ping_header_v6) if (int(interface_warning_data['interface_data'].get('IPV6 MTU set')) - L3_ping_header_v6) > 0 else 1
 
-                interface_data['interface_data']['IPV4 intended ping size'] = ping_size
-                interface_data['interface_data']['IPV6 intended ping size'] = ping_size_v6
+                elif interface_warning_data['interface_data'].get('MTU_interface_configured'):
+                    ping_size = (int(interface_warning_data['interface_data'].get('MTU_interface_configured')) - L3_ping_header - L2_ping_header) if (int(interface_warning_data['interface_data'].get('MTU_interface_configured')) - L3_ping_header - L2_ping_header) > 0 else 1
+                    ping_size_v6 = (int(interface_warning_data['interface_data'].get('MTU_interface_configured')) - L3_ping_header_v6 - L2_ping_header_v6) if (int(interface_warning_data['interface_data'].get('MTU_interface_configured')) - L3_ping_header_v6 - L2_ping_header_v6) > 0 else 1
+
+                interface_warning_data['interface_data']['IPV4 intended ping size'] = copy.deepcopy(ping_size)
+                interface_warning_data['interface_data']['IPV6 intended ping size'] = copy.deepcopy(ping_size_v6)
 
                 if ping_size <= 1:
-                    CGI_CLI.uprint('IPV4 PING SIZE CALCULATION WARNING!', color = 'warning', timestamp = 'no')
+                    CGI_CLI.uprint('\nIPV4 PING SIZE CALCULATION WARNING!', color = 'orange', timestamp = 'no')
                 if ping_size_v6 <= 1 and USE_IPV6:
-                    CGI_CLI.uprint('IPV6 PING SIZE CALCULATION WARNING!', color = 'warning', timestamp = 'no')
+                    CGI_CLI.uprint('\nIPV6 PING SIZE CALCULATION WARNING!', color = 'orange', timestamp = 'no')
 
 
 
@@ -5326,7 +5326,7 @@ authentication {
 
                     interface_warning_data['interface_statistics']['IPV4 percent success on intended ping size'] = str(do_ping( \
                         address = interface_data['interface_data'].get('ipv4_addr_rem',str()), \
-                        mtu = interface_data['interface_data']['IPV4 intended ping size'], count = 5, ipv6 = None, \
+                        mtu = interface_warning_data['interface_data']['IPV4 intended ping size'], count = 5, ipv6 = None, \
                         source = interface_data.get('ipv4_addr_loc',str())))
 
 
@@ -5340,7 +5340,7 @@ authentication {
 
                         interface_warning_data['interface_statistics']['IPV6 percent success on intended ping size'] = str(do_ping( \
                             address = interface_warning_data['interface_data'].get('ipv6_addr_rem',str()), \
-                            mtu = interface_data['interface_data']['IPV6 intended ping size'], count = 5, ipv6 = True, \
+                            mtu = interface_warning_data['interface_data']['IPV6 intended ping size'], count = 5, ipv6 = True, \
                             source = interface_data.get('ipv6_addr_loc',str())))
 
                 ### def FIND MAX MTU ##########################################
@@ -5383,7 +5383,7 @@ authentication {
 
                             interface_warning_data['interface_statistics']['IPV4 %spings percent success on intended ping size' % (ping_counts)] = \
                                 str(do_ping(address = interface_data['interface_data'].get('ipv4_addr_rem',str()), \
-                                    mtu = interface_data['interface_data']['IPV4 intended ping size'], count = ping_counts, ipv6 = None, \
+                                    mtu = interface_warning_data['interface_data']['IPV4 intended ping size'], count = ping_counts, ipv6 = None, \
                                     source = interface_data['interface_data'].get('ipv4_addr_loc',str())))
 
                     elif '100' in interface_data['interface_statistics'].get('IPV4 ping percent success',str()):
@@ -5403,7 +5403,7 @@ authentication {
 
                                 interface_warning_data['interface_statistics']['IPV6 %spings percent success on intended ping size' % (ping_counts)] = \
                                     str(do_ping(address = interface_warning_data['interface_data'].get('ipv6_addr_rem',str()), \
-                                        mtu = interface_data['interface_data']['IPV6 intended ping size'], count = ping_counts, ipv6 = True,
+                                        mtu = interface_warning_data['interface_data']['IPV6 intended ping size'], count = ping_counts, ipv6 = True,
                                         source = interface_data['interface_data'].get('ipv6_addr_loc',str())))
 
                         elif '100' in interface_warning_data['interface_statistics'].get('IPV6 ping percent success',str()):
