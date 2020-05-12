@@ -5269,11 +5269,7 @@ authentication {
 
 
                 ### def MTU CALCULATIONS (INTENDED) ###########################
-                default_mtu, default_mtu_v6 = 0, 0
                 ping_size, ping_size_v6 = 0, 0
-
-                #if BB_MODE: default_mtu, default_mtu_v6 = 4484, 4484
-                #if CUSTOMER_MODE or PING_ONLY: default_mtu, default_mtu_v6 = 1500, 1500
 
                 ### L2 PING HEADER ############################################
                 if RCMD.router_type == 'juniper' or RCMD.router_type == 'cisco_xr':
@@ -5306,6 +5302,21 @@ authentication {
                 elif interface_warning_data['interface_data'].get('MTU_interface_configured'):
                     ping_size = (int(interface_warning_data['interface_data'].get('MTU_interface_configured')) - L3_ping_header - L2_ping_header) if (int(interface_warning_data['interface_data'].get('MTU_interface_configured')) - L3_ping_header - L2_ping_header) > 0 else 1
                     ping_size_v6 = (int(interface_warning_data['interface_data'].get('MTU_interface_configured')) - L3_ping_header_v6 - L2_ping_header_v6) if (int(interface_warning_data['interface_data'].get('MTU_interface_configured')) - L3_ping_header_v6 - L2_ping_header_v6) > 0 else 1
+
+                if CUSTOMER_MODE:
+                    ping_size, ping_size_v6 = 1500, 1500
+
+                if not PING_ONLY:
+                    if ping_size <= 1:
+                        CGI_CLI.uprint('\nIPV4 PING SIZE CALCULATION WARNING!', color = 'orange', timestamp = 'no')
+                    if ping_size_v6 <= 1 and USE_IPV6:
+                        CGI_CLI.uprint('\nIPV6 PING SIZE CALCULATION WARNING!', color = 'orange', timestamp = 'no')
+
+                if BB_MODE:
+                    if ping_size <= 1:
+                        ping_size = 4484 - L3_ping_header_v6 - L2_ping_header
+                    if ping_size_v6 <= 1 and USE_IPV6:
+                        ping_size_v6 = ping_size
 
                 interface_warning_data['interface_data']['IPV4 intended ping size'] = copy.deepcopy(ping_size)
                 interface_warning_data['interface_data']['IPV6 intended ping size'] = copy.deepcopy(ping_size_v6)
