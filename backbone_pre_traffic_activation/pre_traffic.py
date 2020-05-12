@@ -2798,6 +2798,12 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
             if inactive_bundle_members:
                 interface_data['interface_data']['inactive_bundle_members'] = inactive_bundle_members
 
+            try: interface_warning_data['interface_data']['IPV4 MTU set'] = err_check_after_pings_outputs[0].split('mtu ')[1].split()[0]
+            except: pass
+
+            try: interface_warning_data['interface_data']['IPV6 MTU set'] = err_check_after_pings_outputs[0].split('mtu ')[1].split()[0]
+            except: pass
+
         try:    interface_warning_data['interface_statistics']['input_errors%s' % (after_string)] = err_check_after_pings_outputs[0].split('input errors')[0].splitlines()[-1].split()[0].strip()
         except: interface_warning_data['interface_statistics']['input_errors%s' % (after_string)] = str()
         if after_ping:
@@ -2967,6 +2973,12 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
                 interface_data['interface_data']['inactive_bundle_members'] = inactive_bundle_members
 
             if bundle_members_nr > 0: interface_data['interface_data']['bundle_members_nr'] = bundle_members_nr
+
+            try: interface_warning_data['interface_data']['IPV4 MTU set'] = err_check_after_pings_outputs[0].split('The Maximum Transmit Unit is ')[1].split()[0]
+            except: pass
+
+            try: interface_warning_data['interface_data']['IPV6 MTU set'] = err_check_after_pings_outputs[0].split('The Maximum Transmit Unit is ')[1].split()[0]
+            except: pass
 
         try:    interface_warning_data['interface_statistics']['Rx_Power_dBm%s' % (after_string)] = err_check_after_pings_outputs[0].split('Rx Power: ')[1].split()[0].strip().replace(',','').replace('dBm','')
         except: pass
@@ -3918,7 +3930,7 @@ authentication {
 
 
 
-                ### def COMMON RUN INTERFACE LIST #########################
+                ### def CONFIGURATION RUN INTERFACE LIST ######################
                 collect_if_data_rcmds = {
                     'cisco_ios':[
                         'show run interface %s' % (interface_id),
@@ -3930,6 +3942,7 @@ authentication {
 
                     'juniper': [
                         'show configuration interfaces %s | display set' % (interface_id),
+                        'show configuration groups mtu-default | display set',
                     ],
 
                     'huawei': [
@@ -3958,12 +3971,11 @@ authentication {
                 try: interface_data['interface_data']['fib_number(s)'] = ','.join(get_fiblist(collect_if_config_rcmd_outputs[0].split('description')[1].splitlines()[0]))
                 except: interface_data['interface_data']['fib_number'] = str()
 
-                #if not precheck_mode:
-                #    interface_warning_data['interface_statistics']['rxload_percent'] = '-'
-                #    interface_warning_data['interface_statistics']['txload_percent'] = '-'
-
                 ### CISCO XR+XE ping CMDS ##################################
                 if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
+                    try: interface_data['interface_data']['LAG_member'] = 'yes' if 'bundle id ' in collect_if_config_rcmd_outputs[0] else 'no'
+                    except: pass
+
                     try: interface_data['interface_data']['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv4 address ')[1].split()[0]
                     except: interface_data['interface_data']['ipv4_addr_loc'] = str()
 
@@ -3976,8 +3988,10 @@ authentication {
                     try: interface_data['interface_data']['ipv6_mask_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[1]
                     except: pass
 
-                    try: interface_warning_data['interface_data']['MTU_configured'] = collect_if_config_rcmd_outputs[0].split('mtu ')[1].splitlines()[0].strip()
-                    except: interface_warning_data['interface_data']['MTU_configured'] = str()
+                    try: interface_warning_data['interface_data']['MTU_interface_configured'] = collect_if_config_rcmd_outputs[0].split('mtu ')[1].splitlines()[0].strip()
+                    except:
+                        if interface_data['interface_data'].get('bundle_members_nr') and interface_data['interface_data'].get('LAG_member',str()) == 'no': pass
+                        else: interface_warning_data['interface_data']['MTU_interface_configured'] = str()
 
                     if BB_MODE:
                         interface_data['interface_data']['dampening'] = True if 'dampening' in collect_if_config_rcmd_outputs[0] else str()
@@ -4008,12 +4022,10 @@ authentication {
                             try: interface_data['interface_data']['ipv6_access-group'] = collect_if_config_rcmd_outputs[0].split('ipv6 access-group ')[1].splitlines()[0].strip()
                             except: interface_data['interface_data']['ipv6_access-group'] = str()
 
-
-                    try: interface_data['interface_data']['LAG_member'] = 'yes' if 'bundle id ' in collect_if_config_rcmd_outputs[0] else 'no'
-                    except: interface_data['interface_data']['LAG_member'] = str()
-
-
                 elif RCMD.router_type == 'juniper':
+                    try: interface_data['interface_data']['LAG_member'] = 'yes' if 'gigether-options ' in collect_if_config_rcmd_outputs[0] else 'no'
+                    except: pass
+
                     try: interface_data['interface_data']['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet address ')[1].split()[0].split('/')[0].replace(';','')
                     except: interface_data['interface_data']['ipv4_addr_loc'] = str()
 
@@ -4042,10 +4054,15 @@ authentication {
                                     try: interface_data['interface_data']['inet6 filter input(-list)'].append(copy.deepcopy(line.split('inet6 filter input ')[1].split()[0]))
                                     except: pass
 
-                    try: interface_data['interface_data']['LAG_member'] = 'yes' if 'gigether-options ' in collect_if_config_rcmd_outputs[0] else 'no'
-                    except: interface_data['interface_data']['LAG_member'] = str()
+                    try: interface_warning_data['interface_data']['MTU_interface_configured'] = collect_if_config_rcmd_outputs[1].split('<%s%s' % (interface_id[0],interface_id[1]))[1].split('mtu ')[1].splitlines()[0].strip()
+                    except:
+                        if interface_data['interface_data'].get('bundle_members_nr') and interface_data['interface_data'].get('LAG_member',str()) == 'no': pass
+                        else: interface_warning_data['interface_data']['MTU_interface_configured'] = str()
 
                 elif RCMD.router_type == 'huawei':
+                    try: interface_data['interface_data']['LAG_member'] = 'yes' if 'eth-trunk ' in collect_if_config_rcmd_outputs[0] else 'no'
+                    except: pass
+
                     try: interface_data['interface_data']['ipv4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[0]
                     except: interface_data['interface_data']['ipv4_addr_loc'] = str()
 
@@ -4058,18 +4075,17 @@ authentication {
                     try: interface_data['interface_data']['ipv6_mask_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[1]
                     except: pass
 
-                    try: interface_data['interface_data']['LAG_member'] = 'yes' if 'eth-trunk ' in collect_if_config_rcmd_outputs[0] else 'no'
-                    except: interface_data['interface_data']['LAG_member'] = str()
-
-                    try: interface_warning_data['interface_data']['MTU_configured'] = collect_if_config_rcmd_outputs[0].split('mtu ')[1].splitlines()[0].strip()
-                    except: interface_warning_data['interface_data']['MTU_configured'] = str()
+                    try: interface_warning_data['interface_data']['MTU_interface_configured'] = collect_if_config_rcmd_outputs[0].split('mtu ')[1].splitlines()[0].strip()
+                    except:
+                        if interface_data['interface_data'].get('bundle_members_nr') and interface_data['interface_data'].get('LAG_member',str()) == 'no': pass
+                        else: interface_warning_data['interface_data']['MTU_interface_configured'] = str()
 
                     if CUSTOMER_MODE:
                         try: interface_warning_data['interface_data']['traffic-policy'] = collect_if_config_rcmd_outputs[0].split('traffic-policy ')[1].split()[0].strip()
                         except: interface_warning_data['interface_data']['traffic-policy'] = str()
 
-                        try: interface_warning_data['interface_data']['MTU_configured'] = collect_if_config_rcmd_outputs[0].split('mtu ')[1].splitlines()[0].strip()
-                        except: interface_warning_data['interface_data']['MTU_configured'] = str()
+                        try: interface_warning_data['interface_data']['MTU_interface_configured'] = collect_if_config_rcmd_outputs[0].split('mtu ')[1].splitlines()[0].strip()
+                        except: interface_warning_data['interface_data']['MTU_interface_configured'] = str()
 
                 ### def IPV6 CONDITION - YES OR NO ############################
                 ### OTI_LOCAL_AS = '5511'
@@ -4310,12 +4326,12 @@ authentication {
                         except: interface_prefix = str()
 
                         if interface_prefix:
-                            try: interface_warning_data['interface_data']['MTU_configured'] = collect_if_config_rcmd_outputs[10].split('<' + interface_prefix).split('mtu ')[1].splitlines()[0].strip()
-                            except: interface_warning_data['interface_data']['MTU_configured'] = str()
+                            try: interface_warning_data['interface_data']['MTU_interface_configured'] = collect_if_config_rcmd_outputs[10].split('<' + interface_prefix).split('mtu ')[1].splitlines()[0].strip()
+                            except: interface_warning_data['interface_data']['MTU_interface_configured'] = str()
 
-                        if not interface_warning_data['interface_data'].get('MTU_configured'):
-                            try: interface_warning_data['interface_data']['MTU_configured'] = collect_if_config_rcmd_outputs[10].split('mtu ')[1].splitlines()[0].strip()
-                            except: interface_warning_data['interface_data']['MTU_configured'] = str()
+                        if not interface_warning_data['interface_data'].get('MTU_interface_configured'):
+                            try: interface_warning_data['interface_data']['MTU_interface_configured'] = collect_if_config_rcmd_outputs[10].split('mtu ')[1].splitlines()[0].strip()
+                            except: interface_warning_data['interface_data']['MTU_interface_configured'] = str()
 
                         interface_data['interface_data']['ldp-synchronization;'] = True if 'ldp-synchronization;' in collect_if_config_rcmd_outputs[11] else str()
 
@@ -5253,38 +5269,51 @@ authentication {
 
 
                 ### def MTU CALCULATIONS (INTENDED) ###########################
-                ping_size, default_mtu, ping_size_v6, default_mtu_v6 = 0, 0, 0, 0
-                ping_header, ping_header_v6 = 0, 0
-                if interface_warning_data['interface_data'].get('MTU_configured'):
-                    default_mtu = int(interface_warning_data['interface_data'].get('MTU_configured'))
-                    default_mtu_v6 = int(interface_warning_data['interface_data'].get('MTU_configured'))
+                default_mtu, default_mtu_v6 = 0, 0
+                ping_size, ping_size_v6 = 0, 0
+
+                #if BB_MODE: default_mtu, default_mtu_v6 = 4484, 4484
+                #if CUSTOMER_MODE or PING_ONLY: default_mtu, default_mtu_v6 = 1500, 1500
+
+                ### L2 PING HEADER ############################################
+                if RCMD.router_type == 'juniper' or RCMD.router_type == 'cisco_xr':
+                    L2_ping_header, L2_ping_header_v6 = 14, 14
+                else: L2_ping_header, L2_ping_header_v6 = 0, 0
+
+                ### L3 PING HEADER ############################################
+                if RCMD.router_type == 'huawei' or RCMD.router_type == 'juniper':
+                    ### PING6(4490=40+8+4442 bytes) ###
+                    L3_ping_header, L3_ping_header_v6 = 28, 48
+                else: L3_ping_header, L3_ping_header_v6 = 0, 0
+
+                interface_data['interface_data']['IPV4 L2 ping header size'] = L2_ping_header
+                interface_data['interface_data']['IPV6 L2 ping header size'] = L2_ping_header_v6
+                interface_data['interface_data']['IPV4 L3 ping header size'] = L3_ping_header
+                interface_data['interface_data']['IPV6 L3 ping header size'] = L3_ping_header_v6
+
+                if interface_warning_data['interface_data'].get('MTU_interface_configured'):
+                    ping_size = (int(interface_warning_data['interface_data'].get('MTU_interface_configured')) - L3_ping_header - L2_ping_header) if (default_mtu - L3_ping_header - L2_ping_header) > 0 else 1
+                    ping_size_v6 = (int(interface_warning_data['interface_data'].get('MTU_interface_configured')) - L3_ping_header_v6 - L2_ping_header_v6) if (default_mtu_v6 - L3_ping_header_v6 - L2_ping_header_v6) > 0 else 1
 
                 elif interface_warning_data['interface_data'].get('IPV4 MTU set'):
-                    default_mtu = int(interface_warning_data['interface_data'].get('IPV4 MTU set'))
+                    if RCMD.router_type == 'cisco_xr':
+                        ping_size = (int(interface_warning_data['interface_data'].get('IPV4 MTU set')) - L3_ping_header - L2_ping_header) if (default_mtu - L3_ping_header - L2_ping_header) > 0 else 1
+                    else:
+                        ping_size = (int(interface_warning_data['interface_data'].get('IPV4 MTU set')) - L3_ping_header) if (default_mtu - L3_ping_header) > 0 else 1
 
                     if interface_warning_data['interface_data'].get('IPV6 MTU set'):
-                        default_mtu_v6 = int(interface_warning_data['interface_data'].get('IPV6 MTU set'))
-                else:
-                    if BB_MODE: default_mtu = 4484
-                    if CUSTOMER_MODE or PING_ONLY: default_mtu = 1500
-
-                ### PING HEADER ###############################################
-                ping_header, ping_header_v6
-                if RCMD.router_type == 'huawei': ping_header, ping_header_v6 = 0, 0
-                elif RCMD.router_type == 'juniper':
-                    ### PING6(4490=40+8+4442 bytes) , V4 (-28 or -42)? ########
-                    ping_header, ping_header_v6 = 42, 48
-                ## CISCO XR + XE ###
-                else: ping_header, ping_header_v6 = 14, 14
-
-                interface_data['interface_data']['IPV4 ping header size'] = ping_header
-                interface_data['interface_data']['IPV6 ping header size'] = ping_header_v6
-
-                ping_size = default_mtu - ping_header if (default_mtu - ping_header) > 0 else 1
-                ping_size_v6 = default_mtu_v6 - ping_header_v6 if (default_mtu_v6 - ping_header_v6) > 0 else 1
+                        if RCMD.router_type == 'cisco_xr':
+                            ping_size_v6 = (int(interface_warning_data['interface_data'].get('IPV6 MTU set')) - L3_ping_header_v6 - L2_ping_header) if (default_mtu_v6 - L3_ping_header_v6 - L2_ping_header) > 0 else 1
+                        else:
+                            ping_size_v6 = (int(interface_warning_data['interface_data'].get('IPV6 MTU set')) - L3_ping_header_v6) if (default_mtu_v6 - L3_ping_header_v6) > 0 else 1
 
                 interface_data['interface_data']['IPV4 intended ping size'] = ping_size
                 interface_data['interface_data']['IPV6 intended ping size'] = ping_size_v6
+
+                if ping_size <= 1:
+                    CGI_CLI.uprint('IPV4 PING SIZE CALCULATION WARNING!', color = 'warning', timestamp = 'no')
+                if ping_size_v6 <= 1 and USE_IPV6:
+                    CGI_CLI.uprint('IPV6 PING SIZE CALCULATION WARNING!', color = 'warning', timestamp = 'no')
 
 
 
