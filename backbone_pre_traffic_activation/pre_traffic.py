@@ -2822,6 +2822,20 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
             try:    interface_warning_data['interface_statistics']['output_errors_Difference'] = str(int(interface_warning_data['interface_statistics']['output_errors_After_ping']) - int(interface_warning_data['interface_statistics']['output_errors']))
             except: interface_warning_data['interface_statistics']['output_errors_Difference'] = str()
 
+        ### TRAFFIC ###
+        if not precheck_mode and not after_ping and not PING_ONLY:
+            try: interface_warning_data['interface_statistics']['txload'] = collect_if_config_rcmd_outputs[0].split('txload')[1].split()[0].replace(',','').strip()
+            except: interface_warning_data['interface_statistics']['txload'] = str()
+            try: interface_warning_data['interface_statistics']['rxload'] = collect_if_config_rcmd_outputs[0].split('rxload')[1].split()[0].replace(',','').strip()
+            except: interface_warning_data['interface_statistics']['rxload'] = str()
+            if interface_warning_data['interface_statistics'].get('txload'):
+                try: interface_warning_data['interface_statistics']['txload_percent'] = 100 * float(interface_warning_data['interface_statistics'].get('txload').split('/')[0]) / float(interface_warning_data['interface_statistics'].get('txload').split('/')[1])
+                except: pass
+            if interface_warning_data['interface_statistics'].get('rxload'):
+                try: interface_warning_data['interface_statistics']['rxload_percent'] = 100 * float(interface_warning_data['interface_statistics'].get('rxload').split('/')[0]) / float(interface_warning_data['interface_statistics'].get('rxload').split('/')[1])
+                except: pass
+
+
     elif RCMD.router_type == 'juniper':
         if not after_ping:
             try:    interface_data['interface_data']['bundle_members_nr'] = int(err_check_after_pings_outputs[0].split('Aggregate member links:')[1].splitlines()[0].strip())
@@ -2955,6 +2969,40 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
             try:    interface_warning_data['interface_statistics']['Output_errors__Aged_packets_Difference'] = str(int(interface_warning_data['interface_statistics']['Output_errors__Aged_packets_After_ping']) - int(interface_warning_data['interface_statistics']['Output_errors__Aged_packets']))
             except: pass
 
+        ### TRAFFIC ###
+        if not precheck_mode and not after_ping and not PING_ONLY:
+            try: interface_warning_data['interface_statistics']['txload'] = collect_if_config_rcmd_outputs[0].split('Output rate    :')[1].split()[0].replace(',','').strip()
+            except: interface_warning_data['interface_statistics']['txload'] = str()
+            try: interface_warning_data['interface_statistics']['rxload'] = collect_if_config_rcmd_outputs[0].split('Input rate     :')[1].split()[0].replace(',','').strip()
+            except: interface_warning_data['interface_statistics']['rxload'] = str()
+
+            # """Traffic statistics:
+            #Input  bytes  :     5256259942920724           8772959240 bps
+            #Output bytes  :     1519104622857050           3748473568 bps"""
+
+            if not interface_warning_data['interface_statistics'].get('txload'):
+                try: interface_warning_data['interface_statistics']['txload'] = collect_if_config_rcmd_outputs[0].split('Output bytes  :')[1].split()[1].strip()
+                except: pass
+
+            if not interface_warning_data['interface_statistics'].get('rxload'):
+                try: interface_warning_data['interface_statistics']['rxload'] = collect_if_config_rcmd_outputs[0].split('Input  bytes  :')[1].split()[1].strip()
+                except: pass
+
+
+            try: interface_warning_data['interface_statistics']['Speed'] = collect_if_config_rcmd_outputs[0].split('Speed:')[1].split()[0].replace(',','').strip()
+            except: interface_warning_data['interface_statistics']['Speed'] = str()
+
+            multiplikator = 1
+            if interface_warning_data['interface_statistics'].get('Speed') and 'Gbps' in interface_warning_data['interface_statistics'].get('Speed'): multiplikator = 1073741824
+            if interface_warning_data['interface_statistics'].get('Speed') and 'Mbps' in interface_warning_data['interface_statistics'].get('Speed'): multiplikator = 1048576
+            if interface_warning_data['interface_statistics'].get('txload'):
+                try: interface_warning_data['interface_statistics']['txload_percent'] = 100 * float(interface_warning_data['interface_statistics'].get('txload')) / (float(interface_warning_data['interface_statistics'].get('Speed').replace('Gbps','').replace('Mbps','')) * multiplikator)
+                except: pass
+            if interface_warning_data['interface_statistics'].get('rxload'):
+                try: interface_warning_data['interface_statistics']['rxload_percent'] = 100 * float(interface_warning_data['interface_statistics'].get('rxload')) / (float(interface_warning_data['interface_statistics'].get('Speed').replace('Gbps','').replace('Mbps','')) * multiplikator)
+                except: pass
+
+
     elif RCMD.router_type == 'huawei':
         if not after_ping:
             try:    interface_lines = err_check_after_pings_outputs[0].split('PortName ')[1].splitlines()[2:]
@@ -3043,6 +3091,14 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
 
             try:    interface_data['interface_data']['Port BW'] = err_check_after_pings_outputs[0].split('Port BW:')[1].split()[0].replace(',','')
             except: pass
+
+        ### TRAFFIC ###
+        if not precheck_mode and not after_ping and not PING_ONLY:
+            try: interface_warning_data['interface_statistics']['txload_percent'] = float(collect_if_config_rcmd_outputs[0].split('output utility rate:')[1].split()[0].replace('%','').strip())
+            except: pass
+            try: interface_warning_data['interface_statistics']['rxload_percent'] = float(collect_if_config_rcmd_outputs[0].split('input utility rate:')[1].split()[0].replace('%','').strip())
+            except: pass
+
     ### IF NOT BUNDLE DELETE DATA RECORD ######################################
     if len(interface_data['interface_data'].get('bundle_members',[])) == 0:
         try:
@@ -4307,18 +4363,18 @@ authentication {
                                 interface_data['interface_data']['parallel_interfaces'] = copy.deepcopy(backup_if_list)
                             except: interface_data['interface_data']['parallel_interfaces'] = []
 
-                            ### TRAFFIC ###
-                            if not precheck_mode:
-                                try: interface_warning_data['interface_statistics']['txload'] = collect_if_config_rcmd_outputs[9].split('txload')[1].split()[0].replace(',','').strip()
-                                except: interface_warning_data['interface_statistics']['txload'] = str()
-                                try: interface_warning_data['interface_statistics']['rxload'] = collect_if_config_rcmd_outputs[9].split('rxload')[1].split()[0].replace(',','').strip()
-                                except: interface_warning_data['interface_statistics']['rxload'] = str()
-                                if interface_warning_data['interface_statistics'].get('txload'):
-                                    try: interface_warning_data['interface_statistics']['txload_percent'] = 100 * float(interface_warning_data['interface_statistics'].get('txload').split('/')[0]) / float(interface_warning_data['interface_statistics'].get('txload').split('/')[1])
-                                    except: pass
-                                if interface_warning_data['interface_statistics'].get('rxload'):
-                                    try: interface_warning_data['interface_statistics']['rxload_percent'] = 100 * float(interface_warning_data['interface_statistics'].get('rxload').split('/')[0]) / float(interface_warning_data['interface_statistics'].get('rxload').split('/')[1])
-                                    except: pass
+                            ## TRAFFIC ###
+                            # if not precheck_mode:
+                                # try: interface_warning_data['interface_statistics']['txload'] = collect_if_config_rcmd_outputs[9].split('txload')[1].split()[0].replace(',','').strip()
+                                # except: interface_warning_data['interface_statistics']['txload'] = str()
+                                # try: interface_warning_data['interface_statistics']['rxload'] = collect_if_config_rcmd_outputs[9].split('rxload')[1].split()[0].replace(',','').strip()
+                                # except: interface_warning_data['interface_statistics']['rxload'] = str()
+                                # if interface_warning_data['interface_statistics'].get('txload'):
+                                    # try: interface_warning_data['interface_statistics']['txload_percent'] = 100 * float(interface_warning_data['interface_statistics'].get('txload').split('/')[0]) / float(interface_warning_data['interface_statistics'].get('txload').split('/')[1])
+                                    # except: pass
+                                # if interface_warning_data['interface_statistics'].get('rxload'):
+                                    # try: interface_warning_data['interface_statistics']['rxload_percent'] = 100 * float(interface_warning_data['interface_statistics'].get('rxload').split('/')[0]) / float(interface_warning_data['interface_statistics'].get('rxload').split('/')[1])
+                                    # except: pass
 
                     ### JUNIPER 1st CMDS ##########################################
                     elif RCMD.router_type == 'juniper':
@@ -4382,38 +4438,38 @@ authentication {
                                 interface_data['interface_data']['parallel_interfaces'] = copy.deepcopy(backup_if_list)
                             except: interface_data['interface_data']['parallel_interfaces'] = []
 
-                            ### TRAFFIC ###
-                            if not precheck_mode:
-                                try: interface_warning_data['interface_statistics']['txload'] = collect_if_config_rcmd_outputs[12].split('Output rate    :')[1].split()[0].replace(',','').strip()
-                                except: interface_warning_data['interface_statistics']['txload'] = str()
-                                try: interface_warning_data['interface_statistics']['rxload'] = collect_if_config_rcmd_outputs[12].split('Input rate     :')[1].split()[0].replace(',','').strip()
-                                except: interface_warning_data['interface_statistics']['rxload'] = str()
+                            ## TRAFFIC ###
+                            # if not precheck_mode:
+                                # try: interface_warning_data['interface_statistics']['txload'] = collect_if_config_rcmd_outputs[12].split('Output rate    :')[1].split()[0].replace(',','').strip()
+                                # except: interface_warning_data['interface_statistics']['txload'] = str()
+                                # try: interface_warning_data['interface_statistics']['rxload'] = collect_if_config_rcmd_outputs[12].split('Input rate     :')[1].split()[0].replace(',','').strip()
+                                # except: interface_warning_data['interface_statistics']['rxload'] = str()
 
-                                # """Traffic statistics:
+                                #"""Traffic statistics:
                                 #Input  bytes  :     5256259942920724           8772959240 bps
                                 #Output bytes  :     1519104622857050           3748473568 bps"""
 
-                                if not interface_warning_data['interface_statistics'].get('txload'):
-                                    try: interface_warning_data['interface_statistics']['txload'] = collect_if_config_rcmd_outputs[12].split('Output bytes  :')[1].split()[1].strip()
-                                    except: pass
+                                # if not interface_warning_data['interface_statistics'].get('txload'):
+                                    # try: interface_warning_data['interface_statistics']['txload'] = collect_if_config_rcmd_outputs[12].split('Output bytes  :')[1].split()[1].strip()
+                                    # except: pass
 
-                                if not interface_warning_data['interface_statistics'].get('rxload'):
-                                    try: interface_warning_data['interface_statistics']['rxload'] = collect_if_config_rcmd_outputs[12].split('Input  bytes  :')[1].split()[1].strip()
-                                    except: pass
+                                # if not interface_warning_data['interface_statistics'].get('rxload'):
+                                    # try: interface_warning_data['interface_statistics']['rxload'] = collect_if_config_rcmd_outputs[12].split('Input  bytes  :')[1].split()[1].strip()
+                                    # except: pass
 
 
-                                try: interface_warning_data['interface_statistics']['Speed'] = collect_if_config_rcmd_outputs[12].split('Speed:')[1].split()[0].replace(',','').strip()
-                                except: interface_warning_data['interface_statistics']['Speed'] = str()
+                                # try: interface_warning_data['interface_statistics']['Speed'] = collect_if_config_rcmd_outputs[12].split('Speed:')[1].split()[0].replace(',','').strip()
+                                # except: interface_warning_data['interface_statistics']['Speed'] = str()
 
-                                multiplikator = 1
-                                if interface_warning_data['interface_statistics'].get('Speed') and 'Gbps' in interface_warning_data['interface_statistics'].get('Speed'): multiplikator = 1073741824
-                                if interface_warning_data['interface_statistics'].get('Speed') and 'Mbps' in interface_warning_data['interface_statistics'].get('Speed'): multiplikator = 1048576
-                                if interface_warning_data['interface_statistics'].get('txload'):
-                                    try: interface_warning_data['interface_statistics']['txload_percent'] = 100 * float(interface_warning_data['interface_statistics'].get('txload')) / (float(interface_warning_data['interface_statistics'].get('Speed').replace('Gbps','').replace('Mbps','')) * multiplikator)
-                                    except: pass
-                                if interface_warning_data['interface_statistics'].get('rxload'):
-                                    try: interface_warning_data['interface_statistics']['rxload_percent'] = 100 * float(interface_warning_data['interface_statistics'].get('rxload')) / (float(interface_warning_data['interface_statistics'].get('Speed').replace('Gbps','').replace('Mbps','')) * multiplikator)
-                                    except: pass
+                                # multiplikator = 1
+                                # if interface_warning_data['interface_statistics'].get('Speed') and 'Gbps' in interface_warning_data['interface_statistics'].get('Speed'): multiplikator = 1073741824
+                                # if interface_warning_data['interface_statistics'].get('Speed') and 'Mbps' in interface_warning_data['interface_statistics'].get('Speed'): multiplikator = 1048576
+                                # if interface_warning_data['interface_statistics'].get('txload'):
+                                    # try: interface_warning_data['interface_statistics']['txload_percent'] = 100 * float(interface_warning_data['interface_statistics'].get('txload')) / (float(interface_warning_data['interface_statistics'].get('Speed').replace('Gbps','').replace('Mbps','')) * multiplikator)
+                                    # except: pass
+                                # if interface_warning_data['interface_statistics'].get('rxload'):
+                                    # try: interface_warning_data['interface_statistics']['rxload_percent'] = 100 * float(interface_warning_data['interface_statistics'].get('rxload')) / (float(interface_warning_data['interface_statistics'].get('Speed').replace('Gbps','').replace('Mbps','')) * multiplikator)
+                                    # except: pass
 
                     ### HUAWEI 1st CMDS ###########################################
                     elif RCMD.router_type == 'huawei':
@@ -4470,12 +4526,12 @@ authentication {
                                 interface_data['interface_data']['parallel_interfaces'] = copy.deepcopy(backup_if_list)
                             except: interface_data['interface_data']['parallel_interfaces'] = []
 
-                            ### TRAFFIC ###
-                            if not precheck_mode:
-                                try: interface_warning_data['interface_statistics']['txload_percent'] = float(collect_if_config_rcmd_outputs[9].split('output utility rate:')[1].split()[0].replace('%','').strip())
-                                except: pass
-                                try: interface_warning_data['interface_statistics']['rxload_percent'] = float(collect_if_config_rcmd_outputs[9].split('input utility rate:')[1].split()[0].replace('%','').strip())
-                                except: pass
+                            ## TRAFFIC ###
+                            # if not precheck_mode:
+                                # try: interface_warning_data['interface_statistics']['txload_percent'] = float(collect_if_config_rcmd_outputs[9].split('output utility rate:')[1].split()[0].replace('%','').strip())
+                                # except: pass
+                                # try: interface_warning_data['interface_statistics']['rxload_percent'] = float(collect_if_config_rcmd_outputs[9].split('input utility rate:')[1].split()[0].replace('%','').strip())
+                                # except: pass
 
 
                     ###########################################################
@@ -5819,7 +5875,7 @@ authentication {
                             check_interface_data_content("['bgp']['IPV4 unicast route-policy out']", exact_value_yes = 'DENY-ALL')
 
                             check_interface_data_content("['bgp']['IPV4 accepted prefixes']", exact_value_yes = '0')
-                            check_interface_data_content("['bgp']['IPV4 bestpaths']", exact_value_yes = '0')
+                            #check_interface_data_content("['bgp']['IPV4 bestpaths']", exact_value_yes = '0')
                             check_interface_data_content("['bgp']['IPV4 No of prefixes Advertised']", exact_value_yes = '0')
 
                         else:
@@ -5827,7 +5883,7 @@ authentication {
                             check_interface_data_content("['bgp']['IPV4 unicast route-policy out']", what_not_in = 'DENY-ALL')
 
                             check_interface_data_content("['bgp']['IPV4 accepted prefixes']", higher_than = 0)
-                            check_interface_data_content("['bgp']['IPV4 bestpaths']", higher_than = 0)
+                            #check_interface_data_content("['bgp']['IPV4 bestpaths']", higher_than = 0)
                             check_interface_data_content("['bgp']['IPV4 No of prefixes Advertised']", higher_than = 0)
 
                             check_interface_data_content("['bgp']['IPV4 accepted/max prefixes percent']", lower_than = 90)
