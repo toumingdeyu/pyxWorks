@@ -5305,7 +5305,7 @@ authentication {
 
                 if CUSTOMER_MODE:
                     #ping_size, ping_size_v6 = 1500, 1500
-                    ping_size, ping_size_v6 = 1500 - L3_ping_header , 1500 - L3_ping_header
+                    ping_size, ping_size_v6 = 1500 - L3_ping_header , 1500 - L3_ping_header_v6
 
                 if not PING_ONLY:
                     if ping_size <= 1:
@@ -5315,9 +5315,9 @@ authentication {
 
                 if BB_MODE:
                     if ping_size <= 1:
-                        ping_size = 4484 - L3_ping_header_v6 - L2_ping_header
+                        ping_size = 4484 - L3_ping_header - L2_ping_header
                     if ping_size_v6 <= 1 and USE_IPV6:
-                        ping_size_v6 = ping_size
+                        ping_size_v6 = 4484 - L3_ping_header_v6 - L2_ping_header_v6
 
                 interface_warning_data['interface_data']['IPV4 intended ping size'] = copy.deepcopy(ping_size)
                 interface_warning_data['interface_data']['IPV6 intended ping size'] = copy.deepcopy(ping_size_v6)
