@@ -5672,11 +5672,11 @@ authentication {
                             check_interface_data_content("['interface_statistics']['IPV6 %spings percent success']" % (ping_counts), '100', warning = True, ignore_data_existence = True)
 
                 check_interface_data_content("['interface_statistics']['IPV4 max working ping size']", \
-                    higher than = 1500 - 1 - interface_warning_data['interface_data']['IPV4 L3 ping header size'],\
+                    higher_than = (1500 - 1 - int(interface_warning_data['interface_data']['IPV4 L3 ping header size'])), \
                     warning = True, ignore_data_existence = True)
 
                 check_interface_data_content("['interface_statistics']['IPV6 max working ping size']", \
-                    higher than = 1500 - 1 - interface_warning_data['interface_data']['IPV6 L3 ping header size'],\
+                    higher_than = (1500 - 1 - int(interface_warning_data['interface_data']['IPV6 L3 ping header size'])), \
                     warning = True, ignore_data_existence = True)
 
 
