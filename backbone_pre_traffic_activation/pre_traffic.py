@@ -2148,7 +2148,7 @@ class sql_interface():
             except Exception as e: CGI_CLI.uprint(' ==> SQL problem [%s]' % (str(e)), color = 'magenta')
             try: cursor.close()
             except: pass
-            CGI_CLI.uprint('SQL_CMD[%s]' % (sql_command), printall = self.printall)
+            CGI_CLI.uprint('SQL_CMD[%s]' % (sql_command), no_printall = not self.printall)
         return None
 
     def sql_write_table_from_dict(self, table_name, dict_data, \
@@ -5979,7 +5979,8 @@ authentication {
                     pre_post_template['postcheck_log'] = copy.deepcopy(logfilename)
                     pre_post_template['last_updated_postcheck'] = CGI_CLI.get_date_and_time()
 
-                CGI_CLI.uprint(pre_post_template, name = True, jsonprint = True)
+                CGI_CLI.uprint(pre_post_template, name = True, jsonprint = True, \
+                    no_printall = not CGI_CLI.printall)
 
                 ### TEST IF SWAN ALREADY RECORD EXISTS ########################
                 sql_read_data = sql_inst.sql_read_records_to_dict_list( \
