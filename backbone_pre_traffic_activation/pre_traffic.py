@@ -2824,9 +2824,9 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
 
         ### TRAFFIC ###
         if not precheck_mode and not after_ping and not PING_ONLY:
-            try: interface_warning_data['interface_statistics']['txload'] = collect_if_config_rcmd_outputs[0].split('txload')[1].split()[0].replace(',','').strip()
+            try: interface_warning_data['interface_statistics']['txload'] = err_check_after_pings_outputs[0].split('txload')[1].split()[0].replace(',','').strip()
             except: interface_warning_data['interface_statistics']['txload'] = str()
-            try: interface_warning_data['interface_statistics']['rxload'] = collect_if_config_rcmd_outputs[0].split('rxload')[1].split()[0].replace(',','').strip()
+            try: interface_warning_data['interface_statistics']['rxload'] = err_check_after_pings_outputs[0].split('rxload')[1].split()[0].replace(',','').strip()
             except: interface_warning_data['interface_statistics']['rxload'] = str()
             if interface_warning_data['interface_statistics'].get('txload'):
                 try: interface_warning_data['interface_statistics']['txload_percent'] = 100 * float(interface_warning_data['interface_statistics'].get('txload').split('/')[0]) / float(interface_warning_data['interface_statistics'].get('txload').split('/')[1])
@@ -2971,9 +2971,9 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
 
         ### TRAFFIC ###
         if not precheck_mode and not after_ping and not PING_ONLY:
-            try: interface_warning_data['interface_statistics']['txload'] = collect_if_config_rcmd_outputs[0].split('Output rate    :')[1].split()[0].replace(',','').strip()
+            try: interface_warning_data['interface_statistics']['txload'] = err_check_after_pings_outputs[0].split('Output rate    :')[1].split()[0].replace(',','').strip()
             except: interface_warning_data['interface_statistics']['txload'] = str()
-            try: interface_warning_data['interface_statistics']['rxload'] = collect_if_config_rcmd_outputs[0].split('Input rate     :')[1].split()[0].replace(',','').strip()
+            try: interface_warning_data['interface_statistics']['rxload'] = err_check_after_pings_outputs[0].split('Input rate     :')[1].split()[0].replace(',','').strip()
             except: interface_warning_data['interface_statistics']['rxload'] = str()
 
             # """Traffic statistics:
@@ -2981,15 +2981,15 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
             #Output bytes  :     1519104622857050           3748473568 bps"""
 
             if not interface_warning_data['interface_statistics'].get('txload'):
-                try: interface_warning_data['interface_statistics']['txload'] = collect_if_config_rcmd_outputs[0].split('Output bytes  :')[1].split()[1].strip()
+                try: interface_warning_data['interface_statistics']['txload'] = err_check_after_pings_outputs[0].split('Output bytes  :')[1].split()[1].strip()
                 except: pass
 
             if not interface_warning_data['interface_statistics'].get('rxload'):
-                try: interface_warning_data['interface_statistics']['rxload'] = collect_if_config_rcmd_outputs[0].split('Input  bytes  :')[1].split()[1].strip()
+                try: interface_warning_data['interface_statistics']['rxload'] = err_check_after_pings_outputs[0].split('Input  bytes  :')[1].split()[1].strip()
                 except: pass
 
 
-            try: interface_warning_data['interface_statistics']['Speed'] = collect_if_config_rcmd_outputs[0].split('Speed:')[1].split()[0].replace(',','').strip()
+            try: interface_warning_data['interface_statistics']['Speed'] = err_check_after_pings_outputs[0].split('Speed:')[1].split()[0].replace(',','').strip()
             except: interface_warning_data['interface_statistics']['Speed'] = str()
 
             multiplikator = 1
@@ -3094,9 +3094,9 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
 
         ### TRAFFIC ###
         if not precheck_mode and not after_ping and not PING_ONLY:
-            try: interface_warning_data['interface_statistics']['txload_percent'] = float(collect_if_config_rcmd_outputs[0].split('output utility rate:')[1].split()[0].replace('%','').strip())
+            try: interface_warning_data['interface_statistics']['txload_percent'] = float(err_check_after_pings_outputs[0].split('output utility rate:')[1].split()[0].replace('%','').strip())
             except: pass
-            try: interface_warning_data['interface_statistics']['rxload_percent'] = float(collect_if_config_rcmd_outputs[0].split('input utility rate:')[1].split()[0].replace('%','').strip())
+            try: interface_warning_data['interface_statistics']['rxload_percent'] = float(err_check_after_pings_outputs[0].split('input utility rate:')[1].split()[0].replace('%','').strip())
             except: pass
 
     ### IF NOT BUNDLE DELETE DATA RECORD ######################################
