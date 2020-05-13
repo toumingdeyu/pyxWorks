@@ -5586,6 +5586,7 @@ authentication {
                                         else: CGI_CLI.logtofile("Ipv6 L2 Metric (%s) check on Interface %s = OK\n" % (ipv6_L2_metric, parallel_interface), ommit_timestamp = True)
 
 
+                if not precheck_mode and (BB_MODE or CUSTOMER_MODE):
                     ### def BB - TRAFFIC POST-CHECK ###########################
                     low_percent = 3
                     high_percent = 90
