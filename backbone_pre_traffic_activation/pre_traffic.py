@@ -3496,7 +3496,8 @@ authentication {
                     where_string = "swan_id='%s' and router_name='%s' and int_name='%s'" \
                          % (swan_id, device.upper(), interface_id) )
 
-                CGI_CLI.uprint(sql_read_data, name = True, jsonprint = True)
+                CGI_CLI.uprint(sql_read_data, name = True, jsonprint = True, \
+                    no_printall = not CGI_CLI.printall)
 
                 ### WARNING MESSAGE ###########################################
                 if len(sql_read_data) > 0:
@@ -3568,7 +3569,8 @@ authentication {
                     where_string = "swan_id='%s' and router_name='%s' and int_name='%s'" \
                          % (swan_id, device.upper(), interface_id) )
 
-                CGI_CLI.uprint(sql_read_data, name = True, jsonprint = True)
+                CGI_CLI.uprint(sql_read_data, name = True, jsonprint = True, \
+                    no_printall = not CGI_CLI.printall)
 
                 ### WARNING MESSAGE ###########################################
                 if len(sql_read_data) > 0:
@@ -3594,14 +3596,15 @@ authentication {
                 else:
                     sql_inst.sql_write_table_from_dict('pre_post_result' + table_test_extension, pre_post_template)
                     CGI_CLI.uprint ("RECORD swan_id='%s' and router_name='%s' and int_name='%s' DONE." \
-                        % (swan_id, device.upper(), interface_id))
+                        % (swan_id, device.upper(), interface_id), no_printall = not CGI_CLI.printall)
 
                 ### TEST IF SWAN ALREADY RECORD EXISTS ########################
                 sql_read_data = sql_inst.sql_read_records_to_dict_list( \
                     table_name = 'pre_post_result' + table_test_extension, \
                     where_string = "swan_id='%s' and router_name='%s' and int_name='%s'" \
                          % (swan_id, device.upper(), interface_id) )
-                CGI_CLI.uprint(sql_read_data, name = 'DB_READ_CHECK', jsonprint = True)
+                CGI_CLI.uprint(sql_read_data, name = 'DB_READ_CHECK', jsonprint = True, \
+                    no_printall = not CGI_CLI.printall)
 
         sys.exit(0)
 
@@ -5984,7 +5987,8 @@ authentication {
                     where_string = "swan_id='%s' and router_name='%s' and int_name='%s'" \
                          % (swan_id, device.upper(), interface_id) )
 
-                CGI_CLI.uprint(sql_read_data, name = True, jsonprint = True)
+                CGI_CLI.uprint(sql_read_data, name = True, jsonprint = True, \
+                    no_printall = not CGI_CLI.printall)
 
                 ### WARNING MESSAGE ###########################################
                 if len(sql_read_data) > 1:
@@ -6019,7 +6023,8 @@ authentication {
                     table_name = 'pre_post_result' + table_test_extension, \
                     where_string = "swan_id='%s' and router_name='%s' and int_name='%s'" \
                          % (swan_id, device.upper(), interface_id) )
-                CGI_CLI.uprint(sql_read_data, name = 'DB_READ_CHECK', jsonprint = True)
+                CGI_CLI.uprint(sql_read_data, name = 'DB_READ_CHECK', jsonprint = True,
+                    no_printall = not CGI_CLI.printall)
 
     ### LOOP PER INTERFACE - END ######################################
     RCMD.disconnect()
