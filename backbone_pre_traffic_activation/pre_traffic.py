@@ -5658,15 +5658,6 @@ authentication {
                         else:
                             check_interface_data_content("['interface_statistics']['IPV6 %spings percent success on max working ping size']" % (ping_counts), '100', warning = True)
 
-
-
-
-                if interface_warning_data['interface_data'].get('ipv4_addr_rem_calculated'):
-                    check_interface_data_content("['interface_data']['ipv4_addr_rem_calculated']", interface_data['interface_data'].get('ipv4_addr_rem'), ignore_data_existence = True, warning = True)
-
-                if interface_warning_data['interface_data'].get('ipv6_addr_rem_calculated'):
-                     check_interface_data_content("['interface_data']['ipv6_addr_rem_calculated']", normalized_ipv6(interface_warning_data['interface_data'].get('ipv6_addr_rem')), ignore_data_existence = True, warning = True)
-
                 if ping_counts and int(ping_counts) > 0:
 
                     if '100' in interface_warning_data['interface_statistics'].get('IPV4 percent success on intended ping size',str()):
@@ -5679,6 +5670,22 @@ authentication {
                             check_interface_data_content("['interface_statistics']['IPV6 %spings percent success on intended ping size']" % (ping_counts), '100', warning = True, ignore_data_existence = True)
                         else:
                             check_interface_data_content("['interface_statistics']['IPV6 %spings percent success']" % (ping_counts), '100', warning = True, ignore_data_existence = True)
+
+                check_interface_data_content("['interface_statistics']['IPV4 max working ping size']", \
+                    higher than = 1500 - 1 - interface_warning_data['interface_data']['IPV4 L3 ping header size'],\
+                    warning = True, ignore_data_existence = True)
+
+                check_interface_data_content("['interface_statistics']['IPV6 max working ping size']", \
+                    higher than = 1500 - 1 - interface_warning_data['interface_data']['IPV6 L3 ping header size'],\
+                    warning = True, ignore_data_existence = True)
+
+
+                if interface_warning_data['interface_data'].get('ipv4_addr_rem_calculated'):
+                    check_interface_data_content("['interface_data']['ipv4_addr_rem_calculated']", interface_data['interface_data'].get('ipv4_addr_rem'), ignore_data_existence = True, warning = True)
+
+                if interface_warning_data['interface_data'].get('ipv6_addr_rem_calculated'):
+                     check_interface_data_content("['interface_data']['ipv6_addr_rem_calculated']", normalized_ipv6(interface_warning_data['interface_data'].get('ipv6_addr_rem')), ignore_data_existence = True, warning = True)
+
 
                 if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
                     if BB_MODE:
@@ -5702,6 +5709,7 @@ authentication {
                         check_interface_data_content("['interface_statistics']['input_errors']", exact_value_yes = '0', warning = True)
                         check_interface_data_content("['interface_statistics']['input_CRC']", exact_value_yes = '0', warning = True)
                         check_interface_data_content("['interface_statistics']['output_errors']", exact_value_yes = '0', warning = True)
+
 
                 elif RCMD.router_type == 'juniper':
                     if BB_MODE:
@@ -5730,15 +5738,16 @@ authentication {
                         check_interface_data_content("['interface_statistics']['Output_errors_Difference']", exact_value_yes = '0', warning = True)
                         check_interface_data_content("['interface_statistics']['Output_errors__Carrier_transitions_Difference']", exact_value_yes = '0', warning = True)
                         check_interface_data_content("['interface_statistics']['Output_errors__Drops_Difference']", exact_value_yes = '0', warning = True)
-                        check_interface_data_content("['interface_statistics']['Output_errors__Collisions_Difference']", exact_value_yes = '0', warning = True)
-                        check_interface_data_content("['interface_statistics']['Output_errors__Aged_packets_Difference']", exact_value_yes = '0', warning = True)
+                        check_interface_data_content("['interface_statistics']['Output_errors__Collisions_Difference']", exact_value_yes = '0', warning = True, ignore_data_existence = True)
+                        check_interface_data_content("['interface_statistics']['Output_errors__Aged_packets_Difference']", exact_value_yes = '0', warning = True, ignore_data_existence = True)
 
-                        check_interface_data_content("['interface_statistics']['Bit_errors_Difference']", exact_value_yes = '0', warning = True)
-                        check_interface_data_content("['interface_statistics']['Errored_blocks_Difference']", exact_value_yes = '0', warning = True)
+                        check_interface_data_content("['interface_statistics']['Bit_errors_Difference']", exact_value_yes = '0', warning = True, ignore_data_existence = True)
+                        check_interface_data_content("['interface_statistics']['Errored_blocks_Difference']", exact_value_yes = '0', warning = True, ignore_data_existence = True)
                         check_interface_data_content("['interface_statistics']['FEC_Corrected_Errors_Difference']", exact_value_yes = '0', warning = True, ignore_data_existence = True)
                         check_interface_data_content("['interface_statistics']['FEC_Uncorrected_Errors_Difference']", exact_value_yes = '0', warning = True, ignore_data_existence = True)
                         check_interface_data_content("['interface_statistics']['FEC_Corrected_Errors_Rate_Difference']", exact_value_yes = '0', warning = True, ignore_data_existence = True)
                         check_interface_data_content("['interface_statistics']['FEC_Uncorrected_Errors_Rate_Difference']", exact_value_yes = '0', warning = True, ignore_data_existence = True)
+
 
                 elif RCMD.router_type == 'huawei':
                     if BB_MODE:
