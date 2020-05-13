@@ -5304,7 +5304,8 @@ authentication {
                     ping_size_v6 = (int(interface_warning_data['interface_data'].get('MTU_interface_configured')) - L3_ping_header_v6 - L2_ping_header_v6) if (int(interface_warning_data['interface_data'].get('MTU_interface_configured')) - L3_ping_header_v6 - L2_ping_header_v6) > 0 else 1
 
                 if CUSTOMER_MODE:
-                    ping_size, ping_size_v6 = 1500, 1500
+                    #ping_size, ping_size_v6 = 1500, 1500
+                    ping_size, ping_size_v6 = 1500 - L3_ping_header , 1500 - L3_ping_header
 
                 if not PING_ONLY:
                     if ping_size <= 1:
