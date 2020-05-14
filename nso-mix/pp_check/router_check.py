@@ -5,7 +5,9 @@
 # Author: Philippe Marcais (philippe.marcais@orange.com)                      #
 #         Peter Nemec      (peter.nemec@orange.com)                           #
 # Created: 06/01/2015                                                         #
-# Updated: 21/Nov/2019 -junos name in prompt bugfix                           #
+# Updated: 14/May/2020 -huawei L2VPN commands added                           #
+#          ...                                                                #
+#          21/Nov/2019 -junos name in prompt bugfix                           #
 #          09/Nov/2019 -device name used allways UPPERCASE                    #
 #          03/Oct/2019 -added acl commands for all router types.Linefilter ok.#
 #          25/Jun/2019 -line numbers %tolerance.                              #
@@ -396,6 +398,12 @@ CMD_VRP = [
             ("disp bgp vpnv4 all peer verbose | i (BGP Peer is|routes)",
                       'ndiff0', [], [],
                       ['Peer'], [], [], False, 3),
+            ("display l2vpn ccc-interface vc-type all",
+                      'ndiff0', [], [],
+                      [], [], [], False),
+            ("display mpls l2vc brief",
+                      'ndiff0', [], [],
+                      [], [], [], False),
 #             ('display interface | include (Description|current state|minutes|Last physical|bandwidth utilization)',
 #                       'ndiff0', [], [],
 #                       ['Description:','current state'], [], [0,1,2,3,4], False)
