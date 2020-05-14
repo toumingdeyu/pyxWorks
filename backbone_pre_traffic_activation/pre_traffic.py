@@ -3187,6 +3187,7 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
     if not after_ping and len(interface_data['interface_data'].get('bundle_members',[])) > 0:
 
         interface_data['interface_data']['LAG_interfaces'] = collections.OrderedDict()
+        interface_data['interface_statistics']['LAG_interfaces'] = collections.OrderedDict()
 
         lag_data_rcmds = {
             'cisco_ios':[],
