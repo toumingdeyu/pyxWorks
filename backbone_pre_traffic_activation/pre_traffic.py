@@ -3227,6 +3227,7 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
             interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))] = collections.OrderedDict()
 
             if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
+                interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))] = collections.OrderedDict()
                 if i == 1:
                     try:    interface_data['interface_data']['LAG_interfaces']['Local links active'] = copy.deepcopy(lag_data_outputs[3].split('Local links <active/standby/configured>:')[1].split()[0].split('/')[0])
                     except: pass
@@ -3278,6 +3279,7 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
 
                 interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm'] = []
                 interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm'] = []
+
                 for line in lag_data_outputs[2].split('Lane ')[1].splitlines()[1:]:
                     if '---' in line: continue
                     if line.strip() == str(): break
@@ -3310,6 +3312,7 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
                         except: pass
 
             elif RCMD.router_type == 'juniper':
+                interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))] = collections.OrderedDict()
                 try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['gigether-options 802.3ad'] = copy.deepcopy(lag_data_outputs[0].split('gigether-options 802.3ad')[1].split()[0])
                 except: pass
 
@@ -3360,6 +3363,7 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
 
                 interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm'] = []
                 interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm'] = []
+
                 for part in lag_data_outputs[2].split('Lane ')[1:]:
                     try:    interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm'].append(copy.deepcopy(part.split('Laser output power')[2].split()[3]))
                     except: pass
