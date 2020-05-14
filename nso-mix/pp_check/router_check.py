@@ -401,9 +401,6 @@ CMD_VRP = [
             ("display l2vpn ccc-interface vc-type all",
                       'ndiff0', [], [],
                       [], [], [], False),
-            ("display mpls l2vc brief",
-                      'ndiff0', [], [],
-                      [], [], [], False),
 #             ('display interface | include (Description|current state|minutes|Last physical|bandwidth utilization)',
 #                       'ndiff0', [], [],
 #                       ['Description:','current state'], [], [0,1,2,3,4], False)
