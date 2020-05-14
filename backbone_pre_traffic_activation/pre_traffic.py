@@ -3155,7 +3155,33 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
                     try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Alarm_low'] = line.split()[4]
                     except: pass
 
-        elif RCMD.router_type == 'juniper': pass
+        elif RCMD.router_type == 'juniper':
+            interface_data['interface_statistics']['Tx_Power_Lanes_dBm'] = []
+            interface_data['interface_statistics']['Rx_Power_Lanes_dBm'] = []
+            for part in optic_data_rcmds[0].split('Lane ')[1:]:
+                try:    interface_data['interface_statistics']['Tx_Power_Lanes_dBm'].append(copy.deepcopy(part.split('Laser output power')[2].split()[3]))
+                except: pass
+                try:    interface_data['interface_statistics']['Rx_Power_Lanes_dBm'].append(copy.deepcopy(part.split('Laser receiver power')[1].split()[3]))
+                except: pass
+
+            try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Warning_high'] = optic_data_rcmds[0].split('Laser output power high warning threshold')[4]
+            except: pass
+            try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Warning_low'] = optic_data_rcmds[0].split('Laser output power low warning threshold')[4]
+            except: pass
+            try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Alarm_high'] = optic_data_rcmds[0].split('Laser output power high alarm threshold')[4]
+            except: pass
+            try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Alarm_low'] = optic_data_rcmds[0].split('Laser output power low alarm threshold')[4]
+            except: pass
+
+            try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Warning_high'] = optic_data_rcmds[0].split('Laser rx power high alarm threshold')[4]
+            except: pass
+            try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Warning_low'] = optic_data_rcmds[0].split('Laser rx power low alarm threshold')[4]
+            except: pass
+            try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Alarm_high'] = optic_data_rcmds[0].split('Laser rx power high warning threshold')[4]
+            except: pass
+            try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Alarm_low'] = optic_data_rcmds[0].split('Laser rx power low warning threshold')[4]
+            except: pass
+
 
     ### BUNDLE ################################################################
     if not after_ping and len(interface_data['interface_data'].get('bundle_members',[])) > 0:
@@ -3330,6 +3356,33 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
 
                 try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['Resource errors'] = copy.deepcopy(lag_data_outputs[1].split('Resource errors: ')[1].split()[0].replace(',',''))
                 except: pass
+
+                interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm'] = []
+                interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm'] = []
+                for part in lag_data_outputs[2].split('Lane ')[1:]:
+                    try:    interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm'].append(copy.deepcopy(part.split('Laser output power')[2].split()[3]))
+                    except: pass
+                    try:    interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm'].append(copy.deepcopy(part.split('Laser receiver power')[1].split()[3]))
+                    except: pass
+
+                try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm_Warning_high'] = lag_data_outputs[2].split('Laser output power high warning threshold')[4]
+                except: pass
+                try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm_Warning_low'] = lag_data_outputs[2].split('Laser output power low warning threshold')[4]
+                except: pass
+                try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm_Alarm_high'] = lag_data_outputs[2].split('Laser output power high alarm threshold')[4]
+                except: pass
+                try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm_Alarm_low'] = lag_data_outputs[2].split('Laser output power low alarm threshold')[4]
+                except: pass
+
+                try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm_Warning_high'] = lag_data_outputs[2].split('Laser rx power high alarm threshold')[4]
+                except: pass
+                try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm_Warning_low'] = lag_data_outputs[2].split('Laser rx power low alarm threshold')[4]
+                except: pass
+                try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm_Alarm_high'] = lag_data_outputs[2].split('Laser rx power high warning threshold')[4]
+                except: pass
+                try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm_Alarm_low'] = lag_data_outputs[2].split('Laser rx power low warning threshold')[4]
+                except: pass
+
 
             elif RCMD.router_type == 'huawei':
                 try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['eth-trunk'] = copy.deepcopy(lag_data_outputs[0].split('eth-trunk')[1].split()[0])
