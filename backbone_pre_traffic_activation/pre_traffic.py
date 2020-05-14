@@ -3122,15 +3122,17 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
             printall = CGI_CLI.printall)
 
         if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
-            interface_data['interface_statistics']['Tx_Power_Lanes_dBm'] = []
-            interface_data['interface_statistics']['Rx_Power_Lanes_dBm'] = []
+            interface_data['interface_statistics']['Tx_Power_Lanes_dBm'] = collections.OrderedDict()
+            interface_data['interface_statistics']['Rx_Power_Lanes_dBm'] = collections.OrderedDict()
+            i = 0
             for line in optic_data_rcmds[0].split('Laser Bias')[1].split('Lane ')[1].splitlines()[1:]:
                 if '---' in line: continue
                 if line.strip() == str(): break
-                try:    interface_data['interface_statistics']['Tx_Power_Lanes_dBm'].append(copy.deepcopy(line.split()[2]))
+                try:    interface_data['interface_statistics']['Tx_Power_Lanes_dBm']['Lane %d' % (i)] = copy.deepcopy(line.split()[2])
                 except: pass
-                try:    interface_data['interface_statistics']['Rx_Power_Lanes_dBm'].append(copy.deepcopy(line.split()[4]))
+                try:    interface_data['interface_statistics']['Rx_Power_Lanes_dBm']['Lane %d' % (i)] = copy.deepcopy(line.split()[4])
                 except: pass
+                i += 1
 
             for line in optic_data_rcmds[0].split('Thresholds ')[1].splitlines()[1:]:
                 if '---' in line: continue
@@ -3156,13 +3158,15 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
                     except: pass
 
         elif RCMD.router_type == 'juniper':
-            interface_data['interface_statistics']['Tx_Power_Lanes_dBm'] = []
-            interface_data['interface_statistics']['Rx_Power_Lanes_dBm'] = []
+            interface_data['interface_statistics']['Tx_Power_Lanes_dBm'] = collections.OrderedDict()
+            interface_data['interface_statistics']['Rx_Power_Lanes_dBm'] = collections.OrderedDict()
+            i = 0
             for part in optic_data_rcmds[0].split('Lane ')[1:]:
-                try:    interface_data['interface_statistics']['Tx_Power_Lanes_dBm'].append(copy.deepcopy(part.split('Laser output power')[1].split()[4]))
+                try:    interface_data['interface_statistics']['Tx_Power_Lanes_dBm']['Lane %d' % (i)] = copy.deepcopy(part.split('Laser output power')[1].split()[4])
                 except: pass
-                try:    interface_data['interface_statistics']['Rx_Power_Lanes_dBm'].append(copy.deepcopy(part.split('Laser receiver power')[1].split()[4]))
+                try:    interface_data['interface_statistics']['Rx_Power_Lanes_dBm']['Lane %d' % (i)] = copy.deepcopy(part.split('Laser receiver power')[1].split()[4])
                 except: pass
+                i += 1
 
             try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Warning_high'] = optic_data_rcmds[0].split('Laser output power high warning threshold')[1].split()[4]
             except: pass
@@ -3277,16 +3281,18 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
                 try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['CRC'] = copy.deepcopy(lag_data_outputs[1].split('CRC,')[0].split()[-1])
                 except: pass
 
-                interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm'] = []
-                interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm'] = []
+                interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm'] = collections.OrderedDict()
+                interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm'] = collections.OrderedDict()
 
+                i = 0
                 for line in lag_data_outputs[2].split('Laser Bias')[1].split('Lane ')[1].splitlines()[1:]:
                     if '---' in line: continue
                     if line.strip() == str(): break
-                    try:    interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm'].append(copy.deepcopy(line.split()[2]))
+                    try:    interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm']['Lane %d' % (i)] = copy.deepcopy(line.split()[2])
                     except: pass
-                    try:    interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm'].append(copy.deepcopy(line.split()[4]))
+                    try:    interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm']['Lane %d' % (i)] = copy.deepcopy(line.split()[4])
                     except: pass
+                    i += 1
 
                 for line in lag_data_outputs[2].split('Thresholds ')[1].splitlines()[1:]:
                     if '---' in line: continue
@@ -3361,14 +3367,16 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
                 try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['Resource errors'] = copy.deepcopy(lag_data_outputs[1].split('Resource errors: ')[1].split()[0].replace(',',''))
                 except: pass
 
-                interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm'] = []
-                interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm'] = []
+                interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm'] = collections.OrderedDict()
+                interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm'] = collections.OrderedDict()
 
+                i = 0
                 for part in lag_data_outputs[2].split('Lane ')[1:]:
-                    try:    interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm'].append(copy.deepcopy(part.split('Laser output power')[1].split()[4]))
+                    try:    interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm']['Lane %d' % (i)] = copy.deepcopy(part.split('Laser output power')[1].split()[4])
                     except: pass
-                    try:    interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm'].append(copy.deepcopy(part.split('Laser receiver power')[1].split()[4]))
+                    try:    interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm']['Lane %d' % (i)] =copy.deepcopy(part.split('Laser receiver power')[1].split()[4])
                     except: pass
+                    i += 1
 
                 try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm_Warning_high'] = lag_data_outputs[2].split('Laser output power high warning threshold')[1].split()[4]
                 except: pass
@@ -6115,26 +6123,26 @@ authentication {
                 if CUSTOMER_MODE or BB_MODE:
                     if len(interface_data['interface_data'].get('bundle_members',[])) == 0:
                         for i in range(len(interface_data['interface_statistics'].get('Tx_Power_Lanes_dBm',[]))):
-                            check_interface_data_content("['interface_statistics']['Tx_Power_Lanes_dBm'][%d]" % i, higher_than = interface_data['interface_statistics'].get('Tx_Power_Lanes_dBm_Warning_low'), ignore_data_existence = True)
-                            check_interface_data_content("['interface_statistics']['Tx_Power_Lanes_dBm'][%d]" % i, higher_than = interface_data['interface_statistics'].get('Tx_Power_Lanes_dBm_Alarm_low'), ignore_data_existence = True)
-                            check_interface_data_content("['interface_statistics']['Tx_Power_Lanes_dBm'][%d]" % i, lower_than = interface_data['interface_statistics'].get('Tx_Power_Lanes_dBm_Warning_high'), ignore_data_existence = True)
-                            check_interface_data_content("['interface_statistics']['Tx_Power_Lanes_dBm'][%d]" % i, lower_than = interface_data['interface_statistics'].get('Tx_Power_Lanes_dBm_Alarm_high'), ignore_data_existence = True)
-                            check_interface_data_content("['interface_statistics']['Rx_Power_Lanes_dBm'][%d]" % i, higher_than = interface_data['interface_statistics'].get('Rx_Power_Lanes_dBm_Warning_low'), ignore_data_existence = True)
-                            check_interface_data_content("['interface_statistics']['Rx_Power_Lanes_dBm'][%d]" % i, higher_than = interface_data['interface_statistics'].get('Rx_Power_Lanes_dBm_Alarm_low'), ignore_data_existence = True)
-                            check_interface_data_content("['interface_statistics']['Rx_Power_Lanes_dBm'][%d]" % i, lower_than = interface_data['interface_statistics'].get('Rx_Power_Lanes_dBm_Warning_high'), ignore_data_existence = True)
-                            check_interface_data_content("['interface_statistics']['Rx_Power_Lanes_dBm'][%d]" % i, lower_than = interface_data['interface_statistics'].get('Rx_Power_Lanes_dBm_Alarm_high'), ignore_data_existence = True)
+                            check_interface_data_content("['interface_statistics']['Tx_Power_Lanes_dBm']['Lane %d']" % i, higher_than = interface_data['interface_statistics'].get('Tx_Power_Lanes_dBm_Warning_low'), ignore_data_existence = True)
+                            check_interface_data_content("['interface_statistics']['Tx_Power_Lanes_dBm']['Lane %d']" % i, higher_than = interface_data['interface_statistics'].get('Tx_Power_Lanes_dBm_Alarm_low'), ignore_data_existence = True)
+                            check_interface_data_content("['interface_statistics']['Tx_Power_Lanes_dBm']['Lane %d']" % i, lower_than = interface_data['interface_statistics'].get('Tx_Power_Lanes_dBm_Warning_high'), ignore_data_existence = True)
+                            check_interface_data_content("['interface_statistics']['Tx_Power_Lanes_dBm']['Lane %d']" % i, lower_than = interface_data['interface_statistics'].get('Tx_Power_Lanes_dBm_Alarm_high'), ignore_data_existence = True)
+                            check_interface_data_content("['interface_statistics']['Rx_Power_Lanes_dBm']['Lane %d']" % i, higher_than = interface_data['interface_statistics'].get('Rx_Power_Lanes_dBm_Warning_low'), ignore_data_existence = True)
+                            check_interface_data_content("['interface_statistics']['Rx_Power_Lanes_dBm']['Lane %d']" % i, higher_than = interface_data['interface_statistics'].get('Rx_Power_Lanes_dBm_Alarm_low'), ignore_data_existence = True)
+                            check_interface_data_content("['interface_statistics']['Rx_Power_Lanes_dBm']['Lane %d']" % i, lower_than = interface_data['interface_statistics'].get('Rx_Power_Lanes_dBm_Warning_high'), ignore_data_existence = True)
+                            check_interface_data_content("['interface_statistics']['Rx_Power_Lanes_dBm']['Lane %d']" % i, lower_than = interface_data['interface_statistics'].get('Rx_Power_Lanes_dBm_Alarm_high'), ignore_data_existence = True)
 
                     elif len(interface_data['interface_data'].get('bundle_members',[])) > 0:
                         for lag_member in interface_data['interface_data'].get('bundle_members',[]):
                             for i in range(len(interface_data['interface_statistics'].get('Tx_Power_Lanes_dBm',[]))):
-                                check_interface_data_content("['interface_statistics']['LAG_interfaces']['%s']['Tx_Power_Lanes_dBm'][%d]" % (str(lag_member),i), higher_than = interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))].get('Tx_Power_Lanes_dBm_Warning_low'), ignore_data_existence = True)
-                                check_interface_data_content("['interface_statistics']['LAG_interfaces']['%s')]['Tx_Power_Lanes_dBm'][%d]" % (str(lag_member),i), higher_than = interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))].get('Tx_Power_Lanes_dBm_Alarm_low'), ignore_data_existence = True)
-                                check_interface_data_content("['interface_statistics']['LAG_interfaces']['%s']['Tx_Power_Lanes_dBm'][%d]" % (str(lag_member),i), lower_than = interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))].get('Tx_Power_Lanes_dBm_Warning_high'), ignore_data_existence = True)
-                                check_interface_data_content("['interface_statistics']['LAG_interfaces']['%s']['Tx_Power_Lanes_dBm'][%d]" % (str(lag_member),i), lower_than = interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))].get('Tx_Power_Lanes_dBm_Alarm_high'), ignore_data_existence = True)
-                                check_interface_data_content("['interface_statistics']['LAG_interfaces']['%s']['Rx_Power_Lanes_dBm'][%d]" % (str(lag_member),i), higher_than = interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))].get('Rx_Power_Lanes_dBm_Warning_low'), ignore_data_existence = True)
-                                check_interface_data_content("['interface_statistics']['LAG_interfaces']['%s']['Rx_Power_Lanes_dBm'][%d]" % (str(lag_member),i), higher_than = interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))].get('Rx_Power_Lanes_dBm_Alarm_low'), ignore_data_existence = True)
-                                check_interface_data_content("['interface_statistics']['LAG_interfaces']['%s']['Rx_Power_Lanes_dBm'][%d]" % (str(lag_member),i), lower_than = interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))].get('Rx_Power_Lanes_dBm_Warning_high'), ignore_data_existence = True)
-                                check_interface_data_content("['interface_statistics']['LAG_interfaces']['%s']['Rx_Power_Lanes_dBm'][%d]" % (str(lag_member),i), lower_than = interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))].get('Rx_Power_Lanes_dBm_Alarm_high'), ignore_data_existence = True)
+                                check_interface_data_content("['interface_statistics']['LAG_interfaces']['%s']['Tx_Power_Lanes_dBm']['Lane %d']" % (str(lag_member),i), higher_than = interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))].get('Tx_Power_Lanes_dBm_Warning_low'), ignore_data_existence = True)
+                                check_interface_data_content("['interface_statistics']['LAG_interfaces']['%s']['Tx_Power_Lanes_dBm']['Lane %d']" % (str(lag_member),i), higher_than = interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))].get('Tx_Power_Lanes_dBm_Alarm_low'), ignore_data_existence = True)
+                                check_interface_data_content("['interface_statistics']['LAG_interfaces']['%s']['Tx_Power_Lanes_dBm']['Lane %d']" % (str(lag_member),i), lower_than = interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))].get('Tx_Power_Lanes_dBm_Warning_high'), ignore_data_existence = True)
+                                check_interface_data_content("['interface_statistics']['LAG_interfaces']['%s']['Tx_Power_Lanes_dBm']['Lane %d']" % (str(lag_member),i), lower_than = interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))].get('Tx_Power_Lanes_dBm_Alarm_high'), ignore_data_existence = True)
+                                check_interface_data_content("['interface_statistics']['LAG_interfaces']['%s']['Rx_Power_Lanes_dBm']['Lane %d']" % (str(lag_member),i), higher_than = interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))].get('Rx_Power_Lanes_dBm_Warning_low'), ignore_data_existence = True)
+                                check_interface_data_content("['interface_statistics']['LAG_interfaces']['%s']['Rx_Power_Lanes_dBm']['Lane %d']" % (str(lag_member),i), higher_than = interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))].get('Rx_Power_Lanes_dBm_Alarm_low'), ignore_data_existence = True)
+                                check_interface_data_content("['interface_statistics']['LAG_interfaces']['%s']['Rx_Power_Lanes_dBm']['Lane %d']" % (str(lag_member),i), lower_than = interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))].get('Rx_Power_Lanes_dBm_Warning_high'), ignore_data_existence = True)
+                                check_interface_data_content("['interface_statistics']['LAG_interfaces']['%s']['Rx_Power_Lanes_dBm']['Lane %d']" % (str(lag_member),i), lower_than = interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))].get('Rx_Power_Lanes_dBm_Alarm_high'), ignore_data_existence = True)
 
 
                 ###############################################################
