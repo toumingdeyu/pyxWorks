@@ -6122,7 +6122,7 @@ authentication {
                 ### def OPTICS CHECK ##########################################
                 if CUSTOMER_MODE or BB_MODE:
                     if len(interface_data['interface_data'].get('bundle_members',[])) == 0:
-                        for i in range(len(interface_data['interface_statistics'].get('Tx_Power_Lanes_dBm',[]))):
+                        for i in range(4):
                             check_interface_data_content("['interface_statistics']['Tx_Power_Lanes_dBm']['Lane %d']" % i, higher_than = interface_data['interface_statistics'].get('Tx_Power_Lanes_dBm_Warning_low'), ignore_data_existence = True)
                             check_interface_data_content("['interface_statistics']['Tx_Power_Lanes_dBm']['Lane %d']" % i, higher_than = interface_data['interface_statistics'].get('Tx_Power_Lanes_dBm_Alarm_low'), ignore_data_existence = True)
                             check_interface_data_content("['interface_statistics']['Tx_Power_Lanes_dBm']['Lane %d']" % i, lower_than = interface_data['interface_statistics'].get('Tx_Power_Lanes_dBm_Warning_high'), ignore_data_existence = True)
@@ -6134,7 +6134,7 @@ authentication {
 
                     elif len(interface_data['interface_data'].get('bundle_members',[])) > 0:
                         for lag_member in interface_data['interface_data'].get('bundle_members',[]):
-                            for i in range(len(interface_data['interface_statistics'].get('Tx_Power_Lanes_dBm',[]))):
+                            for i in range(4):
                                 check_interface_data_content("['interface_statistics']['LAG_interfaces']['%s']['Tx_Power_Lanes_dBm']['Lane %d']" % (str(lag_member),i), higher_than = interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))].get('Tx_Power_Lanes_dBm_Warning_low'), ignore_data_existence = True)
                                 check_interface_data_content("['interface_statistics']['LAG_interfaces']['%s']['Tx_Power_Lanes_dBm']['Lane %d']" % (str(lag_member),i), higher_than = interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))].get('Tx_Power_Lanes_dBm_Alarm_low'), ignore_data_existence = True)
                                 check_interface_data_content("['interface_statistics']['LAG_interfaces']['%s']['Tx_Power_Lanes_dBm']['Lane %d']" % (str(lag_member),i), lower_than = interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))].get('Tx_Power_Lanes_dBm_Warning_high'), ignore_data_existence = True)
