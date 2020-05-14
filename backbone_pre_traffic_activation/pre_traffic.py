@@ -3124,7 +3124,7 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
         if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
             interface_data['interface_statistics']['Tx_Power_Lanes_dBm'] = []
             interface_data['interface_statistics']['Rx_Power_Lanes_dBm'] = []
-            for line in optic_data_rcmds[0].split('Lane ')[1].splitlines()[1:]:
+            for line in optic_data_rcmds[0].split('Laser Bias')[1].split('Lane ')[1].splitlines()[1:]:
                 if '---' in line: continue
                 if line.strip() == str(): break
                 try:    interface_data['interface_statistics']['Tx_Power_Lanes_dBm'].append(copy.deepcopy(line.split()[2]))
@@ -3136,23 +3136,23 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
                 if '---' in line: continue
                 if line.strip() == str(): break
                 if 'Transmit Power (dBm):' in line:
-                    try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Warning_high'] = line.split()[2]
+                    try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Warning_high'] = line.split()[4]
                     except: pass
-                    try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Warning_low'] = line.split()[3]
+                    try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Warning_low'] = line.split()[5]
                     except: pass
-                    try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Alarm_high'] = line.split()[1]
+                    try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Alarm_high'] = line.split()[3]
                     except: pass
-                    try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Alarm_low'] = line.split()[4]
+                    try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Alarm_low'] = line.split()[6]
                     except: pass
 
                 elif 'Receive Power (dBm):' in line:
-                    try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Warning_high'] = line.split()[2]
+                    try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Warning_high'] = line.split()[4]
                     except: pass
-                    try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Warning_low'] = line.split()[3]
+                    try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Warning_low'] = line.split()[5]
                     except: pass
-                    try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Alarm_high'] = line.split()[1]
+                    try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Alarm_high'] = line.split()[3]
                     except: pass
-                    try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Alarm_low'] = line.split()[4]
+                    try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Alarm_low'] = line.split()[6]
                     except: pass
 
         elif RCMD.router_type == 'juniper':
@@ -3280,7 +3280,7 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
                 interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm'] = []
                 interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm'] = []
 
-                for line in lag_data_outputs[2].split('Lane ')[1].splitlines()[1:]:
+                for line in lag_data_outputs[2].split('Laser Bias')[1].split('Lane ')[1].splitlines()[1:]:
                     if '---' in line: continue
                     if line.strip() == str(): break
                     try:    interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm'].append(copy.deepcopy(line.split()[2]))
@@ -3292,23 +3292,23 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
                     if '---' in line: continue
                     if line.strip() == str(): break
                     if 'Transmit Power (dBm):' in line:
-                        try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm_Warning_high'] = line.split()[2]
+                        try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm_Warning_high'] = line.split()[4]
                         except: pass
-                        try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm_Warning_low'] = line.split()[3]
+                        try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm_Warning_low'] = line.split()[5]
                         except: pass
-                        try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm_Alarm_high'] = line.split()[1]
+                        try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm_Alarm_high'] = line.split()[3]
                         except: pass
-                        try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm_Alarm_low'] = line.split()[4]
+                        try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm_Alarm_low'] = line.split()[6]
                         except: pass
 
                     elif 'Receive Power (dBm):' in line:
-                        try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm_Warning_high'] = line.split()[2]
+                        try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm_Warning_high'] = line.split()[4]
                         except: pass
-                        try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm_Warning_low'] = line.split()[3]
+                        try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm_Warning_low'] = line.split()[5]
                         except: pass
-                        try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm_Alarm_high'] = line.split()[1]
+                        try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm_Alarm_high'] = line.split()[3]
                         except: pass
-                        try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm_Alarm_low'] = line.split()[4]
+                        try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm_Alarm_low'] = line.split()[6]
                         except: pass
 
             elif RCMD.router_type == 'juniper':
@@ -5698,7 +5698,7 @@ authentication {
 
                 if len(None_elements) > 0:
                     check_interface_result_ok = False
-                    CGI_CLI.uprint('UNSET CONFIG ELEMENTS ON INTERFACE %s:' % \
+                    CGI_CLI.uprint('\nUNSET CONFIG ELEMENTS ON INTERFACE %s:' % \
                         (interface_data.get('interface_id')), tag = 'h3', color = 'red', timestamp = 'no')
                     CGI_CLI.uprint('\n'.join(None_elements), color = 'red', timestamp = 'no')
                     CGI_CLI.uprint('\n\n', timestamp = 'no')
@@ -5706,7 +5706,7 @@ authentication {
                 if CUSTOMER_MODE:
                     if len(None_warning_elements) > 0:
                         check_warning_interface_result_ok = False
-                        CGI_CLI.uprint('UNSET WARNING CONFIG ELEMENTS ON INTERFACE %s:' % \
+                        CGI_CLI.uprint('\nUNSET WARNING CONFIG ELEMENTS ON INTERFACE %s:' % \
                             (interface_data.get('interface_id')), tag = 'h3', color = 'orange', timestamp = 'no')
                         CGI_CLI.uprint('\n'.join(None_warning_elements), color = 'orange', timestamp = 'no')
                         CGI_CLI.uprint('\n\n', timestamp = 'no')
