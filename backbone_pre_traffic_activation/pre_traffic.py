@@ -3161,12 +3161,14 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
             interface_data['interface_statistics']['Tx_Power_Lanes_dBm'] = collections.OrderedDict()
             interface_data['interface_statistics']['Rx_Power_Lanes_dBm'] = collections.OrderedDict()
             i = 0
-            for part in optic_data_rcmds[0].split('Lane ')[1:]:
-                try:    interface_data['interface_statistics']['Tx_Power_Lanes_dBm']['Lane %d' % (i)] = copy.deepcopy(part.split('Laser output power')[1].split()[4])
-                except: pass
-                try:    interface_data['interface_statistics']['Rx_Power_Lanes_dBm']['Lane %d' % (i)] = copy.deepcopy(part.split('Laser receiver power')[1].split()[4])
-                except: pass
-                i += 1
+            try:
+                for part in optic_data_rcmds[0].split('Lane ')[1:]:
+                    try:    interface_data['interface_statistics']['Tx_Power_Lanes_dBm']['Lane %d' % (i)] = copy.deepcopy(part.split('Laser output power')[1].split()[4])
+                    except: pass
+                    try:    interface_data['interface_statistics']['Rx_Power_Lanes_dBm']['Lane %d' % (i)] = copy.deepcopy(part.split('Laser receiver power')[1].split()[4])
+                    except: pass
+                    i += 1
+            except: pass        
 
             try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Warning_high'] = optic_data_rcmds[0].split('Laser output power high warning threshold')[1].split()[4]
             except: pass
@@ -3371,12 +3373,14 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
                 interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm'] = collections.OrderedDict()
 
                 i = 0
-                for part in lag_data_outputs[2].split('Lane ')[1:]:
-                    try:    interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm']['Lane %d' % (i)] = copy.deepcopy(part.split('Laser output power')[1].split()[4])
-                    except: pass
-                    try:    interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm']['Lane %d' % (i)] =copy.deepcopy(part.split('Laser receiver power')[1].split()[4])
-                    except: pass
-                    i += 1
+                try:
+                    for part in lag_data_outputs[2].split('Lane ')[1:]:
+                        try:    interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm']['Lane %d' % (i)] = copy.deepcopy(part.split('Laser output power')[1].split()[4])
+                        except: pass
+                        try:    interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm']['Lane %d' % (i)] =copy.deepcopy(part.split('Laser receiver power')[1].split()[4])
+                        except: pass
+                        i += 1
+                except: pass     
 
                 try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm_Warning_high'] = lag_data_outputs[2].split('Laser output power high warning threshold')[1].split()[4]
                 except: pass
