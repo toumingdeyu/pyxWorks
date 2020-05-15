@@ -3541,6 +3541,7 @@ authentication {
     CUSTOMER_MODE = False
     BB_MODE = False
     USE_IPV6 = False
+    STATIC_ROUTING = False
 
 
     ### GCI_CLI INIT ##########################################################
@@ -4339,9 +4340,9 @@ authentication {
                         try: interface_warning_data['interface_data']['MTU_interface_configured'] = collect_if_config_rcmd_outputs[0].split('mtu ')[1].splitlines()[0].strip()
                         except: interface_warning_data['interface_data']['MTU_interface_configured'] = str()
 
+
                 ### def IPV6 CONDITION - YES OR NO ############################
-                ### OTI_LOCAL_AS = '5511'
-                ### IMN_LOCAL_AS = '2300'
+                ### OTI_LOCAL_AS = '5511', IMN_LOCAL_AS = '2300' ##############
                 if (LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE) \
                     or interface_data['interface_data'].get('ipv6_addr_loc'): USE_IPV6 = True
 
@@ -4356,10 +4357,14 @@ authentication {
                     if len(interface_data['interface_data'].get('ipv4_addr_rem_from_ASN',[])) == 1:
                         interface_data['interface_data']['ipv4_addr_rem'] = \
                             interface_data['interface_data'].get('ipv4_addr_rem_from_ASN')[0]
+                        ### STATIC_ROUTING ###
+                        if interface_data['interface_data'].get('ipv4_addr_rem_from_ASN')[0] != interface_data['interface_data'].get('ipv4_addr_rem_from_DESCRIPTION'):
+                            STATIC_ROUTING = True
                     elif interface_data['interface_data'].get('ipv4_addr_rem_from_DESCRIPTION') and \
                         len(interface_data['interface_data'].get('ipv4_addr_rem_from_ASN',[])) > 1:
                             interface_data['interface_data']['ipv4_addr_rem'] = \
                                 interface_data['interface_data'].get('ipv4_addr_rem_from_DESCRIPTION')
+
 
                 ###############################################################
                 ### def CALCULATE REMOTE IP ADDRESES: THE OTHER IP IN NETWORK #
@@ -5274,6 +5279,9 @@ authentication {
                         try: interface_data['bgp']['IPV4 No of prefixes Advertised'] = collect5_if_config_rcmd_outputs[1].split('No of prefixes Advertised:')[1].split()[0]
                         except: interface_data['bgp']['IPV4 No of prefixes Advertised'] = str()
 
+                        try: interface_data['bgp']['Local host'] = collect5_if_config_rcmd_outputs[1].split('Local host:')[1].split()[0].replace(',','')
+                        except: pass
+
                     elif RCMD.router_type == 'juniper':
                         ### BUG - MORE GROUPS CAN BE DISPLAYED !!! ###
                         try: interface_data['bgp']['IPV4 bgp group Export'] = collect5_if_config_rcmd_outputs[0].split('Name: %s ' % (interface_data['bgp']['IPV4 neighbor-group']))[1].split('Export: [ ')[1].splitlines()[0].replace(']','').strip().split()
@@ -5580,18 +5588,52 @@ authentication {
                     CGI_CLI.uprint('\nIPV6 PING SIZE CALCULATION WARNING!', color = 'orange', timestamp = 'no')
 
 
+                if STATIC_ROUTING:
+                    try: ping_source = interface_data['bgp']['Local host']
+                    except: ping_source = None
+
+                    if ping_source:
+                        ### def FIRST PINGv4 COMMAND LIST #############################
+                        if interface_data['interface_data'].get('ipv4_addr_rem',str()):
+                            interface_data['interface_statistics']['IPV4 ping percent success'] = str(do_ping( \
+                                address = interface_data['interface_data'].get('ipv4_addr_rem',str()), \
+                                mtu = 100, count = 5, ipv6 = None, \
+                                source = ping_source))
+
+                            interface_warning_data['interface_statistics']['IPV4 percent success on intended ping size'] = str(do_ping( \
+                                address = interface_data['interface_data'].get('ipv4_addr_rem',str()), \
+                                mtu = interface_warning_data['interface_data']['IPV4 intended ping size'], count = 5, ipv6 = None, \
+                                source = ping_source))
+
+                        ### def FIRST PINGv6 COMMAND LIST ###################################
+                        if USE_IPV6:
+                            try: ping_source_v6 = interface_data['bgp']['IPV6 Local host']
+                            except: ping_source_v6 = None
+
+                            if ping_source_v6:
+                                if interface_warning_data['interface_data'].get('ipv6_addr_rem',str()):
+                                    interface_warning_data['interface_statistics']['IPV6 ping percent success'] = str(do_ping( \
+                                        address = interface_warning_data['interface_data'].get('ipv6_addr_rem',str()), \
+                                        mtu = 100, count = 5, ipv6 = True, \
+                                        source = ping_source_v6))
+
+                                    interface_warning_data['interface_statistics']['IPV6 percent success on intended ping size'] = str(do_ping( \
+                                        address = interface_warning_data['interface_data'].get('ipv6_addr_rem',str()), \
+                                        mtu = interface_warning_data['interface_data']['IPV6 intended ping size'], count = 5, ipv6 = True, \
+                                        source = ping_source_v6))
+
 
                 ### def FIRST PINGv4 COMMAND LIST #############################
                 if interface_data['interface_data'].get('ipv4_addr_rem',str()):
                     interface_data['interface_statistics']['IPV4 ping percent success'] = str(do_ping( \
                         address = interface_data['interface_data'].get('ipv4_addr_rem',str()), \
                         mtu = 100, count = 5, ipv6 = None, \
-                        source = interface_data.get('ipv4_addr_loc',str())))
+                        source = interface_data['interface_data'].get('ipv4_addr_loc',str())))
 
                     interface_warning_data['interface_statistics']['IPV4 percent success on intended ping size'] = str(do_ping( \
                         address = interface_data['interface_data'].get('ipv4_addr_rem',str()), \
                         mtu = interface_warning_data['interface_data']['IPV4 intended ping size'], count = 5, ipv6 = None, \
-                        source = interface_data.get('ipv4_addr_loc',str())))
+                        source = interface_data['interface_data'].get('ipv4_addr_loc',str())))
 
 
                 ### def FIRST PINGv6 COMMAND LIST ###################################
@@ -5600,12 +5642,12 @@ authentication {
                         interface_warning_data['interface_statistics']['IPV6 ping percent success'] = str(do_ping( \
                             address = interface_warning_data['interface_data'].get('ipv6_addr_rem',str()), \
                             mtu = 100, count = 5, ipv6 = True, \
-                            source = interface_data.get('ipv6_addr_loc',str())))
+                            source = interface_data['interface_data'].get('ipv6_addr_loc',str())))
 
                         interface_warning_data['interface_statistics']['IPV6 percent success on intended ping size'] = str(do_ping( \
                             address = interface_warning_data['interface_data'].get('ipv6_addr_rem',str()), \
                             mtu = interface_warning_data['interface_data']['IPV6 intended ping size'], count = 5, ipv6 = True, \
-                            source = interface_data.get('ipv6_addr_loc',str())))
+                            source = interface_data['interface_data'].get('ipv6_addr_loc',str())))
 
                 ### def FIND MAX MTU ##########################################
                 if PING_ONLY:
