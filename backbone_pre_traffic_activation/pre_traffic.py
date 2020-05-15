@@ -3125,37 +3125,41 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
             interface_data['interface_statistics']['Tx_Power_Lanes_dBm'] = collections.OrderedDict()
             interface_data['interface_statistics']['Rx_Power_Lanes_dBm'] = collections.OrderedDict()
             i = 0
-            for line in optic_data_rcmds[0].split('Laser Bias')[1].split('Lane ')[1].splitlines()[1:]:
-                if '---' in line: continue
-                if line.strip() == str(): break
-                try:    interface_data['interface_statistics']['Tx_Power_Lanes_dBm']['Lane %d' % (i)] = copy.deepcopy(line.split()[2])
-                except: pass
-                try:    interface_data['interface_statistics']['Rx_Power_Lanes_dBm']['Lane %d' % (i)] = copy.deepcopy(line.split()[4])
-                except: pass
-                i += 1
+            try:
+                for line in optic_data_rcmds[0].split('Laser Bias')[1].split('Lane ')[1].splitlines()[1:]:
+                    if '---' in line: continue
+                    if line.strip() == str(): break
+                    try:    interface_data['interface_statistics']['Tx_Power_Lanes_dBm']['Lane %d' % (i)] = copy.deepcopy(line.split()[2])
+                    except: pass
+                    try:    interface_data['interface_statistics']['Rx_Power_Lanes_dBm']['Lane %d' % (i)] = copy.deepcopy(line.split()[4])
+                    except: pass
+                    i += 1
+            except: pass
 
-            for line in optic_data_rcmds[0].split('Thresholds ')[1].splitlines()[1:]:
-                if '---' in line: continue
-                if line.strip() == str(): break
-                if 'Transmit Power (dBm):' in line:
-                    try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Warning_high'] = line.split()[4]
-                    except: pass
-                    try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Warning_low'] = line.split()[5]
-                    except: pass
-                    try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Alarm_high'] = line.split()[3]
-                    except: pass
-                    try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Alarm_low'] = line.split()[6]
-                    except: pass
+            try:
+                for line in optic_data_rcmds[0].split('Thresholds ')[1].splitlines()[1:]:
+                    if '---' in line: continue
+                    if line.strip() == str(): break
+                    if 'Transmit Power (dBm):' in line:
+                        try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Warning_high'] = line.split()[4]
+                        except: pass
+                        try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Warning_low'] = line.split()[5]
+                        except: pass
+                        try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Alarm_high'] = line.split()[3]
+                        except: pass
+                        try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Alarm_low'] = line.split()[6]
+                        except: pass
 
-                elif 'Receive Power (dBm):' in line:
-                    try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Warning_high'] = line.split()[4]
-                    except: pass
-                    try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Warning_low'] = line.split()[5]
-                    except: pass
-                    try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Alarm_high'] = line.split()[3]
-                    except: pass
-                    try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Alarm_low'] = line.split()[6]
-                    except: pass
+                    elif 'Receive Power (dBm):' in line:
+                        try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Warning_high'] = line.split()[4]
+                        except: pass
+                        try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Warning_low'] = line.split()[5]
+                        except: pass
+                        try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Alarm_high'] = line.split()[3]
+                        except: pass
+                        try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Alarm_low'] = line.split()[6]
+                        except: pass
+            except: pass
 
         elif RCMD.router_type == 'juniper':
             interface_data['interface_statistics']['Tx_Power_Lanes_dBm'] = collections.OrderedDict()
@@ -3287,37 +3291,41 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
                 interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm'] = collections.OrderedDict()
 
                 i = 0
-                for line in lag_data_outputs[2].split('Laser Bias')[1].split('Lane ')[1].splitlines()[1:]:
-                    if '---' in line: continue
-                    if line.strip() == str(): break
-                    try:    interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm']['Lane %d' % (i)] = copy.deepcopy(line.split()[2])
-                    except: pass
-                    try:    interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm']['Lane %d' % (i)] = copy.deepcopy(line.split()[4])
-                    except: pass
-                    i += 1
+                try:
+                    for line in lag_data_outputs[2].split('Laser Bias')[1].split('Lane ')[1].splitlines()[1:]:
+                        if '---' in line: continue
+                        if line.strip() == str(): break
+                        try:    interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm']['Lane %d' % (i)] = copy.deepcopy(line.split()[2])
+                        except: pass
+                        try:    interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm']['Lane %d' % (i)] = copy.deepcopy(line.split()[4])
+                        except: pass
+                        i += 1
+                except: pass
 
-                for line in lag_data_outputs[2].split('Thresholds ')[1].splitlines()[1:]:
-                    if '---' in line: continue
-                    if line.strip() == str(): break
-                    if 'Transmit Power (dBm):' in line:
-                        try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm_Warning_high'] = line.split()[4]
-                        except: pass
-                        try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm_Warning_low'] = line.split()[5]
-                        except: pass
-                        try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm_Alarm_high'] = line.split()[3]
-                        except: pass
-                        try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm_Alarm_low'] = line.split()[6]
-                        except: pass
+                try:
+                    for line in lag_data_outputs[2].split('Thresholds ')[1].splitlines()[1:]:
+                        if '---' in line: continue
+                        if line.strip() == str(): break
+                        if 'Transmit Power (dBm):' in line:
+                            try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm_Warning_high'] = line.split()[4]
+                            except: pass
+                            try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm_Warning_low'] = line.split()[5]
+                            except: pass
+                            try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm_Alarm_high'] = line.split()[3]
+                            except: pass
+                            try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm_Alarm_low'] = line.split()[6]
+                            except: pass
 
-                    elif 'Receive Power (dBm):' in line:
-                        try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm_Warning_high'] = line.split()[4]
-                        except: pass
-                        try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm_Warning_low'] = line.split()[5]
-                        except: pass
-                        try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm_Alarm_high'] = line.split()[3]
-                        except: pass
-                        try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm_Alarm_low'] = line.split()[6]
-                        except: pass
+                        elif 'Receive Power (dBm):' in line:
+                            try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm_Warning_high'] = line.split()[4]
+                            except: pass
+                            try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm_Warning_low'] = line.split()[5]
+                            except: pass
+                            try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm_Alarm_high'] = line.split()[3]
+                            except: pass
+                            try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm_Alarm_low'] = line.split()[6]
+                            except: pass
+                except: pass
 
             elif RCMD.router_type == 'juniper':
                 interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))] = collections.OrderedDict()
