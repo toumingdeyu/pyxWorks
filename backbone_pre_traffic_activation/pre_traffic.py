@@ -2894,7 +2894,7 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
         try:    interface_warning_data['interface_statistics']['FEC_Uncorrected_Errors%s' % (after_string)] = err_check_after_pings_outputs[0].split('FEC Uncorrected Errors ')[1].split()[0].strip()
         except: pass
         if after_ping:
-            try:    interface_warning_data['FEC_Uncorrected_Errors_Difference'] = str(int(interface_warning_data['interface_statistics']['FEC_Uncorrected_Errors_After_ping']) - int(interface_warning_data['interface_statistics']['FEC_Uncorrected_Errors']))
+            try:    interface_warning_data['interface_statistics']['FEC_Uncorrected_Errors_Difference'] = str(int(interface_warning_data['interface_statistics']['FEC_Uncorrected_Errors_After_ping']) - int(interface_warning_data['interface_statistics']['FEC_Uncorrected_Errors']))
             except: pass
 
         try:    interface_warning_data['interface_statistics']['FEC_Corrected_Errors_Rate%s' % (after_string)] = err_check_after_pings_outputs[0].split('FEC Corrected Errors Rate ')[1].split()[0].strip()
@@ -3168,7 +3168,7 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
                     try:    interface_data['interface_statistics']['Rx_Power_Lanes_dBm']['Lane %d' % (i)] = copy.deepcopy(part.split('Laser receiver power')[1].split()[4])
                     except: pass
                     i += 1
-            except: pass        
+            except: pass
 
             try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Warning_high'] = optic_data_rcmds[0].split('Laser output power high warning threshold')[1].split()[4]
             except: pass
@@ -3380,7 +3380,7 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
                         try:    interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm']['Lane %d' % (i)] =copy.deepcopy(part.split('Laser receiver power')[1].split()[4])
                         except: pass
                         i += 1
-                except: pass     
+                except: pass
 
                 try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm_Warning_high'] = lag_data_outputs[2].split('Laser output power high warning threshold')[1].split()[4]
                 except: pass
