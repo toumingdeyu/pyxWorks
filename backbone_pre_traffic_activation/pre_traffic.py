@@ -3113,7 +3113,9 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
         }
 
         optic_data_rcmds['cisco_ios'].append('sh controllers %s' % (str(undotted_interface_id)))
+        optic_data_rcmds['cisco_ios'].append('sh controllers %s phy' % (str(undotted_interface_id)))
         optic_data_rcmds['cisco_xr'].append('sh controllers %s' % (str(undotted_interface_id)))
+        optic_data_rcmds['cisco_xr'].append('sh controllers %s phy' % (str(undotted_interface_id)))
         optic_data_rcmds['juniper'].append('show interfaces diagnostics optics %s' % (str(undotted_interface_id)))
 
         optic_data_outputs = RCMD.run_commands( \
@@ -3159,6 +3161,16 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
                         except: pass
                         try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Alarm_low'] = line.split()[6]
                         except: pass
+            except: pass
+
+            try:
+                if interface_data['interface_statistics']['Tx_Power_Lanes_dBm'].get('Lane %d' % (0)): pass
+                else: interface_data['interface_statistics']['Tx_Power_Lanes_dBm']['Lane %d' % (0)] = copy.deepcopy(optic_data_rcmds[1].split('Total Tx power:')[1].split()[3])
+            except: pass
+
+            try:
+                if interface_data['interface_statistics']['Rx_Power_Lanes_dBm'].get('Lane %d' % (0)): pass
+                else: interface_data['interface_statistics']['Rx_Power_Lanes_dBm']['Lane %d' % (0)] = copy.deepcopy(optic_data_rcmds[1].split('Total Rx power:')[1].split()[3])
             except: pass
 
         elif RCMD.router_type == 'juniper':
@@ -3212,12 +3224,14 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
             lag_data_rcmds['cisco_ios'].append('show run interface  %s' % (str(lag_member)))
             lag_data_rcmds['cisco_ios'].append('show interface %s' % (str(lag_member)))
             lag_data_rcmds['cisco_ios'].append('sh controllers %s' % (str(lag_member)))
+            lag_data_rcmds['cisco_ios'].append('sh controllers %s phy' % (str(lag_member)))
             if i == 1:
                 lag_data_rcmds['cisco_ios'].append('show bundle %s' % (str(undotted_interface_id)))
 
             lag_data_rcmds['cisco_xr'].append('show run interface %s' % (str(lag_member)))
             lag_data_rcmds['cisco_xr'].append('show interface %s' % (str(lag_member)))
             lag_data_rcmds['cisco_xr'].append('sh controllers %s' % (str(lag_member)))
+            lag_data_rcmds['cisco_xr'].append('sh controllers %s phy' % (str(lag_member)))
             if i == 1:
                 lag_data_rcmds['cisco_xr'].append('show bundle %s' % (str(undotted_interface_id)))
 
@@ -3325,6 +3339,16 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
                             except: pass
                             try: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm_Alarm_low'] = line.split()[6]
                             except: pass
+                except: pass
+
+                try:
+                    if interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm'].get('Lane %d' % (0)): pass
+                    else: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Tx_Power_Lanes_dBm']['Lane %d' % (0)] = copy.deepcopy(lag_data_outputs[3].split('Total Tx power:')[1].split()[3])
+                except: pass
+
+                try:
+                    if interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm'].get('Lane %d' % (0)): pass
+                    else: interface_data['interface_statistics']['LAG_interfaces']['%s' % (str(lag_member))]['Rx_Power_Lanes_dBm']['Lane %d' % (0)] = copy.deepcopy(lag_data_outputs[3].split('Total Rx power:')[1].split()[3])
                 except: pass
 
             elif RCMD.router_type == 'juniper':
