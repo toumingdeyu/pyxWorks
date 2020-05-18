@@ -4360,6 +4360,7 @@ authentication {
                         ### STATIC_ROUTING ###
                         if interface_data['interface_data'].get('ipv4_addr_rem_from_ASN')[0] != interface_data['interface_data'].get('ipv4_addr_rem_from_DESCRIPTION'):
                             STATIC_ROUTING = True
+                            interface_data['interface_data']['STATIC_ROUTING'] = True
                     elif interface_data['interface_data'].get('ipv4_addr_rem_from_DESCRIPTION') and \
                         len(interface_data['interface_data'].get('ipv4_addr_rem_from_ASN',[])) > 1:
                             interface_data['interface_data']['ipv4_addr_rem'] = \
