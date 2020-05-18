@@ -4355,16 +4355,58 @@ authentication {
 
                 if CUSTOMER_MODE or PING_ONLY:
                     if len(interface_data['interface_data'].get('ipv4_addr_rem_from_ASN',[])) == 1:
-                        interface_data['interface_data']['ipv4_addr_rem'] = \
-                            interface_data['interface_data'].get('ipv4_addr_rem_from_ASN')[0]
+                            
                         ### STATIC_ROUTING ###
-                        if interface_data['interface_data'].get('ipv4_addr_rem_from_ASN')[0] != interface_data['interface_data'].get('ipv4_addr_rem_from_DESCRIPTION'):
+                        interface_from_DESCRIPTION = ipaddress.IPv4Interface(u'%s/%s' % \
+                            (interface_data['interface_data'].get('ipv4_addr_rem_from_DESCRIPTION'), 30))
+
+                        ipv4_network_from_DESCRIPTION = interface.network
+                        CGI_CLI.uprint('Network_from_DESCRIPTION: ' + str(ipv4_network_from_DESCRIPTION), tag = 'debug', no_printall = not CGI_CLI.printall)                        
+                    
+                        ipv4_addr_rem_from_ASN_is_in_range_from_DESCRITION = False
+                        for address in interface_data['interface_data'].get('ipv4_addr_rem_from_ASN',[]):
+                            interface = ipaddress.IPv4Interface(u'%s/%s' % (address, 30))
+                            ipv4_network = interface.network
+                            
+                            CGI_CLI.uprint('Network_from_ASN: ' + str(ipv4_network), tag = 'debug', no_printall = not CGI_CLI.printall)
+                            if str(ipv4_network) == str(ipv4_network_from_DESCRIPTION):
+                                ipv4_addr_rem_from_ASN_is_in_range_from_DESCRITION = True
+                                                
+                        if ipv4_addr_rem_from_ASN_is_in_range_from_DESCRITION == True:
+                            interface_data['interface_data']['ipv4_addr_rem'] = \
+                                interface_data['interface_data'].get('ipv4_addr_rem_from_ASN')[0]
+                        else:
+                        #if interface_data['interface_data'].get('ipv4_addr_rem_from_ASN')[0] != interface_data['interface_data'].get('ipv4_addr_rem_from_DESCRIPTION'):
                             STATIC_ROUTING = True
                             interface_data['interface_data']['STATIC_ROUTING'] = True
+                            interface_data['interface_data']['ipv4_addr_rem'] = \
+                                interface_data['interface_data'].get('ipv4_addr_rem_from_ASN')[0]
+                            
                     elif interface_data['interface_data'].get('ipv4_addr_rem_from_DESCRIPTION') and \
                         len(interface_data['interface_data'].get('ipv4_addr_rem_from_ASN',[])) > 1:
-                            interface_data['interface_data']['ipv4_addr_rem'] = \
-                                interface_data['interface_data'].get('ipv4_addr_rem_from_DESCRIPTION')
+
+                            interface_from_DESCRIPTION = ipaddress.IPv4Interface(u'%s/%s' % \
+                                (interface_data['interface_data'].get('ipv4_addr_rem_from_DESCRIPTION'), 30))
+
+                            ipv4_network_from_DESCRIPTION = interface.network
+                            CGI_CLI.uprint('Network_from_DESCRIPTION: ' + str(ipv4_network_from_DESCRIPTION), tag = 'debug', no_printall = not CGI_CLI.printall)                        
+                        
+                            ipv4_addr_rem_from_ASN_is_in_range_from_DESCRITION = False
+                            for address in interface_data['interface_data'].get('ipv4_addr_rem_from_ASN',[]):
+                                interface = ipaddress.IPv4Interface(u'%s/%s' % (address, 30))
+                                ipv4_network = interface.network
+                                
+                                CGI_CLI.uprint('Network_from_ASN: ' + str(ipv4_network), tag = 'debug', no_printall = not CGI_CLI.printall)
+                                if str(ipv4_network) == str(ipv4_network_from_DESCRIPTION):
+                                    ipv4_addr_rem_from_ASN_is_in_range_from_DESCRITION = True
+                            
+                            if ipv4_addr_rem_from_ASN_is_in_range_from_DESCRITION == True:
+                                interface_data['interface_data']['ipv4_addr_rem'] = \
+                                    interface_data['interface_data'].get('ipv4_addr_rem_from_DESCRIPTION')
+                            else: 
+                                STATIC_ROUTING = True       
+                                interface_data['interface_data']['ipv4_addr_rem'] = \
+                                    interface_data['interface_data'].get('ipv4_addr_rem_from_ASN')[0] 
 
 
                 ###############################################################
