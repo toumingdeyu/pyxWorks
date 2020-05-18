@@ -5028,6 +5028,10 @@ authentication {
 
                     if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
                         if interface_data['bgp'].get('IPV4 use_neighbor-group'):
+
+                            if STATIC_ROUTING:
+                                interface_data['bgp']['IPV4 ebgp-multihop 3'] = True if 'ebgp-multihop 3' in collect3_if_config_rcmd_outputs[0] else str()
+
                             interface_data['bgp']['IPV4 address-family'] = []
                             try:
                                 if 'address-family ipv4 unicast' in collect3_if_config_rcmd_outputs[0]:
@@ -5063,6 +5067,10 @@ authentication {
                                 except: pass
 
                         if USE_IPV6 and interface_data['bgp'].get('IPV6 use neighbor-group'):
+
+                            if STATIC_ROUTING:
+                                interface_data['bgp']['IPV6 ebgp-multihop 3'] = True if 'ebgp-multihop 3' in collect3_if_config_rcmd_outputs[3] else str()
+
                             interface_warning_data['bgp'] = collections.OrderedDict()
                             interface_warning_data['bgp']['IPV6 address-family'] = []
                             try:
