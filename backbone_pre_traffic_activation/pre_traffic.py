@@ -5593,31 +5593,31 @@ authentication {
                     except: ping_source = None
 
                     if ping_source:
-                        ### def FIRST PINGv4 COMMAND LIST #############################
+                        ### def FIRST PINGv4 NEXT HOP COMMAND LIST ############
                         if interface_data['interface_data'].get('ipv4_addr_rem',str()):
-                            interface_data['interface_statistics']['IPV4 ping percent success'] = str(do_ping( \
+                            interface_data['interface_statistics']['IPV4 next hop ping percent success from localhost'] = str(do_ping( \
                                 address = interface_data['interface_data'].get('ipv4_addr_rem',str()), \
                                 mtu = 100, count = 5, ipv6 = None, \
                                 source = ping_source))
 
-                            interface_warning_data['interface_statistics']['IPV4 percent success on intended ping size'] = str(do_ping( \
+                            interface_warning_data['interface_statistics']['IPV4 next hop ping percent success on intended ping size from localhost'] = str(do_ping( \
                                 address = interface_data['interface_data'].get('ipv4_addr_rem',str()), \
                                 mtu = interface_warning_data['interface_data']['IPV4 intended ping size'], count = 5, ipv6 = None, \
                                 source = ping_source))
 
-                        ### def FIRST PINGv6 COMMAND LIST ###################################
+                        ### def FIRST PINGv6 NEXT HOP COMMAND LIST ############
                         if USE_IPV6:
                             try: ping_source_v6 = interface_data['bgp']['IPV6 Local host']
                             except: ping_source_v6 = None
 
                             if ping_source_v6:
                                 if interface_warning_data['interface_data'].get('ipv6_addr_rem',str()):
-                                    interface_warning_data['interface_statistics']['IPV6 ping percent success'] = str(do_ping( \
+                                    interface_warning_data['interface_statistics']['IPV6 next hop ping percent success from localhost'] = str(do_ping( \
                                         address = interface_warning_data['interface_data'].get('ipv6_addr_rem',str()), \
                                         mtu = 100, count = 5, ipv6 = True, \
                                         source = ping_source_v6))
 
-                                    interface_warning_data['interface_statistics']['IPV6 percent success on intended ping size'] = str(do_ping( \
+                                    interface_warning_data['interface_statistics']['IPV6 next hop ping percent success on intended ping size from localhost'] = str(do_ping( \
                                         address = interface_warning_data['interface_data'].get('ipv6_addr_rem',str()), \
                                         mtu = interface_warning_data['interface_data']['IPV6 intended ping size'], count = 5, ipv6 = True, \
                                         source = ping_source_v6))
@@ -5630,7 +5630,7 @@ authentication {
                         mtu = 100, count = 5, ipv6 = None, \
                         source = interface_data['interface_data'].get('ipv4_addr_loc',str())))
 
-                    interface_warning_data['interface_statistics']['IPV4 percent success on intended ping size'] = str(do_ping( \
+                    interface_warning_data['interface_statistics']['IPV4 ping percent success on intended ping size'] = str(do_ping( \
                         address = interface_data['interface_data'].get('ipv4_addr_rem',str()), \
                         mtu = interface_warning_data['interface_data']['IPV4 intended ping size'], count = 5, ipv6 = None, \
                         source = interface_data['interface_data'].get('ipv4_addr_loc',str())))
@@ -5644,7 +5644,7 @@ authentication {
                             mtu = 100, count = 5, ipv6 = True, \
                             source = interface_data['interface_data'].get('ipv6_addr_loc',str())))
 
-                        interface_warning_data['interface_statistics']['IPV6 percent success on intended ping size'] = str(do_ping( \
+                        interface_warning_data['interface_statistics']['IPV6 ping percent success on intended ping size'] = str(do_ping( \
                             address = interface_warning_data['interface_data'].get('ipv6_addr_rem',str()), \
                             mtu = interface_warning_data['interface_data']['IPV6 intended ping size'], count = 5, ipv6 = True, \
                             source = interface_data['interface_data'].get('ipv6_addr_loc',str())))
@@ -5683,7 +5683,7 @@ authentication {
                 ### "THOUSANDS" PINGs TEST ####################################
                 if not interface_data['interface_statistics'].get('IPV4 %spings percent success on max working ping size' % (ping_counts)) \
                     and ping_counts and int(ping_counts) > 0:
-                    if '100' in interface_warning_data['interface_statistics'].get('IPV4 percent success on intended ping size',str()):
+                    if '100' in interface_warning_data['interface_statistics'].get('IPV4 ping percent success on intended ping size',str()):
                         ### def "THOUSANDS" PINGv4 MTU COMMAND LIST ###################
                         if interface_data['interface_data'].get('ipv4_addr_rem',str()):
 
@@ -5703,7 +5703,7 @@ authentication {
 
                     if USE_IPV6 \
                         and not interface_warning_data['interface_statistics'].get('IPV6 %spings percent success on max working ping size' % (ping_counts)):
-                        if '100' in interface_warning_data['interface_statistics'].get('IPV6 percent success on intended ping size',str()):
+                        if '100' in interface_warning_data['interface_statistics'].get('IPV6 ping percent success on intended ping size',str()):
                             ### def "THOUSANDS" PINGv6 COMMAND LIST ###################
                             if interface_warning_data['interface_data'].get('ipv6_addr_rem',str()):
 
@@ -5930,15 +5930,15 @@ authentication {
 
                 if BB_MODE or CUSTOMER_MODE:
                     if RCMD.router_type == 'juniper':
-                        check_interface_data_content("['interface_statistics']['IPV4 percent success on intended ping size']", higher_than = 0, warning = True, ignore_data_existence = True)
+                        check_interface_data_content("['interface_statistics']['IPV4 ping percent success on intended ping size']", higher_than = 0, warning = True, ignore_data_existence = True)
                     else:
-                        check_interface_data_content("['interface_statistics']['IPV4 percent success on intended ping size']", '100', warning = True, ignore_data_existence = True)
+                        check_interface_data_content("['interface_statistics']['IPV4 ping percent success on intended ping size']", '100', warning = True, ignore_data_existence = True)
 
                     if USE_IPV6:
                         if RCMD.router_type == 'juniper':
-                            check_interface_data_content("['interface_statistics']['IPV6 percent success on intended ping size']", higher_than = 0, warning = True, ignore_data_existence = True)
+                            check_interface_data_content("['interface_statistics']['IPV6 ping percent success on intended ping size']", higher_than = 0, warning = True, ignore_data_existence = True)
                         else:
-                            check_interface_data_content("['interface_statistics']['IPV6 percent success on intended ping size']", '100', warning = True, ignore_data_existence = True)
+                            check_interface_data_content("['interface_statistics']['IPV6 ping percent success on intended ping size']", '100', warning = True, ignore_data_existence = True)
 
 
                 if PING_ONLY:
@@ -5955,13 +5955,13 @@ authentication {
 
                 if ping_counts and int(ping_counts) > 0:
 
-                    if '100' in interface_warning_data['interface_statistics'].get('IPV4 percent success on intended ping size',str()):
+                    if '100' in interface_warning_data['interface_statistics'].get('IPV4 ping percent success on intended ping size',str()):
                         check_interface_data_content("['interface_statistics']['IPV4 %spings percent success on intended ping size']" % (ping_counts), '100', warning = True, ignore_data_existence = True)
                     else:
                         check_interface_data_content("['interface_statistics']['IPV4 %spings percent success']" % (ping_counts), '100', ignore_data_existence = True)
 
                     if USE_IPV6:
-                        if '100' in interface_warning_data['interface_statistics'].get('IPV6 percent success on intended ping size',str()):
+                        if '100' in interface_warning_data['interface_statistics'].get('IPV6 ping percent success on intended ping size',str()):
                             check_interface_data_content("['interface_statistics']['IPV6 %spings percent success on intended ping size']" % (ping_counts), '100', warning = True, ignore_data_existence = True)
                         else:
                             check_interface_data_content("['interface_statistics']['IPV6 %spings percent success']" % (ping_counts), '100', warning = True, ignore_data_existence = True)
