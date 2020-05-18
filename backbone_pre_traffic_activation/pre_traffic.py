@@ -4115,48 +4115,48 @@ authentication {
                         except: pass
 
                     if interface_data['interface_data'].get('ASN'):
-                        interface_data['interface_data']['ipv4_addr_rem_from_ASN'] = []
+                        interface_data['interface_data']['IPV4_addr_rem_from_ASN'] = []
                         for line in rcmd_outputs[0].splitlines():
                             try:
                                 if str(line.split()[1]) == interface_data['interface_data'].get('ASN') or str(line.split()[2]) == interface_data['interface_data'].get('ASN'):
-                                    interface_data['interface_data']['ipv4_addr_rem_from_ASN'].append(line.split()[0])
+                                    interface_data['interface_data']['IPV4_addr_rem_from_ASN'].append(line.split()[0])
                             except: pass
-                        if len(interface_data['interface_data']['ipv4_addr_rem_from_ASN']) == 0:
-                            del interface_data['interface_data']['ipv4_addr_rem_from_ASN']
+                        if len(interface_data['interface_data']['IPV4_addr_rem_from_ASN']) == 0:
+                            del interface_data['interface_data']['IPV4_addr_rem_from_ASN']
 
-                        interface_warning_data['interface_data']['ipv6_addr_rem_from_ASN'] = []
+                        interface_warning_data['interface_data']['IPV6_addr_rem_from_ASN'] = []
                         previous_line = str()
                         for line in rcmd_outputs[2].splitlines() or str(line.split()[2]) == interface_data['interface_data'].get('ASN'):
                             try:
                                 if str(line.split()[1]) == interface_data['interface_data'].get('ASN'):
                                     if ':' in line.split()[0]:
-                                        interface_warning_data['interface_data']['ipv6_addr_rem_from_ASN'].append(copy.deepcopy(line.split()[0]))
+                                        interface_warning_data['interface_data']['IPV6_addr_rem_from_ASN'].append(copy.deepcopy(line.split()[0]))
                                     elif ':' in previous_line:
-                                        interface_warning_data['interface_data']['ipv6_addr_rem_from_ASN'].append(copy.deepcopy(previous_line.split()[0]))
+                                        interface_warning_data['interface_data']['IPV6_addr_rem_from_ASN'].append(copy.deepcopy(previous_line.split()[0]))
                             except: pass
                             previous_line = line
-                        if len(interface_warning_data['interface_data']['ipv6_addr_rem_from_ASN']) == 0:
-                            del interface_warning_data['interface_data']['ipv6_addr_rem_from_ASN']
+                        if len(interface_warning_data['interface_data']['IPV6_addr_rem_from_ASN']) == 0:
+                            del interface_warning_data['interface_data']['IPV6_addr_rem_from_ASN']
 
                 elif RCMD.router_type == 'juniper':
                     try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("Local:")[1].splitlines()[0].split('AS')[1].strip()
                     except: pass
 
                     if interface_data['interface_data'].get('ASN'):
-                        interface_data['interface_data']['ipv4_addr_rem_from_ASN'] = []
-                        interface_warning_data['interface_data']['ipv6_addr_rem_from_ASN'] = []
+                        interface_data['interface_data']['IPV4_addr_rem_from_ASN'] = []
+                        interface_warning_data['interface_data']['IPV6_addr_rem_from_ASN'] = []
                         for line in rcmd_outputs[1].splitlines():
                             try:
                                 if str(line.split()[1]) == interface_data['interface_data'].get('ASN'):
                                     if '.' in line.split()[0]:
-                                        interface_data['interface_data']['ipv4_addr_rem_from_ASN'].append(copy.deepcopy(line.split()[0]))
+                                        interface_data['interface_data']['IPV4_addr_rem_from_ASN'].append(copy.deepcopy(line.split()[0]))
                                     elif ':' in line.split()[0]:
-                                        interface_warning_data['interface_data']['ipv6_addr_rem_from_ASN'].append(copy.deepcopy(line.split()[0]))
+                                        interface_warning_data['interface_data']['IPV6_addr_rem_from_ASN'].append(copy.deepcopy(line.split()[0]))
                             except: pass
-                        if len(interface_data['interface_data']['ipv4_addr_rem_from_ASN']) == 0:
-                            del interface_data['interface_data']['ipv4_addr_rem_from_ASN']
-                        if len(interface_warning_data['interface_data']['ipv6_addr_rem_from_ASN']) == 0:
-                            del interface_warning_data['interface_data']['ipv6_addr_rem_from_ASN']
+                        if len(interface_data['interface_data']['IPV4_addr_rem_from_ASN']) == 0:
+                            del interface_data['interface_data']['IPV4_addr_rem_from_ASN']
+                        if len(interface_warning_data['interface_data']['IPV6_addr_rem_from_ASN']) == 0:
+                            del interface_warning_data['interface_data']['IPV6_addr_rem_from_ASN']
 
                 elif RCMD.router_type == 'huawei':
                     try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("Local AS number :")[1].splitlines()[0].strip()
@@ -4166,20 +4166,20 @@ authentication {
                         except: pass
 
                     if interface_data['interface_data'].get('ASN'):
-                        interface_data['interface_data']['ipv4_addr_rem_from_ASN'] = []
-                        interface_warning_data['interface_data']['ipv6_addr_rem_from_ASN'] = []
+                        interface_data['interface_data']['IPV4_addr_rem_from_ASN'] = []
+                        interface_warning_data['interface_data']['IPV6_addr_rem_from_ASN'] = []
                         for line in rcmd_outputs[0].splitlines():
                             try:
                                 if str(line.split()[2]) == interface_data['interface_data'].get('ASN'):
                                     if '.' in line.split()[0]:
-                                        interface_data['interface_data']['ipv4_addr_rem_from_ASN'].append(copy.deepcopy(line.split()[0]))
+                                        interface_data['interface_data']['IPV4_addr_rem_from_ASN'].append(copy.deepcopy(line.split()[0]))
                                     elif ':' in line.split()[0]:
-                                        interface_warning_data['interface_data']['ipv6_addr_rem_from_ASN'].append(copy.deepcopy(line.split()[0]))
+                                        interface_warning_data['interface_data']['IPV6_addr_rem_from_ASN'].append(copy.deepcopy(line.split()[0]))
                             except: pass
-                        if len(interface_data['interface_data']['ipv4_addr_rem_from_ASN']) == 0:
-                            del interface_data['interface_data']['ipv4_addr_rem_from_ASN']
-                        if len(interface_warning_data['interface_data']['ipv6_addr_rem_from_ASN']) == 0:
-                            del interface_warning_data['interface_data']['ipv6_addr_rem_from_ASN']
+                        if len(interface_data['interface_data']['IPV4_addr_rem_from_ASN']) == 0:
+                            del interface_data['interface_data']['IPV4_addr_rem_from_ASN']
+                        if len(interface_warning_data['interface_data']['IPV6_addr_rem_from_ASN']) == 0:
+                            del interface_warning_data['interface_data']['IPV6_addr_rem_from_ASN']
 
 
 
@@ -4214,7 +4214,7 @@ authentication {
                 if 'PE' in interface_data['interface_data'].get('name_of_remote_device_from_description',str()).upper() or 'PE' in device.upper():
                     IMN_INTERFACE = True
 
-                try: interface_data['interface_data']['ipv4_addr_rem_from_DESCRIPTION'] = collect_if_config_rcmd_outputs[0].split('description')[1].splitlines()[0].split('@')[1].split()[0]
+                try: interface_data['interface_data']['IPV4_addr_rem_from_DESCRIPTION'] = collect_if_config_rcmd_outputs[0].split('description')[1].splitlines()[0].split('@')[1].split()[0]
                 except: pass
 
                 try: interface_warning_data['interface_data']['bandwidth'] = collect_if_config_rcmd_outputs[0].\
@@ -4348,68 +4348,6 @@ authentication {
 
 
                 ###############################################################
-                ### def FIND REMOTE IP ADDRESES: THE OTHER IP IN NETWORK ######
-                ###############################################################
-                interface_data['interface_data']['ipv4_addr_rem'] = \
-                    copy.deepcopy(interface_data['interface_data'].get('ipv4_addr_rem_from_DESCRIPTION'))
-
-                if CUSTOMER_MODE or PING_ONLY:
-                    if len(interface_data['interface_data'].get('ipv4_addr_rem_from_ASN',[])) == 1:
-
-                        ### STATIC_ROUTING ###
-                        interface_from_DESCRIPTION = ipaddress.IPv4Interface(u'%s/%s' % \
-                            (interface_data['interface_data'].get('ipv4_addr_rem_from_DESCRIPTION'), 30))
-
-                        ipv4_network_from_DESCRIPTION = interface_from_DESCRIPTION.network
-                        CGI_CLI.uprint('Network_from_DESCRIPTION: ' + str(ipv4_network_from_DESCRIPTION), tag = 'debug', no_printall = not CGI_CLI.printall)
-
-                        ipv4_addr_rem_from_ASN_is_in_range_from_DESCRITION = False
-                        for address in interface_data['interface_data'].get('ipv4_addr_rem_from_ASN',[]):
-                            interface = ipaddress.IPv4Interface(u'%s/%s' % (address, 30))
-                            ipv4_network = interface.network
-
-                            CGI_CLI.uprint('Network_from_ASN: ' + str(ipv4_network), tag = 'debug', no_printall = not CGI_CLI.printall)
-                            if str(ipv4_network) == str(ipv4_network_from_DESCRIPTION):
-                                ipv4_addr_rem_from_ASN_is_in_range_from_DESCRITION = True
-
-                        if ipv4_addr_rem_from_ASN_is_in_range_from_DESCRITION == True:
-                            interface_data['interface_data']['ipv4_addr_rem'] = \
-                                interface_data['interface_data'].get('ipv4_addr_rem_from_ASN')[0]
-                        else:
-                        #if interface_data['interface_data'].get('ipv4_addr_rem_from_ASN')[0] != interface_data['interface_data'].get('ipv4_addr_rem_from_DESCRIPTION'):
-                            STATIC_ROUTING = True
-                            interface_data['interface_data']['STATIC_ROUTING'] = True
-                            interface_data['interface_data']['ipv4_addr_rem'] = \
-                                interface_data['interface_data'].get('ipv4_addr_rem_from_ASN')[0]
-
-                    elif interface_data['interface_data'].get('ipv4_addr_rem_from_DESCRIPTION') and \
-                        len(interface_data['interface_data'].get('ipv4_addr_rem_from_ASN',[])) > 1:
-
-                            interface_from_DESCRIPTION = ipaddress.IPv4Interface(u'%s/%s' % \
-                                (interface_data['interface_data'].get('ipv4_addr_rem_from_DESCRIPTION'), 30))
-
-                            ipv4_network_from_DESCRIPTION = interface_from_DESCRIPTION.network
-                            CGI_CLI.uprint('Network_from_DESCRIPTION: ' + str(ipv4_network_from_DESCRIPTION), tag = 'debug', no_printall = not CGI_CLI.printall)
-
-                            ipv4_addr_rem_from_ASN_is_in_range_from_DESCRITION = False
-                            for address in interface_data['interface_data'].get('ipv4_addr_rem_from_ASN',[]):
-                                interface = ipaddress.IPv4Interface(u'%s/%s' % (address, 30))
-                                ipv4_network = interface.network
-
-                                CGI_CLI.uprint('Network_from_ASN: ' + str(ipv4_network), tag = 'debug', no_printall = not CGI_CLI.printall)
-                                if str(ipv4_network) == str(ipv4_network_from_DESCRIPTION):
-                                    ipv4_addr_rem_from_ASN_is_in_range_from_DESCRITION = True
-
-                            if ipv4_addr_rem_from_ASN_is_in_range_from_DESCRITION == True:
-                                interface_data['interface_data']['ipv4_addr_rem'] = \
-                                    interface_data['interface_data'].get('ipv4_addr_rem_from_DESCRIPTION')
-                            else:
-                                STATIC_ROUTING = True
-                                interface_data['interface_data']['ipv4_addr_rem'] = \
-                                    interface_data['interface_data'].get('ipv4_addr_rem_from_ASN')[0]
-
-
-                ###############################################################
                 ### def CALCULATE REMOTE IP ADDRESES: THE OTHER IP IN NETWORK #
                 ###############################################################
                 ### https://cpython-test-docs.readthedocs.io/en/latest/howto/ipaddress.html
@@ -4431,7 +4369,7 @@ authentication {
                             for addr in ipaddress.IPv4Network(ipv4_network):
                                 CGI_CLI.uprint("addr4=%s" % (addr), tag = 'debug', no_printall = not CGI_CLI.printall)
                                 if str(addr).upper() == str(interface_data['interface_data'].get('ipv4_addr_loc')).upper(): pass
-                                else: interface_warning_data['interface_data']['ipv4_addr_rem_calculated'] =  copy.deepcopy(str(addr))
+                                else: interface_warning_data['interface_data']['IPV4_addr_rem_calculated'] =  copy.deepcopy(str(addr))
                                 break
 
 
@@ -4441,7 +4379,7 @@ authentication {
                                 CGI_CLI.uprint("addr4=%s" % (addr), tag = 'debug', no_printall = not CGI_CLI.printall)
                                 if i_counter == 1 or i_counter == 2:
                                     if str(addr).upper() == str(interface_data['interface_data'].get('ipv4_addr_loc')).upper(): pass
-                                    else: interface_warning_data['interface_data']['ipv4_addr_rem_calculated'] =  copy.deepcopy(str(addr))
+                                    else: interface_warning_data['interface_data']['IPV4_addr_rem_calculated'] =  copy.deepcopy(str(addr))
                                     break
                                 i_counter += 1
 
@@ -4457,9 +4395,9 @@ authentication {
                             CGI_CLI.uprint("addr6=%s" % (addr), tag = 'debug', no_printall = not CGI_CLI.printall)
                             if normalized_ipv6(str(addr).upper()) == normalized_ipv6(str(interface_data['interface_data'].get('ipv6_addr_loc')).upper()): pass
                             else:
-                                interface_warning_data['interface_data']['ipv6_addr_rem_calculated'] = copy.deepcopy(normalized_ipv6(addr))
-                                if not interface_warning_data['interface_data'].get('ipv6_addr_rem'):
-                                    interface_warning_data['interface_data']['ipv6_addr_rem'] = copy.deepcopy(normalized_ipv6(addr))
+                                interface_warning_data['interface_data']['IPV6_addr_rem_calculated'] = copy.deepcopy(normalized_ipv6(addr))
+                                #if not interface_warning_data['interface_data'].get('IPV6_addr_rem'):
+                                #    interface_warning_data['interface_data']['IPV6_addr_rem'] = copy.deepcopy(normalized_ipv6(addr))
                                 break
 
                     if interface_data['interface_data'].get('ipv6_mask_loc') == '126':
@@ -4469,11 +4407,69 @@ authentication {
                             if i_counter == 1 or i_counter == 2:
                                 if normalized_ipv6(str(addr).upper()) == normalized_ipv6(str(interface_data['interface_data'].get('ipv6_addr_loc')).upper()): pass
                                 else:
-                                    interface_warning_data['interface_data']['ipv6_addr_rem_calculated'] = copy.deepcopy(normalized_ipv6(addr))
-                                    if not interface_warning_data['interface_data'].get('ipv6_addr_rem'):
-                                        interface_warning_data['interface_data']['ipv6_addr_rem'] = copy.deepcopy(normalized_ipv6(addr))
+                                    interface_warning_data['interface_data']['IPV6_addr_rem_calculated'] = copy.deepcopy(normalized_ipv6(addr))
+                                    #if not interface_warning_data['interface_data'].get('IPV6_addr_rem'):
+                                    #    interface_warning_data['interface_data']['IPV6_addr_rem'] = copy.deepcopy(normalized_ipv6(addr))
                                     break
                             i_counter += 1
+
+
+                ###############################################################
+                ### def FIND REMOTE IP ADDRESES: THE OTHER IP IN NETWORK ######
+                ###############################################################
+                if interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'):        
+                        interface_data['interface_data']['IPV4_addr_rem'] = \
+                            copy.deepcopy(interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'))
+        
+                if interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'):
+                    if interface_warning_data['interface_data'].get('IPV4_addr_rem_calculated') == interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'):
+                        interface_data['interface_data']['IPV4_addr_rem'] = \
+                            copy.deepcopy(interface_data['interface_data'].get('IPV4_addr_rem_calculated'))
+                        
+                elif interface_warning_data['interface_data'].get('IPV4_addr_rem_calculated'):       
+                    interface_data['interface_data']['IPV4_addr_rem'] = \
+                        copy.deepcopy(interface_data['interface_data'].get('IPV4_addr_rem_calculated'))
+                        
+                if interface_warning_data['interface_data'].get('IPV6_addr_rem_calculated'):         
+                    interface_warning_data['interface_data']['IPV6_addr_rem'] = copy.deepcopy(normalized_ipv6(interface_warning_data['interface_data'].get('IPV6_addr_rem_calculated')))
+
+
+                if CUSTOMER_MODE or PING_ONLY:
+                    if len(interface_data['interface_data'].get('IPV4_addr_rem_from_ASN',[])) == 1:
+
+                        ### STATIC_ROUTING ###
+                        if interface_data['interface_data'].get('IPV4_addr_rem_from_ASN')[0] != interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'):
+                            STATIC_ROUTING = True
+                            interface_data['interface_data']['STATIC_ROUTING'] = True
+                            interface_data['interface_data']['IPV4_bgp_neighbor'] = \
+                                interface_data['interface_data'].get('IPV4_addr_rem_from_ASN')[0]
+
+                    elif interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION') and \
+                        len(interface_data['interface_data'].get('IPV4_addr_rem_from_ASN',[])) > 1:
+
+                            IPV4_addr_rem_from_ASN_is_in_DESCRIPTION = False
+                            for address in interface_data['interface_data'].get('IPV4_addr_rem_from_ASN',[]):
+                            
+                                if address == interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'):
+                                    IPV4_addr_rem_from_ASN_is_in_DESCRIPTION = True
+
+                            if IPV4_addr_rem_from_ASN_is_in_DESCRIPTION == True:
+                                pass
+                            else:
+                                STATIC_ROUTING = True
+                                interface_data['interface_data']['STATIC_ROUTING'] = True
+                                interface_data['interface_data']['IPV4_bgp_neighbor'] = \
+                                    interface_data['interface_data'].get('IPV4_addr_rem_from_ASN')[0]
+
+                            if len(interface_data['interface_data'].get('IPV6_addr_rem_from_ASN',[])) >= 1:
+                                interface_data['interface_data']['IPV6_bgp_neighbor'] = \
+                                    interface_data['interface_data'].get('IPV6_addr_rem_from_ASN')[0]
+
+                CGI_CLI.uprint("interface_data['interface_data']['IPV4_addr_rem'] = " + str(interface_data['interface_data'].get('IPV4_addr_rem')), tag = 'debug', no_printall = not CGI_CLI.printall)
+                CGI_CLI.uprint("interface_warning_data['interface_data']['IPV6_addr_rem'] = " + str(interface_warning_data['interface_data'].get('IPV6_addr_rem')), tag = 'debug', no_printall = not CGI_CLI.printall)
+                CGI_CLI.uprint("interface_data['interface_data']['IPV4_bgp_neighbor'] = " + str(interface_data['interface_data'].get('IPV4_bgp_neighbor')), tag = 'debug', no_printall = not CGI_CLI.printall)
+                CGI_CLI.uprint("interface_data['interface_data']['IPV6_bgp_neighbor'] = " + str(interface_data['interface_data'].get('IPV6_bgp_neighbor')), tag = 'debug', no_printall = not CGI_CLI.printall)
+
 
 
                 ###############################################################
@@ -4921,23 +4917,23 @@ authentication {
                     ###########################################################
                     collect2_if_data_rcmds = {
                         'cisco_ios':[
-                            'show running-config router bgp 5511 neighbor %s' % (interface_data['interface_data'].get('ipv4_addr_rem')) if interface_data['interface_data'].get('ipv4_addr_rem') else str(),
-                            'show running-config router bgp 5511 neighbor %s' % (interface_warning_data['interface_data'].get('ipv6_addr_rem')) if interface_warning_data['interface_data'].get('ipv6_addr_rem') else str(),
+                            'show running-config router bgp 5511 neighbor %s' % (interface_data['interface_data'].get('IPV4_bgp_neighbor')) if interface_data['interface_data'].get('IPV4_bgp_neighbor') else str(),
+                            'show running-config router bgp 5511 neighbor %s' % (interface_data['interface_data'].get('IPV6_bgp_neighbor')) if interface_data['interface_data'].get('IPV6_bgp_neighbor') else str(),
                         ],
 
                         'cisco_xr':[
-                            'show running-config router bgp 5511 neighbor %s' % (interface_data['interface_data'].get('ipv4_addr_rem')) if interface_data['interface_data'].get('ipv4_addr_rem') else str(),
-                            'show running-config router bgp 5511 neighbor %s' % (interface_warning_data['interface_data'].get('ipv6_addr_rem')) if interface_warning_data['interface_data'].get('ipv6_addr_rem') else str(),
+                            'show running-config router bgp 5511 neighbor %s' % (interface_data['interface_data'].get('IPV4_bgp_neighbor')) if interface_data['interface_data'].get('IPV4_bgp_neighbor') else str(),
+                            'show running-config router bgp 5511 neighbor %s' % (interface_data['interface_data'].get('IPV6_bgp_neighbor')) if interface_data['interface_data'].get('IPV6_bgp_neighbor') else str(),
                         ],
 
                         'juniper': [
-                            'show bgp neighbor %s' % (interface_data['interface_data'].get('ipv4_addr_rem')) if interface_data['interface_data'].get('ipv4_addr_rem') else str(),
-                            'show bgp neighbor %s' % (interface_warning_data['interface_data'].get('ipv6_addr_rem')) if interface_warning_data['interface_data'].get('ipv6_addr_rem') else str(),
+                            'show bgp neighbor %s' % (interface_data['interface_data'].get('IPV4_bgp_neighbor')) if interface_data['interface_data'].get('IPV4_bgp_neighbor') else str(),
+                            'show bgp neighbor %s' % (interface_data['interface_data'].get('IPV6_bgp_neighbor')) if interface_data['interface_data'].get('IPV6_bgp_neighbor') else str(),
                         ],
 
                         'huawei': [
-                            "display bgp peer %s verbose | i Peer's description" % (interface_data['interface_data'].get('ipv4_addr_rem')) if interface_data['interface_data'].get('ipv4_addr_rem') else str(),
-                            "display bgp peer %s verbose | i Peer's description" % (interface_warning_data['interface_data'].get('ipv6_addr_rem')) if interface_warning_data['interface_data'].get('ipv6_addr_rem') else str(),
+                            "display bgp peer %s verbose | i Peer's description" % (interface_data['interface_data'].get('IPV4_bgp_neighbor')) if interface_data['interface_data'].get('IPV4_bgp_neighbor') else str(),
+                            "display bgp peer %s verbose | i Peer's description" % (interface_data['interface_data'].get('IPV6_bgp_neighbor')) if interface_data['interface_data'].get('IPV6_bgp_neighbor') else str(),
                         ]
                     }
 
@@ -4946,20 +4942,20 @@ authentication {
                         printall = printall)
 
                     if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
-                        if interface_data['interface_data'].get('ipv4_addr_rem'):
+                        if interface_data['interface_data'].get('IPV4_bgp_neighbor'):
                             try: interface_data['bgp']['IPV4 use_neighbor-group'] = collect2_if_config_rcmd_outputs[0].split('use neighbor-group ')[1].splitlines()[0].strip()
                             except: interface_data['bgp']['IPV4 use_neighbor-group'] = str()
 
-                        if interface_warning_data['interface_data'].get('ipv6_addr_rem'):
+                        if interface_data['interface_data'].get('IPV6_bgp_neighbor'):
                             try: interface_data['bgp']['IPV6 use neighbor-group'] = collect2_if_config_rcmd_outputs[1].split('use neighbor-group ')[1].splitlines()[0].strip()
                             except: pass
 
                     elif RCMD.router_type == 'juniper':
-                        if interface_data['interface_data'].get('ipv4_addr_rem'):
+                        if interface_data['interface_data'].get('IPV4_bgp_neighbor'):
                             try: interface_data['bgp']['IPV4 neighbor-group'] = collect2_if_config_rcmd_outputs[0].split('Group: ')[1].split()[0]
                             except: interface_data['bgp']['IPV4 neighbor-group'] = str()
 
-                        if interface_warning_data['interface_data'].get('ipv6_addr_rem'):
+                        if interface_data['interface_data'].get('IPV6_bgp_neighbor'):
                             try: interface_data['bgp']['IPV6 neighbor-group'] = collect2_if_config_rcmd_outputs[1].split('Group: ')[1].split()[0]
                             except: pass
 
@@ -4979,11 +4975,11 @@ authentication {
                         except: pass
 
                     elif RCMD.router_type == 'huawei':
-                        if interface_data['interface_data'].get('ipv4_addr_rem'):
+                        if interface_data['interface_data'].get('IPV4_bgp_neighbor'):
                             try: interface_data['bgp']['IPV4 neighbor-group'] = collect2_if_config_rcmd_outputs[0].split("Peer's description:")[1].splitlines()[0].replace('"','').strip()
                             except: interface_data['bgp']['IPV4 neighbor-group'] = str()
 
-                        if interface_warning_data['interface_data'].get('ipv6_addr_rem'):
+                        if interface_data['interface_data'].get('IPV6_bgp_neighbor'):
                             try: interface_data['bgp']['IPV6 neighbor-group'] = collect2_if_config_rcmd_outputs[1].split("Peer's description:")[1].splitlines()[0].replace('"','').strip()
                             except: pass
 
@@ -5283,13 +5279,13 @@ authentication {
                     ###########################################################
                     collect5_if_data_rcmds = {
                         'cisco_ios':[
-                            'show bgp neighbor %s' % (interface_data['interface_data'].get('ipv4_addr_rem')) if interface_data['interface_data'].get('ipv4_addr_rem') else str(),
-                            'show bgp neighbor %s advertised-count' % (interface_data['interface_data'].get('ipv4_addr_rem')) if interface_data['interface_data'].get('ipv4_addr_rem') else str(),
+                            'show bgp neighbor %s' % (interface_data['interface_data'].get('IPV4_bgp_neighbor')) if interface_data['interface_data'].get('IPV4_bgp_neighbor') else str(),
+                            'show bgp neighbor %s advertised-count' % (interface_data['interface_data'].get('IPV4_bgp_neighbor')) if interface_data['interface_data'].get('IPV4_bgp_neighbor') else str(),
                          ],
 
                         'cisco_xr':[
-                            'show bgp neighbor %s' % (interface_data['interface_data'].get('ipv4_addr_rem')) if interface_data['interface_data'].get('ipv4_addr_rem') else str(),
-                            'show bgp neighbor %s advertised-count' % (interface_data['interface_data'].get('ipv4_addr_rem')) if interface_data['interface_data'].get('ipv4_addr_rem') else str(),
+                            'show bgp neighbor %s' % (interface_data['interface_data'].get('IPV4_bgp_neighbor')) if interface_data['interface_data'].get('IPV4_bgp_neighbor') else str(),
+                            'show bgp neighbor %s advertised-count' % (interface_data['interface_data'].get('IPV4_bgp_neighbor')) if interface_data['interface_data'].get('IPV4_bgp_neighbor') else str(),
                          ],
 
                         'juniper': [
@@ -5300,7 +5296,7 @@ authentication {
 
                         'huawei': [
                             'display bgp group %s' % (interface_data['bgp'].get('IPV4 neighbor-group')) if interface_data['bgp'].get('IPV4 neighbor-group') else str(),
-                            'display bgp peer %s verbose' % (interface_data['interface_data'].get('ipv4_addr_rem')) if interface_data['interface_data'].get('ipv4_addr_rem') else str(),
+                            'display bgp peer %s verbose' % (interface_data['interface_data'].get('IPV4_bgp_neighbor')) if interface_data['interface_data'].get('IPV4_bgp_neighbor') else str(),
                         ]
                     }
 
@@ -5467,16 +5463,16 @@ authentication {
                     ###########################################################
                     ### def CUSTOMER_MODE - 6th DATA COLLECTION ###############
                     ###########################################################
-                    if interface_warning_data.get('ipv6_addr_rem'):
+                    if interface_warning_data.get('IPV6_addr_rem'):
                         collect6_if_data_rcmds = {
                             'cisco_ios':[
-                                'show bgp neighbor %s' % (interface_warning_data['interface_data'].get('ipv6_addr_rem')) if interface_warning_data['interface_data'].get('ipv6_addr_rem') else str(),
-                                'show bgp neighbor %s advertised-count' % (interface_warning_data['interface_data'].get('ipv6_addr_rem')) if interface_warning_data['interface_data'].get('ipv6_addr_rem') else str(),
+                                'show bgp neighbor %s' % (interface_data['interface_data'].get('IPV6_bgp_neighbor')) if interface_data['interface_data'].get('IPV6_bgp_neighbor') else str(),
+                                'show bgp neighbor %s advertised-count' % (interface_data['interface_data'].get('IPV6_bgp_neighbor')) if interface_data['interface_data'].get('IPV6_bgp_neighbor') else str(),
                              ],
 
                             'cisco_xr':[
-                                'show bgp neighbor %s' % (interface_warning_data['interface_data'].get('ipv6_addr_rem')) if interface_warning_data['interface_data'].get('ipv6_addr_rem') else str(),
-                                'show bgp neighbor %s advertised-count' % (interface_warning_data['interface_data'].get('ipv6_addr_rem')) if interface_warning_data['interface_data'].get('ipv6_addr_rem') else str(),
+                                'show bgp neighbor %s' % (interface_data['interface_data'].get('IPV6_bgp_neighbor')) if interface_warning_data['interface_data'].get('IPV6_bgp_neighbor') else str(),
+                                'show bgp neighbor %s advertised-count' % (interface_data['interface_data'].get('IPV6_bgp_neighbor')) if interface_data['interface_data'].get('IPV6_bgp_neighbor') else str(),
                              ],
 
                             'juniper': [
@@ -5485,7 +5481,7 @@ authentication {
 
                             'huawei': [
                                 'display bgp group %s' % (interface_data['bgp'].get('IPV6 neighbor-group')) if interface_data['bgp'].get('IPV6 neighbor-group') else str(),
-                                'display bgp peer %s verbose' % (interface_warning_data['interface_data'].get('ipv6_addr_rem')) if interface_warning_data['interface_data'].get('ipv6_addr_rem') else str(),
+                                'display bgp peer %s verbose' % (interface_data['interface_data'].get('IPV6_bgp_neighbor')) if interface_data['interface_data'].get('IPV6_bgp_neighbor') else str(),
                             ]
                         }
 
@@ -5581,6 +5577,41 @@ authentication {
                             except: interface_data['bgp']['IPV6 Export route policy is'] = str()
 
 
+                    ### show run router static | i <bgp-neighbor>/32 <!interface-id!> <!ipv4-addr-rem!> tag 2
+                    ### show run router static | i IPV4_addr_rem_from_ASN/32 interface_id IPV4_addr_rem_from_DESCRIPTION tag 2  
+                    ###########################################################
+                    ### def CUSTOMER_MODE - 7th DATA COLLECTION ###############
+                    ###########################################################
+                    if interface_warning_data.get('IPV6_addr_rem'):
+                        collect7_if_data_rcmds = {
+                            'cisco_ios':[
+                             ],
+
+                            'cisco_xr':[
+                             ],
+
+                            'juniper': [
+                             ],
+
+                            'huawei': [
+                            ]
+                        }
+
+                        if interface_data['interface_data'].get('IPV4_bgp_neighbor'):
+                            collect7_if_data_rcmds['cisco_ios'].append('show run router static | i %s/32 %s %s tag 2' % (interface_data['interface_data'].get('IPV4_bgp_neighbor'), undotted_interface_id, interface_data['interface_data'].get('IPV4_addr_rem')))
+                            collect7_if_data_rcmds['cisco_xr'].append('show run router static | i %s/32 %s %s tag 2' % (interface_data['interface_data'].get('IPV4_bgp_neighbor'), undotted_interface_id, interface_data['interface_data'].get('IPV4_addr_rem')))
+
+                        if interface_data['interface_data'].get('IPV6_bgp_neighbor'):
+                            collect7_if_data_rcmds['cisco_ios'].append('show run router static | i %s/128 %s %s tag 2' % (interface_data['interface_data'].get('IPV6_bgp_neighbor'), undotted_interface_id, interface_warning_data['interface_data'].get('IPV6_addr_rem')))
+                            collect7_if_data_rcmds['cisco_xr'].append('show run router static | i %s/128 %s %s tag 2' % (interface_data['interface_data'].get('IPV6_bgp_neighbor'), undotted_interface_id, interface_warning_data['interface_data'].get('IPV6_addr_rem')))
+
+                        collect7_if_config_rcmd_outputs = RCMD.run_commands(collect7_if_data_rcmds, \
+                            autoconfirm_mode = True, \
+                            printall = printall)
+
+                        if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr': 
+                            pass
+
 
                 ### def MTU CALCULATIONS (INTENDED) ###########################
                 ping_size, ping_size_v6 = 0, 0
@@ -5651,14 +5682,14 @@ authentication {
 
                     if ping_source:
                         ### def NEXT HOP FIRST PINGv4 COMMAND LIST ############
-                        if interface_data['interface_data'].get('ipv4_addr_rem',str()):
+                        if interface_data['interface_data'].get('IPV4_bgp_neighbor',str()):
                             interface_data['interface_statistics']['IPV4 next hop ping percent success from localhost'] = str(do_ping( \
-                                address = interface_data['interface_data'].get('ipv4_addr_rem',str()), \
+                                address = interface_data['interface_data'].get('IPV4_bgp_neighbor',str()), \
                                 mtu = 100, count = 5, ipv6 = None, \
                                 source = ping_source))
 
                             interface_warning_data['interface_statistics']['IPV4 next hop ping percent success on intended ping size from localhost'] = str(do_ping( \
-                                address = interface_data['interface_data'].get('ipv4_addr_rem',str()), \
+                                address = interface_data['interface_data'].get('IPV4_bgp_neighbor',str()), \
                                 mtu = interface_warning_data['interface_data']['IPV4 intended ping size'], count = 5, ipv6 = None, \
                                 source = ping_source))
 
@@ -5668,41 +5699,41 @@ authentication {
                             except: ping_source_v6 = None
 
                             if ping_source_v6:
-                                if interface_warning_data['interface_data'].get('ipv6_addr_rem',str()):
+                                if interface_data['interface_data'].get('IPV6_bgp_neighbor',str()):
                                     interface_warning_data['interface_statistics']['IPV6 next hop ping percent success from localhost'] = str(do_ping( \
-                                        address = interface_warning_data['interface_data'].get('ipv6_addr_rem',str()), \
+                                        address = interface_data['interface_data'].get('IPV6_bgp_neighbor',str()), \
                                         mtu = 100, count = 5, ipv6 = True, \
                                         source = ping_source_v6))
 
                                     interface_warning_data['interface_statistics']['IPV6 next hop ping percent success on intended ping size from localhost'] = str(do_ping( \
-                                        address = interface_warning_data['interface_data'].get('ipv6_addr_rem',str()), \
+                                        address = interface_data['interface_data'].get('IPV6_bgp_neighbor',str()), \
                                         mtu = interface_warning_data['interface_data']['IPV6 intended ping size'], count = 5, ipv6 = True, \
                                         source = ping_source_v6))
 
 
                 ### def FIRST PINGv4 COMMAND LIST #############################
-                if interface_data['interface_data'].get('ipv4_addr_rem',str()):
+                if interface_data['interface_data'].get('IPV4_addr_rem',str()):
                     interface_data['interface_statistics']['IPV4 ping percent success'] = str(do_ping( \
-                        address = interface_data['interface_data'].get('ipv4_addr_rem',str()), \
+                        address = interface_data['interface_data'].get('IPV4_addr_rem',str()), \
                         mtu = 100, count = 5, ipv6 = None, \
                         source = interface_data['interface_data'].get('ipv4_addr_loc',str())))
 
                     interface_warning_data['interface_statistics']['IPV4 ping percent success on intended ping size'] = str(do_ping( \
-                        address = interface_data['interface_data'].get('ipv4_addr_rem',str()), \
+                        address = interface_data['interface_data'].get('IPV4_addr_rem',str()), \
                         mtu = interface_warning_data['interface_data']['IPV4 intended ping size'], count = 5, ipv6 = None, \
                         source = interface_data['interface_data'].get('ipv4_addr_loc',str())))
 
 
                 ### def FIRST PINGv6 COMMAND LIST ###################################
                 if USE_IPV6:
-                    if interface_warning_data['interface_data'].get('ipv6_addr_rem',str()):
+                    if interface_warning_data['interface_data'].get('IPV6_addr_rem',str()):
                         interface_warning_data['interface_statistics']['IPV6 ping percent success'] = str(do_ping( \
-                            address = interface_warning_data['interface_data'].get('ipv6_addr_rem',str()), \
+                            address = interface_warning_data['interface_data'].get('IPV6_addr_rem',str()), \
                             mtu = 100, count = 5, ipv6 = True, \
                             source = interface_data['interface_data'].get('ipv6_addr_loc',str())))
 
                         interface_warning_data['interface_statistics']['IPV6 ping percent success on intended ping size'] = str(do_ping( \
-                            address = interface_warning_data['interface_data'].get('ipv6_addr_rem',str()), \
+                            address = interface_warning_data['interface_data'].get('IPV6_addr_rem',str()), \
                             mtu = interface_warning_data['interface_data']['IPV6 intended ping size'], count = 5, ipv6 = True, \
                             source = interface_data['interface_data'].get('ipv6_addr_loc',str())))
 
@@ -5710,14 +5741,14 @@ authentication {
                 if PING_ONLY:
                     max_pingsize_ipv4, max_pingsize_ipv6 = 0, 0
                     if float(interface_data['interface_statistics'].get('IPV4 ping percent success','0')) > 0:
-                        if interface_data['interface_data'].get('ipv4_addr_rem',str()):
-                            max_pingsize_ipv4 = find_max_pingsize(interface_data['interface_data'].get('ipv4_addr_rem',str()), max_mtu = 9300, \
+                        if interface_data['interface_data'].get('IPV4_addr_rem',str()):
+                            max_pingsize_ipv4 = find_max_pingsize(interface_data['interface_data'].get('IPV4_addr_rem',str()), max_mtu = 9300, \
                                 source = interface_data['interface_data'].get('ipv4_addr_loc',str()))
                             interface_data['interface_statistics']['IPV4 max working ping size'] = str(max_pingsize_ipv4)
 
                     if float(interface_warning_data['interface_statistics'].get('IPV6 ping percent success','0')) > 0:
-                        if interface_warning_data['interface_data'].get('ipv6_addr_rem',str()):
-                            max_pingsize_ipv6 = find_max_pingsize(interface_warning_data['interface_data'].get('ipv6_addr_rem',str()), ipv6 = True, \
+                        if interface_warning_data['interface_data'].get('IPV6_addr_rem',str()):
+                            max_pingsize_ipv6 = find_max_pingsize(interface_warning_data['interface_data'].get('IPV6_addr_rem',str()), ipv6 = True, \
                                 source = interface_data['interface_data'].get('ipv6_addr_loc',str()))
                             interface_data['interface_statistics']['IPV6 max working ping size'] = str(max_pingsize_ipv6)
 
@@ -5732,7 +5763,7 @@ authentication {
                             ### DO "THOUSANDS" NEXT HOP PING ON MAX WORKING PING SIZE #
                             if float(interface_data['interface_statistics'].get('IPV4 max working ping size', 0)) > 0:
                                 interface_data['interface_statistics']['IPV4 next hop %spings percent success on max working ping size from localhost' % (ping_counts)] = str(\
-                                    do_ping(address = interface_data['interface_data'].get('ipv4_addr_rem',str()), \
+                                    do_ping(address = interface_data['interface_data'].get('IPV4_bgp_neighbor',str()), \
                                         mtu = interface_data['interface_data'].get('IPV4 max working ping size'), \
                                         count = ping_counts, ipv6 = None,
                                         source = ping_source))
@@ -5740,7 +5771,7 @@ authentication {
                         if ping_source_v6:
                             if float(interface_data['interface_statistics'].get('IPV6 max working ping size', 0)) > 0:
                                 interface_warning_data['interface_statistics']['IPV6 next hop %spings percent success on max working ping size from localhost' % (ping_counts)] = str(\
-                                    do_ping(address = interface_warning_data['interface_data'].get('ipv6_addr_rem',str()), \
+                                    do_ping(address = interface_data['interface_data'].get('IPV6_bgp_neighbor',str()), \
                                         mtu = interface_data['interface_data'].get('IPV6 max working ping size'), \
                                         count = ping_counts, ipv6 = True,
                                         source = ping_source))
@@ -5748,14 +5779,14 @@ authentication {
                     ### DO "THOUSANDS" PING ON MAX WORKING PING SIZE ##########
                     if float(interface_data['interface_statistics'].get('IPV4 max working ping size', 0)) > 0:
                         interface_data['interface_statistics']['IPV4 %spings percent success on max working ping size' % (ping_counts)] = str(\
-                            do_ping(address = interface_data['interface_data'].get('ipv4_addr_rem',str()), \
+                            do_ping(address = interface_data['interface_data'].get('IPV4_addr_rem',str()), \
                                 mtu = interface_data['interface_data'].get('IPV4 max working ping size'), \
                                 count = ping_counts, ipv6 = None,
                                 source = interface_data['interface_data'].get('ipv4_addr_loc',str())))
 
                     if float(interface_data['interface_statistics'].get('IPV6 max working ping size', 0)) > 0:
                         interface_warning_data['interface_statistics']['IPV6 %spings percent success on max working ping size' % (ping_counts)] = str(\
-                            do_ping(address = interface_warning_data['interface_data'].get('ipv6_addr_rem',str()), \
+                            do_ping(address = interface_warning_data['interface_data'].get('IPV6_addr_rem',str()), \
                                 mtu = interface_data['interface_data'].get('IPV6 max working ping size'), \
                                 count = ping_counts, ipv6 = True,
                                 source = interface_data['interface_data'].get('ipv6_addr_loc',str())))
@@ -5774,19 +5805,19 @@ authentication {
                             and ping_counts and int(ping_counts) > 0:
                             if '100' in interface_warning_data['interface_statistics'].get('IPV4 next hop ping percent success on intended ping size',str()):
                                 ### def NEXT HOP "THOUSANDS" PINGv4 MTU COMMAND LIST ###################
-                                if interface_data['interface_data'].get('ipv4_addr_rem',str()):
+                                if interface_data['interface_data'].get('IPV4_bgp_neighbor',str()):
 
                                     interface_warning_data['interface_statistics']['IPV4 next hop %spings percent success on intended ping size from localhost' % (ping_counts)] = \
-                                        str(do_ping(address = interface_data['interface_data'].get('ipv4_addr_rem',str()), \
+                                        str(do_ping(address = interface_data['interface_data'].get('IPV4_bgp_neighbor',str()), \
                                             mtu = interface_warning_data['interface_data']['IPV4 intended ping size'], count = ping_counts, ipv6 = None, \
                                             source = ping_source))
 
                             elif '100' in interface_data['interface_statistics'].get('IPV4 next hop ping percent success',str()):
                                 ### def NEXT HOP "THOUSANDS" PINGv4 COMMAND LIST ###################
-                                if interface_data['interface_data'].get('ipv4_addr_rem',str()):
+                                if interface_data['interface_data'].get('IPV4_bgp_neighbor',str()):
 
                                     interface_data['interface_statistics']['IPV4 next hop %spings percent success from localhost' % (ping_counts)] = \
-                                        str(do_ping(address = interface_data['interface_data'].get('ipv4_addr_rem',str()), \
+                                        str(do_ping(address = interface_data['interface_data'].get('IPV4_bgp_neighbor',str()), \
                                             mtu = 100, count = ping_counts, ipv6 = None, \
                                             source = ping_source))
 
@@ -5795,19 +5826,19 @@ authentication {
                                 and not interface_warning_data['interface_statistics'].get('IPV6 next hop %spings percent success on max working ping size from localhost' % (ping_counts)):
                                 if '100' in interface_warning_data['interface_statistics'].get('IPV6 ping percent success on intended ping size from localhost',str()):
                                     ### def NEXT HOP "THOUSANDS" PINGv6 COMMAND LIST ###################
-                                    if interface_warning_data['interface_data'].get('ipv6_addr_rem',str()):
+                                    if interface_data['interface_data'].get('IPV6_bgp_neighbor',str()):
 
                                         interface_warning_data['interface_statistics']['IPV6 next hop %spings percent success on intended ping size from localhost' % (ping_counts)] = \
-                                            str(do_ping(address = interface_warning_data['interface_data'].get('ipv6_addr_rem',str()), \
+                                            str(do_ping(address = interface_data['interface_data'].get('IPV6_bgp_neighbor',str()), \
                                                 mtu = interface_warning_data['interface_data']['IPV6 intended ping size'], count = ping_counts, ipv6 = True,
                                                 source = ping_source_v6))
 
                                 elif '100' in interface_warning_data['interface_statistics'].get('IPV6 next hopping percent success from localhost',str()):
                                     ### def NEXT HOP "THOUSANDS" PINGv6 COMMAND LIST ###################
-                                    if interface_warning_data['interface_data'].get('ipv6_addr_rem',str()):
+                                    if interface_data['interface_data'].get('IPV6_bgp_neighbor',str()):
 
                                         interface_warning_data['interface_statistics']['IPV6 next hop %spings percent success from localhost' % (ping_counts)] = \
-                                            str(do_ping(address = interface_warning_data['interface_data'].get('ipv6_addr_rem',str()), \
+                                            str(do_ping(address = interface_data['interface_data'].get('IPV6_bgp_neighbor',str()), \
                                                 mtu = 100, count = ping_counts, ipv6 = True, \
                                                 source = ping_source_v6))
 
@@ -5817,19 +5848,19 @@ authentication {
                     and ping_counts and int(ping_counts) > 0:
                     if '100' in interface_warning_data['interface_statistics'].get('IPV4 ping percent success on intended ping size',str()):
                         ### def "THOUSANDS" PINGv4 MTU COMMAND LIST ###################
-                        if interface_data['interface_data'].get('ipv4_addr_rem',str()):
+                        if interface_data['interface_data'].get('IPV4_addr_rem',str()):
 
                             interface_warning_data['interface_statistics']['IPV4 %spings percent success on intended ping size' % (ping_counts)] = \
-                                str(do_ping(address = interface_data['interface_data'].get('ipv4_addr_rem',str()), \
+                                str(do_ping(address = interface_data['interface_data'].get('IPV4_addr_rem',str()), \
                                     mtu = interface_warning_data['interface_data']['IPV4 intended ping size'], count = ping_counts, ipv6 = None, \
                                     source = interface_data['interface_data'].get('ipv4_addr_loc',str())))
 
                     elif '100' in interface_data['interface_statistics'].get('IPV4 ping percent success',str()):
                         ### def "THOUSANDS" PINGv4 COMMAND LIST ###################
-                        if interface_data['interface_data'].get('ipv4_addr_rem',str()):
+                        if interface_data['interface_data'].get('IPV4_addr_rem',str()):
 
                             interface_data['interface_statistics']['IPV4 %spings percent success' % (ping_counts)] = \
-                                str(do_ping(address = interface_data['interface_data'].get('ipv4_addr_rem',str()), \
+                                str(do_ping(address = interface_data['interface_data'].get('IPV4_addr_rem',str()), \
                                     mtu = 100, count = ping_counts, ipv6 = None, \
                                     source = interface_data['interface_data'].get('ipv4_addr_loc',str())))
 
@@ -5837,19 +5868,19 @@ authentication {
                         and not interface_warning_data['interface_statistics'].get('IPV6 %spings percent success on max working ping size' % (ping_counts)):
                         if '100' in interface_warning_data['interface_statistics'].get('IPV6 ping percent success on intended ping size',str()):
                             ### def "THOUSANDS" PINGv6 COMMAND LIST ###################
-                            if interface_warning_data['interface_data'].get('ipv6_addr_rem',str()):
+                            if interface_warning_data['interface_data'].get('IPV6_addr_rem',str()):
 
                                 interface_warning_data['interface_statistics']['IPV6 %spings percent success on intended ping size' % (ping_counts)] = \
-                                    str(do_ping(address = interface_warning_data['interface_data'].get('ipv6_addr_rem',str()), \
+                                    str(do_ping(address = interface_warning_data['interface_data'].get('IPV6_addr_rem',str()), \
                                         mtu = interface_warning_data['interface_data']['IPV6 intended ping size'], count = ping_counts, ipv6 = True,
                                         source = interface_data['interface_data'].get('ipv6_addr_loc',str())))
 
                         elif '100' in interface_warning_data['interface_statistics'].get('IPV6 ping percent success',str()):
                             ### def "THOUSANDS" PINGv6 COMMAND LIST ###################
-                            if interface_warning_data['interface_data'].get('ipv6_addr_rem',str()):
+                            if interface_warning_data['interface_data'].get('IPV6_addr_rem',str()):
 
                                 interface_warning_data['interface_statistics']['IPV6 %spings percent success' % (ping_counts)] = \
-                                    str(do_ping(address = interface_warning_data['interface_data'].get('ipv6_addr_rem',str()), \
+                                    str(do_ping(address = interface_warning_data['interface_data'].get('IPV6_addr_rem',str()), \
                                         mtu = 100, count = ping_counts, ipv6 = True, \
                                         source = interface_data['interface_data'].get('ipv6_addr_loc',str())))
 
@@ -6149,11 +6180,11 @@ authentication {
                     warning = True, ignore_data_existence = True)
 
 
-                if interface_warning_data['interface_data'].get('ipv4_addr_rem_calculated'):
-                    check_interface_data_content("['interface_data']['ipv4_addr_rem_calculated']", interface_data['interface_data'].get('ipv4_addr_rem'), ignore_data_existence = True, warning = True)
+                if interface_warning_data['interface_data'].get('IPV4_addr_rem_calculated'):
+                    check_interface_data_content("['interface_data']['IPV4_addr_rem_calculated']", interface_data['interface_data'].get('IPV4_addr_rem'), ignore_data_existence = True, warning = True)
 
-                if interface_warning_data['interface_data'].get('ipv6_addr_rem_calculated'):
-                     check_interface_data_content("['interface_data']['ipv6_addr_rem_calculated']", normalized_ipv6(interface_warning_data['interface_data'].get('ipv6_addr_rem')), ignore_data_existence = True, warning = True)
+                if interface_warning_data['interface_data'].get('IPV6_addr_rem_calculated'):
+                     check_interface_data_content("['interface_data']['IPV6_addr_rem_calculated']", normalized_ipv6(interface_warning_data['interface_data'].get('IPV6_addr_rem')), ignore_data_existence = True, warning = True)
 
 
                 if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
@@ -6274,10 +6305,10 @@ authentication {
 
                         check_interface_data_content("['bgp']['IPV4 address-family']", what_yes_in = 'unicast')
 
-                        check_interface_data_content("['interface_data']['ipv4_addr_rem_from_ASN']", what_yes_in = interface_data['interface_data'].get('ipv4_addr_rem'))
+                        check_interface_data_content("['interface_data']['IPV4_addr_rem_from_ASN']", what_yes_in = interface_data['interface_data'].get('IPV4_addr_rem'))
 
                         if USE_IPV6:
-                            check_interface_data_content("['interface_data']['ipv6_addr_rem_from_ASN']", what_yes_in = interface_warning_data.get('ipv6_addr_rem'), warning = True)
+                            check_interface_data_content("['interface_data']['IPV6_addr_rem_from_ASN']", what_yes_in = interface_warning_data.get('IPV6_addr_rem'), warning = True)
 
                         if precheck_mode:
                             check_interface_data_content("['bgp']['IPV4 unicast route-policy in']", exact_value_yes = 'DENY-ALL')
