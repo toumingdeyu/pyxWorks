@@ -5586,35 +5586,59 @@ authentication {
                     ###########################################################
                     ### def CUSTOMER_MODE - 7th DATA COLLECTION ###############
                     ###########################################################
-                    if interface_warning_data.get('IPV6_addr_rem'):
-                        collect7_if_data_rcmds = {
-                            'cisco_ios':[
-                             ],
+                    collect7_if_data_rcmds = {
+                        'cisco_ios':[
+                         ],
 
-                            'cisco_xr':[
-                             ],
+                        'cisco_xr':[
+                         ],
 
-                            'juniper': [
-                             ],
+                        'juniper': [
+                         ],
 
-                            'huawei': [
-                            ]
-                        }
+                        'huawei': [
+                        ]
+                    }
 
-                        if interface_data['interface_data'].get('IPV4_bgp_neighbor'):
-                            collect7_if_data_rcmds['cisco_ios'].append('show run router static | i %s/32 %s %s tag 2' % (interface_data['interface_data'].get('IPV4_bgp_neighbor'), undotted_interface_id, interface_data['interface_data'].get('IPV4_addr_rem')))
-                            collect7_if_data_rcmds['cisco_xr'].append('show run router static | i %s/32 %s %s tag 2' % (interface_data['interface_data'].get('IPV4_bgp_neighbor'), undotted_interface_id, interface_data['interface_data'].get('IPV4_addr_rem')))
+                    if interface_data['interface_data'].get('IPV4_bgp_neighbor') and interface_data.get('IPV4_addr_rem')::
+                        collect7_if_data_rcmds['cisco_ios'].append('show run router static | i %s/32 %s %s tag 2' % (interface_data['interface_data'].get('IPV4_bgp_neighbor'), undotted_interface_id, interface_data['interface_data'].get('IPV4_addr_rem')))
+                        collect7_if_data_rcmds['cisco_xr'].append('show run router static | i %s/32 %s %s tag 2'  % (interface_data['interface_data'].get('IPV4_bgp_neighbor'), undotted_interface_id, interface_data['interface_data'].get('IPV4_addr_rem')))
 
-                        if interface_data['interface_data'].get('IPV6_bgp_neighbor'):
-                            collect7_if_data_rcmds['cisco_ios'].append('show run router static | i %s/128 %s %s tag 2' % (interface_data['interface_data'].get('IPV6_bgp_neighbor'), undotted_interface_id, interface_warning_data['interface_data'].get('IPV6_addr_rem')))
-                            collect7_if_data_rcmds['cisco_xr'].append('show run router static | i %s/128 %s %s tag 2' % (interface_data['interface_data'].get('IPV6_bgp_neighbor'), undotted_interface_id, interface_warning_data['interface_data'].get('IPV6_addr_rem')))
+                    collect7_if_config_rcmd_outputs = RCMD.run_commands(collect7_if_data_rcmds, \
+                        autoconfirm_mode = True, \
+                        printall = printall)
 
-                        collect7_if_config_rcmd_outputs = RCMD.run_commands(collect7_if_data_rcmds, \
-                            autoconfirm_mode = True, \
-                            printall = printall)
+                    if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
+                        pass
 
-                        if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
-                            pass
+
+                    ###########################################################
+                    ### def CUSTOMER_MODE - 8th DATA COLLECTION ###############
+                    ###########################################################
+                    collect8_if_data_rcmds = {
+                        'cisco_ios':[
+                         ],
+
+                        'cisco_xr':[
+                         ],
+
+                        'juniper': [
+                         ],
+
+                        'huawei': [
+                        ]
+                    }
+
+                    if interface_data['interface_data'].get('IPV6_bgp_neighbor') and interface_warning_data.get('IPV6_addr_rem')::
+                        collect8_if_data_rcmds['cisco_ios'].append('show run router static | i %s/128 %s %s tag 2' % (interface_data['interface_data'].get('IPV6_bgp_neighbor'), undotted_interface_id, interface_warning_data['interface_data'].get('IPV6_addr_rem')))
+                        collect8_if_data_rcmds['cisco_xr'].append('show run router static | i %s/128 %s %s tag 2'  % (interface_data['interface_data'].get('IPV6_bgp_neighbor'), undotted_interface_id, interface_warning_data['interface_data'].get('IPV6_addr_rem')))
+
+                    collect8_if_config_rcmd_outputs = RCMD.run_commands(collect8_if_data_rcmds, \
+                        autoconfirm_mode = True, \
+                        printall = printall)
+
+                    if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
+                        pass
 
 
                 ### def MTU CALCULATIONS (INTENDED) ###########################
