@@ -4449,22 +4449,25 @@ authentication {
                             interface_data['interface_data']['IPV4_bgp_neighbor'] = \
                                 copy.deepcopy(interface_data['interface_data'].get('IPV4_addr_rem_from_ASN')[0])
 
+                            if len(interface_warning_data['interface_data'].get('IPV6_addr_rem_from_ASN',[])) >= 1:
+                                interface_data['interface_data']['IPV6_bgp_neighbor'] = \
+                                    interface_warning_data['interface_data'].get('IPV6_addr_rem_from_ASN')[0]
+
                     elif interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION') and \
                         len(interface_data['interface_data'].get('IPV4_addr_rem_from_ASN',[])) > 1:
 
-                            IPV4_addr_rem_from_ASN_is_in_DESCRIPTION = False
-                            for address in interface_data['interface_data'].get('IPV4_addr_rem_from_ASN',[]):
+                        IPV4_addr_rem_from_ASN_is_in_DESCRIPTION = False
+                        for address in interface_data['interface_data'].get('IPV4_addr_rem_from_ASN',[]):
+                            if address == interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'):
+                                IPV4_addr_rem_from_ASN_is_in_DESCRIPTION = True
 
-                                if address == interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'):
-                                    IPV4_addr_rem_from_ASN_is_in_DESCRIPTION = True
-
-                            if IPV4_addr_rem_from_ASN_is_in_DESCRIPTION == True:
-                                pass
-                            else:
-                                STATIC_ROUTING = True
-                                interface_data['interface_data']['STATIC_ROUTING'] = True
-                                interface_data['interface_data']['IPV4_bgp_neighbor'] = \
-                                    interface_data['interface_data'].get('IPV4_addr_rem_from_ASN')[0]
+                        if IPV4_addr_rem_from_ASN_is_in_DESCRIPTION == True:
+                            pass
+                        else:
+                            STATIC_ROUTING = True
+                            interface_data['interface_data']['STATIC_ROUTING'] = True
+                            interface_data['interface_data']['IPV4_bgp_neighbor'] = \
+                                interface_data['interface_data'].get('IPV4_addr_rem_from_ASN')[0]
 
                             if len(interface_warning_data['interface_data'].get('IPV6_addr_rem_from_ASN',[])) >= 1:
                                 interface_data['interface_data']['IPV6_bgp_neighbor'] = \
@@ -5587,7 +5590,6 @@ authentication {
                     ###########################################################
                     ### show run router static | i <bgp-neighbor>/32 <!interface-id!> <!ipv4-addr-rem!> tag 2
                     ### show run router static | i IPV4_addr_rem_from_ASN/32 interface_id IPV4_addr_rem_from_DESCRIPTION tag 2
-                    time.sleep(0.1)
                     if interface_data['interface_data'].get('IPV4_bgp_neighbor') and interface_data['interface_data'].get('IPV4_addr_rem'):
                         collect7_if_data_rcmds = {
                             'cisco_ios':[
@@ -5625,7 +5627,6 @@ authentication {
                     ###########################################################
                     ### def CUSTOMER_MODE - 8th DATA COLLECTION ###############
                     ###########################################################
-                    time.sleep(0.1)
                     if interface_data['interface_data'].get('IPV6_bgp_neighbor') and interface_warning_data['interface_data'].get('IPV6_addr_rem'):
                         collect8_if_data_rcmds = {
                             'cisco_ios':[
@@ -5658,7 +5659,6 @@ authentication {
 
                             interface_data['interface_data'][collect8_if_data_rcmds.get('cisco_xr')[0]] = route_exists
 
-                time.sleep(0.1)
                 ### def MTU CALCULATIONS (INTENDED) ###########################
                 ping_size, ping_size_v6 = 0, 0
 
