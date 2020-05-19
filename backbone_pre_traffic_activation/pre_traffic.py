@@ -4417,6 +4417,11 @@ authentication {
                 ###############################################################
                 ### def FIND REMOTE IP ADDRESES: THE OTHER IP IN NETWORK ######
                 ###############################################################
+                if CUSTOMER_MODE or PING_ONLY:
+                    interface_data['interface_data']['IPV4_bgp_neighbor'] = copy.deepcopy(interface_warning_data['interface_data'].get('IPV4_addr_rem_calculated'))
+                    interface_data['interface_data']['IPV6_bgp_neighbor'] = copy.deepcopy(interface_warning_data['interface_data'].get('IPV6_addr_rem_calculated'))
+
+
                 if interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'):
                     interface_data['interface_data']['IPV4_addr_rem'] = copy.deepcopy(interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'))
 
@@ -4441,7 +4446,7 @@ authentication {
                             STATIC_ROUTING = True
                             interface_data['interface_data']['STATIC_ROUTING'] = True
                             interface_data['interface_data']['IPV4_bgp_neighbor'] = \
-                                interface_data['interface_data'].get('IPV4_addr_rem_from_ASN')[0]
+                                copy.deepcopy(interface_data['interface_data'].get('IPV4_addr_rem_from_ASN')[0])
 
                     elif interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION') and \
                         len(interface_data['interface_data'].get('IPV4_addr_rem_from_ASN',[])) > 1:
