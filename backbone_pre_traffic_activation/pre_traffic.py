@@ -5600,7 +5600,7 @@ authentication {
                         ]
                     }
 
-                    if interface_data['interface_data'].get('IPV4_bgp_neighbor') and interface_data.get('IPV4_addr_rem'):
+                    if interface_data['interface_data'].get('IPV4_bgp_neighbor') and interface_data['interface_data'].get('IPV4_addr_rem'):
                         collect7_if_data_rcmds['cisco_ios'].append('show run router static | i %s/32 %s %s tag 2' % (interface_data['interface_data'].get('IPV4_bgp_neighbor'), undotted_interface_id, interface_data['interface_data'].get('IPV4_addr_rem')))
                         collect7_if_data_rcmds['cisco_xr'].append('show run router static | i %s/32 %s %s tag 2'  % (interface_data['interface_data'].get('IPV4_bgp_neighbor'), undotted_interface_id, interface_data['interface_data'].get('IPV4_addr_rem')))
 
@@ -5633,7 +5633,7 @@ authentication {
                         ]
                     }
 
-                    if interface_data['interface_data'].get('IPV6_bgp_neighbor') and interface_warning_data.get('IPV6_addr_rem'):
+                    if interface_data['interface_data'].get('IPV6_bgp_neighbor') and interface_warning_data['interface_data'].get('IPV6_addr_rem'):
                         collect8_if_data_rcmds['cisco_ios'].append('show run router static | i %s/128 %s %s tag 2' % (interface_data['interface_data'].get('IPV6_bgp_neighbor'), undotted_interface_id, interface_warning_data['interface_data'].get('IPV6_addr_rem')))
                         collect8_if_data_rcmds['cisco_xr'].append('show run router static | i %s/128 %s %s tag 2'  % (interface_data['interface_data'].get('IPV6_bgp_neighbor'), undotted_interface_id, interface_warning_data['interface_data'].get('IPV6_addr_rem')))
 
