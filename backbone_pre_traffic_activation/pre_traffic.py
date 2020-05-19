@@ -4417,20 +4417,19 @@ authentication {
                 ###############################################################
                 ### def FIND REMOTE IP ADDRESES: THE OTHER IP IN NETWORK ######
                 ###############################################################
-                if interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'):        
-                        interface_data['interface_data']['IPV4_addr_rem'] = \
-                            copy.deepcopy(interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'))
-        
+                if interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'):
+                    interface_data['interface_data']['IPV4_addr_rem'] = copy.deepcopy(interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'))
+
                 if interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'):
                     if interface_warning_data['interface_data'].get('IPV4_addr_rem_calculated') == interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'):
                         interface_data['interface_data']['IPV4_addr_rem'] = \
-                            copy.deepcopy(interface_data['interface_data'].get('IPV4_addr_rem_calculated'))
-                        
-                elif interface_warning_data['interface_data'].get('IPV4_addr_rem_calculated'):       
+                            copy.deepcopy(interface_warning_data['interface_data'].get('IPV4_addr_rem_calculated'))
+
+                elif interface_warning_data['interface_data'].get('IPV4_addr_rem_calculated'):
                     interface_data['interface_data']['IPV4_addr_rem'] = \
-                        copy.deepcopy(interface_data['interface_data'].get('IPV4_addr_rem_calculated'))
-                        
-                if interface_warning_data['interface_data'].get('IPV6_addr_rem_calculated'):         
+                        copy.deepcopy(interface_warning_data['interface_data'].get('IPV4_addr_rem_calculated'))
+
+                if interface_warning_data['interface_data'].get('IPV6_addr_rem_calculated'):
                     interface_warning_data['interface_data']['IPV6_addr_rem'] = copy.deepcopy(normalized_ipv6(interface_warning_data['interface_data'].get('IPV6_addr_rem_calculated')))
 
 
@@ -4449,7 +4448,7 @@ authentication {
 
                             IPV4_addr_rem_from_ASN_is_in_DESCRIPTION = False
                             for address in interface_data['interface_data'].get('IPV4_addr_rem_from_ASN',[]):
-                            
+
                                 if address == interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'):
                                     IPV4_addr_rem_from_ASN_is_in_DESCRIPTION = True
 
@@ -4461,9 +4460,9 @@ authentication {
                                 interface_data['interface_data']['IPV4_bgp_neighbor'] = \
                                     interface_data['interface_data'].get('IPV4_addr_rem_from_ASN')[0]
 
-                            if len(interface_data['interface_data'].get('IPV6_addr_rem_from_ASN',[])) >= 1:
+                            if len(interface_warning_data['interface_data'].get('IPV6_addr_rem_from_ASN',[])) >= 1:
                                 interface_data['interface_data']['IPV6_bgp_neighbor'] = \
-                                    interface_data['interface_data'].get('IPV6_addr_rem_from_ASN')[0]
+                                    interface_warning_data['interface_data'].get('IPV6_addr_rem_from_ASN')[0]
 
                 CGI_CLI.uprint("interface_data['interface_data']['IPV4_addr_rem'] = " + str(interface_data['interface_data'].get('IPV4_addr_rem')), tag = 'debug', no_printall = not CGI_CLI.printall)
                 CGI_CLI.uprint("interface_warning_data['interface_data']['IPV6_addr_rem'] = " + str(interface_warning_data['interface_data'].get('IPV6_addr_rem')), tag = 'debug', no_printall = not CGI_CLI.printall)
@@ -5578,7 +5577,7 @@ authentication {
 
 
                     ### show run router static | i <bgp-neighbor>/32 <!interface-id!> <!ipv4-addr-rem!> tag 2
-                    ### show run router static | i IPV4_addr_rem_from_ASN/32 interface_id IPV4_addr_rem_from_DESCRIPTION tag 2  
+                    ### show run router static | i IPV4_addr_rem_from_ASN/32 interface_id IPV4_addr_rem_from_DESCRIPTION tag 2
                     ###########################################################
                     ### def CUSTOMER_MODE - 7th DATA COLLECTION ###############
                     ###########################################################
@@ -5609,7 +5608,7 @@ authentication {
                             autoconfirm_mode = True, \
                             printall = printall)
 
-                        if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr': 
+                        if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
                             pass
 
 
