@@ -5582,26 +5582,27 @@ authentication {
                             except: interface_data['bgp']['IPV6 Export route policy is'] = str()
 
 
-                    ### show run router static | i <bgp-neighbor>/32 <!interface-id!> <!ipv4-addr-rem!> tag 2
-                    ### show run router static | i IPV4_addr_rem_from_ASN/32 interface_id IPV4_addr_rem_from_DESCRIPTION tag 2
                     ###########################################################
                     ### def CUSTOMER_MODE - 7th DATA COLLECTION ###############
                     ###########################################################
-                    collect7_if_data_rcmds = {
-                        'cisco_ios':[
-                         ],
-
-                        'cisco_xr':[
-                         ],
-
-                        'juniper': [
-                         ],
-
-                        'huawei': [
-                        ]
-                    }
-
+                    ### show run router static | i <bgp-neighbor>/32 <!interface-id!> <!ipv4-addr-rem!> tag 2
+                    ### show run router static | i IPV4_addr_rem_from_ASN/32 interface_id IPV4_addr_rem_from_DESCRIPTION tag 2
+                    time.sleep(0.1)
                     if interface_data['interface_data'].get('IPV4_bgp_neighbor') and interface_data['interface_data'].get('IPV4_addr_rem'):
+                        collect7_if_data_rcmds = {
+                            'cisco_ios':[
+                             ],
+
+                            'cisco_xr':[
+                             ],
+
+                            'juniper': [
+                             ],
+
+                            'huawei': [
+                            ]
+                        }
+
                         collect7_if_data_rcmds['cisco_ios'].append('show run router static | i %s/32' % (interface_data['interface_data'].get('IPV4_bgp_neighbor')))
                         collect7_if_data_rcmds['cisco_xr'].append('show run router static | i %s/32'  % (interface_data['interface_data'].get('IPV4_bgp_neighbor')))
 
@@ -5624,21 +5625,22 @@ authentication {
                     ###########################################################
                     ### def CUSTOMER_MODE - 8th DATA COLLECTION ###############
                     ###########################################################
-                    collect8_if_data_rcmds = {
-                        'cisco_ios':[
-                         ],
-
-                        'cisco_xr':[
-                         ],
-
-                        'juniper': [
-                         ],
-
-                        'huawei': [
-                        ]
-                    }
-
+                    time.sleep(0.1)
                     if interface_data['interface_data'].get('IPV6_bgp_neighbor') and interface_warning_data['interface_data'].get('IPV6_addr_rem'):
+                        collect8_if_data_rcmds = {
+                            'cisco_ios':[
+                             ],
+
+                            'cisco_xr':[
+                             ],
+
+                            'juniper': [
+                             ],
+
+                            'huawei': [
+                            ]
+                        }
+
                         collect8_if_data_rcmds['cisco_ios'].append('show run router static | i %s/128' % (interface_data['interface_data'].get('IPV6_bgp_neighbor')))
                         collect8_if_data_rcmds['cisco_xr'].append('show run router static | i %s/128'  % (interface_data['interface_data'].get('IPV6_bgp_neighbor')))
 
@@ -5656,7 +5658,7 @@ authentication {
 
                             interface_data['interface_data'][collect8_if_data_rcmds.get('cisco_xr')[0]] = route_exists
 
-
+                time.sleep(0.1)
                 ### def MTU CALCULATIONS (INTENDED) ###########################
                 ping_size, ping_size_v6 = 0, 0
 
