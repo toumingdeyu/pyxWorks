@@ -4420,8 +4420,14 @@ authentication {
                 ### def FIND REMOTE IP ADDRESES: THE OTHER IP IN NETWORK ######
                 ###############################################################
                 if CUSTOMER_MODE or PING_ONLY:
-                    interface_data['interface_data']['IPV4_bgp_neighbor'] = copy.deepcopy(interface_warning_data['interface_data'].get('IPV4_addr_rem_calculated'))
-                    interface_data['interface_data']['IPV6_bgp_neighbor'] = copy.deepcopy(interface_warning_data['interface_data'].get('IPV6_addr_rem_calculated'))
+                    if interface_warning_data['interface_data'].get('IPV4_addr_rem_calculated'):
+                        interface_data['interface_data']['IPV4_bgp_neighbor'] = copy.deepcopy(interface_warning_data['interface_data'].get('IPV4_addr_rem_calculated'))
+
+                    if not interface_data['interface_data'].get('IPV4_bgp_neighbor') and interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'):
+                        interface_data['interface_data']['IPV4_bgp_neighbor'] = copy.deepcopy(interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'))
+
+                    if interface_warning_data['interface_data'].get('IPV6_addr_rem_calculated'):
+                        interface_data['interface_data']['IPV6_bgp_neighbor'] = copy.deepcopy(interface_warning_data['interface_data'].get('IPV6_addr_rem_calculated'))
 
                 if not interface_data['interface_data'].get('IPV4_addr_rem') and interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'):
                     interface_data['interface_data']['IPV4_addr_rem'] = copy.deepcopy(interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'))
@@ -4429,8 +4435,8 @@ authentication {
                 if CUSTOMER_MODE or PING_ONLY:
                     if interface_data['interface_data'].get('IPV4_addr_rem'):
                         interface_data['interface_data']['IPV4_bgp_neighbor'] = copy.deepcopy(interface_data['interface_data'].get('IPV4_addr_rem'))
-                        
-                    if interface_warning_data['interface_data'].get('IPV6_addr_rem_calculated'):    
+
+                    if interface_warning_data['interface_data'].get('IPV6_addr_rem_calculated'):
                         interface_data['interface_data']['IPV6_bgp_neighbor'] = copy.deepcopy(interface_warning_data['interface_data'].get('IPV6_addr_rem_calculated'))
 
                 if CUSTOMER_MODE or PING_ONLY:
@@ -5596,17 +5602,25 @@ authentication {
                     }
 
                     if interface_data['interface_data'].get('IPV4_bgp_neighbor') and interface_data['interface_data'].get('IPV4_addr_rem'):
-                        collect7_if_data_rcmds['cisco_ios'].append('show run router static | i %s/32 %s %s tag 2' % (interface_data['interface_data'].get('IPV4_bgp_neighbor'), undotted_interface_id, interface_data['interface_data'].get('IPV4_addr_rem')))
-                        collect7_if_data_rcmds['cisco_xr'].append('show run router static | i %s/32 %s %s tag 2'  % (interface_data['interface_data'].get('IPV4_bgp_neighbor'), undotted_interface_id, interface_data['interface_data'].get('IPV4_addr_rem')))
+                        collect7_if_data_rcmds['cisco_ios'].append('show run router static | i %s/32' % (interface_data['interface_data'].get('IPV4_bgp_neighbor')))
+                        collect7_if_data_rcmds['cisco_xr'].append('show run router static | i %s/32'  % (interface_data['interface_data'].get('IPV4_bgp_neighbor')))
 
                         collect7_if_config_rcmd_outputs = RCMD.run_commands(collect7_if_data_rcmds, \
                             autoconfirm_mode = True, \
                             printall = printall)
 
+                        CGI_CLI.uprint(collect7_if_data_rcmds, name = True, jsonprint = True,  tag = 'warning', timestamp = 'no')
+                        CGI_CLI.uprint(collect7_if_config_rcmd_outputs, name = True, jsonprint = True,  tag = 'warning', timestamp = 'no')
+
+
                         if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
                             route_exists = True
-                            if not interface_data['interface_data'].get('IPV4_bgp_neighbor') in collect7_if_config_rcmd_outputs[0]: route_exists = str()
-                            if not interface_data['interface_data'].get('IPV4_addr_rem') in collect7_if_config_rcmd_outputs[0]: route_exists = str()
+
+                            if str(interface_data['interface_data'].get('IPV4_bgp_neighbor')) in str(collect7_if_config_rcmd_outputs[0]): pass
+                            else: route_exists = str()
+
+                            if str("%s tag 2" % (interface_data['interface_data'].get('IPV4_addr_rem'))) in str(collect7_if_config_rcmd_outputs[0]): pass
+                            else: route_exists = str()
 
                             interface_data['interface_data'][collect7_if_data_rcmds.get('cisco_xr')[0]] = route_exists
 
@@ -5629,8 +5643,8 @@ authentication {
                     }
 
                     if interface_data['interface_data'].get('IPV6_bgp_neighbor') and interface_warning_data['interface_data'].get('IPV6_addr_rem'):
-                        collect8_if_data_rcmds['cisco_ios'].append('show run router static | i %s/128 %s %s tag 2' % (interface_data['interface_data'].get('IPV6_bgp_neighbor'), undotted_interface_id, interface_warning_data['interface_data'].get('IPV6_addr_rem')))
-                        collect8_if_data_rcmds['cisco_xr'].append('show run router static | i %s/128 %s %s tag 2'  % (interface_data['interface_data'].get('IPV6_bgp_neighbor'), undotted_interface_id, interface_warning_data['interface_data'].get('IPV6_addr_rem')))
+                        collect8_if_data_rcmds['cisco_ios'].append('show run router static | i %s/128' % (interface_data['interface_data'].get('IPV6_bgp_neighbor')))
+                        collect8_if_data_rcmds['cisco_xr'].append('show run router static | i %s/128'  % (interface_data['interface_data'].get('IPV6_bgp_neighbor')))
 
                         collect8_if_config_rcmd_outputs = RCMD.run_commands(collect8_if_data_rcmds, \
                             autoconfirm_mode = True, \
@@ -5638,8 +5652,11 @@ authentication {
 
                         if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
                             route_exists = True
-                            if not interface_data['interface_data'].get('IPV6_bgp_neighbor') in collect8_if_config_rcmd_outputs[0]: route_exists = str()
-                            if not interface_warning_data['interface_data'].get('IPV6_addr_rem') in collect8_if_config_rcmd_outputs[0]: route_exists = str()
+                            if str(interface_data['interface_data'].get('IPV6_bgp_neighbor')) in str(collect8_if_config_rcmd_outputs[0]): pass
+                            else: route_exists = str()
+
+                            if str("%s tag 2" % (interface_warning_data['interface_data'].get('IPV6_addr_rem'))) in str(collect8_if_config_rcmd_outputs[0]): pass
+                            else: route_exists = str()
 
                             interface_data['interface_data'][collect8_if_data_rcmds.get('cisco_xr')[0]] = route_exists
 
