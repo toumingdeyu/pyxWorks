@@ -6333,10 +6333,10 @@ authentication {
 
                         check_interface_data_content("['bgp']['IPV4 address-family']", what_yes_in = 'unicast')
 
-                        check_interface_data_content("['interface_data']['IPV4_addr_rem_from_ASN']", what_yes_in = interface_data['interface_data'].get('IPV4_addr_rem'))
+                        check_interface_data_content("['interface_data']['IPV4_addr_rem_from_DESCRIPTION']", what_yes_in = interface_data['interface_data'].get('IPV4_addr_rem'))
 
-                        if USE_IPV6:
-                            check_interface_data_content("['interface_data']['IPV6_addr_rem_from_ASN']", what_yes_in = interface_warning_data.get('IPV6_addr_rem'), warning = True)
+                        #if USE_IPV6:
+                        #    check_interface_data_content("['interface_data']['IPV6_addr_rem_from_ASN']", what_yes_in = interface_warning_data.get('IPV6_addr_rem'), warning = True)
 
                         if precheck_mode:
                             check_interface_data_content("['bgp']['IPV4 unicast route-policy in']", exact_value_yes = 'DENY-ALL')
