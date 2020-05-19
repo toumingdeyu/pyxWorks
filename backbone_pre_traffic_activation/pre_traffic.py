@@ -5613,7 +5613,7 @@ authentication {
                             if not interface_data['interface_data'].get('IPV4_bgp_neighbor') in collect7_if_config_rcmd_outputs[0]: route_exists = str()
                             if not interface_data['interface_data'].get('IPV4_addr_rem') in collect7_if_config_rcmd_outputs[0]: route_exists = str()
 
-                            interface_data['interface_data'][collect7_if_data_rcmds.get('cisco_xr')] = route_exists
+                            interface_data['interface_data'][collect7_if_data_rcmds.get('cisco_xr')[0]] = route_exists
 
 
                     ###########################################################
@@ -5646,7 +5646,7 @@ authentication {
                             if not interface_data['interface_data'].get('IPV6_bgp_neighbor') in collect8_if_config_rcmd_outputs[0]: route_exists = str()
                             if not interface_warning_data['interface_data'].get('IPV6_addr_rem') in collect8_if_config_rcmd_outputs[0]: route_exists = str()
 
-                            interface_data['interface_data'][collect8_if_data_rcmds.get('cisco_xr')] = route_exists
+                            interface_data['interface_data'][collect8_if_data_rcmds.get('cisco_xr')[0]] = route_exists
 
 
                 ### def MTU CALCULATIONS (INTENDED) ###########################
