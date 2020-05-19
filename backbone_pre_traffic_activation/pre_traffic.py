@@ -4369,8 +4369,10 @@ authentication {
                             for addr in ipaddress.IPv4Network(ipv4_network):
                                 CGI_CLI.uprint("addr4=%s" % (addr), tag = 'debug', no_printall = not CGI_CLI.printall)
                                 if str(addr).upper() == str(interface_data['interface_data'].get('ipv4_addr_loc')).upper(): pass
-                                else: interface_warning_data['interface_data']['IPV4_addr_rem_calculated'] =  copy.deepcopy(str(addr))
-                                break
+                                else:
+                                    interface_warning_data['interface_data']['IPV4_addr_rem_calculated'] = copy.deepcopy(str(addr))
+                                    interface_data['interface_data']['IPV4_addr_rem'] = copy.deepcopy(str(addr))
+                                    break
 
 
                         if interface_data['interface_data'].get('ipv4_mask_loc') == '30':
@@ -4379,8 +4381,10 @@ authentication {
                                 CGI_CLI.uprint("addr4=%s" % (addr), tag = 'debug', no_printall = not CGI_CLI.printall)
                                 if i_counter == 1 or i_counter == 2:
                                     if str(addr).upper() == str(interface_data['interface_data'].get('ipv4_addr_loc')).upper(): pass
-                                    else: interface_warning_data['interface_data']['IPV4_addr_rem_calculated'] =  copy.deepcopy(str(addr))
-                                    break
+                                    else:
+                                        interface_warning_data['interface_data']['IPV4_addr_rem_calculated'] =  copy.deepcopy(str(addr))
+                                        interface_data['interface_data']['IPV4_addr_rem'] = copy.deepcopy(str(addr))
+                                        break
                                 i_counter += 1
 
                 if interface_data['interface_data'].get('ipv6_addr_loc') and interface_data['interface_data'].get('ipv6_mask_loc'):
@@ -4396,8 +4400,7 @@ authentication {
                             if normalized_ipv6(str(addr).upper()) == normalized_ipv6(str(interface_data['interface_data'].get('ipv6_addr_loc')).upper()): pass
                             else:
                                 interface_warning_data['interface_data']['IPV6_addr_rem_calculated'] = copy.deepcopy(normalized_ipv6(addr))
-                                #if not interface_warning_data['interface_data'].get('IPV6_addr_rem'):
-                                #    interface_warning_data['interface_data']['IPV6_addr_rem'] = copy.deepcopy(normalized_ipv6(addr))
+                                interface_warning_data['interface_data']['IPV6_addr_rem'] = copy.deepcopy(normalized_ipv6(addr))
                                 break
 
                     if interface_data['interface_data'].get('ipv6_mask_loc') == '126':
@@ -4408,8 +4411,7 @@ authentication {
                                 if normalized_ipv6(str(addr).upper()) == normalized_ipv6(str(interface_data['interface_data'].get('ipv6_addr_loc')).upper()): pass
                                 else:
                                     interface_warning_data['interface_data']['IPV6_addr_rem_calculated'] = copy.deepcopy(normalized_ipv6(addr))
-                                    #if not interface_warning_data['interface_data'].get('IPV6_addr_rem'):
-                                    #    interface_warning_data['interface_data']['IPV6_addr_rem'] = copy.deepcopy(normalized_ipv6(addr))
+                                    interface_warning_data['interface_data']['IPV6_addr_rem'] = copy.deepcopy(normalized_ipv6(addr))
                                     break
                             i_counter += 1
 
@@ -4421,22 +4423,15 @@ authentication {
                     interface_data['interface_data']['IPV4_bgp_neighbor'] = copy.deepcopy(interface_warning_data['interface_data'].get('IPV4_addr_rem_calculated'))
                     interface_data['interface_data']['IPV6_bgp_neighbor'] = copy.deepcopy(interface_warning_data['interface_data'].get('IPV6_addr_rem_calculated'))
 
-
-                if interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'):
+                if not interface_data['interface_data'].get('IPV4_addr_rem') and interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'):
                     interface_data['interface_data']['IPV4_addr_rem'] = copy.deepcopy(interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'))
 
-                if interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'):
-                    if interface_warning_data['interface_data'].get('IPV4_addr_rem_calculated') == interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'):
-                        interface_data['interface_data']['IPV4_addr_rem'] = \
-                            copy.deepcopy(interface_warning_data['interface_data'].get('IPV4_addr_rem_calculated'))
-
-                elif interface_warning_data['interface_data'].get('IPV4_addr_rem_calculated'):
-                    interface_data['interface_data']['IPV4_addr_rem'] = \
-                        copy.deepcopy(interface_warning_data['interface_data'].get('IPV4_addr_rem_calculated'))
-
-                if interface_warning_data['interface_data'].get('IPV6_addr_rem_calculated'):
-                    interface_warning_data['interface_data']['IPV6_addr_rem'] = copy.deepcopy(normalized_ipv6(interface_warning_data['interface_data'].get('IPV6_addr_rem_calculated')))
-
+                if CUSTOMER_MODE or PING_ONLY:
+                    if interface_data['interface_data'].get('IPV4_addr_rem'):
+                        interface_data['interface_data']['IPV4_bgp_neighbor'] = copy.deepcopy(interface_data['interface_data'].get('IPV4_addr_rem'))
+                        
+                    if interface_warning_data['interface_data'].get('IPV6_addr_rem_calculated'):    
+                        interface_data['interface_data']['IPV6_bgp_neighbor'] = copy.deepcopy(interface_warning_data['interface_data'].get('IPV6_addr_rem_calculated'))
 
                 if CUSTOMER_MODE or PING_ONLY:
                     if len(interface_data['interface_data'].get('IPV4_addr_rem_from_ASN',[])) == 1:
@@ -5951,19 +5946,20 @@ authentication {
                 CGI_CLI.uprint('\n', timestamp = 'no')
 
                 if LOCAL_AS_NUMBER:
-                    CGI_CLI.uprint('LOCAL_AS = %s, IMN_INTERFACE = %s' % \
+                    CGI_CLI.uprint('LOCAL_AS = %s, IMN_INTERFACE = %s\n' % \
                         (LOCAL_AS_NUMBER, str(IMN_INTERFACE)), \
                         color = 'blue', timestamp = 'no', no_printall = not printall)
                 else:
-                    CGI_CLI.uprint("PROBLEM TO PARSE LOCAL AS NUMBER on device %s!" \
+                    CGI_CLI.uprint("PROBLEM TO PARSE LOCAL AS NUMBER on device %s!\n" \
                         % (device), color = 'red', timestamp = 'no')
 
                 ### def PRINT RESULTS PER INTERFACE ###########################
-                CGI_CLI.uprint(interface_data, name = 'Collected data on Device:%s' % (device), \
+                CGI_CLI.uprint(interface_data, name = 'Collected data on Device %s' % (device), \
                     jsonprint = True, color = 'blue', timestamp = 'no', no_printall = not printall)
-
-                CGI_CLI.uprint(interface_warning_data, name = 'Collected warning data on Device:%s' % (device), \
+                CGI_CLI.uprint('\n', timestamp = 'no', no_printall = not printall)
+                CGI_CLI.uprint(interface_warning_data, name = 'Collected WARNING data on Device %s' % (device), \
                     jsonprint = True, color = 'blue', timestamp = 'no', no_printall = not printall)
+                CGI_CLI.uprint('\n', timestamp = 'no', no_printall = not printall)
 
                 ### START OF CHECKS PER INTERFACE #############################
                 check_interface_result_ok, check_warning_interface_result_ok = True, True
