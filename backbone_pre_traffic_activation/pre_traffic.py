@@ -5609,10 +5609,6 @@ authentication {
                             autoconfirm_mode = True, \
                             printall = printall)
 
-                        CGI_CLI.uprint(collect7_if_data_rcmds, name = True, jsonprint = True,  tag = 'warning', timestamp = 'no')
-                        CGI_CLI.uprint(collect7_if_config_rcmd_outputs, name = True, jsonprint = True,  tag = 'warning', timestamp = 'no')
-
-
                         if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
                             route_exists = True
 
