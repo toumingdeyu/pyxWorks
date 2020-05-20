@@ -4232,13 +4232,13 @@ authentication {
                     try: interface_data['interface_data']['IPV4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv4 address ')[1].split()[0]
                     except: interface_data['interface_data']['IPV4_addr_loc'] = str()
 
-                    try: interface_data['interface_data']['ipv4_mask_loc_dotted'] = collect_if_config_rcmd_outputs[0].split('ipv4 address ')[1].split()[1]
+                    try: interface_data['interface_data']['IPV4_mask_loc_dotted'] = collect_if_config_rcmd_outputs[0].split('ipv4 address ')[1].split()[1]
                     except: pass
 
                     try: interface_data['interface_data']['IPV6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
                     except: pass
 
-                    try: interface_data['interface_data']['ipv6_mask_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[1]
+                    try: interface_data['interface_data']['IPV6_mask_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[1]
                     except: pass
 
                     try: interface_warning_data['interface_data']['MTU_interface_configured'] = collect_if_config_rcmd_outputs[0].split('mtu ')[1].splitlines()[0].strip()
@@ -4282,13 +4282,13 @@ authentication {
                     try: interface_data['interface_data']['IPV4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet address ')[1].split()[0].split('/')[0].replace(';','')
                     except: interface_data['interface_data']['IPV4_addr_loc'] = str()
 
-                    try: interface_data['interface_data']['ipv4_mask_loc'] = collect_if_config_rcmd_outputs[0].split('family inet address ')[1].split()[0].split('/')[1].replace(';','')
+                    try: interface_data['interface_data']['IPV4_mask_loc'] = collect_if_config_rcmd_outputs[0].split('family inet address ')[1].split()[0].split('/')[1].replace(';','')
                     except: pass
 
                     try: interface_data['interface_data']['IPV6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('family inet6 address ')[1].split()[0].split('/')[0].replace(';','')
                     except: pass
 
-                    try: interface_data['interface_data']['ipv6_mask_loc'] = collect_if_config_rcmd_outputs[0].split('family inet6 address ')[1].split()[0].split('/')[1].replace(';','')
+                    try: interface_data['interface_data']['IPV6_mask_loc'] = collect_if_config_rcmd_outputs[0].split('family inet6 address ')[1].split()[0].split('/')[1].replace(';','')
                     except: pass
 
                     if CUSTOMER_MODE:
@@ -4319,13 +4319,13 @@ authentication {
                     try: interface_data['interface_data']['IPV4_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[0]
                     except: interface_data['interface_data']['IPV4_addr_loc'] = str()
 
-                    try: interface_data['interface_data']['ipv4_mask_loc_dotted'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[1]
+                    try: interface_data['interface_data']['IPV4_mask_loc_dotted'] = collect_if_config_rcmd_outputs[0].split('ip address ')[1].split()[1]
                     except: pass
 
                     try: interface_data['interface_data']['IPV6_addr_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[0]
                     except: pass
 
-                    try: interface_data['interface_data']['ipv6_mask_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[1]
+                    try: interface_data['interface_data']['IPV6_mask_loc'] = collect_if_config_rcmd_outputs[0].split('ipv6 address ')[1].split()[0].split('/')[1]
                     except: pass
 
                     try: interface_warning_data['interface_data']['MTU_interface_configured'] = collect_if_config_rcmd_outputs[0].split('mtu ')[1].splitlines()[0].strip()
@@ -4353,19 +4353,19 @@ authentication {
                 ### https://cpython-test-docs.readthedocs.io/en/latest/howto/ipaddress.html
                 list_of_ipv4_network, list_of_ipv6_network = [], []
                 if interface_data['interface_data'].get('IPV4_addr_loc'):
-                    if interface_data['interface_data'].get('ipv4_mask_loc_dotted',str()) == '255.255.255.254':
-                        interface_data['interface_data']['ipv4_mask_loc'] = '31'
-                    if interface_data['interface_data'].get('ipv4_mask_loc_dotted',str()) == '255.255.255.252':
-                        interface_data['interface_data']['ipv4_mask_loc'] = '30'
-                    if interface_data['interface_data'].get('ipv4_mask_loc'):
+                    if interface_data['interface_data'].get('IPV4_mask_loc_dotted',str()) == '255.255.255.254':
+                        interface_data['interface_data']['IPV4_mask_loc'] = '31'
+                    if interface_data['interface_data'].get('IPV4_mask_loc_dotted',str()) == '255.255.255.252':
+                        interface_data['interface_data']['IPV4_mask_loc'] = '30'
+                    if interface_data['interface_data'].get('IPV4_mask_loc'):
                         interface = ipaddress.IPv4Interface(u'%s/%s' % \
                             (interface_data['interface_data'].get('IPV4_addr_loc'), \
-                            interface_data['interface_data'].get('ipv4_mask_loc')))
+                            interface_data['interface_data'].get('IPV4_mask_loc')))
 
                         ipv4_network = interface.network
                         CGI_CLI.uprint('Network: ' + str(ipv4_network), tag = 'debug', no_printall = not CGI_CLI.printall)
 
-                        if interface_data['interface_data'].get('ipv4_mask_loc') == '31':
+                        if interface_data['interface_data'].get('IPV4_mask_loc') == '31':
                             for addr in ipaddress.IPv4Network(ipv4_network):
                                 CGI_CLI.uprint("addr4=%s" % (addr), tag = 'debug', no_printall = not CGI_CLI.printall)
                                 if str(addr).upper() == str(interface_data['interface_data'].get('IPV4_addr_loc')).upper(): pass
@@ -4375,7 +4375,7 @@ authentication {
                                     break
 
 
-                        if interface_data['interface_data'].get('ipv4_mask_loc') == '30':
+                        if interface_data['interface_data'].get('IPV4_mask_loc') == '30':
                             i_counter = 0
                             for addr in ipaddress.IPv4Network(ipv4_network):
                                 CGI_CLI.uprint("addr4=%s" % (addr), tag = 'debug', no_printall = not CGI_CLI.printall)
@@ -4387,14 +4387,14 @@ authentication {
                                         break
                                 i_counter += 1
 
-                if interface_data['interface_data'].get('IPV6_addr_loc') and interface_data['interface_data'].get('ipv6_mask_loc'):
+                if interface_data['interface_data'].get('IPV6_addr_loc') and interface_data['interface_data'].get('IPV6_mask_loc'):
                     interface = ipaddress.IPv6Interface(u'%s/%s' % \
-                        (interface_data['interface_data'].get('IPV6_addr_loc'), interface_data['interface_data'].get('ipv6_mask_loc')))
+                        (interface_data['interface_data'].get('IPV6_addr_loc'), interface_data['interface_data'].get('IPV6_mask_loc')))
 
                     ipv6_network = interface.network
                     CGI_CLI.uprint('Network: ' + str(ipv6_network), tag = 'debug', no_printall = not CGI_CLI.printall)
 
-                    if interface_data['interface_data'].get('ipv6_mask_loc') == '127':
+                    if interface_data['interface_data'].get('IPV6_mask_loc') == '127':
                         for addr in ipaddress.IPv6Network(ipv6_network):
                             CGI_CLI.uprint("addr6=%s" % (addr), tag = 'debug', no_printall = not CGI_CLI.printall)
                             if normalized_ipv6(str(addr).upper()) == normalized_ipv6(str(interface_data['interface_data'].get('IPV6_addr_loc')).upper()): pass
@@ -4403,7 +4403,7 @@ authentication {
                                 interface_warning_data['interface_data']['IPV6_addr_rem'] = copy.deepcopy(normalized_ipv6(addr))
                                 break
 
-                    if interface_data['interface_data'].get('ipv6_mask_loc') == '126':
+                    if interface_data['interface_data'].get('IPV6_mask_loc') == '126':
                         i_counter = 0
                         for addr in ipaddress.IPv6Network(ipv6_network):
                             CGI_CLI.uprint("addr6=%s" % (addr), tag = 'debug', no_printall = not CGI_CLI.printall)
