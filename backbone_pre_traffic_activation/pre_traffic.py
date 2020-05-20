@@ -5298,8 +5298,6 @@ authentication {
 
                         'juniper': [
                             'show bgp group %s detail' % (interface_data['bgp'].get('IPV4 neighbor-group')) if interface_data['bgp'].get('IPV4 neighbor-group') else str(),
-                            'show bgp group %s detail' % (interface_data['bgp'].get('IPV6 neighbor-group')) if interface_data['bgp'].get('IPV6 neighbor-group') else str(),
-
                         ],
 
                         'huawei': [
@@ -5334,7 +5332,7 @@ authentication {
                         try: interface_data['bgp']['IPV4 No of prefixes Advertised'] = collect5_if_config_rcmd_outputs[1].split('No of prefixes Advertised:')[1].split()[0]
                         except: interface_data['bgp']['IPV4 No of prefixes Advertised'] = str()
 
-                        try: interface_data['bgp']['IPV4 Local host'] = collect5_if_config_rcmd_outputs[1].split('Local host:')[1].split()[0].replace(',','')
+                        try: interface_data['bgp']['IPV4 Local host'] = collect5_if_config_rcmd_outputs[0].split('Local host:')[1].split()[0].replace(',','')
                         except: pass
 
                     elif RCMD.router_type == 'juniper':
@@ -5357,65 +5355,6 @@ authentication {
                             if '.' in line:
                                 if 'inet' in line or 'Route Queue Timer' in line: break
                                 interface_data['bgp']['IPV4 bgp group Peers'].append(str(line).strip())
-
-                        # try: interface_data['bgp']['IPV4 Active prefixes'] = collect5_if_config_rcmd_outputs[0].split('Name: %s ' % (interface_data['bgp']['IPV4 neighbor-group']))[1].split('Active prefixes: ')[1].split()[0]
-                        # except: pass
-
-                        # try: interface_data['bgp']['IPV4 Received prefixes'] = collect5_if_config_rcmd_outputs[0].split('Name: %s ' % (interface_data['bgp']['IPV4 neighbor-group']))[1].split('Received prefixes: ')[1].split()[0]
-                        # except: pass
-
-
-                        # try: interface_data['bgp']['IPV4 Received/maximum prefixes percent'] = 100 * (float(interface_data['bgp']['IPV4 Received prefixes']) / float(interface_data['bgp']['IPV4 unicast prefix-limit maximum']))
-                        # except: pass
-
-                        # try: interface_data['bgp']['IPV4 Accepted prefixes'] = collect5_if_config_rcmd_outputs[0].split('Name: %s ' % (interface_data['bgp']['IPV4 neighbor-group']))[1].split('Accepted prefixes: ')[1].split()[0]
-                        # except: pass
-
-                        # try: interface_data['bgp']['IPV4 Suppressed due to damping'] = collect5_if_config_rcmd_outputs[0].split('Name: %s ' % (interface_data['bgp']['IPV4 neighbor-group']))[1].split('Suppressed due to damping: ')[1].split()[0]
-                        # except: pass
-
-                        # try: interface_data['bgp']['IPV4 Advertised prefixes'] = collect5_if_config_rcmd_outputs[0].split('Name: %s ' % (interface_data['bgp']['IPV4 neighbor-group']))[1].split('Advertised prefixes: ')[1].split()[0]
-                        # except: pass
-
-
-
-                        if USE_IPV6:
-                            try: interface_data['bgp']['IPV6 bgp group Export'] = collect5_if_config_rcmd_outputs[1].split('Name: %s ' % (interface_data['bgp']['IPV4 neighbor-group']))[1].split('Export: [ ')[1].splitlines()[0].replace(']','').strip().split()
-                            except: pass
-
-                            try: interface_data['bgp']['IPV6 bgp group Total peers'] = collect5_if_config_rcmd_outputs[1].split('Name: %s ' % (interface_data['bgp']['IPV4 neighbor-group']))[1].split('Total peers: ')[1].split()[0]
-                            except: pass
-
-                            try: interface_data['bgp']['IPV6 bgp group Established'] = collect5_if_config_rcmd_outputs[1].split('Name: %s ' % (interface_data['bgp']['IPV4 neighbor-group']))[1].split('Established: ')[1].split()[0]
-                            except: pass
-
-                            interface_data['bgp']['IPV6 bgp group Peers'] = []
-
-                            try: lines = collect5_if_config_rcmd_outputs[1].split('Name: %s ' % (interface_data['bgp']['IPV6 neighbor-group']))[1].split('Established: ')[1].strip().splitlines()
-                            except: lines = []
-
-                            for line in lines:
-                                if ':' in line:
-                                    if 'inet6' in line or 'Route Queue Timer' in line: break
-                                    interface_data['bgp']['IPV6 bgp group Peers'].append(str(line).strip())
-
-                            if interface_data['bgp']['IPV6 bgp group Peers'] == []:
-                                del interface_data['bgp']['IPV6 bgp group Peers']
-
-                            try: interface_data['bgp']['IPV6 Active prefixes'] = collect5_if_config_rcmd_outputs[1].split('Name: %s ' % (interface_data['bgp']['IPV6 neighbor-group']))[1].split('Active prefixes: ')[1].split()[0]
-                            except: pass
-
-                            try: interface_data['bgp']['IPV6 Received prefixes'] = collect5_if_config_rcmd_outputs[1].split('Name: %s ' % (interface_data['bgp']['IPV6 neighbor-group']))[1].split('Received prefixes: ')[1].split()[0]
-                            except: pass
-
-                            try: interface_data['bgp']['IPV6 Accepted prefixes'] = collect5_if_config_rcmd_outputs[1].split('Name: %s ' % (interface_data['bgp']['IPV6 neighbor-group']))[1].split('Accepted prefixes: ')[1].split()[0]
-                            except: pass
-
-                            try: interface_data['bgp']['IPV6 Suppressed due to damping'] = collect5_if_config_rcmd_outputs[1].split('Name: %s ' % (interface_data['bgp']['IPV6 neighbor-group']))[1].split('Suppressed due to damping: ')[1].split()[0]
-                            except: pass
-
-                            try: interface_data['bgp']['IPV6 Advertised prefixes'] = collect5_if_config_rcmd_outputs[1].split('Name: %s ' % (interface_data['bgp']['IPV6 neighbor-group']))[1].split('Advertised prefixes: ')[1].split()[0]
-                            except: pass
 
 
                     elif RCMD.router_type == 'huawei':
@@ -5485,6 +5424,7 @@ authentication {
 
                             'juniper': [
                                 'show bgp group %s' % (interface_data['bgp'].get('IPV6 neighbor-group')) if interface_data['bgp'].get('IPV6 neighbor-group') else str(),
+                                'show bgp group %s detail' % (interface_data['bgp'].get('IPV6 neighbor-group')) if interface_data['bgp'].get('IPV6 neighbor-group') else str(),
                             ],
 
                             'huawei': [
@@ -5532,11 +5472,43 @@ authentication {
                             try: interface_data['bgp']['IPV6 bgp group Established'] = collect6_if_config_rcmd_outputs[0].split('Established: ')[1].split()[0]
                             except: interface_data['bgp']['IPV6 bgp group Established'] = str()
 
+                            try: interface_data['bgp']['IPV6 bgp group Export'] = collect6_if_config_rcmd_outputs[1].split('Name: %s ' % (interface_data['bgp']['IPV4 neighbor-group']))[1].split('Export: [ ')[1].splitlines()[0].replace(']','').strip().split()
+                            except: pass
+
+                            try: interface_data['bgp']['IPV6 bgp group Total peers'] = collect6_if_config_rcmd_outputs[1].split('Name: %s ' % (interface_data['bgp']['IPV4 neighbor-group']))[1].split('Total peers: ')[1].split()[0]
+                            except: pass
+
+                            try: interface_data['bgp']['IPV6 bgp group Established'] = collect6_if_config_rcmd_outputs[1].split('Name: %s ' % (interface_data['bgp']['IPV4 neighbor-group']))[1].split('Established: ')[1].split()[0]
+                            except: pass
+
                             interface_data['bgp']['IPV6 bgp group Peers'] = []
-                            for line in collect6_if_config_rcmd_outputs[0].split('Established: ')[1].strip().splitlines():
+
+                            try: lines = collect6_if_config_rcmd_outputs[1].split('Name: %s ' % (interface_data['bgp']['IPV6 neighbor-group']))[1].split('Established: ')[1].strip().splitlines()
+                            except: lines = []
+
+                            for line in lines:
                                 if ':' in line:
-                                    if 'inet6' in line: break
+                                    if 'inet6' in line or 'Route Queue Timer' in line: break
                                     interface_data['bgp']['IPV6 bgp group Peers'].append(str(line).strip())
+
+                            if interface_data['bgp']['IPV6 bgp group Peers'] == []:
+                                del interface_data['bgp']['IPV6 bgp group Peers']
+
+                            try: interface_data['bgp']['IPV6 Active prefixes'] = collect6_if_config_rcmd_outputs[1].split('Name: %s ' % (interface_data['bgp']['IPV6 neighbor-group']))[1].split('Active prefixes: ')[1].split()[0]
+                            except: pass
+
+                            try: interface_data['bgp']['IPV6 Received prefixes'] = collect6_if_config_rcmd_outputs[1].split('Name: %s ' % (interface_data['bgp']['IPV6 neighbor-group']))[1].split('Received prefixes: ')[1].split()[0]
+                            except: pass
+
+                            try: interface_data['bgp']['IPV6 Accepted prefixes'] = collect6_if_config_rcmd_outputs[1].split('Name: %s ' % (interface_data['bgp']['IPV6 neighbor-group']))[1].split('Accepted prefixes: ')[1].split()[0]
+                            except: pass
+
+                            try: interface_data['bgp']['IPV6 Suppressed due to damping'] = collect6_if_config_rcmd_outputs[1].split('Name: %s ' % (interface_data['bgp']['IPV6 neighbor-group']))[1].split('Suppressed due to damping: ')[1].split()[0]
+                            except: pass
+
+                            try: interface_data['bgp']['IPV6 Advertised prefixes'] = collect6_if_config_rcmd_outputs[1].split('Name: %s ' % (interface_data['bgp']['IPV6 neighbor-group']))[1].split('Advertised prefixes: ')[1].split()[0]
+                            except: pass
+
 
                         elif RCMD.router_type == 'huawei':
                             try: interface_data['bgp']['IPV6 remote AS'] = collect6_if_config_rcmd_outputs[1].split('remote AS ')[1].split()[0]
