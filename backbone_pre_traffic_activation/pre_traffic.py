@@ -5042,7 +5042,8 @@ authentication {
                         if interface_data['bgp'].get('IPV4 use_neighbor-group'):
 
                             if STATIC_ROUTING:
-                                interface_data['bgp']['IPV4 ebgp-multihop 3'] = True if 'ebgp-multihop 3' in collect3_if_config_rcmd_outputs[0] else str()
+                                try: interface_data['bgp']['IPV4 ebgp-multihop'] = collect3_if_config_rcmd_outputs[0].split('ebgp-multihop ')[1].split()[0]
+                                except: interface_data['bgp']['IPV4 ebgp-multihop'] = str()
 
                             interface_data['bgp']['IPV4 address-family'] = []
                             try:
@@ -6107,6 +6108,7 @@ authentication {
                     CGI_CLI.uprint('NOTE: Juniper control plane protection could drop some of longer ping packets, so ping success could be less than 100%.', color = 'blue')
 
                 if STATIC_ROUTING:
+                    check_interface_data_content("['bgp']['IPV4 ebgp-multihop']", higher_than = 2)
                     check_interface_data_content("['interface_statistics']['IPV4 next hop ping percent success from localhost']", '100')
 
                     if USE_IPV6:
