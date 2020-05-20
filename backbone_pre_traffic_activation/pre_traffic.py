@@ -4025,6 +4025,11 @@ authentication {
 
             ### LOOP PER INTERFACE ############################################
             for interface_id in interface_list:
+                ### VARIABLES PER INTERFACE ###
+                USE_IPV6 = False
+                STATIC_ROUTING = False
+                check_interface_result_ok = True
+                check_warning_interface_result_ok = True
 
                 ### def LOGFILENAME GENERATION, DO LOGGING ONLY WHEN DEVICE LIST EXISTS ###
                 html_extention = 'htm' if CGI_CLI.cgi_active else str()
