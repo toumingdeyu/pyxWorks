@@ -4270,15 +4270,15 @@ authentication {
                         try: interface_data['interface_data']['flow_ipv4_monitor'] = collect_if_config_rcmd_outputs[0].split('flow ipv4 monitor ')[1].splitlines()[0].strip()
                         except: interface_data['interface_data']['flow_ipv4_monitor'] = str()
 
-                        try: interface_data['interface_data']['ipv4_access-group'] = collect_if_config_rcmd_outputs[0].split('ipv4 access-group ')[1].splitlines()[0].strip()
-                        except: interface_data['interface_data']['ipv4_access-group'] = str()
+                        try: interface_data['interface_data']['IPV4_access-group'] = collect_if_config_rcmd_outputs[0].split('ipv4 access-group ')[1].splitlines()[0].strip()
+                        except: interface_data['interface_data']['IPV4_access-group'] = str()
 
                         if interface_data['interface_data'].get('IPV6_addr_loc'):
                             try: interface_data['interface_data']['flow_ipv6_monitor'] = collect_if_config_rcmd_outputs[0].split('flow ipv6 monitor ')[1].splitlines()[0].strip()
                             except: interface_data['interface_data']['flow_ipv6_monitor'] = str()
 
-                            try: interface_data['interface_data']['ipv6_access-group'] = collect_if_config_rcmd_outputs[0].split('ipv6 access-group ')[1].splitlines()[0].strip()
-                            except: interface_data['interface_data']['ipv6_access-group'] = str()
+                            try: interface_data['interface_data']['IPV6_access-group'] = collect_if_config_rcmd_outputs[0].split('ipv6 access-group ')[1].splitlines()[0].strip()
+                            except: interface_data['interface_data']['IPV6_access-group'] = str()
 
                 elif RCMD.router_type == 'juniper':
                     try: interface_data['interface_data']['LAG_member'] = 'yes' if 'gigether-options ' in collect_if_config_rcmd_outputs[0] else 'no'
