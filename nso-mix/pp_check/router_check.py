@@ -942,6 +942,9 @@ parser.add_argument("--postfile",
 parser.add_argument("--user", default = str(),
                     action = "store", dest = 'username',
                     help = "specify router user login")
+parser.add_argument("--cpassword", default = str(),
+                    action = "store", dest = 'cpassword',
+                    help = "specify router user cpassword")
 parser.add_argument("--fgetpass",
                     action = 'store_true', dest = "fgetpass", default = False,
                     help = "force getpass.getpass() call even if NEWR_PASS is set.")
@@ -1027,8 +1030,10 @@ if not USERNAME:
     print(bcolors.MAGENTA + " ... Please insert your username by cmdline switch --user username !" + bcolors.ENDC )
     sys.exit(0)
 
-# SSH (default)
-if not PASSWORD or args.fgetpass: PASSWORD = getpass.getpass("TACACS password: ")
+if args.cpassword:
+    PASSWORD = str(args.cpassword).decode('base64','strict')
+elif not PASSWORD or args.fgetpass:
+    PASSWORD = getpass.getpass("TACACS password: ")
 
 router_prompt = None
 try: PARAMIKO_HOST = args.device.upper().split(':')[0]
