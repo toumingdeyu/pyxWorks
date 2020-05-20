@@ -4456,7 +4456,7 @@ authentication {
 
                             if len(interface_warning_data['interface_data'].get('IPV6_addr_rem_from_ASN',[])) >= 1:
                                 interface_data['interface_data']['IPV6_bgp_neighbor'] = \
-                                    interface_warning_data['interface_data'].get('IPV6_addr_rem_from_ASN')[0]
+                                    copy.deepcopy(interface_warning_data['interface_data'].get('IPV6_addr_rem_from_ASN')[0])
 
                     elif interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION') and \
                         len(interface_data['interface_data'].get('IPV4_addr_rem_from_ASN',[])) > 1:
@@ -4472,11 +4472,11 @@ authentication {
                             STATIC_ROUTING = True
                             interface_data['interface_data']['STATIC_ROUTING'] = True
                             interface_data['interface_data']['IPV4_bgp_neighbor'] = \
-                                interface_data['interface_data'].get('IPV4_addr_rem_from_ASN')[0]
+                                copy.deepcopy(interface_data['interface_data'].get('IPV4_addr_rem_from_ASN')[0])
 
                             if len(interface_warning_data['interface_data'].get('IPV6_addr_rem_from_ASN',[])) >= 1:
                                 interface_data['interface_data']['IPV6_bgp_neighbor'] = \
-                                    interface_warning_data['interface_data'].get('IPV6_addr_rem_from_ASN')[0]
+                                    copy.deepcopy(interface_warning_data['interface_data'].get('IPV6_addr_rem_from_ASN')[0])
 
                 CGI_CLI.uprint("interface_data['interface_data']['IPV4_addr_loc'] = " + str(interface_data['interface_data'].get('IPV4_addr_loc')), tag = 'debug', no_printall = not CGI_CLI.printall)
                 CGI_CLI.uprint("interface_data['interface_data']['IPV6_addr_loc'] = " + str(interface_data['interface_data'].get('IPV6_addr_loc')), tag = 'debug', no_printall = not CGI_CLI.printall)
@@ -5700,41 +5700,35 @@ authentication {
 
 
                 if STATIC_ROUTING:
+                    ### def NEXT HOP FIRST PINGv4 COMMAND LIST ############
                     try: ping_source = interface_data['bgp']['IPV4 Local host']
                     except: ping_source = None
 
+                    if ping_source and interface_data['interface_data'].get('IPV4_bgp_neighbor'):
+                        interface_data['interface_statistics']['IPV4 next hop ping percent success from localhost'] = str(do_ping( \
+                            address = interface_data['interface_data'].get('IPV4_bgp_neighbor',str()), \
+                            mtu = 100, count = 5, ipv6 = None, \
+                            source = ping_source))
+
+                        interface_warning_data['interface_statistics']['IPV4 next hop ping percent success on intended ping size from localhost'] = str(do_ping( \
+                            address = interface_data['interface_data'].get('IPV4_bgp_neighbor',str()), \
+                            mtu = interface_warning_data['interface_data']['IPV4 intended ping size'], count = 5, ipv6 = None, \
+                            source = ping_source))
+
+                    ### def NEXT HOP FIRST PINGv6 COMMAND LIST ############
                     try: ping_source_v6 = interface_data['bgp']['IPV6 Local host']
                     except: ping_source_v6 = None
 
-                    if ping_source:
-                        ### def NEXT HOP FIRST PINGv4 COMMAND LIST ############
-                        if interface_data['interface_data'].get('IPV4_bgp_neighbor',str()):
-                            interface_data['interface_statistics']['IPV4 next hop ping percent success from localhost'] = str(do_ping( \
-                                address = interface_data['interface_data'].get('IPV4_bgp_neighbor',str()), \
-                                mtu = 100, count = 5, ipv6 = None, \
-                                source = ping_source))
+                    if ping_source_v6 and interface_data['interface_data'].get('IPV6_bgp_neighbor'):
+                        interface_warning_data['interface_statistics']['IPV6 next hop ping percent success from localhost'] = str(do_ping( \
+                            address = interface_data['interface_data'].get('IPV6_bgp_neighbor',str()), \
+                            mtu = 100, count = 5, ipv6 = True, \
+                            source = ping_source_v6))
 
-                            interface_warning_data['interface_statistics']['IPV4 next hop ping percent success on intended ping size from localhost'] = str(do_ping( \
-                                address = interface_data['interface_data'].get('IPV4_bgp_neighbor',str()), \
-                                mtu = interface_warning_data['interface_data']['IPV4 intended ping size'], count = 5, ipv6 = None, \
-                                source = ping_source))
-
-                        ### def NEXT HOP FIRST PINGv6 COMMAND LIST ############
-                        if ping_source_v6 and USE_IPV6:
-                            try: ping_source_v6 = interface_data['bgp']['IPV6 Local host']
-                            except: ping_source_v6 = None
-
-                            if ping_source_v6:
-                                if interface_data['interface_data'].get('IPV6_bgp_neighbor',str()):
-                                    interface_warning_data['interface_statistics']['IPV6 next hop ping percent success from localhost'] = str(do_ping( \
-                                        address = interface_data['interface_data'].get('IPV6_bgp_neighbor',str()), \
-                                        mtu = 100, count = 5, ipv6 = True, \
-                                        source = ping_source_v6))
-
-                                    interface_warning_data['interface_statistics']['IPV6 next hop ping percent success on intended ping size from localhost'] = str(do_ping( \
-                                        address = interface_data['interface_data'].get('IPV6_bgp_neighbor',str()), \
-                                        mtu = interface_warning_data['interface_data']['IPV6 intended ping size'], count = 5, ipv6 = True, \
-                                        source = ping_source_v6))
+                        interface_warning_data['interface_statistics']['IPV6 next hop ping percent success on intended ping size from localhost'] = str(do_ping( \
+                            address = interface_data['interface_data'].get('IPV6_bgp_neighbor',str()), \
+                            mtu = interface_warning_data['interface_data']['IPV6 intended ping size'], count = 5, ipv6 = True, \
+                            source = ping_source_v6))
 
 
                 ### def FIRST PINGv4 COMMAND LIST #############################
