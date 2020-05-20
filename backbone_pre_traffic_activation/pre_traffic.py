@@ -5082,7 +5082,9 @@ authentication {
                         if USE_IPV6 and interface_data['bgp'].get('IPV6 use neighbor-group'):
 
                             if STATIC_ROUTING:
-                                interface_data['bgp']['IPV6 ebgp-multihop 3'] = True if 'ebgp-multihop 3' in collect3_if_config_rcmd_outputs[3] else str()
+                                try: interface_data['bgp']['IPV6 ebgp-multihop'] = collect3_if_config_rcmd_outputs[0].split('ebgp-multihop ')[1].split()[0]
+                                except: interface_data['bgp']['IPV6 ebgp-multihop'] = str()
+
 
                             interface_warning_data['bgp'] = collections.OrderedDict()
                             interface_warning_data['bgp']['IPV6 address-family'] = []
@@ -6109,6 +6111,7 @@ authentication {
 
                 if STATIC_ROUTING:
                     check_interface_data_content("['bgp']['IPV4 ebgp-multihop']", higher_than = 2)
+                    check_interface_data_content("['bgp']['IPV6 ebgp-multihop']", higher_than = 2, ignore_data_existence = True)
                     check_interface_data_content("['interface_statistics']['IPV4 next hop ping percent success from localhost']", '100')
 
                     if USE_IPV6:
