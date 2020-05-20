@@ -5565,7 +5565,7 @@ authentication {
                     ###########################################################
                     ### show run router static | i <bgp-neighbor>/32 <!interface-id!> <!ipv4-addr-rem!> tag 2
                     ### show run router static | i IPV4_addr_rem_from_ASN/32 interface_id IPV4_addr_rem_from_DESCRIPTION tag 2
-                    if interface_data['interface_data'].get('IPV4_bgp_neighbor') and interface_data['interface_data'].get('IPV4_addr_rem'):
+                    if STATIC_ROUTING and interface_data['interface_data'].get('IPV4_bgp_neighbor') and interface_data['interface_data'].get('IPV4_addr_rem'):
                         collect7_if_data_rcmds = {
                             'cisco_ios':[
                              ],
@@ -5602,7 +5602,7 @@ authentication {
                     ###########################################################
                     ### def CUSTOMER_MODE - 8th DATA COLLECTION ###############
                     ###########################################################
-                    if interface_data['interface_data'].get('IPV6_bgp_neighbor') and interface_warning_data['interface_data'].get('IPV6_addr_rem'):
+                    if STATIC_ROUTING and interface_data['interface_data'].get('IPV6_bgp_neighbor') and interface_warning_data['interface_data'].get('IPV6_addr_rem'):
                         collect8_if_data_rcmds = {
                             'cisco_ios':[
                              ],
