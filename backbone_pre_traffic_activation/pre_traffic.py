@@ -3541,7 +3541,6 @@ authentication {
     CUSTOMER_MODE = False
     BB_MODE = False
     USE_IPV6 = False
-    STATIC_ROUTING = False
 
 
     ### GCI_CLI INIT ##########################################################
@@ -4027,7 +4026,8 @@ authentication {
             for interface_id in interface_list:
                 ### VARIABLES PER INTERFACE ###
                 USE_IPV6 = False
-                STATIC_ROUTING = False
+                IPV4_STATIC_ROUTING = False
+                IPV6_STATIC_ROUTING = False
                 check_interface_result_ok = True
                 check_warning_interface_result_ok = True
 
@@ -4090,11 +4090,13 @@ authentication {
                     'cisco_ios':['show bgp summary',
                                  'show bgp vpnv4 unicast summary',
                                  'show bgp ipv6 unicast summary',
+                                 'show running-config router static | include %s' % (interface_id),
                                 ],
 
                     'cisco_xr': ['show bgp summary',
                                  'show bgp vpnv4 unicast summary',
                                  'show bgp ipv6 unicast summary',
+                                 'show running-config router static | include %s' % (interface_id),
                                 ],
 
                     'juniper':  ['show bgp neighbor | match "Group:|Peer:" | except "NLRI|Restart"',
@@ -4142,6 +4144,24 @@ authentication {
                             previous_line = line
                         if len(interface_warning_data['interface_data']['IPV6_addr_rem_from_ASN']) == 0:
                             del interface_warning_data['interface_data']['IPV6_addr_rem_from_ASN']
+
+                    ### def ROUTER STATIC #####################################
+                    for line in rcmd_outputs[3].splitlines():
+                        try:    possible_bgp_peer = line.split()[0]
+                        except: possible_bgp_peer = None
+                        try:    possible_addr_rem = line.split()[2]
+                        except: possible_addr_rem = None
+                        if possible_bgp_peer and possible_addr_rem:
+                            if '.' in possible_bgp_peer and '/' in possible_bgp_peer and len(find_ipv4) == 1:
+                                interface_data['interface_data']['IPV4_bgp_peer_from_ROUTER_STATIC'] = copy.deepcopy(possible_bgp_peer.split('/'))[0]
+                                interface_data['interface_data']['IPV4_addr_rem_from_ROUTER_STATIC'] = copy.deepcopy(possible_addr_rem)
+                                IPV4_STATIC_ROUTING = True
+                                interface_data['interface_data']['IPV4_STATIC_ROUTING'] = True
+                            elif ':' in possible_bgp_peer and '/' in possible_bgp_peer:
+                                interface_data['interface_data']['IPV6_bgp_peer_from_ROUTER_STATIC'] = copy.deepcopy(possible_bgp_peer.split('/')[0])
+                                interface_data['interface_data']['IPV6_addr_rem_from_ROUTER_STATIC'] = copy.deepcopy(possible_addr_rem)
+                                IPV6_STATIC_ROUTING = True
+                                interface_data['interface_data']['IPV6_STATIC_ROUTING'] = True
 
                 elif RCMD.router_type == 'juniper':
                     try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("Local:")[1].splitlines()[0].split('AS')[1].strip()
@@ -4424,59 +4444,66 @@ authentication {
                 ###############################################################
                 ### def FIND REMOTE IP ADDRESES: THE OTHER IP IN NETWORK ######
                 ###############################################################
-                if CUSTOMER_MODE or PING_ONLY:
-                    if interface_warning_data['interface_data'].get('IPV4_addr_rem_calculated'):
-                        interface_data['interface_data']['IPV4_bgp_neighbor'] = copy.deepcopy(interface_warning_data['interface_data'].get('IPV4_addr_rem_calculated'))
+                if IPV4_STATIC_ROUTING:                
+                     interface_data['interface_data']['IPV4_bgp_neighbor'] = copy.deepcopy(interface_data['interface_data'].get('IPV4_bgp_peer_from_ROUTER_STATIC'))                                
+                     interface_data['interface_data']['IPV4_addr_rem'] = copy.deepcopy(interface_data['interface_data'].get('IPV4_addr_rem_from_ROUTER_STATIC'))
 
-                    if not interface_data['interface_data'].get('IPV4_bgp_neighbor') and interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'):
-                        interface_data['interface_data']['IPV4_bgp_neighbor'] = copy.deepcopy(interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'))
+                if IPV6_STATIC_ROUTING:               
+                     interface_data['interface_data']['IPV6_bgp_neighbor'] = copy.deepcopy(interface_data['interface_data'].get('IPV6_bgp_peer_from_ROUTER_STATIC'))
+                     interface_data['interface_data']['IPV6_addr_rem'] = copy.deepcopy(interface_data['interface_data'].get('IPV6_addr_rem_from_ROUTER_STATIC'))
 
-                    if interface_warning_data['interface_data'].get('IPV6_addr_rem_calculated'):
-                        interface_data['interface_data']['IPV6_bgp_neighbor'] = copy.deepcopy(interface_warning_data['interface_data'].get('IPV6_addr_rem_calculated'))
+                if not IPV4_STATIC_ROUTING and (CUSTOMER_MODE or PING_ONLY):
+                        if interface_warning_data['interface_data'].get('IPV4_addr_rem_calculated'):
+                            interface_data['interface_data']['IPV4_bgp_neighbor'] = copy.deepcopy(interface_warning_data['interface_data'].get('IPV4_addr_rem_calculated'))
+
+                        if not interface_data['interface_data'].get('IPV4_bgp_neighbor') and interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'):
+                            interface_data['interface_data']['IPV4_bgp_neighbor'] = copy.deepcopy(interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'))
+
+                if not IPV6_STATIC_ROUTING and (CUSTOMER_MODE or PING_ONLY):
+                        if interface_warning_data['interface_data'].get('IPV6_addr_rem_calculated'):
+                            interface_data['interface_data']['IPV6_bgp_neighbor'] = copy.deepcopy(interface_warning_data['interface_data'].get('IPV6_addr_rem_calculated'))
 
                 if not interface_data['interface_data'].get('IPV4_addr_rem') and interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'):
                     interface_data['interface_data']['IPV4_addr_rem'] = copy.deepcopy(interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'))
 
-                if CUSTOMER_MODE or PING_ONLY:
-                    if interface_data['interface_data'].get('IPV4_addr_rem'):
-                        interface_data['interface_data']['IPV4_bgp_neighbor'] = copy.deepcopy(interface_data['interface_data'].get('IPV4_addr_rem'))
 
-                    if interface_warning_data['interface_data'].get('IPV6_addr_rem_calculated'):
-                        interface_data['interface_data']['IPV6_bgp_neighbor'] = copy.deepcopy(interface_warning_data['interface_data'].get('IPV6_addr_rem_calculated'))
+                if not IPV4_STATIC_ROUTING and (CUSTOMER_MODE or PING_ONLY):
+                        if interface_data['interface_data'].get('IPV4_addr_rem'):
+                            interface_data['interface_data']['IPV4_bgp_neighbor'] = copy.deepcopy(interface_data['interface_data'].get('IPV4_addr_rem'))
 
-                if CUSTOMER_MODE or PING_ONLY:
-                    if len(interface_data['interface_data'].get('IPV4_addr_rem_from_ASN',[])) == 1:
+                if not IPV6_STATIC_ROUTING and (CUSTOMER_MODE or PING_ONLY):
+                        if interface_warning_data['interface_data'].get('IPV6_addr_rem_calculated'):
+                            interface_data['interface_data']['IPV6_bgp_neighbor'] = copy.deepcopy(interface_warning_data['interface_data'].get('IPV6_addr_rem_calculated'))
 
-                        ### STATIC_ROUTING ###
-                        if interface_data['interface_data'].get('IPV4_addr_rem_from_ASN')[0] != interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'):
-                            STATIC_ROUTING = True
-                            interface_data['interface_data']['STATIC_ROUTING'] = True
-                            interface_data['interface_data']['IPV4_bgp_neighbor'] = \
-                                copy.deepcopy(interface_data['interface_data'].get('IPV4_addr_rem_from_ASN')[0])
+                if not IPV4_STATIC_ROUTING and (CUSTOMER_MODE or PING_ONLY):
+                        if len(interface_data['interface_data'].get('IPV4_addr_rem_from_ASN',[])) == 1:
 
-                            if len(interface_warning_data['interface_data'].get('IPV6_addr_rem_from_ASN',[])) >= 1:
-                                interface_data['interface_data']['IPV6_bgp_neighbor'] = \
-                                    copy.deepcopy(interface_warning_data['interface_data'].get('IPV6_addr_rem_from_ASN')[0])
+                            ### def IPV4_STATIC_ROUTING ################################
+                            if interface_data['interface_data'].get('IPV4_addr_rem_from_ASN')[0] != interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'):
+                                interface_data['interface_data']['IPV4_bgp_neighbor'] = \
+                                    copy.deepcopy(interface_data['interface_data'].get('IPV4_addr_rem_from_ASN')[0])
 
-                    elif interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION') and \
-                        len(interface_data['interface_data'].get('IPV4_addr_rem_from_ASN',[])) > 1:
+                                if len(interface_warning_data['interface_data'].get('IPV6_addr_rem_from_ASN',[])) >= 1:
+                                    interface_data['interface_data']['IPV6_bgp_neighbor'] = \
+                                        copy.deepcopy(interface_warning_data['interface_data'].get('IPV6_addr_rem_from_ASN')[0])
 
-                        IPV4_addr_rem_from_ASN_is_in_DESCRIPTION = False
-                        for address in interface_data['interface_data'].get('IPV4_addr_rem_from_ASN',[]):
-                            if address == interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'):
-                                IPV4_addr_rem_from_ASN_is_in_DESCRIPTION = True
+                        elif interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION') and \
+                            len(interface_data['interface_data'].get('IPV4_addr_rem_from_ASN',[])) > 1:
 
-                        if IPV4_addr_rem_from_ASN_is_in_DESCRIPTION == True:
-                            pass
-                        else:
-                            STATIC_ROUTING = True
-                            interface_data['interface_data']['STATIC_ROUTING'] = True
-                            interface_data['interface_data']['IPV4_bgp_neighbor'] = \
-                                copy.deepcopy(interface_data['interface_data'].get('IPV4_addr_rem_from_ASN')[0])
+                            IPV4_addr_rem_from_ASN_is_in_DESCRIPTION = False
+                            for address in interface_data['interface_data'].get('IPV4_addr_rem_from_ASN',[]):
+                                if address == interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'):
+                                    IPV4_addr_rem_from_ASN_is_in_DESCRIPTION = True
 
-                            if len(interface_warning_data['interface_data'].get('IPV6_addr_rem_from_ASN',[])) >= 1:
-                                interface_data['interface_data']['IPV6_bgp_neighbor'] = \
-                                    copy.deepcopy(interface_warning_data['interface_data'].get('IPV6_addr_rem_from_ASN')[0])
+                            if IPV4_addr_rem_from_ASN_is_in_DESCRIPTION == True:
+                                pass
+                            else:
+                                interface_data['interface_data']['IPV4_bgp_neighbor'] = \
+                                    copy.deepcopy(interface_data['interface_data'].get('IPV4_addr_rem_from_ASN')[0])
+
+                                if len(interface_warning_data['interface_data'].get('IPV6_addr_rem_from_ASN',[])) >= 1:
+                                    interface_data['interface_data']['IPV6_bgp_neighbor'] = \
+                                        copy.deepcopy(interface_warning_data['interface_data'].get('IPV6_addr_rem_from_ASN')[0])
 
                 CGI_CLI.uprint("interface_data['interface_data']['IPV4_addr_loc'] = " + str(interface_data['interface_data'].get('IPV4_addr_loc')), tag = 'debug', no_printall = not CGI_CLI.printall)
                 CGI_CLI.uprint("interface_data['interface_data']['IPV6_addr_loc'] = " + str(interface_data['interface_data'].get('IPV6_addr_loc')), tag = 'debug', no_printall = not CGI_CLI.printall)
@@ -5041,7 +5068,7 @@ authentication {
                     if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
                         if interface_data['bgp'].get('IPV4 use_neighbor-group'):
 
-                            if STATIC_ROUTING:
+                            if IPV4_STATIC_ROUTING:
                                 try: interface_data['bgp']['IPV4 ebgp-multihop'] = collect3_if_config_rcmd_outputs[0].split('ebgp-multihop ')[1].split()[0]
                                 except: interface_data['bgp']['IPV4 ebgp-multihop'] = str()
 
@@ -5081,7 +5108,7 @@ authentication {
 
                         if USE_IPV6 and interface_data['bgp'].get('IPV6 use neighbor-group'):
 
-                            if STATIC_ROUTING:
+                            if IPV4_STATIC_ROUTING:
                                 try: interface_data['bgp']['IPV6 ebgp-multihop'] = collect3_if_config_rcmd_outputs[0].split('ebgp-multihop ')[1].split()[0]
                                 except: interface_data['bgp']['IPV6 ebgp-multihop'] = str()
 
@@ -5573,7 +5600,7 @@ authentication {
                     ###########################################################
                     ### show run router static | i <bgp-neighbor>/32 <!interface-id!> <!ipv4-addr-rem!> tag 2
                     ### show run router static | i IPV4_addr_rem_from_ASN/32 interface_id IPV4_addr_rem_from_DESCRIPTION tag 2
-                    if STATIC_ROUTING and interface_data['interface_data'].get('IPV4_bgp_neighbor') and interface_data['interface_data'].get('IPV4_addr_rem'):
+                    if IPV4_STATIC_ROUTING and interface_data['interface_data'].get('IPV4_bgp_neighbor') and interface_data['interface_data'].get('IPV4_addr_rem'):
                         collect7_if_data_rcmds = {
                             'cisco_ios':[
                              ],
@@ -5610,7 +5637,7 @@ authentication {
                     ###########################################################
                     ### def CUSTOMER_MODE - 8th DATA COLLECTION ###############
                     ###########################################################
-                    if STATIC_ROUTING and interface_data['interface_data'].get('IPV6_bgp_neighbor') and interface_warning_data['interface_data'].get('IPV6_addr_rem'):
+                    if IPV4_STATIC_ROUTING and interface_data['interface_data'].get('IPV6_bgp_neighbor') and interface_warning_data['interface_data'].get('IPV6_addr_rem'):
                         collect8_if_data_rcmds = {
                             'cisco_ios':[
                              ],
@@ -5702,7 +5729,7 @@ authentication {
                     CGI_CLI.uprint('\nIPV6 PING SIZE CALCULATION WARNING!', color = 'orange', timestamp = 'no')
 
 
-                if STATIC_ROUTING:
+                if IPV4_STATIC_ROUTING:
                     ### def NEXT HOP FIRST PINGv4 COMMAND LIST ############
                     try: ping_source = interface_data['bgp']['IPV4 Local host']
                     except: ping_source = None
@@ -5775,7 +5802,7 @@ authentication {
                                 source = interface_data['interface_data'].get('IPV6_addr_loc',str()))
                             interface_data['interface_statistics']['IPV6 max working ping size'] = str(max_pingsize_ipv6)
 
-                    if STATIC_ROUTING:
+                    if IPV4_STATIC_ROUTING:
                         try: ping_source = interface_data['bgp']['IPV4 Local host']
                         except: ping_source = None
 
@@ -5815,7 +5842,7 @@ authentication {
                                 source = interface_data['interface_data'].get('IPV6_addr_loc',str())))
 
 
-                if STATIC_ROUTING:
+                if IPV4_STATIC_ROUTING:
                     try: ping_source = interface_data['bgp']['IPV4 Local host']
                     except: ping_source = None
 
@@ -6109,7 +6136,7 @@ authentication {
                 if RCMD.router_type == 'juniper':
                     CGI_CLI.uprint('NOTE: Juniper control plane protection could drop some of longer ping packets, so ping success could be less than 100%.', color = 'blue')
 
-                if STATIC_ROUTING:
+                if IPV4_STATIC_ROUTING:
                     check_interface_data_content("['bgp']['IPV4 ebgp-multihop']", higher_than = 2)
                     check_interface_data_content("['bgp']['IPV6 ebgp-multihop']", higher_than = 2, ignore_data_existence = True)
                     check_interface_data_content("['interface_statistics']['IPV4 next hop ping percent success from localhost']", '100')
@@ -6124,7 +6151,7 @@ authentication {
 
 
                 if BB_MODE or CUSTOMER_MODE:
-                    if STATIC_ROUTING:
+                    if IPV4_STATIC_ROUTING:
                         if RCMD.router_type == 'juniper':
                             check_interface_data_content("['interface_statistics']['IPV4 next hop ping percent success on intended ping size from localhost']", higher_than = 0, warning = True, ignore_data_existence = True)
                         else:
@@ -6149,7 +6176,7 @@ authentication {
 
 
                 if PING_ONLY:
-                    if STATIC_ROUTING:
+                    if IPV4_STATIC_ROUTING:
                         if RCMD.router_type == 'juniper':
                             check_interface_data_content("['interface_statistics']['IPV4 next hop %spings percent success on max working ping size from localhost']" % (ping_counts), higher_than = 0)
                         else:
@@ -6174,7 +6201,7 @@ authentication {
 
 
                 if ping_counts and int(ping_counts) > 0:
-                    if STATIC_ROUTING:
+                    if IPV4_STATIC_ROUTING:
                         if '100' in interface_warning_data['interface_statistics'].get('IPV4 next hop ping percent success on intended ping size from localhost',str()):
                             check_interface_data_content("['interface_statistics']['IPV4 next hop %spings percent success on intended ping size from localhost']" % (ping_counts), '100', warning = True, ignore_data_existence = True)
                         else:
