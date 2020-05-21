@@ -4212,10 +4212,14 @@ authentication {
                 collect_if_data_rcmds = {
                     'cisco_ios':[
                         'show run interface %s' % (interface_id),
+                        'show bgp neighbor %s' % (interface_data['interface_data'].get('IPV4_bgp_neighbor')) if interface_data['interface_data'].get('IPV4_bgp_neighbor') else str(),
+                        'show bgp neighbor %s' % (interface_data['interface_data'].get('IPV6_bgp_neighbor')) if interface_data['interface_data'].get('IPV6_bgp_neighbor') else str(),
                     ],
 
                     'cisco_xr':[
                         'show run interface %s' % (interface_id),
+                        'show bgp neighbor %s' % (interface_data['interface_data'].get('IPV4_bgp_neighbor')) if interface_data['interface_data'].get('IPV4_bgp_neighbor') else str(),
+                        'show bgp neighbor %s' % (interface_data['interface_data'].get('IPV6_bgp_neighbor')) if interface_data['interface_data'].get('IPV6_bgp_neighbor') else str(),
                     ],
 
                     'juniper': [
@@ -4231,6 +4235,8 @@ authentication {
                 collect_if_config_rcmd_outputs = RCMD.run_commands(collect_if_data_rcmds, \
                     autoconfirm_mode = True, \
                     printall = printall)
+
+                interface_data['bgp'] = collections.OrderedDict()
 
                 if BB_MODE:
                     try: interface_data['interface_data']['name_of_remote_device_from_description'] = collect_if_config_rcmd_outputs[0].upper().split('DESCRIPTION')[1].splitlines()[0].split('FROM')[0].split()[-1].strip().replace('"','')
@@ -4299,6 +4305,12 @@ authentication {
 
                             try: interface_data['interface_data']['IPV6_access-group'] = collect_if_config_rcmd_outputs[0].split('ipv6 access-group ')[1].splitlines()[0].strip()
                             except: interface_data['interface_data']['IPV6_access-group'] = str()
+
+                    try: interface_data['bgp']['IPV4 Local host'] = collect_if_config_rcmd_outputs[1].split('Local host:')[1].split()[0].replace(',','')
+                    except: pass
+
+                    try: interface_data['bgp']['IPV6 Local host'] = collect_if_config_rcmd_outputs[2].split('Local host:')[1].split()[0].replace(',','')
+                    except: pass
 
                 elif RCMD.router_type == 'juniper':
                     try: interface_data['interface_data']['LAG_member'] = 'yes' if 'gigether-options ' in collect_if_config_rcmd_outputs[0] else 'no'
@@ -4444,13 +4456,13 @@ authentication {
                 ###############################################################
                 ### def FIND REMOTE IP ADDRESES: THE OTHER IP IN NETWORK ######
                 ###############################################################
-                if IPV4_STATIC_ROUTING:                
-                     interface_data['interface_data']['IPV4_bgp_neighbor'] = copy.deepcopy(interface_data['interface_data'].get('IPV4_bgp_peer_from_ROUTER_STATIC'))                                
+                if IPV4_STATIC_ROUTING:
+                     interface_data['interface_data']['IPV4_bgp_neighbor'] = copy.deepcopy(interface_data['interface_data'].get('IPV4_bgp_peer_from_ROUTER_STATIC'))
                      interface_data['interface_data']['IPV4_addr_rem'] = copy.deepcopy(interface_data['interface_data'].get('IPV4_addr_rem_from_ROUTER_STATIC'))
 
-                if IPV6_STATIC_ROUTING:               
+                if IPV6_STATIC_ROUTING:
                      interface_data['interface_data']['IPV6_bgp_neighbor'] = copy.deepcopy(interface_data['interface_data'].get('IPV6_bgp_peer_from_ROUTER_STATIC'))
-                     interface_data['interface_data']['IPV6_addr_rem'] = copy.deepcopy(interface_data['interface_data'].get('IPV6_addr_rem_from_ROUTER_STATIC'))
+                     interface_warning_data['interface_data']['IPV6_addr_rem'] = copy.deepcopy(interface_data['interface_data'].get('IPV6_addr_rem_from_ROUTER_STATIC'))
 
                 if not IPV4_STATIC_ROUTING and (CUSTOMER_MODE or PING_ONLY):
                         if interface_warning_data['interface_data'].get('IPV4_addr_rem_calculated'):
@@ -4847,7 +4859,6 @@ authentication {
                 ###############################################################
                 elif CUSTOMER_MODE:
                     interface_data['isis'] = collections.OrderedDict()
-                    interface_data['bgp'] = collections.OrderedDict()
 
                     collect_if_data_rcmds = {
                         'cisco_ios':[
@@ -5108,7 +5119,7 @@ authentication {
 
                         if USE_IPV6 and interface_data['bgp'].get('IPV6 use neighbor-group'):
 
-                            if IPV4_STATIC_ROUTING:
+                            if IPV6_STATIC_ROUTING:
                                 try: interface_data['bgp']['IPV6 ebgp-multihop'] = collect3_if_config_rcmd_outputs[0].split('ebgp-multihop ')[1].split()[0]
                                 except: interface_data['bgp']['IPV6 ebgp-multihop'] = str()
 
@@ -5370,9 +5381,6 @@ authentication {
                         try: interface_data['bgp']['IPV4 No of prefixes Advertised'] = collect5_if_config_rcmd_outputs[1].split('No of prefixes Advertised:')[1].split()[0]
                         except: interface_data['bgp']['IPV4 No of prefixes Advertised'] = str()
 
-                        try: interface_data['bgp']['IPV4 Local host'] = collect5_if_config_rcmd_outputs[0].split('Local host:')[1].split()[0].replace(',','')
-                        except: pass
-
                     elif RCMD.router_type == 'juniper':
                         ### BUG - MORE GROUPS CAN BE DISPLAYED !!! ###
                         try: interface_data['bgp']['IPV4 bgp group Export'] = collect5_if_config_rcmd_outputs[0].split('Name: %s ' % (interface_data['bgp']['IPV4 neighbor-group']))[1].split('Export: [ ')[1].splitlines()[0].replace(']','').strip().split()
@@ -5456,7 +5464,7 @@ authentication {
                              ],
 
                             'cisco_xr':[
-                                'show bgp neighbor %s' % (interface_data['interface_data'].get('IPV6_bgp_neighbor')) if interface_warning_data['interface_data'].get('IPV6_bgp_neighbor') else str(),
+                                'show bgp neighbor %s' % (interface_data['interface_data'].get('IPV6_bgp_neighbor')) if interface_data['interface_data'].get('IPV6_bgp_neighbor') else str(),
                                 'show bgp neighbor %s advertised-count' % (interface_data['interface_data'].get('IPV6_bgp_neighbor')) if interface_data['interface_data'].get('IPV6_bgp_neighbor') else str(),
                              ],
 
@@ -5493,9 +5501,6 @@ authentication {
 
                             try: interface_data['bgp']['IPV6 No of prefixes Advertised'] = collect6_if_config_rcmd_outputs[1].split('No of prefixes Advertised:')[1].split()[0]
                             except: interface_data['bgp']['IPV6 No of prefixes Advertised'] = str()
-
-                            try: interface_data['bgp']['IPV6 Local host'] = collect6_if_config_rcmd_outputs[1].split('Local host:')[1].split()[0].replace(',','')
-                            except: pass
 
                         elif RCMD.router_type == 'juniper':
                             try: interface_data['bgp']['IPV6 bgp group Name'] = collect6_if_config_rcmd_outputs[0].split('Name: ')[1].split()[0]
@@ -5637,7 +5642,7 @@ authentication {
                     ###########################################################
                     ### def CUSTOMER_MODE - 8th DATA COLLECTION ###############
                     ###########################################################
-                    if IPV4_STATIC_ROUTING and interface_data['interface_data'].get('IPV6_bgp_neighbor') and interface_warning_data['interface_data'].get('IPV6_addr_rem'):
+                    if IPV6_STATIC_ROUTING and interface_data['interface_data'].get('IPV6_bgp_neighbor') and interface_warning_data['interface_data'].get('IPV6_addr_rem'):
                         collect8_if_data_rcmds = {
                             'cisco_ios':[
                              ],
@@ -5745,6 +5750,7 @@ authentication {
                             mtu = interface_warning_data['interface_data']['IPV4 intended ping size'], count = 5, ipv6 = None, \
                             source = ping_source))
 
+                if IPV6_STATIC_ROUTING:
                     ### def NEXT HOP FIRST PINGv6 COMMAND LIST ############
                     try: ping_source_v6 = interface_data['bgp']['IPV6 Local host']
                     except: ping_source_v6 = None
@@ -5806,9 +5812,6 @@ authentication {
                         try: ping_source = interface_data['bgp']['IPV4 Local host']
                         except: ping_source = None
 
-                        try: ping_source_v6 = interface_data['bgp']['IPV6 Local host']
-                        except: ping_source_v6 = None
-
                         if ping_source:
                             ### DO "THOUSANDS" NEXT HOP PING ON MAX WORKING PING SIZE #
                             if float(interface_data['interface_statistics'].get('IPV4 max working ping size', 0)) > 0:
@@ -5817,6 +5820,10 @@ authentication {
                                         mtu = interface_data['interface_data'].get('IPV4 max working ping size'), \
                                         count = ping_counts, ipv6 = None,
                                         source = ping_source))
+
+                    if IPV6_STATIC_ROUTING:
+                        try: ping_source_v6 = interface_data['bgp']['IPV6 Local host']
+                        except: ping_source_v6 = None
 
                         if ping_source_v6:
                             if float(interface_data['interface_statistics'].get('IPV6 max working ping size', 0)) > 0:
@@ -5846,9 +5853,6 @@ authentication {
                     try: ping_source = interface_data['bgp']['IPV4 Local host']
                     except: ping_source = None
 
-                    try: ping_source_v6 = interface_data['bgp']['IPV6 Local host']
-                    except: ping_source_v6 = None
-
                     if ping_source:
                         ### "THOUSANDS" NEXT HOP PINGs TEST ####################################
                         if not interface_data['interface_statistics'].get('IPV4 next hop %spings percent success on max working ping size from localhost' % (ping_counts)) \
@@ -5871,26 +5875,30 @@ authentication {
                                             mtu = 100, count = ping_counts, ipv6 = None, \
                                             source = ping_source))
 
-                        if ping_source_v6:
-                            if USE_IPV6 \
-                                and not interface_warning_data['interface_statistics'].get('IPV6 next hop %spings percent success on max working ping size from localhost' % (ping_counts)):
-                                if '100' in interface_warning_data['interface_statistics'].get('IPV6 ping percent success on intended ping size from localhost',str()):
-                                    ### def NEXT HOP "THOUSANDS" PINGv6 COMMAND LIST ###################
-                                    if interface_data['interface_data'].get('IPV6_bgp_neighbor',str()):
+                if IPV6_STATIC_ROUTING:
+                    try: ping_source_v6 = interface_data['bgp']['IPV6 Local host']
+                    except: ping_source_v6 = None
 
-                                        interface_warning_data['interface_statistics']['IPV6 next hop %spings percent success on intended ping size from localhost' % (ping_counts)] = \
-                                            str(do_ping(address = interface_data['interface_data'].get('IPV6_bgp_neighbor',str()), \
-                                                mtu = interface_warning_data['interface_data']['IPV6 intended ping size'], count = ping_counts, ipv6 = True,
-                                                source = ping_source_v6))
+                    if ping_source_v6:
+                        if USE_IPV6 \
+                            and not interface_warning_data['interface_statistics'].get('IPV6 next hop %spings percent success on max working ping size from localhost' % (ping_counts)):
+                            if '100' in interface_warning_data['interface_statistics'].get('IPV6 ping percent success on intended ping size from localhost',str()):
+                                ### def NEXT HOP "THOUSANDS" PINGv6 COMMAND LIST ###################
+                                if interface_data['interface_data'].get('IPV6_bgp_neighbor',str()):
 
-                                elif '100' in interface_warning_data['interface_statistics'].get('IPV6 next hopping percent success from localhost',str()):
-                                    ### def NEXT HOP "THOUSANDS" PINGv6 COMMAND LIST ###################
-                                    if interface_data['interface_data'].get('IPV6_bgp_neighbor',str()):
+                                    interface_warning_data['interface_statistics']['IPV6 next hop %spings percent success on intended ping size from localhost' % (ping_counts)] = \
+                                        str(do_ping(address = interface_data['interface_data'].get('IPV6_bgp_neighbor',str()), \
+                                            mtu = interface_warning_data['interface_data']['IPV6 intended ping size'], count = ping_counts, ipv6 = True,
+                                            source = ping_source_v6))
 
-                                        interface_warning_data['interface_statistics']['IPV6 next hop %spings percent success from localhost' % (ping_counts)] = \
-                                            str(do_ping(address = interface_data['interface_data'].get('IPV6_bgp_neighbor',str()), \
-                                                mtu = 100, count = ping_counts, ipv6 = True, \
-                                                source = ping_source_v6))
+                            elif '100' in interface_warning_data['interface_statistics'].get('IPV6 next hopping percent success from localhost',str()):
+                                ### def NEXT HOP "THOUSANDS" PINGv6 COMMAND LIST ###################
+                                if interface_data['interface_data'].get('IPV6_bgp_neighbor',str()):
+
+                                    interface_warning_data['interface_statistics']['IPV6 next hop %spings percent success from localhost' % (ping_counts)] = \
+                                        str(do_ping(address = interface_data['interface_data'].get('IPV6_bgp_neighbor',str()), \
+                                            mtu = 100, count = ping_counts, ipv6 = True, \
+                                            source = ping_source_v6))
 
 
                 ### "THOUSANDS" PINGs TEST ####################################
@@ -6138,11 +6146,11 @@ authentication {
 
                 if IPV4_STATIC_ROUTING:
                     check_interface_data_content("['bgp']['IPV4 ebgp-multihop']", higher_than = 2)
-                    check_interface_data_content("['bgp']['IPV6 ebgp-multihop']", higher_than = 2, ignore_data_existence = True)
                     check_interface_data_content("['interface_statistics']['IPV4 next hop ping percent success from localhost']", '100')
 
-                    if USE_IPV6:
-                        check_interface_data_content("['interface_statistics']['IPV6 next hop ping percent success from localhost']", '100', warning = True, ignore_data_existence = True)
+                if IPV6_STATIC_ROUTING:
+                    check_interface_data_content("['bgp']['IPV6 ebgp-multihop']", higher_than = 2, ignore_data_existence = True)
+                    check_interface_data_content("['interface_statistics']['IPV6 next hop ping percent success from localhost']", '100', warning = True, ignore_data_existence = True)
 
                 check_interface_data_content("['interface_statistics']['IPV4 ping percent success']", '100')
 
@@ -6157,11 +6165,11 @@ authentication {
                         else:
                             check_interface_data_content("['interface_statistics']['IPV4 next hop ping percent success on intended ping size from localhost']", '100', warning = True, ignore_data_existence = True)
 
-                        if USE_IPV6:
-                            if RCMD.router_type == 'juniper':
-                                check_interface_data_content("['interface_statistics']['IPV6 next hop ping percent success on intended ping size from localhost']", higher_than = 0, warning = True, ignore_data_existence = True)
-                            else:
-                                check_interface_data_content("['interface_statistics']['IPV6 next hop ping percent success on intended ping size from localhost']", '100', warning = True, ignore_data_existence = True)
+                    if IPV6_STATIC_ROUTING:
+                        if RCMD.router_type == 'juniper':
+                            check_interface_data_content("['interface_statistics']['IPV6 next hop ping percent success on intended ping size from localhost']", higher_than = 0, warning = True, ignore_data_existence = True)
+                        else:
+                            check_interface_data_content("['interface_statistics']['IPV6 next hop ping percent success on intended ping size from localhost']", '100', warning = True, ignore_data_existence = True)
 
                     if RCMD.router_type == 'juniper':
                         check_interface_data_content("['interface_statistics']['IPV4 ping percent success on intended ping size']", higher_than = 0, warning = True, ignore_data_existence = True)
@@ -6182,11 +6190,11 @@ authentication {
                         else:
                             check_interface_data_content("['interface_statistics']['IPV4 next hop %spings percent success on max working ping size from localhost']" % (ping_counts), '100')
 
-                        if USE_IPV6:
-                            if RCMD.router_type == 'juniper':
-                                check_interface_data_content("['interface_statistics']['IPV6 next hop %spings percent success on max working ping size from localhost']" % (ping_counts), higher_than = 0, warning = True)
-                            else:
-                                check_interface_data_content("['interface_statistics']['IPV6 next hop %spings percent success on max working ping size from localhost']" % (ping_counts), '100', warning = True)
+                    if IPV6_STATIC_ROUTING:
+                        if RCMD.router_type == 'juniper':
+                            check_interface_data_content("['interface_statistics']['IPV6 next hop %spings percent success on max working ping size from localhost']" % (ping_counts), higher_than = 0, warning = True)
+                        else:
+                            check_interface_data_content("['interface_statistics']['IPV6 next hop %spings percent success on max working ping size from localhost']" % (ping_counts), '100', warning = True)
 
                     if RCMD.router_type == 'juniper':
                         check_interface_data_content("['interface_statistics']['IPV4 %spings percent success on max working ping size']" % (ping_counts), higher_than = 0)
@@ -6207,11 +6215,11 @@ authentication {
                         else:
                             check_interface_data_content("['interface_statistics']['IPV4 next hop %spings percent success from localhost']" % (ping_counts), '100', ignore_data_existence = True)
 
-                        if USE_IPV6:
-                            if '100' in interface_warning_data['interface_statistics'].get('IPV6 next hop ping percent success on intended ping size from localhost',str()):
-                                check_interface_data_content("['interface_statistics']['IPV6 next hop %spings percent success on intended ping size from localhost']" % (ping_counts), '100', warning = True, ignore_data_existence = True)
-                            else:
-                                check_interface_data_content("['interface_statistics']['IPV6 next hop %spings percent success from localhost']" % (ping_counts), '100', warning = True, ignore_data_existence = True)
+                    if IPV6_STATIC_ROUTING:
+                        if '100' in interface_warning_data['interface_statistics'].get('IPV6 next hop ping percent success on intended ping size from localhost',str()):
+                            check_interface_data_content("['interface_statistics']['IPV6 next hop %spings percent success on intended ping size from localhost']" % (ping_counts), '100', warning = True, ignore_data_existence = True)
+                        else:
+                            check_interface_data_content("['interface_statistics']['IPV6 next hop %spings percent success from localhost']" % (ping_counts), '100', warning = True, ignore_data_existence = True)
 
                     if '100' in interface_warning_data['interface_statistics'].get('IPV4 ping percent success on intended ping size',str()):
                         check_interface_data_content("['interface_statistics']['IPV4 %spings percent success on intended ping size']" % (ping_counts), '100', warning = True, ignore_data_existence = True)
