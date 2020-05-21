@@ -4215,14 +4215,10 @@ authentication {
                 collect_if_data_rcmds = {
                     'cisco_ios':[
                         'show run interface %s' % (interface_id),
-                        'show bgp neighbor %s' % (interface_data['interface_data'].get('IPV4_bgp_neighbor')) if interface_data['interface_data'].get('IPV4_bgp_neighbor') else str(),
-                        'show bgp neighbor %s' % (interface_data['interface_data'].get('IPV6_bgp_neighbor')) if interface_data['interface_data'].get('IPV6_bgp_neighbor') else str(),
                     ],
 
                     'cisco_xr':[
                         'show run interface %s' % (interface_id),
-                        'show bgp neighbor %s' % (interface_data['interface_data'].get('IPV4_bgp_neighbor')) if interface_data['interface_data'].get('IPV4_bgp_neighbor') else str(),
-                        'show bgp neighbor %s' % (interface_data['interface_data'].get('IPV6_bgp_neighbor')) if interface_data['interface_data'].get('IPV6_bgp_neighbor') else str(),
                     ],
 
                     'juniper': [
@@ -4239,20 +4235,18 @@ authentication {
                     autoconfirm_mode = True, \
                     printall = printall)
 
-                interface_data['bgp'] = collections.OrderedDict()
-
                 if BB_MODE:
-                    try: interface_data['interface_data']['name_of_remote_device_from_description'] = collect_if_config_rcmd_outputs[0].upper().split('DESCRIPTION')[1].splitlines()[0].split('FROM')[0].split()[-1].strip().replace('"','')
+                    try: interface_data['interface_data']['name_of_remote_device_from_description'] = copy.deepcopy(collect_if_config_rcmd_outputs[0].upper().split('DESCRIPTION')[1].splitlines()[0].split('FROM')[0].split()[-1].strip().replace('"',''))
                     except: interface_data['interface_data']['name_of_remote_device_from_description'] = str()
 
                 if 'PE' in interface_data['interface_data'].get('name_of_remote_device_from_description',str()).upper() or 'PE' in device.upper():
                     IMN_INTERFACE = True
 
-                try: interface_data['interface_data']['IPV4_addr_rem_from_DESCRIPTION'] = collect_if_config_rcmd_outputs[0].split('description')[1].splitlines()[0].split('@')[1].split()[0]
+                try: interface_data['interface_data']['IPV4_addr_rem_from_DESCRIPTION'] = copy.deepcopy(collect_if_config_rcmd_outputs[0].split('description')[1].splitlines()[0].split('@')[1].split()[0])
                 except: pass
 
-                try: interface_warning_data['interface_data']['bandwidth'] = collect_if_config_rcmd_outputs[0].\
-                         split('bandwidth ')[1].splitlines()[0].strip().replace(';','')
+                try: interface_warning_data['interface_data']['bandwidth'] = copy.deepcopy(collect_if_config_rcmd_outputs[0].\
+                         split('bandwidth ')[1].splitlines()[0].strip().replace(';',''))
                 except: interface_warning_data['interface_data']['bandwidth'] = str()
 
                 try: interface_data['interface_data']['fib_number(s)'] = ','.join(get_fiblist(collect_if_config_rcmd_outputs[0].split('description')[1].splitlines()[0]))
@@ -4308,12 +4302,6 @@ authentication {
 
                             try: interface_data['interface_data']['IPV6_access-group'] = collect_if_config_rcmd_outputs[0].split('ipv6 access-group ')[1].splitlines()[0].strip()
                             except: interface_data['interface_data']['IPV6_access-group'] = str()
-
-                    try: interface_data['bgp']['IPV4 Local host'] = collect_if_config_rcmd_outputs[1].split('Local host:')[1].split()[0].replace(',','')
-                    except: pass
-
-                    try: interface_data['bgp']['IPV6 Local host'] = collect_if_config_rcmd_outputs[2].split('Local host:')[1].split()[0].replace(',','')
-                    except: pass
 
                 elif RCMD.router_type == 'juniper':
                     try: interface_data['interface_data']['LAG_member'] = 'yes' if 'gigether-options ' in collect_if_config_rcmd_outputs[0] else 'no'
@@ -4528,6 +4516,38 @@ authentication {
                 CGI_CLI.uprint("interface_data['interface_data']['IPV4_bgp_neighbor'] = " + str(interface_data['interface_data'].get('IPV4_bgp_neighbor')), tag = 'debug', no_printall = not CGI_CLI.printall)
                 CGI_CLI.uprint("interface_data['interface_data']['IPV6_bgp_neighbor'] = " + str(interface_data['interface_data'].get('IPV6_bgp_neighbor')), tag = 'debug', no_printall = not CGI_CLI.printall)
 
+
+                ### def ALL MODES LOCALHOST ###################################
+                collect0_if_data_rcmds = {
+                    'cisco_ios':[
+                        'show bgp neighbor %s' % (interface_data['interface_data'].get('IPV4_bgp_neighbor')) if interface_data['interface_data'].get('IPV4_bgp_neighbor') else str(),
+                        'show bgp neighbor %s' % (interface_data['interface_data'].get('IPV6_bgp_neighbor')) if interface_data['interface_data'].get('IPV6_bgp_neighbor') else str(),
+                    ],
+
+                    'cisco_xr':[
+                        'show bgp neighbor %s' % (interface_data['interface_data'].get('IPV4_bgp_neighbor')) if interface_data['interface_data'].get('IPV4_bgp_neighbor') else str(),
+                        'show bgp neighbor %s' % (interface_data['interface_data'].get('IPV6_bgp_neighbor')) if interface_data['interface_data'].get('IPV6_bgp_neighbor') else str(),
+                    ],
+
+                    'juniper': [
+                    ],
+
+                    'huawei': [
+                    ]
+                }
+
+                collect0_if_config_rcmd_outputs = RCMD.run_commands(collect0_if_data_rcmds, \
+                    autoconfirm_mode = True, \
+                    printall = printall)
+
+                interface_data['bgp'] = collections.OrderedDict()
+
+                if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
+                    try: interface_data['bgp']['IPV4 Local host'] = copy.deepcopy(collect0_if_config_rcmd_outputs[0].split('Local host:')[1].split()[0].replace(',',''))
+                    except: pass
+
+                    try: interface_data['bgp']['IPV6 Local host'] = copy.deepcopy(collect0_if_config_rcmd_outputs[1].split('Local host:')[1].split()[0].replace(',',''))
+                    except: pass
 
 
                 ###############################################################
