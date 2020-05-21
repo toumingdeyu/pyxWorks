@@ -4090,13 +4090,13 @@ authentication {
                     'cisco_ios':['show bgp summary',
                                  'show bgp vpnv4 unicast summary',
                                  'show bgp ipv6 unicast summary',
-                                 'show running-config router static | include %s' % (interface_id),
+                                 'show running-config router static | include %s' % (str(interface_id[2:])),
                                 ],
 
                     'cisco_xr': ['show bgp summary',
                                  'show bgp vpnv4 unicast summary',
                                  'show bgp ipv6 unicast summary',
-                                 'show running-config router static | include %s' % (interface_id),
+                                 'show running-config router static | include %s' % (str(interface_id[2:])),
                                 ],
 
                     'juniper':  ['show bgp neighbor | match "Group:|Peer:" | except "NLRI|Restart"',
@@ -4149,10 +4149,13 @@ authentication {
                     for line in rcmd_outputs[3].splitlines():
                         try:    possible_bgp_peer = line.split()[0]
                         except: possible_bgp_peer = None
+                        try:    possible_interface = line.split()[1]
+                        except: possible_interface = None
                         try:    possible_addr_rem = line.split()[2]
                         except: possible_addr_rem = None
-                        if possible_bgp_peer and possible_addr_rem:
-                            if '.' in possible_bgp_peer and '/' in possible_bgp_peer and len(find_ipv4) == 1:
+
+                        if possible_bgp_peer and possible_interface and possible_addr_rem:
+                            if '.' in possible_bgp_peer and '/' in possible_bgp_peer and possible_interface[0] == interface_id[0] and str(interface_id[2:]) in possible_interface:
                                 interface_data['interface_data']['IPV4_bgp_peer_from_ROUTER_STATIC'] = copy.deepcopy(possible_bgp_peer.split('/'))[0]
                                 interface_data['interface_data']['IPV4_addr_rem_from_ROUTER_STATIC'] = copy.deepcopy(possible_addr_rem)
                                 IPV4_STATIC_ROUTING = True
