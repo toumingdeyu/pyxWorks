@@ -4166,6 +4166,14 @@ authentication {
                                 IPV6_STATIC_ROUTING = True
                                 interface_data['interface_data']['IPV6_STATIC_ROUTING'] = True
 
+                            if IPV4_STATIC_ROUTING:
+                                 interface_data['interface_data']['IPV4_bgp_neighbor'] = copy.deepcopy(interface_data['interface_data'].get('IPV4_bgp_peer_from_ROUTER_STATIC'))
+                                 interface_data['interface_data']['IPV4_addr_rem'] = copy.deepcopy(interface_data['interface_data'].get('IPV4_addr_rem_from_ROUTER_STATIC'))
+
+                            if IPV6_STATIC_ROUTING:
+                                 interface_data['interface_data']['IPV6_bgp_neighbor'] = copy.deepcopy(interface_data['interface_data'].get('IPV6_bgp_peer_from_ROUTER_STATIC'))
+                                 interface_warning_data['interface_data']['IPV6_addr_rem'] = copy.deepcopy(interface_data['interface_data'].get('IPV6_addr_rem_from_ROUTER_STATIC'))
+
                 elif RCMD.router_type == 'juniper':
                     try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("Local:")[1].splitlines()[0].split('AS')[1].strip()
                     except: pass
@@ -4444,79 +4452,6 @@ authentication {
                             i_counter += 1
 
 
-                ###############################################################
-                ### def FIND REMOTE IP ADDRESES: THE OTHER IP IN NETWORK ######
-                ###############################################################
-                if IPV4_STATIC_ROUTING:
-                     interface_data['interface_data']['IPV4_bgp_neighbor'] = copy.deepcopy(interface_data['interface_data'].get('IPV4_bgp_peer_from_ROUTER_STATIC'))
-                     interface_data['interface_data']['IPV4_addr_rem'] = copy.deepcopy(interface_data['interface_data'].get('IPV4_addr_rem_from_ROUTER_STATIC'))
-
-                if IPV6_STATIC_ROUTING:
-                     interface_data['interface_data']['IPV6_bgp_neighbor'] = copy.deepcopy(interface_data['interface_data'].get('IPV6_bgp_peer_from_ROUTER_STATIC'))
-                     interface_warning_data['interface_data']['IPV6_addr_rem'] = copy.deepcopy(interface_data['interface_data'].get('IPV6_addr_rem_from_ROUTER_STATIC'))
-
-                if not IPV4_STATIC_ROUTING and (CUSTOMER_MODE or PING_ONLY):
-                        if interface_warning_data['interface_data'].get('IPV4_addr_rem_calculated'):
-                            interface_data['interface_data']['IPV4_bgp_neighbor'] = copy.deepcopy(interface_warning_data['interface_data'].get('IPV4_addr_rem_calculated'))
-
-                        if not interface_data['interface_data'].get('IPV4_bgp_neighbor') and interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'):
-                            interface_data['interface_data']['IPV4_bgp_neighbor'] = copy.deepcopy(interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'))
-
-                if not IPV6_STATIC_ROUTING and (CUSTOMER_MODE or PING_ONLY):
-                        if interface_warning_data['interface_data'].get('IPV6_addr_rem_calculated'):
-                            interface_data['interface_data']['IPV6_bgp_neighbor'] = copy.deepcopy(interface_warning_data['interface_data'].get('IPV6_addr_rem_calculated'))
-
-                if not interface_data['interface_data'].get('IPV4_addr_rem') and interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'):
-                    interface_data['interface_data']['IPV4_addr_rem'] = copy.deepcopy(interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'))
-
-
-                if not IPV4_STATIC_ROUTING and (CUSTOMER_MODE or PING_ONLY):
-                        if interface_data['interface_data'].get('IPV4_addr_rem'):
-                            interface_data['interface_data']['IPV4_bgp_neighbor'] = copy.deepcopy(interface_data['interface_data'].get('IPV4_addr_rem'))
-
-                if not IPV6_STATIC_ROUTING and (CUSTOMER_MODE or PING_ONLY):
-                        if interface_warning_data['interface_data'].get('IPV6_addr_rem_calculated'):
-                            interface_data['interface_data']['IPV6_bgp_neighbor'] = copy.deepcopy(interface_warning_data['interface_data'].get('IPV6_addr_rem_calculated'))
-
-                if not IPV4_STATIC_ROUTING and (CUSTOMER_MODE or PING_ONLY):
-                        if len(interface_data['interface_data'].get('IPV4_addr_rem_from_ASN',[])) == 1:
-
-                            ### def IPV4_STATIC_ROUTING ################################
-                            if interface_data['interface_data'].get('IPV4_addr_rem_from_ASN')[0] != interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'):
-                                interface_data['interface_data']['IPV4_bgp_neighbor'] = \
-                                    copy.deepcopy(interface_data['interface_data'].get('IPV4_addr_rem_from_ASN')[0])
-
-                                if len(interface_warning_data['interface_data'].get('IPV6_addr_rem_from_ASN',[])) >= 1:
-                                    interface_data['interface_data']['IPV6_bgp_neighbor'] = \
-                                        copy.deepcopy(interface_warning_data['interface_data'].get('IPV6_addr_rem_from_ASN')[0])
-
-                        elif interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION') and \
-                            len(interface_data['interface_data'].get('IPV4_addr_rem_from_ASN',[])) > 1:
-
-                            IPV4_addr_rem_from_ASN_is_in_DESCRIPTION = False
-                            for address in interface_data['interface_data'].get('IPV4_addr_rem_from_ASN',[]):
-                                if address == interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'):
-                                    IPV4_addr_rem_from_ASN_is_in_DESCRIPTION = True
-
-                            if IPV4_addr_rem_from_ASN_is_in_DESCRIPTION == True:
-                                pass
-                            else:
-                                interface_data['interface_data']['IPV4_bgp_neighbor'] = \
-                                    copy.deepcopy(interface_data['interface_data'].get('IPV4_addr_rem_from_ASN')[0])
-
-                                if len(interface_warning_data['interface_data'].get('IPV6_addr_rem_from_ASN',[])) >= 1:
-                                    interface_data['interface_data']['IPV6_bgp_neighbor'] = \
-                                        copy.deepcopy(interface_warning_data['interface_data'].get('IPV6_addr_rem_from_ASN')[0])
-
-                CGI_CLI.uprint("interface_data['interface_data']['IPV4_addr_loc'] = " + str(interface_data['interface_data'].get('IPV4_addr_loc')), tag = 'debug', no_printall = not CGI_CLI.printall)
-                CGI_CLI.uprint("interface_data['interface_data']['IPV6_addr_loc'] = " + str(interface_data['interface_data'].get('IPV6_addr_loc')), tag = 'debug', no_printall = not CGI_CLI.printall)
-
-                CGI_CLI.uprint("interface_data['interface_data']['IPV4_addr_rem'] = " + str(interface_data['interface_data'].get('IPV4_addr_rem')), tag = 'debug', no_printall = not CGI_CLI.printall)
-                CGI_CLI.uprint("interface_warning_data['interface_data']['IPV6_addr_rem'] = " + str(interface_warning_data['interface_data'].get('IPV6_addr_rem')), tag = 'debug', no_printall = not CGI_CLI.printall)
-                CGI_CLI.uprint("interface_data['interface_data']['IPV4_bgp_neighbor'] = " + str(interface_data['interface_data'].get('IPV4_bgp_neighbor')), tag = 'debug', no_printall = not CGI_CLI.printall)
-                CGI_CLI.uprint("interface_data['interface_data']['IPV6_bgp_neighbor'] = " + str(interface_data['interface_data'].get('IPV6_bgp_neighbor')), tag = 'debug', no_printall = not CGI_CLI.printall)
-
-
                 ### def ALL MODES LOCALHOST ADDRESS ###########################
                 collect0_if_data_rcmds = {
                     'cisco_ios':[
@@ -4604,10 +4539,30 @@ authentication {
                                 if localhost and bgp_peer and '.' in localhost and '.' in bgp_peer:
                                     interface_data['bgp']['IPV4 Local host'] = cmd_output.split('Local: ')[1].split()[0].split('+')[0]
                                     interface_data['interface_data']['IPV4_bgp_neighbor'] = cmd_output.split('Peer: ')[1].split()[0].split('+')[0]
+                                    IPV4_STATIC_ROUTING = True
+                                    interface_data['interface_data']['IPV4_STATIC_ROUTING'] = True
 
                                 elif localhost and bgp_peer and ':' in localhost and ':' in bgp_peer:
                                     interface_data['bgp']['IPV6 Local host'] = cmd_output.split('Local: ')[1].split()[0].split('+')[0]
                                     interface_data['interface_data']['IPV6_bgp_neighbor'] = cmd_output.split('Peer: ')[1].split()[0].split('+')[0]
+                                    IPV6_STATIC_ROUTING = True
+                                    interface_data['interface_data']['IPV6_STATIC_ROUTING'] = True
+
+ 
+                ###############################################################
+                ### def FIND REMOTE IP ADDRESES: THE OTHER IP IN NETWORK ######
+                ###############################################################
+                if not interface_data['interface_data'].get('IPV4_addr_rem') and interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'):
+                    interface_data['interface_data']['IPV4_addr_rem'] = copy.deepcopy(interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'))
+
+
+                ### def ADDRESSES PRINTOUTS ###################################
+                CGI_CLI.uprint("interface_data['interface_data']['IPV4_addr_loc'] = " + str(interface_data['interface_data'].get('IPV4_addr_loc')), tag = 'debug', no_printall = not CGI_CLI.printall)
+                CGI_CLI.uprint("interface_data['interface_data']['IPV6_addr_loc'] = " + str(interface_data['interface_data'].get('IPV6_addr_loc')), tag = 'debug', no_printall = not CGI_CLI.printall)
+                CGI_CLI.uprint("interface_data['interface_data']['IPV4_addr_rem'] = " + str(interface_data['interface_data'].get('IPV4_addr_rem')), tag = 'debug', no_printall = not CGI_CLI.printall)
+                CGI_CLI.uprint("interface_warning_data['interface_data']['IPV6_addr_rem'] = " + str(interface_warning_data['interface_data'].get('IPV6_addr_rem')), tag = 'debug', no_printall = not CGI_CLI.printall)
+                CGI_CLI.uprint("interface_data['interface_data']['IPV4_bgp_neighbor'] = " + str(interface_data['interface_data'].get('IPV4_bgp_neighbor')), tag = 'debug', no_printall = not CGI_CLI.printall)
+                CGI_CLI.uprint("interface_data['interface_data']['IPV6_bgp_neighbor'] = " + str(interface_data['interface_data'].get('IPV6_bgp_neighbor')), tag = 'debug', no_printall = not CGI_CLI.printall)
 
 
                 ###############################################################
@@ -4738,19 +4693,6 @@ authentication {
                                 interface_data['interface_data']['parallel_interfaces'] = copy.deepcopy(backup_if_list)
                             except: interface_data['interface_data']['parallel_interfaces'] = []
 
-                            ## TRAFFIC ###
-                            # if not precheck_mode:
-                                # try: interface_warning_data['interface_statistics']['txload'] = collect_if_config_rcmd_outputs[9].split('txload')[1].split()[0].replace(',','').strip()
-                                # except: interface_warning_data['interface_statistics']['txload'] = str()
-                                # try: interface_warning_data['interface_statistics']['rxload'] = collect_if_config_rcmd_outputs[9].split('rxload')[1].split()[0].replace(',','').strip()
-                                # except: interface_warning_data['interface_statistics']['rxload'] = str()
-                                # if interface_warning_data['interface_statistics'].get('txload'):
-                                    # try: interface_warning_data['interface_statistics']['txload_percent'] = 100 * float(interface_warning_data['interface_statistics'].get('txload').split('/')[0]) / float(interface_warning_data['interface_statistics'].get('txload').split('/')[1])
-                                    # except: pass
-                                # if interface_warning_data['interface_statistics'].get('rxload'):
-                                    # try: interface_warning_data['interface_statistics']['rxload_percent'] = 100 * float(interface_warning_data['interface_statistics'].get('rxload').split('/')[0]) / float(interface_warning_data['interface_statistics'].get('rxload').split('/')[1])
-                                    # except: pass
-
                     ### JUNIPER 1st CMDS ##########################################
                     elif RCMD.router_type == 'juniper':
                         try: interface_data['interface_data']['scheduler-map'] = collect_if_config_rcmd_outputs[9].split('scheduler-map ')[1].split()[0].split('/')[0].replace(';','')
@@ -4813,39 +4755,6 @@ authentication {
                                 interface_data['interface_data']['parallel_interfaces'] = copy.deepcopy(backup_if_list)
                             except: interface_data['interface_data']['parallel_interfaces'] = []
 
-                            ## TRAFFIC ###
-                            # if not precheck_mode:
-                                # try: interface_warning_data['interface_statistics']['txload'] = collect_if_config_rcmd_outputs[12].split('Output rate    :')[1].split()[0].replace(',','').strip()
-                                # except: interface_warning_data['interface_statistics']['txload'] = str()
-                                # try: interface_warning_data['interface_statistics']['rxload'] = collect_if_config_rcmd_outputs[12].split('Input rate     :')[1].split()[0].replace(',','').strip()
-                                # except: interface_warning_data['interface_statistics']['rxload'] = str()
-
-                                #"""Traffic statistics:
-                                #Input  bytes  :     5256259942920724           8772959240 bps
-                                #Output bytes  :     1519104622857050           3748473568 bps"""
-
-                                # if not interface_warning_data['interface_statistics'].get('txload'):
-                                    # try: interface_warning_data['interface_statistics']['txload'] = collect_if_config_rcmd_outputs[12].split('Output bytes  :')[1].split()[1].strip()
-                                    # except: pass
-
-                                # if not interface_warning_data['interface_statistics'].get('rxload'):
-                                    # try: interface_warning_data['interface_statistics']['rxload'] = collect_if_config_rcmd_outputs[12].split('Input  bytes  :')[1].split()[1].strip()
-                                    # except: pass
-
-
-                                # try: interface_warning_data['interface_statistics']['Speed'] = collect_if_config_rcmd_outputs[12].split('Speed:')[1].split()[0].replace(',','').strip()
-                                # except: interface_warning_data['interface_statistics']['Speed'] = str()
-
-                                # multiplikator = 1
-                                # if interface_warning_data['interface_statistics'].get('Speed') and 'Gbps' in interface_warning_data['interface_statistics'].get('Speed'): multiplikator = 1073741824
-                                # if interface_warning_data['interface_statistics'].get('Speed') and 'Mbps' in interface_warning_data['interface_statistics'].get('Speed'): multiplikator = 1048576
-                                # if interface_warning_data['interface_statistics'].get('txload'):
-                                    # try: interface_warning_data['interface_statistics']['txload_percent'] = 100 * float(interface_warning_data['interface_statistics'].get('txload')) / (float(interface_warning_data['interface_statistics'].get('Speed').replace('Gbps','').replace('Mbps','')) * multiplikator)
-                                    # except: pass
-                                # if interface_warning_data['interface_statistics'].get('rxload'):
-                                    # try: interface_warning_data['interface_statistics']['rxload_percent'] = 100 * float(interface_warning_data['interface_statistics'].get('rxload')) / (float(interface_warning_data['interface_statistics'].get('Speed').replace('Gbps','').replace('Mbps','')) * multiplikator)
-                                    # except: pass
-
                     ### HUAWEI 1st CMDS ###########################################
                     elif RCMD.router_type == 'huawei':
 
@@ -4900,13 +4809,6 @@ authentication {
                                             else: backup_if_list.append(copy.deepcopy(local_backup_interface))
                                 interface_data['interface_data']['parallel_interfaces'] = copy.deepcopy(backup_if_list)
                             except: interface_data['interface_data']['parallel_interfaces'] = []
-
-                            ## TRAFFIC ###
-                            # if not precheck_mode:
-                                # try: interface_warning_data['interface_statistics']['txload_percent'] = float(collect_if_config_rcmd_outputs[9].split('output utility rate:')[1].split()[0].replace('%','').strip())
-                                # except: pass
-                                # try: interface_warning_data['interface_statistics']['rxload_percent'] = float(collect_if_config_rcmd_outputs[9].split('input utility rate:')[1].split()[0].replace('%','').strip())
-                                # except: pass
 
 
                     ###########################################################
