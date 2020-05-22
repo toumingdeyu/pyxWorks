@@ -4517,7 +4517,7 @@ authentication {
                 CGI_CLI.uprint("interface_data['interface_data']['IPV6_bgp_neighbor'] = " + str(interface_data['interface_data'].get('IPV6_bgp_neighbor')), tag = 'debug', no_printall = not CGI_CLI.printall)
 
 
-                ### def ALL MODES LOCALHOST ###################################
+                ### def ALL MODES LOCALHOST ADDRESS ###########################
                 collect0_if_data_rcmds = {
                     'cisco_ios':[
                         'show bgp neighbor %s' % (interface_data['interface_data'].get('IPV4_bgp_neighbor')) if interface_data['interface_data'].get('IPV4_bgp_neighbor') else str(),
@@ -4530,6 +4530,8 @@ authentication {
                     ],
 
                     'juniper': [
+                        'show configuration routing-options static | match %s | display set ' % (interface_data['interface_data'].get('IPV4_addr_rem')) if interface_data['interface_data'].get('IPV4_addr_rem') else str(),
+                        'show configuration routing-options static | match %s | display set ' % (interface_warning_data['interface_data'].get('IPV6_addr_rem')) if interface_warning_data['interface_data'].get('IPV6_addr_rem') else str(),
                     ],
 
                     'huawei': [
@@ -4541,6 +4543,8 @@ authentication {
                     printall = printall)
 
                 interface_data['bgp'] = collections.OrderedDict()
+                possible_ipv4_bgp_peers = []
+                possible_ipv6_bgp_peers = []
 
                 if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
                     try: interface_data['bgp']['IPV4 Local host'] = copy.deepcopy(collect0_if_config_rcmd_outputs[0].split('Local host:')[1].split()[0].replace(',',''))
@@ -4548,6 +4552,62 @@ authentication {
 
                     try: interface_data['bgp']['IPV6 Local host'] = copy.deepcopy(collect0_if_config_rcmd_outputs[1].split('Local host:')[1].split()[0].replace(',',''))
                     except: pass
+
+                elif RCMD.router_type == 'juniper':
+                    try:
+                        for line in collect0_if_config_rcmd_outputs[0]:
+                            try: possible_ipv4_bgp_peers.append(line.split('set routing-options static route ')[1].split()[0].split('/')[0])
+                            except: pass
+                    except: pass
+
+                    try:
+                        for line in collect0_if_config_rcmd_outputs[1]:
+                            try: possible_ipv6_bgp_peers.append(line.split('set routing-options static route ')[1].split()[0].split('/')[0])
+                            except: pass
+                    except: pass
+
+
+                ### def ALL MODES SECOND LOCALHOST ADDRESS ####################
+                if len(possible_ipv4_bgp_peers) > 0:
+                    collect1_if_data_rcmds = {
+                        'cisco_ios':[
+                         ],
+
+                        'cisco_xr':[
+                         ],
+
+                        'juniper': [
+                         ],
+
+                        'huawei': [
+                        ]
+                    }
+
+                    for peer in possible_ipv4_bgp_peers:
+                        collect1_if_data_rcmds['juniper'].append('show bgp neighbor %s' % (str(peer)))
+
+                    for peer in possible_ipv6_bgp_peers:
+                        collect1_if_data_rcmds['juniper'].append('show bgp neighbor %s' % (str(peer)))
+
+                    collect1_if_config_rcmd_outputs = RCMD.run_commands(collect1_if_data_rcmds, \
+                        autoconfirm_mode = True, \
+                        printall = printall)
+
+                    if RCMD.router_type == 'juniper':
+                        for cmd_output in collect1_if_config_rcmd_outputs:
+                            if 'Peer: ' in cmd_output and 'Local: ' in cmd_output:
+                                try:
+                                    localhost = cmd_output.split('Local: ')[1].split()[0].split('+')[0]
+                                    bgp_peer = cmd_output.split('Peer: ')[1].split()[0].split('+')[0]
+                                except: localhost, bgp_peer = str(), str()
+
+                                if localhost and bgp_peer and '.' in localhost and '.' in bgp_peer:
+                                    interface_data['bgp']['IPV4 Local host'] = cmd_output.split('Local: ')[1].split()[0].split('+')[0]
+                                    interface_data['interface_data']['IPV4_bgp_neighbor'] = cmd_output.split('Peer: ')[1].split()[0].split('+')[0]
+
+                                elif localhost and bgp_peer and ':' in localhost and ':' in bgp_peer:
+                                    interface_data['bgp']['IPV6 Local host'] = cmd_output.split('Local: ')[1].split()[0].split('+')[0]
+                                    interface_data['interface_data']['IPV6_bgp_neighbor'] = cmd_output.split('Peer: ')[1].split()[0].split('+')[0]
 
 
                 ###############################################################
