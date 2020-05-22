@@ -4490,17 +4490,20 @@ authentication {
 
                 elif RCMD.router_type == 'juniper':
                     try:
-                        for line in collect0_if_config_rcmd_outputs[0]:
+                        for line in collect0_if_config_rcmd_outputs[0].splitlines():
                             try: possible_ipv4_bgp_peers.append(line.split('set routing-options static route ')[1].split()[0].split('/')[0])
                             except: pass
                     except: pass
 
                     try:
-                        for line in collect0_if_config_rcmd_outputs[1]:
+                        for line in collect0_if_config_rcmd_outputs[1].splitlines():
                             try: possible_ipv6_bgp_peers.append(line.split('set routing-options static route ')[1].split()[0].split('/')[0])
                             except: pass
                     except: pass
 
+
+                CGI_CLI.uprint("possible_ipv4_bgp_peers = " + str(possible_ipv4_bgp_peers), tag = 'debug', no_printall = not CGI_CLI.printall)
+                CGI_CLI.uprint("possible_ipv6_bgp_peers = " + str(possible_ipv6_bgp_peers), tag = 'debug', no_printall = not CGI_CLI.printall)
 
                 ### def ALL MODES SECOND LOCALHOST ADDRESS ####################
                 if len(possible_ipv4_bgp_peers) > 0:
@@ -4548,19 +4551,33 @@ authentication {
                                     IPV6_STATIC_ROUTING = True
                                     interface_data['interface_data']['IPV6_STATIC_ROUTING'] = True
 
- 
+
                 ###############################################################
                 ### def FIND REMOTE IP ADDRESES: THE OTHER IP IN NETWORK ######
                 ###############################################################
                 if not interface_data['interface_data'].get('IPV4_addr_rem') and interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'):
                     interface_data['interface_data']['IPV4_addr_rem'] = copy.deepcopy(interface_data['interface_data'].get('IPV4_addr_rem_from_DESCRIPTION'))
 
+                if not interface_data['interface_data'].get('IPV4_bgp_neighbor') and interface_data['interface_data'].get('IPV4_addr_rem'):
+                    interface_data['interface_data']['IPV4_bgp_neighbor'] = copy.deepcopy(interface_data['interface_data'].get('IPV4_addr_rem'))
+
+                if not interface_data['interface_data'].get('IPV6_bgp_neighbor') and interface_warning_data['interface_data'].get('IPV6_addr_rem'):
+                    interface_data['interface_data']['IPV6_bgp_neighbor'] = copy.deepcopy(interface_warning_data['interface_data'].get('IPV6_addr_rem'))
+
 
                 ### def ADDRESSES PRINTOUTS ###################################
                 CGI_CLI.uprint("interface_data['interface_data']['IPV4_addr_loc'] = " + str(interface_data['interface_data'].get('IPV4_addr_loc')), tag = 'debug', no_printall = not CGI_CLI.printall)
                 CGI_CLI.uprint("interface_data['interface_data']['IPV6_addr_loc'] = " + str(interface_data['interface_data'].get('IPV6_addr_loc')), tag = 'debug', no_printall = not CGI_CLI.printall)
+
+                CGI_CLI.uprint("interface_data['interface_data']['IPV4_mask_loc'] = " + str(interface_data['interface_data'].get('IPV4_mask_loc')), tag = 'debug', no_printall = not CGI_CLI.printall)
+                CGI_CLI.uprint("interface_data['interface_data']['IPV6_mask_loc'] = " + str(interface_data['interface_data'].get('IPV6_mask_loc')), tag = 'debug', no_printall = not CGI_CLI.printall)
+
+                CGI_CLI.uprint("interface_warning_data['interface_data']['IPV4_addr_rem_calculated'] = " + str(interface_warning_data['interface_data'].get('IPV4_addr_rem_calculated')), tag = 'debug', no_printall = not CGI_CLI.printall)
+                CGI_CLI.uprint("interface_warning_data['interface_data']['IPV6_addr_rem_calculated'] = " + str(interface_warning_data['interface_data'].get('IPV6_addr_rem_calculated')), tag = 'debug', no_printall = not CGI_CLI.printall)
+
                 CGI_CLI.uprint("interface_data['interface_data']['IPV4_addr_rem'] = " + str(interface_data['interface_data'].get('IPV4_addr_rem')), tag = 'debug', no_printall = not CGI_CLI.printall)
                 CGI_CLI.uprint("interface_warning_data['interface_data']['IPV6_addr_rem'] = " + str(interface_warning_data['interface_data'].get('IPV6_addr_rem')), tag = 'debug', no_printall = not CGI_CLI.printall)
+
                 CGI_CLI.uprint("interface_data['interface_data']['IPV4_bgp_neighbor'] = " + str(interface_data['interface_data'].get('IPV4_bgp_neighbor')), tag = 'debug', no_printall = not CGI_CLI.printall)
                 CGI_CLI.uprint("interface_data['interface_data']['IPV6_bgp_neighbor'] = " + str(interface_data['interface_data'].get('IPV6_bgp_neighbor')), tag = 'debug', no_printall = not CGI_CLI.printall)
 
