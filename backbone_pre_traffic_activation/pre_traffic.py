@@ -4973,7 +4973,10 @@ authentication {
 
                     elif RCMD.router_type == 'huawei':
                         interface_data['isis']['isis enable 5511'] = True if 'isis enable 5511' in collect_if_config_rcmd_outputs[0] else str()
-                        interface_data['isis']['isis ipv6 enable 5511'] = True if 'isis ipv6 enable 5511' in collect_if_config_rcmd_outputs[0] else str()
+
+                        if USE_IPV6:
+                            interface_data['isis']['isis ipv6 enable 5511'] = True if 'isis ipv6 enable 5511' in collect_if_config_rcmd_outputs[0] else str()
+
                         interface_data['isis']['isis silent advertise-zero-cost'] = True if 'isis silent advertise-zero-cost' in collect_if_config_rcmd_outputs[0] else str()
 
 
