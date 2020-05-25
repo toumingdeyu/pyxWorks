@@ -4222,11 +4222,11 @@ authentication {
                         try: bgp_peer = line.split('ip route-static ')[1].split()[0]
                         except: bgp_peer = None
                         if bgp_peer and '.' in bgp_peer:
-                            interface_data['interface_data']['IPV4_bgp_peer'] = copy.deepcopy(bgp_peer)
+                            interface_data['interface_data']['IPV4_bgp_neighbor'] = copy.deepcopy(bgp_peer)
                             IPV4_STATIC_ROUTING = True
                             interface_data['interface_data']['IPV4_STATIC_ROUTING'] = True
                         elif bgp_peer and ':' in bgp_peer:
-                            interface_data['interface_data']['IPV6_bgp_peer'] = copy.deepcopy(bgp_peer)
+                            interface_data['interface_data']['IPV6_bgp_neighbor'] = copy.deepcopy(bgp_peer)
                             IPV6_STATIC_ROUTING = True
                             interface_data['interface_data']['IPV6_STATIC_ROUTING'] = True
 
