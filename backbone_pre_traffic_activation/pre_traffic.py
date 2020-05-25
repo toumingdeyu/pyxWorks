@@ -4116,14 +4116,10 @@ authentication {
 
                 ### FIND LOCAL AS NUMBER ###
                 if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
-                    try:
-                         LOCAL_AS_NUMBER = rcmd_outputs[0].split("local AS number")[1].splitlines()[0].strip()
-                         interface_data['LOCAL_AS_NUMBER'] = LOCAL_AS_NUMBER
+                    try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("local AS number")[1].splitlines()[0].strip()
                     except: pass
                     if not LOCAL_AS_NUMBER:
-                        try:
-                            LOCAL_AS_NUMBER = rcmd_outputs[1].split("local AS number")[1].splitlines()[0].strip()
-                            interface_data['LOCAL_AS_NUMBER'] = LOCAL_AS_NUMBER
+                        try: LOCAL_AS_NUMBER = rcmd_outputs[1].split("local AS number")[1].splitlines()[0].strip()
                         except: pass
 
                     if interface_data['interface_data'].get('ASN'):
@@ -4233,6 +4229,7 @@ authentication {
                             interface_data['interface_data']['IPV6_bgp_neighbor'] = copy.deepcopy(bgp_peer)
                             IPV6_STATIC_ROUTING = True
                             interface_data['interface_data']['IPV6_STATIC_ROUTING'] = True
+                interface_data['LOCAL_AS_NUMBER'] = LOCAL_AS_NUMBER
 
                 ### def CONFIGURATION RUN INTERFACE LIST ######################
                 collect_if_data_rcmds = {
