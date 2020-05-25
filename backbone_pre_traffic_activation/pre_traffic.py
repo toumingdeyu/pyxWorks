@@ -3022,10 +3022,10 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
 
             if bundle_members_nr > 0: interface_data['interface_data']['bundle_members_nr'] = bundle_members_nr
 
-            try: interface_warning_data['interface_data']['IPV4 MTU set'] = err_check_after_pings_outputs[0].split('The Maximum Transmit Unit is ')[1].split()[0]
+            try: interface_warning_data['interface_data']['IPV4 MTU set'] = err_check_after_pings_outputs[0].split('The Maximum Transmit Unit is ')[1].split()[0].replace(',','')
             except: pass
 
-            try: interface_warning_data['interface_data']['IPV6 MTU set'] = err_check_after_pings_outputs[0].split('The Maximum Transmit Unit is ')[1].split()[0]
+            try: interface_warning_data['interface_data']['IPV6 MTU set'] = err_check_after_pings_outputs[0].split('The Maximum Transmit Unit is ')[1].split()[0].replace(',','')
             except: pass
 
         try:    interface_warning_data['interface_statistics']['Rx_Power_dBm%s' % (after_string)] = err_check_after_pings_outputs[0].split('Rx Power: ')[1].split()[0].strip().replace(',','').replace('dBm','')
