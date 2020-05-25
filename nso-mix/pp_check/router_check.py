@@ -119,7 +119,20 @@ default_printalllines_list = []
 #
 ###############################################################################
 
+
+###############################################################################
+### CUSTOM CHECK POSITION LIST (PICKUP LIMITED SET of CMDs FROM ALL CMDs) #####
+###############################################################################
+CUSTOM_LIST_IOS_XE = []
+CUSTOM_LIST_IOS_XR = [3, 5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 27, 28, 29, 30]
+CUSTOM_LIST_JUNOS = []
+CMD_VRP = []
+###############################################################################
+
+
+###############################################################################
 # CLI LIST:
+###############################################################################
 # 0-cli
 # 1-diff_method
 # 2-ignore_list - filters out all lines which contains words
@@ -129,6 +142,8 @@ default_printalllines_list = []
 # 6-compare_columns
 # 7-printall
 # 8-tolerance_percentage (number)
+###############################################################################
+
 
 # IOS-XE is only for IPsec GW
 CMD_IOS_XE = [
@@ -980,6 +995,11 @@ parser.add_argument("--isis",
                     default = False,
                     dest = 'isis_check_only',
                     help = "do isis check only")
+parser.add_argument("--custom",
+                    action = "store_true",
+                    default = False,
+                    dest = 'custom_check_only',
+                    help = "do custom (bgp) check only")
 args = parser.parse_args()
 
 if args.emailaddr:
@@ -1018,6 +1038,8 @@ if not args.device:
     print(bcolors.MAGENTA + " ... Please insert device name !" + bcolors.ENDC)
     sys.exit(0)
 
+custom_check_only = True if args.custom_check_only else False
+
 # SET WORKING DIRECTORY
 try:    WORKDIR         = os.path.join(os.environ['HOME'],'logs')
 except: WORKDIR         = os.path.join(str(os.path.dirname(os.path.abspath(__file__))),'logs')
@@ -1041,7 +1063,7 @@ except: PARAMIKO_HOST = str()
 try: PARAMIKO_PORT = args.device.upper().split(':')[1]
 except: PARAMIKO_PORT = '22'
 
-####### Figure out type of router OS
+####### def Figure out type of router OS
 if not args.router_type:
     #router_type = find_router_type(args.device.upper())
     router_type, router_prompt = detect_router_by_ssh(args.device.upper(),debug = False)
@@ -1113,7 +1135,7 @@ if args.recheck or args.postcheck_file:
         postcheck_file = most_recent_postcheck
 
 
-######## Find command list file (optional)
+######## def Find command list file (optional)
 list_cmd = []
 if args.cmd_file:
     if not os.path.isfile(args.cmd_file):
@@ -1126,6 +1148,29 @@ if args.cmd_file:
         for index in range(0, num_lines):
             list_cmd.append([fp_cmd.readline().strip()])
         fp_cmd.close
+
+### def CUSTOM CHECK LIST CREATION ###
+if custom_check_only:
+    if router_type == "ios-xe":
+        cmd_position = 0
+        for router_cmd in CMD_IOS_XE:
+            if cmd_position in CUSTOM_LIST_IOS_XE: list_cmd.append(copy.deepcopy(router_cmd))
+            cmd_position += 1
+    elif router_type == "ios-xr":
+        cmd_position = 0
+        for router_cmd in CMD_IOS_XR:
+            if cmd_position in CUSTOM_LIST_IOS_XR: list_cmd.append(copy.deepcopy(router_cmd))
+            cmd_position += 1
+    elif router_type == "junos":
+        cmd_position = 0
+        for router_cmd in CMD_JUNOS:
+            if cmd_position in CUSTOM_LIST_JUNOS: list_cmd.append(copy.deepcopy(router_cmd))
+            cmd_position += 1
+    elif router_type == "vrp":
+        cmd_position = 0
+        for router_cmd in CMD_VRP:
+            if cmd_position in CUSTOM_LIST_VRP: list_cmd.append(copy.deepcopy(router_cmd))
+            cmd_position += 1
 
 filename_prefix = os.path.join(WORKDIR,args.device.upper().replace(':','_').replace('.','_'))
 filename_suffix = pre_post
