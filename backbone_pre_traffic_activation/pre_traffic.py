@@ -2783,6 +2783,12 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
         interface_data['interface_data']['bundle_members'] = []
 
     if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
+        try: interface_data['interface_data']['is'] = err_check_after_pings_outputs[0].split(', line protocol is ')[0].split(' is ')[1].strip()
+        except: interface_data['interface_data']['is'] = str()
+
+        try: interface_data['interface_data']['line protocol is'] = err_check_after_pings_outputs[0].split('line protocol is ')[1].split()[0]
+        except: interface_data['interface_data']['line protocol is'] = str()
+
         if not after_ping:
             try:    interface_data['interface_data']['bundle_members_nr'] = int(err_check_after_pings_outputs[0].split('No. of members in this bundle:')[1].splitlines()[0].strip())
             except: pass
@@ -2837,6 +2843,12 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
 
 
     elif RCMD.router_type == 'juniper':
+        try: interface_data['interface_data']['Physical interface state'] = err_check_after_pings_outputs[0].split(', Physical link is')[0].split(',')[-1].strip()
+        except: interface_data['interface_data']['Physical interface state'] = str()
+
+        try: interface_data['interface_data']['Physical link is'] = err_check_after_pings_outputs[0].split('Physical link is ')[1].split()[0]
+        except: interface_data['interface_data']['Physical link is'] = str()
+
         if not after_ping:
             try:    interface_data['interface_data']['bundle_members_nr'] = int(err_check_after_pings_outputs[0].split('Aggregate member links:')[1].splitlines()[0].strip())
             except: pass
@@ -3004,6 +3016,12 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
 
 
     elif RCMD.router_type == 'huawei':
+        try: interface_data['interface_data']['current state'] = err_check_after_pings_outputs[0].split('current state : ')[1].splitlines()[0].split('(')[0].strip()
+        except: pass
+
+        try: interface_data['interface_data']['Line protocol current state'] = err_check_after_pings_outputs[0].split('Line protocol current state : ')[1].splitlines()[0].strip()
+        except: pass
+
         if not after_ping:
             try:    interface_lines = err_check_after_pings_outputs[0].split('PortName ')[1].splitlines()[2:]
             except: interface_lines = []
@@ -4695,9 +4713,6 @@ authentication {
                         try: interface_data['interface_data']['run mpls rsvp interface'] = collect_if_config_rcmd_outputs[2].split('interface')[1].split()[0]
                         except: interface_data['interface_data']['run mpls rsvp interface'] = str()
 
-                        try: interface_data['interface_data']['line protocol is'] = collect_if_config_rcmd_outputs[4].split('line protocol is ')[1].split()[0]
-                        except: interface_data['interface_data']['line protocol is'] = str()
-
                         try: interface_data['interface_data']['isis neighbors'] = collect_if_config_rcmd_outputs[5].split(interface_data['interface_data'].get('name_of_remote_device_from_description','XXYYZZ').upper())[1].split(interface_id)[1].split()[1].strip()
                         except: interface_data['interface_data']['isis neighbors'] = str()
 
@@ -4753,9 +4768,6 @@ authentication {
                         interface_data['interface_data']['configuration protocols mpls interface %s' % (interface_id)] = True if interface_plus_interface_id in collect_if_config_rcmd_outputs[1] else str()
                         interface_data['interface_data']['configuration protocols ldp interface %s' % (interface_id)] = True if interface_plus_interface_id in collect_if_config_rcmd_outputs[2] else str()
                         interface_data['interface_data']['configuration protocols rsvp interface %s' % (interface_id)] = True if interface_plus_interface_id in collect_if_config_rcmd_outputs[3] else str()
-
-                        try: interface_data['interface_data']['Physical link is'] = collect_if_config_rcmd_outputs[4].split('Physical link is ')[1].split()[0]
-                        except: interface_data['interface_data']['Physical link is'] = str()
 
                         try: interface_data['interface_data']['Flags'] = collect_if_config_rcmd_outputs[4].split('Flags:')[1].split()[0]
                         except: interface_data['interface_data']['Flags'] = str()
