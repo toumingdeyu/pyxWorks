@@ -4116,10 +4116,14 @@ authentication {
 
                 ### FIND LOCAL AS NUMBER ###
                 if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
-                    try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("local AS number")[1].splitlines()[0].strip()
+                    try:
+                         LOCAL_AS_NUMBER = rcmd_outputs[0].split("local AS number")[1].splitlines()[0].strip()
+                         interface_data['LOCAL_AS_NUMBER'] = LOCAL_AS_NUMBER
                     except: pass
                     if not LOCAL_AS_NUMBER:
-                        try: LOCAL_AS_NUMBER = rcmd_outputs[1].split("local AS number")[1].splitlines()[0].strip()
+                        try:
+                            LOCAL_AS_NUMBER = rcmd_outputs[1].split("local AS number")[1].splitlines()[0].strip()
+                            interface_data['LOCAL_AS_NUMBER'] = LOCAL_AS_NUMBER
                         except: pass
 
                     if interface_data['interface_data'].get('ASN'):
@@ -4261,6 +4265,8 @@ authentication {
                 if 'PE' in interface_data['interface_data'].get('name_of_remote_device_from_description',str()).upper() or 'PE' in device.upper():
                     IMN_INTERFACE = True
 
+                interface_data['IMN_INTERFACE'] = IMN_INTERFACE
+
                 try: interface_data['interface_data']['IPV4_addr_rem_from_DESCRIPTION'] = copy.deepcopy(collect_if_config_rcmd_outputs[0].split('description')[1].splitlines()[0].split('@')[1].split()[0])
                 except: pass
 
@@ -4390,9 +4396,11 @@ authentication {
 
                 ### def IPV6 CONDITION - YES OR NO ############################
                 ### OTI_LOCAL_AS = '5511', IMN_LOCAL_AS = '2300' ##############
-                if (LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE) \
-                    or interface_data['interface_data'].get('IPV6_addr_loc'): USE_IPV6 = True
+                #if (LOCAL_AS_NUMBER != IMN_LOCAL_AS and not IMN_INTERFACE) \
+                #    or interface_data['interface_data'].get('IPV6_addr_loc'):
 
+                if interface_data['interface_data'].get('IPV6_addr_loc'): USE_IPV6 = True
+                interface_data['USE_IPV6'] = USE_IPV6
 
                 ###############################################################
                 ### def CALCULATE REMOTE IP ADDRESES: THE OTHER IP IN NETWORK #
@@ -5994,9 +6002,10 @@ authentication {
                 CGI_CLI.uprint('\n', timestamp = 'no')
 
                 if LOCAL_AS_NUMBER:
-                    CGI_CLI.uprint('LOCAL_AS = %s, IMN_INTERFACE = %s\n' % \
-                        (LOCAL_AS_NUMBER, str(IMN_INTERFACE)), \
-                        color = 'blue', timestamp = 'no', no_printall = not printall)
+                    pass
+                    # CGI_CLI.uprint('LOCAL_AS = %s, IMN_INTERFACE = %s\n' % \
+                        # (LOCAL_AS_NUMBER, str(IMN_INTERFACE)), \
+                        # color = 'blue', timestamp = 'no', no_printall = not printall)
                 else:
                     CGI_CLI.uprint("PROBLEM TO PARSE LOCAL AS NUMBER on device %s!\n" \
                         % (device), color = 'red', timestamp = 'no')
