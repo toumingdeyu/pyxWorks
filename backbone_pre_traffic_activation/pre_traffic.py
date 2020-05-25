@@ -6175,7 +6175,7 @@ authentication {
                     check_interface_data_content("['interface_data']['is']", 'UP')
                     check_interface_data_content("['interface_data']['line protocol is']", 'UP')
                 if RCMD.router_type == 'juniper':
-                    check_interface_data_content("['interface_data']['Physical interface state']", 'UP')
+                    check_interface_data_content("['interface_data']['Physical interface state']", 'Enabled')
                     check_interface_data_content("['interface_data']['Physical link is']", 'UP')
                 if RCMD.router_type == 'huawei':
                     check_interface_data_content("['interface_data']['current state']", 'UP')
