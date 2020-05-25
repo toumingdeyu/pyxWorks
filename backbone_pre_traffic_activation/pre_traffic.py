@@ -6171,6 +6171,16 @@ authentication {
                     check_interface_data_content("['interface_data']['name_of_remote_device_from_description']", what_not_in = device)
 
                 ### def ALL - CONTENT ELEMENT CHECK ##########################
+                if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
+                    check_interface_data_content("['interface_data']['is']", 'UP')
+                    check_interface_data_content("['interface_data']['line protocol is']", 'UP')
+                if RCMD.router_type == 'juniper':
+                    check_interface_data_content("['interface_data']['Physical interface state']", 'UP')
+                    check_interface_data_content("['interface_data']['Physical link is']", 'UP')
+                if RCMD.router_type == 'huawei':
+                    check_interface_data_content("['interface_data']['current state']", 'UP')
+                    check_interface_data_content("['interface_data']['Line protocol current state']", 'UP')
+
                 if interface_data['interface_data'].get('inactive_bundle_members'):
                     check_interface_result_ok = False
                     CGI_CLI.uprint('Inactive bundle interfaces found: %s' % (interface_data['interface_data'].get('inactive_bundle_members')), color = 'red')
