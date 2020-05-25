@@ -3083,11 +3083,11 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
             try:    interface_data['interface_data']['Link quality grade'] = err_check_after_pings_outputs[0].split('Link quality grade :')[1].split()[0]
             except: pass
 
-            try:    interface_data['interface_data']['The Maximum Transmit Unit'] = err_check_after_pings_outputs[0].split('The Maximum Transmit Unit is')[1].split()[0]
-            except: pass
+            #try:    interface_data['interface_data']['The Maximum Transmit Unit'] = err_check_after_pings_outputs[0].split('The Maximum Transmit Unit is')[1].split()[0].replace(',','')
+            #except: pass
 
-            try:    interface_data['interface_data']['Internet Address'] = err_check_after_pings_outputs[0].split('Internet Address is')[1].split()[0]
-            except: pass
+            #try:    interface_data['interface_data']['Internet Address'] = err_check_after_pings_outputs[0].split('Internet Address is')[1].split()[0]
+            #except: pass
 
             try:    interface_data['interface_data']['Port BW'] = err_check_after_pings_outputs[0].split('Port BW:')[1].split()[0].replace(',','')
             except: pass
@@ -4218,7 +4218,7 @@ authentication {
                         if len(interface_warning_data['interface_data']['IPV6_addr_rem_from_ASN']) == 0:
                             del interface_warning_data['interface_data']['IPV6_addr_rem_from_ASN']
 
-                    for line in rcmd_outputs[2]:
+                    for line in rcmd_outputs[2].splitlines():
                         try: bgp_peer = line.split('ip route-static ')[1].split()[0]
                         except: bgp_peer = None
                         if bgp_peer and '.' in bgp_peer:
