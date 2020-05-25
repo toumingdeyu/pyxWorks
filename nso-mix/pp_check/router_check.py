@@ -5,7 +5,8 @@
 # Author: Philippe Marcais (philippe.marcais@orange.com)                      #
 #         Peter Nemec      (peter.nemec@orange.com)                           #
 # Created: 06/01/2015                                                         #
-# Updated: 14/May/2020 -huawei L2VPN commands added                           #
+# Updated: 25/May/2020 - --custom (BGP) check                                 #
+#          14/May/2020 -huawei L2VPN commands added                           #
 #          ...                                                                #
 #          21/Nov/2019 -junos name in prompt bugfix                           #
 #          09/Nov/2019 -device name used allways UPPERCASE                    #
@@ -21,7 +22,7 @@
 # status                                                                      #
 ###############################################################################
 
-import sys, os, paramiko
+import sys, os, paramiko, copy
 import getopt
 import getpass
 import telnetlib
