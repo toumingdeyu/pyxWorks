@@ -792,7 +792,7 @@ class CGI_CLI(object):
             mail_command = 'echo \'%s\' | mailx -s "%s" ' % (email_body,subject)
             if cc:
                 if isinstance(cc, six.string_types): mail_command += '-c %s' % (cc)
-                if cc and isinstance(cc, (list,tuple)): mail_command += ''.join([ '-c %s ' % (bcc_email) for bcc_email in bcc ])
+                if cc and isinstance(cc, (list,tuple)): mail_command += ''.join([ '-c %s ' % (cc_email) for cc_email in cc ])
             if bcc:
                 if isinstance(bcc, six.string_types): mail_command += '-b %s' % (bcc)
                 if bcc and isinstance(bcc, (list,tuple)): mail_command += ''.join([ '-b %s ' % (bcc_email) for bcc_email in bcc ])
