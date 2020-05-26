@@ -5712,7 +5712,7 @@ authentication {
 
                             interface_data['interface_data'][collect8_if_data_rcmds.get('cisco_xr')[0]] = route_exists
 
-                ### def MTU CALCULATIONS (INTENDED) ###########################
+                ### def INTENDED MTU CALCULATIONS #############################
                 ping_size, ping_size_v6 = 0, 0
 
                 ### L2 PING HEADER ############################################
@@ -5871,7 +5871,7 @@ authentication {
                                         count = ping_counts, ipv6 = True,
                                         source = ping_source))
 
-                    ### DO "THOUSANDS" PING ON MAX WORKING PING SIZE ##########
+                    ### def DO "THOUSANDS" PING ON MAX WORKING PING SIZE ######
                     if float(interface_data['interface_statistics'].get('IPV4 max working ping size', 0)) > 0:
                         interface_data['interface_statistics']['IPV4 %spings percent success on max working ping size' % (ping_counts)] = str(\
                             do_ping(address = interface_data['interface_data'].get('IPV4_addr_rem',str()), \
@@ -6010,11 +6010,7 @@ authentication {
                 ###############################################################
                 CGI_CLI.uprint('\n', timestamp = 'no')
 
-                if LOCAL_AS_NUMBER:
-                    pass
-                    # CGI_CLI.uprint('LOCAL_AS = %s, IMN_INTERFACE = %s\n' % \
-                        # (LOCAL_AS_NUMBER, str(IMN_INTERFACE)), \
-                        # color = 'blue', timestamp = 'no', no_printall = not printall)
+                if LOCAL_AS_NUMBER: pass
                 else:
                     CGI_CLI.uprint("PROBLEM TO PARSE LOCAL AS NUMBER on device %s!\n" \
                         % (device), color = 'red', timestamp = 'no')
@@ -6026,6 +6022,19 @@ authentication {
                 CGI_CLI.uprint(interface_warning_data, name = 'Collected WARNING data on Device %s' % (device), \
                     jsonprint = True, color = 'blue', timestamp = 'no', no_printall = not printall)
                 CGI_CLI.uprint('\n', timestamp = 'no', no_printall = not printall)
+
+                ### PRINT MAX WORKING PINGSIZE ################################
+                if PING_ONLY:
+                    if interface_data['interface_statistics'].get('IPV4 max working ping size'):
+                        CGI_CLI.uprint('MAX. WORKING IPV4 PING SIZE = ' % (str(interface_data['interface_statistics'].get('IPV4 max working ping size'))), \
+                            timestamp = 'no', no_printall = not printall, color = 'blue', tag = 'h2')
+
+                    if interface_data['interface_statistics'].get('IPV6 max working ping size'):
+                        CGI_CLI.uprint('MAX. WORKING IPV6 PING SIZE = ' % (str(interface_data['interface_statistics'].get('IPV6 max working ping size'))), \
+                            timestamp = 'no', no_printall = not printall, color = 'blue', tag = 'h2')
+
+                    CGI_CLI.uprint('\n', timestamp = 'no', no_printall = not printall)
+
 
                 ### START OF CHECKS PER INTERFACE #############################
                 check_interface_result_ok, check_warning_interface_result_ok = True, True
