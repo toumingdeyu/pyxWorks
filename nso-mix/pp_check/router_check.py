@@ -901,7 +901,7 @@ def append_variable_to_bashrc(variable_name=None,variable_value=None):
         # if EMAIL_ADDRESS: my_email_address = EMAIL_ADDRESS
         # else: my_email_address = '%s.%s@orange.com' % (my_name, my_surname)
         # mail_command = 'echo | mutt -s "%s" -a %s -- %s' % (subject,file_name,my_email_address)
-        mail_command = 'uuencode %s %s | mail -s "%s" %s' % (file_name,file_name,subject,my_email_address)
+        # #mail_command = 'uuencode %s %s | mail -s "%s" %s' % (file_name,file_name,subject,my_email_address)
         # forget_it = subprocess.check_output(mail_command, shell=True)
         # print(' ==> Email "%s" sent to %s.'%(subject,my_email_address))
     # except: pass
