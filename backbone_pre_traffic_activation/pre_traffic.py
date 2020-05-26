@@ -6026,11 +6026,11 @@ authentication {
                 ### PRINT MAX WORKING PINGSIZE ################################
                 if PING_ONLY:
                     if interface_data['interface_statistics'].get('IPV4 max working ping size'):
-                        CGI_CLI.uprint('MAX. WORKING IPV4 PING SIZE = ' % (str(interface_data['interface_statistics'].get('IPV4 max working ping size'))), \
+                        CGI_CLI.uprint('MAX. WORKING IPV4 PING SIZE = %s' % (str(interface_data['interface_statistics'].get('IPV4 max working ping size'))), \
                             timestamp = 'no', no_printall = not printall, color = 'blue', tag = 'h2')
 
                     if interface_data['interface_statistics'].get('IPV6 max working ping size'):
-                        CGI_CLI.uprint('MAX. WORKING IPV6 PING SIZE = ' % (str(interface_data['interface_statistics'].get('IPV6 max working ping size'))), \
+                        CGI_CLI.uprint('MAX. WORKING IPV6 PING SIZE = %s' % (str(interface_data['interface_statistics'].get('IPV6 max working ping size'))), \
                             timestamp = 'no', no_printall = not printall, color = 'blue', tag = 'h2')
 
                     CGI_CLI.uprint('\n', timestamp = 'no', no_printall = not printall)
