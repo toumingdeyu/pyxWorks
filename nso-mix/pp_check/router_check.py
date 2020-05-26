@@ -916,20 +916,20 @@ def send_me_email(subject = str(), email_body = str(), \
         try:
             forget_it = subprocess.check_output(mail_command, shell=True)
             print(' ==> Email sent. Subject:"%s" SentTo:%s by COMMAND=[%s] with RESULT=[%s]...'\
-                %(subject,sugested_email_address, mail_command, forget_it))
+                %(subject, sugested_email_address, mail_command, forget_it))
             email_success = True
         except Exception as e:
             print(" ==> Problem to send email by COMMAND=[%s], PROBLEM=[%s]\n"\
-                % (mail_command,str(e)))
+                % (mail_command, str(e)))
         return email_success
 
     try:
         ldapsearch_output = subprocess.check_output('ldapsearch -LLL -x uid=%s mail' % (USERNAME), shell=True)
-        ldap_email_address = ldapsearch_output.decode().split('mail:')[1].splitlines()[0].strip()
-    except: ldap_email_address = None
+        sugested_email_address = ldapsearch_output.decode().split('mail:')[1].splitlines()[0].strip()
+    except: sugested_email_address = None
 
     ### UNIX - MAILX ######################################################
-    mail_command = 'echo \'%s\' | mailx -s "%s" ' % (email_body,subject)
+    mail_command = 'echo \'%s\' | mailx -s "%s" ' % (email_body, subject)
     if cc:
         if isinstance(cc, six.string_types): mail_command += '-c %s' % (cc)
         if cc and isinstance(cc, (list,tuple)): mail_command += ''.join([ '-c %s ' % (cc_email) for cc_email in cc ])
@@ -950,6 +950,12 @@ def send_me_email(subject = str(), email_body = str(), \
     else:
         mail_command += '%s' % (sugested_email_address)
         email_sent = send_unix_email_body(mail_command)
+
+        ### UNIX - MUTT ###################################################
+        if not email_sent and file_name:
+            mail_command = 'echo | mutt -s "%s" -a %s -- %s' % \
+                (subject, file_name, sugested_email_address)
+            email_sent = send_unix_email_body(mail_command)
 
 
 
