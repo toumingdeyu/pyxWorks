@@ -5,7 +5,8 @@
 # Author: Philippe Marcais (philippe.marcais@orange.com)                      #
 #         Peter Nemec      (peter.nemec@orange.com)                           #
 # Created: 06/01/2015                                                         #
-# Updated: 25/May/2020 - --custom (BGP) check                                 #
+# Updated: 26/May/2020 - send emails by mailx (by apache user)                #
+#          25/May/2020 - --custom (BGP) check                                 #
 #          14/May/2020 -huawei L2VPN commands added                           #
 #          ...                                                                #
 #          21/Nov/2019 -junos name in prompt bugfix                           #
@@ -891,19 +892,66 @@ def append_variable_to_bashrc(variable_name=None,variable_value=None):
     forget_it = subprocess.check_output('echo export %s=%s >> ~/.bashrc'%(variable_name,variable_value), shell=True)
 
 
-def send_me_email(subject='testmail', file_name='/dev/null'):
-    my_account = subprocess.check_output('whoami', shell=True)
-    my_finger_line = subprocess.check_output('finger | grep "%s"'%(my_account.strip()), shell=True)
+# def send_me_email(subject='testmail', file_name='/dev/null'):
+    # my_account = subprocess.check_output('whoami', shell=True)
+    # my_finger_line = subprocess.check_output('finger | grep "%s"'%(my_account.strip()), shell=True)
+    # try:
+        # my_name = my_finger_line.splitlines()[0].split()[1]
+        # my_surname = my_finger_line.splitlines()[0].split()[2]
+        # if EMAIL_ADDRESS: my_email_address = EMAIL_ADDRESS
+        # else: my_email_address = '%s.%s@orange.com' % (my_name, my_surname)
+        # mail_command = 'echo | mutt -s "%s" -a %s -- %s' % (subject,file_name,my_email_address)
+        mail_command = 'uuencode %s %s | mail -s "%s" %s' % (file_name,file_name,subject,my_email_address)
+        # forget_it = subprocess.check_output(mail_command, shell=True)
+        # print(' ==> Email "%s" sent to %s.'%(subject,my_email_address))
+    # except: pass
+
+
+
+def send_me_email(subject = str(), email_body = str(), \
+    file_name = None, cc = None, bcc = None, attachments = None):
+
+    def send_unix_email_body(mail_command):
+        email_success = None
+        try:
+            forget_it = subprocess.check_output(mail_command, shell=True)
+            print(' ==> Email sent. Subject:"%s" SentTo:%s by COMMAND=[%s] with RESULT=[%s]...'\
+                %(subject,sugested_email_address, mail_command, forget_it))
+            email_success = True
+        except Exception as e:
+            print(" ==> Problem to send email by COMMAND=[%s], PROBLEM=[%s]\n"\
+                % (mail_command,str(e)))
+        return email_success
+
     try:
-        my_name = my_finger_line.splitlines()[0].split()[1]
-        my_surname = my_finger_line.splitlines()[0].split()[2]
-        if EMAIL_ADDRESS: my_email_address = EMAIL_ADDRESS
-        else: my_email_address = '%s.%s@orange.com' % (my_name, my_surname)
-        mail_command = 'echo | mutt -s "%s" -a %s -- %s' % (subject,file_name,my_email_address)
-        #mail_command = 'uuencode %s %s | mail -s "%s" %s' % (file_name,file_name,subject,my_email_address)
-        forget_it = subprocess.check_output(mail_command, shell=True)
-        print(' ==> Email "%s" sent to %s.'%(subject,my_email_address))
-    except: pass
+        ldapsearch_output = subprocess.check_output('ldapsearch -LLL -x uid=%s mail' % (USERNAME), shell=True)
+        ldap_email_address = ldapsearch_output.decode().split('mail:')[1].splitlines()[0].strip()
+    except: ldap_email_address = None
+
+    ### UNIX - MAILX ######################################################
+    mail_command = 'echo \'%s\' | mailx -s "%s" ' % (email_body,subject)
+    if cc:
+        if isinstance(cc, six.string_types): mail_command += '-c %s' % (cc)
+        if cc and isinstance(cc, (list,tuple)): mail_command += ''.join([ '-c %s ' % (cc_email) for cc_email in cc ])
+    if bcc:
+        if isinstance(bcc, six.string_types): mail_command += '-b %s' % (bcc)
+        if bcc and isinstance(bcc, (list,tuple)): mail_command += ''.join([ '-b %s ' % (bcc_email) for bcc_email in bcc ])
+    if file_name and isinstance(file_name, six.string_types) and os.path.exists(file_name):
+        mail_command += '-a %s ' % (file_name)
+    if attachments:
+        if isinstance(attachments, (list,tuple)):
+            mail_command += ''.join([ '-a %s ' % (attach_file) for attach_file in attachments if os.path.exists(attach_file) ])
+        if isinstance(attachments, six.string_types) and os.path.exists(attachments):
+            mail_command += '-a %s ' % (attachments)
+
+    ### IF EMAIL ADDRESS FOUND , SEND EMAIL ###############################
+    if not sugested_email_address:
+        print(' ==> Email Address not found!')
+    else:
+        mail_command += '%s' % (sugested_email_address)
+        email_sent = send_unix_email_body(mail_command)
+
+
 
 def run_isis_check(logfilename = None):
     time.sleep(3)
