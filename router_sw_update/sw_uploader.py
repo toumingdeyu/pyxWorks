@@ -3546,7 +3546,8 @@ def huawei_copy_device_files_to_slave_cfcard(true_sw_release_files_on_server = N
                 CGI_CLI.uprint('copying sw release files on %s to slave cfcard' % (device), \
                     no_newlines = None if printall else True)
                 forget_it = RCMD.run_commands(copy_files_cmds, \
-                    autoconfirm_mode = True, printall = printall)
+                    autoconfirm_mode = True, long_lasting_mode = True,
+                    printall = printall)
 
                 ### CHECK FILES COPY ######################################
                 check_dir_files_cmds = {'huawei':[]}
@@ -3634,7 +3635,8 @@ def juniper_copy_device_files_to_other_routing_engine(true_sw_release_files_on_s
                     CGI_CLI.uprint('copying sw release files on %s to backup routing engine' % (device), \
                         no_newlines = None if printall else True)
                     forget_it = RCMD.run_commands(copy_files_cmds, \
-                        autoconfirm_mode = True, printall = printall)
+                        autoconfirm_mode = True, long_lasting_mode = True, \
+                        printall = printall)
 
                     ### CHECK FILES COPY ######################################
                     check_dir_files_cmds = {'juniper':[]}
