@@ -2519,13 +2519,11 @@ authentication {
                 'cisco_ios':['show bgp summary',
                              'show bgp vpnv4 unicast summary',
                              'show bgp ipv6 unicast summary',
-                             'show running-config router static | include %s' % (str(interface_id[2:])),
                             ],
 
                 'cisco_xr': ['show bgp summary',
                              'show bgp vpnv4 unicast summary',
                              'show bgp ipv6 unicast summary',
-                             'show running-config router static | include %s' % (str(interface_id[2:])),
                             ],
 
                 'juniper':  ['show bgp neighbor | match "Group:|Peer:" | except "NLRI|Restart"',
@@ -2534,7 +2532,6 @@ authentication {
 
                 'huawei':   ['display bgp peer',
                              'display bgp vpnv4 all peer',
-                             'disp current-configuration configuration route-static | include %s' % (interface_id),
                             ]
             }
 
