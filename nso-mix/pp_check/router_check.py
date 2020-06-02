@@ -1506,8 +1506,9 @@ if pre_post == "post" or args.recheck or args.postcheck_file:
                         myfile.write('\n' + bcolors.BOLD + cli + bcolors.ENDC +'\n')
                         if len(diff_result) == 0: myfile.write(bcolors.GREY + 'OK' + bcolors.ENDC + '\n\n')
                         else: myfile.write(diff_result + '\n\n')
+                        myfile.flush()
 
-    ### ISIS CHECK DO NOT LOG IF RECHECK ######################################
+    ### def ISIS CHECK DO NOT LOG IF RECHECK ##################################
     print('\n')
     if args.recheck: run_isis_check()
     else: run_isis_check(postcheck_file)
