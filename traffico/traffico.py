@@ -1584,28 +1584,30 @@ if device:
         RCMD.run_commands(overload_bit_set_config, conf = True, sim_config = CGI_CLI.data.get("sim"), \
             printall = CGI_CLI.data.get("printall"))
 
-        if not CGI_CLI.data.get("sim"):
-            CGI_CLI.uprint('Waiting... ', no_newlines = True, log = True)
-            for i in range(int(int(CGI_CLI.data.get("delay") if CGI_CLI.data.get("delay") else int(SLEEPSEC))/10)):
-                time.sleep(10)
-                CGI_CLI.uprint(' %s0sec ' % (str(i+1)), no_newlines = True, log = True)
+        if len(bgp_config) > 0:
+            if not CGI_CLI.data.get("sim"):
+                CGI_CLI.uprint('Waiting... ', no_newlines = True, log = True)
+                for i in range(int(int(CGI_CLI.data.get("delay") if CGI_CLI.data.get("delay") else int(SLEEPSEC))/10)):
+                    time.sleep(10)
+                    CGI_CLI.uprint(' %s0sec ' % (str(i+1)), no_newlines = True, log = True)
 
-        CGI_CLI.uprint('\n\nWriting config... ', log = True)
-        RCMD.run_commands(bgp_config, conf = True, sim_config = CGI_CLI.data.get("sim"), \
-            printall = CGI_CLI.data.get("printall"))
+            CGI_CLI.uprint('\n\nWriting config... ', log = True)
+            RCMD.run_commands(bgp_config, conf = True, sim_config = CGI_CLI.data.get("sim"), \
+                printall = CGI_CLI.data.get("printall"))
 
 
     ### NOSHUT ACTION #########################################################
     elif SCRIPT_ACTION == 'noshut':
-        CGI_CLI.uprint('Writing config... ', log = True)
-        RCMD.run_commands(bgp_config, conf = True, sim_config = CGI_CLI.data.get("sim"), \
-            printall = CGI_CLI.data.get("printall"))
+        if len(bgp_config) > 0:
+            CGI_CLI.uprint('Writing config... ', log = True)
+            RCMD.run_commands(bgp_config, conf = True, sim_config = CGI_CLI.data.get("sim"), \
+                printall = CGI_CLI.data.get("printall"))
 
-        if not CGI_CLI.data.get("sim"):
-            CGI_CLI.uprint('Waiting... ', no_newlines = True, log = True)
-            for i in range(int(int(CGI_CLI.data.get("delay") if CGI_CLI.data.get("delay") else int(SLEEPSEC))/10)):
-                time.sleep(10)
-                CGI_CLI.uprint(' %s0sec ' % (str(i+1)), no_newlines = True, log = True)
+            if not CGI_CLI.data.get("sim"):
+                CGI_CLI.uprint('Waiting... ', no_newlines = True, log = True)
+                for i in range(int(int(CGI_CLI.data.get("delay") if CGI_CLI.data.get("delay") else int(SLEEPSEC))/10)):
+                    time.sleep(10)
+                    CGI_CLI.uprint(' %s0sec ' % (str(i+1)), no_newlines = True, log = True)
 
         CGI_CLI.uprint('\n\nClearing overload bit... ', log = True)
         RCMD.run_commands(overload_bit_unset_config, conf = True, sim_config = CGI_CLI.data.get("sim"), \
