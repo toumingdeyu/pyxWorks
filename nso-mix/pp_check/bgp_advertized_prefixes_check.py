@@ -2512,7 +2512,9 @@ authentication {
 
             CGI_CLI.logtofile('\nDETECTED DEVICE_TYPE: %s\n\n' % (RCMD.router_type))
 
-            interface_data = collections.OrderedDict()
+            device_data = collections.OrderedDict()
+            device_data['device'] = str(device).upper()
+            device_data['bgp_peers'] = collections.OrderedDict()
 
             ### LOCAL AS NUMBER COMMANDS ##################################
             collector_cmds = {
@@ -2528,10 +2530,12 @@ authentication {
 
                 'juniper':  ['show bgp neighbor | match "Group:|Peer:" | except "NLRI|Restart"',
                              'show bgp summary',
+                             'show bgp neighbor | match "^Peer:|prefixes:|damping:"',
                             ],
 
                 'huawei':   ['display bgp peer',
                              'display bgp vpnv4 all peer',
+                             'disp bgp peer verbose | i (BGP Peer is|routes)',
                             ]
             }
 
@@ -2547,12 +2551,23 @@ authentication {
                 if not LOCAL_AS_NUMBER:
                     try: LOCAL_AS_NUMBER = rcmd_outputs[1].split("local AS number")[1].splitlines()[0].strip()
                     except: pass
-
+                device_data['LOCAL_AS_NUMBER'] = LOCAL_AS_NUMBER
+                
+                for peer_section in rcmd_outputs[2].split('Peer: '):
+                    try: bgp_peer = peer_section.split()[0].split('+')[0]
+                    except: bgp_peer = str()
+                    try: advertised_prefixes = peer_section.split('Advertised prefixes:')[1].strip()
+                    except: advertised_prefixes = str()
+                    if bgp_peer and advertised_prefixes:
+                        device_data['bgp_peers']['%s' % (bgp_peer)] = collections.OrderedDict()
+                        device_data['bgp_peers']['%s' % (bgp_peer)]['advertised_prefixes'] = copy.deepcopy(advertised_prefixes)
+                
        
             elif RCMD.router_type == 'juniper':
                 try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("Local:")[1].splitlines()[0].split('AS')[1].strip()
                 except: pass
-
+                device_data['LOCAL_AS_NUMBER'] = LOCAL_AS_NUMBER
+                            
 
             elif RCMD.router_type == 'huawei':
                 try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("Local AS number :")[1].splitlines()[0].strip()
@@ -2560,19 +2575,21 @@ authentication {
                 if not LOCAL_AS_NUMBER:
                     try: LOCAL_AS_NUMBER = rcmd_outputs[1].split("Local AS number :")[1].splitlines()[0].strip()
                     except: pass
-
-            ### LOCAL AS NUMBER ###############################################
-            interface_data['LOCAL_AS_NUMBER'] = LOCAL_AS_NUMBER
+                device_data['LOCAL_AS_NUMBER'] = LOCAL_AS_NUMBER
 
 
 
 
-    ### LOOP PER INTERFACE - END ######################################
-    RCMD.disconnect()
 
 
+            ### LOOP PER INTERFACE - END ######################################
+            RCMD.disconnect()
 
-    ### CLOSE GLOBAL LOGFILE ##############################################
+    ### PRINT COLLECTED DATA ##################################################
+    CGI_CLI.uprint(device_data, name = True, jsonprint = True, \
+        color = 'blue', timestamp = 'no', no_printall = not printall)
+
+    ### CLOSE GLOBAL LOGFILE ##################################################
     CGI_CLI.logtofile(end_log = True, ommit_timestamp = True)
 
 except SystemExit: pass
