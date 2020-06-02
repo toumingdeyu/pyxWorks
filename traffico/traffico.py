@@ -1439,7 +1439,7 @@ if device:
 
     ### def JUNOS BGP NEIGHBORS PARSING #######################################
     elif RCMD.router_type == 'juniper':
-        try: junos_ext_groups = [ group.split()[-1].strip().encode(encoding="UTF-8") for group in rcmd_outputs[1].split("External ")[0:-1] ]
+        try: junos_ext_groups = [ str(group.split()[-1].strip().encode(encoding="UTF-8")) for group in rcmd_outputs[1].split("External ")[0:-1] ]
         except: junos_ext_groups = []
 
         ### OTI ###
@@ -1449,14 +1449,14 @@ if device:
                 for group in junos_ext_groups:
                     for line in rcmd_outputs[2].splitlines():
                         if str(group) in str(line):
-                            if str('deactivate') in str(line): pass
+                            if str('deactivate ') in str(line): pass
                             elif str('set ') in str(line):
                                 try: neighbor = str(line).split('neighbor')[1].split()[0].strip()
                                 except: neighbor = None
                                 if neighbor:
-                                    active_junos_ext_groups.append([copy.deepcopy(str(group)),copy.deepcopy(neighbor)])
+                                    active_junos_ext_groups.append([copy.deepcopy(str(group)),copy.deepcopy(str(neighbor))])
                 bgp_data["JUNOS_EXT_GROUP_NEIGHBORS"] = active_junos_ext_groups
-                
+
                 for group,neighbor in bgp_data.get("JUNOS_EXT_GROUP_NEIGHBORS",[]):
                     bgp_config.append('deactivate protocols bgp group %s neighbor %s' % (group, neighbor))
 
