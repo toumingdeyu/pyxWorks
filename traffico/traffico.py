@@ -1448,14 +1448,15 @@ if device:
                 active_junos_ext_groups = []
                 for group in junos_ext_groups:
                     for line in rcmd_outputs[2].splitlines():
-                        if group in line:
-                            if 'deactivate' in line: pass
-                            elif 'set ' in line:
-                                try: neighbor = line.split('neighbor')[1].split()[0].strip()
+                        if str(group) in str(line):
+                            if str('deactivate') in str(line): pass
+                            elif str('set ') in str(line):
+                                try: neighbor = str(line).split('neighbor')[1].split()[0].strip()
                                 except: neighbor = None
                                 if neighbor:
-                                    active_junos_ext_groups.append([copy.deepcopy(group),copy.deepcopy(neighbor)])
+                                    active_junos_ext_groups.append([copy.deepcopy(str(group)),copy.deepcopy(neighbor)])
                 bgp_data["JUNOS_EXT_GROUP_NEIGHBORS"] = active_junos_ext_groups
+                
                 for group,neighbor in bgp_data.get("JUNOS_EXT_GROUP_NEIGHBORS",[]):
                     bgp_config.append('deactivate protocols bgp group %s neighbor %s' % (group, neighbor))
 
