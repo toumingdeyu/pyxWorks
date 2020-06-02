@@ -1204,7 +1204,7 @@ def read_bgp_data_json_from_logfile(filename = None, printall = None):
 
 ##############################################################################
 #
-# BEGIN MAIN
+# def BEGIN MAIN
 #
 ##############################################################################
 if __name__ != "__main__": sys.exit(0)
@@ -1369,7 +1369,7 @@ if device:
     if RCMD.router_type == 'cisco_ios':
         CGI_CLI.uprint('NOT IMPLEMENTED YET !', tag ='h1', color = 'red', log = True)
 
-    ### CISCO_XR ##############################################################
+    ### def CISCO_XR BGP NEIGHBORS PARSING ####################################
     elif RCMD.router_type == 'cisco_xr':
         bgp_config.append('router bgp %s' % (LOCAL_AS_NUMBER))
 
@@ -1437,7 +1437,7 @@ if device:
                         # if not "ADMIN" in status.upper(): bgp_config.append('no neighbor %s shutdown' % neighbor)
 
 
-    ### JUNOS #################################################################
+    ### def JUNOS BGP NEIGHBORS PARSING #######################################
     elif RCMD.router_type == 'juniper':
         try: junos_ext_groups = [ group.split()[-1].strip().encode(encoding="UTF-8") for group in rcmd_outputs[1].split("External ")[0:-1] ]
         except: junos_ext_groups = []
@@ -1448,13 +1448,17 @@ if device:
                 active_junos_ext_groups = []
                 for group in junos_ext_groups:
                     for line in rcmd_outputs[2].splitlines():
-                        if group in line and 'deactivate' not in line:
-                            try: neighbor = line.split('neighbor')[1].split()[0].strip()
-                            except: neighbor = str()
-                            if neighbor: active_junos_ext_groups.append([group,neighbor])
+                        if group in line:
+                            if 'deactivate' in line: pass
+                            elif 'set ' in line:
+                                try: neighbor = line.split('neighbor')[1].split()[0].strip()
+                                except: neighbor = None
+                                if neighbor:
+                                    active_junos_ext_groups.append([copy.deepcopy(group),copy.deepcopy(neighbor)])
                 bgp_data["JUNOS_EXT_GROUP_NEIGHBORS"] = active_junos_ext_groups
                 for group,neighbor in bgp_data.get("JUNOS_EXT_GROUP_NEIGHBORS",[]):
                     bgp_config.append('deactivate protocols bgp group %s neighbor %s' % (group, neighbor))
+
             elif SCRIPT_ACTION == 'noshut':
                 for group,neighbor in bgp_data.get("JUNOS_EXT_GROUP_NEIGHBORS",[]):
                     bgp_config.append('activate protocols bgp group %s neighbor %s' % (group, neighbor))
@@ -1463,7 +1467,7 @@ if device:
             CGI_CLI.uprint('NOT IMPLEMENTED YET !', tag ='h1', color = 'red', log = True)
 
 
-    ### HUAWEI ################################################################
+    ### def HUAWEI BGP NEIGHBORS PARSING ######################################
     elif RCMD.router_type == 'huawei':
         ipv4_list, dummy = huawei_parse_bgp_summary(rcmd_outputs[0], LOCAL_AS_NUMBER)
         dummy, ipv6_list = huawei_parse_bgp_summary(rcmd_outputs[1], LOCAL_AS_NUMBER)
@@ -1515,10 +1519,11 @@ if device:
 
     ### VOID CONFIG END #######################################################
     if bgp_config == [] or bgp_data == {}:
-        CGI_CLI.uprint('VOID CONFIG, END!', tag = 'h1' , color = 'red', log = True)
+        CGI_CLI.uprint('VOID CONFIG, DO SET/CLEAR OVERLOAD BIT ONLY.', tag = 'h3' , color = 'blue', log = True)
+        #CGI_CLI.uprint('VOID CONFIG, END!', tag = 'h1' , color = 'red', log = True)
         LCMD.eval_command('return_bgp_data_json()', logfilename = logfilename)
-        RCMD.disconnect()
-        sys.exit(0)
+        #RCMD.disconnect()
+        #sys.exit(0)
     elif CGI_CLI.data.get("printall"):
         CGI_CLI.uprint(bgp_data, name = 'bgp_data', jsonprint = True, log = True)
 
@@ -1551,10 +1556,11 @@ if device:
             color = 'blue', log = True)
 
 
-    ### PRINT CONFIG ##########################################################
-    CGI_CLI.uprint('\n%s CONFIG:\n' % (SCRIPT_ACTION.upper()), color = 'blue', \
-        tag = 'h1', log = True)
-    CGI_CLI.uprint('%s\n\n' % ('\n'.join(bgp_config)), color = 'blue', log = True)
+    if len(bgp_config) > 0:
+        ### PRINT CONFIG ##########################################################
+        CGI_CLI.uprint('\n%s CONFIG:\n' % (SCRIPT_ACTION.upper()), color = 'blue', \
+            tag = 'h1', log = True)
+        CGI_CLI.uprint('%s\n\n' % ('\n'.join(bgp_config)), color = 'blue', log = True)
 
 
     ### PRINT CLEAR OVERLOAD BIT CONFIG #######################################
