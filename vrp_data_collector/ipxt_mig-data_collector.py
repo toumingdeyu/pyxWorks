@@ -263,7 +263,7 @@ CMD_VRP = [
     {'pre_if':'"permit ip source" in glob_vars.get("ACL_TEXT","")',
          'exec':'bgp_data["customer_prefixes_v4"] = [] \
               \nfor line in glob_vars.get("ACL_TEXT","").split("permit ip source")[1:]:\
-              \n  bgp_data["customer_prefixes_v4"].append({"customer_prefix_v4":line.split()[0],"customer_subnetmask_v4":line.split()[1]})'
+              \n  bgp_data["customer_prefixes_v4"].append({"customer_prefix_v4":line.split()[0].strip(),"customer_subnetmask_v4":line.split()[1].strip()})'
     },
     {'exec':'bgp_data["old_pe_interface"] = glob_vars.get("INTERFACE",None)'},
     #{"eval":["return_bgp_data_json()",{'print_output':'on'}]},
