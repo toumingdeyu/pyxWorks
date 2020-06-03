@@ -1010,7 +1010,7 @@ elif input_mask and '.' in str(input_mask):
     if i_order<3: wildchard_mask += '.'
 %>
 % if avoid_address and avoid_address != cgi_data.get('ipv4-acl','').split(',')[2*i].strip():
-ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('ipv4-acl','').split(',')[2*i].strip()} ${wildchard_mask} Tunnel${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('bgp-peer-address','UNKNOWN')}
+ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN').strip()} ${cgi_data.get('ipv4-acl','').split(',')[2*i].strip()} ${wildchard_mask} Tunnel${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('bgp-peer-address','UNKNOWN')}
 % endif
 % endfor
 !
@@ -1511,7 +1511,7 @@ elif '.' in input_mask:
     if i_order<3: wildchard_mask += '.'
 #wildchard_mask = '.'.join([ str(int(mask_item)^255) for mask_item in cgi_data.get('ipv4-acl','').split(',')[2*i+1].split('.') if '.' in cgi_data.get('ipv4-acl','').split(',')[2*i+1] and not "" in mask_item ])}
 %>
-no ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('ipv4-acl','').split(',')[2*i].strip()} ${wildchard_mask} Tunnel${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('bgp-peer-address','UNKNOWN')}
+no ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN').strip()} ${cgi_data.get('ipv4-acl','').split(',')[2*i].strip()} ${wildchard_mask} Tunnel${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('bgp-peer-address','UNKNOWN')}
 % endfor
 !
 """
