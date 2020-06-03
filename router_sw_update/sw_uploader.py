@@ -4610,7 +4610,7 @@ function validateForm() {
             force_rewrite = force_rewrite)
 
         ### TIMEOUT ###########################################################
-        time.sleep(4)
+        time.sleep(6)
 
         ### COPY DEVICE FILES TO HUAWEI SLAVE CFCARD ##########################
         huawei_copy_device_files_to_slave_cfcard(true_sw_release_files_on_server, \
