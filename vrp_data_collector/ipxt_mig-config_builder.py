@@ -1009,8 +1009,8 @@ elif input_mask and '.' in str(input_mask):
     except: wildchard_mask += '255'
     if i_order<3: wildchard_mask += '.'
 %>
-% if avoid_address and avoid_address != cgi_data.get('ipv4-acl','').split(',')[2*i]:
-ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('ipv4-acl','').split(',')[2*i]} ${wildchard_mask} Tunnel${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('bgp-peer-address','UNKNOWN')}
+% if avoid_address and avoid_address != cgi_data.get('ipv4-acl','').split(',')[2*i].strip():
+ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('ipv4-acl','').split(',')[2*i].strip()} ${wildchard_mask} Tunnel${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('bgp-peer-address','UNKNOWN')}
 % endif
 % endfor
 !
@@ -1095,8 +1095,8 @@ ipv4 access-list ${cgi_data.get('vpn','UNKNOWN')}-IN
  10 permit ipv4 ${cgi_data.get('pe-ip-address','')} 0.0.0.1 any
 <% avoid_address = ''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ]) %>
 % for i in range(int(len(list)/2)):
-% if avoid_address and avoid_address != cgi_data.get('ipv4-acl','').split(',')[2*i]:
- ${rule_num} permit ipv4 ${cgi_data.get('ipv4-acl','').split(',')[2*i]} ${cgi_data.get('ipv4-acl','').split(',')[2*i+1] if cgi_data.get('ipv4-acl','').split(',')[2*i+1] != '0' else '0.0.0.0'} any<% rule_num += 10 %>
+% if avoid_address and avoid_address != cgi_data.get('ipv4-acl','').split(',')[2*i].strip():
+ ${rule_num} permit ipv4 ${cgi_data.get('ipv4-acl','').split(',')[2*i].strip()} ${cgi_data.get('ipv4-acl','').split(',')[2*i+1] if cgi_data.get('ipv4-acl','').split(',')[2*i+1] != '0' else '0.0.0.0'} any<% rule_num += 10 %>
 % endif
 % endfor
  1000 deny ipv4 any any
@@ -1114,16 +1114,16 @@ netlines = []
 net = None
 avoid_address = ''.join([ str(item.get('ip_address_customer','UNKNOWN')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ])
 for i in range(int(len(splitted_list)/2)):
-    if avoid_address != splitted_list[2*i]:
+    if avoid_address != splitted_list[2*i].strip():
         if splitted_list[2*i] == ''.join([ str(item.get('gw_peer_address_ibgp','')) for item in ipxt_data_collector if item.get('session_id','UNKNOWN')==cgi_data.get('session_id',"UNKNOWN") ]):
             net = None
         else:
             try:
-                if splitted_list[2*i+1] == "0": net = splitted_list[2*i]+"/32"
+                if splitted_list[2*i+1] == "0": net = splitted_list[2*i].strip()+"/32"
                 else:
-                    try: net = ipaddress.ip_network(splitted_list[2*i]+'/'+splitted_list[2*i+1], strict=True)
-                    except: net = splitted_list[2*i] + '/32'
-            except: net = splitted_list[2*i]+"/32"
+                    try: net = ipaddress.ip_network(splitted_list[2*i].strip()+'/'+splitted_list[2*i+1], strict=True)
+                    except: net = splitted_list[2*i].strip() + '/32'
+            except: net = splitted_list[2*i].strip()+"/32"
         if net: netlines.append(str(net) + ' le 32,')
 try: netlines[-1] = netlines[-1].replace(',','')
 except: pass
@@ -1511,7 +1511,7 @@ elif '.' in input_mask:
     if i_order<3: wildchard_mask += '.'
 #wildchard_mask = '.'.join([ str(int(mask_item)^255) for mask_item in cgi_data.get('ipv4-acl','').split(',')[2*i+1].split('.') if '.' in cgi_data.get('ipv4-acl','').split(',')[2*i+1] and not "" in mask_item ])}
 %>
-no ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('ipv4-acl','').split(',')[2*i]} ${wildchard_mask} Tunnel${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('bgp-peer-address','UNKNOWN')}
+no ip route vrf LOCAL.${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('ipv4-acl','').split(',')[2*i].strip()} ${wildchard_mask} Tunnel${cgi_data.get('vlan-id','UNKNOWN')} ${cgi_data.get('bgp-peer-address','UNKNOWN')}
 % endfor
 !
 """
@@ -1652,7 +1652,7 @@ def send_me_email(subject = str(), email_body = str(), file_name = None, attachm
 
 ##############################################################################
 #
-# BEGIN MAIN
+# def BEGIN MAIN
 #
 ##############################################################################
 if __name__ != "__main__": sys.exit(0)
