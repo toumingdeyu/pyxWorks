@@ -25,6 +25,8 @@ from mako.lookup import TemplateLookup
 import ipaddress
 
 
+### DELAY BETWEEN OVERLOAD BIT AND BGP SHUT ###
+SLEEPSEC = 120
 
 
 class CGI_CLI(object):
@@ -2716,72 +2718,73 @@ authentication {
                 LCMD.eval_command('return_bgp_data_json()')
                 RCMD.disconnect()
                 sys.exit(0)
+            else:
+                pass
+
+                ### SHUT ACTION ###############################################
+                if SCRIPT_ACTION == 'shut':
+                    CGI_CLI.uprint('Setting overload bit... ')
+                    RCMD.run_commands(overload_bit_set_config, conf = True, sim_config = CGI_CLI.data.get("sim"), \
+                        printall = CGI_CLI.data.get("printall"))
+
+                    if len(bgp_config) > 0:
+                        if not CGI_CLI.data.get("sim"):
+                            CGI_CLI.uprint('Waiting... ', no_newlines = True)
+                            for i in range(int(int(CGI_CLI.data.get("delay") if CGI_CLI.data.get("delay") else int(SLEEPSEC))/10)):
+                                time.sleep(10)
+                                CGI_CLI.uprint(' %s0sec ' % (str(i+1)), no_newlines = True)
+
+                        CGI_CLI.uprint('\n\nWriting config... ')
+                        RCMD.run_commands(bgp_config, conf = True, sim_config = CGI_CLI.data.get("sim"), \
+                            printall = CGI_CLI.data.get("printall"))
 
 
-            ### SHUT ACTION ###########################################################
-            if SCRIPT_ACTION == 'shut':
-                CGI_CLI.uprint('Setting overload bit... ')
-                RCMD.run_commands(overload_bit_set_config, conf = True, sim_config = CGI_CLI.data.get("sim"), \
-                    printall = CGI_CLI.data.get("printall"))
+                ### NOSHUT ACTION #############################################
+                elif SCRIPT_ACTION == 'noshut':
+                    if len(bgp_config) > 0:
+                        CGI_CLI.uprint('Writing config... ')
+                        RCMD.run_commands(bgp_config, conf = True, sim_config = CGI_CLI.data.get("sim"), \
+                            printall = CGI_CLI.data.get("printall"))
 
-                if len(bgp_config) > 0:
-                    if not CGI_CLI.data.get("sim"):
-                        CGI_CLI.uprint('Waiting... ', no_newlines = True)
-                        for i in range(int(int(CGI_CLI.data.get("delay") if CGI_CLI.data.get("delay") else int(SLEEPSEC))/10)):
-                            time.sleep(10)
-                            CGI_CLI.uprint(' %s0sec ' % (str(i+1)), no_newlines = True)
+                        if not CGI_CLI.data.get("sim"):
+                            CGI_CLI.uprint('Waiting... ', no_newlines = True)
+                            for i in range(int(int(CGI_CLI.data.get("delay") if CGI_CLI.data.get("delay") else int(SLEEPSEC))/10)):
+                                time.sleep(10)
+                                CGI_CLI.uprint(' %s0sec ' % (str(i+1)), no_newlines = True)
 
-                    CGI_CLI.uprint('\n\nWriting config... ')
-                    RCMD.run_commands(bgp_config, conf = True, sim_config = CGI_CLI.data.get("sim"), \
+                    CGI_CLI.uprint('\n\nClearing overload bit... ')
+                    RCMD.run_commands(overload_bit_unset_config, conf = True, sim_config = CGI_CLI.data.get("sim"), \
                         printall = CGI_CLI.data.get("printall"))
 
 
-            ### NOSHUT ACTION #########################################################
-            elif SCRIPT_ACTION == 'noshut':
-                if len(bgp_config) > 0:
-                    CGI_CLI.uprint('Writing config... ')
-                    RCMD.run_commands(bgp_config, conf = True, sim_config = CGI_CLI.data.get("sim"), \
-                        printall = CGI_CLI.data.get("printall"))
+                ### FINAL_CHECK ###########################################################
+                if LOCAL_AS_NUMBER == '5511':
+                    check_config = {'cisco_ios':['show bgp summary','show bgp ipv6 unicast summary'],
+                                    'cisco_xr' :['show bgp summary','show bgp ipv6 unicast summary'],
+                                    'huawei'   :['display bgp peer','display bgp ipv6 peer'],
+                                    'juniper'  :['show configuration protocols bgp']
+                                   }
 
-                    if not CGI_CLI.data.get("sim"):
-                        CGI_CLI.uprint('Waiting... ', no_newlines = True)
-                        for i in range(int(int(CGI_CLI.data.get("delay") if CGI_CLI.data.get("delay") else int(SLEEPSEC))/10)):
-                            time.sleep(10)
-                            CGI_CLI.uprint(' %s0sec ' % (str(i+1)), no_newlines = True)
+                elif LOCAL_AS_NUMBER == '2300':
+                    check_config = {'cisco_ios':['show bgp vpnv4 unicast summary','show bgp vrf all summary'],
+                                    'cisco_xr': ['show bgp vpnv4 unicast summary','show bgp vrf all summary'],
+                                    'huawei':   ['disp bgp vpnv4 all peer | exclude 2300']
+                                   }
 
-                CGI_CLI.uprint('\n\nClearing overload bit... ')
-                RCMD.run_commands(overload_bit_unset_config, conf = True, sim_config = CGI_CLI.data.get("sim"), \
-                    printall = CGI_CLI.data.get("printall"))
-
-
-            ### FINAL_CHECK ###########################################################
-            if LOCAL_AS_NUMBER == '5511':
-                check_config = {'cisco_ios':['show bgp summary','show bgp ipv6 unicast summary'],
-                                'cisco_xr' :['show bgp summary','show bgp ipv6 unicast summary'],
-                                'huawei'   :['display bgp peer','display bgp ipv6 peer'],
-                                'juniper'  :['show configuration protocols bgp']
-                               }
-
-            elif LOCAL_AS_NUMBER == '2300':
-                check_config = {'cisco_ios':['show bgp vpnv4 unicast summary','show bgp vrf all summary'],
-                                'cisco_xr': ['show bgp vpnv4 unicast summary','show bgp vrf all summary'],
-                                'huawei':   ['disp bgp vpnv4 all peer | exclude 2300']
-                               }
-
-            CGI_CLI.uprint('\nFINAL MANUAL CHECK:', tag = 'h1', color = 'blue')
-            rcmd_outputs = RCMD.run_commands(check_config, printall = True)
+                CGI_CLI.uprint('\nFINAL MANUAL CHECK:', tag = 'h1', color = 'blue')
+                rcmd_outputs = RCMD.run_commands(check_config, printall = True)
 
 
-            ### WRITE JSON TO END OF FILE #############################################
-            LCMD.eval_command('return_bgp_data_json()')
+                ### WRITE JSON TO END OF FILE #############################################
+                LCMD.eval_command('return_bgp_data_json()')
 
 
-            ### LOOP PER INTERFACE - END ######################################
-            RCMD.disconnect()
+                ### LOOP PER INTERFACE - END ######################################
+                RCMD.disconnect()
 
-            ### PRINT COLLECTED DATA ##################################################
-            CGI_CLI.uprint(device_data, name = True, jsonprint = True, \
-                color = 'blue', timestamp = 'no', no_printall = not printall)
+                ### PRINT COLLECTED DATA ##################################################
+                CGI_CLI.uprint(device_data, name = True, jsonprint = True, \
+                    color = 'blue', timestamp = 'no', no_printall = not printall)
 
 except SystemExit: pass
 except:
