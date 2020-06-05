@@ -2586,8 +2586,8 @@ authentication {
                 if LOCAL_AS_NUMBER == '5511':
                     if SCRIPT_ACTION == 'shut':
                         ### VERY BAD BUG FIX:
-                        ### set protocols bgp group ORANGEROMANIA neighbor 193.251.248.118
-                        ### deactivate protocols bgp group ORANGEROMANIA neighbor 193.251.248.118
+                        ### set protocols bgp group ORANGEROMANIA neighbor 193.251.248.118
+                        ### deactivate protocols bgp group ORANGEROMANIA neighbor 193.251.248.118
 
                         inactive_junos_bgp_neighbors = []
                         for group in junos_ext_groups:
