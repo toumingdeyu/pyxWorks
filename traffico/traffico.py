@@ -2530,7 +2530,7 @@ authentication {
                 ### OTI ###
                 if LOCAL_AS_NUMBER == '5511':
                     ipv4_list, dummy = cisco_xr_parse_bgp_summary(rcmd_outputs[0], LOCAL_AS_NUMBER)
-                    dummy, ipv6_list = cisco_xr_parse_bgp_summary(rcmd_outputs[1], LOCAL_AS_NUMBER)
+                    dummy, ipv6_list = cisco_xr_parse_bgp_summary(rcmd_outputs[2], LOCAL_AS_NUMBER)
 
                     if SCRIPT_ACTION == 'shut':
                         if len(ipv4_list)>0: bgp_data["OTI_EXT_IPS_V4"] = ipv4_list
