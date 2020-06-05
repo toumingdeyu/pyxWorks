@@ -2472,8 +2472,9 @@ authentication {
                             ],
 
                 'juniper':  ['show bgp neighbor | match "Group:|Peer:" | except "NLRI|Restart"',
-                             'show bgp summary',
+                             'show bgp group summary',
                              'show configuration protocols bgp | display set | match neighbor',
+                             'show bgp summary',
                             ],
 
                 'huawei':   ['display bgp peer',
