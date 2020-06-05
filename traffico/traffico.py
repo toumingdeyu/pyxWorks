@@ -2335,6 +2335,7 @@ authentication {
         CGI_CLI.formprint(interface_menu_list + [ \
             {'radio':['shut','noshut']},'<br/>',\
             {'checkbox':'show_config_only'},'<br/>','<br/>', \
+            {'text':'delay'},'<br/>', \
             '<br/><b><u>',{'checkbox':'send_email'},'</u></b><br/>',\
             {'checkbox':'timestamps'}, '<br/>',\
             {'checkbox':'printall'},'<br/>','<br/>'],\
@@ -2758,6 +2759,7 @@ authentication {
 
 
                 ### FINAL_CHECK ###########################################################
+                time.sleep(1)
                 if LOCAL_AS_NUMBER == '5511':
                     check_config = {'cisco_ios':['show bgp summary','show bgp ipv6 unicast summary'],
                                     'cisco_xr' :['show bgp summary','show bgp ipv6 unicast summary'],
