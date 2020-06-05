@@ -2557,14 +2557,6 @@ authentication {
                                 if ipv4_list: ipv4_struct.append([vrf_name,ipv4_list])
                         except: pass
 
-                        # vrf_name, ipv6_struct = str(), []
-                        # try:
-                            # for vrf_part in rcmd_outputs[3].split('VRF: ')[1:]:
-                                # vrf_name = vrf_part.splitlines()[0].split()[0]
-                                # dummy, ipv6_list = cisco_xr_parse_bgp_summary(vrf_part,LOCAL_AS_NUMBER)
-                                # if ipv6_list: ipv6_struct.append([vrf_name,ipv6_list])
-                        # except: pass
-
                         if SCRIPT_ACTION == 'shut':
                             if ipv4_struct: bgp_data["OTI_EXT_GROUP_IPS_V4"] = ipv4_struct
                             #if ipv6_struct: bgp_data["OTI_EXT_GROUP_IPS_V6"] = ipv6_struct
@@ -2575,20 +2567,12 @@ authentication {
                             bgp_config.append('vrf %s' %(group))
                             for  neighbor, status in neighbor_status:
                                 if not "ADMIN" in status.upper(): bgp_config.append('neighbor %s shutdown' % neighbor)
-                        # for group,neighbor_status in bgp_data.get("OTI_EXT_GROUP_IPS_V6",[]):
-                            # bgp_config.append('vrf %s' %(group))
-                            # for  neighbor, status in neighbor_status:
-                                # if not "ADMIN" in status.upper(): bgp_config.append('neighbor %s shutdown' % neighbor)
 
                     elif SCRIPT_ACTION == 'noshut':
                         for group,neighbor_status in bgp_data.get("OTI_EXT_GROUP_IPS_V4",[]):
                             bgp_config.append('vrf %s' %(group))
                             for  neighbor, status in neighbor_status:
                                 if not "ADMIN" in status.upper(): bgp_config.append('no neighbor %s shutdown' % neighbor)
-                        # for group,neighbor_status in bgp_data.get("OTI_EXT_GROUP_IPS_V6",[]):
-                            # bgp_config.append('vrf %s' %(group))
-                            # for  neighbor, status in neighbor_status:
-                                # if not "ADMIN" in status.upper(): bgp_config.append('no neighbor %s shutdown' % neighbor)
 
 
             ### def JUNOS BGP NEIGHBORS PARSING #######################################
