@@ -4099,14 +4099,14 @@ authentication {
                 ### def LONG INTERFACE NAMES ##################################
                 interface_long_name = str()
                 interface_long_names = {}
-                interface_long_names['Be'] = 'Bundle-Ether'
-                interface_long_names['Gi'] = 'GigabitEthernet'
-                interface_long_names['Hu'] = 'HundredGigE'
-                interface_long_names['Te'] = 'TenGigE'
-                interface_long_names['Nu'] = 'Null'
+                interface_long_names['BE'] = 'Bundle-Ether'
+                interface_long_names['GI'] = 'GigabitEthernet'
+                interface_long_names['HU'] = 'HundredGigE'
+                interface_long_names['TE'] = 'TenGigE'
+                interface_long_names['NU'] = 'Null'
 
-                if interface_long_names.get(interface_id[0:2]):
-                    interface_long_name = interface_long_names.get(interface_id[0:2],str()) + interface_id[2:]
+                if interface_long_names.get(interface_id[0:2].upper()):
+                    interface_long_name = interface_long_names.get(interface_id[0:2].upper(),str()) + interface_id[2:]
                 else: interface_long_name = interface_id[2:]
 
                 CGI_CLI.uprint('Collecting %s data on %s' % (interface_id, device), \
