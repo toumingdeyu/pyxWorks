@@ -4096,6 +4096,18 @@ authentication {
                 try: undotted_interface_id = interface_id.split('.')[0]
                 except: undotted_interface_id = interface_id
 
+                ### def LONG INTERFACE NAMES ##################################
+                interface_long_name = str()
+                interface_long_names = {}
+                interface_long_names['Be'] = 'Bundle-Ether'
+                interface_long_names['Gi'] = 'GigabitEthernet'
+                interface_long_names['Hu'] = 'HundredGigE'
+                interface_long_names['Te'] = 'TenGigE'
+                interface_long_names['Nu'] = 'Null'
+
+                if interface_long_names.get(interface_id[0:1]):
+                    interface_long_name = interface_long_names.get(interface_id[0:1],str()) + interface_id[2:]
+                else: interface_long_name = interface_id[2:]
 
                 CGI_CLI.uprint('Collecting %s data on %s' % (interface_id, device), \
                     no_newlines = None if printall else True)
@@ -4108,13 +4120,13 @@ authentication {
                     'cisco_ios':['show bgp summary',
                                  'show bgp vpnv4 unicast summary',
                                  'show bgp ipv6 unicast summary',
-                                 'show running-config router static | include %s' % (str(interface_id[2:])),
+                                 'show running-config router static | include %s' % (str(interface_long_name)),
                                 ],
 
                     'cisco_xr': ['show bgp summary',
                                  'show bgp vpnv4 unicast summary',
                                  'show bgp ipv6 unicast summary',
-                                 'show running-config router static | include %s' % (str(interface_id[2:])),
+                                 'show running-config router static | include %s' % (str(interface_long_name)),
                                 ],
 
                     'juniper':  ['show bgp neighbor | match "Group:|Peer:" | except "NLRI|Restart"',
