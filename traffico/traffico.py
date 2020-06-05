@@ -2474,6 +2474,7 @@ authentication {
                 'juniper':  ['show bgp neighbor | match "Group:|Peer:" | except "NLRI|Restart"',
                              'show bgp group summary',
                              'show configuration protocols bgp | display set | match neighbor',
+                             'show configuration protocols bgp',
                              'show bgp summary',
                             ],
 
@@ -2584,6 +2585,20 @@ authentication {
                 ### OTI ###
                 if LOCAL_AS_NUMBER == '5511':
                     if SCRIPT_ACTION == 'shut':
+                        ### VERY BAD BUG FIX:
+                        ### set protocols bgp group ORANGEROMANIA neighbor 193.251.248.118
+                        ### deactivate protocols bgp group ORANGEROMANIA neighbor 193.251.248.118
+
+                        inactive_junos_bgp_neighbors = []
+                        for group in junos_ext_groups:
+                            for line in rcmd_outputs[2].splitlines():
+                                if str(group) in str(line):
+                                    if str('deactivate ') in str(line):
+                                        try: neighbor = str(line).split('neighbor')[1].split()[0].strip()
+                                        except: neighbor = None
+                                        if neighbor:
+                                            inactive_junos_bgp_neighbors.append(copy.deepcopy(str(neighbor)))
+
                         active_junos_ext_groups = []
                         for group in junos_ext_groups:
                             for line in rcmd_outputs[2].splitlines():
@@ -2592,8 +2607,9 @@ authentication {
                                     elif str('set ') in str(line):
                                         try: neighbor = str(line).split('neighbor')[1].split()[0].strip()
                                         except: neighbor = None
-                                        if neighbor:
+                                        if neighbor and not neighbor in inactive_junos_bgp_neighbors:
                                             active_junos_ext_groups.append([copy.deepcopy(str(group)),copy.deepcopy(str(neighbor))])
+
                         bgp_data["JUNOS_EXT_GROUP_NEIGHBORS"] = active_junos_ext_groups
 
                         for group,neighbor in bgp_data.get("JUNOS_EXT_GROUP_NEIGHBORS",[]):
