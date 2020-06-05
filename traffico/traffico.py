@@ -2821,9 +2821,7 @@ if logfilename:
 
 ### SEND EMAIL WITH LOGFILE ###################################################
 if logfilename and CGI_CLI.data.get("send_email"):
-
-    USERNAME = 'pnemec'
-
+    #USERNAME = 'pnemec'
     CGI_CLI.send_me_email( \
         subject = str(logfilename).replace('\\','/').split('/')[-1] if logfilename else None, \
         file_name = str(logfilename), username = USERNAME)
