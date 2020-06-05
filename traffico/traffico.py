@@ -2273,6 +2273,14 @@ authentication {
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
     printall = CGI_CLI.data.get("printall")
 
+
+    ### def KILLING APLICATION PROCESS ########################################
+    if CGI_CLI.data.get('submit',str()) == 'STOP' and CGI_CLI.data.get('pidtokill'):
+        LCMD.run_commands({'unix':['kill %s' % (CGI_CLI.data.get('pidtokill',str()))]}, printall = None)
+        CGI_CLI.uprint('PID%s stopped.' % (CGI_CLI.data.get('pidtokill',str())))
+        sys.exit(0)
+
+
     if CGI_CLI.data.get("test-version",str()) == 'test-mode' \
         or CGI_CLI.data.get("test-version",str()) == 'test mode':
             test_mode = True
