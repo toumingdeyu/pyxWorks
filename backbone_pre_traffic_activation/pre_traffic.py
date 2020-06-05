@@ -4105,8 +4105,8 @@ authentication {
                 interface_long_names['Te'] = 'TenGigE'
                 interface_long_names['Nu'] = 'Null'
 
-                if interface_long_names.get(interface_id[0:1]):
-                    interface_long_name = interface_long_names.get(interface_id[0:1],str()) + interface_id[2:]
+                if interface_long_names.get(interface_id[0:2]):
+                    interface_long_name = interface_long_names.get(interface_id[0:2],str()) + interface_id[2:]
                 else: interface_long_name = interface_id[2:]
 
                 CGI_CLI.uprint('Collecting %s data on %s' % (interface_id, device), \
