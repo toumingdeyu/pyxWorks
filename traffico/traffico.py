@@ -2377,8 +2377,13 @@ authentication {
                 if continue_or_not.strip().upper() != "Y": sys.exit(0)
 
 
+
     ### END DUE TO MISSING INPUT DATA #########################################
     exit_due_to_error = None
+
+    if SCRIPT_ACTION == str():
+        CGI_CLI.uprint('Action (shut/noshut) NOT SPECIFIED!', tag = 'h2', color = 'red')
+        exit_due_to_error = True
 
     if len(device_list) == 0:
         CGI_CLI.uprint('Device(s) NOT INSERTED!', tag = 'h2', color = 'red')
