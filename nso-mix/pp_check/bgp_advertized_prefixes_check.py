@@ -2324,7 +2324,7 @@ authentication {
                         device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
 
 
-                try: section_list = rcmd_outputs[1].split('VRF: ')[1].splitlines()[1:]
+                try: section_list = rcmd_outputs[3].split('VRF: ')[1:]
                 except: section_list = []
                 for section in section_list:
                     try: vrf_name = section.split()[0]
@@ -2340,8 +2340,10 @@ authentication {
                         except: doubledots_in_bgp_peer = 0
                         find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
                         if len(find_ip) == 1:
+                            device_data['IPV4_bgp_peers'][copy.deepcopy(find_ip[0].strip())] = collections.OrderedDict()
                             device_data['IPV4_bgp_peers'][copy.deepcopy(find_ip[0].strip())]['VRF_NAME'] = copy.deepcopy(vrf_name)
                         elif ':' in bgp_peer and doubledots_in_bgp_peer >= 3:
+                            device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
                             device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['VRF_NAME'] = copy.deepcopy(vrf_name)
 
             elif RCMD.router_type == 'juniper':
