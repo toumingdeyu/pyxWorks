@@ -2236,18 +2236,21 @@ authentication {
 
             device_data = collections.OrderedDict()
             device_data['device'] = str(device).upper()
-            device_data['bgp_peers'] = collections.OrderedDict()
+            device_data['IPV4_bgp_peers'] = collections.OrderedDict()
+            device_data['IPV6_bgp_peers'] = collections.OrderedDict()
 
             ### def LOCAL AS NUMBER CMDS ######################################
             collector_cmds = {
                 'cisco_ios':['show bgp summary',
                              'show bgp vpnv4 unicast summary',
                              'show bgp ipv6 unicast summary',
+                             'show bgp vrf all sum | exc "BGP|ID|stop|Process|Speaker"'
                             ],
 
                 'cisco_xr': ['show bgp summary',
                              'show bgp vpnv4 unicast summary',
                              'show bgp ipv6 unicast summary',
+                             'show bgp vrf all sum | exc "BGP|ID|stop|Process|Speaker"',
                             ],
 
                 'juniper':  ['show bgp neighbor | match "Group:|Peer:" | except "NLRI|Restart"',
@@ -2291,13 +2294,37 @@ authentication {
 
             ### def FIND BGP NEIGHBORS ########################################
             if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
-                for line in rcmd_outputs[1].split('Neighbor')[1].splitlines()[1:]:
+                try: output_list = rcmd_outputs[0].split('Neighbor')[1].splitlines()[1:]
+                except: output_list = []
+                for line in output_list:
                     try: bgp_peer = line.split()[0]
                     except: bgp_peer = str()
                     CGI_CLI.uprint(bgp_peer, tag = 'debug')
                     find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
-                    if len(find_ip) == 1: device_data['bgp_peers'][copy.deepcopy(find_ip[0].strip())] = collections.OrderedDict()
+                    if len(find_ip) == 1: device_data['IPV4_bgp_peers'][copy.deepcopy(find_ip[0].strip())] = collections.OrderedDict()
+            
+                try: output_list = rcmd_outputs[1].split('Neighbor')[1].splitlines()[1:]
+                except: output_list = []
+                for line in output_list:
+                    try: bgp_peer = line.split()[0]
+                    except: bgp_peer = str()
+                    CGI_CLI.uprint(bgp_peer, tag = 'debug')
+                    find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
+                    if len(find_ip) == 1: device_data['IPV4_bgp_peers'][copy.deepcopy(find_ip[0].strip())] = collections.OrderedDict()
 
+                try: output_list = rcmd_outputs[2].split('Neighbor')[1].splitlines()[1:]
+                except: output_list = []
+                for line in output_list:
+                    try: bgp_peer = line.split()[0]
+                    except: bgp_peer = str()
+                    try: doubledots_in_bgp_peer = len(line.split()[0].split(':'))
+                    except: doubledots_in_bgp_peer = 0                    
+                    
+                    CGI_CLI.uprint(bgp_peer, tag = 'debug')
+                    find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
+                    if len(find_ip) == 1: device_data['IPV4_bgp_peers'][copy.deepcopy(find_ip[0].strip())] = collections.OrderedDict()
+                    elif ':' in bgp_peer and doubledots_in_bgp_peer >= 2: 
+                        device_data['IPV6_bgp_peers'][bgp_peer] = collections.OrderedDict()
 
             elif RCMD.router_type == 'juniper':
                 pass
@@ -2324,7 +2351,7 @@ authentication {
             }
 
             if RCMD.router_type == 'cisco_xr':
-                for bgp_peer in device_data['bgp_peers'].keys():
+                for bgp_peer in device_data['IPV4_bgp_peers'].keys():
                     if LOCAL_AS_NUMBER == OTI_LOCAL_AS:
                         collector2_cmds['cisco_xr'].append('sh bgp neighbor %s advertised-count' % (bgp_peer))
                     elif LOCAL_AS_NUMBER == IMN_LOCAL_AS:
@@ -2337,19 +2364,42 @@ authentication {
 
             ### FIND LOCAL AS NUMBER ###
             if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
-                for bgp_peer, output_command in zip(device_data['bgp_peers'].keys(),rcmd2_outputs):
-                    device_data['bgp_peers'][bgp_peer]['Advertised_prefixes'] = output_command.split('No of prefixes Advertised:')[1].split()[0]
+                for bgp_peer, output_command in zip(device_data['IPV4_bgp_peers'].keys(),rcmd2_outputs):
+                    device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = output_command.split('No of prefixes Advertised:')[1].split()[0]
 
 
 
-                # for peer_section in rcmd2_outputs[1].split('Peer: '):
-                    # try: bgp_peer = peer_section.split()[0].split('+')[0]
-                    # except: bgp_peer = str()
-                    # try: advertised_prefixes = peer_section.split('Advertised prefixes:')[1].strip()
-                    # except: advertised_prefixes = str()
-                    # if bgp_peer and advertised_prefixes:
-                        # device_data['bgp_peers']['%s' % (bgp_peer)] = collections.OrderedDict()
-                        # device_data['bgp_peers']['%s' % (bgp_peer)]['advertised_prefixes'] = copy.deepcopy(advertised_prefixes)
+            ### DEF CMD3 ######################################################
+            collector3_cmds = {
+                'cisco_ios':[
+                            ],
+
+                'cisco_xr': [
+                            ],
+
+                'juniper':  [
+                            ],
+
+                'huawei':   [
+                            ]
+            }
+
+            if RCMD.router_type == 'cisco_xr':
+                for bgp_peer in device_data['IPV6_bgp_peers'].keys():
+                    if LOCAL_AS_NUMBER == OTI_LOCAL_AS:
+                        collector3_cmds['cisco_xr'].append('sh bgp neighbor %s advertised-count' % (bgp_peer))
+                    elif LOCAL_AS_NUMBER == IMN_LOCAL_AS:
+                        collector3_cmds['cisco_xr'].append('sh bgp vpnv4 unicast neighbors %s advertised-count' % (bgp_peer))
+
+            ### RUN START COLLETING OF DATA ###
+            rcmd3_outputs = RCMD.run_commands(collector3_cmds, \
+                autoconfirm_mode = True, \
+                printall = printall)
+
+            ### FIND LOCAL AS NUMBER ###
+            if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
+                for bgp_peer, output_command in zip(device_data['IPV6_bgp_peers'].keys(),rcmd3_outputs):
+                    device_data['IPV6_bgp_peers'][bgp_peer]['Advertised_prefixes'] = output_command.split('No of prefixes Advertised:')[1].split()[0]
 
 
 
