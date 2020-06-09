@@ -4704,8 +4704,8 @@ authentication {
                             'show interfaces brief %s' % (undotted_interface_id),
                             'show isis adjacency | match %s' % (interface_id),
                             'show ldp neighbor | match %s' % (interface_id),
-                            'show isis interface %s extensive' % (interface_id),
-                            'show rsvp interface %s' % (interface_id),
+                            'show isis interface %s extensive' % (interface_id + '.0' if '.0' not in interface_id else interface_id),
+                            'show rsvp interface %s' % (interface_id + '.0' if '.0' not in interface_id else interface_id),
 
                             'show configuration class-of-service interfaces %s | display set'  % (undotted_interface_id),
                             'show configuration groups mtu-default | display set',
