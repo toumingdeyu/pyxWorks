@@ -3144,6 +3144,36 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
         if RCMD.router_type == 'cisco_ios' or RCMD.router_type == 'cisco_xr':
             interface_data['interface_statistics']['Tx_Power_Lanes_dBm'] = collections.OrderedDict()
             interface_data['interface_statistics']['Rx_Power_Lanes_dBm'] = collections.OrderedDict()
+
+            ### ZERO LANES INTERFACES #########################################
+            i = 0
+
+            try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Warning_high'] = optic_data_rcmds[0].split('Transmit Power (dBm):')[1].splitlines()[0].split()[1]
+            except: pass
+            try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Warning_low'] = optic_data_rcmds[0].split('Transmit Power (dBm):')[1].splitlines()[0].split()[2]
+            except: pass
+            try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Alarm_high'] = optic_data_rcmds[0].split('Transmit Power (dBm):')[1].splitlines()[0].split()[0]
+            except: pass
+            try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Alarm_low'] = optic_data_rcmds[0].split('Transmit Power (dBm):')[1].splitlines()[0].split()[3]
+            except: pass
+
+
+            try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Warning_high'] = optic_data_rcmds[0].split('Receive Power (dBm):')[1].splitlines()[0].split()[1]
+            except: pass
+            try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Warning_low'] = optic_data_rcmds[0].split('Receive Power (dBm):')[1].splitlines()[0].split()[2]
+            except: pass
+            try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Alarm_high'] = optic_data_rcmds[0].split('Receive Power (dBm):')[1].splitlines()[0].split()[0]
+            except: pass
+            try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Alarm_low'] = optic_data_rcmds[0].split('Receive Power (dBm):')[1].splitlines()[0].split()[3]
+            except: pass
+
+            try:    interface_data['interface_statistics']['Tx_Power_Lanes_dBm']['Lane %d' % (i)] = copy.deepcopy(optic_data_rcmds[1].split('Tx Power:')[1].splitlines()[0].split()[2].replace('(',''))
+            except: pass
+            try:    interface_data['interface_statistics']['Rx_Power_Lanes_dBm']['Lane %d' % (i)] = copy.deepcopy(optic_data_rcmds[1].split('Rx Power:')[1].splitlines()[0].split()[2].replace('(',''))
+            except: pass
+
+
+            ### MULTILANES INTERFACES #########################################
             i = 0
             try:
                 for line in optic_data_rcmds[0].split('Laser Bias')[1].split('Lane ')[1].splitlines()[1:]:
