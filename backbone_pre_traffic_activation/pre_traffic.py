@@ -6533,8 +6533,9 @@ authentication {
                         check_interface_data_content("['interface_data']['Line protocol current state']", what_yes_in = 'UP')
                         check_interface_data_content("['interface_data']['Link quality grade']", what_yes_in = 'GOOD')
 
+
                 ### def OPTICS CHECK ##########################################
-                if CUSTOMER_MODE or BB_MODE:
+                if CUSTOMER_MODE or BB_MODE and RCMD.router_type != 'huawei':
                     if len(interface_data['interface_data'].get('bundle_members',[])) == 0:
                         for i in range(4):
                             check_interface_data_content("['interface_statistics']['Tx_Power_Lanes_dBm']['Lane %d']" % i, higher_than = interface_data['interface_statistics'].get('Tx_Power_Lanes_dBm_Warning_low'), ignore_data_existence = True)
