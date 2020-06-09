@@ -3148,35 +3148,35 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
             ### ZERO LANES INTERFACES #########################################
             i = 0
 
-            try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Warning_high'] = optic_data_rcmds[0].split('Transmit Power (dBm):')[1].splitlines()[0].split()[1]
+            try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Warning_high'] = optic_data_outputs[0].split('Transmit Power (dBm):')[1].splitlines()[0].split()[1]
             except: pass
-            try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Warning_low'] = optic_data_rcmds[0].split('Transmit Power (dBm):')[1].splitlines()[0].split()[2]
+            try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Warning_low'] = optic_data_outputs[0].split('Transmit Power (dBm):')[1].splitlines()[0].split()[2]
             except: pass
-            try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Alarm_high'] = optic_data_rcmds[0].split('Transmit Power (dBm):')[1].splitlines()[0].split()[0]
+            try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Alarm_high'] = optic_data_outputs[0].split('Transmit Power (dBm):')[1].splitlines()[0].split()[0]
             except: pass
-            try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Alarm_low'] = optic_data_rcmds[0].split('Transmit Power (dBm):')[1].splitlines()[0].split()[3]
-            except: pass
-
-
-            try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Warning_high'] = optic_data_rcmds[0].split('Receive Power (dBm):')[1].splitlines()[0].split()[1]
-            except: pass
-            try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Warning_low'] = optic_data_rcmds[0].split('Receive Power (dBm):')[1].splitlines()[0].split()[2]
-            except: pass
-            try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Alarm_high'] = optic_data_rcmds[0].split('Receive Power (dBm):')[1].splitlines()[0].split()[0]
-            except: pass
-            try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Alarm_low'] = optic_data_rcmds[0].split('Receive Power (dBm):')[1].splitlines()[0].split()[3]
+            try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Alarm_low'] = optic_data_outputs[0].split('Transmit Power (dBm):')[1].splitlines()[0].split()[3]
             except: pass
 
-            try:    interface_data['interface_statistics']['Tx_Power_Lanes_dBm']['Lane %d' % (i)] = copy.deepcopy(optic_data_rcmds[1].split('Tx Power:')[1].splitlines()[0].split()[2].replace('(',''))
+
+            try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Warning_high'] = optic_data_outputs[0].split('Receive Power (dBm):')[1].splitlines()[0].split()[1]
             except: pass
-            try:    interface_data['interface_statistics']['Rx_Power_Lanes_dBm']['Lane %d' % (i)] = copy.deepcopy(optic_data_rcmds[1].split('Rx Power:')[1].splitlines()[0].split()[2].replace('(',''))
+            try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Warning_low'] = optic_data_outputs[0].split('Receive Power (dBm):')[1].splitlines()[0].split()[2]
+            except: pass
+            try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Alarm_high'] = optic_data_outputs[0].split('Receive Power (dBm):')[1].splitlines()[0].split()[0]
+            except: pass
+            try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Alarm_low'] = optic_data_outputs[0].split('Receive Power (dBm):')[1].splitlines()[0].split()[3]
+            except: pass
+
+            try:    interface_data['interface_statistics']['Tx_Power_Lanes_dBm']['Lane %d' % (i)] = copy.deepcopy(optic_data_outputs[1].split('Tx Power:')[1].splitlines()[0].split()[2].replace('(',''))
+            except: pass
+            try:    interface_data['interface_statistics']['Rx_Power_Lanes_dBm']['Lane %d' % (i)] = copy.deepcopy(optic_data_outputs[1].split('Rx Power:')[1].splitlines()[0].split()[2].replace('(',''))
             except: pass
 
 
             ### MULTILANES INTERFACES #########################################
             i = 0
             try:
-                for line in optic_data_rcmds[0].split('Laser Bias')[1].split('Lane ')[1].splitlines()[1:]:
+                for line in optic_data_outputs[0].split('Laser Bias')[1].split('Lane ')[1].splitlines()[1:]:
                     if '---' in line: continue
                     if line.strip() == str(): break
                     try:    interface_data['interface_statistics']['Tx_Power_Lanes_dBm']['Lane %d' % (i)] = copy.deepcopy(line.split()[2])
@@ -3187,7 +3187,7 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
             except: pass
 
             try:
-                for line in optic_data_rcmds[0].split('Thresholds ')[1].splitlines()[1:]:
+                for line in optic_data_outputs[0].split('Thresholds ')[1].splitlines()[1:]:
                     if '---' in line: continue
                     if line.strip() == str(): break
                     if 'Transmit Power (dBm):' in line:
@@ -3213,12 +3213,12 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
 
             try:
                 if interface_data['interface_statistics']['Tx_Power_Lanes_dBm'].get('Lane %d' % (0)): pass
-                else: interface_data['interface_statistics']['Tx_Power_Lanes_dBm']['Lane %d' % (0)] = copy.deepcopy(optic_data_rcmds[1].split('Total Tx power:')[1].split()[3])
+                else: interface_data['interface_statistics']['Tx_Power_Lanes_dBm']['Lane %d' % (0)] = copy.deepcopy(optic_data_outputs[1].split('Total Tx power:')[1].split()[3])
             except: pass
 
             try:
                 if interface_data['interface_statistics']['Rx_Power_Lanes_dBm'].get('Lane %d' % (0)): pass
-                else: interface_data['interface_statistics']['Rx_Power_Lanes_dBm']['Lane %d' % (0)] = copy.deepcopy(optic_data_rcmds[1].split('Total Rx power:')[1].split()[3])
+                else: interface_data['interface_statistics']['Rx_Power_Lanes_dBm']['Lane %d' % (0)] = copy.deepcopy(optic_data_outputs[1].split('Total Rx power:')[1].split()[3])
             except: pass
 
         elif RCMD.router_type == 'juniper':
@@ -3226,7 +3226,7 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
             interface_data['interface_statistics']['Rx_Power_Lanes_dBm'] = collections.OrderedDict()
             i = 0
             try:
-                for part in optic_data_rcmds[0].split('Lane ')[1:]:
+                for part in optic_data_outputs[0].split('Lane ')[1:]:
                     try:    interface_data['interface_statistics']['Tx_Power_Lanes_dBm']['Lane %d' % (i)] = copy.deepcopy(part.split('Laser output power')[1].split()[4])
                     except: pass
                     try:    interface_data['interface_statistics']['Rx_Power_Lanes_dBm']['Lane %d' % (i)] = copy.deepcopy(part.split('Laser receiver power')[1].split()[4])
@@ -3234,22 +3234,22 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
                     i += 1
             except: pass
 
-            try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Warning_high'] = optic_data_rcmds[0].split('Laser output power high warning threshold')[1].split()[4]
+            try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Warning_high'] = optic_data_outputs[0].split('Laser output power high warning threshold')[1].split()[4]
             except: pass
-            try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Warning_low'] = optic_data_rcmds[0].split('Laser output power low warning threshold')[1].split()[4]
+            try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Warning_low'] = optic_data_outputs[0].split('Laser output power low warning threshold')[1].split()[4]
             except: pass
-            try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Alarm_high'] = optic_data_rcmds[0].split('Laser output power high alarm threshold')[1].split()[4]
+            try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Alarm_high'] = optic_data_outputs[0].split('Laser output power high alarm threshold')[1].split()[4]
             except: pass
-            try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Alarm_low'] = optic_data_rcmds[0].split('Laser output power low alarm threshold')[1].split()[4]
+            try: interface_data['interface_statistics']['Tx_Power_Lanes_dBm_Alarm_low'] = optic_data_outputs[0].split('Laser output power low alarm threshold')[1].split()[4]
             except: pass
 
-            try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Warning_high'] = optic_data_rcmds[0].split('Laser rx power high alarm threshold')[1].split()[4]
+            try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Warning_high'] = optic_data_outputs[0].split('Laser rx power high alarm threshold')[1].split()[4]
             except: pass
-            try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Warning_low'] = optic_data_rcmds[0].split('Laser rx power low alarm threshold')[1].split()[4]
+            try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Warning_low'] = optic_data_outputs[0].split('Laser rx power low alarm threshold')[1].split()[4]
             except: pass
-            try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Alarm_high'] = optic_data_rcmds[0].split('Laser rx power high warning threshold')[1].split()[4]
+            try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Alarm_high'] = optic_data_outputs[0].split('Laser rx power high warning threshold')[1].split()[4]
             except: pass
-            try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Alarm_low'] = optic_data_rcmds[0].split('Laser rx power low warning threshold')[1].split()[4]
+            try: interface_data['interface_statistics']['Rx_Power_Lanes_dBm_Alarm_low'] = optic_data_outputs[0].split('Laser rx power low warning threshold')[1].split()[4]
             except: pass
 
 
