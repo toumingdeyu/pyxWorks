@@ -2553,6 +2553,44 @@ authentication {
                     try: device_data['IPV4_bgp_peers'][bgp_peer]['Received_prefixes'] = output_command.split('Received total routes:')[1].split()[0]
                     except: pass
 
+            ### DEF CMD22 #####################################################
+            if RCMD.router_type == 'cisco_xr':
+                collector22_cmds = {
+                    'cisco_ios':[
+                                ],
+
+                    'cisco_xr': [
+                                ],
+
+                    'juniper':  [
+                                ],
+
+                    'huawei':   [
+                                ]
+                }
+
+                for bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                    if LOCAL_AS_NUMBER == OTI_LOCAL_AS:
+                        collector22_cmds['cisco_xr'].append('show bgp neighbor %s' % (bgp_peer))
+
+                    elif LOCAL_AS_NUMBER == IMN_LOCAL_AS:
+                        collector22_cmds['cisco_xr'].append('show bgp vpnv4 unicast neighbors %s' % (bgp_peer))
+
+                ### RUN START COLLETING OF DATA ###
+                rcmd22_outputs = RCMD.run_commands(collector22_cmds, \
+                    autoconfirm_mode = True, \
+                    printall = printall)
+
+                for bgp_peer, output_command in zip(device_data['IPV4_bgp_peers'].keys(),rcmd2_outputs):
+                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes2'] = copy.deepcopy(output_command.split('Prefix advertised')[1].split()[0].replace(',',''))
+                    except: pass
+
+                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = copy.deepcopy(output_command.split('accepted prefixes')[0].split()[-1])
+                    except: pass
+
+                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Denied_prefixes'] = copy.deepcopy(output_command.split('prefixes denied :')[1].split()[0].replace('.',''))
+                    except: pass
+
             ### DEF CMD3 ######################################################
             collector3_cmds = {
                 'cisco_ios':[
@@ -2606,8 +2644,6 @@ authentication {
                     device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()):
 
                     selected_bgp_peers.append(copy.deepcopy(bgp_peer))
-                    #collector4_cmds['cisco_xr'].append('sh bgp vrf %s neighbors %s advertised-count' % \
-                    #    (device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()), bgp_peer))
 
                     collector4_cmds['cisco_xr'].append('show bgp vrf %s neighbors %s' % \
                         (device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()), bgp_peer))
@@ -2621,12 +2657,8 @@ authentication {
                 printall = printall)
 
             if RCMD.router_type == 'cisco_xr':
-                #for bgp_peer, output_command in zip(selected_bgp_peers,rcmd4_outputs):
-                #    try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = copy.deepcopy(output_command.split('No of prefixes Advertised:')[1].split()[0])
-                #    except: pass
-
                 for bgp_peer, output_command in zip(selected_bgp_peers,rcmd4_outputs):
-                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = copy.deepcopy(output_command.split('Prefix advertised')[1].split()[0].replace(',',''))
+                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes2'] = copy.deepcopy(output_command.split('Prefix advertised')[1].split()[0].replace(',',''))
                     except: pass
 
                     try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = copy.deepcopy(output_command.split('accepted prefixes')[0].split()[-1])
@@ -2649,6 +2681,7 @@ authentication {
             RCMD.disconnect()
 
             ### PRINT COLLECTED DATA ##########################################
+            CGI_CLI.uprint('\n', printall = True)
             CGI_CLI.uprint(device_data, name = True, jsonprint = True, \
                 color = 'blue', timestamp = 'no', printall = True)
 
