@@ -2489,7 +2489,7 @@ authentication {
                 try: vpn_sections = rcmd_outputs[1].split('VPN-Instance')[1:]
                 except: vpn_sections = []
                 for section in vpn_sections:
-                    try: vfr_name = split()[0].replace(',','')
+                    try: vfr_name = section.split()[0].replace(',','')
                     except: vfr_name = None
                     for line in section.splitlines()[1:]:
                         try: bgp_peer = line.split()[0]
@@ -2498,6 +2498,8 @@ authentication {
                         if len(find_ip) == 1 and vfr_name:
                             bgp_peer = find_ip[0].strip()
                             device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['VRF_NAME'] = copy.deepcopy(vfr_name)
+                        
+                                        
 
             ### DEF CMD2 ######################################################
             collector2_cmds = {
@@ -2635,7 +2637,7 @@ authentication {
 
             ### PRINT COLLECTED DATA ##########################################
             CGI_CLI.uprint(device_data, name = True, jsonprint = True, \
-                color = 'blue', timestamp = 'no', no_printall = not printall)
+                color = 'blue', timestamp = 'no', printall = True)
 
     ### CLOSE GLOBAL LOGFILE ##################################################
     CGI_CLI.logtofile(end_log = True, ommit_timestamp = True)
