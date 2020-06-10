@@ -2316,9 +2316,10 @@ authentication {
                     try: received_prefixes = line.split()[-1]
                     except: received_prefixes = None
                     find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
-                    if len(find_ip) == 1: device_data['IPV4_bgp_peers'][copy.deepcopy(find_ip[0].strip())] = collections.OrderedDict()
-                    if received_prefixes:
-                        device_data['IPV4_bgp_peers'][copy.deepcopy(find_ip[0].strip())]['Received_prefixes'] = copy.deepcopy(received_prefixes)
+                    if len(find_ip) == 1:
+                        device_data['IPV4_bgp_peers'][copy.deepcopy(find_ip[0].strip())] = collections.OrderedDict()
+                        if received_prefixes:
+                            device_data['IPV4_bgp_peers'][copy.deepcopy(find_ip[0].strip())]['Received_prefixes'] = copy.deepcopy(received_prefixes)
 
 
                 try: output_list = rcmd_outputs[2].split('Neighbor')[1].splitlines()[1:]
@@ -2329,7 +2330,9 @@ authentication {
                     try: doubledots_in_bgp_peer = len(line.split()[0].split(':'))
                     except: doubledots_in_bgp_peer = 0
                     find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
-                    if len(find_ip) == 1: device_data['IPV4_bgp_peers'][copy.deepcopy(find_ip[0].strip())] = collections.OrderedDict()
+                    if len(find_ip) == 1:
+                        device_data['IPV4_bgp_peers'][copy.deepcopy(find_ip[0].strip())] = collections.OrderedDict()
+
                     elif ':' in bgp_peer and doubledots_in_bgp_peer >= 3:
                         device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
 
@@ -2396,6 +2399,9 @@ authentication {
                         device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
                         if advertized_prefixes:
                             device_data['IPV6_bgp_peers'][bgp_peer]['Advertised_prefixes'] = copy.deepcopy(advertized_prefixes)
+
+
+
 
 
             ### DEF CMD2 ######################################################
