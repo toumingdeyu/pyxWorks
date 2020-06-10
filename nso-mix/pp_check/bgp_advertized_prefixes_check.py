@@ -2498,8 +2498,8 @@ authentication {
                         if len(find_ip) == 1 and vfr_name:
                             bgp_peer = find_ip[0].strip()
                             device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['VRF_NAME'] = copy.deepcopy(vfr_name)
-                        
-                                        
+
+
 
             ### DEF CMD2 ######################################################
             collector2_cmds = {
@@ -2584,7 +2584,7 @@ authentication {
                     try: device_data['IPV6_bgp_peers'][bgp_peer]['Advertised_prefixes'] = output_command.split('No of prefixes Advertised:')[1].split()[0]
                     except: pass
 
-            ### DEF CMD4 ######################################################
+            ### def CMD4 - VRF ##################################################
             collector4_cmds = {
                 'cisco_ios':[
                             ],
@@ -2606,7 +2606,10 @@ authentication {
                     device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()):
 
                     selected_bgp_peers.append(copy.deepcopy(bgp_peer))
-                    collector4_cmds['cisco_xr'].append('sh bgp vrf %s neighbors %s advertised-count' % \
+                    #collector4_cmds['cisco_xr'].append('sh bgp vrf %s neighbors %s advertised-count' % \
+                    #    (device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()), bgp_peer))
+
+                    collector4_cmds['cisco_xr'].append('show bgp vrf %s neighbors %s' % \
                         (device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()), bgp_peer))
 
                     collector4_cmds['huawei'].append('display bgp vpnv4 vpn-instance %s peer %s verbose' % \
@@ -2618,8 +2621,18 @@ authentication {
                 printall = printall)
 
             if RCMD.router_type == 'cisco_xr':
+                #for bgp_peer, output_command in zip(selected_bgp_peers,rcmd4_outputs):
+                #    try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = copy.deepcopy(output_command.split('No of prefixes Advertised:')[1].split()[0])
+                #    except: pass
+
                 for bgp_peer, output_command in zip(selected_bgp_peers,rcmd4_outputs):
-                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = copy.deepcopy(output_command.split('No of prefixes Advertised:')[1].split()[0])
+                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = copy.deepcopy(output_command.split('Prefix advertised')[1].split()[0].replace(',',''))
+                    except: pass
+
+                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = copy.deepcopy(output_command.split('accepted prefixes')[0].split()[-1])
+                    except: pass
+
+                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Denied_prefixes'] = copy.deepcopy(output_command.split('prefixes denied :')[1].split()[0].replace('.',''))
                     except: pass
 
             elif RCMD.router_type == 'huawei':
