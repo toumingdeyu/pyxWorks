@@ -2433,7 +2433,7 @@ authentication {
                     if LOCAL_AS_NUMBER == OTI_LOCAL_AS:
                         collector3_cmds['cisco_xr'].append('sh bgp neighbor %s advertised-count' % (bgp_peer))
                     elif LOCAL_AS_NUMBER == IMN_LOCAL_AS:
-                        collector3_cmds['cisco_xr'].append('sh bgp vpnv4 unicast neighbors %s advertised-count' % (bgp_peer))
+                        collector3_cmds['cisco_xr'].append('sh bgp vpnv6 unicast neighbors %s advertised-count' % (bgp_peer))
 
                 ### RUN START COLLETING OF DATA ###
                 rcmd3_outputs = RCMD.run_commands(collector3_cmds, \
