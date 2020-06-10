@@ -2464,22 +2464,42 @@ authentication {
                             ]
             }
 
+            for bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                if LOCAL_AS_NUMBER == OTI_LOCAL_AS:
+                    collector2_cmds['cisco_xr'].append('show bgp neighbor %s advertised-count' % (bgp_peer))
+                    collector2_cmds['huawei'].append('disp bgp peer %s verbose' % (bgp_peer))
+                    collector2_cmds['juniper'].append('show bgp neighbor %s' % (bgp_peer))
+
+                elif LOCAL_AS_NUMBER == IMN_LOCAL_AS:
+                    collector2_cmds['cisco_xr'].append('show bgp vpnv4 unicast neighbors %s advertised-count' % (bgp_peer))
+
+
+
+            ### RUN START COLLETING OF DATA ###
+            rcmd2_outputs = RCMD.run_commands(collector2_cmds, \
+                autoconfirm_mode = True, \
+                printall = printall)
+
             if RCMD.router_type == 'cisco_xr':
-                for bgp_peer in device_data['IPV4_bgp_peers'].keys():
-                    if LOCAL_AS_NUMBER == OTI_LOCAL_AS:
-                        collector2_cmds['cisco_xr'].append('sh bgp neighbor %s advertised-count' % (bgp_peer))
-                    elif LOCAL_AS_NUMBER == IMN_LOCAL_AS:
-                        collector2_cmds['cisco_xr'].append('sh bgp vpnv4 unicast neighbors %s advertised-count' % (bgp_peer))
-
-                ### RUN START COLLETING OF DATA ###
-                rcmd2_outputs = RCMD.run_commands(collector2_cmds, \
-                    autoconfirm_mode = True, \
-                    printall = printall)
-
                 for bgp_peer, output_command in zip(device_data['IPV4_bgp_peers'].keys(),rcmd2_outputs):
                     try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = output_command.split('No of prefixes Advertised:')[1].split()[0]
                     except: pass
 
+            elif RCMD.router_type == 'juniper':
+                for bgp_peer, output_command in zip(device_data['IPV4_bgp_peers'].keys(),rcmd2_outputs):
+                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = output_command.split('Accepted prefixes:')[1].split()[0]
+                    except: pass
+                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Received_prefixes'] = output_command.split('Received prefixes:')[1].split()[0]
+                    except: pass
+
+            elif RCMD.router_type == 'huawei':
+                for bgp_peer, output_command in zip(device_data['IPV4_bgp_peers'].keys(),rcmd2_outputs):
+                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = output_command.split('Advertised total routes:')[1].split()[0]
+                    except: pass
+                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = output_command.split('Received active routes total:')[1].split()[0]
+                    except: pass
+                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Received_prefixes'] = output_command.split('Received total routes:')[1].split()[0]
+                    except: pass
 
             ### DEF CMD3 ######################################################
             collector3_cmds = {
@@ -2528,22 +2548,35 @@ authentication {
             }
 
             selected_bgp_peers = []
-            if RCMD.router_type == 'cisco_xr':
-                for bgp_peer in device_data['IPV4_bgp_peers'].keys():
-                    if LOCAL_AS_NUMBER == IMN_LOCAL_AS and \
-                        device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()):
 
-                        selected_bgp_peers.append(copy.deepcopy(bgp_peer))
-                        collector4_cmds['cisco_xr'].append('sh bgp vrf %s neighbors %s advertised-count' % \
+            for bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                if LOCAL_AS_NUMBER == IMN_LOCAL_AS and \
+                    device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()):
+
+                    selected_bgp_peers.append(copy.deepcopy(bgp_peer))
+                    collector4_cmds['cisco_xr'].append('sh bgp vrf %s neighbors %s advertised-count' % \
+                        (device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()), bgp_peer))
+
+                    collector4_cmds['huawei'].append('display bgp vpnv4 vpn-instance %s peer %s verbose' % \
                         (device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()),bgp_peer))
 
-                ### RUN START COLLETING OF DATA ###
-                rcmd4_outputs = RCMD.run_commands(collector4_cmds, \
-                    autoconfirm_mode = True, \
-                    printall = printall)
+            ### RUN START COLLETING OF DATA ###
+            rcmd4_outputs = RCMD.run_commands(collector4_cmds, \
+                autoconfirm_mode = True, \
+                printall = printall)
 
+            if RCMD.router_type == 'cisco_xr':
                 for bgp_peer, output_command in zip(selected_bgp_peers,rcmd4_outputs):
-                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = output_command.split('No of prefixes Advertised:')[1].split()[0]
+                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = copy.deepcopy(output_command.split('No of prefixes Advertised:')[1].split()[0])
+                    except: pass
+
+            elif RCMD.router_type == 'huawei':
+                for bgp_peer, output_command in zip(selected_bgp_peers,rcmd4_outputs):
+                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = copy.deepcopy(output_command.split('Advertised total routes:')[1].split()[0])
+                    except: pass
+                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = copy.deepcopy(output_command.split('Received active routes total:')[1].split()[0])
+                    except: pass
+                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Received_prefixes'] = copy.deepcopy(output_command.split('Received total routes:')[1].split()[0])
                     except: pass
 
 
