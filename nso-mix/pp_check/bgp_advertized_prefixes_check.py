@@ -2296,8 +2296,10 @@ authentication {
                 device_data['LOCAL_AS_NUMBER'] = LOCAL_AS_NUMBER
 
 
+
             ### def CMD1 - FIND BGP NEIGHBORS ####################################
             if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
+                ### COMMAND: 'show bgp summary' ###
                 try: output_list = rcmd_outputs[0].split('Neighbor')[1].splitlines()[1:]
                 except: output_list = []
                 for line in output_list:
@@ -2314,6 +2316,7 @@ authentication {
                         if isinstance(received_prefixes, int):
                             device_data['IPV4_bgp_peers'][bgp_peer]['Received_prefixes'] = copy.deepcopy(received_prefixes)
 
+                ### COMMAND: 'show bgp vpnv4 unicast summary' ###
                 try: output_list = rcmd_outputs[1].split('Neighbor')[1].splitlines()[1:]
                 except: output_list = []
                 for line in output_list:
@@ -2330,7 +2333,7 @@ authentication {
                         if isinstance(received_prefixes, int):
                             device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['Received_prefixes'] = copy.deepcopy(received_prefixes)
 
-
+                ### COMMAND: 'show bgp ipv6 unicast summary' ###
                 try: output_list = rcmd_outputs[2].split('Neighbor')[1].splitlines()[1:]
                 except: output_list = []
                 for line in output_list:
@@ -2348,7 +2351,7 @@ authentication {
                         if not bgp_peer in device_data['IPV6_bgp_peers'].keys():
                             device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
 
-
+                ### COMMAND: 'show bgp vrf all sum | exc "BGP|ID|stop|Process|Speaker"' ###
                 try: section_list = rcmd_outputs[3].split('VRF: ')[1:]
                 except: section_list = []
                 for section in section_list:
@@ -2358,13 +2361,18 @@ authentication {
                     try: peer_lines = section.split('Neighbor ')[1].splitlines()[1:]
                     except: peer_lines = []
 
-                    for line in peer_lines:
+                    for line, line_plus_one in zip(peer_lines,peer_lines[1:]):
                         try: bgp_peer = line.split()[0]
                         except: bgp_peer = str()
                         try: doubledots_in_bgp_peer = len(line.split()[0].split(':'))
                         except: doubledots_in_bgp_peer = 0
                         try: received_prefixes = int(line.split()[-1])
                         except: received_prefixes = None
+                        
+                        if len(line.split()) == 1 and doubledots_in_bgp_peer >= 3:
+                            try: received_prefixes = int(line_plus_one.split()[-1])
+                            except: received_prefixes = None
+                            
                         find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
                         if len(find_ip) == 1:
                             bgp_peer = find_ip[0].strip()
