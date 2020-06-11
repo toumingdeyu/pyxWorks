@@ -382,7 +382,7 @@ class CGI_CLI(object):
     @staticmethod
     def uprint(text = None, tag = None, tag_id = None, color = None, name = None, jsonprint = None, \
         ommit_logging = None, no_newlines = None, start_tag = None, end_tag = None, raw = None, \
-        timestamp = None, printall = None, no_printall = None, stop_button = None):
+        timestamp = None, printall = None, no_printall = None, stop_button = None, sort_keys = None):
         """NOTE: name parameter could be True or string.
            start_tag - starts tag and needs to be ended next time by end_tag
            raw = True , print text as it is, not convert to html. Intended i.e. for javascript
@@ -402,7 +402,7 @@ class CGI_CLI(object):
 
             if jsonprint:
                 if isinstance(text, (dict,collections.OrderedDict,list,tuple)):
-                    try: print_text = str(json.dumps(text, indent = 4))
+                    try: print_text = str(json.dumps(text, indent = 4, sort_keys = sort_keys))
                     except Exception as e:
                         CGI_CLI.print_chunk('JSON_PROBLEM[' + str(e) + ']', printall = printall_yes)
             else: print_text = str(copy.deepcopy(text))
@@ -2501,7 +2501,7 @@ authentication {
 
 
 
-            ### DEF CMD2 ######################################################
+            ### DEF CMD2 - IPV4 ADVERTIZED COUNT ##############################
             collector2_cmds = {
                 'cisco_ios':[
                             ],
@@ -2582,16 +2582,14 @@ authentication {
                     printall = printall)
 
                 for bgp_peer, output_command in zip(device_data['IPV4_bgp_peers'].keys(),rcmd2_outputs):
-                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes2'] = copy.deepcopy(output_command.split('Prefix advertised')[1].split()[0].replace(',',''))
-                    except: pass
-
+                    ### 'Prefix advertised' IS NOT VALID INFORMATION ###########
                     try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = copy.deepcopy(output_command.split('accepted prefixes')[0].split()[-1])
                     except: pass
 
                     try: device_data['IPV4_bgp_peers'][bgp_peer]['Denied_prefixes'] = copy.deepcopy(output_command.split('prefixes denied :')[1].split()[0].replace('.',''))
                     except: pass
 
-            ### DEF CMD3 ######################################################
+            ### DEF CMD3 - IPV6 ADVERTIZED COUNT ###############################
             collector3_cmds = {
                 'cisco_ios':[
                             ],
@@ -2658,9 +2656,7 @@ authentication {
 
             if RCMD.router_type == 'cisco_xr':
                 for bgp_peer, output_command in zip(selected_bgp_peers,rcmd4_outputs):
-                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes2'] = copy.deepcopy(output_command.split('Prefix advertised')[1].split()[0].replace(',',''))
-                    except: pass
-
+                    ### 'Prefix advertised' IS NOT VALID INFORMATION ###########
                     try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = copy.deepcopy(output_command.split('accepted prefixes')[0].split()[-1])
                     except: pass
 
@@ -2677,13 +2673,52 @@ authentication {
                     except: pass
 
 
+            ### def CMD44 - VRF XR ADVERTIZED COUNT ###########################
+            if RCMD.router_type == 'cisco_xr':
+                collector44_cmds = {
+                    'cisco_ios':[
+                                ],
+
+                    'cisco_xr': [
+                                ],
+
+                    'juniper':  [
+                                ],
+
+                    'huawei':   [
+                                ]
+                }
+
+                selected_bgp_peers = []
+
+                for bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                    if LOCAL_AS_NUMBER == IMN_LOCAL_AS and \
+                        device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()):
+
+                        selected_bgp_peers.append(copy.deepcopy(bgp_peer))
+
+                        collector44_cmds['cisco_xr'].append('show bgp vrf %s neighbors %s advertised-count' % \
+                            (device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()), bgp_peer))
+
+
+                ### RUN START COLLETING OF DATA ###
+                rcmd44_outputs = RCMD.run_commands(collector44_cmds, \
+                    autoconfirm_mode = True, \
+                    printall = printall)
+
+                for bgp_peer, output_command in zip(selected_bgp_peers,rcmd44_outputs):
+                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = output_command.split('No of prefixes Advertised:')[1].split()[0]
+                    except: pass
+
+
             ### LOOP PER INTERFACE - END ######################################
             RCMD.disconnect()
 
             ### PRINT COLLECTED DATA ##########################################
             CGI_CLI.uprint('\n', printall = True)
             CGI_CLI.uprint(device_data, name = True, jsonprint = True, \
-                color = 'blue', timestamp = 'no', printall = True)
+                color = 'blue', timestamp = 'no', printall = True, sort_keys = True)
+
 
     ### CLOSE GLOBAL LOGFILE ##################################################
     CGI_CLI.logtofile(end_log = True, ommit_timestamp = True)
