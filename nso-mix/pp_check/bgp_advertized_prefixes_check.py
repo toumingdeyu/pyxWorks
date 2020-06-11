@@ -2196,6 +2196,19 @@ authentication {
     if exit_due_to_error: sys.exit(0)
 
 
+    ### def LOGFILENAME GENERATION, DO LOGGING ONLY WHEN DEVICE LIST EXISTS ###
+    html_extention = 'htm' if CGI_CLI.cgi_active else str()
+
+    PREFIX_PART = SCRIPT_NAME.replace(' ','_')
+
+    logfilename = generate_logfilename(
+        prefix = PREFIX_PART + '_' + '_'.join(device_list).upper(), \
+        USERNAME = USERNAME, suffix = '%slog' % (html_extention))
+    ### NO WINDOWS LOGGING ########################################
+    if 'WIN32' in sys.platform.upper(): logfilename = None
+    if logfilename: CGI_CLI.set_logfile(logfilename = logfilename)
+
+
     ### def REMOTE DEVICE OPERATIONS ##########################################
     for device in device_list:
         if device:
@@ -2213,18 +2226,6 @@ authentication {
 
             ### DO NOT GO FURTHER IF NO CONNECTION ############################
             if not RCMD.ssh_connection: continue
-
-            ### def LOGFILENAME GENERATION, DO LOGGING ONLY WHEN DEVICE LIST EXISTS ###
-            html_extention = 'htm' if CGI_CLI.cgi_active else str()
-
-            PREFIX_PART = SCRIPT_NAME.replace(' ','_')
-
-            logfilename = generate_logfilename(
-                prefix = PREFIX_PART + '_' + device.upper(), \
-                USERNAME = USERNAME, suffix = '%slog' % (html_extention))
-            ### NO WINDOWS LOGGING ########################################
-            if 'WIN32' in sys.platform.upper(): logfilename = None
-            if logfilename: CGI_CLI.set_logfile(logfilename = logfilename)
 
             if CGI_CLI.cgi_active:
                 CGI_CLI.logtofile('<h1 style="color:blue;">%s <a href="%s" style="text-decoration: none">(v.%s)</a></h1>' % \
@@ -2720,13 +2721,27 @@ authentication {
                 color = 'blue', timestamp = 'no', printall = True, sort_keys = True)
 
 
-    ### CLOSE GLOBAL LOGFILE ##################################################
-    CGI_CLI.logtofile(end_log = True, ommit_timestamp = True)
-
 except SystemExit: pass
 except:
     traceback_found = traceback.format_exc()
     CGI_CLI.uprint(str(traceback_found), tag = 'h3', color = 'magenta')
+
+
+### WRITE FILE LINK AND CLOSE GLOBAL LOGFILE ##################################
+if logfilename:
+    iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None, ommit_logging = True).strip()
+    if iptac_server == 'iptac5': urllink = 'https://10.253.58.126/cgi-bin/'
+    else: urllink = 'https://%s/cgi-bin/' % (iptac_server)
+    if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, logfilename)
+    else: logviewer = './logviewer.py?logfile=%s' % (logfilename)
+    if CGI_CLI.cgi_active:
+        CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
+            % (logviewer, logfilename), raw = True, color = 'blue')
+        CGI_CLI.uprint('<br/>', raw = True)
+    else:
+        CGI_CLI.uprint(' ==> File %s created.\n\n' % (logfilename))
+    CGI_CLI.logtofile(end_log = True, ommit_timestamp = True)
+
 
 if logfilename and CGI_CLI.data.get("send_email"):
     ### SEND EMAIL WITH LOGFILE ###############################################
