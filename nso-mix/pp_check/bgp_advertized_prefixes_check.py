@@ -2717,7 +2717,7 @@ authentication {
 
             ### PRINT COLLECTED DATA ##########################################
             CGI_CLI.uprint('\n', printall = True)
-            CGI_CLI.uprint(device_data, name = True, jsonprint = True, \
+            CGI_CLI.uprint(device_data, name = '%s_bgp_device_data' % (device.upper()), jsonprint = True, \
                 color = 'blue', timestamp = 'no', printall = True, sort_keys = True)
 
 
