@@ -2336,11 +2336,16 @@ authentication {
                 ### COMMAND: 'show bgp ipv6 unicast summary' ###
                 try: output_list = rcmd_outputs[2].split('Neighbor')[1].splitlines()[1:]
                 except: output_list = []
-                for line in output_list:
+                for line, line_plus_one in zip(output_list, output_list[1:]):
                     try: bgp_peer = line.split()[0]
                     except: bgp_peer = str()
                     try: doubledots_in_bgp_peer = len(line.split()[0].split(':'))
                     except: doubledots_in_bgp_peer = 0
+
+                    if len(line.split()) == 1 and doubledots_in_bgp_peer >= 3:
+                        try: received_prefixes = int(line_plus_one.split()[-1])
+                        except: received_prefixes = None
+
                     find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
                     if len(find_ip) == 1:
                         bgp_peer = find_ip[0].strip()
@@ -2361,18 +2366,13 @@ authentication {
                     try: peer_lines = section.split('Neighbor ')[1].splitlines()[1:]
                     except: peer_lines = []
 
-                    for line, line_plus_one in zip(peer_lines,peer_lines[1:]):
+                    for line in peer_lines:
                         try: bgp_peer = line.split()[0]
                         except: bgp_peer = str()
                         try: doubledots_in_bgp_peer = len(line.split()[0].split(':'))
                         except: doubledots_in_bgp_peer = 0
                         try: received_prefixes = int(line.split()[-1])
                         except: received_prefixes = None
-                        
-                        if len(line.split()) == 1 and doubledots_in_bgp_peer >= 3:
-                            try: received_prefixes = int(line_plus_one.split()[-1])
-                            except: received_prefixes = None
-                            
                         find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
                         if len(find_ip) == 1:
                             bgp_peer = find_ip[0].strip()
