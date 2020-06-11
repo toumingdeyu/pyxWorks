@@ -2101,7 +2101,7 @@ authentication {
     traceback_found = None
     logfilename = str()
     test_mode = None
-    chunked_mode = None
+    chunked_mode = True
     OTI_LOCAL_AS = '5511'
     IMN_LOCAL_AS = '2300'
     LOCAL_AS_NUMBER = str()
@@ -2139,7 +2139,7 @@ authentication {
     ### START PRINTING AND LOGGING ############################################
     changelog = 'https://github.com/peteneme/pyxWorks/commits/master/nso-mix/pp_check/bgp_advertized_prefixes_check.py'
 
-    SCRIPT_NAME = 'BGP advertized prefixes check'
+    SCRIPT_NAME = 'BGP prefixes checker'
 
     if CGI_CLI.cgi_active:
         CGI_CLI.uprint('<h1 style="color:blue;">%s <a href="%s" style="text-decoration: none">(v.%s)</a></h1>' % \
@@ -2303,7 +2303,7 @@ authentication {
                 for line in output_list:
                     try: bgp_peer = line.split()[0]
                     except: bgp_peer = str()
-                    try: received_prefixes = line.split()[-1]
+                    try: received_prefixes = int(line.split()[-1])
                     except: received_prefixes = None
                     find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
                     if len(find_ip) == 1:
@@ -2319,7 +2319,7 @@ authentication {
                 for line in output_list:
                     try: bgp_peer = line.split()[0]
                     except: bgp_peer = str()
-                    try: received_prefixes = line.split()[-1]
+                    try: received_prefixes = int(line.split()[-1])
                     except: received_prefixes = None
                     find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
                     if len(find_ip) == 1:
@@ -2363,7 +2363,7 @@ authentication {
                         except: bgp_peer = str()
                         try: doubledots_in_bgp_peer = len(line.split()[0].split(':'))
                         except: doubledots_in_bgp_peer = 0
-                        try: received_prefixes = line.split()[-1]
+                        try: received_prefixes = int(line.split()[-1])
                         except: received_prefixes = None
                         find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
                         if len(find_ip) == 1:
@@ -2394,7 +2394,7 @@ authentication {
                 for section in output_list:
                     try: bgp_peer = section.split()[0].split('+')[0]
                     except: bgp_peer = str()
-                    try: advertized_prefixes = section.split('Advertised prefixes:')[1].split()[0]
+                    try: advertized_prefixes = int(section.split('Advertised prefixes:')[1].split()[0])
                     except: advertized_prefixes = str()
                     if '.' in bgp_peer:
                         if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
@@ -2416,11 +2416,11 @@ authentication {
                 for section in output_list:
                     try: bgp_peer = section.split()[0].replace(',','')
                     except: bgp_peer = str()
-                    try: advertized_prefixes = section.split('Advertised total routes:')[1].split()[0]
+                    try: advertized_prefixes = int(section.split('Advertised total routes:')[1].split()[0])
                     except: advertized_prefixes = str()
-                    try: received_prefixes = section.split('Received total routes:')[1].split()[0]
+                    try: received_prefixes = int(section.split('Received total routes:')[1].split()[0])
                     except: received_prefixes = str()
-                    try: accepted_prefixes = section.split('Received active routes total:')[1].split()[0]
+                    try: accepted_prefixes = int(section.split('Received active routes total:')[1].split()[0])
                     except: accepted_prefixes = str()
 
                     if '.' in bgp_peer:
@@ -2452,7 +2452,7 @@ authentication {
                     except: bgp_peer = str()
                     try: doubledots_in_bgp_peer = len(line.split()[0].split(':'))
                     except: doubledots_in_bgp_peer = 0
-                    try: received_prefixes = line.split()[-1]
+                    try: received_prefixes = int(line.split()[-1])
                     except: received_prefixes = None
                     find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
                     if len(find_ip) == 1:
@@ -2476,7 +2476,7 @@ authentication {
                 for line in output_list:
                     try: bgp_peer = line.split()[0]
                     except: bgp_peer = str()
-                    try: received_prefixes = line.split()[-1]
+                    try: received_prefixes = int(line.split()[-1])
                     except: received_prefixes = None
                     find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
                     if len(find_ip) == 1:
@@ -2535,23 +2535,23 @@ authentication {
 
             if RCMD.router_type == 'cisco_xr':
                 for bgp_peer, output_command in zip(device_data['IPV4_bgp_peers'].keys(),rcmd2_outputs):
-                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = output_command.split('No of prefixes Advertised:')[1].split()[0]
+                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(output_command.split('No of prefixes Advertised:')[1].split()[0])
                     except: pass
 
             elif RCMD.router_type == 'juniper':
                 for bgp_peer, output_command in zip(device_data['IPV4_bgp_peers'].keys(),rcmd2_outputs):
-                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = output_command.split('Accepted prefixes:')[1].split()[0]
+                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(output_command.split('Accepted prefixes:')[1].split()[0])
                     except: pass
-                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Received_prefixes'] = output_command.split('Received prefixes:')[1].split()[0]
+                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Received_prefixes'] = int(output_command.split('Received prefixes:')[1].split()[0])
                     except: pass
 
             elif RCMD.router_type == 'huawei':
                 for bgp_peer, output_command in zip(device_data['IPV4_bgp_peers'].keys(),rcmd2_outputs):
-                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = output_command.split('Advertised total routes:')[1].split()[0]
+                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(output_command.split('Advertised total routes:')[1].split()[0])
                     except: pass
-                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = output_command.split('Received active routes total:')[1].split()[0]
+                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(output_command.split('Received active routes total:')[1].split()[0])
                     except: pass
-                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Received_prefixes'] = output_command.split('Received total routes:')[1].split()[0]
+                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Received_prefixes'] = int(output_command.split('Received total routes:')[1].split()[0])
                     except: pass
 
             ### DEF CMD22 #####################################################
@@ -2584,10 +2584,10 @@ authentication {
 
                 for bgp_peer, output_command in zip(device_data['IPV4_bgp_peers'].keys(),rcmd2_outputs):
                     ### 'Prefix advertised' IS NOT VALID INFORMATION ###########
-                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = copy.deepcopy(output_command.split('accepted prefixes')[0].split()[-1])
+                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(output_command.split('accepted prefixes')[0].split()[-1])
                     except: pass
 
-                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Denied_prefixes'] = copy.deepcopy(output_command.split('prefixes denied :')[1].split()[0].replace('.',''))
+                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Denied_prefixes'] = int(output_command.split('prefixes denied :')[1].split()[0].replace('.',''))
                     except: pass
 
             ### DEF CMD3 - IPV6 ADVERTIZED COUNT ###############################
@@ -2618,7 +2618,7 @@ authentication {
                     printall = printall)
 
                 for bgp_peer, output_command in zip(device_data['IPV6_bgp_peers'].keys(),rcmd3_outputs):
-                    try: device_data['IPV6_bgp_peers'][bgp_peer]['Advertised_prefixes'] = output_command.split('No of prefixes Advertised:')[1].split()[0]
+                    try: device_data['IPV6_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(output_command.split('No of prefixes Advertised:')[1].split()[0])
                     except: pass
 
             ### def CMD4 - VRF ##################################################
@@ -2658,19 +2658,19 @@ authentication {
             if RCMD.router_type == 'cisco_xr':
                 for bgp_peer, output_command in zip(selected_bgp_peers,rcmd4_outputs):
                     ### 'Prefix advertised' IS NOT VALID INFORMATION ###########
-                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = copy.deepcopy(output_command.split('accepted prefixes')[0].split()[-1])
+                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(output_command.split('accepted prefixes')[0].split()[-1])
                     except: pass
 
-                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Denied_prefixes'] = copy.deepcopy(output_command.split('prefixes denied :')[1].split()[0].replace('.',''))
+                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Denied_prefixes'] = int(output_command.split('prefixes denied :')[1].split()[0].replace('.',''))
                     except: pass
 
             elif RCMD.router_type == 'huawei':
                 for bgp_peer, output_command in zip(selected_bgp_peers,rcmd4_outputs):
-                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = copy.deepcopy(output_command.split('Advertised total routes:')[1].split()[0])
+                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(output_command.split('Advertised total routes:')[1].split()[0])
                     except: pass
-                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = copy.deepcopy(output_command.split('Received active routes total:')[1].split()[0])
+                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(output_command.split('Received active routes total:')[1].split()[0])
                     except: pass
-                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Received_prefixes'] = copy.deepcopy(output_command.split('Received total routes:')[1].split()[0])
+                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Received_prefixes'] = int(output_command.split('Received total routes:')[1].split()[0])
                     except: pass
 
 
@@ -2708,7 +2708,7 @@ authentication {
                     printall = printall)
 
                 for bgp_peer, output_command in zip(selected_bgp_peers,rcmd44_outputs):
-                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = output_command.split('No of prefixes Advertised:')[1].split()[0]
+                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(output_command.split('No of prefixes Advertised:')[1].split()[0])
                     except: pass
 
 
