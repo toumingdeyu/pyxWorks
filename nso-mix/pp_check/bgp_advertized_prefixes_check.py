@@ -2312,7 +2312,7 @@ authentication {
                             device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
 
                         if received_prefixes:
-                            device_data['IPV4_bgp_peers'][copy.deepcopy(fbgp_peer)]['Received_prefixes'] = copy.deepcopy(received_prefixes)
+                            device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['Received_prefixes'] = copy.deepcopy(received_prefixes)
 
                 try: output_list = rcmd_outputs[1].split('Neighbor')[1].splitlines()[1:]
                 except: output_list = []
