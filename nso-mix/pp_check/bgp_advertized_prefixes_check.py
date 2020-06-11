@@ -2582,7 +2582,7 @@ authentication {
                     autoconfirm_mode = True, \
                     printall = printall)
 
-                for bgp_peer, output_command in zip(device_data['IPV4_bgp_peers'].keys(),rcmd2_outputs):
+                for bgp_peer, output_command in zip(device_data['IPV4_bgp_peers'].keys(),rcmd22_outputs):
                     ### 'Prefix advertised' IS NOT VALID INFORMATION ###########
                     try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(output_command.split('accepted prefixes')[0].split()[-1])
                     except: pass
