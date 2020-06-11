@@ -2342,7 +2342,10 @@ authentication {
                     try: doubledots_in_bgp_peer = len(line.split()[0].split(':'))
                     except: doubledots_in_bgp_peer = 0
 
-                    if len(line.split()) == 1 and doubledots_in_bgp_peer >= 3:
+                    try: received_prefixes = int(line.split()[-1])
+                    except: received_prefixes = None
+
+                    if len(line.split()) <= 1 and doubledots_in_bgp_peer >= 3:
                         try: received_prefixes = int(line_plus_one.split()[-1])
                         except: received_prefixes = None
 
@@ -2352,9 +2355,16 @@ authentication {
                         if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
                             device_data['IPV4_bgp_peers'][copy.deepcopy(find_ip[0].strip())] = collections.OrderedDict()
 
+                        if isinstance(received_prefixes, int):
+                            device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['Received_prefixes'] = copy.deepcopy(received_prefixes)
+
                     elif ':' in bgp_peer and doubledots_in_bgp_peer >= 3:
                         if not bgp_peer in device_data['IPV6_bgp_peers'].keys():
                             device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                        if isinstance(received_prefixes, int):
+                            device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['Received_prefixes'] = copy.deepcopy(received_prefixes)
+
 
                 ### COMMAND: 'show bgp vrf all sum | exc "BGP|ID|stop|Process|Speaker"' ###
                 try: section_list = rcmd_outputs[3].split('VRF: ')[1:]
@@ -2369,10 +2379,13 @@ authentication {
                     for line in peer_lines:
                         try: bgp_peer = line.split()[0]
                         except: bgp_peer = str()
+
                         try: doubledots_in_bgp_peer = len(line.split()[0].split(':'))
                         except: doubledots_in_bgp_peer = 0
+
                         try: received_prefixes = int(line.split()[-1])
                         except: received_prefixes = None
+
                         find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
                         if len(find_ip) == 1:
                             bgp_peer = find_ip[0].strip()
