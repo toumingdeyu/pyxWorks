@@ -2645,7 +2645,7 @@ authentication {
                 if LOCAL_AS_NUMBER == OTI_LOCAL_AS:
                     collector2_cmds['cisco_xr'].append('show bgp neighbor %s advertised-count' % (bgp_peer))
                     collector2_cmds['huawei'].append('disp bgp peer %s verbose | include routes' % (bgp_peer))
-                    collector2_cmds['juniper'].append('show bgp neighbor %s | include prefixes' % (bgp_peer))
+                    collector2_cmds['juniper'].append('show bgp neighbor %s | match prefixes' % (bgp_peer))
 
                 elif LOCAL_AS_NUMBER == IMN_LOCAL_AS:
                     collector2_cmds['cisco_xr'].append('show bgp vpnv4 unicast neighbors %s advertised-count' % (bgp_peer))
