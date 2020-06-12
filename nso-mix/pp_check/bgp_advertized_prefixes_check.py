@@ -2878,25 +2878,38 @@ authentication {
             ### def BASIC CHECKS ##############################################
             CGI_CLI.uprint('CHECKS:', tag = 'h2', printall = True)
             for bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                error_flag = False
                 if device_data['IPV4_bgp_peers'][bgp_peer].get('Accepted_prefixes',0) < device_data['IPV4_bgp_peers'][bgp_peer].get('Received_prefixes',0):
                     CGI_CLI.uprint('BGP Peer %s has Accepted_prefixes < Received_prefixes !' % (bgp_peer), color = 'orange', printall = True)
+                    error_flag = True
 
                 if device_data['IPV4_bgp_peers'][bgp_peer].get('Denied_prefixes',0) > 0:
                     CGI_CLI.uprint('BGP Peer %s has Denied_prefixes > 0 !' % (bgp_peer), color = 'orange', printall = True)
+                    error_flag = True
 
                 if device_data['IPV4_bgp_peers'][bgp_peer].get('State',''):
                     CGI_CLI.uprint('BGP Peer %s is in STATE: %s !' % (bgp_peer, device_data['IPV4_bgp_peers'][bgp_peer].get('State','')), color = 'red', printall = True)
+                    error_flag = True
+
+                if not error_flag:
+                    CGI_CLI.uprint('BGP Peer %s check - OK.' % (bgp_peer), printall = True)
 
             for bgp_peer in device_data['IPV6_bgp_peers'].keys():
+                error_flag = False
                 if device_data['IPV6_bgp_peers'][bgp_peer].get('Accepted_prefixes',0) < device_data['IPV6_bgp_peers'][bgp_peer].get('Received_prefixes',0):
                     CGI_CLI.uprint('BGP Peer %s has Accepted_prefixes < Received_prefixes !' % (bgp_peer), color = 'orange', printall = True)
+                    error_flag = True
 
                 if device_data['IPV6_bgp_peers'][bgp_peer].get('Denied_prefixes',0) > 0:
                     CGI_CLI.uprint('BGP Peer %s has Denied_prefixes > 0 !' % (bgp_peer), color = 'orange', printall = True)
+                    error_flag = True
 
                 if device_data['IPV6_bgp_peers'][bgp_peer].get('State',''):
                     CGI_CLI.uprint('BGP Peer %s is in STATE: %s !' % (bgp_peer, device_data['IPV6_bgp_peers'][bgp_peer].get('State','')), color = 'red', printall = True)
+                    error_flag = True
 
+                if not error_flag:
+                    CGI_CLI.uprint('BGP Peer %s check - OK.' % (bgp_peer), printall = True)
 
 
 except SystemExit: pass
