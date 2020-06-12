@@ -2796,6 +2796,32 @@ authentication {
                     except: pass
 
 
+
+            ### def BASIC CHECKS ##############################################
+            CGI_CLI.uprint('\n', printall = True)
+            for bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                if device_data['IPV4_bgp_peers'][bgp_peer].get('Accepted_prefixes',0) < device_data['IPV4_bgp_peers'][bgp_peer].get('Received_prefixes',0):
+                    CGI_CLI.uprint('BGP Peer %s has Accepted_prefixes < Received_prefixes!' % (bgp_peer), color = 'orange', printall = True)
+
+                if device_data['IPV4_bgp_peers'][bgp_peer].get('Denied_prefixes',0) > 0:
+                    CGI_CLI.uprint('BGP Peer %s has Denied_prefixes > 0!' % (bgp_peer), color = 'orange', printall = True)
+
+                if device_data['IPV4_bgp_peers'][bgp_peer].get('State',''):
+                    CGI_CLI.uprint('BGP Peer %s is in State: %s!' % (bgp_peer, device_data['IPV4_bgp_peers'][bgp_peer].get('State','')), color = 'red', printall = True)
+
+            for bgp_peer in device_data['IPV6_bgp_peers'].keys():
+                if device_data['IPV6_bgp_peers'][bgp_peer].get('Accepted_prefixes',0) < device_data['IPV6_bgp_peers'][bgp_peer].get('Received_prefixes',0):
+                    CGI_CLI.uprint('BGP Peer %s has Accepted_prefixes < Received_prefixes!' % (bgp_peer), color = 'orange', printall = True)
+
+                if device_data['IPV6_bgp_peers'][bgp_peer].get('Denied_prefixes',0) > 0:
+                    CGI_CLI.uprint('BGP Peer %s has Denied_prefixes > 0!' % (bgp_peer), color = 'orange', printall = True)
+
+                if device_data['IPV6_bgp_peers'][bgp_peer].get('State',''):
+                    CGI_CLI.uprint('BGP Peer %s is in State: %s!' % (bgp_peer, device_data['IPV6_bgp_peers'][bgp_peer].get('State','')), color = 'red', printall = True)
+
+
+
+
             ### LOOP PER INTERFACE - END ######################################
             RCMD.disconnect()
 
