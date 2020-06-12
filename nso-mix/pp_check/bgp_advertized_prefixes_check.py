@@ -2799,10 +2799,10 @@ authentication {
 
                     selected_bgp_peers.append(copy.deepcopy(bgp_peer))
 
-                    collector4_cmds['cisco_xr'].append('show bgp vrf %s neighbors %s' % \
+                    collector4_cmds['cisco_xr'].append('show bgp vrf %s neighbors %s | include prefixes' % \
                         (device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()), bgp_peer))
 
-                    collector4_cmds['huawei'].append('display bgp vpnv4 vpn-instance %s peer %s verbose' % \
+                    collector4_cmds['huawei'].append('display bgp vpnv4 vpn-instance %s peer %s verbose | include routes' % \
                         (device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()),bgp_peer))
 
             rcmd4_outputs = RCMD.run_commands(collector4_cmds, \
@@ -2863,8 +2863,9 @@ authentication {
                     try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(output_command.split('No of prefixes Advertised:')[1].split()[0])
                     except: pass
 
-
+            ###################################################################
             ### LOOP PER INTERFACE - END ######################################
+            ###################################################################
             RCMD.disconnect()
 
 
