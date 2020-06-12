@@ -2796,9 +2796,19 @@ authentication {
                     except: pass
 
 
+            ### LOOP PER INTERFACE - END ######################################
+            RCMD.disconnect()
+
+
+            ### PRINT COLLECTED DATA ##########################################
+            CGI_CLI.uprint('\n', printall = True)
+            CGI_CLI.uprint(device_data, name = '%s_bgp_device_data' % (device.upper()), jsonprint = True, \
+                color = 'blue', timestamp = 'no', printall = True, sort_keys = True)
+            CGI_CLI.uprint('\n', printall = True)
+
 
             ### def BASIC CHECKS ##############################################
-            CGI_CLI.uprint('\n', printall = True)
+            CGI_CLI.uprint('CHECKS:', tag = 'h2', printall = True)
             for bgp_peer in device_data['IPV4_bgp_peers'].keys():
                 if device_data['IPV4_bgp_peers'][bgp_peer].get('Accepted_prefixes',0) < device_data['IPV4_bgp_peers'][bgp_peer].get('Received_prefixes',0):
                     CGI_CLI.uprint('BGP Peer %s has Accepted_prefixes < Received_prefixes!' % (bgp_peer), color = 'orange', printall = True)
@@ -2822,13 +2832,7 @@ authentication {
 
 
 
-            ### LOOP PER INTERFACE - END ######################################
-            RCMD.disconnect()
 
-            ### PRINT COLLECTED DATA ##########################################
-            CGI_CLI.uprint('\n', printall = True)
-            CGI_CLI.uprint(device_data, name = '%s_bgp_device_data' % (device.upper()), jsonprint = True, \
-                color = 'blue', timestamp = 'no', printall = True, sort_keys = True)
 
 
 except SystemExit: pass
