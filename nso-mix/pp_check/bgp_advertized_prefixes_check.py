@@ -2309,7 +2309,7 @@ authentication {
                     try: received_prefixes = int(line.split()[-1])
                     except: received_prefixes = None
 
-                    try: state = line.split()[9] + ' ' + line.split[10]
+                    try: state = line.split()[9] + ' ' + line.split()[10]
                     except:
                         try: state = line.split()[9]
                         except: state = None
@@ -2333,7 +2333,7 @@ authentication {
                     try: received_prefixes = int(line.split()[-1])
                     except: received_prefixes = None
 
-                    try: state = line.split()[9] + ' ' + line.split[10]
+                    try: state = line.split()[9] + ' ' + line.split()[10]
                     except:
                         try: state = line.split()[9]
                         except: state = None
@@ -2362,7 +2362,7 @@ authentication {
                     try: received_prefixes = int(line.split()[-1])
                     except: received_prefixes = None
 
-                    try: state = line.split()[-2] + ' ' + line.split[-1]
+                    try: state = line.split()[-2] + ' ' + line.split()[-1]
                     except:
                         try: state = line.split()[-1]
                         except: state = None
@@ -2371,7 +2371,7 @@ authentication {
                         try: received_prefixes = int(line_plus_one.split()[-1])
                         except: received_prefixes = None
 
-                        try: state = line_plus_one.split()[-2] + ' ' + line_plus_one.split[-1]
+                        try: state = line_plus_one.split()[-2] + ' ' + line_plus_one.split()[-1]
                         except:
                             try: state = line_plus_one.split()[-1]
                             except: state = None
@@ -2415,7 +2415,7 @@ authentication {
                         try: received_prefixes = int(line.split()[-1])
                         except: received_prefixes = None
 
-                        try: state = line.split()[9] + ' ' + line.split[10]
+                        try: state = line.split()[9] + ' ' + line.split()[10]
                         except:
                             try: state = line.split()[9]
                             except: state = None
