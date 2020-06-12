@@ -2242,6 +2242,7 @@ authentication {
             device_data['IPV4_bgp_peers'] = collections.OrderedDict()
             device_data['IPV6_bgp_peers'] = collections.OrderedDict()
 
+
             ### def LOCAL AS NUMBER CMDS ######################################
             collector_cmds = {
                 'cisco_ios':['show bgp summary',
@@ -2268,7 +2269,6 @@ authentication {
                             ]
             }
 
-            ### RUN START COLLETING OF DATA ###
             rcmd_outputs = RCMD.run_commands(collector_cmds, \
                 autoconfirm_mode = True, \
                 printall = printall)
@@ -2582,9 +2582,6 @@ authentication {
                 elif LOCAL_AS_NUMBER == IMN_LOCAL_AS:
                     collector2_cmds['cisco_xr'].append('show bgp vpnv4 unicast neighbors %s advertised-count' % (bgp_peer))
 
-
-
-            ### RUN START COLLETING OF DATA ###
             rcmd2_outputs = RCMD.run_commands(collector2_cmds, \
                 autoconfirm_mode = True, \
                 printall = printall)
@@ -2610,7 +2607,7 @@ authentication {
                     try: device_data['IPV4_bgp_peers'][bgp_peer]['Received_prefixes'] = int(output_command.split('Received total routes:')[1].split()[0])
                     except: pass
 
-            ### DEF CMD22 #####################################################
+            ### DEF CMD22 - IPV4 XR PREFIXES ##################################
             if RCMD.router_type == 'cisco_xr':
                 collector22_cmds = {
                     'cisco_ios':[
@@ -2628,12 +2625,11 @@ authentication {
 
                 for bgp_peer in device_data['IPV4_bgp_peers'].keys():
                     if LOCAL_AS_NUMBER == OTI_LOCAL_AS:
-                        collector22_cmds['cisco_xr'].append('show bgp neighbor %s' % (bgp_peer))
+                        collector22_cmds['cisco_xr'].append('show bgp neighbor %s | include prefixes' % (bgp_peer))
 
                     elif LOCAL_AS_NUMBER == IMN_LOCAL_AS:
-                        collector22_cmds['cisco_xr'].append('show bgp vpnv4 unicast neighbors %s' % (bgp_peer))
+                        collector22_cmds['cisco_xr'].append('show bgp vpnv4 unicast neighbors %s | include prefixes' % (bgp_peer))
 
-                ### RUN START COLLETING OF DATA ###
                 rcmd22_outputs = RCMD.run_commands(collector22_cmds, \
                     autoconfirm_mode = True, \
                     printall = printall)
@@ -2645,6 +2641,42 @@ authentication {
 
                     try: device_data['IPV4_bgp_peers'][bgp_peer]['Denied_prefixes'] = int(output_command.split('prefixes denied :')[1].split()[0].replace('.',''))
                     except: pass
+
+            ### DEF CMD26 - IPV6 XR PREFIXES ##################################
+            if RCMD.router_type == 'cisco_xr':
+                collector26_cmds = {
+                    'cisco_ios':[
+                                ],
+
+                    'cisco_xr': [
+                                ],
+
+                    'juniper':  [
+                                ],
+
+                    'huawei':   [
+                                ]
+                }
+
+                for bgp_peer in device_data['IPV6_bgp_peers'].keys():
+                    if LOCAL_AS_NUMBER == OTI_LOCAL_AS:
+                        collector26_cmds['cisco_xr'].append('show bgp neighbor %s | include prefixes' % (bgp_peer))
+
+                    elif LOCAL_AS_NUMBER == IMN_LOCAL_AS:
+                        collector26_cmds['cisco_xr'].append('show bgp vpnv6 unicast neighbors %s | include prefixes' % (bgp_peer))
+
+                rcmd26_outputs = RCMD.run_commands(collector26_cmds, \
+                    autoconfirm_mode = True, \
+                    printall = printall)
+
+                for bgp_peer, output_command in zip(device_data['IPV6_bgp_peers'].keys(),rcmd26_outputs):
+                    ### 'Prefix advertised' IS NOT VALID INFORMATION ###########
+                    try: device_data['IPV6_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(output_command.split('accepted prefixes')[0].split()[-1])
+                    except: pass
+
+                    try: device_data['IPV6_bgp_peers'][bgp_peer]['Denied_prefixes'] = int(output_command.split('prefixes denied :')[1].split()[0].replace('.',''))
+                    except: pass
+
 
             ### DEF CMD3 - IPV6 ADVERTIZED COUNT ###############################
             collector3_cmds = {
@@ -2668,7 +2700,6 @@ authentication {
                     elif LOCAL_AS_NUMBER == IMN_LOCAL_AS:
                         collector3_cmds['cisco_xr'].append('sh bgp vpnv6 unicast neighbors %s advertised-count' % (bgp_peer))
 
-                ### RUN START COLLETING OF DATA ###
                 rcmd3_outputs = RCMD.run_commands(collector3_cmds, \
                     autoconfirm_mode = True, \
                     printall = printall)
@@ -2706,7 +2737,6 @@ authentication {
                     collector4_cmds['huawei'].append('display bgp vpnv4 vpn-instance %s peer %s verbose' % \
                         (device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()),bgp_peer))
 
-            ### RUN START COLLETING OF DATA ###
             rcmd4_outputs = RCMD.run_commands(collector4_cmds, \
                 autoconfirm_mode = True, \
                 printall = printall)
@@ -2757,8 +2787,6 @@ authentication {
                         collector44_cmds['cisco_xr'].append('show bgp vrf %s neighbors %s advertised-count' % \
                             (device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()), bgp_peer))
 
-
-                ### RUN START COLLETING OF DATA ###
                 rcmd44_outputs = RCMD.run_commands(collector44_cmds, \
                     autoconfirm_mode = True, \
                     printall = printall)
