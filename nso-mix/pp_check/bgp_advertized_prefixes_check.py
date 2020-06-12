@@ -2467,49 +2467,22 @@ authentication {
 
 
             elif RCMD.router_type == 'huawei':
-                try: output_list = rcmd_outputs[2].split('BGP Peer is ')[1:]
-                except: output_list = []
-                for section in output_list:
-                    try: bgp_peer = section.split()[0].replace(',','')
-                    except: bgp_peer = str()
-                    try: advertized_prefixes = int(section.split('Advertised total routes:')[1].split()[0])
-                    except: advertized_prefixes = str()
-                    try: received_prefixes = int(section.split('Received total routes:')[1].split()[0])
-                    except: received_prefixes = str()
-                    try: accepted_prefixes = int(section.split('Received active routes total:')[1].split()[0])
-                    except: accepted_prefixes = str()
-
-                    if '.' in bgp_peer:
-                        if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
-                            device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
-
-                        if isinstance(advertized_prefixes, int):
-                            device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = copy.deepcopy(advertized_prefixes)
-                        if isinstance(received_prefixes, int):
-                            device_data['IPV4_bgp_peers'][bgp_peer]['Received_prefixes'] = copy.deepcopy(received_prefixes)
-                        if isinstance(accepted_prefixes, int):
-                            device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = copy.deepcopy(accepted_prefixes)
-
-                    elif ':' in bgp_peer:
-                        if not bgp_peer in device_data['IPV6_bgp_peers'].keys():
-                            device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
-
-                        if isinstance(advertized_prefixes, int):
-                            device_data['IPV6_bgp_peers'][bgp_peer]['Advertised_prefixes'] = copy.deepcopy(advertized_prefixes)
-                        if isinstance(received_prefixes, int):
-                            device_data['IPV6_bgp_peers'][bgp_peer]['Received_prefixes'] = copy.deepcopy(received_prefixes)
-                        if isinstance(accepted_prefixes, int):
-                            device_data['IPV6_bgp_peers'][bgp_peer]['Accepted_prefixes'] = copy.deepcopy(accepted_prefixes)
-
+                ### COMMAND: 'display bgp peer' ###
                 try: output_list = rcmd_outputs[0].split('PrefRcv')[1].splitlines()[1:]
                 except: output_list = []
                 for line in output_list:
                     try: bgp_peer = line.split()[0]
                     except: bgp_peer = str()
-                    try: doubledots_in_bgp_peer = len(line.split()[0].split(':'))
+
+                    try: doubledots_in_bgp_peer = len(bgp_peer.split(':'))
                     except: doubledots_in_bgp_peer = 0
+
                     try: received_prefixes = int(line.split()[-1])
                     except: received_prefixes = None
+
+                    try: state = line.split()[7] if 'IDLE' in line.split()[7].upper() or 'CONNECT' in line.split()[7].upper() or 'ACTIVE' in line.split()[7].upper() else None
+                    except: state = None
+
                     find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
                     if len(find_ip) == 1:
                         bgp_peer = find_ip[0].strip()
@@ -2519,6 +2492,9 @@ authentication {
                         if isinstance(received_prefixes, int):
                             device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['Received_prefixes'] = copy.deepcopy(received_prefixes)
 
+                        if state:
+                            device_data['IPV4_bgp_peers'][bgp_peer]['State'] = copy.deepcopy(state)
+
                     elif ':' in bgp_peer and doubledots_in_bgp_peer >= 3:
                         if not bgp_peer in device_data['IPV6_bgp_peers'].keys():
                             device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
@@ -2526,7 +2502,10 @@ authentication {
                         if isinstance(received_prefixes, int):
                             device_data['IPV6_bgp_peers'][copy.deepcopy(find_ip[0].strip())]['Received_prefixes'] = copy.deepcopy(received_prefixes)
 
-                ### IMN HUAWEI ################################################
+                        if state:
+                            device_data['IPV6_bgp_peers'][bgp_peer]['State'] = copy.deepcopy(state)
+
+                ### COMMAND: display bgp vpnv4 all peer' , IMN HUAWEI #########
                 try: output_list = rcmd_outputs[1].split('PrefRcv')[1].splitlines()[1:]
                 except: output_list = []
                 for line in output_list:
@@ -2556,6 +2535,95 @@ authentication {
                             bgp_peer = find_ip[0].strip()
                             device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['VRF_NAME'] = copy.deepcopy(vfr_name)
 
+                ### COMMAND: 'disp bgp peer verbose | i (BGP Peer is|routes)' #
+                try: output_list = rcmd_outputs[2].split('BGP Peer is ')[1:]
+                except: output_list = []
+                for section in output_list:
+                    try: bgp_peer = section.split()[0].replace(',','')
+                    except: bgp_peer = str()
+
+                    try: advertized_prefixes = int(section.split('Advertised total routes:')[1].split()[0])
+                    except: advertized_prefixes = str()
+
+                    try: received_prefixes = int(section.split('Received total routes:')[1].split()[0])
+                    except: received_prefixes = str()
+
+                    try: accepted_prefixes = int(section.split('Received active routes total:')[1].split()[0])
+                    except: accepted_prefixes = str()
+
+                    try: doubledots_in_bgp_peer = len(bgp_peer.split(':'))
+                    except: doubledots_in_bgp_peer = 0
+
+                    if '.' in bgp_peer:
+                        if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                            device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                        if isinstance(advertized_prefixes, int):
+                            device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = copy.deepcopy(advertized_prefixes)
+                        if isinstance(received_prefixes, int):
+                            device_data['IPV4_bgp_peers'][bgp_peer]['Received_prefixes'] = copy.deepcopy(received_prefixes)
+                        if isinstance(accepted_prefixes, int):
+                            device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = copy.deepcopy(accepted_prefixes)
+
+                    elif ':' in bgp_peer and doubledots_in_bgp_peer >= 3:
+                        if not bgp_peer in device_data['IPV6_bgp_peers'].keys():
+                            device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                        if isinstance(advertized_prefixes, int):
+                            device_data['IPV6_bgp_peers'][bgp_peer]['Advertised_prefixes'] = copy.deepcopy(advertized_prefixes)
+                        if isinstance(received_prefixes, int):
+                            device_data['IPV6_bgp_peers'][bgp_peer]['Received_prefixes'] = copy.deepcopy(received_prefixes)
+                        if isinstance(accepted_prefixes, int):
+                            device_data['IPV6_bgp_peers'][bgp_peer]['Accepted_prefixes'] = copy.deepcopy(accepted_prefixes)
+
+                ### COMMAND: 'display bgp vpnv6 all peer' #####################
+                try: output_list = rcmd_outputs[3].split('PrefRcv')[1].splitlines()[1:]
+                except: output_list = []
+                for line in output_list:
+                    try: bgp_peer = line.split()[0]
+                    except: bgp_peer = str()
+
+                    try: received_prefixes = int(line.split()[-1])
+                    except: received_prefixes = None
+
+                    try: doubledots_in_bgp_peer = len(bgp_peer.split(':'))
+                    except: doubledots_in_bgp_peer = 0
+
+                    find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
+                    if len(find_ip) == 1:
+                        bgp_peer = find_ip[0].strip()
+                        if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                            device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                        if isinstance(received_prefixes, int):
+                            device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['Received_prefixes'] = copy.deepcopy(received_prefixes)
+                    elif ':' in bgp_peer and doubledots_in_bgp_peer >= 3:
+                        if not bgp_peer in device_data['IPV6_bgp_peers'].keys():
+                            device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                        if isinstance(received_prefixes, int):
+                            device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['Received_prefixes'] = copy.deepcopy(received_prefixes)
+
+                try: vpn_sections = rcmd_outputs[1].split('VPN-Instance')[1:]
+                except: vpn_sections = []
+                for section in vpn_sections:
+                    try: vfr_name = section.split()[0].replace(',','')
+                    except: vfr_name = None
+
+                    for line in section.splitlines()[1:]:
+                        try: bgp_peer = line.split()[0]
+                        except: bgp_peer = str()
+
+                        try: doubledots_in_bgp_peer = len(line.split()[0].split(':'))
+                        except: doubledots_in_bgp_peer = 0
+
+                        find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
+                        if len(find_ip) == 1 and vfr_name:
+                            bgp_peer = find_ip[0].strip()
+                            device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['VRF_NAME'] = copy.deepcopy(vfr_name)
+
+                        elif ':' in bgp_peer and doubledots_in_bgp_peer >= 3:
+                            device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['VRF_NAME'] = copy.deepcopy(vfr_name)
 
 
             ### DEF CMD2 - IPV4 ADVERTIZED COUNT ##############################
