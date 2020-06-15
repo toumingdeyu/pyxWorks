@@ -2484,7 +2484,7 @@ authentication {
                     except: doubledots_in_bgp_peer = 0
 
                     try: state = line.split()[8]
-                    except: state = None
+                    except: state = str()
 
                     try: AS = line.split()[1]
                     except: AS = str()
