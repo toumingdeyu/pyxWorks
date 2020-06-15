@@ -2495,7 +2495,7 @@ authentication {
                         if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
                             device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
 
-                        if 'IDLE' in state.upper() or 'ACTIVE' in state.upper() or 'DAMPED' in state.upper():
+                        if 'IDLE' in state.upper() or 'ACTIVE' in state.upper() or 'DAMPED' in state.upper() or 'CONNECT' in state.upper():
                             device_data['IPV4_bgp_peers'][bgp_peer]['State'] = copy.deepcopy(state)
 
                         if AS: device_data['IPV4_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
@@ -2504,7 +2504,7 @@ authentication {
                         if not bgp_peer in device_data['IPV6_bgp_peers'].keys():
                             device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
 
-                        if 'IDLE' in state.upper() or 'ACTIVE' in state.upper() or 'DAMPED' in state.upper():
+                        if 'IDLE' in state.upper() or 'ACTIVE' in state.upper() or 'DAMPED' in state.upper() or 'CONNECT' in state.upper():
                             device_data['IPV6_bgp_peers'][bgp_peer]['State'] = copy.deepcopy(state)
 
                         if AS: device_data['IPV6_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
