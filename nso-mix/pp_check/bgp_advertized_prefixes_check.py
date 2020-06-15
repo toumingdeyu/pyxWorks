@@ -2474,6 +2474,42 @@ authentication {
                             if AS: device_data['IPV6_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
 
             elif RCMD.router_type == 'juniper':
+
+                ### COMMAND: 'show bgp summary' ###############################
+                for line in rcmd_outputs[1].splitlines()[1:]:
+                    try: bgp_peer = line.split()[0].split('+')[0]
+                    except: bgp_peer = str()
+
+                    try: doubledots_in_bgp_peer = len(line.split()[0].split(':'))
+                    except: doubledots_in_bgp_peer = 0
+
+                    try: state = line.split()[8]
+                    except: state = None
+
+                    try: AS = line.split()[1]
+                    except: AS = str()
+
+                    find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
+                    if len(find_ip) == 1:
+                        bgp_peer = find_ip[0].strip()
+                        if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                            device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                        if 'IDLE' in state.upper() or 'ACTIVE' in state.upper() or 'DAMPED' in state.upper():
+                            device_data['IPV4_bgp_peers'][bgp_peer]['State'] = copy.deepcopy(state)
+
+                        if AS: device_data['IPV4_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
+
+                    elif ':' in bgp_peer and doubledots_in_bgp_peer >= 3:
+                        if not bgp_peer in device_data['IPV6_bgp_peers'].keys():
+                            device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                        if 'IDLE' in state.upper() or 'ACTIVE' in state.upper() or 'DAMPED' in state.upper(): 
+                            device_data['IPV6_bgp_peers'][bgp_peer]['State'] = copy.deepcopy(state)
+
+                        if AS: device_data['IPV6_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)            
+            
+                ### COMMAND: 'show bgp neighbor | match "^Peer:|prefixes:|damping:"' ###
                 try: output_list = rcmd_outputs[2].split('Peer: ')[1:]
                 except: output_list = []
                 for section in output_list:
