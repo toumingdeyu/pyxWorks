@@ -130,7 +130,7 @@ class CGI_CLI(object):
         parser.add_argument("--append_logfile",
                             action = "store", dest = 'append_logfile',
                             default = None,
-                            help = "append logfile with specified name")                            
+                            help = "append logfile with specified name")
         args = parser.parse_args()
         return args
 
@@ -2057,8 +2057,8 @@ class LCMD(object):
 
 ###############################################################################
 
-def generate_logfilename(prefix = None, USERNAME = None, suffix = None, \
-    directory = None):
+def generate_logfilename(prefix = None, USERNAME = None, postfix = None, \
+    suffix = None, directory = None):
     filenamewithpath = None
     if not directory:
         try:    DIR         = os.environ['HOME']
@@ -2068,15 +2068,23 @@ def generate_logfilename(prefix = None, USERNAME = None, suffix = None, \
     if not os.path.exists(LOGDIR): os.makedirs(LOGDIR)
     if os.path.exists(LOGDIR):
         if not prefix: filename_prefix = os.path.join(LOGDIR,'device')
-        else: filename_prefix = prefix
+        else: filename_prefix = str(prefix)
+
+        if not postfix: filename_postfix = str()
+        else: filename_postfix = '-' + str(postfix)
+
         if not suffix: filename_suffix = 'log'
-        else: filename_suffix = suffix
+        else: filename_suffix = str(suffix)
+
         now = datetime.datetime.now()
-        filename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s-%s.%s" % \
+        filename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s-%s%s.%s" % \
             (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,\
             now.second,sys.argv[0].replace('.py','').replace('./','').\
             replace(':','_').replace('.','_').replace('\\','/')\
-            .split('/')[-1],USERNAME,filename_suffix)
+            .split('/')[-1],
+            USERNAME,
+            filename_postfix,
+            filename_suffix)
         filenamewithpath = str(os.path.join(LOGDIR,filename))
     return filenamewithpath
 
@@ -2211,7 +2219,7 @@ authentication {
 
     ### MODE ##################################################################
     precheck_mode, postcheck_mode, recheck_mode = False, False, False
-    if CGI_CLI.data.get("precheck"): 
+    if CGI_CLI.data.get("precheck"):
         precheck_mode = True
     elif CGI_CLI.data.get("postcheck"):
         postcheck_mode = True
@@ -2290,17 +2298,26 @@ authentication {
     ### def LOGFILENAME GENERATION, DO LOGGING ONLY WHEN DEVICE LIST EXISTS ###
     if CGI_CLI.data.get("append_logfile",str()):
         logfilename = CGI_CLI.data.get("append_logfile",str())
-    else:           
+    else:
         html_extention = 'htm' if CGI_CLI.cgi_active else str()
-
-        PREFIX_PART = SCRIPT_NAME.replace(' ','_')
-
         logfilename = generate_logfilename(
-            prefix = PREFIX_PART + '_' + '_'.join(device_list).upper(), \
-            USERNAME = USERNAME, suffix = '%slog' % (html_extention))
+            prefix = '_'.join(device_list).upper(), \
+            USERNAME = USERNAME, \
+            postfix = 'precheck' if precheck_mode else None,
+            suffix = '%slog' % (html_extention))
     ### NO WINDOWS LOGGING ####################################################
     if 'WIN32' in sys.platform.upper(): logfilename = None
     if logfilename: CGI_CLI.set_logfile(logfilename = logfilename)
+
+    last_precheck_file = None
+    if postcheck_mode or recheck_mode:
+        last_precheck_file = find_last_precheck_logfile( \
+            prefix = '_'.join(device_list).upper(), USERNAME = USERNAME, \
+            suffix = 'precheck.*log', \
+            printall = printall)
+
+    if not last_shut_file: sys.exit(0)
+    bgp_precheck_data = read_bgp_data_json_from_logfile(last_shut_file, printall = printall)
 
 
     ### def REMOTE DEVICE OPERATIONS ##########################################
