@@ -2519,15 +2519,9 @@ authentication {
                     try: AS = section.split('AS')[1].split()[0]
                     except: AS = None
 
-                    try: advertized_prefixes = int(section.split('Advertised prefixes:')[1].split()[0])
-                    except: advertized_prefixes = str()
-
                     if '.' in bgp_peer:
                         if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
                             device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
-
-                        if isinstance(advertized_prefixes, int):
-                            device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = copy.deepcopy(advertized_prefixes)
 
                         if AS: device_data['IPV4_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
 
@@ -2544,9 +2538,6 @@ authentication {
                     elif ':' in bgp_peer:
                         if not bgp_peer in device_data['IPV6_bgp_peers'].keys():
                             device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
-
-                        if isinstance(advertized_prefixes, int):
-                            device_data['IPV6_bgp_peers'][bgp_peer]['Advertised_prefixes'] = copy.deepcopy(advertized_prefixes)
 
                         if AS: device_data['IPV6_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
 
