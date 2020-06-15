@@ -2319,6 +2319,10 @@ authentication {
     if not last_shut_file: sys.exit(0)
     bgp_precheck_data = read_bgp_data_json_from_logfile(last_shut_file, printall = printall)
 
+    CGI_CLI.uprint('\n', printall = True)
+    CGI_CLI.uprint(device_data, name = '%s_bgp_precheck_data' % (device.upper()), jsonprint = True, \
+        color = 'blue', timestamp = 'no', printall = True, sort_keys = True)
+    CGI_CLI.uprint('\n', printall = True)
 
     ### def REMOTE DEVICE OPERATIONS ##########################################
     for device in device_list:
