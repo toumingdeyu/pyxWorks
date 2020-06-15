@@ -2839,7 +2839,7 @@ authentication {
                     autoconfirm_mode = True, \
                     printall = printall)
 
-                if RCMD.router_type == 'cisco_xr'
+                if RCMD.router_type == 'cisco_xr':
                     for bgp_peer, output_command in zip(device_data['IPV6_bgp_peers'].keys(),rcmd26_outputs):
                         ### 'Prefix advertised' IS NOT VALID INFORMATION ###########
                         try: device_data['IPV6_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(output_command.split('accepted prefixes')[0].split()[-1])
@@ -2854,8 +2854,6 @@ authentication {
                         except: pass
                         try: device_data['IPV6_bgp_peers'][bgp_peer]['Received_prefixes'] = int(output_command.split('Received prefixes:')[1].split()[0])
                         except: pass
-
-
 
 
             ### DEF CMD3 - IPV6 ADVERTIZED COUNT ###############################
