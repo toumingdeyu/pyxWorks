@@ -2078,8 +2078,9 @@ def generate_logfilename(prefix = None, USERNAME = None, postfix = None, \
 
         now = datetime.datetime.now()
         filename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s-%s%s.%s" % \
-            (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,\
-            now.second,sys.argv[0].replace('.py','').replace('./','').\
+            (filename_prefix, \
+            now.year,now.month,now.day,now.hour,now.minute,now.second, \
+            sys.argv[0].replace('.py','').replace('./','').\
             replace(':','_').replace('.','_').replace('\\','/')\
             .split('/')[-1],
             USERNAME,
@@ -2101,23 +2102,32 @@ def read_bgp_data_json_from_logfile(filename = None, printall = None):
         try: bgp_data_json_text = text.split('_bgp_device_data')[1].strip()
         except: bgp_data_json_text = str()
 
+        #CGI_CLI.uprint("\n1. READ JSON BGP_DATA:\n" + bgp_data_json_text)
+
         if bgp_data_json_text and '<br/>' in bgp_data_json_text:
             bgp_data_json_text = CGI_CLI.html_deescape(text = bgp_data_json_text)
 
-        try: bgp_data_json_text = bgp_data_json_text.split('=')[1]
+        #CGI_CLI.uprint("\n2. READ JSON BGP_DATA:\n" + bgp_data_json_text)
+
+        try: bgp_data_json_text = bgp_data_json_text.split('= ')[1]
         except: pass
+
+        #CGI_CLI.uprint("\n3. READ JSON BGP_DATA:\n" + bgp_data_json_text)
 
         new_bgp_data_json_text = str()
         for line in bgp_data_json_text.splitlines():
             if len(line.strip()) > 0:
-                new_bgp_data_json_text = new_bgp_data_json_text + '\n' + line
-                if line == '}':
-                    bgp_data_json_text = new_bgp_data_json_text + '\n'
+                if line[0] == '}':
+                    new_bgp_data_json_text = new_bgp_data_json_text + '\n}\n'
                     break
+                else: new_bgp_data_json_text = new_bgp_data_json_text + '\n' + line
 
         if bgp_data_json_text:
             try: bgp_data_loaded = json.loads(bgp_data_json_text, object_pairs_hook = collections.OrderedDict)
-            except: CGI_CLI.uprint("\nPROBLEM TO PARSE JSON BGP_DATA: ")
+            except:
+                traceback_found = traceback.format_exc()
+                CGI_CLI.uprint(str(traceback_found), tag = 'h3', color = 'magenta')            
+                CGI_CLI.uprint("\nPROBLEM TO PARSE JSON BGP_DATA: \n%s\n" % (new_bgp_data_json_text), color = 'magenta')
 
             if printall: CGI_CLI.uprint("\nLOADED JSON BGP_DATA: ")
             if printall: CGI_CLI.uprint(json.dumps(bgp_data_loaded, indent=2))
@@ -2219,13 +2229,16 @@ authentication {
 
     ### MODE ##################################################################
     precheck_mode, postcheck_mode, recheck_mode = False, False, False
-    if CGI_CLI.data.get("precheck"):
+    if CGI_CLI.data.get("precheck") or CGI_CLI.data.get("radio",str()) == 'precheck':
         precheck_mode = True
-    elif CGI_CLI.data.get("postcheck"):
+    elif CGI_CLI.data.get("postcheck") or CGI_CLI.data.get("radio",str()) == 'postcheck':
         postcheck_mode = True
-    elif CGI_CLI.data.get("recheck"):
+    elif CGI_CLI.data.get("recheck") or CGI_CLI.data.get("radio",str()) == 'recheck':
         recheck_mode = True
 
+    # CGI_CLI.uprint('PRECHECK[%s], POSTCHECK[%s], RECHECK[%s]' % \
+        # (precheck_mode, postcheck_mode, recheck_mode), \
+        # tag = 'debug', printall = True)
 
     ### TESTSERVER WORKAROUND #################################################
     iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
@@ -2295,6 +2308,7 @@ authentication {
     if exit_due_to_error: sys.exit(0)
 
 
+
     ### def LOGFILENAME GENERATION, DO LOGGING ONLY WHEN DEVICE LIST EXISTS ###
     if CGI_CLI.data.get("append_logfile",str()):
         logfilename = CGI_CLI.data.get("append_logfile",str())
@@ -2309,6 +2323,8 @@ authentication {
     if 'WIN32' in sys.platform.upper(): logfilename = None
     if logfilename: CGI_CLI.set_logfile(logfilename = logfilename)
 
+
+    ### FIND LAS LOGFILE AND READ JSON DATA ###################################
     last_precheck_file = None
     if postcheck_mode or recheck_mode:
         last_precheck_file = find_last_precheck_logfile( \
@@ -2316,13 +2332,15 @@ authentication {
             suffix = 'precheck.*log', \
             printall = printall)
 
-    if not last_shut_file: sys.exit(0)
-    bgp_precheck_data = read_bgp_data_json_from_logfile(last_shut_file, printall = printall)
+        if not last_precheck_file: sys.exit(0)
+        bgp_precheck_data = read_bgp_data_json_from_logfile(last_precheck_file, printall = printall)
 
-    CGI_CLI.uprint('\n', printall = True)
-    CGI_CLI.uprint(device_data, name = '%s_bgp_precheck_data' % (device.upper()), jsonprint = True, \
-        color = 'blue', timestamp = 'no', printall = True, sort_keys = True)
-    CGI_CLI.uprint('\n', printall = True)
+        CGI_CLI.uprint('\n', printall = True)
+        CGI_CLI.uprint(device_data, name = '%s_bgp_precheck_data' % ('_'.join(device_list).upper()), jsonprint = True, \
+            color = 'blue', timestamp = 'no', printall = True, sort_keys = True)
+        CGI_CLI.uprint('\n', printall = True)
+
+
 
     ### def REMOTE DEVICE OPERATIONS ##########################################
     for device in device_list:
