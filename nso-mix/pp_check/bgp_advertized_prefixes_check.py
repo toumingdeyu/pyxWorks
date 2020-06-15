@@ -2502,7 +2502,7 @@ authentication {
                         if isinstance(advertized_prefixes, int):
                             device_data['IPV6_bgp_peers'][bgp_peer]['Advertised_prefixes'] = copy.deepcopy(advertized_prefixes)
 
-                        if AS: device_data['IPV4_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
+                        if AS: device_data['IPV6_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
 
             elif RCMD.router_type == 'huawei':
                 ### COMMAND: 'display bgp peer' ###
