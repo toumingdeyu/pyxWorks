@@ -3221,6 +3221,15 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
                 else: interface_data['interface_statistics']['Rx_Power_Lanes_dBm']['Lane %d' % (0)] = copy.deepcopy(optic_data_outputs[1].split('Total Rx power:')[1].split()[3])
             except: pass
 
+            ### PHY MULTILANES INTERFACES #####################################
+            for i in range(4):
+                try:    interface_data['interface_statistics']['Tx_Power_Lanes_dBm']['Lane %d' % (i)] = copy.deepcopy(optic_data_outputs[1].split('Lane %d Tx power:' % (i))[1].split()[3])
+                except: pass
+                try:    interface_data['interface_statistics']['Rx_Power_Lanes_dBm']['Lane %d' % (i)] = copy.deepcopy(optic_data_outputs[1].split('Lane %d Rx power:' % (i))[1].split()[3])
+                except: pass
+
+
+
         elif RCMD.router_type == 'juniper':
             interface_data['interface_statistics']['Tx_Power_Lanes_dBm'] = collections.OrderedDict()
             interface_data['interface_statistics']['Rx_Power_Lanes_dBm'] = collections.OrderedDict()
