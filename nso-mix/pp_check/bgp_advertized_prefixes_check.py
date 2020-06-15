@@ -2811,7 +2811,7 @@ authentication {
                     except: pass
 
             ### DEF CMD26 - IPV6 XR PREFIXES ##################################
-            if RCMD.router_type == 'cisco_xr':
+            if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'juniper':
                 collector26_cmds = {
                     'cisco_ios':[
                                 ],
@@ -2833,17 +2833,29 @@ authentication {
                     elif LOCAL_AS_NUMBER == IMN_LOCAL_AS:
                         collector26_cmds['cisco_xr'].append('show bgp vpnv6 unicast neighbors %s | include prefixes' % (bgp_peer))
 
+                    collector26_cmds['juniper'].append('show bgp neighbor %s | match prefixes' % (bgp_peer))
+
                 rcmd26_outputs = RCMD.run_commands(collector26_cmds, \
                     autoconfirm_mode = True, \
                     printall = printall)
 
-                for bgp_peer, output_command in zip(device_data['IPV6_bgp_peers'].keys(),rcmd26_outputs):
-                    ### 'Prefix advertised' IS NOT VALID INFORMATION ###########
-                    try: device_data['IPV6_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(output_command.split('accepted prefixes')[0].split()[-1])
-                    except: pass
+                if RCMD.router_type == 'cisco_xr'
+                    for bgp_peer, output_command in zip(device_data['IPV6_bgp_peers'].keys(),rcmd26_outputs):
+                        ### 'Prefix advertised' IS NOT VALID INFORMATION ###########
+                        try: device_data['IPV6_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(output_command.split('accepted prefixes')[0].split()[-1])
+                        except: pass
 
-                    try: device_data['IPV6_bgp_peers'][bgp_peer]['Denied_prefixes'] = int(output_command.split('prefixes denied :')[1].split()[0].replace('.',''))
-                    except: pass
+                        try: device_data['IPV6_bgp_peers'][bgp_peer]['Denied_prefixes'] = int(output_command.split('prefixes denied :')[1].split()[0].replace('.',''))
+                        except: pass
+
+                elif RCMD.router_type == 'juniper':
+                    for bgp_peer, output_command in zip(device_data['IPV6_bgp_peers'].keys(),rcmd2_outputs):
+                        try: device_data['IPV6_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(output_command.split('Accepted prefixes:')[1].split()[0])
+                        except: pass
+                        try: device_data['IPV6_bgp_peers'][bgp_peer]['Received_prefixes'] = int(output_command.split('Received prefixes:')[1].split()[0])
+                        except: pass
+
+
 
 
             ### DEF CMD3 - IPV6 ADVERTIZED COUNT ###############################
