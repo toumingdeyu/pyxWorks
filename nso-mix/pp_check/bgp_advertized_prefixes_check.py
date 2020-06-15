@@ -105,23 +105,21 @@ class CGI_CLI(object):
                             action = "store", dest = 'device',
                             default = str(),
                             help = "target router to access. For now supports only 1.")
-        parser.add_argument("--interface",
-                            action = "store", dest = 'interface',
-                            default = str(),
-                            help = "interface id for testing. Interface list separated by , without whitespace.")
         parser.add_argument("--precheck",
                             action = "store_true", dest = 'precheck', default = None,
                             help = "do monitoring/precheck")
         parser.add_argument("--postcheck",
                             action = "store_true", dest = 'postcheck', default = None,
                             help = "do traffic/postcheck")
-        parser.add_argument("--swan_id",
-                            action = "store", dest = 'swan_id',
-                            default = str(),
-                            help = "swan_id name stored in DB")
-        parser.add_argument("--reinit_swan_id",
-                            action = "store_true", dest = 'reinit_swan_id', default = None,
-                            help = "re-init/rewrite initial swan_id record in DB")
+        parser.add_argument("--recheck",
+                            action = "store_true", dest = 'postcheck', default = None,
+                            help = "recheck last or specified diff pre/post files per inserted device")
+        parser.add_argument("--prefile",
+                            action = 'store', dest = "precheck_file", default = str(),
+                            help = "run postcheck against a specific precheck file")
+        parser.add_argument("--postfile",
+                            action = 'store', dest = "postcheck_file", default = str(),
+                            help = "specify your postcheck file")
         parser.add_argument("--send_email",
                             action = "store_true", dest = 'send_email', default = None,
                             help = "send email with test result logs")
@@ -129,6 +127,10 @@ class CGI_CLI(object):
                             action = "store_true", dest = 'printall',
                             default = None,
                             help = "print all lines, changes will be coloured")
+        parser.add_argument("--append_logfile",
+                            action = "store", dest = 'append_logfile',
+                            default = None,
+                            help = "append logfile with specified name")                            
         args = parser.parse_args()
         return args
 
@@ -344,6 +346,21 @@ class CGI_CLI(object):
             ### OMMIT SPACES,QUOTES AND NEWLINES ##############################
             escaped_text = str(text.replace('&','&amp;').\
                 replace('<','&lt;').replace('>','&gt;'))
+        return escaped_text
+
+    @staticmethod
+    def html_deescape(text = None, pre_tag = None):
+        escaped_text = str()
+        if text and not pre_tag:
+            escaped_text = str(text.replace('&amp;','&').\
+                replace('&lt;','<').replace('&gt;','>').\
+                replace('&nbsp;',' ').\
+                replace('&quot;','"').replace('&apos;',"'").\
+                replace('<br/>','\n'))
+        elif text and pre_tag:
+            ### OMMIT SPACES,QUOTES AND NEWLINES ##############################
+            escaped_text = str(text.replace('&amp;','&').\
+                replace('&lt;','<').replace('&gt;','>'))
         return escaped_text
 
     @staticmethod
@@ -2064,8 +2081,71 @@ def generate_logfilename(prefix = None, USERNAME = None, suffix = None, \
     return filenamewithpath
 
 
+def return_bgp_data_json():
+    return json.dumps(bgp_data, indent=2)
 
 
+def read_bgp_data_json_from_logfile(filename = None, printall = None):
+    bgp_data_loaded, text = None, None
+    with open(filename,"r") as fp:
+        text = fp.read()
+    if text:
+        try: bgp_data_json_text = text.split('_bgp_device_data')[1].strip()
+        except: bgp_data_json_text = str()
+
+        if bgp_data_json_text and '<br/>' in bgp_data_json_text:
+            bgp_data_json_text = CGI_CLI.html_deescape(text = bgp_data_json_text)
+
+        try: bgp_data_json_text = bgp_data_json_text.split('=')[1]
+        except: pass
+
+        new_bgp_data_json_text = str()
+        for line in bgp_data_json_text.splitlines():
+            if len(line.strip()) > 0:
+                new_bgp_data_json_text = new_bgp_data_json_text + '\n' + line
+                if line == '}':
+                    bgp_data_json_text = new_bgp_data_json_text + '\n'
+                    break
+
+        if bgp_data_json_text:
+            try: bgp_data_loaded = json.loads(bgp_data_json_text, object_pairs_hook = collections.OrderedDict)
+            except: CGI_CLI.uprint("\nPROBLEM TO PARSE JSON BGP_DATA: ")
+
+            if printall: CGI_CLI.uprint("\nLOADED JSON BGP_DATA: ")
+            if printall: CGI_CLI.uprint(json.dumps(bgp_data_loaded, indent=2))
+    return bgp_data_loaded
+
+###############################################################################
+
+def find_last_precheck_logfile(prefix = None, USERNAME = None, suffix = None, directory = None, \
+    latest = None , printall = None):
+    shut_file = str()
+    if not directory:
+        try:    DIR         = os.environ['HOME']
+        except: DIR         = str(os.path.dirname(os.path.abspath(__file__)))
+    else: DIR = str(directory)
+    if DIR: LOGDIR      = os.path.join(DIR,'logs')
+    if not prefix: use_prefix = str()
+    else: use_prefix = prefix
+    if latest:
+        list_shut_files = glob.glob(os.path.join(LOGDIR, use_prefix.replace(':','_').replace('.','_')) \
+            + '*' + sys.argv[0].replace('.py','').replace('./','').replace(':','_').replace('.','_').replace('\\','/').split('/')[-1] \
+            + '*' + '-' + suffix)
+    else:
+        list_shut_files = glob.glob(os.path.join(LOGDIR, use_prefix.replace(':','_').replace('.','_')) \
+            + '*' + sys.argv[0].replace('.py','').replace('./','').replace(':','_').replace('.','_').replace('\\','/').split('/')[-1] \
+            + '*' + USERNAME + '-' + suffix)
+    if len(list_shut_files) == 0:
+        CGI_CLI.uprint( " ... Can't find any precheck session log file!", color = 'magenta')
+    else:
+        most_recent_shut = list_shut_files[0]
+        for item in list_shut_files:
+            filecreation = os.path.getctime(item)
+            if filecreation > (os.path.getctime(most_recent_shut)):
+                most_recent_shut = item
+        shut_file = most_recent_shut
+    if printall and shut_file: CGI_CLI.uprint('FOUND LAST PRECHECK LOGFILE: %s' % (str(shut_file)), color = 'blue')
+    return shut_file
 
 ###############################################################################
 #
@@ -2129,6 +2209,16 @@ authentication {
         else: device_list = [devices_string.upper()]
 
 
+    ### MODE ##################################################################
+    precheck_mode, postcheck_mode, recheck_mode = False, False, False
+    if CGI_CLI.data.get("precheck"): 
+        precheck_mode = True
+    elif CGI_CLI.data.get("postcheck"):
+        postcheck_mode = True
+    elif CGI_CLI.data.get("recheck"):
+        recheck_mode = True
+
+
     ### TESTSERVER WORKAROUND #################################################
     iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
 
@@ -2169,7 +2259,8 @@ authentication {
             interface_menu_list.append('</authentication>')
 
         CGI_CLI.formprint(interface_menu_list + [
-            {'checkbox':'timestamps'}, '<br/>',\
+            {'radio':['precheck','postcheck']}, '<br/>',\
+            #{'checkbox':'timestamps'}, '<br/>',\
             '<br/><b><u>',{'checkbox':'send_email'},'</u></b><br/>',\
             {'checkbox':'printall'},'<br/>','<br/>'],\
             submit_button = CGI_CLI.self_buttons[0], \
@@ -2197,14 +2288,17 @@ authentication {
 
 
     ### def LOGFILENAME GENERATION, DO LOGGING ONLY WHEN DEVICE LIST EXISTS ###
-    html_extention = 'htm' if CGI_CLI.cgi_active else str()
+    if CGI_CLI.data.get("append_logfile",str()):
+        logfilename = CGI_CLI.data.get("append_logfile",str())
+    else:           
+        html_extention = 'htm' if CGI_CLI.cgi_active else str()
 
-    PREFIX_PART = SCRIPT_NAME.replace(' ','_')
+        PREFIX_PART = SCRIPT_NAME.replace(' ','_')
 
-    logfilename = generate_logfilename(
-        prefix = PREFIX_PART + '_' + '_'.join(device_list).upper(), \
-        USERNAME = USERNAME, suffix = '%slog' % (html_extention))
-    ### NO WINDOWS LOGGING ########################################
+        logfilename = generate_logfilename(
+            prefix = PREFIX_PART + '_' + '_'.join(device_list).upper(), \
+            USERNAME = USERNAME, suffix = '%slog' % (html_extention))
+    ### NO WINDOWS LOGGING ####################################################
     if 'WIN32' in sys.platform.upper(): logfilename = None
     if logfilename: CGI_CLI.set_logfile(logfilename = logfilename)
 
