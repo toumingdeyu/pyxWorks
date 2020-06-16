@@ -692,9 +692,9 @@ class CGI_CLI(object):
         print_string += 'CGI_CLI.cgi_active[%s], CGI_CLI.submit_form[%s], CGI_CLI.chunked[%s]\n' % \
             (str(CGI_CLI.cgi_active), str(CGI_CLI.submit_form), str(CGI_CLI.chunked))
         if CGI_CLI.cgi_active:
-            try: print_string += 'CGI_CLI.data[%s] = %s\n' % (str(CGI_CLI.submit_form),str(json.dumps(CGI_CLI.data, indent = 4)))
+            try: print_string += 'CGI_CLI.data[%s] = %s\n' % (str(CGI_CLI.submit_form),str(json.dumps(CGI_CLI.data, indent = 4, sort_keys = True)))
             except: pass
-        else: print_string += 'CLI_args = %s\nCGI_CLI.data = %s' % (str(sys.argv[1:]), str(json.dumps(CGI_CLI.data,indent = 4)))
+        else: print_string += 'CLI_args = %s\nCGI_CLI.data = %s' % (str(sys.argv[1:]), str(json.dumps(CGI_CLI.data,indent = 4, sort_keys = True)))
         if not ommit_print: CGI_CLI.uprint(print_string, tag = 'debug', no_printall = not CGI_CLI.printall, timestamp = 'no')
         return print_string
 
@@ -2092,11 +2092,11 @@ def generate_logfilename(prefix = None, USERNAME = None, postfix = None, \
     return filenamewithpath
 
 
-def return_bgp_data_json():
-    return json.dumps(bgp_data, indent=2)
+def return_bgp_data_json(sort_keys = None):
+    return json.dumps(bgp_data, indent=2, sort_keys = sort_keys)
 
 
-def read_bgp_data_json_from_logfile(filename = None, separator = None, printall = None):
+def read_bgp_data_json_from_logfile(filename = None, separator = None, printall = None, sort_keys = None):
     bgp_data_loaded, text = None, None
     with open(filename,"r") as fp:
         text = fp.read()
@@ -2128,7 +2128,7 @@ def read_bgp_data_json_from_logfile(filename = None, separator = None, printall 
                 CGI_CLI.uprint("\nPROBLEM TO PARSE JSON BGP_DATA: \n%s\n" % (new_bgp_data_json_text), color = 'magenta')
 
             if printall: CGI_CLI.uprint("\nLOADED JSON BGP_DATA: ")
-            if printall: CGI_CLI.uprint(json.dumps(bgp_data_loaded, indent=2))
+            if printall: CGI_CLI.uprint(json.dumps(bgp_data_loaded, indent=2, sort_keys = sort_keys))
     return bgp_data_loaded
 
 ###############################################################################
@@ -2162,6 +2162,54 @@ def find_last_precheck_logfile(prefix = None, USERNAME = None, suffix = None, di
         shut_file = most_recent_shut
     if printall and shut_file: CGI_CLI.uprint('FOUND LAST PRECHECK LOGFILE: %s' % (str(shut_file)), color = 'blue')
     return shut_file
+
+
+###############################################################################
+
+def check_bgp_peers(bgp_peers_string = None, percentage_tolerance = 3):
+    global error_flag
+    if bgp_peers_string:
+        for bgp_peer in device_data[bgp_peers_string].keys():
+            error_flag = False
+            if device_data[bgp_peers_string][bgp_peer].get('Accepted_prefixes',0) < device_data[bgp_peers_string][bgp_peer].get('Received_prefixes',0):
+                CGI_CLI.uprint('BGP Peer %s has Accepted_prefixes < Received_prefixes !' % (bgp_peer), color = 'orange', printall = True)
+                error_flag = True
+
+            if device_data[bgp_peers_string][bgp_peer].get('Denied_prefixes',0) > 0:
+                CGI_CLI.uprint('BGP Peer %s has Denied_prefixes > 0 !' % (bgp_peer), color = 'orange', printall = True)
+                error_flag = True
+
+            if bgp_precheck_data[bgp_peers_string].get(bgp_peer,'-1') == device_data[bgp_peers_string].get(bgp_peer,'-2'):
+                if device_data[bgp_peers_string][bgp_peer].get('State','') != bgp_precheck_data[bgp_peers_string][bgp_peer].get('State',''):
+                    CGI_CLI.uprint('BGP Peer %s is NOW in STATE: %s (BEFORE was: %s) !' % \
+                        (bgp_peer, device_data[bgp_peers_string][bgp_peer].get('State',''), \
+                        bgp_precheck_data[bgp_peers_string][bgp_peer].get('State','')), color = 'red', printall = True)
+                    error_flag = True
+
+                precheck_advertized, postcheck_advertized = 0, 0
+                if device_data[bgp_peers_string][bgp_peer].get('Advertized_prefixes') > 0:
+                    precheck_advertized = device_data[bgp_peers_string][bgp_peer].get('Advertized_prefixes',0)
+
+                if bgp_precheck_data[bgp_peers_string][bgp_peer].get('Advertized_prefixes') > 0:
+                    postcheck_advertized = bgp_precheck_data[bgp_peers_string][bgp_peer].get('Advertized_prefixes',0)
+
+                if float(precheck_advertized) < float(postcheck_advertized) * (100 + percentage_tolerance)/100 \
+                    and float(precheck_advertized) > float(postcheck_advertized) * (100 - percentage_tolerance)/100: pass
+                else:
+                    CGI_CLI.uprint('BGP Peer %s has Precheck/Postcheck Advertized_prefixes difference > %s %% !' % \
+                        (bgp_peer, str(percentage_tolerance)), color = 'red', printall = True)
+                    error_flag = True
+
+            elif not bgp_precheck_data[bgp_peers_string].get(bgp_peer):
+                    CGI_CLI.uprint('BGP Peer %s is MISSING IN PRECHECK !' % (bgp_peer), color = 'red', printall = True)
+                    error_flag = True
+            elif not device_data[bgp_peers_string].get(bgp_peer):
+                    CGI_CLI.uprint('BGP Peer %s is MISSING IN POSTCHECK !' % (bgp_peer), color = 'red', printall = True)
+                    error_flag = True
+
+            if not error_flag:
+                CGI_CLI.uprint('BGP Peer %s check - OK.' % (bgp_peer), printall = True)
+
 
 ###############################################################################
 #
@@ -2324,6 +2372,7 @@ authentication {
 
     ### FIND LAS LOGFILE AND READ JSON DATA ###################################
     last_precheck_file = None
+    bgp_precheck_data = {}
     if postcheck_mode or recheck_mode:
         last_precheck_file = find_last_precheck_logfile( \
             prefix = '_'.join(device_list).upper(), USERNAME = USERNAME, \
@@ -2333,11 +2382,10 @@ authentication {
         if not last_precheck_file: sys.exit(0)
         bgp_precheck_data = read_bgp_data_json_from_logfile(last_precheck_file, separator ='_bgp_device_data', printall = printall)
 
-        CGI_CLI.uprint('\n', printall = True)
+        CGI_CLI.uprint('\n', no_printall = not CGI_CLI.printall)
         CGI_CLI.uprint(bgp_precheck_data, name = '%s_bgp_precheck_data' % ('_'.join(device_list).upper()), jsonprint = True, \
-            color = 'blue', timestamp = 'no', printall = True, sort_keys = True)
-        CGI_CLI.uprint('\n', printall = True)
-
+            timestamp = 'no', no_printall = not CGI_CLI.printall, sort_keys = True)
+        CGI_CLI.uprint('\n', no_printall = not CGI_CLI.printall)
 
 
     ### def REMOTE DEVICE OPERATIONS ##########################################
@@ -3124,47 +3172,21 @@ authentication {
 
 
             ### PRINT COLLECTED DATA ##########################################
-            CGI_CLI.uprint('\n', printall = True)
+            CGI_CLI.uprint('\n', no_printall = not CGI_CLI.printall)
             CGI_CLI.uprint(device_data, name = '%s_bgp_device_data' % (device.upper()), jsonprint = True, \
-                color = 'blue', timestamp = 'no', printall = True, sort_keys = True)
-            CGI_CLI.uprint('\n', printall = True)
+                color = 'blue', timestamp = 'no', no_printall = not CGI_CLI.printall, sort_keys = True)
+            CGI_CLI.uprint('\n', no_printall = not CGI_CLI.printall)
 
 
             ### def BASIC CHECKS ##############################################
-            CGI_CLI.uprint('CHECKS:', tag = 'h2', printall = True)
-            for bgp_peer in device_data['IPV4_bgp_peers'].keys():
-                error_flag = False
-                if device_data['IPV4_bgp_peers'][bgp_peer].get('Accepted_prefixes',0) < device_data['IPV4_bgp_peers'][bgp_peer].get('Received_prefixes',0):
-                    CGI_CLI.uprint('BGP Peer %s has Accepted_prefixes < Received_prefixes !' % (bgp_peer), color = 'orange', printall = True)
-                    error_flag = True
+            if precheck_mode:
+                CGI_CLI.uprint('BGP PRECHECK DONE.', tag = 'h2', printall = True)
+            else:
+                CGI_CLI.uprint('POSTCHECKS:', tag = 'h2', printall = True)
 
-                if device_data['IPV4_bgp_peers'][bgp_peer].get('Denied_prefixes',0) > 0:
-                    CGI_CLI.uprint('BGP Peer %s has Denied_prefixes > 0 !' % (bgp_peer), color = 'orange', printall = True)
-                    error_flag = True
-
-                if device_data['IPV4_bgp_peers'][bgp_peer].get('State',''):
-                    CGI_CLI.uprint('BGP Peer %s is in STATE: %s !' % (bgp_peer, device_data['IPV4_bgp_peers'][bgp_peer].get('State','')), color = 'red', printall = True)
-                    error_flag = True
-
-                if not error_flag:
-                    CGI_CLI.uprint('BGP Peer %s check - OK.' % (bgp_peer), printall = True)
-
-            for bgp_peer in device_data['IPV6_bgp_peers'].keys():
-                error_flag = False
-                if device_data['IPV6_bgp_peers'][bgp_peer].get('Accepted_prefixes',0) < device_data['IPV6_bgp_peers'][bgp_peer].get('Received_prefixes',0):
-                    CGI_CLI.uprint('BGP Peer %s has Accepted_prefixes < Received_prefixes !' % (bgp_peer), color = 'orange', printall = True)
-                    error_flag = True
-
-                if device_data['IPV6_bgp_peers'][bgp_peer].get('Denied_prefixes',0) > 0:
-                    CGI_CLI.uprint('BGP Peer %s has Denied_prefixes > 0 !' % (bgp_peer), color = 'orange', printall = True)
-                    error_flag = True
-
-                if device_data['IPV6_bgp_peers'][bgp_peer].get('State',''):
-                    CGI_CLI.uprint('BGP Peer %s is in STATE: %s !' % (bgp_peer, device_data['IPV6_bgp_peers'][bgp_peer].get('State','')), color = 'red', printall = True)
-                    error_flag = True
-
-                if not error_flag:
-                    CGI_CLI.uprint('BGP Peer %s check - OK.' % (bgp_peer), printall = True)
+                if len(bgp_precheck_data.keys()) > 0:
+                    check_bgp_peers(bgp_peers_string = 'IPV4_bgp_peers', percentage_tolerance = 3)
+                    check_bgp_peers(bgp_peers_string = 'IPV6_bgp_peers', percentage_tolerance = 3)
 
 
 except SystemExit: pass
