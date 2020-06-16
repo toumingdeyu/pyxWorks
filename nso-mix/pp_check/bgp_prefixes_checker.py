@@ -131,6 +131,10 @@ class CGI_CLI(object):
                             action = "store", dest = 'append_logfile',
                             default = None,
                             help = "append logfile with specified name")
+        parser.add_argument("--latest",
+                    action = 'store_true', dest = "latest", default = False,
+                    help = "look for really latest pre/postcheck files (also from somebody else),\
+                    otherwise your own last pre/postcheck files will be used by default")
         args = parser.parse_args()
         return args
 
@@ -2356,6 +2360,7 @@ authentication {
 
 
     ### def LOGFILENAME GENERATION, DO LOGGING ONLY WHEN DEVICE LIST EXISTS ###
+    logfilename = None
     if CGI_CLI.data.get("append_logfile",str()):
         logfilename = CGI_CLI.data.get("append_logfile",str())
     else:
@@ -2369,18 +2374,58 @@ authentication {
     if 'WIN32' in sys.platform.upper(): logfilename = None
     if logfilename: CGI_CLI.set_logfile(logfilename = logfilename)
 
+    ### START LOGGING #########################################################
+    if CGI_CLI.cgi_active:
+        CGI_CLI.logtofile('<h1 style="color:blue;">%s <a href="%s" style="text-decoration: none">(v.%s)</a></h1>' % \
+            (SCRIPT_NAME, changelog, CGI_CLI.VERSION()), raw_log = True, ommit_timestamp = True)
+    else: CGI_CLI.logtofile('%s (v.%s)' % (SCRIPT_NAME,CGI_CLI.VERSION()), ommit_timestamp = True)
+
+    CGI_CLI.logtofile(CGI_CLI.print_args(ommit_print = True) + '\n\n', ommit_timestamp = True)
 
     ### FIND LAS LOGFILE AND READ JSON DATA ###################################
-    last_precheck_file = None
+    last_precheck_file, last_postcheck_file = None, None
     bgp_precheck_data = {}
     if postcheck_mode or recheck_mode:
-        last_precheck_file = find_last_precheck_logfile( \
-            prefix = '_'.join(device_list).upper(), USERNAME = USERNAME, \
-            suffix = 'precheck.*log', \
-            printall = printall)
+        if CGI_CLI.data.get("prefile",str()):
+            last_precheck_file = CGI_CLI.data.get("prefile",str())
 
-        if not last_precheck_file: sys.exit(0)
+        if CGI_CLI.data.get("postfile",str()):
+            last_postcheck_file = CGI_CLI.data.get("postfile",str())
+
+        if CGI_CLI.data.get("append_logfile",str()) and 'post' in CGI_CLI.data.get("append_logfile",str()):
+            ### FIND PRECHECK FROM POSTCHECK LIKE IN ROUTER_CHECK #############
+            try: LOG_FILE_DIR = CGI_CLI.data.get("append_logfile",str()).split('/')[0]
+            except: LOG_FILE_DIR = ''
+            if CGI_CLI.data.get("latest"):
+                list_precheck_files = glob.glob(os.path.join(LOG_FILE_DIR,'_'.join(device_list).upper().replace(':','_').replace('.','_')) + '*' + 'pre')
+            else:
+                list_precheck_files = glob.glob(os.path.join(LOG_FILE_DIR,'_'.join(device_list).upper().replace(':','_').replace('.','_')) + '*' + USERNAME + '-pre')
+
+            if len(list_precheck_files) == 0:
+                CGI_CLI.uprint("Can't find any PRECHECK file.", color = 'magenta', printall = True)
+                sys.exit()
+            most_recent_precheck = list_precheck_files[0]
+            for item in list_precheck_files:
+                filecreation = os.path.getctime(item)
+                if filecreation > (os.path.getctime(most_recent_precheck)):
+                    most_recent_precheck = item
+            last_precheck_file = most_recent_precheck
+
+        if not last_precheck_file:
+            last_precheck_file = find_last_precheck_logfile( \
+                prefix = '_'.join(device_list).upper(), USERNAME = USERNAME, \
+                suffix = 'precheck.*log', \
+                printall = printall)
+
+        if last_precheck_file: CGI_CLI.uprint('PRECHECK FILE: %s' % (last_precheck_file), printall = True)
+        else: sys.exit(0)
         bgp_precheck_data = read_bgp_data_json_from_logfile(last_precheck_file, separator ='_bgp_device_data', printall = printall)
+        if len(bgp_precheck_data.keys()) > 0: CGI_CLI.uprint('PRECHECK DATA READ OK.', printall = True)
+
+        if last_postcheck_file: CGI_CLI.uprint('POSTCHECK FILE: %s' % (last_postcheck_file), printall = True)
+        else: sys.exit(0)
+        device_data = read_bgp_data_json_from_logfile(last_postcheck_file, separator ='_bgp_device_data', printall = printall)
+        if len(device_data.keys()) > 0: CGI_CLI.uprint('POSTCHECK DATA READ OK.', printall = True)
 
         CGI_CLI.uprint('\n', no_printall = not CGI_CLI.printall)
         CGI_CLI.uprint(bgp_precheck_data, name = '%s_bgp_precheck_data' % ('_'.join(device_list).upper()), jsonprint = True, \
@@ -2388,231 +2433,128 @@ authentication {
         CGI_CLI.uprint('\n', no_printall = not CGI_CLI.printall)
 
 
-    ### def REMOTE DEVICE OPERATIONS ##########################################
-    for device in device_list:
-        if device:
+    if len(device_data.keys()) == 0:
+        ### def REMOTE DEVICE OPERATIONS ##########################################
+        for device in device_list:
+            if device:
 
-            ### DEVICE CONNECT ############################################
-            RCMD.connect(device, username = USERNAME, password = PASSWORD, \
-                printall = printall, \
-                connection_timeout = 10000, cmd_timeout = 2200)
+                ### DEVICE CONNECT ############################################
+                RCMD.connect(device, username = USERNAME, password = PASSWORD, \
+                    printall = printall, \
+                    connection_timeout = 10000, cmd_timeout = 2200)
 
-            if not RCMD.ssh_connection:
-                CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), \
-                    color = 'red')
-                RCMD.disconnect()
-                continue
+                if not RCMD.ssh_connection:
+                    CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), \
+                        color = 'red')
+                    RCMD.disconnect()
+                    continue
 
-            ### DO NOT GO FURTHER IF NO CONNECTION ############################
-            if not RCMD.ssh_connection: continue
+                ### DO NOT GO FURTHER IF NO CONNECTION ############################
+                if not RCMD.ssh_connection: continue
 
-            if CGI_CLI.cgi_active:
-                CGI_CLI.logtofile('<h1 style="color:blue;">%s <a href="%s" style="text-decoration: none">(v.%s)</a></h1>' % \
-                    (SCRIPT_NAME, changelog, CGI_CLI.VERSION()), raw_log = True, ommit_timestamp = True)
-            else: CGI_CLI.logtofile('%s (v.%s)' % (SCRIPT_NAME,CGI_CLI.VERSION()), ommit_timestamp = True)
+                CGI_CLI.logtofile('\nDETECTED DEVICE_TYPE: %s\n\n' % (RCMD.router_type))
 
-            CGI_CLI.logtofile(CGI_CLI.print_args(ommit_print = True) + '\n\n', ommit_timestamp = True)
-
-            CGI_CLI.logtofile('\nDETECTED DEVICE_TYPE: %s\n\n' % (RCMD.router_type))
-
-            device_data = collections.OrderedDict()
-            device_data['device'] = str(device).upper()
-            device_data['LOCAL_AS_NUMBER'] = str()
-            device_data['IPV4_bgp_peers'] = collections.OrderedDict()
-            device_data['IPV6_bgp_peers'] = collections.OrderedDict()
+                device_data = collections.OrderedDict()
+                device_data['device'] = str(device).upper()
+                device_data['LOCAL_AS_NUMBER'] = str()
+                device_data['IPV4_bgp_peers'] = collections.OrderedDict()
+                device_data['IPV6_bgp_peers'] = collections.OrderedDict()
 
 
-            ### def LOCAL AS NUMBER CMDS ######################################
-            collector_cmds = {
-                'cisco_ios':['show bgp summary',
-                             'show bgp vpnv4 unicast summary',
-                             'show bgp ipv6 unicast summary',
-                             'show bgp vrf all sum | exc "BGP|ID|stop|Process|Speaker"'
-                            ],
+                ### def LOCAL AS NUMBER CMDS ######################################
+                collector_cmds = {
+                    'cisco_ios':['show bgp summary',
+                                 'show bgp vpnv4 unicast summary',
+                                 'show bgp ipv6 unicast summary',
+                                 'show bgp vrf all sum | exc "BGP|ID|stop|Process|Speaker"'
+                                ],
 
-                'cisco_xr': ['show bgp summary',
-                             'show bgp vpnv4 unicast summary',
-                             'show bgp ipv6 unicast summary',
-                             'show bgp vrf all sum | exc "BGP|ID|stop|Process|Speaker"',
-                            ],
+                    'cisco_xr': ['show bgp summary',
+                                 'show bgp vpnv4 unicast summary',
+                                 'show bgp ipv6 unicast summary',
+                                 'show bgp vrf all sum | exc "BGP|ID|stop|Process|Speaker"',
+                                ],
 
-                'juniper':  ['show bgp neighbor | match "Group:|Peer:" | except "NLRI|Restart"',
-                             'show bgp summary',
-                             'show bgp neighbor | match "^Peer:|prefixes:|damping:"',
-                            ],
+                    'juniper':  ['show bgp neighbor | match "Group:|Peer:" | except "NLRI|Restart"',
+                                 'show bgp summary',
+                                 'show bgp neighbor | match "^Peer:|prefixes:|damping:"',
+                                ],
 
-                'huawei':   ['display bgp peer',
-                             'display bgp vpnv4 all peer',
-                             'disp bgp peer verbose | i (BGP Peer is|routes)',
-                             'display bgp vpnv6 all peer',
-                            ]
-            }
+                    'huawei':   ['display bgp peer',
+                                 'display bgp vpnv4 all peer',
+                                 'disp bgp peer verbose | i (BGP Peer is|routes)',
+                                 'display bgp vpnv6 all peer',
+                                ]
+                }
 
-            rcmd_outputs = RCMD.run_commands(collector_cmds, \
-                autoconfirm_mode = True, \
-                printall = printall)
+                rcmd_outputs = RCMD.run_commands(collector_cmds, \
+                    autoconfirm_mode = True, \
+                    printall = printall)
 
-            ### def FIND LOCAL AS NUMBER ###
-            if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
-                try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("local AS number")[1].splitlines()[0].strip()
-                except: pass
-                if not LOCAL_AS_NUMBER:
-                    try: LOCAL_AS_NUMBER = rcmd_outputs[1].split("local AS number")[1].splitlines()[0].strip()
+                ### def FIND LOCAL AS NUMBER ###
+                if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
+                    try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("local AS number")[1].splitlines()[0].strip()
                     except: pass
-                device_data['LOCAL_AS_NUMBER'] = LOCAL_AS_NUMBER
+                    if not LOCAL_AS_NUMBER:
+                        try: LOCAL_AS_NUMBER = rcmd_outputs[1].split("local AS number")[1].splitlines()[0].strip()
+                        except: pass
+                    device_data['LOCAL_AS_NUMBER'] = LOCAL_AS_NUMBER
 
-            elif RCMD.router_type == 'juniper':
-                try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("Local:")[1].splitlines()[0].split('AS')[1].strip()
-                except: pass
-                device_data['LOCAL_AS_NUMBER'] = LOCAL_AS_NUMBER
-
-            elif RCMD.router_type == 'huawei':
-                try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("Local AS number :")[1].splitlines()[0].strip()
-                except: pass
-                if not LOCAL_AS_NUMBER:
-                    try: LOCAL_AS_NUMBER = rcmd_outputs[1].split("Local AS number :")[1].splitlines()[0].strip()
+                elif RCMD.router_type == 'juniper':
+                    try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("Local:")[1].splitlines()[0].split('AS')[1].strip()
                     except: pass
-                device_data['LOCAL_AS_NUMBER'] = LOCAL_AS_NUMBER
+                    device_data['LOCAL_AS_NUMBER'] = LOCAL_AS_NUMBER
+
+                elif RCMD.router_type == 'huawei':
+                    try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("Local AS number :")[1].splitlines()[0].strip()
+                    except: pass
+                    if not LOCAL_AS_NUMBER:
+                        try: LOCAL_AS_NUMBER = rcmd_outputs[1].split("Local AS number :")[1].splitlines()[0].strip()
+                        except: pass
+                    device_data['LOCAL_AS_NUMBER'] = LOCAL_AS_NUMBER
 
 
 
-            ### def CMD1 - FIND BGP NEIGHBORS ####################################
-            if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
-                ### COMMAND: 'show bgp summary' ###
-                try: output_list = rcmd_outputs[0].split('Neighbor')[1].splitlines()[1:]
-                except: output_list = []
-                for line in output_list:
-                    try: bgp_peer = line.split()[0]
-                    except: bgp_peer = str()
-
-                    try: received_prefixes = int(line.split()[-1])
-                    except: received_prefixes = None
-
-                    try: state = line.split()[9] + ' ' + line.split()[10]
-                    except:
-                        try: state = line.split()[9]
-                        except: state = None
-
-                    try: AS = line.split()[2]
-                    except: AS = str()
-
-
-                    find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
-                    if len(find_ip) == 1:
-                        bgp_peer = find_ip[0].strip()
-                        if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
-                            device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
-
-                        if isinstance(received_prefixes, int):
-                            device_data['IPV4_bgp_peers'][bgp_peer]['Received_prefixes'] = copy.deepcopy(received_prefixes)
-                        elif state: device_data['IPV4_bgp_peers'][bgp_peer]['State'] = copy.deepcopy(state)
-
-                        if AS: device_data['IPV4_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
-
-
-                ### COMMAND: 'show bgp vpnv4 unicast summary' ###
-                try: output_list = rcmd_outputs[1].split('Neighbor')[1].splitlines()[1:]
-                except: output_list = []
-                for line in output_list:
-                    try: bgp_peer = line.split()[0]
-                    except: bgp_peer = str()
-                    try: received_prefixes = int(line.split()[-1])
-                    except: received_prefixes = None
-
-                    try: state = line.split()[9] + ' ' + line.split()[10]
-                    except:
-                        try: state = line.split()[9]
-                        except: state = None
-
-                    try: AS = line.split()[2]
-                    except: AS = str()
-
-                    find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
-                    if len(find_ip) == 1:
-                        bgp_peer = find_ip[0].strip()
-                        if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
-                            device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
-
-                        if isinstance(received_prefixes, int):
-                            device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['Received_prefixes'] = copy.deepcopy(received_prefixes)
-                        elif state: device_data['IPV4_bgp_peers'][bgp_peer]['State'] = copy.deepcopy(state)
-
-                        if AS: device_data['IPV4_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
-
-                ### COMMAND: 'show bgp ipv6 unicast summary' ###
-                try: output_list = rcmd_outputs[2].split('Neighbor')[1].splitlines()[1:]
-                except: output_list = []
-
-                for line, line_plus_one in zip(output_list, output_list[1:]):
-                    try: bgp_peer = line.split()[0]
-                    except: bgp_peer = str()
-
-                    try: doubledots_in_bgp_peer = len(line.split()[0].split(':'))
-                    except: doubledots_in_bgp_peer = 0
-
-                    try: received_prefixes = int(line.split()[-1])
-                    except: received_prefixes = None
-
-                    try: AS = line.split()[2]
-                    except: AS = str()
-
-                    try: state = line.split()[9] + ' ' + line.split()[10]
-                    except:
-                        try: state = line.split()[9]
-                        except: state = None
-
-                    if len(line.split()) <= 1 and doubledots_in_bgp_peer >= 3:
-                        try: received_prefixes = int(line_plus_one.split()[-1])
-                        except: received_prefixes = None
-
-                        try: state = line_plus_one.split()[8] + ' ' + line_plus_one.split()[9]
-                        except:
-                            try: state = line_plus_one.split()[8]
-                            except: state = None
-
-                            try: AS = line.split()[1]
-                            except: AS = str()
-
-                    find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
-                    if len(find_ip) == 1:
-                        bgp_peer = find_ip[0].strip()
-                        if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
-                            device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
-
-                        if isinstance(received_prefixes, int):
-                            device_data['IPV4_bgp_peers'][bgp_peer]['Received_prefixes'] = copy.deepcopy(received_prefixes)
-                        elif state: device_data['IPV4_bgp_peers'][bgp_peer]['State'] = copy.deepcopy(state)
-
-                        if AS: device_data['IPV4_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
-
-                    elif ':' in bgp_peer and doubledots_in_bgp_peer >= 3:
-                        if not bgp_peer in device_data['IPV6_bgp_peers'].keys():
-                            device_data['IPV6_bgp_peers'][bgp_peer] = collections.OrderedDict()
-
-                        if isinstance(received_prefixes, int):
-                            device_data['IPV6_bgp_peers'][bgp_peer]['Received_prefixes'] = copy.deepcopy(received_prefixes)
-                        elif state: device_data['IPV6_bgp_peers'][bgp_peer]['State'] = copy.deepcopy(state)
-
-                        if AS: device_data['IPV6_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
-
-
-                ### COMMAND: 'show bgp vrf all sum | exc "BGP|ID|stop|Process|Speaker"' ###
-                try: section_list = rcmd_outputs[3].split('VRF: ')[1:]
-                except: section_list = []
-                for section in section_list:
-                    try: vrf_name = section.split()[0]
-                    except: vrf_name = str()
-
-                    try: peer_lines = section.split('Neighbor ')[1].splitlines()[1:]
-                    except: peer_lines = []
-
-                    for line in peer_lines:
+                ### def CMD1 - FIND BGP NEIGHBORS ####################################
+                if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
+                    ### COMMAND: 'show bgp summary' ###
+                    try: output_list = rcmd_outputs[0].split('Neighbor')[1].splitlines()[1:]
+                    except: output_list = []
+                    for line in output_list:
                         try: bgp_peer = line.split()[0]
                         except: bgp_peer = str()
 
-                        try: doubledots_in_bgp_peer = len(line.split()[0].split(':'))
-                        except: doubledots_in_bgp_peer = 0
+                        try: received_prefixes = int(line.split()[-1])
+                        except: received_prefixes = None
 
+                        try: state = line.split()[9] + ' ' + line.split()[10]
+                        except:
+                            try: state = line.split()[9]
+                            except: state = None
+
+                        try: AS = line.split()[2]
+                        except: AS = str()
+
+
+                        find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
+                        if len(find_ip) == 1:
+                            bgp_peer = find_ip[0].strip()
+                            if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                                device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                            if isinstance(received_prefixes, int):
+                                device_data['IPV4_bgp_peers'][bgp_peer]['Received_prefixes'] = copy.deepcopy(received_prefixes)
+                            elif state: device_data['IPV4_bgp_peers'][bgp_peer]['State'] = copy.deepcopy(state)
+
+                            if AS: device_data['IPV4_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
+
+
+                    ### COMMAND: 'show bgp vpnv4 unicast summary' ###
+                    try: output_list = rcmd_outputs[1].split('Neighbor')[1].splitlines()[1:]
+                    except: output_list = []
+                    for line in output_list:
+                        try: bgp_peer = line.split()[0]
+                        except: bgp_peer = str()
                         try: received_prefixes = int(line.split()[-1])
                         except: received_prefixes = None
 
@@ -2630,12 +2572,149 @@ authentication {
                             if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
                                 device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
 
-                            if vrf_name:
-                                device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['VRF_NAME'] = copy.deepcopy(vrf_name)
-
                             if isinstance(received_prefixes, int):
                                 device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['Received_prefixes'] = copy.deepcopy(received_prefixes)
                             elif state: device_data['IPV4_bgp_peers'][bgp_peer]['State'] = copy.deepcopy(state)
+
+                            if AS: device_data['IPV4_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
+
+                    ### COMMAND: 'show bgp ipv6 unicast summary' ###
+                    try: output_list = rcmd_outputs[2].split('Neighbor')[1].splitlines()[1:]
+                    except: output_list = []
+
+                    for line, line_plus_one in zip(output_list, output_list[1:]):
+                        try: bgp_peer = line.split()[0]
+                        except: bgp_peer = str()
+
+                        try: doubledots_in_bgp_peer = len(line.split()[0].split(':'))
+                        except: doubledots_in_bgp_peer = 0
+
+                        try: received_prefixes = int(line.split()[-1])
+                        except: received_prefixes = None
+
+                        try: AS = line.split()[2]
+                        except: AS = str()
+
+                        try: state = line.split()[9] + ' ' + line.split()[10]
+                        except:
+                            try: state = line.split()[9]
+                            except: state = None
+
+                        if len(line.split()) <= 1 and doubledots_in_bgp_peer >= 3:
+                            try: received_prefixes = int(line_plus_one.split()[-1])
+                            except: received_prefixes = None
+
+                            try: state = line_plus_one.split()[8] + ' ' + line_plus_one.split()[9]
+                            except:
+                                try: state = line_plus_one.split()[8]
+                                except: state = None
+
+                                try: AS = line.split()[1]
+                                except: AS = str()
+
+                        find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
+                        if len(find_ip) == 1:
+                            bgp_peer = find_ip[0].strip()
+                            if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                                device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                            if isinstance(received_prefixes, int):
+                                device_data['IPV4_bgp_peers'][bgp_peer]['Received_prefixes'] = copy.deepcopy(received_prefixes)
+                            elif state: device_data['IPV4_bgp_peers'][bgp_peer]['State'] = copy.deepcopy(state)
+
+                            if AS: device_data['IPV4_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
+
+                        elif ':' in bgp_peer and doubledots_in_bgp_peer >= 3:
+                            if not bgp_peer in device_data['IPV6_bgp_peers'].keys():
+                                device_data['IPV6_bgp_peers'][bgp_peer] = collections.OrderedDict()
+
+                            if isinstance(received_prefixes, int):
+                                device_data['IPV6_bgp_peers'][bgp_peer]['Received_prefixes'] = copy.deepcopy(received_prefixes)
+                            elif state: device_data['IPV6_bgp_peers'][bgp_peer]['State'] = copy.deepcopy(state)
+
+                            if AS: device_data['IPV6_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
+
+
+                    ### COMMAND: 'show bgp vrf all sum | exc "BGP|ID|stop|Process|Speaker"' ###
+                    try: section_list = rcmd_outputs[3].split('VRF: ')[1:]
+                    except: section_list = []
+                    for section in section_list:
+                        try: vrf_name = section.split()[0]
+                        except: vrf_name = str()
+
+                        try: peer_lines = section.split('Neighbor ')[1].splitlines()[1:]
+                        except: peer_lines = []
+
+                        for line in peer_lines:
+                            try: bgp_peer = line.split()[0]
+                            except: bgp_peer = str()
+
+                            try: doubledots_in_bgp_peer = len(line.split()[0].split(':'))
+                            except: doubledots_in_bgp_peer = 0
+
+                            try: received_prefixes = int(line.split()[-1])
+                            except: received_prefixes = None
+
+                            try: state = line.split()[9] + ' ' + line.split()[10]
+                            except:
+                                try: state = line.split()[9]
+                                except: state = None
+
+                            try: AS = line.split()[2]
+                            except: AS = str()
+
+                            find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
+                            if len(find_ip) == 1:
+                                bgp_peer = find_ip[0].strip()
+                                if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                                    device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                                if vrf_name:
+                                    device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['VRF_NAME'] = copy.deepcopy(vrf_name)
+
+                                if isinstance(received_prefixes, int):
+                                    device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['Received_prefixes'] = copy.deepcopy(received_prefixes)
+                                elif state: device_data['IPV4_bgp_peers'][bgp_peer]['State'] = copy.deepcopy(state)
+
+                                if AS: device_data['IPV4_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
+
+                            elif ':' in bgp_peer and doubledots_in_bgp_peer >= 3:
+                                if not bgp_peer in device_data['IPV6_bgp_peers'].keys():
+                                    device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                                if vrf_name:
+                                    device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['VRF_NAME'] = copy.deepcopy(vrf_name)
+
+                                if isinstance(received_prefixes, int):
+                                    device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['Received_prefixes'] = copy.deepcopy(received_prefixes)
+                                elif state: device_data['IPV6_bgp_peers'][bgp_peer]['State'] = copy.deepcopy(state)
+
+                                if AS: device_data['IPV6_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
+
+                elif RCMD.router_type == 'juniper':
+
+                    ### COMMAND: 'show bgp summary' ###############################
+                    for line in rcmd_outputs[1].splitlines()[1:]:
+                        try: bgp_peer = line.split()[0].split('+')[0]
+                        except: bgp_peer = str()
+
+                        try: doubledots_in_bgp_peer = len(line.split()[0].split(':'))
+                        except: doubledots_in_bgp_peer = 0
+
+                        try: state = line.split()[8]
+                        except: state = str()
+
+                        try: AS = line.split()[1]
+                        except: AS = str()
+
+                        find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
+                        if len(find_ip) == 1:
+                            bgp_peer = find_ip[0].strip()
+                            if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                                device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                            if 'IDLE' in state.upper() or 'ACTIVE' in state.upper() or 'DAMPED' in state.upper() or 'CONNECT' in state.upper():
+                                device_data['IPV4_bgp_peers'][bgp_peer]['State'] = copy.deepcopy(state)
 
                             if AS: device_data['IPV4_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
 
@@ -2643,332 +2722,240 @@ authentication {
                             if not bgp_peer in device_data['IPV6_bgp_peers'].keys():
                                 device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
 
-                            if vrf_name:
-                                device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['VRF_NAME'] = copy.deepcopy(vrf_name)
-
-                            if isinstance(received_prefixes, int):
-                                device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['Received_prefixes'] = copy.deepcopy(received_prefixes)
-                            elif state: device_data['IPV6_bgp_peers'][bgp_peer]['State'] = copy.deepcopy(state)
+                            if 'IDLE' in state.upper() or 'ACTIVE' in state.upper() or 'DAMPED' in state.upper() or 'CONNECT' in state.upper():
+                                device_data['IPV6_bgp_peers'][bgp_peer]['State'] = copy.deepcopy(state)
 
                             if AS: device_data['IPV6_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
 
-            elif RCMD.router_type == 'juniper':
-
-                ### COMMAND: 'show bgp summary' ###############################
-                for line in rcmd_outputs[1].splitlines()[1:]:
-                    try: bgp_peer = line.split()[0].split('+')[0]
-                    except: bgp_peer = str()
-
-                    try: doubledots_in_bgp_peer = len(line.split()[0].split(':'))
-                    except: doubledots_in_bgp_peer = 0
-
-                    try: state = line.split()[8]
-                    except: state = str()
-
-                    try: AS = line.split()[1]
-                    except: AS = str()
-
-                    find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
-                    if len(find_ip) == 1:
-                        bgp_peer = find_ip[0].strip()
-                        if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
-                            device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
-
-                        if 'IDLE' in state.upper() or 'ACTIVE' in state.upper() or 'DAMPED' in state.upper() or 'CONNECT' in state.upper():
-                            device_data['IPV4_bgp_peers'][bgp_peer]['State'] = copy.deepcopy(state)
-
-                        if AS: device_data['IPV4_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
-
-                    elif ':' in bgp_peer and doubledots_in_bgp_peer >= 3:
-                        if not bgp_peer in device_data['IPV6_bgp_peers'].keys():
-                            device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
-
-                        if 'IDLE' in state.upper() or 'ACTIVE' in state.upper() or 'DAMPED' in state.upper() or 'CONNECT' in state.upper():
-                            device_data['IPV6_bgp_peers'][bgp_peer]['State'] = copy.deepcopy(state)
-
-                        if AS: device_data['IPV6_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
-
-                ### COMMAND: 'show bgp neighbor | match "^Peer:|prefixes:|damping:"' ###
-                try: output_list = rcmd_outputs[2].split('Peer: ')[1:]
-                except: output_list = []
-                for section in output_list:
-                    try: bgp_peer = section.split()[0].split('+')[0]
-                    except: bgp_peer = str()
-
-                    try: AS = section.split('AS')[1].split()[0]
-                    except: AS = None
-
-                    if '.' in bgp_peer:
-                        if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
-                            device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
-
-                        if AS: device_data['IPV4_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
-
-                        try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(section.split('Accepted prefixes:')[1].split()[0])
-                        except: pass
-
-                        try: device_data['IPV4_bgp_peers'][bgp_peer]['Received_prefixes'] = int(section.split('Received prefixes:')[1].split()[0])
-                        except: pass
-
-                        try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertized_prefixes'] = int(section.split('Advertised prefixes:')[1].split()[0])
-                        except: pass
-
-
-                    elif ':' in bgp_peer:
-                        if not bgp_peer in device_data['IPV6_bgp_peers'].keys():
-                            device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
-
-                        if AS: device_data['IPV6_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
-
-                        try: device_data['IPV6_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(section.split('Accepted prefixes:')[1].split()[0])
-                        except: pass
-
-                        try: device_data['IPV6_bgp_peers'][bgp_peer]['Received_prefixes'] = int(section.split('Received prefixes:')[1].split()[0])
-                        except: pass
-
-                        try: device_data['IPV6_bgp_peers'][bgp_peer]['Advertized_prefixes'] = int(section.split('Advertised prefixes:')[1].split()[0])
-                        except: pass
-
-            elif RCMD.router_type == 'huawei':
-                ### COMMAND: 'display bgp peer' ###
-                try: output_list = rcmd_outputs[0].split('PrefRcv')[1].splitlines()[1:]
-                except: output_list = []
-                for line in output_list:
-                    try: bgp_peer = line.split()[0]
-                    except: bgp_peer = str()
-
-                    try: doubledots_in_bgp_peer = len(bgp_peer.split(':'))
-                    except: doubledots_in_bgp_peer = 0
-
-                    try: received_prefixes = int(line.split()[-1])
-                    except: received_prefixes = None
-
-                    try: state = line.split()[7] if 'IDLE' in line.split()[7].upper() or 'CONNECT' in line.split()[7].upper() or 'ACTIVE' in line.split()[7].upper() else None
-                    except: state = None
-
-                    try: AS = line.split()[2]
-                    except: AS = str()
-
-                    find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
-                    if len(find_ip) == 1:
-                        bgp_peer = find_ip[0].strip()
-                        if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
-                            device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
-
-                        if isinstance(received_prefixes, int):
-                            device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['Received_prefixes'] = copy.deepcopy(received_prefixes)
-
-                        if state:
-                            device_data['IPV4_bgp_peers'][bgp_peer]['State'] = copy.deepcopy(state)
-
-                        if AS: device_data['IPV4_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
-
-                    elif ':' in bgp_peer and doubledots_in_bgp_peer >= 3:
-                        if not bgp_peer in device_data['IPV6_bgp_peers'].keys():
-                            device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
-
-                        if isinstance(received_prefixes, int):
-                            device_data['IPV6_bgp_peers'][copy.deepcopy(find_ip[0].strip())]['Received_prefixes'] = copy.deepcopy(received_prefixes)
-
-                        if state:
-                            device_data['IPV6_bgp_peers'][bgp_peer]['State'] = copy.deepcopy(state)
-
-                        if AS: device_data['IPV6_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
-
-                ### COMMAND: display bgp vpnv4 all peer' , IMN HUAWEI #########
-                try: output_list = rcmd_outputs[1].split('PrefRcv')[1].splitlines()[1:]
-                except: output_list = []
-                for line in output_list:
-                    try: bgp_peer = line.split()[0]
-                    except: bgp_peer = str()
-
-                    try: received_prefixes = int(line.split()[-1])
-                    except: received_prefixes = None
-
-                    try: AS = line.split()[2]
-                    except: AS = str()
-
-                    find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
-                    if len(find_ip) == 1:
-                        bgp_peer = find_ip[0].strip()
-                        if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
-                            device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
-
-                        if isinstance(received_prefixes, int):
-                            device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['Received_prefixes'] = copy.deepcopy(received_prefixes)
-
-                        if AS: device_data['IPV4_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
-
-                try: vpn_sections = rcmd_outputs[1].split('VPN-Instance')[1:]
-                except: vpn_sections = []
-                for section in vpn_sections:
-                    try: vfr_name = section.split()[0].replace(',','')
-                    except: vfr_name = None
-                    for line in section.splitlines()[1:]:
-                        try: bgp_peer = line.split()[0]
+                    ### COMMAND: 'show bgp neighbor | match "^Peer:|prefixes:|damping:"' ###
+                    try: output_list = rcmd_outputs[2].split('Peer: ')[1:]
+                    except: output_list = []
+                    for section in output_list:
+                        try: bgp_peer = section.split()[0].split('+')[0]
                         except: bgp_peer = str()
-                        find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
-                        if len(find_ip) == 1 and vfr_name:
-                            bgp_peer = find_ip[0].strip()
-                            device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['VRF_NAME'] = copy.deepcopy(vfr_name)
 
-                ### COMMAND: 'disp bgp peer verbose | i (BGP Peer is|routes)' #
-                try: output_list = rcmd_outputs[2].split('BGP Peer is ')[1:]
-                except: output_list = []
-                for section in output_list:
-                    try: bgp_peer = section.split()[0].replace(',','')
-                    except: bgp_peer = str()
+                        try: AS = section.split('AS')[1].split()[0]
+                        except: AS = None
 
-                    try: advertized_prefixes = int(section.split('Advertised total routes:')[1].split()[0])
-                    except: advertized_prefixes = str()
+                        if '.' in bgp_peer:
+                            if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                                device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
 
-                    try: received_prefixes = int(section.split('Received total routes:')[1].split()[0])
-                    except: received_prefixes = str()
+                            if AS: device_data['IPV4_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
 
-                    try: accepted_prefixes = int(section.split('Received active routes total:')[1].split()[0])
-                    except: accepted_prefixes = str()
+                            try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(section.split('Accepted prefixes:')[1].split()[0])
+                            except: pass
 
-                    try: doubledots_in_bgp_peer = len(bgp_peer.split(':'))
-                    except: doubledots_in_bgp_peer = 0
+                            try: device_data['IPV4_bgp_peers'][bgp_peer]['Received_prefixes'] = int(section.split('Received prefixes:')[1].split()[0])
+                            except: pass
 
-                    try: AS = line.split()[2]
-                    except: AS = str()
-
-                    if '.' in bgp_peer:
-                        if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
-                            device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
-
-                        if isinstance(advertized_prefixes, int):
-                            device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = copy.deepcopy(advertized_prefixes)
-                        if isinstance(received_prefixes, int):
-                            device_data['IPV4_bgp_peers'][bgp_peer]['Received_prefixes'] = copy.deepcopy(received_prefixes)
-                        if isinstance(accepted_prefixes, int):
-                            device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = copy.deepcopy(accepted_prefixes)
-
-                        if AS: device_data['IPV4_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
-
-                    elif ':' in bgp_peer and doubledots_in_bgp_peer >= 3:
-                        if not bgp_peer in device_data['IPV6_bgp_peers'].keys():
-                            device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
-
-                        if isinstance(advertized_prefixes, int):
-                            device_data['IPV6_bgp_peers'][bgp_peer]['Advertised_prefixes'] = copy.deepcopy(advertized_prefixes)
-                        if isinstance(received_prefixes, int):
-                            device_data['IPV6_bgp_peers'][bgp_peer]['Received_prefixes'] = copy.deepcopy(received_prefixes)
-                        if isinstance(accepted_prefixes, int):
-                            device_data['IPV6_bgp_peers'][bgp_peer]['Accepted_prefixes'] = copy.deepcopy(accepted_prefixes)
-
-                        if AS: device_data['IPV6_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
-
-                ### COMMAND: 'display bgp vpnv6 all peer' #####################
-                try: output_list = rcmd_outputs[3].split('PrefRcv')[1].splitlines()[1:]
-                except: output_list = []
-                for line in output_list:
-                    try: bgp_peer = line.split()[0]
-                    except: bgp_peer = str()
-
-                    try: received_prefixes = int(line.split()[-1])
-                    except: received_prefixes = None
-
-                    try: doubledots_in_bgp_peer = len(bgp_peer.split(':'))
-                    except: doubledots_in_bgp_peer = 0
-
-                    try: AS = line.split()[2]
-                    except: AS = str()
-
-                    find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
-                    if len(find_ip) == 1:
-                        bgp_peer = find_ip[0].strip()
-                        if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
-                            device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
-
-                        if isinstance(received_prefixes, int):
-                            device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['Received_prefixes'] = copy.deepcopy(received_prefixes)
-                    elif ':' in bgp_peer and doubledots_in_bgp_peer >= 3:
-                        if not bgp_peer in device_data['IPV6_bgp_peers'].keys():
-                            device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
-
-                        if isinstance(received_prefixes, int):
-                            device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['Received_prefixes'] = copy.deepcopy(received_prefixes)
+                            try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertized_prefixes'] = int(section.split('Advertised prefixes:')[1].split()[0])
+                            except: pass
 
 
+                        elif ':' in bgp_peer:
+                            if not bgp_peer in device_data['IPV6_bgp_peers'].keys():
+                                device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
 
-                try: vpn_sections = rcmd_outputs[1].split('VPN-Instance')[1:]
-                except: vpn_sections = []
-                for section in vpn_sections:
-                    try: vfr_name = section.split()[0].replace(',','')
-                    except: vfr_name = None
+                            if AS: device_data['IPV6_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
 
-                    for line in section.splitlines()[1:]:
+                            try: device_data['IPV6_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(section.split('Accepted prefixes:')[1].split()[0])
+                            except: pass
+
+                            try: device_data['IPV6_bgp_peers'][bgp_peer]['Received_prefixes'] = int(section.split('Received prefixes:')[1].split()[0])
+                            except: pass
+
+                            try: device_data['IPV6_bgp_peers'][bgp_peer]['Advertized_prefixes'] = int(section.split('Advertised prefixes:')[1].split()[0])
+                            except: pass
+
+                elif RCMD.router_type == 'huawei':
+                    ### COMMAND: 'display bgp peer' ###
+                    try: output_list = rcmd_outputs[0].split('PrefRcv')[1].splitlines()[1:]
+                    except: output_list = []
+                    for line in output_list:
                         try: bgp_peer = line.split()[0]
                         except: bgp_peer = str()
 
-                        try: doubledots_in_bgp_peer = len(line.split()[0].split(':'))
+                        try: doubledots_in_bgp_peer = len(bgp_peer.split(':'))
                         except: doubledots_in_bgp_peer = 0
 
+                        try: received_prefixes = int(line.split()[-1])
+                        except: received_prefixes = None
+
+                        try: state = line.split()[7] if 'IDLE' in line.split()[7].upper() or 'CONNECT' in line.split()[7].upper() or 'ACTIVE' in line.split()[7].upper() else None
+                        except: state = None
+
+                        try: AS = line.split()[2]
+                        except: AS = str()
+
                         find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
-                        if len(find_ip) == 1 and vfr_name:
+                        if len(find_ip) == 1:
                             bgp_peer = find_ip[0].strip()
-                            device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['VRF_NAME'] = copy.deepcopy(vfr_name)
+                            if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                                device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                            if isinstance(received_prefixes, int):
+                                device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['Received_prefixes'] = copy.deepcopy(received_prefixes)
+
+                            if state:
+                                device_data['IPV4_bgp_peers'][bgp_peer]['State'] = copy.deepcopy(state)
+
+                            if AS: device_data['IPV4_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
 
                         elif ':' in bgp_peer and doubledots_in_bgp_peer >= 3:
-                            device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['VRF_NAME'] = copy.deepcopy(vfr_name)
+                            if not bgp_peer in device_data['IPV6_bgp_peers'].keys():
+                                device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                            if isinstance(received_prefixes, int):
+                                device_data['IPV6_bgp_peers'][copy.deepcopy(find_ip[0].strip())]['Received_prefixes'] = copy.deepcopy(received_prefixes)
+
+                            if state:
+                                device_data['IPV6_bgp_peers'][bgp_peer]['State'] = copy.deepcopy(state)
+
+                            if AS: device_data['IPV6_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
+
+                    ### COMMAND: display bgp vpnv4 all peer' , IMN HUAWEI #########
+                    try: output_list = rcmd_outputs[1].split('PrefRcv')[1].splitlines()[1:]
+                    except: output_list = []
+                    for line in output_list:
+                        try: bgp_peer = line.split()[0]
+                        except: bgp_peer = str()
+
+                        try: received_prefixes = int(line.split()[-1])
+                        except: received_prefixes = None
+
+                        try: AS = line.split()[2]
+                        except: AS = str()
+
+                        find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
+                        if len(find_ip) == 1:
+                            bgp_peer = find_ip[0].strip()
+                            if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                                device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                            if isinstance(received_prefixes, int):
+                                device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['Received_prefixes'] = copy.deepcopy(received_prefixes)
+
+                            if AS: device_data['IPV4_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
+
+                    try: vpn_sections = rcmd_outputs[1].split('VPN-Instance')[1:]
+                    except: vpn_sections = []
+                    for section in vpn_sections:
+                        try: vfr_name = section.split()[0].replace(',','')
+                        except: vfr_name = None
+                        for line in section.splitlines()[1:]:
+                            try: bgp_peer = line.split()[0]
+                            except: bgp_peer = str()
+                            find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
+                            if len(find_ip) == 1 and vfr_name:
+                                bgp_peer = find_ip[0].strip()
+                                device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['VRF_NAME'] = copy.deepcopy(vfr_name)
+
+                    ### COMMAND: 'disp bgp peer verbose | i (BGP Peer is|routes)' #
+                    try: output_list = rcmd_outputs[2].split('BGP Peer is ')[1:]
+                    except: output_list = []
+                    for section in output_list:
+                        try: bgp_peer = section.split()[0].replace(',','')
+                        except: bgp_peer = str()
+
+                        try: advertized_prefixes = int(section.split('Advertised total routes:')[1].split()[0])
+                        except: advertized_prefixes = str()
+
+                        try: received_prefixes = int(section.split('Received total routes:')[1].split()[0])
+                        except: received_prefixes = str()
+
+                        try: accepted_prefixes = int(section.split('Received active routes total:')[1].split()[0])
+                        except: accepted_prefixes = str()
+
+                        try: doubledots_in_bgp_peer = len(bgp_peer.split(':'))
+                        except: doubledots_in_bgp_peer = 0
+
+                        try: AS = line.split()[2]
+                        except: AS = str()
+
+                        if '.' in bgp_peer:
+                            if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                                device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                            if isinstance(advertized_prefixes, int):
+                                device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = copy.deepcopy(advertized_prefixes)
+                            if isinstance(received_prefixes, int):
+                                device_data['IPV4_bgp_peers'][bgp_peer]['Received_prefixes'] = copy.deepcopy(received_prefixes)
+                            if isinstance(accepted_prefixes, int):
+                                device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = copy.deepcopy(accepted_prefixes)
+
+                            if AS: device_data['IPV4_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
+
+                        elif ':' in bgp_peer and doubledots_in_bgp_peer >= 3:
+                            if not bgp_peer in device_data['IPV6_bgp_peers'].keys():
+                                device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                            if isinstance(advertized_prefixes, int):
+                                device_data['IPV6_bgp_peers'][bgp_peer]['Advertised_prefixes'] = copy.deepcopy(advertized_prefixes)
+                            if isinstance(received_prefixes, int):
+                                device_data['IPV6_bgp_peers'][bgp_peer]['Received_prefixes'] = copy.deepcopy(received_prefixes)
+                            if isinstance(accepted_prefixes, int):
+                                device_data['IPV6_bgp_peers'][bgp_peer]['Accepted_prefixes'] = copy.deepcopy(accepted_prefixes)
+
+                            if AS: device_data['IPV6_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
+
+                    ### COMMAND: 'display bgp vpnv6 all peer' #####################
+                    try: output_list = rcmd_outputs[3].split('PrefRcv')[1].splitlines()[1:]
+                    except: output_list = []
+                    for line in output_list:
+                        try: bgp_peer = line.split()[0]
+                        except: bgp_peer = str()
+
+                        try: received_prefixes = int(line.split()[-1])
+                        except: received_prefixes = None
+
+                        try: doubledots_in_bgp_peer = len(bgp_peer.split(':'))
+                        except: doubledots_in_bgp_peer = 0
+
+                        try: AS = line.split()[2]
+                        except: AS = str()
+
+                        find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
+                        if len(find_ip) == 1:
+                            bgp_peer = find_ip[0].strip()
+                            if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                                device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                            if isinstance(received_prefixes, int):
+                                device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['Received_prefixes'] = copy.deepcopy(received_prefixes)
+                        elif ':' in bgp_peer and doubledots_in_bgp_peer >= 3:
+                            if not bgp_peer in device_data['IPV6_bgp_peers'].keys():
+                                device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                            if isinstance(received_prefixes, int):
+                                device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['Received_prefixes'] = copy.deepcopy(received_prefixes)
 
 
-            ### DEF CMD2 - IPV4 ADVERTIZED COUNT ##############################
-            collector2_cmds = {
-                'cisco_ios':[
-                            ],
 
-                'cisco_xr': [
-                            ],
+                    try: vpn_sections = rcmd_outputs[1].split('VPN-Instance')[1:]
+                    except: vpn_sections = []
+                    for section in vpn_sections:
+                        try: vfr_name = section.split()[0].replace(',','')
+                        except: vfr_name = None
 
-                'juniper':  [
-                            ],
+                        for line in section.splitlines()[1:]:
+                            try: bgp_peer = line.split()[0]
+                            except: bgp_peer = str()
 
-                'huawei':   [
-                            ]
-            }
+                            try: doubledots_in_bgp_peer = len(line.split()[0].split(':'))
+                            except: doubledots_in_bgp_peer = 0
 
-            for bgp_peer in device_data['IPV4_bgp_peers'].keys():
-                if LOCAL_AS_NUMBER == OTI_LOCAL_AS:
-                    collector2_cmds['cisco_xr'].append('show bgp neighbor %s advertised-count' % (bgp_peer))
-                    collector2_cmds['huawei'].append('disp bgp peer %s verbose | include routes' % (bgp_peer))
-                    #collector2_cmds['juniper'].append('show bgp neighbor %s | match prefixes' % (bgp_peer))
+                            find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
+                            if len(find_ip) == 1 and vfr_name:
+                                bgp_peer = find_ip[0].strip()
+                                device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['VRF_NAME'] = copy.deepcopy(vfr_name)
 
-                elif LOCAL_AS_NUMBER == IMN_LOCAL_AS:
-                    collector2_cmds['cisco_xr'].append('show bgp vpnv4 unicast neighbors %s advertised-count' % (bgp_peer))
+                            elif ':' in bgp_peer and doubledots_in_bgp_peer >= 3:
+                                device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['VRF_NAME'] = copy.deepcopy(vfr_name)
 
-            rcmd2_outputs = RCMD.run_commands(collector2_cmds, \
-                autoconfirm_mode = True, \
-                printall = printall)
 
-            if RCMD.router_type == 'cisco_xr':
-                for bgp_peer, output_command in zip(device_data['IPV4_bgp_peers'].keys(),rcmd2_outputs):
-                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(output_command.split('No of prefixes Advertised:')[1].split()[0])
-                    except: pass
-
-            # elif RCMD.router_type == 'juniper':
-                # for bgp_peer, output_command in zip(device_data['IPV4_bgp_peers'].keys(),rcmd2_outputs):
-                    # try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(output_command.split('Accepted prefixes:')[1].split()[0])
-                    # except: pass
-                    # try: device_data['IPV4_bgp_peers'][bgp_peer]['Received_prefixes'] = int(output_command.split('Received prefixes:')[1].split()[0])
-                    # except: pass
-                    # try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertized_prefixes'] = int(output_command.split('Advertised prefixes:')[1].split()[0])
-                    # except: pass
-
-            elif RCMD.router_type == 'huawei':
-                for bgp_peer, output_command in zip(device_data['IPV4_bgp_peers'].keys(),rcmd2_outputs):
-                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(output_command.split('Advertised total routes:')[1].split()[0])
-                    except: pass
-                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(output_command.split('Received active routes total:')[1].split()[0])
-                    except: pass
-                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Received_prefixes'] = int(output_command.split('Received total routes:')[1].split()[0])
-                    except: pass
-
-            ### DEF CMD22 - IPV4 XR PREFIXES ##################################
-            if RCMD.router_type == 'cisco_xr':
-                collector22_cmds = {
+                ### DEF CMD2 - IPV4 ADVERTIZED COUNT ##############################
+                collector2_cmds = {
                     'cisco_ios':[
                                 ],
 
@@ -2984,155 +2971,154 @@ authentication {
 
                 for bgp_peer in device_data['IPV4_bgp_peers'].keys():
                     if LOCAL_AS_NUMBER == OTI_LOCAL_AS:
-                        collector22_cmds['cisco_xr'].append('show bgp neighbor %s | include prefixes' % (bgp_peer))
+                        collector2_cmds['cisco_xr'].append('show bgp neighbor %s advertised-count' % (bgp_peer))
+                        collector2_cmds['huawei'].append('disp bgp peer %s verbose | include routes' % (bgp_peer))
+                        #collector2_cmds['juniper'].append('show bgp neighbor %s | match prefixes' % (bgp_peer))
 
                     elif LOCAL_AS_NUMBER == IMN_LOCAL_AS:
-                        collector22_cmds['cisco_xr'].append('show bgp vpnv4 unicast neighbors %s | include prefixes' % (bgp_peer))
+                        collector2_cmds['cisco_xr'].append('show bgp vpnv4 unicast neighbors %s advertised-count' % (bgp_peer))
 
-                rcmd22_outputs = RCMD.run_commands(collector22_cmds, \
+                rcmd2_outputs = RCMD.run_commands(collector2_cmds, \
                     autoconfirm_mode = True, \
                     printall = printall)
 
-                for bgp_peer, output_command in zip(device_data['IPV4_bgp_peers'].keys(),rcmd22_outputs):
-                    ### 'Prefix advertised' IS NOT VALID INFORMATION ###########
-                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(output_command.split('accepted prefixes')[0].split()[-1])
-                    except: pass
+                if RCMD.router_type == 'cisco_xr':
+                    for bgp_peer, output_command in zip(device_data['IPV4_bgp_peers'].keys(),rcmd2_outputs):
+                        try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(output_command.split('No of prefixes Advertised:')[1].split()[0])
+                        except: pass
 
-                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Denied_prefixes'] = int(output_command.split('prefixes denied :')[1].split()[0].replace('.',''))
-                    except: pass
+                # elif RCMD.router_type == 'juniper':
+                    # for bgp_peer, output_command in zip(device_data['IPV4_bgp_peers'].keys(),rcmd2_outputs):
+                        # try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(output_command.split('Accepted prefixes:')[1].split()[0])
+                        # except: pass
+                        # try: device_data['IPV4_bgp_peers'][bgp_peer]['Received_prefixes'] = int(output_command.split('Received prefixes:')[1].split()[0])
+                        # except: pass
+                        # try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertized_prefixes'] = int(output_command.split('Advertised prefixes:')[1].split()[0])
+                        # except: pass
 
-            ### DEF CMD26 - IPV6 XR PREFIXES ##################################
-            collector26_cmds = {
-                'cisco_ios':[
-                            ],
+                elif RCMD.router_type == 'huawei':
+                    for bgp_peer, output_command in zip(device_data['IPV4_bgp_peers'].keys(),rcmd2_outputs):
+                        try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(output_command.split('Advertised total routes:')[1].split()[0])
+                        except: pass
+                        try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(output_command.split('Received active routes total:')[1].split()[0])
+                        except: pass
+                        try: device_data['IPV4_bgp_peers'][bgp_peer]['Received_prefixes'] = int(output_command.split('Received total routes:')[1].split()[0])
+                        except: pass
 
-                'cisco_xr': [
-                            ],
+                ### DEF CMD22 - IPV4 XR PREFIXES ##################################
+                if RCMD.router_type == 'cisco_xr':
+                    collector22_cmds = {
+                        'cisco_ios':[
+                                    ],
 
-                'juniper':  [
-                            ],
+                        'cisco_xr': [
+                                    ],
 
-                'huawei':   [
-                            ]
-            }
+                        'juniper':  [
+                                    ],
 
-            for bgp_peer in device_data['IPV6_bgp_peers'].keys():
-                if LOCAL_AS_NUMBER == OTI_LOCAL_AS:
-                    collector26_cmds['cisco_xr'].append('show bgp neighbor %s | include prefixes' % (bgp_peer))
+                        'huawei':   [
+                                    ]
+                    }
 
-                elif LOCAL_AS_NUMBER == IMN_LOCAL_AS:
-                    collector26_cmds['cisco_xr'].append('show bgp vpnv6 unicast neighbors %s | include prefixes' % (bgp_peer))
+                    for bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                        if LOCAL_AS_NUMBER == OTI_LOCAL_AS:
+                            collector22_cmds['cisco_xr'].append('show bgp neighbor %s | include prefixes' % (bgp_peer))
 
-                #collector26_cmds['juniper'].append('show bgp neighbor %s | match prefixes' % (bgp_peer))
+                        elif LOCAL_AS_NUMBER == IMN_LOCAL_AS:
+                            collector22_cmds['cisco_xr'].append('show bgp vpnv4 unicast neighbors %s | include prefixes' % (bgp_peer))
 
-            rcmd26_outputs = RCMD.run_commands(collector26_cmds, \
-                autoconfirm_mode = True, \
-                printall = printall)
+                    rcmd22_outputs = RCMD.run_commands(collector22_cmds, \
+                        autoconfirm_mode = True, \
+                        printall = printall)
 
-            if RCMD.router_type == 'cisco_xr':
-                for bgp_peer, output_command in zip(device_data['IPV6_bgp_peers'].keys(),rcmd26_outputs):
-                    ### 'Prefix advertised' IS NOT VALID INFORMATION ###########
-                    try: device_data['IPV6_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(output_command.split('accepted prefixes')[0].split()[-1])
-                    except: pass
+                    for bgp_peer, output_command in zip(device_data['IPV4_bgp_peers'].keys(),rcmd22_outputs):
+                        ### 'Prefix advertised' IS NOT VALID INFORMATION ###########
+                        try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(output_command.split('accepted prefixes')[0].split()[-1])
+                        except: pass
 
-                    try: device_data['IPV6_bgp_peers'][bgp_peer]['Denied_prefixes'] = int(output_command.split('prefixes denied :')[1].split()[0].replace('.',''))
-                    except: pass
+                        try: device_data['IPV4_bgp_peers'][bgp_peer]['Denied_prefixes'] = int(output_command.split('prefixes denied :')[1].split()[0].replace('.',''))
+                        except: pass
 
-            # elif RCMD.router_type == 'juniper':
-                # for bgp_peer, output_command in zip(device_data['IPV6_bgp_peers'].keys(),rcmd26_outputs):
-                    # try: device_data['IPV6_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(output_command.split('Accepted prefixes:')[1].split()[0])
-                    # except: pass
-                    # try: device_data['IPV6_bgp_peers'][bgp_peer]['Received_prefixes'] = int(output_command.split('Received prefixes:')[1].split()[0])
-                    # except: pass
-                    # try: device_data['IPV6_bgp_peers'][bgp_peer]['Advertized_prefixes'] = int(output_command.split('Advertised prefixes:')[1].split()[0])
-                    # except: pass
+                ### DEF CMD26 - IPV6 XR PREFIXES ##################################
+                collector26_cmds = {
+                    'cisco_ios':[
+                                ],
 
+                    'cisco_xr': [
+                                ],
 
-            ### DEF CMD3 - IPV6 ADVERTIZED COUNT ###############################
-            collector3_cmds = {
-                'cisco_ios':[
-                            ],
+                    'juniper':  [
+                                ],
 
-                'cisco_xr': [
-                            ],
+                    'huawei':   [
+                                ]
+                }
 
-                'juniper':  [
-                            ],
-
-                'huawei':   [
-                            ]
-            }
-
-            if RCMD.router_type == 'cisco_xr':
                 for bgp_peer in device_data['IPV6_bgp_peers'].keys():
                     if LOCAL_AS_NUMBER == OTI_LOCAL_AS:
-                        collector3_cmds['cisco_xr'].append('sh bgp neighbor %s advertised-count' % (bgp_peer))
-                    elif LOCAL_AS_NUMBER == IMN_LOCAL_AS:
-                        collector3_cmds['cisco_xr'].append('sh bgp vpnv6 unicast neighbors %s advertised-count' % (bgp_peer))
+                        collector26_cmds['cisco_xr'].append('show bgp neighbor %s | include prefixes' % (bgp_peer))
 
-                rcmd3_outputs = RCMD.run_commands(collector3_cmds, \
+                    elif LOCAL_AS_NUMBER == IMN_LOCAL_AS:
+                        collector26_cmds['cisco_xr'].append('show bgp vpnv6 unicast neighbors %s | include prefixes' % (bgp_peer))
+
+                    #collector26_cmds['juniper'].append('show bgp neighbor %s | match prefixes' % (bgp_peer))
+
+                rcmd26_outputs = RCMD.run_commands(collector26_cmds, \
                     autoconfirm_mode = True, \
                     printall = printall)
 
-                for bgp_peer, output_command in zip(device_data['IPV6_bgp_peers'].keys(),rcmd3_outputs):
-                    try: device_data['IPV6_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(output_command.split('No of prefixes Advertised:')[1].split()[0])
-                    except: pass
+                if RCMD.router_type == 'cisco_xr':
+                    for bgp_peer, output_command in zip(device_data['IPV6_bgp_peers'].keys(),rcmd26_outputs):
+                        ### 'Prefix advertised' IS NOT VALID INFORMATION ###########
+                        try: device_data['IPV6_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(output_command.split('accepted prefixes')[0].split()[-1])
+                        except: pass
 
-            ### def CMD4 - VRF ##################################################
-            collector4_cmds = {
-                'cisco_ios':[
-                            ],
+                        try: device_data['IPV6_bgp_peers'][bgp_peer]['Denied_prefixes'] = int(output_command.split('prefixes denied :')[1].split()[0].replace('.',''))
+                        except: pass
 
-                'cisco_xr': [
-                            ],
-
-                'juniper':  [
-                            ],
-
-                'huawei':   [
-                            ]
-            }
-
-            selected_bgp_peers = []
-
-            for bgp_peer in device_data['IPV4_bgp_peers'].keys():
-                if LOCAL_AS_NUMBER == IMN_LOCAL_AS and \
-                    device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()):
-
-                    selected_bgp_peers.append(copy.deepcopy(bgp_peer))
-
-                    collector4_cmds['cisco_xr'].append('show bgp vrf %s neighbors %s | include prefixes' % \
-                        (device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()), bgp_peer))
-
-                    collector4_cmds['huawei'].append('display bgp vpnv4 vpn-instance %s peer %s verbose | include routes' % \
-                        (device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()),bgp_peer))
-
-            rcmd4_outputs = RCMD.run_commands(collector4_cmds, \
-                autoconfirm_mode = True, \
-                printall = printall)
-
-            if RCMD.router_type == 'cisco_xr':
-                for bgp_peer, output_command in zip(selected_bgp_peers,rcmd4_outputs):
-                    ### 'Prefix advertised' IS NOT VALID INFORMATION ###########
-                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(output_command.split('accepted prefixes')[0].split()[-1])
-                    except: pass
-
-                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Denied_prefixes'] = int(output_command.split('prefixes denied :')[1].split()[0].replace('.',''))
-                    except: pass
-
-            elif RCMD.router_type == 'huawei':
-                for bgp_peer, output_command in zip(selected_bgp_peers,rcmd4_outputs):
-                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(output_command.split('Advertised total routes:')[1].split()[0])
-                    except: pass
-                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(output_command.split('Received active routes total:')[1].split()[0])
-                    except: pass
-                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Received_prefixes'] = int(output_command.split('Received total routes:')[1].split()[0])
-                    except: pass
+                # elif RCMD.router_type == 'juniper':
+                    # for bgp_peer, output_command in zip(device_data['IPV6_bgp_peers'].keys(),rcmd26_outputs):
+                        # try: device_data['IPV6_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(output_command.split('Accepted prefixes:')[1].split()[0])
+                        # except: pass
+                        # try: device_data['IPV6_bgp_peers'][bgp_peer]['Received_prefixes'] = int(output_command.split('Received prefixes:')[1].split()[0])
+                        # except: pass
+                        # try: device_data['IPV6_bgp_peers'][bgp_peer]['Advertized_prefixes'] = int(output_command.split('Advertised prefixes:')[1].split()[0])
+                        # except: pass
 
 
-            ### def CMD44 - VRF XR ADVERTIZED COUNT ###########################
-            if RCMD.router_type == 'cisco_xr':
-                collector44_cmds = {
+                ### DEF CMD3 - IPV6 ADVERTIZED COUNT ###############################
+                collector3_cmds = {
+                    'cisco_ios':[
+                                ],
+
+                    'cisco_xr': [
+                                ],
+
+                    'juniper':  [
+                                ],
+
+                    'huawei':   [
+                                ]
+                }
+
+                if RCMD.router_type == 'cisco_xr':
+                    for bgp_peer in device_data['IPV6_bgp_peers'].keys():
+                        if LOCAL_AS_NUMBER == OTI_LOCAL_AS:
+                            collector3_cmds['cisco_xr'].append('sh bgp neighbor %s advertised-count' % (bgp_peer))
+                        elif LOCAL_AS_NUMBER == IMN_LOCAL_AS:
+                            collector3_cmds['cisco_xr'].append('sh bgp vpnv6 unicast neighbors %s advertised-count' % (bgp_peer))
+
+                    rcmd3_outputs = RCMD.run_commands(collector3_cmds, \
+                        autoconfirm_mode = True, \
+                        printall = printall)
+
+                    for bgp_peer, output_command in zip(device_data['IPV6_bgp_peers'].keys(),rcmd3_outputs):
+                        try: device_data['IPV6_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(output_command.split('No of prefixes Advertised:')[1].split()[0])
+                        except: pass
+
+                ### def CMD4 - VRF ##################################################
+                collector4_cmds = {
                     'cisco_ios':[
                                 ],
 
@@ -3154,21 +3140,74 @@ authentication {
 
                         selected_bgp_peers.append(copy.deepcopy(bgp_peer))
 
-                        collector44_cmds['cisco_xr'].append('show bgp vrf %s neighbors %s advertised-count' % \
+                        collector4_cmds['cisco_xr'].append('show bgp vrf %s neighbors %s | include prefixes' % \
                             (device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()), bgp_peer))
 
-                rcmd44_outputs = RCMD.run_commands(collector44_cmds, \
+                        collector4_cmds['huawei'].append('display bgp vpnv4 vpn-instance %s peer %s verbose | include routes' % \
+                            (device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()),bgp_peer))
+
+                rcmd4_outputs = RCMD.run_commands(collector4_cmds, \
                     autoconfirm_mode = True, \
                     printall = printall)
 
-                for bgp_peer, output_command in zip(selected_bgp_peers,rcmd44_outputs):
-                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(output_command.split('No of prefixes Advertised:')[1].split()[0])
-                    except: pass
+                if RCMD.router_type == 'cisco_xr':
+                    for bgp_peer, output_command in zip(selected_bgp_peers,rcmd4_outputs):
+                        ### 'Prefix advertised' IS NOT VALID INFORMATION ###########
+                        try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(output_command.split('accepted prefixes')[0].split()[-1])
+                        except: pass
 
-            ###################################################################
-            ### LOOP PER INTERFACE - END ######################################
-            ###################################################################
-            RCMD.disconnect()
+                        try: device_data['IPV4_bgp_peers'][bgp_peer]['Denied_prefixes'] = int(output_command.split('prefixes denied :')[1].split()[0].replace('.',''))
+                        except: pass
+
+                elif RCMD.router_type == 'huawei':
+                    for bgp_peer, output_command in zip(selected_bgp_peers,rcmd4_outputs):
+                        try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(output_command.split('Advertised total routes:')[1].split()[0])
+                        except: pass
+                        try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(output_command.split('Received active routes total:')[1].split()[0])
+                        except: pass
+                        try: device_data['IPV4_bgp_peers'][bgp_peer]['Received_prefixes'] = int(output_command.split('Received total routes:')[1].split()[0])
+                        except: pass
+
+
+                ### def CMD44 - VRF XR ADVERTIZED COUNT ###########################
+                if RCMD.router_type == 'cisco_xr':
+                    collector44_cmds = {
+                        'cisco_ios':[
+                                    ],
+
+                        'cisco_xr': [
+                                    ],
+
+                        'juniper':  [
+                                    ],
+
+                        'huawei':   [
+                                    ]
+                    }
+
+                    selected_bgp_peers = []
+
+                    for bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                        if LOCAL_AS_NUMBER == IMN_LOCAL_AS and \
+                            device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()):
+
+                            selected_bgp_peers.append(copy.deepcopy(bgp_peer))
+
+                            collector44_cmds['cisco_xr'].append('show bgp vrf %s neighbors %s advertised-count' % \
+                                (device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()), bgp_peer))
+
+                    rcmd44_outputs = RCMD.run_commands(collector44_cmds, \
+                        autoconfirm_mode = True, \
+                        printall = printall)
+
+                    for bgp_peer, output_command in zip(selected_bgp_peers,rcmd44_outputs):
+                        try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(output_command.split('No of prefixes Advertised:')[1].split()[0])
+                        except: pass
+
+                ###################################################################
+                ### LOOP PER INTERFACE - END ######################################
+                ###################################################################
+                RCMD.disconnect()
 
 
             ### PRINT COLLECTED DATA ##########################################
@@ -3182,7 +3221,7 @@ authentication {
             if precheck_mode:
                 CGI_CLI.uprint('BGP PRECHECK DONE.', tag = 'h2', printall = True)
             else:
-                CGI_CLI.uprint('POSTCHECKS:', tag = 'h2', printall = True)
+                CGI_CLI.uprint('BGP POSTCHECKS:', tag = 'h2', printall = True)
 
                 if len(bgp_precheck_data.keys()) > 0:
                     check_bgp_peers(bgp_peers_string = 'IPV4_bgp_peers', percentage_tolerance = 3)
