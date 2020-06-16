@@ -2087,6 +2087,8 @@ def generate_logfilename(prefix = None, USERNAME = None, postfix = None, \
             filename_postfix,
             filename_suffix)
         filenamewithpath = str(os.path.join(LOGDIR,filename))
+        if not filenamewithpath:
+            CGI_CLI.uprint("Last Logfile '%s' not found!" % (str(separator)), color = 'magenta')
     return filenamewithpath
 
 
@@ -2094,39 +2096,35 @@ def return_bgp_data_json():
     return json.dumps(bgp_data, indent=2)
 
 
-def read_bgp_data_json_from_logfile(filename = None, printall = None):
+def read_bgp_data_json_from_logfile(filename = None, separator = None, printall = None):
     bgp_data_loaded, text = None, None
     with open(filename,"r") as fp:
         text = fp.read()
     if text:
-        try: bgp_data_json_text = text.split('_bgp_device_data')[1].strip()
-        except: bgp_data_json_text = str()
-
-        #CGI_CLI.uprint("\n1. READ JSON BGP_DATA:\n" + bgp_data_json_text)
+        try: bgp_data_json_text = text.split(str(separator))[1].strip()
+        except:
+            bgp_data_json_text = str()
+            CGI_CLI.uprint("JSON separator '%s' not found in logfile!" % (str(separator)), color = 'magenta')
 
         if bgp_data_json_text and '<br/>' in bgp_data_json_text:
             bgp_data_json_text = CGI_CLI.html_deescape(text = bgp_data_json_text)
 
-        #CGI_CLI.uprint("\n2. READ JSON BGP_DATA:\n" + bgp_data_json_text)
-
-        try: bgp_data_json_text = bgp_data_json_text.split('= ')[1]
+        try: bgp_data_json_text = '{\n' + '{\n'.join(bgp_data_json_text.split('{')[1:])
         except: pass
-
-        #CGI_CLI.uprint("\n3. READ JSON BGP_DATA:\n" + bgp_data_json_text)
 
         new_bgp_data_json_text = str()
         for line in bgp_data_json_text.splitlines():
             if len(line.strip()) > 0:
                 if line[0] == '}':
-                    new_bgp_data_json_text = new_bgp_data_json_text + '\n}\n'
+                    new_bgp_data_json_text = new_bgp_data_json_text + '\n}'
                     break
                 else: new_bgp_data_json_text = new_bgp_data_json_text + '\n' + line
 
-        if bgp_data_json_text:
-            try: bgp_data_loaded = json.loads(bgp_data_json_text, object_pairs_hook = collections.OrderedDict)
+        if new_bgp_data_json_text:
+            try: bgp_data_loaded = json.loads(new_bgp_data_json_text, object_pairs_hook = collections.OrderedDict)
             except:
                 traceback_found = traceback.format_exc()
-                CGI_CLI.uprint(str(traceback_found), tag = 'h3', color = 'magenta')            
+                CGI_CLI.uprint(str(traceback_found), color = 'magenta')
                 CGI_CLI.uprint("\nPROBLEM TO PARSE JSON BGP_DATA: \n%s\n" % (new_bgp_data_json_text), color = 'magenta')
 
             if printall: CGI_CLI.uprint("\nLOADED JSON BGP_DATA: ")
@@ -2333,10 +2331,10 @@ authentication {
             printall = printall)
 
         if not last_precheck_file: sys.exit(0)
-        bgp_precheck_data = read_bgp_data_json_from_logfile(last_precheck_file, printall = printall)
+        bgp_precheck_data = read_bgp_data_json_from_logfile(last_precheck_file, separator ='_bgp_device_data', printall = printall)
 
         CGI_CLI.uprint('\n', printall = True)
-        CGI_CLI.uprint(device_data, name = '%s_bgp_precheck_data' % ('_'.join(device_list).upper()), jsonprint = True, \
+        CGI_CLI.uprint(bgp_precheck_data, name = '%s_bgp_precheck_data' % ('_'.join(device_list).upper()), jsonprint = True, \
             color = 'blue', timestamp = 'no', printall = True, sort_keys = True)
         CGI_CLI.uprint('\n', printall = True)
 
