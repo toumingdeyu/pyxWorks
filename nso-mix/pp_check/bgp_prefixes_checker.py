@@ -2114,7 +2114,7 @@ def read_bgp_data_json_from_logfile(filename = None, separator = None, printall 
             bgp_data_json_text = CGI_CLI.html_deescape(text = bgp_data_json_text)
 
         ### FILTER OUT = ON START OF JSON #####################################
-        try: bgp_data_json_text = bgp_data_json_text.split(' = ')[1]
+        try: bgp_data_json_text = bgp_data_json_text.split('= ')[1]
         except: pass
 
         #try: bgp_data_json_text = '{\n' + '{\n'.join(bgp_data_json_text.split('{')[1:])
