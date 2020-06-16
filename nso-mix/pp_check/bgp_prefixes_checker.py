@@ -2205,9 +2205,9 @@ def check_bgp_peers(bgp_peers_string = None, percentage_tolerance = 3):
 
                 if float(precheck_advertized) < float(postcheck_advertized) * (100 + percentage_tolerance)/100 \
                     and float(precheck_advertized) > float(postcheck_advertized) * (100 - percentage_tolerance)/100: pass
-                else:
-                    CGI_CLI.uprint('BGP Peer %s has Precheck/Postcheck Advertized_prefixes difference > %s %% !' % \
-                        (bgp_peer, str(percentage_tolerance)), color = 'red', printall = True)
+                elif precheck_advertized != 0 or postcheck_advertized != 0:
+                    CGI_CLI.uprint('BGP Peer %s has Precheck/Postcheck Advertized_prefixes difference > %s %% (PRECHECK: %s, POSTCHECK: %s)!' % \
+                        (bgp_peer, str(percentage_tolerance),str(precheck_advertized),str(postcheck_advertized)), color = 'red', printall = True)
                     error_flag = True
             if not error_flag:
                 CGI_CLI.uprint('BGP Peer %s check - OK.' % (bgp_peer), printall = True)
