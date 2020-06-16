@@ -2183,9 +2183,15 @@ def check_bgp_peers(bgp_peers_string = None, percentage_tolerance = 3):
                 CGI_CLI.uprint('BGP Peer %s has Denied_prefixes > 0 !' % (bgp_peer), color = 'orange', printall = True)
                 error_flag = True
 
-            if bgp_precheck_data[bgp_peers_string].get(bgp_peer,'-1') == device_data[bgp_peers_string].get(bgp_peer,'-2'):
+            if len(bgp_precheck_data[bgp_peers_string].get(bgp_peer,{}).keys()) == 0:
+                CGI_CLI.uprint('BGP Peer %s is MISSING IN PRECHECK !' % (bgp_peer), color = 'red', printall = True)
+                error_flag = True
+            if len(device_data[bgp_peers_string].get(bgp_peer,{}).keys()) == 0:
+                CGI_CLI.uprint('BGP Peer %s MISSING DATA IN POSTCHECK !' % (bgp_peer), color = 'red', printall = True)
+                error_flag = True
+            else:
                 if device_data[bgp_peers_string][bgp_peer].get('State','') != bgp_precheck_data[bgp_peers_string][bgp_peer].get('State',''):
-                    CGI_CLI.uprint('BGP Peer %s is NOW in STATE: %s (BEFORE was: %s) !' % \
+                    CGI_CLI.uprint('BGP Peer %s Postcheck STATE: %s (Precheck STATE: %s) !' % \
                         (bgp_peer, device_data[bgp_peers_string][bgp_peer].get('State',''), \
                         bgp_precheck_data[bgp_peers_string][bgp_peer].get('State','')), color = 'red', printall = True)
                     error_flag = True
@@ -2203,16 +2209,16 @@ def check_bgp_peers(bgp_peers_string = None, percentage_tolerance = 3):
                     CGI_CLI.uprint('BGP Peer %s has Precheck/Postcheck Advertized_prefixes difference > %s %% !' % \
                         (bgp_peer, str(percentage_tolerance)), color = 'red', printall = True)
                     error_flag = True
-
-            elif not bgp_precheck_data[bgp_peers_string].get(bgp_peer):
-                    CGI_CLI.uprint('BGP Peer %s is MISSING IN PRECHECK !' % (bgp_peer), color = 'red', printall = True)
-                    error_flag = True
-            elif not device_data[bgp_peers_string].get(bgp_peer):
-                    CGI_CLI.uprint('BGP Peer %s is MISSING IN POSTCHECK !' % (bgp_peer), color = 'red', printall = True)
-                    error_flag = True
-
             if not error_flag:
                 CGI_CLI.uprint('BGP Peer %s check - OK.' % (bgp_peer), printall = True)
+
+        ### CONDITION IF PRECHECK HAS MORE BGP PEERS LIKE IN POSTCHECK #######
+        for bgp_peer in bgp_precheck_data[bgp_peers_string].keys():
+            if len(device_data[bgp_peers_string].get(bgp_peer,{}).keys()) == 0:
+                CGI_CLI.uprint('BGP Peer %s is MISSING IN POSTCHECK !' % (bgp_peer), color = 'red', printall = True)
+                error_flag = True
+
+
 
 
 ###############################################################################
