@@ -2182,7 +2182,7 @@ def check_bgp_peers_precheck(bgp_peers_string = None, percentage_tolerance = 3):
                 CGI_CLI.uprint('BGP Peer %s has Denied_prefixes > 0 !' % (bgp_peer), color = 'orange', printall = True)
                 error_flag = True
 
-            if device_data[bgp_peers_string][bgp_peer].get('State','') != bgp_precheck_data[bgp_peers_string][bgp_peer].get('State',''):
+            if device_data[bgp_peers_string][bgp_peer].get('State',''):
                 CGI_CLI.uprint('BGP Peer %s Precheck STATE: %s .' % \
                     (bgp_peer, device_data[bgp_peers_string][bgp_peer].get('State','')), printall = True)
                 error_flag = True
