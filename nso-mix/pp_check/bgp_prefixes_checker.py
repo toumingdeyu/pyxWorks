@@ -2452,7 +2452,7 @@ authentication {
         if last_precheck_file: CGI_CLI.uprint('PRECHECK FILE: %s' % (last_precheck_file), printall = True)
         else: sys.exit(0)
         bgp_precheck_data = read_bgp_data_json_from_logfile(last_precheck_file, separator ='_bgp_device_data', printall = printall)
-        if len(bgp_precheck_data.keys()) > 0: CGI_CLI.uprint('PRECHECK DATA READ OK.', printall = True)
+        if bgp_precheck_data and len(bgp_precheck_data.keys()) > 0: CGI_CLI.uprint('PRECHECK DATA READ OK.', printall = True)
 
         CGI_CLI.uprint('\n', no_printall = not CGI_CLI.printall)
         CGI_CLI.uprint(bgp_precheck_data, name = '%s_bgp_precheck_data' % ('_'.join(device_list).upper()), jsonprint = True, \
