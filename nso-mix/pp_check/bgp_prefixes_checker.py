@@ -2169,8 +2169,30 @@ def find_last_precheck_logfile(prefix = None, USERNAME = None, suffix = None, di
 
 
 ###############################################################################
+def check_bgp_peers_precheck(bgp_peers_string = None, percentage_tolerance = 3):
+    global error_flag
+    if bgp_peers_string:
+        for bgp_peer in device_data[bgp_peers_string].keys():
+            error_flag = False
+            if device_data[bgp_peers_string][bgp_peer].get('Accepted_prefixes',0) < device_data[bgp_peers_string][bgp_peer].get('Received_prefixes',0):
+                CGI_CLI.uprint('BGP Peer %s has Accepted_prefixes < Received_prefixes !' % (bgp_peer), color = 'orange', printall = True)
+                error_flag = True
 
-def check_bgp_peers(bgp_peers_string = None, percentage_tolerance = 3):
+            if device_data[bgp_peers_string][bgp_peer].get('Denied_prefixes',0) > 0:
+                CGI_CLI.uprint('BGP Peer %s has Denied_prefixes > 0 !' % (bgp_peer), color = 'orange', printall = True)
+                error_flag = True
+
+            if device_data[bgp_peers_string][bgp_peer].get('State','') != bgp_precheck_data[bgp_peers_string][bgp_peer].get('State',''):
+                CGI_CLI.uprint('BGP Peer %s Precheck STATE: %s .' % \
+                    (bgp_peer, device_data[bgp_peers_string][bgp_peer].get('State','')), printall = True)
+                error_flag = True
+
+            if not error_flag:
+                CGI_CLI.uprint('BGP Peer %s check - OK.' % (bgp_peer), printall = True)
+
+
+
+def check_bgp_peers_postcheck(bgp_peers_string = None, percentage_tolerance = 3):
     global error_flag
     if bgp_peers_string:
         for bgp_peer in device_data[bgp_peers_string].keys():
@@ -3226,13 +3248,16 @@ authentication {
 
             ### def BASIC CHECKS ##############################################
             if precheck_mode:
+                CGI_CLI.uprint('BGP PRECHECKS:', tag = 'h2', printall = True)
+                check_bgp_peers_precheck(bgp_peers_string = 'IPV4_bgp_peers', percentage_tolerance = 3)
+                check_bgp_peers_precheck(bgp_peers_string = 'IPV6_bgp_peers', percentage_tolerance = 3)
                 CGI_CLI.uprint('BGP PRECHECK DONE.', tag = 'h2', printall = True)
             else:
                 CGI_CLI.uprint('BGP POSTCHECKS:', tag = 'h2', printall = True)
 
                 if len(bgp_precheck_data.keys()) > 0:
-                    check_bgp_peers(bgp_peers_string = 'IPV4_bgp_peers', percentage_tolerance = 3)
-                    check_bgp_peers(bgp_peers_string = 'IPV6_bgp_peers', percentage_tolerance = 3)
+                    check_bgp_peers_postcheck(bgp_peers_string = 'IPV4_bgp_peers', percentage_tolerance = 3)
+                    check_bgp_peers_postcheck(bgp_peers_string = 'IPV6_bgp_peers', percentage_tolerance = 3)
 
 
 except SystemExit: pass
