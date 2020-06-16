@@ -2113,8 +2113,12 @@ def read_bgp_data_json_from_logfile(filename = None, separator = None, printall 
         if bgp_data_json_text and '<br/>' in bgp_data_json_text:
             bgp_data_json_text = CGI_CLI.html_deescape(text = bgp_data_json_text)
 
-        try: bgp_data_json_text = '{\n' + '{\n'.join(bgp_data_json_text.split('{')[1:])
+        ### FILTER OUT = ON START OF JSON #####################################
+        try: bgp_data_json_text = bgp_data_json_text.split(' = ')[1]
         except: pass
+
+        #try: bgp_data_json_text = '{\n' + '{\n'.join(bgp_data_json_text.split('{')[1:])
+        #except: pass
 
         new_bgp_data_json_text = str()
         for line in bgp_data_json_text.splitlines():
