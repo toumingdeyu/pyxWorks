@@ -2422,15 +2422,16 @@ authentication {
         bgp_precheck_data = read_bgp_data_json_from_logfile(last_precheck_file, separator ='_bgp_device_data', printall = printall)
         if len(bgp_precheck_data.keys()) > 0: CGI_CLI.uprint('PRECHECK DATA READ OK.', printall = True)
 
-        if last_postcheck_file: CGI_CLI.uprint('POSTCHECK FILE: %s' % (last_postcheck_file), printall = True)
-        else: sys.exit(0)
-        device_data = read_bgp_data_json_from_logfile(last_postcheck_file, separator ='_bgp_device_data', printall = printall)
-        if len(device_data.keys()) > 0: CGI_CLI.uprint('POSTCHECK DATA READ OK.', printall = True)
-
         CGI_CLI.uprint('\n', no_printall = not CGI_CLI.printall)
         CGI_CLI.uprint(bgp_precheck_data, name = '%s_bgp_precheck_data' % ('_'.join(device_list).upper()), jsonprint = True, \
             timestamp = 'no', no_printall = not CGI_CLI.printall, sort_keys = True)
         CGI_CLI.uprint('\n', no_printall = not CGI_CLI.printall)
+
+        if last_postcheck_file:
+            CGI_CLI.uprint('POSTCHECK FILE: %s' % (last_postcheck_file), printall = True)
+            device_data = read_bgp_data_json_from_logfile(last_postcheck_file, separator ='_bgp_device_data', printall = printall)
+            if len(device_data.keys()) > 0: CGI_CLI.uprint('POSTCHECK DATA READ OK.', printall = True)
+
 
 
     if len(device_data.keys()) == 0:
