@@ -2392,7 +2392,7 @@ authentication {
         if CGI_CLI.data.get("postfile",str()):
             last_postcheck_file = CGI_CLI.data.get("postfile",str())
 
-        if CGI_CLI.data.get("append_logfile",str()) and 'post' in CGI_CLI.data.get("append_logfile",str()):
+        if not last_precheck_file and CGI_CLI.data.get("append_logfile",str()) and 'post' in CGI_CLI.data.get("append_logfile",str()):
             ### FIND PRECHECK FROM POSTCHECK LIKE IN ROUTER_CHECK #############
             try: LOG_FILE_DIR = CGI_CLI.data.get("append_logfile",str()).split('/')[0]
             except: LOG_FILE_DIR = ''
