@@ -2187,7 +2187,7 @@ def check_bgp_peers_precheck(bgp_peers_string = None, percentage_tolerance = 3):
                 error_flag = True
 
             if device_data[bgp_peers_string][bgp_peer].get('State',''):
-                CGI_CLI.uprint('BGP Peer %s Precheck STATE: %s .' % \
+                CGI_CLI.uprint('BGP Peer %s PRECHECK STATE is %s' % \
                     (bgp_peer, device_data[bgp_peers_string][bgp_peer].get('State','')), printall = True)
                 error_flag = True
 
@@ -2217,7 +2217,7 @@ def check_bgp_peers_postcheck(bgp_peers_string = None, percentage_tolerance = 3)
                 error_flag = True
             else:
                 if device_data[bgp_peers_string][bgp_peer].get('State','') != bgp_precheck_data[bgp_peers_string][bgp_peer].get('State',''):
-                    CGI_CLI.uprint('BGP Peer %s Postcheck STATE: %s (Precheck STATE: %s) !' % \
+                    CGI_CLI.uprint('BGP Peer %s POSTCHECK STATE is %s (PRECHECK STATE was %s) !' % \
                         (bgp_peer, device_data[bgp_peers_string][bgp_peer].get('State',''), \
                         bgp_precheck_data[bgp_peers_string][bgp_peer].get('State','')), color = 'red', printall = True)
                     error_flag = True
@@ -3025,6 +3025,9 @@ authentication {
 
                         find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
                         if len(find_ip) == 1:
+                            if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                                device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
                             try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['Advertized_prefixes'] = int(bgp_section.split('Advertised total routes:')[1].split()[0])
                             except: pass
 
@@ -3041,6 +3044,9 @@ authentication {
                             except: pass
 
                         elif ':' in bgp_peer and doubledots_in_bgp_peer >= 3:
+                            if not bgp_peer in device_data['IPV6_bgp_peers'].keys():
+                                device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
                             try: device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['Advertized_prefixes'] = int(bgp_section.split('Advertised total routes:')[1].split()[0])
                             except: pass
 
@@ -3074,7 +3080,9 @@ authentication {
 
                             find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
                             if len(find_ip) == 1 and vfr_name:
-                                bgp_peer = find_ip[0].strip()
+                                if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                                    device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
                                 device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['VRF_NAME'] = copy.deepcopy(vfr_name)
 
                                 try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['Advertized_prefixes'] = int(bgp_section.split('Advertised total routes:')[1].split()[0])
@@ -3093,6 +3101,9 @@ authentication {
                                 except: pass
 
                             elif ':' in bgp_peer and doubledots_in_bgp_peer >= 3:
+                                if not bgp_peer in device_data['IPV6_bgp_peers'].keys():
+                                    device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
                                 device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['VRF_NAME'] = copy.deepcopy(vfr_name)
 
                                 try: device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['Advertized_prefixes'] = int(bgp_section.split('Advertised total routes:')[1].split()[0])
@@ -3127,6 +3138,9 @@ authentication {
 
                         find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
                         if len(find_ip) == 1:
+                            if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                                device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
                             try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['Advertized_prefixes'] = int(bgp_section.split('Advertised total routes:')[1].split()[0])
                             except: pass
 
@@ -3143,6 +3157,9 @@ authentication {
                             except: pass
 
                         elif ':' in bgp_peer and doubledots_in_bgp_peer >= 3:
+                            if not bgp_peer in device_data['IPV6_bgp_peers'].keys():
+                                device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
                             try: device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['Advertized_prefixes'] = int(bgp_section.split('Advertised total routes:')[1].split()[0])
                             except: pass
 
