@@ -2555,7 +2555,7 @@ authentication {
 
 
 
-                ### def CMD1 - FIND BGP NEIGHBORS ####################################
+                ### def CMD1 - ALL FIND BGP NEIGHBORS ####################################
                 if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
                     ### COMMAND: 'show bgp summary' ###
                     try: output_list = rcmd_outputs[0].split('Neighbor')[1].splitlines()[1:]
@@ -3231,7 +3231,7 @@ authentication {
 
 
 
-                ### DEF CMD2 - IPV4 ADVERTIZED COUNT ##############################
+                ### DEF CMD2 - XR IPV4 ADVERTIZED COUNT #######################
                 collector2_cmds = {
                     'cisco_ios':[
                                 ],
@@ -3263,7 +3263,7 @@ authentication {
                         except: pass
 
 
-                ### DEF CMD3 - IPV6 ADVERTIZED COUNT ###############################
+                ### DEF CMD3 - XR IPV6 ADVERTIZED COUNT #######################
                 collector3_cmds = {
                     'cisco_ios':[
                                 ],
@@ -3281,9 +3281,9 @@ authentication {
                 if RCMD.router_type == 'cisco_xr':
                     for bgp_peer in device_data['IPV6_bgp_peers'].keys():
                         if LOCAL_AS_NUMBER == OTI_LOCAL_AS:
-                            collector3_cmds['cisco_xr'].append('sh bgp neighbor %s advertised-count' % (bgp_peer))
+                            collector3_cmds['cisco_xr'].append('show bgp neighbor %s advertised-count' % (bgp_peer))
                         elif LOCAL_AS_NUMBER == IMN_LOCAL_AS:
-                            collector3_cmds['cisco_xr'].append('sh bgp vpnv6 unicast neighbors %s advertised-count' % (bgp_peer))
+                            collector3_cmds['cisco_xr'].append('show bgp vpnv6 unicast neighbors %s advertised-count' % (bgp_peer))
 
                     rcmd3_outputs = RCMD.run_commands(collector3_cmds, \
                         autoconfirm_mode = True, \
@@ -3293,7 +3293,7 @@ authentication {
                         try: device_data['IPV6_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(output_command.split('No of prefixes Advertised:')[1].split()[0])
                         except: pass
 
-                ### def CMD4 - VRF ##################################################
+                ### def CMD4 - XR VRF PREFIXES ################################
                 collector4_cmds = {
                     'cisco_ios':[
                                 ],
@@ -3310,6 +3310,8 @@ authentication {
 
                 selected_bgp_peers = []
 
+                ### COMMAND: 'show bgp vrf all neighbors detail | include "VRF:|BGP neighbor|BGP state|prefixes"' ###
+                
                 for bgp_peer in device_data['IPV4_bgp_peers'].keys():
                     if LOCAL_AS_NUMBER == IMN_LOCAL_AS and \
                         device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()):
@@ -3333,9 +3335,9 @@ authentication {
                         except: pass
 
 
-                ### def CMD44 - VRF XR ADVERTIZED COUNT ###########################
+                ### def CMD5 - XR VRF ADVERTIZED COUNT ###########################
                 if RCMD.router_type == 'cisco_xr':
-                    collector44_cmds = {
+                    collector5_cmds = {
                         'cisco_ios':[
                                     ],
 
@@ -3357,14 +3359,14 @@ authentication {
 
                             selected_bgp_peers.append(copy.deepcopy(bgp_peer))
 
-                            collector44_cmds['cisco_xr'].append('show bgp vrf %s neighbors %s advertised-count' % \
+                            collector5_cmds['cisco_xr'].append('show bgp vrf %s neighbors %s advertised-count' % \
                                 (device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()), bgp_peer))
 
-                    rcmd44_outputs = RCMD.run_commands(collector44_cmds, \
+                    rcmd5_outputs = RCMD.run_commands(collector5_cmds, \
                         autoconfirm_mode = True, \
                         printall = printall)
 
-                    for bgp_peer, output_command in zip(selected_bgp_peers,rcmd44_outputs):
+                    for bgp_peer, output_command in zip(selected_bgp_peers,rcmd5_outputs):
                         try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(output_command.split('No of prefixes Advertised:')[1].split()[0])
                         except: pass
 
