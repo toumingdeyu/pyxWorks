@@ -3122,10 +3122,10 @@ authentication {
                             try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['Accepted_prefixes'] = int(bgp_section.split('Received active routes total:')[1].split()[0])
                             except: pass
 
-                            try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['State'] = int(bgp_section.split('BGP current state:')[1].split()[0])
+                            try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['State'] = str(bgp_section.split('BGP current state:')[1].split()[0].replace(',',''))
                             except: pass
 
-                            try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['AS'] = int(bgp_section.split('remote AS ')[1].split()[0])
+                            try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['AS'] = int(bgp_section.split('remote AS ')[1].split()[0].replace(',',''))
                             except: pass
 
                         elif ':' in bgp_peer and doubledots_in_bgp_peer >= 3:
@@ -3138,10 +3138,10 @@ authentication {
                             try: device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['Accepted_prefixes'] = int(bgp_section.split('Received active routes total:')[1].split()[0])
                             except: pass
 
-                            try: device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['State'] = int(bgp_section.split('BGP current state:')[1].split()[0])
+                            try: device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['State'] = str(bgp_section.split('BGP current state:')[1].split()[0].replace(',',''))
                             except: pass
 
-                            try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['AS'] = int(bgp_section.split('remote AS ')[1].split()[0])
+                            try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['AS'] = int(bgp_section.split('remote AS ')[1].split()[0].replace(',',''))
                             except: pass
 
 
@@ -3175,10 +3175,10 @@ authentication {
                                 try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['Accepted_prefixes'] = int(bgp_section.split('Received active routes total:')[1].split()[0])
                                 except: pass
 
-                                try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['State'] = int(bgp_section.split('BGP current state:')[1].split()[0])
+                                try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['State'] = str(bgp_section.split('BGP current state:')[1].split()[0].replace(',',''))
                                 except: pass
 
-                                try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['AS'] = int(bgp_section.split('remote AS ')[1].split()[0])
+                                try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['AS'] = int(bgp_section.split('remote AS ')[1].split()[0].replace(',',''))
                                 except: pass
 
                             elif ':' in bgp_peer and doubledots_in_bgp_peer >= 3:
@@ -3193,10 +3193,10 @@ authentication {
                                 try: device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['Accepted_prefixes'] = int(bgp_section.split('Received active routes total:')[1].split()[0])
                                 except: pass
 
-                                try: device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['State'] = int(bgp_section.split('BGP current state:')[1].split()[0])
+                                try: device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['State'] = str(bgp_section.split('BGP current state:')[1].split()[0].replace(',',''))
                                 except: pass
 
-                                try: device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['AS'] = int(bgp_section.split('remote AS ')[1].split()[0])
+                                try: device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['AS'] = int(bgp_section.split('remote AS ')[1].split()[0].replace(',',''))
                                 except: pass
 
 
