@@ -2616,20 +2616,20 @@ authentication {
                                  'show bgp vpnv4 unicast summary',
                                  'show bgp ipv6 unicast summary',
                                  'show bgp vrf all sum | exc "BGP|ID|stop|Process|Speaker"',
-                                 'show bgp neighbor | include "BGP neighbor is|BGP state|prefixes|AS"',
-                                 'show bgp vpnv4 unicast neighbors | include "BGP neighbor is|BGP state|prefixes|AS"',
-                                 'show bgp vpnv6 unicast neighbors | include "BGP neighbor is|BGP state|prefixes|AS"',
-                                 'show bgp vrf all neighbors detail | include "VRF:|BGP neighbor|BGP state|prefixes"',
+                                 'show bgp neighbor | include "VRF:|BGP neighbor is|BGP state|prefixes|AS"',
+                                 'show bgp vpnv4 unicast neighbors | include "VRF:|BGP neighbor is|BGP state|prefixes|AS"',
+                                 'show bgp vpnv6 unicast neighbors | include "VRF:|BGP neighbor is|BGP state|prefixes|AS"',
+                                 'show bgp vrf all neighbors detail | include "VRF:|BGP neighbor is|BGP state|prefixes|AS"',
                                 ],
 
                     'cisco_xr': ['show bgp summary',
                                  'show bgp vpnv4 unicast summary',
                                  'show bgp ipv6 unicast summary',
                                  'show bgp vrf all sum | exc "BGP|ID|stop|Process|Speaker"',
-                                 'show bgp neighbor | include "BGP neighbor is|BGP state|prefixes|AS"',
-                                 'show bgp vpnv4 unicast neighbors | include "BGP neighbor is|BGP state|prefixes|AS"',
-                                 'show bgp vpnv6 unicast neighbors | include "BGP neighbor is|BGP state|prefixes|AS"',
-                                 'show bgp vrf all neighbors detail | include "VRF:|BGP neighbor is|BGP state|prefixes"',
+                                 'show bgp neighbor | include "VRF:|BGP neighbor is|BGP state|prefixes|AS"',
+                                 'show bgp vpnv4 unicast neighbors | include "VRF:|BGP neighbor is|BGP state|prefixes|AS"',
+                                 'show bgp vpnv6 unicast neighbors | include "VRF:|BGP neighbor is|BGP state|prefixes|AS"',
+                                 'show bgp vrf all neighbors detail | include "VRF:|BGP neighbor is|BGP state|prefixes|AS"',
                                 ],
 
                     'juniper':  ['show bgp neighbor | match "Group:|Peer:" | except "NLRI|Restart"',
@@ -3271,19 +3271,25 @@ authentication {
                                 ]
                 }
 
-                for bgp_peer in device_data['IPV4_bgp_peers'].keys():
-                    if LOCAL_AS_NUMBER == OTI_LOCAL_AS:
-                        collector2_cmds['cisco_xr'].append('show bgp neighbor %s advertised-count' % (bgp_peer))
+                selected_bgp_peers = []
 
-                    elif LOCAL_AS_NUMBER == IMN_LOCAL_AS:
-                        collector2_cmds['cisco_xr'].append('show bgp vpnv4 unicast neighbors %s advertised-count' % (bgp_peer))
+                for bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                    if not device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME'):
+
+                        selected_bgp_peers.append(copy.deepcopy(bgp_peer))
+
+                        if LOCAL_AS_NUMBER == OTI_LOCAL_AS:
+                            collector2_cmds['cisco_xr'].append('show bgp neighbor %s advertised-count' % (bgp_peer))
+
+                        elif LOCAL_AS_NUMBER == IMN_LOCAL_AS:
+                            collector2_cmds['cisco_xr'].append('show bgp vpnv4 unicast neighbor %s advertised-count' % (bgp_peer))
 
                 rcmd2_outputs = RCMD.run_commands(collector2_cmds, \
                     autoconfirm_mode = True, \
                     printall = printall)
 
                 if RCMD.router_type == 'cisco_xr':
-                    for bgp_peer, output_command in zip(device_data['IPV4_bgp_peers'].keys(),rcmd2_outputs):
+                    for bgp_peer, output_command in zip(selected_bgp_peers, rcmd2_outputs):
                         try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(output_command.split('No of prefixes Advertised:')[1].split()[0])
                         except: pass
 
@@ -3303,18 +3309,24 @@ authentication {
                                 ]
                 }
 
+                selected_bgp_peers = []
+
                 if RCMD.router_type == 'cisco_xr':
                     for bgp_peer in device_data['IPV6_bgp_peers'].keys():
-                        if LOCAL_AS_NUMBER == OTI_LOCAL_AS:
-                            collector3_cmds['cisco_xr'].append('show bgp neighbor %s advertised-count' % (bgp_peer))
-                        elif LOCAL_AS_NUMBER == IMN_LOCAL_AS:
-                            collector3_cmds['cisco_xr'].append('show bgp vpnv6 unicast neighbors %s advertised-count' % (bgp_peer))
+                        if not device_data['IPV6_bgp_peers'][bgp_peer].get('VRF_NAME'):
+
+                            selected_bgp_peers.append(copy.deepcopy(bgp_peer))
+
+                            if LOCAL_AS_NUMBER == OTI_LOCAL_AS:
+                                collector3_cmds['cisco_xr'].append('show bgp neighbor %s advertised-count' % (bgp_peer))
+                            elif LOCAL_AS_NUMBER == IMN_LOCAL_AS:
+                                collector3_cmds['cisco_xr'].append('show bgp vpnv6 unicast neighbor %s advertised-count' % (bgp_peer))
 
                     rcmd3_outputs = RCMD.run_commands(collector3_cmds, \
                         autoconfirm_mode = True, \
                         printall = printall)
 
-                    for bgp_peer, output_command in zip(device_data['IPV6_bgp_peers'].keys(),rcmd3_outputs):
+                    for bgp_peer, output_command in zip(selected_bgp_peers, rcmd3_outputs):
                         try: device_data['IPV6_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(output_command.split('No of prefixes Advertised:')[1].split()[0])
                         except: pass
 
@@ -3338,12 +3350,11 @@ authentication {
                     selected_bgp_peers = []
 
                     for bgp_peer in device_data['IPV4_bgp_peers'].keys():
-                        if LOCAL_AS_NUMBER == IMN_LOCAL_AS and \
-                            device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()):
+                        if device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()):
 
                             selected_bgp_peers.append(copy.deepcopy(bgp_peer))
 
-                            collector5_cmds['cisco_xr'].append('show bgp vrf %s neighbors %s advertised-count' % \
+                            collector5_cmds['cisco_xr'].append('show bgp vrf %s neighbor %s advertised-count' % \
                                 (device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()), bgp_peer))
 
                     rcmd5_outputs = RCMD.run_commands(collector5_cmds, \
