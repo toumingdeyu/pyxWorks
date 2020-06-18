@@ -2858,13 +2858,13 @@ authentication {
                             if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
                                 device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
 
-                            try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(bgp_peer.split('accepted prefixes')[0].split()[-1])
+                            try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(bgp_section.split('accepted prefixes')[0].split()[-1])
                             except: pass
 
-                            try: device_data['IPV4_bgp_peers'][bgp_peer]['Denied_prefixes'] = int(bgp_peer.split('prefixes denied :')[1].split()[0].replace('.',''))
+                            try: device_data['IPV4_bgp_peers'][bgp_peer]['Denied_prefixes'] = int(bgp_section.split('prefixes denied :')[1].split()[0].replace('.',''))
                             except: pass
 
-                            try: device_data['IPV4_bgp_peers'][bgp_peer]['Maximum_prefixes'] = int(bgp_peer.split('Maximum prefixes allowed')[1].split()[0].replace('.',''))
+                            try: device_data['IPV4_bgp_peers'][bgp_peer]['Maximum_prefixes'] = int(bgp_section.split('Maximum prefixes allowed')[1].split()[0].replace('.',''))
                             except: pass
 
                             try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['State'] = str(bgp_section.split('BGP state =')[1].split()[0].replace(',',''))
@@ -2877,13 +2877,13 @@ authentication {
                             if not bgp_peer in device_data['IPV6_bgp_peers'].keys():
                                 device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
 
-                            try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(bgp_peer.split('accepted prefixes')[0].split()[-1])
+                            try: device_data['IPV6_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(bgp_section.split('accepted prefixes')[0].split()[-1])
                             except: pass
 
-                            try: device_data['IPV4_bgp_peers'][bgp_peer]['Denied_prefixes'] = int(bgp_peer.split('prefixes denied :')[1].split()[0].replace('.',''))
+                            try: device_data['IPV6_bgp_peers'][bgp_peer]['Denied_prefixes'] = int(bgp_section.split('prefixes denied :')[1].split()[0].replace('.',''))
                             except: pass
 
-                            try: device_data['IPV6_bgp_peers'][bgp_peer]['Maximum_prefixes'] = int(bgp_peer.split('Maximum prefixes allowed')[1].split()[0].replace('.',''))
+                            try: device_data['IPV6_bgp_peers'][bgp_peer]['Maximum_prefixes'] = int(bgp_section.split('Maximum prefixes allowed')[1].split()[0].replace('.',''))
                             except: pass
 
                             try: device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['State'] = str(bgp_section.split('BGP state =')[1].split()[0].replace(',',''))
@@ -2910,16 +2910,15 @@ authentication {
 
                             find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
                             if len(find_ip) == 1 and vfr_name:
-                                bgp_peer = find_ip[0].strip()
                                 device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['VRF_NAME'] = copy.deepcopy(vfr_name)
 
-                                try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(bgp_peer.split('accepted prefixes')[0].split()[-1])
+                                try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(bgp_section.split('accepted prefixes')[0].split()[-1])
                                 except: pass
 
-                                try: device_data['IPV4_bgp_peers'][bgp_peer]['Denied_prefixes'] = int(bgp_peer.split('prefixes denied :')[1].split()[0].replace('.',''))
+                                try: device_data['IPV4_bgp_peers'][bgp_peer]['Denied_prefixes'] = int(bgp_section.split('prefixes denied :')[1].split()[0].replace('.',''))
                                 except: pass
 
-                                try: device_data['IPV4_bgp_peers'][bgp_peer]['Maximum_prefixes'] = int(bgp_peer.split('Maximum prefixes allowed')[1].split()[0].replace('.',''))
+                                try: device_data['IPV4_bgp_peers'][bgp_peer]['Maximum_prefixes'] = int(bgp_section.split('Maximum prefixes allowed')[1].split()[0].replace('.',''))
                                 except: pass
 
                                 try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['State'] = str(bgp_section.split('BGP state =')[1].split()[0].replace(',',''))
@@ -2931,13 +2930,13 @@ authentication {
                             elif ':' in bgp_peer and doubledots_in_bgp_peer >= 3:
                                 device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['VRF_NAME'] = copy.deepcopy(vfr_name)
 
-                                try: device_data['IPV6_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(bgp_peer.split('accepted prefixes')[0].split()[-1])
+                                try: device_data['IPV6_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(bgp_section.split('accepted prefixes')[0].split()[-1])
                                 except: pass
 
-                                try: device_data['IPV6_bgp_peers'][bgp_peer]['Denied_prefixes'] = int(bgp_peer.split('prefixes denied :')[1].split()[0].replace('.',''))
+                                try: device_data['IPV6_bgp_peers'][bgp_peer]['Denied_prefixes'] = int(bgp_section.split('prefixes denied :')[1].split()[0].replace('.',''))
                                 except: pass
 
-                                try: device_data['IPV6_bgp_peers'][bgp_peer]['Maximum_prefixes'] = int(bgp_peer.split('Maximum prefixes allowed')[1].split()[0].replace('.',''))
+                                try: device_data['IPV6_bgp_peers'][bgp_peer]['Maximum_prefixes'] = int(bgp_section.split('Maximum prefixes allowed')[1].split()[0].replace('.',''))
                                 except: pass
 
                                 try: device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['State'] = str(bgp_section.split('BGP state =')[1].split()[0].replace(',',''))
