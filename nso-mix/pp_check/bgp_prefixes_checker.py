@@ -2175,7 +2175,7 @@ def find_last_precheck_logfile(prefix = None, USERNAME = None, suffix = None, di
 ###############################################################################
 
 
-parse_cisco_xr_cmd_output1(cmd_output = None):
+def parse_cisco_xr_cmd_output1(cmd_output = None):
     global device_data
 
     if cmd_output:
@@ -3317,47 +3317,6 @@ authentication {
                     for bgp_peer, output_command in zip(device_data['IPV6_bgp_peers'].keys(),rcmd3_outputs):
                         try: device_data['IPV6_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(output_command.split('No of prefixes Advertised:')[1].split()[0])
                         except: pass
-
-                # ### def CMD4 - XR VRF PREFIXES ################################
-                # collector4_cmds = {
-                    # 'cisco_ios':[
-                                # ],
-
-                    # 'cisco_xr': [
-                                # ],
-
-                    # 'juniper':  [
-                                # ],
-
-                    # 'huawei':   [
-                                # ]
-                # }
-
-                # selected_bgp_peers = []
-
-                # ### COMMAND: 'show bgp vrf all neighbors detail | include "VRF:|BGP neighbor|BGP state|prefixes"' ###
-
-                # for bgp_peer in device_data['IPV4_bgp_peers'].keys():
-                    # if LOCAL_AS_NUMBER == IMN_LOCAL_AS and \
-                        # device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()):
-
-                        # selected_bgp_peers.append(copy.deepcopy(bgp_peer))
-
-                        # collector4_cmds['cisco_xr'].append('show bgp vrf %s neighbors %s | include prefixes' % \
-                            # (device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()), bgp_peer))
-
-                # rcmd4_outputs = RCMD.run_commands(collector4_cmds, \
-                    # autoconfirm_mode = True, \
-                    # printall = printall)
-
-                # if RCMD.router_type == 'cisco_xr':
-                    # for bgp_peer, output_command in zip(selected_bgp_peers,rcmd4_outputs):
-                        # ### 'Prefix advertised' IS NOT VALID INFORMATION ###########
-                        # try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(output_command.split('accepted prefixes')[0].split()[-1])
-                        # except: pass
-
-                        # try: device_data['IPV4_bgp_peers'][bgp_peer]['Denied_prefixes'] = int(output_command.split('prefixes denied :')[1].split()[0].replace('.',''))
-                        # except: pass
 
 
                 ### def CMD5 - XR VRF ADVERTIZED COUNT ###########################
