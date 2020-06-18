@@ -2192,7 +2192,7 @@ def parse_cisco_xr_cmd_output0(cmd_output = None):
             try: received_prefixes = int(line.split()[-1])
             except: received_prefixes = None
 
-            try: doubledots_in_bgp_peer = len(line.split()[0].split(':'))
+            try: doubledots_in_bgp_peer = len(bgp_peer.split(':'))
             except: doubledots_in_bgp_peer = 0
 
             try: AS = int(line.split()[2])
@@ -2255,7 +2255,7 @@ def parse_cisco_xr_cmd_output0(cmd_output = None):
                 try: bgp_peer = line.split()[0]
                 except: bgp_peer = str()
 
-                try: doubledots_in_bgp_peer = len(line.split()[0].split(':'))
+                try: doubledots_in_bgp_peer = len(bgp_peer.split(':'))
                 except: doubledots_in_bgp_peer = 0
 
                 try: received_prefixes = int(line.split()[-1])
@@ -2348,7 +2348,9 @@ def parse_cisco_xr_cmd_output1(cmd_output = None):
                 try: device_data['IPV4_bgp_peers'][bgp_peer]['Maximum_prefixes'] = int(bgp_section.split('Maximum prefixes allowed')[1].split()[0].replace('.',''))
                 except: pass
 
-                try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['State'] = str(bgp_section.split('BGP state =')[1].split()[0].replace(',',''))
+                try:
+                    if not device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)].get('State'):
+                        device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['State'] = str(bgp_section.split('BGP state =')[1].split()[0].replace(',',''))
                 except: pass
 
                 try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['AS'] = int(bgp_section.split('Remote AS ')[1].split()[0].replace(',',''))
@@ -2367,7 +2369,9 @@ def parse_cisco_xr_cmd_output1(cmd_output = None):
                 try: device_data['IPV6_bgp_peers'][bgp_peer]['Maximum_prefixes'] = int(bgp_section.split('Maximum prefixes allowed')[1].split()[0].replace('.',''))
                 except: pass
 
-                try: device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['State'] = str(bgp_section.split('BGP state =')[1].split()[0].replace(',',''))
+                try:
+                    if not device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)].get('State'):
+                        device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['State'] = str(bgp_section.split('BGP state =')[1].split()[0].replace(',',''))
                 except: pass
 
                 try: device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['AS'] = int(bgp_section.split('Remote AS ')[1].split()[0].replace(',',''))
@@ -2403,7 +2407,9 @@ def parse_cisco_xr_cmd_output1(cmd_output = None):
                     try: device_data['IPV4_bgp_peers'][bgp_peer]['Maximum_prefixes'] = int(bgp_section.split('Maximum prefixes allowed')[1].split()[0].replace('.',''))
                     except: pass
 
-                    try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['State'] = str(bgp_section.split('BGP state =')[1].split()[0].replace(',',''))
+                    try:
+                        if not device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)].get('State'):
+                            device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['State'] = str(bgp_section.split('BGP state =')[1].split()[0].replace(',',''))
                     except: pass
 
                     try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['AS'] = int(bgp_section.split('Remote AS ')[1].split()[0].replace(',',''))
@@ -2421,7 +2427,9 @@ def parse_cisco_xr_cmd_output1(cmd_output = None):
                     try: device_data['IPV6_bgp_peers'][bgp_peer]['Maximum_prefixes'] = int(bgp_section.split('Maximum prefixes allowed')[1].split()[0].replace('.',''))
                     except: pass
 
-                    try: device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['State'] = str(bgp_section.split('BGP state =')[1].split()[0].replace(',',''))
+                    try:
+                        if not device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)].get('State'):
+                            device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['State'] = str(bgp_section.split('BGP state =')[1].split()[0].replace(',',''))
                     except: pass
 
                     try: device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['AS'] = int(bgp_section.split('Remote AS ')[1].split()[0].replace(',',''))
@@ -2816,7 +2824,7 @@ authentication {
 
                 ### def CMD1 - ALL FIND BGP NEIGHBORS ####################################
                 if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
-                
+
                     # ### COMMAND: 'show bgp summary' ###
                     # try: output_list = rcmd_outputs[0].split('Neighbor')[1].splitlines()[1:]
                     # except: output_list = []
@@ -2995,13 +3003,13 @@ authentication {
                     parse_cisco_xr_cmd_output0(cmd_output = rcmd_outputs[0])
 
                     ### COMMAND: 'show bgp vpnv4 unicast summary' ###
-                    parse_cisco_xr_cmd_output0(cmd_output = rcmd_outputs[1])             
-                                
-                    ### COMMAND: 'show bgp ipv6 unicast summary' ###            
-                    parse_cisco_xr_cmd_output0(cmd_output = rcmd_outputs[2]) 
-                    
-                    ### COMMAND: 'show bgp vrf all sum | exc "BGP|ID|stop|Process|Speaker"' ###            
-                    parse_cisco_xr_cmd_output0(cmd_output = rcmd_outputs[3])             
+                    parse_cisco_xr_cmd_output0(cmd_output = rcmd_outputs[1])
+
+                    ### COMMAND: 'show bgp ipv6 unicast summary' ###
+                    parse_cisco_xr_cmd_output0(cmd_output = rcmd_outputs[2])
+
+                    ### COMMAND: 'show bgp vrf all sum | exc "BGP|ID|stop|Process|Speaker"' ###
+                    parse_cisco_xr_cmd_output0(cmd_output = rcmd_outputs[3])
 
                     ### COMMAND: 'show bgp neighbor | include "BGP neighbor is|BGP state|prefixes|AS"' ###
                     parse_cisco_xr_cmd_output1(cmd_output = rcmd_outputs[4])
