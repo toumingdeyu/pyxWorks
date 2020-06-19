@@ -2572,6 +2572,12 @@ def check_bgp_peers_precheck(bgp_peers_string = None, percentage_tolerance = 3):
                 CGI_CLI.uprint('BGP Peer %s has Denied_prefixes > 0 !' % (bgp_peer), color = 'orange', printall = True)
                 error_flag = True
 
+            if float(device_data[bgp_peers_string][bgp_peer].get('Maximum_prefixes')) \
+                and float(0,9 * device_data[bgp_peers_string][bgp_peer].get('Accepted_prefixes',0)) > float(device_data[bgp_peers_string][bgp_peer].get('Maximum_prefixes',0)):
+                CGI_CLI.uprint('BGP Peer %s has ratio of Accepted/Advertized prefixes > 90 %% !' % \
+                    (bgp_peer, str(percentage_tolerance),str(precheck_advertized),str(postcheck_advertized)), color = 'red', printall = True)
+                error_flag = True
+
             if device_data[bgp_peers_string][bgp_peer].get('State',''):
                 CGI_CLI.uprint('BGP Peer %s PRECHECK STATE is %s' % \
                     (bgp_peer, device_data[bgp_peers_string][bgp_peer].get('State','')), printall = True)
@@ -2618,9 +2624,16 @@ def check_bgp_peers_postcheck(bgp_peers_string = None, percentage_tolerance = 3)
                 if float(precheck_advertized) < float(postcheck_advertized) * (100 + percentage_tolerance)/100 \
                     and float(precheck_advertized) > float(postcheck_advertized) * (100 - percentage_tolerance)/100: pass
                 elif precheck_advertized != 0 or postcheck_advertized != 0:
-                    CGI_CLI.uprint('BGP Peer %s has Precheck/Postcheck Advertized_prefixes difference > %s %% (PRECHECK: %s, POSTCHECK: %s)!' % \
+                    CGI_CLI.uprint('BGP Peer %s has ratio of Precheck/Postcheck Advertized_prefixes difference > %s %% (PRECHECK: %s, POSTCHECK: %s)!' % \
                         (bgp_peer, str(percentage_tolerance),str(precheck_advertized),str(postcheck_advertized)), color = 'red', printall = True)
                     error_flag = True
+
+                if float(device_data[bgp_peers_string][bgp_peer].get('Maximum_prefixes')) \
+                    and float(0,9 * device_data[bgp_peers_string][bgp_peer].get('Accepted_prefixes',0)) > float(device_data[bgp_peers_string][bgp_peer].get('Maximum_prefixes',0)):
+                    CGI_CLI.uprint('BGP Peer %s has ratio of Accepted/Advertized prefixes > 90 %% !' % \
+                        (bgp_peer, str(percentage_tolerance),str(precheck_advertized),str(postcheck_advertized)), color = 'red', printall = True)
+                    error_flag = True
+
             if not error_flag:
                 CGI_CLI.uprint('BGP Peer %s check - OK.' % (bgp_peer), printall = True)
 
