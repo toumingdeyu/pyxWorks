@@ -2573,7 +2573,7 @@ def check_bgp_peers_precheck(bgp_peers_string = None, percentage_tolerance = 3):
                 error_flag = True
 
             if device_data[bgp_peers_string][bgp_peer].get('Maximum_prefixes') \
-                and float(0,9 * device_data[bgp_peers_string][bgp_peer].get('Accepted_prefixes',0)) > float(device_data[bgp_peers_string][bgp_peer].get('Maximum_prefixes',0)):
+                and float(0.9 * device_data[bgp_peers_string][bgp_peer].get('Accepted_prefixes',0)) > float(device_data[bgp_peers_string][bgp_peer].get('Maximum_prefixes',0)):
                 CGI_CLI.uprint('BGP Peer %s has ratio of Accepted/Advertized prefixes > 90 %% !' % \
                     (bgp_peer, str(percentage_tolerance),str(precheck_advertized),str(postcheck_advertized)), color = 'red', printall = True)
                 error_flag = True
@@ -2629,7 +2629,7 @@ def check_bgp_peers_postcheck(bgp_peers_string = None, percentage_tolerance = 3)
                     error_flag = True
 
                 if device_data[bgp_peers_string][bgp_peer].get('Maximum_prefixes') \
-                    and float(0,9 * device_data[bgp_peers_string][bgp_peer].get('Accepted_prefixes',0)) > float(device_data[bgp_peers_string][bgp_peer].get('Maximum_prefixes',0)):
+                    and float(0.9 * device_data[bgp_peers_string][bgp_peer].get('Accepted_prefixes',0)) > float(device_data[bgp_peers_string][bgp_peer].get('Maximum_prefixes',0)):
                     CGI_CLI.uprint('BGP Peer %s has ratio of Accepted/Advertized prefixes > 90 %% !' % \
                         (bgp_peer, str(percentage_tolerance),str(precheck_advertized),str(postcheck_advertized)), color = 'red', printall = True)
                     error_flag = True
