@@ -2971,6 +2971,36 @@ authentication {
                     parse_cisco_xr_cmd_output1(cmd_output = rcmd_outputs[7])
 
                 elif RCMD.router_type == 'juniper':
+                    ### COMMAND: 'show bgp neighbor | match "Group:|Peer:" | except "NLRI|Restart"' ###
+                    try: output_list = rcmd_outputs[2].split('Peer: ')[1:]
+                    except: output_list = []
+                    for section in output_list:
+                        try: bgp_peer = section.split()[0].split('+')[0]
+                        except: bgp_peer = str()
+
+                        try: doubledots_in_bgp_peer = len(bgp_peer.split(':'))
+                        except: doubledots_in_bgp_peer = 0
+
+                        try: AS = int(section.split('AS')[1].split()[0])
+                        except: AS = None
+
+                        if '.' in bgp_peer:
+                            if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                                device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                            if AS: device_data['IPV4_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
+
+                            try: device_data['IPV4_bgp_peers'][bgp_peer]['Group'] = str(section.split('Group:')[1].split()[0])
+                            except: pass
+
+                        elif ':' in bgp_peer and doubledots_in_bgp_peer >= 3:
+                            if not bgp_peer in device_data['IPV6_bgp_peers'].keys():
+                                device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                            if AS: device_data['IPV6_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
+
+                            try: device_data['IPV6_bgp_peers'][bgp_peer]['Group'] = str(section.split('Group:')[1].split()[0])
+                            except: pass
 
                     ### COMMAND: 'show bgp summary' ###############################
                     for line in rcmd_outputs[1].splitlines()[1:]:
@@ -3032,7 +3062,7 @@ authentication {
                             try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertized_prefixes'] = int(section.split('Advertised prefixes:')[1].split()[0])
                             except: pass
 
-                            try: device_data['IPV4_bgp_peers'][bgp_peer]['Group'] = int(section.split('Group:')[1].split()[0])
+                            try: device_data['IPV4_bgp_peers'][bgp_peer]['Group'] = str(section.split('Group:')[1].split()[0])
                             except: pass
 
                         elif ':' in bgp_peer and doubledots_in_bgp_peer >= 3:
@@ -3050,7 +3080,7 @@ authentication {
                             try: device_data['IPV6_bgp_peers'][bgp_peer]['Advertized_prefixes'] = int(section.split('Advertised prefixes:')[1].split()[0])
                             except: pass
 
-                            try: device_data['IPV4_bgp_peers'][bgp_peer]['Group'] = int(section.split('Group:')[1].split()[0])
+                            try: device_data['IPV6_bgp_peers'][bgp_peer]['Group'] = str(section.split('Group:')[1].split()[0])
                             except: pass
 
                     ### COMMAND: 'show configuration protocols bgp | display set | match "unicast prefix-limit"' ###
