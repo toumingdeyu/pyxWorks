@@ -2934,9 +2934,9 @@ authentication {
                                 ],
 
                     'huawei':   ['display bgp peer',
-                                 'display bgp peer verbose | i (BGP Peer is|routes|BGP current state)',
-                                 'display bgp vpnv4 all peer verbose | include (IPv4-family for VPN instance|BGP Peer|BGP current state:|routes)',
-                                 'display bgp vpnv6 all peer verbose | include (IPv6-family for VPN instance|BGP Peer|BGP current state:|routes)',
+                                 'display bgp peer verbose | i (BGP Peer is|route|BGP current state)',
+                                 'display bgp vpnv4 all peer verbose | include (IPv4-family for VPN instance|BGP Peer|BGP current state:|route)',
+                                 'display bgp vpnv6 all peer verbose | include (IPv6-family for VPN instance|BGP Peer|BGP current state:|route)',
 
                                 ]
                 }
@@ -3172,10 +3172,10 @@ authentication {
                     ### COMMAND: 'display bgp peer verbose | i (BGP Peer is|routes|BGP current state:)' #
                     parse_huawei_cmd_output1(cmd_output = rcmd_outputs[1])
 
-                    ### COMMAND: 'display bgp vpnv4 all peer verbose | include (IPv4-family for VPN instance|BGP Peer|BGP current state:|routes)' ###
+                    ### COMMAND: 'display bgp vpnv4 all peer verbose | include (IPv4-family for VPN instance|BGP Peer|BGP current state:|route)' ###
                     parse_huawei_cmd_output1(cmd_output = rcmd_outputs[2])
 
-                    ### COMMAND: 'display bgp vpnv6 all peer verbose | include (IPv6-family for VPN instance|BGP Peer|BGP current state:|routes)' ###
+                    ### COMMAND: 'display bgp vpnv6 all peer verbose | include (IPv6-family for VPN instance|BGP Peer|BGP current state:|route)' ###
                     parse_huawei_cmd_output1(cmd_output = rcmd_outputs[3])
 
 
