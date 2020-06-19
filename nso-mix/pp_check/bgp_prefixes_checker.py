@@ -2904,7 +2904,8 @@ authentication {
 
                     'juniper':  ['show bgp neighbor | match "Group:|Peer:" | except "NLRI|Restart"',
                                  'show bgp summary',
-                                 'show bgp neighbor | match "^Peer:|prefixes:|damping:"',
+                                 'show bgp neighbor | match "^Peer:|prefixes:|damping:|Group"',
+                                 'show configuration protocols bgp | display set | match "unicast prefix-limit"',
                                 ],
 
                     'huawei':   ['display bgp peer',
@@ -3031,6 +3032,9 @@ authentication {
                             try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertized_prefixes'] = int(section.split('Advertised prefixes:')[1].split()[0])
                             except: pass
 
+                            try: device_data['IPV4_bgp_peers'][bgp_peer]['Group'] = int(section.split('Group:')[1].split()[0])
+                            except: pass
+
                         elif ':' in bgp_peer and doubledots_in_bgp_peer >= 3:
                             if not bgp_peer in device_data['IPV6_bgp_peers'].keys():
                                 device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
@@ -3045,6 +3049,23 @@ authentication {
 
                             try: device_data['IPV6_bgp_peers'][bgp_peer]['Advertized_prefixes'] = int(section.split('Advertised prefixes:')[1].split()[0])
                             except: pass
+
+                            try: device_data['IPV4_bgp_peers'][bgp_peer]['Group'] = int(section.split('Group:')[1].split()[0])
+                            except: pass
+
+                    ### COMMAND: 'show configuration protocols bgp | display set | match "unicast prefix-limit"' ###
+                    for bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                        if device_data['IPV4_bgp_peers'][bgp_peer].get('Group'):
+                            try: device_data['IPV4_bgp_peers'][bgp_peer]['Maximum_prefixes'] = int(rcmd_outputs[3].split('set protocols bgp group %s family inet6 unicast prefix-limit maximum' % \
+                                     (device_data['IPV4_bgp_peers'][bgp_peer].get('Group')))[1].split()[0])
+                            except: pass
+
+                    for bgp_peer in device_data['IPV6_bgp_peers'].keys():
+                        if device_data['IPV6_bgp_peers'][bgp_peer].get('Group'):
+                            try: device_data['IPV6_bgp_peers'][bgp_peer]['Maximum_prefixes'] = int(rcmd_outputs[3].split('set protocols bgp group %s family inet6 unicast prefix-limit maximum' % \
+                                     (device_data['IPV6_bgp_peers'][bgp_peer].get('Group')))[1].split()[0])
+                            except: pass
+
 
                 elif RCMD.router_type == 'huawei':
                     ### COMMAND: 'display bgp peer' ###
