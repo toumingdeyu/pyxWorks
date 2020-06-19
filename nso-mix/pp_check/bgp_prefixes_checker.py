@@ -2470,6 +2470,9 @@ def parse_huawei_cmd_output1(cmd_output = None):
                 try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['Accepted_prefixes'] = int(bgp_section.split('Received active routes total:')[1].split()[0])
                 except: pass
 
+                try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['Maximum_prefixes'] = int(bgp_section.split('Maximum allowed route limit:')[1].split()[0])
+                except: pass
+
                 try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['State'] = str(bgp_section.split('BGP current state:')[1].split()[0].replace(',',''))
                 except: pass
 
@@ -2487,6 +2490,9 @@ def parse_huawei_cmd_output1(cmd_output = None):
                 except: pass
 
                 try: device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['Accepted_prefixes'] = int(bgp_section.split('Received active routes total:')[1].split()[0])
+                except: pass
+
+                try: device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['Maximum_prefixes'] = int(bgp_section.split('Maximum allowed route limit:')[1].split()[0])
                 except: pass
 
                 try: device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['State'] = str(bgp_section.split('BGP current state:')[1].split()[0].replace(',',''))
@@ -2528,6 +2534,9 @@ def parse_huawei_cmd_output1(cmd_output = None):
                     try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['Accepted_prefixes'] = int(bgp_section.split('Received active routes total:')[1].split()[0])
                     except: pass
 
+                    try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['Maximum_prefixes'] = int(bgp_section.split('Maximum allowed route limit:')[1].split()[0])
+                    except: pass
+
                     try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['State'] = str(bgp_section.split('BGP current state:')[1].split()[0].replace(',',''))
                     except: pass
 
@@ -2547,6 +2556,9 @@ def parse_huawei_cmd_output1(cmd_output = None):
                     except: pass
 
                     try: device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['Accepted_prefixes'] = int(bgp_section.split('Received active routes total:')[1].split()[0])
+                    except: pass
+
+                    try: device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['Maximum_prefixes'] = int(bgp_section.split('Maximum allowed route limit:')[1].split()[0])
                     except: pass
 
                     try: device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['State'] = str(bgp_section.split('BGP current state:')[1].split()[0].replace(',',''))
