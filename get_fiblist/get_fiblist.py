@@ -131,7 +131,7 @@ class CGI_CLI(object):
 
     @staticmethod
     def init_cgi(chunked = None, css_style = None, newline = None, \
-        timestamp = None, disable_page_reload_link = None):
+        timestamp = None, disable_page_reload_link = None, no_title = None):
         """
         """
         try: CGI_CLI.sys_stdout_encoding = sys.stdout.encoding
@@ -205,11 +205,13 @@ class CGI_CLI(object):
                 CGI_CLI.content_type_line,
                 CGI_CLI.status_line))
             sys.stdout.flush()
+            if no_title: title_string = str()
+            else: title_string = '<title>' + str(__file__).split('/')[-1] + '  PID' + str(os.getpid()) + '/<title>' if '/' in str(__file__) else str()
             ### CHROME NEEDS 2NEWLINES TO BE ALREADY CHUNKED !!! ##############
-            CGI_CLI.print_chunk("%s%s<!DOCTYPE html><html><head><title>%s</title>%s</head><body>" %
+            CGI_CLI.print_chunk("%s%s<!DOCTYPE html><html><head>%s%s</head><body>" %
                 (CGI_CLI.newline, CGI_CLI.newline,
                 #CGI_CLI.submit_form if CGI_CLI.submit_form else 'No submit', \
-                str(__file__).split('/')[-1] + '  PID' + str(os.getpid()) if '/' in str(__file__) else str(), \
+                title_string, \
                 '<style>%s</style>' % (CGI_CLI.CSS_STYLE) if CGI_CLI.CSS_STYLE else str()),\
                 ommit_logging = True, printall = True)
         import atexit; atexit.register(CGI_CLI.__cleanup__)
@@ -2072,7 +2074,7 @@ authentication {
 
     ##############################################################################
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = chunked_mode, css_style = None,
-        disable_page_reload_link = True)
+        disable_page_reload_link = True, no_title = True)
     #CGI_CLI.print_args()
 
     device = None
