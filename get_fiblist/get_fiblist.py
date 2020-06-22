@@ -2071,7 +2071,7 @@ authentication {
 """
 
     ##############################################################################
-    USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = chunked_mode, css_style = CSS_STYLE,
+    USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = chunked_mode, css_style = None,
         disable_page_reload_link = True)
     #CGI_CLI.print_args()
 
