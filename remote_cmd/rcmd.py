@@ -231,7 +231,7 @@ class CGI_CLI(object):
                 CGI_CLI.status_line))
             sys.stdout.flush()
             if no_title: title_string = str()
-            else: title_string = '<title>' + str(__file__).split('/')[-1] + '  PID' + str(os.getpid()) + '/<title>' if '/' in str(__file__) else str()
+            else: title_string = '<title>' + str(__file__).split('/')[-1] + '  PID' + str(os.getpid()) + '</title>' if '/' in str(__file__) else str()
             ### CHROME NEEDS 2NEWLINES TO BE ALREADY CHUNKED !!! ##############
             CGI_CLI.print_chunk("%s%s<!DOCTYPE html><html><head>%s%s</head><body>" %
                 (CGI_CLI.newline, CGI_CLI.newline,
@@ -2109,6 +2109,7 @@ authentication {
 }
 """
 
+    chunked_mode = True
     ##############################################################################
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = chunked_mode, css_style = None,
         disable_page_reload_link = True, no_title = True)
