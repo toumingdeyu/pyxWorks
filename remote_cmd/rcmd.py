@@ -978,18 +978,18 @@ class RCMD(object):
 
             ### PING 1 = IS ALIVE TEST , IF NOT FIND IP ADDRESS ###############
             if RCMD.is_alive(device):
-                if CGI_CLI.timestamp:
+                if CGI_CLI.timestamp and not RCMD.silent_mode:
                     CGI_CLI.uprint('RCMD.connect - ping DEVICE by name - OK.\n', \
                         no_printall = not CGI_CLI.printall, tag = 'debug')
                 device_id = RCMD.DEVICE_HOST
             else:
-                if CGI_CLI.timestamp:
+                if CGI_CLI.timestamp and not RCMD.silent_mode:
                     CGI_CLI.uprint('RCMD.connect - start.\n', \
                         no_printall = not CGI_CLI.printall, tag = 'debug')
 
                 RCMD.ip_address = RCMD.get_IP_from_vision(device)
 
-                if CGI_CLI.timestamp:
+                if CGI_CLI.timestamp and not RCMD.silent_mode:
                         CGI_CLI.uprint('RCMD.connect - after get_IP_from_vision.\n', \
                             no_printall = not CGI_CLI.printall, tag = 'debug')
 
@@ -1003,31 +1003,33 @@ class RCMD(object):
                             (device, RCMD.ip_address), color = 'magenta')
                         return command_outputs
 
-            if CGI_CLI.timestamp:
+            if CGI_CLI.timestamp and not RCMD.silent_mode:
                     CGI_CLI.uprint('RCMD.connect - after pingtest.\n', \
                         no_printall = not CGI_CLI.printall, tag = 'debug')
 
             ### SNMP DETECTION ################################################
             RCMD.router_os_by_snmp = RCMD.snmp_find_router_type(device_id)
 
-            if CGI_CLI.timestamp:
+            if CGI_CLI.timestamp and not RCMD.silent_mode:
                     CGI_CLI.uprint('RCMD.connect - after SNMP detection(%s).\n' % (str(RCMD.router_os_by_snmp)), \
                         no_printall = not CGI_CLI.printall, tag = 'debug')
 
             ### START SSH CONNECTION ##########################################
-            CGI_CLI.uprint('DEVICE %s (host=%s, port=%s) START'\
-                %(device, RCMD.DEVICE_HOST, RCMD.DEVICE_PORT)+24 * '.', color = 'gray', no_printall = not CGI_CLI.printall)
+            if not RCMD.silent_mode:
+                CGI_CLI.uprint('DEVICE %s (host=%s, port=%s) START'\
+                    %(device, RCMD.DEVICE_HOST, RCMD.DEVICE_PORT)+24 * '.', \
+                    color = 'gray', no_printall = not CGI_CLI.printall)
             try:
                 ### ONE_CONNECT DETECTION #####################################
                 RCMD.client = paramiko.SSHClient()
 
-                if CGI_CLI.timestamp:
+                if CGI_CLI.timestamp and not RCMD.silent_mode:
                     CGI_CLI.uprint('RCMD.connect - before RCMD.client.set_missing_host_key_policy.\n', \
                         no_printall = not CGI_CLI.printall, tag = 'debug')
 
                 RCMD.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-                if CGI_CLI.timestamp:
+                if CGI_CLI.timestamp and not RCMD.silent_mode:
                     CGI_CLI.uprint('RCMD.connect - before RCMD.client.connect.\n', \
                         no_printall = not CGI_CLI.printall, tag = 'debug')
 
@@ -1040,24 +1042,24 @@ class RCMD(object):
                     timeout = RCMD.CONNECTION_TIMEOUT, \
                     look_for_keys = False)
 
-                if CGI_CLI.timestamp:
+                if CGI_CLI.timestamp and not RCMD.silent_mode:
                     CGI_CLI.uprint('RCMD.connect - after RCMD.client.connect.\n', \
                         no_printall = not CGI_CLI.printall, tag = 'debug')
 
                 RCMD.ssh_connection = RCMD.client.invoke_shell()
 
-                if CGI_CLI.timestamp:
+                if CGI_CLI.timestamp and not RCMD.silent_mode:
                     CGI_CLI.uprint('RCMD.connect - after RCMD.client.invoke_shell.\n', \
                         no_printall = not CGI_CLI.printall, tag = 'debug')
 
                 if RCMD.ssh_connection:
                     RCMD.router_type, RCMD.router_prompt = RCMD.ssh_raw_detect_router_type(debug = None)
                     if not RCMD.router_type: CGI_CLI.uprint('DEVICE_TYPE NOT DETECTED!', color = 'red')
-                    elif RCMD.router_type in RCMD.KNOWN_OS_TYPES:
+                    elif RCMD.router_type in RCMD.KNOWN_OS_TYPES and not RCMD.silent_mode:
                         CGI_CLI.uprint('DETECTED DEVICE_TYPE: %s' % (RCMD.router_type), \
                             color = 'gray', no_printall = not CGI_CLI.printall)
             except Exception as e:
-                if not RCMD.silent_mode:
+                #if not RCMD.silent_mode:
                     CGI_CLI.uprint(str(device) + ' CONNECTION_PROBLEM[' + str(e) + ']', color = 'magenta')
             finally:
                 if disconnect: RCMD.disconnect()
@@ -1146,7 +1148,7 @@ class RCMD(object):
                 command_outputs = RCMD.run_commands(RCMD.CMD)
                 ### ===========================================================
             except Exception as e:
-                if not RCMD.silent_mode:
+                #if not RCMD.silent_mode:
                     CGI_CLI.uprint('CONNECTION_PROBLEM[' + str(e) + ']', color = 'magenta')
             finally:
                 if disconnect: RCMD.disconnect()
@@ -1211,7 +1213,7 @@ class RCMD(object):
                     if new_prompt: RCMD.DEVICE_PROMPTS.append(new_prompt)
 
             if not long_lasting_mode:
-                if printall or RCMD.printall:
+                if (printall or RCMD.printall) and not RCMD.silent_mode:
                         CGI_CLI.uprint(last_output, tag = 'pre', timestamp = 'no', ommit_logging = True)
                 elif not RCMD.silent_mode:
                         CGI_CLI.uprint(' . ', no_newlines = True, timestamp = 'no', ommit_logging = True)
@@ -1227,19 +1229,19 @@ class RCMD(object):
                 if CGI_CLI.cgi_active:
                     CGI_CLI.logtofile('\n</pre>\n', raw_log = True)
                     if not RCMD.silent_mode:
-                        if printall or RCMD.printall:
+                        if (printall or RCMD.printall) and not RCMD.silent_mode:
                             CGI_CLI.uprint('\n</pre>\n', timestamp = 'no', raw = True, ommit_logging = True)
-                        else:
+                        elif not RCMD.silent_mode:
                             CGI_CLI.uprint(' . ', no_newlines = True, timestamp = 'no', ommit_logging = True)
                 else:
                     if not RCMD.silent_mode:
-                        if printall or RCMD.printall:
+                        if (printall or RCMD.printall) and not RCMD.silent_mode:
                             CGI_CLI.uprint('\n', timestamp = 'no', ommit_logging = True)
-                        else:
+                        elif not RCMD.silent_mode:
                             CGI_CLI.uprint(' . ', no_newlines = True, timestamp = 'no', ommit_logging = True)
             if not ignore_syntax_error:
                 for line in last_output.splitlines():
-                    if line.strip() == '^':
+                    if line.strip() == '^' and not RCMD.silent_mode:
                         CGI_CLI.uprint("\nSYNTAX ERROR in CMD: '%s' !\n" % (str(cmd_line)), timestamp = 'no', color = 'orange')
         return str(last_output)
 
@@ -1278,7 +1280,7 @@ class RCMD(object):
                 else:
                     ### PROCESS COMMANDS - PER COMMAND LIST! ###############
                     last_output = RCMD.ssh_connection.send_config_set(cmd_list)
-                    if printall or RCMD.printall:
+                    if (printall or RCMD.printall) and not RCMD.silent_mode:
                         CGI_CLI.uprint('REMOTE_COMMAND' + sim_mark + ': ' + str(cmd_list), color = 'blue')
                         CGI_CLI.uprint(str(last_output), color = 'gray', timestamp = 'no')
                     CGI_CLI.logtofile('REMOTE_COMMANDS' + sim_mark + ': ' \
@@ -1384,13 +1386,13 @@ class RCMD(object):
                     elif commit_text: text_to_commit = commit_text
                     elif RCMD.commit_text: text_to_commit = RCMD.commit_text
                     if submit_result:
-                        if RCMD.config_problem:
+                        if RCMD.config_problem and not RCMD.silent_mode:
                             CGI_CLI.uprint('%s FAILED!' % (text_to_commit), tag = CGI_CLI.result_tag, tag_id = 'submit-result', color = 'red')
-                        else: CGI_CLI.uprint('%s SUCCESSFULL.' % (text_to_commit), tag = CGI_CLI.result_tag, tag_id = 'submit-result', color = 'green')
+                        elif not RCMD.silent_mode: CGI_CLI.uprint('%s SUCCESSFULL.' % (text_to_commit), tag = CGI_CLI.result_tag, tag_id = 'submit-result', color = 'green')
                     else:
-                        if RCMD.config_problem:
+                        if RCMD.config_problem and not RCMD.silent_mode:
                             CGI_CLI.uprint('%s FAILED!' % (text_to_commit), tag = CGI_CLI.result_tag, color = 'red')
-                        else: CGI_CLI.uprint('%s SUCCESSFULL.' % (text_to_commit), tag = CGI_CLI.result_tag, color = 'green')
+                        elif not RCMD.silent_mode: CGI_CLI.uprint('%s SUCCESSFULL.' % (text_to_commit), tag = CGI_CLI.result_tag, color = 'green')
         return command_outputs
 
     @staticmethod
@@ -1400,7 +1402,7 @@ class RCMD(object):
             if RCMD.ssh_connection:
                 if RCMD.use_module == 'netmiko': RCMD.ssh_connection.disconnect()
                 elif RCMD.use_module == 'paramiko': RCMD.client.close()
-                if RCMD.printall: CGI_CLI.uprint('DEVICE %s:%s DONE.' % \
+                if RCMD.printall and not RCMD.silent_mode: CGI_CLI.uprint('DEVICE %s:%s DONE.' % \
                     (RCMD.DEVICE_HOST, RCMD.DEVICE_PORT), color = 'gray')
                 RCMD.ssh_connection = None
         except: pass
@@ -1412,7 +1414,7 @@ class RCMD(object):
             if RCMD.ssh_connection:
                 if RCMD.use_module == 'netmiko': RCMD.ssh_connection.disconnect()
                 elif RCMD.use_module == 'paramiko': RCMD.client.close()
-                if RCMD.printall: CGI_CLI.uprint('DEVICE %s:%s DISCONNECTED.' % \
+                if RCMD.printall and not RCMD.silent_mode: CGI_CLI.uprint('DEVICE %s:%s DISCONNECTED.' % \
                     (RCMD.DEVICE_HOST, RCMD.DEVICE_PORT), color = 'gray')
                 RCMD.ssh_connection = None
                 time.sleep(RCMD.DISCONNECT_TIMEOUT)
@@ -1661,13 +1663,13 @@ class RCMD(object):
         # prevent --More-- in log banner (space=page, enter=1line,tab=esc)
         # \n\n get prompt as last line
 
-        if CGI_CLI.timestamp:
+        if CGI_CLI.timestamp and not RCMD.silent_mode:
             CGI_CLI.uprint('RCMD.connect - before ssh_raw_detect_prompt.\n', \
                 no_printall = not CGI_CLI.printall, tag = 'debug')
 
         prompt = ssh_raw_detect_prompt(RCMD.ssh_connection, debug=debug)
 
-        if CGI_CLI.timestamp:
+        if CGI_CLI.timestamp and not RCMD.silent_mode:
             CGI_CLI.uprint('RCMD.connect - after ssh_raw_detect_prompt(%s).\n' % (str(prompt)), \
                 no_printall = not CGI_CLI.printall, tag = 'debug')
 
@@ -2103,8 +2105,7 @@ authentication {
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = chunked_mode, css_style = None,
         disable_page_reload_link = True, no_title = True)
 
-    CGI_CLI.uprint(CGI_CLI.print_args(), printall = True)
-
+    CGI_CLI.uprint(CGI_CLI.print_args(), color = 'blue', printall = True)
     CGI_CLI.uprint('CGI_CLI.printall = %s' % (CGI_CLI.printall), printall = True)
 
     device = None
@@ -2131,7 +2132,11 @@ authentication {
         sys.exit(0)
 
     if device:
-        rcmd_outputs = RCMD.connect(device, username = USERNAME, password = PASSWORD, silent_mode = True)
+        rcmd_outputs = RCMD.connect(device, username = USERNAME, password = PASSWORD)
+        rcmd_outputs = RCMD.run_commands(cmd_data)
+        RCMD.disconnect()
+        time.sleep(2)
+        rcmd_outputs = RCMD.connect(device, username = USERNAME, password = PASSWORD,silent_mode = True)
         rcmd_outputs = RCMD.run_commands(cmd_data)
         RCMD.disconnect()
 
