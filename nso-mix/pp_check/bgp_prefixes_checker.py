@@ -257,7 +257,7 @@ class CGI_CLI(object):
                 CGI_CLI.status_line))
             sys.stdout.flush()
             if no_title: title_string = str()
-            else: title_string = '<title>' + str(__file__).split('/')[-1] + '  PID' + str(os.getpid()) + '/<title>' if '/' in str(__file__) else str()
+            else: title_string = '<title>' + str(__file__).split('/')[-1] + '  PID' + str(os.getpid()) + '</title>' if '/' in str(__file__) else str()
             ### CHROME NEEDS 2NEWLINES TO BE ALREADY CHUNKED !!! ##############
             CGI_CLI.print_chunk("%s%s<!DOCTYPE html><html><head>%s%s</head><body>" %
                 (CGI_CLI.newline, CGI_CLI.newline,
@@ -3331,6 +3331,51 @@ authentication {
                     for bgp_peer, output_command in zip(selected_bgp_peers,rcmd5_outputs):
                         try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(output_command.split('No of prefixes Advertised:')[1].split()[0])
                         except: pass
+
+
+
+
+
+                # if RCMD.router_type == 'cisco_xr':
+                    # collector2_cmds = {
+                        # 'cisco_ios':[
+                                    # ],
+
+                        # 'cisco_xr': [
+                                    # ],
+
+                        # 'juniper':  [
+                                    # ],
+
+                        # 'huawei':   [
+                                    # ]
+                    # }
+
+                    # selected_bgp_peers = []
+                    # command_string = "!\n"
+
+                    # for bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                        # if not device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME'):
+
+                            # selected_bgp_peers.append(copy.deepcopy(bgp_peer))
+
+                            # if LOCAL_AS_NUMBER == OTI_LOCAL_AS:
+                                # command_string += 'show bgp neighbor %s advertised-count\n!\n' % (bgp_peer)
+
+                            # elif LOCAL_AS_NUMBER == IMN_LOCAL_AS:
+                                 # command_string += 'show bgp vpnv4 unicast neighbor %s advertised-count\n!\n' % (bgp_peer)
+
+                    # collector2_cmds['cisco_xr'].append(command_string)
+
+                    # rcmd2_outputs = RCMD.run_commands(collector2_cmds, \
+                        # autoconfirm_mode = True, multiline_mode = True,\
+                        # printall = printall)
+
+
+                    #for bgp_peer, output_command in zip(selected_bgp_peers, rcmd2_outputs):
+                    #    try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(output_command.split('No of prefixes Advertised:')[1].split()[0])
+                    #    except: pass
+
 
                 ###################################################################
                 ### LOOP PER INTERFACE - END ######################################
