@@ -1174,7 +1174,8 @@ class RCMD(object):
     @staticmethod
     def run_command(cmd_line = None, printall = None, conf = None, \
         long_lasting_mode = None, autoconfirm_mode = None, \
-        sim_config = None, sim_all = None, ignore_prompt = None, ignore_syntax_error = None):
+        sim_config = None, sim_all = None, ignore_prompt = None, \
+        ignore_syntax_error = None, multiline_mode = None):
         """
         cmd_line - string, DETECTED DEVICE TYPE DEPENDENT
         sim_all  - simulate execution of all commands, not only config commands
@@ -1182,6 +1183,7 @@ class RCMD(object):
         sim_config - simulate config commands
         long_lasting_mode - max connection timeout, no cmd timeout, no prompt discovery
         autoconfirm_mode - in case of interactivity send 'Y\n' on huawei ,'\n' on cisco
+        multiline_mode - more commands in one block like: (cisco) cmd1CRLF!CRLFcmd2CRLF!
         """
         last_output, sim_mark = str(), str()
         if RCMD.ssh_connection and cmd_line:
@@ -1209,6 +1211,7 @@ class RCMD(object):
                         long_lasting_mode = long_lasting_mode, \
                         autoconfirm_mode = autoconfirm_mode, \
                         ignore_prompt = ignore_prompt, \
+                        multiline_mode = multiline_mode, \
                         printall = printall)
                     if new_prompt: RCMD.DEVICE_PROMPTS.append(new_prompt)
 
@@ -1249,7 +1252,7 @@ class RCMD(object):
     def run_commands(cmd_data = None, printall = None, conf = None, sim_config = None, \
         do_not_final_print = None , commit_text = None, submit_result = None , \
         long_lasting_mode = None, autoconfirm_mode = None, ignore_prompt = None, \
-        ignore_syntax_error = None):
+        ignore_syntax_error = None, multiline_mode = None):
         """
         FUNCTION: run_commands(), RETURN: list of command_outputs
         PARAMETERS:
@@ -1311,7 +1314,8 @@ class RCMD(object):
                         long_lasting_mode = long_lasting_mode, \
                         ignore_prompt = ignore_prompt, \
                         autoconfirm_mode = autoconfirm_mode, \
-                        ignore_syntax_error = ignore_syntax_error))
+                        ignore_syntax_error = ignore_syntax_error,
+                        multiline_mode = multiline_mode))
                 ### EXIT FROM CONFIG MODE FOR PARAMIKO #####################
                 if (conf or RCMD.conf) and RCMD.use_module == 'paramiko':
                     ### GO TO CONFIG TOP LEVEL SECTION ---------------------
@@ -1424,7 +1428,7 @@ class RCMD(object):
     def ssh_send_command_and_read_output(chan, prompts, \
         send_data = str(), long_lasting_mode = None, \
         autoconfirm_mode = None, ignore_prompt = None, \
-        printall = True):
+        multiline_mode = None, printall = True):
         '''
         autoconfirm_mode = True ==> CISCO - '\n', HUAWEI - 'Y\n'
         '''
@@ -1432,6 +1436,7 @@ class RCMD(object):
         exit_loop = False
         no_rx_data_counter_100msec, command_counter_100msec = 0, 0
         after_enter_counter_100msec, possible_prompts = 0, []
+        no_multiline_traffic_counter_100msec = 0
         last_line_original = str()
 
         ### FLUSH BUFFERS FROM PREVIOUS COMMANDS IF THEY ARE ALREADY BUFFERED ###
@@ -1451,7 +1456,9 @@ class RCMD(object):
                 command_counter_100msec    += 1
                 if after_enter_counter_100msec:
                     after_enter_counter_100msec += 1
+                if multiline_mode: no_multiline_traffic_counter_100msec += 1
             else:
+                if multiline_mode: no_multiline_traffic_counter_100msec = 0
                 ### RECEIVED DATA IMMEDIATE ACTIONS ###########################
                 no_rx_data_counter_100msec = 0
                 buff = chan.recv(9999)
@@ -1495,32 +1502,33 @@ class RCMD(object):
                     CGI_CLI.logtofile('%s' % (buff_read), ommit_timestamp = True)
 
                 ### PROMPT IN LAST LINE = PROPER END OF COMMAND ###############
-                for actual_prompt in prompts:
-                    if output.strip().endswith(actual_prompt) or \
-                        (last_line_edited and last_line_edited.endswith(actual_prompt)) or \
-                        (last_line_original and last_line_original.endswith(actual_prompt)):
-                            exit_loop = True
-                            break
-                if exit_loop: break
+                if not multiline_mode or multiline_mode and no_multiline_traffic_counter_100msec > 30:
+                    for actual_prompt in prompts:
+                        if output.strip().endswith(actual_prompt) or \
+                            (last_line_edited and last_line_edited.endswith(actual_prompt)) or \
+                            (last_line_original and last_line_original.endswith(actual_prompt)):
+                                exit_loop = True
+                                break
+                    if exit_loop: break
 
-                ### IS ACTUAL LAST LINE PROMPT ? IF YES, CONFIRM ##############
-                dialog_list = ['?', '[Y/N]:', '[confirm]', '? [no]:']
-                for dialog_line in dialog_list:
-                    if last_line_original.strip().endswith(dialog_line) or \
-                        last_line_edited.strip().endswith(dialog_line):
-                        if autoconfirm_mode:
-                            ### AUTO-CONFIRM MODE #############################
-                            if RCMD.router_type in ["ios-xr","ios-xe",'cisco_ios','cisco_xr']:
-                                chan.send('\n')
-                            elif RCMD.router_type in ["vrp",'huawei']:
-                                chan.send('Y\n')
-                            time.sleep(0.2)
-                            break
-                        else:
-                            ### INTERACTIVE QUESTION --> GO AWAY ##############
-                            exit_loop = True
-                            break
-                if exit_loop: break
+                    ### IS ACTUAL LAST LINE PROMPT ? IF YES, CONFIRM ##############
+                    dialog_list = ['?', '[Y/N]:', '[confirm]', '? [no]:']
+                    for dialog_line in dialog_list:
+                        if last_line_original.strip().endswith(dialog_line) or \
+                            last_line_edited.strip().endswith(dialog_line):
+                            if autoconfirm_mode:
+                                ### AUTO-CONFIRM MODE #############################
+                                if RCMD.router_type in ["ios-xr","ios-xe",'cisco_ios','cisco_xr']:
+                                    chan.send('\n')
+                                elif RCMD.router_type in ["vrp",'huawei']:
+                                    chan.send('Y\n')
+                                time.sleep(0.2)
+                                break
+                            else:
+                                ### INTERACTIVE QUESTION --> GO AWAY ##############
+                                exit_loop = True
+                                break
+                    if exit_loop: break
 
             ### RECEIVED OR NOT RECEIVED DATA COMMON ACTIONS ##################
             if not long_lasting_mode:
@@ -1553,7 +1561,7 @@ class RCMD(object):
                 exit_loop = True
                 break
 
-            ### PROMPT FOUND OR NOT ###########################################
+            ### PROMPT FOUND OR NOT - AFTER '\n' ##############################
             if after_enter_counter_100msec > 0:
                 if last_line_original and last_line_original in possible_prompts:
                     new_prompt = last_line_original
