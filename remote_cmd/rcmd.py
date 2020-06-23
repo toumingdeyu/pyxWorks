@@ -109,6 +109,9 @@ class CGI_CLI(object):
                             action = "store_true", dest = 'printall',
                             default = None,
                             help = "print all lines, changes will be coloured")
+        parser.add_argument("--timestamp",
+                            action = "store_true", dest = 'timestamp', default = None,
+                            help = "show timestamps")
         args = parser.parse_args()
         return args
 
@@ -160,8 +163,8 @@ class CGI_CLI(object):
         except: pass
         for key in form.keys():
             variable = str(key)
-            try: value = str(form.getvalue(variable))
-            except: value = str(','.join(form.getlist(name)))
+            try: value = form.getvalue(variable)
+            except: value = ','.join(form.getlist(name))
             if variable and value and \
                 not variable in ["username", "password"]:
                 CGI_CLI.data[variable] = value
@@ -194,37 +197,33 @@ class CGI_CLI(object):
         CGI_CLI.http_user_agent = dict(os.environ).get('HTTP_USER_AGENT','')
         if CGI_CLI.remote_addr and CGI_CLI.http_user_agent:
             CGI_CLI.cgi_active = True
-            
-        ### CLI PARSER ########################################################    
+
+        ### CLI PARSER ########################################################
         CGI_CLI.args = CGI_CLI.cli_parser()
-        if not CGI_CLI.cgi_active: 
+        if not CGI_CLI.cgi_active:
             cli_data = vars(CGI_CLI.args)
             for key in cli_data.keys():
                 variable = str(key)
-                try: value = str(cli_data.get(variable,str()))
-                except: value = str()
-                if variable and value and \
-                    not variable in ["username", "password", "cusername", "cpassword"]:
+                try: value = cli_data.get(variable)
+                except: value = None
+                if variable and \
+                    not variable in ["username", "password"]:
                     CGI_CLI.data[variable] = value
 
-        ### CGI_CLI.data PARSER ###############################################            
+        ### CGI_CLI.data PARSER ###############################################
         for key in CGI_CLI.data.keys():
             variable = str(key)
-            try: value = str(CGI_CLI.data.get(variable,str()))
-            except: value = str()
-            
-            if variable and value and \
-                not variable in ["username", "password"]:
-                CGI_CLI.data[variable] = value
-                
-            if variable == "printall" and str(variable).upper() != 'NO': CGI_CLI.printall = True
-            if variable == "printall" and (str(value).upper() == 'NO' or str(value).upper() == 'NONE'): 
+            value = CGI_CLI.data.get(variable)
+
+            if variable == "printall" and (str(value).upper() == 'NO' or not value):
                 CGI_CLI.printall = False
+            elif variable == "printall":
+                CGI_CLI.printall = True
             if variable == "timestamp": CGI_CLI.timestamp = True
             if variable == "cusername": CGI_CLI.username = value.decode('base64','strict')
-            if variable == "cpassword": CGI_CLI.password = value.decode('base64','strict')        
+            if variable == "cpassword": CGI_CLI.password = value.decode('base64','strict')
 
-        ### HTML PRINTING START ###############################################        
+        ### HTML PRINTING START ###############################################
         if CGI_CLI.cgi_active:
             sys.stdout.write("%s%s%s" %
                 (CGI_CLI.chunked_transfer_encoding_line,
@@ -2101,9 +2100,9 @@ authentication {
     ##############################################################################
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = chunked_mode, css_style = None,
         disable_page_reload_link = True, no_title = True)
-        
+
     CGI_CLI.uprint(CGI_CLI.print_args(), printall = True)
-    
+
     CGI_CLI.uprint('CGI_CLI.printall = %s' % (CGI_CLI.printall), printall = True)
 
     device = None
@@ -2127,7 +2126,7 @@ authentication {
             {'checkbox':'printall'},'<br/>','<br/>'
             '<br/>','<br/>'], \
             submit_button = 'OK', pyfile = None, tag = None, color = None)
-        sys.exit(0)    
+        sys.exit(0)
 
     if device:
         rcmd_outputs = RCMD.connect(device, username = USERNAME, password = PASSWORD, silent_mode = True)
