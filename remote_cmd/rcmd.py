@@ -239,8 +239,9 @@ class CGI_CLI(object):
                 title_string, \
                 '<style>%s</style>' % (CGI_CLI.CSS_STYLE) if CGI_CLI.CSS_STYLE else str()),\
                 ommit_logging = True, printall = True)
+        ### REGISTER CLEANUP FUNCTION #########################################
         import atexit; atexit.register(CGI_CLI.__cleanup__)
-        ### GAIN USERNAME AND PASSWORD FROM ENVIRONMENT BY DEFAULT ###
+        ### GAIN USERNAME AND PASSWORD FROM ENVIRONMENT BY DEFAULT ############
         try:    CGI_CLI.PASSWORD        = os.environ['NEWR_PASS']
         except: CGI_CLI.PASSWORD        = str()
         try:    CGI_CLI.USERNAME        = os.environ['NEWR_USER']
@@ -249,15 +250,16 @@ class CGI_CLI(object):
         if CGI_CLI.args.password: CGI_CLI.password = CGI_CLI.args.password
         if CGI_CLI.args.username:
             CGI_CLI.USERNAME = CGI_CLI.args.username
-            if not CGI_CLI.args.password:
+            if not CGI_CLI.args.password and not CGI_CLI.cgi_active:
                 CGI_CLI.PASSWORD = getpass.getpass("TACACS password: ")
                 getpass_done = True
-        ### FORCE GAIN/OVERWRITE USERNAME AND PASSWORD FROM CLI GETPASS ###
-        if CGI_CLI.args.getpass and not getpass_done:
+        ### FORCE GAIN/OVERWRITE USERNAME AND PASSWORD FROM CLI GETPASS #######
+        if CGI_CLI.args.getpass and not getpass_done and not CGI_CLI.cgi_active:
             CGI_CLI.PASSWORD = getpass.getpass("TACACS password: ")
         ### GAIN/OVERWRITE USERNAME AND PASSWORD FROM CGI ###
         if CGI_CLI.username: CGI_CLI.USERNAME = CGI_CLI.username
         if CGI_CLI.password: CGI_CLI.PASSWORD = CGI_CLI.password
+        ### WINDOWS DOES NOT SUPPORT LINUX COLORS - SO DISABLE IT #############
         if CGI_CLI.cgi_active or 'WIN32' in sys.platform.upper(): CGI_CLI.bcolors = CGI_CLI.nocolors
         CGI_CLI.cgi_save_files()
         return CGI_CLI.USERNAME, CGI_CLI.PASSWORD
