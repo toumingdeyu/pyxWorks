@@ -1499,7 +1499,9 @@ class RCMD(object):
                 ### RECEIVED DATA IMMEDIATE ACTIONS ###########################
                 no_rx_data_counter_100msec = 0
                 buff = chan.recv(9999)
-                output += CGI_CLI.decode_bytearray(buff)
+                
+                buff_read = CGI_CLI.decode_bytearray(buff)
+                output += buff_read
 
                 ### FIND LAST LINE (STRIPPED), THIS COULD BE PROMPT ###
                 last_line_edited = str()
