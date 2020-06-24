@@ -868,23 +868,32 @@ class CGI_CLI(object):
             replace('\x0d','').replace('\x07','').\
             replace('\x08','').replace(' \x1b[1D','').replace(u'\u2013',''))
 
+        ### https://docs.python.org/3/library/codecs.html#standard-encodings ###
+        ### http://lwp.interglacial.com/appf_01.htm ###
         if buff and not ascii_only:
-            try: buff_read = replace_sequence(buff.decode(encoding = CGI_CLI.sys_stdout_encoding))
-            except:
-                try: buff_read = replace_sequence(buff.decode(encoding = 'utf-8'))
-                except:
-                    try: buff_read = replace_sequence(buff.decode(encoding ='cp1252'))
-                    except: exception_text = traceback.format_exc()
-        if buff and ascii_only or not buff_read:
-            try:
-                exception_text = str()
-                buff_read = replace_sequence(ascii(buff))
-            except: exception_text = traceback.format_exc()
+            for coding in [CGI_CLI.sys_stdout_encoding, 'utf-8','utf-16', 'cp1252', 'cp1140','cp1250', 'latin_1', 'ascii']:
+                exception_text = None
+                try:
+                    buff_read = replace_sequence(buff.encode(encoding = coding))
+                    break
+                except: exception_text = traceback.format_exc()
+
+        ### available in PYTHON3 ###
+        # if buff and ascii_only or not buff_read:
+            # try:
+                # exception_text = str()
+                # buff_read = replace_sequence(ascii(buff))
+            # except: exception_text = traceback.format_exc()
+
         if exception_text:
-                CGI_CLI.uprint('BUFF_ERR[%s][%s]'%(buff, type(buff)), color = 'red')
-                CGI_CLI.uprint(exception_text, color = 'magenta')
-                CGI_CLI.uprint('BUFF_ERR[%s][%s]'%(buff, type(buff)), color = 'red')
-                CGI_CLI.uprint(traceback.format_exc(), color = 'magenta')
+            err_chars = str()
+            for character in buff:
+                if ord(character) > 128:
+                    err_chars += '\\x%x,' % (ord(character))
+                else: buff_read += character
+
+            if len(err_chars) > 0:
+                CGI_CLI.uprint("NON STANDARD CHARACTERS (>128) found [%s] in TEXT!" % (err_chars), color = 'orange', no_printall = not CGI_CLI.printall)
         return buff_read
 
     @staticmethod
