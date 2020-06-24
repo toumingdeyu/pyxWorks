@@ -4790,7 +4790,7 @@ authentication {
                                             if ' TESTING ' in line or ' OLD ' in line.upper(): pass
                                             else: backup_if_list.append(copy.deepcopy(local_backup_interface))
                                 interface_data['interface_data']['parallel_interfaces'] = copy.deepcopy(backup_if_list)
-                            except: interface_data['interface_data']['parallel_interfaces'] = []
+                            except: pass
 
                     ### JUNIPER 1st CMDS ##########################################
                     elif RCMD.router_type == 'juniper':
@@ -4849,7 +4849,7 @@ authentication {
                                             if ' TESTING ' in line or ' OLD ' in line: pass
                                             else: backup_if_list.append(copy.deepcopy(local_backup_interface))
                                 interface_data['interface_data']['parallel_interfaces'] = copy.deepcopy(backup_if_list)
-                            except: interface_data['interface_data']['parallel_interfaces'] = []
+                            except: pass
 
                     ### HUAWEI 1st CMDS ###########################################
                     elif RCMD.router_type == 'huawei':
@@ -4904,7 +4904,7 @@ authentication {
                                             if ' TESTING ' in line or ' OLD ' in line: pass
                                             else: backup_if_list.append(copy.deepcopy(local_backup_interface))
                                 interface_data['interface_data']['parallel_interfaces'] = copy.deepcopy(backup_if_list)
-                            except: interface_data['interface_data']['parallel_interfaces'] = []
+                            except: pass
 
 
                     ###########################################################
