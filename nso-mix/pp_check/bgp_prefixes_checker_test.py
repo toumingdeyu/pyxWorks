@@ -3461,12 +3461,10 @@ authentication {
 
                     for bgp_peer in device_data['IPV4_bgp_peers'].keys():
                         if not device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME'):
-
                             if device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()):
                                 selected_bgp_peers.append(copy.deepcopy(bgp_peer))
-
-                            command_string += 'show bgp vrf %s neighbor %s advertised-count' % \
-                                (device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()), bgp_peer)
+                                command_string += 'show bgp vrf %s neighbor %s advertised-count\n!\n' % \
+                                    (device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()), bgp_peer)
 
                     collector4_cmds['cisco_xr'].append(command_string)
 
@@ -3479,7 +3477,7 @@ authentication {
                         try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(rcmd4_outputs[0].split('show bgp vrf %s neighbor %s' % (device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()),bgp_peer))[-1].split('No of prefixes Advertised:')[1].split()[0])
                         except: pass
 
-
+                    CGI_CLI.uprint(selected_bgp_peers, printall = True)
 
                 ###################################################################
                 ### LOOP PER INTERFACE - END ######################################
