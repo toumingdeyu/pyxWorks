@@ -26,7 +26,6 @@ import ipaddress
 
 
 
-
 class CGI_CLI(object):
     """
     class CGI_handle - Simple statis class for handling CGI parameters and
@@ -245,7 +244,7 @@ class CGI_CLI(object):
                 CGI_CLI.printall = False
             elif variable == "printall":
                 CGI_CLI.printall = True
-            if variable == "timestamp": CGI_CLI.timestamp = True
+            if variable == "timestamp" and value: CGI_CLI.timestamp = True
             if variable == "cusername": CGI_CLI.username = value.decode('base64','strict')
             if variable == "cpassword": CGI_CLI.password = value.decode('base64','strict')
 
@@ -914,6 +913,43 @@ class CGI_CLI(object):
         return email_sent
 
     @staticmethod
+    def decode_bytearray(buff = None, ascii_only = None):
+        buff_read = str()
+        exception_text = None
+
+        replace_sequence = lambda buffer : str(buffer.\
+            replace('\x0d','').replace('\x07','').\
+            replace('\x08','').replace(' \x1b[1D','').replace(u'\u2013',''))
+
+        ### https://docs.python.org/3/library/codecs.html#standard-encodings ###
+        ### http://lwp.interglacial.com/appf_01.htm ###
+        if buff and not ascii_only:
+            for coding in [CGI_CLI.sys_stdout_encoding, 'utf-8','utf-16', 'cp1252', 'cp1140','cp1250', 'latin_1', 'ascii']:
+                exception_text = None
+                try:
+                    buff_read = replace_sequence(buff.encode(encoding = coding))
+                    break
+                except: exception_text = traceback.format_exc()
+
+        ### available in PYTHON3 ###
+        # if buff and ascii_only or not buff_read:
+            # try:
+                # exception_text = str()
+                # buff_read = replace_sequence(ascii(buff))
+            # except: exception_text = traceback.format_exc()
+
+        if exception_text:
+            err_chars = str()
+            for character in buff:
+                if ord(character) > 128:
+                    err_chars += '\\x%x,' % (ord(character))
+                else: buff_read += character
+
+            if len(err_chars) > 0:
+                CGI_CLI.uprint("NON STANDARD CHARACTERS (>128) found [%s] in TEXT!" % (err_chars), color = 'orange', no_printall = not CGI_CLI.printall)
+        return buff_read
+
+    @staticmethod
     def print_result_summary():
         if len(CGI_CLI.result_list) > 0: CGI_CLI.uprint('\n\nRESULT SUMMARY:', tag = 'h1')
         for result, color in CGI_CLI.result_list:
@@ -1488,20 +1524,9 @@ class RCMD(object):
                 ### RECEIVED DATA IMMEDIATE ACTIONS ###########################
                 no_rx_data_counter_100msec = 0
                 buff = chan.recv(9999)
-                try:
-                    buff_read = str(buff.decode(encoding='utf-8').\
-                        replace('\x0d','').replace('\x07','').\
-                        replace('\x08','').replace(' \x1b[1D','').replace(u'\u2013',''))
-                    output += buff_read
-                except:
-                    try:
-                        buff_read = str(buff.decode(encoding='cp1252').\
-                            replace('\x0d','').replace('\x07','').\
-                            replace('\x08','').replace(' \x1b[1D','').replace(u'\u2013',''))
-                        output += buff_read
-                    except:
-                        CGI_CLI.uprint('BUFF_ERR[%s][%s]'%(buff,type(buff)), color = 'red')
-                        CGI_CLI.uprint(traceback.format_exc(), color = 'magenta')
+
+                buff_read = CGI_CLI.decode_bytearray(buff)
+                output += buff_read
 
                 ### FIND LAST LINE (STRIPPED), THIS COULD BE PROMPT ###
                 last_line_edited = str()
@@ -1629,14 +1654,9 @@ class RCMD(object):
                 buff = chan.recv(9999)
                 if len(buff)>0:
                     if debug: CGI_CLI.uprint('LOOKING_FOR_PROMPT:',last_but_one_line,last_line, color = 'grey')
-                    try:
-                        output += str(buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
-                            replace('\x1b[K','').replace('\n{master}\n','').replace(u'\u2013',''))
-                    except:
-                        try:
-                            output += str(buff.decode("cp1252").replace('\r','').replace('\x07','').replace('\x08','').\
-                            replace('\x1b[K','').replace('\n{master}\n','').replace(u'\u2013',''))
-                        except: pass
+
+                    output += CGI_CLI.decode_bytearray(buff).replace('\n{master}\n','')
+
                     if '--More--' or '---(more' in buff.strip():
                         chan.send('\x20')
                         if debug: CGI_CLI.uprint('SPACE_SENT.', color = 'blue')
@@ -1664,14 +1684,9 @@ class RCMD(object):
             while not exit_loop:
                 if debug: CGI_CLI.uprint('LAST_LINE:',prompts,last_line)
                 buff = chan.recv(9999)
-                try:
-                    output += str(buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
-                        replace('\x1b[K','').replace('\n{master}\n','').replace(u'\u2013',''))
-                except:
-                    try:
-                        output += str(buff.decode("cp1252").replace('\r','').replace('\x07','').replace('\x08','').\
-                            replace('\x1b[K','').replace('\n{master}\n','').replace(u'\u2013',''))
-                    except: pass
+
+                output += CGI_CLI.decode_bytearray(buff).replace('\n{master}\n','')
+
                 if '--More--' or '---(more' in buff.strip():
                     chan.send('\x20')
                     time.sleep(0.3)
