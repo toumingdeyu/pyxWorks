@@ -3350,7 +3350,7 @@ authentication {
 
 
 
-
+                ### def CMD2 XR GROUP-WRITING ###
                 if RCMD.router_type == 'cisco_xr':
                     collector2_cmds = {
                         'cisco_ios':[
@@ -3393,7 +3393,7 @@ authentication {
                         try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(rcmd2_outputs[0].split('show bgp vpnv4 unicast neighbor %s' % (bgp_peer))[1].split('No of prefixes Advertised:')[1].split()[0])
                         except: pass
 
-
+                ### def CMD3 XR GROUP-WRITING ###
                 if RCMD.router_type == 'cisco_xr':
                     collector3_cmds = {
                         'cisco_ios':[
@@ -3436,7 +3436,7 @@ authentication {
                         try: device_data['IPV6_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(rcmd3_outputs[0].split('show bgp vpnv6 unicast neighbor %s' % (bgp_peer))[1].split('No of prefixes Advertised:')[1].split()[0])
                         except: pass
 
-
+                ### def CMD2 XR GROUP-WRITING ###
                 if RCMD.router_type == 'cisco_xr':
                     collector4_cmds = {
                         'cisco_ios':[
@@ -3471,7 +3471,7 @@ authentication {
                         printall = printall)
 
                     for bgp_peer in selected_bgp_peers:
-                        try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(rcmd3_outputs[0].split('show bgp vrf %s neighbor %s' % (device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()),bgp_peer))[1].split('No of prefixes Advertised:')[1].split()[0])
+                        try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(rcmd4_outputs[0].split('show bgp vrf %s neighbor %s' % (device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()),bgp_peer))[1].split('No of prefixes Advertised:')[1].split()[0])
                         except: pass
 
 
