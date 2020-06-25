@@ -1604,8 +1604,8 @@ class RCMD(object):
                         raw = True)
                     CGI_CLI.logtofile('[+10sec_MARK]\n')
 
-                    if printall and buff_read and not RCMD.silent_mode:
-                        CGI_CLI.uprint('_', no_newlines = True, \
+                    if printall and not RCMD.silent_mode:
+                        CGI_CLI.uprint(' _ ', no_newlines = True, \
                             timestamp = 'no', ommit_logging = True)
 
             ### EXIT SOONER THAN CONNECTION TIMEOUT IF LONG LASTING OR NOT ####
