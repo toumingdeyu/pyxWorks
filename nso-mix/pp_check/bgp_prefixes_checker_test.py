@@ -1503,7 +1503,7 @@ class RCMD(object):
         no_rx_data_counter_100msec, command_counter_100msec = 0, 0
         after_enter_counter_100msec, possible_prompts = 0, []
         no_multiline_traffic_counter_100msec = 0
-        last_line_original = str()
+        last_line_original, last_line_edited = str(), str()
 
         ### FLUSH BUFFERS FROM PREVIOUS COMMANDS IF THEY ARE ALREADY BUFFERED ###
         if chan.recv_ready():
@@ -3395,7 +3395,7 @@ authentication {
 
                         rcmd2_outputs = RCMD.run_commands(collector2_cmds, \
                             autoconfirm_mode = True, multiline_mode = True,\
-                            printall = printall)
+                            long_lasting_mode = True, printall = printall)
 
 
                         for bgp_peer in device_data['IPV4_bgp_peers'].keys():
@@ -3442,7 +3442,7 @@ authentication {
 
                         rcmd3_outputs = RCMD.run_commands(collector3_cmds, \
                             autoconfirm_mode = True, multiline_mode = True,\
-                            printall = printall)
+                            long_lasting_mode = True, printall = printall)
 
                         for bgp_peer in device_data['IPV6_bgp_peers'].keys():
                             if not device_data['IPV6_bgp_peers'][bgp_peer].get('VRF_NAME'):
@@ -3485,7 +3485,7 @@ authentication {
 
                         rcmd4_outputs = RCMD.run_commands(collector4_cmds, \
                             autoconfirm_mode = True, multiline_mode = True,\
-                            printall = printall)
+                            long_lasting_mode = True, printall = printall)
 
                         for bgp_peer in device_data['IPV4_bgp_peers'].keys():
                             if device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()):
