@@ -1556,44 +1556,47 @@ class RCMD(object):
 
                     CGI_CLI.logtofile('%s' % (buff_read), ommit_timestamp = True)
 
-                ### PROMPT IN LAST LINE = PROPER END OF COMMAND ###############
-                if not multiline_mode or multiline_mode and no_multiline_traffic_counter_100msec > 30:
-                    for actual_prompt in prompts:
-                        if output.strip().endswith(actual_prompt) or \
-                            (last_line_edited and last_line_edited.endswith(actual_prompt)) or \
-                            (last_line_original and last_line_original.endswith(actual_prompt)):
-                                exit_loop = True
-                                break
-                    if exit_loop: break
+                ### IS ACTUAL LAST LINE PROMPT ? IF YES, CONFIRM ##############
+                dialog_list = ['?', '[Y/N]:', '[confirm]', '? [no]:']
+                for dialog_line in dialog_list:
+                    if last_line_original.strip().endswith(dialog_line) or \
+                        last_line_edited.strip().endswith(dialog_line):
+                        if autoconfirm_mode:
+                            ### AUTO-CONFIRM MODE #############################
+                            if RCMD.router_type in ["ios-xr","ios-xe",'cisco_ios','cisco_xr']:
+                                chan.send('\n')
+                            elif RCMD.router_type in ["vrp",'huawei']:
+                                chan.send('Y\n')
+                            time.sleep(0.2)
+                            CGI_CLI.uprint("AUTOCONFIRMATION INSERTED , EXIT !!", tag = 'warning')
+                            break
+                        else:
+                            ### INTERACTIVE QUESTION --> GO AWAY ##############
+                            exit_loop = True
+                            CGI_CLI.uprint("AUTOCONFIRMATION QUESTION, EXIT !!", tag = 'warning')
+                            break
 
-                    ### IS ACTUAL LAST LINE PROMPT ? IF YES, CONFIRM ##############
-                    dialog_list = ['?', '[Y/N]:', '[confirm]', '? [no]:']
-                    for dialog_line in dialog_list:
-                        if last_line_original.strip().endswith(dialog_line) or \
-                            last_line_edited.strip().endswith(dialog_line):
-                            if autoconfirm_mode:
-                                ### AUTO-CONFIRM MODE #############################
-                                if RCMD.router_type in ["ios-xr","ios-xe",'cisco_ios','cisco_xr']:
-                                    chan.send('\n')
-                                elif RCMD.router_type in ["vrp",'huawei']:
-                                    chan.send('Y\n')
-                                time.sleep(0.2)
-                                break
-                            else:
-                                ### INTERACTIVE QUESTION --> GO AWAY ##############
-                                exit_loop = True
-                                break
-                    if exit_loop: break
+                if exit_loop: break
+
+            ### PROMPT IN LAST LINE = PROPER END OF COMMAND ###############
+            if not multiline_mode or multiline_mode and no_multiline_traffic_counter_100msec > 30:
+                for actual_prompt in prompts:
+                    if output.strip().endswith(actual_prompt) or \
+                        (last_line_edited and last_line_edited.endswith(actual_prompt)) or \
+                        (last_line_original and last_line_original.endswith(actual_prompt)):
+                            exit_loop = True
+                            break
+                if exit_loop: break
 
             ### RECEIVED OR NOT RECEIVED DATA COMMON ACTIONS ##################
             if not long_lasting_mode:
                 ### COMMAND TIMEOUT EXIT ######################################
                 if command_counter_100msec > RCMD.CMD_TIMEOUT*10:
-                    CGI_CLI.uprint("COMMAND TIMEOUT!!", tag = 'warning')
+                    CGI_CLI.uprint("COMMAND TIMEOUT (%s sec) !!" % (RCMD.CMD_TIMEOUT*10), tag = 'warning')
                     exit_loop = True
                     break
 
-            if long_lasting_mode:
+            elif long_lasting_mode:
                 ### KEEPALIVE CONNECTION, DEFAULT 300sec TIMEOUT ##############
                 if not command_counter_100msec%100 and CGI_CLI.cgi_active:
                     CGI_CLI.uprint("<script>console.log('10s...');</script>", \
@@ -1606,13 +1609,14 @@ class RCMD(object):
 
             ### EXIT SOONER THAN CONNECTION TIMEOUT IF LONG LASTING OR NOT ####
             if command_counter_100msec + 100 > RCMD.CONNECTION_TIMEOUT*10:
-                CGI_CLI.uprint("LONG LASTING COMMAND TIMEOUT!!", tag = 'warning')
+                CGI_CLI.uprint("LONG LASTING COMMAND (%d sec) TIMEOUT!!" % (RCMD.CONNECTION_TIMEOUT*10), tag = 'warning')
                 exit_loop = True
                 break
 
             ### IGNORE NEW PROMPT AND GO AWAY #################################
             if ignore_prompt:
                 time.sleep(1)
+                CGI_CLI.uprint("PROMPT IGNORED, EXIT !!", tag = 'warning')
                 exit_loop = True
                 break
 
@@ -1623,6 +1627,8 @@ class RCMD(object):
                     exit_loop = True
                     break
                 if after_enter_counter_100msec > 50:
+                    CGI_CLI.uprint("(5 sec) after '\n' EXIT!!", \
+                        tag = 'debug', no_printall = not CGI_CLI.printall)
                     exit_loop = True
                     break
 
@@ -1639,7 +1645,7 @@ class RCMD(object):
                     possible_prompts.append(copy.deepcopy(last_line_edited))
                 if last_line_actual: possible_prompts.append(last_line_actual)
                 chan.send('\n')
-                CGI_CLI.uprint("ENTER INSERTED AFTER DEVICE INACTIVITY!!", \
+                CGI_CLI.uprint("INSERTED '\n' after (10 sec no rx) DEVICE INACTIVITY!!", \
                     tag = 'debug', no_printall = not CGI_CLI.printall)
                 time.sleep(0.1)
                 after_enter_counter_100msec = 1
