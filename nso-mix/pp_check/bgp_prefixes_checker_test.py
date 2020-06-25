@@ -924,7 +924,8 @@ class CGI_CLI(object):
         ### https://docs.python.org/3/library/codecs.html#standard-encodings ###
         ### http://lwp.interglacial.com/appf_01.htm ###
         if buff and not ascii_only:
-            for coding in [CGI_CLI.sys_stdout_encoding, 'utf-8','utf-16', 'cp1252', 'cp1140','cp1250', 'latin_1', 'ascii']:
+            ###for coding in [CGI_CLI.sys_stdout_encoding, 'utf-8','utf-16', 'cp1252', 'cp1140','cp1250', 'latin_1', 'ascii']:
+            for coding in ['utf-8', 'ascii']:
                 exception_text = None
                 try:
                     buff_read = replace_sequence(buff.encode(encoding = coding))
@@ -940,7 +941,7 @@ class CGI_CLI(object):
 
         if exception_text:
             err_chars = str()
-            for character in buff:
+            for character in replace_sequence(buff):
                 if ord(character) > 128:
                     err_chars += '\\x%x,' % (ord(character))
                 else: buff_read += character
@@ -3385,12 +3386,13 @@ authentication {
                             selected_bgp_peers = True
 
                             if LOCAL_AS_NUMBER == OTI_LOCAL_AS:
-                                command_string += 'show bgp neighbor %s advertised-count\n!\n' % (bgp_peer)
+                                command_string += 'show bgp neighbor %s advertised-count\n' % (bgp_peer)
 
                             elif LOCAL_AS_NUMBER == IMN_LOCAL_AS:
-                                 command_string += 'show bgp vpnv4 unicast neighbor %s advertised-count\n!\n' % (bgp_peer)
+                                 command_string += 'show bgp vpnv4 unicast neighbor %s advertised-count\n' % (bgp_peer)
 
                     if selected_bgp_peers:
+                        command_string += "!\n"
                         collector2_cmds['cisco_xr'].append(command_string)
 
                         rcmd2_outputs = RCMD.run_commands(collector2_cmds, \
@@ -3432,12 +3434,13 @@ authentication {
                             selected_bgp_peers = True
 
                             if LOCAL_AS_NUMBER == OTI_LOCAL_AS:
-                                command_string += 'show bgp neighbor %s advertised-count\n!\n' % (bgp_peer)
+                                command_string += 'show bgp neighbor %s advertised-count\n' % (bgp_peer)
 
                             elif LOCAL_AS_NUMBER == IMN_LOCAL_AS:
-                                 command_string += 'show bgp vpnv6 unicast neighbor %s advertised-count\n!\n' % (bgp_peer)
+                                 command_string += 'show bgp vpnv6 unicast neighbor %s advertised-count\n' % (bgp_peer)
 
                     if selected_bgp_peers:
+                        command_string += "!\n"
                         collector3_cmds['cisco_xr'].append(command_string)
 
                         rcmd3_outputs = RCMD.run_commands(collector3_cmds, \
@@ -3477,10 +3480,11 @@ authentication {
 
                             selected_bgp_peers = True
 
-                            command_string += 'show bgp vrf %s neighbor %s advertised-count\n!\n' % \
+                            command_string += 'show bgp vrf %s neighbor %s advertised-count\n' % \
                                 (device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()), bgp_peer)
 
                     if selected_bgp_peers:
+                        command_string += "!\n"
                         collector4_cmds['cisco_xr'].append(command_string)
 
                         rcmd4_outputs = RCMD.run_commands(collector4_cmds, \
