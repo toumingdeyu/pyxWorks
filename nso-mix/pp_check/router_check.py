@@ -5,7 +5,8 @@
 # Author: Philippe Marcais (philippe.marcais@orange.com)                      #
 #         Peter Nemec      (peter.nemec@orange.com)                           #
 # Created: 06/01/2015                                                         #
-# Updated: 26/May/2020 - send emails by mailx (by apache user)                #
+# Updated: 29/Jun/2020 - bgp prefix check, ascii filter of chars, custom log  #
+#          26/May/2020 - send emails by mailx (by apache user)                #
 #          25/May/2020 - --custom (BGP) check                                 #
 #          14/May/2020 -huawei L2VPN commands added                           #
 #          ...                                                                #
@@ -23,7 +24,7 @@
 # status                                                                      #
 ###############################################################################
 
-import sys, os, paramiko, copy
+import sys, os, paramiko, copy, traceback
 import getopt
 import getpass
 import telnetlib
@@ -539,6 +540,44 @@ def detect_router_by_ssh(device, debug = False):
     return router_os, prompt
 
 
+def decode_bytearray(buff = None, ascii_only = None):
+    buff_read = str()
+    exception_text = None
+
+    replace_sequence = lambda buffer : str(buffer.\
+        replace('\x0d','').replace('\x07','').\
+        replace('\x08','').replace(' \x1b[1D','').replace(u'\u2013',''))
+
+    ### https://docs.python.org/3/library/codecs.html#standard-encodings ###
+    ### http://lwp.interglacial.com/appf_01.htm ###
+    if buff and not ascii_only:
+        ###for coding in [CGI_CLI.sys_stdout_encoding, 'utf-8','utf-16', 'cp1252', 'cp1140','cp1250', 'latin_1', 'ascii']:
+        for coding in ['utf-8', 'ascii']:
+            exception_text = None
+            try:
+                buff_read = replace_sequence(buff.encode(encoding = coding))
+                break
+            except: exception_text = traceback.format_exc()
+
+    ### available in PYTHON3 ###
+    # if buff and ascii_only or not buff_read:
+        # try:
+            # exception_text = str()
+            # buff_read = replace_sequence(ascii(buff))
+        # except: exception_text = traceback.format_exc()
+
+    if exception_text:
+        err_chars = str()
+        for character in replace_sequence(buff):
+            if ord(character) > 128:
+                err_chars += '\\x%x,' % (ord(character))
+            else: buff_read += character
+
+        if len(err_chars) > 0:
+            print("%sNON ASCII CHARACTERS found [%s]!%s" % (bcolors.MAGENTA,err_chars,bcolors.ENDC))
+    return buff_read
+
+
 def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True):
     output, output2, new_prompt = str(), str(), str()
     exit_loop, exit_loop2 = False, False
@@ -554,14 +593,10 @@ def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True)
             # workarround for discontious outputs from routers
             timeout_counter = 0
             buff = chan.recv(9999)
-            try:
-                buff_read = str(buff.decode(encoding='utf-8').\
-                    replace('\x0d','').replace('\x07','').\
-                    replace('\x08','').replace(' \x1b[1D','').replace(u'\u2013',''))
-                output += buff_read
-            except:
-                print('BUFF_ERR[%s][%s]'%(buff,type(buff)))
-                print(traceback.format_exc())
+
+            buff_read = decode_bytearray(buff)
+            output += buff_read
+
             if printall: print("%s%s%s" % (bcolors.GREY,buff_read,bcolors.ENDC))
         else: time.sleep(0.1); timeout_counter += 1
         # FIND LAST LINE, THIS COULD BE PROMPT
@@ -596,14 +631,10 @@ def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True)
                 while(not exit_loop2):
                     if chan.recv_ready():
                         buff = chan.recv(9999)
-                        try:
-                            buff_read = str(buff.decode(encoding='utf-8').\
-                                replace('\x0d','').replace('\x07','').\
-                                replace('\x08','').replace(' \x1b[1D','').replace(u'\u2013',''))
-                            output2 += buff_read
-                        except:
-                            print('BUFF_ERR[%s][%s]'%(buff,type(buff)))
-                            print(traceback.format_exc())
+
+                        buff_read = decode_bytearray(buff)
+                        output2 += buff_read
+
                     else: time.sleep(0.1); timeout_counter2 += 1
                     try: new_last_line = output2.splitlines()[-1].strip()
                     except: new_last_line = str()
@@ -969,6 +1000,29 @@ def run_isis_check(logfilename = None):
         ' --password %s' % (PASSWORD) )
     os.system(command_string)
 
+
+def run_bgp_prefixes_checker(logfilename = None):
+    time.sleep(3)
+
+    if not args.recheck:
+        command_string = '/usr/local/bin/bgp_prefixes_checker.py --device %s%s%s%s%s%s' % \
+            (args.device.upper(), \
+            ' --append_logfile %s' % (logfilename) if logfilename else str(), \
+            ' --printall' if args.printall else str(), \
+            ' --username %s' % (USERNAME), \
+            ' --password %s' % (PASSWORD), \
+            ' --precheck' if pre_post == 'pre' else ' --postcheck' )
+    else:
+        command_string = '/usr/local/bin/bgp_prefixes_checker.py --device %s%s%s%s%s' % \
+            (args.device.upper(), \
+            ' --printall' if args.printall else str(), \
+            ' --username %s' % (USERNAME), \
+            ' --password %s' % (PASSWORD), \
+            ' --postcheck' )
+
+    os.system(command_string)
+
+
 def GET_VERSION(path_to_file = str(os.path.abspath(__file__))):
     if 'WIN32' in sys.platform.upper():
         file_time = os.path.getmtime(path_to_file)
@@ -1050,11 +1104,16 @@ parser.add_argument("--isis",
                     default = False,
                     dest = 'isis_check_only',
                     help = "do isis check only")
+parser.add_argument("--bgp",
+                    action = "store_true",
+                    default = False,
+                    dest = 'bgp_prefix_check_only',
+                    help = "do bgp prefixes check only")
 parser.add_argument("--custom",
                     action = "store_true",
                     default = False,
                     dest = 'custom_check_only',
-                    help = "do custom (bgp) check only")
+                    help = "do custom (bgp commands) check only")
 args = parser.parse_args()
 
 if args.emailaddr:
@@ -1227,7 +1286,11 @@ if custom_check_only:
             if cmd_position in CUSTOM_LIST_VRP: list_cmd.append(copy.deepcopy(router_cmd))
             cmd_position += 1
 
-filename_prefix = os.path.join(WORKDIR,args.device.upper().replace(':','_').replace('.','_'))
+if custom_check_only:
+    filename_prefix = os.path.join(WORKDIR,args.device.upper().replace(':','_').replace('.','_') + '-custom')
+else:
+    filename_prefix = os.path.join(WORKDIR,args.device.upper().replace(':','_').replace('.','_'))
+
 filename_suffix = pre_post
 now = datetime.datetime.now()
 filename_generated = "%s-%.2i%.2i%.2i-%.2i%.2i%.2i-%s-%s" % \
@@ -1241,6 +1304,10 @@ if args.log_file:
 
 if args.isis_check_only:
     run_isis_check()
+    sys.exit(0)
+
+if args.bgp_prefix_check_only:
+    run_bgp_prefixes_checker()
     sys.exit(0)
 
 if not args.recheck:
@@ -1512,6 +1579,11 @@ if pre_post == "post" or args.recheck or args.postcheck_file:
     print('\n')
     if args.recheck: run_isis_check()
     else: run_isis_check(postcheck_file)
+
+    ### def BGP PREFIX CHECK DO NOT LOG IF RECHECK ############################
+    print('\n')
+    if args.recheck: run_isis_check()
+    else: run_bgp_prefixes_checker(logfilename)
 
     print('\n ==> POSTCHECK COMPLETE !')
 elif pre_post == "pre" and not args.recheck:

@@ -26,7 +26,6 @@ import ipaddress
 
 
 
-
 class CGI_CLI(object):
     """
     class CGI_handle - Simple statis class for handling CGI parameters and
@@ -245,7 +244,7 @@ class CGI_CLI(object):
                 CGI_CLI.printall = False
             elif variable == "printall":
                 CGI_CLI.printall = True
-            if variable == "timestamp": CGI_CLI.timestamp = True
+            if variable == "timestamp" and value: CGI_CLI.timestamp = True
             if variable == "cusername": CGI_CLI.username = value.decode('base64','strict')
             if variable == "cpassword": CGI_CLI.password = value.decode('base64','strict')
 
@@ -914,6 +913,44 @@ class CGI_CLI(object):
         return email_sent
 
     @staticmethod
+    def decode_bytearray(buff = None, ascii_only = None):
+        buff_read = str()
+        exception_text = None
+
+        replace_sequence = lambda buffer : str(buffer.\
+            replace('\x0d','').replace('\x07','').\
+            replace('\x08','').replace(' \x1b[1D','').replace(u'\u2013',''))
+
+        ### https://docs.python.org/3/library/codecs.html#standard-encodings ###
+        ### http://lwp.interglacial.com/appf_01.htm ###
+        if buff and not ascii_only:
+            ###for coding in [CGI_CLI.sys_stdout_encoding, 'utf-8','utf-16', 'cp1252', 'cp1140','cp1250', 'latin_1', 'ascii']:
+            for coding in ['utf-8', 'ascii']:
+                exception_text = None
+                try:
+                    buff_read = replace_sequence(buff.encode(encoding = coding))
+                    break
+                except: exception_text = traceback.format_exc()
+
+        ### available in PYTHON3 ###
+        # if buff and ascii_only or not buff_read:
+            # try:
+                # exception_text = str()
+                # buff_read = replace_sequence(ascii(buff))
+            # except: exception_text = traceback.format_exc()
+
+        if exception_text:
+            err_chars = str()
+            for character in replace_sequence(buff):
+                if ord(character) > 128:
+                    err_chars += '\\x%x,' % (ord(character))
+                else: buff_read += character
+
+            if len(err_chars) > 0:
+                CGI_CLI.uprint("NON STANDARD CHARACTERS (>128) found [%s] in TEXT!" % (err_chars), color = 'orange', no_printall = not CGI_CLI.printall)
+        return buff_read
+
+    @staticmethod
     def print_result_summary():
         if len(CGI_CLI.result_list) > 0: CGI_CLI.uprint('\n\nRESULT SUMMARY:', tag = 'h1')
         for result, color in CGI_CLI.result_list:
@@ -950,7 +987,7 @@ class RCMD(object):
         connection_timeout = 600, cmd_timeout = 60, \
         conf = None, sim_config = None, disconnect = None, printall = None, \
         do_not_final_print = None, commit_text = None, silent_mode = None, \
-        disconnect_timeout = 2, no_alive_test = None):
+        disconnect_timeout = 2, no_alive_test = None, rx_buffer = None):
         """ FUNCTION: RCMD.connect(), RETURNS: list of command_outputs
         PARAMETERS:
         device     - string , device_name/ip_address/device_name:PORT_NUMBER/ip_address:PORT_NUMBER
@@ -999,6 +1036,10 @@ class RCMD(object):
             except: RCMD.DEVICE_HOST = str(device)
             try: RCMD.DEVICE_PORT = device.split(':')[1]
             except: RCMD.DEVICE_PORT = '22'
+            RCMD.rx_buffer_size = 100000
+            if rx_buffer:
+                try: RCMD.rx_buffer_size = int(rx_buffer)
+                except: pass
 
             RCMD.printall = CGI_CLI.printall if not printall else printall
 
@@ -1463,11 +1504,11 @@ class RCMD(object):
         no_rx_data_counter_100msec, command_counter_100msec = 0, 0
         after_enter_counter_100msec, possible_prompts = 0, []
         no_multiline_traffic_counter_100msec = 0
-        last_line_original = str()
+        last_line_original, last_line_edited = str(), str()
 
         ### FLUSH BUFFERS FROM PREVIOUS COMMANDS IF THEY ARE ALREADY BUFFERED ###
         if chan.recv_ready():
-            flush_buffer = chan.recv(9999)
+            flush_buffer = chan.recv(RCMD.rx_buffer_size)
             time.sleep(0.3)
         chan.send(send_data + '\n')
         time.sleep(0.1)
@@ -1487,21 +1528,10 @@ class RCMD(object):
                 if multiline_mode: no_multiline_traffic_counter_100msec = 0
                 ### RECEIVED DATA IMMEDIATE ACTIONS ###########################
                 no_rx_data_counter_100msec = 0
-                buff = chan.recv(9999)
-                try:
-                    buff_read = str(buff.decode(encoding='utf-8').\
-                        replace('\x0d','').replace('\x07','').\
-                        replace('\x08','').replace(' \x1b[1D','').replace(u'\u2013',''))
-                    output += buff_read
-                except:
-                    try:
-                        buff_read = str(buff.decode(encoding='cp1252').\
-                            replace('\x0d','').replace('\x07','').\
-                            replace('\x08','').replace(' \x1b[1D','').replace(u'\u2013',''))
-                        output += buff_read
-                    except:
-                        CGI_CLI.uprint('BUFF_ERR[%s][%s]'%(buff,type(buff)), color = 'red')
-                        CGI_CLI.uprint(traceback.format_exc(), color = 'magenta')
+                buff = chan.recv(RCMD.rx_buffer_size)
+
+                buff_read = CGI_CLI.decode_bytearray(buff)
+                output += buff_read
 
                 ### FIND LAST LINE (STRIPPED), THIS COULD BE PROMPT ###
                 last_line_edited = str()
@@ -1527,63 +1557,68 @@ class RCMD(object):
 
                     CGI_CLI.logtofile('%s' % (buff_read), ommit_timestamp = True)
 
-                ### PROMPT IN LAST LINE = PROPER END OF COMMAND ###############
-                if not multiline_mode or multiline_mode and no_multiline_traffic_counter_100msec > 30:
-                    for actual_prompt in prompts:
-                        if output.strip().endswith(actual_prompt) or \
-                            (last_line_edited and last_line_edited.endswith(actual_prompt)) or \
-                            (last_line_original and last_line_original.endswith(actual_prompt)):
-                                exit_loop = True
-                                break
-                    if exit_loop: break
+                ### IS ACTUAL LAST LINE PROMPT ? IF YES, CONFIRM ##############
+                dialog_list = ['?', '[Y/N]:', '[confirm]', '? [no]:']
+                for dialog_line in dialog_list:
+                    if last_line_original.strip().endswith(dialog_line) or \
+                        last_line_edited.strip().endswith(dialog_line):
+                        if autoconfirm_mode:
+                            ### AUTO-CONFIRM MODE #############################
+                            if RCMD.router_type in ["ios-xr","ios-xe",'cisco_ios','cisco_xr']:
+                                chan.send('\n')
+                            elif RCMD.router_type in ["vrp",'huawei']:
+                                chan.send('Y\n')
+                            time.sleep(0.2)
+                            CGI_CLI.uprint("AUTOCONFIRMATION INSERTED , EXIT !!", tag = 'warning')
+                            break
+                        else:
+                            ### INTERACTIVE QUESTION --> GO AWAY ##############
+                            exit_loop = True
+                            CGI_CLI.uprint("AUTOCONFIRMATION QUESTION, EXIT !!", tag = 'warning')
+                            break
 
-                    ### IS ACTUAL LAST LINE PROMPT ? IF YES, CONFIRM ##############
-                    dialog_list = ['?', '[Y/N]:', '[confirm]', '? [no]:']
-                    for dialog_line in dialog_list:
-                        if last_line_original.strip().endswith(dialog_line) or \
-                            last_line_edited.strip().endswith(dialog_line):
-                            if autoconfirm_mode:
-                                ### AUTO-CONFIRM MODE #############################
-                                if RCMD.router_type in ["ios-xr","ios-xe",'cisco_ios','cisco_xr']:
-                                    chan.send('\n')
-                                elif RCMD.router_type in ["vrp",'huawei']:
-                                    chan.send('Y\n')
-                                time.sleep(0.2)
-                                break
-                            else:
-                                ### INTERACTIVE QUESTION --> GO AWAY ##############
-                                exit_loop = True
-                                break
-                    if exit_loop: break
+                if exit_loop: break
+
+            ### PROMPT IN LAST LINE = PROPER END OF COMMAND ###############
+            if not multiline_mode or multiline_mode and no_multiline_traffic_counter_100msec > 30:
+                for actual_prompt in prompts:
+                    if output.strip().endswith(actual_prompt) or \
+                        (last_line_edited and last_line_edited.endswith(actual_prompt)) or \
+                        (last_line_original and last_line_original.endswith(actual_prompt)):
+                            exit_loop = True
+                            break
+                if exit_loop: break
 
             ### RECEIVED OR NOT RECEIVED DATA COMMON ACTIONS ##################
             if not long_lasting_mode:
                 ### COMMAND TIMEOUT EXIT ######################################
                 if command_counter_100msec > RCMD.CMD_TIMEOUT*10:
-                    CGI_CLI.uprint("COMMAND TIMEOUT!!", tag = 'warning')
+                    CGI_CLI.uprint("COMMAND TIMEOUT (%s sec) !!" % (RCMD.CMD_TIMEOUT*10), tag = 'warning')
                     exit_loop = True
                     break
 
-            if long_lasting_mode:
+            elif long_lasting_mode:
                 ### KEEPALIVE CONNECTION, DEFAULT 300sec TIMEOUT ##############
-                if not command_counter_100msec%100 and CGI_CLI.cgi_active:
+                if not command_counter_100msec % 100 and CGI_CLI.cgi_active:
                     CGI_CLI.uprint("<script>console.log('10s...');</script>", \
                         raw = True)
                     CGI_CLI.logtofile('[+10sec_MARK]\n')
 
-                    if printall and buff_read and not RCMD.silent_mode:
-                        CGI_CLI.uprint('_', no_newlines = True, \
-                            timestamp = 'no', ommit_logging = True)
+                    ### printall or RCMD.printall
+                    if not CGI_CLI.printall and not RCMD.silent_mode:
+                        CGI_CLI.uprint(' _ ', no_newlines = True, \
+                            timestamp = 'no', ommit_logging = True, printall = True)
 
             ### EXIT SOONER THAN CONNECTION TIMEOUT IF LONG LASTING OR NOT ####
             if command_counter_100msec + 100 > RCMD.CONNECTION_TIMEOUT*10:
-                CGI_CLI.uprint("LONG LASTING COMMAND TIMEOUT!!", tag = 'warning')
+                CGI_CLI.uprint("LONG LASTING COMMAND (%d sec) TIMEOUT!!" % (RCMD.CONNECTION_TIMEOUT*10), tag = 'warning')
                 exit_loop = True
                 break
 
             ### IGNORE NEW PROMPT AND GO AWAY #################################
             if ignore_prompt:
                 time.sleep(1)
+                CGI_CLI.uprint("PROMPT IGNORED, EXIT !!", tag = 'warning')
                 exit_loop = True
                 break
 
@@ -1594,6 +1629,8 @@ class RCMD(object):
                     exit_loop = True
                     break
                 if after_enter_counter_100msec > 50:
+                    CGI_CLI.uprint("(5 sec) after '\n' EXIT!!", \
+                        tag = 'debug', no_printall = not CGI_CLI.printall)
                     exit_loop = True
                     break
 
@@ -1610,7 +1647,7 @@ class RCMD(object):
                     possible_prompts.append(copy.deepcopy(last_line_edited))
                 if last_line_actual: possible_prompts.append(last_line_actual)
                 chan.send('\n')
-                CGI_CLI.uprint("ENTER INSERTED AFTER DEVICE INACTIVITY!!", \
+                CGI_CLI.uprint("INSERTED '\n' after (10 sec no rx) DEVICE INACTIVITY!!", \
                     tag = 'debug', no_printall = not CGI_CLI.printall)
                 time.sleep(0.1)
                 after_enter_counter_100msec = 1
@@ -1621,22 +1658,17 @@ class RCMD(object):
         ### DETECT DEVICE PROMPT FIRST
         def ssh_raw_detect_prompt(chan, debug = debug):
             output, buff, last_line, last_but_one_line = str(), str(), 'dummyline1', 'dummyline2'
-            flush_buffer = chan.recv(9999)
+            flush_buffer = chan.recv(RCMD.rx_buffer_size)
             del flush_buffer
             chan.send('\t \n\n')
             time.sleep(0.3)
             while not (last_line and last_but_one_line and last_line == last_but_one_line):
-                buff = chan.recv(9999)
+                buff = chan.recv(RCMD.rx_buffer_size)
                 if len(buff)>0:
                     if debug: CGI_CLI.uprint('LOOKING_FOR_PROMPT:',last_but_one_line,last_line, color = 'grey')
-                    try:
-                        output += str(buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
-                            replace('\x1b[K','').replace('\n{master}\n','').replace(u'\u2013',''))
-                    except:
-                        try:
-                            output += str(buff.decode("cp1252").replace('\r','').replace('\x07','').replace('\x08','').\
-                            replace('\x1b[K','').replace('\n{master}\n','').replace(u'\u2013',''))
-                        except: pass
+
+                    output += CGI_CLI.decode_bytearray(buff).replace('\n{master}\n','')
+
                     if '--More--' or '---(more' in buff.strip():
                         chan.send('\x20')
                         if debug: CGI_CLI.uprint('SPACE_SENT.', color = 'blue')
@@ -1656,22 +1688,17 @@ class RCMD(object):
         def ssh_raw_read_until_prompt(chan,command,prompts,debug = debug):
             output, buff, last_line, exit_loop = str(), str(), 'dummyline1', False
             # avoid of echoing commands on ios-xe by timeout 1 second
-            flush_buffer = chan.recv(9999)
+            flush_buffer = chan.recv(RCMD.rx_buffer_size)
             del flush_buffer
             chan.send(command)
             time.sleep(0.3)
             output, exit_loop = '', False
             while not exit_loop:
                 if debug: CGI_CLI.uprint('LAST_LINE:',prompts,last_line)
-                buff = chan.recv(9999)
-                try:
-                    output += str(buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
-                        replace('\x1b[K','').replace('\n{master}\n','').replace(u'\u2013',''))
-                except:
-                    try:
-                        output += str(buff.decode("cp1252").replace('\r','').replace('\x07','').replace('\x08','').\
-                            replace('\x1b[K','').replace('\n{master}\n','').replace(u'\u2013',''))
-                    except: pass
+                buff = chan.recv(RCMD.rx_buffer_size)
+
+                output += CGI_CLI.decode_bytearray(buff).replace('\n{master}\n','')
+
                 if '--More--' or '---(more' in buff.strip():
                     chan.send('\x20')
                     time.sleep(0.3)
@@ -3223,121 +3250,84 @@ authentication {
 
 
 
-                ### DEF CMD2 - XR IPV4 ADVERTIZED COUNT #######################
-                collector2_cmds = {
-                    'cisco_ios':[
-                                ],
+                # ### DEF CMD2 - XR IPV4 ADVERTIZED COUNT #######################
+                # collector2_cmds = {
+                    # 'cisco_ios':[
+                                # ],
 
-                    'cisco_xr': [
-                                ],
+                    # 'cisco_xr': [
+                                # ],
 
-                    'juniper':  [
-                                ],
+                    # 'juniper':  [
+                                # ],
 
-                    'huawei':   [
-                                ]
-                }
+                    # 'huawei':   [
+                                # ]
+                # }
 
-                selected_bgp_peers = []
+                # selected_bgp_peers = []
 
-                for bgp_peer in device_data['IPV4_bgp_peers'].keys():
-                    if not device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME'):
+                # for bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                    # if not device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME'):
 
-                        selected_bgp_peers.append(copy.deepcopy(bgp_peer))
+                        # selected_bgp_peers.append(copy.deepcopy(bgp_peer))
 
-                        if LOCAL_AS_NUMBER == OTI_LOCAL_AS:
-                            collector2_cmds['cisco_xr'].append('show bgp neighbor %s advertised-count' % (bgp_peer))
+                        # if LOCAL_AS_NUMBER == OTI_LOCAL_AS:
+                            # collector2_cmds['cisco_xr'].append('show bgp neighbor %s advertised-count' % (bgp_peer))
 
-                        elif LOCAL_AS_NUMBER == IMN_LOCAL_AS:
-                            collector2_cmds['cisco_xr'].append('show bgp vpnv4 unicast neighbor %s advertised-count' % (bgp_peer))
+                        # elif LOCAL_AS_NUMBER == IMN_LOCAL_AS:
+                            # collector2_cmds['cisco_xr'].append('show bgp vpnv4 unicast neighbor %s advertised-count' % (bgp_peer))
 
-                rcmd2_outputs = RCMD.run_commands(collector2_cmds, \
-                    autoconfirm_mode = True, \
-                    printall = printall)
-
-                if RCMD.router_type == 'cisco_xr':
-                    for bgp_peer, output_command in zip(selected_bgp_peers, rcmd2_outputs):
-                        try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(output_command.split('No of prefixes Advertised:')[1].split()[0])
-                        except: pass
-
-
-                ### DEF CMD3 - XR IPV6 ADVERTIZED COUNT #######################
-                collector3_cmds = {
-                    'cisco_ios':[
-                                ],
-
-                    'cisco_xr': [
-                                ],
-
-                    'juniper':  [
-                                ],
-
-                    'huawei':   [
-                                ]
-                }
-
-                selected_bgp_peers = []
-
-                if RCMD.router_type == 'cisco_xr':
-                    for bgp_peer in device_data['IPV6_bgp_peers'].keys():
-                        if not device_data['IPV6_bgp_peers'][bgp_peer].get('VRF_NAME'):
-
-                            selected_bgp_peers.append(copy.deepcopy(bgp_peer))
-
-                            if LOCAL_AS_NUMBER == OTI_LOCAL_AS:
-                                collector3_cmds['cisco_xr'].append('show bgp neighbor %s advertised-count' % (bgp_peer))
-                            elif LOCAL_AS_NUMBER == IMN_LOCAL_AS:
-                                collector3_cmds['cisco_xr'].append('show bgp vpnv6 unicast neighbor %s advertised-count' % (bgp_peer))
-
-                    rcmd3_outputs = RCMD.run_commands(collector3_cmds, \
-                        autoconfirm_mode = True, \
-                        printall = printall)
-
-                    for bgp_peer, output_command in zip(selected_bgp_peers, rcmd3_outputs):
-                        try: device_data['IPV6_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(output_command.split('No of prefixes Advertised:')[1].split()[0])
-                        except: pass
-
-
-                ### def CMD5 - XR VRF ADVERTIZED COUNT ###########################
-                if RCMD.router_type == 'cisco_xr':
-                    collector5_cmds = {
-                        'cisco_ios':[
-                                    ],
-
-                        'cisco_xr': [
-                                    ],
-
-                        'juniper':  [
-                                    ],
-
-                        'huawei':   [
-                                    ]
-                    }
-
-                    selected_bgp_peers = []
-
-                    for bgp_peer in device_data['IPV4_bgp_peers'].keys():
-                        if device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()):
-
-                            selected_bgp_peers.append(copy.deepcopy(bgp_peer))
-
-                            collector5_cmds['cisco_xr'].append('show bgp vrf %s neighbor %s advertised-count' % \
-                                (device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()), bgp_peer))
-
-                    rcmd5_outputs = RCMD.run_commands(collector5_cmds, \
-                        autoconfirm_mode = True, \
-                        printall = printall)
-
-                    for bgp_peer, output_command in zip(selected_bgp_peers,rcmd5_outputs):
-                        try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(output_command.split('No of prefixes Advertised:')[1].split()[0])
-                        except: pass
-
-
-
-
+                # rcmd2_outputs = RCMD.run_commands(collector2_cmds, \
+                    # autoconfirm_mode = True, \
+                    # printall = printall)
 
                 # if RCMD.router_type == 'cisco_xr':
-                    # collector2_cmds = {
+                    # for bgp_peer, output_command in zip(selected_bgp_peers, rcmd2_outputs):
+                        # try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(output_command.split('No of prefixes Advertised:')[1].split()[0])
+                        # except: pass
+
+
+                # ### DEF CMD3 - XR IPV6 ADVERTIZED COUNT #######################
+                # collector3_cmds = {
+                    # 'cisco_ios':[
+                                # ],
+
+                    # 'cisco_xr': [
+                                # ],
+
+                    # 'juniper':  [
+                                # ],
+
+                    # 'huawei':   [
+                                # ]
+                # }
+
+                # selected_bgp_peers = []
+
+                # if RCMD.router_type == 'cisco_xr':
+                    # for bgp_peer in device_data['IPV6_bgp_peers'].keys():
+                        # if not device_data['IPV6_bgp_peers'][bgp_peer].get('VRF_NAME'):
+
+                            # selected_bgp_peers.append(copy.deepcopy(bgp_peer))
+
+                            # if LOCAL_AS_NUMBER == OTI_LOCAL_AS:
+                                # collector3_cmds['cisco_xr'].append('show bgp neighbor %s advertised-count' % (bgp_peer))
+                            # elif LOCAL_AS_NUMBER == IMN_LOCAL_AS:
+                                # collector3_cmds['cisco_xr'].append('show bgp vpnv6 unicast neighbor %s advertised-count' % (bgp_peer))
+
+                    # rcmd3_outputs = RCMD.run_commands(collector3_cmds, \
+                        # autoconfirm_mode = True, \
+                        # printall = printall)
+
+                    # for bgp_peer, output_command in zip(selected_bgp_peers, rcmd3_outputs):
+                        # try: device_data['IPV6_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(output_command.split('No of prefixes Advertised:')[1].split()[0])
+                        # except: pass
+
+
+                # ### def CMD5 - XR VRF ADVERTIZED COUNT ###########################
+                # if RCMD.router_type == 'cisco_xr':
+                    # collector5_cmds = {
                         # 'cisco_ios':[
                                     # ],
 
@@ -3352,29 +3342,161 @@ authentication {
                     # }
 
                     # selected_bgp_peers = []
-                    # command_string = "!\n"
 
                     # for bgp_peer in device_data['IPV4_bgp_peers'].keys():
-                        # if not device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME'):
+                        # if device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()):
 
                             # selected_bgp_peers.append(copy.deepcopy(bgp_peer))
 
-                            # if LOCAL_AS_NUMBER == OTI_LOCAL_AS:
-                                # command_string += 'show bgp neighbor %s advertised-count\n!\n' % (bgp_peer)
+                            # collector5_cmds['cisco_xr'].append('show bgp vrf %s neighbor %s advertised-count' % \
+                                # (device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()), bgp_peer))
 
-                            # elif LOCAL_AS_NUMBER == IMN_LOCAL_AS:
-                                 # command_string += 'show bgp vpnv4 unicast neighbor %s advertised-count\n!\n' % (bgp_peer)
-
-                    # collector2_cmds['cisco_xr'].append(command_string)
-
-                    # rcmd2_outputs = RCMD.run_commands(collector2_cmds, \
-                        # autoconfirm_mode = True, multiline_mode = True,\
+                    # rcmd5_outputs = RCMD.run_commands(collector5_cmds, \
+                        # autoconfirm_mode = True, \
                         # printall = printall)
 
+                    # for bgp_peer, output_command in zip(selected_bgp_peers,rcmd5_outputs):
+                        # try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(output_command.split('No of prefixes Advertised:')[1].split()[0])
+                        # except: pass
 
-                    #for bgp_peer, output_command in zip(selected_bgp_peers, rcmd2_outputs):
-                    #    try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(output_command.split('No of prefixes Advertised:')[1].split()[0])
-                    #    except: pass
+
+
+
+                ### def CMD2 XR GROUP-WRITING ###
+                if RCMD.router_type == 'cisco_xr':
+                    collector2_cmds = {
+                        'cisco_ios':[
+                                    ],
+
+                        'cisco_xr': [
+                                    ],
+
+                        'juniper':  [
+                                    ],
+
+                        'huawei':   [
+                                    ]
+                    }
+
+                    selected_bgp_peers = None
+                    command_string = "!\n"
+
+                    for bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                        if not device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME'):
+
+                            selected_bgp_peers = True
+
+                            if LOCAL_AS_NUMBER == OTI_LOCAL_AS:
+                                command_string += 'show bgp neighbor %s advertised-count\n' % (bgp_peer)
+
+                            elif LOCAL_AS_NUMBER == IMN_LOCAL_AS:
+                                 command_string += 'show bgp vpnv4 unicast neighbor %s advertised-count\n' % (bgp_peer)
+
+                    if selected_bgp_peers:
+                        command_string += "!\n"
+                        collector2_cmds['cisco_xr'].append(command_string)
+
+                        rcmd2_outputs = RCMD.run_commands(collector2_cmds, \
+                            autoconfirm_mode = True, multiline_mode = True,\
+                            long_lasting_mode = True, printall = printall)
+
+
+                        for bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                            if not device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME'):
+                                ### PARSING TRICK -1 last occurance of string ###
+                                try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(rcmd2_outputs[0].split('show bgp neighbor %s' % (bgp_peer))[-1].split('No of prefixes Advertised:')[1].split()[0])
+                                except: pass
+                                try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(rcmd2_outputs[0].split('show bgp vpnv4 unicast neighbor %s' % (bgp_peer))[-1].split('No of prefixes Advertised:')[1].split()[0])
+                                except: pass
+
+
+                ### def CMD3 XR GROUP-WRITING ###
+                if RCMD.router_type == 'cisco_xr':
+                    collector3_cmds = {
+                        'cisco_ios':[
+                                    ],
+
+                        'cisco_xr': [
+                                    ],
+
+                        'juniper':  [
+                                    ],
+
+                        'huawei':   [
+                                    ]
+                    }
+
+                    selected_bgp_peers = None
+                    command_string = "!\n"
+
+                    for bgp_peer in device_data['IPV6_bgp_peers'].keys():
+                        if not device_data['IPV6_bgp_peers'][bgp_peer].get('VRF_NAME'):
+
+                            selected_bgp_peers = True
+
+                            if LOCAL_AS_NUMBER == OTI_LOCAL_AS:
+                                command_string += 'show bgp neighbor %s advertised-count\n' % (bgp_peer)
+
+                            elif LOCAL_AS_NUMBER == IMN_LOCAL_AS:
+                                 command_string += 'show bgp vpnv6 unicast neighbor %s advertised-count\n' % (bgp_peer)
+
+                    if selected_bgp_peers:
+                        command_string += "!\n"
+                        collector3_cmds['cisco_xr'].append(command_string)
+
+                        rcmd3_outputs = RCMD.run_commands(collector3_cmds, \
+                            autoconfirm_mode = True, multiline_mode = True,\
+                            long_lasting_mode = True, printall = printall)
+
+                        for bgp_peer in device_data['IPV6_bgp_peers'].keys():
+                            if not device_data['IPV6_bgp_peers'][bgp_peer].get('VRF_NAME'):
+                                ### PARSING TRICK -1 last occurance of string ###
+                                try: device_data['IPV6_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(rcmd3_outputs[0].split('show bgp neighbor %s' % (bgp_peer))[-1].split('No of prefixes Advertised:')[1].split()[0])
+                                except: pass
+                                try: device_data['IPV6_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(rcmd3_outputs[0].split('show bgp vpnv6 unicast neighbor %s' % (bgp_peer))[-1].split('No of prefixes Advertised:')[1].split()[0])
+                                except: pass
+
+
+                ### def CMD4 XR GROUP-WRITING ###
+                if RCMD.router_type == 'cisco_xr':
+                    collector4_cmds = {
+                        'cisco_ios':[
+                                    ],
+
+                        'cisco_xr': [
+                                    ],
+
+                        'juniper':  [
+                                    ],
+
+                        'huawei':   [
+                                    ]
+                    }
+
+                    selected_bgp_peers = None
+                    command_string = "!\n"
+
+                    for bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                        if device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()):
+
+                            selected_bgp_peers = True
+
+                            command_string += 'show bgp vrf %s neighbor %s advertised-count\n' % \
+                                (device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()), bgp_peer)
+
+                    if selected_bgp_peers:
+                        command_string += "!\n"
+                        collector4_cmds['cisco_xr'].append(command_string)
+
+                        rcmd4_outputs = RCMD.run_commands(collector4_cmds, \
+                            autoconfirm_mode = True, multiline_mode = True,\
+                            long_lasting_mode = True, printall = printall)
+
+                        for bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                            if device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()):
+                                ### PARSING TRICK -1 last occurance of string ###
+                                try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(rcmd4_outputs[0].split('show bgp vrf %s neighbor %s' % (device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()),bgp_peer))[-1].split('No of prefixes Advertised:')[1].split()[0])
+                                except: pass
 
 
                 ###################################################################
