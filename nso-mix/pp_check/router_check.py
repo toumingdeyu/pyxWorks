@@ -1017,7 +1017,6 @@ def run_bgp_prefixes_checker(logfilename = None):
             ' --password %s' % (PASSWORD) + \
             ' --precheck' if pre_post == 'pre' else ' --postcheck' + \
             ' --prefile %s' % (precheck_file) if precheck_file else str() + \
-            ' --postfile %s' % (postcheck_file) if postcheck_file else str() + \
             ' --latest' if args.latest else str()
 
     else:
