@@ -1006,7 +1006,7 @@ def run_bgp_prefixes_checker(append_filename = None):
 
     path_to_file = '/usr/local/bin/bgp_prefixes_checker.py'
 
-    path_to_file = './bgp_prefixes_checker.py'
+    #path_to_file = './bgp_prefixes_checker.py'
 
     if not args.recheck:
         command_string = '%s%s%s%s%s%s%s%s%s' % \
@@ -1034,8 +1034,7 @@ def run_bgp_prefixes_checker(append_filename = None):
             ' --cpassword %s' % (CPASSWORD) \
             )
 
-    print(command_string)
-
+    ###print(command_string)
     os.system(command_string)
 
 
