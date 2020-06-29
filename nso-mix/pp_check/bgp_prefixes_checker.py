@@ -2902,11 +2902,9 @@ authentication {
     last_precheck_file, last_postcheck_file = None, None
     bgp_precheck_data = {}
     if postcheck_mode or recheck_mode:
-        if CGI_CLI.data.get("prefile",str()):
-            last_precheck_file = CGI_CLI.data.get("prefile",str())
 
-        if CGI_CLI.data.get("postfile",str()):
-            last_postcheck_file = CGI_CLI.data.get("postfile",str())
+        last_precheck_file = CGI_CLI.data.get("precheck_file",str())
+        last_postcheck_file = CGI_CLI.data.get("postcheck_file",str())
 
         if not last_precheck_file and CGI_CLI.data.get("append_logfile",str()) and 'post' in CGI_CLI.data.get("append_logfile",str()):
             ### FIND PRECHECK FROM POSTCHECK LIKE IN ROUTER_CHECK #############
@@ -2936,7 +2934,7 @@ authentication {
         if last_precheck_file: CGI_CLI.uprint('PRECHECK FILE: %s' % (last_precheck_file), printall = True)
         else: sys.exit(0)
         bgp_precheck_data = read_bgp_data_json_from_logfile(last_precheck_file, separator ='_bgp_device_data', printall = printall)
-        if bgp_precheck_data and len(bgp_precheck_data.keys()) > 0: CGI_CLI.uprint('PRECHECK DATA READ OK.', printall = True)
+        if bool(bgp_precheck_data): CGI_CLI.uprint('PRECHECK DATA READ OK.', printall = True)
 
         CGI_CLI.uprint('\n', no_printall = not CGI_CLI.printall)
         CGI_CLI.uprint(bgp_precheck_data, name = '%s_bgp_precheck_data' % ('_'.join(device_list).upper()), jsonprint = True, \
@@ -2946,7 +2944,7 @@ authentication {
         if last_postcheck_file:
             CGI_CLI.uprint('POSTCHECK FILE: %s' % (last_postcheck_file), printall = True)
             device_data = read_bgp_data_json_from_logfile(last_postcheck_file, separator ='_bgp_device_data', printall = printall)
-            if len(device_data.keys()) > 0: CGI_CLI.uprint('POSTCHECK DATA READ OK.', printall = True)
+            if bool(device_data): CGI_CLI.uprint('POSTCHECK DATA READ OK.', printall = True)
 
 
 
@@ -3524,7 +3522,7 @@ authentication {
             else:
                 CGI_CLI.uprint('BGP POSTCHECKS:', tag = 'h2', printall = True)
 
-                if len(bgp_precheck_data.keys()) > 0:
+                if bool(bgp_precheck_data):
                     check_bgp_peers_postcheck(bgp_peers_string = 'IPV4_bgp_peers', percentage_tolerance = 3)
                     check_bgp_peers_postcheck(bgp_peers_string = 'IPV6_bgp_peers', percentage_tolerance = 3)
 
