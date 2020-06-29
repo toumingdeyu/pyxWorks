@@ -522,6 +522,7 @@ class CGI_CLI(object):
                     elif 'GREY' in color.upper():    text_color = CGI_CLI.bcolors.GREY
                     elif 'GRAY' in color.upper():    text_color = CGI_CLI.bcolors.GREY
                     elif 'YELLOW' in color.upper():  text_color = CGI_CLI.bcolors.YELLOW
+                    elif 'ORANGE' in color.upper():  text_color = CGI_CLI.bcolors.YELLOW
 
                 if tag == 'warning': text_color = CGI_CLI.bcolors.YELLOW
                 if tag == 'debug': text_color = CGI_CLI.bcolors.CYAN
