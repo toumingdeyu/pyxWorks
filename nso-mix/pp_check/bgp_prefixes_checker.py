@@ -97,6 +97,9 @@ class CGI_CLI(object):
         parser.add_argument("--password",
                             action = "store", dest = 'password', default = str(),
                             help = "specify router password (test only...)")
+        parser.add_argument("--cpassword", default = str(),
+                            action = "store", dest = 'cpassword',
+                            help = "specify router user cpassword")
         parser.add_argument("--getpass",
                             action = "store_true", dest = 'getpass', default = None,
                             help = "forced to insert router password interactively getpass.getpass()")
@@ -165,6 +168,7 @@ class CGI_CLI(object):
         try: CGI_CLI.sys_stdout_encoding = sys.stdout.encoding
         except: CGI_CLI.sys_stdout_encoding = None
         if not CGI_CLI.sys_stdout_encoding: CGI_CLI.sys_stdout_encoding = 'UTF-8'
+        CGI_CLI.USERNAME, CGI_CLI.PASSWORD = None, None
         CGI_CLI.result_tag = 'h3'
         CGI_CLI.result_list = []
         CGI_CLI.self_buttons = ['OK','STOP']
@@ -194,8 +198,8 @@ class CGI_CLI(object):
                 not variable in ["username", "password"]:
                 CGI_CLI.data[variable] = value
             if variable == "submit": CGI_CLI.submit_form = value
-            if variable == "username": CGI_CLI.username = value
-            if variable == "password": CGI_CLI.password = value
+            if variable == "username": CGI_CLI.USERNAME = value
+            if variable == "password": CGI_CLI.PASSWORD = value
 
             ### SET CHUNKED MODE BY CGI #######################################
             if variable == "chunked_mode":
@@ -234,6 +238,8 @@ class CGI_CLI(object):
                 if variable and \
                     not variable in ["username", "password"]:
                     CGI_CLI.data[variable] = value
+                if variable == "username": CGI_CLI.USERNAME = value
+                if variable == "password": CGI_CLI.PASSWORD = value
 
         ### CGI_CLI.data PARSER ###############################################
         for key in CGI_CLI.data.keys():
@@ -245,8 +251,8 @@ class CGI_CLI(object):
             elif variable == "printall":
                 CGI_CLI.printall = True
             if variable == "timestamp" and value: CGI_CLI.timestamp = True
-            if variable == "cusername": CGI_CLI.username = value.decode('base64','strict')
-            if variable == "cpassword": CGI_CLI.password = value.decode('base64','strict')
+            if variable == "cusername": CGI_CLI.USERNAME = value.decode('base64','strict')
+            if variable == "cpassword": CGI_CLI.PASSWORD = value.decode('base64','strict')
 
         ### HTML PRINTING START ###############################################
         if CGI_CLI.cgi_active:
@@ -267,23 +273,20 @@ class CGI_CLI(object):
         ### REGISTER CLEANUP FUNCTION #########################################
         import atexit; atexit.register(CGI_CLI.__cleanup__)
         ### GAIN USERNAME AND PASSWORD FROM ENVIRONMENT BY DEFAULT ############
-        try:    CGI_CLI.PASSWORD        = os.environ['NEWR_PASS']
-        except: CGI_CLI.PASSWORD        = str()
-        try:    CGI_CLI.USERNAME        = os.environ['NEWR_USER']
-        except: CGI_CLI.USERNAME        = str()
+        if not CGI_CLI.PASSWORD:
+            try:    CGI_CLI.PASSWORD        = os.environ['NEWR_PASS']
+            except: CGI_CLI.PASSWORD        = str()
+        if not CGI_CLI.USERNAME:    
+            try:    CGI_CLI.USERNAME        = os.environ['NEWR_USER']
+            except: CGI_CLI.USERNAME        = str()
         ### GAIN/OVERWRITE USERNAME AND PASSWORD FROM CLI ###
-        if CGI_CLI.args.password: CGI_CLI.password = CGI_CLI.args.password
-        if CGI_CLI.args.username:
-            CGI_CLI.USERNAME = CGI_CLI.args.username
-            if not CGI_CLI.args.password and not CGI_CLI.cgi_active:
-                CGI_CLI.PASSWORD = getpass.getpass("TACACS password: ")
-                getpass_done = True
-        ### FORCE GAIN/OVERWRITE USERNAME AND PASSWORD FROM CLI GETPASS #######
-        if CGI_CLI.args.getpass and not getpass_done and not CGI_CLI.cgi_active:
+        getpass_done = None
+        if not CGI_CLI.PASSWORD and not CGI_CLI.cgi_active:
             CGI_CLI.PASSWORD = getpass.getpass("TACACS password: ")
-        ### GAIN/OVERWRITE USERNAME AND PASSWORD FROM CGI ###
-        if CGI_CLI.username: CGI_CLI.USERNAME = CGI_CLI.username
-        if CGI_CLI.password: CGI_CLI.PASSWORD = CGI_CLI.password
+            getpass_done = True
+        ### FORCE GAIN/OVERWRITE USERNAME AND PASSWORD FROM CLI GETPASS #######
+        if CGI_CLI.data.get('getpass') and not getpass_done and not CGI_CLI.cgi_active:
+            CGI_CLI.PASSWORD = getpass.getpass("TACACS password: ")
         ### WINDOWS DOES NOT SUPPORT LINUX COLORS - SO DISABLE IT #############
         if CGI_CLI.cgi_active or 'WIN32' in sys.platform.upper(): CGI_CLI.bcolors = CGI_CLI.nocolors
         CGI_CLI.cgi_save_files()

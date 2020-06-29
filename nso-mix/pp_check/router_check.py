@@ -1009,26 +1009,32 @@ def run_bgp_prefixes_checker(logfilename = None):
     path_to_file = './bgp_prefixes_checker.py'
 
     if not args.recheck:
-        command_string = path_to_file + \
-            ' --device %s' % (args.device.upper()) if args.device else str() + \
-            ' --append_logfile %s' % (logfilename) if logfilename else str() + \
-            ' --printall' if args.printall else str() + \
-            ' --username %s' % (USERNAME) + \
-            ' --password %s' % (PASSWORD) + \
-            ' --precheck' if pre_post == 'pre' else ' --postcheck' + \
-            ' --prefile %s' % (precheck_file) if precheck_file else str() + \
+        command_string = '%s%s%s%s%s%s%s%s%s' % \
+            (path_to_file, \
+            ' --device %s' % (args.device.upper()) if args.device else str(), \
+            ' --append_logfile %s' % (logfilename) if logfilename else str(), \
+            ' --printall' if args.printall else str(), \
+            ' --username %s' % (USERNAME), \
+            ' --cpassword %s' % (CPASSWORD), \
+            ' --precheck' if pre_post == 'pre' else ' --postcheck', \
+            ' --prefile %s' % (precheck_file) if precheck_file else str(), \
             ' --latest' if args.latest else str()
+            )
 
     else:
-        command_string = path_to_file + \
-            ' --device %s' % (args.device.upper()) if args.device else str() + \
-            ' --printall' if args.printall else str() + \
-            ' --username %s' % (USERNAME) + \
-            ' --password %s' % (PASSWORD) + \
-            ' --recheck' + \
-            ' --prefile %s' % (precheck_file) if precheck_file else str() + \
-            ' --postfile %s' % (postcheck_file) if postcheck_file else str() + \
-            ' --latest' if args.latest else str()
+        command_string = '%s%s%s%s%s%s%s%s%s' % \
+            (path_to_file, \
+            ' --device %s' % (args.device.upper()) if args.device else str(), \
+            ' --printall' if args.printall else str(), \
+            ' --username %s' % (USERNAME), \
+            ' --cpassword %s' % (CPASSWORD),\
+            ' --recheck', \
+            ' --prefile %s' % (precheck_file) if precheck_file else str(), \
+            ' --postfile %s' % (postcheck_file) if postcheck_file else str(), \
+            ' --latest' if args.latest else str() \
+            )
+
+    print(command_string)
 
     os.system(command_string)
 
@@ -1047,6 +1053,8 @@ def GET_VERSION(path_to_file = str(os.path.abspath(__file__))):
 # def BEGIN MAIN
 #
 ##############################################################################
+
+precheck_file, postcheck_file = None, None
 
 VERSION = GET_VERSION() #get_version_from_file_last_modification_date()
 
@@ -1186,6 +1194,11 @@ try: PARAMIKO_HOST = args.device.upper().split(':')[0]
 except: PARAMIKO_HOST = str()
 try: PARAMIKO_PORT = args.device.upper().split(':')[1]
 except: PARAMIKO_PORT = '22'
+
+CPASSWORD = '-'
+if PASSWORD:
+    CPASSWORD = str(PASSWORD).encode('base64','strict')
+
 
 ####### def Figure out type of router OS
 if not args.router_type:
@@ -1593,15 +1606,15 @@ if pre_post == "post" or args.recheck or args.postcheck_file:
     ### def BGP PREFIX CHECK DO NOT LOG IF RECHECK ############################
     print('\n')
     if args.recheck: run_isis_check()
-    else: run_bgp_prefixes_checker(logfilename)
+    else: run_bgp_prefixes_checker(postcheck_file)
 
     print('\n ==> POSTCHECK COMPLETE !')
+
 elif pre_post == "pre" and not args.recheck:
 
-    ### def BGP PREFIX CHECK DO NOT LOG IF RECHECK ############################
+    ### BGP PREFIX CHECK DO NOT LOG IF RECHECK ################################
     print('\n')
-    if args.recheck: run_isis_check()
-    else: run_bgp_prefixes_checker(logfilename)
+    run_bgp_prefixes_checker(precheck_file)
 
     print('\n ==> PRECHECK COMPLETE !')
 
