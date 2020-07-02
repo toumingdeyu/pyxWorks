@@ -276,7 +276,7 @@ class CGI_CLI(object):
         if not CGI_CLI.PASSWORD:
             try:    CGI_CLI.PASSWORD        = os.environ['NEWR_PASS']
             except: CGI_CLI.PASSWORD        = str()
-        if not CGI_CLI.USERNAME:    
+        if not CGI_CLI.USERNAME:
             try:    CGI_CLI.USERNAME        = os.environ['NEWR_USER']
             except: CGI_CLI.USERNAME        = str()
         ### GAIN/OVERWRITE USERNAME AND PASSWORD FROM CLI ###
@@ -1112,6 +1112,9 @@ class RCMD(object):
                     #auth_timeout = 10, \
                     timeout = RCMD.CONNECTION_TIMEOUT, \
                     look_for_keys = False)
+
+                ### FIX - https://github.com/paramiko/paramiko/issues/175 ###
+                RCMD.client.get_transport().window_size = 2147483647
 
                 if CGI_CLI.timestamp and not RCMD.silent_mode:
                     CGI_CLI.uprint('RCMD.connect - after RCMD.client.connect.\n', \
@@ -2470,7 +2473,10 @@ def parse_cisco_xr_cmd_output1(cmd_output = None):
 
                 find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
                 if len(find_ip) == 1 and vfr_name:
-                    device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['VRF_NAME'] = copy.deepcopy(vfr_name)
+                    if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                        device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                    device_data['IPV4_bgp_peers'][bgp_peer]['VRF_NAME'] = copy.deepcopy(vfr_name)
 
                     try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(bgp_section.split('accepted prefixes')[0].split()[-1])
                     except: pass
@@ -2490,7 +2496,10 @@ def parse_cisco_xr_cmd_output1(cmd_output = None):
                     except: pass
 
                 elif ':' in bgp_peer and doubledots_in_bgp_peer >= 3:
-                    device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['VRF_NAME'] = copy.deepcopy(vfr_name)
+                    if not bgp_peer in device_data['IPV6_bgp_peers'].keys():
+                        device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                    device_data['IPV6_bgp_peers'][bgp_peer]['VRF_NAME'] = copy.deepcopy(vfr_name)
 
                     try: device_data['IPV6_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(bgp_section.split('accepted prefixes')[0].split()[-1])
                     except: pass
