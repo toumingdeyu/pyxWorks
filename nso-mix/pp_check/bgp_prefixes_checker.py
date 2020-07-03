@@ -1609,10 +1609,11 @@ class RCMD(object):
 
             elif long_lasting_mode:
                 ### KEEPALIVE CONNECTION, DEFAULT 300sec TIMEOUT ##############
-                if not command_counter_100msec % 100 and CGI_CLI.cgi_active:
-                    CGI_CLI.uprint("<script>console.log('10s...');</script>", \
-                        raw = True)
-                    CGI_CLI.logtofile('[+10sec_MARK]\n')
+                if not command_counter_100msec % 100:
+                    if CGI_CLI.cgi_active:
+                        CGI_CLI.uprint("<script>console.log('10s...');</script>", \
+                            raw = True)
+                        CGI_CLI.logtofile('[+10sec_MARK]\n')
 
                     ### printall or RCMD.printall
                     if not CGI_CLI.printall and not RCMD.silent_mode:
