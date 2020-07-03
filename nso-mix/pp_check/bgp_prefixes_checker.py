@@ -1522,18 +1522,10 @@ class RCMD(object):
 
         ### MAIN WHILE LOOP ###################################################
         while not exit_loop:
-            if not chan.recv_ready():
-                ### NOT RECEIVED ANY DATA #####################################
-                buff_read = str()
-                time.sleep(0.1)
-                no_rx_data_counter_100msec += 1
-                command_counter_100msec    += 1
-                if after_enter_counter_100msec:
-                    after_enter_counter_100msec += 1
-                if multiline_mode: no_multiline_traffic_counter_100msec += 1
-            else:
-                if multiline_mode: no_multiline_traffic_counter_100msec = 0
+            if chan.recv_ready() or chan.recv_stderr_ready():
                 ### RECEIVED DATA IMMEDIATE ACTIONS ###########################
+                ### https://stackoverflow.com/questions/57615182/paramiko-why-is-reading-so-slow ###
+                if multiline_mode: no_multiline_traffic_counter_100msec = 0
                 no_rx_data_counter_100msec = 0
                 buff = chan.recv(RCMD.rx_buffer_size)
 
@@ -1585,6 +1577,17 @@ class RCMD(object):
                             break
 
                 if exit_loop: break
+            else:
+                ### NOT RECEIVED ANY DATA #####################################
+                buff_read = str()
+                time.sleep(0.1)
+                no_rx_data_counter_100msec += 1
+                command_counter_100msec    += 1
+                if after_enter_counter_100msec:
+                    after_enter_counter_100msec += 1
+                if multiline_mode: no_multiline_traffic_counter_100msec += 1
+            ###################################################################
+
 
             ### PROMPT IN LAST LINE = PROPER END OF COMMAND ###############
             if not multiline_mode or multiline_mode and no_multiline_traffic_counter_100msec > 30:
