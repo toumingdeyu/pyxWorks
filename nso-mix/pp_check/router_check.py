@@ -1126,6 +1126,11 @@ parser.add_argument("--bgp",
                     default = False,
                     dest = 'bgp_prefix_check_only',
                     help = "do bgp prefixes check only")
+parser.add_argument("--nobgpcheck",
+                    action = "store_true",
+                    default = False,
+                    dest = 'nobgpcheck',
+                    help = "ommit bgp prefixes check")
 parser.add_argument("--custom",
                     action = "store_true",
                     default = False,
@@ -1617,7 +1622,7 @@ if pre_post == "post" or args.recheck or args.postcheck_file:
     ### def BGP PREFIX CHECK DO NOT LOG IF RECHECK ############################
     print('\n')
     if args.recheck: run_isis_check()
-    else: run_bgp_prefixes_checker(filename)
+    elif not args.nobgpcheck: run_bgp_prefixes_checker(filename)
 
     print('\n ==> POSTCHECK COMPLETE !')
 
@@ -1625,7 +1630,7 @@ elif pre_post == "pre" and not args.recheck:
 
     ### BGP PREFIX CHECK DO NOT LOG IF RECHECK ################################
     print('\n')
-    run_bgp_prefixes_checker(filename)
+    if not args.nobgpcheck: run_bgp_prefixes_checker(filename)
 
     print('\n ==> PRECHECK COMPLETE !')
 
