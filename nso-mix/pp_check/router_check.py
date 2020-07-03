@@ -1136,6 +1136,11 @@ parser.add_argument("--custom",
                     default = False,
                     dest = 'custom_check_only',
                     help = "do custom (bgp commands) check only")
+parser.add_argument("--nocustom",
+                    action = "store_true",
+                    default = False,
+                    dest = 'no_custom_check',
+                    help = "ommit custom (bgp commands)")
 args = parser.parse_args()
 
 if args.emailaddr:
@@ -1175,6 +1180,7 @@ if not args.device:
     sys.exit(0)
 
 custom_check_only = True if args.custom_check_only else False
+no_custom_check = True if args.no_custom_check else False
 
 # SET WORKING DIRECTORY
 try:    WORKDIR         = os.path.join(os.environ['HOME'],'logs')
@@ -1291,7 +1297,7 @@ if args.cmd_file:
         fp_cmd.close
 
 ### def CUSTOM CHECK LIST CREATION ###
-if custom_check_only:
+if custom_check_only and not no_custom_check:
     if router_type == "ios-xe":
         cmd_position = 0
         for router_cmd in CMD_IOS_XE:
@@ -1313,8 +1319,33 @@ if custom_check_only:
             if cmd_position in CUSTOM_LIST_VRP: list_cmd.append(copy.deepcopy(router_cmd))
             cmd_position += 1
 
+elif not custom_check_only and no_custom_check:
+    if router_type == "ios-xe":
+        cmd_position = 0
+        for router_cmd in CMD_IOS_XE:
+            if not cmd_position in CUSTOM_LIST_IOS_XE: list_cmd.append(copy.deepcopy(router_cmd))
+            cmd_position += 1
+    elif router_type == "ios-xr":
+        cmd_position = 0
+        for router_cmd in CMD_IOS_XR:
+            if not cmd_position in CUSTOM_LIST_IOS_XR: list_cmd.append(copy.deepcopy(router_cmd))
+            cmd_position += 1
+    elif router_type == "junos":
+        cmd_position = 0
+        for router_cmd in CMD_JUNOS:
+            if not cmd_position in CUSTOM_LIST_JUNOS: list_cmd.append(copy.deepcopy(router_cmd))
+            cmd_position += 1
+    elif router_type == "vrp":
+        cmd_position = 0
+        for router_cmd in CMD_VRP:
+            if not cmd_position in CUSTOM_LIST_VRP: list_cmd.append(copy.deepcopy(router_cmd))
+            cmd_position += 1
+
+
 if custom_check_only:
     filename_prefix = os.path.join(WORKDIR,args.device.upper().replace(':','_').replace('.','_') + '-custom')
+elif no_custom_check:
+    filename_prefix = os.path.join(WORKDIR,args.device.upper().replace(':','_').replace('.','_') + '-nocustom')
 else:
     filename_prefix = os.path.join(WORKDIR,args.device.upper().replace(':','_').replace('.','_'))
 
