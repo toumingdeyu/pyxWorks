@@ -260,7 +260,7 @@ class CGI_CLI(object):
             if variable == "cpassword": CGI_CLI.PASSWORD = value.decode('base64','strict')
 
         ### HTML PRINTING START ###############################################
-        if CGI_CLI.cgi_active:
+        if CGI_CLI.cgi_active and not CGI_CLI.json_api:
             sys.stdout.write("%s%s%s" %
                 (CGI_CLI.chunked_transfer_encoding_line,
                 CGI_CLI.content_type_line,
@@ -275,6 +275,14 @@ class CGI_CLI(object):
                 title_string, \
                 '<style>%s</style>' % (CGI_CLI.CSS_STYLE) if CGI_CLI.CSS_STYLE else str()),\
                 ommit_logging = True, printall = True)
+        ### JSON API PRINTING START ###########################################                
+        elif CGI_CLI.json_api:
+            sys.stdout.write("%s%s%s" %
+                (CGI_CLI.chunked_transfer_encoding_line,
+                CGI_CLI.content_type_line,
+                CGI_CLI.status_line))
+            sys.stdout.flush()
+        
         ### REGISTER CLEANUP FUNCTION #########################################
         import atexit; atexit.register(CGI_CLI.__cleanup__)
         ### GAIN USERNAME AND PASSWORD FROM ENVIRONMENT BY DEFAULT ############
@@ -422,7 +430,7 @@ class CGI_CLI(object):
         raw_log = raw logging
         """
         if msg:
-            if printall:
+            if printall and not CGI_CLI.json_api:
                 ### sys.stdout.write is printing without \n, print adds \n == +1BYTE ##
                 if CGI_CLI.chunked and CGI_CLI.cgi_active:
                     if len(msg)>0:
@@ -437,6 +445,28 @@ class CGI_CLI(object):
                         print(msg)
             if not ommit_logging: CGI_CLI.logtofile(msg = msg, raw_log = raw_log, \
                                       ommit_timestamp = True)
+
+    @staticmethod
+    def uprint_json(msg = None, raw_log = None, sort_keys = None,\
+        ommit_logging = None, printall = None):
+
+        print_text = None
+        if msg: 
+            if isinstance(msg, (dict,collections.OrderedDict,list,tuple)):
+                try: print_text = str(json.dumps(msg, indent = 2, sort_keys = sort_keys))
+                except Exception as e:
+                    CGI_CLI.print_chunk('JSON_PROBLEM[' + str(e) + ']', printall = printall_yes)
+        
+            if print_text:        
+                print(print_text)
+                if not ommit_logging: CGI_CLI.logtofile(msg = print_text, raw_log = raw_log, \
+                                          ommit_timestamp = True)
+            else:                              
+                print(msg)
+                if not ommit_logging: CGI_CLI.logtofile(msg = msg, raw_log = raw_log, \
+                                          ommit_timestamp = True)
+
+        
 
     @staticmethod
     def uprint(text = None, tag = None, tag_id = None, color = None, name = None, jsonprint = None, \
