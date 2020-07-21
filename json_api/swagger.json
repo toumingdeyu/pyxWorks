@@ -2,10 +2,10 @@
   "swagger": "2.0",
   "info": {
     "version": "1.0",
-    "title": "Traffico",
+    "title": "json_api",
     "contact": {}
   },
-  "host": "10.253.58.126",
+  "host": "192.168.122.254",
   "basePath": "/cgi-bin",
   "schemes": [
     "https"
@@ -19,11 +19,11 @@
   "paths": {
     "/traffico.py": {
       "get": {
-        "summary": "https://10.253.58.126/cgi-bin/json_api.py?device={device}&username={username}&password={password}&radio={shut}",
+        "summary": "https://192.168.122.254/cgi-bin/json_api.py?device={device}&username={username}&password={password}&radio={shut}",
         "tags": [
           "Misc"
         ],
-        "operationId": "https://10.253.58.126/cgi-bin/json_api.py?device={device}&username={username}&password={password}&radio={shut}",
+        "operationId": "https://192.168.122.254/cgi-bin/json_api.py?device={device}&username={username}&password={password}&radio={shut}",
         "deprecated": false,
         "produces": [
           "application/json"
