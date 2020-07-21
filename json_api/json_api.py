@@ -2493,7 +2493,7 @@ th {
 USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = None, css_style = None, json_api = True)
 
 CGI_CLI.JSON_RESULTS['inputs'] = str(CGI_CLI.print_args(ommit_print = True))
-CGI_CLI.JSON_RESULTS['success'] = True
+CGI_CLI.JSON_RESULTS['success'] = 'OK'
 CGI_CLI.JSON_RESULTS['logfile'] = 'No logfile.'
 CGI_CLI.JSON_RESULTS['errors'] = str()
 
