@@ -1,0 +1,103 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "1.0",
+    "title": "Traffico",
+    "contact": {}
+  },
+  "host": "10.253.58.126",
+  "basePath": "/cgi-bin",
+  "schemes": [
+    "https"
+  ],
+  "consumes": [
+    "application/vnd.api+json"
+  ],
+  "produces": [
+    "application/vnd.api+json"
+  ],
+  "paths": {
+    "/traffico.py": {
+      "get": {
+        "summary": "https://10.253.58.126/cgi-bin/json_api.py?device={device}&username={username}&password={password}&radio={shut}",
+        "tags": [
+          "Misc"
+        ],
+        "operationId": "https://10.253.58.126/cgi-bin/json_api.py?device={device}&username={username}&password={password}&radio={shut}",
+        "deprecated": false,
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "device",
+            "in": "query",
+            "required": true,
+            "type": "string",
+            "description": ""
+          },
+          {
+            "name": "username",
+            "in": "query",
+            "required": true,
+            "type": "string",
+            "description": ""
+          },
+          {
+            "name": "password",
+            "in": "query",
+            "required": true,
+            "type": "string",
+            "description": ""
+          },
+          {
+            "name": "radio",
+            "in": "query",
+            "required": true,
+            "type": "string",
+            "description": "shut or noshut"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Script result.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "inputs": {
+                  "type": "string",
+                  "example": "..."
+                },
+                "success": {
+                  "type": "string",
+                  "example": "OK / NOT OK / WARNING"
+                },
+                "logfile": {
+                  "type": "string",
+                  "example": "logfile name"
+                },
+                "errors": {
+                  "type": "string",
+                  "example": "errors if occurs"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Script failure."
+          },
+          "default": {
+            "description": "Unexpected error",
+            "headers": {}
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Misc",
+      "description": ""
+    }
+  ]
+}
