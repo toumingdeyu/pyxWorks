@@ -3346,8 +3346,11 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
                 try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['bundle id'] = copy.deepcopy(lag_data_outputs[0].split('bundle id')[1].split()[0])
                 except: pass
 
-                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['mode active'] = True if 'mode active' in lag_data_outputs[0] else str()
-                except: pass
+                #try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['mode active'] = True if 'mode active' in lag_data_outputs[0] else str()
+                #except: pass
+
+                try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['mode'] = lag_data_outputs[0].split('bundle id')[1].split(' mode ')[1].strip()
+                except: interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['mode'] = str()
 
                 try:    interface_data['interface_data']['LAG_interfaces']['%s' % (str(lag_member))]['is'] = copy.deepcopy(lag_data_outputs[1].split(', line protocol is')[0].split()[-1])
                 except: pass
