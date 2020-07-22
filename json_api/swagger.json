@@ -17,7 +17,7 @@
     "application/vnd.api+json"
   ],
   "paths": {
-    "/traffico.py": {
+    "/json_api.py": {
       "get": {
         "summary": "https://192.168.122.254/cgi-bin/json_api.py?device={device}&username={username}&password={password}&radio={shut}",
         "tags": [
