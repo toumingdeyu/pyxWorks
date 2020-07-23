@@ -11,10 +11,10 @@
     "https"
   ],
   "consumes": [
-    "application/vnd.api+json"
+    "application/json"
   ],
   "produces": [
-    "application/vnd.api+json"
+    "application/json"
   ],
   "paths": {
     "/json_api.py": {
