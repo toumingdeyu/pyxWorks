@@ -6244,6 +6244,14 @@ authentication {
                             check_warning_interface_result_ok = False
                         else: CGI_CLI.logtofile('Rx Traffic on Interface %s is %.2f%% = OK\n' % (interface_id, interface_warning_data['interface_statistics'].get('rxload_percent')), ommit_timestamp = True)
 
+                    ### CRC WARNINGS #########################################
+                    check_interface_data_content("['interface_statistics']['CRC']", exact_value_yes = '0', ignore_data_existence = True, warning = True)
+                    check_interface_data_content("['interface_statistics']['Overrun']", exact_value_yes = '0', ignore_data_existence = True, warning = True)
+                    check_interface_data_content("['interface_statistics']['Lost']", exact_value_yes = '0', ignore_data_existence = True, warning = True)
+                    check_interface_data_content("['interface_statistics']['Overflow']", exact_value_yes = '0', ignore_data_existence = True, warning = True)
+                    check_interface_data_content("['interface_statistics']['Underrun']", exact_value_yes = '0', ignore_data_existence = True, warning = True)
+
+
                 ### def BB - REMOTE DEVICE CHECK #############################
                 if BB_MODE:
                     check_interface_data_content("['interface_data']['name_of_remote_device_from_description']", what_not_in = device)
