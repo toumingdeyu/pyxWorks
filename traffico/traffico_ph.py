@@ -244,7 +244,7 @@ class CGI_CLI(object):
                 variable = str(key)
                 try: value = cli_data.get(variable)
                 except: value = None
-                if variable and \
+                if variable and value and \
                     not variable in ["username", "password"]:
                     CGI_CLI.data[variable] = value
                 if variable == "username": CGI_CLI.USERNAME = value
