@@ -298,11 +298,11 @@ class CGI_CLI(object):
             except: CGI_CLI.USERNAME        = str()
         ### GAIN/OVERWRITE USERNAME AND PASSWORD FROM CLI ###
         getpass_done = None
-        if not CGI_CLI.PASSWORD and not CGI_CLI.cgi_active:
+        if not CGI_CLI.PASSWORD and not CGI_CLI.cgi_active and not CGI_CLI.json_api:
             CGI_CLI.PASSWORD = getpass.getpass("TACACS password: ")
             getpass_done = True
         ### FORCE GAIN/OVERWRITE USERNAME AND PASSWORD FROM CLI GETPASS #######
-        if CGI_CLI.data.get('getpass') and not getpass_done and not CGI_CLI.cgi_active:
+        if CGI_CLI.data.get('getpass') and not getpass_done and not CGI_CLI.cgi_active and not CGI_CLI.json_api:
             CGI_CLI.PASSWORD = getpass.getpass("TACACS password: ")
         ### WINDOWS DOES NOT SUPPORT LINUX COLORS - SO DISABLE IT #############
         if CGI_CLI.cgi_active or 'WIN32' in sys.platform.upper(): CGI_CLI.bcolors = CGI_CLI.nocolors
@@ -469,7 +469,7 @@ class CGI_CLI(object):
                 print(msg)
                 if not ommit_logging: CGI_CLI.logtofile(msg = msg, raw_log = raw_log, \
                                           ommit_timestamp = True)
-        CGI_CLI.uprint_json_results_printed = True                                  
+        CGI_CLI.uprint_json_results_printed = True
 
 
     @staticmethod
@@ -2513,7 +2513,7 @@ try:
     CGI_CLI.logtofile('\n')
 
     ### LAST RED ASKING MESSAGE BEFORE ACTION ###
-    if CGI_CLI.cgi_active or CGI_CLI.data.get("show_config_only"): pass
+    if CGI_CLI.cgi_active or CGI_CLI.json_api or CGI_CLI.data.get("show_config_only"): pass
     else:
         if SCRIPT_ACTION == 'shut':
             if not 'WIN32' in sys.platform.upper():
@@ -2974,7 +2974,7 @@ if logfilename:
         CGI_CLI.uprint('<br/>', raw = True)
     else:
         CGI_CLI.uprint(' ==> File %s created.\n\n' % (logfilename))
-    CGI_CLI.uprint_json_results(CGI_CLI.JSON_RESULTS)    
+    CGI_CLI.uprint_json_results(CGI_CLI.JSON_RESULTS)
 
 
 ### SEND EMAIL WITH LOGFILE ###################################################
