@@ -2955,11 +2955,14 @@ try:
                 CGI_CLI.uprint(device_data, name = True, jsonprint = True, \
                     color = 'blue', timestamp = 'no', no_printall = not printall)
 
+                if len(CGI_CLI.JSON_RESULTS['errors']) == 0: CGI_CLI.JSON_RESULTS['success'] = 'OK'
+ 
 except SystemExit: pass
 except:
     traceback_found = traceback.format_exc()
     CGI_CLI.uprint(str(traceback_found), tag = 'h3', color = 'magenta')
 
+if len(CGI_CLI.JSON_RESULTS['errors']) > 0: CGI_CLI.JSON_RESULTS['success'] = 'NOT OK'
 
 ### WRITE FILE LINK AND CLOSE GLOBAL LOGFILE ##################################
 if logfilename:
@@ -2974,7 +2977,8 @@ if logfilename:
         CGI_CLI.uprint('<br/>', raw = True)
     else:
         CGI_CLI.uprint(' ==> File %s created.\n\n' % (logfilename))
-    CGI_CLI.uprint_json_results(CGI_CLI.JSON_RESULTS)
+
+CGI_CLI.uprint_json_results(CGI_CLI.JSON_RESULTS)
 
 
 ### SEND EMAIL WITH LOGFILE ###################################################
