@@ -106,22 +106,6 @@ class CGI_CLI(object):
                             action = "store", dest = 'device',
                             default = str(),
                             help = "target router to access. For now supports only 1.")
-        parser.add_argument("--shut",
-                            action = 'store_true', dest = "shut",
-                            default = None,
-                            help = "switch-off bgp traffic")
-        parser.add_argument("--noshut",
-                            action = 'store_true', dest = "noshut",
-                            default = None,
-                            help = "switch-on bgp traffic")
-        parser.add_argument("--sim",
-                            action = "store_true", dest = 'sim',
-                            default = None,
-                            help = "config simulation mode")
-        parser.add_argument("--cfg",
-                            action = "store_true", dest = 'show_config_only',
-                            default = None,
-                            help = "show config only, do not push data to device")
         parser.add_argument("--send_email",
                             action = "store_true", dest = 'send_email', default = None,
                             help = "send email with test result logs")
@@ -203,6 +187,7 @@ class CGI_CLI(object):
             if variable == "submit": CGI_CLI.submit_form = value
             if variable == "username": CGI_CLI.USERNAME = value
             if variable == "password": CGI_CLI.PASSWORD = value
+            if variable == "cpassword": CGI_CLI.PASSWORD = value.decode('base64','strict')
 
             ### SET CHUNKED MODE BY CGI #######################################
             if variable == "chunked_mode":
@@ -232,9 +217,10 @@ class CGI_CLI(object):
                 if variable and value and \
                     not variable in ["username", "password"]:
                     CGI_CLI.data[variable] = value
-                if variable == "username": CGI_CLI.USERNAME = value
-                if variable == "password": CGI_CLI.PASSWORD = value
-                if variable == "cli" and value == True: CGI_CLI.json_api = False
+                if variable == "username" and value: CGI_CLI.USERNAME = value
+                if variable == "password" and value: CGI_CLI.PASSWORD = value
+                if variable == "cpassword" and value: CGI_CLI.PASSWORD = value.decode('base64','strict')
+                if variable == "cli" and value: CGI_CLI.json_api = False
 
         ### CGI_CLI.data PARSER ###############################################
         for key in CGI_CLI.data.keys():
@@ -246,8 +232,9 @@ class CGI_CLI(object):
             elif variable == "printall":
                 CGI_CLI.printall = True
             if variable == "timestamp" and value: CGI_CLI.timestamp = True
-            if variable == "cusername": CGI_CLI.USERNAME = value.decode('base64','strict')
-            if variable == "cpassword": CGI_CLI.PASSWORD = value.decode('base64','strict')
+            if variable == "username" and value:  CGI_CLI.USERNAME = value
+            if variable == "cusername" and value: CGI_CLI.USERNAME = value.decode('base64','strict')
+            if variable == "cpassword" and value: CGI_CLI.PASSWORD = value.decode('base64','strict')
 
         ### TO BE PLACED - BEFORE HEADER ######################################
         CGI_CLI.newline = '\r\n' if not newline else newline
