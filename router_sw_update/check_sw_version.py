@@ -1845,7 +1845,7 @@ class RCMD(object):
         if host:
             SNMP_COMMUNITY = 'qLqVHPZUNnGB'            
             ### ... -t timeout_in_seconds -r number_of_attempts ###
-            snmp_req = "snmpget -v1 -c " + SNMP_COMMUNITY + " -t 2 -r 1" + host + " sysDescr.0"
+            snmp_req = "snmpget -v1 -c " + SNMP_COMMUNITY + " -t 2 -r 1 " + host + " sysDescr.0"
             #return_stream = os.popen(snmp_req)
             #retvalue = return_stream.readline()
 
