@@ -1843,8 +1843,9 @@ class RCMD(object):
     def snmp_find_router_type(host = None):
         router_os = None
         if host:
-            SNMP_COMMUNITY = 'qLqVHPZUNnGB'
-            snmp_req = "snmpget -v1 -c " + SNMP_COMMUNITY + " -t 5 " + host + " sysDescr.0"
+            SNMP_COMMUNITY = 'qLqVHPZUNnGB'            
+            ### ... -t timeout_in_seconds -r number_of_attempts ###
+            snmp_req = "snmpget -v1 -c " + SNMP_COMMUNITY + " -t 2 -r 1" + host + " sysDescr.0"
             #return_stream = os.popen(snmp_req)
             #retvalue = return_stream.readline()
 
@@ -2780,46 +2781,49 @@ try:
         CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
         exit_due_to_error = True
 
-    CGI_CLI.JSON_RESULTS['current_os_version'] = str()
-    CGI_CLI.JSON_RESULTS['current_smu_patch'] = str()
+    # CGI_CLI.JSON_RESULTS['current_os_version'] = str()
+    # CGI_CLI.JSON_RESULTS['current_smu_patch'] = str()
 
-    if exit_due_to_error: sys.exit(0)
+    # if exit_due_to_error: sys.exit(0)
 
 
-    ### def SQL INIT ##############################################################
-    sql_inst = sql_interface(host='localhost', user='cfgbuilder', \
-        password='cfgbuildergetdata', database='rtr_configuration')
+    # ### def SQL INIT ##############################################################
+    # sql_inst = sql_interface(host='localhost', user='cfgbuilder', \
+        # password='cfgbuildergetdata', database='rtr_configuration')
 
-    ### SQL READ ALL HARDVARE TYPES ###############################################
-    device_types_list_in_list = sql_inst.sql_read_table_records( \
-        select_string = 'hardware',\
-        from_string = 'oti_all_table',\
-        order_by = 'hardware')
+    # ### SQL READ ALL HARDVARE TYPES ###############################################
+    # device_types_list_in_list = sql_inst.sql_read_table_records( \
+        # select_string = 'hardware',\
+        # from_string = 'oti_all_table',\
+        # order_by = 'hardware')
 
-    ### SQL READ ALL DEVICES IN NETWORK ###########################################
-    data = collections.OrderedDict()
-    data['oti_all_table'] = sql_inst.sql_read_records_to_dict_list( \
-        select_string = 'vendor, hardware, software, rtr_name, network',\
-        from_string = 'oti_all_table',\
-        order_by = 'vendor, hardware, rtr_name ASC')
+    # ### SQL READ ALL DEVICES IN NETWORK ###########################################
+    # data = collections.OrderedDict()
+    # data['oti_all_table'] = sql_inst.sql_read_records_to_dict_list( \
+        # select_string = 'vendor, hardware, software, rtr_name, network',\
+        # from_string = 'oti_all_table',\
+        # order_by = 'vendor, hardware, rtr_name ASC')
 
+    CGI_CLI.JSON_RESULTS['target_SW_versions'] = ['653']
+    CGI_CLI.JSON_RESULTS['target_SW_files'] = ['harddisk:/IOS-XR/653/asr9k-iosxr-px-k9-6.5.3.OTI.tar']
+    CGI_CLI.JSON_RESULTS['target_SMU_files'] = ['harddisk:/IOS-XR/653/SMU/asr9k-iosxr-px-k9-6.5.3.']
 
     ### def REMOTE DEVICE OPERATIONS ##########################################
     for device in device_list:
         if device:
 
-            brand_raw, type_raw , brand_subdir, type_subdir = str(), str() , str(), str()
-            sw_file_types_list, type_subdir_on_device  = [], str()
-            for router_dict in data['oti_all_table']:
-                if device == router_dict.get('rtr_name',str()):
-                    brand_raw = router_dict.get('vendor',str())
-                    type_raw  = router_dict.get('hardware',str())
-                    brand_subdir, type_subdir,type_subdir_on_device, sw_file_types_list = \
-                        get_local_subdirectories(brand_raw = brand_raw, type_raw = type_raw)
-                    CGI_CLI.JSON_RESULTS['vendor'] = brand_raw
-                    CGI_CLI.JSON_RESULTS['hardware'] = type_raw
-                    CGI_CLI.JSON_RESULTS['type_subdir_on_device'] = type_subdir_on_device
-                    break
+            # brand_raw, type_raw , brand_subdir, type_subdir = str(), str() , str(), str()
+            # sw_file_types_list, type_subdir_on_device  = [], str()
+            # for router_dict in data['oti_all_table']:
+                # if device == router_dict.get('rtr_name',str()):
+                    # brand_raw = router_dict.get('vendor',str())
+                    # type_raw  = router_dict.get('hardware',str())
+                    # brand_subdir, type_subdir,type_subdir_on_device, sw_file_types_list = \
+                        # get_local_subdirectories(brand_raw = brand_raw, type_raw = type_raw)
+                    # CGI_CLI.JSON_RESULTS['vendor'] = brand_raw
+                    # CGI_CLI.JSON_RESULTS['hardware'] = type_raw
+                    # CGI_CLI.JSON_RESULTS['type_subdir_on_device'] = type_subdir_on_device
+                    # break
 
 
             ### DEVICE CONNECT ############################################
