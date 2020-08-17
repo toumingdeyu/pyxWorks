@@ -1,0 +1,26 @@
+
+@2020-08-17_15:53:53[0.24s] LOG_START:
+OS CHECKER (v.20.08.17_13:20)
+
+python[2.7.15]
+version[20.08.17_13:20], file[check_sw_version.py]
+CGI_CLI.USERNAME[pnemec], CGI_CLI.PASSWORD[Yes]
+remote_addr[], browser[]
+CGI_CLI.cgi_active[None], CGI_CLI.submit_form[], CGI_CLI.chunked[None]
+CLI_args = []
+CGI_CLI.data = {}
+
+
+Device(s) NOT INSERTED!
+Current OS Version not found!
+ ==> File c:\_pyxWorks\router_sw_update\logs\device-20200817-155353-check_sw_version-pnemec.log created.
+
+
+{
+  "inputs": "python[2.7.15]\nversion[20.08.17_13:20], file[check_sw_version.py]\nCGI_CLI.USERNAME[pnemec], CGI_CLI.PASSWORD[Yes]\nremote_addr[], browser[]\nCGI_CLI.cgi_active[None], CGI_CLI.submit_form[], CGI_CLI.chunked[None]\nCLI_args = []\nCGI_CLI.data = {}", 
+  "success": "NOT OK", 
+  "logfile": "c:\\_pyxWorks\\router_sw_update\\logs\\device-20200817-155353-check_sw_version-pnemec.log", 
+  "errors": "[Device(s) NOT INSERTED!] [Current OS Version not found!] ", 
+  "current_os_version": "", 
+  "current_smu_patch": ""
+}

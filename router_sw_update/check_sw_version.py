@@ -2781,28 +2781,28 @@ try:
         CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
         exit_due_to_error = True
 
-    # CGI_CLI.JSON_RESULTS['current_os_version'] = str()
-    # CGI_CLI.JSON_RESULTS['current_smu_patch'] = str()
+    CGI_CLI.JSON_RESULTS['current_os_version'] = str()
+    CGI_CLI.JSON_RESULTS['current_smu_patch'] = str()
 
-    # if exit_due_to_error: sys.exit(0)
+    if exit_due_to_error: sys.exit(0)
 
 
-    # ### def SQL INIT ##############################################################
-    # sql_inst = sql_interface(host='localhost', user='cfgbuilder', \
-        # password='cfgbuildergetdata', database='rtr_configuration')
+    ### def SQL INIT ##############################################################
+    sql_inst = sql_interface(host='localhost', user='cfgbuilder', \
+        password='cfgbuildergetdata', database='rtr_configuration')
 
-    # ### SQL READ ALL HARDVARE TYPES ###############################################
-    # device_types_list_in_list = sql_inst.sql_read_table_records( \
-        # select_string = 'hardware',\
-        # from_string = 'oti_all_table',\
-        # order_by = 'hardware')
+    ### SQL READ ALL HARDVARE TYPES ###############################################
+    device_types_list_in_list = sql_inst.sql_read_table_records( \
+        select_string = 'hardware',\
+        from_string = 'oti_all_table',\
+        order_by = 'hardware')
 
-    # ### SQL READ ALL DEVICES IN NETWORK ###########################################
-    # data = collections.OrderedDict()
-    # data['oti_all_table'] = sql_inst.sql_read_records_to_dict_list( \
-        # select_string = 'vendor, hardware, software, rtr_name, network',\
-        # from_string = 'oti_all_table',\
-        # order_by = 'vendor, hardware, rtr_name ASC')
+    ### SQL READ ALL DEVICES IN NETWORK ###########################################
+    data = collections.OrderedDict()
+    data['oti_all_table'] = sql_inst.sql_read_records_to_dict_list( \
+        select_string = 'vendor, hardware, software, rtr_name, network',\
+        from_string = 'oti_all_table',\
+        order_by = 'vendor, hardware, rtr_name ASC')
 
     CGI_CLI.JSON_RESULTS['target_SW_versions'] = ['653']
     CGI_CLI.JSON_RESULTS['target_SW_files'] = ['harddisk:/IOS-XR/653/asr9k-iosxr-px-k9-6.5.3.OTI.tar']
@@ -2811,20 +2811,6 @@ try:
     ### def REMOTE DEVICE OPERATIONS ##########################################
     for device in device_list:
         if device:
-
-            # brand_raw, type_raw , brand_subdir, type_subdir = str(), str() , str(), str()
-            # sw_file_types_list, type_subdir_on_device  = [], str()
-            # for router_dict in data['oti_all_table']:
-                # if device == router_dict.get('rtr_name',str()):
-                    # brand_raw = router_dict.get('vendor',str())
-                    # type_raw  = router_dict.get('hardware',str())
-                    # brand_subdir, type_subdir,type_subdir_on_device, sw_file_types_list = \
-                        # get_local_subdirectories(brand_raw = brand_raw, type_raw = type_raw)
-                    # CGI_CLI.JSON_RESULTS['vendor'] = brand_raw
-                    # CGI_CLI.JSON_RESULTS['hardware'] = type_raw
-                    # CGI_CLI.JSON_RESULTS['type_subdir_on_device'] = type_subdir_on_device
-                    # break
-
 
             ### DEVICE CONNECT ############################################
             RCMD.connect(device, username = USERNAME, password = PASSWORD, \
@@ -2885,16 +2871,43 @@ try:
 
             CGI_CLI.JSON_RESULTS['current_os_version'] = current_os
             CGI_CLI.JSON_RESULTS['current_smu_patch'] = current_smu_patch
+            
 
-            # if sw_release and sw_release in directory:
-                # device_directory = os.path.abspath(os.path.join(os.sep, \
-                    # type_subdir_on_device, sw_release.replace('.',''), actual_file_type_subdir))
-            # else:
-                # ### FILES ON DEVICE WILL BE IN DIRECTORY WITHOUT SW_RELEASE IF SW_RELEASE SUDBIR DOES NOT EXISTS ON SERVER, BECAUSE THEN SW_RELEASE IS FILENAME ###
-                # device_directory = os.path.abspath(os.path.join(os.sep,type_subdir_on_device, actual_file_type_subdir))
-
-
-
+            ### def LIST FILES ON ROUTER ######################################            
+            brand_raw, type_raw , brand_subdir, type_subdir = str(), str() , str(), str()
+            sw_file_types_list, type_subdir_on_device  = [], str()
+            for router_dict in data['oti_all_table']:
+                if device == router_dict.get('rtr_name',str()):
+                    brand_raw = router_dict.get('vendor',str())
+                    type_raw  = router_dict.get('hardware',str())
+                    brand_subdir, type_subdir, type_subdir_on_device, sw_file_types_list = \
+                        get_local_subdirectories(brand_raw = brand_raw, type_raw = type_raw)
+                    CGI_CLI.JSON_RESULTS['vendor'] = brand_raw
+                    CGI_CLI.JSON_RESULTS['hardware'] = type_raw
+                    CGI_CLI.JSON_RESULTS['type_subdir_on_device'] = type_subdir_on_device
+                    break            
+            
+            rcmds_dirs = {
+                'cisco_ios':[
+                    'dir %s%s' % (RCMD.drive_string, type_subdir_on_device)
+                    ],
+                'cisco_xr':[
+                    'dir %s%s' % (RCMD.drive_string, type_subdir_on_device)
+                    ],
+                'juniper':[
+                    'file list re0:%s detail' % (type_subdir_on_device),
+                    'file list re1:%s detail' % (type_subdir_on_device)
+                    ],
+                'huawei':[
+                    'dir %s%s/' % (RCMD.drive_string, type_subdir_on_device if type_subdir_on_device != '/' else str()), 
+                    'dir slave#%s%s/' % (RCMD.drive_string, type_subdir_on_device if type_subdir_on_device != '/' else str())
+                    ]
+            }
+            
+            CGI_CLI.uprint('Check sw files on %s' % (device), \
+                no_newlines = None if printall else True)
+            rcmds_dirs_outputs = RCMD.run_commands(rcmds_dirs, printall = printall)
+            CGI_CLI.uprint('\n')
 
 
 
