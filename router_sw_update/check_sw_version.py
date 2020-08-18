@@ -999,6 +999,7 @@ class CGI_CLI(object):
             if len(CGI_CLI.result_list) > 0: CGI_CLI.uprint('\n\nRESULT SUMMARY:', tag = 'h1')
             for result, color in CGI_CLI.result_list:
                 CGI_CLI.uprint(result , tag = 'h3', color = color)
+            CGI_CLI.uprint_json_results(CGI_CLI.JSON_RESULTS)
             if CGI_CLI.logfilename:
                 if CGI_CLI.cgi_active:
                     CGI_CLI.uprint(urltext, raw = True, color = 'blue')
