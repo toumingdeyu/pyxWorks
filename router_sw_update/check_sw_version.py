@@ -116,8 +116,8 @@ class CGI_CLI(object):
         parser.add_argument("--timestamps",
                             action = "store_true", dest = 'timestamp', default = None,
                             help = "show timestamps")
-        parser.add_argument("--cli",
-                            action = "store_true", dest = 'cli', default = None,
+        parser.add_argument("--climode",
+                            action = "store_true", dest = 'climode', default = None,
                             help = "switch outputs to CLI text mode")
 
         args = parser.parse_args()
@@ -188,7 +188,7 @@ class CGI_CLI(object):
             if variable == "username": CGI_CLI.USERNAME = value
             if variable == "password": CGI_CLI.PASSWORD = value
             if variable == "cpassword": CGI_CLI.PASSWORD = value.decode('base64','strict')
-
+            if variable == "webmode" and value: CGI_CLI.json_api = False
             ### SET CHUNKED MODE BY CGI #######################################
             if variable == "chunked_mode":
                 if not value: CGI_CLI.chunked = False
@@ -220,7 +220,7 @@ class CGI_CLI(object):
                 if variable == "username" and value: CGI_CLI.USERNAME = value
                 if variable == "password" and value: CGI_CLI.PASSWORD = value
                 if variable == "cpassword" and value: CGI_CLI.PASSWORD = value.decode('base64','strict')
-                if variable == "cli" and value: CGI_CLI.json_api = False
+                if variable == "climode" and value: CGI_CLI.json_api = False
 
         ### CGI_CLI.data PARSER ###############################################
         for key in CGI_CLI.data.keys():
@@ -724,7 +724,7 @@ class CGI_CLI(object):
             i_pyfile = sys.argv[0]
             try: pyfile = i_pyfile.replace('\\','/').split('/')[-1].strip()
             except: pyfile = i_pyfile.strip()
-            CGI_CLI.print_result_summary()
+            #CGI_CLI.print_result_summary()
             if CGI_CLI.cgi_active:
                 CGI_CLI.print_chunk('<p id="scriptend"></p>', raw_log = True, printall = True)
                 CGI_CLI.print_chunk('<br/><a href = "./%s">PAGE RELOAD</a>' % (pyfile), raw_log = True, printall = True)
@@ -984,27 +984,29 @@ class CGI_CLI(object):
 
     @staticmethod
     def print_result_summary():
-        if len(CGI_CLI.result_list) > 0: CGI_CLI.uprint('\n\nRESULT SUMMARY:', tag = 'h1')
-        for result, color in CGI_CLI.result_list:
-            CGI_CLI.uprint(result , tag = 'h3', color = color)
-        if CGI_CLI.logfilename:
-            logfilename = CGI_CLI.logfilename
-            iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None, ommit_logging = True).strip()
-            if iptac_server == 'iptac5': urllink = 'https://10.253.58.126/cgi-bin/'
-            else: urllink = 'https://%s/cgi-bin/' % (iptac_server)
-            if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, logfilename)
-            else: logviewer = './logviewer.py?logfile=%s' % (logfilename)
-            if CGI_CLI.cgi_active:
-                CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
-                    % (logviewer, logfilename), raw = True, color = 'blue')
-                CGI_CLI.uprint('<br/>', raw = True)
-            else:
-                CGI_CLI.uprint(' ==> File %s created.\n\n' % (logfilename))
-            CGI_CLI.set_logfile(logfilename = None)
+        if CGI_CLI.json_api: CGI_CLI.uprint_json_results(CGI_CLI.JSON_RESULTS)
+        else:
+            if len(CGI_CLI.result_list) > 0: CGI_CLI.uprint('\n\nRESULT SUMMARY:', tag = 'h1')
+            for result, color in CGI_CLI.result_list:
+                CGI_CLI.uprint(result , tag = 'h3', color = color)
+            if CGI_CLI.logfilename:
+                logfilename = CGI_CLI.logfilename
+                iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None, ommit_logging = True).strip()
+                if iptac_server == 'iptac5': urllink = 'https://10.253.58.126/cgi-bin/'
+                else: urllink = 'https://%s/cgi-bin/' % (iptac_server)
+                if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, logfilename)
+                else: logviewer = './logviewer.py?logfile=%s' % (logfilename)
+                if CGI_CLI.cgi_active:
+                    CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
+                        % (logviewer, logfilename), raw = True, color = 'blue')
+                    CGI_CLI.uprint('<br/>', raw = True)
+                else: CGI_CLI.uprint(' ==> File %s created.\n\n' % (logfilename))
+        if CGI_CLI.logfilename and CGI_CLI.data.get("send_email"):
             ### SEND EMAIL WITH LOGFILE ###########################################
             CGI_CLI.send_me_email( \
-                subject = logfilename.replace('\\','/').split('/')[-1] if logfilename else None, \
-                file_name = logfilename, username = USERNAME)
+                subject = str(logfilename).replace('\\','/').split('/')[-1] if logfilename else None, \
+                file_name = str(logfilename), username = USERNAME)
+        CGI_CLI.set_logfile(logfilename = None)
 
 
 
@@ -1843,7 +1845,7 @@ class RCMD(object):
     def snmp_find_router_type(host = None):
         router_os = None
         if host:
-            SNMP_COMMUNITY = 'qLqVHPZUNnGB'            
+            SNMP_COMMUNITY = 'qLqVHPZUNnGB'
             ### ... -t timeout_in_seconds -r number_of_attempts ###
             snmp_req = "snmpget -v1 -c " + SNMP_COMMUNITY + " -t 2 -r 1 " + host + " sysDescr.0"
             #return_stream = os.popen(snmp_req)
@@ -2731,7 +2733,7 @@ try:
             interface_menu_list.append('</authentication>')
 
         CGI_CLI.formprint(interface_menu_list + [ \
-            {'text':'delay'},'<br/>', \
+            '<p hidden><input type="checkbox" name="webmode" value="yes" checked="checked"></p>',
             '<br/><b><u>',{'checkbox':'send_email'},'</u></b><br/>',\
             {'checkbox':'timestamps'}, '<br/>',\
             {'checkbox':'printall'},'<br/>','<br/>'],\
@@ -2871,9 +2873,9 @@ try:
 
             CGI_CLI.JSON_RESULTS['current_os_version'] = current_os
             CGI_CLI.JSON_RESULTS['current_smu_patch'] = current_smu_patch
-            
 
-            ### def LIST FILES ON ROUTER ######################################            
+
+            ### def LIST FILES ON ROUTER ######################################
             brand_raw, type_raw , brand_subdir, type_subdir = str(), str() , str(), str()
             sw_file_types_list, type_subdir_on_device  = [], str()
             for router_dict in data['oti_all_table']:
@@ -2885,8 +2887,8 @@ try:
                     CGI_CLI.JSON_RESULTS['vendor'] = brand_raw
                     CGI_CLI.JSON_RESULTS['hardware'] = type_raw
                     CGI_CLI.JSON_RESULTS['type_subdir_on_device'] = type_subdir_on_device
-                    break            
-            
+                    break
+
             rcmds_dirs = {
                 'cisco_ios':[
                     'dir %s%s' % (RCMD.drive_string, type_subdir_on_device)
@@ -2899,11 +2901,11 @@ try:
                     'file list re1:%s detail' % (type_subdir_on_device)
                     ],
                 'huawei':[
-                    'dir %s%s/' % (RCMD.drive_string, type_subdir_on_device if type_subdir_on_device != '/' else str()), 
+                    'dir %s%s/' % (RCMD.drive_string, type_subdir_on_device if type_subdir_on_device != '/' else str()),
                     'dir slave#%s%s/' % (RCMD.drive_string, type_subdir_on_device if type_subdir_on_device != '/' else str())
                     ]
             }
-            
+
             CGI_CLI.uprint('Check sw files on %s' % (device), \
                 no_newlines = None if printall else True)
             rcmds_dirs_outputs = RCMD.run_commands(rcmds_dirs, printall = printall)
@@ -2923,7 +2925,7 @@ except:
 
 
 ### RESULTS CHECKS ################################################
-if len(CGI_CLI.JSON_RESULTS.get('current_os_version', str())) == 0:
+if len(CGI_CLI.JSON_RESULTS.get('current_os_version', str())) == 0 and CGI_CLI.json_api:
     text = 'Current OS Version not found!'
     CGI_CLI.uprint(text, tag = 'h3', color = 'red')
     CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
@@ -2933,30 +2935,8 @@ if len(CGI_CLI.JSON_RESULTS.get('current_os_version', str())) == 0:
 if len(CGI_CLI.JSON_RESULTS.get('errors', str())) > 0: CGI_CLI.JSON_RESULTS['success'] = 'NOT OK'
 else: CGI_CLI.JSON_RESULTS['success'] = 'OK'
 
-### WRITE FILE LINK AND CLOSE GLOBAL LOGFILE ##################################
-if logfilename:
-    iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None, ommit_logging = True).strip()
-    if iptac_server == 'iptac5': urllink = 'https://10.253.58.126/cgi-bin/'
-    else: urllink = 'https://%s/cgi-bin/' % (iptac_server)
-    if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, logfilename)
-    else: logviewer = './logviewer.py?logfile=%s' % (logfilename)
-    if CGI_CLI.cgi_active:
-        CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
-            % (logviewer, logfilename), raw = True, color = 'blue')
-        CGI_CLI.uprint('<br/>', raw = True)
-    else:
-        CGI_CLI.uprint(' ==> File %s created.\n\n' % (logfilename))
-
 ### WRITE JSON_RESULTS TO LOGFILE #############################################
-CGI_CLI.uprint_json_results(CGI_CLI.JSON_RESULTS)
-
-
-### SEND EMAIL WITH LOGFILE ###################################################
-if logfilename and CGI_CLI.data.get("send_email"):
-    #USERNAME = 'pnemec'
-    CGI_CLI.send_me_email( \
-        subject = str(logfilename).replace('\\','/').split('/')[-1] if logfilename else None, \
-        file_name = str(logfilename), username = USERNAME)
+CGI_CLI.print_result_summary()
 
 
 ### def SEND EMAIL WITH ERROR/TRACEBACK LOGFILE TO SUPPORT ####################
