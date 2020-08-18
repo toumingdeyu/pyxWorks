@@ -2910,12 +2910,47 @@ try:
                     ]
             }
 
-            CGI_CLI.uprint('Check sw files on %s' % (device), \
+            CGI_CLI.uprint('Check sw directories on %s' % (device), \
                 no_newlines = None if printall else True)
             rcmds_dirs_outputs = RCMD.run_commands(rcmds_dirs, printall = printall)
             CGI_CLI.uprint('\n')
 
+            list_of_sw_files = []
+            version_subdirs = []
+            if RCMD.router_type == 'cisco_xr':
+                for line in rcmds_dirs_outputs[0].split('Directory of harddisk:')[1].splitlines()[1:]:
+                    if 'kbytes total' in line: break
+                    try: dir_sign = line.split()[1][0]
+                    except: dir_sign = str()
+                    try: version_dir = line.split()[-1]
+                    except: version_dir = str()
+                    if 'd' == dir_sign: version_subdirs.append(str(version_dir))
 
+            elif RCMD.router_type == 'cisco_ios':
+                pass
+
+            elif RCMD.router_type == 'huawei':
+                pass
+
+            elif RCMD.router_type == 'juniper':
+                pass
+
+
+            rcmds_subdirs = {
+                'cisco_ios':[],
+                'cisco_xr':[],
+                'juniper':[],
+                'huawei':[]
+            }
+
+            for version_dir in version_subdirs:
+                rcmds_subdirs['cisco_ios'].append('dir %s%s/%s' % (RCMD.drive_string, type_subdir_on_device, version_dir))
+                rcmds_subdirs['cisco_xr'].append('dir %s%s/%s' % (RCMD.drive_string, type_subdir_on_device, version_dir))
+
+            CGI_CLI.uprint('Check sw files on %s' % (device), \
+                no_newlines = None if printall else True)
+            rcmds_subdirs_outputs = RCMD.run_commands(rcmds_subdirs, printall = printall)
+            CGI_CLI.uprint('\n')
 
 
 
