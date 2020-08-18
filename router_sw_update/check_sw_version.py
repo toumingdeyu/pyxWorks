@@ -984,25 +984,29 @@ class CGI_CLI(object):
 
     @staticmethod
     def print_result_summary():
+        if CGI_CLI.logfilename:
+            logfilename = CGI_CLI.logfilename
+            iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None, ommit_logging = True).strip()
+            if iptac_server == 'iptac5': urllink = 'https://10.253.58.126/cgi-bin/'
+            else: urllink = 'https://%s/cgi-bin/' % (iptac_server)
+            if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, logfilename)
+            else: logviewer = './logviewer.py?logfile=%s' % (logfilename)
+            urltext = '<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
+                    % (logviewer, logfilename)
+            CGI_CLI.JSON_RESULTS['urllogfile'] = logviewer
         if CGI_CLI.json_api: CGI_CLI.uprint_json_results(CGI_CLI.JSON_RESULTS)
         else:
             if len(CGI_CLI.result_list) > 0: CGI_CLI.uprint('\n\nRESULT SUMMARY:', tag = 'h1')
             for result, color in CGI_CLI.result_list:
                 CGI_CLI.uprint(result , tag = 'h3', color = color)
             if CGI_CLI.logfilename:
-                logfilename = CGI_CLI.logfilename
-                iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None, ommit_logging = True).strip()
-                if iptac_server == 'iptac5': urllink = 'https://10.253.58.126/cgi-bin/'
-                else: urllink = 'https://%s/cgi-bin/' % (iptac_server)
-                if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, logfilename)
-                else: logviewer = './logviewer.py?logfile=%s' % (logfilename)
                 if CGI_CLI.cgi_active:
-                    CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
-                        % (logviewer, logfilename), raw = True, color = 'blue')
+                    CGI_CLI.uprint(urltext, raw = True, color = 'blue')
                     CGI_CLI.uprint('<br/>', raw = True)
                 else: CGI_CLI.uprint(' ==> File %s created.\n\n' % (logfilename))
+
+        ### SEND EMAIL WITH LOGFILE ###########################################
         if CGI_CLI.logfilename and CGI_CLI.data.get("send_email"):
-            ### SEND EMAIL WITH LOGFILE ###########################################
             CGI_CLI.send_me_email( \
                 subject = str(logfilename).replace('\\','/').split('/')[-1] if logfilename else None, \
                 file_name = str(logfilename), username = USERNAME)
@@ -2921,7 +2925,7 @@ except:
     traceback_found = traceback.format_exc()
     text = str(traceback_found)
     CGI_CLI.uprint(text, tag = 'h3', color = 'magenta')
-    GI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+    CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
 
 
 ### RESULTS CHECKS ################################################
