@@ -641,7 +641,7 @@ class CGI_CLI(object):
             CGI_CLI.print_result_summary()
             if CGI_CLI.cgi_active:
                 CGI_CLI.print_chunk('<p id="scriptend"></p>', raw_log = True, printall = True)
-                #CGI_CLI.print_chunk('<br/><a href = "./%s">PAGE RELOAD</a>' % (pyfile), raw_log = True, printall = True)
+                CGI_CLI.print_chunk('<br/><a href = "./%s">PAGE RELOAD</a>' % (pyfile), raw_log = True, printall = True)
 
     @staticmethod
     def get_scriptname():
@@ -791,7 +791,7 @@ class CGI_CLI(object):
             mail_command = 'echo \'%s\' | mailx -s "%s" ' % (email_body,subject)
             if cc:
                 if isinstance(cc, six.string_types): mail_command += '-c %s' % (cc)
-                if cc and isinstance(cc, (list,tuple)): mail_command += ''.join([ '-c %s ' % (bcc_email) for bcc_email in bcc ])
+                if cc and isinstance(cc, (list,tuple)): mail_command += ''.join([ '-c %s ' % (cc_email) for cc_email in cc ])
             if bcc:
                 if isinstance(bcc, six.string_types): mail_command += '-b %s' % (bcc)
                 if bcc and isinstance(bcc, (list,tuple)): mail_command += ''.join([ '-b %s ' % (bcc_email) for bcc_email in bcc ])
@@ -857,6 +857,43 @@ class CGI_CLI(object):
             except Exception as e: CGI_CLI.uprint(" ==> Problem to send email by APPLICATION=[%s], PROBLEM=[%s]\n"\
                     % (email_application,str(e)) ,color = 'magenta')
         return email_sent
+
+    @staticmethod
+    def decode_bytearray(buff = None, ascii_only = None):
+        buff_read = str()
+        exception_text = None
+
+        replace_sequence = lambda buffer : str(buffer.\
+            replace('\x0d','').replace('\x07','').\
+            replace('\x08','').replace(' \x1b[1D','').replace(u'\u2013',''))
+
+        ### https://docs.python.org/3/library/codecs.html#standard-encodings ###
+        ### http://lwp.interglacial.com/appf_01.htm ###
+        if buff and not ascii_only:
+            for coding in [CGI_CLI.sys_stdout_encoding, 'utf-8','utf-16', 'cp1252', 'cp1140','cp1250', 'latin_1', 'ascii']:
+                exception_text = None
+                try:
+                    buff_read = replace_sequence(buff.encode(encoding = coding))
+                    break
+                except: exception_text = traceback.format_exc()
+
+        ### available in PYTHON3 ###
+        # if buff and ascii_only or not buff_read:
+            # try:
+                # exception_text = str()
+                # buff_read = replace_sequence(ascii(buff))
+            # except: exception_text = traceback.format_exc()
+
+        if exception_text:
+            err_chars = str()
+            for character in buff:
+                if ord(character) > 128:
+                    err_chars += '\\x%x,' % (ord(character))
+                else: buff_read += character
+
+            if len(err_chars) > 0:
+                CGI_CLI.uprint("NON STANDARD CHARACTERS (>128) found [%s] in TEXT!" % (err_chars), color = 'orange', no_printall = not CGI_CLI.printall)
+        return buff_read
 
     @staticmethod
     def print_result_summary():
@@ -1142,7 +1179,7 @@ class RCMD(object):
     @staticmethod
     def run_command(cmd_line = None, printall = None, conf = None, \
         long_lasting_mode = None, autoconfirm_mode = None, \
-        sim_config = None, sim_all = None, ignore_prompt = None):
+        sim_config = None, sim_all = None, ignore_prompt = None, ignore_syntax_error = None):
         """
         cmd_line - string, DETECTED DEVICE TYPE DEPENDENT
         sim_all  - simulate execution of all commands, not only config commands
@@ -1207,15 +1244,17 @@ class RCMD(object):
                             CGI_CLI.uprint('\n', timestamp = 'no', ommit_logging = True)
                         else:
                             CGI_CLI.uprint(' . ', no_newlines = True, timestamp = 'no', ommit_logging = True)
-            for line in last_output.splitlines():
-                if line.strip() == '^':
-                    CGI_CLI.uprint("\nSYNTAX ERROR in CMD: '%s' !\n" % (str(cmd_line)), timestamp = 'no', color = 'orange')
+            if not ignore_syntax_error:
+                for line in last_output.splitlines():
+                    if line.strip() == '^':
+                        CGI_CLI.uprint("\nSYNTAX ERROR in CMD: '%s' !\n" % (str(cmd_line)), timestamp = 'no', color = 'orange')
         return str(last_output)
 
     @staticmethod
     def run_commands(cmd_data = None, printall = None, conf = None, sim_config = None, \
         do_not_final_print = None , commit_text = None, submit_result = None , \
-        long_lasting_mode = None, autoconfirm_mode = None, ignore_prompt = None):
+        long_lasting_mode = None, autoconfirm_mode = None, ignore_prompt = None, \
+        ignore_syntax_error = None):
         """
         FUNCTION: run_commands(), RETURN: list of command_outputs
         PARAMETERS:
@@ -1276,7 +1315,8 @@ class RCMD(object):
                         conf = conf, sim_config = sim_config, printall = printall,
                         long_lasting_mode = long_lasting_mode, \
                         ignore_prompt = ignore_prompt, \
-                        autoconfirm_mode = autoconfirm_mode))
+                        autoconfirm_mode = autoconfirm_mode, \
+                        ignore_syntax_error = ignore_syntax_error))
                 ### EXIT FROM CONFIG MODE FOR PARAMIKO #####################
                 if (conf or RCMD.conf) and RCMD.use_module == 'paramiko':
                     ### GO TO CONFIG TOP LEVEL SECTION ---------------------
@@ -1420,20 +1460,9 @@ class RCMD(object):
                 ### RECEIVED DATA IMMEDIATE ACTIONS ###########################
                 no_rx_data_counter_100msec = 0
                 buff = chan.recv(9999)
-                try:
-                    buff_read = str(buff.decode(encoding='utf-8').\
-                        replace('\x0d','').replace('\x07','').\
-                        replace('\x08','').replace(' \x1b[1D','').replace(u'\u2013',''))
-                    output += buff_read
-                except:
-                    try:
-                        buff_read = str(buff.decode(encoding='cp1252').\
-                            replace('\x0d','').replace('\x07','').\
-                            replace('\x08','').replace(' \x1b[1D','').replace(u'\u2013',''))
-                        output += buff_read
-                    except:
-                        CGI_CLI.uprint('BUFF_ERR[%s][%s]'%(buff,type(buff)), color = 'red')
-                        CGI_CLI.uprint(traceback.format_exc(), color = 'magenta')
+
+                buff_read = CGI_CLI.decode_bytearray(buff)
+                output += buff_read
 
                 ### FIND LAST LINE (STRIPPED), THIS COULD BE PROMPT ###
                 last_line_edited = str()
@@ -1560,14 +1589,9 @@ class RCMD(object):
                 buff = chan.recv(9999)
                 if len(buff)>0:
                     if debug: CGI_CLI.uprint('LOOKING_FOR_PROMPT:',last_but_one_line,last_line, color = 'grey')
-                    try:
-                        output += str(buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
-                            replace('\x1b[K','').replace('\n{master}\n','').replace(u'\u2013',''))
-                    except:
-                        try:
-                            output += str(buff.decode("cp1252").replace('\r','').replace('\x07','').replace('\x08','').\
-                            replace('\x1b[K','').replace('\n{master}\n','').replace(u'\u2013',''))
-                        except: pass
+
+                    output += CGI_CLI.decode_bytearray(buff).replace('\n{master}\n','')
+
                     if '--More--' or '---(more' in buff.strip():
                         chan.send('\x20')
                         if debug: CGI_CLI.uprint('SPACE_SENT.', color = 'blue')
@@ -1595,14 +1619,8 @@ class RCMD(object):
             while not exit_loop:
                 if debug: CGI_CLI.uprint('LAST_LINE:',prompts,last_line)
                 buff = chan.recv(9999)
-                try:
-                    output += str(buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
-                        replace('\x1b[K','').replace('\n{master}\n','').replace(u'\u2013',''))
-                except:
-                    try:
-                        output += str(buff.decode("cp1252").replace('\r','').replace('\x07','').replace('\x08','').\
-                            replace('\x1b[K','').replace('\n{master}\n','').replace(u'\u2013',''))
-                    except: pass
+                output += CGI_CLI.decode_bytearray(buff).replace('\n{master}\n','')
+
                 if '--More--' or '---(more' in buff.strip():
                     chan.send('\x20')
                     time.sleep(0.3)
@@ -2034,11 +2052,12 @@ class sql_interface():
     ### import mysql.connector
     ### MARIADB - By default AUTOCOMMIT is disabled
 
-    def __init__(self, host = None, user = None, password = None, database = None):
+    def __init__(self, host = None, user = None, password = None, database = None, printall = None):
         if int(sys.version_info[0]) == 3 and not 'pymysql.connect' in sys.modules: import pymysql
         elif int(sys.version_info[0]) == 2 and not 'mysql.connector' in sys.modules: import mysql.connector
         default_ipxt_data_collector_delete_columns = ['id','last_updated']
         self.sql_connection = None
+        self.printall = printall
         try:
             if not CGI_CLI.initialized:
                 CGI_CLI.init_cgi(chunked = True)
@@ -2143,7 +2162,7 @@ class sql_interface():
             except Exception as e: CGI_CLI.uprint(' ==> SQL problem [%s]' % (str(e)), color = 'magenta')
             try: cursor.close()
             except: pass
-            CGI_CLI.uprint('SQL_CMD[%s]' % (sql_command))
+            CGI_CLI.uprint('SQL_CMD[%s]' % (sql_command), no_printall = not self.printall)
         return None
 
     def sql_write_table_from_dict(self, table_name, dict_data, \
