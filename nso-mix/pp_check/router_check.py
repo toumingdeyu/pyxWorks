@@ -5,7 +5,10 @@
 # Author: Philippe Marcais (philippe.marcais@orange.com)                      #
 #         Peter Nemec      (peter.nemec@orange.com)                           #
 # Created: 06/01/2015                                                         #
-# Updated: 29/Jun/2020 - bgp prefix check, ascii filter of chars, custom log  #
+# Updated: 24/Aug/2020 - Custom opposite logic, new cli switch --pluscustom   #
+#                      - cli switch change --custom = --customonly            #
+#                      - deleted cli switch --nocustom                        #
+#          29/Jun/2020 - bgp prefix check, ascii filter of chars, custom log  #
 #          26/May/2020 - send emails by mailx (by apache user)                #
 #          25/May/2020 - --custom (BGP) check                                 #
 #          14/May/2020 -huawei L2VPN commands added                           #
@@ -1131,16 +1134,21 @@ parser.add_argument("--nobgpcheck",
                     default = False,
                     dest = 'nobgpcheck',
                     help = "ommit bgp prefixes check")
-parser.add_argument("--custom",
+parser.add_argument("--customonly",
                     action = "store_true",
                     default = False,
                     dest = 'custom_check_only',
                     help = "do custom (bgp commands) check only")
-parser.add_argument("--nocustom",
+parser.add_argument("--pluscustom",
                     action = "store_true",
                     default = False,
-                    dest = 'no_custom_check',
-                    help = "ommit custom (bgp commands)")
+                    dest = 'plus_custom',
+                    help = "do all commands with custom (bgp commands)")
+# parser.add_argument("--nocustom",
+                    # action = "store_true",
+                    # default = False,
+                    # dest = 'no_custom_check',
+                    # help = "ommit custom (bgp commands)")
 args = parser.parse_args()
 
 if args.emailaddr:
@@ -1180,7 +1188,11 @@ if not args.device:
     sys.exit(0)
 
 custom_check_only = True if args.custom_check_only else False
-no_custom_check = True if args.no_custom_check else False
+
+### OPPOSITE LOGIC OF CUSTOM CLI SWITCHES ###
+#no_custom_check = True if args.no_custom_check else False
+no_custom_check = True
+no_custom_check = False if args.plus_custom else True
 
 # SET WORKING DIRECTORY
 try:    WORKDIR         = os.path.join(os.environ['HOME'],'logs')
