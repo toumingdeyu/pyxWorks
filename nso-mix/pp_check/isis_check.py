@@ -2066,7 +2066,7 @@ warning {
                 rcmds_if_check['cisco_ios'].append('show run interface %s' % (isis_interface))
                 rcmds_if_check['cisco_xr'].append('show run interface %s' % (isis_interface))
                 rcmds_if_check['huawei'].append('display cu interface %s' % (isis_interface))
-                rcmds_if_check['juniper'].append('show interface %s | display set' % (isis_interface))
+                rcmds_if_check['juniper'].append('show configuration interface %s | display set' % (isis_interface))
 
             CGI_CLI.uprint('Read interface sh run on %s' % (device), \
                 no_newlines = None if printall else True)
