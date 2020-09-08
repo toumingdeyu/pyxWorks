@@ -10,6 +10,8 @@ def device_command(self, uinfo, input, device, cmd):
     if not hasattr(__builtins__, "basestring"): basestring = (str, bytes)    
 
     result = str()
+    platform = str()
+    
     m = ncs.maapi.Maapi()
     with m.start_read_trans(usid=uinfo.usid) as t:
         root = ncs.maagic.get_root(t)
@@ -31,6 +33,8 @@ def device_command(self, uinfo, input, device, cmd):
             cmd_data = cmd
 
         try:
+            if dev.platform.name: platform = str(dev.platform.name)
+            
             ### Cisco XE platform #############################################
             if dev.platform.name == "ios-xe" and cmd_data.get("ios-xe"):
                 command = dev.live_status.ios_stats__exec.show.get_input()
@@ -87,5 +91,5 @@ def device_command(self, uinfo, input, device, cmd):
             self.log.info("Exception device_command(): ", str(E))
 
     m.close()
-    return result
+    return result, platform
 
