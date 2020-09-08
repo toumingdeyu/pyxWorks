@@ -2,7 +2,7 @@
 import ncs
 #from ncs.application import Service
 
-def device_command(self, uinfo, input, device, cmd_data):
+def device_command(self, uinfo, input, device, cmd):
     """
     Run device_command and return result as string.
     """
@@ -11,6 +11,22 @@ def device_command(self, uinfo, input, device, cmd_data):
     with m.start_read_trans(usid=uinfo.usid) as t:
         root = ncs.maagic.get_root(t)
         dev = root.ncs__devices.device[input.device]
+
+        if isinstance(cmd, (string)):
+            cmd_data = {}
+            cmd_data["ios-xe"] = [ cmd ]
+            cmd_data["ios-xr"] = [ cmd ]
+            cmd_data["huawei-vrp"] = [ cmd ]
+            cmd_data["junos"] = [ cmd ]
+        elif isinstance(cmd, (list,tuple)):
+            cmd_data = {}
+            cmd_data["ios-xe"] = cmd
+            cmd_data["ios-xr"] = cmd
+            cmd_data["huawei-vrp"] = cmd
+            cmd_data["junos"] = cmd
+        elif isinstance(cmd, (dict,collections.OrderedDict)):
+            cmd_data = cmd
+
         try:
             ### Cisco XE platform #############################################
             if dev.platform.name == "ios-xe" and cmd_data.get("ios-xe"):
