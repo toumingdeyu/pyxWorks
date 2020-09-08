@@ -6,13 +6,16 @@ def device_command(self, uinfo, input, device, cmd):
     """
     Run device_command and return result as string.
     """
+    
+    if not hasattr(__builtins__, "basestring"): basestring = (str, bytes)    
+
     result = str()
     m = ncs.maapi.Maapi()
     with m.start_read_trans(usid=uinfo.usid) as t:
         root = ncs.maagic.get_root(t)
         dev = root.ncs__devices.device[input.device]
 
-        if isinstance(cmd, (string)):
+        if isinstance(cmd, (basestring)):
             cmd_data = {}
             cmd_data["ios-xe"] = [ cmd ]
             cmd_data["ios-xr"] = [ cmd ]
