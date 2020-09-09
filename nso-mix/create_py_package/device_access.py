@@ -61,13 +61,13 @@ def device_command(self, uinfo, input, device, cmd):
 
             ### Huawei platform ###############################################
             elif dev.platform.name == "huawei-vrp" and cmd_data.get("huawei-vrp"):
-                command = dev.live_status.vrp_stats__exec.get_input()
+                command = dev.live_status.vrp_stats__exec.display.get_input()
 
                 if isinstance(cmd_data.get("huawei-vrp"), (list,tuple)):
                     command.args = cmd_data.get("huawei-vrp")
                 else: command.args = [ cmd_data.get("huawei-vrp") ]
 
-                command_output = dev.live_status.vrp_stats__exec(command)
+                command_output = dev.live_status.vrp_stats__exec.any(command)
                 self.log.info('OUTPUT: {}'.format(command_output.result))
                 result = command_output.result
 
