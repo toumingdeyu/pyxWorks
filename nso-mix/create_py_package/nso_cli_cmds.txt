@@ -1,0 +1,11 @@
+CISCO_IOS:
+devices device PARCE0 live-status ios-stats:exec any "show version"
+
+CISCO_XR:
+devices device NYKTR0 live-status cisco-ios-xr-stats:exec any "show version"
+
+HUAWEI:
+devices device OAKPE0 live-status vrp-stats:exec any "display version"
+
+JUNOS:
+devices device NYKCR0 rpc rpc-request-shell-execute request-shell-execute command "cli show version"
