@@ -37,4 +37,5 @@ else
 
 fi
 
+ls $NCS_PACKAGES_PATH
 
