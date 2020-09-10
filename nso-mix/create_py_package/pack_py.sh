@@ -18,7 +18,7 @@ ACTUAL_DIR=`pwd`
 if [ `whoami` = root ]
 then
 
-     tar -cvf $NCS_PACKAGES_PATH/$PACKAGE_NAME.$ACTUAL_DATE.tar.gz $NCS_PACKAGES_PATH/$PACKAGE_NAME
+     sh -c "cd $NCS_PACKAGES_PATH && tar -cvf /home/$MY_USER/$PACKAGE_NAME.$ACTUAL_DATE.tar.gz $PACKAGE_NAME ; cd $ACTUAL_DIR"
 
 else
 
