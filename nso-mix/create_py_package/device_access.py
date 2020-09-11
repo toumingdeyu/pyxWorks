@@ -1,10 +1,16 @@
 # -*- mode: python; python-indent: 4 -*-
 import ncs
 #from ncs.application import Service
+import collections
+
+
+
+
 
 def device_command(self, uinfo, input, device, cmd):
     """
     Run device_command and return result as string.
+    IMPORT: from .device_access import *
     """
     
     if not hasattr(__builtins__, "basestring"): basestring = (str, bytes)    
