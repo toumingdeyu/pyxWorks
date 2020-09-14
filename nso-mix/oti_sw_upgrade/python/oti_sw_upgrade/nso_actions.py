@@ -65,7 +65,7 @@ class Oti_Get_Sw_Version(Action):
 
         ### GET PATH AND FILE TYPES ON DEVICE ###
         brand_subdir, type_subdir_on_server, type_subdir_on_device, file_types = \
-            get_local_subdirectories(brand_raw = brand_raw, type_raw = brand_raw)
+            get_local_subdirectories(brand_raw = brand_raw, type_raw = type_raw)
 
         dev_dir = os.path.abspath(os.path.join(os.sep, type_subdir_on_device))
 
