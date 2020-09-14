@@ -1,0 +1,95 @@
+module oti_sw_upgrade {
+
+  namespace "http://example.com/oti_sw_upgrade";
+  prefix oti_sw_upgrade;
+
+  import ietf-inet-types {
+    prefix inet;
+  }
+  import tailf-common {
+    prefix tailf;
+  }
+  import tailf-ncs {
+    prefix ncs;
+  }
+
+  import oti_common {
+    prefix oti;
+  }
+  import com_orange_common {
+    prefix orange;
+  }
+
+  description
+    "Bla bla...";
+
+  revision 2016-01-01 {
+    description
+      "Initial revision.";
+  }
+
+  augment /orange:orange/orange:oti {
+    container common_actions {
+      tailf:info "orange oti oti_sw_upgrade";
+      description "oti_sw_upgrade package";
+      container actions {
+      }
+    }
+  }
+
+  augment /orange:orange/orange:oti/oti_sw_upgrade:common_actions/oti_sw_upgrade:actions {
+    tailf:action get_sw_version {
+      tailf:actionpoint get_sw_version;
+      input {
+        leaf device {
+          type leafref {
+            path "/ncs:devices/ncs:device/ncs:name";
+          }
+        }
+      }
+      output {
+        leaf os_type {
+          type string;
+        }
+        leaf hw_type {
+          type string;
+        }
+        leaf sw_version {
+          type string;
+        }
+        leaf target_sw_version {
+          type string;
+        }
+        leaf path_to_target_sw {
+          type string;
+        }
+      }
+    }
+  }
+
+  list oti_sw_upgrade {
+    description "This is an RFS skeleton service";
+
+    key name;
+    leaf name {
+      tailf:info "Unique service id";
+      tailf:cli-allow-range;
+      type string;
+    }
+
+    uses ncs:service-data;
+    ncs:servicepoint oti_sw_upgrade-servicepoint;
+
+    // may replace this with other ways of refering to the devices.
+    leaf-list device {
+      type leafref {
+        path "/ncs:devices/ncs:device/ncs:name";
+      }
+    }
+
+    // replace with your own stuff here
+    leaf dummy {
+      type inet:ipv4-address;
+    }
+  }
+}
