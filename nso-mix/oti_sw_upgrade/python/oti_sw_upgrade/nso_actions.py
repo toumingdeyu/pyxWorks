@@ -4,6 +4,7 @@ from ncs.dp import Action
 from ncs.application import Service
 from .device_access import *
 import collections
+import os
 
 ### IMPORT: from .nso_actions import *    ###
 
@@ -103,7 +104,8 @@ def get_local_subdirectories(brand_raw = None, type_raw = None):
     if brand_raw and type_raw:
         brand_subdir = brand_raw.upper()
         if 'ASR9K' in type_raw.upper() \
-            or 'ASR-9' in type_raw.upper():
+            or 'ASR-9' in type_raw.upper() \
+            or '9000' in type_raw.upper():
             type_subdir_on_server = 'ASR9K'
             type_subdir_on_device = 'IOS-XR'
             file_types = ['asr9k*OTI.tar', 'SMU/*.tar']
