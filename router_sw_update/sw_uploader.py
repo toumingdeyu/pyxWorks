@@ -4141,7 +4141,9 @@ function validateForm() {
                 CGI_CLI.uprint('READ_FROM_DB: [router=%s, vendor=%s, hardware=%s]' % \
                     (device_list[0], brand_raw, type_raw), tag = 'debug', no_printall = not printall)
                 break
-
+        else:
+            CGI_CLI.uprint('Router %s has no record in DB!' % \
+                (device_list[0]), tag = 'warning', printall = True)
         ### CHECK LOCAL SW VERSIONS DIRECTORIES ###################################
         if len(sw_release_list) == 0:
             sw_release_list, default_sw_release = get_existing_sw_release_list(brand_subdir, type_subdir)
@@ -4481,6 +4483,12 @@ function validateForm() {
             CGI_CLI.tableprint(end_table = True)
             CGI_CLI.uprint('\n', timestamp = 'no')
         else: sys.exit(0)
+
+    else:
+        result = 'Specified file(s) NOT FOUND!'
+        CGI_CLI.uprint(result, tag = CGI_CLI.result_tag, color = 'red')
+        CGI_CLI.result_list.append([copy.deepcopy(result), 'red'])
+        sys.exit(0)
 
     ### MAKE ALL SUB-DIRECTORIES ONE BY ONE ###################################
     redundant_dev_dir_list = [ dev_dir for directory,dev_dir,file,md5,fsize in true_sw_release_files_on_server ]
