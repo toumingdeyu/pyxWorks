@@ -87,7 +87,19 @@ class Oti_Get_Sw_Version(Action):
 
         output.target_sw_version = dir_device_cmds_result
 
+        if output.os_type == "ios-xe":
+            pass
+        elif output.os_type == "ios-xr":
+            for line in dir_device_cmds_result.splitlines():
+                try:
+                     if str(line.split()[1])[0] == 'd' and int(line.split()[-1]):
+                         output.target_sw_version = line.split()[-1]
+                except: pass
 
+        elif output.os_type == "huawei-vrp":
+            pass
+        elif output.os_type == "junos":
+            pass
 
 
 
