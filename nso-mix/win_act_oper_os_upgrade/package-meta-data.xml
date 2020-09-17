@@ -1,0 +1,13 @@
+<ncs-package xmlns="http://tail-f.com/ns/ncs-packages">
+  <name>win_act_oper_os_upgrade</name>
+  <package-version>1.0</package-version>
+  <description>Generated Python package</description>
+  <ncs-min-version>4.7</ncs-min-version>
+
+  <component>
+    <name>action</name>
+    <application>
+      <python-class-name>win_act_oper_os_upgrade.action.Action</python-class-name>
+    </application>
+  </component>
+</ncs-package>

@@ -1,0 +1,95 @@
+module win_act_oper_os_upgrade {
+
+  namespace "http://example.com/win_act_oper_os_upgrade";
+  prefix win_act_oper_os_upgrade;
+
+  import ietf-inet-types {
+    prefix inet;
+  }
+  import tailf-common {
+    prefix tailf;
+  }
+  import tailf-ncs {
+    prefix ncs;
+  }
+
+  import win_common {
+    prefix win;
+  }
+  import com_orange_common {
+    prefix orange;
+  }
+
+  description
+    "Bla bla...";
+
+  revision 2016-01-01 {
+    description
+      "Initial revision.";
+  }
+
+  augment /orange:orange/orange:win {
+    container os_upgrade {
+      tailf:info "orange win os_upgrade";
+      description "os_upgrade package";
+      container actions {
+      }
+    }
+  }
+
+  augment /orange:orange/orange:win/win_act_oper_os_upgrade:os_upgrade/win_act_oper_os_upgrade:actions {
+    tailf:action get_sw_version {
+      tailf:actionpoint get_sw_version;
+      input {
+        leaf device {
+          type leafref {
+            path "/ncs:devices/ncs:device/ncs:name";
+          }
+        }
+      }
+      output {
+        leaf os_type {
+          type string;
+        }
+        leaf hw_type {
+          type string;
+        }
+        leaf sw_version {
+          type string;
+        }
+        leaf target_sw_version {
+          type string;
+        }
+        leaf path_to_target_sw {
+          type string;
+        }
+      }
+    }
+  }
+
+  list win_act_oper_os_upgrade {
+    description "This is an RFS skeleton service";
+
+    key name;
+    leaf name {
+      tailf:info "Unique service id";
+      tailf:cli-allow-range;
+      type string;
+    }
+
+    uses ncs:service-data;
+    ncs:servicepoint win_act_oper_os_upgrade-servicepoint;
+
+    // may replace this with other ways of refering to the devices.
+    leaf-list device {
+      type leafref {
+        path "/ncs:devices/ncs:device/ncs:name";
+      }
+    }
+
+    // replace with your own stuff here
+    leaf dummy {
+      type inet:ipv4-address;
+    }
+  }
+}
