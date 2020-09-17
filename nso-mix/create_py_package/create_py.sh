@@ -30,26 +30,30 @@ COMMAND_LINE="ncs-make-package --service-skeleton python --component-class actio
 if [ `whoami` = root ]
 then
      $COMMAND_LINE
-     sed --in-place 's/import ncs/import ncs \nfrom ncs.dp import Action/' "${PY_FILE_TO_EDIT}"
-     sed --in-place "s/        # When this setup method/\n        self\.register_action\(\'$2\', action_class_$2\)\n\n        # When this setup method/" "${PY_FILE_TO_EDIT}"
+     sed --in-place 's/import ncs/import ncs \nfrom ncs.dp import Action\nfrom \.nso_actions import \*/' "${PY_FILE_TO_EDIT}"
+     sed --in-place "s/        # When this setup method/\n        self\.register_action\(\'$2\', Nso_Actions_Class_$2\)\n\n        # When this setup method/" "${PY_FILE_TO_EDIT}"
      sed --in-place 's/YANGERPATH = \$(YANGPATH:%=--path %)/YANGERPATH = \$(YANGPATH:%=--path %)\nYANGPATH += ..\/..\/win_common\/src\/yang \\\nYANGPATH += ..\/..\/com_orange_common\/src\/yang \\/' "${MAKE_FILE_TO_EDIT}"
      sed --in-place 's/^  description/  import win_common \{\n    prefix win;\n  \}\n  import com_orange_common \{\n    prefix orange;\n  \}\n\n  description/' "${YANG_FILE_TO_EDIT}"
      sed --in-place "s/^  list /  augment \/orange:orange\/orange:win \{\n    container $1 \{\n      tailf:info \"orange win $1\";\n      description \"$1 package\";\n      container actions \{\n      \}\n    \}\n  \}\n\n  augment \/orange:orange\/orange:win\/$PACKAGE_NAME:$1\/$PACKAGE_NAME:actions \{\n    tailf:action $2 \{\n      tailf:actionpoint $2;\n      input \{\n        leaf device \{\n          type leafref \{\n            path \"\/ncs:devices\/ncs:device\/ncs:name\";\n          \}\n        \}\n      \}\n      output \{\n      \}\n    \}\n  \}\n\n  list /" "${YANG_FILE_TO_EDIT}"
      make -C $NCS_PACKAGES_PATH/$PACKAGE_NAME/src
 else
      sudo -E -H -u root PATH=/opt/ncs/current/bin:$MYPATH -s $COMMAND_LINE
-     sudo -E -H -u root sed --in-place 's/import ncs/import ncs \nfrom ncs.dp import Action/' "${PY_FILE_TO_EDIT}"
-     sudo -E -H -u root sed --in-place "s/        # When this setup method/\n        self\.register_action\(\'$2\', action_class_$2\)\n\n        # When this setup method/" "${PY_FILE_TO_EDIT}"
+     sudo -E -H -u root sed --in-place 's/import ncs/import ncs \nfrom ncs.dp import Action\nfrom \.nso_actions import \*/' "${PY_FILE_TO_EDIT}"
+     sudo -E -H -u root sed --in-place "s/        # When this setup method/\n        self\.register_action\(\'$2\', Nso_Actions_Class_$2\)\n\n        # When this setup method/" "${PY_FILE_TO_EDIT}"
      sudo -E -H -u root sed --in-place 's/YANGERPATH = \$(YANGPATH:%=--path %)/YANGERPATH = \$(YANGPATH:%=--path %)\nYANGPATH += ..\/..\/win_common\/src\/yang \\\nYANGPATH += ..\/..\/com_orange_common\/src\/yang \\/' "${MAKE_FILE_TO_EDIT}"
      sudo -E -H -u root sed --in-place 's/^  description/  import win_common \{\n    prefix win;\n  \}\n  import com_orange_common \{\n    prefix orange;\n  \}\n\n  description/' "${YANG_FILE_TO_EDIT}"
      sudo -E -H -u root sed --in-place "s/^  list /  augment \/orange:orange\/orange:win \{\n    container $1 \{\n      tailf:info \"orange win $1\";\n      description \"$1 package\";\n      container actions \{\n      \}\n    \}\n  \}\n\n  augment \/orange:orange\/orange:win\/$PACKAGE_NAME:$1\/$PACKAGE_NAME:actions \{\n    tailf:action $2 \{\n      tailf:actionpoint $2;\n      input \{\n        leaf device \{\n          type leafref \{\n            path \"\/ncs:devices\/ncs:device\/ncs:name\";\n          \}\n        \}\n      \}\n      output \{\n      \}\n    \}\n  \}\n\n  list /" "${YANG_FILE_TO_EDIT}"
      sudo -E -H -u root make -C $NCS_PACKAGES_PATH/$PACKAGE_NAME/src
 fi
 
-
+echo ====================
 ls -R $NCS_PACKAGES_PATH/$PACKAGE_NAME
-
+echo ====================
 cat "$PY_FILE_TO_EDIT"
+echo ====================
 cat "$MAKE_FILE_TO_EDIT"
+echo ====================
 cat "$YANG_FILE_TO_EDIT"
-
+echo ====================
+echo PACKAGE $NCS_PACKAGES_PATH/$PACKAGE_NAME done.
+echo ====================
