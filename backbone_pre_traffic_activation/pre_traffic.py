@@ -1706,7 +1706,7 @@ class RCMD(object):
                 (RCMD.USERNAME,RCMD.PASSWORD)
             if URL: url = URL
             else: url = 'https://vision.opentransit.net/onv/api/nodes/'
-            local_command = 'curl -u ${CURL_AUTH_STRING} -m 1 %s' % (url)
+            local_command = 'curl -u ${CURL_AUTH_STRING} -m 5 %s' % (url)
             RCMD.vision_api_json_string = LCMD.run_commands(\
                 {'unix':[local_command]}, printall = None, ommit_logging = True)
             os.environ['CURL_AUTH_STRING'] = '-'
