@@ -2,7 +2,6 @@
 import ncs 
 from ncs.dp import Action
 from .nso_actions import *
-from .device_access import *
 from ncs.application import Service
 
 
@@ -58,7 +57,7 @@ class Action(ncs.application.Application):
         # took care of creating a daemon (related to the service/action point).
 
 
-        self.register_action('get_sw_version', Nso_Actions_Class_get_sw_version)
+        self.register_action('get_sw_version', NsoActionsClass_get_sw_version)
 
         # When this setup method is finished, all registrations are
         # considered done and the application is 'started'.

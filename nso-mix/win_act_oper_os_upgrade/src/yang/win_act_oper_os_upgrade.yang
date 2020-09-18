@@ -29,15 +29,15 @@ module win_act_oper_os_upgrade {
   }
 
   augment /orange:orange/orange:win {
-    container os_upgrade {
-      tailf:info "orange win os_upgrade";
-      description "os_upgrade package";
+    container win_act_oper_os_upgrade {
+      tailf:info "";
+      description "win_act_oper_os_upgrade package";
       container actions {
       }
     }
   }
 
-  augment /orange:orange/orange:win/win_act_oper_os_upgrade:os_upgrade/win_act_oper_os_upgrade:actions {
+  augment /orange:orange/orange:win/win_act_oper_os_upgrade:win_act_oper_os_upgrade/win_act_oper_os_upgrade:actions {
     tailf:action get_sw_version {
       tailf:actionpoint get_sw_version;
       input {

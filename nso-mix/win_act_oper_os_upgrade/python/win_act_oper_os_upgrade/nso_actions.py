@@ -12,7 +12,7 @@ import os
 # --------------------------
 #   GET SW VERSION ACTION
 # --------------------------
-class Nso_Actions_Class_get_sw_version(Action):
+class NsoActionsClass_get_sw_version(Action):
     """Get sw version action definition."""
 
     @Action.action
