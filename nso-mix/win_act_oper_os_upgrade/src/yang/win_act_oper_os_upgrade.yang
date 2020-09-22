@@ -65,6 +65,9 @@ module win_act_oper_os_upgrade {
             type string;
           }
         }
+        leaf-list sw_patches {
+          type string;
+        }
       }
     }
   }

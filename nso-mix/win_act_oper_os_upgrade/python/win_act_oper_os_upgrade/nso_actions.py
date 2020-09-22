@@ -4,7 +4,7 @@ from ncs.dp import Action
 from ncs.application import Service
 from .device_access import *
 import collections
-import os
+import os, copy
 
 ### IMPORT: from .nso_actions import *    ###
 
@@ -24,6 +24,8 @@ class NsoActionsClass_get_sw_version(Action):
         brand_raw = str()
         type_raw = str()
 
+
+        ### GET SW VERSION ####################################################
         cmd = {
                   "ios-xe":['show version'],
                   "ios-xr":['show version'],
@@ -61,10 +63,7 @@ class NsoActionsClass_get_sw_version(Action):
             type_raw = output.hw_type
             drive_string = 're0:'
 
-        output.target_sw_versions.create().name = '632'
-        output.target_sw_versions[0].path = '/home/sw/6.3.2'
-
-        ### GET PATH AND FILE TYPES ON DEVICE ###
+        ### GET PATH AND FILE TYPES ON DEVICE #################################
         brand_subdir, type_subdir_on_server, type_subdir_on_device, file_types = \
             get_local_subdirectories(brand_raw = brand_raw, type_raw = type_raw)
 
@@ -84,23 +83,60 @@ class NsoActionsClass_get_sw_version(Action):
 
         dir_device_cmds_result, forget_it = device_command(self, uinfo, input, input.device, dir_device_cmds)
 
-
         if output.os_type == "ios-xe":
-            pass        
+            pass
         elif output.os_type == "ios-xr":
-            i = 0             
+            i = 0
             for line in dir_device_cmds_result.splitlines():
-                try: 
-                     if str(line.split()[1])[0] == 'd' and int(line.split()[-1]):
-                         output.target_sw_versions.create().name = line.split()[-1]
-                         output.target_sw_versions[i].path = '/home/sw/6.3.2'
+                try:
+                     sub_directory = line.split()[-1]
+                     if str(line.split()[1])[0] == 'd' and int(sub_directory):
+                         output.target_sw_versions.create().name = str(sub_directory)
+                         output.target_sw_versions[i].path = str(dev_dir + '/' + sub_directory)
                          i += 1
-                except: pass            
-            
+                except: pass
+
         elif output.os_type == "huawei-vrp":
             pass
         elif output.os_type == "junos":
             pass
+
+        ### LOOK FOR PATCH ####################################################
+        xe_device_patch_list = [ ]
+        xr_device_patch_list = [ 'show install active summary' ]
+        huawei_device_patch_list = []
+        juniper_device_patch_list = []
+
+        patch_device_cmds = {
+            'ios-xe':xe_device_patch_list,
+            'ios-xr':xr_device_patch_list,
+            'junos':juniper_device_patch_list,
+            'huawei-vrp':huawei_device_patch_list
+        }
+
+        patch_device_cmds_result, forget_it = device_command(self, uinfo, input, input.device, patch_device_cmds)
+
+        sw_version = copy.deepcopy(output.sw_version)
+        sw_patches = []
+
+        if output.os_type == "ios-xe":
+            pass
+        elif output.os_type == "ios-xr":
+            packages_lines = False
+            for line in patch_device_cmds_result.splitlines():
+                try:
+                     if '    Active Packages: ' in line: packages_lines = True
+                     elif packages_lines and len(line) > 0:
+                         if sw_version in line or sw_version.replace('.','') in line: pass
+                         else: sw_patches.append(str(line.strip()))
+                except: pass
+
+        elif output.os_type == "huawei-vrp":
+            pass
+        elif output.os_type == "junos":
+            pass
+        output.sw_patches = sw_patches
+
 
 
 
