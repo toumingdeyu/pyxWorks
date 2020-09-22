@@ -129,7 +129,7 @@ class NsoActionsClass_get_sw_version(Action):
                      elif packages_lines and len(line) > 0:
                          if sw_version in line or sw_version.replace('.','') in line: pass
                          else: sw_patches.append(str(line.strip()))
-                     elif packages_lines and and len(line) == 0: break
+                     elif packages_lines and len(line) == 0: break
                 except: pass
 
         elif output.os_type == "huawei-vrp":
