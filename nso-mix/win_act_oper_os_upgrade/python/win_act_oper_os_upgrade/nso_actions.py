@@ -21,8 +21,6 @@ class NsoActionsClass_get_sw_version(Action):
         output.os_type = 'UNKNOWN'
         output.hw_type = 'UNKNOWN'
         output.sw_version = 'UNKNOWN'
-        output.target_sw_version = 'UNKNOWN'
-        output.path_to_target_sw = 'UNKNOWN'
         brand_raw = str()
         type_raw = str()
 
@@ -63,13 +61,14 @@ class NsoActionsClass_get_sw_version(Action):
             type_raw = output.hw_type
             drive_string = 're0:'
 
+        output.target_sw_versions.create().name = '632'
+        output.target_sw_versions[0].path = '/home/sw/6.3.2'
+
         ### GET PATH AND FILE TYPES ON DEVICE ###
         brand_subdir, type_subdir_on_server, type_subdir_on_device, file_types = \
             get_local_subdirectories(brand_raw = brand_raw, type_raw = type_raw)
 
         dev_dir = os.path.abspath(os.path.join(os.sep, type_subdir_on_device))
-
-        output.path_to_target_sw = dev_dir
 
         xe_device_dir_list = [ 'dir %s%s' % (drive_string, dev_dir) ]
         xr_device_dir_list = [ 'dir %s%s' % (drive_string, dev_dir) ]
@@ -85,15 +84,17 @@ class NsoActionsClass_get_sw_version(Action):
 
         dir_device_cmds_result, forget_it = device_command(self, uinfo, input, input.device, dir_device_cmds)
 
-        output.target_sw_version = dir_device_cmds_result
 
         if output.os_type == "ios-xe":
             pass        
-        elif output.os_type == "ios-xr":             
+        elif output.os_type == "ios-xr":
+            i = 0             
             for line in dir_device_cmds_result.splitlines():
                 try: 
                      if str(line.split()[1])[0] == 'd' and int(line.split()[-1]):
-                         output.target_sw_version = line.split()[-1]                     
+                         output.target_sw_versions.create().name = line.split()[-1]
+                         output.target_sw_versions[i].path = '/home/sw/6.3.2'
+                         i += 1
                 except: pass            
             
         elif output.os_type == "huawei-vrp":

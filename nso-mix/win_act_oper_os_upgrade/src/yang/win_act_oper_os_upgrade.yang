@@ -57,11 +57,13 @@ module win_act_oper_os_upgrade {
         leaf sw_version {
           type string;
         }
-        leaf target_sw_version {
-          type string;
-        }
-        leaf path_to_target_sw {
-          type string;
+        list target_sw_versions {
+          leaf name {
+            type string;
+          }
+          leaf path {
+            type string;
+          }
         }
       }
     }
