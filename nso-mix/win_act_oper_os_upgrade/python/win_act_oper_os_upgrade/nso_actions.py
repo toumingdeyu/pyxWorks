@@ -123,13 +123,12 @@ class NsoActionsClass_get_sw_version(Action):
             pass
         elif output.os_type == "ios-xr":
             packages_lines = False
-            for line in patch_device_cmds_result.splitlines():
+            for line in patch_device_cmds_result.splitlines()[:-1]:
                 try:
                      if '    Active Packages: ' in line: packages_lines = True
                      elif packages_lines and len(line) > 0:
                          if sw_version in line or sw_version.replace('.','') in line: pass
                          else: sw_patches.append(str(line.strip()))
-                     elif packages_lines and len(line) == 0: break
                 except: pass
 
         elif output.os_type == "huawei-vrp":
