@@ -1,0 +1,94 @@
+module win_act_oper_return_list {
+
+  namespace "http://example.com/win_act_oper_return_list";
+  prefix win_act_oper_return_list;
+
+  import ietf-inet-types {
+    prefix inet;
+  }
+  import tailf-common {
+    prefix tailf;
+  }
+  import tailf-ncs {
+    prefix ncs;
+  }
+
+  import win_common {
+    prefix win;
+  }
+  import com_orange_common {
+    prefix orange;
+  }
+
+  description
+    "Bla bla...";
+
+  revision 2016-01-01 {
+    description
+      "Initial revision.";
+  }
+
+  augment /orange:orange/orange:win {
+    container win_act_oper_return_list {
+      tailf:info "";
+      description "win_act_oper_return_list package";
+      container actions {
+      }
+    }
+  }
+
+  augment /orange:orange/orange:win/win_act_oper_return_list:win_act_oper_return_list/win_act_oper_return_list:actions {
+    tailf:action get_list {
+      tailf:actionpoint get_list;
+      input {
+        leaf device {
+          type leafref {
+            path "/ncs:devices/ncs:device/ncs:name";
+          }
+        }
+      }
+      output {
+         list sw_versions {
+           leaf name {
+             type string;
+           }
+           leaf path {
+             type string;
+           }
+        }
+      }
+    }
+  }
+
+
+
+
+
+
+
+  list win_act_oper_return_list {
+    description "This is an RFS skeleton service";
+
+    key name;
+    leaf name {
+      tailf:info "Unique service id";
+      tailf:cli-allow-range;
+      type string;
+    }
+
+    uses ncs:service-data;
+    ncs:servicepoint win_act_oper_return_list-servicepoint;
+
+    // may replace this with other ways of refering to the devices.
+    leaf-list device {
+      type leafref {
+        path "/ncs:devices/ncs:device/ncs:name";
+      }
+    }
+
+    // replace with your own stuff here
+    leaf dummy {
+      type inet:ipv4-address;
+    }
+  }
+}
