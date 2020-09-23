@@ -57,6 +57,9 @@ module win_act_oper_os_upgrade {
         leaf sw_version {
           type string;
         }
+        leaf-list sw_patches {
+          type string;
+        }
         list target_sw_versions {
           leaf name {
             type string;
@@ -64,9 +67,12 @@ module win_act_oper_os_upgrade {
           leaf path {
             type string;
           }
-        }
-        leaf-list sw_patches {
-          type string;
+          leaf-list files {
+            type string;
+          }
+          leaf-list patch_files {
+            type string;
+          }          
         }
       }
     }
