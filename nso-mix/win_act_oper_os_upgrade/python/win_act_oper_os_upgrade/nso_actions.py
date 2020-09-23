@@ -308,3 +308,5 @@ def get_local_subdirectories(brand_raw = None, type_raw = None):
             file_types = ['Patch/*.PAT','*.cc']
     return brand_subdir, type_subdir_on_server, type_subdir_on_device, file_types
 
+
+
