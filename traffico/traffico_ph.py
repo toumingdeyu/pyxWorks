@@ -2927,6 +2927,7 @@ try:
 
                 ### FINAL_CHECK ###########################################################
                 time.sleep(1)
+                check_config = None
                 if LOCAL_AS_NUMBER == '5511':
                     check_config = {'cisco_ios':['show bgp summary','show bgp ipv6 unicast summary'],
                                     'cisco_xr' :['show bgp summary','show bgp ipv6 unicast summary'],
@@ -2940,8 +2941,9 @@ try:
                                     'huawei':   ['disp bgp vpnv4 all peer | exclude 2300']
                                    }
 
-                CGI_CLI.uprint('\nFINAL MANUAL CHECK:', tag = 'h1', color = 'blue')
-                rcmd_outputs = RCMD.run_commands(check_config, printall = True)
+                if check_config:
+                    CGI_CLI.uprint('\nFINAL MANUAL CHECK:', tag = 'h1', color = 'blue')
+                    rcmd_outputs = RCMD.run_commands(check_config, printall = True)
 
 
                 ### WRITE JSON TO END OF FILE #############################################
@@ -2956,7 +2958,7 @@ try:
                     color = 'blue', timestamp = 'no', no_printall = not printall)
 
                 if len(CGI_CLI.JSON_RESULTS['errors']) == 0: CGI_CLI.JSON_RESULTS['success'] = 'OK'
- 
+
 except SystemExit: pass
 except:
     traceback_found = traceback.format_exc()
