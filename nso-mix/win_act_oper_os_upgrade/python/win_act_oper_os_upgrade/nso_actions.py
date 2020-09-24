@@ -21,6 +21,7 @@ class NsoActionsClass_get_sw_version(Action):
         output.os_type = 'UNKNOWN'
         output.hw_type = 'UNKNOWN'
         output.sw_version = 'UNKNOWN'
+        debug_info = []
         brand_raw = str()
         type_raw = str()
 
@@ -100,7 +101,7 @@ class NsoActionsClass_get_sw_version(Action):
         output.sw_patches = sw_patches
 
 
-        ### GET PATHS ON DEVICE ###############################################
+        ### def GET PATHS ON DEVICE ###########################################
         brand_subdir, type_subdir_on_server, type_subdir_on_device, file_types = \
             get_local_subdirectories(brand_raw = brand_raw, type_raw = type_raw)
 
@@ -121,6 +122,8 @@ class NsoActionsClass_get_sw_version(Action):
         dir_device_cmds_result, forget_it = device_command(self, uinfo, input, input.device, dir_device_cmds)
         versions = []
 
+        debug_info.append(dir_device_cmds_result)
+
         if output.os_type == "ios-xe" or output.os_type == "ios-xr":
             i = 0
             for line in dir_device_cmds_result.splitlines():
@@ -135,7 +138,26 @@ class NsoActionsClass_get_sw_version(Action):
                 except: pass
 
         elif output.os_type == "huawei-vrp":
-            pass
+            ### FILES ARE IN CFCARD ROOT !!! ##################################
+            i = 0
+            for line in dir_device_cmds_result.splitlines()[:-1]:
+                try:
+                    tar_file = line.split()[-1]
+                    for file_type in file_types:
+                        if '/' in file_type.upper(): pass
+                        else:
+                            file_type_parts = file_type.split('*')
+                            found_in_tar_file = True
+                            for file_type_part in file_type_parts:
+                                if file_type_part.upper() in tar_file.upper(): pass
+                                else: found_in_tar_file = False
+                            if len(file_type_parts) > 0 and found_in_tar_file:
+                                output.target_sw_versions.create().name = str(tar_file)
+                                output.target_sw_versions[i].path = str(dev_dir)
+                                output.target_sw_versions[i].files = tar_file
+                                i += 1
+                except: pass
+
         elif output.os_type == "junos":
             pass
 
@@ -156,24 +178,23 @@ class NsoActionsClass_get_sw_version(Action):
             file_device_cmds_result, forget_it = device_command(self, uinfo, input, input.device, file_device_cmds)
 
             if output.os_type == "ios-xe" or output.os_type == "ios-xr":
+                files = []
                 for line in file_device_cmds_result.splitlines()[:-1]:
                     try:
-                         files = []
-                         tar_file = line.split()[-1]
-                         for file_type in file_types:
-                             if '/' in file_type.upper(): pass
-                             else:
-                                 file_type_parts = file_type.split('*')
-                                 found_in_tar_file = True
-                                 for file_type_part in file_type_parts:
-                                     if file_type_part.upper() in tar_file.upper(): pass
-                                     else: found_in_tar_file = False
-                                 if len(file_type_parts) > 0 and found_in_tar_file:
-                                     files.append(tar_file)
-
-                         if len(files)>0:
-                             output.target_sw_versions[i].files = files
+                        tar_file = line.split()[-1]
+                        for file_type in file_types:
+                            if '/' in file_type.upper(): pass
+                            else:
+                                file_type_parts = file_type.split('*')
+                                found_in_tar_file = True
+                                for file_type_part in file_type_parts:
+                                    if file_type_part.upper() in tar_file.upper(): pass
+                                    else: found_in_tar_file = False
+                                if len(file_type_parts) > 0 and found_in_tar_file:
+                                    files.append(tar_file)
                     except: pass
+                if len(files)>0:
+                    output.target_sw_versions[i].files = files
 
             elif output.os_type == "huawei-vrp":
                 pass
@@ -196,24 +217,25 @@ class NsoActionsClass_get_sw_version(Action):
                 if output.os_type == "ios-xe":
                     pass
                 elif output.os_type == "ios-xr":
+                    patch_files = []
                     for line in patch_file_device_cmds_result.splitlines()[:-1]:
                         try:
-                             patch_files = []
-                             tar_file = line.split()[-1]
-                             for file_type in file_types:
-                                 try: patch_file = file_type.split('/')[1].replace('*','')
-                                 except: patch_file = str()
-                                 if len(patch_file) > 0 and patch_file.upper() in tar_file.upper():
-                                     patch_files.append(tar_file)
-
-                             if len(patch_files)>0:
-                                 output.target_sw_versions[i].patch_files = patch_files
+                            tar_file = line.split()[-1]
+                            for file_type in file_types:
+                                try: patch_file = file_type.split('/')[1].replace('*','')
+                                except: patch_file = str()
+                                if len(patch_file) > 0 and patch_file.upper() in tar_file.upper():
+                                    patch_files.append(tar_file)
                         except: pass
+                    if len(patch_files)>0:
+                        output.target_sw_versions[i].patch_files = patch_files
 
                 elif output.os_type == "huawei-vrp":
                     pass
                 elif output.os_type == "junos":
                     pass
+
+        output.debug_info = debug_info
 
 #    for i in range(len(output.target_sw_versions)):
 #        if len(output.target_sw_versions[i].files) == 0 and len(output.target_sw_versions[key].patch_files) == 0:
@@ -308,6 +330,10 @@ def get_local_subdirectories(brand_raw = None, type_raw = None):
             type_subdir_on_device = ''
             file_types = ['Patch/*.PAT','*.cc']
     return brand_subdir, type_subdir_on_server, type_subdir_on_device, file_types
+
+
+
+
 
 
 
