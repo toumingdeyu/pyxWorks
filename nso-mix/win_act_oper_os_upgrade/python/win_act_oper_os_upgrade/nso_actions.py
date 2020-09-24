@@ -121,9 +121,7 @@ class NsoActionsClass_get_sw_version(Action):
         dir_device_cmds_result, forget_it = device_command(self, uinfo, input, input.device, dir_device_cmds)
         versions = []
 
-        if output.os_type == "ios-xe":
-            pass
-        elif output.os_type == "ios-xr":
+        if output.os_type == "ios-xe" or output.os_type == "ios-xr":
             i = 0
             for line in dir_device_cmds_result.splitlines():
                 try:
@@ -142,7 +140,7 @@ class NsoActionsClass_get_sw_version(Action):
             pass
 
         for i in range(len(output.target_sw_versions)):
-            ### GET FILES ON DEVICE VERSION DIRECTORY #############################
+            ### def GET FILES ON DEVICE VERSION DIRECTORY #########################
             xe_device_file_list = [ 'dir %s%s/%s' % (drive_string, dev_dir, output.target_sw_versions[i].name) ]
             xr_device_file_list = [ 'dir %s%s/%s' % (drive_string, dev_dir, output.target_sw_versions[i].name) ]
             huawei_device_file_list = [ 'dir %s%s/%s/' % (drive_string, dev_dir, output.target_sw_versions[i].name) ]
@@ -157,9 +155,7 @@ class NsoActionsClass_get_sw_version(Action):
 
             file_device_cmds_result, forget_it = device_command(self, uinfo, input, input.device, file_device_cmds)
 
-            if output.os_type == "ios-xe":
-                pass
-            elif output.os_type == "ios-xr":
+            if output.os_type == "ios-xe" or output.os_type == "ios-xr":
                 for line in file_device_cmds_result.splitlines()[:-1]:
                     try:
                          files = []
@@ -185,38 +181,39 @@ class NsoActionsClass_get_sw_version(Action):
                 pass
 
             ### GET SMU FILES ON DEVICE VERSION DIRECTORY #########################
-            xr_device_patch_file_list = [ 'dir %s%s/%s/SMU' % (drive_string, dev_dir, output.target_sw_versions[i].name) ]
+            if output.os_type == "ios-xr":
+                xr_device_patch_file_list = [ 'dir %s%s/%s/SMU' % (drive_string, dev_dir, output.target_sw_versions[i].name) ]
 
-            patch_file_device_cmds = {
-                'ios-xe':[],
-                'ios-xr':xr_device_patch_file_list,
-                'junos':[],
-                'huawei-vrp':[]
-            }
+                patch_file_device_cmds = {
+                    'ios-xe':[],
+                    'ios-xr':xr_device_patch_file_list,
+                    'junos':[],
+                    'huawei-vrp':[]
+                }
 
-            patch_file_device_cmds_result, forget_it = device_command(self, uinfo, input, input.device, patch_file_device_cmds)
+                patch_file_device_cmds_result, forget_it = device_command(self, uinfo, input, input.device, patch_file_device_cmds)
 
-            if output.os_type == "ios-xe":
-                pass
-            elif output.os_type == "ios-xr":
-                for line in patch_file_device_cmds_result.splitlines()[:-1]:
-                    try:
-                         patch_files = []
-                         tar_file = line.split()[-1]
-                         for file_type in file_types:
-                             try: patch_file = file_type.split('/')[1].replace('*','')
-                             except: patch_file = str()
-                             if len(patch_file) > 0 and patch_file.upper() in tar_file.upper():
-                                 patch_files.append(tar_file)
+                if output.os_type == "ios-xe":
+                    pass
+                elif output.os_type == "ios-xr":
+                    for line in patch_file_device_cmds_result.splitlines()[:-1]:
+                        try:
+                             patch_files = []
+                             tar_file = line.split()[-1]
+                             for file_type in file_types:
+                                 try: patch_file = file_type.split('/')[1].replace('*','')
+                                 except: patch_file = str()
+                                 if len(patch_file) > 0 and patch_file.upper() in tar_file.upper():
+                                     patch_files.append(tar_file)
 
-                         if len(patch_files)>0:
-                             output.target_sw_versions[i].patch_files = patch_files
-                    except: pass
+                             if len(patch_files)>0:
+                                 output.target_sw_versions[i].patch_files = patch_files
+                        except: pass
 
-            elif output.os_type == "huawei-vrp":
-                pass
-            elif output.os_type == "junos":
-                pass
+                elif output.os_type == "huawei-vrp":
+                    pass
+                elif output.os_type == "junos":
+                    pass
 
 #    for i in range(len(output.target_sw_versions)):
 #        if len(output.target_sw_versions[i].files) == 0 and len(output.target_sw_versions[key].patch_files) == 0:
@@ -254,6 +251,10 @@ def get_local_subdirectories(brand_raw = None, type_raw = None):
             type_subdir_on_server = 'ASR1K/ASR1002X/IOS_XE'
             type_subdir_on_device = 'IOS-XE'
             file_types = ['asr1002x*.bin','asr100*.pkg','/home/tftpboot/CISCO/ASR1K/ASR1002X/ROMMON/*.pkg']
+        elif 'CSR100' in type_raw.upper():
+            type_subdir_on_server = 'ASR1K/ASR1002X/IOS_XE'
+            type_subdir_on_device = 'IOS-XE'
+            file_types = ['sr100*.bin','sr100*.pkg','/home/tftpboot/CISCO/ASR1K/ASR1002X/ROMMON/*.pkg']
         elif 'ASR1002-HX' in type_raw.upper():
             type_subdir_on_server = 'ASR1K/ASR1002HX/IOS_XE'
             type_subdir_on_device = 'IOS-XE'
