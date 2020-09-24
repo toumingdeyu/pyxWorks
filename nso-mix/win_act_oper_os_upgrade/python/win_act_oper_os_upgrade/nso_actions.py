@@ -260,7 +260,7 @@ class NsoActionsClass_get_sw_version(Action):
                 elif output.os_type == "junos":
                     pass
 
-        output.debug_info = debug_info
+        #output.debug_info = debug_info
 
 #    for i in range(len(output.target_sw_versions)):
 #        if len(output.target_sw_versions[i].files) == 0 and len(output.target_sw_versions[key].patch_files) == 0:
@@ -359,6 +359,9 @@ def get_local_subdirectories(brand_raw = None, type_raw = None):
             type_subdir_on_device = ''
             file_types = ['Patch/*.PAT','*.cc']
     return brand_subdir, type_subdir_on_server, type_subdir_on_device, file_types
+
+
+
 
 
 
