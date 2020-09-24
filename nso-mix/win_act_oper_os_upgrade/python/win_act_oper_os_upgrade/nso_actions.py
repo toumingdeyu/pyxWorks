@@ -165,7 +165,26 @@ class NsoActionsClass_get_sw_version(Action):
                 except: pass
 
         elif output.os_type == "junos":
-            pass
+            ### FILES ARE IN re0:/var/tmp #####################################
+            i = 0
+            for line in dir_device_cmds_result.splitlines()[:-1]:
+                try:
+                    tar_file = line.split()[-1]
+                    for file_type in file_types:
+                        if '/' in file_type.upper():
+                            file_type_parts = file_type.split('/')[-1].split('*')
+                        else:
+                            file_type_parts = file_type.split('*')
+                        found_in_tar_file = True
+                        for file_type_part in file_type_parts:
+                            if file_type_part.upper() in tar_file.upper(): pass
+                            else: found_in_tar_file = False
+                        if len(file_type_parts) > 0 and found_in_tar_file:
+                            output.target_sw_versions.create().name = str(tar_file)
+                            output.target_sw_versions[i].path = str(dev_dir)
+                            output.target_sw_versions[i].files = [tar_file]
+                            i += 1
+                except: pass
 
         for i in range(len(output.target_sw_versions)):
             ### def GET FILES ON DEVICE VERSION DIRECTORY #########################
@@ -328,6 +347,10 @@ def get_local_subdirectories(brand_raw = None, type_raw = None):
             type_subdir_on_device = '/var/tmp'
             file_types = ['junos*.img.gz', 'junos*.tgz']
         elif 'MX480' in type_raw.upper():
+            type_subdir_on_server = 'MX/MX480'
+            type_subdir_on_device = '/var/tmp'
+            file_types = ['junos*.img.gz', 'junos*.tgz']
+        elif 'VMX' in type_raw.upper():
             type_subdir_on_server = 'MX/MX480'
             type_subdir_on_device = '/var/tmp'
             file_types = ['junos*.img.gz', 'junos*.tgz']
