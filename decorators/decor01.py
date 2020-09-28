@@ -22,19 +22,20 @@ import requests
 from mako.template import Template
 from mako.lookup import TemplateLookup
 
+### https://gist.github.com/Zearin/2f40b7b9cfc51132851a ###
 
 def makedecor(function_to_decorate):
     def wrapper(*args, **kwargs):
-        print('aaaaaaa')
+        print('before')
         print(args)
         print(kwargs)
         function_to_decorate(*args, **kwargs)
-        print('bbbbb')
+        print('after')
     return wrapper
 
 
 def decorated_function():
-    print 'I am the decorated function.'
+    print('decorated function.')
 
 
 logging.raiseExceptions = False
