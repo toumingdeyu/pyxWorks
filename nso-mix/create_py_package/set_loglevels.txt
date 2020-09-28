@@ -1,0 +1,4 @@
+$ ncs_cli -u admin
+admin@ncs> config
+admin@ncs% set python-vm logging vm-levels pkg_name level level-debug
+admin@ncs% commit
