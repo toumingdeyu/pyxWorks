@@ -281,7 +281,7 @@ class NsoActionsClass_os_upgrade_precheck(Action):
         output.os_type = 'UNKNOWN'
         output.hw_type = 'UNKNOWN'
     
-        output.os_type = str(self.getLogger(name))
+
 
 
 
