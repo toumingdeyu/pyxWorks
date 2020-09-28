@@ -269,6 +269,36 @@ class NsoActionsClass_get_sw_version(Action):
 
 
 
+# --------------------------
+#   OS UPGRADE PRECHECK
+# --------------------------
+class NsoActionsClass_os_upgrade_precheck(Action):
+    """Does os upgrade precheck definition."""
+
+    @Action.action
+    def cb_action(self, uinfo, name, kp, input, output):
+        self.log.info('action name: ', name)
+        output.os_type = 'UNKNOWN'
+        output.hw_type = 'UNKNOWN'
+    
+        output.os_type = str(self.getLogger(name))
+
+
+
+# --------------------------
+#   OS UPGRADE PRECHECK
+# --------------------------
+class NsoActionsClass_os_upgrade_postcheck(Action):
+    """Does os upgrade postcheck definition."""
+
+    @Action.action
+    def cb_action(self, uinfo, name, kp, input, output):
+        self.log.info('action name: ', name)
+        output.os_type = 'UNKNOWN'
+        output.hw_type = 'UNKNOWN'
+
+
+
 ###############################################################################
 
 def get_local_subdirectories(brand_raw = None, type_raw = None):

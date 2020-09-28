@@ -58,6 +58,9 @@ class Action(ncs.application.Application):
 
 
         self.register_action('get_sw_version', NsoActionsClass_get_sw_version)
+        self.register_action('os_upgrade_precheck', NsoActionsClass_os_upgrade_precheck)
+        self.register_action('os_upgrade_postcheck', NsoActionsClass_os_upgrade_postcheck)
+
 
         # When this setup method is finished, all registrations are
         # considered done and the application is 'started'.
