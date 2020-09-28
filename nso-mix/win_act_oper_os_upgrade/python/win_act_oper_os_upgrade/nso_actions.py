@@ -280,8 +280,30 @@ class NsoActionsClass_os_upgrade_precheck(Action):
         self.log.info('action name: ', name)
         output.os_type = 'UNKNOWN'
         output.hw_type = 'UNKNOWN'
-    
 
+
+        device_cmds = {
+            'ios-xr':['show install inactive sum'],
+        }
+
+        device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, device_cmds)
+
+        if output.os_type == "ios-xr":
+           if 'No inactive package(s) in software repository' in device_cmds_result:
+               pass
+           else:
+               inactive_packages = []
+               if 'Inactive Packages:' in device_cmds_result:
+                   for package_line in device_cmds_result.split('Inactive Packages:')[1].splitlines():
+                       if package_line and package_line[0] == ' ':
+                           inactive_packages.append(package_line.strip())
+
+               for inactive_package in inactive_packages:
+                   device_cmds2 = {
+                       'ios-xr':['install remove inactive %s' % inactive_package],
+                   }
+
+                   device_cmds_result2, output.os_type = device_command(self, uinfo, input, input.device, device_cmds2)
 
 
 

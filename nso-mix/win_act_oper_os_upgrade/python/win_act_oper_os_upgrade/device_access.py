@@ -43,7 +43,7 @@ def device_command(self, uinfo, input, device, cmd):
 
                 if isinstance(cmd_data.get("ios-xe"), (list,tuple)):
                     command.args = cmd_data.get("ios-xe")
-                else: command.args = [ cmd_data.get("ios-xe") ]               
+                else: command.args = [ cmd_data.get("ios-xe",str()) ]
 
                 command_output = dev.live_status.ios_stats__exec.any(command)
                 result = command_output.result
@@ -54,7 +54,7 @@ def device_command(self, uinfo, input, device, cmd):
 
                 if isinstance(cmd_data.get("ios-xr"), (list,tuple)):
                     command.args = cmd_data.get("ios-xr")
-                else: command.args = [ cmd_data.get("ios-xr") ]
+                else: command.args = [ cmd_data.get("ios-xr",str()) ]
 
                 command_output = dev.live_status.cisco_ios_xr_stats__exec.any(command)  # nopep8
                 result = command_output.result
@@ -65,7 +65,7 @@ def device_command(self, uinfo, input, device, cmd):
 
                 if isinstance(cmd_data.get("huawei-vrp"), (list,tuple)):
                     command.args = cmd_data.get("huawei-vrp")
-                else: command.args = [ cmd_data.get("huawei-vrp") ]
+                else: command.args = [ cmd_data.get("huawei-vrp",str()) ]
 
                 command_output = dev.live_status.vrp_stats__exec.any(command)
                 result = command_output.result
@@ -80,7 +80,7 @@ def device_command(self, uinfo, input, device, cmd):
                         command_output = dev.rpc.jrpc__rpc_request_shell_execute.request_shell_execute.request(command_input)
                         result = result + '\n' + command_output.output
                 else:
-                    command_input.command = [ 'cli ' + cmd_data.get("junos").replace('|','\|') ]
+                    command_input.command = [ 'cli ' + cmd_data.get("junos",str()).replace('|','\|') ]
                     command_output = dev.rpc.jrpc__rpc_request_shell_execute.request_shell_execute.request(command_input)
                     result = command_output.output
 
