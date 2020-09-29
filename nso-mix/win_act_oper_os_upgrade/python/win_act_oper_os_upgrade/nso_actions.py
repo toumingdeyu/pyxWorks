@@ -357,7 +357,7 @@ class NsoActionsClass_os_upgrade_precheck(Action):
             cp_device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, cp_device_cmds)
 
             cp2_device_cmds = {
-                'ios-xr':['admin copy running-config harddisk:%s-config.txt' % (str(date_string))],
+                'ios-xr':['admin copy running-config harddisk:%s-config.txt | prompts ENTER' % (str(date_string))],
             }
 
             cp2_device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, cp2_device_cmds)
@@ -369,7 +369,7 @@ class NsoActionsClass_os_upgrade_precheck(Action):
 
 
             asi_device_cmds = {
-                'ios-xr':['admin copy running-config harddisk:%s-config.txt' % (str(date_string))],
+                'ios-xr':['admin copy running-config harddisk:admin-%s-config.txt | prompts ENTER' % (str(date_string))],
             }
 
             asi_device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, asi_device_cmds)
