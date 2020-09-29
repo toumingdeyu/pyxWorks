@@ -5,6 +5,7 @@ from ncs.application import Service
 from .device_access import *
 import collections
 import os, copy, time
+from datetime import date
 
 ### IMPORT: from .nso_actions import *    ###
 
@@ -296,7 +297,7 @@ class NsoActionsClass_os_upgrade_precheck(Action):
                 if 'Inactive Packages:' in device_cmds_result:
                     for package_line in device_cmds_result.split('Inactive Packages:')[1].splitlines():
                         if package_line and package_line[0] == ' ':
-                            inactive_packages.append(package_line.strip())
+                            inactive_packages.append(package_line.split()[0].strip())
 
                 for inactive_package in inactive_packages:
                     device_cmds2 = {
@@ -324,6 +325,7 @@ class NsoActionsClass_os_upgrade_precheck(Action):
                                     inactive_packages.append(package_line.strip())
             output.inactive_packages = inactive_packages
 
+            ### show install active summary ###
             act_device_cmds = {
                 'ios-xr':['show install active summary'],
             }
@@ -333,16 +335,37 @@ class NsoActionsClass_os_upgrade_precheck(Action):
             if 'Active Packages:' in act_device_cmds_result:
                 number_of_active_packages = int(act_device_cmds_result.split('Active Packages:')[1].split()[0])
                 for i in range(number_of_active_packages):
-                     active_packages.append(act_device_cmds_result.split('Active Packages:')[1].splitlines()[i + 1].split()[0].strip()) 
+                     active_packages.append(act_device_cmds_result.split('Active Packages:')[1].splitlines()[i + 1].split()[0].strip())
                 output.active_packages = active_packages
 
             inst_device_cmds = {
                 'ios-xr':['show install log'],
             }
 
-            ### show install log ### 
+            ### show install log ###
             inst_device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, inst_device_cmds)
             output.install_log = inst_device_cmds_result
+
+            ### copy configs ###
+            today = date.today()
+            date_string = today.strftime("%Y-%m%d")
+
+            cp_device_cmds = {
+                'ios-xr':['copy running-config harddisk:%s-config.txt' % (str(date_string))],
+            }
+
+            cp_device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, cp_device_cmds)
+
+            cp2_device_cmds = {
+                'ios-xr':['admin copy running-config harddisk:%s-config.txt' % (str(date_string))],
+            }
+
+            cp2_device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, cp2_device_cmds)
+
+
+
+
+
 
 
 
