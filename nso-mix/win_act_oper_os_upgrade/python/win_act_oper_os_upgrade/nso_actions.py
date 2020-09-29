@@ -365,6 +365,16 @@ class NsoActionsClass_os_upgrade_precheck(Action):
 
 
 
+            ###'install add source /harddisk:/[path-to-ios-xr-tar-file] synchronous'
+
+
+            asi_device_cmds = {
+                'ios-xr':['admin copy running-config harddisk:%s-config.txt' % (str(date_string))],
+            }
+
+            asi_device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, asi_device_cmds)
+            output.admin_install_log = asi_device_cmds_result
+
 
 
 
