@@ -330,10 +330,10 @@ class NsoActionsClass_os_upgrade_precheck(Action):
 
             act_device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, act_device_cmds)
 
-            if 'Active Packages:' in device_cmds_result:
-                number_of_active_packages = int(device_cmds_result.split('Active Packages:')[1].split()[0])
+            if 'Active Packages:' in act_device_cmds_result:
+                number_of_active_packages = int(act_device_cmds_result.split('Active Packages:')[1].split()[0])
                 for i in range(number_of_active_packages):
-                     active_packages.append(device_cmds_result.split('Active Packages:')[1].splitlines()[i + 1].split()[0].strip()) 
+                     active_packages.append(act_device_cmds_result.split('Active Packages:')[1].splitlines()[i + 1].split()[0].strip()) 
                 output.active_packages = active_packages
 
             inst_device_cmds = {
@@ -342,7 +342,7 @@ class NsoActionsClass_os_upgrade_precheck(Action):
 
             ### show install log ### 
             inst_device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, inst_device_cmds)
-            output.install_log = device_cmds_result
+            output.install_log = inst_device_cmds_result
 
 
 
