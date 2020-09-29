@@ -4,7 +4,7 @@ from ncs.dp import Action
 from ncs.application import Service
 from .device_access import *
 import collections
-import os, copy
+import os, copy, time
 
 ### IMPORT: from .nso_actions import *    ###
 
@@ -280,7 +280,8 @@ class NsoActionsClass_os_upgrade_precheck(Action):
         self.log.info('action name: ', name)
         output.os_type = 'UNKNOWN'
         output.hw_type = 'UNKNOWN'
-
+        inactive_packages = []
+        active_packages = []
 
         device_cmds = {
             'ios-xr':['show install inactive sum'],
@@ -289,21 +290,59 @@ class NsoActionsClass_os_upgrade_precheck(Action):
         device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, device_cmds)
 
         if output.os_type == "ios-xr":
-           if 'No inactive package(s) in software repository' in device_cmds_result:
-               pass
-           else:
-               inactive_packages = []
-               if 'Inactive Packages:' in device_cmds_result:
-                   for package_line in device_cmds_result.split('Inactive Packages:')[1].splitlines():
-                       if package_line and package_line[0] == ' ':
-                           inactive_packages.append(package_line.strip())
+            if 'No inactive package(s) in software repository' in device_cmds_result:
+                pass
+            else:
+                if 'Inactive Packages:' in device_cmds_result:
+                    for package_line in device_cmds_result.split('Inactive Packages:')[1].splitlines():
+                        if package_line and package_line[0] == ' ':
+                            inactive_packages.append(package_line.strip())
 
-               for inactive_package in inactive_packages:
-                   device_cmds2 = {
-                       'ios-xr':['install remove inactive %s' % inactive_package],
-                   }
+                for inactive_package in inactive_packages:
+                    device_cmds2 = {
+                        'ios-xr':['install remove inactive %s' % inactive_package],
+                    }
 
-                   device_cmds_result2, output.os_type = device_command(self, uinfo, input, input.device, device_cmds2)
+                    device_cmds_result2, output.os_type = device_command(self, uinfo, input, input.device, device_cmds2)
+
+                time.sleep(1)
+
+                device_cmds = {
+                    'ios-xr':['show install inactive sum'],
+                }
+
+                device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, device_cmds)
+
+                if output.os_type == "ios-xr":
+                    if 'No inactive package(s) in software repository' in device_cmds_result:
+                        pass
+                    else:
+                        inactive_packages = []
+                        if 'Inactive Packages:' in device_cmds_result:
+                            for package_line in device_cmds_result.split('Inactive Packages:')[1].splitlines():
+                                if package_line and package_line[0] == ' ':
+                                    inactive_packages.append(package_line.strip())
+            output.inactive_packages = inactive_packages
+
+            act_device_cmds = {
+                'ios-xr':['show install active summary'],
+            }
+
+            act_device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, act_device_cmds)
+
+            if 'Active Packages:' in device_cmds_result:
+                number_of_active_packages = int(device_cmds_result.split('Active Packages:')[1].split()[0])
+                for i in range(number_of_active_packages):
+                     active_packages.append(device_cmds_result.split('Active Packages:')[1].splitlines()[i + 1].split()[0].strip()) 
+                output.active_packages = active_packages
+
+            inst_device_cmds = {
+                'ios-xr':['show install log'],
+            }
+
+            ### show install log ### 
+            inst_device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, inst_device_cmds)
+            output.install_log = device_cmds_result
 
 
 

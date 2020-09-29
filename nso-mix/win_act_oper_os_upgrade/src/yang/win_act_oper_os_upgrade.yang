@@ -99,6 +99,15 @@ module win_act_oper_os_upgrade {
         leaf hw_type {
           type string;
         }
+        leaf-list inactive_packages {
+          type string;
+        }
+        leaf-list active_packages {
+          type string;
+        }
+        leaf install_log {
+          type string;
+        }        
         leaf-list debug_info {
           type string;
         }
