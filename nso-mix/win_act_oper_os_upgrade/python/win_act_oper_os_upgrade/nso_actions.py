@@ -386,18 +386,13 @@ class NsoActionsClass_os_upgrade_install_add(Action):
 
         if output.os_type == "ios-xr":
             i_device_cmds = {
-                'ios-xr':['%sinstall add source %s synchronous' % (asr_admin_string, str(input.sw_file))],
+                'ios-xr':['%sinstall add source %s synchronous' % (asr_admin_string, str(input.sw_version_selected_file))],
             }
 
             i_device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, i_device_cmds)
 
-
-            asi_device_cmds = {
-                'ios-xr':['admin show install log'],
-            }
-
-            asi_device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, asi_device_cmds)
-            output.admin_install_log = asi_device_cmds_result
+            try: output.install_operation_id = i_device_cmds_result.split(' started')[0].split('Install operation ')[1].split()[0].strip()
+            except: output.install_operation_id = str()
 
 
 # -----------------------------------------
@@ -421,11 +416,11 @@ class os_upgrade_install_add_progress_check(Action):
 
         if output.os_type == "ios-xr":
             asi_device_cmds = {
-                'ios-xr':['admin show install log'],
+                'ios-xr':['%sshow install log %s' % (asr_admin_string,input.install_operation_id)],
             }
 
             asi_device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, asi_device_cmds)
-            output.admin_install_log = asi_device_cmds_result
+            output.install_log = asi_device_cmds_result
 
 # --------------------------
 #   OS UPGRADE PRECHECK
