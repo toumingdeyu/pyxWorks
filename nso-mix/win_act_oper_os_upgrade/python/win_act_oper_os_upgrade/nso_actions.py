@@ -393,12 +393,39 @@ class NsoActionsClass_os_upgrade_install_add(Action):
 
 
             asi_device_cmds = {
-                'ios-xr':['admin show install log' % (str(date_string))],
+                'ios-xr':['admin show install log'],
             }
 
             asi_device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, asi_device_cmds)
             output.admin_install_log = asi_device_cmds_result
 
+
+# -----------------------------------------
+#   OS UPGRADE INSTALL ADD PROGRESS CHECK
+# -----------------------------------------
+class os_upgrade_install_add_progress_check(Action):
+    """Does os upgrade install add progress check definition."""
+
+    @Action.action
+    def cb_action(self, uinfo, name, kp, input, output):
+        self.log.info('action name: ', name)
+        output.os_type = 'UNKNOWN'
+        output.hw_type = 'UNKNOWN'
+        asr_admin_string = str()
+
+        device_cmds = {
+            'ios-xr':['show version'],
+        }
+
+        device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, device_cmds)
+
+        if output.os_type == "ios-xr":
+            asi_device_cmds = {
+                'ios-xr':['admin show install log'],
+            }
+
+            asi_device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, asi_device_cmds)
+            output.admin_install_log = asi_device_cmds_result
 
 # --------------------------
 #   OS UPGRADE PRECHECK
