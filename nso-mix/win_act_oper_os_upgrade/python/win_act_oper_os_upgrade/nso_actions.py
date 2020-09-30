@@ -22,7 +22,6 @@ class NsoActionsClass_get_sw_version(Action):
         output.os_type = 'UNKNOWN'
         output.hw_type = 'UNKNOWN'
         output.sw_version = 'UNKNOWN'
-        debug_info = []
         brand_raw = str()
         type_raw = str()
 
@@ -124,11 +123,6 @@ class NsoActionsClass_get_sw_version(Action):
 
         dir_device_cmds_result, forget_it = device_command(self, uinfo, input, input.device, dir_device_cmds)
         versions = []
-
-
-        debug_info.append(drive_string)
-        debug_info.append(dev_dir)
-        debug_info.append(dir_device_cmds_result)
 
         if output.os_type == "ios-xe" or output.os_type == "ios-xr":
             i = 0
@@ -260,8 +254,6 @@ class NsoActionsClass_get_sw_version(Action):
                     pass
                 elif output.os_type == "junos":
                     pass
-
-        #output.debug_info = debug_info
 
 #    for i in range(len(output.target_sw_versions)):
 #        if len(output.target_sw_versions[i].files) == 0 and len(output.target_sw_versions[key].patch_files) == 0:
@@ -407,7 +399,11 @@ class os_upgrade_install_add_progress_check(Action):
         output.os_type = 'UNKNOWN'
         output.hw_type = 'UNKNOWN'
         asr_admin_string = str()
+        operation_id = str()
 
+        try: operation_id = str(input.install_operation_id).replace('[','').replace(']','').split(',')[0].strip()
+        except: pass
+         
         device_cmds = {
             'ios-xr':['show version'],
         }
@@ -416,7 +412,7 @@ class os_upgrade_install_add_progress_check(Action):
 
         if output.os_type == "ios-xr":
             asi_device_cmds = {
-                'ios-xr':['%sshow install log %s' % (asr_admin_string,input.install_operation_id)],
+                'ios-xr':['%sshow install log %s' % (asr_admin_string, operation_id)],
             }
 
             asi_device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, asi_device_cmds)

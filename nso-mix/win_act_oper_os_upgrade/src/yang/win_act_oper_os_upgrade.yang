@@ -74,9 +74,6 @@ module win_act_oper_os_upgrade {
             type string;
           }
         }
-        leaf-list debug_info {
-          type string;
-        }
       }
     }
 
@@ -106,12 +103,6 @@ module win_act_oper_os_upgrade {
         leaf install_log {
           type string;
         }
-        leaf admin_install_log {
-          type string;
-        }
-        leaf-list debug_info {
-          type string;
-        }
       }
     }
 
@@ -139,13 +130,7 @@ module win_act_oper_os_upgrade {
         }
         leaf install_log {
           type string;
-        }
-        leaf admin_install_log {
-          type string;
         }        
-        leaf-list debug_info {
-          type string;
-        }
       }
     }
 
@@ -168,10 +153,7 @@ module win_act_oper_os_upgrade {
         leaf hw_type {
           type string;
         }
-        leaf admin_install_log {
-          type string;
-        }
-        leaf-list debug_info {
+        leaf install_log {
           type string;
         }
       }
@@ -194,9 +176,6 @@ module win_act_oper_os_upgrade {
           type string;
         }
         leaf hw_type {
-          type string;
-        }
-        leaf-list debug_info {
           type string;
         }
       }
