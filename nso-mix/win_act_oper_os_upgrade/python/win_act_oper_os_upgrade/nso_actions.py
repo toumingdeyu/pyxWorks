@@ -217,7 +217,7 @@ class NsoActionsClass_get_sw_version(Action):
                                     if file_type_part.upper() in tar_file.upper(): pass
                                     else: found_in_tar_file = False
                                 if len(file_type_parts) > 0 and found_in_tar_file:
-                                    files.append(tar_file)
+                                    files.append('%s%s/%s/%s' % (drive_string, dev_dir,output.target_sw_versions[i].name, tar_file))
                     except: pass
                 if len(files)>0:
                     output.target_sw_versions[i].files = files
@@ -283,9 +283,10 @@ class NsoActionsClass_os_upgrade_precheck(Action):
         output.hw_type = 'UNKNOWN'
         inactive_packages = []
         active_packages = []
+        asr_admin_string = str()
 
         device_cmds = {
-            'ios-xr':['show install inactive sum'],
+            'ios-xr':['%sshow install inactive sum' % (asr_admin_string)],
         }
 
         device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, device_cmds)
@@ -301,7 +302,7 @@ class NsoActionsClass_os_upgrade_precheck(Action):
 
                 for inactive_package in inactive_packages:
                     device_cmds2 = {
-                        'ios-xr':['install remove inactive %s' % inactive_package],
+                        'ios-xr':['%sinstall remove inactive %s' % (asr_admin_string,inactive_package)],
                     }
 
                     device_cmds_result2, output.os_type = device_command(self, uinfo, input, input.device, device_cmds2)
@@ -309,7 +310,7 @@ class NsoActionsClass_os_upgrade_precheck(Action):
                 time.sleep(1)
 
                 device_cmds = {
-                    'ios-xr':['show install inactive sum'],
+                    'ios-xr':['%sshow install inactive sum' % (asr_admin_string)],
                 }
 
                 device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, device_cmds)
@@ -327,7 +328,7 @@ class NsoActionsClass_os_upgrade_precheck(Action):
 
             ### show install active summary ###
             act_device_cmds = {
-                'ios-xr':['show install active summary'],
+                'ios-xr':['%sshow install active summary' % (asr_admin_string)],
             }
 
             act_device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, act_device_cmds)
@@ -339,7 +340,7 @@ class NsoActionsClass_os_upgrade_precheck(Action):
                 output.active_packages = active_packages
 
             inst_device_cmds = {
-                'ios-xr':['show install log'],
+                'ios-xr':['%s show install log' % (asr_admin_string)],
             }
 
             ### show install log ###
@@ -348,35 +349,55 @@ class NsoActionsClass_os_upgrade_precheck(Action):
 
             ### copy configs ###
             today = date.today()
-            date_string = today.strftime("%Y-%m%d")
+            date_string = today.strftime("%Y-%m%d-%H:%M")
 
             cp_device_cmds = {
-                'ios-xr':['copy running-config harddisk:%s-config.txt' % (str(date_string))],
+                'ios-xr':['copy running-config harddisk:%s-config.txt| prompts ENTER' % (str(date_string))],
             }
 
             cp_device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, cp_device_cmds)
 
             cp2_device_cmds = {
-                'ios-xr':['admin copy running-config harddisk:%s-config.txt | prompts ENTER' % (str(date_string))],
+                'ios-xr':['admin copy running-config harddisk:admin-%s-config.txt| prompts ENTER' % (str(date_string))],
             }
 
             cp2_device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, cp2_device_cmds)
 
 
 
+# --------------------------
+#   OS UPGRADE INSTALL ADD
+# --------------------------
+class NsoActionsClass_os_upgrade_install_add(Action):
+    """Does os upgrade install add definition."""
 
-            ###'install add source /harddisk:/[path-to-ios-xr-tar-file] synchronous'
+    @Action.action
+    def cb_action(self, uinfo, name, kp, input, output):
+        self.log.info('action name: ', name)
+        output.os_type = 'UNKNOWN'
+        output.hw_type = 'UNKNOWN'
+        asr_admin_string = str()
+
+        device_cmds = {
+            'ios-xr':['show version'],
+        }
+
+        device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, device_cmds)
+
+        if output.os_type == "ios-xr":
+            i_device_cmds = {
+                'ios-xr':['%sinstall add source %s synchronous' % (asr_admin_string, str(input.sw_file))],
+            }
+
+            i_device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, i_device_cmds)
 
 
             asi_device_cmds = {
-                'ios-xr':['admin copy running-config harddisk:admin-%s-config.txt | prompts ENTER' % (str(date_string))],
+                'ios-xr':['admin show install log' % (str(date_string))],
             }
 
             asi_device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, asi_device_cmds)
             output.admin_install_log = asi_device_cmds_result
-
-
-
 
 
 # --------------------------

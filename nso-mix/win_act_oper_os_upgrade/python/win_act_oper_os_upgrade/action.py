@@ -1,5 +1,5 @@
 # -*- mode: python; python-indent: 4 -*-
-import ncs 
+import ncs
 from ncs.dp import Action
 from .nso_actions import *
 from ncs.application import Service
@@ -59,6 +59,7 @@ class Action(ncs.application.Application):
 
         self.register_action('get_sw_version', NsoActionsClass_get_sw_version)
         self.register_action('os_upgrade_precheck', NsoActionsClass_os_upgrade_precheck)
+        self.register_action('os_upgrade_install_add', NsoActionsClass_os_upgrade_install_add)
         self.register_action('os_upgrade_postcheck', NsoActionsClass_os_upgrade_postcheck)
 
 

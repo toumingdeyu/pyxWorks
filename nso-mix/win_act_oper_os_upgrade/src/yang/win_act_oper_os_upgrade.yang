@@ -88,7 +88,7 @@ module win_act_oper_os_upgrade {
             path "/ncs:devices/ncs:device/ncs:name";
           }
         }
-        leaf sw_version {
+        leaf sw_file {
             type string;
           }
       }
@@ -107,10 +107,37 @@ module win_act_oper_os_upgrade {
         }
         leaf install_log {
           type string;
-        } 
+        }
         leaf admin_install_log {
           type string;
-        }         
+        }
+        leaf-list debug_info {
+          type string;
+        }
+      }
+    }
+
+    tailf:actionpoint os_upgrade_install_add;
+      input {
+        leaf device {
+          type leafref {
+            path "/ncs:devices/ncs:device/ncs:name";
+          }
+        }
+        leaf sw_file {
+            type string;
+          }
+      }
+      output {
+        leaf os_type {
+          type string;
+        }
+        leaf hw_type {
+          type string;
+        }
+        leaf admin_install_log {
+          type string;
+        }
         leaf-list debug_info {
           type string;
         }
