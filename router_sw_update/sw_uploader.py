@@ -2386,10 +2386,11 @@ def get_local_subdirectories(brand_raw = None, type_raw = None):
     """
     brand_subdir, type_subdir_on_server, file_types = str(), str(), []
     type_subdir_on_device = str()
-    if brand_raw and type_raw:
-        brand_subdir = brand_raw.upper()
+    if type_raw:
+        brand_raw_assumed = 'CISCO'
         if 'ASR9K' in type_raw.upper() \
-            or 'ASR-9' in type_raw.upper():
+            or 'ASR-9' in type_raw.upper() \
+            or '9000' in type_raw.upper():
             type_subdir_on_server = 'ASR9K'
             type_subdir_on_device = 'IOS-XR'
             file_types = ['asr9k*OTI.tar', 'SMU/*.tar']
@@ -2433,6 +2434,7 @@ def get_local_subdirectories(brand_raw = None, type_raw = None):
             type_subdir_on_server = 'C3700'
             type_subdir_on_device = ''
             file_types = ['c37*.bin']
+            brand_raw_assumed = 'CISCO'
         elif 'C38' in type_raw.upper():
             type_subdir_on_server = 'C3800'
             type_subdir_on_device = ''
@@ -2445,18 +2447,31 @@ def get_local_subdirectories(brand_raw = None, type_raw = None):
             type_subdir_on_server = 'C4500'
             type_subdir_on_device = ''
             file_types = ['cat45*.bin']
+            brand_raw_assumed = 'CISCO'
         elif 'MX20' in type_raw.upper():
             type_subdir_on_server = 'MX'
             type_subdir_on_device = '/var/tmp'
             file_types = ['junos*.img.gz', 'junos*.tgz']
+            brand_raw_assumed = 'JUNIPER'
         elif 'MX480' in type_raw.upper():
             type_subdir_on_server = 'MX/MX480'
             type_subdir_on_device = '/var/tmp'
             file_types = ['junos*.img.gz', 'junos*.tgz']
+            brand_raw_assumed = 'JUNIPER'
+        elif 'VMX' in type_raw.upper():
+            type_subdir_on_server = 'MX/MX480'
+            type_subdir_on_device = '/var/tmp'
+            file_types = ['junos*.img.gz', 'junos*.tgz']
+            brand_raw_assumed = 'JUNIPER'
         elif 'NE40' in type_raw.upper():
             type_subdir_on_server = 'V8R10'
             type_subdir_on_device = ''
             file_types = ['Patch/*.PAT','*.cc']
+            brand_raw_assumed = 'HUAWEI'
+
+        ### BRAND ASSUMPTION IF NOT INSERTED ###
+        if not brand_raw: brand_subdir = brand_raw_assumed.upper()
+        else: brand_subdir = brand_raw.upper()
     return brand_subdir, type_subdir_on_server, type_subdir_on_device, file_types
 
 ##############################################################################
@@ -4142,8 +4157,15 @@ function validateForm() {
                     (device_list[0], brand_raw, type_raw), tag = 'debug', no_printall = not printall)
                 break
         else:
-            CGI_CLI.uprint('Router %s has no record in DB!' % \
-                (device_list[0]), tag = 'warning', printall = True)
+            if CGI_CLI.data.get('force_selected_hw_type'):
+                brand_raw = str()
+                type_raw = CGI_CLI.data.get("selected_router_type", str())
+                brand_subdir, type_subdir, type_subdir_on_device, sw_file_types_list = \
+                    get_local_subdirectories(brand_raw = brand_raw, type_raw = type_raw)
+            else:
+                CGI_CLI.uprint('Router %s has no record in DB!' % \
+                    (device_list[0]), tag = 'warning', printall = True)
+
         ### CHECK LOCAL SW VERSIONS DIRECTORIES ###################################
         if len(sw_release_list) == 0:
             sw_release_list, default_sw_release = get_existing_sw_release_list(brand_subdir, type_subdir)
@@ -4200,10 +4222,15 @@ function validateForm() {
                 {'checkbox':'disable_device_scp_after_copying'},'<br/>',\
                 {'checkbox':'backup_configs_to_device_disk'},'<br/>',\
                 {'checkbox':'delete_device_sw_files_on_end'},'<br/>',\
+                {'checkbox':'force_selected_hw_type'},'<br/>',\
                 '<br/>', {'checkbox':'timestamps'}, \
                 '<br/>', {'checkbox':'printall'}, \
                 on_submit_action
                 ]
+
+            main_menu_list += [
+                '<p hidden><input type="checkbox" name="selected_router_type" value="%s" checked="checked"></p>' \
+                    % ( CGI_CLI.data.get("router_type", str())) ]
 
         CGI_CLI.formprint( main_menu_list + ['<br/>','<br/>'], submit_button = 'OK', \
             pyfile = None, tag = None, color = None , list_separator = '&emsp;', \
