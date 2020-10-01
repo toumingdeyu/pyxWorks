@@ -429,7 +429,8 @@ class NsoActionsClass_os_upgrade_install_add_progress_check(Action):
             if 'Install operation %s aborted' % (str(input.install_operation_id).strip()) in asi_device_cmds_result:
                 output.result = 'failure'
 
-            if 'Install operation %s completed successfully' % (str(input.install_operation_id).strip()) in asi_device_cmds_result:
+            if 'Install operation %s completed successfully' % (str(input.install_operation_id).strip()) in asi_device_cmds_result \
+            or 'Install operation %s finished successfully' % (str(input.install_operation_id).strip()) in asi_device_cmds_result:
                 output.result = 'success'
                 output.completed = 'yes'
 
