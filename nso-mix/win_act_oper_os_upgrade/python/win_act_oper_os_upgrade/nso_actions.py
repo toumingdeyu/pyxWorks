@@ -378,7 +378,7 @@ class NsoActionsClass_os_upgrade_install_add(Action):
 
         if output.os_type == "ios-xr":
             i_device_cmds = {
-                'ios-xr':['%sinstall add source %s synchronous' % (asr_admin_string, str(input.sw_version_selected_file))],
+                'ios-xr':['%sinstall add source %s synchronous' % (asr_admin_string, str(input.sw_version_selected_file).replace('[','').replace(']','').split(',')[0].strip())],
             }
 
             i_device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, i_device_cmds)
