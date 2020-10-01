@@ -390,7 +390,7 @@ class NsoActionsClass_os_upgrade_install_add(Action):
 # -----------------------------------------
 #   OS UPGRADE INSTALL ADD PROGRESS CHECK
 # -----------------------------------------
-class os_upgrade_install_add_progress_check(Action):
+class NsoActionsClass_os_upgrade_install_add_progress_check(Action):
     """Does os upgrade install add progress check definition."""
 
     @Action.action
@@ -398,12 +398,14 @@ class os_upgrade_install_add_progress_check(Action):
         self.log.info('action name: ', name)
         output.os_type = 'UNKNOWN'
         output.hw_type = 'UNKNOWN'
+        output.completed = 'no'
+        output.result = 'failure'
         asr_admin_string = str()
         operation_id = str()
 
         try: operation_id = str(input.install_operation_id).replace('[','').replace(']','').split(',')[0].strip()
         except: pass
-         
+
         device_cmds = {
             'ios-xr':['show version'],
         }
@@ -417,6 +419,18 @@ class os_upgrade_install_add_progress_check(Action):
 
             asi_device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, asi_device_cmds)
             output.install_log = asi_device_cmds_result
+
+            if 'Ending operation %s' % (str(input.install_operation_id).strip()) in asi_device_cmds_result:
+                output.completed = 'yes'
+
+            if 'Install operation %s aborted' % (str(input.install_operation_id).strip()) in asi_device_cmds_result:
+                output.result = 'failure'
+
+            if 'Install operation %s completed successfully' % (str(input.install_operation_id).strip()) in asi_device_cmds_result:
+                output.result = 'success'
+                output.completed = 'yes'
+
+
 
 # --------------------------
 #   OS UPGRADE PRECHECK
@@ -441,8 +455,8 @@ def get_local_subdirectories(brand_raw = None, type_raw = None):
     """
     brand_subdir, type_subdir_on_server, file_types = str(), str(), []
     type_subdir_on_device = str()
-    if brand_raw and type_raw:
-        brand_subdir = brand_raw.upper()
+    if type_raw:
+        brand_raw_assumed = 'CISCO'
         if 'ASR9K' in type_raw.upper() \
             or 'ASR-9' in type_raw.upper() \
             or '9000' in type_raw.upper():
@@ -461,10 +475,6 @@ def get_local_subdirectories(brand_raw = None, type_raw = None):
             type_subdir_on_server = 'ASR1K/ASR1002X/IOS_XE'
             type_subdir_on_device = 'IOS-XE'
             file_types = ['asr1002x*.bin','asr100*.pkg','/home/tftpboot/CISCO/ASR1K/ASR1002X/ROMMON/*.pkg']
-        elif 'CSR100' in type_raw.upper():
-            type_subdir_on_server = 'ASR1K/ASR1002X/IOS_XE'
-            type_subdir_on_device = 'IOS-XE'
-            file_types = ['sr100*.bin','sr100*.pkg','/home/tftpboot/CISCO/ASR1K/ASR1002X/ROMMON/*.pkg']
         elif 'ASR1002-HX' in type_raw.upper():
             type_subdir_on_server = 'ASR1K/ASR1002HX/IOS_XE'
             type_subdir_on_device = 'IOS-XE'
@@ -493,6 +503,7 @@ def get_local_subdirectories(brand_raw = None, type_raw = None):
             type_subdir_on_server = 'C3700'
             type_subdir_on_device = ''
             file_types = ['c37*.bin']
+            brand_raw_assumed = 'CISCO'
         elif 'C38' in type_raw.upper():
             type_subdir_on_server = 'C3800'
             type_subdir_on_device = ''
@@ -505,23 +516,33 @@ def get_local_subdirectories(brand_raw = None, type_raw = None):
             type_subdir_on_server = 'C4500'
             type_subdir_on_device = ''
             file_types = ['cat45*.bin']
+            brand_raw_assumed = 'CISCO'
         elif 'MX20' in type_raw.upper():
             type_subdir_on_server = 'MX'
             type_subdir_on_device = '/var/tmp'
             file_types = ['junos*.img.gz', 'junos*.tgz']
+            brand_raw_assumed = 'JUNIPER'
         elif 'MX480' in type_raw.upper():
             type_subdir_on_server = 'MX/MX480'
             type_subdir_on_device = '/var/tmp'
             file_types = ['junos*.img.gz', 'junos*.tgz']
+            brand_raw_assumed = 'JUNIPER'
         elif 'VMX' in type_raw.upper():
             type_subdir_on_server = 'MX/MX480'
             type_subdir_on_device = '/var/tmp'
             file_types = ['junos*.img.gz', 'junos*.tgz']
+            brand_raw_assumed = 'JUNIPER'
         elif 'NE40' in type_raw.upper():
             type_subdir_on_server = 'V8R10'
             type_subdir_on_device = ''
             file_types = ['Patch/*.PAT','*.cc']
+            brand_raw_assumed = 'HUAWEI'
+
+        ### BRAND ASSUMPTION IF NOT INSERTED ###
+        if not brand_raw: brand_subdir = brand_raw_assumed.upper()
+        else: brand_subdir = brand_raw.upper()
     return brand_subdir, type_subdir_on_server, type_subdir_on_device, file_types
+
 
 
 
