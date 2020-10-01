@@ -378,7 +378,10 @@ class NsoActionsClass_os_upgrade_install_add(Action):
 
         if output.os_type == "ios-xr":
             i_device_cmds = {
-                'ios-xr':['%sinstall add source %s synchronous' % (asr_admin_string, str(input.sw_version_selected_file).replace('[','').replace(']','').split(',')[0].strip())],
+                'ios-xr':['%sinstall add source %s/ %s' % (asr_admin_string, \
+                '/'.join(str(input.sw_version_selected_file).replace('[','').replace(']','').split(',')[0].strip().split('/')[:-1]),
+                str(input.sw_version_selected_file).replace('[','').replace(']','').split(',')[0].strip().split('/')[-1])
+                ],
             }
 
             i_device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, i_device_cmds)
@@ -462,7 +465,8 @@ def get_local_subdirectories(brand_raw = None, type_raw = None):
             or '9000' in type_raw.upper():
             type_subdir_on_server = 'ASR9K'
             type_subdir_on_device = 'IOS-XR'
-            file_types = ['asr9k*OTI.tar', 'SMU/*.tar']
+            ### file_types = ['asr9k*OTI.tar', 'SMU/*.tar']
+            file_types = ['9k', 'SMU/*.tar']
         elif 'NCS' in type_raw.upper():
             type_subdir_on_server = 'NCS'
             type_subdir_on_device = 'IOS-XR'
