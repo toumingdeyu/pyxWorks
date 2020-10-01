@@ -402,7 +402,7 @@ class NsoActionsClass_os_upgrade_install_add_progress_check(Action):
         output.os_type = 'UNKNOWN'
         output.hw_type = 'UNKNOWN'
         output.completed = 'no'
-        output.result = 'failure'
+        output.result = str()
         asr_admin_string = str()
         operation_id = str()
 
