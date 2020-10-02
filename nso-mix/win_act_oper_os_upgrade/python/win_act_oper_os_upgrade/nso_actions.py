@@ -34,7 +34,7 @@ class NsoActionsClass_get_sw_version(Action):
                   "junos":['show version']
               }
 
-        result, output.os_type = device_command(self, uinfo, input, input.device, cmd)
+        result, output.os_type = device_command(self, uinfo, input, cmd)
 
         if output.os_type == "ios-xe":
             output.sw_version = result.split('Software, Version')[1].split()[0].strip()
@@ -78,7 +78,7 @@ class NsoActionsClass_get_sw_version(Action):
                 'huawei-vrp':huawei_device_patch_list
             }
 
-            patch_device_cmds_result, forget_it = device_command(self, uinfo, input, input.device, patch_device_cmds)
+            patch_device_cmds_result, forget_it = device_command(self, uinfo, input, patch_device_cmds)
 
             sw_version = copy.deepcopy(output.sw_version)
             sw_patches = []
@@ -121,7 +121,7 @@ class NsoActionsClass_get_sw_version(Action):
             'huawei-vrp':huawei_device_dir_list
         }
 
-        dir_device_cmds_result, forget_it = device_command(self, uinfo, input, input.device, dir_device_cmds)
+        dir_device_cmds_result, forget_it = device_command(self, uinfo, input, dir_device_cmds)
         versions = []
 
         if output.os_type == "ios-xe" or output.os_type == "ios-xr":
@@ -195,7 +195,7 @@ class NsoActionsClass_get_sw_version(Action):
                 'huawei-vrp':[]
             }
 
-            file_device_cmds_result, forget_it = device_command(self, uinfo, input, input.device, file_device_cmds)
+            file_device_cmds_result, forget_it = device_command(self, uinfo, input, file_device_cmds)
 
             if output.os_type == "ios-xe" or output.os_type == "ios-xr":
                 files = []
@@ -232,7 +232,7 @@ class NsoActionsClass_get_sw_version(Action):
                     'huawei-vrp':[]
                 }
 
-                patch_file_device_cmds_result, forget_it = device_command(self, uinfo, input, input.device, patch_file_device_cmds)
+                patch_file_device_cmds_result, forget_it = device_command(self, uinfo, input, patch_file_device_cmds)
 
                 if output.os_type == "ios-xe":
                     pass
@@ -281,7 +281,7 @@ class NsoActionsClass_os_upgrade_precheck(Action):
             'ios-xr':['%sshow install inactive sum' % (asr_admin_string)],
         }
 
-        device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, device_cmds)
+        device_cmds_result, output.os_type = device_command(self, uinfo, input, device_cmds)
 
         if output.os_type == "ios-xr":
             if 'No inactive package(s) in software repository' in device_cmds_result:
@@ -297,7 +297,7 @@ class NsoActionsClass_os_upgrade_precheck(Action):
                         'ios-xr':['%sinstall remove inactive %s' % (asr_admin_string,inactive_package)],
                     }
 
-                    device_cmds_result2, output.os_type = device_command(self, uinfo, input, input.device, device_cmds2)
+                    device_cmds_result2, output.os_type = device_command(self, uinfo, input, device_cmds2)
 
                 time.sleep(1)
 
@@ -305,7 +305,7 @@ class NsoActionsClass_os_upgrade_precheck(Action):
                     'ios-xr':['%sshow install inactive sum' % (asr_admin_string)],
                 }
 
-                device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, device_cmds)
+                device_cmds_result, output.os_type = device_command(self, uinfo, input, device_cmds)
 
                 if output.os_type == "ios-xr":
                     if 'No inactive package(s) in software repository' in device_cmds_result:
@@ -323,7 +323,7 @@ class NsoActionsClass_os_upgrade_precheck(Action):
                 'ios-xr':['%sshow install active summary' % (asr_admin_string)],
             }
 
-            act_device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, act_device_cmds)
+            act_device_cmds_result, output.os_type = device_command(self, uinfo, input, act_device_cmds)
 
             if 'Active Packages:' in act_device_cmds_result:
                 number_of_active_packages = int(act_device_cmds_result.split('Active Packages:')[1].split()[0])
@@ -336,7 +336,7 @@ class NsoActionsClass_os_upgrade_precheck(Action):
             }
 
             ### show install log ###
-            inst_device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, inst_device_cmds)
+            inst_device_cmds_result, output.os_type = device_command(self, uinfo, input, inst_device_cmds)
             output.install_log = inst_device_cmds_result
 
             ### copy configs ###
@@ -347,13 +347,13 @@ class NsoActionsClass_os_upgrade_precheck(Action):
                 'ios-xr':['copy running-config harddisk:%s-config.txt| prompts ENTER' % (str(date_string))],
             }
 
-            cp_device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, cp_device_cmds)
+            cp_device_cmds_result, output.os_type = device_command(self, uinfo, input, cp_device_cmds)
 
             cp2_device_cmds = {
                 'ios-xr':['admin copy running-config harddisk:admin-%s-config.txt| prompts ENTER' % (str(date_string))],
             }
 
-            cp2_device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, cp2_device_cmds)
+            cp2_device_cmds_result, output.os_type = device_command(self, uinfo, input, cp2_device_cmds)
 
 
 
@@ -374,7 +374,7 @@ class NsoActionsClass_os_upgrade_install_add(Action):
             'ios-xr':['show version'],
         }
 
-        device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, device_cmds)
+        device_cmds_result, output.os_type = device_command(self, uinfo, input, device_cmds)
 
         if output.os_type == "ios-xr":
             i_device_cmds = {
@@ -413,14 +413,14 @@ class NsoActionsClass_os_upgrade_install_add_progress_check(Action):
             'ios-xr':['show version'],
         }
 
-        device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, device_cmds)
+        device_cmds_result, output.os_type = device_command(self, uinfo, input, device_cmds)
 
         if output.os_type == "ios-xr":
             asi_device_cmds = {
                 'ios-xr':['%sshow install log %s' % (asr_admin_string, operation_id)],
             }
 
-            asi_device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, asi_device_cmds)
+            asi_device_cmds_result, output.os_type = device_command(self, uinfo, input, asi_device_cmds)
             output.install_log = asi_device_cmds_result
 
             if 'Ending operation %s' % (str(input.install_operation_id).strip()) in asi_device_cmds_result:
@@ -434,6 +434,29 @@ class NsoActionsClass_os_upgrade_install_add_progress_check(Action):
                 output.result = 'success'
                 output.completed = 'yes'
 
+
+# --------------------------
+#   OS UPGRADE INSTALL ACTIVATE
+# --------------------------
+class NsoActionsClass_os_upgrade_install_activate(Action):
+    """Does os upgrade install activate definition."""
+
+    @Action.action
+    def cb_action(self, uinfo, name, kp, input, output):
+        self.log.info('action name: ', name)
+        output.os_type = 'UNKNOWN'
+        output.hw_type = 'UNKNOWN'
+
+        output.completed = 'no'
+        output.result = str()
+        asr_admin_string = str()
+        operation_id = str()
+
+        try: operation_id = str(input.install_operation_id).replace('[','').replace(']','').split(',')[0].strip()
+        except: pass
+
+        hw_info = detect_hw(self, uinfo, input)
+        self.log.info('hw_info: ', hw_info)
 
 
 # --------------------------
@@ -449,6 +472,47 @@ class NsoActionsClass_os_upgrade_postcheck(Action):
         output.hw_type = 'UNKNOWN'
 
 
+###############################################################################
+
+def detect_hw(self, uinfo, input):
+    hw_data = {}
+    
+    cmd = {
+              "ios-xe":['show version'],
+              "ios-xr":['show version'],
+              "huawei-vrp":['display version'],
+              "junos":['show version']
+          }
+
+    hw_data['device'] = copy.deepcopy(str(input.device))
+    
+    result, hw_data['os_type'] = device_command(self, uinfo, input, cmd)
+
+    if hw_data['os_type'] == "ios-xe":
+        hw_data['sw_version'] = result.split('Software, Version')[1].split()[0].strip()
+        hw_data['hw_type'] = result.split(') processor')[0].splitlines()[-1].split('(')[0].strip()
+        hw_data['hw_brand'] = 'CISCO'
+        hw_data['drive_string'] = 'bootflash:'
+
+    elif hw_data['os_type'] == "ios-xr":
+        hw_data['sw_version'] = result.split('Software, Version')[1].split()[0].strip()
+        hw_data['hw_type'] = result.split(') processor')[0].splitlines()[-1].split('(')[0].strip()
+        hw_data['hw_brand'] = 'CISCO'
+        hw_data['drive_string'] = 'harddisk:'
+
+    elif hw_data['os_type'] == "huawei-vrp":
+        hw_data['sw_version'] = result.split('software, Version')[1].split()[0].strip()
+        hw_data['hw_type'] = result.split(' version information:')[0].splitlines()[-1].strip()
+        hw_data['hw_brand'] = 'HUAWEI'
+        hw_data['drive_string'] = 'cfcard:'
+
+    elif hw_data['os_type'] == "junos":
+        hw_data['sw_version'] = result.split('Junos: ')[1].split()[0].strip()
+        hw_data['hw_type'] = result.split('Model: ')[1].split()[0].strip()
+        hw_data['hw_brand'] = 'JUNIPER'
+        hw_data['drive_string'] = 're0:'
+
+    return hw_data
 
 ###############################################################################
 

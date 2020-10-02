@@ -3,7 +3,7 @@ import ncs
 #from ncs.application import Service
 import collections
 
-def device_command(self, uinfo, input, device, cmd):
+def device_command(self, uinfo, input, cmd):
     """
     Run device_command and return result as string.
     IMPORT: from .device_access import *

@@ -61,6 +61,7 @@ class Action(ncs.application.Application):
         self.register_action('os_upgrade_precheck', NsoActionsClass_os_upgrade_precheck)
         self.register_action('os_upgrade_install_add', NsoActionsClass_os_upgrade_install_add)
         self.register_action('os_upgrade_install_add_progress_check', NsoActionsClass_os_upgrade_install_add_progress_check)
+        self.register_action('os_upgrade_install_activate', NsoActionsClass_os_upgrade_install_activate)
         self.register_action('os_upgrade_postcheck', NsoActionsClass_os_upgrade_postcheck)
 
 
