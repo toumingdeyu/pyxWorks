@@ -385,7 +385,7 @@ class NsoActionsClass_os_upgrade_install_add(Action):
                 ],
             }
 
-            i_device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, i_device_cmds)
+            i_device_cmds_result, output.os_type = device_command(self, uinfo, input, i_device_cmds)
 
             try: output.operation_id = i_device_cmds_result.split(' started')[0].split('Install operation ')[1].split()[0].strip()
             except: output.operation_id = str()
