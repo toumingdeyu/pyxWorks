@@ -134,15 +134,15 @@ module win_act_oper_os_upgrade {
       }
     }
 
-    tailf:action os_upgrade_install_add_progress_check {
-      tailf:actionpoint os_upgrade_install_add_progress_check;
+    tailf:action os_upgrade_progress_check {
+      tailf:actionpoint os_upgrade_progress_check;
       input {
         leaf device {
           type leafref {
             path "/ncs:devices/ncs:device/ncs:name";
           }
         }
-        leaf install_operation_id {
+        leaf operation_id {
           type string;
         }
       }
@@ -159,6 +159,22 @@ module win_act_oper_os_upgrade {
         leaf completed {
           type string;
         }
+        leaf result {
+          type string;
+        }
+      }
+    }
+
+    tailf:action os_upgrade_device_ping_check {
+      tailf:actionpoint os_upgrade_device_ping_check;
+      input {
+        leaf device {
+          type leafref {
+            path "/ncs:devices/ncs:device/ncs:name";
+          }
+        }
+      }
+      output {
         leaf result {
           type string;
         }
@@ -199,37 +215,6 @@ module win_act_oper_os_upgrade {
       }
     }
 
-    tailf:action os_upgrade_install_prepare_progress_check {
-      tailf:actionpoint os_upgrade_install_prepare_progress_check;
-      input {
-        leaf device {
-          type leafref {
-            path "/ncs:devices/ncs:device/ncs:name";
-          }
-        }
-        leaf operation_id {
-          type string;
-        }
-      }
-      output {
-        leaf os_type {
-          type string;
-        }
-        leaf hw_type {
-          type string;
-        }       
-        leaf install_log {
-          type string;
-        }
-        leaf completed {
-          type string;
-        }
-        leaf result {
-          type string;
-        }
-      }
-    }
-
     tailf:action os_upgrade_install_activate {
       tailf:actionpoint os_upgrade_install_activate;
       input {
@@ -252,37 +237,6 @@ module win_act_oper_os_upgrade {
         leaf operation_id {
           type string;
         }        
-        leaf install_log {
-          type string;
-        }
-        leaf completed {
-          type string;
-        }
-        leaf result {
-          type string;
-        }
-      }
-    }
-
-    tailf:action os_upgrade_install_activate_progress_check {
-      tailf:actionpoint os_upgrade_install_activate_progress_check;
-      input {
-        leaf device {
-          type leafref {
-            path "/ncs:devices/ncs:device/ncs:name";
-          }
-        }
-        leaf operation_id {
-          type string;
-        }
-      }
-      output {
-        leaf os_type {
-          type string;
-        }
-        leaf hw_type {
-          type string;
-        }       
         leaf install_log {
           type string;
         }
