@@ -125,7 +125,7 @@ module win_act_oper_os_upgrade {
         leaf hw_type {
           type string;
         }
-        leaf install_operation_id {
+        leaf operation_id {
           type string;
         }
         leaf install_log {
@@ -314,6 +314,10 @@ module win_act_oper_os_upgrade {
         leaf hw_type {
           type string;
         }
+        leaf install_log {
+          type string;
+        }
+
         leaf result {
           type string;
         }        
