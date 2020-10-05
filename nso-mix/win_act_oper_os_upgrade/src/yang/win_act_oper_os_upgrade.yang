@@ -249,6 +249,28 @@ module win_act_oper_os_upgrade {
       }
     }
 
+    tailf:action os_upgrade_commit {
+      tailf:actionpoint os_upgrade_commit;
+      input {
+        leaf device {
+          type leafref {
+            path "/ncs:devices/ncs:device/ncs:name";
+          }
+        }
+      }
+      output {
+        leaf os_type {
+          type string;
+        }
+        leaf hw_type {
+          type string;
+        }     
+        leaf log {
+          type string;
+        }
+      }
+    }
+
     tailf:action os_upgrade_postcheck {
       tailf:actionpoint os_upgrade_postcheck;
       input {

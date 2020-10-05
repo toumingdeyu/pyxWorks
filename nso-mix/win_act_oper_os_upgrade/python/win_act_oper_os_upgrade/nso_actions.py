@@ -532,6 +532,30 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
             except: output.operation_id = str()
 
 
+# --------------------------
+#   OS UPGRADE POSTCHECK
+# --------------------------
+class NsoActionsClass_os_upgrade_commit(Action):
+    """Does os upgrade commit definition."""
+
+    @Action.action
+    def cb_action(self, uinfo, name, kp, input, output):
+        self.log.info('action name: ', name)
+        output.os_type = 'UNKNOWN'
+        output.hw_type = 'UNKNOWN'
+
+        asr_admin_string = str()
+
+        hw_info = detect_hw(self, uinfo, input)
+        output.os_type, output.hw_type = hw_info.get('os_type',str()), hw_info.get('hw_type',str())
+
+        if hw_info.get('os_type') == "ios-xr":
+            device_cmds = {
+                'ios-xr':['%sinstall commit' % (asr_admin_string)],
+            }
+
+            device_cmds_result, output.os_type = device_command(self, uinfo, input, device_cmds)
+            output.log = device_cmds_result
 
 # --------------------------
 #   OS UPGRADE POSTCHECK
@@ -557,28 +581,21 @@ class NsoActionsClass_os_upgrade_postcheck(Action):
             }
 
             asi_device_cmds_result, output.os_type = device_command(self, uinfo, input, asi_device_cmds)
-            output.install_log = asi_device_cmds_result
+            output.install_log = str(asi_device_cmds_result)
 
             asi_device_cmds = {
-                'ios-xr':['%ssh install active summary' % (asr_admin_string)],
+                'ios-xr':['%sshow install active summary' % (asr_admin_string)],
             }
 
             asi_device_cmds_result, output.os_type = device_command(self, uinfo, input, asi_device_cmds)
-            output.install_log = asi_device_cmds_result
+            output.install_log += str(asi_device_cmds_result)
 
             asi_device_cmds = {
-                'ios-xr':['%sinstall commit' % (asr_admin_string)],
+                'ios-xr':['%sshow hw-module fpd location all' % (asr_admin_string)],
             }
 
             asi_device_cmds_result, output.os_type = device_command(self, uinfo, input, asi_device_cmds)
-            output.install_log = asi_device_cmds_result
-
-            asi_device_cmds = {
-                'ios-xr':['%ssh hw-module fpd location all' % (asr_admin_string)],
-            }
-
-            asi_device_cmds_result, output.os_type = device_command(self, uinfo, input, asi_device_cmds)
-            output.install_log = asi_device_cmds_result
+            output.install_log += str(asi_device_cmds_result)
 
 
 
