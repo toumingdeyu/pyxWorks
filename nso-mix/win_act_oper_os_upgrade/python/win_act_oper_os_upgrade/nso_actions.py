@@ -386,8 +386,8 @@ class NsoActionsClass_os_upgrade_install_add(Action):
 
             i_device_cmds_result, output.os_type = device_command(self, uinfo, input, input.device, i_device_cmds)
 
-            try: output.install_operation_id = i_device_cmds_result.split(' started')[0].split('Install operation ')[1].split()[0].strip()
-            except: output.install_operation_id = str()
+            try: output.operation_id = i_device_cmds_result.split(' started')[0].split('Install operation ')[1].split()[0].strip()
+            except: output.operation_id = str()
 
 
 # -----------------------------------------
@@ -406,7 +406,7 @@ class NsoActionsClass_os_upgrade_install_add_progress_check(Action):
         asr_admin_string = str()
         operation_id = str()
 
-        try: operation_id = str(input.install_operation_id).replace('[','').replace(']','').split(',')[0].strip()
+        try: operation_id = str(input.operation_id).replace('[','').replace(']','').split(',')[0].strip()
         except: pass
 
         device_cmds = {
@@ -423,18 +423,101 @@ class NsoActionsClass_os_upgrade_install_add_progress_check(Action):
             asi_device_cmds_result, output.os_type = device_command(self, uinfo, input, asi_device_cmds)
             output.install_log = asi_device_cmds_result
 
-            if 'Ending operation %s' % (str(input.install_operation_id).strip()) in asi_device_cmds_result:
+            if 'Ending operation %s' % (operation_id) in asi_device_cmds_result:
                 output.completed = 'yes'
 
-            if 'Install operation %s aborted' % (str(input.install_operation_id).strip()) in asi_device_cmds_result:
+            if 'Install operation %s aborted' % (operation_id) in asi_device_cmds_result:
                 output.result = 'failure'
 
-            if 'Install operation %s completed successfully' % (str(input.install_operation_id).strip()) in asi_device_cmds_result \
-            or 'Install operation %s finished successfully' % (str(input.install_operation_id).strip()) in asi_device_cmds_result:
+            if 'Install operation %s completed successfully' % (operation_id) in asi_device_cmds_result \
+            or 'Install operation %s finished successfully' % (operation_id) in asi_device_cmds_result:
                 output.result = 'success'
                 output.completed = 'yes'
 
 
+# --------------------------
+#   OS UPGRADE INSTALL PREPARE
+# --------------------------
+class NsoActionsClass_os_upgrade_install_prepare(Action):
+    """Does os upgrade install prepare definition."""
+
+    @Action.action
+    def cb_action(self, uinfo, name, kp, input, output):
+        self.log.info('action name: ', name)
+        output.os_type = 'UNKNOWN'
+        output.hw_type = 'UNKNOWN'
+
+        output.completed = str()
+        output.result = str()
+        asr_admin_string = str()
+        operation_id = str()
+        
+        try: operation_id = str(input.operation_id).replace('[','').replace(']','').split(',')[0].strip()
+        except: pass
+
+        hw_info = detect_hw(self, uinfo, input)
+        output.os_type, output.hw_type = hw_info.get('os_type',str()), hw_info.get('hw_type',str())
+       
+        cmd = {
+                  #"ios-xe":['show version'],
+                  "ios-xr":['install prepare id %s' % (operation_id)],
+                  #"huawei-vrp":['display version'],
+                  #"junos":['show version']
+              }
+
+        cmd_result, forget_it = device_command(self, uinfo, input, cmd)
+        output.install_log = cmd_result
+
+        if hw_info.get('os_type') == "ios-xr":         
+            try: output.operation_id = cmd_result.split(' started')[0].split('Install operation ')[1].split()[0].strip()
+            except: output.operation_id = str()
+
+# -----------------------------------------
+#   OS UPGRADE INSTALL ADD PROGRESS CHECK
+# -----------------------------------------
+class NsoActionsClass_os_upgrade_install_activate_progress_check(Action):
+    """Does os upgrade install activate progress check definition."""
+
+    @Action.action
+    def cb_action(self, uinfo, name, kp, input, output):
+        self.log.info('action name: ', name)
+        output.os_type = 'UNKNOWN'
+        output.hw_type = 'UNKNOWN'
+        output.completed = 'no'
+        output.result = str()
+
+        asr_admin_string = str()
+        operation_id = str()
+        
+        try: operation_id = str(input.operation_id).replace('[','').replace(']','').split(',')[0].strip()
+        except: pass
+
+        hw_info = detect_hw(self, uinfo, input)
+        output.os_type, output.hw_type = hw_info.get('os_type',str()), hw_info.get('hw_type',str())
+
+        if hw_info.get('os_type') == "ios-xr":
+            asi_device_cmds = {
+                'ios-xr':['%sshow install log %s' % (asr_admin_string, operation_id)],
+            }
+
+            asi_device_cmds_result, output.os_type = device_command(self, uinfo, input, asi_device_cmds)
+            output.install_log = asi_device_cmds_result
+
+            if 'Ending operation %s' % (operation_id) in asi_device_cmds_result:
+                output.completed = 'yes'
+
+            if 'Install operation %s aborted' % (operation_id) in asi_device_cmds_result:
+                output.result = 'failure'
+
+            if 'Install operation %s completed successfully' % (operation_id) in asi_device_cmds_result \
+            or 'Install operation %s finished successfully' % (operation_id) in asi_device_cmds_result:
+                output.result = 'success'
+                output.completed = 'yes'
+                
+        ### ping device        
+
+
+                
 # --------------------------
 #   OS UPGRADE INSTALL ACTIVATE
 # --------------------------
@@ -447,20 +530,37 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
         output.os_type = 'UNKNOWN'
         output.hw_type = 'UNKNOWN'
 
-        output.completed = 'no'
+        output.completed = str()
         output.result = str()
         asr_admin_string = str()
         operation_id = str()
-
-        try: operation_id = str(input.install_operation_id).replace('[','').replace(']','').split(',')[0].strip()
+        
+        try: operation_id = str(input.operation_id).replace('[','').replace(']','').split(',')[0].strip()
         except: pass
 
         hw_info = detect_hw(self, uinfo, input)
-        self.log.info('hw_info: ', hw_info)
+        output.os_type, output.hw_type = hw_info.get('os_type',str()), hw_info.get('hw_type',str())
+       
+        cmd = {
+                  #"ios-xe":['show version'],
+                  "ios-xr":['install prepare id %s' % (operation_id)],
+                  #"huawei-vrp":['display version'],
+                  #"junos":['show version']
+              }
+
+        cmd_result, forget_it = device_command(self, uinfo, input, cmd)
+        output.install_log = cmd_result
+        
+        if hw_info.get('os_type') == "ios-xr":         
+            try: output.operation_id = cmd_result.split(' started')[0].split('Install operation ')[1].split()[0].strip()
+            except: output.operation_id = str()
+
+
+
 
 
 # --------------------------
-#   OS UPGRADE PRECHECK
+#   OS UPGRADE POSTCHECK
 # --------------------------
 class NsoActionsClass_os_upgrade_postcheck(Action):
     """Does os upgrade postcheck definition."""
@@ -475,7 +575,7 @@ class NsoActionsClass_os_upgrade_postcheck(Action):
 ###############################################################################
 
 def detect_hw(self, uinfo, input):
-    hw_data = {}
+    hw_info = {}
     
     cmd = {
               "ios-xe":['show version'],
@@ -484,35 +584,35 @@ def detect_hw(self, uinfo, input):
               "junos":['show version']
           }
 
-    hw_data['device'] = copy.deepcopy(str(input.device))
+    hw_info['device'] = copy.deepcopy(str(input.device))
     
-    result, hw_data['os_type'] = device_command(self, uinfo, input, cmd)
+    result, hw_info['os_type'] = device_command(self, uinfo, input, cmd)
 
-    if hw_data['os_type'] == "ios-xe":
-        hw_data['sw_version'] = result.split('Software, Version')[1].split()[0].strip()
-        hw_data['hw_type'] = result.split(') processor')[0].splitlines()[-1].split('(')[0].strip()
-        hw_data['hw_brand'] = 'CISCO'
-        hw_data['drive_string'] = 'bootflash:'
+    if hw_info.get('os_type') == "ios-xe":
+        hw_info['sw_version'] = result.split('Software, Version')[1].split()[0].strip()
+        hw_info['hw_type'] = result.split(') processor')[0].splitlines()[-1].split('(')[0].strip()
+        hw_info['hw_brand'] = 'CISCO'
+        hw_info['drive_string'] = 'bootflash:'
 
-    elif hw_data['os_type'] == "ios-xr":
-        hw_data['sw_version'] = result.split('Software, Version')[1].split()[0].strip()
-        hw_data['hw_type'] = result.split(') processor')[0].splitlines()[-1].split('(')[0].strip()
-        hw_data['hw_brand'] = 'CISCO'
-        hw_data['drive_string'] = 'harddisk:'
+    elif hw_info.get('os_type') == "ios-xr":
+        hw_info['sw_version'] = result.split('Software, Version')[1].split()[0].strip()
+        hw_info['hw_type'] = result.split(') processor')[0].splitlines()[-1].split('(')[0].strip()
+        hw_info['hw_brand'] = 'CISCO'
+        hw_info['drive_string'] = 'harddisk:'
 
-    elif hw_data['os_type'] == "huawei-vrp":
-        hw_data['sw_version'] = result.split('software, Version')[1].split()[0].strip()
-        hw_data['hw_type'] = result.split(' version information:')[0].splitlines()[-1].strip()
-        hw_data['hw_brand'] = 'HUAWEI'
-        hw_data['drive_string'] = 'cfcard:'
+    elif hw_info.get('os_type') == "huawei-vrp":
+        hw_info['sw_version'] = result.split('software, Version')[1].split()[0].strip()
+        hw_info['hw_type'] = result.split(' version information:')[0].splitlines()[-1].strip()
+        hw_info['hw_brand'] = 'HUAWEI'
+        hw_info['drive_string'] = 'cfcard:'
 
-    elif hw_data['os_type'] == "junos":
-        hw_data['sw_version'] = result.split('Junos: ')[1].split()[0].strip()
-        hw_data['hw_type'] = result.split('Model: ')[1].split()[0].strip()
-        hw_data['hw_brand'] = 'JUNIPER'
-        hw_data['drive_string'] = 're0:'
+    elif hw_info.get('os_type') == "junos":
+        hw_info['sw_version'] = result.split('Junos: ')[1].split()[0].strip()
+        hw_info['hw_type'] = result.split('Model: ')[1].split()[0].strip()
+        hw_info['hw_brand'] = 'JUNIPER'
+        hw_info['drive_string'] = 're0:'
 
-    return hw_data
+    return hw_info
 
 ###############################################################################
 

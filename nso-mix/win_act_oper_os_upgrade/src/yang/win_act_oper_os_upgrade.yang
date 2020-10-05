@@ -165,6 +165,136 @@ module win_act_oper_os_upgrade {
       }
     }
 
+    tailf:action os_upgrade_install_prepare {
+      tailf:actionpoint os_upgrade_install_prepare;
+      input {
+        leaf device {
+          type leafref {
+            path "/ncs:devices/ncs:device/ncs:name";
+          }
+        }
+        leaf operation_id {
+          type string;
+        }
+      }
+      output {
+        leaf os_type {
+          type string;
+        }
+        leaf hw_type {
+          type string;
+        }
+        leaf operation_id {
+          type string;
+        }        
+        leaf install_log {
+          type string;
+        }
+        leaf completed {
+          type string;
+        }
+        leaf result {
+          type string;
+        }
+      }
+    }
+
+    tailf:action os_upgrade_install_prepare_progress_check {
+      tailf:actionpoint os_upgrade_install_prepare_progress_check;
+      input {
+        leaf device {
+          type leafref {
+            path "/ncs:devices/ncs:device/ncs:name";
+          }
+        }
+        leaf operation_id {
+          type string;
+        }
+      }
+      output {
+        leaf os_type {
+          type string;
+        }
+        leaf hw_type {
+          type string;
+        }       
+        leaf install_log {
+          type string;
+        }
+        leaf completed {
+          type string;
+        }
+        leaf result {
+          type string;
+        }
+      }
+    }
+
+    tailf:action os_upgrade_install_activate {
+      tailf:actionpoint os_upgrade_install_activate;
+      input {
+        leaf device {
+          type leafref {
+            path "/ncs:devices/ncs:device/ncs:name";
+          }
+        }
+        leaf operation_id {
+          type string;
+        }
+      }
+      output {
+        leaf os_type {
+          type string;
+        }
+        leaf hw_type {
+          type string;
+        }
+        leaf operation_id {
+          type string;
+        }        
+        leaf install_log {
+          type string;
+        }
+        leaf completed {
+          type string;
+        }
+        leaf result {
+          type string;
+        }
+      }
+    }
+
+    tailf:action os_upgrade_install_activate_progress_check {
+      tailf:actionpoint os_upgrade_install_activate_progress_check;
+      input {
+        leaf device {
+          type leafref {
+            path "/ncs:devices/ncs:device/ncs:name";
+          }
+        }
+        leaf operation_id {
+          type string;
+        }
+      }
+      output {
+        leaf os_type {
+          type string;
+        }
+        leaf hw_type {
+          type string;
+        }       
+        leaf install_log {
+          type string;
+        }
+        leaf completed {
+          type string;
+        }
+        leaf result {
+          type string;
+        }
+      }
+    }
+
     tailf:action os_upgrade_postcheck {
       tailf:actionpoint os_upgrade_postcheck;
       input {
@@ -184,6 +314,9 @@ module win_act_oper_os_upgrade {
         leaf hw_type {
           type string;
         }
+        leaf result {
+          type string;
+        }        
       }
     }
   }
