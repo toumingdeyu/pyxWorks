@@ -613,6 +613,45 @@ class NsoActionsClass_os_upgrade_postcheck(Action):
         self.log.info('action name: ', name)
         output.os_type = 'UNKNOWN'
         output.hw_type = 'UNKNOWN'
+        output.result = str()
+
+        asr_admin_string = str()
+
+        hw_info = detect_hw(self, uinfo, input)
+        output.os_type, output.hw_type = hw_info.get('os_type',str()), hw_info.get('hw_type',str())
+
+        if hw_info.get('os_type') == "ios-xr":
+            asi_device_cmds = {
+                'ios-xr':['%sshow configuration failed startup' % (asr_admin_string)],
+            }
+
+            asi_device_cmds_result, output.os_type = device_command(self, uinfo, input, asi_device_cmds)
+            output.install_log = asi_device_cmds_result
+
+            asi_device_cmds = {
+                'ios-xr':['%ssh install active summary' % (asr_admin_string)],
+            }
+
+            asi_device_cmds_result, output.os_type = device_command(self, uinfo, input, asi_device_cmds)
+            output.install_log = asi_device_cmds_result
+
+            asi_device_cmds = {
+                'ios-xr':['%sinstall commit' % (asr_admin_string)],
+            }
+
+            asi_device_cmds_result, output.os_type = device_command(self, uinfo, input, asi_device_cmds)
+            output.install_log = asi_device_cmds_result
+
+            asi_device_cmds = {
+                'ios-xr':['%ssh hw-module fpd location all' % (asr_admin_string)],
+            }
+
+            asi_device_cmds_result, output.os_type = device_command(self, uinfo, input, asi_device_cmds)
+            output.install_log = asi_device_cmds_result
+
+
+
+
 
 
 ###############################################################################
