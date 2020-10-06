@@ -519,7 +519,8 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
 
         cmd = {
                   #"ios-xe":['show version'],
-                  "ios-xr":['install activate id %s' % (operation_id)],
+                  #"ios-xr":['install activate id %s' % (operation_id)],
+                  "ios-xr":['install activate noprompt'],
                   #"huawei-vrp":['display version'],
                   #"junos":['show version']
               }
