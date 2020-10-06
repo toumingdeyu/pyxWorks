@@ -514,23 +514,46 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
         try: operation_id = str(input.operation_id).replace('[','').replace(']','').split(',')[0].strip()
         except: pass
 
-        hw_info = detect_hw(self, uinfo, input)
-        output.os_type, output.hw_type = hw_info.get('os_type',str()), hw_info.get('hw_type',str())
+        if operation_id:
+            hw_info = detect_hw(self, uinfo, input)
+            output.os_type, output.hw_type = hw_info.get('os_type',str()), hw_info.get('hw_type',str())
 
-        cmd = {
-                  #"ios-xe":['show version'],
-                  #"ios-xr":['install activate id %s' % (operation_id)],
-                  "ios-xr":['install activate noprompt'],
-                  #"huawei-vrp":['display version'],
-                  #"junos":['show version']
-              }
+            cmd = {
+                      #"ios-xe":['show version'],
+                      #"ios-xr":['install activate id %s' % (operation_id)],
+                      "ios-xr":['install activate noprompt'],
+                      #"huawei-vrp":['display version'],
+                      #"junos":['show version']
+                  }
 
-        cmd_result, forget_it = device_command(self, uinfo, input, cmd)
-        output.install_log = cmd_result
+            cmd_result, forget_it = device_command(self, uinfo, input, cmd)
+            output.install_log = cmd_result
 
-        if hw_info.get('os_type') == "ios-xr":
-            try: output.operation_id = cmd_result.split(' started')[0].split('Install operation ')[1].split()[0].strip()
-            except: output.operation_id = str()
+            time.sleep(3)
+
+            if hw_info.get('os_type') == "ios-xr":
+                try: output.operation_id = cmd_result.split(' started')[0].split('Install operation ')[1].split()[0].strip()
+                except: output.operation_id = str()
+
+                if not output.operation_id:
+                    device_cmds = {
+                        'ios-xr':['%sshow install log' % (asr_admin_string)],
+                    }
+
+                    device_cmds_result, output.os_type = device_command(self, uinfo, input, device_cmds)
+                    output.install_log = asi_device_cmds_result
+
+                    for part in device_cmds_result.split('Install operation '):
+                        try: part_operation_id = part.split(' started')[0].split('Install operation ')[1].split()[0].strip()
+                        except: part_operation_id = str()
+                        try:
+                            if part_operation_id and int(part_operation_id) >= int(operation_id):
+                                if not output.operation_id:
+                                    output.operation_id = part_operation_id
+                                ### FIND MAX OPERATION ID IN LOG, NOT ONLY HIGHER AS INPUT ###
+                                elif output.operation_id and int(part_operation_id) >= int(output.operation_id):
+                                    output.operation_id = part_operation_id
+                        except: pass
 
 
 # --------------------------
