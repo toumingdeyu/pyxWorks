@@ -240,6 +240,9 @@ module win_act_oper_os_upgrade {
         leaf install_log {
           type string;
         }
+        leaf last_command {
+          type string;
+        }
         leaf completed {
           type string;
         }
