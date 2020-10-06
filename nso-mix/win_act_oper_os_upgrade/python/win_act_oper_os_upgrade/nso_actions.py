@@ -445,9 +445,9 @@ class NsoActionsClass_os_upgrade_progress_check(Action):
 
             for part in device_cmds_result.split('Install operation '):
                 if part.split()[1] == 'started':
-                    try: part_operation_id = part.split()[0].split()
+                    try: part_operation_id = part.split()[0]
                     except: part_operation_id = str()
-                    try: part_last_command = part.split(' started')[1].split(':')[1].splitlines()[1].strip()
+                    try: part_last_command = part.split('started')[1].split(':')[1].splitlines()[1].strip()
                     except: part_last_command = str()
                     try:
                         if part_operation_id and int(part_operation_id) >= int(operation_id):
@@ -571,9 +571,9 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
 
                     for part in device_cmds_result.split('Install operation '):
                         if part.split()[1] == 'started':
-                            try: part_operation_id = part.split()[0].split()
+                            try: part_operation_id = part.split()[0]
                             except: part_operation_id = str()
-                            try: part_last_command = part.split(' started')[1].split(':')[1].splitlines()[1].strip()
+                            try: part_last_command = part.split('started')[1].split(':')[1].splitlines()[1].strip()
                             except: part_last_command = str()
                             try:
                                 if part_operation_id and int(part_operation_id) >= int(operation_id):
