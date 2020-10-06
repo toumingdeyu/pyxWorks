@@ -444,22 +444,21 @@ class NsoActionsClass_os_upgrade_progress_check(Action):
             output.install_log = device_cmds_result
 
             for part in device_cmds_result.split('Install operation '):
-                try: part_operation_id = part.split(' started')[0].split()[0].strip()
-                except: part_operation_id = str()
-                try: part_last_command = part.split(' started')[1].split(':')[1].splitlines()[1].strip()
-                except: part_last_command = str()
-                try:
-                    if part_operation_id and int(part_operation_id) >= int(operation_id):
-                        if not output.operation_id:
-                            output.last_command = part_last_command
-                            if output.last_command == '%sinstall activate noprompt' % (asr_admin_string):
+                if part.split()[1] == 'started':
+                    try: part_operation_id = part.split()[0].split()
+                    except: part_operation_id = str()
+                    try: part_last_command = part.split(' started')[1].split(':')[1].splitlines()[1].strip()
+                    except: part_last_command = str()
+                    try:
+                        if part_operation_id and int(part_operation_id) >= int(operation_id):
+                            if not output.operation_id:
+                                output.last_command = part_last_command
                                 output.operation_id = part_operation_id
-                        ### FIND MAX OPERATION ID IN LOG, NOT ONLY HIGHER AS INPUT ###
-                        elif output.operation_id and int(part_operation_id) >= int(output.operation_id):
-                            output.last_command = part_last_command
-                            if output.last_command == '%sinstall activate noprompt' % (asr_admin_string):
+                            ### FIND MAX OPERATION ID IN LOG, NOT ONLY HIGHER AS INPUT ###
+                            elif output.operation_id and int(part_operation_id) >= int(output.operation_id):
+                                output.last_command = part_last_command
                                 output.operation_id = part_operation_id
-                except: pass
+                    except: pass
 
 
 # -----------------------------------------
@@ -571,23 +570,23 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
                     output.install_log = device_cmds_result
 
                     for part in device_cmds_result.split('Install operation '):
-                        try: part_operation_id = part.split(' started')[0].split()[0].strip()
-                        except: part_operation_id = str()
-                        try: part_last_command = part.split(' started')[1].split(':')[1].splitlines()[1].strip()
-                        except: part_last_command = str()
-                        try:
-                            if part_operation_id and int(part_operation_id) >= int(operation_id):
-                                if not output.operation_id:
-                                    output.last_command = part_last_command
-                                    if output.last_command == '%sinstall activate noprompt' % (asr_admin_string):
-                                        output.operation_id = part_operation_id
-                                ### FIND MAX OPERATION ID IN LOG, NOT ONLY HIGHER AS INPUT ###
-                                elif output.operation_id and int(part_operation_id) >= int(output.operation_id):
-                                    output.last_command = part_last_command
-                                    if output.last_command == '%sinstall activate noprompt' % (asr_admin_string):
-                                        output.operation_id = part_operation_id
-                        except: pass
-
+                        if part.split()[1] == 'started':
+                            try: part_operation_id = part.split()[0].split()
+                            except: part_operation_id = str()
+                            try: part_last_command = part.split(' started')[1].split(':')[1].splitlines()[1].strip()
+                            except: part_last_command = str()
+                            try:
+                                if part_operation_id and int(part_operation_id) >= int(operation_id):
+                                    if not output.operation_id:
+                                        output.last_command = part_last_command
+                                        if output.last_command == '%sinstall activate noprompt' % (asr_admin_string):
+                                            output.operation_id = part_operation_id
+                                    ### FIND MAX OPERATION ID IN LOG, NOT ONLY HIGHER AS INPUT ###
+                                    elif output.operation_id and int(part_operation_id) >= int(output.operation_id):
+                                        output.last_command = part_last_command
+                                        if output.last_command == '%sinstall activate noprompt' % (asr_admin_string):
+                                            output.operation_id = part_operation_id
+                            except: pass
 
 # --------------------------
 #   OS UPGRADE POSTCHECK
