@@ -435,6 +435,7 @@ class NsoActionsClass_os_upgrade_progress_check(Action):
                 output.completed = 'yes'
 
             ### FOUND LAST STARTED OPERATION ###
+            output.operation_id = str()
             device_cmds = {
                 'ios-xr':['%sshow install log' % (asr_admin_string)],
             }
