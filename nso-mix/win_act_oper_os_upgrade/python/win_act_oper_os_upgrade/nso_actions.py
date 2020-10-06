@@ -444,7 +444,9 @@ class NsoActionsClass_os_upgrade_progress_check(Action):
             output.install_log = device_cmds_result
 
             for part in device_cmds_result.split('Install operation '):
-                if part.split()[1] == 'started':
+                try: part_split_1 = part.split()[1]
+                except: part_split_1 = str()
+                if part_split_1 == 'started':
                     try: part_operation_id = part.split()[0]
                     except: part_operation_id = str()
                     try: part_last_command = part.split('started')[1].split(':')[1].splitlines()[1].strip()
@@ -570,7 +572,9 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
                     output.install_log = device_cmds_result
 
                     for part in device_cmds_result.split('Install operation '):
-                        if part.split()[1] == 'started':
+                        try: part_split_1 = part.split()[1]
+                        except: part_split_1 = str()
+                        if part_split_1 == 'started':
                             try: part_operation_id = part.split()[0]
                             except: part_operation_id = str()
                             try: part_last_command = part.split('started')[1].split(':')[1].splitlines()[1].strip()
