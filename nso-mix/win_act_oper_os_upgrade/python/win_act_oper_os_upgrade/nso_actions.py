@@ -541,7 +541,7 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
                     }
 
                     device_cmds_result, output.os_type = device_command(self, uinfo, input, device_cmds)
-                    output.install_log = asi_device_cmds_result
+                    output.install_log = device_cmds_result
 
                     for part in device_cmds_result.split('Install operation '):
                         try: part_operation_id = part.split(' started')[0].split('Install operation ')[1].split()[0].strip()
