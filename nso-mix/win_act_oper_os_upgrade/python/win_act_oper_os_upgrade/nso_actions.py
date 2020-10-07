@@ -562,12 +562,13 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
                 device_cmds_result, forget_it = device_command(self, uinfo, input, device_cmds)
 
                 find_success = False
-                part_operation_id, part_operation_id_int = str(), 0
+                part_operation_id, part_operation_id_int, last_operation_id_int = str(), 0, 0
                 for part in device_cmds_result.split('Install operation '):
                     try: part_split_1 = part.split()[1]
                     except: part_split_1 = str()
-                    try: part_operation_id_int = int(part.split()[0])
+                    try: part_operation_id_int = int(part.split()[0]) 
                     except: part_operation_id_int = 0
+                    if part_operation_id_int > 0: last_operation_id_int = part_operation_id_int
                     if part_split_1 == 'started':
                         try: part_operation_id = part.split()[0]
                         except: part_operation_id = str()
@@ -585,7 +586,7 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
                                         output.last_command = part_last_command
                         except: pass
                 ### CHECK IF LAST OPERATION ID IS 'install activate noprompt' ###
-                if part_operation_id and part_operation_id_int == int(part_operation_id):
+                if part_operation_id and last_operation_id_int and last_operation_id_int == int(part_operation_id):
                     find_success = True
                 if output.last_command and output.operation_id and find_success: break
             if not output.last_command and not output.operation_id and not find_success:
