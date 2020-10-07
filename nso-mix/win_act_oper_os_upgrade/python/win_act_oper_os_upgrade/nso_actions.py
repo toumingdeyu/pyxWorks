@@ -561,9 +561,12 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
 
                 device_cmds_result, forget_it = device_command(self, uinfo, input, device_cmds)
 
+                find_success = False
                 for part in device_cmds_result.split('Install operation '):
                     try: part_split_1 = part.split()[1]
                     except: part_split_1 = str()
+                    try: part_operation_id_int = int(part.split()[0])
+                    except: part_operation_id_int = 0
                     if part_split_1 == 'started':
                         try: part_operation_id = part.split()[0]
                         except: part_operation_id = str()
@@ -576,13 +579,17 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
                                         output.operation_id = part_operation_id
                                         output.last_command = part_last_command
                                 elif output.operation_id and int(part_operation_id) >= int(output.operation_id):
-                                    if part_operation_id == '%sinstall activate noprompt' % (asr_admin_string):
+                                    if part_last_command == '%sinstall activate noprompt' % (asr_admin_string):
                                         output.operation_id = part_operation_id
                                         output.last_command = part_last_command
                         except: pass
-                if not output.last_command and not output.operation_id:
-                    output.install_log = "Problem to find started 'install activate noprompt' in install log!"
-                if output.last_command and output.operation_id: break
+                    ### CHECK IF LAST OPERATION ID IS 'install activate noprompt' ###    
+                    if part_operation_id and part_operation_id_int == int(part_operation_id):
+                        find_success = True
+                if output.last_command and output.operation_id and find_success: break                
+            if not output.last_command and not output.operation_id and not find_success:
+                output.install_log = "Problem to find started 'install activate noprompt' in install log!"
+                
 
 # --------------------------
 #   OS UPGRADE POSTCHECK
