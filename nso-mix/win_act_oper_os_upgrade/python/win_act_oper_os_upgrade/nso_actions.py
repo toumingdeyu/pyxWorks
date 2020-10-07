@@ -245,7 +245,8 @@ class NsoActionsClass_get_sw_version(Action):
                                 try: patch_file = file_type.split('/')[1].replace('*','')
                                 except: patch_file = str()
                                 if len(patch_file) > 0 and patch_file.upper() in tar_file.upper():
-                                    patch_files.append(tar_file)
+                                    #patch_files.append(tar_file)
+                                    patch_files.append('%s%s/%s/%s/%s' % (drive_string, dev_dir,output.target_sw_versions[i].name,'SMU' , tar_file))
                         except: pass
                     if len(patch_files)>0:
                         output.target_sw_versions[i].patch_files = patch_files
