@@ -640,6 +640,52 @@ class NsoActionsClass_os_upgrade_postcheck(Action):
 
 
 # --------------------------
+#   OS UPGRADE REMOVE INACTIVE
+# --------------------------
+class NsoActionsClass_os_upgrade_remove_inactive(Action):
+    """Does os upgrade remove inactive definition."""
+
+    @Action.action
+    def cb_action(self, uinfo, name, kp, input, output):
+        self.log.info('action name: ', name)
+        output.os_type = 'UNKNOWN'
+        output.hw_type = 'UNKNOWN'
+        asr_admin_string = str()
+
+        hw_info = detect_hw(self, uinfo, input)
+        output.os_type, output.hw_type = hw_info.get('os_type',str()), hw_info.get('hw_type',str())
+        
+        device_cmds = {
+            'ios-xr':['%sinstall remove inactive' % (asr_admin_string)],
+        }
+
+        device_cmds_result, forget_it = device_command(self, uinfo, input, device_cmds)
+        output.log = device_cmds_result
+
+        if hw_info.get('os_type') == "ios-xr":
+
+            for part in device_cmds_result.split('Install operation '):
+                try: part_split_1 = part.split()[1]
+                except: part_split_1 = str()
+                if part_split_1 == 'started':
+                    try: part_operation_id = part.split()[0]
+                    except: part_operation_id = str()
+                    try: part_last_command = part.split('started')[1].split(':')[1].splitlines()[1].strip()
+                    except: part_last_command = str()
+                    try:
+                        if part_operation_id:
+                            if not output.operation_id:
+                                output.last_command = part_last_command
+                                output.operation_id = part_operation_id
+                            ### FIND MAX OPERATION ID IN LOG, NOT ONLY HIGHER AS INPUT ###
+                            elif output.operation_id and int(part_operation_id) >= int(output.operation_id):
+                                output.last_command = part_last_command
+                                output.operation_id = part_operation_id
+                    except: pass
+
+
+
+# --------------------------
 #   OS UPGRADE COMMIT
 # --------------------------
 class NsoActionsClass_os_upgrade_commit(Action):
@@ -657,48 +703,7 @@ class NsoActionsClass_os_upgrade_commit(Action):
         output.os_type, output.hw_type = hw_info.get('os_type',str()), hw_info.get('hw_type',str())
 
         if hw_info.get('os_type') == "ios-xr":
-
-            device_cmds = {
-                'ios-xr':['%sshow install inactive sum' % (asr_admin_string)],
-            }
-
-            device_cmds_result, forget_it = device_command(self, uinfo, input, device_cmds)
-
-            inactive_packages = []
-            if 'No inactive package(s) in software repository' in device_cmds_result:
-                pass
-            else:
-                if 'Inactive Packages:' in device_cmds_result:
-                    for package_line in device_cmds_result.split('Inactive Packages:')[1].splitlines():
-                        if package_line and package_line[0] == ' ':
-                            inactive_packages.append(package_line.split()[0].strip())
-
-                for inactive_package in inactive_packages:
-                    device_cmds2 = {
-                        'ios-xr':['%sinstall remove inactive %s' % (asr_admin_string,inactive_package)],
-                    }
-
-                    device_cmds_result2, forget_it = device_command(self, uinfo, input, device_cmds2)
-
-                time.sleep(1)
-
-                device_cmds = {
-                    'ios-xr':['%sshow install inactive sum' % (asr_admin_string)],
-                }
-
-                device_cmds_result, output.os_type = device_command(self, uinfo, input, device_cmds)
-
-                if output.os_type == "ios-xr":
-                    if 'No inactive package(s) in software repository' in device_cmds_result:
-                        pass
-                    else:
-                        inactive_packages = []
-                        if 'Inactive Packages:' in device_cmds_result:
-                            for package_line in device_cmds_result.split('Inactive Packages:')[1].splitlines():
-                                if package_line and package_line[0] == ' ':
-                                    inactive_packages.append(package_line.strip())
-            output.inactive_packages = inactive_packages
-
+        
             device_cmds = {
                 'ios-xr':['%sinstall commit' % (asr_admin_string)],
             }
@@ -706,7 +711,24 @@ class NsoActionsClass_os_upgrade_commit(Action):
             device_cmds_result, output.os_type = device_command(self, uinfo, input, device_cmds)
             output.log = device_cmds_result
 
-
+            for part in device_cmds_result.split('Install operation '):
+                try: part_split_1 = part.split()[1]
+                except: part_split_1 = str()
+                if part_split_1 == 'started':
+                    try: part_operation_id = part.split()[0]
+                    except: part_operation_id = str()
+                    try: part_last_command = part.split('started')[1].split(':')[1].splitlines()[1].strip()
+                    except: part_last_command = str()
+                    try:
+                        if part_operation_id:
+                            if not output.operation_id:
+                                output.last_command = part_last_command
+                                output.operation_id = part_operation_id
+                            ### FIND MAX OPERATION ID IN LOG, NOT ONLY HIGHER AS INPUT ###
+                            elif output.operation_id and int(part_operation_id) >= int(output.operation_id):
+                                output.last_command = part_last_command
+                                output.operation_id = part_operation_id
+                    except: pass
 
 
 
