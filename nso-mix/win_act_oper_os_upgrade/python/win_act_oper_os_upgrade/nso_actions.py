@@ -582,7 +582,7 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
                         except: pass
                 if not output.last_command and not output.operation_id:
                     output.install_log = "Problem to find started 'install activate noprompt' in install log!"
-
+                if output.last_command and output.operation_id: break
 
 # --------------------------
 #   OS UPGRADE POSTCHECK
