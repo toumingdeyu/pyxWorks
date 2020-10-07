@@ -567,7 +567,7 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
                 for part in device_cmds_result.split('Install operation '):
                     try: part_split_1 = part.split()[1]
                     except: part_split_1 = str()
-                    try: part_operation_id_int = int(part.split()[0]) 
+                    try: part_operation_id_int = int(part.split()[0])
                     except: part_operation_id_int = 0
                     if part_operation_id_int > 0: last_operation_id_int = part_operation_id_int
                     if part_split_1 == 'started':
@@ -657,12 +657,14 @@ class NsoActionsClass_os_upgrade_commit(Action):
         output.os_type, output.hw_type = hw_info.get('os_type',str()), hw_info.get('hw_type',str())
 
         if hw_info.get('os_type') == "ios-xr":
+
             device_cmds = {
                 'ios-xr':['%sshow install inactive sum' % (asr_admin_string)],
             }
 
             device_cmds_result, forget_it = device_command(self, uinfo, input, device_cmds)
 
+            inactive_packages = []
             if 'No inactive package(s) in software repository' in device_cmds_result:
                 pass
             else:
