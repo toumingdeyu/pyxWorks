@@ -562,7 +562,7 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
                 device_cmds_result, forget_it = device_command(self, uinfo, input, device_cmds)
 
                 find_success = False
-                part_operation_id = str()
+                part_operation_id, part_operation_id_int = str(), 0
                 for part in device_cmds_result.split('Install operation '):
                     try: part_split_1 = part.split()[1]
                     except: part_split_1 = str()
