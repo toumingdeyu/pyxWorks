@@ -586,7 +586,7 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
                                         output.last_command = part_last_command
                         except: pass
                 ### CHECK IF LAST OPERATION ID IS 'install activate noprompt' ###
-                if part_operation_id and last_operation_id_int and last_operation_id_int == int(part_operation_id):
+                if part_operation_id and last_operation_id_int > 0 and last_operation_id_int == int(part_operation_id):
                     find_success = True
                 if output.last_command and output.operation_id and find_success: break
             if not output.last_command and not output.operation_id and not find_success:
