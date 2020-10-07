@@ -441,7 +441,7 @@ class NsoActionsClass_os_upgrade_progress_check(Action):
             }
 
             device_cmds_result, output.os_type = device_command(self, uinfo, input, device_cmds)
-            output.install_log = device_cmds_result
+            #output.install_log = device_cmds_result
 
             for part in device_cmds_result.split('Install operation '):
                 try: part_split_1 = part.split()[1]
@@ -533,89 +533,56 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
         self.log.info('action name: ', name)
         output.os_type = 'UNKNOWN'
         output.hw_type = 'UNKNOWN'
-
+        output.operation_id = str()
+        output.last_command = str()
         output.completed = str()
         output.result = str()
-        asr_admin_string = str()
-        operation_id = str()
-
-        try: operation_id = str(input.operation_id).replace('[','').replace(']','').split(',')[0].strip()
-        except: pass
-
-        if operation_id:
-            hw_info = detect_hw(self, uinfo, input)
-            output.os_type, output.hw_type = hw_info.get('os_type',str()), hw_info.get('hw_type',str())
-
-            cmd = {
-                      #"ios-xe":['show version'],
-                      #"ios-xr":['install activate id %s' % (operation_id)],
-                      "ios-xr":['%sinstall activate noprompt' % (asr_admin_string)],
-                      #"huawei-vrp":['display version'],
-                      #"junos":['show version']
-                  }
-
-            cmd_result, forget_it = device_command(self, uinfo, input, cmd)
-            output.install_log = cmd_result
-
-            time.sleep(5)
-
-            if hw_info.get('os_type') == "ios-xr":
-                try: output.operation_id = cmd_result.split(' started')[0].split('Install operation ')[1].split()[0].strip()
-                except: output.operation_id = str()
-
-                if not output.operation_id:
-                    device_cmds = {
-                        'ios-xr':['%sshow install log' % (asr_admin_string)],
-                    }
-
-                    device_cmds_result, output.os_type = device_command(self, uinfo, input, device_cmds)
-                    output.install_log = device_cmds_result
-
-                    for part in device_cmds_result.split('Install operation '):
-                        try: part_split_1 = part.split()[1]
-                        except: part_split_1 = str()
-                        if part_split_1 == 'started':
-                            try: part_operation_id = part.split()[0]
-                            except: part_operation_id = str()
-                            try: part_last_command = part.split('started')[1].split(':')[1].splitlines()[1].strip()
-                            except: part_last_command = str()
-                            try:
-                                if part_operation_id and int(part_operation_id) >= int(operation_id):
-                                    if not output.operation_id:
-                                        output.last_command = part_last_command
-                                        if output.last_command == '%sinstall activate noprompt' % (asr_admin_string):
-                                            output.operation_id = part_operation_id
-                                    ### FIND MAX OPERATION ID IN LOG, NOT ONLY HIGHER AS INPUT ###
-                                    elif output.operation_id and int(part_operation_id) >= int(output.operation_id):
-                                        output.last_command = part_last_command
-                                        if output.last_command == '%sinstall activate noprompt' % (asr_admin_string):
-                                            output.operation_id = part_operation_id
-                            except: pass
-
-# --------------------------
-#   OS UPGRADE POSTCHECK
-# --------------------------
-class NsoActionsClass_os_upgrade_commit(Action):
-    """Does os upgrade commit definition."""
-
-    @Action.action
-    def cb_action(self, uinfo, name, kp, input, output):
-        self.log.info('action name: ', name)
-        output.os_type = 'UNKNOWN'
-        output.hw_type = 'UNKNOWN'
-
         asr_admin_string = str()
 
         hw_info = detect_hw(self, uinfo, input)
         output.os_type, output.hw_type = hw_info.get('os_type',str()), hw_info.get('hw_type',str())
 
-        if hw_info.get('os_type') == "ios-xr":
-            device_cmds = {
-                'ios-xr':['%sinstall commit' % (asr_admin_string)],
-            }
+        cmd = {
+                  #"ios-xe":['show version'],
+                  "ios-xr":['%sinstall activate noprompt' % (asr_admin_string)],
+                  #"huawei-vrp":['display version'],
+                  #"junos":['show version']
+              }
 
-            device_cmds_result, output.os_type = device_command(self, uinfo, input, device_cmds)
-            output.log = device_cmds_result
+        cmd_result, forget_it = device_command(self, uinfo, input, cmd)
+        output.install_log = cmd_result
+
+        if hw_info.get('os_type') == "ios-xr":
+            for i in range(20):
+                time.sleep(3)
+                device_cmds = {
+                    'ios-xr':['%sshow install log' % (asr_admin_string)],
+                }
+
+                device_cmds_result, forget_it = device_command(self, uinfo, input, device_cmds)
+
+                for part in device_cmds_result.split('Install operation '):
+                    try: part_split_1 = part.split()[1]
+                    except: part_split_1 = str()
+                    if part_split_1 == 'started':
+                        try: part_operation_id = part.split()[0]
+                        except: part_operation_id = str()
+                        try: part_last_command = part.split('started')[1].split(':')[1].splitlines()[1].strip()
+                        except: part_last_command = str()
+                        try:
+                            if part_operation_id:
+                                if not output.operation_id:
+                                    if part_last_command == '%sinstall activate noprompt' % (asr_admin_string):
+                                        output.operation_id = part_operation_id
+                                        output.last_command = part_last_command
+                                elif output.operation_id and int(part_operation_id) >= int(output.operation_id):
+                                    if part_operation_id == '%sinstall activate noprompt' % (asr_admin_string):
+                                        output.operation_id = part_operation_id
+                                        output.last_command = part_last_command
+                        except: pass
+                if not output.last_command and not output.operation_id:
+                    output.install_log = "Problem to find started 'install activate noprompt' in install log!"
+
 
 # --------------------------
 #   OS UPGRADE POSTCHECK
@@ -656,6 +623,76 @@ class NsoActionsClass_os_upgrade_postcheck(Action):
 
             asi_device_cmds_result, output.os_type = device_command(self, uinfo, input, asi_device_cmds)
             output.install_log += str(asi_device_cmds_result)
+
+
+
+
+
+
+# --------------------------
+#   OS UPGRADE COMMIT
+# --------------------------
+class NsoActionsClass_os_upgrade_commit(Action):
+    """Does os upgrade commit definition."""
+
+    @Action.action
+    def cb_action(self, uinfo, name, kp, input, output):
+        self.log.info('action name: ', name)
+        output.os_type = 'UNKNOWN'
+        output.hw_type = 'UNKNOWN'
+
+        asr_admin_string = str()
+
+        hw_info = detect_hw(self, uinfo, input)
+        output.os_type, output.hw_type = hw_info.get('os_type',str()), hw_info.get('hw_type',str())
+
+        if hw_info.get('os_type') == "ios-xr":
+            device_cmds = {
+                'ios-xr':['%sshow install inactive sum' % (asr_admin_string)],
+            }
+
+            device_cmds_result, forget_it = device_command(self, uinfo, input, device_cmds)
+
+            if 'No inactive package(s) in software repository' in device_cmds_result:
+                pass
+            else:
+                if 'Inactive Packages:' in device_cmds_result:
+                    for package_line in device_cmds_result.split('Inactive Packages:')[1].splitlines():
+                        if package_line and package_line[0] == ' ':
+                            inactive_packages.append(package_line.split()[0].strip())
+
+                for inactive_package in inactive_packages:
+                    device_cmds2 = {
+                        'ios-xr':['%sinstall remove inactive %s' % (asr_admin_string,inactive_package)],
+                    }
+
+                    device_cmds_result2, forget_it = device_command(self, uinfo, input, device_cmds2)
+
+                time.sleep(1)
+
+                device_cmds = {
+                    'ios-xr':['%sshow install inactive sum' % (asr_admin_string)],
+                }
+
+                device_cmds_result, output.os_type = device_command(self, uinfo, input, device_cmds)
+
+                if output.os_type == "ios-xr":
+                    if 'No inactive package(s) in software repository' in device_cmds_result:
+                        pass
+                    else:
+                        inactive_packages = []
+                        if 'Inactive Packages:' in device_cmds_result:
+                            for package_line in device_cmds_result.split('Inactive Packages:')[1].splitlines():
+                                if package_line and package_line[0] == ' ':
+                                    inactive_packages.append(package_line.strip())
+            output.inactive_packages = inactive_packages
+
+            device_cmds = {
+                'ios-xr':['%sinstall commit' % (asr_admin_string)],
+            }
+
+            device_cmds_result, output.os_type = device_command(self, uinfo, input, device_cmds)
+            output.log = device_cmds_result
 
 
 

@@ -273,7 +273,10 @@ module win_act_oper_os_upgrade {
         }
         leaf hw_type {
           type string;
-        }     
+        }
+        leaf-list inactive_packages {
+          type string;
+        }        
         leaf log {
           type string;
         }
