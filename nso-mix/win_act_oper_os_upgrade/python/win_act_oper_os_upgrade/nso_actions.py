@@ -371,6 +371,8 @@ class NsoActionsClass_os_upgrade_install_add(Action):
         output.hw_type = 'UNKNOWN'
         asr_admin_string = str()
 
+        file_string_without_path = str()
+
         device_cmds = {
             'ios-xr':['show version'],
         }
@@ -378,12 +380,25 @@ class NsoActionsClass_os_upgrade_install_add(Action):
         device_cmds_result, output.os_type = device_command(self, uinfo, input, device_cmds)
 
         if output.os_type == "ios-xr":
-            i_device_cmds = {
-                'ios-xr':['%sinstall add source %s/ %s' % (asr_admin_string, \
-                '/'.join(str(input.sw_version_selected_file).replace('[','').replace(']','').split(',')[0].strip().split('/')[:-1]),
-                str(input.sw_version_selected_file).replace('[','').replace(']','').split(',')[0].strip().split('/')[-1])
-                ],
-            }
+            if input.sw_version_selected_files:
+                i_device_cmds = {
+                    'ios-xr':['%sinstall add source %s/ %s' % (asr_admin_string, \
+                    '/'.join(str(input.sw_version_selected_file).replace('[','').replace(']','').split()[0].strip().split('/')[:-1]),
+                    str(input.sw_version_selected_file).replace('[','').replace(']','').split()[0].strip().split('/')[-1] )
+                    ],
+                }
+            elif input.patch_version_selected_files:
+                file_list = input.sw_version_selected_files.replace('[','').replace(']','').split()
+                for file in file_list:
+                    file_string_without_path += file.strip().split('/')[-1] + ' '
+                file_string_without_path = file_string_without_path.strip()
+
+                i_device_cmds = {
+                    'ios-xr':['%sinstall add source %s/ %s' % (asr_admin_string, \
+                    '/'.join(str(input.patch_version_selected_files).replace('[','').replace(']','').split()[0].strip().split('/')[:-1]),
+                    file_string_without_path )
+                    ]
+                }
 
             i_device_cmds_result, output.os_type = device_command(self, uinfo, input, i_device_cmds)
 
@@ -654,7 +669,7 @@ class NsoActionsClass_os_upgrade_remove_inactive(Action):
 
         hw_info = detect_hw(self, uinfo, input)
         output.os_type, output.hw_type = hw_info.get('os_type',str()), hw_info.get('hw_type',str())
-        
+
         device_cmds = {
             'ios-xr':['%sinstall remove inactive' % (asr_admin_string)],
         }
@@ -703,7 +718,7 @@ class NsoActionsClass_os_upgrade_commit(Action):
         output.os_type, output.hw_type = hw_info.get('os_type',str()), hw_info.get('hw_type',str())
 
         if hw_info.get('os_type') == "ios-xr":
-        
+
             device_cmds = {
                 'ios-xr':['%sinstall commit' % (asr_admin_string)],
             }

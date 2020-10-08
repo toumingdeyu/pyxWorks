@@ -117,6 +117,10 @@ module win_act_oper_os_upgrade {
         leaf sw_version_selected_file {
             type string;
           }
+        leaf patch_version_selected_files {
+            type string;
+          }          
+           
       }
       output {
         leaf os_type {
