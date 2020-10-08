@@ -130,12 +130,16 @@ default_printalllines_list = []
 ### CUSTOM CHECK POSITION LIST (PICKUP LIMITED SET of CMDs FROM ALL CMDs) #####
 ###############################################################################
 CUSTOM_LIST_IOS_XE = []
-# CUSTOM_LIST_IOS_XR = [3, 5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 27, 28, 29, 30]
-# CUSTOM_LIST_JUNOS = [1, 2, 3, 6, 9, 15, 16, 17, 18]
-# CUSTOM_LIST_VRP = [2, 3, 4, 7, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19]
-CUSTOM_LIST_IOS_XR = [5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 27, 28, 29, 30]
-CUSTOM_LIST_JUNOS = [2, 3, 6, 9, 15, 16, 17, 18]
-CUSTOM_LIST_VRP = [3, 4, 7, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19]
+CUSTOM_LIST_IOS_XR = [3, 5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 27, 28, 29, 30]
+CUSTOM_LIST_JUNOS = [1, 2, 3, 6, 9, 15, 16, 17, 18]
+CUSTOM_LIST_VRP = [2, 3, 4, 7, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19]
+###############################################################################
+### OMMIT CUSTOM BGP CHECK , BUT NOT SHOW CONFIG ##############################
+###############################################################################
+OMMIT_CUSTOM_LIST_IOS_XE = []
+OMMIT_CUSTOM_LIST_IOS_XR = [5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 27, 28, 29, 30]
+OMMIT_CUSTOM_LIST_JUNOS = [2, 3, 6, 9, 15, 16, 17, 18]
+OMMIT_CUSTOM_LIST_VRP = [3, 4, 7, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19]
 ###############################################################################
 
 
@@ -1329,22 +1333,22 @@ elif not plus_custom_check:
     if router_type == "ios-xe":
         cmd_position = 0
         for router_cmd in CMD_IOS_XE:
-            if not cmd_position in CUSTOM_LIST_IOS_XE: list_cmd.append(copy.deepcopy(router_cmd))
+            if not cmd_position in OMMIT_CUSTOM_LIST_IOS_XE: list_cmd.append(copy.deepcopy(router_cmd))
             cmd_position += 1
     elif router_type == "ios-xr":
         cmd_position = 0
         for router_cmd in CMD_IOS_XR:
-            if not cmd_position in CUSTOM_LIST_IOS_XR: list_cmd.append(copy.deepcopy(router_cmd))
+            if not cmd_position in OMMIT_CUSTOM_LIST_IOS_XR: list_cmd.append(copy.deepcopy(router_cmd))
             cmd_position += 1
     elif router_type == "junos":
         cmd_position = 0
         for router_cmd in CMD_JUNOS:
-            if not cmd_position in CUSTOM_LIST_JUNOS: list_cmd.append(copy.deepcopy(router_cmd))
+            if not cmd_position in OMMIT_CUSTOM_LIST_JUNOS: list_cmd.append(copy.deepcopy(router_cmd))
             cmd_position += 1
     elif router_type == "vrp":
         cmd_position = 0
         for router_cmd in CMD_VRP:
-            if not cmd_position in CUSTOM_LIST_VRP: list_cmd.append(copy.deepcopy(router_cmd))
+            if not cmd_position in OMMIT_CUSTOM_LIST_VRP: list_cmd.append(copy.deepcopy(router_cmd))
             cmd_position += 1
 
 
