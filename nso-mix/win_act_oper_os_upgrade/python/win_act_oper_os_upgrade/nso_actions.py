@@ -377,25 +377,30 @@ class NsoActionsClass_os_upgrade_install_add(Action):
             'ios-xr':['show version'],
         }
 
+        try: sw_version_selected_file = str(input.sw_version_selected_file)
+        except: sw_version_selected_file = str()
+        try: patch_version_selected_files = str(input.patch_version_selected_files)
+        except: patch_version_selected_files = str()
+
         device_cmds_result, output.os_type = device_command(self, uinfo, input, device_cmds)
 
         if output.os_type == "ios-xr":
-            if input.sw_version_selected_files:
+            if sw_version_selected_file:
                 i_device_cmds = {
                     'ios-xr':['%sinstall add source %s/ %s' % (asr_admin_string, \
-                    '/'.join(str(input.sw_version_selected_file).replace('[','').replace(']','').split()[0].strip().split('/')[:-1]),
-                    str(input.sw_version_selected_file).replace('[','').replace(']','').split()[0].strip().split('/')[-1] )
+                    '/'.join(str(sw_version_selected_file).replace('[','').replace(']','').split()[0].strip().split('/')[:-1]),
+                    str(sw_version_selected_file).replace('[','').replace(']','').split()[0].strip().split('/')[-1] )
                     ],
                 }
-            elif input.patch_version_selected_files:
-                file_list = input.sw_version_selected_files.replace('[','').replace(']','').split()
+            elif patch_version_selected_files:
+                file_list = patch_version_selected_files.replace('[','').replace(']','').split()
                 for file in file_list:
                     file_string_without_path += file.strip().split('/')[-1] + ' '
                 file_string_without_path = file_string_without_path.strip()
 
                 i_device_cmds = {
                     'ios-xr':['%sinstall add source %s/ %s' % (asr_admin_string, \
-                    '/'.join(str(input.patch_version_selected_files).replace('[','').replace(']','').split()[0].strip().split('/')[:-1]),
+                    '/'.join(str(patch_version_selected_files).replace('[','').replace(']','').split()[0].strip().split('/')[:-1]),
                     file_string_without_path )
                     ]
                 }
