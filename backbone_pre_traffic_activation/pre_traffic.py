@@ -2815,7 +2815,9 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
                 if interface_line:
                     interface_data['interface_data']['bundle_members'].append(copy.deepcopy(interface_line.split()[0]))
                 if 'Active' in interface_line: pass
-                else: inactive_bundle_members += interface_line.split()[0] + ' '
+                else:
+                    try: inactive_bundle_members += interface_line.split()[0] + ' '
+                    except: pass
             if inactive_bundle_members:
                 interface_data['interface_data']['inactive_bundle_members'] = inactive_bundle_members
 
@@ -2875,7 +2877,9 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
                 if interface_line:
                     interface_data['interface_data']['bundle_members'].append(copy.deepcopy(interface_line.split()[0]))
                 if 'Up' in interface_line: pass
-                else: inactive_bundle_members += interface_line.split()[0] + ' '
+                else:
+                    try: inactive_bundle_members += interface_line.split()[0] + ' '
+                    except: pass
             if inactive_bundle_members:
                 interface_data['interface_data']['inactive_bundle_members'] = inactive_bundle_members
 
@@ -3049,7 +3053,9 @@ def interface_traffic_errors_check(undotted_interface_id = None, after_ping = No
                 if interface_line:
                     interface_data['interface_data']['bundle_members'].append(copy.deepcopy(interface_line.split()[0]))
                 if 'UP' in interface_line: pass
-                else: inactive_bundle_members += interface_line.split()[0] + ' '
+                else:
+                    try: inactive_bundle_members += interface_line.split()[0] + ' '
+                    except: pass
             if inactive_bundle_members:
                 interface_data['interface_data']['inactive_bundle_members'] = inactive_bundle_members
 
