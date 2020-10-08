@@ -130,9 +130,12 @@ default_printalllines_list = []
 ### CUSTOM CHECK POSITION LIST (PICKUP LIMITED SET of CMDs FROM ALL CMDs) #####
 ###############################################################################
 CUSTOM_LIST_IOS_XE = []
-CUSTOM_LIST_IOS_XR = [3, 5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 27, 28, 29, 30]
-CUSTOM_LIST_JUNOS = [1, 2, 3, 6, 9, 15, 16, 17, 18]
-CUSTOM_LIST_VRP = [2, 3, 4, 7, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19]
+# CUSTOM_LIST_IOS_XR = [3, 5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 27, 28, 29, 30]
+# CUSTOM_LIST_JUNOS = [1, 2, 3, 6, 9, 15, 16, 17, 18]
+# CUSTOM_LIST_VRP = [2, 3, 4, 7, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19]
+CUSTOM_LIST_IOS_XR = [5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 27, 28, 29, 30]
+CUSTOM_LIST_JUNOS = [2, 3, 6, 9, 15, 16, 17, 18]
+CUSTOM_LIST_VRP = [3, 4, 7, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19]
 ###############################################################################
 
 
@@ -1144,11 +1147,6 @@ parser.add_argument("--pluscustom",
                     default = False,
                     dest = 'plus_custom',
                     help = "do all commands with custom (bgp commands)")
-# parser.add_argument("--nocustom",
-                    # action = "store_true",
-                    # default = False,
-                    # dest = 'no_custom_check',
-                    # help = "ommit custom (bgp commands)")
 args = parser.parse_args()
 
 if args.emailaddr:
@@ -1188,11 +1186,7 @@ if not args.device:
     sys.exit(0)
 
 custom_check_only = True if args.custom_check_only else False
-
-### OPPOSITE LOGIC OF CUSTOM CLI SWITCHES ###
-#no_custom_check = True if args.no_custom_check else False
-no_custom_check = True
-no_custom_check = False if args.plus_custom else True
+plus_custom_check = True if args.plus_custom else False
 
 # SET WORKING DIRECTORY
 try:    WORKDIR         = os.path.join(os.environ['HOME'],'logs')
@@ -1309,7 +1303,7 @@ if args.cmd_file:
         fp_cmd.close
 
 ### def CUSTOM CHECK LIST CREATION ###
-if custom_check_only and not no_custom_check:
+if custom_check_only:
     if router_type == "ios-xe":
         cmd_position = 0
         for router_cmd in CMD_IOS_XE:
@@ -1331,7 +1325,7 @@ if custom_check_only and not no_custom_check:
             if cmd_position in CUSTOM_LIST_VRP: list_cmd.append(copy.deepcopy(router_cmd))
             cmd_position += 1
 
-elif not custom_check_only and no_custom_check:
+elif not plus_custom_check:
     if router_type == "ios-xe":
         cmd_position = 0
         for router_cmd in CMD_IOS_XE:
@@ -1355,9 +1349,9 @@ elif not custom_check_only and no_custom_check:
 
 
 if custom_check_only:
-    filename_prefix = os.path.join(WORKDIR,args.device.upper().replace(':','_').replace('.','_') + '-custom')
-elif no_custom_check:
-    filename_prefix = os.path.join(WORKDIR,args.device.upper().replace(':','_').replace('.','_') + '-nocustom')
+    filename_prefix = os.path.join(WORKDIR,args.device.upper().replace(':','_').replace('.','_') + '-customonly')
+elif plus_custom_check:
+    filename_prefix = os.path.join(WORKDIR,args.device.upper().replace(':','_').replace('.','_') + '-pluscustom')
 else:
     filename_prefix = os.path.join(WORKDIR,args.device.upper().replace(':','_').replace('.','_'))
 
