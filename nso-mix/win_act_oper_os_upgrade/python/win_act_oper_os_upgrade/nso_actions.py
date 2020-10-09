@@ -373,6 +373,9 @@ class NsoActionsClass_os_upgrade_install_add(Action):
         output.hw_type = 'UNKNOWN'
         asr_admin_string = str()
 
+        sw_version_selected_file = str()
+        patch_version_selected_files = str()
+
         self.log.info('input.sw_version_selected_file: ', input.sw_version_selected_file)
         self.log.info('input.patch_version_selected_files: ', input.patch_version_selected_files)
 
@@ -495,7 +498,7 @@ class NsoActionsClass_os_upgrade_progress_check(Action):
                     except: pass
 
         self.log.info('OUTPUT: ', vars(output))
-        
+
 
 # -----------------------------------------
 #   OS UPGRADE DEVICE PING CHECK
@@ -555,7 +558,7 @@ class NsoActionsClass_os_upgrade_install_prepare(Action):
             except: output.operation_id = str()
 
         self.log.info('OUTPUT: ', vars(output))
-        
+
 
 # --------------------------
 #   OS UPGRADE INSTALL ACTIVATE
@@ -626,7 +629,7 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
                 if output.last_command and output.operation_id and find_success: break
             if not output.last_command and not output.operation_id and not find_success:
                 output.install_log = "Problem to find started 'install activate noprompt' in install log!"
-                
+
         self.log.info('OUTPUT: ', vars(output))
 
 
@@ -669,7 +672,7 @@ class NsoActionsClass_os_upgrade_postcheck(Action):
 
             asi_device_cmds_result, output.os_type = device_command(self, uinfo, input, asi_device_cmds)
             output.install_log += str(asi_device_cmds_result)
-            
+
         self.log.info('OUTPUT: ', vars(output))
 
 
