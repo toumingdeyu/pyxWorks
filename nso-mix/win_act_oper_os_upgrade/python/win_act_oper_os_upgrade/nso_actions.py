@@ -371,15 +371,23 @@ class NsoActionsClass_os_upgrade_install_add(Action):
         output.hw_type = 'UNKNOWN'
         asr_admin_string = str()
 
+        self.log.info('input.sw_version_selected_file: ', input.sw_version_selected_file)
+        self.log.info('input.patch_version_selected_files: ', input.patch_version_selected_files)
+
         file_string_without_path = str()
 
         device_cmds = {
             'ios-xr':['show version'],
         }
 
-        try: sw_version_selected_file = str(input.sw_version_selected_file)
+        try:
+            if input.sw_version_selected_file:
+                sw_version_selected_file = str(input.sw_version_selected_file)
         except: sw_version_selected_file = str()
-        try: patch_version_selected_files = str(input.patch_version_selected_files)
+
+        try:
+            if input.patch_version_selected_files:
+                patch_version_selected_files = str(input.patch_version_selected_files)
         except: patch_version_selected_files = str()
 
         device_cmds_result, output.os_type = device_command(self, uinfo, input, device_cmds)
