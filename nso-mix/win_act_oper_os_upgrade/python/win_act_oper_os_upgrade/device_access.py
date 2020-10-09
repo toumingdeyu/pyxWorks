@@ -19,6 +19,8 @@ def device_command(self, uinfo, input, cmd):
         root = ncs.maagic.get_root(t)
         dev = root.ncs__devices.device[input.device]
 
+        self.log.info('DEV: ', vars(dev))
+
         if isinstance(cmd, (basestring)):
             cmd_data = {}
             cmd_data["ios-xe"] = [ cmd ]
@@ -88,6 +90,6 @@ def device_command(self, uinfo, input, cmd):
         except Exception as E:
             self.log.info("Exception device_command(): ", str(E))
 
-    m.close()
+    m.close()   
     return result, platform
 
