@@ -100,8 +100,12 @@ module win_act_oper_os_upgrade {
         leaf-list active_packages {
           type string;
         }
-        leaf install_log {
-          type string;
+        list precheck_data {
+          leaf name {
+            type string;
+          }
+          leaf value {
+            type string;
         }
       }
     }
