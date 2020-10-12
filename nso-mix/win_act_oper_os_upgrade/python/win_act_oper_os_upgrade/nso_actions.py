@@ -284,7 +284,7 @@ class NsoActionsClass_os_upgrade_precheck(Action):
         output.precheck_data.create().name = str( '%sshow install inactive sum' % (asr_admin_string) )
 
         device_cmds = {
-            'ios-xr':[output.precheck_data[i].name],
+            'ios-xr':[ output.precheck_data[i].name ],
         }
 
         device_cmds_result, output.os_type = device_command(self, uinfo, input, device_cmds)
@@ -309,9 +309,9 @@ class NsoActionsClass_os_upgrade_precheck(Action):
                 time.sleep(1)
 
                 device_cmds = {
-                    'ios-xr':[output.precheck_data[1].name],
+                    'ios-xr':[ output.precheck_data[i].name ],
                 }
-                
+
                 device_cmds_result, output.os_type = device_command(self, uinfo, input, device_cmds)
                 output.precheck_data[i].value = str(device_cmds_result)
 
@@ -451,10 +451,10 @@ class NsoActionsClass_os_upgrade_progress_check(Action):
         output.result = str()
         asr_admin_string = str()
 
-        operation_id = str() 
+        operation_id = str()
         if input.operation_id:
             try: operation_id = str(input.operation_id).replace('[','').replace(']','').replace('"','').split(',')[0].strip()
-            except: pass            
+            except: pass
         elif input.operation_id_smu:
             try: operation_id = str(input.operation_id_smu).replace('[','').replace(']','').replace('"','').split(',')[0].strip()
             except: pass
@@ -554,10 +554,10 @@ class NsoActionsClass_os_upgrade_install_prepare(Action):
         output.result = str()
         asr_admin_string = str()
 
-        operation_id = str() 
+        operation_id = str()
         if input.operation_id:
             try: operation_id = str(input.operation_id).replace('[','').replace(']','').replace('"','').split(',')[0].strip()
-            except: pass            
+            except: pass
         elif input.operation_id_smu:
             try: operation_id = str(input.operation_id_smu).replace('[','').replace(']','').replace('"','').split(',')[0].strip()
             except: pass
