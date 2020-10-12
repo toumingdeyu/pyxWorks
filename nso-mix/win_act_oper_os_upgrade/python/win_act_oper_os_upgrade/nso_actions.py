@@ -344,7 +344,7 @@ class NsoActionsClass_os_upgrade_precheck(Action):
 
             ### show install log ###
             i += 1
-            output.precheck_data.create().name = str( '%s show install log' % (asr_admin_string) )
+            output.precheck_data.create().name = str( '%sshow install log' % (asr_admin_string) )
 
             inst_device_cmds = {
                 'ios-xr':[ output.precheck_data[i].name ],
