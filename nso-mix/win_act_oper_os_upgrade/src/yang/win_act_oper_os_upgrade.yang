@@ -106,6 +106,7 @@ module win_act_oper_os_upgrade {
           }
           leaf value {
             type string;
+          }  
         }
       }
     }
