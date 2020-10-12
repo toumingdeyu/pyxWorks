@@ -439,65 +439,72 @@ class NsoActionsClass_os_upgrade_progress_check(Action):
         output.completed = 'no'
         output.result = str()
         asr_admin_string = str()
-        operation_id = str()
 
-        try: operation_id = str(input.operation_id).replace('[','').replace(']','').split(',')[0].strip()
-        except: pass
+        operation_id = str() 
+        if input.operation_id:
+            try: operation_id = str(input.operation_id).replace('[','').replace(']','').replace('"','').split(',')[0].strip()
+            except: pass            
+        elif input.operation_id_smu:
+            try: operation_id = str(input.operation_id_smu).replace('[','').replace(']','').replace('"','').split(',')[0].strip()
+            except: pass
 
-        device_cmds = {
-            'ios-xr':['show version'],
-        }
-
-        device_cmds_result, output.os_type = device_command(self, uinfo, input, device_cmds)
-
-        if output.os_type == "ios-xr":
-            asi_device_cmds = {
-                'ios-xr':['%sshow install log %s' % (asr_admin_string, operation_id)],
-            }
-
-            asi_device_cmds_result, output.os_type = device_command(self, uinfo, input, asi_device_cmds)
-            output.install_log = asi_device_cmds_result
-
-            if 'Ending operation %s' % (operation_id) in asi_device_cmds_result:
-                output.completed = 'yes'
-
-            if 'Install operation %s aborted' % (operation_id) in asi_device_cmds_result:
-                output.result = 'failure'
-
-            if 'Install operation %s completed successfully' % (operation_id) in asi_device_cmds_result \
-            or 'Install operation %s finished successfully' % (operation_id) in asi_device_cmds_result:
-                output.result = 'success'
-                output.completed = 'yes'
-
-            ### FOUND LAST STARTED OPERATION ###
-            output.operation_id = str()
+        if operation_id:
             device_cmds = {
-                'ios-xr':['%sshow install log' % (asr_admin_string)],
+                'ios-xr':['show version'],
             }
 
             device_cmds_result, output.os_type = device_command(self, uinfo, input, device_cmds)
-            #output.install_log = device_cmds_result
 
-            for part in device_cmds_result.split('Install operation '):
-                try: part_split_1 = part.split()[1]
-                except: part_split_1 = str()
-                if part_split_1 == 'started':
-                    try: part_operation_id = part.split()[0]
-                    except: part_operation_id = str()
-                    try: part_last_command = part.split('started')[1].split(':')[1].splitlines()[1].strip()
-                    except: part_last_command = str()
-                    try:
-                        if part_operation_id and int(part_operation_id) >= int(operation_id):
-                            if not output.operation_id:
-                                output.last_command = part_last_command
-                                output.operation_id = part_operation_id
-                            ### FIND MAX OPERATION ID IN LOG, NOT ONLY HIGHER AS INPUT ###
-                            elif output.operation_id and int(part_operation_id) >= int(output.operation_id):
-                                output.last_command = part_last_command
-                                output.operation_id = part_operation_id
-                    except: pass
+            if output.os_type == "ios-xr":
+                asi_device_cmds = {
+                    'ios-xr':['%sshow install log %s' % (asr_admin_string, operation_id)],
+                }
 
-        self.log.info('OUTPUT: ', vars(output))
+                asi_device_cmds_result, output.os_type = device_command(self, uinfo, input, asi_device_cmds)
+                output.install_log = asi_device_cmds_result
+
+                if 'Ending operation %s' % (operation_id) in asi_device_cmds_result:
+                    output.completed = 'yes'
+
+                if 'Install operation %s aborted' % (operation_id) in asi_device_cmds_result:
+                    output.result = 'failure'
+
+                if 'Install operation %s completed successfully' % (operation_id) in asi_device_cmds_result \
+                or 'Install operation %s finished successfully' % (operation_id) in asi_device_cmds_result:
+                    output.result = 'success'
+                    output.completed = 'yes'
+
+                ### FOUND LAST STARTED OPERATION ###
+                output.operation_id = str()
+                device_cmds = {
+                    'ios-xr':['%sshow install log' % (asr_admin_string)],
+                }
+
+                device_cmds_result, output.os_type = device_command(self, uinfo, input, device_cmds)
+                #output.install_log = device_cmds_result
+
+                for part in device_cmds_result.split('Install operation '):
+                    try: part_split_1 = part.split()[1]
+                    except: part_split_1 = str()
+                    if part_split_1 == 'started':
+                        try: part_operation_id = part.split()[0]
+                        except: part_operation_id = str()
+                        try: part_last_command = part.split('started')[1].split(':')[1].splitlines()[1].strip()
+                        except: part_last_command = str()
+                        try:
+                            if part_operation_id and int(part_operation_id) >= int(operation_id):
+                                if not output.operation_id:
+                                    output.last_command = part_last_command
+                                    output.operation_id = part_operation_id
+                                ### FIND MAX OPERATION ID IN LOG, NOT ONLY HIGHER AS INPUT ###
+                                elif output.operation_id and int(part_operation_id) >= int(output.operation_id):
+                                    output.last_command = part_last_command
+                                    output.operation_id = part_operation_id
+                        except: pass
+
+            self.log.info('OUTPUT: ', vars(output))
+        else:
+            self.log.info('Operation id not inserted!')
 
 
 # -----------------------------------------
@@ -535,29 +542,36 @@ class NsoActionsClass_os_upgrade_install_prepare(Action):
         output.completed = str()
         output.result = str()
         asr_admin_string = str()
-        operation_id = str()
 
-        try: operation_id = str(input.operation_id).replace('[','').replace(']','').split(',')[0].strip()
-        except: pass
+        operation_id = str() 
+        if input.operation_id:
+            try: operation_id = str(input.operation_id).replace('[','').replace(']','').replace('"','').split(',')[0].strip()
+            except: pass            
+        elif input.operation_id_smu:
+            try: operation_id = str(input.operation_id_smu).replace('[','').replace(']','').replace('"','').split(',')[0].strip()
+            except: pass
 
-        hw_info = detect_hw(self, uinfo, input)
-        output.os_type, output.hw_type = hw_info.get('os_type',str()), hw_info.get('hw_type',str())
+        if operation_id:
+            hw_info = detect_hw(self, uinfo, input)
+            output.os_type, output.hw_type = hw_info.get('os_type',str()), hw_info.get('hw_type',str())
 
-        cmd = {
-                  #"ios-xe":['show version'],
-                  "ios-xr":['install prepare id %s' % (operation_id)],
-                  #"huawei-vrp":['display version'],
-                  #"junos":['show version']
-              }
+            cmd = {
+                      #"ios-xe":['show version'],
+                      "ios-xr":['install prepare id %s' % (operation_id)],
+                      #"huawei-vrp":['display version'],
+                      #"junos":['show version']
+                  }
 
-        cmd_result, forget_it = device_command(self, uinfo, input, cmd)
-        output.install_log = cmd_result
+            cmd_result, forget_it = device_command(self, uinfo, input, cmd)
+            output.install_log = cmd_result
 
-        if hw_info.get('os_type') == "ios-xr":
-            try: output.operation_id = cmd_result.split(' started')[0].split('Install operation ')[1].split()[0].strip()
-            except: output.operation_id = str()
+            if hw_info.get('os_type') == "ios-xr":
+                try: output.operation_id = cmd_result.split(' started')[0].split('Install operation ')[1].split()[0].strip()
+                except: output.operation_id = str()
 
-        self.log.info('OUTPUT: ', vars(output))
+            self.log.info('OUTPUT: ', vars(output))
+        else:
+            self.log.info('Operation id not inserted!')
 
 
 # --------------------------

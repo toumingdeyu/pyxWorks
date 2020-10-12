@@ -145,10 +145,13 @@ module win_act_oper_os_upgrade {
           type leafref {
             path "/ncs:devices/ncs:device/ncs:name";
           }
-        }
+        }        
         leaf operation_id {
           type string;
         }
+        leaf operation_id_smu {
+          type string;
+        }        
       }
       output {
         leaf os_type {
@@ -202,6 +205,9 @@ module win_act_oper_os_upgrade {
         leaf operation_id {
           type string;
         }
+        leaf operation_id_smu {
+          type string;
+        }           
       }
       output {
         leaf os_type {
@@ -232,9 +238,6 @@ module win_act_oper_os_upgrade {
           type leafref {
             path "/ncs:devices/ncs:device/ncs:name";
           }
-        }
-        leaf operation_id {
-          type string;
         }
       }
       output {
