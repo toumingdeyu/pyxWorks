@@ -280,17 +280,20 @@ class NsoActionsClass_os_upgrade_precheck(Action):
         active_packages = []
         asr_admin_string = str()
 
-        i = 0
-        output.precheck_data.create().name = str( '%sshow install inactive sum' % (asr_admin_string) )
+        hw_info = detect_hw(self, uinfo, input)
+        output.os_type, output.hw_type = hw_info.get('os_type',str()), hw_info.get('hw_type',str())
 
-        device_cmds = {
-            'ios-xr':[ output.precheck_data[i].name ],
-        }
+        if hw_info.get('os_type') == "ios-xr":
+            i = 0
+            output.precheck_data.create().name = str( '%sshow install inactive sum' % (asr_admin_string) )
 
-        device_cmds_result, output.os_type = device_command(self, uinfo, input, device_cmds)
-        output.precheck_data[i].value = str(device_cmds_result)
+            device_cmds = {
+                'ios-xr':[ output.precheck_data[i].name ],
+            }
 
-        if output.os_type == "ios-xr":
+            device_cmds_result, forget_it = device_command(self, uinfo, input, device_cmds)
+            output.precheck_data[i].value = str(device_cmds_result)
+
             if 'No inactive package(s) in software repository' in device_cmds_result:
                 pass
             else:
@@ -304,7 +307,7 @@ class NsoActionsClass_os_upgrade_precheck(Action):
                         'ios-xr':['%sinstall remove inactive %s' % (asr_admin_string,inactive_package)],
                     }
 
-                    device_cmds_result2, output.os_type = device_command(self, uinfo, input, device_cmds2)
+                    device_cmds_result2, forget_it = device_command(self, uinfo, input, device_cmds2)
 
                 time.sleep(1)
 
@@ -333,7 +336,7 @@ class NsoActionsClass_os_upgrade_precheck(Action):
                 'ios-xr':[ output.precheck_data[i].name ],
             }
 
-            act_device_cmds_result, output.os_type = device_command(self, uinfo, input, act_device_cmds)
+            act_device_cmds_result, forget_it = device_command(self, uinfo, input, act_device_cmds)
             output.precheck_data[i].value = str(act_device_cmds_result)
 
             if 'Active Packages:' in act_device_cmds_result:
@@ -342,15 +345,15 @@ class NsoActionsClass_os_upgrade_precheck(Action):
                      active_packages.append(act_device_cmds_result.split('Active Packages:')[1].splitlines()[i + 1].split()[0].strip())
                 output.active_packages = active_packages
 
-            ### show install log ###
+            ### show install log , show install log | utility tail count 20###
             i += 1
-            output.precheck_data.create().name = str( '%sshow install log | utility tail count 20' % (asr_admin_string) )
+            output.precheck_data.create().name = str( '%sshow install log' % (asr_admin_string) )
 
             inst_device_cmds = {
-                'ios-xr':[ output.precheck_data[i].name ],
+                'ios-xr':[ '%sshow install log | utility tail count 10' % (asr_admin_string) ],
             }
 
-            inst_device_cmds_result, output.os_type = device_command(self, uinfo, input, inst_device_cmds)
+            inst_device_cmds_result, forget_it = device_command(self, uinfo, input, inst_device_cmds)
             output.precheck_data[i].value = str(inst_device_cmds_result)
 
             ### copy configs ###
