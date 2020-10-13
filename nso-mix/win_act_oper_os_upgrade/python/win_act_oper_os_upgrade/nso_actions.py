@@ -321,8 +321,8 @@ class NsoActionsClass_os_upgrade_precheck(Action):
                         pass
                     else:
                         inactive_packages = []
-                        if 'Inactive Packages:' in device_cmds_result:
-                            for package_line in device_cmds_result.split('Inactive Packages:')[1].splitlines():
+                        if 'inactive package(s) found:' in device_cmds_result:
+                            for package_line in device_cmds_result.split('inactive package(s) found:')[1].splitlines()[:-1]:
                                 if package_line and package_line[0] == ' ':
                                     inactive_packages.append(package_line.strip())
             output.inactive_packages = inactive_packages
@@ -345,10 +345,10 @@ class NsoActionsClass_os_upgrade_precheck(Action):
 
             ### show install log , show install log | utility tail count 20###
             ii += 1
-            output.precheck_data.create().name = str( '%sshow install log' % (asr_admin_string) )
+            output.precheck_data.create().name = str( '%sshow install log | utility tail count 10' % (asr_admin_string) )
 
             device_cmds = {
-                'ios-xr':[ '%sshow install log | utility tail count 10' % (asr_admin_string) ],
+                'ios-xr':[ output.precheck_data[ii].name ],
             }
 
             device_cmds_result, forget_it = device_command(self, uinfo, input, device_cmds)
