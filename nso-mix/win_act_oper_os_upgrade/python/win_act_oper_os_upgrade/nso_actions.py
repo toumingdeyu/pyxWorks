@@ -303,13 +303,14 @@ class NsoActionsClass_os_upgrade_precheck(Action):
                         if package_line.strip():
                             inactive_packages.append(str(package_line.strip()))
 
-                for inactive_package in inactive_packages:
-                    device_cmds2 = {
-                        'ios-xr':['%sinstall remove inactive %s' % (asr_admin_string,inactive_package)],
-                    }
+                device_cmds2 = {
+                    'ios-xr':[ '%sinstall remove inactive all' % (asr_admin_string) ],
+                }
 
-                    device_cmds_result2, forget_it = device_command(self, uinfo, input, device_cmds2)
+                device_cmds_result2, forget_it = device_command(self, uinfo, input, device_cmds2)
 
+                time.sleep(5)
+                
                 device_cmds = {
                     'ios-xr':[ output.precheck_data[ii].name ],
                 }
@@ -343,16 +344,32 @@ class NsoActionsClass_os_upgrade_precheck(Action):
                      active_packages.append(act_device_cmds_result.split('Active Packages:')[1].splitlines()[i + 1].split()[0].strip())
                 output.active_packages = active_packages
 
-            ### show install log , show install log | utility tail count 20###
-            ii += 1
-            output.precheck_data.create().name = str( '%sshow install log | utility tail count 10' % (asr_admin_string) )
+            ### XR CHECK LIST ###
+            xr_check_cmd_list = [
+                    '%sshow install log | utility tail count 10' % (asr_admin_string),
+                    'install verify packages',
+                    'show platform',
+                    'show run fpd auto-upgrade',
+                    'admin show run fpd auto-upgrade',
+                    'show configuration failed startup',
+                    'clear configuration inconsistency',
+                    'show health gsp',
+                    'show install request',
+                    'show install repository',
+                    'show hw-module fpd' 
+            ]
 
-            device_cmds = {
-                'ios-xr':[ output.precheck_data[ii].name ],
-            }
+            for check_cmd in xr_check_cmd_list:
+                ii += 1
+                output.precheck_data.create().name = str( check_cmd )
 
-            device_cmds_result, forget_it = device_command(self, uinfo, input, device_cmds)
-            output.precheck_data[ii].value = str(device_cmds_result)
+                device_cmds = {
+                    'ios-xr':[ output.precheck_data[ii].name ],
+                }
+
+                device_cmds_result, forget_it = device_command(self, uinfo, input, device_cmds)
+                output.precheck_data[ii].value = str(device_cmds_result)
+
 
             ### copy configs ###
             today = date.today()
