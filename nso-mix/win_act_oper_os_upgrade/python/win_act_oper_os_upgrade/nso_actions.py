@@ -4,7 +4,7 @@ from ncs.dp import Action
 from ncs.application import Service
 from .device_access import *
 import collections
-import os, copy, time
+import os, copy, time, json
 from datetime import date
 
 ### IMPORT: from .nso_actions import *    ###
@@ -279,6 +279,7 @@ class NsoActionsClass_os_upgrade_precheck(Action):
         inactive_packages = []
         active_packages = []
         asr_admin_string = str()
+        precheck_json2txt = []
 
         hw_info = detect_hw(self, uinfo, input)
         output.os_type, output.hw_type = hw_info.get('os_type',str()), hw_info.get('hw_type',str())
@@ -376,7 +377,7 @@ class NsoActionsClass_os_upgrade_precheck(Action):
 
                 device_cmds_result, forget_it = device_command(self, uinfo, input, device_cmds)
                 output.precheck_data.command[ii].cmd_output = str('\n'.join(device_cmds_result.splitlines()[:-1]))
-
+                precheck_json2txt.append(json.dumps({"cmd": str(check_cmd), "cmd_output": str(device_cmds_result)}))
 
             ### copy configs ###
             today = date.today()
@@ -394,7 +395,8 @@ class NsoActionsClass_os_upgrade_precheck(Action):
 
             cp2_device_cmds_result, output.os_type = device_command(self, uinfo, input, cp2_device_cmds)
 
-        self.log.info('OUTPUT: ', vars(output))
+        output.precheck_json2txt = precheck_json2txt
+        #self.log.info('OUTPUT: ', vars(output))
 
 # --------------------------
 #   OS UPGRADE INSTALL ADD
