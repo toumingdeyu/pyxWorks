@@ -294,13 +294,14 @@ class NsoActionsClass_os_upgrade_precheck(Action):
             device_cmds_result, forget_it = device_command(self, uinfo, input, device_cmds)
             output.precheck_data[ii].value = str(device_cmds_result)
 
+            inactive_packages = []
             if 'No inactive package(s) in software repository' in device_cmds_result:
                 pass
             else:
-                if 'Inactive Packages:' in device_cmds_result:
-                    for package_line in device_cmds_result.split('Inactive Packages:')[1].splitlines():
-                        if package_line and package_line[0] == ' ':
-                            inactive_packages.append(package_line.split()[0].strip())
+                if 'inactive package(s) found:' in device_cmds_result:
+                    for package_line in device_cmds_result.split('inactive package(s) found:')[1].splitlines()[:-1]:
+                        if package_line.strip():
+                            inactive_packages.append(str(package_line.strip()))
 
                 for inactive_package in inactive_packages:
                     device_cmds2 = {
@@ -316,15 +317,14 @@ class NsoActionsClass_os_upgrade_precheck(Action):
                 device_cmds_result, output.os_type = device_command(self, uinfo, input, device_cmds)
                 output.precheck_data[ii].value = str(device_cmds_result)
 
-                if output.os_type == "ios-xr":
-                    if 'No inactive package(s) in software repository' in device_cmds_result:
-                        pass
-                    else:
-                        inactive_packages = []
-                        if 'inactive package(s) found:' in device_cmds_result:
-                            for package_line in device_cmds_result.split('inactive package(s) found:')[1].splitlines()[:-1]:
-                                if package_line and package_line[0] == ' ':
-                                    inactive_packages.append(package_line.strip())
+                inactive_packages = []
+                if 'No inactive package(s) in software repository' in device_cmds_result:
+                    pass
+                else:
+                    if 'inactive package(s) found:' in device_cmds_result:
+                        for package_line in device_cmds_result.split('inactive package(s) found:')[1].splitlines()[:-1]:
+                            if package_line.strip():
+                                inactive_packages.append(str(package_line.strip()))
             output.inactive_packages = inactive_packages
 
             ### show install active summary ###
