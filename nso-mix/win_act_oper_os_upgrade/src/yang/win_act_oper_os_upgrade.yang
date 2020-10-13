@@ -104,7 +104,7 @@ module win_act_oper_os_upgrade {
           leaf name {
             type string;
           }
-          leaf value {
+          leaf cmd_output {
             type string;
           }  
         }
