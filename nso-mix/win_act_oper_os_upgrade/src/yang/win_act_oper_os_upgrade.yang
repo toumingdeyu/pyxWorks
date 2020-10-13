@@ -100,14 +100,17 @@ module win_act_oper_os_upgrade {
         leaf-list active_packages {
           type string;
         }
-        list precheck_data {
-          leaf name {
-            type string;
-          }
-          leaf cmd_output {
-            type string;
-          }  
-        }
+        container precheck_data {
+            description "...";
+            list command {
+              leaf name {
+                type string;
+              }
+              leaf cmd_output {
+                type string;
+              }  
+            }
+        }    
       }
     }
 
