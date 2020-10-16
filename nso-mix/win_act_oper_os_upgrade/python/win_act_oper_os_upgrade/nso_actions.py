@@ -18,7 +18,7 @@ class NsoActionsClass_get_sw_version(Action):
 
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
-        self.log.info('ACTION_NAME: ', name, 'INPUT: ', vars(input))
+        self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', object_to_string(self, input))
         output.os_type = 'UNKNOWN'
         output.hw_type = 'UNKNOWN'
         output.sw_version = 'UNKNOWN'
@@ -256,7 +256,8 @@ class NsoActionsClass_get_sw_version(Action):
                 elif output.os_type == "junos":
                     pass
 
-        self.log.info('OUTPUT: ', vars(output))
+        self.log.info('OUTPUT: ', object_to_string(self, output))
+        #self.log.info('OUTPUT: ', object_to_string(self, output))
 
 #    for i in range(len(output.target_sw_versions)):
 #        if len(output.target_sw_versions[i].files) == 0 and len(output.target_sw_versions[key].patch_files) == 0:
@@ -273,13 +274,12 @@ class NsoActionsClass_os_upgrade_precheck(Action):
 
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
-        self.log.info('ACTION_NAME: ', name, 'INPUT: ', vars(input))
+        self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', object_to_string(self, input))
         output.os_type = 'UNKNOWN'
         output.hw_type = 'UNKNOWN'
         inactive_packages = []
         active_packages = []
         asr_admin_string = str()
-        precheck_json2txt = []
 
         hw_info = detect_hw(self, uinfo, input)
         output.os_type, output.hw_type = hw_info.get('os_type',str()), hw_info.get('hw_type',str())
@@ -377,7 +377,6 @@ class NsoActionsClass_os_upgrade_precheck(Action):
 
                 device_cmds_result, forget_it = device_command(self, uinfo, input, device_cmds)
                 output.precheck_data.command[ii].cmd_output = str('\n'.join(device_cmds_result.splitlines()[:-1]))
-                precheck_json2txt.append(json.dumps({"cmd": str(check_cmd), "cmd_output": str(device_cmds_result)}))
 
             ### copy configs ###
             today = date.today()
@@ -395,8 +394,7 @@ class NsoActionsClass_os_upgrade_precheck(Action):
 
             cp2_device_cmds_result, output.os_type = device_command(self, uinfo, input, cp2_device_cmds)
 
-        output.precheck_json2txt = precheck_json2txt
-        #self.log.info('OUTPUT: ', vars(output))
+        #self.log.info('OUTPUT: ', object_to_string(self, output))
 
 # --------------------------
 #   OS UPGRADE INSTALL ADD
@@ -406,7 +404,7 @@ class NsoActionsClass_os_upgrade_install_add(Action):
 
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
-        self.log.info('ACTION_NAME: ', name, 'INPUT: ', vars(input))
+        self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', object_to_string(self, input))
         output.os_type = 'UNKNOWN'
         output.hw_type = 'UNKNOWN'
         asr_admin_string = str()
@@ -461,7 +459,7 @@ class NsoActionsClass_os_upgrade_install_add(Action):
             try: output.operation_id = i_device_cmds_result.split(' started')[0].split('Install operation ')[1].split()[0].strip()
             except: output.operation_id = str()
 
-        self.log.info('OUTPUT: ', vars(output))
+        self.log.info('OUTPUT: ', object_to_string(self, output))
 
 # -----------------------------------------
 #   OS UPGRADE INSTALL ADD PROGRESS CHECK
@@ -471,7 +469,7 @@ class NsoActionsClass_os_upgrade_progress_check(Action):
 
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
-        self.log.info('ACTION_NAME: ', name, 'INPUT: ', vars(input))
+        self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', object_to_string(self, input))
         output.os_type = 'UNKNOWN'
         output.hw_type = 'UNKNOWN'
         output.completed = 'no'
@@ -540,7 +538,7 @@ class NsoActionsClass_os_upgrade_progress_check(Action):
                                     output.operation_id = part_operation_id
                         except: pass
 
-            self.log.info('OUTPUT: ', vars(output))
+            self.log.info('OUTPUT: ', object_to_string(self, output))
         else:
             self.log.info('Operation id not inserted!')
 
@@ -553,7 +551,7 @@ class NsoActionsClass_os_upgrade_device_ping_check(Action):
 
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
-        self.log.info('ACTION_NAME: ', name, 'INPUT: ', vars(input))
+        self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', object_to_string(self, input))
         output.result = 'UNKNOWN'
 
         try: device = str(input.device)
@@ -563,7 +561,7 @@ class NsoActionsClass_os_upgrade_device_ping_check(Action):
             ping_response = os.system("ping -c 1 " + device)
             if int(ping_response) == 0: output.result = 'success'
             else: output.result = 'failure'
-        self.log.info('OUTPUT: ', vars(output))
+        self.log.info('OUTPUT: ', object_to_string(self, output))
 
 # --------------------------
 #   OS UPGRADE INSTALL PREPARE
@@ -573,7 +571,7 @@ class NsoActionsClass_os_upgrade_install_prepare(Action):
 
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
-        self.log.info('ACTION_NAME: ', name, 'INPUT: ', vars(input))
+        self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', object_to_string(self, input))
         output.os_type = 'UNKNOWN'
         output.hw_type = 'UNKNOWN'
 
@@ -607,7 +605,7 @@ class NsoActionsClass_os_upgrade_install_prepare(Action):
                 try: output.operation_id = cmd_result.split(' started')[0].split('Install operation ')[1].split()[0].strip()
                 except: output.operation_id = str()
 
-            self.log.info('OUTPUT: ', vars(output))
+            self.log.info('OUTPUT: ', object_to_string(self, output))
         else:
             self.log.info('Operation id not inserted!')
 
@@ -620,7 +618,7 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
 
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
-        self.log.info('ACTION_NAME: ', name, 'INPUT: ', vars(input))
+        self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', object_to_string(self, input))
         output.os_type = 'UNKNOWN'
         output.hw_type = 'UNKNOWN'
         output.operation_id = str()
@@ -682,53 +680,7 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
             if not output.last_command and not output.operation_id and not find_success:
                 output.install_log = "Problem to find started 'install activate noprompt' in install log!"
 
-        self.log.info('OUTPUT: ', vars(output))
-
-
-# --------------------------
-#   OS UPGRADE POSTCHECK
-# --------------------------
-class NsoActionsClass_os_upgrade_postcheck(Action):
-    """Does os upgrade postcheck definition."""
-
-    @Action.action
-    def cb_action(self, uinfo, name, kp, input, output):
-        self.log.info('ACTION_NAME: ', name, 'INPUT: ', vars(input))
-        output.os_type = 'UNKNOWN'
-        output.hw_type = 'UNKNOWN'
-        output.result = str()
-
-        asr_admin_string = str()
-
-        hw_info = detect_hw(self, uinfo, input)
-        output.os_type, output.hw_type = hw_info.get('os_type',str()), hw_info.get('hw_type',str())
-
-        if hw_info.get('os_type') == "ios-xr":
-            asi_device_cmds = {
-                'ios-xr':['%sshow configuration failed startup' % (asr_admin_string)],
-            }
-
-            asi_device_cmds_result, output.os_type = device_command(self, uinfo, input, asi_device_cmds)
-            output.install_log = str(asi_device_cmds_result)
-
-            asi_device_cmds = {
-                'ios-xr':['%sshow install active summary' % (asr_admin_string)],
-            }
-
-            asi_device_cmds_result, output.os_type = device_command(self, uinfo, input, asi_device_cmds)
-            output.install_log += str(asi_device_cmds_result)
-
-            asi_device_cmds = {
-                'ios-xr':['%sshow hw-module fpd location all' % (asr_admin_string)],
-            }
-
-            asi_device_cmds_result, output.os_type = device_command(self, uinfo, input, asi_device_cmds)
-            output.install_log += str(asi_device_cmds_result)
-
-        self.log.info('OUTPUT: ', vars(output))
-
-
-
+        self.log.info('OUTPUT: ', object_to_string(self, output))
 
 
 # --------------------------
@@ -739,7 +691,7 @@ class NsoActionsClass_os_upgrade_remove_inactive(Action):
 
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
-        self.log.info('ACTION_NAME: ', name, 'INPUT: ', vars(input))
+        self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', object_to_string(self, input))
         output.os_type = 'UNKNOWN'
         output.hw_type = 'UNKNOWN'
         asr_admin_string = str()
@@ -774,7 +726,7 @@ class NsoActionsClass_os_upgrade_remove_inactive(Action):
                                 output.last_command = part_last_command
                                 output.operation_id = part_operation_id
                     except: pass
-        self.log.info('OUTPUT: ', vars(output))
+        self.log.info('OUTPUT: ', object_to_string(self, output))
 
 
 # --------------------------
@@ -785,7 +737,7 @@ class NsoActionsClass_os_upgrade_commit(Action):
 
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
-        self.log.info('ACTION_NAME: ', name, 'INPUT: ', vars(input))
+        self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', object_to_string(self, input))
         output.os_type = 'UNKNOWN'
         output.hw_type = 'UNKNOWN'
 
@@ -821,12 +773,63 @@ class NsoActionsClass_os_upgrade_commit(Action):
                                 output.last_command = part_last_command
                                 output.operation_id = part_operation_id
                     except: pass
-        self.log.info('OUTPUT: ', vars(output))
+        self.log.info('OUTPUT: ', object_to_string(self, output))
 
+
+# --------------------------
+#   OS UPGRADE POSTCHECK
+# --------------------------
+class NsoActionsClass_os_upgrade_postcheck(Action):
+    """Does os upgrade postcheck definition."""
+
+    @Action.action
+    def cb_action(self, uinfo, name, kp, input, output):
+        self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', object_to_string(self, input))
+        output.os_type = 'UNKNOWN'
+        output.hw_type = 'UNKNOWN'
+        output.result = str()
+
+        asr_admin_string = str()
+
+        hw_info = detect_hw(self, uinfo, input)
+        output.os_type, output.hw_type = hw_info.get('os_type',str()), hw_info.get('hw_type',str())
+
+        if hw_info.get('os_type') == "ios-xr":
+            asi_device_cmds = {
+                'ios-xr':['%sshow configuration failed startup' % (asr_admin_string)],
+            }
+
+            asi_device_cmds_result, output.os_type = device_command(self, uinfo, input, asi_device_cmds)
+            output.install_log = str(asi_device_cmds_result)
+
+            asi_device_cmds = {
+                'ios-xr':['%sshow install active summary' % (asr_admin_string)],
+            }
+
+            asi_device_cmds_result, output.os_type = device_command(self, uinfo, input, asi_device_cmds)
+            output.install_log += str(asi_device_cmds_result)
+
+            asi_device_cmds = {
+                'ios-xr':['%sshow hw-module fpd location all' % (asr_admin_string)],
+            }
+
+            asi_device_cmds_result, output.os_type = device_command(self, uinfo, input, asi_device_cmds)
+            output.install_log += str(asi_device_cmds_result)
+
+        self.log.info('\nOUTPUT: ', object_to_string(self, output))
 
 
 ###############################################################################
 
+def object_to_string(self, object):
+    """ Printable representation of object variables."""
+    return_string = str(eval("object")) + ':\n'
+    for item in dir(object):
+        if '_' in item[0] and '_' in item[-1]: pass
+        else: return_string += "\\___" + str(item) + '=' + eval("object.%s" % str(item)) + '\n'
+    return return_string
+
+###############################################################################
 def detect_hw(self, uinfo, input):
     hw_info = {}
 

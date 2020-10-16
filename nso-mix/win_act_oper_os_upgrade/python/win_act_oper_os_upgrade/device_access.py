@@ -88,7 +88,7 @@ def device_command(self, uinfo, input, cmd):
 
             self.log.info('\nREMOTE_COMMAND({}): {}\n{}\n'.format(dev.platform.name,str(cmd),result))
         except Exception as E:
-            self.log.info("Exception in device_command(): ", str(E))
+            self.log.info("\nEXCEPTION in device_command(): ", str(E))
 
     m.close()   
     return result, platform
