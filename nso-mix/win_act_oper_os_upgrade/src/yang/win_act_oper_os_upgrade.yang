@@ -99,12 +99,9 @@ module win_act_oper_os_upgrade {
         }
         leaf-list active_packages {
           type string;
-        }
-        leaf-list precheck_json2txt {
-          type string;
-        }        
+        }       
         container precheck_data {
-            description "...";
+            description "Precheck commands and outputs";
             list command {
               leaf name {
                 type string;
