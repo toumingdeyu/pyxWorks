@@ -823,10 +823,12 @@ class NsoActionsClass_os_upgrade_postcheck(Action):
 
 def object_to_string(self, object):
     """ Printable representation of object variables."""
-    return_string = str(eval("object")) + ':\n'
+    return_string = str(eval("str(object)")) + ':\n'
     for item in dir(object):
-        if '_' in item[0] and '_' in item[-1]: pass
-        else: return_string += "\\___" + str(item) + '=' + eval("object.%s" % str(item)) + '\n'
+        if '_' in str(item[0]) and '_' in str(item[-1]): pass
+        else: 
+            try: return_string += "\\___" + str(item) + '=' + str(eval("object.%s" % str(item))) + '\n'
+            except: return_string += '\\____...\n'
     return return_string
 
 ###############################################################################
