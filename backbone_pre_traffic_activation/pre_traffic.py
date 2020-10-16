@@ -6554,8 +6554,8 @@ authentication {
                             except: pass
 
                         if precheck_mode:
-                            check_interface_data_content("['bgp']['IPV4 bgp group Established']", exact_value_yes = '0')
-                            check_interface_data_content("['bgp']['IPV6 bgp group Established']", exact_value_yes = '0', ignore_data_existence = True)
+                            check_interface_data_content("['bgp']['IPV4 bgp group Established']", higher_than = 0)
+                            check_interface_data_content("['bgp']['IPV6 bgp group Established']", higher_than = 0, ignore_data_existence = True)
 
                             check_interface_data_content("['bgp']['IPV4 unicast_route-policy_in']", what_yes_in = 'DENY-ALL')
                             check_interface_data_content("['bgp']['IPV4 unicast_route-policy_out']", what_yes_in = 'DENY-ALL')
