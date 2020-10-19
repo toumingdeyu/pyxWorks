@@ -849,10 +849,56 @@ class NsoActionsClass_os_upgrade_postcheck(Action):
         hw_info = detect_hw(self, uinfo, input)
         output.os_type, output.hw_type = hw_info.get('os_type',str()), hw_info.get('hw_type',str())
 
-        if hw_info.get('os_type') == "ios-xr":\
+        if hw_info.get('os_type') == "ios-xr":
+            postcheck_list = []
+
+            check_cmd = str( '%sshow install inactive sum' % (asr_admin_string) )
+            device_cmds = {
+                'ios-xr':[ check_cmd ],
+            }
+
+            device_cmds_result, forget_it = device_command(self, uinfo, input, device_cmds)
+            postcheck_list.append([str(check_cmd), str('\n'.join(device_cmds_result.splitlines()[:-1]))])
+
+            inactive_packages = []
+            if 'No inactive package(s) in software repository' in device_cmds_result:
+                pass
+            else:
+                if 'inactive package(s) found:' in device_cmds_result:
+                    for package_line in device_cmds_result.split('inactive package(s) found:')[1].splitlines()[:-1]:
+                        if package_line.strip():
+                            inactive_packages.append(str(package_line.strip()))
+
+                check_cmd = str( '%sinstall remove inactive all' % (asr_admin_string) )
+                device_cmds2 = {
+                    'ios-xr':[ check_cmd ],
+                }
+
+                device_cmds_result, forget_it = device_command(self, uinfo, input, device_cmds2)
+                postcheck_list.append([str(check_cmd), str('\n'.join(device_cmds_result.splitlines()[:-1]))])
+
+                time.sleep(5)
+
+                ### REPEAT INACTIVE CHECK ###
+                check_cmd = str( '%sshow install inactive sum' % (asr_admin_string) )
+                device_cmds = {
+                    'ios-xr':[ check_cmd ],
+                }
+
+                device_cmds_result, output.os_type = device_command(self, uinfo, input, device_cmds)
+                postcheck_list.append([str(check_cmd), str('\n'.join(device_cmds_result.splitlines()[:-1]))])
+
+                inactive_packages = []
+                if 'No inactive package(s) in software repository' in device_cmds_result:
+                    pass
+                else:
+                    if 'inactive package(s) found:' in device_cmds_result:
+                        for package_line in device_cmds_result.split('inactive package(s) found:')[1].splitlines()[:-1]:
+                            if package_line.strip():
+                                inactive_packages.append(str(package_line.strip()))
+
             ### XR CHECK LIST ###
             xr_postcheck_cmd_list = [
-                    '%sshow install inactive sum' % (asr_admin_string),
                     '%sshow install active summary' % (asr_admin_string),
                     '%sshow install log | utility tail count 10' % (asr_admin_string),
                     'install verify packages',
@@ -867,7 +913,6 @@ class NsoActionsClass_os_upgrade_postcheck(Action):
                     'show hw-module fpd'
             ]
 
-            postcheck_list = []
             for check_cmd in xr_postcheck_cmd_list:
                 device_cmds = {
                     'ios-xr':[ check_cmd ],
