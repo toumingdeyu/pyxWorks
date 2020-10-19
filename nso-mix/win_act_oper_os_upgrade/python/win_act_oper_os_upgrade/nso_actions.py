@@ -910,7 +910,9 @@ class NsoActionsClass_os_upgrade_postcheck(Action):
                     'show health gsp',
                     'show install request',
                     'show install repository',
-                    'show hw-module fpd'
+                    'show hw-module fpd',
+                    'show running-config',
+                    'admin show running-config'
             ]
 
             for check_cmd in xr_postcheck_cmd_list:
@@ -923,6 +925,7 @@ class NsoActionsClass_os_upgrade_postcheck(Action):
 
             ### PARSE 'show hw-module fpd' !!! ###
             fpd_problems = []
+            postcheck_config , postcheck_admin_config = str(), str()
             for post_check in postcheck_list:
                 try:
                     if post_check[0] == 'show hw-module fpd':
@@ -930,6 +933,10 @@ class NsoActionsClass_os_upgrade_postcheck(Action):
                             if fpd_line.strip() and not '-----' in fpd_line:
                                 if fpd_line.strip().split()[3] != 'CURRENT':
                                     fpd_problems.append(fpd_line.strip())
+                    elif post_check[0] == 'show running-config':
+                        postcheck_config = str(post_check[1])
+                    elif post_check[0] == 'admin show running-config':
+                        postcheck_admin_config = str(post_check[1])
                 except: pass
 
             ### TODO: FIND LAST PRECHECK CONFIG FILE !!! ###
@@ -960,8 +967,8 @@ class NsoActionsClass_os_upgrade_postcheck(Action):
             self.log.info('\nADMIN CONFIG: ', last_admin_config_file, admin_config_files)
 
             ### copy configs ###
-            today = date.today()
-            date_string = today.strftime("%Y-%m%d-%H:%M")
+            # today = date.today()
+            # date_string = today.strftime("%Y-%m%d-%H:%M")
 
             # cp_device_cmds = {
                 # 'ios-xr':['copy running-config harddisk:%s-postconfig.txt| prompts ENTER' % (str(date_string))],
@@ -977,17 +984,21 @@ class NsoActionsClass_os_upgrade_postcheck(Action):
 
             ### TODO: DIFF CONFIGS !!! ###
             ### run diff YYYY-MMDD-config-before-upgrade.txt YYYY-MMDD-config-afer-upgrade.txt
-            # cp_device_cmds = {
-                # 'ios-xr':['run diff running-config harddisk:%s-postconfig.txt| prompts ENTER' % (str(date_string))],
-            # }
+            ### utility head count 1000000 file harddisk:/2020-1001-00:00-config.txt
 
-            # cp_device_cmds_result, forget_it = device_command(self, uinfo, input, cp_device_cmds)
+            if last_config_file:
+                cp_device_cmds = {
+                    'ios-xr':['utility head count 1000000 file harddisk:/%s' % (last_config_file)],
+                }
 
-            # cp2_device_cmds = {
-                # 'ios-xr':['admin copy running-config harddisk:admin-%s-postconfig.txt| prompts ENTER' % (str(date_string))],
-            # }
+                cp_device_cmds_result, forget_it = device_command(self, uinfo, input, cp_device_cmds)
 
-            # cp2_device_cmds_result, forget_it = device_command(self, uinfo, input, cp2_device_cmds)
+            if last_admin_config_file:
+                cp2_device_cmds = {
+                    'ios-xr':['admin utility head count 1000000 file harddisk:/%s' % (last_admin_config_file)],
+                }
+
+                cp2_device_cmds_result, forget_it = device_command(self, uinfo, input, cp2_device_cmds)
 
         self.log.info('\nOUTPUT: ', object_to_string(self, output))
 
