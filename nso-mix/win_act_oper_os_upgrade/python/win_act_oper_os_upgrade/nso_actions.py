@@ -6,6 +6,7 @@ from .device_access import *
 import collections
 import os, copy, time, json
 from datetime import date
+import json
 
 ### IMPORT: from .nso_actions import *    ###
 
@@ -386,15 +387,54 @@ class NsoActionsClass_os_upgrade_precheck(Action):
                 'ios-xr':['copy running-config harddisk:%s-config.txt| prompts ENTER' % (str(date_string))],
             }
 
-            cp_device_cmds_result, output.os_type = device_command(self, uinfo, input, cp_device_cmds)
+            cp_device_cmds_result, forget_it = device_command(self, uinfo, input, cp_device_cmds)
 
             cp2_device_cmds = {
                 'ios-xr':['admin copy running-config harddisk:admin-%s-config.txt| prompts ENTER' % (str(date_string))],
             }
 
-            cp2_device_cmds_result, output.os_type = device_command(self, uinfo, input, cp2_device_cmds)
+            cp2_device_cmds_result, forget_it = device_command(self, uinfo, input, cp2_device_cmds)
 
-        #self.log.info('OUTPUT: ', object_to_string(self, output))
+            for command in output.precheck_data.command:
+                if command.name == 'show run fpd auto-upgrade' \
+                and not 'fpd auto-upgrade enable' in command.cmd_output:
+
+                    xr_cmds = {'ios-xr': [
+                            'config',
+                            '!',
+                            'fpd auto-upgrade enable',
+                            '!',
+                            'commit',
+                            '!',
+                            'exit',
+                            '!'
+                    ] }
+
+                    device_cmds_result, forget_it = device_command(self, uinfo, input, xr_cmds)
+
+            for command in output.precheck_data.command:
+                if command.name == 'admin show run fpd auto-upgrade' \
+                and not 'fpd auto-upgrade enable' in command.cmd_output:
+
+                    xr_cmds = {'ios-xr': [
+                            'config',
+                            '!',
+                            'admin',
+                            '!',
+                            'fpd auto-upgrade enable',
+                            '!',
+                            'commit',
+                            '!',
+                            'exit',
+                            '!',
+                            'exit',
+                            '!'
+                    ] }
+
+                    device_cmds_result, forget_it = device_command(self, uinfo, input, xr_cmds)
+
+        self.log.info('OUTPUT: ', object_to_string(self, output))
+
 
 # --------------------------
 #   OS UPGRADE INSTALL ADD
@@ -791,30 +831,73 @@ class NsoActionsClass_os_upgrade_postcheck(Action):
 
         asr_admin_string = str()
 
+        precheck_commands = {}
+        try:
+            if input.precheck_commands:
+                precheck_commands = json.loads(str(input.precheck_commands))
+        except: pass
+
+        self.log.info('\nINPUT.PRECHECK_COMMANDS: ', input.precheck_commands,'\nPRECHECK_COMMANDS: ', precheck_commands)
+
         hw_info = detect_hw(self, uinfo, input)
         output.os_type, output.hw_type = hw_info.get('os_type',str()), hw_info.get('hw_type',str())
 
-        if hw_info.get('os_type') == "ios-xr":
-            asi_device_cmds = {
-                'ios-xr':['%sshow configuration failed startup' % (asr_admin_string)],
+        if hw_info.get('os_type') == "ios-xr":\
+            ### XR CHECK LIST ###
+            xr_postcheck_cmd_list = [
+                    '%sshow install inactive sum' % (asr_admin_string),
+                    '%sshow install active summary' % (asr_admin_string),
+                    '%sshow install log | utility tail count 10' % (asr_admin_string),
+                    'install verify packages',
+                    'show platform',
+                    'show run fpd auto-upgrade',
+                    'admin show run fpd auto-upgrade',
+                    'show configuration failed startup',
+                    'clear configuration inconsistency',
+                    'show health gsp',
+                    'show install request',
+                    'show install repository',
+                    'show hw-module fpd'
+            ]
+
+            postcheck_list = []
+            for check_cmd in xr_postcheck_cmd_list:
+                device_cmds = {
+                    'ios-xr':[ check_cmd ],
+                }
+
+                device_cmds_result, forget_it = device_command(self, uinfo, input, device_cmds)
+                postcheck_list.append([check_cmd, str('\n'.join(device_cmds_result.splitlines()[:-1]))])
+
+            ### PARSE 'show hw-module fpd' !!! ###
+            fpd_problems = []
+            for post_check in postcheck_list:
+                try:
+                    if post_check[0] == 'show hw-module fpd':
+                        for fpd_line in post_check[1].split('Running Programd')[1].splitlines():
+                            if fpd_line.strip() and not '-----' in fpd_line:
+                                if fpd_line.strip().split()[3] != 'CURRENT':
+                                    fpd_problems.append(fpd_line.strip())
+                except: pass
+
+            ### copy configs ###
+            today = date.today()
+            date_string = today.strftime("%Y-%m%d-%H:%M")
+
+            cp_device_cmds = {
+                'ios-xr':['copy running-config harddisk:%s-config.txt| prompts ENTER' % (str(date_string))],
             }
 
-            asi_device_cmds_result, output.os_type = device_command(self, uinfo, input, asi_device_cmds)
-            output.install_log = str(asi_device_cmds_result)
+            cp_device_cmds_result, forget_it = device_command(self, uinfo, input, cp_device_cmds)
 
-            asi_device_cmds = {
-                'ios-xr':['%sshow install active summary' % (asr_admin_string)],
+            cp2_device_cmds = {
+                'ios-xr':['admin copy running-config harddisk:admin-%s-config.txt| prompts ENTER' % (str(date_string))],
             }
 
-            asi_device_cmds_result, output.os_type = device_command(self, uinfo, input, asi_device_cmds)
-            output.install_log += str(asi_device_cmds_result)
+            cp2_device_cmds_result, forget_it = device_command(self, uinfo, input, cp2_device_cmds)
 
-            asi_device_cmds = {
-                'ios-xr':['%sshow hw-module fpd location all' % (asr_admin_string)],
-            }
-
-            asi_device_cmds_result, output.os_type = device_command(self, uinfo, input, asi_device_cmds)
-            output.install_log += str(asi_device_cmds_result)
+            ### TODO: DIFF CONFIGS !!! ###
+            ### run diff YYYY-MMDD-config-before-upgrade.txt YYYY-MMDD-config-afer-upgrade.txt
 
         self.log.info('\nOUTPUT: ', object_to_string(self, output))
 
@@ -826,7 +909,7 @@ def object_to_string(self, object):
     return_string = str(eval("str(object)")) + ':\n'
     for item in dir(object):
         if '_' in str(item[0]) and '_' in str(item[-1]): pass
-        else: 
+        else:
             try: return_string += "\\___" + str(item) + '=' + str(eval("object.%s" % str(item))) + '\n'
             except: return_string += '\\____...\n'
     return return_string

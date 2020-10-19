@@ -337,9 +337,9 @@ module win_act_oper_os_upgrade {
             path "/ncs:devices/ncs:device/ncs:name";
           }
         }
-        leaf sw_version {
-          type string;
-        }
+        leaf precheck_commands {
+            type string;
+          }    
       }
       output {
         leaf os_type {
@@ -348,10 +348,6 @@ module win_act_oper_os_upgrade {
         leaf hw_type {
           type string;
         }
-        leaf install_log {
-          type string;
-        }
-
         leaf result {
           type string;
         }        
