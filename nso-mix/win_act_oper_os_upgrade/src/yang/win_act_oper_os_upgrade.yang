@@ -192,7 +192,10 @@ module win_act_oper_os_upgrade {
         leaf device {
           type leafref {
             path "/ncs:devices/ncs:device/ncs:name";
-          }
+          }  
+        }
+        leaf ip {
+          type string;
         }
       }
       output {

@@ -597,8 +597,15 @@ class NsoActionsClass_os_upgrade_device_ping_check(Action):
         try: device = str(input.device)
         except: device = str()
 
+        try: ip = str(input.ip)
+        except: ip = str()
+
         if device:
             ping_response = os.system("ping -c 1 " + device)
+            if int(ping_response) == 0: output.result = 'success'
+            else: output.result = 'failure'
+        elif ip:
+            ping_response = os.system("ping -c 1 " + ip)
             if int(ping_response) == 0: output.result = 'success'
             else: output.result = 'failure'
         self.log.info('OUTPUT: ', object_to_string(self, output))
@@ -880,24 +887,62 @@ class NsoActionsClass_os_upgrade_postcheck(Action):
                                     fpd_problems.append(fpd_line.strip())
                 except: pass
 
+            ### TODO: FIND LAST PRECHECK CONFIG FILE !!! ###
+            admin_config_files, config_files = [], []
+            device_cmds = {
+                'ios-xr':['dir harddisk: | include config.txt'],
+            }
+
+            device_cmds_result, forget_it = device_command(self, uinfo, input, device_cmds)
+
+            for file_line in device_cmds_result.splitlines()[:-1]:
+                if file_line.strip() and '-config.txt' in file_line:
+                    try:
+                        if 'admin' in file_line.split()[-1]:
+                            admin_config_files.append(file_line.split()[-1])
+                        else: config_files.append(file_line.split()[-1])
+                    except: pass
+            if len(config_files) > 1: config_files.sort()
+            if len(admin_config_files) > 1: admin_config_files.sort()
+
+            last_config_file, last_admin_config_file = str(), str()
+            try:
+                last_config_file = config_files[-1]
+                last_admin_config_file = admin_config_files[-1]
+            except: pass
+
+            self.log.info('\nCONFIG: ', last_config_file, config_files)
+            self.log.info('\nADMIN CONFIG: ', last_admin_config_file, admin_config_files)
+
             ### copy configs ###
             today = date.today()
             date_string = today.strftime("%Y-%m%d-%H:%M")
 
-            cp_device_cmds = {
-                'ios-xr':['copy running-config harddisk:%s-config.txt| prompts ENTER' % (str(date_string))],
-            }
+            # cp_device_cmds = {
+                # 'ios-xr':['copy running-config harddisk:%s-postconfig.txt| prompts ENTER' % (str(date_string))],
+            # }
 
-            cp_device_cmds_result, forget_it = device_command(self, uinfo, input, cp_device_cmds)
+            # cp_device_cmds_result, forget_it = device_command(self, uinfo, input, cp_device_cmds)
 
-            cp2_device_cmds = {
-                'ios-xr':['admin copy running-config harddisk:admin-%s-config.txt| prompts ENTER' % (str(date_string))],
-            }
+            # cp2_device_cmds = {
+                # 'ios-xr':['admin copy running-config harddisk:admin-%s-postconfig.txt| prompts ENTER' % (str(date_string))],
+            # }
 
-            cp2_device_cmds_result, forget_it = device_command(self, uinfo, input, cp2_device_cmds)
+            # cp2_device_cmds_result, forget_it = device_command(self, uinfo, input, cp2_device_cmds)
 
             ### TODO: DIFF CONFIGS !!! ###
             ### run diff YYYY-MMDD-config-before-upgrade.txt YYYY-MMDD-config-afer-upgrade.txt
+            # cp_device_cmds = {
+                # 'ios-xr':['run diff running-config harddisk:%s-postconfig.txt| prompts ENTER' % (str(date_string))],
+            # }
+
+            # cp_device_cmds_result, forget_it = device_command(self, uinfo, input, cp_device_cmds)
+
+            # cp2_device_cmds = {
+                # 'ios-xr':['admin copy running-config harddisk:admin-%s-postconfig.txt| prompts ENTER' % (str(date_string))],
+            # }
+
+            # cp2_device_cmds_result, forget_it = device_command(self, uinfo, input, cp2_device_cmds)
 
         self.log.info('\nOUTPUT: ', object_to_string(self, output))
 
