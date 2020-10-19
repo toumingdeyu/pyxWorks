@@ -896,7 +896,7 @@ class NsoActionsClass_os_upgrade_postcheck(Action):
             device_cmds_result, forget_it = device_command(self, uinfo, input, device_cmds)
 
             for file_line in device_cmds_result.splitlines()[:-1]:
-                if file_line.strip() and '-config.txt' in file_line:
+                if file_line.strip() and '-config.txt' in file_line and ':' in file_line.split()[-1]:
                     try:
                         if 'admin' in file_line.split()[-1]:
                             admin_config_files.append(file_line.split()[-1])
