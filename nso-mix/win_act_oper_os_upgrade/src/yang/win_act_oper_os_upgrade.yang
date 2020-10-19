@@ -340,7 +340,7 @@ module win_act_oper_os_upgrade {
             path "/ncs:devices/ncs:device/ncs:name";
           }
         }
-        leaf precheck_commands {
+        leaf precheck_data {
             type string;
           }    
       }
