@@ -239,6 +239,7 @@ class NsoActionsClass_get_sw_version(Action):
                     pass
                 elif output.os_type == "ios-xr":
                     patch_files = []
+                    patch_path = str()
                     for line in patch_file_device_cmds_result.splitlines()[:-1]:
                         try:
                             tar_file = line.split()[-1]
@@ -248,9 +249,11 @@ class NsoActionsClass_get_sw_version(Action):
                                 if len(patch_file) > 0 and patch_file.upper() in tar_file.upper():
                                     #patch_files.append(tar_file)
                                     patch_files.append('%s%s/%s/%s/%s' % (drive_string, dev_dir,output.target_sw_versions[i].name,'SMU' , tar_file))
+                                    patch_path = '%s%s/%s/%s' % (drive_string, dev_dir,output.target_sw_versions[i].name,'SMU')
                         except: pass
                     if len(patch_files)>0:
                         output.target_sw_versions[i].patch_files = patch_files
+                        output.target_sw_versions[i].patch_path = patch_path
 
                 elif output.os_type == "huawei-vrp":
                     pass
