@@ -133,7 +133,7 @@ class NsoActionsClass_get_sw_version(Action):
                      if str(line.split()[1])[0] == 'd' and int(sub_directory):
                          versions.append(sub_directory)
                          output.target_sw_versions.create().name = str(sub_directory)
-                         output.target_sw_versions[i].path = str(dev_dir + '/' + sub_directory)
+                         output.target_sw_versions[i].path = str('%s%s/%s' % (drive_string, dev_dir, sub_directory))
                          ### del mylist['key1']
                          i += 1
                 except: pass
