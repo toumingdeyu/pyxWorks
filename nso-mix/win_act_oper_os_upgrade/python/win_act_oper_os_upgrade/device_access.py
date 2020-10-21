@@ -19,7 +19,7 @@ def device_command(self, uinfo, input, cmd):
         root = ncs.maagic.get_root(t)
         dev = root.ncs__devices.device[input.device]
 
-        #self.log.info('DEV: ', vars(dev))
+        self.log.info('DEV: ', object_to_string(self, dev))
 
         if isinstance(cmd, (basestring)):
             cmd_data = {}
@@ -93,3 +93,16 @@ def device_command(self, uinfo, input, cmd):
     m.close()   
     return result, platform
 
+###############################################################################
+
+def object_to_string(self, object):
+    """ Printable representation of object variables."""
+    return_string = str(eval("str(object)")) + ':\n'
+    for item in dir(object):
+        if '_' in str(item[0]) and '_' in str(item[-1]): pass
+        else:
+            try: return_string += "\\___" + str(item) + '=' + str(eval("object.%s" % str(item))) + '\n'
+            except: return_string += '\\____...\n'
+    return return_string
+    
+###############################################################################    
