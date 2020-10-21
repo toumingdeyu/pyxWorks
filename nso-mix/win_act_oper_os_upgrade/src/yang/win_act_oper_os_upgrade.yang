@@ -73,7 +73,7 @@ module win_act_oper_os_upgrade {
           leaf-list patch_files {
             type string;
           }
-          leaf-list patch_path {
+          leaf patch_path {
             type string;
           }
         }
