@@ -613,6 +613,40 @@ class NsoActionsClass_os_upgrade_device_ping_check(Action):
             else: output.result = 'failure'
         self.log.info('OUTPUT: ', object_to_string(self, output))
 
+
+
+# -----------------------------------------
+#   OS UPGRADE DEVICE GET IP
+# -----------------------------------------
+class NsoActionsClass_os_upgrade_device_get_ip(Action):
+    """Does os upgrade install device ping check definition."""
+
+    @Action.action
+    def cb_action(self, uinfo, name, kp, input, output):
+        self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', object_to_string(self, input))
+
+        try: device = str(input.device)
+        except: device = str()
+        
+        if device:
+            hw_info = detect_hw(self, uinfo, input)
+            #output.os_type, output.hw_type = hw_info.get('os_type',str()), hw_info.get('hw_type',str())
+
+            cmd = {
+                      "ios-xr":['show running-config interface loopback 0'],
+                  }
+
+            cmd_result, forget_it = device_command(self, uinfo, input, cmd)
+            output.install_log = cmd_result
+
+            if hw_info.get('os_type') == "ios-xr":
+                try: output.ip_address = cmd_result.split('ipv4 address')[1].split()[0].strip()
+                except: output.ip_address = str()
+
+        self.log.info('OUTPUT: ', object_to_string(self, output))
+
+
+
 # --------------------------
 #   OS UPGRADE INSTALL PREPARE
 # --------------------------

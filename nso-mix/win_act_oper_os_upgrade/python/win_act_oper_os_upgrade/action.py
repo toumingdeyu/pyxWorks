@@ -60,13 +60,15 @@ class Action(ncs.application.Application):
         self.register_action('get_sw_version', NsoActionsClass_get_sw_version)
         self.register_action('os_upgrade_precheck', NsoActionsClass_os_upgrade_precheck)
         self.register_action('os_upgrade_progress_check', NsoActionsClass_os_upgrade_progress_check)
-        self.register_action('os_upgrade_device_ping_check', NsoActionsClass_os_upgrade_device_ping_check)
+        self.register_action('os_upgrade_device_ping_check', NsoActionsClass_os_upgrade_device_ping_check)self.register_action('os_upgrade_device_ping_check', NsoActionsClass_os_upgrade_device_ping_check)
+        self.register_action('os_upgrade_device_get_ip', NsoActionsClass_os_upgrade_device_get_ip)
         self.register_action('os_upgrade_install_add', NsoActionsClass_os_upgrade_install_add)
         self.register_action('os_upgrade_install_prepare', NsoActionsClass_os_upgrade_install_prepare)
         self.register_action('os_upgrade_install_activate', NsoActionsClass_os_upgrade_install_activate)
         self.register_action('os_upgrade_remove_inactive', NsoActionsClass_os_upgrade_remove_inactive)
         self.register_action('os_upgrade_commit', NsoActionsClass_os_upgrade_commit)
         self.register_action('os_upgrade_postcheck', NsoActionsClass_os_upgrade_postcheck)
+
 
 
         # When this setup method is finished, all registrations are

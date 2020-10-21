@@ -208,6 +208,22 @@ module win_act_oper_os_upgrade {
       }
     }
 
+    tailf:action os_upgrade_device_get_ip {
+      tailf:actionpoint os_upgrade_device_get_ip;
+      input {
+        leaf device {
+          type leafref {
+            path "/ncs:devices/ncs:device/ncs:name";
+          }  
+        }
+      }
+      output {
+        leaf ip_address {
+          type string;
+        }
+      }
+    }
+
     tailf:action os_upgrade_install_prepare {
       tailf:actionpoint os_upgrade_install_prepare;
       input {
