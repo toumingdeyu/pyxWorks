@@ -464,18 +464,27 @@ class NsoActionsClass_os_upgrade_install_add(Action):
             'ios-xr':['show version'],
         }
 
+        sw_version_selected_file = str()
         try:
             if input.sw_version_selected_file:
                 sw_version_selected_file = str(input.sw_version_selected_file)
-        except: sw_version_selected_file = str()
+        except: pass
 
+        patch_version_selected_files = str()
         try:
             if input.patch_version_selected_files:
                 patch_version_selected_files = str(input.patch_version_selected_files)
-        except: patch_version_selected_files = str()
+        except: pass
+
+        patch_version_selected_path = str()
+        try:
+            if input.patch_version_selected_path:
+                patch_version_selected_path = str(input.patch_version_selected_path)
+        except: pass
 
         device_cmds_result, output.os_type = device_command(self, uinfo, input, device_cmds)
 
+        i_device_cmds = {}
         if output.os_type == "ios-xr":
             if sw_version_selected_file:
                 i_device_cmds = {
@@ -495,6 +504,34 @@ class NsoActionsClass_os_upgrade_install_add(Action):
                     '/'.join(str(patch_version_selected_files).replace('[','').replace(']','').split()[0].strip().split('/')[:-1]),
                     file_string_without_path )
                     ]
+                }
+            elif patch_version_selected_path:
+                patch_file_device_cmds = {
+                    'ios-xe':[],
+                    'ios-xr':['dir %s' % (patch_version_selected_path)],
+                    'junos':[],
+                    'huawei-vrp':[]
+                }
+                patch_file_device_cmds_result, forget_it = device_command(self, uinfo, input, patch_file_device_cmds)
+                patch_files = []
+                patch_path = str()
+                for line in patch_file_device_cmds_result.splitlines()[:-1]:
+                    try:
+                        tar_file = line.split()[-1]
+                        for file_type in file_types:
+                            try: patch_file = file_type.split('/')[1].replace('*','')
+                            except: patch_file = str()
+                            if len(patch_file) > 0 and patch_file.upper() in tar_file.upper():
+                                #patch_files.append(tar_file)
+                                patch_files.append('%s%s/%s/%s/%s' % (drive_string, dev_dir,output.target_sw_versions[i].name,'SMU' , tar_file))
+                                patch_path = '%s%s/%s/%s' % (drive_string, dev_dir,output.target_sw_versions[i].name,'SMU')
+                    except: pass
+                if len(patch_files)>0:
+                    i_device_cmds = {
+                        'ios-xr':['%sinstall add source %s/ %s' % (asr_admin_string, \
+                        patch_version_selected_path,
+                        ' '.join(patch_files) )
+                        ]
                 }
 
             i_device_cmds_result, output.os_type = device_command(self, uinfo, input, i_device_cmds)
