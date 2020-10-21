@@ -19,7 +19,7 @@ def device_command(self, uinfo, input, cmd):
         root = ncs.maagic.get_root(t)
         dev = root.ncs__devices.device[input.device]
 
-        self.log.info('DEV: ', object_to_string(self, dev))
+        #self.log.info('\nDEV: ', object_to_string(self, dev))
 
         if isinstance(cmd, (basestring)):
             cmd_data = {}
@@ -90,7 +90,7 @@ def device_command(self, uinfo, input, cmd):
         except Exception as E:
             self.log.info("\nEXCEPTION in device_command(): ", str(E))
 
-    m.close()   
+    m.close()
     return result, platform
 
 ###############################################################################
@@ -104,5 +104,5 @@ def object_to_string(self, object):
             try: return_string += "\\___" + str(item) + '=' + str(eval("object.%s" % str(item))) + '\n'
             except: return_string += '\\____...\n'
     return return_string
-    
-###############################################################################    
+
+###############################################################################
