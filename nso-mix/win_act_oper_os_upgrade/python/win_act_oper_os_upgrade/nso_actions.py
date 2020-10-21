@@ -454,11 +454,6 @@ class NsoActionsClass_os_upgrade_install_add(Action):
 
         sw_version_selected_file = str()
         patch_version_selected_files = str()
-
-        self.log.info('input.sw_version_selected_file: ', input.sw_version_selected_file)
-        self.log.info('input.patch_version_selected_files: ', input.patch_version_selected_files)
-        self.log.info('input.patch_version_selected_path: ', input.patch_version_selected_path)
-
         file_string_without_path = str()
 
         hw_info = detect_hw(self, uinfo, input)
@@ -509,6 +504,8 @@ class NsoActionsClass_os_upgrade_install_add(Action):
                 brand_subdir, type_subdir_on_server, type_subdir_on_device, file_types = \
                 get_local_subdirectories(brand_raw = 'CISCO', type_raw = hw_info.get('hw_type',str()) )
 
+                self.log.info('FILE_TYPES=', file_types)
+
                 patch_file_device_cmds = {
                     'ios-xe':[],
                     'ios-xr':['dir %s' % (patch_version_selected_path)],
@@ -516,6 +513,7 @@ class NsoActionsClass_os_upgrade_install_add(Action):
                     'huawei-vrp':[]
                 }
                 patch_file_device_cmds_result, forget_it = device_command(self, uinfo, input, patch_file_device_cmds)
+
                 patch_files = []
                 patch_path = str()
                 for line in patch_file_device_cmds_result.splitlines()[:-1]:
@@ -525,9 +523,7 @@ class NsoActionsClass_os_upgrade_install_add(Action):
                             try: patch_file = file_type.split('/')[1].replace('*','')
                             except: patch_file = str()
                             if len(patch_file) > 0 and patch_file.upper() in tar_file.upper():
-                                #patch_files.append(tar_file)
-                                patch_files.append('%s%s/%s/%s/%s' % (drive_string, dev_dir,output.target_sw_versions[i].name,'SMU' , tar_file))
-                                patch_path = '%s%s/%s/%s' % (drive_string, dev_dir,output.target_sw_versions[i].name,'SMU')
+                                patch_files.append('%s' % (tar_file))
                     except: pass
                 if len(patch_files)>0:
                     i_device_cmds = {
