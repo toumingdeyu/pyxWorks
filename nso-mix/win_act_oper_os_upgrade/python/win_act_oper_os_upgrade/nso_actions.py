@@ -597,11 +597,15 @@ class NsoActionsClass_os_upgrade_device_ping_check(Action):
         self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', object_to_string(self, input))
         output.result = 'UNKNOWN'
 
-        try: device = str(input.device)
-        except: device = str()
+        device = str()
+        try:
+            if input.device: device = str(input.device)
+        except: pass
 
-        try: ip = str(input.ip)
-        except: ip = str()
+        ip = str()
+        try:
+            if input.ip: ip = str(input.ip)
+        except: pass
 
         if device:
             ping_response = os.system("ping -c 1 " + device)
@@ -627,7 +631,7 @@ class NsoActionsClass_os_upgrade_device_get_ip(Action):
 
         try: device = str(input.device)
         except: device = str()
-        
+
         if device:
             hw_info = detect_hw(self, uinfo, input)
             #output.os_type, output.hw_type = hw_info.get('os_type',str()), hw_info.get('hw_type',str())
