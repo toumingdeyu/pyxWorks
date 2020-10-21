@@ -457,12 +457,12 @@ class NsoActionsClass_os_upgrade_install_add(Action):
 
         self.log.info('input.sw_version_selected_file: ', input.sw_version_selected_file)
         self.log.info('input.patch_version_selected_files: ', input.patch_version_selected_files)
+        self.log.info('input.patch_version_selected_path: ', input.patch_version_selected_path)
 
         file_string_without_path = str()
 
-        device_cmds = {
-            'ios-xr':['show version'],
-        }
+        hw_info = detect_hw(self, uinfo, input)
+        output.os_type, output.hw_type = hw_info.get('os_type',str()), hw_info.get('hw_type',str())
 
         sw_version_selected_file = str()
         try:
@@ -481,8 +481,6 @@ class NsoActionsClass_os_upgrade_install_add(Action):
             if input.patch_version_selected_path:
                 patch_version_selected_path = str(input.patch_version_selected_path)
         except: pass
-
-        device_cmds_result, output.os_type = device_command(self, uinfo, input, device_cmds)
 
         i_device_cmds = {}
         if output.os_type == "ios-xr":
@@ -506,6 +504,11 @@ class NsoActionsClass_os_upgrade_install_add(Action):
                     ]
                 }
             elif patch_version_selected_path:
+
+                ### def GET PATHS ON DEVICE ###########################################
+                brand_subdir, type_subdir_on_server, type_subdir_on_device, file_types = \
+                get_local_subdirectories(brand_raw = 'CISCO', type_raw = hw_info.get('hw_type',str()) )
+
                 patch_file_device_cmds = {
                     'ios-xe':[],
                     'ios-xr':['dir %s' % (patch_version_selected_path)],
