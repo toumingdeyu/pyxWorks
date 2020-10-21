@@ -637,7 +637,6 @@ class NsoActionsClass_os_upgrade_device_get_ip(Action):
                   }
 
             cmd_result, forget_it = device_command(self, uinfo, input, cmd)
-            output.install_log = cmd_result
 
             if hw_info.get('os_type') == "ios-xr":
                 try: output.ip_address = cmd_result.split('ipv4 address')[1].split()[0].strip()
