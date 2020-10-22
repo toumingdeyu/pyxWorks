@@ -1039,8 +1039,8 @@ class NsoActionsClass_os_upgrade_postcheck(Action):
                 last_admin_config_file = admin_config_files[-1]
             except: pass
 
-            self.log.info('\nCONFIG: ', last_config_file, config_files)
-            self.log.info('\nADMIN CONFIG: ', last_admin_config_file, admin_config_files)
+            self.log.info('\nCONFIG FILE: ', last_config_file, '\nCHOSEN FROM: ', config_files)
+            self.log.info('\nADMIN CONFIG FILE: ', last_admin_config_file, '\nCHOSEN FROM: ', admin_config_files)
 
             ### copy configs ###
             # today = date.today()
@@ -1087,8 +1087,18 @@ def object_to_string(self, object):
     for item in dir(object):
         if '_' in str(item[0]) and '_' in str(item[-1]): pass
         else:
-            try: return_string += "\\___" + str(item) + '=' + str(eval("object.%s" % str(item))) + '\n'
-            except: return_string += '\\____...\n'
+            is_it_subclass = None
+            try: is_it_subclass = issubclass(item, object)
+            except: pass
+            if is_it_subclass:
+                for subitem in dir(object.item):
+                    if '_' in str(subitem[0]) and '_' in str(subitem[-1]): pass
+                    else:
+                        try: return_string += "\\___" + str(item) + '.' + str(subitem) + '=' + str(eval("object.%s.%s" % str(item, subitem))) + '\n'
+                        except: return_string += '\\____...\n'
+            else:
+                try: return_string += "\\___" + str(item) + '=' + str(eval("object.%s" % str(item))) + '\n'
+                except: return_string += '\\____...\n'
     return return_string
 
 ###############################################################################
