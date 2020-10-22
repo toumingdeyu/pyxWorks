@@ -914,13 +914,13 @@ class NsoActionsClass_os_upgrade_postcheck(Action):
 
         asr_admin_string = str()
 
-        precheck_data = {}
+        precheck_commands = {}
         try:
-            if input.precheck_data:
-                precheck_data = json.loads(str(input.precheck_data))
+            if input.precheck_commands:
+                precheck_commands = json.loads(str(input.precheck_commands))
         except: pass
 
-        self.log.info('\nINPUT.PRECHECK_DATA: ', input.precheck_data,'\nprecheck_data: ', precheck_data)
+        self.log.info('\nINPUT.PRECHECK_COMMANDS: ', input.precheck_commands,'\nPRECHECK_COMMANDS: ', precheck_commands)
 
         hw_info = detect_hw(self, uinfo, input)
         output.os_type, output.hw_type = hw_info.get('os_type',str()), hw_info.get('hw_type',str())

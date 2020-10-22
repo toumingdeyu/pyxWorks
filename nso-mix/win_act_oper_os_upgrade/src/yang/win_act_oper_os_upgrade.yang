@@ -364,7 +364,7 @@ module win_act_oper_os_upgrade {
         leaf ip {
             type string;
         }
-        leaf precheck_data {
+        leaf-list precheck_commands {
             type string;
         }
         container device_iap {
