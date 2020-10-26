@@ -40,6 +40,8 @@ import glob
 import socket
 import six
 
+JSON_MODE = False
+
 class bcolors:
         DEFAULT    = '\033[99m'
         WHITE      = '\033[97m'
@@ -454,7 +456,7 @@ def detect_router_by_ssh(device, debug = False):
         chan.send('\t \n\n')
         time.sleep(0.2)
         while not (last_line and last_but_one_line and last_line == last_but_one_line):
-            if debug: print('FIND_PROMPT:',last_but_one_line,last_line)
+            if debug: ifprint('FIND_PROMPT:',last_but_one_line,last_line)
             buff = chan.recv(9999)
             try:
                 output += str(buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
@@ -463,13 +465,13 @@ def detect_router_by_ssh(device, debug = False):
             if '--More--' or '---(more' in buff.strip():
                 chan.send('\x20')
                 time.sleep(0.2)
-            if debug: print('BUFFER:' + buff)
+            if debug: ifprint('BUFFER:' + buff)
             try: last_line = output.splitlines()[-1].strip().replace('\x20','')
             except: last_line = 'dummyline1'
             try: last_but_one_line = output.splitlines()[-2].strip().replace('\x20','')
             except: last_but_one_line = 'dummyline2'
         prompt = output.splitlines()[-1].strip()
-        if debug: print('DETECTED PROMPT: \'' + prompt + '\'')
+        if debug: ifprint('DETECTED PROMPT: \'' + prompt + '\'')
         return prompt
 
     # bullet-proof read-until function , even in case of ---more---
@@ -482,7 +484,7 @@ def detect_router_by_ssh(device, debug = False):
         time.sleep(0.3)
         output, exit_loop = '', False
         while not exit_loop:
-            if debug: print('LAST_LINE:',prompts,last_line)
+            if debug: ifprint('LAST_LINE:',prompts,last_line)
             buff = chan.recv(9999)
             try:
                 output += str(buff.decode("utf-8").replace('\r','').replace('\x07','').replace('\x08','').\
@@ -491,7 +493,7 @@ def detect_router_by_ssh(device, debug = False):
             if '--More--' or '---(more' in buff.strip():
                 chan.send('\x20')
                 time.sleep(0.2)
-            if debug: print('BUFFER:' + buff)
+            if debug: ifprint('BUFFER:' + buff)
             try: last_line = output.splitlines()[-1].strip()
             except: last_line = str()
             for actual_prompt in prompts:
@@ -540,10 +542,10 @@ def detect_router_by_ssh(device, debug = False):
             if 'LINUX' in output.upper(): router_os = 'linux'
 
         if not router_os:
-            print(bcolors.MAGENTA + "\nCannot find recognizable OS in %s" % (output) + bcolors.ENDC)
+            ifprint(bcolors.MAGENTA + "\nCannot find recognizable OS in %s" % (output) + bcolors.ENDC)
 
     except (socket.timeout, paramiko.AuthenticationException) as e:
-        print(bcolors.MAGENTA + " ... Connection closed: %s " % (e) + bcolors.ENDC )
+        ifprint(bcolors.MAGENTA + " ... Connection closed: %s " % (e) + bcolors.ENDC )
         sys.exit()
     finally:
         client.close()
@@ -584,7 +586,7 @@ def decode_bytearray(buff = None, ascii_only = None):
             else: buff_read += character
 
         if len(err_chars) > 0:
-            print("%sNON ASCII CHARACTERS found [%s]!%s" % (bcolors.MAGENTA,err_chars,bcolors.ENDC))
+            ifprint("%sNON ASCII CHARACTERS found [%s]!%s" % (bcolors.MAGENTA,err_chars,bcolors.ENDC))
     return buff_read
 
 
@@ -597,7 +599,7 @@ def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True)
     time.sleep(0.1)
     chan.send(send_data + '\n')
     time.sleep(0.1)
-    if printall: print("%sCOMMAND: %s%s%s" % (bcolors.GREEN,bcolors.YELLOW,send_data,bcolors.ENDC))
+    if printall: ifprint("%sCOMMAND: %s%s%s" % (bcolors.GREEN,bcolors.YELLOW,send_data,bcolors.ENDC))
     while not exit_loop:
         if chan.recv_ready():
             # workarround for discontious outputs from routers
@@ -607,7 +609,7 @@ def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True)
             buff_read = decode_bytearray(buff)
             output += buff_read
 
-            if printall: print("%s%s%s" % (bcolors.GREY,buff_read,bcolors.ENDC))
+            if printall: ifprint("%s%s%s" % (bcolors.GREY,buff_read,bcolors.ENDC))
         else: time.sleep(0.1); timeout_counter += 1
         # FIND LAST LINE, THIS COULD BE PROMPT
         try: last_line, last_line_orig = output.splitlines()[-1].strip(), output.splitlines()[-1].strip()
@@ -649,7 +651,7 @@ def ssh_send_command_and_read_output(chan,prompts,send_data=str(),printall=True)
                     try: new_last_line = output2.splitlines()[-1].strip()
                     except: new_last_line = str()
                     if last_line_orig and new_last_line and last_line_orig == new_last_line:
-                        print('%sNEW_PROMPT: %s%s' % (bcolors.CYAN,last_line_orig,bcolors.ENDC))
+                        ifprint('%sNEW_PROMPT: %s%s' % (bcolors.CYAN,last_line_orig,bcolors.ENDC))
                         new_prompt = last_line_orig; exit_loop=True;exit_loop2=True; break
                     # WAIT UP TO 5 SECONDS
                     if (timeout_counter2) > 5*10: exit_loop2 = True; break
@@ -672,19 +674,19 @@ def find_section(text, prompts, cli_index, cli, file_name = str(),debug = False)
                 # + workarround for long commands shortened in router echoed line
                 try: cmd_text_short = str((use_text[0:73].split(use_prompt)[1]).decode())
                 except: cmd_text_short = str()
-                if debug: print('@@@@@@@@@@',use_prompt,use_cli,use_text,cli_index,c_index,cmd_text_short)
+                if debug: ifprint('@@@@@@@@@@',use_prompt,use_cli,use_text,cli_index,c_index,cmd_text_short)
                 if (use_prompt in use_text and use_cli in use_text) or \
                     (c_index == cli_index and cmd_text_short and cmd_text_short in use_cli):
                     b_index = index
                     look_end = 1                       # look for end of section now
-                    if debug: print('==========',use_text,use_cli)
+                    if debug: ifprint('==========',use_text,use_cli)
                     break #continue
                 if look_end == 1:
                     if use_prompt in use_text:
                         e_index = index
                         look_end = 0
     if not(b_index and e_index):
-        print("%sSection '%s' could not be found %s!%s" % \
+        ifprint("%sSection '%s' could not be found %s!%s" % \
               (bcolors.MAGENTA,cli.rstrip(),file_name,bcolors.ENDC))
         return str()
     return text[b_index:e_index]
@@ -911,10 +913,10 @@ def get_difference_string_from_string_or_list(
 
 def print_cmd_list(CMD):
     if str(args.cmdlist) == 'list':
-        print("\nCOMMAND LIST:")
+        ifprint("\nCOMMAND LIST:")
         for cli_index, cli_items in enumerate(CMD):
-            print("  %2d.    %s" % (cli_index,cli_items[0]))
-        print('\n')
+            ifprint("  %2d.    %s" % (cli_index,cli_items[0]))
+        ifprint('\n')
         sys.exit(0)
 
 
@@ -944,7 +946,7 @@ def append_variable_to_bashrc(variable_name=None,variable_value=None):
         # mail_command = 'echo | mutt -s "%s" -a %s -- %s' % (subject,file_name,my_email_address)
         # #mail_command = 'uuencode %s %s | mail -s "%s" %s' % (file_name,file_name,subject,my_email_address)
         # forget_it = subprocess.check_output(mail_command, shell=True)
-        # print(' ==> Email "%s" sent to %s.'%(subject,my_email_address))
+        # ifprint(' ==> Email "%s" sent to %s.'%(subject,my_email_address))
     # except: pass
 
 
@@ -956,11 +958,11 @@ def send_me_email(subject = str(), email_body = str(), \
         email_success = None
         try:
             forget_it = subprocess.check_output(mail_command, shell=True)
-            print(' ==> Email sent. Subject:"%s" SentTo:%s by COMMAND=[%s] with RESULT=[%s]...'\
+            ifprint(' ==> Email sent. Subject:"%s" SentTo:%s by COMMAND=[%s] with RESULT=[%s]...'\
                 %(subject, sugested_email_address, mail_command, forget_it))
             email_success = True
         except Exception as e:
-            print(" ==> Problem to send email by COMMAND=[%s], PROBLEM=[%s]\n"\
+            ifprint(" ==> Problem to send email by COMMAND=[%s], PROBLEM=[%s]\n"\
                 % (mail_command, str(e)))
         return email_success
 
@@ -987,7 +989,7 @@ def send_me_email(subject = str(), email_body = str(), \
 
     ### IF EMAIL ADDRESS FOUND , SEND EMAIL ###############################
     if not sugested_email_address:
-        print(' ==> Email Address not found!')
+        ifprint(' ==> Email Address not found!')
     else:
         mail_command += '%s' % (sugested_email_address)
         email_sent = send_unix_email_body(mail_command)
@@ -1055,6 +1057,23 @@ def GET_VERSION(path_to_file = str(os.path.abspath(__file__))):
         stat = os.stat(path_to_file)
         file_time = stat.st_mtime
     return time.strftime("%y.%m.%d_%H:%M",time.gmtime(file_time))
+
+
+def ifprint(text):
+    if not JSON_MODE:
+        print(text)
+
+
+def json_print(prefile = None, postfile = None, logfilename = None, error = None):
+    if JSON_MODE:
+        json_text = "{\n"
+        if error: json_text += '    "error":"%s"\n' % (str(error))
+        if logfilename: json_text += '    "pre_log":"%s"' % (str(prefile))
+        if logfilename: json_text += '    "post_log":"%s"' % (str(postfile))
+        if logfilename: json_text += '    "diff_log":"%s"' % (str(logfilename))
+        json_text += "}\n"
+        print(json_text)
+
 
 
 ##############################################################################
@@ -1151,7 +1170,14 @@ parser.add_argument("--pluscustom",
                     default = False,
                     dest = 'plus_custom',
                     help = "do all commands with custom (bgp commands)")
+parser.add_argument("--json",
+                    action = "store_true",
+                    default = False,
+                    dest = 'json_output',
+                    help = "json data output only, no other printouts")
 args = parser.parse_args()
+
+if args.json_output: JSON_MODE = True
 
 if args.emailaddr:
     append_variable_to_bashrc(variable_name='NEWR_EMAIL',variable_value=args.emailaddr)
@@ -1159,7 +1185,7 @@ if args.emailaddr:
 
 if args.nocolors or 'WIN32' in sys.platform.upper(): bcolors = nocolors
 
-print('router_check (v.%s)' % (VERSION))
+ifprint('router_check (v.%s)' % (VERSION))
 
 COL_DELETED = bcolors.RED
 COL_ADDED   = bcolors.GREEN
@@ -1177,7 +1203,7 @@ note_pdiff0_string = "pdiff0(%s'-' missed, %s'+' added, %s'!' difference,    %s'
 
 ######## Parse program arguments #########
 if len(sys.argv) == 1 or sys.argv[1] == '-h' or sys.argv[1] == '--help':
-    print(('DIFF_FORMATS:\n  %s  %s  %s') % \
+    ifprint(('DIFF_FORMATS:\n  %s  %s  %s') % \
           (note_ndiff_string,note_ndiff0_string, note_pdiff0_string))
 
 
@@ -1186,7 +1212,9 @@ elif args.recheck: pre_post = 'post'
 else: pre_post = 'pre'
 
 if not args.device:
-    print(bcolors.MAGENTA + " ... Please insert device name !" + bcolors.ENDC)
+    err_text = " ... Please insert device name !"
+    ifprint(bcolors.MAGENTA + err_text + bcolors.ENDC)
+    json_print(error = err_text)
     sys.exit(0)
 
 custom_check_only = True if args.custom_check_only else False
@@ -1201,7 +1229,9 @@ if os.path.isdir(WORKDIR_IF_EXISTS) and os.path.exists(WORKDIR_IF_EXISTS):
 ####### Set USERNAME if needed
 if args.username: USERNAME = args.username
 if not USERNAME:
-    print(bcolors.MAGENTA + " ... Please insert your username by cmdline switch --user username !" + bcolors.ENDC )
+    err_text = " ... Please insert your username by cmdline switch --user username !"
+    ifprint(bcolors.MAGENTA + err_text + bcolors.ENDC)
+    json_print(error = err_text)
     sys.exit(0)
 
 if args.cpassword:
@@ -1224,10 +1254,10 @@ if PASSWORD:
 if not args.router_type:
     #router_type = find_router_type(args.device.upper())
     router_type, router_prompt = detect_router_by_ssh(args.device.upper(),debug = False)
-    print('DETECTED ROUTER_TYPE: ' + router_type)
+    ifprint('DETECTED ROUTER_TYPE: ' + router_type)
 else:
     router_type = args.router_type
-    print('FORCED ROUTER_TYPE: ' + router_type)
+    ifprint('FORCED ROUTER_TYPE: ' + router_type)
 
 ######## Create logs directory if not existing  #########
 if not os.path.exists(WORKDIR): os.makedirs(WORKDIR)
@@ -1238,8 +1268,9 @@ if args.precheck_file:
         if os.path.isfile(os.path.join(WORKDIR,args.precheck_file)):
             precheck_file = os.path.join(WORKDIR,args.precheck_file)
         else:
-            print(bcolors.MAGENTA + " ... Can't find precheck file: %s" % \
-                (args.precheck_file) + bcolors.ENDC)
+            err_text = " ... Can't find precheck file: %s" % (args.precheck_file)
+            ifprint(bcolors.MAGENTA + err_text + bcolors.ENDC)
+            json_print(error = err_text)
             sys.exit()
     else:
         precheck_file = args.precheck_file
@@ -1252,7 +1283,9 @@ else:
             list_precheck_files = glob.glob(os.path.join(WORKDIR,args.device.upper().replace(':','_').replace('.','_')) + '*' + USERNAME + '-pre')
 
         if len(list_precheck_files) == 0:
-            print(bcolors.MAGENTA + " ... Can't find any precheck file." + bcolors.ENDC)
+            err_text = " ... Can't find any precheck file."
+            ifprint(bcolors.MAGENTA + err_text + bcolors.ENDC)
+            json_print(error = err_text)
             sys.exit()
         most_recent_precheck = list_precheck_files[0]
         for item in list_precheck_files:
@@ -1269,8 +1302,9 @@ if args.recheck or args.postcheck_file:
             if os.path.isfile(os.path.join(WORKDIR,args.postcheck_file)):
                 postcheck_file = os.path.join(WORKDIR,args.postcheck_file)
             else:
-                print(bcolors.MAGENTA + " ... Can't find postcheck file: %s" % \
-                    (args.postcheck_file) + bcolors.ENDC)
+                err_text = " ... Can't find postcheck file: %s" % (args.postcheck_file)
+                ifprint(bcolors.MAGENTA + err_text + bcolors.ENDC)
+                json_print(error = err_text)
                 sys.exit()
         else:
             postcheck_file = args.postcheck_file
@@ -1282,7 +1316,9 @@ if args.recheck or args.postcheck_file:
             list_postcheck_files = glob.glob(os.path.join(WORKDIR,args.device.upper().replace(':','_').replace('.','_')) + '*' + USERNAME + '-post')
 
         if len(list_postcheck_files) == 0:
-            print(bcolors.MAGENTA + " ... Can't find any postcheck file." + bcolors.ENDC)
+            err_text = " ... Can't find any postcheck file."
+            ifprint(bcolors.MAGENTA + err_text + bcolors.ENDC)
+            json_print(error = err_text)
             sys.exit()
         most_recent_postcheck = list_postcheck_files[0]
         for item in list_postcheck_files:
@@ -1296,8 +1332,9 @@ if args.recheck or args.postcheck_file:
 list_cmd = []
 if args.cmd_file:
     if not os.path.isfile(args.cmd_file):
-        print(bcolors.MAGENTA + " ... Can't find command file: %s " + bcolors.ENDC) \
-                % args.cmd_file
+        err_text = " ... Can't find command file: %s " % args.cmd_file
+        ifprint(bcolors.MAGENTA + err_text + bcolors.ENDC)
+        json_print(error = err_text)
         sys.exit()
     else:
         num_lines = sum(1 for line in open(args.cmd_file))
@@ -1397,10 +1434,10 @@ if args.bgp_prefix_check_only:
 if not args.recheck:
     if str(args.cmdlist) != 'list':
         if pre_post == "post":
-            print(" ==> STARTING POSTCHECK ...")
+            ifprint(" ==> STARTING POSTCHECK ...")
         elif pre_post == "pre":
-            print(" ==> STARTING PRECHECK ...")
-        print(" ... Openning %s check file to collect output" %( pre_post ))
+            ifprint(" ==> STARTING PRECHECK ...")
+        ifprint(" ... Openning %s check file to collect output" %( pre_post ))
 
 # Collect pre/post check information
 if router_type == "ios-xe":
@@ -1459,7 +1496,7 @@ print_cmd_list(CMD)
 if args.recheck or args.postcheck_file: pass
 else:
     # SSH (default)
-    print(" ... Connecting (SSH) to %s" % (args.device.upper()))
+    ifprint(" ... Connecting (SSH) to %s" % (args.device.upper()))
     client = paramiko.SSHClient()
     #client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -1481,39 +1518,39 @@ else:
                     item = cli_items[0] if type(cli_items) == list or type(cli_items) == tuple else cli_items
                     # py2to3 compatible test if type == string
                     if isinstance(item, six.string_types):
-                        print(' ... %s'%(item))
+                        ifprint(' ... %s'%(item))
                         output, new_prompt = ssh_send_command_and_read_output(chan,DEVICE_PROMPTS,item,printall=False)
                         if new_prompt: DEVICE_PROMPTS.append(new_prompt)
                         fp.write(output)
                 except: pass
 
     except (socket.timeout, paramiko.AuthenticationException) as e:
-        print(bcolors.FAIL + " ... Connection closed. %s " % (e) + bcolors.ENDC )
+        ifprint(bcolors.FAIL + " ... Connection closed. %s " % (e) + bcolors.ENDC )
         sys.exit()
     finally:
         client.close()
         time.sleep(0.5)
     ### MAKE READABLE for THE OTHERS
     last_output = subprocess.check_output('chmod +r %s' % (filename),shell=True)
-    print(" ... Collection is completed\n")
+    ifprint(" ... Collection is completed\n")
 
 # Post Check treatment
 if pre_post == "post" or args.recheck or args.postcheck_file:
-    print(" ==> COMPARING PRECHECK & POSTCHECK ...\n")
+    ifprint(" ==> COMPARING PRECHECK & POSTCHECK ...\n")
 
     # Opening pre and post check files and loading content for processing
-    print("\nPrecheck file:")
+    ifprint("\nPrecheck file:")
     if os.path.isfile(precheck_file) and os.access(precheck_file, os.R_OK):
-        print('%s file exists.'%(precheck_file))
+        ifprint('%s file exists.'%(precheck_file))
     else:
-        print('%s file does not exists or access problem occurs.'%(precheck_file))
+        ifprint('%s file does not exists or access problem occurs.'%(precheck_file))
         sys.exit()
 
-    print("\nPostcheck file:")
+    ifprint("\nPostcheck file:")
     if os.path.isfile(postcheck_file) and os.access(postcheck_file, os.R_OK):
-        print('%s file exists.'%(postcheck_file))
+        ifprint('%s file exists.'%(postcheck_file))
     else:
-        print('%s file does not exists or access problem occurs.'%(postcheck_file))
+        ifprint('%s file does not exists or access problem occurs.'%(postcheck_file))
         sys.exit()
     fp1 = open(precheck_file,"r")
     fp2 = open(postcheck_file,"r")
@@ -1587,11 +1624,11 @@ if pre_post == "post" or args.recheck or args.postcheck_file:
                         for index, line in enumerate(diff_print_post):
                             myfile.write(bcolors.RED + '\t' +  diff_print_post[index] + bcolors.ENDC + '\n')
 
-                print(bcolors.BOLD + '\n' + cli + bcolors.ENDC)
+                ifprint(bcolors.BOLD + '\n' + cli + bcolors.ENDC)
                 for index, line in enumerate(diff_print_pre):
-                    print(bcolors.GREEN + '\t' +  diff_print_pre[index] + bcolors.ENDC)
+                    ifprint(bcolors.GREEN + '\t' +  diff_print_pre[index] + bcolors.ENDC)
                 for index, line in enumerate(diff_print_post):
-                    print(bcolors.RED + '\t' +  diff_print_post[index] + bcolors.ENDC)
+                    ifprint(bcolors.RED + '\t' +  diff_print_post[index] + bcolors.ENDC)
 
 
 
@@ -1633,7 +1670,7 @@ if pre_post == "post" or args.recheck or args.postcheck_file:
                 cli_index, cli, file_name = 'in ' + postcheck_file + ' file ')
 
             if precheck_section and postcheck_section:
-                print(bcolors.BOLD + '\n' + cli + bcolors.ENDC)
+                ifprint(bcolors.BOLD + '\n' + cli + bcolors.ENDC)
                 diff_result, all_ok = get_difference_string_from_string_or_list( \
                     precheck_section,postcheck_section, \
                     diff_method = cli_diff_method, \
@@ -1645,8 +1682,8 @@ if pre_post == "post" or args.recheck or args.postcheck_file:
                     print_equallines = cli_printall, \
                     tolerance_percentage = cli_tolerance_percentage, \
                     note = False)
-                if all_ok: print(bcolors.GREY + 'OK' + bcolors.ENDC)
-                elif len(diff_result) > 0: print(diff_result)
+                if all_ok: ifprint(bcolors.GREY + 'OK' + bcolors.ENDC)
+                elif len(diff_result) > 0: ifprint(diff_result)
 
                 if logfilename:
                     with open(logfilename, "a") as myfile:
@@ -1656,34 +1693,43 @@ if pre_post == "post" or args.recheck or args.postcheck_file:
                         myfile.flush()
 
     ### def ISIS CHECK DO NOT LOG IF RECHECK ##################################
-    print('\n')
+    ifprint('\n')
     if args.recheck: run_isis_check()
-    else: run_isis_check(postcheck_file)
+    else:
+        if JSON_MODE and logfilename: run_isis_check(logfilename)
+        else: run_isis_check(postcheck_file)
 
     ### def BGP PREFIX CHECK DO NOT LOG IF RECHECK ############################
-    print('\n')
+    ifprint('\n')
     if args.recheck: run_isis_check()
-    elif not args.nobgpcheck: run_bgp_prefixes_checker(filename)
+    elif not args.nobgpcheck:
+        if JSON_MODE and logfilename: run_bgp_prefixes_checker(logfilename)
+        else: run_bgp_prefixes_checker(filename)
 
-    print('\n ==> POSTCHECK COMPLETE !')
+    ifprint('\n ==> POSTCHECK COMPLETE !')
 
 elif pre_post == "pre" and not args.recheck:
 
     ### BGP PREFIX CHECK DO NOT LOG IF RECHECK ################################
-    print('\n')
+    ifprint('\n')
     if not args.nobgpcheck: run_bgp_prefixes_checker(filename)
 
-    print('\n ==> PRECHECK COMPLETE !')
+    ifprint('\n ==> PRECHECK COMPLETE !')
 
 if filename and os.path.exists(filename):
-    print(' ==> File %s created.'%(filename))
+    ifprint(' ==> File %s created.'%(filename))
     try: send_me_email(subject = filename.replace('\\','/').split('/')[-1], file_name = filename)
     except: pass
 
 if logfilename:
-    print(' ==> LOGFILE GENERATED: %s' % (logfilename))
+    ifprint(' ==> LOGFILE GENERATED: %s' % (logfilename))
     try: send_me_email(subject = logfilename.replace('\\','/').split('/')[-1], file_name = logfilename)
     except: pass
+
+### JSON MODE PRINT DATA ######################################################
+    json_print(logfilename = logfilename, postfile = postcheck_file)
+else:
+    json_print(logfilename = None, prefile = filename)
 ############################################## END ################################################
 
 
