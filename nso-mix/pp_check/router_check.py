@@ -5,7 +5,8 @@
 # Author: Philippe Marcais (philippe.marcais@orange.com)                      #
 #         Peter Nemec      (peter.nemec@orange.com)                           #
 # Created: 06/01/2015                                                         #
-# Updated: 24/Aug/2020 - Custom opposite logic, new cli switch --pluscustom   #
+# Updated: 27.Oct/2020 - json mode                                            #
+#          24/Aug/2020 - Custom opposite logic, new cli switch --pluscustom   #
 #                      - cli switch change --custom = --customonly            #
 #                      - deleted cli switch --nocustom                        #
 #          29/Jun/2020 - bgp prefix check, ascii filter of chars, custom log  #
@@ -1002,18 +1003,20 @@ def send_me_email(subject = str(), email_body = str(), \
 
 
 
-def run_isis_check(logfilename = None):
+def run_isis_check(logfilename = None, json_mode = None):
     time.sleep(3)
     command_string = '/usr/local/bin/isis_check.py --device %s%s%s%s%s' % \
         (args.device.upper(), \
         ' --append_logfile %s' % (logfilename) if logfilename else str(), \
         ' --printall' if args.printall else str(), \
         ' --username %s' % (USERNAME), \
-        ' --password %s' % (PASSWORD) )
+        ' --password %s' % (PASSWORD), \
+        ' --json' if json_mode else str() \
+        )
     os.system(command_string)
 
 
-def run_bgp_prefixes_checker(append_filename = None):
+def run_bgp_prefixes_checker(append_filename = None, json_mode = None):
     time.sleep(3)
 
     path_to_file = '/usr/local/bin/bgp_prefixes_checker.py'
@@ -1021,7 +1024,7 @@ def run_bgp_prefixes_checker(append_filename = None):
     #path_to_file = './bgp_prefixes_checker.py'
 
     if not args.recheck:
-        command_string = '%s%s%s%s%s%s%s%s%s' % \
+        command_string = '%s%s%s%s%s%s%s%s%s%s' % \
             (path_to_file, \
             ' --device %s' % (args.device.upper()) if args.device else str(), \
             ' --append_logfile %s' % (append_filename) if append_filename else str(), \
@@ -1031,6 +1034,7 @@ def run_bgp_prefixes_checker(append_filename = None):
             ' --prefile %s' % (precheck_file) if precheck_file else str(), \
             ' --latest' if args.latest else str(),
             ' --cpassword %s' % (CPASSWORD), \
+            ' --json' if json_mode else str() \
             )
 
     else:
@@ -1043,7 +1047,8 @@ def run_bgp_prefixes_checker(append_filename = None):
             ' --prefile %s' % (precheck_file) if precheck_file else str(), \
             ' --postfile %s' % (postcheck_file) if postcheck_file else str(), \
             ' --latest' if args.latest else str(), \
-            ' --cpassword %s' % (CPASSWORD) \
+            ' --cpassword %s' % (CPASSWORD), \
+            ' --json' if json_mode else str() \
             )
 
     ###print(command_string)
@@ -1403,7 +1408,7 @@ filename_generated = "%s-%.2i%.2i%.2i-%.2i%.2i%.2i-%s-%s" % \
 filename = None
 
 logfilename=str()
-if args.log_file:
+if args.log_file or JSON_MODE:
     logfilename = "%s-%.2i%.2i%.2i-%.2i%.2i%.2i-%s-%s" % \
     (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,now.second,USERNAME,'log')
 
@@ -1696,14 +1701,14 @@ if pre_post == "post" or args.recheck or args.postcheck_file:
     ifprint('\n')
     if args.recheck: run_isis_check()
     else:
-        if JSON_MODE and logfilename: run_isis_check(logfilename)
+        if JSON_MODE and logfilename: run_isis_check(logfilename, True)
         else: run_isis_check(postcheck_file)
 
     ### def BGP PREFIX CHECK DO NOT LOG IF RECHECK ############################
     ifprint('\n')
     if args.recheck: run_isis_check()
     elif not args.nobgpcheck:
-        if JSON_MODE and logfilename: run_bgp_prefixes_checker(logfilename)
+        if JSON_MODE and logfilename: run_bgp_prefixes_checker(logfilename, True)
         else: run_bgp_prefixes_checker(filename)
 
     ifprint('\n ==> POSTCHECK COMPLETE !')

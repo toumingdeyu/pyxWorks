@@ -148,6 +148,11 @@ class CGI_CLI(object):
                             action = "store", dest = 'append_logfile',
                             default = None,
                             help = "append logfile with specified name")
+        parser.add_argument("--json",
+                    action = "store_true",
+                    default = False,
+                    dest = 'json_mode',
+                    help = "json data output only, no other printouts")
         args = parser.parse_args()
         return args
 
@@ -171,6 +176,7 @@ class CGI_CLI(object):
         """
         log - start to log all after logfilename is inserted
         """
+        CGI_CLI.JSON_MODE = None
         CGI_CLI.START_EPOCH = time.time()
         CGI_CLI.http_status = 200
         CGI_CLI.http_status_text = 'OK'
@@ -204,13 +210,19 @@ class CGI_CLI(object):
             if variable == "submit": CGI_CLI.submit_form = value
             if variable == "username": CGI_CLI.username = value
             if variable == "password": CGI_CLI.password = value
+            if variable == "json_mode": CGI_CLI.JSON_MODE = value
+
         ### DECIDE - CLI OR CGI MODE ##########################################
         CGI_CLI.remote_addr =  dict(os.environ).get('REMOTE_ADDR','')
         CGI_CLI.http_user_agent = dict(os.environ).get('HTTP_USER_AGENT','')
         if CGI_CLI.remote_addr and CGI_CLI.http_user_agent:
             CGI_CLI.cgi_active = True
+
+        ### CLI PARSER ########################################################
         CGI_CLI.args = CGI_CLI.cli_parser()
         if not CGI_CLI.cgi_active: CGI_CLI.data = vars(CGI_CLI.args)
+        if CGI_CLI.data.get("json_mode"): CGI_CLI.JSON_MODE = True
+
         if CGI_CLI.cgi_active:
             sys.stdout.write("%s%s%s" %
                 (CGI_CLI.chunked_transfer_encoding_line,
@@ -290,7 +302,7 @@ class CGI_CLI(object):
                 sys.stdout.write("\r\n%X\r\n%s" % (len(msg), msg))
                 sys.stdout.flush()
         ### CLI MODE ###
-        else: print(msg)
+        elif not CGI_CLI.JSON_MODE: print(msg)
 
     @staticmethod
     def uprint(text = str(), tag = None, tag_id = None, color = None, name = None, jsonprint = None, \
@@ -354,7 +366,7 @@ class CGI_CLI(object):
             if no_newlines:
                 sys.stdout.write(text_color + print_name + print_text + CGI_CLI.bcolors.ENDC)
                 sys.stdout.flush()
-            else:
+            elif not CGI_CLI.JSON_MODE:
                 print(text_color + print_name + timestamp_string + print_text + CGI_CLI.bcolors.ENDC)
         del print_text
         if CGI_CLI.cgi_active and not raw:
@@ -480,8 +492,8 @@ class CGI_CLI(object):
             (CGI_CLI.USERNAME, 'Yes' if CGI_CLI.PASSWORD else 'No')
         print_string += 'remote_addr[%s], ' % dict(os.environ).get('REMOTE_ADDR','')
         print_string += 'browser[%s]\n' % dict(os.environ).get('HTTP_USER_AGENT','')
-        print_string += 'CGI_CLI.cgi_active[%s], CGI_CLI.submit_form[%s], CGI_CLI.chunked[%s]\n' % \
-            (str(CGI_CLI.cgi_active), str(CGI_CLI.submit_form), str(CGI_CLI.chunked))
+        print_string += 'CGI_CLI.cgi_active[%s], CGI_CLI.submit_form[%s], CGI_CLI.chunked[%s], CGI_CLI.JSON_MODE[%s]\n' % \
+            (str(CGI_CLI.cgi_active), str(CGI_CLI.submit_form), str(CGI_CLI.chunked), str(CGI_CLI.JSON_MODE ))
         if CGI_CLI.cgi_active:
             try: print_string += 'CGI_CLI.data[%s] = %s\n' % (str(CGI_CLI.submit_form),str(json.dumps(CGI_CLI.data, indent = 4)))
             except: pass

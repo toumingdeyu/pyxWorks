@@ -140,6 +140,11 @@ class CGI_CLI(object):
         parser.add_argument("--timestamps",
                             action = "store_true", dest = 'timestamp', default = None,
                             help = "show timestamps")
+        parser.add_argument("--json",
+                    action = "store_true",
+                    default = False,
+                    dest = 'json_mode',
+                    help = "json data output only, no other printouts")
         args = parser.parse_args()
         return args
 
@@ -165,6 +170,7 @@ class CGI_CLI(object):
         timestamp = None, disable_page_reload_link = None, no_title = None):
         """
         """
+        CGI_CLI.JSON_MODE = None
         try: CGI_CLI.sys_stdout_encoding = sys.stdout.encoding
         except: CGI_CLI.sys_stdout_encoding = None
         if not CGI_CLI.sys_stdout_encoding: CGI_CLI.sys_stdout_encoding = 'UTF-8'
@@ -200,6 +206,7 @@ class CGI_CLI(object):
             if variable == "submit": CGI_CLI.submit_form = value
             if variable == "username": CGI_CLI.USERNAME = value
             if variable == "password": CGI_CLI.PASSWORD = value
+            if variable == "json_mode": CGI_CLI.JSON_MODE = value
 
             ### SET CHUNKED MODE BY CGI #######################################
             if variable == "chunked_mode":
@@ -240,6 +247,8 @@ class CGI_CLI(object):
                     CGI_CLI.data[variable] = value
                 if variable == "username": CGI_CLI.USERNAME = value
                 if variable == "password": CGI_CLI.PASSWORD = value
+                if variable == "json_mode": CGI_CLI.JSON_MODE = value
+
 
         ### CGI_CLI.data PARSER ###############################################
         for key in CGI_CLI.data.keys():
@@ -253,6 +262,7 @@ class CGI_CLI(object):
             if variable == "timestamp" and value: CGI_CLI.timestamp = True
             if variable == "cusername": CGI_CLI.USERNAME = value.decode('base64','strict')
             if variable == "cpassword": CGI_CLI.PASSWORD = value.decode('base64','strict')
+            if variable == "json_mode": CGI_CLI.JSON_MODE = value
 
         ### HTML PRINTING START ###############################################
         if CGI_CLI.cgi_active:
@@ -424,7 +434,7 @@ class CGI_CLI(object):
                         sys.stdout.write("\r\n%X\r\n%s" % (len(msg), msg))
                         sys.stdout.flush()
                 ### CLI MODE ##################################################
-                else:
+                elif not CGI_CLI.JSON_MODE:
                     if no_newlines:
                         sys.stdout.write(msg)
                         sys.stdout.flush()
