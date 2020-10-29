@@ -1024,32 +1024,33 @@ def run_bgp_prefixes_checker(append_filename = None, json_mode = None):
     #path_to_file = './bgp_prefixes_checker.py'
 
     if not args.recheck:
-        command_string = '%s%s%s%s%s%s%s%s%s%s' % \
-            (path_to_file, \
-            '%s' % (' --device %s' % (args.device.upper() if args.device else str())), \
-            '%s' % (' --append_logfile %s' % (append_filename if append_filename else str())), \
-            ' --printall' if args.printall else str(), \
-            ' --username %s' % (USERNAME), \
-            ' --precheck' if pre_post == 'pre' else ' --postcheck', \
-            '%s' % (' --prefile %s' % (precheck_file if precheck_file else str())), \
-            ' --latest' if args.latest else str(),
-            ' --cpassword %s' % (CPASSWORD), \
-            ' --json' if json_mode else str() \
-            )
+        command_string = str()
+        command_string += path_to_file
+        if args.device: command_string += ' --device %s' % (args.device.upper())
+        if json_mode: command_string += ' --json'
+        if append_filename: ' --append_logfile %s' % (append_filename)
+        if args.printall: command_string += ' --printall'
+        command_string += ' --username %s' % (USERNAME)
+        if pre_post == 'pre': command_string += ' --precheck'
+        else: command_string += ' --postcheck'
+        if precheck_file: command_string += ' --prefile %s' % (precheck_file)
+        if postcheck_file: command_string += ' --postfile %s' % (postcheck_file)
+        if args.latest: command_string += ' --latest'
+        command_string += ' --cpassword %s' % (CPASSWORD)
+        if json_mode: command_string += ' --json'
 
     else:
-        command_string = '%s%s%s%s%s%s%s%s%s' % \
-            (path_to_file, \
-            '%s' % (' --device %s' % (args.device.upper() if args.device else str())), \
-            ' --printall' if args.printall else str(), \
-            ' --username %s' % (USERNAME), \
-            ' --recheck', \
-            '%s' % (' --prefile %s' % (precheck_file if precheck_file else str())), \
-            '%s' % (' --postfile %s' % (postcheck_file if postcheck_file else str())), \
-            ' --latest' if args.latest else str(), \
-            ' --cpassword %s' % (CPASSWORD), \
-            ' --json' if json_mode else str() \
-            )
+        command_string = str()
+        command_string += path_to_file
+        if args.device: command_string += ' --device %s' % (args.device.upper())
+        if json_mode: command_string += ' --json'
+        if args.printall: command_string += ' --printall'
+        command_string += ' --username %s' % (USERNAME)
+        command_string += ' --recheck'
+        if precheck_file: command_string += ' --prefile %s' % (precheck_file)
+        if postcheck_file: command_string += ' --postfile %s' % (postcheck_file)
+        if args.latest: command_string += ' --latest'
+        command_string += ' --cpassword %s' % (CPASSWORD)
 
     ###print(command_string)
     os.system(command_string)
