@@ -1037,7 +1037,6 @@ def run_bgp_prefixes_checker(append_filename = None, json_mode = None):
         if postcheck_file: command_string += ' --postfile %s' % (postcheck_file)
         if args.latest: command_string += ' --latest'
         command_string += ' --cpassword %s' % (CPASSWORD)
-        if json_mode: command_string += ' --json'
 
     else:
         command_string = str()
