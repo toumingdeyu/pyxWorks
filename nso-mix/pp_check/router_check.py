@@ -1072,7 +1072,7 @@ def ifprint(text):
 def json_print(prefile = None, postfile = None, logfilename = None, error = None):
     def make_link(file):
         logviewer = file
-        iptac_server = str(subprocess.check_output('hostname'))
+        iptac_server = str(subprocess.check_output('hostname')).strip()
         if iptac_server == 'iptac5': urllink = 'https://10.253.58.126/cgi-bin/'
         else: urllink = 'https://%s/cgi-bin/' % (iptac_server)
         if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, file)
