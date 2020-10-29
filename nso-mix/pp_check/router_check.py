@@ -1085,7 +1085,7 @@ def json_print(prefile = None, postfile = None, logfilename = None, error = None
         if prefile: json_text += '    "pre_log":"%s"' % (str(make_link(prefile)))
         if postfile: json_text += '    "post_log":"%s"' % (str(make_link(postfile)))
         if logfilename: json_text += '    "diff_log":"%s"' % (str(make_link(logfilename)))
-        json_text += "}\n"
+        json_text += "\n}\n"
         print(json_text)
 
 
