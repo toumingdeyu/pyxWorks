@@ -1408,7 +1408,7 @@ filename_generated = "%s-%.2i%.2i%.2i-%.2i%.2i%.2i-%s-%s" % \
 filename = None
 
 logfilename=str()
-if args.log_file or JSON_MODE:
+if args.log_file:
     logfilename = "%s-%.2i%.2i%.2i-%.2i%.2i%.2i-%s-%s" % \
     (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,now.second,USERNAME,'log')
 
@@ -1702,13 +1702,15 @@ if pre_post == "post" or args.recheck or args.postcheck_file:
     if args.recheck: run_isis_check()
     else:
         if JSON_MODE and logfilename: run_isis_check(logfilename, True)
-        else: run_isis_check(postcheck_file)
+        elif JSON_MODE and not logfilename: run_isis_check(filename, True)
+        else: run_isis_check(filename)
 
     ### def BGP PREFIX CHECK DO NOT LOG IF RECHECK ############################
     ifprint('\n')
-    if args.recheck: run_isis_check()
+    if args.recheck: run_bgp_prefixes_checker()
     elif not args.nobgpcheck:
         if JSON_MODE and logfilename: run_bgp_prefixes_checker(logfilename, True)
+        elif JSON_MODE and not logfilename: run_bgp_prefixes_checker(filename, True)
         else: run_bgp_prefixes_checker(filename)
 
     ifprint('\n ==> POSTCHECK COMPLETE !')
