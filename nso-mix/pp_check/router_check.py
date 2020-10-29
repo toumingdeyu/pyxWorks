@@ -1719,7 +1719,10 @@ elif pre_post == "pre" and not args.recheck:
 
     ### BGP PREFIX CHECK DO NOT LOG IF RECHECK ################################
     ifprint('\n')
-    if not args.nobgpcheck: run_bgp_prefixes_checker(filename)
+    if not args.nobgpcheck:
+        if JSON_MODE and logfilename: run_bgp_prefixes_checker(logfilename, True)
+        elif JSON_MODE and not logfilename: run_bgp_prefixes_checker(filename, True)
+        else: run_bgp_prefixes_checker(filename)
 
     ifprint('\n ==> PRECHECK COMPLETE !')
 
