@@ -364,8 +364,9 @@ class CGI_CLI(object):
                 elif 'YELLOW' in color.upper():  text_color = CGI_CLI.bcolors.YELLOW
             ### CLI_MODE ###
             if no_newlines:
-                sys.stdout.write(text_color + print_name + print_text + CGI_CLI.bcolors.ENDC)
-                sys.stdout.flush()
+                if not CGI_CLI.JSON_MODE:
+                    sys.stdout.write(text_color + print_name + print_text + CGI_CLI.bcolors.ENDC)
+                    sys.stdout.flush()
             elif not CGI_CLI.JSON_MODE:
                 print(text_color + print_name + timestamp_string + print_text + CGI_CLI.bcolors.ENDC)
         del print_text
