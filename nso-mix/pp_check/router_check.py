@@ -28,7 +28,7 @@
 # status                                                                      #
 ###############################################################################
 
-import sys, os, paramiko, copy, traceback
+import sys, os, paramiko, copy, traceback, json, collections
 import getopt
 import getpass
 import telnetlib
@@ -1080,15 +1080,18 @@ def json_print(prefile = None, postfile = None, logfilename = None, error = None
         return logviewer
 
     if JSON_MODE:
-        json_text = "Content-type:application/vnd.api+json\nStatus: 200 OK\n\n\n{\n"
-        if error: json_text += '    "error":"%s"\n' % (str(error))
-        if prefile: json_text += '    "pre_log":"%s"' % (str(make_link(prefile)))
-        if postfile: json_text += '    "post_log":"%s"' % (str(make_link(postfile)))
-        if logfilename: json_text += '    "diff_log":"%s"' % (str(make_link(logfilename)))
-        json_text += "\n}\n"
-        print(json_text)
+        json_header = "Content-type:application/vnd.api+json\r\nStatus: 200 OK\r\n\r\n\r\n"
+        json_data = collections.OrderedDict()
+        if error: json_data['error'] = str(error)
+        if prefile: json_data['pre_log'] = str(make_link(prefile))
+        if postfile: json_data['post_log'] = str(make_link(postfile))
+        if logfilename: json_data['diff_log'] = str(make_link(logfilename))
 
+        print_text = str(json.dumps(json_data, indent = 2))
+        print(json_header + print_text)
 
+        #print_text = str(json.dumps(json_data))
+        #print(print_text)
 
 ##############################################################################
 #
