@@ -1088,7 +1088,8 @@ def json_print(prefile = None, postfile = None, logfilename = None, error = None
         if logfilename: json_data['diff_log'] = str(make_link(logfilename))
 
         print_text = str(json.dumps(json_data, indent = 2))
-        print(json_header + print_text)
+        print(print_text)
+        #print(json_header + print_text)
 
         #print_text = str(json.dumps(json_data))
         #print(print_text)
