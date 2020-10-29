@@ -1003,16 +1003,16 @@ def send_me_email(subject = str(), email_body = str(), \
 
 
 
-def run_isis_check(logfilename = None, json_mode = None):
+def run_isis_check(append_filename = None, json_mode = None):
     time.sleep(3)
-    command_string = '/usr/local/bin/isis_check.py --device %s%s%s%s%s' % \
-        (args.device.upper(), \
-        ' --append_logfile %s' % (logfilename if logfilename else str()), \
-        ' --printall' if args.printall else str(), \
-        ' --username %s' % (USERNAME), \
-        ' --password %s' % (PASSWORD), \
-        ' --json' if json_mode else str() \
-        )
+    command_string = '/usr/local/bin/isis_check.py'
+    if args.device: command_string += ' --device %s' % (args.device.upper())
+    if json_mode: command_string += ' --json'
+    if append_filename: ' --append_logfile %s' % (append_filename)
+    if args.printall: command_string += ' --printall'
+    command_string += ' --username %s' % (USERNAME)
+    command_string += ' --password %s' % (PASSWORD)
+
     os.system(command_string)
 
 
