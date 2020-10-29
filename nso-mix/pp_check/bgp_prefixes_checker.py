@@ -2968,8 +2968,8 @@ authentication {
             if bool(device_data): CGI_CLI.uprint('POSTCHECK DATA READ OK.', printall = True)
 
 
-
-    if len(device_data.keys()) == 0:
+    ### IF NO PRECHECK FILE FIX ###
+    if device_data and len(device_data.keys()) == 0:
         ### def REMOTE DEVICE OPERATIONS ##########################################
         for device in device_list:
             if device:
