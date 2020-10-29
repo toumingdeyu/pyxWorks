@@ -1026,12 +1026,12 @@ def run_bgp_prefixes_checker(append_filename = None, json_mode = None):
     if not args.recheck:
         command_string = '%s%s%s%s%s%s%s%s%s%s' % \
             (path_to_file, \
-            ' --device %s' % (args.device.upper()) if args.device else str(), \
-            ' --append_logfile %s' % (append_filename) if append_filename else str(), \
+            ' --device %s' % (args.device.upper() if args.device else str()), \
+            ' --append_logfile %s' % (append_filename if append_filename else str()), \
             ' --printall' if args.printall else str(), \
             ' --username %s' % (USERNAME), \
             ' --precheck' if pre_post == 'pre' else ' --postcheck', \
-            ' --prefile %s' % (precheck_file) if precheck_file else str(), \
+            ' --prefile %s' % (precheck_file if precheck_file else str()), \
             ' --latest' if args.latest else str(),
             ' --cpassword %s' % (CPASSWORD), \
             ' --json' if json_mode else str() \
@@ -1040,12 +1040,12 @@ def run_bgp_prefixes_checker(append_filename = None, json_mode = None):
     else:
         command_string = '%s%s%s%s%s%s%s%s%s' % \
             (path_to_file, \
-            ' --device %s' % (args.device.upper()) if args.device else str(), \
+            ' --device %s' % (args.device.upper() if args.device else str()), \
             ' --printall' if args.printall else str(), \
             ' --username %s' % (USERNAME), \
             ' --recheck', \
-            ' --prefile %s' % (precheck_file) if precheck_file else str(), \
-            ' --postfile %s' % (postcheck_file) if postcheck_file else str(), \
+            ' --prefile %s' % (precheck_file if precheck_file else str()), \
+            ' --postfile %s' % (postcheck_file if postcheck_file else str()), \
             ' --latest' if args.latest else str(), \
             ' --cpassword %s' % (CPASSWORD), \
             ' --json' if json_mode else str() \
@@ -1073,8 +1073,8 @@ def json_print(prefile = None, postfile = None, logfilename = None, error = None
     if JSON_MODE:
         json_text = "{\n"
         if error: json_text += '    "error":"%s"\n' % (str(error))
-        if logfilename: json_text += '    "pre_log":"%s"' % (str(prefile))
-        if logfilename: json_text += '    "post_log":"%s"' % (str(postfile))
+        if prefile: json_text += '    "pre_log":"%s"' % (str(prefile))
+        if postfile: json_text += '    "post_log":"%s"' % (str(postfile))
         if logfilename: json_text += '    "diff_log":"%s"' % (str(logfilename))
         json_text += "}\n"
         print(json_text)
