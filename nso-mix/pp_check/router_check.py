@@ -1007,7 +1007,7 @@ def run_isis_check(logfilename = None, json_mode = None):
     time.sleep(3)
     command_string = '/usr/local/bin/isis_check.py --device %s%s%s%s%s' % \
         (args.device.upper(), \
-        ' --append_logfile %s' % (logfilename) if logfilename else str(), \
+        ' --append_logfile %s' % (logfilename if logfilename else str()), \
         ' --printall' if args.printall else str(), \
         ' --username %s' % (USERNAME), \
         ' --password %s' % (PASSWORD), \
@@ -1026,12 +1026,12 @@ def run_bgp_prefixes_checker(append_filename = None, json_mode = None):
     if not args.recheck:
         command_string = '%s%s%s%s%s%s%s%s%s%s' % \
             (path_to_file, \
-            ' --device %s' % (args.device.upper() if args.device else str()), \
-            ' --append_logfile %s' % (append_filename if append_filename else str()), \
+            '%s' % (' --device %s' % (args.device.upper() if args.device else str())), \
+            '%s' % (' --append_logfile %s' % (append_filename if append_filename else str())), \
             ' --printall' if args.printall else str(), \
             ' --username %s' % (USERNAME), \
             ' --precheck' if pre_post == 'pre' else ' --postcheck', \
-            ' --prefile %s' % (precheck_file if precheck_file else str()), \
+            '%s' % (' --prefile %s' % (precheck_file if precheck_file else str())), \
             ' --latest' if args.latest else str(),
             ' --cpassword %s' % (CPASSWORD), \
             ' --json' if json_mode else str() \
@@ -1040,12 +1040,12 @@ def run_bgp_prefixes_checker(append_filename = None, json_mode = None):
     else:
         command_string = '%s%s%s%s%s%s%s%s%s' % \
             (path_to_file, \
-            ' --device %s' % (args.device.upper() if args.device else str()), \
+            '%s' % (' --device %s' % (args.device.upper() if args.device else str())), \
             ' --printall' if args.printall else str(), \
             ' --username %s' % (USERNAME), \
             ' --recheck', \
-            ' --prefile %s' % (precheck_file if precheck_file else str()), \
-            ' --postfile %s' % (postcheck_file if postcheck_file else str()), \
+            '%s' % (' --prefile %s' % (precheck_file if precheck_file else str())), \
+            '%s' % (' --postfile %s' % (postcheck_file if postcheck_file else str())), \
             ' --latest' if args.latest else str(), \
             ' --cpassword %s' % (CPASSWORD), \
             ' --json' if json_mode else str() \
