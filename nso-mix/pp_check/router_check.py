@@ -1080,7 +1080,7 @@ def json_print(prefile = None, postfile = None, logfilename = None, error = None
         return logviewer
 
     if JSON_MODE:
-        json_text = "{\n"
+        json_text = "Content-type:application/vnd.api+json\nStatus: 200 OK\n\n\n{\n"
         if error: json_text += '    "error":"%s"\n' % (str(error))
         if prefile: json_text += '    "pre_log":"%s"' % (str(make_link(prefile)))
         if postfile: json_text += '    "post_log":"%s"' % (str(make_link(postfile)))
