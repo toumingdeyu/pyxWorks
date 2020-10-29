@@ -1070,12 +1070,21 @@ def ifprint(text):
 
 
 def json_print(prefile = None, postfile = None, logfilename = None, error = None):
+    def make_link(file):
+        logviewer = file
+        iptac_server = str(check_output('hostname'))
+        if iptac_server == 'iptac5': urllink = 'https://10.253.58.126/cgi-bin/'
+        else: urllink = 'https://%s/cgi-bin/' % (iptac_server)
+        if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, file)
+        else: logviewer = './logviewer.py?logfile=%s' % (file)
+        return logviewer
+
     if JSON_MODE:
         json_text = "{\n"
         if error: json_text += '    "error":"%s"\n' % (str(error))
-        if prefile: json_text += '    "pre_log":"%s"' % (str(prefile))
-        if postfile: json_text += '    "post_log":"%s"' % (str(postfile))
-        if logfilename: json_text += '    "diff_log":"%s"' % (str(logfilename))
+        if prefile: json_text += '    "pre_log":"%s"' % (str(make_link(prefile)))
+        if postfile: json_text += '    "post_log":"%s"' % (str(make_link(postfile)))
+        if logfilename: json_text += '    "diff_log":"%s"' % (str(make_link(logfilename)))
         json_text += "}\n"
         print(json_text)
 
