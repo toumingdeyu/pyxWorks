@@ -1004,7 +1004,14 @@ def send_me_email(subject = str(), email_body = str(), \
 
 
 def run_isis_check(append_filename = None, json_mode = None):
+
+    if append_filename:
+        with open(append_filename, "a+") as myfile:
+            myfile.write('\n\n')
+            myfile.flush()
+
     time.sleep(3)
+
     command_string = '/usr/local/bin/isis_check.py'
     if args.device: command_string += ' --device %s' % (args.device.upper())
     if json_mode: command_string += ' --json'
@@ -1017,6 +1024,12 @@ def run_isis_check(append_filename = None, json_mode = None):
 
 
 def run_bgp_prefixes_checker(append_filename = None, json_mode = None):
+
+    if append_filename:
+        with open(append_filename, "a+") as myfile:
+            myfile.write('\n\n')
+            myfile.flush()
+
     time.sleep(3)
 
     path_to_file = '/usr/local/bin/bgp_prefixes_checker.py'
