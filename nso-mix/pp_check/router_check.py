@@ -1008,7 +1008,7 @@ def run_isis_check(append_filename = None, json_mode = None):
     command_string = '/usr/local/bin/isis_check.py'
     if args.device: command_string += ' --device %s' % (args.device.upper())
     if json_mode: command_string += ' --json'
-    if append_filename: ' --append_logfile %s' % (append_filename)
+    if append_filename: command_string += ' --append_logfile %s' % (append_filename)
     if args.printall: command_string += ' --printall'
     command_string += ' --username %s' % (USERNAME)
     command_string += ' --password %s' % (PASSWORD)
@@ -1028,7 +1028,7 @@ def run_bgp_prefixes_checker(append_filename = None, json_mode = None):
         command_string += path_to_file
         if args.device: command_string += ' --device %s' % (args.device.upper())
         if json_mode: command_string += ' --json'
-        if append_filename: ' --append_logfile %s' % (append_filename)
+        if append_filename: command_string += ' --append_logfile %s' % (append_filename)
         if args.printall: command_string += ' --printall'
         command_string += ' --username %s' % (USERNAME)
         if pre_post == 'pre': command_string += ' --precheck'
@@ -1205,7 +1205,8 @@ if args.nocolors or 'WIN32' in sys.platform.upper(): bcolors = nocolors
 
 ifprint('router_check (v.%s)' % (VERSION))
 
-if args.printall: ifprint('CLI_args = %s, [%s]\n' % (str(sys.argv[1:]),str(args)))
+if args.printall:
+    ifprint('CLI_args = %s, [%s]\n' % (str(sys.argv[1:]), str(args)))
 
 COL_DELETED = bcolors.RED
 COL_ADDED   = bcolors.GREEN
