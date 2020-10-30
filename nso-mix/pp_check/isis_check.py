@@ -144,6 +144,10 @@ class CGI_CLI(object):
                             # action = "store_true", dest = 'timestamps',
                             # default = None,
                             # help = "print all lines with timestamps")
+        parser.add_argument("--append_ppfile",
+                            action = "store", dest = 'append_ppfile',
+                            default = None,
+                            help = "append precheck/postcheck file with specified name")                                                       
         parser.add_argument("--append_logfile",
                             action = "store", dest = 'append_logfile',
                             default = None,
@@ -1676,6 +1680,28 @@ def display_interface(header_text = None, interface_list = None, color = None):
         isis_interface, description = interface
         CGI_CLI.uprint('%s  -  %s' %(isis_interface, description), color = color)
     if len(interface_list) > 0: CGI_CLI.uprint(' ')
+    
+    if CGI_CLI.args.get('append_logfile'):
+        with open(CGI_CLI.args.get('append_logfile'),"a+") as fp:
+            text_color = str()
+            if color:
+                if 'RED' in color.upper():       text_color = CGI_CLI.bcolors.RED
+                elif 'MAGENTA' in color.upper(): text_color = CGI_CLI.bcolors.MAGENTA
+                elif 'GREEN' in color.upper():   text_color = CGI_CLI.bcolors.GREEN
+                elif 'BLUE' in color.upper():    text_color = CGI_CLI.bcolors.BLUE
+                elif 'CYAN' in color.upper():    text_color = CGI_CLI.bcolors.CYAN
+                elif 'GREY' in color.upper():    text_color = CGI_CLI.bcolors.GREY
+                elif 'GRAY' in color.upper():    text_color = CGI_CLI.bcolors.GREY
+                elif 'YELLOW' in color.upper():  text_color = CGI_CLI.bcolors.YELLOW
+           
+            if len(interface_list) > 0: fp.write(text_color + header_text + CGI_CLI.bcolors.ENDC + '\n')
+            for interface in interface_list:
+                isis_interface, description = interface
+                fp.write('%s%s  -  %s%s\n' %(text_color,isis_interface, description, CGI_CLI.bcolors.ENDC))
+            if len(interface_list) > 0: CGI_CLI.uprint(' ')
+            fp.flush()
+   
+    
 
 ##############################################################################
 #
@@ -1772,8 +1798,8 @@ warning {
 
 
     ### def APPEND ISIS OUTPUT TO POSTCHECK LOGFILE IN 1 DEVICE CLI MODE ONLY
-    if CGI_CLI.data.get("append_logfile",str()):
-        logfilename = CGI_CLI.data.get("append_logfile",str())
+    if CGI_CLI.data.get("append_ppfile",str()):
+        logfilename = CGI_CLI.data.get("append_ppfile",str())
 
         logdata = str()
 
@@ -2149,8 +2175,8 @@ warning {
                 CGI_CLI.uprint(isis_interface_ok_list, name = True , jsonprint = True)
 
             if len(isis_interface_fail_list) == 0 and len(isis_interface_warning_list) == 0:
-                #display_interface(header_text = '%s interface(s) with ISIS OK:' % (device), interface_list = isis_interface_ok_list, color = 'green')
                 CGI_CLI.uprint('%s interface(s) - Customer ISIS OK.' % (device), color = 'green')
+                display_interface(header_text = '%s interface(s) with ISIS OK.' % (device), interface_list = [], color = 'green')
 
             display_interface(header_text = '%s interface(s) with Customer ISIS WARNING:' % (device), interface_list = isis_interface_warning_list, color = 'yellow')
             display_interface(header_text = '%s interface(s) with Customer ISIS PROBLEM:' % (device), interface_list = isis_interface_fail_list, color = 'red')

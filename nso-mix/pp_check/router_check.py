@@ -1003,10 +1003,15 @@ def send_me_email(subject = str(), email_body = str(), \
 
 
 
-def run_isis_check(append_filename = None, json_mode = None):
+def run_isis_check(append_ppfile = None, append_logfile = None, json_mode = None):
 
-    if append_filename:
-        with open(append_filename, "a+") as myfile:
+    if append_ppfile:
+        with open(append_ppfile, "a+") as myfile:
+            myfile.write('\n\n')
+            myfile.flush()
+
+    if append_logfile:
+        with open(append_logfile, "a+") as myfile:
             myfile.write('\n\n')
             myfile.flush()
 
@@ -1015,7 +1020,8 @@ def run_isis_check(append_filename = None, json_mode = None):
     command_string = '/usr/local/bin/isis_check.py'
     if args.device: command_string += ' --device %s' % (args.device.upper())
     if json_mode: command_string += ' --json'
-    if append_filename: command_string += ' --append_logfile %s' % (append_filename)
+    if append_ppfile: command_string += ' --append_ppfile %s' % (append_ppfile)
+    if append_logfile: command_string += ' --append_logfile %s' % (append_logfile)
     if args.printall: command_string += ' --printall'
     command_string += ' --username %s' % (USERNAME)
     command_string += ' --password %s' % (PASSWORD)
@@ -1023,10 +1029,15 @@ def run_isis_check(append_filename = None, json_mode = None):
     os.system(command_string)
 
 
-def run_bgp_prefixes_checker(append_filename = None, json_mode = None):
+def run_bgp_prefixes_checker(append_ppfile = None, append_logfile = None, json_mode = None):
 
-    if append_filename:
-        with open(append_filename, "a+") as myfile:
+    if append_ppfile:
+        with open(append_ppfile, "a+") as myfile:
+            myfile.write('\n\n')
+            myfile.flush()
+
+    if append_logfile:
+        with open(append_logfile, "a+") as myfile:
             myfile.write('\n\n')
             myfile.flush()
 
@@ -1041,13 +1052,14 @@ def run_bgp_prefixes_checker(append_filename = None, json_mode = None):
         command_string += path_to_file
         if args.device: command_string += ' --device %s' % (args.device.upper())
         if json_mode: command_string += ' --json'
-        if append_filename: command_string += ' --append_logfile %s' % (append_filename)
+        if append_ppfile: command_string += ' --append_ppfile %s' % (append_ppfile)
+        if append_logfile: command_string += ' --append_logfile %s' % (append_logfile)
         if args.printall: command_string += ' --printall'
         command_string += ' --username %s' % (USERNAME)
         if pre_post == 'pre': command_string += ' --precheck'
         else: command_string += ' --postcheck'
-        if precheck_file: command_string += ' --prefile %s' % (precheck_file)
-        if postcheck_file: command_string += ' --postfile %s' % (postcheck_file)
+        #if precheck_file: command_string += ' --prefile %s' % (precheck_file)
+        #if postcheck_file: command_string += ' --postfile %s' % (postcheck_file)
         if args.latest: command_string += ' --latest'
         command_string += ' --cpassword %s' % (CPASSWORD)
 
@@ -1732,17 +1744,15 @@ if pre_post == "post" or args.recheck or args.postcheck_file:
     ifprint('\n')
     if args.recheck: run_isis_check()
     else:
-        if JSON_MODE and logfilename: run_isis_check(logfilename, True)
-        elif JSON_MODE and not logfilename: run_isis_check(filename, True)
-        else: run_isis_check(filename)
+        if JSON_MODE: run_isis_check(filename, logfilename, True)
+        else: run_isis_check(filename, logfilename)
 
     ### def BGP PREFIX CHECK DO NOT LOG IF RECHECK ############################
     ifprint('\n')
     if args.recheck: run_bgp_prefixes_checker()
     elif not args.nobgpcheck:
-        if JSON_MODE and logfilename: run_bgp_prefixes_checker(logfilename, True)
-        elif JSON_MODE and not logfilename: run_bgp_prefixes_checker(filename, True)
-        else: run_bgp_prefixes_checker(filename)
+        if JSON_MODE: run_bgp_prefixes_checker(filename, logfilename, True)
+        else: run_bgp_prefixes_checker(filename, logfilename)
 
     ifprint('\n ==> POSTCHECK COMPLETE !')
 
@@ -1751,9 +1761,8 @@ elif pre_post == "pre" and not args.recheck:
     ### BGP PREFIX CHECK DO NOT LOG IF RECHECK ################################
     ifprint('\n')
     if not args.nobgpcheck:
-        if JSON_MODE and logfilename: run_bgp_prefixes_checker(logfilename, True)
-        elif JSON_MODE and not logfilename: run_bgp_prefixes_checker(filename, True)
-        else: run_bgp_prefixes_checker(filename)
+        if JSON_MODE and logfilename: run_bgp_prefixes_checker(filename, logfilename, True)
+        else: run_bgp_prefixes_checker(filename, logfilename)
 
     ifprint('\n ==> PRECHECK COMPLETE !')
 

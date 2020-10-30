@@ -129,6 +129,10 @@ class CGI_CLI(object):
                             action = "store_true", dest = 'printall',
                             default = None,
                             help = "print all lines, changes will be coloured")
+        parser.add_argument("--append_ppfile",
+                            action = "store", dest = 'append_ppfile',
+                            default = None,
+                            help = "append precheck/postcheck file with specified name")
         parser.add_argument("--append_logfile",
                             action = "store", dest = 'append_logfile',
                             default = None,
@@ -2900,8 +2904,8 @@ authentication {
 
     ### def LOGFILENAME GENERATION, DO LOGGING ONLY WHEN DEVICE LIST EXISTS ###
     logfilename = None
-    if CGI_CLI.data.get("append_logfile",str()):
-        logfilename = CGI_CLI.data.get("append_logfile",str())
+    if CGI_CLI.data.get("append_ppfile",str()):
+        logfilename = CGI_CLI.data.get("append_ppfile",str())
     else:
         html_extention = 'htm' if CGI_CLI.cgi_active else str()
         logfilename = generate_logfilename(
@@ -2929,9 +2933,9 @@ authentication {
         last_precheck_file = CGI_CLI.data.get("precheck_file",str())
         last_postcheck_file = CGI_CLI.data.get("postcheck_file",str())
 
-        if not last_precheck_file and CGI_CLI.data.get("append_logfile",str()) and 'post' in CGI_CLI.data.get("append_logfile",str()):
+        if not last_precheck_file and CGI_CLI.data.get("append_ppfile",str()) and 'post' in CGI_CLI.data.get("append_ppfile",str()):
             ### FIND PRECHECK FROM POSTCHECK LIKE IN ROUTER_CHECK #############
-            try: LOG_FILE_DIR = CGI_CLI.data.get("append_logfile",str()).split('/')[0]
+            try: LOG_FILE_DIR = CGI_CLI.data.get("append_ppfile",str()).split('/')[0]
             except: LOG_FILE_DIR = ''
             if CGI_CLI.data.get("latest"):
                 list_precheck_files = glob.glob(os.path.join(LOG_FILE_DIR,'_'.join(device_list).upper().replace(':','_').replace('.','_')) + '*' + 'pre')
