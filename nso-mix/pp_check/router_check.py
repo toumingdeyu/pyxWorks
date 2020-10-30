@@ -1429,8 +1429,8 @@ if not args.recheck:
     if str(args.cmdlist) != 'list':
         filename = filename_generated
 
-### if not inserted --postfile, we will use generated filename and write to this new file
-if not args.recheck and not args.postcheck_file: postcheck_file = filename
+### ACTUAL POSTCHECK: if not inserted --postfile, we will use generated filename and write to this new file
+if not pre_post == "pre" and not args.recheck and not args.postcheck_file: postcheck_file = filename
 
 
 
