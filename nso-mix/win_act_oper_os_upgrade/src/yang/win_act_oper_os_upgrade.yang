@@ -374,6 +374,12 @@ module win_act_oper_os_upgrade {
             }
           }
         }
+        target_sw_file {
+            type string;
+        }
+        target_patch_files {
+            type string;
+        }
       }
       output {
         leaf os_type {
