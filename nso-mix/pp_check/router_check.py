@@ -1205,6 +1205,8 @@ if args.nocolors or 'WIN32' in sys.platform.upper(): bcolors = nocolors
 
 ifprint('router_check (v.%s)' % (VERSION))
 
+if args.printall: ifprint('CLI_args = %s, [%s]\n' % (str(sys.argv[1:]),str(args)))
+
 COL_DELETED = bcolors.RED
 COL_ADDED   = bcolors.GREEN
 COL_DIFFDEL = bcolors.BLUE
