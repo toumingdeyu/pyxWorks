@@ -2221,14 +2221,15 @@ def read_bgp_data_json_from_logfile(filename = None, separator = None, printall 
                 else: new_bgp_data_json_text = new_bgp_data_json_text + '\n' + line
 
         if new_bgp_data_json_text:
-            try: bgp_data_loaded = json.loads(new_bgp_data_json_text, object_pairs_hook = collections.OrderedDict)
+            try:
+                bgp_data_loaded = json.loads(new_bgp_data_json_text, object_pairs_hook = collections.OrderedDict)
+                if printall: CGI_CLI.uprint("\nLOADED JSON BGP_DATA: ")
+                if printall: CGI_CLI.uprint(json.dumps(bgp_data_loaded, indent=2, sort_keys = sort_keys))
             except:
-                traceback_found = traceback.format_exc()
-                CGI_CLI.uprint(str(traceback_found), color = 'magenta')
-                CGI_CLI.uprint("\nPROBLEM TO PARSE JSON BGP_DATA: \n%s\n" % (new_bgp_data_json_text), color = 'magenta')
-
-            if printall: CGI_CLI.uprint("\nLOADED JSON BGP_DATA: ")
-            if printall: CGI_CLI.uprint(json.dumps(bgp_data_loaded, indent=2, sort_keys = sort_keys))
+                #traceback_found = traceback.format_exc()
+                #CGI_CLI.uprint(str(traceback_found), color = 'magenta')
+                #CGI_CLI.uprint("\nPROBLEM TO PARSE JSON BGP_DATA: \n%s\n" % (new_bgp_data_json_text), color = 'magenta')
+                CGI_CLI.uprint("\nPROBLEM TO PARSE JSON BGP_DATA FROM FILE %s !\n" % (filename), color = 'magenta')
     return bgp_data_loaded
 
 ###############################################################################
