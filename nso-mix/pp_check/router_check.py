@@ -1549,7 +1549,7 @@ else:
         client.close()
         time.sleep(0.5)
     ### MAKE READABLE for THE OTHERS
-    last_output = subprocess.check_output('chmod +r %s' % (filename),shell=True)
+    last_output = subprocess.check_output('chmod +r %s' % (filename), shell=True)
     ifprint(" ... Collection is completed\n")
 
 # Post Check treatment
@@ -1589,6 +1589,8 @@ if pre_post == "post" or args.recheck or args.postcheck_file:
     if logfilename:
         with open(logfilename, "w+") as myfile:
             myfile.write('\nPrecheck file: %s\nPostcheck file: %s\n\n'%(precheck_file,postcheck_file))
+        ### MAKE READABLE for THE OTHERS
+        forget_it = subprocess.check_output('chmod +r %s' % (logfilename), shell=True)
 
     # run commands tgrough CMD list
     for cli_index, cli_items in enumerate(CMD):

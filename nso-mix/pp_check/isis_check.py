@@ -383,6 +383,7 @@ class CGI_CLI(object):
         if CGI_CLI.logfilename and (log or CGI_CLI.log):
             with open(CGI_CLI.logfilename,"a+") as CGI_CLI.fp:
                 CGI_CLI.fp.write(print_name + log_text + '\n')
+                CGI_CLI.fp.flush()
         del log_text
 
 

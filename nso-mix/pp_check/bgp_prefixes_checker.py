@@ -375,6 +375,7 @@ class CGI_CLI(object):
             if msg_to_file:
                 with open(CGI_CLI.logfilename,"a+") as CGI_CLI.fp:
                     CGI_CLI.fp.write(msg_to_file)
+                    CGI_CLI.fp.flush()
                     del msg_to_file
 
             ### ON END: LOGFILE SET TO VOID, AVOID OF MULTIPLE FOOTERS ########
