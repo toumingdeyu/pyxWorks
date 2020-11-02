@@ -2953,6 +2953,8 @@ authentication {
             (SCRIPT_NAME, changelog, CGI_CLI.VERSION()), raw_log = True, ommit_timestamp = True)
     else: CGI_CLI.logtofile('%s (v.%s)' % (SCRIPT_NAME,CGI_CLI.VERSION()), ommit_timestamp = True)
 
+    log2file(resultfile, '\n%s (v.%s)\n\n' % (SCRIPT_NAME,CGI_CLI.VERSION()))
+
     CGI_CLI.logtofile(CGI_CLI.print_args(ommit_print = True) + '\n\n', ommit_timestamp = True)
 
     ### FIND LAS LOGFILE AND READ JSON DATA ###################################

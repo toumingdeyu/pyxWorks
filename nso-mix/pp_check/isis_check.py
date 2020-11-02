@@ -1701,6 +1701,13 @@ def display_interface(header_text = None, interface_list = None, color = None):
             if len(interface_list) > 0: CGI_CLI.uprint(' ')
             fp.flush()
 
+##############################################################################
+
+def log2file(filename = None, text = None):
+    if text and filename:
+        with open(filename,"a+") as CGI_CLI.fp:
+            CGI_CLI.fp.write(text)
+            CGI_CLI.fp.flush()
 
 
 ##############################################################################
@@ -1829,6 +1836,8 @@ warning {
         else: device_list = [devices_string.upper()]
 
     CGI_CLI.uprint('Customer ISIS check (v.%s)' % (CGI_CLI.VERSION()), tag = 'h1', color = 'blue' , log = True)
+
+    log2file(CGI_CLI.data.get('append_logfile'), '\nCustomer ISIS check (v.%s)\n\n' % (CGI_CLI.VERSION()))
 
     printall = CGI_CLI.data.get("printall")
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
