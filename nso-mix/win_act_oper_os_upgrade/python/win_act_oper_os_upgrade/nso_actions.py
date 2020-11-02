@@ -647,7 +647,8 @@ class NsoActionsClass_os_upgrade_device_ping_check(Action):
             ping_response = os.system("ping -c 1 " + device)
             if int(ping_response) == 0: output.result = 'success'
             else: output.result = 'failure'
-        elif ip:
+            
+        if output.result == 'failure' and ip:    
             ping_response = os.system("ping -c 1 " + ip)
             if int(ping_response) == 0: output.result = 'success'
             else: output.result = 'failure'
