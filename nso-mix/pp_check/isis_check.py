@@ -147,7 +147,7 @@ class CGI_CLI(object):
         parser.add_argument("--append_ppfile",
                             action = "store", dest = 'append_ppfile',
                             default = None,
-                            help = "append precheck/postcheck file with specified name")                                                       
+                            help = "append precheck/postcheck file with specified name")
         parser.add_argument("--append_logfile",
                             action = "store", dest = 'append_logfile',
                             default = None,
@@ -1680,9 +1680,9 @@ def display_interface(header_text = None, interface_list = None, color = None):
         isis_interface, description = interface
         CGI_CLI.uprint('%s  -  %s' %(isis_interface, description), color = color)
     if len(interface_list) > 0: CGI_CLI.uprint(' ')
-    
-    if CGI_CLI.args.get('append_logfile'):
-        with open(CGI_CLI.args.get('append_logfile'),"a+") as fp:
+
+    if CGI_CLI.data.get('append_logfile'):
+        with open(CGI_CLI.data.get('append_logfile'),"a+") as fp:
             text_color = str()
             if color:
                 if 'RED' in color.upper():       text_color = CGI_CLI.bcolors.RED
@@ -1693,15 +1693,15 @@ def display_interface(header_text = None, interface_list = None, color = None):
                 elif 'GREY' in color.upper():    text_color = CGI_CLI.bcolors.GREY
                 elif 'GRAY' in color.upper():    text_color = CGI_CLI.bcolors.GREY
                 elif 'YELLOW' in color.upper():  text_color = CGI_CLI.bcolors.YELLOW
-           
+
             if len(interface_list) > 0: fp.write(text_color + header_text + CGI_CLI.bcolors.ENDC + '\n')
             for interface in interface_list:
                 isis_interface, description = interface
                 fp.write('%s%s  -  %s%s\n' %(text_color,isis_interface, description, CGI_CLI.bcolors.ENDC))
             if len(interface_list) > 0: CGI_CLI.uprint(' ')
             fp.flush()
-   
-    
+
+
 
 ##############################################################################
 #
