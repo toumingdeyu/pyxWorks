@@ -2680,27 +2680,36 @@ def check_bgp_peers_precheck(bgp_peers_string = None, percentage_tolerance = 3):
         for bgp_peer in device_data[bgp_peers_string].keys():
             error_flag = False
             if device_data[bgp_peers_string][bgp_peer].get('Accepted_prefixes',0) < device_data[bgp_peers_string][bgp_peer].get('Received_prefixes',0):
-                CGI_CLI.uprint('BGP Peer %s has Accepted_prefixes < Received_prefixes !' % (bgp_peer), color = 'orange', printall = True)
+                text = 'BGP Peer %s has Accepted_prefixes < Received_prefixes !' % (bgp_peer)
+                CGI_CLI.uprint(text, color = 'orange', printall = True)
+                log2file(resultfile, CGI_CLI.bcolors.YELLOW + text + CGI_CLI.bcolors.ENDC + '\n')
                 error_flag = True
 
             if device_data[bgp_peers_string][bgp_peer].get('Denied_prefixes',0) > 0:
-                CGI_CLI.uprint('BGP Peer %s has Denied_prefixes > 0 !' % (bgp_peer), color = 'orange', printall = True)
+                text = 'BGP Peer %s has Denied_prefixes > 0 !' % (bgp_peer)
+                CGI_CLI.uprint(text, color = 'orange', printall = True)
+                log2file(resultfile, CGI_CLI.bcolors.YELLOW + text + CGI_CLI.bcolors.ENDC + '\n')
                 error_flag = True
 
             if device_data[bgp_peers_string][bgp_peer].get('Maximum_prefixes') \
                 and float(0.9 * device_data[bgp_peers_string][bgp_peer].get('Accepted_prefixes',0)) > float(device_data[bgp_peers_string][bgp_peer].get('Maximum_prefixes',0)):
-                CGI_CLI.uprint('BGP Peer %s has ratio of Accepted/Advertized prefixes > 90 %% !' % \
-                    (bgp_peer, str(percentage_tolerance),str(precheck_advertized),str(postcheck_advertized)), color = 'red', printall = True)
+                text = 'BGP Peer %s has ratio of Accepted/Advertized prefixes > 90 %% !' % \
+                    (bgp_peer, str(percentage_tolerance),str(precheck_advertized),str(postcheck_advertized))
+                CGI_CLI.uprint(text, color = 'red', printall = True)
+                log2file(resultfile, CGI_CLI.bcolors.RED + text + CGI_CLI.bcolors.ENDC + '\n')
                 error_flag = True
 
             if device_data[bgp_peers_string][bgp_peer].get('State',''):
-                CGI_CLI.uprint('BGP Peer %s PRECHECK STATE is %s' % \
-                    (bgp_peer, device_data[bgp_peers_string][bgp_peer].get('State','')), printall = True)
+                text = 'BGP Peer %s PRECHECK STATE is %s' % \
+                    (bgp_peer, device_data[bgp_peers_string][bgp_peer].get('State',''))
+                CGI_CLI.uprint(text, printall = True)
+                log2file(resultfile, text + '\n')
                 error_flag = True
 
             if not error_flag:
-                CGI_CLI.uprint('BGP Peer %s check - OK.' % (bgp_peer), printall = True)
-
+                text = 'BGP Peer %s check - OK.' % (bgp_peer)
+                CGI_CLI.uprint(text, printall = True)
+                log2file(resultfile, text + '\n')
 
 
 def check_bgp_peers_postcheck(bgp_peers_string = None, percentage_tolerance = 3):
@@ -2709,21 +2718,29 @@ def check_bgp_peers_postcheck(bgp_peers_string = None, percentage_tolerance = 3)
         for bgp_peer in device_data[bgp_peers_string].keys():
             error_flag = False
             if device_data[bgp_peers_string][bgp_peer].get('Accepted_prefixes',0) < device_data[bgp_peers_string][bgp_peer].get('Received_prefixes',0):
-                CGI_CLI.uprint('BGP Peer %s has Accepted_prefixes < Received_prefixes !' % (bgp_peer), color = 'orange', printall = True)
+                text = 'BGP Peer %s has Accepted_prefixes < Received_prefixes !' % (bgp_peer)
+                CGI_CLI.uprint(text, color = 'orange', printall = True)
+                log2file(resultfile, CGI_CLI.bcolors.YELLOW + text + CGI_CLI.bcolors.ENDC + '\n')
                 error_flag = True
 
             if device_data[bgp_peers_string][bgp_peer].get('Denied_prefixes',0) > 0:
-                CGI_CLI.uprint('BGP Peer %s has Denied_prefixes > 0 !' % (bgp_peer), color = 'orange', printall = True)
+                text = 'BGP Peer %s has Denied_prefixes > 0 !' % (bgp_peer)
+                CGI_CLI.uprint(text, color = 'orange', printall = True)
+                log2file(resultfile, CGI_CLI.bcolors.YELLOW + text + CGI_CLI.bcolors.ENDC + '\n')
                 error_flag = True
 
             if len(bgp_precheck_data[bgp_peers_string].get(bgp_peer,{}).keys()) == 0:
-                CGI_CLI.uprint('BGP Peer %s is MISSING IN PRECHECK !' % (bgp_peer), color = 'red', printall = True)
+                text = 'BGP Peer %s is MISSING IN PRECHECK !' % (bgp_peer)
+                CGI_CLI.uprint(text, color = 'red', printall = True)
+                log2file(resultfile, CGI_CLI.bcolors.RED + text + CGI_CLI.bcolors.ENDC + '\n')
                 error_flag = True
             else:
                 if device_data[bgp_peers_string][bgp_peer].get('State','') != bgp_precheck_data[bgp_peers_string][bgp_peer].get('State',''):
-                    CGI_CLI.uprint('BGP Peer %s POSTCHECK STATE is %s (PRECHECK STATE was %s) !' % \
+                    text = 'BGP Peer %s POSTCHECK STATE is %s (PRECHECK STATE was %s) !' % \
                         (bgp_peer, device_data[bgp_peers_string][bgp_peer].get('State',''), \
-                        bgp_precheck_data[bgp_peers_string][bgp_peer].get('State','')), color = 'red', printall = True)
+                        bgp_precheck_data[bgp_peers_string][bgp_peer].get('State',''))
+                    CGI_CLI.uprint(text, color = 'red', printall = True)
+                    log2file(resultfile, CGI_CLI.bcolors.RED + text + CGI_CLI.bcolors.ENDC + '\n')
                     error_flag = True
 
                 precheck_advertized, postcheck_advertized = 0, 0
@@ -2736,27 +2753,40 @@ def check_bgp_peers_postcheck(bgp_peers_string = None, percentage_tolerance = 3)
                 if float(precheck_advertized) < float(postcheck_advertized) * (100 + percentage_tolerance)/100 \
                     and float(precheck_advertized) > float(postcheck_advertized) * (100 - percentage_tolerance)/100: pass
                 elif precheck_advertized != 0 or postcheck_advertized != 0:
-                    CGI_CLI.uprint('BGP Peer %s has ratio of Precheck/Postcheck Advertized_prefixes difference > %s %% (PRECHECK: %s, POSTCHECK: %s)!' % \
-                        (bgp_peer, str(percentage_tolerance),str(precheck_advertized),str(postcheck_advertized)), color = 'red', printall = True)
+                    text = 'BGP Peer %s has ratio of Precheck/Postcheck Advertized_prefixes difference > %s %% (PRECHECK: %s, POSTCHECK: %s)!' % \
+                        (bgp_peer, str(percentage_tolerance),str(precheck_advertized),str(postcheck_advertized))
+                    CGI_CLI.uprint(text, color = 'red', printall = True)
+                    log2file(resultfile, CGI_CLI.bcolors.RED + text + CGI_CLI.bcolors.ENDC + '\n')
                     error_flag = True
 
                 if device_data[bgp_peers_string][bgp_peer].get('Maximum_prefixes') \
                     and float(0.9 * device_data[bgp_peers_string][bgp_peer].get('Accepted_prefixes',0)) > float(device_data[bgp_peers_string][bgp_peer].get('Maximum_prefixes',0)):
-                    CGI_CLI.uprint('BGP Peer %s has ratio of Accepted/Advertized prefixes > 90 %% !' % \
-                        (bgp_peer, str(percentage_tolerance),str(precheck_advertized),str(postcheck_advertized)), color = 'red', printall = True)
+                    text = 'BGP Peer %s has ratio of Accepted/Advertized prefixes > 90 %% !' % \
+                        (bgp_peer, str(percentage_tolerance),str(precheck_advertized),str(postcheck_advertized))
+                    CGI_CLI.uprint(text, color = 'red', printall = True)
+                    log2file(resultfile, CGI_CLI.bcolors.RED + text + CGI_CLI.bcolors.ENDC + '\n')
                     error_flag = True
 
             if not error_flag:
-                CGI_CLI.uprint('BGP Peer %s check - OK.' % (bgp_peer), printall = True)
+                text = 'BGP Peer %s check - OK.' % (bgp_peer)
+                CGI_CLI.uprint(text, printall = True)
+                log2file(resultfile, text + '\n')
 
         ### CONDITION IF PRECHECK HAS MORE BGP PEERS LIKE IN POSTCHECK #######
         for bgp_peer in bgp_precheck_data[bgp_peers_string].keys():
             if len(device_data[bgp_peers_string].get(bgp_peer,{}).keys()) == 0:
-                CGI_CLI.uprint('BGP Peer %s is MISSING IN POSTCHECK !' % (bgp_peer), color = 'red', printall = True)
+                text = 'BGP Peer %s is MISSING IN POSTCHECK !' % (bgp_peer)
+                CGI_CLI.uprint(text, color = 'red', printall = True)
+                log2file(resultfile, CGI_CLI.bcolors.RED + text + CGI_CLI.bcolors.ENDC + '\n')
                 error_flag = True
 
 
-
+###############################################################################
+def log2file(filename = None, text = None):
+    if text and filename:
+        with open(filename,"a+") as CGI_CLI.fp:
+            CGI_CLI.fp.write(text)
+            CGI_CLI.fp.flush()
 
 ###############################################################################
 #
@@ -2901,12 +2931,12 @@ authentication {
     if exit_due_to_error: sys.exit(0)
 
 
-
     ### def LOGFILENAME GENERATION, DO LOGGING ONLY WHEN DEVICE LIST EXISTS ###
     logfilename = None
+    resultfile = CGI_CLI.data.get("append_logfile",str())
     if CGI_CLI.data.get("append_ppfile",str()):
         logfilename = CGI_CLI.data.get("append_ppfile",str())
-    else:
+    elif not resultfile:
         html_extention = 'htm' if CGI_CLI.cgi_active else str()
         logfilename = generate_logfilename(
             prefix = '_'.join(device_list).upper(), \
