@@ -374,10 +374,10 @@ module win_act_oper_os_upgrade {
             }
           }
         }
-        target_sw_file {
+        leaf target_sw_file {
             type string;
         }
-        target_patch_files {
+        leaf target_patch_path {
             type string;
         }
       }
