@@ -261,6 +261,8 @@ class NsoActionsClass_get_sw_version(Action):
                     pass
 
         self.log.info('\nOUTPUT: ', object_to_string(self, output))
+        self.log.info('\nOUTPUT_dump: ', object_dump(self, output))
+
         #self.log.info('\nOUTPUT: ', object_to_string(self, output))
 
 #    for i in range(len(output.target_sw_versions)):
@@ -647,8 +649,8 @@ class NsoActionsClass_os_upgrade_device_ping_check(Action):
             ping_response = os.system("ping -c 1 " + device)
             if int(ping_response) == 0: output.result = 'success'
             else: output.result = 'failure'
-            
-        if output.result == 'failure' and ip:    
+
+        if output.result == 'failure' and ip:
             ping_response = os.system("ping -c 1 " + ip)
             if int(ping_response) == 0: output.result = 'success'
             else: output.result = 'failure'
@@ -1082,25 +1084,39 @@ class NsoActionsClass_os_upgrade_postcheck(Action):
 
 ###############################################################################
 
-def object_to_string(self, object):
+def object_to_string(self, object_instance):
     """ Printable representation of object variables."""
-    return_string = str(eval("str(object)")) + ':\n'
-    for item in dir(object):
+    try: return_string = '\n' + str(eval("str(object_instance)")) + ':\n'
+    except: pass
+    for item in dir(object_instance):
         if '_' in str(item[0]) and '_' in str(item[-1]): pass
         else:
-            is_it_subclass = None
-            try: is_it_subclass = issubclass(item, object)
-            except: pass
-            if is_it_subclass:
-                for subitem in dir(object.item):
-                    if '_' in str(subitem[0]) and '_' in str(subitem[-1]): pass
-                    else:
-                        try: return_string += "\\___" + str(item) + '.' + str(subitem) + '=' + str(eval("object.%s.%s" % str(item, subitem))) + '\n'
-                        except: return_string += '\\____...\n'
-            else:
-                try: return_string += "\\___" + str(item) + '=' + str(eval("object.%s" % str(item))) + '\n'
-                except: return_string += '\\____...\n'
+            # dir_subobjects = None
+            # try: dir_subobjects = dir(object_instance.item)
+            # except: pass
+            # if dir_subobjects:
+                # for subitem in dir(object_instance.item):
+                    # if '_' in str(subitem[0]) and '_' in str(subitem[-1]): pass
+                    # else:
+                        # try: return_string += "\\_____" + str(item) + '.' + str(subitem) + '=' + str(eval("object_instance.%s.%s" % str(item, subitem))) + '\n'
+                        # except: return_string += '\\_____...\n'
+            # else:
+                try: return_string += "\\____" + str(item) + " " + str(eval("type(object_instance.%s)" % str(item))) + ' = ' + str(eval("repr(object_instance.%s)" % str(item))) + '\n'
+                except: return_string += '\\___'+ str(item) + ' = ...\n'
+
+                # try: return_string += "     " + object_instance.item._cache + '\n'
+                # except: pass
+                # try: return_string += "     " + ' = ' + str(eval("repr(object_instance.item._cache)")) + '\n'
+                # except: pass
     return return_string
+
+###############################################################################
+
+def object_dump(self, obj):
+    if hasattr(obj, '__dict__'):
+        return vars(obj)
+    else:
+        return {attr: getattr(obj, attr, None) for attr in obj.__slots__}
 
 ###############################################################################
 def detect_hw(self, uinfo, input):

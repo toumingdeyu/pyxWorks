@@ -103,14 +103,14 @@ def device_command(self, uinfo, input, cmd, get_platform = True):
 
 ###############################################################################
 
-def object_to_string(self, object):
-    """ Printable representation of object variables."""
-    return_string = str(eval("str(object)")) + ':\n'
-    for item in dir(object):
-        if '_' in str(item[0]) and '_' in str(item[-1]): pass
-        else:
-            try: return_string += "\\___" + str(item) + '=' + str(eval("object.%s" % str(item))) + '\n'
-            except: return_string += '\\____...\n'
-    return return_string
+# def object_to_string(self, object):
+    # """ Printable representation of object variables."""
+    # return_string = str(eval("str(object)")) + ':\n'
+    # for item in dir(object):
+        # if '_' in str(item[0]) and '_' in str(item[-1]): pass
+        # else:
+            # try: return_string += "\\___" + str(item) + '=' + str(eval("object.%s" % str(item))) + '\n'
+            # except: return_string += '\\____...\n'
+    # return return_string
 
 ###############################################################################
