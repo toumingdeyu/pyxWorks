@@ -19,7 +19,7 @@ class NsoActionsClass_get_sw_version(Action):
 
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
-        self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', object_to_string(self, input))
+        self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
         output.os_type = 'UNKNOWN'
         output.hw_type = 'UNKNOWN'
         output.sw_version = 'UNKNOWN'
@@ -260,10 +260,10 @@ class NsoActionsClass_get_sw_version(Action):
                 elif output.os_type == "junos":
                     pass
 
-        self.log.info('\nOUTPUT: ', object_to_string(self, output))
-        self.log.info('\nOUTPUT_dump: ', object_dump(self, output))
+        self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
+        #self.log.info('\nOUTPUT_dump: ', object_dump(self, output))
 
-        #self.log.info('\nOUTPUT: ', object_to_string(self, output))
+        #self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
 
 #    for i in range(len(output.target_sw_versions)):
 #        if len(output.target_sw_versions[i].files) == 0 and len(output.target_sw_versions[key].patch_files) == 0:
@@ -280,7 +280,7 @@ class NsoActionsClass_os_upgrade_precheck(Action):
 
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
-        self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', object_to_string(self, input))
+        self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
         output.os_type = 'UNKNOWN'
         output.hw_type = 'UNKNOWN'
         inactive_packages = []
@@ -438,7 +438,7 @@ class NsoActionsClass_os_upgrade_precheck(Action):
 
                     device_cmds_result, forget_it = device_command(self, uinfo, input, xr_cmds)
 
-        self.log.info('\nOUTPUT: ', object_to_string(self, output))
+        self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
 
 
 # --------------------------
@@ -449,7 +449,7 @@ class NsoActionsClass_os_upgrade_install_add(Action):
 
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
-        self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', object_to_string(self, input))
+        self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
         output.os_type = 'UNKNOWN'
         output.hw_type = 'UNKNOWN'
         asr_admin_string = str()
@@ -540,7 +540,7 @@ class NsoActionsClass_os_upgrade_install_add(Action):
             try: output.operation_id = i_device_cmds_result.split(' started')[0].split('Install operation ')[1].split()[0].strip()
             except: output.operation_id = str()
 
-        self.log.info('\nOUTPUT: ', object_to_string(self, output))
+        self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
 
 # -----------------------------------------
 #   OS UPGRADE INSTALL ADD PROGRESS CHECK
@@ -550,7 +550,7 @@ class NsoActionsClass_os_upgrade_progress_check(Action):
 
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
-        self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', object_to_string(self, input))
+        self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
         output.os_type = 'UNKNOWN'
         output.hw_type = 'UNKNOWN'
         output.completed = 'no'
@@ -619,7 +619,15 @@ class NsoActionsClass_os_upgrade_progress_check(Action):
                                     output.operation_id = part_operation_id
                         except: pass
 
-            self.log.info('\nOUTPUT: ', object_to_string(self, output))
+                if not output.operation_id:
+                    try:
+                        output.operation_id = device_cmds_result.split('Invalid')[-1].split('operation id:')[1].split()[0].strip()
+                        output.completed = 'yes'
+                        output.result = 'failure'
+                    except: pass
+
+
+            self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
         else:
             self.log.info('Operation id not inserted!')
 
@@ -632,7 +640,7 @@ class NsoActionsClass_os_upgrade_device_ping_check(Action):
 
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
-        self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', object_to_string(self, input))
+        self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
         output.result = 'UNKNOWN'
 
         device = str()
@@ -654,7 +662,7 @@ class NsoActionsClass_os_upgrade_device_ping_check(Action):
             ping_response = os.system("ping -c 1 " + ip)
             if int(ping_response) == 0: output.result = 'success'
             else: output.result = 'failure'
-        self.log.info('\nOUTPUT: ', object_to_string(self, output))
+        self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
 
 
 
@@ -666,7 +674,7 @@ class NsoActionsClass_os_upgrade_device_get_ip(Action):
 
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
-        self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', object_to_string(self, input))
+        self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
 
         try: device = str(input.device)
         except: device = str()
@@ -685,7 +693,7 @@ class NsoActionsClass_os_upgrade_device_get_ip(Action):
                 try: output.ip_address = cmd_result.split('ipv4 address')[1].split()[0].strip()
                 except: output.ip_address = str()
 
-        self.log.info('\nOUTPUT: ', object_to_string(self, output))
+        self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
 
 
 
@@ -697,7 +705,7 @@ class NsoActionsClass_os_upgrade_install_prepare(Action):
 
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
-        self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', object_to_string(self, input))
+        self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
         output.os_type = 'UNKNOWN'
         output.hw_type = 'UNKNOWN'
 
@@ -731,7 +739,7 @@ class NsoActionsClass_os_upgrade_install_prepare(Action):
                 try: output.operation_id = cmd_result.split(' started')[0].split('Install operation ')[1].split()[0].strip()
                 except: output.operation_id = str()
 
-            self.log.info('\nOUTPUT: ', object_to_string(self, output))
+            self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
         else:
             self.log.info('Operation id not inserted!')
 
@@ -744,7 +752,7 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
 
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
-        self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', object_to_string(self, input))
+        self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
         output.os_type = 'UNKNOWN'
         output.hw_type = 'UNKNOWN'
         output.operation_id = str()
@@ -806,7 +814,7 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
             if not output.last_command and not output.operation_id and not find_success:
                 output.install_log = "Problem to find started 'install activate noprompt' in install log!"
 
-        self.log.info('\nOUTPUT: ', object_to_string(self, output))
+        self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
 
 
 # --------------------------
@@ -817,7 +825,7 @@ class NsoActionsClass_os_upgrade_remove_inactive(Action):
 
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
-        self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', object_to_string(self, input))
+        self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
         output.os_type = 'UNKNOWN'
         output.hw_type = 'UNKNOWN'
         asr_admin_string = str()
@@ -852,7 +860,7 @@ class NsoActionsClass_os_upgrade_remove_inactive(Action):
                                 output.last_command = part_last_command
                                 output.operation_id = part_operation_id
                     except: pass
-        self.log.info('\nOUTPUT: ', object_to_string(self, output))
+        self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
 
 
 # --------------------------
@@ -863,7 +871,7 @@ class NsoActionsClass_os_upgrade_commit(Action):
 
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
-        self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', object_to_string(self, input))
+        self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
         output.os_type = 'UNKNOWN'
         output.hw_type = 'UNKNOWN'
 
@@ -899,7 +907,7 @@ class NsoActionsClass_os_upgrade_commit(Action):
                                 output.last_command = part_last_command
                                 output.operation_id = part_operation_id
                     except: pass
-        self.log.info('\nOUTPUT: ', object_to_string(self, output))
+        self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
 
 
 # --------------------------
@@ -910,7 +918,7 @@ class NsoActionsClass_os_upgrade_postcheck(Action):
 
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
-        self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', object_to_string(self, input))
+        self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
         output.os_type = 'UNKNOWN'
         output.hw_type = 'UNKNOWN'
         output.result = str()
@@ -924,6 +932,9 @@ class NsoActionsClass_os_upgrade_postcheck(Action):
         except: pass
 
         self.log.info('\nINPUT.PRECHECK_COMMANDS: ', input.precheck_commands,'\nPRECHECK_COMMANDS: ', precheck_commands)
+
+        self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
+        return None
 
         hw_info = detect_hw(self, uinfo, input)
         output.os_type, output.hw_type = hw_info.get('os_type',str()), hw_info.get('hw_type',str())
@@ -1079,12 +1090,12 @@ class NsoActionsClass_os_upgrade_postcheck(Action):
 
                 cp2_device_cmds_result, forget_it = device_command(self, uinfo, input, cp2_device_cmds)
 
-        self.log.info('\nOUTPUT: ', object_to_string(self, output))
+        self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
 
 
 ###############################################################################
 
-def object_to_string(self, object_instance):
+def nso_object_to_string(self, object_instance):
     """ Printable representation of object variables."""
     try: return_string = '\n' + str(eval("str(object_instance)")) + ':\n'
     except: pass
@@ -1101,13 +1112,23 @@ def object_to_string(self, object_instance):
                         # try: return_string += "\\_____" + str(item) + '.' + str(subitem) + '=' + str(eval("object_instance.%s.%s" % str(item, subitem))) + '\n'
                         # except: return_string += '\\_____...\n'
             # else:
-                try: return_string += "\\____" + str(item) + " " + str(eval("type(object_instance.%s)" % str(item))) + ' = ' + str(eval("repr(object_instance.%s)" % str(item))) + '\n'
-                except: return_string += '\\___'+ str(item) + ' = ...\n'
+                item_type = str(eval("type(object_instance.%s)" % str(item)))
+                try: return_string += "\\____" + str(item) + " [" + str(eval("type(object_instance.%s)" % str(item))) + '] = ' + str(eval("repr(object_instance.%s)" % str(item))) + '\n'
+                except: return_string += '\\____'+ str(item) + ' = ...\n'
 
-                # try: return_string += "     " + object_instance.item._cache + '\n'
-                # except: pass
-                # try: return_string += "     " + ' = ' + str(eval("repr(object_instance.item._cache)")) + '\n'
-                # except: pass
+                ### '<class 'ncs.maagic.LeafList'>' 'ncs.maagic.Container', 'ncs.maagic.LeafList', 'ncs.maagic.List' ###
+                if item_type == "<class 'ncs.maagic.LeafList'>":
+                    return_string += "\\____" + str(item) + " [" + str(eval("type(object_instance.%s)" % str(item))) + '] = [ '
+                    # try:
+                        # for i_counter in range(100000):
+                            # return_string += " '" + str(eval("object_instance.%s[%s]" % (item, i_counter))) + "' \n"
+                    # except: pass
+
+
+                    return_string += ' ]\n'
+                elif item_type == 'ncs.maagic.List':
+                    pass
+
     return return_string
 
 ###############################################################################
