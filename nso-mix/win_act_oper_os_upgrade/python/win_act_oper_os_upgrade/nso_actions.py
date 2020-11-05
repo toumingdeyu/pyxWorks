@@ -925,13 +925,14 @@ class NsoActionsClass_os_upgrade_postcheck(Action):
 
         asr_admin_string = str()
 
-        precheck_commands = {}
-        try:
-            if input.precheck_commands:
-                precheck_commands = json.loads(str(input.precheck_commands))
-        except: pass
+        self.log.info('\nINPUT.PRECHECK_COMMANDS: ', input.precheck_commands)
 
-        self.log.info('\nINPUT.PRECHECK_COMMANDS: ', input.precheck_commands,'\nPRECHECK_COMMANDS: ', precheck_commands)
+        list_lenght = len(input.precheck_commands)
+        self.log.info('\nINPUT.PRECHECK_COMMANDS[len=%s] ' % (list_lenght))
+        
+        precheck_list = input.precheck_commands
+        for i in input.precheck_commands:
+            self.log.info('\nINPUT.PRECHECK_COMMAND = %s ' % (i))
 
         self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
         return None
@@ -1115,18 +1116,23 @@ def nso_object_to_string(self, object_instance):
                 item_type = str(eval("type(object_instance.%s)" % str(item)))
                 try: return_string += "\\____" + str(item) + " [" + str(eval("type(object_instance.%s)" % str(item))) + '] = ' + str(eval("repr(object_instance.%s)" % str(item))) + '\n'
                 except: return_string += '\\____'+ str(item) + ' = ...\n'
-
+                ### vars,dir,str,repr ###
                 ### '<class 'ncs.maagic.LeafList'>' 'ncs.maagic.Container', 'ncs.maagic.LeafList', 'ncs.maagic.List' ###
                 if item_type == "<class 'ncs.maagic.LeafList'>":
+                    ### len(leaflist) does not work !!! ###
                     return_string += "\\____" + str(item) + " [" + str(eval("type(object_instance.%s)" % str(item))) + '] = [ '
-                    # try:
-                        # for i_counter in range(100000):
-                            # return_string += " '" + str(eval("object_instance.%s[%s]" % (item, i_counter))) + "' \n"
-                    # except: pass
+                    return_string += str(eval("object_instance.%s" % (item)))
+                    return_string += ' ]\n'
+                elif item_type == "<class 'ncs.maagic.List'>":
+                    list_lenght = int(eval("len(object_instance.%s)" % (item)))
+                    return_string += "\\____" + str(item) + " [" + str(eval("type(object_instance.%s)" % str(item))) + '] = [ '
+                    return_string += str(eval("object_instance.%s" % (item)))
+                    return_string += "[" + str(eval("len(object_instance.%s)" % (item))) + "] "
 
+                    for i in range(list_lenght):
+                        return_string += str(eval("vars(object_instance.%s[%s]._children)" % (item,i))) + " "
 
                     return_string += ' ]\n'
-                elif item_type == 'ncs.maagic.List':
                     pass
 
     return return_string
