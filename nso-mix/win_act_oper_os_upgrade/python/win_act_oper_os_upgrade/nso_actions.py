@@ -1126,10 +1126,11 @@ def nso_object_to_string(self, object_instance):
                     return_string += ']\n'
                 elif item_type == "<class 'ncs.maagic.List'>":
                     list_lenght = int(eval("len(object_instance.%s)" % (item)))
-                    return_string += "\\____" + str(item) + " [" + str(eval("type(object_instance.%s)" % str(item))) + '] [len=' + list_lenght + '] = [ '
+                    return_string += "\\____" + str(item) + " [" + str(eval("type(object_instance.%s)" % str(item))) + '] [len=' + str(list_lenght) + '] = [ '
                     for list_item in getattr(object_instance, item):   #eval("object_instance.%s" % (item)):
-                        return_string += "%s" % (repr(list_item)) + " "
-
+                        return_string += "repr(%s)" % (repr(list_item)) + " "
+                        return_string += "dir(%s)" % (str(dir(list_item))) + " "
+                        return_string += "vars(%s)" % (str(vars(list_item))) + " "
                     #list_iterator = iter(getattr(object_instance, item))
                     #for i in range(list_lenght):
                         #list_reference = next(list_iterator)
