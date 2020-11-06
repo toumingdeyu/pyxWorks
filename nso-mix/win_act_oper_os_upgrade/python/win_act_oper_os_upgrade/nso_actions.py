@@ -929,7 +929,7 @@ class NsoActionsClass_os_upgrade_postcheck(Action):
 
         list_lenght = len(input.precheck_commands)
         self.log.info('\nINPUT.PRECHECK_COMMANDS[len=%s] ' % (list_lenght))
-        
+
         precheck_list = input.precheck_commands
         for i in input.precheck_commands:
             self.log.info('\nINPUT.PRECHECK_COMMAND = %s ' % (i))
@@ -1121,19 +1121,21 @@ def nso_object_to_string(self, object_instance):
                 if item_type == "<class 'ncs.maagic.LeafList'>":
                     ### len(leaflist) does not work !!! ###
                     return_string += "\\____" + str(item) + " [" + str(eval("type(object_instance.%s)" % str(item))) + '] = [ '
-                    return_string += str(eval("object_instance.%s" % (item)))
-                    return_string += ' ]\n'
+                    for list_item in getattr(object_instance, item):
+                        return_string += "%s" % (repr(list_item)) + " "
+                    return_string += ']\n'
                 elif item_type == "<class 'ncs.maagic.List'>":
                     list_lenght = int(eval("len(object_instance.%s)" % (item)))
-                    return_string += "\\____" + str(item) + " [" + str(eval("type(object_instance.%s)" % str(item))) + '] = [ '
-                    return_string += str(eval("object_instance.%s" % (item)))
-                    return_string += "[" + str(eval("len(object_instance.%s)" % (item))) + "] "
+                    return_string += "\\____" + str(item) + " [" + str(eval("type(object_instance.%s)" % str(item))) + '] [len=' + list_lenght + '] = [ '
+                    for list_item in getattr(object_instance, item):   #eval("object_instance.%s" % (item)):
+                        return_string += "%s" % (repr(list_item)) + " "
 
-                    for i in range(list_lenght):
-                        return_string += str(eval("vars(object_instance.%s[%s]._children)" % (item,i))) + " "
+                    #list_iterator = iter(getattr(object_instance, item))
+                    #for i in range(list_lenght):
+                        #list_reference = next(list_iterator)
+                        #return_string += "%s" % (list_reference) + ' '
 
-                    return_string += ' ]\n'
-                    pass
+                    return_string += ']\n'
 
     return return_string
 
