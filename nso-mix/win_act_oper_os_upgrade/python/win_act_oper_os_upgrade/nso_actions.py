@@ -537,8 +537,14 @@ class NsoActionsClass_os_upgrade_install_add(Action):
 
             i_device_cmds_result, output.os_type = device_command(self, uinfo, input, i_device_cmds)
 
-            try: output.operation_id = i_device_cmds_result.split(' started')[0].split('Install operation ')[1].split()[0].strip()
-            except: output.operation_id = str()
+            try:
+                output.operation_id = i_device_cmds_result.split(' started')[0].split('Install operation ')[1].split()[0].strip()
+                output.result = 'success'
+            except:
+                output.operation_id = str()
+                output.completed = 'yes'
+                output.result = 'failure'
+
 
         self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
 
@@ -629,7 +635,7 @@ class NsoActionsClass_os_upgrade_progress_check(Action):
             self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
         else:
             output.completed = 'yes'
-            output.result = 'failure'        
+            output.result = 'failure'
             self.log.info('Operation id not inserted!')
 
 
@@ -742,6 +748,8 @@ class NsoActionsClass_os_upgrade_install_prepare(Action):
 
             self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
         else:
+            output.completed = 'yes'
+            output.result = 'failure'
             self.log.info('Operation id not inserted!')
 
 
@@ -811,9 +819,12 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
                 ### CHECK IF LAST OPERATION ID IS 'install activate noprompt' ###
                 if part_operation_id and last_operation_id_int > 0 and last_operation_id_int == int(part_operation_id):
                     find_success = True
-                if output.last_command and output.operation_id and find_success: break
+                if output.last_command and output.operation_id and find_success:
+                    output.result = 'success'
             if not output.last_command and not output.operation_id and not find_success:
                 output.install_log = "Problem to find started 'install activate noprompt' in install log!"
+                output.completed = 'yes'
+                output.result = 'failure'
 
         self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
 
