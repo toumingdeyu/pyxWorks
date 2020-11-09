@@ -153,6 +153,7 @@ module win_act_oper_os_upgrade {
         }
         leaf result {
           type string;
+        }
       }
     }
 
