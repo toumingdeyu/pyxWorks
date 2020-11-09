@@ -626,9 +626,10 @@ class NsoActionsClass_os_upgrade_progress_check(Action):
                         output.result = 'failure'
                     except: pass
 
-
             self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
         else:
+            output.completed = 'yes'
+            output.result = 'failure'        
             self.log.info('Operation id not inserted!')
 
 
