@@ -2285,6 +2285,7 @@ try:
     traceback_found = None
     logfilename = str()
     test_mode = None
+    asr_admin_string = str()
 
     SCRIPT_ACTION = str()
 
@@ -2443,6 +2444,163 @@ try:
             if not RCMD.ssh_connection: continue
 
             CGI_CLI.logtofile('\nDETECTED DEVICE_TYPE: %s\n\n' % (RCMD.router_type))
+
+            ###################################################################
+            ### PRECHECK COMMANDS #############################################
+            ###################################################################
+            if SCRIPT_ACTION == 'pre' and RCMD.router_type == 'cisco_xr':
+                device_cmds = {
+                    'cisco_xr':[ str( '%sshow install inactive sum' % (asr_admin_string) ) ],
+                }
+
+                rcmd_outputs = RCMD.run_commands(device_cmds, \
+                    autoconfirm_mode = True, \
+                    printall = printall)
+
+                inactive_packages = []
+                if 'No inactive package(s) in software repository' in rcmd_outputs:
+                    pass
+                else:
+                    if 'inactive package(s) found:' in rcmd_outputs:
+                        for package_line in rcmd_outputs.split('inactive package(s) found:')[1].splitlines()[:-1]:
+                            if package_line.strip():
+                                inactive_packages.append(str(package_line.strip()))
+
+                    device_cmds2 = {
+                        'cisco_xr':[ str( '%sinstall remove inactive all' % (asr_admin_string) ) ],
+                    }
+
+                    rcmd_outputs2 = RCMD.run_commands(device_cmds2, \
+                        autoconfirm_mode = True, \
+                        printall = printall)
+
+                    time.sleep(5)
+
+                    ### REPEAT INACTIVE CHECK ###
+                    device_cmds3 = {
+                        'cisco_xr':[ str( '%sshow install inactive summary' % (asr_admin_string) ) ],
+                    }
+
+                    rcmd_outputs3 = RCMD.run_commands(device_cmds3, \
+                        autoconfirm_mode = True, \
+                        printall = printall)
+
+                    inactive_packages = []
+                    if 'No inactive package(s) in software repository' in rcmd_outputs3:
+                        pass
+                    else:
+                        if 'inactive package(s) found:' in rcmd_outputs3:
+                            for package_line in rcmd_outputs3.split('inactive package(s) found:')[1].splitlines()[:-1]:
+                                if package_line.strip():
+                                    inactive_packages.append(str(package_line.strip()))
+                output.inactive_packages = inactive_packages
+
+                ### show install active summary ###
+                device_cmds4 = {
+                    'cisco_xr':[ str( '%sshow install active summary' % (asr_admin_string) ) ],
+                }
+
+                rcmd_outputs4 = RCMD.run_commands(device_cmds3, \
+                    autoconfirm_mode = True, \
+                    printall = printall)
+
+                if 'Active Packages:' in rcmd_outputs4:
+                    number_of_active_packages = int(rcmd_outputs4.split('Active Packages:')[1].split()[0])
+                    for i in range(number_of_active_packages):
+                         active_packages.append(rcmd_outputs4.split('Active Packages:')[1].splitlines()[i + 1].split()[0].strip())
+                    output.active_packages = active_packages
+
+                ### XR CHECK LIST ###
+                device_cmds5 = { 'cisco_xr': [
+                        '%sshow install log | utility tail count 10' % (asr_admin_string),
+                        'install verify packages',
+                        'show platform',
+                        'show run fpd auto-upgrade',
+                        'admin show run fpd auto-upgrade',
+                        'show configuration failed startup',
+                        'clear configuration inconsistency',
+                        'show health gsp',
+                        'show install request',
+                        'show install repository',
+                        'show hw-module fpd'
+                ] }
+
+                rcmd_outputs5 = RCMD.run_commands(device_cmds5, \
+                    autoconfirm_mode = True, \
+                    printall = printall)
+
+                ### copy configs ###
+                today = date.today()
+                date_string = today.strftime("%Y-%m%d-%H:%M")
+
+                device_cmds6 = {
+                    'cisco_xr':['copy running-config harddisk:%s-config.txt' % (str(date_string))],
+                }
+
+                rcmd_outputs6 = RCMD.run_commands(device_cmds6, \
+                    autoconfirm_mode = True, \
+                    printall = printall)
+
+                device_cmds7 = {
+                    'cisco_xr':['admin copy running-config harddisk:admin-%s-config.txt' % (str(date_string))],
+                }
+
+                rcmd_outputs7 = RCMD.run_commands(device_cmds7, \
+                    autoconfirm_mode = True, \
+                    printall = printall)
+
+                ### 'show run fpd auto-upgrade' ###############################
+                cmd_output = str()
+                try:
+                    if len(rcmd_outputs5[3]) > 0: cmd_output = rcmd_outputs5[3]
+                except: pass
+                if not 'fpd auto-upgrade enable' in cmd_output:
+
+                    xr_cmds = {'cisco_xr': [
+                            '!',
+                            'fpd auto-upgrade enable',
+                            '!',
+                    ] }
+
+                    rcmd_outputs = RCMD.run_commands(xr_cmds, conf = True,\
+                        autoconfirm_mode = True, \
+                        printall = printall)
+
+                ### 'admin show run fpd auto-upgrade' #########################
+                cmd_output = str()
+                try:
+                    if len(rcmd_outputs5[4]) > 0: cmd_output = rcmd_outputs5[3]
+                except: pass
+                if not 'fpd auto-upgrade enable' in cmd_output:
+                    xr_cmds = {'cisco_xr': [
+                            '!',
+                            'admin',
+                            '!',
+                            'fpd auto-upgrade enable',
+                            '!',
+                    ] }
+
+                    rcmd_outputs = RCMD.run_commands(xr_cmds, conf = True,\
+                        autoconfirm_mode = True, \
+                        printall = printall)
+                        
+            ###################################################################
+            ### POSTCHECK COMMANDS ############################################
+            ###################################################################
+            if SCRIPT_ACTION == 'post' and RCMD.router_type == 'cisco_xr':
+                pass
+
+
+
+
+
+
+
+
+
+
+
+
 
             ### LOCAL AS NUMBER COMMANDS ######################################
             collector_cmds = {

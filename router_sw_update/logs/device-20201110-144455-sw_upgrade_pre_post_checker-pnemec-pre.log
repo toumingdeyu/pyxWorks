@@ -1,0 +1,18 @@
+
+@2020-11-10_14:44:55[0.24s] LOG_START:
+SW UPDATE PRE/POST CHECK TOOL (v.20.11.10_13:43) [action=pre]
+python[2.7.15]
+version[20.11.10_13:43], file[sw_upgrade_pre_post_checker.py]
+CGI_CLI.USERNAME[pnemec], CGI_CLI.PASSWORD[Yes]
+remote_addr[], browser[]
+CGI_CLI.cgi_active[None], CGI_CLI.JSON_MODE[False], CGI_CLI.submit_form[], CGI_CLI.chunked[None]
+CLI_args = []
+CGI_CLI.data = {}
+
+
+Device(s) NOT INSERTED!
+ ==> File https://EQ-EQ6287781/cgi-bin/logviewer.py?logfile=c:\_pyxWorks\router_sw_update\logs\device-20201110-144455-sw_upgrade_pre_post_checker-pnemec-pre.log created.
+
+
+
+@2020-11-10_14:44:55[0.29s] LOG_END.
