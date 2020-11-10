@@ -5,7 +5,8 @@
 # Author: Philippe Marcais (philippe.marcais@orange.com)                      #
 #         Peter Nemec      (peter.nemec@orange.com)                           #
 # Created: 06/01/2015                                                         #
-# Updated: 27.Oct/2020 - json mode                                            #
+# Updated: 10/Nov/2020 - --username alternative switch for unification        #
+#          27/Oct/2020 - json mode                                            #
 #          24/Aug/2020 - Custom opposite logic, new cli switch --pluscustom   #
 #                      - cli switch change --custom = --customonly            #
 #                      - deleted cli switch --nocustom                        #
@@ -1152,8 +1153,11 @@ parser.add_argument("--prefile",
 parser.add_argument("--postfile",
                     action = 'store', dest = "postcheck_file", default = str(),
                     help = "specify your postcheck file")
-parser.add_argument("--user", default = str(),
-                    action = "store", dest = 'username',
+parser.add_argument("--user",
+                    action = "store", dest = 'user', default = str(),
+                    help = "specify router user login")
+parser.add_argument("--username",
+                    action = "store", dest = 'username', default = str(),
                     help = "specify router user login")
 parser.add_argument("--cpassword", default = str(),
                     action = "store", dest = 'cpassword',
@@ -1274,8 +1278,9 @@ if os.path.isdir(WORKDIR_IF_EXISTS) and os.path.exists(WORKDIR_IF_EXISTS):
 
 ####### Set USERNAME if needed
 if args.username: USERNAME = args.username
+if args.user: USERNAME = args.user
 if not USERNAME:
-    err_text = " ... Please insert your username by cmdline switch --user username !"
+    err_text = " ... Please insert your username by cmdline switch --user/--username username !"
     ifprint(bcolors.MAGENTA + err_text + bcolors.ENDC)
     json_print(error = err_text)
     sys.exit(0)
