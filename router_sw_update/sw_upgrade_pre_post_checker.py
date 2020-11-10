@@ -2223,7 +2223,7 @@ def generate_logfilename(prefix = None, USERNAME = None, pre_suffix = None, \
 
 def find_last_logfile(prefix = None, USERNAME = None, suffix = None, directory = None, \
     latest = None , printall = None, action_text = None):
-    shut_file = str()
+    log_file = str()
     if not directory:
         try:    DIR         = os.environ['HOME']
         except: DIR         = str(os.path.dirname(os.path.abspath(__file__)))
@@ -2240,16 +2240,19 @@ def find_last_logfile(prefix = None, USERNAME = None, suffix = None, directory =
             + '*' + sys.argv[0].replace('.py','').replace('./','').replace(':','_').replace('.','_').replace('\\','/').split('/')[-1] \
             + '*' + USERNAME + '-' + suffix)
     if len(list_shut_files) == 0:
-        CGI_CLI.uprint( " ... Can't find any %s session log file!" % (action_text if action_text else str()), color = 'magenta')
+        text = " ... Can't find any %s session log file!" % (action_text if action_text else str())
+        CGI_CLI.uprint(text, \
+            color = 'magenta')
+        CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
     else:
         most_recent_shut = list_shut_files[0]
         for item in list_shut_files:
             filecreation = os.path.getctime(item)
             if filecreation > (os.path.getctime(most_recent_shut)):
                 most_recent_shut = item
-        shut_file = most_recent_shut
-    if printall and shut_file: CGI_CLI.uprint('FOUND LAST %s LOGFILE: %s' % (action_text if action_text else str(), str(shut_file)), color = 'blue')
-    return shut_file
+        log_file = most_recent_shut
+    if printall and log_file: CGI_CLI.uprint('FOUND LAST %s LOGFILE: %s' % (action_text.upper() if action_text else str(), str(log_file)), color = 'blue')
+    return log_file
 
 
 
@@ -2286,6 +2289,7 @@ try:
     logfilename = str()
     test_mode = None
     asr_admin_string = str()
+    precheck_file = str()
 
     SCRIPT_ACTION = str()
 
@@ -2375,6 +2379,7 @@ try:
             if CGI_CLI.data.get("radio") == 'precheck': SCRIPT_ACTION = 'pre'
             if CGI_CLI.data.get("radio") == 'postcheck' or CGI_CLI.data.get("post"): SCRIPT_ACTION = 'post'
 
+    CGI_CLI.JSON_RESULTS['SCRIPT_ACTION'] = '%s' % (SCRIPT_ACTION)
 
 
     ### def LOGFILENAME GENERATION, DO LOGGING ONLY WHEN DEVICE LIST EXISTS ###
@@ -2420,8 +2425,15 @@ try:
         CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
         exit_due_to_error = True
 
-    if exit_due_to_error: sys.exit(0)
+    if SCRIPT_ACTION == 'post':
+        precheck_file = find_last_logfile(prefix = '_'.join(device_list).upper(), \
+            USERNAME = USERNAME, suffix = 'pre.log', directory = None, \
+            latest = None , printall = None, action_text = 'precheck')
+        if precheck_file:
+            CGI_CLI.JSON_RESULTS['precheck_logfile'] = '%s' % (precheck_file)
+        else: exit_due_to_error = True
 
+    if exit_due_to_error: sys.exit(0)
 
     ### def REMOTE DEVICE OPERATIONS ##########################################
     for device in device_list:
@@ -2446,7 +2458,7 @@ try:
             CGI_CLI.logtofile('\nDETECTED DEVICE_TYPE: %s\n\n' % (RCMD.router_type))
 
             ###################################################################
-            ### PRECHECK COMMANDS #############################################
+            ### def PRECHECK COMMANDS #########################################
             ###################################################################
             if SCRIPT_ACTION == 'pre' and RCMD.router_type == 'cisco_xr':
                 device_cmds = {
@@ -2583,9 +2595,9 @@ try:
                     rcmd_outputs = RCMD.run_commands(xr_cmds, conf = True,\
                         autoconfirm_mode = True, \
                         printall = printall)
-                        
+
             ###################################################################
-            ### POSTCHECK COMMANDS ############################################
+            ### def POSTCHECK COMMANDS ########################################
             ###################################################################
             if SCRIPT_ACTION == 'post' and RCMD.router_type == 'cisco_xr':
                 pass
