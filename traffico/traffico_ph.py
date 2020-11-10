@@ -2392,7 +2392,7 @@ try:
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = None, css_style = None, json_api = True)
 
     CGI_CLI.JSON_RESULTS['inputs'] = str(CGI_CLI.print_args(ommit_print = True))
-    CGI_CLI.JSON_RESULTS['success'] = str()
+    CGI_CLI.JSON_RESULTS['result'] = str()
     CGI_CLI.JSON_RESULTS['logfile'] = str()
     CGI_CLI.JSON_RESULTS['errors'] = str()
 
@@ -2957,14 +2957,14 @@ try:
                 CGI_CLI.uprint(device_data, name = True, jsonprint = True, \
                     color = 'blue', timestamp = 'no', no_printall = not printall)
 
-                if len(CGI_CLI.JSON_RESULTS['errors']) == 0: CGI_CLI.JSON_RESULTS['success'] = 'OK'
+                if len(CGI_CLI.JSON_RESULTS['errors']) == 0: CGI_CLI.JSON_RESULTS['result'] = 'success'
 
 except SystemExit: pass
 except:
     traceback_found = traceback.format_exc()
     CGI_CLI.uprint(str(traceback_found), tag = 'h3', color = 'magenta')
 
-if len(CGI_CLI.JSON_RESULTS['errors']) > 0: CGI_CLI.JSON_RESULTS['success'] = 'NOT OK'
+if len(CGI_CLI.JSON_RESULTS['errors']) > 0: CGI_CLI.JSON_RESULTS['result'] = 'failure'
 
 ### WRITE FILE LINK AND CLOSE GLOBAL LOGFILE ##################################
 if logfilename:
