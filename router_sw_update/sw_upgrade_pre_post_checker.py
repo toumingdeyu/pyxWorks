@@ -2493,7 +2493,7 @@ except SystemExit: pass
 except:
     text = traceback.format_exc()
     CGI_CLI.uprint(text, tag = 'h3', color = 'magenta')
-    #CGI_CLI.JSON_RESULTS['errors'] = '[%s] ' % (text)
+    CGI_CLI.JSON_RESULTS['errors'] = '[%s] ' % (text)
 
 
 
