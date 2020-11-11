@@ -2505,7 +2505,7 @@ try:
                             for package_line in rcmd_outputs3.split('inactive package(s) found:')[1].splitlines()[:-1]:
                                 if package_line.strip():
                                     inactive_packages.append(str(package_line.strip()))
-                output.inactive_packages = inactive_packages
+                CGI_CLI.JSON_RESULTS['inactive_packages'] = inactive_packages
 
                 ### show install active summary ###
                 device_cmds4 = {
@@ -2520,7 +2520,7 @@ try:
                     number_of_active_packages = int(rcmd_outputs4.split('Active Packages:')[1].split()[0])
                     for i in range(number_of_active_packages):
                          active_packages.append(rcmd_outputs4.split('Active Packages:')[1].splitlines()[i + 1].split()[0].strip())
-                    output.active_packages = active_packages
+                    CGI_CLI.JSON_RESULTS['active_packages'] = active_packages
 
                 ### XR CHECK LIST ###
                 device_cmds5 = { 'cisco_xr': [
@@ -2578,6 +2578,19 @@ try:
                         autoconfirm_mode = True, \
                         printall = printall)
 
+                    device_cmds5a = { 'cisco_xr': [
+                            'show run fpd auto-upgrade',
+                    ] }
+
+                    rcmd_outputs5a = RCMD.run_commands(device_cmds5a, \
+                        autoconfirm_mode = True, \
+                        printall = printall)
+
+                    if not 'fpd auto-upgrade enable' in rcmd_outputs5a[0]:
+                        text = "'fpd auto-upgrade enable' not in 'show run fpd auto-upgrade'!"
+                        CGI_CLI.uprint(text, tag ='h1', color = 'red')
+                        CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+
                 ### 'admin show run fpd auto-upgrade' #########################
                 cmd_output = str()
                 try:
@@ -2595,6 +2608,19 @@ try:
                     rcmd_outputs = RCMD.run_commands(xr_cmds, conf = True,\
                         autoconfirm_mode = True, \
                         printall = printall)
+
+                    device_cmds5b = { 'cisco_xr': [
+                            'admin show run fpd auto-upgrade',
+                    ] }
+
+                    rcmd_outputs5b = RCMD.run_commands(device_cmds5b, \
+                        autoconfirm_mode = True, \
+                        printall = printall)
+
+                    if not 'fpd auto-upgrade enable' in rcmd_outputs5b[0]:
+                        text = "'fpd auto-upgrade enable' not in 'admin show run fpd auto-upgrade'!"
+                        CGI_CLI.uprint(text, tag ='h1', color = 'red')
+                        CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
 
             ###################################################################
             ### def POSTCHECK COMMANDS ########################################
