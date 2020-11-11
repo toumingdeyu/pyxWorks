@@ -148,7 +148,7 @@ class CGI_CLI(object):
             CGI_CLI.uprint_json_results(CGI_CLI.JSON_RESULTS)
         else:
             CGI_CLI.print_result_summary()
-            CGI_CLI.uprint(' ==> File %s created.\n\n' % (logfilename_link))
+            CGI_CLI.uprint(' ==> File %s created.\n\n' % (logfilename_link),printall = True)
         CGI_CLI.set_logfile(logfilename = None)
         ### SEND EMAIL WITH LOGFILE ###################################################
         if logfile_name and CGI_CLI.data.get("send_email"):
@@ -1030,7 +1030,8 @@ class CGI_CLI(object):
 
     @staticmethod
     def print_result_summary():
-        if len(CGI_CLI.result_list) > 0: CGI_CLI.uprint('\n\nRESULT SUMMARY:', tag = 'h1')
+        if len(CGI_CLI.result_list) > 0:
+            CGI_CLI.uprint('\n\nRESULT SUMMARY:', tag = 'h1')
         for result, color in CGI_CLI.result_list:
             CGI_CLI.uprint(result , tag = 'h3', color = color)
 
