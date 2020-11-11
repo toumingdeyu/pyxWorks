@@ -133,15 +133,36 @@ class CGI_CLI(object):
 
     @staticmethod
     def __cleanup__():
-        if CGI_CLI.JSON_MODE:
-            CGI_CLI.uprint_json_results(CGI_CLI.JSON_RESULTS)
-        else:
+        logfile_name = copy.deepcopy(CGI_CLI.logfilename)
+        logfilename_link = CGI_CLI.make_loglink(CGI_CLI.logfilename)
+        if CGI_CLI.cgi_active:
+            CGI_CLI.print_result_summary()
+            CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
+                % (logviewer, logfilename_link), raw = True, color = 'blue', printall = True)
+            CGI_CLI.uprint('<br/>', raw = True)
             if CGI_CLI.timestamp:
                 CGI_CLI.uprint('END.\n', no_printall = not CGI_CLI.printall, tag = 'debug')
             if not CGI_CLI.disable_page_reload_link: CGI_CLI.html_selflink()
-            if CGI_CLI.cgi_active:
-                CGI_CLI.print_chunk("</body></html>",
-                    ommit_logging = True, printall = True)
+            CGI_CLI.print_chunk("</body></html>", printall = True)
+        elif CGI_CLI.JSON_MODE:
+            CGI_CLI.uprint_json_results(CGI_CLI.JSON_RESULTS)
+        else:
+            CGI_CLI.print_result_summary()
+            CGI_CLI.uprint(' ==> File %s created.\n\n' % (logfilename_link))
+        CGI_CLI.set_logfile(logfilename = None)
+        ### SEND EMAIL WITH LOGFILE ###################################################
+        if logfile_name and CGI_CLI.data.get("send_email"):
+            #USERNAME = 'pnemec'
+            CGI_CLI.send_me_email( \
+                subject = str(logfile_name).replace('\\','/').split('/')[-1] if logfile_name else None, \
+                file_name = str(logfile_name), username = USERNAME)
+        ### def SEND EMAIL WITH ERROR/TRACEBACK LOGFILE TO SUPPORT ####################
+        if traceback_found:
+            CGI_CLI.send_me_email( \
+                subject = 'TRACEBACK-' + logfile_name.replace('\\','/').\
+                split('/')[-1] if logfile_name else str(),
+                email_body = str(traceback_found),\
+                file_name = logfile_name, username = 'pnemec')
 
     @staticmethod
     def register_cleanup_at_exit():
@@ -195,6 +216,7 @@ class CGI_CLI(object):
             if variable == "submit": CGI_CLI.submit_form = value
             if variable == "username": CGI_CLI.USERNAME = value
             if variable == "password": CGI_CLI.PASSWORD = value
+            if variable == "json_mode": CGI_CLI.JSON_MODE = value
 
             ### SET CHUNKED MODE BY CGI #######################################
             if variable == "chunked_mode":
@@ -215,14 +237,6 @@ class CGI_CLI(object):
         CGI_CLI.status_line = \
             "Status: %s %s%s" % (CGI_CLI.http_status, CGI_CLI.http_status_text, CGI_CLI.newline)
         CGI_CLI.content_type_line = 'Content-type:text/html; charset=%s%s' % (str(CGI_CLI.sys_stdout_encoding), CGI_CLI.newline)
-        if CGI_CLI.JSON_MODE:
-            CGI_CLI.content_type_line = 'Content-type:application/vnd.api+json%s' % (CGI_CLI.newline)
-
-        ### DECIDE - CLI OR CGI MODE ##########################################
-        CGI_CLI.remote_addr =  dict(os.environ).get('REMOTE_ADDR','')
-        CGI_CLI.http_user_agent = dict(os.environ).get('HTTP_USER_AGENT','')
-        if CGI_CLI.remote_addr and CGI_CLI.http_user_agent and not CGI_CLI.JSON_MODE:
-            CGI_CLI.cgi_active = True
 
         ### CLI PARSER ########################################################
         CGI_CLI.args = CGI_CLI.cli_parser()
@@ -252,6 +266,15 @@ class CGI_CLI(object):
             if variable == "cusername": CGI_CLI.USERNAME = value.decode('base64','strict')
             if variable == "cpassword": CGI_CLI.PASSWORD = value.decode('base64','strict')
             if variable == "json_mode": CGI_CLI.JSON_MODE = value
+
+        ### DECIDE - CLI OR CGI MODE ##########################################
+        CGI_CLI.remote_addr =  dict(os.environ).get('REMOTE_ADDR','')
+        CGI_CLI.http_user_agent = dict(os.environ).get('HTTP_USER_AGENT','')
+        if CGI_CLI.remote_addr and CGI_CLI.http_user_agent and not CGI_CLI.JSON_MODE:
+            CGI_CLI.cgi_active = True
+        ### JSON HEADERS ######################################################
+        if CGI_CLI.JSON_MODE:
+            CGI_CLI.content_type_line = 'Content-type:application/vnd.api+json%s' % (CGI_CLI.newline)
 
         ### HTML PRINTING START ###############################################
         if CGI_CLI.cgi_active:
@@ -737,7 +760,6 @@ class CGI_CLI(object):
             i_pyfile = sys.argv[0]
             try: pyfile = i_pyfile.replace('\\','/').split('/')[-1].strip()
             except: pyfile = i_pyfile.strip()
-            CGI_CLI.print_result_summary()
             if CGI_CLI.cgi_active:
                 CGI_CLI.print_chunk('<p id="scriptend"></p>', raw_log = True, printall = True)
                 CGI_CLI.print_chunk('<br/><a href = "./%s">PAGE RELOAD</a>' % (pyfile), raw_log = True, printall = True)
@@ -1011,19 +1033,7 @@ class CGI_CLI(object):
         if len(CGI_CLI.result_list) > 0: CGI_CLI.uprint('\n\nRESULT SUMMARY:', tag = 'h1')
         for result, color in CGI_CLI.result_list:
             CGI_CLI.uprint(result , tag = 'h3', color = color)
-        if CGI_CLI.logfilename:
-            logfilename = CGI_CLI.make_loglink(CGI_CLI.logfilename)
-            if CGI_CLI.cgi_active:
-                CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
-                    % (logviewer, logfilename), raw = True, color = 'blue')
-                CGI_CLI.uprint('<br/>', raw = True)
-            else:
-                CGI_CLI.uprint(' ==> File %s created.\n\n' % (logfilename))
-            CGI_CLI.set_logfile(logfilename = None)
-            ### SEND EMAIL WITH LOGFILE ###########################################
-            CGI_CLI.send_me_email( \
-                subject = logfilename.replace('\\','/').split('/')[-1] if logfilename else None, \
-                file_name = logfilename, username = USERNAME)
+
 
 
 
@@ -2704,21 +2714,5 @@ except:
     CGI_CLI.JSON_RESULTS['errors'] = '[%s] ' % (text)
 
 
-
-### SEND EMAIL WITH LOGFILE ###################################################
-if logfilename and CGI_CLI.data.get("send_email"):
-    #USERNAME = 'pnemec'
-    CGI_CLI.send_me_email( \
-        subject = str(logfilename).replace('\\','/').split('/')[-1] if logfilename else None, \
-        file_name = str(logfilename), username = USERNAME)
-
-
-### def SEND EMAIL WITH ERROR/TRACEBACK LOGFILE TO SUPPORT ####################
-if traceback_found:
-    CGI_CLI.send_me_email( \
-        subject = 'TRACEBACK-' + logfilename.replace('\\','/').\
-        split('/')[-1] if logfilename else str(),
-        email_body = str(traceback_found),\
-        file_name = logfilename, username = 'pnemec')
 
 
