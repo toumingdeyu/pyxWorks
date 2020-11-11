@@ -137,9 +137,10 @@ class CGI_CLI(object):
         logfilename_link = CGI_CLI.make_loglink(CGI_CLI.logfilename)
         if CGI_CLI.cgi_active:
             CGI_CLI.print_result_summary()
-            CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
-                % (logviewer, logfilename_link), raw = True, color = 'blue', printall = True)
-            CGI_CLI.uprint('<br/>', raw = True)
+            if CGI_CLI.logfilename:
+                CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
+                    % (logfilename_link, logfile_name), raw = True, color = 'blue', printall = True)
+                CGI_CLI.uprint('<br/>', raw = True)
             if CGI_CLI.timestamp:
                 CGI_CLI.uprint('END.\n', no_printall = not CGI_CLI.printall, tag = 'debug')
             if not CGI_CLI.disable_page_reload_link: CGI_CLI.html_selflink()
@@ -148,7 +149,8 @@ class CGI_CLI(object):
             CGI_CLI.uprint_json_results(CGI_CLI.JSON_RESULTS)
         else:
             CGI_CLI.print_result_summary()
-            CGI_CLI.uprint(' ==> File %s created.\n\n' % (logfilename_link),printall = True)
+            if CGI_CLI.logfilename:
+                CGI_CLI.uprint(' ==> File %s created.\n\n' % (logfilename_link),printall = True)
         CGI_CLI.set_logfile(logfilename = None)
         ### SEND EMAIL WITH LOGFILE ###################################################
         if logfile_name and CGI_CLI.data.get("send_email"):
@@ -2378,7 +2380,7 @@ try:
             {'radio':['precheck','postcheck']},'<br/>',\
             {'checkbox':'json_mode'}, '<br/>',\
             '<br/><b><u>',{'checkbox':'send_email'},'</u></b><br/>',\
-            {'checkbox':'chunked_mode'},\
+            {'checkbox':'chunked_mode'}, '<br/>',\
             {'checkbox':'timestamps'}, '<br/>',\
             {'checkbox':'printall'},'<br/>','<br/>'],\
             submit_button = CGI_CLI.self_buttons[0], \
