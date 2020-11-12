@@ -1784,7 +1784,7 @@ if logfilename:
     except: pass
 
 ### JSON MODE PRINT DATA ######################################################
-if pre_post == "post"
+if pre_post == "post":
     json_print(prefile = precheck_file, postfile = postcheck_file, logfilename = logfilename)
 
 if pre_post == "pre":
