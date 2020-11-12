@@ -1006,16 +1006,6 @@ def send_me_email(subject = str(), email_body = str(), \
 
 def run_isis_check(append_ppfile = None, append_logfile = None, json_mode = None):
 
-    if append_ppfile:
-        with open(append_ppfile, "a+") as myfile:
-            myfile.write('\n\n')
-            myfile.flush()
-
-    if append_logfile:
-        with open(append_logfile, "a+") as myfile:
-            myfile.write('\n\n')
-            myfile.flush()
-
     time.sleep(3)
 
     command_string = '/usr/local/bin/isis_check.py'
@@ -1027,20 +1017,20 @@ def run_isis_check(append_ppfile = None, append_logfile = None, json_mode = None
     command_string += ' --username %s' % (USERNAME)
     command_string += ' --password %s' % (PASSWORD)
 
-    os.system(command_string)
-
-
-def run_bgp_prefixes_checker(append_ppfile = None, append_logfile = None, json_mode = None):
-
     if append_ppfile:
         with open(append_ppfile, "a+") as myfile:
-            myfile.write('\n\n')
+            myfile.write('%s\n\n' % (command_string))
             myfile.flush()
 
     if append_logfile:
         with open(append_logfile, "a+") as myfile:
             myfile.write('\n\n')
             myfile.flush()
+
+    os.system(command_string)
+
+
+def run_bgp_prefixes_checker(append_ppfile = None, append_logfile = None, json_mode = None):
 
     time.sleep(3)
 
@@ -1077,6 +1067,17 @@ def run_bgp_prefixes_checker(append_ppfile = None, append_logfile = None, json_m
         if args.latest: command_string += ' --latest'
         command_string += ' --cpassword %s' % (CPASSWORD)
 
+
+    if append_ppfile:
+        with open(append_ppfile, "a+") as myfile:
+            myfile.write('%s\n\n' % (command_string))
+            myfile.flush()
+
+    if append_logfile:
+        with open(append_logfile, "a+") as myfile:
+            myfile.write('\n\n')
+            myfile.flush()
+            
     ###print(command_string)
     os.system(command_string)
 
@@ -1767,6 +1768,7 @@ elif pre_post == "pre" and not args.recheck:
     ifprint('\n')
     if not args.nobgpcheck:
         if JSON_MODE and logfilename: run_bgp_prefixes_checker(filename, logfilename, True)
+        elif JSON_MODE: run_bgp_prefixes_checker(filename, None, True)
         else: run_bgp_prefixes_checker(filename, logfilename)
 
     ifprint('\n ==> PRECHECK COMPLETE !')
