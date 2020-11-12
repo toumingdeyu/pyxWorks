@@ -1107,7 +1107,7 @@ def json_print(prefile = None, postfile = None, logfilename = None, error = None
         return logviewer
 
     if JSON_MODE:
-        json_header = "Content-type:application/vnd.api+json\r\nStatus: 200 OK\r\n\r\n\r\n"
+        #json_header = "Content-type:application/vnd.api+json\r\nStatus: 200 OK\r\n\r\n\r\n"
         json_data = collections.OrderedDict()
         if error: json_data['error'] = str(error)
         if prefile: json_data['pre_log'] = str(make_link(prefile))
@@ -1115,8 +1115,8 @@ def json_print(prefile = None, postfile = None, logfilename = None, error = None
         if logfilename: json_data['diff_log'] = str(make_link(logfilename))
 
         print_text = str(json.dumps(json_data, indent = 2))
-        #print(print_text)
-        print(json_header + print_text)
+        print(print_text)
+        #print(json_header + print_text)
 
         #print_text = str(json.dumps(json_data))
         #print(print_text)
@@ -1225,7 +1225,10 @@ parser.add_argument("--json",
                     help = "json data output only, no other printouts")
 args = parser.parse_args()
 
-if args.json_output: JSON_MODE = True
+if args.json_output:
+    JSON_MODE = True
+    json_header = "Content-type:application/vnd.api+json\r\nStatus: 200 OK\r\n\r\n\r\n"
+    print(json_header)
 
 if args.emailaddr:
     append_variable_to_bashrc(variable_name='NEWR_EMAIL',variable_value=args.emailaddr)
