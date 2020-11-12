@@ -207,10 +207,10 @@ class CGI_CLI(object):
             if variable and value and \
                 not variable in ["username", "password"]:
                 CGI_CLI.data[variable] = value
-            if variable == "submit": CGI_CLI.submit_form = value
-            if variable == "username": CGI_CLI.USERNAME = value
-            if variable == "password": CGI_CLI.PASSWORD = value
-            if variable == "json_mode": CGI_CLI.JSON_MODE = value
+            if value and variable == "submit": CGI_CLI.submit_form = value
+            if value and variable == "username": CGI_CLI.USERNAME = value
+            if value and variable == "password": CGI_CLI.PASSWORD = value
+            if value and variable == "json_mode": CGI_CLI.JSON_MODE = value
 
             ### SET CHUNKED MODE BY CGI #######################################
             if variable == "chunked_mode":
@@ -249,9 +249,9 @@ class CGI_CLI(object):
                 if variable and \
                     not variable in ["username", "password"]:
                     CGI_CLI.data[variable] = value
-                if variable == "username": CGI_CLI.USERNAME = value
-                if variable == "password": CGI_CLI.PASSWORD = value
-                if variable == "json_mode": CGI_CLI.JSON_MODE = value
+                if value and variable == "username": CGI_CLI.USERNAME = value
+                if value and variable == "password": CGI_CLI.PASSWORD = value
+                if value and variable == "json_mode": CGI_CLI.JSON_MODE = value
 
 
         ### CGI_CLI.data PARSER ###############################################
@@ -263,10 +263,10 @@ class CGI_CLI(object):
                 CGI_CLI.printall = False
             elif variable == "printall":
                 CGI_CLI.printall = True
-            if variable == "timestamp" and value: CGI_CLI.timestamp = True
-            if variable == "cusername": CGI_CLI.USERNAME = value.decode('base64','strict')
-            if variable == "cpassword": CGI_CLI.PASSWORD = value.decode('base64','strict')
-            if variable == "json_mode": CGI_CLI.JSON_MODE = value
+            if value and variable == "timestamp": CGI_CLI.timestamp = True
+            if value and variable == "cusername": CGI_CLI.USERNAME = value.decode('base64','strict')
+            if value and variable == "cpassword": CGI_CLI.PASSWORD = value.decode('base64','strict')
+            if value and variable == "json_mode": CGI_CLI.JSON_MODE = value
 
         ### HTML PRINTING START ###############################################
         if CGI_CLI.cgi_active:
