@@ -1019,7 +1019,7 @@ def run_isis_check(append_ppfile = None, append_logfile = None, json_mode = None
 
     if append_ppfile:
         with open(append_ppfile, "a+") as myfile:
-            myfile.write('%s\n\n' % (command_string))
+            myfile.write('\n\n')
             myfile.flush()
 
     if append_logfile:
@@ -1070,14 +1070,14 @@ def run_bgp_prefixes_checker(append_ppfile = None, append_logfile = None, json_m
 
     if append_ppfile:
         with open(append_ppfile, "a+") as myfile:
-            myfile.write('%s\n\n' % (command_string))
+            myfile.write('\n\n')
             myfile.flush()
 
     if append_logfile:
         with open(append_logfile, "a+") as myfile:
             myfile.write('\n\n')
             myfile.flush()
-            
+
     ###print(command_string)
     os.system(command_string)
 
@@ -1784,9 +1784,11 @@ if logfilename:
     except: pass
 
 ### JSON MODE PRINT DATA ######################################################
-    json_print(logfilename = logfilename, postfile = postcheck_file)
-else:
-    json_print(logfilename = None, prefile = filename)
+if pre_post == "post"
+    json_print(prefile = precheck_file, postfile = postcheck_file, logfilename = logfilename)
+
+if pre_post == "pre":
+    json_print(prefile = filename, logfilename = logfilename)
 ############################################## END ################################################
 
 
