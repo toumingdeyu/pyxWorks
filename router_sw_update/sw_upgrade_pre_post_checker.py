@@ -2577,7 +2577,9 @@ try:
                             'show health gsp',
                             'show install request',
                             'show install repository',
-                            'show hw-module fpd'
+                            'show hw-module fpd',
+                            'show running-config',
+                            'admin show running-config'
                     ] }
 
                     rcmd_outputs5 = RCMD.run_commands(device_cmds5, \
@@ -2608,7 +2610,7 @@ try:
                     if SCRIPT_ACTION == 'pre':
                         ### 'show run fpd auto-upgrade' #######################
 
-                        xr_cmds = {'cisco_xr': ['show run fpd auto-upgrade']}
+                        xr_cmds = {'cisco_xr': [ 'show run fpd auto-upgrade' ]}
 
                         rcmd_outputs = RCMD.run_commands(xr_cmds, \
                             autoconfirm_mode = True, \
@@ -2640,7 +2642,7 @@ try:
 
                             if not 'fpd auto-upgrade enable' in rcmd_outputs5a[0]:
                                 text = "'fpd auto-upgrade enable' not in 'show run fpd auto-upgrade'!"
-                                CGI_CLI.uprint(text, tag ='h1', color = 'red')
+                                CGI_CLI.uprint(text, tag ='h2', color = 'red')
                                 CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
 
                         ### 'admin show run fpd auto-upgrade' #################
@@ -2667,9 +2669,7 @@ try:
                                 autoconfirm_mode = True, \
                                 printall = printall)
 
-                            device_cmds5b = { 'cisco_xr': [
-                                    'admin show run fpd auto-upgrade',
-                            ] }
+                            device_cmds5b = { 'cisco_xr': [ 'admin show run fpd auto-upgrade' ] }
 
                             rcmd_outputs5b = RCMD.run_commands(device_cmds5b, \
                                 autoconfirm_mode = True, \
@@ -2677,53 +2677,36 @@ try:
 
                             if not 'fpd auto-upgrade enable' in rcmd_outputs5b[0]:
                                 text = "'fpd auto-upgrade enable' not in 'admin show run fpd auto-upgrade'!"
-                                CGI_CLI.uprint(text, tag ='h1', color = 'red')
+                                CGI_CLI.uprint(text, tag ='h2', color = 'red')
                                 CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+
+
+                ### FPD PROBLEMS ##############################################
+                xr_check_cmd_list = { 'cisco_xr': [ 'show hw-module fpd' ] }
+                rcmd_outputs = RCMD.run_commands(xr_check_cmd_list, printall = printall)
+
+                ### PARSE 'show hw-module fpd' !!! ###
+                fpd_problems = []
+                try:
+                    for fpd_line in rcmd_outputs[0].split('Running Programd')[1].splitlines():
+                        if fpd_line.strip() and not '-----' in fpd_line:
+                            if fpd_line.strip().split()[3] != 'CURRENT':
+                                fpd_problems.append(fpd_line.strip())
+                except: pass
+
+                if len(fpd_problems) > 0:
+                    text = "FPDs which are not 'CURRENT': [%s]!" % (','.join(fpd_problems))
+                    CGI_CLI.uprint(text, tag ='h2', color = 'red')
+                    CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+
+
 
             ###################################################################
             ### def POSTCHECK COMMANDS ########################################
             ###################################################################
             if SCRIPT_ACTION == 'post' and RCMD.router_type == 'cisco_xr':
 
-                ### XR CHECK LIST ###
-                xr_postcheck_cmd_list = { 'cisco_xr': [
-                        '%sshow install active summary' % (asr_admin_string),
-                        '%sshow install log | utility tail count 10' % (asr_admin_string),
-                        'install verify packages',
-                        'show platform',
-                        'show run fpd auto-upgrade',
-                        'admin show run fpd auto-upgrade',
-                        'show configuration failed startup',
-                        'clear configuration inconsistency',
-                        'show health gsp',
-                        'show install request',
-                        'show install repository',
-                        'show hw-module fpd',
-                        'show running-config',
-                        'admin show running-config'
-                ] }
-
-                rcmd_outputs = RCMD.run_commands(xr_postcheck_cmd_list, conf = True,\
-                    autoconfirm_mode = True, \
-                    printall = printall)
-
-                ### PARSE 'show hw-module fpd' !!! ###
-                fpd_problems = []
-                postcheck_config , postcheck_admin_config = str(), str()
-
-                try:
-                    if post_check[0] == 'show hw-module fpd':
-                        for fpd_line in post_check[1].split('Running Programd')[1].splitlines():
-                            if fpd_line.strip() and not '-----' in fpd_line:
-                                if fpd_line.strip().split()[3] != 'CURRENT':
-                                    fpd_problems.append(fpd_line.strip())
-                    elif post_check[0] == 'show running-config':
-                        postcheck_config = str(post_check[1])
-                    elif post_check[0] == 'admin show running-config':
-                        postcheck_admin_config = str(post_check[1])
-                except: pass
-
-                ### TODO: FIND LAST PRECHECK CONFIG FILE !!! ###
+                ### FIND LAST PRECHECK CONFIG FILE !!! ########################
                 admin_config_files, config_files = [], []
                 device_cmds = {
                     'cisco_xr':['dir harddisk: | include config.txt'],
