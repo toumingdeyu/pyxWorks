@@ -2572,8 +2572,6 @@ try:
                             '%sshow install log | utility tail count 10' % (asr_admin_string),
                             'install verify packages',
                             'show platform',
-                            'show run fpd auto-upgrade',
-                            'admin show run fpd auto-upgrade',
                             'show configuration failed startup',
                             'clear configuration inconsistency',
                             'show health gsp',
@@ -2609,9 +2607,16 @@ try:
                     ### PRECHECK ONLY #########################################
                     if SCRIPT_ACTION == 'pre':
                         ### 'show run fpd auto-upgrade' #######################
+
+                        xr_cmds = {'cisco_xr': ['show run fpd auto-upgrade']}
+
+                        rcmd_outputs = RCMD.run_commands(xr_cmds, \
+                            autoconfirm_mode = True, \
+                            printall = printall)
+
                         cmd_output = str()
                         try:
-                            if len(rcmd_outputs5[3]) > 0: cmd_output = rcmd_outputs5[3]
+                            if len(rcmd_outputs5[3]) > 0: cmd_output = rcmd_outputs[0]
                         except: pass
                         if not 'fpd auto-upgrade enable' in cmd_output:
 
@@ -2639,9 +2644,15 @@ try:
                                 CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
 
                         ### 'admin show run fpd auto-upgrade' #################
+                        xr_cmds = {'cisco_xr': ['admin show run fpd auto-upgrade']}
+
+                        rcmd_outputs = RCMD.run_commands(xr_cmds, \
+                            autoconfirm_mode = True, \
+                            printall = printall)
+
                         cmd_output = str()
                         try:
-                            if len(rcmd_outputs5[4]) > 0: cmd_output = rcmd_outputs5[3]
+                            if len(rcmd_outputs5[4]) > 0: cmd_output = rcmd_outputs[0]
                         except: pass
                         if not 'fpd auto-upgrade enable' in cmd_output:
                             xr_cmds = {'cisco_xr': [
