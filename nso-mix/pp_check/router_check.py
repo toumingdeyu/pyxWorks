@@ -1114,7 +1114,8 @@ def json_print(prefile = None, postfile = None, logfilename = None, error = None
         if postfile: json_data['post_log'] = str(make_link(postfile))
         if logfilename: json_data['diff_log'] = str(make_link(logfilename))
 
-        print_text = str(json.dumps(json_data, indent = 2))
+        #print_text = str(json.dumps(json_data, indent = 2))
+        print_text = str(json.dumps(json_data))
         print(print_text)
         #print(json_header + print_text)
 
@@ -1228,7 +1229,7 @@ args = parser.parse_args()
 if args.json_output:
     JSON_MODE = True
     json_header = "Content-type:application/vnd.api+json\r\nStatus: 200 OK\r\n\r\n\r\n"
-    print(json_header)
+    #print(json_header)
 
 if args.emailaddr:
     append_variable_to_bashrc(variable_name='NEWR_EMAIL',variable_value=args.emailaddr)
