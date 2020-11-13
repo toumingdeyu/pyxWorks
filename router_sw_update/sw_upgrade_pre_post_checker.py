@@ -128,6 +128,14 @@ class CGI_CLI(object):
                             default = False,
                             dest = 'json_mode',
                             help = "json data output only, no other printouts")
+        parser.add_argument("--target_sw_file",
+                            action = "store", dest = 'target_sw_file',
+                            default = str(),
+                            help = "target sw file for os upgrade")
+        parser.add_argument("--target_patch_path",
+                            action = "store", dest = 'target_patch_path',
+                            default = str(),
+                            help = "target patch SMU's path for os upgrade")
         args = parser.parse_args()
         return args
 
@@ -2476,7 +2484,7 @@ try:
             ###################################################################
             ### def PRECHECK COMMANDS #########################################
             ###################################################################
-            if SCRIPT_ACTION == 'pre':
+            if SCRIPT_ACTION == 'pre' or SCRIPT_ACTION == 'post':
                 ### CISCO_IOS #####################################################
                 if RCMD.router_type == 'cisco_ios':
                     text = 'NOT IMPLEMENTED YET !'
@@ -2598,116 +2606,163 @@ try:
                         autoconfirm_mode = True, \
                         printall = printall)
 
-                    ### 'show run fpd auto-upgrade' ###############################
-                    cmd_output = str()
-                    try:
-                        if len(rcmd_outputs5[3]) > 0: cmd_output = rcmd_outputs5[3]
-                    except: pass
-                    if not 'fpd auto-upgrade enable' in cmd_output:
+                    ### PRECHECK ONLY #########################################
+                    if SCRIPT_ACTION == 'pre':
+                        ### 'show run fpd auto-upgrade' #######################
+                        cmd_output = str()
+                        try:
+                            if len(rcmd_outputs5[3]) > 0: cmd_output = rcmd_outputs5[3]
+                        except: pass
+                        if not 'fpd auto-upgrade enable' in cmd_output:
 
-                        xr_cmds = {'cisco_xr': [
-                                '!',
-                                'fpd auto-upgrade enable',
-                                '!',
-                        ] }
+                            xr_cmds = {'cisco_xr': [
+                                    '!',
+                                    'fpd auto-upgrade enable',
+                                    '!',
+                            ] }
 
-                        rcmd_outputs = RCMD.run_commands(xr_cmds, conf = True,\
-                            autoconfirm_mode = True, \
-                            printall = printall)
+                            rcmd_outputs = RCMD.run_commands(xr_cmds, conf = True,\
+                                autoconfirm_mode = True, \
+                                printall = printall)
 
-                        device_cmds5a = { 'cisco_xr': [
-                                'show run fpd auto-upgrade',
-                        ] }
+                            device_cmds5a = { 'cisco_xr': [
+                                    'show run fpd auto-upgrade',
+                            ] }
 
-                        rcmd_outputs5a = RCMD.run_commands(device_cmds5a, \
-                            autoconfirm_mode = True, \
-                            printall = printall)
+                            rcmd_outputs5a = RCMD.run_commands(device_cmds5a, \
+                                autoconfirm_mode = True, \
+                                printall = printall)
 
-                        if not 'fpd auto-upgrade enable' in rcmd_outputs5a[0]:
-                            text = "'fpd auto-upgrade enable' not in 'show run fpd auto-upgrade'!"
-                            CGI_CLI.uprint(text, tag ='h1', color = 'red')
-                            CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                            if not 'fpd auto-upgrade enable' in rcmd_outputs5a[0]:
+                                text = "'fpd auto-upgrade enable' not in 'show run fpd auto-upgrade'!"
+                                CGI_CLI.uprint(text, tag ='h1', color = 'red')
+                                CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
 
-                    ### 'admin show run fpd auto-upgrade' #########################
-                    cmd_output = str()
-                    try:
-                        if len(rcmd_outputs5[4]) > 0: cmd_output = rcmd_outputs5[3]
-                    except: pass
-                    if not 'fpd auto-upgrade enable' in cmd_output:
-                        xr_cmds = {'cisco_xr': [
-                                '!',
-                                'admin',
-                                '!',
-                                'fpd auto-upgrade enable',
-                                '!',
-                        ] }
+                        ### 'admin show run fpd auto-upgrade' #################
+                        cmd_output = str()
+                        try:
+                            if len(rcmd_outputs5[4]) > 0: cmd_output = rcmd_outputs5[3]
+                        except: pass
+                        if not 'fpd auto-upgrade enable' in cmd_output:
+                            xr_cmds = {'cisco_xr': [
+                                    '!',
+                                    'admin',
+                                    '!',
+                                    'fpd auto-upgrade enable',
+                                    '!',
+                            ] }
 
-                        rcmd_outputs = RCMD.run_commands(xr_cmds, conf = True,\
-                            autoconfirm_mode = True, \
-                            printall = printall)
+                            rcmd_outputs = RCMD.run_commands(xr_cmds, conf = True,\
+                                autoconfirm_mode = True, \
+                                printall = printall)
 
-                        device_cmds5b = { 'cisco_xr': [
-                                'admin show run fpd auto-upgrade',
-                        ] }
+                            device_cmds5b = { 'cisco_xr': [
+                                    'admin show run fpd auto-upgrade',
+                            ] }
 
-                        rcmd_outputs5b = RCMD.run_commands(device_cmds5b, \
-                            autoconfirm_mode = True, \
-                            printall = printall)
+                            rcmd_outputs5b = RCMD.run_commands(device_cmds5b, \
+                                autoconfirm_mode = True, \
+                                printall = printall)
 
-                        if not 'fpd auto-upgrade enable' in rcmd_outputs5b[0]:
-                            text = "'fpd auto-upgrade enable' not in 'admin show run fpd auto-upgrade'!"
-                            CGI_CLI.uprint(text, tag ='h1', color = 'red')
-                            CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                            if not 'fpd auto-upgrade enable' in rcmd_outputs5b[0]:
+                                text = "'fpd auto-upgrade enable' not in 'admin show run fpd auto-upgrade'!"
+                                CGI_CLI.uprint(text, tag ='h1', color = 'red')
+                                CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
 
             ###################################################################
             ### def POSTCHECK COMMANDS ########################################
             ###################################################################
-            elif SCRIPT_ACTION == 'post' and RCMD.router_type == 'cisco_xr':
-                pass
+            if SCRIPT_ACTION == 'post' and RCMD.router_type == 'cisco_xr':
 
-                ### LOCAL AS NUMBER COMMANDS ######################################
-                collector_cmds = {
-                    'cisco_ios':[
-                                ],
+                ### XR CHECK LIST ###
+                xr_postcheck_cmd_list = { 'cisco_xr': [
+                        '%sshow install active summary' % (asr_admin_string),
+                        '%sshow install log | utility tail count 10' % (asr_admin_string),
+                        'install verify packages',
+                        'show platform',
+                        'show run fpd auto-upgrade',
+                        'admin show run fpd auto-upgrade',
+                        'show configuration failed startup',
+                        'clear configuration inconsistency',
+                        'show health gsp',
+                        'show install request',
+                        'show install repository',
+                        'show hw-module fpd',
+                        'show running-config',
+                        'admin show running-config'
+                ] }
 
-                    'cisco_xr': [
-                                ],
-
-                    'juniper':  [
-                                ],
-
-                    'huawei':   [
-                                ]
-                }
-
-                ### RUN START COLLETING OF DATA ###################################
-                rcmd_outputs = RCMD.run_commands(collector_cmds, \
+                rcmd_outputs = RCMD.run_commands(xr_postcheck_cmd_list, conf = True,\
                     autoconfirm_mode = True, \
                     printall = printall)
 
-                ### CISCO_IOS #####################################################
-                if RCMD.router_type == 'cisco_ios':
-                    text = 'NOT IMPLEMENTED YET !'
-                    CGI_CLI.uprint(text, tag ='h1', color = 'red')
-                    CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                ### PARSE 'show hw-module fpd' !!! ###
+                fpd_problems = []
+                postcheck_config , postcheck_admin_config = str(), str()
 
-                ### CISCO_XR BGP NEIGHBORS PARSING ################################
-                elif RCMD.router_type == 'cisco_xr':
-                    text = 'NOT IMPLEMENTED YET !'
-                    CGI_CLI.uprint(text, tag ='h1', color = 'red')
-                    CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                try:
+                    if post_check[0] == 'show hw-module fpd':
+                        for fpd_line in post_check[1].split('Running Programd')[1].splitlines():
+                            if fpd_line.strip() and not '-----' in fpd_line:
+                                if fpd_line.strip().split()[3] != 'CURRENT':
+                                    fpd_problems.append(fpd_line.strip())
+                    elif post_check[0] == 'show running-config':
+                        postcheck_config = str(post_check[1])
+                    elif post_check[0] == 'admin show running-config':
+                        postcheck_admin_config = str(post_check[1])
+                except: pass
 
-                ### JUNOS BGP NEIGHBORS PARSING ###################################
-                elif RCMD.router_type == 'juniper':
-                    text = 'NOT IMPLEMENTED YET !'
-                    CGI_CLI.uprint(text, tag ='h1', color = 'red')
-                    CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                ### TODO: FIND LAST PRECHECK CONFIG FILE !!! ###
+                admin_config_files, config_files = [], []
+                device_cmds = {
+                    'cisco_xr':['dir harddisk: | include config.txt'],
+                }
 
-                ### HUAWEI BGP NEIGHBORS PARSING ##################################
-                elif RCMD.router_type == 'huawei':
-                    text = 'NOT IMPLEMENTED YET !'
-                    CGI_CLI.uprint(text, tag ='h1', color = 'red')
-                    CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                device_cmds_result = RCMD.run_commands(device_cmds, \
+                    autoconfirm_mode = True, \
+                    printall = printall)
+
+                for file_line in device_cmds_result.splitlines()[:-1]:
+                    if file_line.strip() and '-config.txt' in file_line and ':' in file_line.split()[-1]:
+                        try:
+                            if 'admin' in file_line.split()[-1]:
+                                admin_config_files.append(file_line.split()[-1])
+                            else: config_files.append(file_line.split()[-1])
+                        except: pass
+                if len(config_files) > 1: config_files.sort()
+                if len(admin_config_files) > 1: admin_config_files.sort()
+
+                last_config_file, last_admin_config_file = str(), str()
+                try:
+                    last_config_file = config_files[-1]
+                    last_admin_config_file = admin_config_files[-1]
+                except: pass
+
+                self.log.info('\nCONFIG FILE: ', last_config_file, '\nCHOSEN FROM: ', config_files)
+                self.log.info('\nADMIN CONFIG FILE: ', last_admin_config_file, '\nCHOSEN FROM: ', admin_config_files)
+
+                if last_config_file:
+                    cp_device_cmds = {
+                        'ios-xr':['utility head count 1000000 file harddisk:/%s' % (last_config_file)],
+                    }
+
+                    device_cmds_result = RCMD.run_commands(cp_device_cmds, \
+                        autoconfirm_mode = True, printall = printall)
+
+                if last_admin_config_file:
+                    cp2_device_cmds = {
+                        'ios-xr':['admin utility head count 1000000 file harddisk:/%s' % (last_admin_config_file)],
+                    }
+
+                    device_cmds_result = RCMD.run_commands(cp2_device_cmds, \
+                        autoconfirm_mode = True, printall = printall)
+
+
+
+
+
+
+
 
 
 except SystemExit: pass
@@ -2715,7 +2770,4 @@ except:
     text = traceback.format_exc()
     CGI_CLI.uprint(text, tag = 'h3', color = 'magenta')
     CGI_CLI.JSON_RESULTS['errors'] = '[%s] ' % (text)
-
-
-
 
