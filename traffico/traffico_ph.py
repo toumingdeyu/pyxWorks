@@ -2957,14 +2957,14 @@ try:
                 CGI_CLI.uprint(device_data, name = True, jsonprint = True, \
                     color = 'blue', timestamp = 'no', no_printall = not printall)
 
-                if len(CGI_CLI.JSON_RESULTS['errors']) == 0: CGI_CLI.JSON_RESULTS['result'] = 'success'
+                if len(CGI_CLI.JSON_RESULTS.get('errors',[])) == 0: CGI_CLI.JSON_RESULTS['result'] = 'success'
 
 except SystemExit: pass
 except:
     traceback_found = traceback.format_exc()
     CGI_CLI.uprint(str(traceback_found), tag = 'h3', color = 'magenta')
 
-if len(CGI_CLI.JSON_RESULTS['errors']) > 0: CGI_CLI.JSON_RESULTS['result'] = 'failure'
+if len(CGI_CLI.JSON_RESULTS.get('errors',[])) > 0: CGI_CLI.JSON_RESULTS['result'] = 'failure'
 
 ### WRITE FILE LINK AND CLOSE GLOBAL LOGFILE ##################################
 if logfilename:
