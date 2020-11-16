@@ -5,15 +5,16 @@ import sys, os, io, time
 
 
 if sys.version_info.major >= 3 and sys.version_info.minor >= 6:
-    ### pip install pycryptodomex
-
+    ### python -m pip install PyCryptodome ###
+    
+    ### https://gist.github.com/lopes/168c9d74b988391e702aac5f4aa69e41 ###
     from hashlib import md5
     from base64 import b64decode
     from base64 import b64encode
 
-    from crypto.Cipher import AES
-    from crypto.Random import get_random_bytes
-    from crypto.Util.Padding import pad, unpad
+    from Crypto.Cipher import AES
+    from Crypto.Random import get_random_bytes
+    from Crypto.Util.Padding import pad, unpad
 
 
     class AESCipher:
@@ -33,7 +34,6 @@ if sys.version_info.major >= 3 and sys.version_info.minor >= 6:
 
 
     if __name__ == '__main__':
-
         print('TESTING ENCRYPTION')
         msg = input('Message...: ')
         pwd = input('Password..: ')
@@ -45,9 +45,7 @@ if sys.version_info.major >= 3 and sys.version_info.minor >= 6:
         print('Message...:', AESCipher(pwd).decrypt(cte).decode('utf-8'))
 
 
-
-
-elif sys.version_info.major <= 2:
+elif sys.version_info.major == 2:
     ### unix: pip install pycrypto ###
     ### windows: easy_install http://www.voidspace.org.uk/downloads/pycrypto26/pycrypto-2.6.win-amd64-py2.7.exe ###
 
@@ -64,3 +62,5 @@ elif sys.version_info.major <= 2:
      
     decipher = AES.new(key, AES.MODE_ECB)
     print(decipher.decrypt(msg))
+
+
