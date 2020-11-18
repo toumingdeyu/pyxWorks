@@ -283,8 +283,8 @@ class CGI_CLI(object):
         if CGI_CLI.remote_addr and CGI_CLI.http_user_agent and not CGI_CLI.JSON_MODE:
             CGI_CLI.cgi_active = True
         ### JSON HEADERS ######################################################
-        if CGI_CLI.JSON_MODE:
-            CGI_CLI.content_type_line = 'Content-type:application/vnd.api+json%s' % (CGI_CLI.newline)
+        #if CGI_CLI.JSON_MODE:
+        #    CGI_CLI.content_type_line = 'Content-type:application/vnd.api+json%s' % (CGI_CLI.newline)
 
         ### HTML PRINTING START ###############################################
         if CGI_CLI.cgi_active:
@@ -303,12 +303,12 @@ class CGI_CLI(object):
                 '<style>%s</style>' % (CGI_CLI.CSS_STYLE) if CGI_CLI.CSS_STYLE else str()),\
                 ommit_logging = True, printall = True)
         ### JSON API PRINTING START ###########################################
-        elif CGI_CLI.JSON_MODE:
-            sys.stdout.write("%s%s%s%s%s" %
-                (CGI_CLI.chunked_transfer_encoding_line,
-                CGI_CLI.content_type_line,
-                CGI_CLI.status_line, CGI_CLI.newline, CGI_CLI.newline))
-            sys.stdout.flush()
+        # elif CGI_CLI.JSON_MODE:
+            # sys.stdout.write("%s%s%s%s%s" %
+                # (CGI_CLI.chunked_transfer_encoding_line,
+                # CGI_CLI.content_type_line,
+                # CGI_CLI.status_line, CGI_CLI.newline, CGI_CLI.newline))
+            # sys.stdout.flush()
 
         ### REGISTER CLEANUP FUNCTION #########################################
         import atexit; atexit.register(CGI_CLI.__cleanup__)
