@@ -785,9 +785,9 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
 
         if hw_info.get('os_type') == "ios-xr":
             for i in range(20):
-                time.sleep(2)
+                time.sleep(1)
                 device_cmds = {
-                    'ios-xr':[ '%sshow install log | utility tail count 20' % (asr_admin_string) ],
+                    'ios-xr':[ '%sshow install log | utility tail count 20' % (asr_admin_string) ]
                 }
                 device_cmds_result, forget_it = device_command(self, uinfo, input, device_cmds)
 
@@ -822,10 +822,12 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
                     output.result = 'success'
 
                 ### EXIT LOOP AFTER END OF OPERATION ##########################
-                device_cmds = { 'ios-xr': [ 'show install request' ] }
-                device_cmds_result, forget_it = device_command(self, uinfo, input, device_cmds)
-                if 'No install operation in progress' in device_cmds_result:
+                time.sleep(1)
+                device_cmds2 = { 'ios-xr': [ 'show install request' ] }
+                device_cmds_result2, forget_it = device_command(self, uinfo, input, device_cmds2)
+                if 'No install operation in progress' in device_cmds_result2:
                     break
+                time.sleep(1)    
 
             if not output.last_command and not output.operation_id and not find_success:
                 output.install_log = "Problem to find started 'install activate noprompt' in install log!"
