@@ -2709,20 +2709,21 @@ try:
                 ### FIND LAST PRECHECK CONFIG FILE !!! ########################
                 admin_config_files, config_files = [], []
                 device_cmds = {
-                    'cisco_xr':['dir harddisk: | include config.txt'],
+                    'cisco_xr':['dir harddisk: | include config.txt']
                 }
 
                 device_cmds_result = RCMD.run_commands(device_cmds, \
                     autoconfirm_mode = True, \
                     printall = printall)
-
-                for file_line in device_cmds_result.splitlines()[:-1]:
-                    if file_line.strip() and '-config.txt' in file_line and ':' in file_line.split()[-1]:
-                        try:
-                            if 'admin' in file_line.split()[-1]:
-                                admin_config_files.append(file_line.split()[-1])
-                            else: config_files.append(file_line.split()[-1])
-                        except: pass
+                try:
+                    for file_line in device_cmds_result.splitlines()[0][:-1]:
+                        if file_line.strip() and '-config.txt' in file_line and ':' in file_line.split()[-1]:
+                            try:
+                                if 'admin' in file_line.split()[-1]:
+                                    admin_config_files.append(file_line.split()[-1])
+                                else: config_files.append(file_line.split()[-1])
+                            except: pass
+                except: pass
                 if len(config_files) > 1: config_files.sort()
                 if len(admin_config_files) > 1: admin_config_files.sort()
 
@@ -2732,8 +2733,9 @@ try:
                     last_admin_config_file = admin_config_files[-1]
                 except: pass
 
-                self.log.info('\nCONFIG FILE: ', last_config_file, '\nCHOSEN FROM: ', config_files)
-                self.log.info('\nADMIN CONFIG FILE: ', last_admin_config_file, '\nCHOSEN FROM: ', admin_config_files)
+
+                CGI_CLI.uprint('\nCONFIG FILE: ' + last_config_file + '\nCHOSEN FROM: ' + str(config_files))
+                CGI_CLI.uprint('\nADMIN CONFIG FILE: ' + last_admin_config_file + '\nCHOSEN FROM: ' + str(admin_config_files))
 
                 if last_config_file:
                     cp_device_cmds = {
