@@ -773,19 +773,14 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
         hw_info = detect_hw(self, uinfo, input)
         output.os_type, output.hw_type = hw_info.get('os_type',str()), hw_info.get('hw_type',str())
 
-        cmd = {
-                  #"ios-xe":['show version'],
-                  "ios-xr":['%sinstall activate noprompt' % (asr_admin_string)],
-                  #"huawei-vrp":['display version'],
-                  #"junos":['show version']
-              }
-
-        cmd_result, forget_it = device_command(self, uinfo, input, cmd)
-        output.install_log = cmd_result
-
         if hw_info.get('os_type') == "ios-xr":
+            cmd = { "ios-xr": [ '%sinstall activate noprompt' % (asr_admin_string) ] }
+
+            cmd_result, forget_it = device_command(self, uinfo, input, cmd)
+            output.install_log = cmd_result
+
             for i in range(20):
-                time.sleep(1)
+                time.sleep(2)
                 device_cmds = {
                     'ios-xr':[ '%sshow install log | utility tail count 20' % (asr_admin_string) ]
                 }
@@ -820,14 +815,14 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
                     find_success = True
                 if output.last_command and output.operation_id and find_success:
                     output.result = 'success'
+                    break
 
                 ### EXIT LOOP AFTER END OF OPERATION ##########################
-                time.sleep(1)
+                time.sleep(2)
                 device_cmds2 = { 'ios-xr': [ 'show install request' ] }
                 device_cmds_result2, forget_it = device_command(self, uinfo, input, device_cmds2)
                 if 'No install operation in progress' in device_cmds_result2:
                     break
-                time.sleep(1)    
 
             if not output.last_command and not output.operation_id and not find_success:
                 output.install_log = "Problem to find started 'install activate noprompt' in install log!"
