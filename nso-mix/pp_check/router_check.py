@@ -1161,6 +1161,9 @@ parser.add_argument("--user",
 parser.add_argument("--username",
                     action = "store", dest = 'username', default = str(),
                     help = "specify router user login")
+parser.add_argument("--password", default = str(),
+                    action = "store", dest = 'password',
+                    help = "specify router user password")
 parser.add_argument("--cpassword", default = str(),
                     action = "store", dest = 'cpassword',
                     help = "specify router user cpassword")
@@ -1290,6 +1293,8 @@ if not USERNAME:
     json_print(error = err_text)
     sys.exit(0)
 
+if args.password:
+    PASSWORD = str(args.password)
 if args.cpassword:
     PASSWORD = str(args.cpassword).decode('base64','strict')
 elif not PASSWORD or args.fgetpass:
