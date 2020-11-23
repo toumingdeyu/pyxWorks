@@ -10,7 +10,11 @@ from Crypto import Random
 key_lenght = 32
 iv_lenght = 16
 
-
+ciphertext = str()
+### key and must be bytes
+key = str(32*' ')  ### must be 32 char length
+key = str.encode(key)
+iv = key[:16]
 
 def decrypt(key, iv, ciphertext):
     assert len(key) == key_lenght
@@ -22,6 +26,7 @@ def decrypt(key, iv, ciphertext):
 
 plaintext = decrypt(key, iv, ciphertext)
 print(plaintext)
+
 
 sys.exit(0)
 
