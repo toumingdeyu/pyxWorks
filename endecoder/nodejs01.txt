@@ -1,0 +1,28 @@
+https://repl.it/languages/Nodejs
+---------------------------------------------------------
+
+
+
+const crypto = require('crypto'); 
+
+var decrypt = function (encryptedcredentials) {
+        var iv = new Buffer(encryptedcredentials.substr(0, 24), 'base64').toString();
+        console.log('IV: %s', iv);
+        var part = iv.substr(3, 10).toString();
+        console.log('PART: %s', part);
+        var secret = part + '123456789012' + part
+        console.log('SECRET: %s', secret);
+        var decryptor = crypto.createDecipheriv('AES-256-CBC', secret, iv); 
+        
+        return decryptor.update(encryptedcredentials.substr(24), 'base64', 'utf8') + decryptor.final('utf8');
+};
+
+var encryptedcredentials = 'MTIzMTYwNjIyODU1ODQ1Ng==YmUhEiCutT2VkSlRy67v/s/dVeIl4rAPCqh+DprbsNU=br/'
+
+var decrypted = decrypt(encryptedcredentials);
+
+console.log('DECRYPTED: %s', decrypted);
+
+var decryptedCredentials = decrypted.split('#####');
+
+console.log('DECRYPTED#####: %s', decryptedCredentials);

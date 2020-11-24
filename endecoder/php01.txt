@@ -1,0 +1,25 @@
+https://wtools.io/php-sandbox
+----------------------------------------
+
+<?php
+function encrypt ($message, $secret, $iv) {
+  $encrypted = base64_encode($iv) . openssl_encrypt($message, "AES-256-CBC", $secret, 0, $iv);
+  return $encrypted;
+}
+
+// # $message = $_SESSION['username'] . '#####' . $_SESSION['password'];
+$message = 'username' . '#####' . 'password';
+$t = date('U');
+$iv =  '123' .  $t . '456';
+
+$secret = $t . base64_decode("'MTIzNDU2Nzg5MDEy")  . $t;  //must be 32 char length
+
+$encrypted = encrypt($message, $secret, $iv);
+
+echo($t . '<br/>');
+echo($iv . '<br/>');
+echo($secret . '<br/>');
+echo($encrypted . 'br/');
+
+---------------------------------------------------------------
+
