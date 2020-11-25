@@ -2,7 +2,7 @@
 
 ###!/usr/bin/python36
 
-import sys, os, io, paramiko, json, copy, html, logging
+import sys, os, io, paramiko, json, copy, html, logging, base64
 import traceback
 import getopt
 import getpass
@@ -106,6 +106,9 @@ class CGI_CLI(object):
         parser.add_argument("--getpass",
                             action = "store_true", dest = 'getpass', default = None,
                             help = "forced to insert router password interactively getpass.getpass()")
+        parser.add_argument("--hash",
+                            action = 'store', dest = "hash", default = str(),
+                            help = "coded hash from iptac1 web")
         parser.add_argument("--device",
                             action = "store", dest = 'device',
                             default = str(),
@@ -164,6 +167,38 @@ class CGI_CLI(object):
         import atexit; atexit.register(CGI_CLI.__cleanup__)
 
     @staticmethod
+    def hash_decrypt(text = None, key = None, iv = None):
+        from Crypto.Cipher import AES
+        if not text: return str()
+        if not key:
+            key = base64.b64decode(b'cGFpaVVORE9wYWlpVU5ET3BhaWlVTkRPcGFpaVVORE8=')
+        try:
+            key = str.encode(key)
+        except: pass
+        if not iv: iv = key[:16]
+        assert len(key) == 32
+        assert len(iv) == 16
+        ciphertext = base64.b64decode(text)
+        aes = AES.new(key, AES.MODE_CBC, iv)
+        plain_text = aes.decrypt(ciphertext).decode('utf-8').strip()
+        readable_text = str()
+        for c in plain_text:
+            if c in string.printable: readable_text += c
+        return readable_text
+
+    @staticmethod
+    def get_credentials(text = None):
+        username, password = str(), str()
+        if text:
+            strtext = text[19:]
+            print(strtext)
+            try:
+                username, password = strtext.split('#####')
+            except: pass
+        return username, password
+
+
+    @staticmethod
     def init_cgi(chunked = None, css_style = None, newline = None, \
         timestamp = None, disable_page_reload_link = None, no_title = None, \
         json_api = None):
@@ -204,9 +239,11 @@ class CGI_CLI(object):
             if variable and value and \
                 not variable in ["username", "password"]:
                 CGI_CLI.data[variable] = value
-            if variable == "submit": CGI_CLI.submit_form = value
-            if variable == "username": CGI_CLI.USERNAME = value
-            if variable == "password": CGI_CLI.PASSWORD = value
+            if value and variable == "submit": CGI_CLI.submit_form = value
+            if value and variable == "username": CGI_CLI.USERNAME = value
+            if value and variable == "password": CGI_CLI.PASSWORD = value
+            if value and variable == "hash":
+                CGI_CLI.USERNAME, CGI_CLI.PASSWORD = CGI_CLI.get_credentials(CGI_CLI.hash_decrypt(value))
 
             ### SET CHUNKED MODE BY CGI #######################################
             if variable == "chunked_mode":
@@ -247,8 +284,10 @@ class CGI_CLI(object):
                 if variable and value and \
                     not variable in ["username", "password"]:
                     CGI_CLI.data[variable] = value
-                if variable == "username": CGI_CLI.USERNAME = value
-                if variable == "password": CGI_CLI.PASSWORD = value
+                if value and variable == "username": CGI_CLI.USERNAME = value
+                if value and variable == "password": CGI_CLI.PASSWORD = value
+                if value and variable == "hash":
+                    CGI_CLI.USERNAME, CGI_CLI.PASSWORD = CGI_CLI.get_credentials(CGI_CLI.hash_decrypt(value))
 
         ### CGI_CLI.data PARSER ###############################################
         for key in CGI_CLI.data.keys():
@@ -259,9 +298,11 @@ class CGI_CLI(object):
                 CGI_CLI.printall = False
             elif variable == "printall":
                 CGI_CLI.printall = True
-            if variable == "timestamp" and value: CGI_CLI.timestamp = True
-            if variable == "cusername": CGI_CLI.USERNAME = value.decode('base64','strict')
-            if variable == "cpassword": CGI_CLI.PASSWORD = value.decode('base64','strict')
+            if value and variable == "timestamp" and value: CGI_CLI.timestamp = True
+            if value and variable == "cusername": CGI_CLI.USERNAME = value.decode('base64','strict')
+            if value and variable == "cpassword": CGI_CLI.PASSWORD = value.decode('base64','strict')
+            if value and variable == "hash":
+                CGI_CLI.USERNAME, CGI_CLI.PASSWORD = CGI_CLI.get_credentials(CGI_CLI.hash_decrypt(value))
 
         ### HTML PRINTING START ###############################################
         if CGI_CLI.cgi_active:
