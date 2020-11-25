@@ -5,7 +5,8 @@
 # Author: Philippe Marcais (philippe.marcais@orange.com)                      #
 #         Peter Nemec      (peter.nemec@orange.com)                           #
 # Created: 06/01/2015                                                         #
-# Updated: 10/Nov/2020 - --username alternative switch for unification        #
+# Updated: 25/Nov/2020 - --hash cli switch added                              #
+#          10/Nov/2020 - --username alternative switch for unification        #
 #          27/Oct/2020 - json mode                                            #
 #          24/Aug/2020 - Custom opposite logic, new cli switch --pluscustom   #
 #                      - cli switch change --custom = --customonly            #
@@ -29,7 +30,7 @@
 # status                                                                      #
 ###############################################################################
 
-import sys, os, paramiko, copy, traceback, json, collections
+import sys, os, paramiko, copy, traceback, json, collections, base64
 import getopt
 import getpass
 import telnetlib
@@ -1122,6 +1123,38 @@ def json_print(prefile = None, postfile = None, logfilename = None, error = None
         #print_text = str(json.dumps(json_data))
         #print(print_text)
 
+
+def hash_decrypt(text = None, key = None, iv = None):
+    from Crypto.Cipher import AES
+    if not text: return str()
+    if not key:
+        key = base64.b64decode(b'cGFpaVVORE9wYWlpVU5ET3BhaWlVTkRPcGFpaVVORE8=')
+    try:
+        key = str.encode(key)
+    except: pass
+    if not iv: iv = key[:16]
+    assert len(key) == 32
+    assert len(iv) == 16
+    ciphertext = base64.b64decode(text)
+    aes = AES.new(key, AES.MODE_CBC, iv)
+    plain_text = aes.decrypt(ciphertext).decode('utf-8').strip()
+    readable_text = str()
+    for c in plain_text:
+        if c in string.printable: readable_text += c
+    return readable_text
+
+
+def get_credentials(text = None):
+    username, password = str(), str()
+    if text:
+        strtext = text[19:]
+        print(strtext)
+        try:
+            username, password = strtext.split('#####')
+        except: pass
+    return username, password
+
+
 ##############################################################################
 #
 # def BEGIN MAIN
@@ -1170,6 +1203,9 @@ parser.add_argument("--cpassword", default = str(),
 parser.add_argument("--fgetpass",
                     action = 'store_true', dest = "fgetpass", default = False,
                     help = "force getpass.getpass() call even if NEWR_PASS is set.")
+parser.add_argument("--hash",
+                    action = 'store_true', dest = "hash", default = False,
+                    help = "coded hash from iptac1 web")
 parser.add_argument("--recheck",action = "store_true", default = False,
                     help = "recheck last or specified diff pre/post files per inserted device")
 parser.add_argument("--cmdlist",
@@ -1287,6 +1323,10 @@ if os.path.isdir(WORKDIR_IF_EXISTS) and os.path.exists(WORKDIR_IF_EXISTS):
 ####### Set USERNAME if needed
 if args.username: USERNAME = args.username
 if args.user: USERNAME = args.user
+
+if args.hash:
+    USERNAME, PASSWORD = get_credentials(hash_decrypt(args.hash))
+
 if not USERNAME:
     err_text = " ... Please insert your username by cmdline switch --user/--username username !"
     ifprint(bcolors.MAGENTA + err_text + bcolors.ENDC)
