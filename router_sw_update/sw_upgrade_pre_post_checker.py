@@ -2,7 +2,7 @@
 
 ###!/usr/bin/python36
 
-import sys, os, io, paramiko, json, copy, html, logging
+import sys, os, io, paramiko, json, copy, html, logging, base64
 import traceback
 import getopt
 import getpass
@@ -107,6 +107,9 @@ class CGI_CLI(object):
         parser.add_argument("--getpass",
                             action = "store_true", dest = 'getpass', default = None,
                             help = "forced to insert router password interactively getpass.getpass()")
+        parser.add_argument("--hash",
+                            action = 'store', dest = "hash", default = str(),
+                            help = "coded hash from iptac1 web")
         parser.add_argument("--device",
                             action = "store", dest = 'device',
                             default = str(),
@@ -183,6 +186,37 @@ class CGI_CLI(object):
         import atexit; atexit.register(CGI_CLI.__cleanup__)
 
     @staticmethod
+    def hash_decrypt(text = None, key = None, iv = None):
+        from Crypto.Cipher import AES
+        if not text: return str()
+        if not key:
+            key = base64.b64decode(b'cGFpaVVORE9wYWlpVU5ET3BhaWlVTkRPcGFpaVVORE8=')
+        try:
+            key = str.encode(key)
+        except: pass
+        if not iv: iv = key[:16]
+        assert len(key) == 32
+        assert len(iv) == 16
+        ciphertext = base64.b64decode(text)
+        aes = AES.new(key, AES.MODE_CBC, iv)
+        plain_text = aes.decrypt(ciphertext).decode('utf-8').strip()
+        readable_text = str()
+        for c in plain_text:
+            if c in string.printable: readable_text += c
+        return readable_text
+
+    @staticmethod
+    def get_credentials(text = None):
+        username, password = str(), str()
+        if text:
+            strtext = text[19:]
+            print(strtext)
+            try:
+                username, password = strtext.split('#####')
+            except: pass
+        return username, password
+
+    @staticmethod
     def init_cgi(chunked = None, css_style = None, newline = None, \
         timestamp = None, disable_page_reload_link = None, no_title = None, \
         json_mode = None):
@@ -227,6 +261,8 @@ class CGI_CLI(object):
             if value and variable == "username": CGI_CLI.USERNAME = value
             if value and variable == "password": CGI_CLI.PASSWORD = value
             if value and variable == "json_mode": CGI_CLI.JSON_MODE = value
+            if value and variable == "hash":
+                CGI_CLI.USERNAME, CGI_CLI.PASSWORD = CGI_CLI.get_credentials(CGI_CLI.hash_decrypt(value))
 
             ### SET CHUNKED MODE BY CGI #######################################
             if variable == "chunked_mode":
@@ -262,6 +298,8 @@ class CGI_CLI(object):
                 if value and variable == "username": CGI_CLI.USERNAME = value
                 if value and variable == "password": CGI_CLI.PASSWORD = value
                 if value and variable == "json_mode": CGI_CLI.JSON_MODE = value
+                if value and variable == "hash":
+                    CGI_CLI.USERNAME, CGI_CLI.PASSWORD = CGI_CLI.get_credentials(CGI_CLI.hash_decrypt(value))
 
         ### CGI_CLI.data PARSER ###############################################
         for key in CGI_CLI.data.keys():
@@ -276,6 +314,8 @@ class CGI_CLI(object):
             if value and variable == "cusername": CGI_CLI.USERNAME = value.decode('base64','strict')
             if value and variable == "cpassword": CGI_CLI.PASSWORD = value.decode('base64','strict')
             if value and variable == "json_mode": CGI_CLI.JSON_MODE = value
+            if value and variable == "hash":
+                CGI_CLI.USERNAME, CGI_CLI.PASSWORD = CGI_CLI.get_credentials(CGI_CLI.hash_decrypt(value))
 
         ### DECIDE - CLI OR CGI MODE ##########################################
         CGI_CLI.remote_addr =  dict(os.environ).get('REMOTE_ADDR','')
