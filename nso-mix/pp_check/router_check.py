@@ -1204,7 +1204,7 @@ parser.add_argument("--fgetpass",
                     action = 'store_true', dest = "fgetpass", default = False,
                     help = "force getpass.getpass() call even if NEWR_PASS is set.")
 parser.add_argument("--hash",
-                    action = 'store_true', dest = "hash", default = False,
+                    action = 'store', dest = "hash", default = str(),
                     help = "coded hash from iptac1 web")
 parser.add_argument("--recheck",action = "store_true", default = False,
                     help = "recheck last or specified diff pre/post files per inserted device")
