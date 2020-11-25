@@ -47,7 +47,19 @@ def hash_decrypt(text = None, key = None, iv = None):
         if c in string.printable: readable_text += c
     return readable_text
 
-text = 'aa####bb'
+
+def get_credentials(text = None):
+    username, password = str(), str()
+    if text:
+        strtext = text[19:]
+        print(strtext)
+        try:
+            username, password = strtext.split('#####')
+        except: pass
+    return username, password
+
+
+text = '2020-11-25T12:09:27aa#####bb'
 
 cipher_text = hash_encrypt(text)
 print(cipher_text)
@@ -55,7 +67,7 @@ print(cipher_text)
 plain_text = hash_decrypt(cipher_text)
 print(plain_text)
 
-
+print(get_credentials(plain_text))
 
 sys.exit(0)
 
