@@ -52,7 +52,6 @@ def get_credentials(text = None):
     username, password = str(), str()
     if text:
         strtext = text[19:]
-        print(strtext)
         try:
             username, password = strtext.split('#####')
         except: pass
