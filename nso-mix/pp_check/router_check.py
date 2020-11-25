@@ -30,7 +30,7 @@
 # status                                                                      #
 ###############################################################################
 
-import sys, os, paramiko, copy, traceback, json, collections, base64
+import sys, os, paramiko, copy, traceback, json, collections, base64, string
 import getopt
 import getpass
 import telnetlib
@@ -1148,7 +1148,6 @@ def get_credentials(text = None):
     username, password = str(), str()
     if text:
         strtext = text[19:]
-        print(strtext)
         try:
             username, password = strtext.split('#####')
         except: pass
