@@ -2,7 +2,7 @@
 
 ###!/usr/bin/python36
 
-import sys, os, io, paramiko, json, copy, html, logging, base64
+import sys, os, io, paramiko, json, copy, html, logging, base64, string
 import traceback
 import getopt
 import getpass
