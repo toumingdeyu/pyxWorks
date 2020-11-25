@@ -6,40 +6,52 @@ from Crypto.Cipher import AES
 from Crypto.Util import Counter
 from Crypto import Random
 
-# AES supports multiple key sizes: 16 (AES128), 24 (AES192), or 32 (AES256).
-key_lenght = 32
-iv_lenght = 16
-
-
+### AES supports multiple key sizes: 16 (AES128), 24 (AES192), or 32 (AES256).
+### PY3: string = bytes.decode()
 ### key and iv must be bytes, key must be 32 char length
-key = "" 
-key = str.encode(key)
 
-iv = key[:16]
 
-def encrypt(key, iv, text):
+
+
+def hash_encrypt(text = None, key = None, iv = None):
+    if not text: return str()
+    if not key:
+        key = base64.b64decode(b'cGFpaVVORE9wYWlpVU5ET3BhaWlVTkRPcGFpaVVORE8=')
+    try:
+        key = str.encode(key)
+    except: pass
+    if not iv: iv = key[:16]
+    assert len(key) == 32
+    assert len(iv) == 16
+    text += (16-len(text)%16) * " "
+    text = str.encode(text)
     cipher = AES.new( key, AES.MODE_CBC, iv )
-    return base64.b64encode( cipher.encrypt( text ) ) 
+    return base64.b64encode( cipher.encrypt( text ) )
 
-def decrypt(key, iv, ciphertext):
-    assert len(key) == key_lenght
-    assert len(iv) == iv_lenght
-    ciphertext = base64.b64decode(ciphertext)
+def hash_decrypt(text = None, key = None, iv = None):
+    if not text: return str()
+    if not key:
+        key = base64.b64decode(b'cGFpaVVORE9wYWlpVU5ET3BhaWlVTkRPcGFpaVVORE8=')
+    try:
+        key = str.encode(key)
+    except: pass
+    if not iv: iv = key[:16]
+    assert len(key) == 32
+    assert len(iv) == 16
+    ciphertext = base64.b64decode(text)
     aes = AES.new(key, AES.MODE_CBC, iv)
     plain_text = aes.decrypt(ciphertext).decode('utf-8').strip()
     readable_text = str()
     for c in plain_text:
-        if c in string.printable: readable_text += c    
-    return readable_text 
+        if c in string.printable: readable_text += c
+    return readable_text
 
-text = ''
-text += (16-len(text)%16) * " "
-text = str.encode(text)
+text = 'aa####bb'
 
-cipher_text = encrypt(key, iv, text)
+cipher_text = hash_encrypt(text)
 print(cipher_text)
 
-plain_text = decrypt(key, iv, cipher_text)
+plain_text = hash_decrypt(cipher_text)
 print(plain_text)
 
 
