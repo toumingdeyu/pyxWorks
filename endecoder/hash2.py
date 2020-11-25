@@ -1,10 +1,7 @@
 #!/usr/bin/python
 
-import sys, os, io, time, binascii, base64, random, json, string
+import sys, os, io, time, binascii, base64, json, string
 
-from Crypto.Cipher import AES
-from Crypto.Util import Counter
-from Crypto import Random
 
 ### AES supports multiple key sizes: 16 (AES128), 24 (AES192), or 32 (AES256).
 ### PY3: string = bytes.decode()
@@ -14,6 +11,7 @@ from Crypto import Random
 
 
 def hash_encrypt(text = None, key = None, iv = None):
+    from Crypto.Cipher import AES
     if not text: return str()
     if not key:
         key = base64.b64decode(b'cGFpaVVORE9wYWlpVU5ET3BhaWlVTkRPcGFpaVVORE8=')
@@ -28,7 +26,10 @@ def hash_encrypt(text = None, key = None, iv = None):
     cipher = AES.new( key, AES.MODE_CBC, iv )
     return base64.b64encode( cipher.encrypt( text ) )
 
+
+
 def hash_decrypt(text = None, key = None, iv = None):
+    from Crypto.Cipher import AES
     if not text: return str()
     if not key:
         key = base64.b64decode(b'cGFpaVVORE9wYWlpVU5ET3BhaWlVTkRPcGFpaVVORE8=')
