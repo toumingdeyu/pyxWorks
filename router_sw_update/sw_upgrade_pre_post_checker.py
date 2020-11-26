@@ -1680,12 +1680,12 @@ class RCMD(object):
                             elif RCMD.router_type in ["vrp",'huawei']:
                                 chan.send('Y\n')
                             time.sleep(0.2)
-                            CGI_CLI.uprint("AUTOCONFIRMATION INSERTED , EXIT !!", tag = 'warning')
+                            CGI_CLI.uprint("AUTOCONFIRMED.")
                             break
                         else:
                             ### INTERACTIVE QUESTION --> GO AWAY ##############
                             exit_loop = True
-                            CGI_CLI.uprint("AUTOCONFIRMATION QUESTION, EXIT !!", tag = 'warning')
+                            CGI_CLI.uprint("AUTOCONFIRMATION QUESTION.")
                             break
 
                 if exit_loop: break
@@ -2685,6 +2685,7 @@ try:
             ###################################################################
             if SCRIPT_ACTION == 'pre' or SCRIPT_ACTION == 'post':
                 HW_INFO = detect_hw(device)
+                CGI_CLI.uprint(HW_INFO)
 
                 ### CISCO_IOS #####################################################
                 if RCMD.router_type == 'cisco_ios':
@@ -2778,14 +2779,21 @@ try:
                             'show health gsp',
                             'show install request',
                             'show install repository',
-                            'show hw-module fpd',
-                            'show running-config',
-                            'admin show running-config'
                     ] }
 
                     rcmd_outputs5 = RCMD.run_commands(device_cmds5, \
                         autoconfirm_mode = True, \
                         printall = printall)
+
+                    device_cmds55 = { 'cisco_xr': [
+                            'show running-config',
+                            'admin show running-config'
+                    ] }
+
+                    rcmd_outputs55 = RCMD.run_commands(device_cmds55, \
+                        ignore_syntax_error = True, \
+                        printall = printall)
+
 
                     ### copy configs ###
                     today = date.today()
