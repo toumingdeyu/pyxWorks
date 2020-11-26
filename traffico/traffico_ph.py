@@ -191,7 +191,6 @@ class CGI_CLI(object):
         username, password = str(), str()
         if text:
             strtext = text[19:]
-            print(strtext)
             try:
                 username, password = strtext.split('#####')
             except: pass
