@@ -156,7 +156,6 @@ class CGI_CLI(object):
             if CGI_CLI.timestamp:
                 CGI_CLI.uprint('END.\n', no_printall = not CGI_CLI.printall, tag = 'debug')
             if not CGI_CLI.disable_page_reload_link: CGI_CLI.html_selflink()
-            CGI_CLI.print_chunk("</body></html>", printall = True)
         elif CGI_CLI.JSON_MODE:
             pass
         else:
@@ -816,7 +815,7 @@ class CGI_CLI(object):
             except: pyfile = i_pyfile.strip()
             if CGI_CLI.cgi_active:
                 CGI_CLI.print_chunk('<p id="scriptend"></p>', raw_log = True, printall = True)
-                CGI_CLI.print_chunk('<br/><a href = "./%s">PAGE RELOAD</a>' % (pyfile), raw_log = True, printall = True)
+                CGI_CLI.print_chunk('<br/><a href = "./%s">PAGE RELOAD</a>' % (pyfile), ommit_logging = True, printall = True)
 
     @staticmethod
     def get_scriptname():
