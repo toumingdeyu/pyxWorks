@@ -1679,12 +1679,12 @@ class RCMD(object):
                             elif RCMD.router_type in ["vrp",'huawei']:
                                 chan.send('Y\n')
                             time.sleep(0.2)
-                            CGI_CLI.uprint("AUTOCONFIRMED.")
+                            CGI_CLI.uprint("AUTOCONFIRMED.", tag = 'debug')
                             break
                         else:
                             ### INTERACTIVE QUESTION --> GO AWAY ##############
                             exit_loop = True
-                            CGI_CLI.uprint("AUTOCONFIRMATION QUESTION.")
+                            CGI_CLI.uprint("AUTOCONFIRMATION QUESTION.", tag = 'debug')
                             break
 
                 if exit_loop: break
@@ -2684,7 +2684,7 @@ try:
             ###################################################################
             if SCRIPT_ACTION == 'pre' or SCRIPT_ACTION == 'post':
                 HW_INFO = detect_hw(device)
-                CGI_CLI.uprint(HW_INFO)
+                CGI_CLI.uprint(HW_INFO, tag = 'debug')
 
                 ### CISCO_IOS #####################################################
                 if RCMD.router_type == 'cisco_ios':
