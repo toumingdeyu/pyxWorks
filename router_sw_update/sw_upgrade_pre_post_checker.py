@@ -146,6 +146,7 @@ class CGI_CLI(object):
     def __cleanup__():
         logfile_name = copy.deepcopy(CGI_CLI.logfilename)
         logfilename_link = CGI_CLI.make_loglink(CGI_CLI.logfilename)
+        if CGI_CLI.JSON_MODE or CGI_CLI.PRINT_JSON_RESULTS: CGI_CLI.uprint_json_results()
         if CGI_CLI.cgi_active:
             CGI_CLI.print_result_summary()
             if CGI_CLI.logfilename:
@@ -157,7 +158,7 @@ class CGI_CLI(object):
             if not CGI_CLI.disable_page_reload_link: CGI_CLI.html_selflink()
             CGI_CLI.print_chunk("</body></html>", printall = True)
         elif CGI_CLI.JSON_MODE:
-            CGI_CLI.uprint_json_results(CGI_CLI.JSON_RESULTS)
+            pass
         else:
             CGI_CLI.print_result_summary()
             if CGI_CLI.logfilename:
@@ -225,6 +226,7 @@ class CGI_CLI(object):
         except: CGI_CLI.sys_stdout_encoding = None
         if not CGI_CLI.sys_stdout_encoding: CGI_CLI.sys_stdout_encoding = 'UTF-8'
         CGI_CLI.JSON_MODE = json_mode
+        CGI_CLI.PRINT_JSON_RESULTS = False
         CGI_CLI.uprint_json_results_printed = None
         CGI_CLI.JSON_RESULTS = collections.OrderedDict()
         CGI_CLI.USERNAME, CGI_CLI.PASSWORD = None, None
@@ -260,6 +262,7 @@ class CGI_CLI(object):
             if value and variable == "username": CGI_CLI.USERNAME = value
             if value and variable == "password": CGI_CLI.PASSWORD = value
             if value and variable == "json_mode": CGI_CLI.JSON_MODE = value
+            if value and variable == "print_json_results": CGI_CLI.PRINT_JSON_RESULTS = value
             if value and variable == "hash":
                 CGI_CLI.USERNAME, CGI_CLI.PASSWORD = CGI_CLI.get_credentials(CGI_CLI.hash_decrypt(value))
 
@@ -297,6 +300,7 @@ class CGI_CLI(object):
                 if value and variable == "username": CGI_CLI.USERNAME = value
                 if value and variable == "password": CGI_CLI.PASSWORD = value
                 if value and variable == "json_mode": CGI_CLI.JSON_MODE = value
+                if value and variable == "print_json_results": CGI_CLI.PRINT_JSON_RESULTS = value
                 if value and variable == "hash":
                     CGI_CLI.USERNAME, CGI_CLI.PASSWORD = CGI_CLI.get_credentials(CGI_CLI.hash_decrypt(value))
 
@@ -313,6 +317,7 @@ class CGI_CLI(object):
             if value and variable == "cusername": CGI_CLI.USERNAME = value.decode('base64','strict')
             if value and variable == "cpassword": CGI_CLI.PASSWORD = value.decode('base64','strict')
             if value and variable == "json_mode": CGI_CLI.JSON_MODE = value
+            if value and variable == "print_json_results": CGI_CLI.PRINT_JSON_RESULTS = value
             if value and variable == "hash":
                 CGI_CLI.USERNAME, CGI_CLI.PASSWORD = CGI_CLI.get_credentials(CGI_CLI.hash_decrypt(value))
 
@@ -517,7 +522,7 @@ class CGI_CLI(object):
                                       ommit_timestamp = True)
 
     @staticmethod
-    def uprint_json_results(msg = None, raw_log = None, sort_keys = None,\
+    def uprint_json_results(raw_log = None, sort_keys = None,\
         ommit_logging = None, printall = None):
 
         print_text = None
@@ -529,19 +534,19 @@ class CGI_CLI(object):
         if CGI_CLI.logfilename:
             CGI_CLI.JSON_RESULTS['logfile_link'] = CGI_CLI.make_loglink(CGI_CLI.logfilename)
 
-        if msg and CGI_CLI.JSON_MODE and not CGI_CLI.uprint_json_results_printed:
-            if isinstance(msg, (dict,collections.OrderedDict,list,tuple)):
-                try: print_text = str(json.dumps(msg, indent = 2, sort_keys = sort_keys))
+        if not CGI_CLI.uprint_json_results_printed:
+            if isinstance(CGI_CLI.JSON_RESULTS, (dict,collections.OrderedDict,list,tuple)):
+                try: print_text = str(json.dumps(CGI_CLI.JSON_RESULTS, indent = 2, sort_keys = sort_keys))
                 except Exception as e:
-                    CGI_CLI.print_chunk('JSON_PROBLEM[' + str(e) + ']', printall = printall_yes)
+                    CGI_CLI.print_chunk('{"errors": "JSON_PROBLEM[' + str(e) + ']"}', printall = printall_yes)
 
             if print_text:
                 print(print_text)
                 if not ommit_logging: CGI_CLI.logtofile(msg = print_text, raw_log = raw_log, \
                                           ommit_timestamp = True)
             else:
-                print(msg)
-                if not ommit_logging: CGI_CLI.logtofile(msg = msg, raw_log = raw_log, \
+                print(str(CGI_CLI.JSON_RESULTS))
+                if not ommit_logging: CGI_CLI.logtofile(msg = str(CGI_CLI.JSON_RESULTS), raw_log = raw_log, \
                                           ommit_timestamp = True)
         CGI_CLI.uprint_json_results_printed = True
 
@@ -2414,7 +2419,7 @@ try:
         interface_menu_list.append('<br/>')
         interface_menu_list.append({'text':'device'})
         interface_menu_list.append('<br/>')
-        
+
         if not (USERNAME and PASSWORD):
             interface_menu_list.append('<authentication>')
             interface_menu_list.append('LDAP authentication (required):')
@@ -2431,6 +2436,7 @@ try:
         CGI_CLI.formprint(interface_menu_list + [ \
             {'radio':['precheck','postcheck']},'<br/>',\
             {'checkbox':'json_mode'}, '<br/>',\
+            {'checkbox':'print_json_results'}, '<br/>',\
             '<br/><b><u>',{'checkbox':'send_email'},'</u></b><br/>',\
             {'checkbox':'chunked_mode'}, '<br/>',\
             {'checkbox':'timestamps'}, '<br/>',\
