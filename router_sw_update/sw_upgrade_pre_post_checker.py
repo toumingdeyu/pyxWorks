@@ -2807,6 +2807,27 @@ try:
                         autoconfirm_mode = True, \
                         printall = printall)
 
+
+                    if not 'XRv 9000' in HW_INFO.get('hw_type',str()):
+                        ### def FPD PROBLEMS ##################################
+                        xr_check_cmd_list = { 'cisco_xr': [ 'show hw-module fpd' ] }
+                        rcmd_outputs = RCMD.run_commands(xr_check_cmd_list, printall = printall)
+
+                        ### PARSE 'show hw-module fpd' !!! ###
+                        fpd_problems = []
+                        try:
+                            for fpd_line in rcmd_outputs[0].split('Running Programd')[1].splitlines():
+                                if fpd_line.strip() and not '-----' in fpd_line:
+                                    if fpd_line.strip().split()[3] != 'CURRENT':
+                                        fpd_problems.append(fpd_line.strip())
+                        except: pass
+
+                        if len(fpd_problems) > 0:
+                            text = "FPDs which are not 'CURRENT': [%s]!" % (','.join(fpd_problems))
+                            CGI_CLI.uprint(text, tag ='h2', color = 'red')
+                            CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+
+
                     ### def CARDS PRECHECK ONLY ###############################
                     if SCRIPT_ACTION == 'pre' and \
                         not 'XRv 9000' in HW_INFO.get('hw_type',str()):
@@ -2873,25 +2894,6 @@ try:
                                 text = "'fpd auto-upgrade enable' not in 'admin show run fpd auto-upgrade'!"
                                 CGI_CLI.uprint(text, tag ='h2', color = 'red')
                                 CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
-
-
-                ### FPD PROBLEMS ##############################################
-                xr_check_cmd_list = { 'cisco_xr': [ 'show hw-module fpd' ] }
-                rcmd_outputs = RCMD.run_commands(xr_check_cmd_list, printall = printall)
-
-                ### PARSE 'show hw-module fpd' !!! ###
-                fpd_problems = []
-                try:
-                    for fpd_line in rcmd_outputs[0].split('Running Programd')[1].splitlines():
-                        if fpd_line.strip() and not '-----' in fpd_line:
-                            if fpd_line.strip().split()[3] != 'CURRENT':
-                                fpd_problems.append(fpd_line.strip())
-                except: pass
-
-                if len(fpd_problems) > 0:
-                    text = "FPDs which are not 'CURRENT': [%s]!" % (','.join(fpd_problems))
-                    CGI_CLI.uprint(text, tag ='h2', color = 'red')
-                    CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
 
 
 
