@@ -2404,15 +2404,18 @@ try:
 
 
     ### def HTML MENUS DISPLAYED ONLY IN CGI MODE #############################
-    if CGI_CLI.cgi_active and len(device_list) == 0 and\
-        (not CGI_CLI.submit_form or CGI_CLI.submit_form in CGI_CLI.self_buttons):
+    MULTIPLE_SELFMENUS = False
+    if CGI_CLI.cgi_active and len(device_list) == 0 and \
+        (not CGI_CLI.submit_form or \
+        MULTIPLE_SELFMENUS and CGI_CLI.submit_form in CGI_CLI.self_buttons):
         ### OTHER SUBMIT BUTTONS THAN OK ALLOWS "REMOTE" CGI CONTROL ##########
 
+        interface_menu_list = []
+        interface_menu_list.append('<br/>')
+        interface_menu_list.append({'text':'device'})
+        interface_menu_list.append('<br/>')
+        
         if not (USERNAME and PASSWORD):
-            interface_menu_list = []
-            interface_menu_list.append('<br/>')
-            interface_menu_list.append({'text':'device'})
-            interface_menu_list.append('<br/>')
             interface_menu_list.append('<authentication>')
             interface_menu_list.append('LDAP authentication (required):')
             interface_menu_list.append('<br/>')
@@ -2420,6 +2423,8 @@ try:
             interface_menu_list.append({'text':'username'})
             interface_menu_list.append('<br/>')
             interface_menu_list.append({'password':'password'})
+            interface_menu_list.append('<br/>')
+            interface_menu_list.append({'text':'hash'})
             interface_menu_list.append('<br/>')
             interface_menu_list.append('</authentication>')
 
@@ -2489,8 +2494,9 @@ try:
         exit_due_to_error = True
 
     if SCRIPT_ACTION == 'post':
+        html_extention = 'htm' if CGI_CLI.cgi_active else str()
         precheck_file = find_last_logfile(prefix = '_'.join(device_list).upper(), \
-            USERNAME = USERNAME, suffix = 'pre.log', directory = None, \
+            USERNAME = USERNAME, suffix = 'pre.%slog' % (html_extention), directory = None, \
             latest = None , printall = None, action_text = 'precheck')
         if precheck_file:
             CGI_CLI.JSON_RESULTS['precheck_logfile'] = '%s' % (precheck_file)
