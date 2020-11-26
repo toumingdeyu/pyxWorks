@@ -2321,6 +2321,153 @@ def find_last_logfile(prefix = None, USERNAME = None, suffix = None, directory =
     return log_file
 
 
+###############################################################################
+
+def get_local_subdirectories(brand_raw = None, type_raw = None):
+    """
+    type_subdir_on_device - For the x2800..c4500 and the Huawei the files just
+        go in the top level directory and for Juniper it goes in /var/tmp/
+    """
+    brand_subdir, type_subdir_on_server, file_types = str(), str(), []
+    type_subdir_on_device = str()
+    if type_raw:
+        brand_raw_assumed = 'CISCO'
+        if 'ASR9K' in type_raw.upper() \
+            or 'ASR-9' in type_raw.upper() \
+            or '9000' in type_raw.upper():
+            type_subdir_on_server = 'ASR9K'
+            type_subdir_on_device = 'IOS-XR'
+            ### file_types = ['asr9k*OTI.tar', 'SMU/*.tar']
+            file_types = ['9k', 'SMU/*.tar']
+        elif 'NCS' in type_raw.upper():
+            type_subdir_on_server = 'NCS'
+            type_subdir_on_device = 'IOS-XR'
+            file_types = ['*OTI.tar', 'SMU/*.tar']
+        elif 'ASR1001' in type_raw.upper():
+            type_subdir_on_server = 'ASR1K/ASR1001X/IOS_XE'
+            type_subdir_on_device = 'IOS-XE'
+            file_types = ['asr1001x*.bin','asr100*.pkg','/home/tftpboot/CISCO/ASR1K/ASR1002X/ROMMON/*.pkg']
+        elif 'ASR1002-X' in type_raw.upper():
+            type_subdir_on_server = 'ASR1K/ASR1002X/IOS_XE'
+            type_subdir_on_device = 'IOS-XE'
+            file_types = ['asr1002x*.bin','asr100*.pkg','/home/tftpboot/CISCO/ASR1K/ASR1002X/ROMMON/*.pkg']
+        elif 'ASR1002-HX' in type_raw.upper():
+            type_subdir_on_server = 'ASR1K/ASR1002HX/IOS_XE'
+            type_subdir_on_device = 'IOS-XE'
+            file_types = ['asr100*.bin','asr100*.pkg','/home/tftpboot/CISCO/ASR1K/ASR1002X/ROMMON/*.pkg']
+        elif 'CRS' in type_raw.upper():
+            type_subdir_on_server = 'CRS'
+            type_subdir_on_device = 'IOS-XR'
+            file_types = ['*OTI.tar', 'SMU/*.tar']
+        elif 'C29' in type_raw.upper():
+            type_subdir_on_server = 'C2900'
+            type_subdir_on_device = ''
+            file_types = ['c2900*.bin']
+        elif '2901' in type_raw.upper():
+            type_subdir_on_server = 'C2900'
+            type_subdir_on_device = ''
+            file_types = ['c2900*.bin']
+        elif 'C35' in type_raw.upper():
+            type_subdir_on_server = 'C3500'
+            type_subdir_on_device = ''
+            file_types = ['c35*.bin']
+        elif 'C36' in type_raw.upper():
+            type_subdir_on_server = 'C3600'
+            type_subdir_on_device = ''
+            file_types = ['c36*.bin']
+        elif 'C37' in type_raw.upper():
+            type_subdir_on_server = 'C3700'
+            type_subdir_on_device = ''
+            file_types = ['c37*.bin']
+            brand_raw_assumed = 'CISCO'
+        elif 'C38' in type_raw.upper():
+            type_subdir_on_server = 'C3800'
+            type_subdir_on_device = ''
+            file_types = ['c38*.bin']
+        elif 'ISR43' in type_raw.upper():
+            type_subdir_on_server = 'C4321'
+            type_subdir_on_device = ''
+            file_types = ['isr43*.bin']
+        elif 'C45' in type_raw.upper():
+            type_subdir_on_server = 'C4500'
+            type_subdir_on_device = ''
+            file_types = ['cat45*.bin']
+            brand_raw_assumed = 'CISCO'
+        elif 'MX20' in type_raw.upper():
+            type_subdir_on_server = 'MX'
+            type_subdir_on_device = '/var/tmp'
+            file_types = ['junos*.img.gz', 'junos*.tgz']
+            brand_raw_assumed = 'JUNIPER'
+        elif 'MX480' in type_raw.upper():
+            type_subdir_on_server = 'MX/MX480'
+            type_subdir_on_device = '/var/tmp'
+            file_types = ['junos*.img.gz', 'junos*.tgz']
+            brand_raw_assumed = 'JUNIPER'
+        elif 'VMX' in type_raw.upper():
+            type_subdir_on_server = 'MX/MX480'
+            type_subdir_on_device = '/var/tmp'
+            file_types = ['junos*.img.gz', 'junos*.tgz']
+            brand_raw_assumed = 'JUNIPER'
+        elif 'NE40' in type_raw.upper():
+            type_subdir_on_server = 'V8R10'
+            type_subdir_on_device = ''
+            file_types = ['Patch/*.PAT','*.cc']
+            brand_raw_assumed = 'HUAWEI'
+
+        ### BRAND ASSUMPTION IF NOT INSERTED ###
+        if not brand_raw: brand_subdir = brand_raw_assumed.upper()
+        else: brand_subdir = brand_raw.upper()
+    return brand_subdir, type_subdir_on_server, type_subdir_on_device, file_types
+
+
+###############################################################################
+
+
+def detect_hw(device = None):
+    hw_info = {}
+
+    if not device: return hw_info
+
+    cmd = {
+              "cisco_ios":['show version'],
+              "cisco_xr":['show version'],
+              "huawei":['display version'],
+              "juniper":['show version']
+          }
+
+    hw_info['device'] = copy.deepcopy(str(device))
+
+    results = RCMD.run_commands(cmd)
+    result = results[0]
+
+    if RCMD.router_type == 'cisco_ios':
+        hw_info['sw_version'] = result.split('Software, Version')[1].split()[0].strip()
+        hw_info['hw_type'] = result.split(') processor')[0].splitlines()[-1].split('(')[0].strip()
+        hw_info['hw_brand'] = 'CISCO'
+        hw_info['drive_string'] = 'bootflash:'
+
+    elif RCMD.router_type == 'cisco_xr':
+        hw_info['sw_version'] = result.split('Software, Version')[1].split()[0].strip()
+        hw_info['hw_type'] = result.split(') processor')[0].splitlines()[-1].split('(')[0].strip()
+        hw_info['hw_brand'] = 'CISCO'
+        hw_info['drive_string'] = 'harddisk:'
+
+    elif RCMD.router_type == 'huawei':
+        hw_info['sw_version'] = result.split('software, Version')[1].split()[0].strip()
+        hw_info['hw_type'] = result.split(' version information:')[0].splitlines()[-1].strip()
+        hw_info['hw_brand'] = 'HUAWEI'
+        hw_info['drive_string'] = 'cfcard:'
+
+    elif RCMD.router_type == 'juniper':
+        hw_info['sw_version'] = result.split('Junos: ')[1].split()[0].strip()
+        hw_info['hw_type'] = result.split('Model: ')[1].split()[0].strip()
+        hw_info['hw_brand'] = 'JUNIPER'
+        hw_info['drive_string'] = 're0:'
+
+    return hw_info
+
+##############################################################################
+
 
 
 
@@ -2532,10 +2679,13 @@ try:
 
             CGI_CLI.logtofile('\nDETECTED DEVICE_TYPE: %s\n\n' % (RCMD.router_type))
 
+            HW_INFO = {}
             ###################################################################
             ### def PRECHECK COMMANDS #########################################
             ###################################################################
             if SCRIPT_ACTION == 'pre' or SCRIPT_ACTION == 'post':
+                HW_INFO = detect_hw(device)
+
                 ### CISCO_IOS #####################################################
                 if RCMD.router_type == 'cisco_ios':
                     text = 'NOT IMPLEMENTED YET !'
@@ -2566,11 +2716,11 @@ try:
                         printall = printall)
 
                     inactive_packages = []
-                    if 'No inactive package(s) in software repository' in rcmd_outputs:
+                    if 'No inactive package(s) in software repository' in rcmd_outputs[0]:
                         pass
                     else:
-                        if 'inactive package(s) found:' in rcmd_outputs:
-                            for package_line in rcmd_outputs.split('inactive package(s) found:')[1].splitlines()[:-1]:
+                        if 'inactive package(s) found:' in rcmd_outputs[0]:
+                            for package_line in rcmd_outputs[0].split('inactive package(s) found:')[1].splitlines()[:-1]:
                                 if package_line.strip():
                                     inactive_packages.append(str(package_line.strip()))
 
@@ -2594,11 +2744,11 @@ try:
                             printall = printall)
 
                         inactive_packages = []
-                        if 'No inactive package(s) in software repository' in rcmd_outputs3:
+                        if 'No inactive package(s) in software repository' in rcmd_outputs3[0]:
                             pass
                         else:
-                            if 'inactive package(s) found:' in rcmd_outputs3:
-                                for package_line in rcmd_outputs3.split('inactive package(s) found:')[1].splitlines()[:-1]:
+                            if 'inactive package(s) found:' in rcmd_outputs3[0]:
+                                for package_line in rcmd_outputs3[0].split('inactive package(s) found:')[1].splitlines()[:-1]:
                                     if package_line.strip():
                                         inactive_packages.append(str(package_line.strip()))
                     CGI_CLI.JSON_RESULTS['inactive_packages'] = inactive_packages
@@ -2612,10 +2762,10 @@ try:
                         autoconfirm_mode = True, \
                         printall = printall)
 
-                    if 'Active Packages:' in rcmd_outputs4:
-                        number_of_active_packages = int(rcmd_outputs4.split('Active Packages:')[1].split()[0])
+                    if 'Active Packages:' in rcmd_outputs4[0]:
+                        number_of_active_packages = int(rcmd_outputs4[0].split('Active Packages:')[1].split()[0])
                         for i in range(number_of_active_packages):
-                             active_packages.append(rcmd_outputs4.split('Active Packages:')[1].splitlines()[i + 1].split()[0].strip())
+                             active_packages.append(rcmd_outputs4[0].split('Active Packages:')[1].splitlines()[i + 1].split()[0].strip())
                         CGI_CLI.JSON_RESULTS['active_packages'] = active_packages
 
                     ### XR CHECK LIST ###
@@ -2657,8 +2807,9 @@ try:
                         autoconfirm_mode = True, \
                         printall = printall)
 
-                    ### PRECHECK ONLY #########################################
-                    if SCRIPT_ACTION == 'pre':
+                    ### def CARDS PRECHECK ONLY ###############################
+                    if SCRIPT_ACTION == 'pre' and \
+                        not 'XRv 9000' in HW_INFO.get('hw_type',str()):
                         ### 'show run fpd auto-upgrade' #######################
 
                         xr_cmds = {'cisco_xr': [ 'show run fpd auto-upgrade' ]}
@@ -2667,11 +2818,7 @@ try:
                             autoconfirm_mode = True, \
                             printall = printall)
 
-                        cmd_output = str()
-                        try:
-                            if len(rcmd_outputs5[3]) > 0: cmd_output = rcmd_outputs[0]
-                        except: pass
-                        if not 'fpd auto-upgrade enable' in cmd_output:
+                        if not 'fpd auto-upgrade enable' in rcmd_outputs[0]:
 
                             xr_cmds = {'cisco_xr': [
                                     '!',
@@ -2703,11 +2850,7 @@ try:
                             autoconfirm_mode = True, \
                             printall = printall)
 
-                        cmd_output = str()
-                        try:
-                            if len(rcmd_outputs5[4]) > 0: cmd_output = rcmd_outputs[0]
-                        except: pass
-                        if not 'fpd auto-upgrade enable' in cmd_output:
+                        if not 'fpd auto-upgrade enable' in rcmd_outputs[0]:
                             xr_cmds = {'cisco_xr': [
                                     '!',
                                     'admin',
@@ -2767,7 +2910,7 @@ try:
                     autoconfirm_mode = True, \
                     printall = printall)
                 try:
-                    for file_line in device_cmds_result.splitlines()[0][:-1]:
+                    for file_line in device_cmds_result[0].splitlines()[0][:-1]:
                         if file_line.strip() and '-config.txt' in file_line and ':' in file_line.split()[-1]:
                             try:
                                 if 'admin' in file_line.split()[-1]:
