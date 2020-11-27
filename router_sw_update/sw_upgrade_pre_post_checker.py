@@ -2986,6 +2986,8 @@ try:
 
 
             if SCRIPT_ACTION == 'post':
+                brand_raw = str()
+                type_raw = HW_INFO.get('hw_type',str())
                 ### def GET PATHS ON DEVICE ###########################################
                 brand_subdir, type_subdir_on_server, type_subdir_on_device, file_types = \
                     get_local_subdirectories(brand_raw = brand_raw, type_raw = type_raw)
