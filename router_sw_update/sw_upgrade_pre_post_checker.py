@@ -87,6 +87,33 @@ class CGI_CLI(object):
             BOLD       = ''
             UNDERLINE  = ''
 
+    class ploglevel:
+            ### PRINT & LOG ALL, BITWISE AND LOGIC IS USED ###
+
+            ### PRINT
+            PRINT_ALL          = 0b1111111100000000
+            PRINT_JSON_RESULTS = 0b1000000000000000
+            PRINT_TEXT_RESULTS = 0b0100000000000000
+            PRINT_NORMAL       = 0b1110000000000000
+            PRINT_DEBUG        = 0b1111111100000000
+
+            ### LOG
+            LOG_ALL            = 0b0000000011111111
+            LOG_JSON_RESULTS   = 0b0000000010000000
+            LOG_TEXT_RESULTS   = 0b0000000001000000
+            LOG_NORMAL         = 0b0000000011100000
+            LOG_DEBUG          = 0b0000000011111111
+
+            ### & MASKS ###
+            MASK_NO_PRINT      = 0b1100000011111111
+            MASK_NO_LOG        = 0b1111111100000000
+            MASK_NOTHING       = 0b0000000000000000
+            MASK_DEFAULT       = 0b1100000011111111
+
+            ALL                = 0b1111111111111111
+            DEFAULT            = 0b1100000111111111
+
+
     @staticmethod
     def cli_parser():
         ######## Parse program arguments ##################################
@@ -1679,12 +1706,12 @@ class RCMD(object):
                             elif RCMD.router_type in ["vrp",'huawei']:
                                 chan.send('Y\n')
                             time.sleep(0.2)
-                            CGI_CLI.uprint("AUTOCONFIRMED.", tag = 'debug')
+                            CGI_CLI.uprint("AUTOCONFIRMED.", tag = 'debug', printall = RCMD.printall)
                             break
                         else:
                             ### INTERACTIVE QUESTION --> GO AWAY ##############
                             exit_loop = True
-                            CGI_CLI.uprint("AUTOCONFIRMATION QUESTION.", tag = 'debug')
+                            CGI_CLI.uprint("AUTOCONFIRMATION QUESTION.", tag = 'debug', printall = RCMD.printall)
                             break
 
                 if exit_loop: break
@@ -1714,7 +1741,7 @@ class RCMD(object):
             if not long_lasting_mode:
                 ### COMMAND TIMEOUT EXIT ######################################
                 if command_counter_100msec > RCMD.CMD_TIMEOUT*10:
-                    CGI_CLI.uprint("COMMAND TIMEOUT (%s sec) !!" % (RCMD.CMD_TIMEOUT*10), tag = 'warning')
+                    CGI_CLI.uprint("COMMAND TIMEOUT (%s sec) !!" % (RCMD.CMD_TIMEOUT*10), tag = 'warning', printall = RCMD.printall)
                     exit_loop = True
                     break
 
@@ -1733,14 +1760,14 @@ class RCMD(object):
 
             ### EXIT SOONER THAN CONNECTION TIMEOUT IF LONG LASTING OR NOT ####
             if command_counter_100msec + 100 > RCMD.CONNECTION_TIMEOUT*10:
-                CGI_CLI.uprint("LONG LASTING COMMAND (%d sec) TIMEOUT!!" % (RCMD.CONNECTION_TIMEOUT*10), tag = 'warning')
+                CGI_CLI.uprint("LONG LASTING COMMAND (%d sec) TIMEOUT!!" % (RCMD.CONNECTION_TIMEOUT*10), tag = 'warning', printall = RCMD.printall)
                 exit_loop = True
                 break
 
             ### IGNORE NEW PROMPT AND GO AWAY #################################
             if ignore_prompt:
                 time.sleep(1)
-                CGI_CLI.uprint("PROMPT IGNORED, EXIT !!", tag = 'warning')
+                CGI_CLI.uprint("PROMPT IGNORED, EXIT !!", tag = 'warning', printall = RCMD.printall)
                 exit_loop = True
                 break
 
@@ -1752,7 +1779,7 @@ class RCMD(object):
                     break
                 if after_enter_counter_100msec > 50:
                     CGI_CLI.uprint("(5 sec) after '\n' EXIT!!", \
-                        tag = 'debug', no_printall = not CGI_CLI.printall)
+                        tag = 'debug', printall = RCMD.printall)
                     exit_loop = True
                     break
 
@@ -1770,7 +1797,7 @@ class RCMD(object):
                 if last_line_actual: possible_prompts.append(last_line_actual)
                 chan.send('\n')
                 CGI_CLI.uprint("INSERTED '\n' after (10 sec no rx) DEVICE INACTIVITY!!", \
-                    tag = 'debug', no_printall = not CGI_CLI.printall)
+                    tag = 'debug', printall = RCMD.printall)
                 time.sleep(0.1)
                 after_enter_counter_100msec = 1
         return output, new_prompt
@@ -2937,12 +2964,12 @@ try:
                 except: pass
 
 
-                CGI_CLI.uprint('\nCONFIG FILE: ' + last_config_file + '\nCHOSEN FROM: ' + str(config_files))
-                CGI_CLI.uprint('\nADMIN CONFIG FILE: ' + last_admin_config_file + '\nCHOSEN FROM: ' + str(admin_config_files))
+                CGI_CLI.uprint('\nCONFIG FILE: ' + last_config_file + '\nCHOSEN FROM: ' + str(config_files), tag= 'debug', printall = printall)
+                CGI_CLI.uprint('\nADMIN CONFIG FILE: ' + last_admin_config_file + '\nCHOSEN FROM: ' + str(admin_config_files), tag= 'debug', printall = printall)
 
                 if last_config_file:
                     cp_device_cmds = {
-                        'ios-xr':['utility head count 1000000 file harddisk:/%s' % (last_config_file)],
+                        'cisco_xr':['utility head count 1000000 file harddisk:/%s' % (last_config_file)],
                     }
 
                     device_cmds_result = RCMD.run_commands(cp_device_cmds, \
@@ -2950,11 +2977,166 @@ try:
 
                 if last_admin_config_file:
                     cp2_device_cmds = {
-                        'ios-xr':['admin utility head count 1000000 file harddisk:/%s' % (last_admin_config_file)],
+                        'cisco_xr':['admin utility head count 1000000 file harddisk:/%s' % (last_admin_config_file)],
                     }
 
                     device_cmds_result = RCMD.run_commands(cp2_device_cmds, \
                         autoconfirm_mode = True, printall = printall)
+
+
+
+            if SCRIPT_ACTION == 'post':
+                ### def GET PATHS ON DEVICE ###########################################
+                brand_subdir, type_subdir_on_server, type_subdir_on_device, file_types = \
+                    get_local_subdirectories(brand_raw = brand_raw, type_raw = type_raw)
+
+                ### BY DEFAULT = '/' ##################################################
+                dev_dir = os.path.abspath(os.path.join(os.sep, type_subdir_on_device))
+
+                xe_device_dir_list = [ 'dir %s%s' % (drive_string, dev_dir) ]
+                xr_device_dir_list = [ 'dir %s%s' % (drive_string, dev_dir) ]
+                huawei_device_dir_list = [ 'dir %s%s' % (drive_string, dev_dir) ]
+                juniper_device_dir_list = [ 'file list %s%s detail' % (drive_string,dev_dir) ]
+
+                dir_device_cmds = {
+                    'cisco_ios':xe_device_dir_list,
+                    'cisco_xr':xr_device_dir_list,
+                    'juniper':juniper_device_dir_list,
+                    'huawei':huawei_device_dir_list
+                }
+
+                device_cmds_result = RCMD.run_commands(dir_device_cmds, printall = printall)
+                versions = []
+
+                CGI_CLI.JSON_RESULTS['target_sw_versions'] = {}
+                if RCMD.router_type == "cisco_ios" or RCMD.router_type == "cisco_xr":
+                    for line in device_cmds_result[0].splitlines():
+                        try:
+                             sub_directory = line.split()[-1]
+                             if str(line.split()[1])[0] == 'd' and int(sub_directory):
+                                 versions.append(sub_directory)
+                                 CGI_CLI.JSON_RESULTS['target_sw_versions'][str(sub_directory)] = {}
+                                 CGI_CLI.JSON_RESULTS['target_sw_versions'][str(sub_directory)]['path'] = str('%s%s/%s' % (drive_string, dev_dir, sub_directory))
+                        except: pass
+
+                elif RCMD.router_type == "huawei":
+                    ### FILES ARE IN CFCARD ROOT !!! ##################################
+                    for line in device_cmds_result[0].splitlines()[:-1]:
+                        try:
+                            tar_file = line.split()[-1]
+                            for file_type in file_types:
+                                if '/' in file_type.upper():
+                                    file_type_parts = file_type.split('/')[-1].split('*')
+                                else:
+                                    file_type_parts = file_type.split('*')
+                                found_in_tar_file = True
+                                for file_type_part in file_type_parts:
+                                    if file_type_part.upper() in tar_file.upper(): pass
+                                    else: found_in_tar_file = False
+                                if len(file_type_parts) > 0 and found_in_tar_file:
+                                    CGI_CLI.JSON_RESULTS['target_sw_versions'][str(tar_file)] = {}
+                                    CGI_CLI.JSON_RESULTS['target_sw_versions'][str(tar_file)]['path'] = str(dev_dir)
+                                    CGI_CLI.JSON_RESULTS['target_sw_versions'][str(tar_file)]['files'] = [tar_file]
+                        except: pass
+
+                elif RCMD.router_type == "juniper":
+                    ### FILES ARE IN re0:/var/tmp #####################################
+                    for line in device_cmds_result[0].splitlines()[:-1]:
+                        try:
+                            tar_file = line.split()[-1]
+                            for file_type in file_types:
+                                if '/' in file_type.upper():
+                                    file_type_parts = file_type.split('/')[-1].split('*')
+                                else:
+                                    file_type_parts = file_type.split('*')
+                                found_in_tar_file = True
+                                for file_type_part in file_type_parts:
+                                    if file_type_part.upper() in tar_file.upper(): pass
+                                    else: found_in_tar_file = False
+                                if len(file_type_parts) > 0 and found_in_tar_file:
+                                    CGI_CLI.JSON_RESULTS['target_sw_versions'][str(tar_file)] = {}
+                                    CGI_CLI.JSON_RESULTS['target_sw_versions'][str(tar_file)]['path'] = str(dev_dir)
+                                    CGI_CLI.JSON_RESULTS['target_sw_versions'][str(tar_file)]['files'] = [tar_file]
+                        except: pass
+
+                for key in CGI_CLI.JSON_RESULTS.get('target_sw_versions').keys():
+                    ### def GET FILES ON DEVICE VERSION DIRECTORY #########################
+                    xe_device_file_list = [ 'dir %s%s/%s' % (drive_string, dev_dir, CGI_CLI.JSON_RESULTS['target_sw_versions'][key]) ]
+                    xr_device_file_list = [ 'dir %s%s/%s' % (drive_string, dev_dir, CGI_CLI.JSON_RESULTS['target_sw_versions'][key]) ]
+
+                    juniper_device_file_list = [ 'file list %s%s/%s detail' % (drive_string, dev_dir, CGI_CLI.JSON_RESULTS['target_sw_versions'][key]) ]
+
+                    file_device_cmds = {
+                        'cisco_ios':xe_device_file_list,
+                        'cisco_xr':xr_device_file_list,
+                        'juniper':juniper_device_file_list,
+                        'huawei':[]
+                    }
+
+                    file_device_cmds_result = RCMD.run_commands(file_device_cmds, printall = printall)
+
+                    if RCMD.router_type == "cisco_ios" or RCMD.router_type == "cisco_xr":
+                        files = []
+                        for line in file_device_cmds_result[0].splitlines()[:-1]:
+                            try:
+                                tar_file = line.split()[-1]
+                                for file_type in file_types:
+                                    if '/' in file_type.upper(): pass
+                                    else:
+                                        file_type_parts = file_type.split('*')
+                                        found_in_tar_file = True
+                                        for file_type_part in file_type_parts:
+                                            if file_type_part.upper() in tar_file.upper(): pass
+                                            else: found_in_tar_file = False
+                                        if len(file_type_parts) > 0 and found_in_tar_file:
+                                            files.append('%s%s/%s/%s' % (drive_string, CGI_CLI.JSON_RESULTS['target_sw_versions'][key], tar_file))
+                            except: pass
+                        if len(files)>0:
+                            CGI_CLI.JSON_RESULTS['target_sw_versions'][key]['files'] = files
+
+                    elif RCMD.router_type == "huawei":
+                        pass
+                    elif RCMD.router_type == "juniper":
+                        pass
+
+                    ### GET SMU FILES ON DEVICE VERSION DIRECTORY #########################
+                    if RCMD.router_type == "cisco_xr":
+                        xr_device_patch_file_list = [ 'dir %s%s/%s/SMU' % (drive_string, dev_dir, CGI_CLI.JSON_RESULTS['target_sw_versions'][key]) ]
+
+                        patch_file_device_cmds = {
+                            'cisco_ios':[],
+                            'cisco_xr':xr_device_patch_file_list,
+                            'juniper':[],
+                            'huawei':[]
+                        }
+
+                        patch_file_device_cmds_result = RCMD.run_commands(patch_file_device_cmds, printall = printall)
+
+                        if RCMD.router_type == "cisco_ios":
+                            pass
+                        elif RCMD.router_type == "cisco_xr":
+                            patch_files = []
+                            patch_path = str()
+                            for line in patch_file_device_cmds_result[0].splitlines()[:-1]:
+                                try:
+                                    tar_file = line.split()[-1]
+                                    for file_type in file_types:
+                                        try: patch_file = file_type.split('/')[1].replace('*','')
+                                        except: patch_file = str()
+                                        if len(patch_file) > 0 and patch_file.upper() in tar_file.upper():
+                                            #patch_files.append(tar_file)
+                                            patch_files.append('%s%s/%s/%s/%s' % (drive_string, dev_dir,output.target_sw_versions[i].name,'SMU' , tar_file))
+                                            patch_path = '%s%s/%s/%s' % (drive_string, dev_dir,output.target_sw_versions[i].name,'SMU')
+                                except: pass
+                            if len(patch_files)>0:
+                                CGI_CLI.JSON_RESULTS['target_sw_versions'][key]['patch_files'] = patch_files
+                                CGI_CLI.JSON_RESULTS['target_sw_versions'][key]['patch_path'] = patch_path
+
+                        elif RCMD.router_type == "huawei":
+                            pass
+                        elif RCMD.router_type == "juniper":
+                            pass
+
 
 
 
