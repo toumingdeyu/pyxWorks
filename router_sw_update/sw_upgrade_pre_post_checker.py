@@ -2711,7 +2711,7 @@ try:
             ###################################################################
             if SCRIPT_ACTION == 'pre' or SCRIPT_ACTION == 'post':
                 HW_INFO = detect_hw(device)
-                CGI_CLI.uprint(HW_INFO, tag = 'debug')
+                CGI_CLI.uprint(HW_INFO, tag = 'debug', no_printall = not CGI_CLI.printall)
 
                 ### CISCO_IOS #####################################################
                 if RCMD.router_type == 'cisco_ios':
@@ -2964,8 +2964,8 @@ try:
                 except: pass
 
 
-                CGI_CLI.uprint('\nCONFIG FILE: ' + last_config_file + '\nCHOSEN FROM: ' + str(config_files), tag= 'debug', printall = printall)
-                CGI_CLI.uprint('\nADMIN CONFIG FILE: ' + last_admin_config_file + '\nCHOSEN FROM: ' + str(admin_config_files), tag= 'debug', printall = printall)
+                CGI_CLI.uprint('\nCONFIG FILE: ' + last_config_file + '\nCHOSEN FROM: ' + str(config_files), tag= 'debug', no_printall = not CGI_CLI.printall)
+                CGI_CLI.uprint('\nADMIN CONFIG FILE: ' + last_admin_config_file + '\nCHOSEN FROM: ' + str(admin_config_files), tag= 'debug', no_printall = not CGI_CLI.printall)
 
                 if last_config_file:
                     cp_device_cmds = {
