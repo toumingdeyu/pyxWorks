@@ -2995,10 +2995,10 @@ try:
                 ### BY DEFAULT = '/' ##################################################
                 dev_dir = os.path.abspath(os.path.join(os.sep, type_subdir_on_device))
 
-                xe_device_dir_list = [ 'dir %s%s' % (drive_string, dev_dir) ]
-                xr_device_dir_list = [ 'dir %s%s' % (drive_string, dev_dir) ]
-                huawei_device_dir_list = [ 'dir %s%s' % (drive_string, dev_dir) ]
-                juniper_device_dir_list = [ 'file list %s%s detail' % (drive_string,dev_dir) ]
+                xe_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) ]
+                xr_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) ]
+                huawei_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) ]
+                juniper_device_dir_list = [ 'file list %s%s detail' % (RCMD.drive_string,dev_dir) ]
 
                 dir_device_cmds = {
                     'cisco_ios':xe_device_dir_list,
@@ -3018,7 +3018,7 @@ try:
                              if str(line.split()[1])[0] == 'd' and int(sub_directory):
                                  versions.append(sub_directory)
                                  CGI_CLI.JSON_RESULTS['target_sw_versions'][str(sub_directory)] = {}
-                                 CGI_CLI.JSON_RESULTS['target_sw_versions'][str(sub_directory)]['path'] = str('%s%s/%s' % (drive_string, dev_dir, sub_directory))
+                                 CGI_CLI.JSON_RESULTS['target_sw_versions'][str(sub_directory)]['path'] = str('%s%s/%s' % (RCMD.drive_string, dev_dir, sub_directory))
                         except: pass
 
                 elif RCMD.router_type == "huawei":
@@ -3063,10 +3063,10 @@ try:
 
                 for key in CGI_CLI.JSON_RESULTS.get('target_sw_versions').keys():
                     ### def GET FILES ON DEVICE VERSION DIRECTORY #########################
-                    xe_device_file_list = [ 'dir %s%s/%s' % (drive_string, dev_dir, CGI_CLI.JSON_RESULTS['target_sw_versions'][key]) ]
-                    xr_device_file_list = [ 'dir %s%s/%s' % (drive_string, dev_dir, CGI_CLI.JSON_RESULTS['target_sw_versions'][key]) ]
+                    xe_device_file_list = [ 'dir %s%s/%s' % (RCMD.drive_string, dev_dir, CGI_CLI.JSON_RESULTS['target_sw_versions'][key]) ]
+                    xr_device_file_list = [ 'dir %s%s/%s' % (RCMD.drive_string, dev_dir, CGI_CLI.JSON_RESULTS['target_sw_versions'][key]) ]
 
-                    juniper_device_file_list = [ 'file list %s%s/%s detail' % (drive_string, dev_dir, CGI_CLI.JSON_RESULTS['target_sw_versions'][key]) ]
+                    juniper_device_file_list = [ 'file list %s%s/%s detail' % (RCMD.drive_string, dev_dir, CGI_CLI.JSON_RESULTS['target_sw_versions'][key]) ]
 
                     file_device_cmds = {
                         'cisco_ios':xe_device_file_list,
@@ -3091,7 +3091,7 @@ try:
                                             if file_type_part.upper() in tar_file.upper(): pass
                                             else: found_in_tar_file = False
                                         if len(file_type_parts) > 0 and found_in_tar_file:
-                                            files.append('%s%s/%s/%s' % (drive_string, CGI_CLI.JSON_RESULTS['target_sw_versions'][key], tar_file))
+                                            files.append('%s%s/%s/%s' % (RCMD.drive_string, CGI_CLI.JSON_RESULTS['target_sw_versions'][key], tar_file))
                             except: pass
                         if len(files)>0:
                             CGI_CLI.JSON_RESULTS['target_sw_versions'][key]['files'] = files
@@ -3103,7 +3103,7 @@ try:
 
                     ### GET SMU FILES ON DEVICE VERSION DIRECTORY #########################
                     if RCMD.router_type == "cisco_xr":
-                        xr_device_patch_file_list = [ 'dir %s%s/%s/SMU' % (drive_string, dev_dir, CGI_CLI.JSON_RESULTS['target_sw_versions'][key]) ]
+                        xr_device_patch_file_list = [ 'dir %s%s/%s/SMU' % (RCMD.drive_string, dev_dir, CGI_CLI.JSON_RESULTS['target_sw_versions'][key]) ]
 
                         patch_file_device_cmds = {
                             'cisco_ios':[],
@@ -3127,8 +3127,8 @@ try:
                                         except: patch_file = str()
                                         if len(patch_file) > 0 and patch_file.upper() in tar_file.upper():
                                             #patch_files.append(tar_file)
-                                            patch_files.append('%s%s/%s/%s/%s' % (drive_string, dev_dir,output.target_sw_versions[i].name,'SMU' , tar_file))
-                                            patch_path = '%s%s/%s/%s' % (drive_string, dev_dir,output.target_sw_versions[i].name,'SMU')
+                                            patch_files.append('%s%s/%s/%s/%s' % (RCMD.drive_string, dev_dir,output.target_sw_versions[i].name,'SMU' , tar_file))
+                                            patch_path = '%s%s/%s/%s' % (RCMD.drive_string, dev_dir,output.target_sw_versions[i].name,'SMU')
                                 except: pass
                             if len(patch_files)>0:
                                 CGI_CLI.JSON_RESULTS['target_sw_versions'][key]['patch_files'] = patch_files
