@@ -1706,12 +1706,12 @@ class RCMD(object):
                             elif RCMD.router_type in ["vrp",'huawei']:
                                 chan.send('Y\n')
                             time.sleep(0.2)
-                            CGI_CLI.uprint("AUTOCONFIRMED.", tag = 'debug', printall = RCMD.printall)
+                            CGI_CLI.uprint("AUTOCONFIRMED.", tag = 'debug', no_printall = not CGI_CLI.printall)
                             break
                         else:
                             ### INTERACTIVE QUESTION --> GO AWAY ##############
                             exit_loop = True
-                            CGI_CLI.uprint("AUTOCONFIRMATION QUESTION.", tag = 'debug', printall = RCMD.printall)
+                            CGI_CLI.uprint("AUTOCONFIRMATION QUESTION.", tag = 'debug', no_printall = not CGI_CLI.printall)
                             break
 
                 if exit_loop: break
@@ -1741,7 +1741,7 @@ class RCMD(object):
             if not long_lasting_mode:
                 ### COMMAND TIMEOUT EXIT ######################################
                 if command_counter_100msec > RCMD.CMD_TIMEOUT*10:
-                    CGI_CLI.uprint("COMMAND TIMEOUT (%s sec) !!" % (RCMD.CMD_TIMEOUT*10), tag = 'warning', printall = RCMD.printall)
+                    CGI_CLI.uprint("COMMAND TIMEOUT (%s sec) !!" % (RCMD.CMD_TIMEOUT*10), tag = 'warning', no_printall = not CGI_CLI.printall)
                     exit_loop = True
                     break
 
@@ -1760,14 +1760,14 @@ class RCMD(object):
 
             ### EXIT SOONER THAN CONNECTION TIMEOUT IF LONG LASTING OR NOT ####
             if command_counter_100msec + 100 > RCMD.CONNECTION_TIMEOUT*10:
-                CGI_CLI.uprint("LONG LASTING COMMAND (%d sec) TIMEOUT!!" % (RCMD.CONNECTION_TIMEOUT*10), tag = 'warning', printall = RCMD.printall)
+                CGI_CLI.uprint("LONG LASTING COMMAND (%d sec) TIMEOUT!!" % (RCMD.CONNECTION_TIMEOUT*10), tag = 'warning', no_printall = not CGI_CLI.printall)
                 exit_loop = True
                 break
 
             ### IGNORE NEW PROMPT AND GO AWAY #################################
             if ignore_prompt:
                 time.sleep(1)
-                CGI_CLI.uprint("PROMPT IGNORED, EXIT !!", tag = 'warning', printall = RCMD.printall)
+                CGI_CLI.uprint("PROMPT IGNORED, EXIT !!", tag = 'warning', no_printall = not CGI_CLI.printall)
                 exit_loop = True
                 break
 
@@ -1779,7 +1779,7 @@ class RCMD(object):
                     break
                 if after_enter_counter_100msec > 50:
                     CGI_CLI.uprint("(5 sec) after '\n' EXIT!!", \
-                        tag = 'debug', printall = RCMD.printall)
+                        tag = 'debug', no_printall = not CGI_CLI.printall)
                     exit_loop = True
                     break
 
@@ -1797,7 +1797,7 @@ class RCMD(object):
                 if last_line_actual: possible_prompts.append(last_line_actual)
                 chan.send('\n')
                 CGI_CLI.uprint("INSERTED '\n' after (10 sec no rx) DEVICE INACTIVITY!!", \
-                    tag = 'debug', printall = RCMD.printall)
+                    tag = 'debug', no_printall = not CGI_CLI.printall)
                 time.sleep(0.1)
                 after_enter_counter_100msec = 1
         return output, new_prompt
