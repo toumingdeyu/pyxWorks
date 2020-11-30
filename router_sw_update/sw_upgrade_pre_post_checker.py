@@ -2865,15 +2865,16 @@ try:
                 device_cmds_result = RCMD.run_commands(dir_device_cmds, printall = printall)
                 versions = []
 
-                CGI_CLI.JSON_RESULTS['target_sw_versions'] = {}
+                JSON_DATA = {}
+                JSON_DATA['target_sw_versions'] = {}
                 if RCMD.router_type == "cisco_ios" or RCMD.router_type == "cisco_xr":
                     for line in device_cmds_result[0].splitlines():
                         try:
                              sub_directory = line.split()[-1]
                              if str(line.split()[1])[0] == 'd' and int(sub_directory):
                                  versions.append(sub_directory)
-                                 CGI_CLI.JSON_RESULTS['target_sw_versions'][str(sub_directory)] = {}
-                                 CGI_CLI.JSON_RESULTS['target_sw_versions'][str(sub_directory)]['path'] = str('%s%s/%s' % (RCMD.drive_string, dev_dir, sub_directory))
+                                 JSON_DATA['target_sw_versions'][str(sub_directory)] = {}
+                                 JSON_DATA['target_sw_versions'][str(sub_directory)]['path'] = str('%s%s/%s' % (RCMD.drive_string, dev_dir, sub_directory))
                         except: pass
 
                 elif RCMD.router_type == "huawei":
@@ -2891,9 +2892,9 @@ try:
                                     if file_type_part.upper() in tar_file.upper(): pass
                                     else: found_in_tar_file = False
                                 if len(file_type_parts) > 0 and found_in_tar_file:
-                                    CGI_CLI.JSON_RESULTS['target_sw_versions'][str(tar_file)] = {}
-                                    CGI_CLI.JSON_RESULTS['target_sw_versions'][str(tar_file)]['path'] = str(dev_dir)
-                                    CGI_CLI.JSON_RESULTS['target_sw_versions'][str(tar_file)]['files'] = [tar_file]
+                                    JSON_DATA['target_sw_versions'][str(tar_file)] = {}
+                                    JSON_DATA['target_sw_versions'][str(tar_file)]['path'] = str(dev_dir)
+                                    JSON_DATA['target_sw_versions'][str(tar_file)]['files'] = [tar_file]
                         except: pass
 
                 elif RCMD.router_type == "juniper":
@@ -2911,17 +2912,17 @@ try:
                                     if file_type_part.upper() in tar_file.upper(): pass
                                     else: found_in_tar_file = False
                                 if len(file_type_parts) > 0 and found_in_tar_file:
-                                    CGI_CLI.JSON_RESULTS['target_sw_versions'][str(tar_file)] = {}
-                                    CGI_CLI.JSON_RESULTS['target_sw_versions'][str(tar_file)]['path'] = str(dev_dir)
-                                    CGI_CLI.JSON_RESULTS['target_sw_versions'][str(tar_file)]['files'] = [tar_file]
+                                    JSON_DATA['target_sw_versions'][str(tar_file)] = {}
+                                    JSON_DATA['target_sw_versions'][str(tar_file)]['path'] = str(dev_dir)
+                                    JSON_DATA['target_sw_versions'][str(tar_file)]['files'] = [tar_file]
                         except: pass
 
-                for key in CGI_CLI.JSON_RESULTS.get('target_sw_versions').keys():
+                for key in JSON_DATA.get('target_sw_versions').keys():
                     ### def GET FILES ON DEVICE VERSION DIRECTORY #########################
-                    xe_device_file_list = [ 'dir %s' % (CGI_CLI.JSON_RESULTS['target_sw_versions'][key].get('path',str)) ]
-                    xr_device_file_list = [ 'dir %s' % (CGI_CLI.JSON_RESULTS['target_sw_versions'][key].get('path',str)) ]
+                    xe_device_file_list = [ 'dir %s' % (JSON_DATA['target_sw_versions'][key].get('path',str)) ]
+                    xr_device_file_list = [ 'dir %s' % (JSON_DATA['target_sw_versions'][key].get('path',str)) ]
 
-                    juniper_device_file_list = [ 'file list %s detail' % (CGI_CLI.JSON_RESULTS['target_sw_versions'][key].get('path',str)) ]
+                    juniper_device_file_list = [ 'file list %s detail' % (JSON_DATA['target_sw_versions'][key].get('path',str)) ]
 
                     file_device_cmds = {
                         'cisco_ios':xe_device_file_list,
@@ -2946,10 +2947,10 @@ try:
                                             if file_type_part.upper() in tar_file.upper(): pass
                                             else: found_in_tar_file = False
                                         if len(file_type_parts) > 0 and found_in_tar_file:
-                                            files.append('%s/%s' % (CGI_CLI.JSON_RESULTS['target_sw_versions'][key].get('path',str), tar_file))
+                                            files.append('%s/%s' % (JSON_DATA['target_sw_versions'][key].get('path',str), tar_file))
                             except: pass
                         if len(files)>0:
-                            CGI_CLI.JSON_RESULTS['target_sw_versions'][key]['files'] = files
+                            JSON_DATA['target_sw_versions'][key]['files'] = files
 
                     elif RCMD.router_type == "huawei":
                         pass
@@ -2958,7 +2959,7 @@ try:
 
                     ### GET SMU FILES ON DEVICE VERSION DIRECTORY #########################
                     if RCMD.router_type == "cisco_xr":
-                        xr_device_patch_file_list = [ 'dir %s/SMU' % (CGI_CLI.JSON_RESULTS['target_sw_versions'][key].get('path',str)) ]
+                        xr_device_patch_file_list = [ 'dir %s/SMU' % (JSON_DATA['target_sw_versions'][key].get('path',str)) ]
 
                         patch_file_device_cmds = {
                             'cisco_ios':[],
@@ -2981,12 +2982,12 @@ try:
                                         try: patch_file = file_type.split('/')[1].replace('*','')
                                         except: patch_file = str()
                                         if len(patch_file) > 0 and patch_file.upper() in tar_file.upper():
-                                            patch_files.append('%s/%s/%s' % (CGI_CLI.JSON_RESULTS['target_sw_versions'][key].get('path',str), 'SMU' , tar_file))
-                                            patch_path = '%s/%s' % (CGI_CLI.JSON_RESULTS['target_sw_versions'][key].get('path',str), 'SMU')
+                                            patch_files.append('%s/%s/%s' % (JSON_DATA['target_sw_versions'][key].get('path',str), 'SMU' , tar_file))
+                                            patch_path = '%s/%s' % (JSON_DATA['target_sw_versions'][key].get('path',str), 'SMU')
                                 except: pass
                             if len(patch_files) > 0:
-                                CGI_CLI.JSON_RESULTS['target_sw_versions'][key]['patch_files'] = patch_files
-                                CGI_CLI.JSON_RESULTS['target_sw_versions'][key]['patch_path'] = patch_path
+                                JSON_DATA['target_sw_versions'][key]['patch_files'] = patch_files
+                                JSON_DATA['target_sw_versions'][key]['patch_path'] = patch_path
 
                         elif RCMD.router_type == "huawei":
                             pass
@@ -3055,8 +3056,8 @@ try:
                     if 'No inactive package(s) in software repository' in rcmd_outputs[0]:
                         pass
                     else:
-                        if 'inactive package(s) found:' in rcmd_outputs[0]:
-                            for package_line in rcmd_outputs[0].split('inactive package(s) found:')[1].splitlines()[:-1]:
+                        if 'Inactive Packages:' in rcmd_outputs[0]:
+                            for package_line in rcmd_outputs[0].split('Inactive Packages:')[1].splitlines()[1:-1]:
                                 if package_line.strip():
                                     inactive_packages.append(str(package_line.strip()))
 
@@ -3083,7 +3084,7 @@ try:
                         number_of_active_packages = int(rcmd_outputs4[0].split('Active Packages:')[1].split()[0])
                         for i in range(number_of_active_packages):
                              active_packages.append(rcmd_outputs4[0].split('Active Packages:')[1].splitlines()[i + 1].split()[0].strip())
-                        CGI_CLI.JSON_RESULTS['active_packages'] = active_packages
+                        JSON_DATA['active_packages'] = active_packages
 
                     ### admin show install active summary ###
                     device_cmds4b = {
@@ -3099,7 +3100,7 @@ try:
                         number_of_active_packages = int(rcmd_outputs4[0].split('Active Packages:')[1].split()[0])
                         for i in range(number_of_active_packages):
                              active_packages.append(rcmd_outputs4[0].split('Active Packages:')[1].splitlines()[i + 1].split()[0].strip())
-                        CGI_CLI.JSON_RESULTS['admin_active_packages'] = active_packages
+                        JSON_DATA['admin_active_packages'] = active_packages
 
                     ### def XR CHECK LIST #####################################
                     device_cmds5 = { 'cisco_xr': [
@@ -3311,7 +3312,7 @@ try:
                     for package_line in rcmd_outputs3[0].split('inactive package(s) found:')[1].splitlines()[:-1]:
                         if package_line.strip():
                             inactive_packages.append(str(package_line.strip()))
-            CGI_CLI.JSON_RESULTS['inactive_packages'] = inactive_packages
+            JSON_DATA['inactive_packages'] = copy.deepcopy(inactive_packages)
 
 
             ### AMNIN INACTIVE SUMMARY CHECK ###
@@ -3327,16 +3328,16 @@ try:
             if 'No inactive package(s) in software repository' in rcmd_outputs3[0]:
                 pass
             else:
-                if 'inactive package(s) found:' in rcmd_outputs3[0]:
-                    for package_line in rcmd_outputs3[0].split('inactive package(s) found:')[1].splitlines()[:-1]:
+                if 'Inactive Packages:' in rcmd_outputs3[0]:
+                    for package_line in rcmd_outputs3[0].split('Inactive Packages:')[1].splitlines()[1:-1]:
                         if package_line.strip():
                             inactive_packages.append(str(package_line.strip()))
-            CGI_CLI.JSON_RESULTS['admin_inactive_packages'] = inactive_packages
+            JSON_DATA['admin_inactive_packages'] = copy.deepcopy(inactive_packages)
 
 
             ### def FINAL CHECKS ##############################################
-            check_data_content("CGI_CLI.JSON_RESULTS['inactive_packages']", exact_value_yes = '[]', warning = True)
-            check_data_content("CGI_CLI.JSON_RESULTS['admin_inactive_packages']", exact_value_yes = '[]',  warning = True)
+            check_data_content("JSON_DATA['inactive_packages']", exact_value_yes = '[]', warning = True)
+            check_data_content("JSON_DATA['admin_inactive_packages']", exact_value_yes = '[]',  warning = True)
 
 
 
