@@ -2887,9 +2887,10 @@ try:
 
                 ### CISCO_XR ################################
                 elif RCMD.router_type == 'cisco_xr':
-                    ### admin  show install inactive sum ###
+
+                    ### def show install inactive sum #########################
                     device_cmds = {
-                        'cisco_xr':[ str( '%sshow install inactive sum' % (asr_admin_string) ) ],
+                        'cisco_xr':[ 'show install inactive sum' ],
                     }
 
                     rcmd_outputs = RCMD.run_commands(device_cmds, \
@@ -2906,35 +2907,15 @@ try:
                                     inactive_packages.append(str(package_line.strip()))
 
                         device_cmds2 = {
-                            'cisco_xr':[ str( '%sinstall remove inactive all' % (asr_admin_string) ) ],
+                            'cisco_xr':[ 'install remove inactive all' ],
                         }
 
                         rcmd_outputs2 = RCMD.run_commands(device_cmds2, \
                             autoconfirm_mode = True, \
                             printall = printall)
+                        ### INSTEAD OF WAITING RECHECK IS DONE ON THE END ###
 
-                        time.sleep(5)
-
-                        ### REPEAT INACTIVE CHECK ###
-                        device_cmds3 = {
-                            'cisco_xr':[ str( '%sshow install inactive summary' % (asr_admin_string) ) ],
-                        }
-
-                        rcmd_outputs3 = RCMD.run_commands(device_cmds3, \
-                            autoconfirm_mode = True, \
-                            printall = printall)
-
-                        inactive_packages = []
-                        if 'No inactive package(s) in software repository' in rcmd_outputs3[0]:
-                            pass
-                        else:
-                            if 'inactive package(s) found:' in rcmd_outputs3[0]:
-                                for package_line in rcmd_outputs3[0].split('inactive package(s) found:')[1].splitlines()[:-1]:
-                                    if package_line.strip():
-                                        inactive_packages.append(str(package_line.strip()))
-                    CGI_CLI.JSON_RESULTS['inactive_packages'] = inactive_packages
-
-                    ### admin  show install inactive sum ###
+                    ### admin show install inactive sum ###
                     device_cmds = {
                         'cisco_xr':[ 'admin show install inactive sum' ],
                     }
@@ -2959,32 +2940,11 @@ try:
                         rcmd_outputs2 = RCMD.run_commands(device_cmds2, \
                             autoconfirm_mode = True, \
                             printall = printall)
+                        ### INSTEAD OF WAITING RECHECK IS DONE ON THE END ###
 
-                        time.sleep(5)
-
-                        ### REPEAT INACTIVE CHECK ###
-                        device_cmds3 = {
-                            'cisco_xr':[ str( 'admin show install inactive summary' ) ],
-                        }
-
-                        rcmd_outputs3 = RCMD.run_commands(device_cmds3, \
-                            autoconfirm_mode = True, \
-                            printall = printall)
-
-                        inactive_packages = []
-                        if 'No inactive package(s) in software repository' in rcmd_outputs3[0]:
-                            pass
-                        else:
-                            if 'inactive package(s) found:' in rcmd_outputs3[0]:
-                                for package_line in rcmd_outputs3[0].split('inactive package(s) found:')[1].splitlines()[:-1]:
-                                    if package_line.strip():
-                                        inactive_packages.append(str(package_line.strip()))
-                    CGI_CLI.JSON_RESULTS['admin_inactive_packages'] = inactive_packages
-
-
-                    ### show install active summary ###
+                    ### def show install active summary #######################
                     device_cmds4 = {
-                        'cisco_xr':[ str( '%sshow install active summary' % (asr_admin_string) ) ],
+                        'cisco_xr':[ str( 'show install active summary' ],
                     }
 
                     rcmd_outputs4 = RCMD.run_commands(device_cmds4, \
@@ -3000,7 +2960,7 @@ try:
 
                     ### admin show install active summary ###
                     device_cmds4b = {
-                        'cisco_xr':[ str( 'admin show install active summary' ) ],
+                        'cisco_xr':[ 'admin show install active summary' ],
                     }
 
                     rcmd_outputs4b = RCMD.run_commands(device_cmds4b, \
@@ -3014,7 +2974,7 @@ try:
                              active_packages.append(rcmd_outputs4[0].split('Active Packages:')[1].splitlines()[i + 1].split()[0].strip())
                         CGI_CLI.JSON_RESULTS['admin_active_packages'] = active_packages
 
-                    ### XR CHECK LIST ###
+                    ### def XR CHECK LIST #####################################
                     device_cmds5 = { 'cisco_xr': [
                             '%sshow install log | utility tail count 10' % (asr_admin_string),
                             'install verify packages',
@@ -3040,7 +3000,7 @@ try:
                         printall = printall)
 
 
-                    ### copy configs ###
+                    ### def copy configs ######################################
                     date_string = datetime.datetime.now().strftime("%Y-%m%d-%H:%M")
 
                     device_cmds6 = {
@@ -3080,7 +3040,7 @@ try:
                             CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
 
 
-                    ### def CARDS PRECHECK ONLY ###############################
+                    ### def PRECHECK CARDS PRECHECK ONLY ###############################
                     if SCRIPT_ACTION == 'pre' and \
                         not 'XRv 9000' in HW_INFO.get('hw_type',str()):
                         ### 'show run fpd auto-upgrade' #######################
@@ -3151,62 +3111,100 @@ try:
             ###################################################################
             ### def POSTCHECK COMMANDS ########################################
             ###################################################################
-            if SCRIPT_ACTION == 'post' and RCMD.router_type == 'cisco_xr':
-
-                ### FIND LAST PRECHECK CONFIG FILE !!! ########################
-                admin_config_files, config_files = [], []
-                device_cmds = {
-                    'cisco_xr':['dir harddisk: | include config.txt']
-                }
-
-                device_cmds_result = RCMD.run_commands(device_cmds, \
-                    autoconfirm_mode = True, \
-                    printall = printall)
-                try:
-                    for file_line in device_cmds_result[0].splitlines()[:-1]:
-                        if file_line.strip() and '-config.txt' in file_line and ':' in file_line.split()[-1]:
-                            try:
-                                if 'admin' in file_line.split()[-1]:
-                                    admin_config_files.append(file_line.split()[-1])
-                                else: config_files.append(file_line.split()[-1])
-                            except: pass
-                except: pass
-                if len(config_files) > 1: config_files.sort()
-                if len(admin_config_files) > 1: admin_config_files.sort()
-
-                last_config_file, last_admin_config_file = str(), str()
-                try:
-                    last_config_file = config_files[-1]
-                    last_admin_config_file = admin_config_files[-1]
-                except: pass
-
-
-                CGI_CLI.uprint('\nCONFIG FILE: ' + last_config_file + '\nCHOSEN FROM: ' + str(config_files), tag= 'debug', no_printall = not CGI_CLI.printall)
-                CGI_CLI.uprint('\nADMIN CONFIG FILE: ' + last_admin_config_file + '\nCHOSEN FROM: ' + str(admin_config_files), tag= 'debug', no_printall = not CGI_CLI.printall)
-
-                if last_config_file:
-                    cp_device_cmds = {
-                        'cisco_xr':['utility head count 1000000 file harddisk:/%s' % (last_config_file)],
-                    }
-
-                    device_cmds_result = RCMD.run_commands(cp_device_cmds, \
-                        autoconfirm_mode = True, ignore_syntax_error = True, printall = printall)
-
-                if last_admin_config_file:
-                    cp2_device_cmds = {
-                        'cisco_xr':['admin utility head count 1000000 file harddisk:/%s' % (last_admin_config_file)],
-                    }
-
-                    device_cmds_result = RCMD.run_commands(cp2_device_cmds, \
-                        autoconfirm_mode = True, ignore_syntax_error = True, printall = printall)
-
-
-
             if SCRIPT_ACTION == 'post':
+
+                if RCMD.router_type == 'cisco_xr':
+                    ### FIND LAST PRECHECK CONFIG FILE !!! ########################
+                    admin_config_files, config_files = [], []
+                    device_cmds = {
+                        'cisco_xr':['dir harddisk: | include config.txt']
+                    }
+
+                    device_cmds_result = RCMD.run_commands(device_cmds, \
+                        autoconfirm_mode = True, \
+                        printall = printall)
+                    try:
+                        for file_line in device_cmds_result[0].splitlines()[:-1]:
+                            if file_line.strip() and '-config.txt' in file_line and ':' in file_line.split()[-1]:
+                                try:
+                                    if 'admin' in file_line.split()[-1]:
+                                        admin_config_files.append(file_line.split()[-1])
+                                    else: config_files.append(file_line.split()[-1])
+                                except: pass
+                    except: pass
+                    if len(config_files) > 1: config_files.sort()
+                    if len(admin_config_files) > 1: admin_config_files.sort()
+
+                    last_config_file, last_admin_config_file = str(), str()
+                    try:
+                        last_config_file = config_files[-1]
+                        last_admin_config_file = admin_config_files[-1]
+                    except: pass
+
+
+                    CGI_CLI.uprint('\nCONFIG FILE: ' + last_config_file + '\nCHOSEN FROM: ' + str(config_files), tag= 'debug', no_printall = not CGI_CLI.printall)
+                    CGI_CLI.uprint('\nADMIN CONFIG FILE: ' + last_admin_config_file + '\nCHOSEN FROM: ' + str(admin_config_files), tag= 'debug', no_printall = not CGI_CLI.printall)
+
+                    if last_config_file:
+                        cp_device_cmds = {
+                            'cisco_xr':['utility head count 1000000 file harddisk:/%s' % (last_config_file)],
+                        }
+
+                        device_cmds_result = RCMD.run_commands(cp_device_cmds, \
+                            autoconfirm_mode = True, ignore_syntax_error = True, printall = printall)
+
+                    if last_admin_config_file:
+                        cp2_device_cmds = {
+                            'cisco_xr':['admin utility head count 1000000 file harddisk:/%s' % (last_admin_config_file)],
+                        }
+
+                        device_cmds_result = RCMD.run_commands(cp2_device_cmds, \
+                            autoconfirm_mode = True, ignore_syntax_error = True, printall = printall)
+
+
+
+
+
+            ### def COMMON ACTIONS PRE&POST CHECK #############################
+
+            ### REPEAT INACTIVE CHECK ###
+            device_cmds3 = {
+                'cisco_xr':[ str( 'show install inactive summary' ) ],
+            }
+
+            rcmd_outputs3 = RCMD.run_commands(device_cmds3, \
+                autoconfirm_mode = True, \
+                printall = printall)
+
+            inactive_packages = []
+            if 'No inactive package(s) in software repository' in rcmd_outputs3[0]:
                 pass
+            else:
+                if 'inactive package(s) found:' in rcmd_outputs3[0]:
+                    for package_line in rcmd_outputs3[0].split('inactive package(s) found:')[1].splitlines()[:-1]:
+                        if package_line.strip():
+                            inactive_packages.append(str(package_line.strip()))
+            CGI_CLI.JSON_RESULTS['inactive_packages'] = inactive_packages
 
 
+            ### AMNIN INACTIVE SUMMARY CHECK ###
+            device_cmds3 = {
+                'cisco_xr':[ str( 'admin show install inactive summary' ) ],
+            }
 
+            rcmd_outputs3 = RCMD.run_commands(device_cmds3, \
+                autoconfirm_mode = True, \
+                printall = printall)
+
+            inactive_packages = []
+            if 'No inactive package(s) in software repository' in rcmd_outputs3[0]:
+                pass
+            else:
+                if 'inactive package(s) found:' in rcmd_outputs3[0]:
+                    for package_line in rcmd_outputs3[0].split('inactive package(s) found:')[1].splitlines()[:-1]:
+                        if package_line.strip():
+                            inactive_packages.append(str(package_line.strip()))
+            CGI_CLI.JSON_RESULTS['admin_inactive_packages'] = inactive_packages
 
 
 
