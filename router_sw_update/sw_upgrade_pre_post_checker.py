@@ -2938,7 +2938,7 @@ try:
                         'cisco_xr':[ str( '%sshow install active summary' % (asr_admin_string) ) ],
                     }
 
-                    rcmd_outputs4 = RCMD.run_commands(device_cmds3, \
+                    rcmd_outputs4 = RCMD.run_commands(device_cmds4, \
                         autoconfirm_mode = True, \
                         printall = printall)
 
@@ -2947,6 +2947,21 @@ try:
                         for i in range(number_of_active_packages):
                              active_packages.append(rcmd_outputs4[0].split('Active Packages:')[1].splitlines()[i + 1].split()[0].strip())
                         CGI_CLI.JSON_RESULTS['active_packages'] = active_packages
+
+                    ### admin show install active summary ###
+                    device_cmds4b = {
+                        'cisco_xr':[ str( 'admin show install active summary' ) ],
+                    }
+
+                    rcmd_outputs4b = RCMD.run_commands(device_cmds4b, \
+                        autoconfirm_mode = True, \
+                        printall = printall)
+
+                    if 'Active Packages:' in rcmd_outputs4b[0]:
+                        number_of_active_packages = int(rcmd_outputs4[0].split('Active Packages:')[1].split()[0])
+                        for i in range(number_of_active_packages):
+                             active_packages.append(rcmd_outputs4[0].split('Active Packages:')[1].splitlines()[i + 1].split()[0].strip())
+                        CGI_CLI.JSON_RESULTS['admin_active_packages'] = active_packages
 
                     ### XR CHECK LIST ###
                     device_cmds5 = { 'cisco_xr': [
