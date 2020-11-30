@@ -567,7 +567,8 @@ class CGI_CLI(object):
                     CGI_CLI.print_chunk('{"errors": "JSON_PROBLEM[' + str(e) + ']"}', printall = printall_yes)
 
             if print_text:
-                print(print_text)
+                if CGI_CLI.cgi_active: CGI_CLI.uprint('\n<pre>\n' + print_text + '\n</pre>\n', raw = True)
+                else: print(print_text)
                 if not ommit_logging: CGI_CLI.logtofile(msg = print_text, raw_log = raw_log, \
                                           ommit_timestamp = True)
             else:
@@ -3126,11 +3127,10 @@ try:
                                         try: patch_file = file_type.split('/')[1].replace('*','')
                                         except: patch_file = str()
                                         if len(patch_file) > 0 and patch_file.upper() in tar_file.upper():
-                                            #patch_files.append(tar_file)
-                                            patch_files.append('%s/%s' % (RCMD.drive_string, dev_dir,CGI_CLI.JSON_RESULTS['target_sw_versions'][key].get('path',str),'SMU' , tar_file))
-                                            patch_path = '%s/%s' % (RCMD.drive_string, dev_dir,CGI_CLI.JSON_RESULTS['target_sw_versions'][key].get('path',str),'SMU')
+                                            patch_files.append('%s/%s/%s' % (CGI_CLI.JSON_RESULTS['target_sw_versions'][key].get('path',str), 'SMU' , tar_file))
+                                            patch_path = '%s/%s' % (CGI_CLI.JSON_RESULTS['target_sw_versions'][key].get('path',str), 'SMU')
                                 except: pass
-                            if len(patch_files)>0:
+                            if len(patch_files) > 0:
                                 CGI_CLI.JSON_RESULTS['target_sw_versions'][key]['patch_files'] = patch_files
                                 CGI_CLI.JSON_RESULTS['target_sw_versions'][key]['patch_path'] = patch_path
 
