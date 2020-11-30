@@ -2887,6 +2887,7 @@ try:
 
                 ### CISCO_XR ################################
                 elif RCMD.router_type == 'cisco_xr':
+                    ### admin  show install inactive sum ###
                     device_cmds = {
                         'cisco_xr':[ str( '%sshow install inactive sum' % (asr_admin_string) ) ],
                     }
@@ -2932,6 +2933,54 @@ try:
                                     if package_line.strip():
                                         inactive_packages.append(str(package_line.strip()))
                     CGI_CLI.JSON_RESULTS['inactive_packages'] = inactive_packages
+
+                    ### admin  show install inactive sum ###
+                    device_cmds = {
+                        'cisco_xr':[ 'admin show install inactive sum' ],
+                    }
+
+                    rcmd_outputs = RCMD.run_commands(device_cmds, \
+                        autoconfirm_mode = True, \
+                        printall = printall)
+
+                    inactive_packages = []
+                    if 'No inactive package(s) in software repository' in rcmd_outputs[0]:
+                        pass
+                    else:
+                        if 'inactive package(s) found:' in rcmd_outputs[0]:
+                            for package_line in rcmd_outputs[0].split('inactive package(s) found:')[1].splitlines()[:-1]:
+                                if package_line.strip():
+                                    inactive_packages.append(str(package_line.strip()))
+
+                        device_cmds2 = {
+                            'cisco_xr':[ str( 'admin install remove inactive all' ) ],
+                        }
+
+                        rcmd_outputs2 = RCMD.run_commands(device_cmds2, \
+                            autoconfirm_mode = True, \
+                            printall = printall)
+
+                        time.sleep(5)
+
+                        ### REPEAT INACTIVE CHECK ###
+                        device_cmds3 = {
+                            'cisco_xr':[ str( 'admin show install inactive summary' ) ],
+                        }
+
+                        rcmd_outputs3 = RCMD.run_commands(device_cmds3, \
+                            autoconfirm_mode = True, \
+                            printall = printall)
+
+                        inactive_packages = []
+                        if 'No inactive package(s) in software repository' in rcmd_outputs3[0]:
+                            pass
+                        else:
+                            if 'inactive package(s) found:' in rcmd_outputs3[0]:
+                                for package_line in rcmd_outputs3[0].split('inactive package(s) found:')[1].splitlines()[:-1]:
+                                    if package_line.strip():
+                                        inactive_packages.append(str(package_line.strip()))
+                    CGI_CLI.JSON_RESULTS['admin_inactive_packages'] = inactive_packages
+
 
                     ### show install active summary ###
                     device_cmds4 = {
