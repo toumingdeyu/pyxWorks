@@ -25,13 +25,9 @@ from mako.lookup import TemplateLookup
 import ipaddress
 
 
-### DELAY BETWEEN OVERLOAD BIT AND BGP SHUT ###
-SLEEPSEC = 120
-
-
 class CGI_CLI(object):
     """
-    class CGI_handle - Simple statis class for handling CGI parameters and
+    class CGI_handle - Simple static class for handling CGI parameters and
                        clean (debug) printing to HTML/CLI
     INTERFACE FUNCTIONS:
     CGI_CLI.init_cgi() - init CGI_CLI class
@@ -402,6 +398,7 @@ class CGI_CLI(object):
         CGI_CLI.JSON_RESULTS['inputs'] = str(CGI_CLI.print_args(ommit_print = True))
         CGI_CLI.JSON_RESULTS['logfile'] = str()
         CGI_CLI.JSON_RESULTS['errors'] = str()
+        CGI_CLI.JSON_RESULTS['warnings'] = str()
         CGI_CLI.JSON_RESULTS['result'] = str()
         return CGI_CLI.USERNAME, CGI_CLI.PASSWORD
 
@@ -2495,7 +2492,137 @@ def detect_hw(device = None):
 
 ##############################################################################
 
+def check_data_content(where = None, what_yes_in = None, what_not_in = None, \
+    exact_value_yes = None, lower_than = None, higher_than = None, equals_to = None,
+    warning = None, ignore_data_existence = None):
+    """
+    multiple tests in once are possible
+    what_yes_in - string = if occurs in where then OK.
+    what_not_in - list = if all items from list occurs, then FAIL. Otherwise OK.
+    what_not_in - string = if string occurs in text, then FAIL.
+    """
+    local_check_interface_result_ok, Alarm_text = 0, []
 
+    key_exists, where_value, text = False, str(), str()
+    try:
+        where_value = eval('%s' % (str(where)))
+        key_exists = True
+    except: pass
+
+    if key_exists: pass
+    else:
+        if ignore_data_existence: pass
+        else:
+            text = "DATA '%s' DOES NOT EXISTS!" % (where)
+            CGI_CLI.JSON_RESULTS['warnings'] += '[%s] ' % (text)
+            CGI_CLI.logtofile(text + '\n', ommit_timestamp = True)
+        return None
+
+    ### FLOAT ZERO WORKARROUND ###
+    if str(lower_than) and str(lower_than) != 'None':
+        try:
+            if float(where_value) < float(lower_than):
+                text = "CHECK['%s'(%s) < '%.2f'] = OK" % (where, str(where_value), float(lower_than))
+            else:
+                if warning:
+                    text = "CHECK['%s'(%s) < '%.2f'] = WARNING" % (where, str(where_value), float(lower_than))
+                    CGI_CLI.JSON_RESULTS['warnings'] += '[%s] ' % (text)
+                else:
+                    text = "CHECK['%s'(%s) < '%.2f'] = NOT OK" % (where, str(where_value), float(lower_than))
+                    CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+        except: text = "CHECK['%s'(%s) < '%s'] = NaN" % (where, str(where_value), str(lower_than))
+        CGI_CLI.logtofile(text + '\n', ommit_timestamp = True)
+
+    ### FLOAT ZERO WORKARROUND ###
+    if str(higher_than) and str(higher_than) != 'None':
+        try:
+            if float(where_value) > float(higher_than):
+                text = "CHECK['%s'(%s) > '%.2f'] = OK" % (where, str(where_value), float(higher_than))
+            else:
+                if warning:
+                    text = "CHECK['%s'(%s) > '%.2f'] = WARNING" % (where, str(where_value), float(higher_than))
+                    CGI_CLI.JSON_RESULTS['warnings'] += '[%s] ' % (text)
+                else:
+                    text = "CHECK['%s'(%s) > '%.2f'] = NOT OK" % (where, str(where_value), float(higher_than))
+                    CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+        except: text = "CHECK['%s'(%s) > '%s'] = NaN\n" % (where, str(where_value), str(higher_than))
+        CGI_CLI.logtofile(text + '\n', ommit_timestamp = True)
+
+    ### FLOAT ZERO WORKARROUND ###
+    if str(equals_to) and str(equals_to) != 'None':
+        try:
+            if float(where_value) > float(equals_to):
+                text = "CHECK['%s'(%s) == '%.2f'] = OK" % (where, str(where_value), float(equals_to))
+            else:
+                if warning:
+                    text = "CHECK['%s'(%s) == '%.2f'] = WARNING" % (where, str(where_value), float(equals_to))
+                    CGI_CLI.JSON_RESULTS['warnings'] += '[%s] ' % (text)
+                else:
+                    text = "CHECK['%s'(%s) == '%.2f'] = NOT OK" % (where, str(where_value), float(equals_to))
+                    CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+        except: text = "CHECK['%s'(%s) == '%s'] = NaN\n" % (where, str(where_value), str(equals_to))
+        CGI_CLI.logtofile(text + '\n', ommit_timestamp = True)
+
+    if exact_value_yes:
+        if str(exact_value_yes).upper() == str(where_value).upper():
+            text = "CHECK['%s' == '%s'(%s)] = OK" % (exact_value_yes, where, str(where_value))
+        else:
+            if warning:
+                text = "CHECK['%s' == '%s'(%s)] = WARNING" % (exact_value_yes, where, str(where_value))
+                CGI_CLI.JSON_RESULTS['warnings'] += '[%s] ' % (text)
+            else:
+                text = "CHECK['%s' == '%s'(%s)] = NOT OK" % (exact_value_yes, where, str(where_value))
+                CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+        CGI_CLI.logtofile(text + '\n', ommit_timestamp = True)
+
+    if what_yes_in:
+        if isinstance(where, (list,tuple)):
+            if what_yes_in in where_value:
+                text = "CHECK['%s' in '%s'(%s)] = OK" % (what_yes_in, where, str(where_value))
+            else:
+                if warning:
+                    text = "CHECK['%s' in '%s'(%s)] = WARNING" % (what_yes_in, where, str(where_value))
+                    CGI_CLI.JSON_RESULTS['warnings'] += '[%s] ' % (text)
+                else:
+                    text = "CHECK['%s' in '%s'(%s)] = NOT OK" % (what_yes_in, where, str(where_value))
+                    CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+        else:
+            if str(what_yes_in).upper() in str(where_value).upper():
+                text = "CHECK['%s' in '%s'(%s)] = OK" % (what_yes_in, where, str(where_value))
+            else:
+                if warning:
+                    text = "CHECK['%s' in '%s'(%s)] = WARNING" % (what_yes_in, where, str(where_value))
+                    CGI_CLI.JSON_RESULTS['warnings'] += '[%s] ' % (text)
+                else:
+                    text = "CHECK['%s' in '%s'(%s)] = NOT OK" % (what_yes_in, where, str(where_value))
+                    CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+        CGI_CLI.logtofile(text + '\n', ommit_timestamp = True)
+
+    if what_not_in:
+        if isinstance(what_not_in, (list,tuple)):
+            for item in what_not_in:
+                if item.upper() in where_value.upper():
+                    local_check_interface_result_ok += 1
+                    Alarm_text.append("'%s' not in '%s'(%s)" % (item, where, str(where_value)))
+            ### ALL FAIL LOGIC ###
+            if local_check_interface_result_ok == len(what_not_in):
+                if warning:
+                    text = "CHECK[" + ' AND '.join(Alarm_text) + '] = WARNING'
+                    CGI_CLI.JSON_RESULTS['warnings'] += '[%s] ' % (text)
+                else:
+                    text = "CHECK[" + ' AND '.join(Alarm_text) + '] = NOT OK'
+                    CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+            else: text = "CHECK[ ['%s'] not in '%s'] = OK" % (','.join(what_not_in), where)
+        else:
+            if str(what_not_in).upper() in str(where_value).upper():
+                if warning:
+                    text = "CHECK['%s' not in '%s'(%s)] = WARNING" % (str(what_not_in), where, str(where_value))
+                    CGI_CLI.JSON_RESULTS['warnings'] += '[%s] ' % (text)
+                else:
+                    text = "CHECK['%s' not in '%s'(%s)] = NOT OK" % (str(what_not_in), where, str(where_value))
+                    CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+            else: text = "CHECK['%s' not in '%s'(%s)] = OK" % (str(what_not_in), where, str(where_value))
+        CGI_CLI.logtofile(text + '\n', ommit_timestamp = True)
 
 
 ##############################################################################
@@ -3205,6 +3332,11 @@ try:
                         if package_line.strip():
                             inactive_packages.append(str(package_line.strip()))
             CGI_CLI.JSON_RESULTS['admin_inactive_packages'] = inactive_packages
+
+
+            ### def FINAL CHECKS ##############################################
+
+
 
 
 
