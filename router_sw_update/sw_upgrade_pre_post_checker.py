@@ -3335,7 +3335,8 @@ try:
 
 
             ### def FINAL CHECKS ##############################################
-
+            check_data_content("CGI_CLI.JSON_RESULTS['inactive_packages']", exact_value_yes = '[]', warning = True)
+            check_data_content("CGI_CLI.JSON_RESULTS['admin_inactive_packages']", exact_value_yes = '[]',  warning = True)
 
 
 
