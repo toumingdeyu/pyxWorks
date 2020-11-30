@@ -2934,7 +2934,7 @@ try:
                                     inactive_packages.append(str(package_line.strip()))
 
                         device_cmds2 = {
-                            'cisco_xr':[ str( 'admin install remove inactive all' ) ],
+                            'cisco_xr':[ 'admin install remove inactive all' ],
                         }
 
                         rcmd_outputs2 = RCMD.run_commands(device_cmds2, \
@@ -2944,7 +2944,7 @@ try:
 
                     ### def show install active summary #######################
                     device_cmds4 = {
-                        'cisco_xr':[ str( 'show install active summary' ],
+                        'cisco_xr':[ 'show install active summary' ],
                     }
 
                     rcmd_outputs4 = RCMD.run_commands(device_cmds4, \
