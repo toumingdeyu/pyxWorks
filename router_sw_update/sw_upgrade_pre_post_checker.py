@@ -16,7 +16,6 @@ import glob
 import socket
 import six
 import collections
-from datetime import date
 
 import cgi
 #import cgitb; cgitb.enable()
@@ -2976,8 +2975,7 @@ try:
 
 
                     ### copy configs ###
-                    today = date.today()
-                    date_string = today.strftime("%Y-%m%d-%H:%M")
+                    date_string = datetime.datetime.now().strftime("%Y-%m%d-%H:%M")
 
                     device_cmds6 = {
                         'cisco_xr':['copy running-config harddisk:%s-config.txt' % (str(date_string))],
