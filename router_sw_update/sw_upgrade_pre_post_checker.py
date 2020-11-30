@@ -3099,7 +3099,7 @@ try:
                     autoconfirm_mode = True, \
                     printall = printall)
                 try:
-                    for file_line in device_cmds_result[0].splitlines()[0][:-1]:
+                    for file_line in device_cmds_result[0].splitlines()[:-1]:
                         if file_line.strip() and '-config.txt' in file_line and ':' in file_line.split()[-1]:
                             try:
                                 if 'admin' in file_line.split()[-1]:
@@ -3126,7 +3126,7 @@ try:
                     }
 
                     device_cmds_result = RCMD.run_commands(cp_device_cmds, \
-                        autoconfirm_mode = True, printall = printall)
+                        autoconfirm_mode = True, ignore_syntax_error = True, printall = printall)
 
                 if last_admin_config_file:
                     cp2_device_cmds = {
@@ -3134,7 +3134,7 @@ try:
                     }
 
                     device_cmds_result = RCMD.run_commands(cp2_device_cmds, \
-                        autoconfirm_mode = True, printall = printall)
+                        autoconfirm_mode = True, ignore_syntax_error = True, printall = printall)
 
 
 
