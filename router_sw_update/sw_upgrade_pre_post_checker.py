@@ -567,9 +567,10 @@ class CGI_CLI(object):
                     CGI_CLI.print_chunk('{"errors": "JSON_PROBLEM[' + str(e) + ']"}', printall = printall_yes)
 
             if print_text:
-                if CGI_CLI.cgi_active: CGI_CLI.uprint('\n<pre>\n' + print_text + '\n</pre>\n', raw = True)
-                else: print(print_text)
-                if not ommit_logging: CGI_CLI.logtofile(msg = print_text, raw_log = raw_log, \
+                if CGI_CLI.cgi_active: CGI_CLI.uprint('<br/>\n<pre>\n' + print_text + '\n</pre>\n', raw = True)
+                else:
+                    print(print_text)
+                    if not ommit_logging: CGI_CLI.logtofile(msg = print_text, raw_log = raw_log, \
                                           ommit_timestamp = True)
             else:
                 print(str(CGI_CLI.JSON_RESULTS))
@@ -2714,6 +2715,158 @@ try:
                 HW_INFO = detect_hw(device)
                 CGI_CLI.uprint(HW_INFO, tag = 'debug', no_printall = not CGI_CLI.printall)
 
+                brand_raw = str()
+                type_raw = HW_INFO.get('hw_type',str())
+                ### def GET PATHS ON DEVICE ###########################################
+                brand_subdir, type_subdir_on_server, type_subdir_on_device, file_types = \
+                    get_local_subdirectories(brand_raw = brand_raw, type_raw = type_raw)
+
+                ### BY DEFAULT = '/' ##################################################
+                dev_dir = os.path.abspath(os.path.join(os.sep, type_subdir_on_device))
+
+                xe_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) ]
+                xr_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) ]
+                huawei_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) ]
+                juniper_device_dir_list = [ 'file list %s%s detail' % (RCMD.drive_string,dev_dir) ]
+
+                dir_device_cmds = {
+                    'cisco_ios':xe_device_dir_list,
+                    'cisco_xr':xr_device_dir_list,
+                    'juniper':juniper_device_dir_list,
+                    'huawei':huawei_device_dir_list
+                }
+
+                device_cmds_result = RCMD.run_commands(dir_device_cmds, printall = printall)
+                versions = []
+
+                CGI_CLI.JSON_RESULTS['target_sw_versions'] = {}
+                if RCMD.router_type == "cisco_ios" or RCMD.router_type == "cisco_xr":
+                    for line in device_cmds_result[0].splitlines():
+                        try:
+                             sub_directory = line.split()[-1]
+                             if str(line.split()[1])[0] == 'd' and int(sub_directory):
+                                 versions.append(sub_directory)
+                                 CGI_CLI.JSON_RESULTS['target_sw_versions'][str(sub_directory)] = {}
+                                 CGI_CLI.JSON_RESULTS['target_sw_versions'][str(sub_directory)]['path'] = str('%s%s/%s' % (RCMD.drive_string, dev_dir, sub_directory))
+                        except: pass
+
+                elif RCMD.router_type == "huawei":
+                    ### FILES ARE IN CFCARD ROOT !!! ##################################
+                    for line in device_cmds_result[0].splitlines()[:-1]:
+                        try:
+                            tar_file = line.split()[-1]
+                            for file_type in file_types:
+                                if '/' in file_type.upper():
+                                    file_type_parts = file_type.split('/')[-1].split('*')
+                                else:
+                                    file_type_parts = file_type.split('*')
+                                found_in_tar_file = True
+                                for file_type_part in file_type_parts:
+                                    if file_type_part.upper() in tar_file.upper(): pass
+                                    else: found_in_tar_file = False
+                                if len(file_type_parts) > 0 and found_in_tar_file:
+                                    CGI_CLI.JSON_RESULTS['target_sw_versions'][str(tar_file)] = {}
+                                    CGI_CLI.JSON_RESULTS['target_sw_versions'][str(tar_file)]['path'] = str(dev_dir)
+                                    CGI_CLI.JSON_RESULTS['target_sw_versions'][str(tar_file)]['files'] = [tar_file]
+                        except: pass
+
+                elif RCMD.router_type == "juniper":
+                    ### FILES ARE IN re0:/var/tmp #####################################
+                    for line in device_cmds_result[0].splitlines()[:-1]:
+                        try:
+                            tar_file = line.split()[-1]
+                            for file_type in file_types:
+                                if '/' in file_type.upper():
+                                    file_type_parts = file_type.split('/')[-1].split('*')
+                                else:
+                                    file_type_parts = file_type.split('*')
+                                found_in_tar_file = True
+                                for file_type_part in file_type_parts:
+                                    if file_type_part.upper() in tar_file.upper(): pass
+                                    else: found_in_tar_file = False
+                                if len(file_type_parts) > 0 and found_in_tar_file:
+                                    CGI_CLI.JSON_RESULTS['target_sw_versions'][str(tar_file)] = {}
+                                    CGI_CLI.JSON_RESULTS['target_sw_versions'][str(tar_file)]['path'] = str(dev_dir)
+                                    CGI_CLI.JSON_RESULTS['target_sw_versions'][str(tar_file)]['files'] = [tar_file]
+                        except: pass
+
+                for key in CGI_CLI.JSON_RESULTS.get('target_sw_versions').keys():
+                    ### def GET FILES ON DEVICE VERSION DIRECTORY #########################
+                    xe_device_file_list = [ 'dir %s' % (CGI_CLI.JSON_RESULTS['target_sw_versions'][key].get('path',str)) ]
+                    xr_device_file_list = [ 'dir %s' % (CGI_CLI.JSON_RESULTS['target_sw_versions'][key].get('path',str)) ]
+
+                    juniper_device_file_list = [ 'file list %s detail' % (CGI_CLI.JSON_RESULTS['target_sw_versions'][key].get('path',str)) ]
+
+                    file_device_cmds = {
+                        'cisco_ios':xe_device_file_list,
+                        'cisco_xr':xr_device_file_list,
+                        'juniper':juniper_device_file_list,
+                        'huawei':[]
+                    }
+
+                    file_device_cmds_result = RCMD.run_commands(file_device_cmds, printall = printall)
+
+                    if RCMD.router_type == "cisco_ios" or RCMD.router_type == "cisco_xr":
+                        files = []
+                        for line in file_device_cmds_result[0].splitlines()[:-1]:
+                            try:
+                                tar_file = line.split()[-1]
+                                for file_type in file_types:
+                                    if '/' in file_type.upper(): pass
+                                    else:
+                                        file_type_parts = file_type.split('*')
+                                        found_in_tar_file = True
+                                        for file_type_part in file_type_parts:
+                                            if file_type_part.upper() in tar_file.upper(): pass
+                                            else: found_in_tar_file = False
+                                        if len(file_type_parts) > 0 and found_in_tar_file:
+                                            files.append('%s/%s' % (CGI_CLI.JSON_RESULTS['target_sw_versions'][key].get('path',str), tar_file))
+                            except: pass
+                        if len(files)>0:
+                            CGI_CLI.JSON_RESULTS['target_sw_versions'][key]['files'] = files
+
+                    elif RCMD.router_type == "huawei":
+                        pass
+                    elif RCMD.router_type == "juniper":
+                        pass
+
+                    ### GET SMU FILES ON DEVICE VERSION DIRECTORY #########################
+                    if RCMD.router_type == "cisco_xr":
+                        xr_device_patch_file_list = [ 'dir %s/SMU' % (CGI_CLI.JSON_RESULTS['target_sw_versions'][key].get('path',str)) ]
+
+                        patch_file_device_cmds = {
+                            'cisco_ios':[],
+                            'cisco_xr':xr_device_patch_file_list,
+                            'juniper':[],
+                            'huawei':[]
+                        }
+
+                        patch_file_device_cmds_result = RCMD.run_commands(patch_file_device_cmds, printall = printall)
+
+                        if RCMD.router_type == "cisco_ios":
+                            pass
+                        elif RCMD.router_type == "cisco_xr":
+                            patch_files = []
+                            patch_path = str()
+                            for line in patch_file_device_cmds_result[0].splitlines()[:-1]:
+                                try:
+                                    tar_file = line.split()[-1]
+                                    for file_type in file_types:
+                                        try: patch_file = file_type.split('/')[1].replace('*','')
+                                        except: patch_file = str()
+                                        if len(patch_file) > 0 and patch_file.upper() in tar_file.upper():
+                                            patch_files.append('%s/%s/%s' % (CGI_CLI.JSON_RESULTS['target_sw_versions'][key].get('path',str), 'SMU' , tar_file))
+                                            patch_path = '%s/%s' % (CGI_CLI.JSON_RESULTS['target_sw_versions'][key].get('path',str), 'SMU')
+                                except: pass
+                            if len(patch_files) > 0:
+                                CGI_CLI.JSON_RESULTS['target_sw_versions'][key]['patch_files'] = patch_files
+                                CGI_CLI.JSON_RESULTS['target_sw_versions'][key]['patch_path'] = patch_path
+
+                        elif RCMD.router_type == "huawei":
+                            pass
+                        elif RCMD.router_type == "juniper":
+                            pass
+
                 ### CISCO_IOS #####################################################
                 if RCMD.router_type == 'cisco_ios':
                     text = 'NOT IMPLEMENTED YET !'
@@ -2931,7 +3084,6 @@ try:
                                 CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
 
 
-
             ###################################################################
             ### def POSTCHECK COMMANDS ########################################
             ###################################################################
@@ -2987,160 +3139,7 @@ try:
 
 
             if SCRIPT_ACTION == 'post':
-                brand_raw = str()
-                type_raw = HW_INFO.get('hw_type',str())
-                ### def GET PATHS ON DEVICE ###########################################
-                brand_subdir, type_subdir_on_server, type_subdir_on_device, file_types = \
-                    get_local_subdirectories(brand_raw = brand_raw, type_raw = type_raw)
-
-                ### BY DEFAULT = '/' ##################################################
-                dev_dir = os.path.abspath(os.path.join(os.sep, type_subdir_on_device))
-
-                xe_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) ]
-                xr_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) ]
-                huawei_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) ]
-                juniper_device_dir_list = [ 'file list %s%s detail' % (RCMD.drive_string,dev_dir) ]
-
-                dir_device_cmds = {
-                    'cisco_ios':xe_device_dir_list,
-                    'cisco_xr':xr_device_dir_list,
-                    'juniper':juniper_device_dir_list,
-                    'huawei':huawei_device_dir_list
-                }
-
-                device_cmds_result = RCMD.run_commands(dir_device_cmds, printall = printall)
-                versions = []
-
-                CGI_CLI.JSON_RESULTS['target_sw_versions'] = {}
-                if RCMD.router_type == "cisco_ios" or RCMD.router_type == "cisco_xr":
-                    for line in device_cmds_result[0].splitlines():
-                        try:
-                             sub_directory = line.split()[-1]
-                             if str(line.split()[1])[0] == 'd' and int(sub_directory):
-                                 versions.append(sub_directory)
-                                 CGI_CLI.JSON_RESULTS['target_sw_versions'][str(sub_directory)] = {}
-                                 CGI_CLI.JSON_RESULTS['target_sw_versions'][str(sub_directory)]['path'] = str('%s%s/%s' % (RCMD.drive_string, dev_dir, sub_directory))
-                        except: pass
-
-                elif RCMD.router_type == "huawei":
-                    ### FILES ARE IN CFCARD ROOT !!! ##################################
-                    for line in device_cmds_result[0].splitlines()[:-1]:
-                        try:
-                            tar_file = line.split()[-1]
-                            for file_type in file_types:
-                                if '/' in file_type.upper():
-                                    file_type_parts = file_type.split('/')[-1].split('*')
-                                else:
-                                    file_type_parts = file_type.split('*')
-                                found_in_tar_file = True
-                                for file_type_part in file_type_parts:
-                                    if file_type_part.upper() in tar_file.upper(): pass
-                                    else: found_in_tar_file = False
-                                if len(file_type_parts) > 0 and found_in_tar_file:
-                                    CGI_CLI.JSON_RESULTS['target_sw_versions'][str(tar_file)] = {}
-                                    CGI_CLI.JSON_RESULTS['target_sw_versions'][str(tar_file)]['path'] = str(dev_dir)
-                                    CGI_CLI.JSON_RESULTS['target_sw_versions'][str(tar_file)]['files'] = [tar_file]
-                        except: pass
-
-                elif RCMD.router_type == "juniper":
-                    ### FILES ARE IN re0:/var/tmp #####################################
-                    for line in device_cmds_result[0].splitlines()[:-1]:
-                        try:
-                            tar_file = line.split()[-1]
-                            for file_type in file_types:
-                                if '/' in file_type.upper():
-                                    file_type_parts = file_type.split('/')[-1].split('*')
-                                else:
-                                    file_type_parts = file_type.split('*')
-                                found_in_tar_file = True
-                                for file_type_part in file_type_parts:
-                                    if file_type_part.upper() in tar_file.upper(): pass
-                                    else: found_in_tar_file = False
-                                if len(file_type_parts) > 0 and found_in_tar_file:
-                                    CGI_CLI.JSON_RESULTS['target_sw_versions'][str(tar_file)] = {}
-                                    CGI_CLI.JSON_RESULTS['target_sw_versions'][str(tar_file)]['path'] = str(dev_dir)
-                                    CGI_CLI.JSON_RESULTS['target_sw_versions'][str(tar_file)]['files'] = [tar_file]
-                        except: pass
-
-                for key in CGI_CLI.JSON_RESULTS.get('target_sw_versions').keys():
-                    ### def GET FILES ON DEVICE VERSION DIRECTORY #########################
-                    xe_device_file_list = [ 'dir %s' % (CGI_CLI.JSON_RESULTS['target_sw_versions'][key].get('path',str)) ]
-                    xr_device_file_list = [ 'dir %s' % (CGI_CLI.JSON_RESULTS['target_sw_versions'][key].get('path',str)) ]
-
-                    juniper_device_file_list = [ 'file list %s detail' % (CGI_CLI.JSON_RESULTS['target_sw_versions'][key].get('path',str)) ]
-
-                    file_device_cmds = {
-                        'cisco_ios':xe_device_file_list,
-                        'cisco_xr':xr_device_file_list,
-                        'juniper':juniper_device_file_list,
-                        'huawei':[]
-                    }
-
-                    file_device_cmds_result = RCMD.run_commands(file_device_cmds, printall = printall)
-
-                    if RCMD.router_type == "cisco_ios" or RCMD.router_type == "cisco_xr":
-                        files = []
-                        for line in file_device_cmds_result[0].splitlines()[:-1]:
-                            try:
-                                tar_file = line.split()[-1]
-                                for file_type in file_types:
-                                    if '/' in file_type.upper(): pass
-                                    else:
-                                        file_type_parts = file_type.split('*')
-                                        found_in_tar_file = True
-                                        for file_type_part in file_type_parts:
-                                            if file_type_part.upper() in tar_file.upper(): pass
-                                            else: found_in_tar_file = False
-                                        if len(file_type_parts) > 0 and found_in_tar_file:
-                                            files.append('%s/%s' % (CGI_CLI.JSON_RESULTS['target_sw_versions'][key].get('path',str), tar_file))
-                            except: pass
-                        if len(files)>0:
-                            CGI_CLI.JSON_RESULTS['target_sw_versions'][key]['files'] = files
-
-                    elif RCMD.router_type == "huawei":
-                        pass
-                    elif RCMD.router_type == "juniper":
-                        pass
-
-                    ### GET SMU FILES ON DEVICE VERSION DIRECTORY #########################
-                    if RCMD.router_type == "cisco_xr":
-                        xr_device_patch_file_list = [ 'dir %s/SMU' % (CGI_CLI.JSON_RESULTS['target_sw_versions'][key].get('path',str)) ]
-
-                        patch_file_device_cmds = {
-                            'cisco_ios':[],
-                            'cisco_xr':xr_device_patch_file_list,
-                            'juniper':[],
-                            'huawei':[]
-                        }
-
-                        patch_file_device_cmds_result = RCMD.run_commands(patch_file_device_cmds, printall = printall)
-
-                        if RCMD.router_type == "cisco_ios":
-                            pass
-                        elif RCMD.router_type == "cisco_xr":
-                            patch_files = []
-                            patch_path = str()
-                            for line in patch_file_device_cmds_result[0].splitlines()[:-1]:
-                                try:
-                                    tar_file = line.split()[-1]
-                                    for file_type in file_types:
-                                        try: patch_file = file_type.split('/')[1].replace('*','')
-                                        except: patch_file = str()
-                                        if len(patch_file) > 0 and patch_file.upper() in tar_file.upper():
-                                            patch_files.append('%s/%s/%s' % (CGI_CLI.JSON_RESULTS['target_sw_versions'][key].get('path',str), 'SMU' , tar_file))
-                                            patch_path = '%s/%s' % (CGI_CLI.JSON_RESULTS['target_sw_versions'][key].get('path',str), 'SMU')
-                                except: pass
-                            if len(patch_files) > 0:
-                                CGI_CLI.JSON_RESULTS['target_sw_versions'][key]['patch_files'] = patch_files
-                                CGI_CLI.JSON_RESULTS['target_sw_versions'][key]['patch_path'] = patch_path
-
-                        elif RCMD.router_type == "huawei":
-                            pass
-                        elif RCMD.router_type == "juniper":
-                            pass
-
-
-
+                pass
 
 
 
