@@ -157,7 +157,7 @@ class CGI_CLI(object):
                             action = "store_true",
                             default = False,
                             dest = 'json_headers',
-                            help = "print json headers before data output")                                                        
+                            help = "print json headers before data output")
         parser.add_argument("--target_sw_file",
                             action = "store", dest = 'target_sw_file',
                             default = str(),
@@ -375,7 +375,7 @@ class CGI_CLI(object):
                 ommit_logging = True, printall = True)
         elif CGI_CLI.JSON_MODE and CGI_CLI.JSON_HEADERS:
             ### JSON HEADERS ##################################################
-            CGI_CLI.content_type_line = 'Content-type:application/vnd.api+json%s' % (CGI_CLI.newline)        
+            CGI_CLI.content_type_line = 'Content-type:application/vnd.api+json%s' % (CGI_CLI.newline)
             sys.stdout.write("%s%s%s%s%s" %
                 (CGI_CLI.chunked_transfer_encoding_line,
                 CGI_CLI.content_type_line,
@@ -567,13 +567,13 @@ class CGI_CLI(object):
             if isinstance(CGI_CLI.JSON_RESULTS, (dict,collections.OrderedDict,list,tuple)):
                 try: print_text = str(json.dumps(CGI_CLI.JSON_RESULTS, indent = 2, sort_keys = sort_keys))
                 except Exception as e:
-                    CGI_CLI.print_chunk('{"errors": "JSON_PROBLEM[' + str(e) + ']"}', printall = printall_yes)
+                    CGI_CLI.print_chunk('{"errors": "JSON_PROBLEM[' + str(e) + ']"}', printall = True)
 
             if print_text:
-                if CGI_CLI.cgi_active: CGI_CLI.uprint('<br/>\n<pre>\n' + print_text + '\n</pre>\n', raw = True)
+                if CGI_CLI.cgi_active: CGI_CLI.uprint('<br/>\n<pre>\nCGI_CLI.JSON_RESULTS = ' + print_text + '\n</pre>\n', raw = True)
                 else:
                     print(print_text)
-                    if not ommit_logging: CGI_CLI.logtofile(msg = print_text, raw_log = raw_log, \
+                    if not ommit_logging: CGI_CLI.logtofile(msg = 'CGI_CLI.JSON_RESULTS = ' + print_text, raw_log = raw_log, \
                                           ommit_timestamp = True)
             else:
                 print(str(CGI_CLI.JSON_RESULTS))
@@ -3347,7 +3347,12 @@ try:
             check_data_content("JSON_DATA['admin_inactive_packages']", exact_value_yes = '[]',  warning = True)
 
 
-
+            if isinstance(JSON_DATA, (dict,collections.OrderedDict,list,tuple)):
+                try:
+                    print_text = str(json.dumps(JSON_DATA, indent = 2))
+                    CGI_CLI.uprint('\nJSON_DATA = ' + print_text + '\n' , color = 'blue')
+                except Exception as e:
+                    CGI_CLI.print_chunk('{"errors": "JSON_PROBLEM[' + str(e) + ']"}', printall = True)
 
 
 except SystemExit: pass
