@@ -402,7 +402,7 @@ class CGI_CLI(object):
         ### WINDOWS DOES NOT SUPPORT LINUX COLORS - SO DISABLE IT #############
         if CGI_CLI.cgi_active or 'WIN32' in sys.platform.upper(): CGI_CLI.bcolors = CGI_CLI.nocolors
         CGI_CLI.cgi_save_files()
-        #CGI_CLI.JSON_RESULTS['inputs'] = str(CGI_CLI.print_args(ommit_print = True))
+        CGI_CLI.JSON_RESULTS['inputs'] = str(CGI_CLI.print_args(ommit_print = True))
         CGI_CLI.JSON_RESULTS['logfile'] = str()
         CGI_CLI.JSON_RESULTS['errors'] = str()
         CGI_CLI.JSON_RESULTS['warnings'] = str()
@@ -2674,6 +2674,8 @@ try:
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
     printall = CGI_CLI.data.get("printall")
 
+    target_patch_path = CGI_CLI.data.get('target_patch_path',str()).replace('[','').replace(']','').strip()
+    target_sw_file    = CGI_CLI.data.get('target_sw_file',str()).replace('[','').replace(']','').strip()
 
     ### def KILLING APLICATION PROCESS ########################################
     if CGI_CLI.data.get('submit',str()) == 'STOP' and CGI_CLI.data.get('pidtokill'):
@@ -2726,6 +2728,11 @@ try:
         interface_menu_list = []
         interface_menu_list.append('<br/>')
         interface_menu_list.append({'text':'device'})
+        interface_menu_list.append('<br/>')
+        interface_menu_list.append({'text':'target_sw_file'})
+        interface_menu_list.append('<br/>')
+        interface_menu_list.append({'text':'target_patch_path'})
+        interface_menu_list.append('<br/>')
         interface_menu_list.append('<br/>')
 
         if not (USERNAME and PASSWORD):
@@ -3111,7 +3118,6 @@ try:
 
                     ### def XR CHECK LIST #####################################
                     device_cmds5 = { 'cisco_xr': [
-                            '%sshow install log | utility tail count 10' % (asr_admin_string),
                             'install verify packages',
                             'show platform',
                             'show configuration failed startup',
@@ -3125,6 +3131,14 @@ try:
                         autoconfirm_mode = True, \
                         printall = printall)
 
+                    ### CHECK INSTALL LOG FOR LAST ERRORS #####################
+                    if 'ERROR!' in rcmd_outputs5[0].upper():
+                        text = '"ERROR IN LAST 10lines of INSTALL LOG: ERROR!' + rcmd_outputs5[0].split('ERROR!')[1]
+                        CGI_CLI.uprint(text, color = 'orange')
+                        CGI_CLI.JSON_RESULTS['warnings'] = '[%s] ' % (text)
+
+
+                    ### SAVE CONFIGS ##########################################
                     device_cmds55 = { 'cisco_xr': [
                             'show running-config',
                             'admin show running-config'
@@ -3302,6 +3316,7 @@ try:
 
             ### def COMMON ACTIONS PRE&POST CHECK #############################
 
+
             ### REPEAT INACTIVE CHECK ###
             device_cmds3 = {
                 'cisco_xr':[ str( 'show install inactive summary' ) ],
@@ -3322,7 +3337,7 @@ try:
             JSON_DATA['inactive_packages'] = copy.deepcopy(inactive_packages)
 
 
-            ### AMNIN INACTIVE SUMMARY CHECK ###
+            ### ADMIN INACTIVE SUMMARY CHECK ###
             device_cmds3 = {
                 'cisco_xr':[ str( 'admin show install inactive summary' ) ],
             }
@@ -3342,11 +3357,56 @@ try:
             JSON_DATA['admin_inactive_packages'] = copy.deepcopy(inactive_packages)
 
 
+            ### CHECK IF PATCH SMU FILES ARE IN ACTIVE PACKAGES #######
+            if target_patch_path:
+                check_files = []
+                try:
+                    for key in JSON_DATA['target_sw_versions'].keys():
+                        if target_patch_path in JSON_DATA['target_sw_versions'][key].get('patch_path',str()) \
+                            or key == target_patch_path:
+                            check_files = JSON_DATA['target_sw_versions'][key].get('patch_files',[])
+                except: pass
+
+                if len(check_files) == 0:
+                    text = "No SMU files found in patch path %s !" % (target_patch_path)
+                    CGI_CLI.uprint(text, color = 'orange')
+                    CGI_CLI.JSON_RESULTS['errors'] = '[%s] ' % (text)
+
+                if SCRIPT_ACTION == 'post':
+                    for check_file in check_files:
+                        try: check_part = check_file.split('.CSC')[1].split('.tar')[0]
+                        except: check_part = str()
+                        if check_part:
+                            if check_part in JSON_DATA['active_packages'] \
+                                or check_part in JSON_DATA['admin_active_packages']: pass
+                            else:
+                                text = "SMU file %s is not found in (admin) active packages!" % (check_file)
+                                CGI_CLI.uprint(text, color = 'orange')
+                                CGI_CLI.JSON_RESULTS['errors'] = '[%s] ' % (text)
+
+            ### CHECK IF TAR FILE IS IN ACTIVE PACKAGES ###############
+            if target_sw_file: pass
+
+
+
+            ### CHECK INSTALL LOG FOR LAST ERRORS #####################
+            device_cmds_log = { 'cisco_xr': [ 'show install log | utility tail count 10' ] }
+
+            rcmd_outputs_log = RCMD.run_commands(device_cmds_log, printall = printall)
+
+            if 'ERROR!' in rcmd_outputs_log[0].upper():
+                text = '"ERROR IN LAST 10lines of INSTALL LOG: ERROR!' + rcmd_outputs_log[0].split('ERROR!')[1]
+                CGI_CLI.uprint(text, color = 'orange')
+                CGI_CLI.JSON_RESULTS['warnings'] = '[%s] ' % (text)
+
+
+
             ### def FINAL CHECKS ##############################################
             check_data_content("JSON_DATA['inactive_packages']", exact_value_yes = '[]', warning = True)
             check_data_content("JSON_DATA['admin_inactive_packages']", exact_value_yes = '[]',  warning = True)
 
 
+            ### print JSON_DATA ###############################################
             if isinstance(JSON_DATA, (dict,collections.OrderedDict,list,tuple)):
                 try:
                     print_text = str(json.dumps(JSON_DATA, indent = 2))
