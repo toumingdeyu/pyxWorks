@@ -3370,7 +3370,7 @@ try:
                 if len(check_files) == 0:
                     text = "No SMU files found in patch path %s !" % (target_patch_path)
                     CGI_CLI.uprint(text, color = 'orange')
-                    CGI_CLI.JSON_RESULTS['errors'] = '[%s] ' % (text)
+                    CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
 
                 if SCRIPT_ACTION == 'post':
                     for check_file in check_files:
@@ -3382,7 +3382,7 @@ try:
                             else:
                                 text = "SMU file %s is not found in (admin) active packages!" % (check_file)
                                 CGI_CLI.uprint(text, color = 'orange')
-                                CGI_CLI.JSON_RESULTS['errors'] = '[%s] ' % (text)
+                                CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
 
             ### CHECK IF TAR FILE IS IN ACTIVE PACKAGES ###############
             if target_sw_file: pass
