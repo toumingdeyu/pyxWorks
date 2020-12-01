@@ -3369,7 +3369,7 @@ try:
 
                 if len(check_files) == 0:
                     text = "No SMU files found in patch path %s !" % (target_patch_path)
-                    CGI_CLI.uprint(text, color = 'orange')
+                    CGI_CLI.uprint(text, color = 'red')
                     CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
 
                 if SCRIPT_ACTION == 'post':
@@ -3381,12 +3381,53 @@ try:
                                 or check_part in JSON_DATA['admin_active_packages']: pass
                             else:
                                 text = "SMU file %s is not found in (admin) active packages!" % (check_file)
-                                CGI_CLI.uprint(text, color = 'orange')
+                                CGI_CLI.uprint(text, color = 'red')
                                 CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
 
             ### CHECK IF TAR FILE IS IN ACTIVE PACKAGES ###############
-            if target_sw_file: pass
+            if target_sw_file:
+                check_files = []
+                try:
+                    for key in JSON_DATA['target_sw_versions'].keys():
+                        if target_patch_path in JSON_DATA['target_sw_versions'][key].get('files',str()) \
+                            or key == target_sw_file:
+                            check_files = JSON_DATA['target_sw_versions'][key].get('files',[])
+                except: pass
 
+                if len(check_files) == 0:
+                    text = "Tar file %s found !" % (target_sw_file)
+                    CGI_CLI.uprint(text, color = 'red')
+                    CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+
+                if len(check_files) > 1:
+                    text = "Multiple tar files %s found in the same directory !" % (target_sw_file)
+                    CGI_CLI.uprint(text, color = 'orange')
+                    CGI_CLI.JSON_RESULTS['warnings'] += '[%s] ' % (text)
+
+                if SCRIPT_ACTION == 'post':
+                    try: version = re.findall(r'[0-9]\.[0-9]\.[0-9]\.[0-9]', target_sw_file)[0]
+                    except:
+                        try: version = re.findall(r'[0-9]\.[0-9]\.[0-9]', target_sw_file)[0]
+                        except:
+                            try: version = re.findall(r'[0-9][0-9][0-9][0-9]', target_sw_file)[0]
+                            except:
+                                try: version = re.findall(r'[0-9][0-9][0-9][0-9]', target_sw_file)[0]
+                                except: version = str()
+
+                    if version:
+                        force_dotted_version, undotted_version = None, None
+                        if '.' in version: undotted_version = version.replace('.','')
+                        else: force_dotted_version = '.'.join(list(version))
+                        if version in JSON_DATA['active_packages'] \
+                            or version in JSON_DATA['admin_active_packages']: pass
+                        elif undotted_version and (undotted_version in JSON_DATA['active_packages'] \
+                            or undotted_version in JSON_DATA['admin_active_packages']): pass
+                        elif force_dotted_version and (force_dotted_version in JSON_DATA['active_packages'] \
+                            or force_dotted_version in JSON_DATA['admin_active_packages']): pass
+                        else:
+                            text = "Tar file %s is not found in (admin) active packages!" % (check_file)
+                            CGI_CLI.uprint(text, color = 'red')
+                            CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
 
 
             ### CHECK INSTALL LOG FOR LAST ERRORS #####################
