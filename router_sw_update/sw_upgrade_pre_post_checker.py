@@ -153,6 +153,11 @@ class CGI_CLI(object):
                             default = False,
                             dest = 'json_mode',
                             help = "json data output only, no other printouts")
+        parser.add_argument("--json_headers",
+                            action = "store_true",
+                            default = False,
+                            dest = 'json_headers',
+                            help = "print json headers before data output")                                                        
         parser.add_argument("--target_sw_file",
                             action = "store", dest = 'target_sw_file',
                             default = str(),
@@ -240,13 +245,14 @@ class CGI_CLI(object):
     @staticmethod
     def init_cgi(chunked = None, css_style = None, newline = None, \
         timestamp = None, disable_page_reload_link = None, no_title = None, \
-        json_mode = None):
+        json_mode = None, json_headers = None):
         """
         """
         try: CGI_CLI.sys_stdout_encoding = sys.stdout.encoding
         except: CGI_CLI.sys_stdout_encoding = None
         if not CGI_CLI.sys_stdout_encoding: CGI_CLI.sys_stdout_encoding = 'UTF-8'
         CGI_CLI.JSON_MODE = json_mode
+        CGI_CLI.JSON_HEADERS = json_headers
         CGI_CLI.PRINT_JSON_RESULTS = False
         CGI_CLI.uprint_json_results_printed = None
         CGI_CLI.JSON_RESULTS = collections.OrderedDict()
@@ -284,6 +290,7 @@ class CGI_CLI(object):
             if value and variable == "password": CGI_CLI.PASSWORD = value
             if value and variable == "json_mode": CGI_CLI.JSON_MODE = value
             if value and variable == "print_json_results": CGI_CLI.PRINT_JSON_RESULTS = value
+            if value and variable == "json_headers": CGI_CLI.JSON_HEADERS = value
             if value and variable == "hash":
                 CGI_CLI.USERNAME, CGI_CLI.PASSWORD = CGI_CLI.get_credentials(CGI_CLI.hash_decrypt(value))
 
@@ -322,6 +329,7 @@ class CGI_CLI(object):
                 if value and variable == "password": CGI_CLI.PASSWORD = value
                 if value and variable == "json_mode": CGI_CLI.JSON_MODE = value
                 if value and variable == "print_json_results": CGI_CLI.PRINT_JSON_RESULTS = value
+                if value and variable == "json_headers": CGI_CLI.JSON_HEADERS = value
                 if value and variable == "hash":
                     CGI_CLI.USERNAME, CGI_CLI.PASSWORD = CGI_CLI.get_credentials(CGI_CLI.hash_decrypt(value))
 
@@ -339,6 +347,7 @@ class CGI_CLI(object):
             if value and variable == "cpassword": CGI_CLI.PASSWORD = value.decode('base64','strict')
             if value and variable == "json_mode": CGI_CLI.JSON_MODE = value
             if value and variable == "print_json_results": CGI_CLI.PRINT_JSON_RESULTS = value
+            if value and variable == "json_headers": CGI_CLI.JSON_HEADERS = value
             if value and variable == "hash":
                 CGI_CLI.USERNAME, CGI_CLI.PASSWORD = CGI_CLI.get_credentials(CGI_CLI.hash_decrypt(value))
 
@@ -347,11 +356,8 @@ class CGI_CLI(object):
         CGI_CLI.http_user_agent = dict(os.environ).get('HTTP_USER_AGENT','')
         if CGI_CLI.remote_addr and CGI_CLI.http_user_agent and not CGI_CLI.JSON_MODE:
             CGI_CLI.cgi_active = True
-        ### JSON HEADERS ######################################################
-        #if CGI_CLI.JSON_MODE:
-        #    CGI_CLI.content_type_line = 'Content-type:application/vnd.api+json%s' % (CGI_CLI.newline)
 
-        ### HTML PRINTING START ###############################################
+        ### HTML HEADERS ######################################################
         if CGI_CLI.cgi_active:
             sys.stdout.write("%s%s%s" %
                 (CGI_CLI.chunked_transfer_encoding_line,
@@ -367,13 +373,14 @@ class CGI_CLI(object):
                 title_string, \
                 '<style>%s</style>' % (CGI_CLI.CSS_STYLE) if CGI_CLI.CSS_STYLE else str()),\
                 ommit_logging = True, printall = True)
-        ### JSON API PRINTING START ###########################################
-        # elif CGI_CLI.JSON_MODE:
-            # sys.stdout.write("%s%s%s%s%s" %
-                # (CGI_CLI.chunked_transfer_encoding_line,
-                # CGI_CLI.content_type_line,
-                # CGI_CLI.status_line, CGI_CLI.newline, CGI_CLI.newline))
-            # sys.stdout.flush()
+        elif CGI_CLI.JSON_MODE and CGI_CLI.JSON_HEADERS:
+            ### JSON HEADERS ##################################################
+            CGI_CLI.content_type_line = 'Content-type:application/vnd.api+json%s' % (CGI_CLI.newline)        
+            sys.stdout.write("%s%s%s%s%s" %
+                (CGI_CLI.chunked_transfer_encoding_line,
+                CGI_CLI.content_type_line,
+                CGI_CLI.status_line, CGI_CLI.newline, CGI_CLI.newline))
+            sys.stdout.flush()
 
         ### REGISTER CLEANUP FUNCTION #########################################
         import atexit; atexit.register(CGI_CLI.__cleanup__)
@@ -395,7 +402,7 @@ class CGI_CLI(object):
         ### WINDOWS DOES NOT SUPPORT LINUX COLORS - SO DISABLE IT #############
         if CGI_CLI.cgi_active or 'WIN32' in sys.platform.upper(): CGI_CLI.bcolors = CGI_CLI.nocolors
         CGI_CLI.cgi_save_files()
-        CGI_CLI.JSON_RESULTS['inputs'] = str(CGI_CLI.print_args(ommit_print = True))
+        #CGI_CLI.JSON_RESULTS['inputs'] = str(CGI_CLI.print_args(ommit_print = True))
         CGI_CLI.JSON_RESULTS['logfile'] = str()
         CGI_CLI.JSON_RESULTS['errors'] = str()
         CGI_CLI.JSON_RESULTS['warnings'] = str()
