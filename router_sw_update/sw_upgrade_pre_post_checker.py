@@ -3389,13 +3389,13 @@ try:
                 check_files = []
                 try:
                     for key in JSON_DATA['target_sw_versions'].keys():
-                        if target_patch_path in JSON_DATA['target_sw_versions'][key].get('files',str()) \
+                        if target_sw_file in JSON_DATA['target_sw_versions'][key].get('files',str()) \
                             or key == target_sw_file:
                             check_files = JSON_DATA['target_sw_versions'][key].get('files',[])
                 except: pass
 
                 if len(check_files) == 0:
-                    text = "Tar file %s found !" % (target_sw_file)
+                    text = "Tar file %s not found !" % (target_sw_file)
                     CGI_CLI.uprint(text, color = 'red')
                     CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
 
