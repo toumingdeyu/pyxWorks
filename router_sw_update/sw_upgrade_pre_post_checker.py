@@ -3169,6 +3169,27 @@ try:
                                 CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
 
 
+                    ### def 'show alarms brief system active' #########################
+                    device_cmds = { 'cisco_xr': [ 'show alarms brief system active' ] }
+
+                    rcmd_outputs = RCMD.run_commands(device_cmds, \
+                        long_lasting_mode = True, \
+                        printall = printall)
+
+                    if 'Description' in rcmd_outputs[0]:
+                        for line in rcmd_outputs[0].split('Description')[1].splitlines()[2:-1]:
+                            try: alarm_state = line.split()[-1]
+                            except: alarm_state = str()
+                            if 'ALARM' in isis_state.upper():
+                                text = "'show alarms brief system active' PROBLEM[%s] !" % (line.strip())
+                                CGI_CLI.uprint(text, tag ='h2', color = 'red')
+                                CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                            elif 'WARNING' in isis_state.upper():
+                                text = "'show alarms brief system active' PROBLEM[%s] !" % (line.strip())
+                                CGI_CLI.uprint(text, tag ='h2', color = 'red')
+                                CGI_CLI.JSON_RESULTS['warnings'] += '[%s] ' % (text)
+
+
 
                     ### def XR CHECK LIST #####################################
                     device_cmds5 = { 'cisco_xr': [
