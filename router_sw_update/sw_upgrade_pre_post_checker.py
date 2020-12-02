@@ -3133,6 +3133,26 @@ try:
                     CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
 
 
+                ### def 'show int description | exclude "admin-down"' #########
+                device_cmds = { 'cisco_xr': [ 'show int description | exclude "admin-down"' ] }
+
+                rcmd_outputs = RCMD.run_commands(device_cmds, \
+                    long_lasting_mode = True, \
+                    printall = printall)
+
+                if 'Description' in rcmd_outputs[0]:
+                    for line in rcmd_outputs[0].split('Description')[1].splitlines()[2:-1]:
+                        try: state1 = line.split()[1]
+                        except: state1 = str()
+                        try: state2 = line.split()[2]
+                        except: state2 = str()
+                        if 'UP' in state1.upper() and 'UP' in state2.upper(): pass
+                        elif line.strip():
+                            text = "'show int description' PROBLEM[%s] !" % (line.strip())
+                            CGI_CLI.uprint(text, tag ='h2', color = 'red')
+                            CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+
+
                 ### def 'show platform' #########################
                 device_cmds_p = { 'cisco_xr': [ 'show platform' ] }
 
@@ -3150,6 +3170,18 @@ try:
                             text = "'show platform' PROBLEM[%s] !" % (line)
                             CGI_CLI.uprint(text, tag ='h2', color = 'red')
                             CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+
+
+                ### def 'show platform' #########################
+                device_cmds = { 'cisco_xr': [ 'show version' ] }
+
+                rcmd_outputs = RCMD.run_commands(device_cmds_p, \
+                    long_lasting_mode = True, \
+                    printall = printall)
+
+                try: version = rcmd_outputs[0].split('Version')[1].split()[0].strip()
+                except: version = str()
+                JSON_DATA['version'] = copy.deepcopy(version)
 
 
                 ### def 'show isis adjacency' #########################
@@ -3518,6 +3550,17 @@ try:
                             text = "Tar file %s is not found in (admin) active packages!" % (check_file)
                             CGI_CLI.uprint(text, color = 'red')
                             CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+
+                        ### def installed version check #######################
+                        if JSON_DATA['version'] == version \
+                            or undotted_version and JSON_DATA['version'] == undotted_version \
+                            or force_dotted_version and JSON_DATA['version'] == force_dotted_version: pass
+                        else:
+                            text = "'show version' PROBLEM[%s != %s] " % (JSON_DATA['version'], version)
+                            CGI_CLI.uprint(text, color = 'red')
+                            CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+
+
 
 
             ### CHECK INSTALL LOG FOR LAST ERRORS #####################
