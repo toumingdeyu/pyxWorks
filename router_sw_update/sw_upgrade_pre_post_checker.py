@@ -2847,485 +2847,488 @@ try:
 
             CGI_CLI.logtofile('\nDETECTED DEVICE_TYPE: %s\n\n' % (RCMD.router_type))
 
+
+            ###################################################################
+            ### def PRE&POST_CHECK START ######################################
+            ###################################################################
+
             HW_INFO = {}
-            ###################################################################
-            ### def PRECHECK START ############################################
-            ###################################################################
-            if SCRIPT_ACTION == 'pre' or SCRIPT_ACTION == 'post':
-                HW_INFO = detect_hw(device)
-                CGI_CLI.uprint(HW_INFO, tag = 'debug', no_printall = not CGI_CLI.printall)
+            HW_INFO = detect_hw(device)
+            CGI_CLI.uprint(HW_INFO, tag = 'debug', no_printall = not CGI_CLI.printall)
 
-                brand_raw = str()
-                type_raw = HW_INFO.get('hw_type',str())
-                ### def GET PATHS ON DEVICE ###########################################
-                brand_subdir, type_subdir_on_server, type_subdir_on_device, file_types = \
-                    get_local_subdirectories(brand_raw = brand_raw, type_raw = type_raw)
+            brand_raw = str()
+            type_raw = HW_INFO.get('hw_type',str())
+            ### def GET PATHS ON DEVICE ###########################################
+            brand_subdir, type_subdir_on_server, type_subdir_on_device, file_types = \
+                get_local_subdirectories(brand_raw = brand_raw, type_raw = type_raw)
 
-                ### BY DEFAULT = '/' ##################################################
-                dev_dir = os.path.abspath(os.path.join(os.sep, type_subdir_on_device))
+            ### BY DEFAULT = '/' ##################################################
+            dev_dir = os.path.abspath(os.path.join(os.sep, type_subdir_on_device))
 
-                xe_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) ]
-                xr_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) ]
-                huawei_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) ]
-                juniper_device_dir_list = [ 'file list %s%s detail' % (RCMD.drive_string,dev_dir) ]
+            xe_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) ]
+            xr_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) ]
+            huawei_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) ]
+            juniper_device_dir_list = [ 'file list %s%s detail' % (RCMD.drive_string,dev_dir) ]
 
-                dir_device_cmds = {
-                    'cisco_ios':xe_device_dir_list,
-                    'cisco_xr':xr_device_dir_list,
-                    'juniper':juniper_device_dir_list,
-                    'huawei':huawei_device_dir_list
+            dir_device_cmds = {
+                'cisco_ios':xe_device_dir_list,
+                'cisco_xr':xr_device_dir_list,
+                'juniper':juniper_device_dir_list,
+                'huawei':huawei_device_dir_list
+            }
+
+            device_cmds_result = RCMD.run_commands(dir_device_cmds, printall = printall)
+            versions = []
+
+            JSON_DATA = {}
+            JSON_DATA['target_sw_versions'] = {}
+            if RCMD.router_type == "cisco_ios" or RCMD.router_type == "cisco_xr":
+                for line in device_cmds_result[0].splitlines():
+                    try:
+                         sub_directory = line.split()[-1]
+                         if str(line.split()[1])[0] == 'd' and int(sub_directory):
+                             versions.append(sub_directory)
+                             JSON_DATA['target_sw_versions'][str(sub_directory)] = {}
+                             JSON_DATA['target_sw_versions'][str(sub_directory)]['path'] = str('%s%s/%s' % (RCMD.drive_string, dev_dir, sub_directory))
+                    except: pass
+
+            elif RCMD.router_type == "huawei":
+                ### FILES ARE IN CFCARD ROOT !!! ##################################
+                for line in device_cmds_result[0].splitlines()[:-1]:
+                    try:
+                        tar_file = line.split()[-1]
+                        for file_type in file_types:
+                            if '/' in file_type.upper():
+                                file_type_parts = file_type.split('/')[-1].split('*')
+                            else:
+                                file_type_parts = file_type.split('*')
+                            found_in_tar_file = True
+                            for file_type_part in file_type_parts:
+                                if file_type_part.upper() in tar_file.upper(): pass
+                                else: found_in_tar_file = False
+                            if len(file_type_parts) > 0 and found_in_tar_file:
+                                JSON_DATA['target_sw_versions'][str(tar_file)] = {}
+                                JSON_DATA['target_sw_versions'][str(tar_file)]['path'] = str(dev_dir)
+                                JSON_DATA['target_sw_versions'][str(tar_file)]['files'] = [tar_file]
+                    except: pass
+
+            elif RCMD.router_type == "juniper":
+                ### FILES ARE IN re0:/var/tmp #####################################
+                for line in device_cmds_result[0].splitlines()[:-1]:
+                    try:
+                        tar_file = line.split()[-1]
+                        for file_type in file_types:
+                            if '/' in file_type.upper():
+                                file_type_parts = file_type.split('/')[-1].split('*')
+                            else:
+                                file_type_parts = file_type.split('*')
+                            found_in_tar_file = True
+                            for file_type_part in file_type_parts:
+                                if file_type_part.upper() in tar_file.upper(): pass
+                                else: found_in_tar_file = False
+                            if len(file_type_parts) > 0 and found_in_tar_file:
+                                JSON_DATA['target_sw_versions'][str(tar_file)] = {}
+                                JSON_DATA['target_sw_versions'][str(tar_file)]['path'] = str(dev_dir)
+                                JSON_DATA['target_sw_versions'][str(tar_file)]['files'] = [tar_file]
+                    except: pass
+
+            for key in JSON_DATA.get('target_sw_versions').keys():
+                ### def get files on device version directory #########################
+                xe_device_file_list = [ 'dir %s' % (JSON_DATA['target_sw_versions'][key].get('path',str)) ]
+                xr_device_file_list = [ 'dir %s' % (JSON_DATA['target_sw_versions'][key].get('path',str)) ]
+
+                juniper_device_file_list = [ 'file list %s detail' % (JSON_DATA['target_sw_versions'][key].get('path',str)) ]
+
+                file_device_cmds = {
+                    'cisco_ios':xe_device_file_list,
+                    'cisco_xr':xr_device_file_list,
+                    'juniper':juniper_device_file_list,
+                    'huawei':[]
                 }
 
-                device_cmds_result = RCMD.run_commands(dir_device_cmds, printall = printall)
-                versions = []
+                file_device_cmds_result = RCMD.run_commands(file_device_cmds, printall = printall)
 
-                JSON_DATA = {}
-                JSON_DATA['target_sw_versions'] = {}
                 if RCMD.router_type == "cisco_ios" or RCMD.router_type == "cisco_xr":
-                    for line in device_cmds_result[0].splitlines():
+                    files = []
+                    for line in file_device_cmds_result[0].splitlines()[:-1]:
                         try:
-                             sub_directory = line.split()[-1]
-                             if str(line.split()[1])[0] == 'd' and int(sub_directory):
-                                 versions.append(sub_directory)
-                                 JSON_DATA['target_sw_versions'][str(sub_directory)] = {}
-                                 JSON_DATA['target_sw_versions'][str(sub_directory)]['path'] = str('%s%s/%s' % (RCMD.drive_string, dev_dir, sub_directory))
+                            tar_file = line.split()[-1]
+                            for file_type in file_types:
+                                if '/' in file_type.upper(): pass
+                                else:
+                                    file_type_parts = file_type.split('*')
+                                    found_in_tar_file = True
+                                    for file_type_part in file_type_parts:
+                                        if file_type_part.upper() in tar_file.upper(): pass
+                                        else: found_in_tar_file = False
+                                    if len(file_type_parts) > 0 and found_in_tar_file:
+                                        files.append('%s/%s' % (JSON_DATA['target_sw_versions'][key].get('path',str), tar_file))
                         except: pass
+                    if len(files)>0:
+                        JSON_DATA['target_sw_versions'][key]['files'] = files
 
                 elif RCMD.router_type == "huawei":
-                    ### FILES ARE IN CFCARD ROOT !!! ##################################
-                    for line in device_cmds_result[0].splitlines()[:-1]:
-                        try:
-                            tar_file = line.split()[-1]
-                            for file_type in file_types:
-                                if '/' in file_type.upper():
-                                    file_type_parts = file_type.split('/')[-1].split('*')
-                                else:
-                                    file_type_parts = file_type.split('*')
-                                found_in_tar_file = True
-                                for file_type_part in file_type_parts:
-                                    if file_type_part.upper() in tar_file.upper(): pass
-                                    else: found_in_tar_file = False
-                                if len(file_type_parts) > 0 and found_in_tar_file:
-                                    JSON_DATA['target_sw_versions'][str(tar_file)] = {}
-                                    JSON_DATA['target_sw_versions'][str(tar_file)]['path'] = str(dev_dir)
-                                    JSON_DATA['target_sw_versions'][str(tar_file)]['files'] = [tar_file]
-                        except: pass
-
+                    pass
                 elif RCMD.router_type == "juniper":
-                    ### FILES ARE IN re0:/var/tmp #####################################
-                    for line in device_cmds_result[0].splitlines()[:-1]:
-                        try:
-                            tar_file = line.split()[-1]
-                            for file_type in file_types:
-                                if '/' in file_type.upper():
-                                    file_type_parts = file_type.split('/')[-1].split('*')
-                                else:
-                                    file_type_parts = file_type.split('*')
-                                found_in_tar_file = True
-                                for file_type_part in file_type_parts:
-                                    if file_type_part.upper() in tar_file.upper(): pass
-                                    else: found_in_tar_file = False
-                                if len(file_type_parts) > 0 and found_in_tar_file:
-                                    JSON_DATA['target_sw_versions'][str(tar_file)] = {}
-                                    JSON_DATA['target_sw_versions'][str(tar_file)]['path'] = str(dev_dir)
-                                    JSON_DATA['target_sw_versions'][str(tar_file)]['files'] = [tar_file]
-                        except: pass
+                    pass
 
-                for key in JSON_DATA.get('target_sw_versions').keys():
-                    ### def GET FILES ON DEVICE VERSION DIRECTORY #########################
-                    xe_device_file_list = [ 'dir %s' % (JSON_DATA['target_sw_versions'][key].get('path',str)) ]
-                    xr_device_file_list = [ 'dir %s' % (JSON_DATA['target_sw_versions'][key].get('path',str)) ]
+                ### GET SMU FILES ON DEVICE VERSION DIRECTORY #########################
+                if RCMD.router_type == "cisco_xr":
+                    xr_device_patch_file_list = [ 'dir %s/SMU' % (JSON_DATA['target_sw_versions'][key].get('path',str)) ]
 
-                    juniper_device_file_list = [ 'file list %s detail' % (JSON_DATA['target_sw_versions'][key].get('path',str)) ]
-
-                    file_device_cmds = {
-                        'cisco_ios':xe_device_file_list,
-                        'cisco_xr':xr_device_file_list,
-                        'juniper':juniper_device_file_list,
+                    patch_file_device_cmds = {
+                        'cisco_ios':[],
+                        'cisco_xr':xr_device_patch_file_list,
+                        'juniper':[],
                         'huawei':[]
                     }
 
-                    file_device_cmds_result = RCMD.run_commands(file_device_cmds, printall = printall)
+                    patch_file_device_cmds_result = RCMD.run_commands(patch_file_device_cmds, printall = printall)
 
-                    if RCMD.router_type == "cisco_ios" or RCMD.router_type == "cisco_xr":
-                        files = []
-                        for line in file_device_cmds_result[0].splitlines()[:-1]:
+                    if RCMD.router_type == "cisco_ios":
+                        pass
+                    elif RCMD.router_type == "cisco_xr":
+                        patch_files = []
+                        patch_path = str()
+                        for line in patch_file_device_cmds_result[0].splitlines()[:-1]:
                             try:
                                 tar_file = line.split()[-1]
                                 for file_type in file_types:
-                                    if '/' in file_type.upper(): pass
-                                    else:
-                                        file_type_parts = file_type.split('*')
-                                        found_in_tar_file = True
-                                        for file_type_part in file_type_parts:
-                                            if file_type_part.upper() in tar_file.upper(): pass
-                                            else: found_in_tar_file = False
-                                        if len(file_type_parts) > 0 and found_in_tar_file:
-                                            files.append('%s/%s' % (JSON_DATA['target_sw_versions'][key].get('path',str), tar_file))
+                                    try: patch_file = file_type.split('/')[1].replace('*','')
+                                    except: patch_file = str()
+                                    if len(patch_file) > 0 and patch_file.upper() in tar_file.upper():
+                                        patch_files.append('%s/%s/%s' % (JSON_DATA['target_sw_versions'][key].get('path',str), 'SMU' , tar_file))
+                                        patch_path = '%s/%s' % (JSON_DATA['target_sw_versions'][key].get('path',str), 'SMU')
                             except: pass
-                        if len(files)>0:
-                            JSON_DATA['target_sw_versions'][key]['files'] = files
+                        if len(patch_files) > 0:
+                            JSON_DATA['target_sw_versions'][key]['patch_files'] = patch_files
+                            JSON_DATA['target_sw_versions'][key]['patch_path'] = patch_path
 
                     elif RCMD.router_type == "huawei":
                         pass
                     elif RCMD.router_type == "juniper":
                         pass
 
-                    ### GET SMU FILES ON DEVICE VERSION DIRECTORY #########################
-                    if RCMD.router_type == "cisco_xr":
-                        xr_device_patch_file_list = [ 'dir %s/SMU' % (JSON_DATA['target_sw_versions'][key].get('path',str)) ]
+            ### CISCO_IOS #####################################################
+            if RCMD.router_type == 'cisco_ios':
+                text = 'NOT IMPLEMENTED YET !'
+                CGI_CLI.uprint(text, tag ='h1', color = 'red')
+                CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
 
-                        patch_file_device_cmds = {
-                            'cisco_ios':[],
-                            'cisco_xr':xr_device_patch_file_list,
-                            'juniper':[],
-                            'huawei':[]
-                        }
 
-                        patch_file_device_cmds_result = RCMD.run_commands(patch_file_device_cmds, printall = printall)
+            ### JUNOS ###################################
+            elif RCMD.router_type == 'juniper':
+                text = 'NOT IMPLEMENTED YET !'
+                CGI_CLI.uprint(text, tag ='h1', color = 'red')
+                CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
 
-                        if RCMD.router_type == "cisco_ios":
-                            pass
-                        elif RCMD.router_type == "cisco_xr":
-                            patch_files = []
-                            patch_path = str()
-                            for line in patch_file_device_cmds_result[0].splitlines()[:-1]:
-                                try:
-                                    tar_file = line.split()[-1]
-                                    for file_type in file_types:
-                                        try: patch_file = file_type.split('/')[1].replace('*','')
-                                        except: patch_file = str()
-                                        if len(patch_file) > 0 and patch_file.upper() in tar_file.upper():
-                                            patch_files.append('%s/%s/%s' % (JSON_DATA['target_sw_versions'][key].get('path',str), 'SMU' , tar_file))
-                                            patch_path = '%s/%s' % (JSON_DATA['target_sw_versions'][key].get('path',str), 'SMU')
-                                except: pass
-                            if len(patch_files) > 0:
-                                JSON_DATA['target_sw_versions'][key]['patch_files'] = patch_files
-                                JSON_DATA['target_sw_versions'][key]['patch_path'] = patch_path
+            ### HUAWEI ##################################
+            elif RCMD.router_type == 'huawei':
+                text = 'NOT IMPLEMENTED YET !'
+                CGI_CLI.uprint(text, tag ='h1', color = 'red')
+                CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
 
-                        elif RCMD.router_type == "huawei":
-                            pass
-                        elif RCMD.router_type == "juniper":
-                            pass
+            ### CISCO_XR ################################
+            elif RCMD.router_type == 'cisco_xr':
 
-                ### CISCO_IOS #####################################################
-                if RCMD.router_type == 'cisco_ios':
-                    text = 'NOT IMPLEMENTED YET !'
-                    CGI_CLI.uprint(text, tag ='h1', color = 'red')
+                ### def show install inactive sum #########################
+                device_cmds = {
+                    'cisco_xr':[ 'show install inactive sum' ],
+                }
+
+                rcmd_outputs = RCMD.run_commands(device_cmds, \
+                    autoconfirm_mode = True, \
+                    printall = printall)
+
+                inactive_packages = []
+                if 'No inactive package(s) in software repository' in rcmd_outputs[0]:
+                    pass
+                else:
+                    if 'inactive package(s) found:' in rcmd_outputs[0]:
+                        for package_line in rcmd_outputs[0].split('inactive package(s) found:')[1].splitlines()[:-1]:
+                            if package_line.strip():
+                                inactive_packages.append(str(package_line.strip()))
+
+                    device_cmds2 = {
+                        'cisco_xr':[ 'install remove inactive all' ],
+                    }
+
+                    rcmd_outputs2 = RCMD.run_commands(device_cmds2, \
+                        autoconfirm_mode = True, \
+                        printall = printall)
+                    ### INSTEAD OF WAITING RECHECK IS DONE ON THE END ###
+
+                ### admin show install inactive sum ###
+                device_cmds = {
+                    'cisco_xr':[ 'admin show install inactive sum' ],
+                }
+
+                rcmd_outputs = RCMD.run_commands(device_cmds, \
+                    autoconfirm_mode = True, \
+                    printall = printall)
+
+                inactive_packages = []
+                if 'No inactive package(s) in software repository' in rcmd_outputs[0]:
+                    pass
+                else:
+                    if 'Inactive Packages:' in rcmd_outputs[0]:
+                        for package_line in rcmd_outputs[0].split('Inactive Packages:')[1].splitlines()[1:-1]:
+                            if package_line.strip():
+                                inactive_packages.append(str(package_line.strip()))
+
+                    device_cmds2 = {
+                        'cisco_xr':[ 'admin install remove inactive all' ],
+                    }
+
+                    rcmd_outputs2 = RCMD.run_commands(device_cmds2, \
+                        autoconfirm_mode = True, \
+                        printall = printall)
+                    ### INSTEAD OF WAITING RECHECK IS DONE ON THE END ###
+
+                ### def show install active summary #######################
+                device_cmds4 = {
+                    'cisco_xr':[ 'show install active summary' ],
+                }
+
+                rcmd_outputs4 = RCMD.run_commands(device_cmds4, \
+                    autoconfirm_mode = True, \
+                    printall = printall)
+
+                active_packages = []
+                if 'Active Packages:' in rcmd_outputs4[0]:
+                    number_of_active_packages = int(rcmd_outputs4[0].split('Active Packages:')[1].split()[0])
+                    for i in range(number_of_active_packages):
+                         active_packages.append(rcmd_outputs4[0].split('Active Packages:')[1].splitlines()[i + 1].split()[0].strip())
+                    JSON_DATA['active_packages'] = active_packages
+
+                ### admin show install active summary ###
+                device_cmds4b = {
+                    'cisco_xr':[ 'admin show install active summary' ],
+                }
+
+                rcmd_outputs4b = RCMD.run_commands(device_cmds4b, \
+                    autoconfirm_mode = True, \
+                    printall = printall)
+
+                active_packages = []
+                if 'Active Packages:' in rcmd_outputs4b[0]:
+                    number_of_active_packages = int(rcmd_outputs4[0].split('Active Packages:')[1].split()[0])
+                    for i in range(number_of_active_packages):
+                         active_packages.append(rcmd_outputs4[0].split('Active Packages:')[1].splitlines()[i + 1].split()[0].strip())
+                    JSON_DATA['admin_active_packages'] = active_packages
+
+
+                ### def 'install verify packages' #########################
+                device_cmds_inst = { 'cisco_xr': [ 'install verify packages synchronous' ] }
+
+                rcmd_outputs_inst = RCMD.run_commands(device_cmds_inst, \
+                    long_lasting_mode = True, \
+                    printall = printall)
+
+                if 'Install operation' in rcmd_outputs_inst[0] and 'finished successfully' in rcmd_outputs_inst[0]: pass
+                #elif 'Install operation' in rcmd_outputs_inst[0] and 'completed verification successfully' in rcmd_outputs_inst[0]: pass
+                else:
+                    text = "'install verify packages' PROBLEM[%s] !" % (rcmd_outputs_inst[0])
+                    CGI_CLI.uprint(text, tag ='h2', color = 'red')
                     CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
 
 
-                ### JUNOS ###################################
-                elif RCMD.router_type == 'juniper':
-                    text = 'NOT IMPLEMENTED YET !'
-                    CGI_CLI.uprint(text, tag ='h1', color = 'red')
-                    CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                ### def 'show platform' #########################
+                device_cmds_p = { 'cisco_xr': [ 'show platform' ] }
 
-                ### HUAWEI ##################################
-                elif RCMD.router_type == 'huawei':
-                    text = 'NOT IMPLEMENTED YET !'
-                    CGI_CLI.uprint(text, tag ='h1', color = 'red')
-                    CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                rcmd_outputs_p = RCMD.run_commands(device_cmds_p, \
+                    long_lasting_mode = True, \
+                    printall = printall)
 
-                ### CISCO_XR ################################
-                elif RCMD.router_type == 'cisco_xr':
-
-                    ### def show install inactive sum #########################
-                    device_cmds = {
-                        'cisco_xr':[ 'show install inactive sum' ],
-                    }
-
-                    rcmd_outputs = RCMD.run_commands(device_cmds, \
-                        autoconfirm_mode = True, \
-                        printall = printall)
-
-                    inactive_packages = []
-                    if 'No inactive package(s) in software repository' in rcmd_outputs[0]:
-                        pass
-                    else:
-                        if 'inactive package(s) found:' in rcmd_outputs[0]:
-                            for package_line in rcmd_outputs[0].split('inactive package(s) found:')[1].splitlines()[:-1]:
-                                if package_line.strip():
-                                    inactive_packages.append(str(package_line.strip()))
-
-                        device_cmds2 = {
-                            'cisco_xr':[ 'install remove inactive all' ],
-                        }
-
-                        rcmd_outputs2 = RCMD.run_commands(device_cmds2, \
-                            autoconfirm_mode = True, \
-                            printall = printall)
-                        ### INSTEAD OF WAITING RECHECK IS DONE ON THE END ###
-
-                    ### admin show install inactive sum ###
-                    device_cmds = {
-                        'cisco_xr':[ 'admin show install inactive sum' ],
-                    }
-
-                    rcmd_outputs = RCMD.run_commands(device_cmds, \
-                        autoconfirm_mode = True, \
-                        printall = printall)
-
-                    inactive_packages = []
-                    if 'No inactive package(s) in software repository' in rcmd_outputs[0]:
-                        pass
-                    else:
-                        if 'Inactive Packages:' in rcmd_outputs[0]:
-                            for package_line in rcmd_outputs[0].split('Inactive Packages:')[1].splitlines()[1:-1]:
-                                if package_line.strip():
-                                    inactive_packages.append(str(package_line.strip()))
-
-                        device_cmds2 = {
-                            'cisco_xr':[ 'admin install remove inactive all' ],
-                        }
-
-                        rcmd_outputs2 = RCMD.run_commands(device_cmds2, \
-                            autoconfirm_mode = True, \
-                            printall = printall)
-                        ### INSTEAD OF WAITING RECHECK IS DONE ON THE END ###
-
-                    ### def show install active summary #######################
-                    device_cmds4 = {
-                        'cisco_xr':[ 'show install active summary' ],
-                    }
-
-                    rcmd_outputs4 = RCMD.run_commands(device_cmds4, \
-                        autoconfirm_mode = True, \
-                        printall = printall)
-
-                    active_packages = []
-                    if 'Active Packages:' in rcmd_outputs4[0]:
-                        number_of_active_packages = int(rcmd_outputs4[0].split('Active Packages:')[1].split()[0])
-                        for i in range(number_of_active_packages):
-                             active_packages.append(rcmd_outputs4[0].split('Active Packages:')[1].splitlines()[i + 1].split()[0].strip())
-                        JSON_DATA['active_packages'] = active_packages
-
-                    ### admin show install active summary ###
-                    device_cmds4b = {
-                        'cisco_xr':[ 'admin show install active summary' ],
-                    }
-
-                    rcmd_outputs4b = RCMD.run_commands(device_cmds4b, \
-                        autoconfirm_mode = True, \
-                        printall = printall)
-
-                    active_packages = []
-                    if 'Active Packages:' in rcmd_outputs4b[0]:
-                        number_of_active_packages = int(rcmd_outputs4[0].split('Active Packages:')[1].split()[0])
-                        for i in range(number_of_active_packages):
-                             active_packages.append(rcmd_outputs4[0].split('Active Packages:')[1].splitlines()[i + 1].split()[0].strip())
-                        JSON_DATA['admin_active_packages'] = active_packages
-
-
-                    ### def 'install verify packages' #########################
-                    device_cmds_inst = { 'cisco_xr': [ 'install verify packages synchronous' ] }
-
-                    rcmd_outputs_inst = RCMD.run_commands(device_cmds_inst, \
-                        long_lasting_mode = True, \
-                        printall = printall)
-
-                    if 'Install operation' in rcmd_outputs_inst[0] and 'finished successfully' in rcmd_outputs_inst[0]: pass
-                    #elif 'Install operation' in rcmd_outputs_inst[0] and 'completed verification successfully' in rcmd_outputs_inst[0]: pass
-                    else:
-                        text = "'install verify packages' PROBLEM[%s] !" % (rcmd_outputs_inst[0])
-                        CGI_CLI.uprint(text, tag ='h2', color = 'red')
-                        CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
-
-
-                    ### def 'show platform' #########################
-                    device_cmds_p = { 'cisco_xr': [ 'show platform' ] }
-
-                    rcmd_outputs_p = RCMD.run_commands(device_cmds_p, \
-                        long_lasting_mode = True, \
-                        printall = printall)
-
-                    if 'Config state' in rcmd_outputs_p[0]:
-                        for line in rcmd_outputs_p[0].split('Config state')[1].splitlines()[2:-1]:
-                            try: platform_state = line.split()[2]
-                            except: platform_state = str()
-                            if 'UP' in platform_state or 'OPERATIONAL' in platform_state \
-                                or 'IOS XR RUN' in line: pass
-                            else:
-                                text = "'show platform' PROBLEM[%s] !" % (line)
-                                CGI_CLI.uprint(text, tag ='h2', color = 'red')
-                                CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
-
-
-                    ### def 'show isis adjacency' #########################
-                    device_cmds = { 'cisco_xr': [ 'show isis adjacency' ] }
-
-                    rcmd_outputs = RCMD.run_commands(device_cmds, \
-                        long_lasting_mode = True, \
-                        printall = printall)
-
-                    if 'BFD  BFD' in rcmd_outputs[0]:
-                        for line in rcmd_outputs[0].split('BFD  BFD')[1].splitlines()[0:-1]:
-                            try: isis_state = line.split()[3]
-                            except: isis_state = str()
-                            if 'UP' in isis_state.upper(): pass
-                            elif line.strip() and not 'Total adjacency count:' in line:
-                                text = "'show isis adjacency' PROBLEM[%s] !" % (line.strip())
-                                CGI_CLI.uprint(text, tag ='h2', color = 'red')
-                                CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
-
-
-                    ### def 'show alarms brief system active' #########################
-                    device_cmds = { 'cisco_xr': [ 'show alarms brief system active' ] }
-
-                    rcmd_outputs = RCMD.run_commands(device_cmds, \
-                        long_lasting_mode = True, \
-                        printall = printall)
-
-                    if 'Description' in rcmd_outputs[0]:
-                        for line in rcmd_outputs[0].split('Description')[1].splitlines()[2:-1]:
-                            try: alarm_state = line.split()[-1]
-                            except: alarm_state = str()
-                            if 'ALARM' in isis_state.upper():
-                                text = "'show alarms brief system active' PROBLEM[%s] !" % (line.strip())
-                                CGI_CLI.uprint(text, tag ='h2', color = 'red')
-                                CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
-                            elif 'WARNING' in isis_state.upper():
-                                text = "'show alarms brief system active' PROBLEM[%s] !" % (line.strip())
-                                CGI_CLI.uprint(text, tag ='h2', color = 'red')
-                                CGI_CLI.JSON_RESULTS['warnings'] += '[%s] ' % (text)
-
-
-
-                    ### def XR CHECK LIST #####################################
-                    device_cmds5 = { 'cisco_xr': [
-                            'show configuration failed startup',
-                            'clear configuration inconsistency',
-                            'show health gsp',
-                            'show install request',
-                            'show install repository',
-                    ] }
-
-                    rcmd_outputs5 = RCMD.run_commands(device_cmds5, \
-                        autoconfirm_mode = True, \
-                        printall = printall)
-
-
-                    ### SAVE CONFIGS ##########################################
-                    device_cmds55 = { 'cisco_xr': [
-                            'show running-config',
-                            'admin show running-config'
-                    ] }
-
-                    rcmd_outputs55 = RCMD.run_commands(device_cmds55, \
-                        ignore_syntax_error = True, \
-                        printall = printall)
-
-
-                    ### def copy configs ######################################
-                    date_string = datetime.datetime.now().strftime("%Y-%m%d-%H:%M")
-
-                    device_cmds6 = {
-                        'cisco_xr':['copy running-config harddisk:%s-config.txt' % (str(date_string))],
-                    }
-
-                    rcmd_outputs6 = RCMD.run_commands(device_cmds6, \
-                        autoconfirm_mode = True, \
-                        printall = printall)
-
-                    device_cmds7 = {
-                        'cisco_xr':['admin copy running-config harddisk:admin-%s-config.txt' % (str(date_string))],
-                    }
-
-                    rcmd_outputs7 = RCMD.run_commands(device_cmds7, \
-                        autoconfirm_mode = True, \
-                        printall = printall)
-
-
-                    if not 'XRv 9000' in HW_INFO.get('hw_type',str()):
-                        ### def FPD PROBLEMS ##################################
-                        xr_check_cmd_list = { 'cisco_xr': [ 'show hw-module fpd' ] }
-                        rcmd_outputs = RCMD.run_commands(xr_check_cmd_list, printall = printall)
-
-                        ### PARSE 'show hw-module fpd' !!! ###
-                        fpd_problems = []
-                        try:
-                            for fpd_line in rcmd_outputs[0].split('Running Programd')[1].splitlines():
-                                if fpd_line.strip() and not '-----' in fpd_line:
-                                    if fpd_line.strip().split()[3] != 'CURRENT':
-                                        fpd_problems.append(fpd_line.strip())
-                        except: pass
-
-                        if len(fpd_problems) > 0:
-                            text = "FPDs which are not 'CURRENT': [%s]!" % (','.join(fpd_problems))
+                if 'Config state' in rcmd_outputs_p[0]:
+                    for line in rcmd_outputs_p[0].split('Config state')[1].splitlines()[2:-1]:
+                        try: platform_state = line.split()[2]
+                        except: platform_state = str()
+                        if 'UP' in platform_state or 'OPERATIONAL' in platform_state \
+                            or 'IOS XR RUN' in line: pass
+                        else:
+                            text = "'show platform' PROBLEM[%s] !" % (line)
                             CGI_CLI.uprint(text, tag ='h2', color = 'red')
                             CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
 
 
-                    ### def PRECHECK CARDS PRECHECK ONLY ###############################
-                    if SCRIPT_ACTION == 'pre' and \
-                        not 'XRv 9000' in HW_INFO.get('hw_type',str()):
-                        ### 'show run fpd auto-upgrade' #######################
+                ### def 'show isis adjacency' #########################
+                device_cmds = { 'cisco_xr': [ 'show isis adjacency' ] }
 
-                        xr_cmds = {'cisco_xr': [ 'show run fpd auto-upgrade' ]}
+                rcmd_outputs = RCMD.run_commands(device_cmds, \
+                    long_lasting_mode = True, \
+                    printall = printall)
 
-                        rcmd_outputs = RCMD.run_commands(xr_cmds, \
+                if 'BFD  BFD' in rcmd_outputs[0]:
+                    for line in rcmd_outputs[0].split('BFD  BFD')[1].splitlines()[0:-1]:
+                        try: isis_state = line.split()[3]
+                        except: isis_state = str()
+                        if 'UP' in isis_state.upper(): pass
+                        elif line.strip() and not 'Total adjacency count:' in line:
+                            text = "'show isis adjacency' PROBLEM[%s] !" % (line.strip())
+                            CGI_CLI.uprint(text, tag ='h2', color = 'red')
+                            CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+
+
+                ### def 'show alarms brief system active' #########################
+                device_cmds = { 'cisco_xr': [ 'show alarms brief system active' ] }
+
+                rcmd_outputs = RCMD.run_commands(device_cmds, \
+                    long_lasting_mode = True, \
+                    printall = printall)
+
+                if 'Description' in rcmd_outputs[0]:
+                    for line in rcmd_outputs[0].split('Description')[1].splitlines()[2:-1]:
+                        try: alarm_state = line.split()[-1]
+                        except: alarm_state = str()
+                        if 'ALARM' in isis_state.upper():
+                            text = "'show alarms brief system active' PROBLEM[%s] !" % (line.strip())
+                            CGI_CLI.uprint(text, tag ='h2', color = 'red')
+                            CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                        elif 'WARNING' in isis_state.upper():
+                            text = "'show alarms brief system active' PROBLEM[%s] !" % (line.strip())
+                            CGI_CLI.uprint(text, tag ='h2', color = 'red')
+                            CGI_CLI.JSON_RESULTS['warnings'] += '[%s] ' % (text)
+
+
+
+                ### def xr check list #####################################
+                device_cmds5 = { 'cisco_xr': [
+                        'show configuration failed startup',
+                        'clear configuration inconsistency',
+                        'show health gsp',
+                        'show install request',
+                        'show install repository',
+                ] }
+
+                rcmd_outputs5 = RCMD.run_commands(device_cmds5, \
+                    autoconfirm_mode = True, \
+                    printall = printall)
+
+
+                ### SAVE CONFIGS ##########################################
+                device_cmds55 = { 'cisco_xr': [
+                        'show running-config',
+                        'admin show running-config'
+                ] }
+
+                rcmd_outputs55 = RCMD.run_commands(device_cmds55, \
+                    ignore_syntax_error = True, \
+                    printall = printall)
+
+
+                ### def copy configs ######################################
+                date_string = datetime.datetime.now().strftime("%Y-%m%d-%H:%M")
+
+                device_cmds6 = {
+                    'cisco_xr':['copy running-config harddisk:%s-config.txt' % (str(date_string))],
+                }
+
+                rcmd_outputs6 = RCMD.run_commands(device_cmds6, \
+                    autoconfirm_mode = True, \
+                    printall = printall)
+
+                device_cmds7 = {
+                    'cisco_xr':['admin copy running-config harddisk:admin-%s-config.txt' % (str(date_string))],
+                }
+
+                rcmd_outputs7 = RCMD.run_commands(device_cmds7, \
+                    autoconfirm_mode = True, \
+                    printall = printall)
+
+
+                if not 'XRv 9000' in HW_INFO.get('hw_type',str()):
+                    ### def 'show hw-module fpd' ##########################
+                    xr_check_cmd_list = { 'cisco_xr': [ 'show hw-module fpd' ] }
+                    rcmd_outputs = RCMD.run_commands(xr_check_cmd_list, printall = printall)
+
+                    ### PARSE 'show hw-module fpd' !!! ###
+                    fpd_problems = []
+                    try:
+                        for fpd_line in rcmd_outputs[0].split('Running Programd')[1].splitlines():
+                            if fpd_line.strip() and not '-----' in fpd_line:
+                                if fpd_line.strip().split()[3] != 'CURRENT':
+                                    fpd_problems.append(fpd_line.strip())
+                    except: pass
+
+                    if len(fpd_problems) > 0:
+                        text = "FPDs which are not 'CURRENT': [%s]!" % (','.join(fpd_problems))
+                        CGI_CLI.uprint(text, tag ='h2', color = 'red')
+                        CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+
+
+                ### def PRECHECK - cards check ################################
+                if SCRIPT_ACTION == 'pre' and \
+                    not 'XRv 9000' in HW_INFO.get('hw_type',str()):
+                    ### 'show run fpd auto-upgrade' ###########################
+
+                    xr_cmds = {'cisco_xr': [ 'show run fpd auto-upgrade' ]}
+
+                    rcmd_outputs = RCMD.run_commands(xr_cmds, \
+                        autoconfirm_mode = True, \
+                        printall = printall)
+
+                    if not 'fpd auto-upgrade enable' in rcmd_outputs[0]:
+
+                        xr_cmds = {'cisco_xr': [
+                                '!',
+                                'fpd auto-upgrade enable',
+                                '!',
+                        ] }
+
+                        ### CHECK IF AURO UPGRADE IS ENABLED ###
+                        rcmd_outputs = RCMD.run_commands(xr_cmds, conf = True,\
+                                autoconfirm_mode = True, \
+                                printall = printall)
+
+                        device_cmds5a = { 'cisco_xr': [
+                                'show run fpd auto-upgrade',
+                        ] }
+
+                        rcmd_outputs5a = RCMD.run_commands(device_cmds5a, \
                             autoconfirm_mode = True, \
                             printall = printall)
 
-                        if not 'fpd auto-upgrade enable' in rcmd_outputs[0]:
+                        if not 'fpd auto-upgrade enable' in rcmd_outputs5a[0]:
+                            text = "'fpd auto-upgrade enable' not in 'show run fpd auto-upgrade'!"
+                            CGI_CLI.uprint(text, tag ='h2', color = 'red')
+                            CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
 
-                            xr_cmds = {'cisco_xr': [
-                                    '!',
-                                    'fpd auto-upgrade enable',
-                                    '!',
-                            ] }
+                    ### 'admin show run fpd auto-upgrade' #################
+                    xr_cmds = {'cisco_xr': ['admin show run fpd auto-upgrade']}
 
-                            rcmd_outputs = RCMD.run_commands(xr_cmds, conf = True,\
-                                autoconfirm_mode = True, \
-                                printall = printall)
+                    rcmd_outputs = RCMD.run_commands(xr_cmds, \
+                        autoconfirm_mode = True, \
+                        printall = printall)
 
-                            device_cmds5a = { 'cisco_xr': [
-                                    'show run fpd auto-upgrade',
-                            ] }
+                    if not 'fpd auto-upgrade enable' in rcmd_outputs[0]:
+                        xr_cmds = {'cisco_xr': [
+                                '!',
+                                'admin',
+                                '!',
+                                'fpd auto-upgrade enable',
+                                '!',
+                        ] }
 
-                            rcmd_outputs5a = RCMD.run_commands(device_cmds5a, \
-                                autoconfirm_mode = True, \
-                                printall = printall)
-
-                            if not 'fpd auto-upgrade enable' in rcmd_outputs5a[0]:
-                                text = "'fpd auto-upgrade enable' not in 'show run fpd auto-upgrade'!"
-                                CGI_CLI.uprint(text, tag ='h2', color = 'red')
-                                CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
-
-                        ### 'admin show run fpd auto-upgrade' #################
-                        xr_cmds = {'cisco_xr': ['admin show run fpd auto-upgrade']}
-
-                        rcmd_outputs = RCMD.run_commands(xr_cmds, \
+                        rcmd_outputs = RCMD.run_commands(xr_cmds, conf = True,\
                             autoconfirm_mode = True, \
                             printall = printall)
 
-                        if not 'fpd auto-upgrade enable' in rcmd_outputs[0]:
-                            xr_cmds = {'cisco_xr': [
-                                    '!',
-                                    'admin',
-                                    '!',
-                                    'fpd auto-upgrade enable',
-                                    '!',
-                            ] }
+                        ### CHECK IF AURO UPGRADE IS ENABLED ###
+                        device_cmds5b = { 'cisco_xr': [ 'admin show run fpd auto-upgrade' ] }
 
-                            rcmd_outputs = RCMD.run_commands(xr_cmds, conf = True,\
-                                autoconfirm_mode = True, \
-                                printall = printall)
+                        rcmd_outputs5b = RCMD.run_commands(device_cmds5b, \
+                            autoconfirm_mode = True, \
+                            printall = printall)
 
-                            device_cmds5b = { 'cisco_xr': [ 'admin show run fpd auto-upgrade' ] }
-
-                            rcmd_outputs5b = RCMD.run_commands(device_cmds5b, \
-                                autoconfirm_mode = True, \
-                                printall = printall)
-
-                            if not 'fpd auto-upgrade enable' in rcmd_outputs5b[0]:
-                                text = "'fpd auto-upgrade enable' not in 'admin show run fpd auto-upgrade'!"
-                                CGI_CLI.uprint(text, tag ='h2', color = 'red')
-                                CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                        if not 'fpd auto-upgrade enable' in rcmd_outputs5b[0]:
+                            text = "'fpd auto-upgrade enable' not in 'admin show run fpd auto-upgrade'!"
+                            CGI_CLI.uprint(text, tag ='h2', color = 'red')
+                            CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
 
 
             ###################################################################
-            ### def POSTCHECK COMMANDS ########################################
+            ### def POSTCHECK commands ########################################
             ###################################################################
             if SCRIPT_ACTION == 'post':
 
@@ -3381,13 +3384,10 @@ try:
 
 
 
-            ### def COMMON ACTIONS PRE&POST CHECK #############################
+            ### def PRE&POST - check actions ##################################
 
-
-            ### REPEAT INACTIVE CHECK ###
-            device_cmds3 = {
-                'cisco_xr':[ str( 'show install inactive summary' ) ],
-            }
+            ### REPEAT 'show install inactive summary' ###
+            device_cmds3 = { 'cisco_xr':[ 'show install inactive summary' ] }
 
             rcmd_outputs3 = RCMD.run_commands(device_cmds3, \
                 autoconfirm_mode = True, \
@@ -3405,9 +3405,7 @@ try:
 
 
             ### ADMIN INACTIVE SUMMARY CHECK ###
-            device_cmds3 = {
-                'cisco_xr':[ str( 'admin show install inactive summary' ) ],
-            }
+            device_cmds3 = { 'cisco_xr':[ 'admin show install inactive summary' ] }
 
             rcmd_outputs3 = RCMD.run_commands(device_cmds3, \
                 autoconfirm_mode = True, \
@@ -3424,7 +3422,7 @@ try:
             JSON_DATA['admin_inactive_packages'] = copy.deepcopy(inactive_packages)
 
 
-            ### CHECK IF PATCH SMU FILES ARE IN ACTIVE PACKAGES #######
+            ### def check if patch smu files are in active packages #######
             if target_patch_path:
                 check_files = []
                 try:
@@ -3452,7 +3450,7 @@ try:
                                 CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
 
 
-            ### CHECK IF TAR FILE IS IN ACTIVE PACKAGES ###############
+            ### def check if tar file is in active packages ###############
             if target_sw_file:
                 check_files = []
                 try:
