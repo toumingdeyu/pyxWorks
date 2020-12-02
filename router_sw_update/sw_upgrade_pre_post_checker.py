@@ -3253,7 +3253,6 @@ try:
                 device_cmds5 = { 'cisco_xr': [
                         'show configuration failed startup',
                         'clear configuration inconsistency',
-                        'show install request',
                         'show install repository',
                 ] }
 
