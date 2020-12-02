@@ -3172,10 +3172,10 @@ try:
                             CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
 
 
-                ### def 'show platform' #########################
+                ### def 'show version' #########################
                 device_cmds = { 'cisco_xr': [ 'show version' ] }
 
-                rcmd_outputs = RCMD.run_commands(device_cmds_p, \
+                rcmd_outputs = RCMD.run_commands(device_cmds, \
                     long_lasting_mode = True, \
                     printall = printall)
 
