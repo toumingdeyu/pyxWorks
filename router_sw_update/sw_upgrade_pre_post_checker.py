@@ -2849,7 +2849,7 @@ try:
 
             HW_INFO = {}
             ###################################################################
-            ### def PRECHECK COMMANDS #########################################
+            ### def PRECHECK START ############################################
             ###################################################################
             if SCRIPT_ACTION == 'pre' or SCRIPT_ACTION == 'post':
                 HW_INFO = detect_hw(device)
@@ -3116,10 +3116,43 @@ try:
                              active_packages.append(rcmd_outputs4[0].split('Active Packages:')[1].splitlines()[i + 1].split()[0].strip())
                         JSON_DATA['admin_active_packages'] = active_packages
 
+
+                    ### def 'install verify packages' #########################
+                    device_cmds_inst = { 'cisco_xr': [ 'install verify packages synchronous' ] }
+
+                    rcmd_outputs_inst = RCMD.run_commands(device_cmds_inst, \
+                        long_lasting_mode = True, \
+                        printall = printall)
+
+                    if 'Install operation' in rcmd_outputs_inst[0] and 'finished successfully' in rcmd_outputs_inst[0]: pass
+                    #elif 'Install operation' in rcmd_outputs_inst[0] and 'completed verification successfully' in rcmd_outputs_inst[0]: pass
+                    else:
+                        text = "'install verify packages' PROBLEM[%s] !" % (rcmd_outputs_inst[0])
+                        CGI_CLI.uprint(text, tag ='h2', color = 'red')
+                        CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+
+
+                    ### def 'show platform' #########################
+                    device_cmds_p = { 'cisco_xr': [ 'show platform' ] }
+
+                    rcmd_outputs_p = RCMD.run_commands(device_cmds_p, \
+                        long_lasting_mode = True, \
+                        printall = printall)
+
+                    if 'Config state' in rcmd_outputs_p[0]:
+                        for line in rcmd_outputs_p[0].split('Config state')[1].splitlines()[2:-1]:
+                            try: platform_state = line.split()[2]
+                            except: platform_state = str()
+                            if 'UP' in platform_state or 'OPERATIONAL' in platform_state \
+                                or 'IOS XR RUN' in line: pass
+                            else:
+                                text = "'show platform' PROBLEM[%s] !" % (line)
+                                CGI_CLI.uprint(text, tag ='h2', color = 'red')
+                                CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+
+
                     ### def XR CHECK LIST #####################################
                     device_cmds5 = { 'cisco_xr': [
-                            'install verify packages',
-                            'show platform',
                             'show configuration failed startup',
                             'clear configuration inconsistency',
                             'show health gsp',
@@ -3130,12 +3163,6 @@ try:
                     rcmd_outputs5 = RCMD.run_commands(device_cmds5, \
                         autoconfirm_mode = True, \
                         printall = printall)
-
-                    ### CHECK INSTALL LOG FOR LAST ERRORS #####################
-                    if 'ERROR!' in rcmd_outputs5[0].upper():
-                        text = '"ERROR IN LAST 10lines of INSTALL LOG: ERROR!' + rcmd_outputs5[0].split('ERROR!')[1]
-                        CGI_CLI.uprint(text, color = 'orange')
-                        CGI_CLI.JSON_RESULTS['warnings'] = '[%s] ' % (text)
 
 
                     ### SAVE CONFIGS ##########################################
@@ -3384,6 +3411,7 @@ try:
                                 CGI_CLI.uprint(text, color = 'red')
                                 CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
 
+
             ### CHECK IF TAR FILE IS IN ACTIVE PACKAGES ###############
             if target_sw_file:
                 check_files = []
@@ -3405,6 +3433,7 @@ try:
                     CGI_CLI.JSON_RESULTS['warnings'] += '[%s] ' % (text)
 
                 if SCRIPT_ACTION == 'post':
+                    ### FIND VERSION 3..4 DIGITS NUMBER DOT OR DOTLESS ########
                     try: version = re.findall(r'[0-9]\.[0-9]\.[0-9]\.[0-9]', target_sw_file)[0]
                     except:
                         try: version = re.findall(r'[0-9]\.[0-9]\.[0-9]', target_sw_file)[0]
