@@ -3199,17 +3199,28 @@ try:
 
                 if 'Summary: gsp is healthy.' in rcmd_outputs[0]: pass
                 else:
-                    text = "'show health gsp' PROBLEM[%s] !" % (rcmd_outputs[0])
+                    text = "'show health gsp' PROBLEM[%s] !" % (rcmd_outputs[0].strip())
                     CGI_CLI.uprint(text, tag ='h2', color = 'red')
                     CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
 
+
+                ### def 'show install request' ################################
+                device_cmds = { 'cisco_xr': [ 'show install request' ] }
+
+                rcmd_outputs = RCMD.run_commands(device_cmds, \
+                    printall = printall)
+
+                if 'No install operation in progress' in rcmd_outputs[0]: pass
+                else:
+                    text = "'show install request' PROBLEM[%s] !" % (rcmd_outputs[0].strip())
+                    CGI_CLI.uprint(text, tag ='h2', color = 'red')
+                    CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
 
 
                 ### def xr check list #########################################
                 device_cmds5 = { 'cisco_xr': [
                         'show configuration failed startup',
                         'clear configuration inconsistency',
-                        'show install request',
                         'show install repository',
                 ] }
 
