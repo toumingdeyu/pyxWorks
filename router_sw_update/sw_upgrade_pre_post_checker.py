@@ -3151,6 +3151,25 @@ try:
                                 CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
 
 
+                    ### def 'show isis adjacency' #########################
+                    device_cmds = { 'cisco_xr': [ 'show isis adjacency' ] }
+
+                    rcmd_outputs = RCMD.run_commands(device_cmds, \
+                        long_lasting_mode = True, \
+                        printall = printall)
+
+                    if 'BFD  BFD' in rcmd_outputs[0]:
+                        for line in rcmd_outputs[0].split('BFD  BFD')[1].splitlines()[0:-1]:
+                            try: isis_state = line.split()[3]
+                            except: isis_state = str()
+                            if 'UP' in isis_state: pass
+                            elif line.strip():
+                                text = "'show isis adjacency' PROBLEM[%s] !" % (line.strip())
+                                CGI_CLI.uprint(text, tag ='h2', color = 'red')
+                                CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+
+
+
                     ### def XR CHECK LIST #####################################
                     device_cmds5 = { 'cisco_xr': [
                             'show configuration failed startup',
