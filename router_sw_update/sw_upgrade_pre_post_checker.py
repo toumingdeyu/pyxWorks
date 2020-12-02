@@ -3162,8 +3162,8 @@ try:
                         for line in rcmd_outputs[0].split('BFD  BFD')[1].splitlines()[0:-1]:
                             try: isis_state = line.split()[3]
                             except: isis_state = str()
-                            if 'UP' in isis_state: pass
-                            elif line.strip():
+                            if 'UP' in isis_state.upper(): pass
+                            elif line.strip() and not 'Total adjacency count:' in line:
                                 text = "'show isis adjacency' PROBLEM[%s] !" % (line.strip())
                                 CGI_CLI.uprint(text, tag ='h2', color = 'red')
                                 CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
