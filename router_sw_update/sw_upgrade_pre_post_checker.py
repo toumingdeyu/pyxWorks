@@ -3187,16 +3187,28 @@ try:
                             CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
                         elif 'WARNING' in isis_state.upper():
                             text = "'show alarms brief system active' PROBLEM[%s] !" % (line.strip())
-                            CGI_CLI.uprint(text, tag ='h2', color = 'red')
+                            CGI_CLI.uprint(text, tag ='h2', color = 'orange')
                             CGI_CLI.JSON_RESULTS['warnings'] += '[%s] ' % (text)
 
 
+                ### def 'show health gsp' #####################################
+                device_cmds = { 'cisco_xr': [ 'show health gsp' ] }
 
-                ### def xr check list #####################################
+                rcmd_outputs = RCMD.run_commands(device_cmds, \
+                    printall = printall)
+
+                if 'Summary: gsp is healthy.' in rcmd_outputs[0]: pass
+                else:
+                    text = "'show health gsp' PROBLEM[%s] !" % (rcmd_outputs[0])
+                    CGI_CLI.uprint(text, tag ='h2', color = 'red')
+                    CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+
+
+
+                ### def xr check list #########################################
                 device_cmds5 = { 'cisco_xr': [
                         'show configuration failed startup',
                         'clear configuration inconsistency',
-                        'show health gsp',
                         'show install request',
                         'show install repository',
                 ] }
@@ -3206,7 +3218,7 @@ try:
                     printall = printall)
 
 
-                ### SAVE CONFIGS ##########################################
+                ### def save configs ##########################################
                 device_cmds55 = { 'cisco_xr': [
                         'show running-config',
                         'admin show running-config'
