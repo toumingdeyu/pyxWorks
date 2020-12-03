@@ -2373,7 +2373,7 @@ def find_last_logfile(prefix = None, USERNAME = None, suffix = None, directory =
         text = " ... Can't find any %s session log file!" % (action_text if action_text else str())
         CGI_CLI.uprint(text, \
             color = 'magenta')
-        CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+        CGI_CLI.add_result(text, 'error')
     else:
         most_recent_shut = list_shut_files[0]
         for item in list_shut_files:
@@ -2554,7 +2554,7 @@ def check_data_content(where = None, what_yes_in = None, what_not_in = None, \
         if ignore_data_existence: pass
         else:
             text = "DATA '%s' DOES NOT EXISTS!" % (where)
-            CGI_CLI.JSON_RESULTS['warnings'] += '[%s] ' % (text)
+            CGI_CLI.add_result(text, 'warning')
             CGI_CLI.logtofile(text + '\n', ommit_timestamp = True)
         return None
 
@@ -2566,10 +2566,10 @@ def check_data_content(where = None, what_yes_in = None, what_not_in = None, \
             else:
                 if warning:
                     text = "CHECK['%s'(%s) < '%.2f'] = WARNING" % (where, str(where_value), float(lower_than))
-                    CGI_CLI.JSON_RESULTS['warnings'] += '[%s] ' % (text)
+                    CGI_CLI.add_result(text, 'warning')
                 else:
                     text = "CHECK['%s'(%s) < '%.2f'] = NOT OK" % (where, str(where_value), float(lower_than))
-                    CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                    CGI_CLI.add_result(text, 'error')
         except: text = "CHECK['%s'(%s) < '%s'] = NaN" % (where, str(where_value), str(lower_than))
         CGI_CLI.logtofile(text + '\n', ommit_timestamp = True)
 
@@ -2581,10 +2581,10 @@ def check_data_content(where = None, what_yes_in = None, what_not_in = None, \
             else:
                 if warning:
                     text = "CHECK['%s'(%s) > '%.2f'] = WARNING" % (where, str(where_value), float(higher_than))
-                    CGI_CLI.JSON_RESULTS['warnings'] += '[%s] ' % (text)
+                    CGI_CLI.add_result(text, 'warning')
                 else:
                     text = "CHECK['%s'(%s) > '%.2f'] = NOT OK" % (where, str(where_value), float(higher_than))
-                    CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                    CGI_CLI.add_result(text, 'error')
         except: text = "CHECK['%s'(%s) > '%s'] = NaN\n" % (where, str(where_value), str(higher_than))
         CGI_CLI.logtofile(text + '\n', ommit_timestamp = True)
 
@@ -2596,10 +2596,10 @@ def check_data_content(where = None, what_yes_in = None, what_not_in = None, \
             else:
                 if warning:
                     text = "CHECK['%s'(%s) == '%.2f'] = WARNING" % (where, str(where_value), float(equals_to))
-                    CGI_CLI.JSON_RESULTS['warnings'] += '[%s] ' % (text)
+                    CGI_CLI.add_result(text, 'warning')
                 else:
                     text = "CHECK['%s'(%s) == '%.2f'] = NOT OK" % (where, str(where_value), float(equals_to))
-                    CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                    CGI_CLI.add_result(text, 'error')
         except: text = "CHECK['%s'(%s) == '%s'] = NaN\n" % (where, str(where_value), str(equals_to))
         CGI_CLI.logtofile(text + '\n', ommit_timestamp = True)
 
@@ -2609,10 +2609,10 @@ def check_data_content(where = None, what_yes_in = None, what_not_in = None, \
         else:
             if warning:
                 text = "CHECK['%s' == '%s'(%s)] = WARNING" % (exact_value_yes, where, str(where_value))
-                CGI_CLI.JSON_RESULTS['warnings'] += '[%s] ' % (text)
+                CGI_CLI.add_result(text, 'warning')
             else:
                 text = "CHECK['%s' == '%s'(%s)] = NOT OK" % (exact_value_yes, where, str(where_value))
-                CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                CGI_CLI.add_result(text, 'error')
         CGI_CLI.logtofile(text + '\n', ommit_timestamp = True)
 
     if what_yes_in:
@@ -2622,20 +2622,20 @@ def check_data_content(where = None, what_yes_in = None, what_not_in = None, \
             else:
                 if warning:
                     text = "CHECK['%s' in '%s'(%s)] = WARNING" % (what_yes_in, where, str(where_value))
-                    CGI_CLI.JSON_RESULTS['warnings'] += '[%s] ' % (text)
+                    CGI_CLI.add_result(text, 'warning')
                 else:
                     text = "CHECK['%s' in '%s'(%s)] = NOT OK" % (what_yes_in, where, str(where_value))
-                    CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                    CGI_CLI.add_result(text, 'error')
         else:
             if str(what_yes_in).upper() in str(where_value).upper():
                 text = "CHECK['%s' in '%s'(%s)] = OK" % (what_yes_in, where, str(where_value))
             else:
                 if warning:
                     text = "CHECK['%s' in '%s'(%s)] = WARNING" % (what_yes_in, where, str(where_value))
-                    CGI_CLI.JSON_RESULTS['warnings'] += '[%s] ' % (text)
+                    CGI_CLI.add_result(text, 'warning')
                 else:
                     text = "CHECK['%s' in '%s'(%s)] = NOT OK" % (what_yes_in, where, str(where_value))
-                    CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                    CGI_CLI.add_result(text, 'error')
         CGI_CLI.logtofile(text + '\n', ommit_timestamp = True)
 
     if what_not_in:
@@ -2648,19 +2648,19 @@ def check_data_content(where = None, what_yes_in = None, what_not_in = None, \
             if local_check_interface_result_ok == len(what_not_in):
                 if warning:
                     text = "CHECK[" + ' AND '.join(Alarm_text) + '] = WARNING'
-                    CGI_CLI.JSON_RESULTS['warnings'] += '[%s] ' % (text)
+                    CGI_CLI.add_result(text, 'warning')
                 else:
                     text = "CHECK[" + ' AND '.join(Alarm_text) + '] = NOT OK'
-                    CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                    CGI_CLI.add_result(text, 'error')
             else: text = "CHECK[ ['%s'] not in '%s'] = OK" % (','.join(what_not_in), where)
         else:
             if str(what_not_in).upper() in str(where_value).upper():
                 if warning:
                     text = "CHECK['%s' not in '%s'(%s)] = WARNING" % (str(what_not_in), where, str(where_value))
-                    CGI_CLI.JSON_RESULTS['warnings'] += '[%s] ' % (text)
+                    CGI_CLI.add_result(text, 'warning')
                 else:
                     text = "CHECK['%s' not in '%s'(%s)] = NOT OK" % (str(what_not_in), where, str(where_value))
-                    CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                    CGI_CLI.add_result(text, 'error')
             else: text = "CHECK['%s' not in '%s'(%s)] = OK" % (str(what_not_in), where, str(where_value))
         CGI_CLI.logtofile(text + '\n', ommit_timestamp = True)
 
@@ -2832,19 +2832,19 @@ try:
     if len(device_list) == 0:
         text = 'Device(s) NOT INSERTED!'
         CGI_CLI.uprint(text, tag = 'h2', color = 'red')
-        CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+        CGI_CLI.add_result(text, 'error')
         exit_due_to_error = True
 
     if not USERNAME:
         text = 'Username NOT INSERTED!'
         CGI_CLI.uprint(text, tag = 'h2', color = 'red')
-        CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+        CGI_CLI.add_result(text, 'error')
         exit_due_to_error = True
 
     if not PASSWORD:
         text = 'Password NOT INSERTED!'
         CGI_CLI.uprint(text, tag = 'h2', color = 'red')
-        CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+        CGI_CLI.add_result(text, 'error')
         exit_due_to_error = True
 
     if SCRIPT_ACTION == 'post':
@@ -2871,7 +2871,7 @@ try:
                 text = 'PROBLEM TO CONNECT TO %s DEVICE.' % (device)
                 CGI_CLI.uprint(text, \
                     color = 'red')
-                CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                CGI_CLI.add_result(text, 'error')
                 RCMD.disconnect()
                 continue
 
@@ -3046,20 +3046,20 @@ try:
             if RCMD.router_type == 'cisco_ios':
                 text = 'NOT IMPLEMENTED YET !'
                 CGI_CLI.uprint(text, tag ='h1', color = 'red')
-                CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                CGI_CLI.add_result(text, 'error')
 
 
             ### JUNOS ###################################
             elif RCMD.router_type == 'juniper':
                 text = 'NOT IMPLEMENTED YET !'
                 CGI_CLI.uprint(text, tag ='h1', color = 'red')
-                CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                CGI_CLI.add_result(text, 'error')
 
             ### HUAWEI ##################################
             elif RCMD.router_type == 'huawei':
                 text = 'NOT IMPLEMENTED YET !'
                 CGI_CLI.uprint(text, tag ='h1', color = 'red')
-                CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                CGI_CLI.add_result(text, 'error')
 
             ### CISCO_XR ################################
             elif RCMD.router_type == 'cisco_xr':
@@ -3163,7 +3163,7 @@ try:
                 else:
                     text = "'install verify packages' PROBLEM[%s] !" % (rcmd_outputs_inst[0])
                     CGI_CLI.uprint(text, tag ='h2', color = 'red')
-                    CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                    CGI_CLI.add_result(text, 'error')
 
 
                 ### def 'show int description | exclude "admin-down"' #########
@@ -3183,7 +3183,7 @@ try:
                         elif line.strip():
                             text = "'show int description' PROBLEM[%s] !" % (line.strip())
                             CGI_CLI.uprint(text, tag ='h2', color = 'red')
-                            CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                            CGI_CLI.add_result(text, 'error')
 
 
                 ### def 'show platform' #########################
@@ -3202,7 +3202,7 @@ try:
                         else:
                             text = "'show platform' PROBLEM[%s] !" % (line)
                             CGI_CLI.uprint(text, tag ='h2', color = 'red')
-                            CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                            CGI_CLI.add_result(text, 'error')
 
 
                 ### def 'show version' #########################
@@ -3232,7 +3232,7 @@ try:
                         elif line.strip() and not 'Total adjacency count:' in line:
                             text = "'show isis adjacency' PROBLEM[%s] !" % (line.strip())
                             CGI_CLI.uprint(text, tag ='h2', color = 'red')
-                            CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                            CGI_CLI.add_result(text, 'error')
 
 
                 ### def 'show alarms brief system active' #########################
@@ -3249,11 +3249,11 @@ try:
                         if 'ALARM' in isis_state.upper():
                             text = "'show alarms brief system active' PROBLEM[%s] !" % (line.strip())
                             CGI_CLI.uprint(text, tag ='h2', color = 'red')
-                            CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                            CGI_CLI.add_result(text, 'error')
                         elif 'WARNING' in isis_state.upper():
                             text = "'show alarms brief system active' PROBLEM[%s] !" % (line.strip())
                             CGI_CLI.uprint(text, tag ='h2', color = 'orange')
-                            CGI_CLI.JSON_RESULTS['warnings'] += '[%s] ' % (text)
+                            CGI_CLI.add_result(text, 'warning')
 
 
                 ### def 'show health gsp' #####################################
@@ -3266,7 +3266,7 @@ try:
                 else:
                     text = "'show health gsp' PROBLEM[%s] !" % (rcmd_outputs[0].strip())
                     CGI_CLI.uprint(text, tag ='h2', color = 'red')
-                    CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                    CGI_CLI.add_result(text, 'error')
 
 
                 ### def 'show install request' ################################
@@ -3279,7 +3279,7 @@ try:
                 else:
                     text = "'show install request' PROBLEM[%s] !" % (rcmd_outputs[0].strip())
                     CGI_CLI.uprint(text, tag ='h2', color = 'red')
-                    CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                    CGI_CLI.add_result(text, 'error')
 
 
                 ### def xr check list #########################################
@@ -3342,7 +3342,7 @@ try:
                     if len(fpd_problems) > 0:
                         text = "FPDs which are not 'CURRENT': [%s]!" % (','.join(fpd_problems))
                         CGI_CLI.uprint(text, tag ='h2', color = 'red')
-                        CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                        CGI_CLI.add_result(text, 'error')
 
 
                 ### def PRECHECK - cards check ################################
@@ -3380,7 +3380,7 @@ try:
                         if not 'fpd auto-upgrade enable' in rcmd_outputs5a[0]:
                             text = "'fpd auto-upgrade enable' not in 'show run fpd auto-upgrade'!"
                             CGI_CLI.uprint(text, tag ='h2', color = 'red')
-                            CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                            CGI_CLI.add_result(text, 'error')
 
                     ### 'admin show run fpd auto-upgrade' #################
                     xr_cmds = {'cisco_xr': ['admin show run fpd auto-upgrade']}
@@ -3412,7 +3412,7 @@ try:
                         if not 'fpd auto-upgrade enable' in rcmd_outputs5b[0]:
                             text = "'fpd auto-upgrade enable' not in 'admin show run fpd auto-upgrade'!"
                             CGI_CLI.uprint(text, tag ='h2', color = 'red')
-                            CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                            CGI_CLI.add_result(text, 'error')
 
 
             ###################################################################
@@ -3523,7 +3523,7 @@ try:
                 if len(check_files) == 0:
                     text = "No SMU files found in patch path %s !" % (target_patch_path)
                     CGI_CLI.uprint(text, color = 'red')
-                    CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                    CGI_CLI.add_result(text, 'error')
 
                 if SCRIPT_ACTION == 'post':
                     for check_file in check_files:
@@ -3535,7 +3535,7 @@ try:
                             else:
                                 text = "SMU file %s is not found in (admin) active packages!" % (check_file)
                                 CGI_CLI.uprint(text, color = 'red')
-                                CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                                CGI_CLI.add_result(text, 'error')
 
 
             ### def check if tar file is in active packages ###############
@@ -3551,12 +3551,12 @@ try:
                 if len(check_files) == 0:
                     text = "Tar file %s not found !" % (target_sw_file)
                     CGI_CLI.uprint(text, color = 'red')
-                    CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                    CGI_CLI.add_result(text, 'error')
 
                 if len(check_files) > 1:
                     text = "Multiple tar files %s found in the same directory !" % (target_sw_file)
                     CGI_CLI.uprint(text, color = 'orange')
-                    CGI_CLI.JSON_RESULTS['warnings'] += '[%s] ' % (text)
+                    CGI_CLI.add_result(text, 'warning')
 
                 if SCRIPT_ACTION == 'post':
                     ### FIND VERSION 3..4 DIGITS NUMBER DOT OR DOTLESS ########
@@ -3582,7 +3582,7 @@ try:
                         else:
                             text = "Tar file %s is not found in (admin) active packages!" % (check_file)
                             CGI_CLI.uprint(text, color = 'red')
-                            CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                            CGI_CLI.add_result(text, 'error')
 
                         ### def installed version check #######################
                         if JSON_DATA['version'] == version \
@@ -3591,7 +3591,7 @@ try:
                         else:
                             text = "'show version' PROBLEM[%s != %s] " % (JSON_DATA['version'], version)
                             CGI_CLI.uprint(text, color = 'red')
-                            CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                            CGI_CLI.add_result(text, 'error')
 
 
 
