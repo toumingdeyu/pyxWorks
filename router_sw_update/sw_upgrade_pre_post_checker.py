@@ -2682,6 +2682,39 @@ def check_data_content(where = None, what_yes_in = None, what_not_in = None, \
 
 
 ##############################################################################
+
+def read_section_from_logfile(section = None, logfile = None):
+    #@2020-12-03_12:33:47[47.95s]
+    #REMOTE_COMMAND: show running-config
+    #@2020-12-03_12:33:48[48.65s]
+    #REMOTE_COMMAND: admin show running-config
+    """text and html logs are supported, assumet logging of timestamps"""
+    text, whole_file = str(), str()
+
+    if section and logfile:
+        with open(logfile, 'r') as file:
+            whole_file = file.read()
+
+    if whole_file and section:
+        try: text = whole_file.split(section)[1].split('@20')[0].strip().\
+            replace('<p>','').replace('<pre>','').replace('</p>','').\
+            replace('</pre>','').replace('<br/>','').replace('<br>','')
+        except: pass
+
+        ### delete debug html tags ###
+        for i in range(len(text.split('<debug')) - 1):
+            if '<debug' in text:
+                try: r_text = '<debug' + text.split('<debug')[1].split('</debug>')[0] + '</debug>'
+                except: r_text = str()
+                if r_text: text = text.replace(r_text,'')
+    return text
+
+
+### read_section_from_logfile('REMOTE_COMMAND: admin show running-config', 'a.htmlog')
+
+
+
+##############################################################################
 #
 # def BEGIN MAIN
 #
