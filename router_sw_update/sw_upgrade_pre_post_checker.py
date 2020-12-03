@@ -2688,7 +2688,9 @@ def read_section_from_logfile(section = None, logfile = None):
     #REMOTE_COMMAND: show running-config
     #@2020-12-03_12:33:48[48.65s]
     #REMOTE_COMMAND: admin show running-config
-    """text and html logs are supported, assumet logging of timestamps"""
+    ### read_section_from_logfile('REMOTE_COMMAND: admin show running-config', 'a.htmlog')
+
+    """text and html logs are supported, logging of timestamps needed"""
     text, whole_file = str(), str()
 
     if section and logfile:
@@ -2709,9 +2711,7 @@ def read_section_from_logfile(section = None, logfile = None):
                 if r_text: text = text.replace(r_text,'')
     return text
 
-
-### read_section_from_logfile('REMOTE_COMMAND: admin show running-config', 'a.htmlog')
-
+##############################################################################
 
 
 ##############################################################################
@@ -3349,7 +3349,7 @@ try:
                         'admin show running-config'
                 ] }
 
-                rcmd_outputs55 = RCMD.run_commands(device_cmds55, \
+                rcmd_outputs_configs = RCMD.run_commands(device_cmds55, \
                     ignore_syntax_error = True, \
                     printall = printall)
 
@@ -3468,54 +3468,67 @@ try:
             ### def POSTCHECK commands ########################################
             ###################################################################
             if SCRIPT_ACTION == 'post':
-
                 if RCMD.router_type == 'cisco_xr':
-                    ### FIND LAST PRECHECK CONFIG FILE !!! ########################
-                    admin_config_files, config_files = [], []
-                    device_cmds = {
-                        'cisco_xr':['dir harddisk: | include config.txt']
-                    }
 
-                    device_cmds_result = RCMD.run_commands(device_cmds, \
-                        autoconfirm_mode = True, \
-                        printall = printall)
-                    try:
-                        for file_line in device_cmds_result[0].splitlines()[:-1]:
-                            if file_line.strip() and '-config.txt' in file_line and ':' in file_line.split()[-1]:
-                                try:
-                                    if 'admin' in file_line.split()[-1]:
-                                        admin_config_files.append(file_line.split()[-1])
-                                    else: config_files.append(file_line.split()[-1])
-                                except: pass
-                    except: pass
-                    if len(config_files) > 1: config_files.sort()
-                    if len(admin_config_files) > 1: admin_config_files.sort()
+                    ### def POSTCHECK compare configs #########################
+                    postcheck_config = rcmd_outputs_configs[0]
+                    postcheck_admin_config = rcmd_outputs_configs[1]
 
-                    last_config_file, last_admin_config_file = str(), str()
-                    try:
-                        last_config_file = config_files[-1]
-                        last_admin_config_file = admin_config_files[-1]
-                    except: pass
+                    precheck_config = read_section_from_logfile('REMOTE_COMMAND: show running-config', precheck_file)
+                    precheck_admin_config = read_section_from_logfile('REMOTE_COMMAND: admin show running-config', precheck_file)
 
 
-                    CGI_CLI.uprint('\nCONFIG FILE: ' + last_config_file + '\nCHOSEN FROM: ' + str(config_files), tag= 'debug', no_printall = not CGI_CLI.printall)
-                    CGI_CLI.uprint('\nADMIN CONFIG FILE: ' + last_admin_config_file + '\nCHOSEN FROM: ' + str(admin_config_files), tag= 'debug', no_printall = not CGI_CLI.printall)
 
-                    if last_config_file:
-                        cp_device_cmds = {
-                            'cisco_xr':['utility head count 1000000 file harddisk:/%s' % (last_config_file)],
-                        }
 
-                        device_cmds_result = RCMD.run_commands(cp_device_cmds, \
-                            autoconfirm_mode = True, ignore_syntax_error = True, printall = printall)
 
-                    if last_admin_config_file:
-                        cp2_device_cmds = {
-                            'cisco_xr':['admin utility head count 1000000 file harddisk:/%s' % (last_admin_config_file)],
-                        }
 
-                        device_cmds_result = RCMD.run_commands(cp2_device_cmds, \
-                            autoconfirm_mode = True, ignore_syntax_error = True, printall = printall)
+                    # ### FIND LAST PRECHECK???? CONFIG FILE !!! ################
+                    # admin_config_files, config_files = [], []
+                    # device_cmds = {
+                        # 'cisco_xr':['dir harddisk: | include config.txt']
+                    # }
+
+                    # device_cmds_result = RCMD.run_commands(device_cmds, \
+                        # autoconfirm_mode = True, \
+                        # printall = printall)
+                    # try:
+                        # for file_line in device_cmds_result[0].splitlines()[:-1]:
+                            # if file_line.strip() and '-config.txt' in file_line and ':' in file_line.split()[-1]:
+                                # try:
+                                    # if 'admin' in file_line.split()[-1]:
+                                        # admin_config_files.append(file_line.split()[-1])
+                                    # else: config_files.append(file_line.split()[-1])
+                                # except: pass
+                    # except: pass
+                    # if len(config_files) > 1: config_files.sort()
+                    # if len(admin_config_files) > 1: admin_config_files.sort()
+
+                    # last_config_file, last_admin_config_file = str(), str()
+                    # try:
+                        # last_config_file = config_files[-1]
+                        # last_admin_config_file = admin_config_files[-1]
+                    # except: pass
+
+                    # CGI_CLI.uprint('\nCONFIG FILE: ' + last_config_file + '\nCHOSEN FROM: ' + str(config_files), tag= 'debug', no_printall = not CGI_CLI.printall)
+                    # CGI_CLI.uprint('\nADMIN CONFIG FILE: ' + last_admin_config_file + '\nCHOSEN FROM: ' + str(admin_config_files), tag= 'debug', no_printall = not CGI_CLI.printall)
+
+
+                    # ### def POSTCHECK read config files - hack ################
+                    # if last_config_file:
+                        # cp_device_cmds = {
+                            # 'cisco_xr':['utility head count 1000000 file harddisk:/%s' % (last_config_file)],
+                        # }
+
+                        # device_cmds_result = RCMD.run_commands(cp_device_cmds, \
+                            # autoconfirm_mode = True, ignore_syntax_error = True, printall = printall)
+
+                    # if last_admin_config_file:
+                        # cp2_device_cmds = {
+                            # 'cisco_xr':['admin utility head count 1000000 file harddisk:/%s' % (last_admin_config_file)],
+                        # }
+
+                        # device_cmds_result = RCMD.run_commands(cp2_device_cmds, \
+                            # autoconfirm_mode = True, ignore_syntax_error = True, printall = printall)
 
 
 
