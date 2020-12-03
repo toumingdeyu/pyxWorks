@@ -539,7 +539,13 @@ class CGI_CLI(object):
                                       ommit_timestamp = True)
 
     @staticmethod
-    def add_result(text = None, type = None):
+    def add_result(text = None, type = None, printnow = None):
+        if printnow:
+            color = None
+            if type == 'fatal': color = 'magenta'
+            elif type == 'error': color = 'red'
+            elif type == 'warning': color = 'orange'
+            CGI_CLI.uprint(text , tag = 'h3', color = color)
         if text: CGI_CLI.result_list.append([text, type])
 
     @staticmethod
@@ -1305,7 +1311,7 @@ class RCMD(object):
 
                 if RCMD.ssh_connection:
                     RCMD.router_type, RCMD.router_prompt = RCMD.ssh_raw_detect_router_type(debug = None)
-                    if not RCMD.router_type: 
+                    if not RCMD.router_type:
                         text = 'DEVICE_TYPE NOT DETECTED!'
                         CGI_CLI.uprint(text, color = 'magenta')
                         CGI_CLI.add_result(text, 'fatal')
@@ -3544,8 +3550,7 @@ try:
                                 or check_part in JSON_DATA['admin_active_packages']: pass
                             else:
                                 text = "SMU file %s is not found in (admin) active packages!" % (check_file)
-                                CGI_CLI.uprint(text, color = 'red')
-                                CGI_CLI.add_result(text, 'error')
+                                CGI_CLI.add_result(text, 'error', True)
 
 
             ### def check if tar file is in active packages ###############
@@ -3560,13 +3565,11 @@ try:
 
                 if len(check_files) == 0:
                     text = "Tar file %s not found !" % (target_sw_file)
-                    CGI_CLI.uprint(text, color = 'red')
-                    CGI_CLI.add_result(text, 'error')
+                    CGI_CLI.add_result(text, 'error', True)
 
                 if len(check_files) > 1:
                     text = "Multiple tar files %s found in the same directory !" % (target_sw_file)
-                    CGI_CLI.uprint(text, color = 'orange')
-                    CGI_CLI.add_result(text, 'warning')
+                    CGI_CLI.add_result(text, 'warning', True)
 
                 if SCRIPT_ACTION == 'post':
                     ### FIND VERSION 3..4 DIGITS NUMBER DOT OR DOTLESS ########
@@ -3591,8 +3594,7 @@ try:
                             or force_dotted_version in JSON_DATA['admin_active_packages']): pass
                         else:
                             text = "Tar file %s is not found in (admin) active packages!" % (check_file)
-                            CGI_CLI.uprint(text, color = 'red')
-                            CGI_CLI.add_result(text, 'error')
+                            CGI_CLI.add_result(text, 'error', True)
 
                         ### def installed version check #######################
                         if JSON_DATA['version'] == version \
@@ -3600,8 +3602,7 @@ try:
                             or force_dotted_version and JSON_DATA['version'] == force_dotted_version: pass
                         else:
                             text = "'show version' PROBLEM[%s != %s] " % (JSON_DATA['version'], version)
-                            CGI_CLI.uprint(text, color = 'red')
-                            CGI_CLI.add_result(text, 'error')
+                            CGI_CLI.add_result(text, 'error', True)
 
 
 
@@ -3613,8 +3614,7 @@ try:
 
             if 'ERROR!' in rcmd_outputs_log[0].upper():
                 text = '"ERROR IN LAST 10lines of INSTALL LOG: ERROR!' + rcmd_outputs_log[0].split('ERROR!')[1]
-                CGI_CLI.uprint(text, color = 'orange')
-                CGI_CLI.add_result(text, 'warning')
+                CGI_CLI.add_result(text, 'error', True)
 
 
 
@@ -3635,6 +3635,5 @@ try:
 except SystemExit: pass
 except:
     text = traceback.format_exc()
-    #CGI_CLI.uprint(text, tag = 'h3', color = 'magenta')
     CGI_CLI.add_result(text, 'fatal')
 
