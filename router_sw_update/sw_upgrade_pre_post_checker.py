@@ -411,7 +411,8 @@ class CGI_CLI(object):
                                 with open(use_filename, 'wb') as file:
                                     file.write(CGI_CLI.data.get('file[%s]'%(filename)))
                                     CGI_CLI.uprint('The file "' + use_filename + '" was uploaded.', printall = True)
-                            except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']', color = 'magenta', printall = True)
+                            except Exception as e:
+                                CGI_CLI.add_result('PROBLEM[' + str(e) + ']', 'fatal')
 
     @staticmethod
     def set_logfile(logfilename = None):
@@ -1304,13 +1305,17 @@ class RCMD(object):
 
                 if RCMD.ssh_connection:
                     RCMD.router_type, RCMD.router_prompt = RCMD.ssh_raw_detect_router_type(debug = None)
-                    if not RCMD.router_type: CGI_CLI.uprint('DEVICE_TYPE NOT DETECTED!', color = 'red')
+                    if not RCMD.router_type: 
+                        text = 'DEVICE_TYPE NOT DETECTED!'
+                        CGI_CLI.uprint(text, color = 'magenta')
+                        CGI_CLI.add_result(text, 'fatal')
                     elif RCMD.router_type in RCMD.KNOWN_OS_TYPES and not RCMD.silent_mode:
                         CGI_CLI.uprint('DETECTED DEVICE_TYPE: %s' % (RCMD.router_type), \
                             color = 'gray', no_printall = not CGI_CLI.printall)
             except Exception as e:
-                #if not RCMD.silent_mode:
-                    CGI_CLI.uprint(str(device) + ' CONNECTION_PROBLEM[' + str(e) + ']', color = 'magenta')
+                text = str(device) + ' CONNECTION_PROBLEM[' + str(e) + ']'
+                CGI_CLI.uprint(text, color = 'magenta')
+                CGI_CLI.add_result(text, 'fatal')
             finally:
                 if disconnect: RCMD.disconnect()
             ### EXIT IF NO CONNECTION ##########################################
@@ -1398,11 +1403,15 @@ class RCMD(object):
                 command_outputs = RCMD.run_commands(RCMD.CMD)
                 ### ===========================================================
             except Exception as e:
-                #if not RCMD.silent_mode:
-                    CGI_CLI.uprint('CONNECTION_PROBLEM[' + str(e) + ']', color = 'magenta')
+                text = str(device) + ' CONNECTION_PROBLEM[' + str(e) + ']'
+                CGI_CLI.uprint(text, color = 'magenta')
+                CGI_CLI.add_result(text, 'fatal')
             finally:
                 if disconnect: RCMD.disconnect()
-        else: CGI_CLI.uprint('DEVICE NOT INSERTED!', color = 'magenta')
+        else:
+            text = 'DEVICE NOT INSERTED!'
+            CGI_CLI.uprint(text, color = 'magenta')
+            CGI_CLI.add_result(text, 'fatal')
         return command_outputs
 
     @staticmethod
@@ -1631,8 +1640,9 @@ class RCMD(object):
                         or 'ERROR:' in rcmd_output.upper() \
                         or 'SYNTAX ERROR' in rcmd_output.upper():
                         RCMD.config_problem = True
-                        CGI_CLI.uprint('\nCONFIGURATION PROBLEM FOUND:', color = 'red', timestamp = 'no')
-                        CGI_CLI.uprint('%s' % (rcmd_output), color = 'darkorchid', timestamp = 'no')
+                        text = '\nCONFIGURATION PROBLEM FOUND: %s' % (rcmd_output)
+                        CGI_CLI.uprint(text, color = 'orange', timestamp = 'no')
+                        CGI_CLI.add_result(text, 'warning')
                 ### COMMIT TEXT ###
                 if not (do_not_final_print or RCMD.do_not_final_print):
                     text_to_commit = str()
@@ -1805,7 +1815,7 @@ class RCMD(object):
             ### IGNORE NEW PROMPT AND GO AWAY #################################
             if ignore_prompt:
                 time.sleep(1)
-                CGI_CLI.uprint("PROMPT IGNORED, EXIT !!", tag = 'warning', no_printall = not CGI_CLI.printall)
+                CGI_CLI.uprint("PROMPT IGNORED, EXIT !!", tag = 'debug', no_printall = not CGI_CLI.printall)
                 exit_loop = True
                 break
 
@@ -3604,7 +3614,7 @@ try:
             if 'ERROR!' in rcmd_outputs_log[0].upper():
                 text = '"ERROR IN LAST 10lines of INSTALL LOG: ERROR!' + rcmd_outputs_log[0].split('ERROR!')[1]
                 CGI_CLI.uprint(text, color = 'orange')
-                CGI_CLI.JSON_RESULTS['warnings'] = '[%s] ' % (text)
+                CGI_CLI.add_result(text, 'warning')
 
 
 
@@ -3619,12 +3629,12 @@ try:
                     print_text = str(json.dumps(JSON_DATA, indent = 2))
                     CGI_CLI.uprint('\nJSON_DATA = ' + print_text + '\n' , color = 'blue')
                 except Exception as e:
-                    CGI_CLI.print_chunk('{"errors": "JSON_PROBLEM[' + str(e) + ']"}', printall = True)
+                    CGI_CLI.add_result("JSON_PROBLEM[" + str(e) + "]", 'error')
 
 
 except SystemExit: pass
 except:
     text = traceback.format_exc()
-    CGI_CLI.uprint(text, tag = 'h3', color = 'magenta')
-    CGI_CLI.JSON_RESULTS['errors'] = '[%s] ' % (text)
+    #CGI_CLI.uprint(text, tag = 'h3', color = 'magenta')
+    CGI_CLI.add_result(text, 'fatal')
 
