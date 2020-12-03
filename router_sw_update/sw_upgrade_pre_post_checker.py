@@ -172,30 +172,17 @@ class CGI_CLI(object):
     @staticmethod
     def __cleanup__():
         logfile_name = copy.deepcopy(CGI_CLI.logfilename)
-        logfilename_link = CGI_CLI.make_loglink(CGI_CLI.logfilename)
-        if CGI_CLI.JSON_MODE or CGI_CLI.PRINT_JSON_RESULTS: CGI_CLI.uprint_json_results()
-        if CGI_CLI.cgi_active:
-            CGI_CLI.print_result_summary()
-            if CGI_CLI.logfilename:
-                CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
-                    % (logfilename_link, logfile_name), raw = True, color = 'blue', printall = True)
-                CGI_CLI.uprint('<br/>', raw = True)
-            if CGI_CLI.timestamp:
-                CGI_CLI.uprint('END.\n', no_printall = not CGI_CLI.printall, tag = 'debug')
-            if not CGI_CLI.disable_page_reload_link: CGI_CLI.html_selflink()
-        elif CGI_CLI.JSON_MODE:
-            pass
-        else:
-            CGI_CLI.print_result_summary()
-            if CGI_CLI.logfilename:
-                CGI_CLI.uprint(' ==> File %s created.\n\n' % (logfilename_link),printall = True)
-        CGI_CLI.set_logfile(logfilename = None)
+
+        ### PRINT RESULTS #############################################################
+        CGI_CLI.uprint_results()
+
         ### SEND EMAIL WITH LOGFILE ###################################################
         if logfile_name and CGI_CLI.data.get("send_email"):
             #USERNAME = 'pnemec'
             CGI_CLI.send_me_email( \
                 subject = str(logfile_name).replace('\\','/').split('/')[-1] if logfile_name else None, \
                 file_name = str(logfile_name), username = USERNAME)
+
         ### def SEND EMAIL WITH ERROR/TRACEBACK LOGFILE TO SUPPORT ####################
         if traceback_found:
             CGI_CLI.send_me_email( \
@@ -254,7 +241,7 @@ class CGI_CLI(object):
         CGI_CLI.JSON_MODE = json_mode
         CGI_CLI.JSON_HEADERS = json_headers
         CGI_CLI.PRINT_JSON_RESULTS = False
-        CGI_CLI.uprint_json_results_printed = None
+        CGI_CLI.uprint_results_printed = None
         CGI_CLI.JSON_RESULTS = collections.OrderedDict()
         CGI_CLI.USERNAME, CGI_CLI.PASSWORD = None, None
         CGI_CLI.result_tag = 'h3'
@@ -551,35 +538,87 @@ class CGI_CLI(object):
                                       ommit_timestamp = True)
 
     @staticmethod
-    def uprint_json_results(raw_log = None, sort_keys = None,\
+    def add_result(text = None, type = None):
+        if text: CGI_CLI.result_list.append([text, type])
+
+    @staticmethod
+    def uprint_results(raw_log = None, sort_keys = None,\
         ommit_logging = None, printall = None):
 
         print_text = None
 
+        for text, type in CGI_CLI.result_list:
+            if type == 'error' or type == 'fatal':
+                CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+            elif type == 'warning':
+                CGI_CLI.JSON_RESULTS['warnings'] += '[%s] ' % (text)
+
         if len(CGI_CLI.JSON_RESULTS.get('errors',str())) == 0:
-            CGI_CLI.JSON_RESULTS['result'] = 'success'
+            if len(CGI_CLI.JSON_RESULTS.get('warnings',str())) == 0:
+                CGI_CLI.JSON_RESULTS['result'] = 'success'
+            else: CGI_CLI.JSON_RESULTS['result'] = 'warnings'
         else: CGI_CLI.JSON_RESULTS['result'] = 'failure'
 
         if CGI_CLI.logfilename:
             CGI_CLI.JSON_RESULTS['logfile_link'] = CGI_CLI.make_loglink(CGI_CLI.logfilename)
 
-        if not CGI_CLI.uprint_json_results_printed:
-            if isinstance(CGI_CLI.JSON_RESULTS, (dict,collections.OrderedDict,list,tuple)):
-                try: print_text = str(json.dumps(CGI_CLI.JSON_RESULTS, indent = 2, sort_keys = sort_keys))
-                except Exception as e:
-                    CGI_CLI.print_chunk('{"errors": "JSON_PROBLEM[' + str(e) + ']"}', printall = True)
+        if not CGI_CLI.uprint_results_printed:
+            if not CGI_CLI.JSON_MODE:
+                if len(CGI_CLI.result_list) > 0:
+                    CGI_CLI.uprint('\n\nRESULT SUMMARY:', tag = 'h1')
 
-            if print_text:
-                if CGI_CLI.cgi_active: CGI_CLI.uprint('<br/>\n<pre>\nCGI_CLI.JSON_RESULTS = ' + print_text + '\n</pre>\n', raw = True)
-                else:
-                    print(print_text)
-                    if not ommit_logging: CGI_CLI.logtofile(msg = 'CGI_CLI.JSON_RESULTS = ' + print_text, raw_log = raw_log, \
-                                          ommit_timestamp = True)
+                ### text, type ###
+                for text, type in CGI_CLI.result_list:
+                    color = None
+                    if type == 'fatal': color = 'magenta'
+                    elif type == 'error': color = 'red'
+                    elif type == 'warning': color = 'orange'
+                    CGI_CLI.uprint(text , tag = 'h3', color = color)
+                CGI_CLI.uprint('<br/>' if CGI_CLI.cgi_active else '\n')
+
+                res_color = None
+                if CGI_CLI.JSON_RESULTS.get('result',str()) == 'success': res_color = 'green'
+                if CGI_CLI.JSON_RESULTS.get('result',str()) == 'warnings': res_color = 'orange'
+                if CGI_CLI.JSON_RESULTS.get('result',str()) == 'failure': res_color = 'red'
+
+                CGI_CLI.uprint("RESULT: " + CGI_CLI.JSON_RESULTS.get('result',str()) , tag = 'h1', color = res_color)
+
             else:
-                print(str(CGI_CLI.JSON_RESULTS))
-                if not ommit_logging: CGI_CLI.logtofile(msg = str(CGI_CLI.JSON_RESULTS), raw_log = raw_log, \
-                                          ommit_timestamp = True)
-        CGI_CLI.uprint_json_results_printed = True
+                if isinstance(CGI_CLI.JSON_RESULTS, (dict,collections.OrderedDict,list,tuple)):
+                    try: print_text = str(json.dumps(CGI_CLI.JSON_RESULTS, indent = 2, sort_keys = sort_keys))
+                    except Exception as e:
+                        CGI_CLI.print_chunk('{"errors": "JSON_PROBLEM[' + str(e) + ']"}', printall = True)
+
+                if print_text:
+                    if CGI_CLI.cgi_active: CGI_CLI.uprint('<br/>\n<pre>\nCGI_CLI.JSON_RESULTS = ' + print_text + '\n</pre>\n', raw = True)
+                    else:
+                        print(print_text)
+                        if not ommit_logging: CGI_CLI.logtofile(msg = 'CGI_CLI.JSON_RESULTS = ' + print_text, raw_log = raw_log, \
+                                              ommit_timestamp = True)
+                else:
+                    print(str(CGI_CLI.JSON_RESULTS))
+                    if not ommit_logging: CGI_CLI.logtofile(msg = str(CGI_CLI.JSON_RESULTS), raw_log = raw_log, \
+                                              ommit_timestamp = True)
+
+            ### LOGFILE LINK ##############################################
+            logfile_name = copy.deepcopy(CGI_CLI.logfilename)
+            logfilename_link = CGI_CLI.make_loglink(CGI_CLI.logfilename)
+            if CGI_CLI.cgi_active:
+                if CGI_CLI.logfilename:
+                    CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
+                        % (logfilename_link, logfile_name), raw = True, color = 'blue', printall = True)
+                    CGI_CLI.uprint('<br/>', raw = True)
+                if CGI_CLI.timestamp:
+                    CGI_CLI.uprint('END.\n', no_printall = not CGI_CLI.printall, tag = 'debug')
+                if not CGI_CLI.disable_page_reload_link: CGI_CLI.html_selflink()
+            elif CGI_CLI.JSON_MODE:
+                pass
+            else:
+                if CGI_CLI.logfilename:
+                    CGI_CLI.uprint(' ==> File %s created.\n\n' % (logfilename_link),printall = True)
+            CGI_CLI.set_logfile(logfilename = None)
+
+        CGI_CLI.uprint_results_printed = True
 
 
     @staticmethod
@@ -1113,12 +1152,6 @@ class CGI_CLI(object):
             else: logviewer = './logviewer.py?logfile=%s' % (file)
         return logviewer
 
-    @staticmethod
-    def print_result_summary():
-        if len(CGI_CLI.result_list) > 0:
-            CGI_CLI.uprint('\n\nRESULT SUMMARY:', tag = 'h1')
-        for result, color in CGI_CLI.result_list:
-            CGI_CLI.uprint(result , tag = 'h3', color = color)
 
 
 
