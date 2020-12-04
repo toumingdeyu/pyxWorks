@@ -2711,15 +2711,72 @@ def read_section_from_logfile(section = None, logfile = None):
                 try: r_text = '<debug' + text.split('<debug')[1].split('</debug>')[0] + '</debug>'
                 except: r_text = str()
                 if r_text: text = text.replace(r_text,'')
+
+        if '.htmlog' in str(logfile):
+            text = CGI_CLI.html_deescape(text = text, pre_tag = True)
     return text
 
 ##############################################################################
+class bcolors:
+        DEFAULT    = '\033[99m'
+        WHITE      = '\033[97m'
+        CYAN       = '\033[96m'
+        MAGENTA    = '\033[95m'
+        HEADER     = '\033[95m'
+        OKBLUE     = '\033[94m'
+        BLUE       = '\033[94m'
+        YELLOW     = '\033[93m'
+        GREEN      = '\033[92m'
+        OKGREEN    = '\033[92m'
+        WARNING    = '\033[93m'
+        RED        = '\033[91m'
+        FAIL       = '\033[91m'
+        GREY       = '\033[90m'
+        ENDC       = '\033[0m'
+        BOLD       = '\033[1m'
+        UNDERLINE  = '\033[4m'
+
+class nocolors:
+        DEFAULT    = ''
+        WHITE      = ''
+        CYAN       = ''
+        MAGENTA    = ''
+        HEADER     = ''
+        OKBLUE     = ''
+        BLUE       = ''
+        YELLOW     = ''
+        GREEN      = ''
+        OKGREEN    = ''
+        WARNING    = ''
+        RED        = ''
+        FAIL       = ''
+        GREY       = ''
+        ENDC       = ''
+        BOLD       = ''
+        UNDERLINE  = ''
+
+
 default_problemline_list   = []
 default_ignoreline_list    = [r' MET$', r' UTC$']
 default_linefilter_list    = []
 default_compare_columns    = []
 default_printalllines_list = []
 
+bcolors = nocolors
+
+COL_DELETED = bcolors.RED
+COL_ADDED   = bcolors.GREEN
+COL_DIFFDEL = bcolors.BLUE
+COL_DIFFADD = bcolors.YELLOW
+COL_EQUAL   = bcolors.GREY
+COL_PROBLEM = bcolors.RED
+
+note_ndiff_string  = "ndiff( %s'-' missed, %s'+' added, %s'-\\n%s+' difference, %s' ' equal%s)\n" % \
+    (bcolors.RED,bcolors.GREEN,bcolors.RED,bcolors.GREEN,bcolors.GREY,bcolors.ENDC )
+note_ndiff0_string = "ndiff0(%s'-' missed, %s'+' added, %s'-\\n%s+' difference, %s' ' equal%s)\n" % \
+    (COL_DELETED,COL_ADDED,COL_DIFFDEL,COL_DIFFADD,COL_EQUAL,bcolors.ENDC )
+note_pdiff0_string = "pdiff0(%s'-' missed, %s'+' added, %s'!' difference,    %s' ' equal%s)\n" % \
+    (COL_DELETED,COL_ADDED,COL_DIFFADD,COL_EQUAL,bcolors.ENDC )
 
 def get_difference_string_from_string_or_list(
     old_string_or_list, \
@@ -2733,7 +2790,7 @@ def get_difference_string_from_string_or_list(
     print_equallines = None, \
     tolerance_percentage = None, \
     debug = None, \
-    note = True,
+    note = None,
     use_twice_tolerance_for_small_values = None ):
     '''
     FUNCTION get_difference_string_from_string_or_list:
@@ -3913,7 +3970,8 @@ try:
             if isinstance(JSON_DATA, (dict,collections.OrderedDict,list,tuple)):
                 try:
                     print_text = str(json.dumps(JSON_DATA, indent = 2))
-                    CGI_CLI.uprint('\nJSON_DATA = ' + print_text + '\n' , color = 'blue')
+                    CGI_CLI.uprint('\nJSON_DATA = ' + print_text + '\n', \
+                        color = 'blue', no_printall = not CGI_CLI.printall)
                 except Exception as e:
                     CGI_CLI.add_result("JSON_PROBLEM[" + str(e) + "]", 'error')
 
