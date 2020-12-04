@@ -581,7 +581,7 @@ class CGI_CLI(object):
                     elif type == 'error': color = 'red'
                     elif type == 'warning': color = 'orange'
                     CGI_CLI.uprint(text , tag = 'h3', color = color)
-                CGI_CLI.uprint('<br/>' if CGI_CLI.cgi_active else '\n')
+                CGI_CLI.uprint('\n')
 
                 res_color = None
                 if CGI_CLI.JSON_RESULTS.get('result',str()) == 'success': res_color = 'green'
@@ -1313,14 +1313,12 @@ class RCMD(object):
                     RCMD.router_type, RCMD.router_prompt = RCMD.ssh_raw_detect_router_type(debug = None)
                     if not RCMD.router_type:
                         text = 'DEVICE_TYPE NOT DETECTED!'
-                        CGI_CLI.uprint(text, color = 'magenta')
                         CGI_CLI.add_result(text, 'fatal')
                     elif RCMD.router_type in RCMD.KNOWN_OS_TYPES and not RCMD.silent_mode:
                         CGI_CLI.uprint('DETECTED DEVICE_TYPE: %s' % (RCMD.router_type), \
                             color = 'gray', no_printall = not CGI_CLI.printall)
             except Exception as e:
                 text = str(device) + ' CONNECTION_PROBLEM[' + str(e) + ']'
-                CGI_CLI.uprint(text, color = 'magenta')
                 CGI_CLI.add_result(text, 'fatal')
             finally:
                 if disconnect: RCMD.disconnect()
@@ -1410,13 +1408,11 @@ class RCMD(object):
                 ### ===========================================================
             except Exception as e:
                 text = str(device) + ' CONNECTION_PROBLEM[' + str(e) + ']'
-                CGI_CLI.uprint(text, color = 'magenta')
                 CGI_CLI.add_result(text, 'fatal')
             finally:
                 if disconnect: RCMD.disconnect()
         else:
             text = 'DEVICE NOT INSERTED!'
-            CGI_CLI.uprint(text, color = 'magenta')
             CGI_CLI.add_result(text, 'fatal')
         return command_outputs
 
@@ -1647,7 +1643,6 @@ class RCMD(object):
                         or 'SYNTAX ERROR' in rcmd_output.upper():
                         RCMD.config_problem = True
                         text = '\nCONFIGURATION PROBLEM FOUND: %s' % (rcmd_output)
-                        CGI_CLI.uprint(text, color = 'orange', timestamp = 'no')
                         CGI_CLI.add_result(text, 'warning')
                 ### COMMIT TEXT ###
                 if not (do_not_final_print or RCMD.do_not_final_print):
@@ -2387,9 +2382,7 @@ def find_last_logfile(prefix = None, USERNAME = None, suffix = None, directory =
             + '*' + USERNAME + '-' + suffix)
     if len(list_shut_files) == 0:
         text = " ... Can't find any %s session log file!" % (action_text if action_text else str())
-        CGI_CLI.uprint(text, \
-            color = 'magenta')
-        CGI_CLI.add_result(text, 'error')
+        CGI_CLI.add_result(text, 'fatal')
     else:
         most_recent_shut = list_shut_files[0]
         for item in list_shut_files:
@@ -2880,19 +2873,16 @@ try:
 
     if len(device_list) == 0:
         text = 'Device(s) NOT INSERTED!'
-        CGI_CLI.uprint(text, tag = 'h2', color = 'red')
         CGI_CLI.add_result(text, 'error')
         exit_due_to_error = True
 
     if not USERNAME:
         text = 'Username NOT INSERTED!'
-        CGI_CLI.uprint(text, tag = 'h2', color = 'red')
         CGI_CLI.add_result(text, 'error')
         exit_due_to_error = True
 
     if not PASSWORD:
         text = 'Password NOT INSERTED!'
-        CGI_CLI.uprint(text, tag = 'h2', color = 'red')
         CGI_CLI.add_result(text, 'error')
         exit_due_to_error = True
 
@@ -3094,20 +3084,17 @@ try:
             ### CISCO_IOS #####################################################
             if RCMD.router_type == 'cisco_ios':
                 text = 'NOT IMPLEMENTED YET !'
-                CGI_CLI.uprint(text, tag ='h1', color = 'red')
                 CGI_CLI.add_result(text, 'error')
 
 
             ### JUNOS ###################################
             elif RCMD.router_type == 'juniper':
                 text = 'NOT IMPLEMENTED YET !'
-                CGI_CLI.uprint(text, tag ='h1', color = 'red')
                 CGI_CLI.add_result(text, 'error')
 
             ### HUAWEI ##################################
             elif RCMD.router_type == 'huawei':
                 text = 'NOT IMPLEMENTED YET !'
-                CGI_CLI.uprint(text, tag ='h1', color = 'red')
                 CGI_CLI.add_result(text, 'error')
 
             ### CISCO_XR ################################
@@ -3211,7 +3198,6 @@ try:
                 #elif 'Install operation' in rcmd_outputs_inst[0] and 'completed verification successfully' in rcmd_outputs_inst[0]: pass
                 else:
                     text = "'install verify packages' PROBLEM[%s] !" % (rcmd_outputs_inst[0])
-                    CGI_CLI.uprint(text, tag ='h2', color = 'red')
                     CGI_CLI.add_result(text, 'error')
 
 
@@ -3231,7 +3217,6 @@ try:
                         if 'UP' in state1.upper() and 'UP' in state2.upper(): pass
                         elif line.strip():
                             text = "'show int description' PROBLEM[%s] !" % (line.strip())
-                            CGI_CLI.uprint(text, tag ='h2', color = 'red')
                             CGI_CLI.add_result(text, 'error')
 
 
@@ -3250,7 +3235,6 @@ try:
                             or 'IOS XR RUN' in line: pass
                         else:
                             text = "'show platform' PROBLEM[%s] !" % (line)
-                            CGI_CLI.uprint(text, tag ='h2', color = 'red')
                             CGI_CLI.add_result(text, 'error')
 
 
@@ -3280,7 +3264,6 @@ try:
                         if 'UP' in isis_state.upper(): pass
                         elif line.strip() and not 'Total adjacency count:' in line:
                             text = "'show isis adjacency' PROBLEM[%s] !" % (line.strip())
-                            CGI_CLI.uprint(text, tag ='h2', color = 'red')
                             CGI_CLI.add_result(text, 'error')
 
 
@@ -3297,11 +3280,9 @@ try:
                         except: alarm_state = str()
                         if 'ALARM' in isis_state.upper():
                             text = "'show alarms brief system active' PROBLEM[%s] !" % (line.strip())
-                            CGI_CLI.uprint(text, tag ='h2', color = 'red')
                             CGI_CLI.add_result(text, 'error')
                         elif 'WARNING' in isis_state.upper():
                             text = "'show alarms brief system active' PROBLEM[%s] !" % (line.strip())
-                            CGI_CLI.uprint(text, tag ='h2', color = 'orange')
                             CGI_CLI.add_result(text, 'warning')
 
 
@@ -3314,7 +3295,6 @@ try:
                 if 'Summary: gsp is healthy.' in rcmd_outputs[0]: pass
                 else:
                     text = "'show health gsp' PROBLEM[%s] !" % (rcmd_outputs[0].strip())
-                    CGI_CLI.uprint(text, tag ='h2', color = 'red')
                     CGI_CLI.add_result(text, 'error')
 
 
@@ -3327,7 +3307,6 @@ try:
                 if 'No install operation in progress' in rcmd_outputs[0]: pass
                 else:
                     text = "'show install request' PROBLEM[%s] !" % (rcmd_outputs[0].strip())
-                    CGI_CLI.uprint(text, tag ='h2', color = 'red')
                     CGI_CLI.add_result(text, 'error')
 
 
@@ -3390,7 +3369,6 @@ try:
 
                     if len(fpd_problems) > 0:
                         text = "FPDs which are not 'CURRENT': [%s]!" % (','.join(fpd_problems))
-                        CGI_CLI.uprint(text, tag ='h2', color = 'red')
                         CGI_CLI.add_result(text, 'error')
 
 
@@ -3428,7 +3406,6 @@ try:
 
                         if not 'fpd auto-upgrade enable' in rcmd_outputs5a[0]:
                             text = "'fpd auto-upgrade enable' not in 'show run fpd auto-upgrade'!"
-                            CGI_CLI.uprint(text, tag ='h2', color = 'red')
                             CGI_CLI.add_result(text, 'error')
 
                     ### 'admin show run fpd auto-upgrade' #################
@@ -3460,7 +3437,6 @@ try:
 
                         if not 'fpd auto-upgrade enable' in rcmd_outputs5b[0]:
                             text = "'fpd auto-upgrade enable' not in 'admin show run fpd auto-upgrade'!"
-                            CGI_CLI.uprint(text, tag ='h2', color = 'red')
                             CGI_CLI.add_result(text, 'error')
 
 
@@ -3584,7 +3560,6 @@ try:
 
                 if len(check_files) == 0:
                     text = "No SMU files found in patch path %s !" % (target_patch_path)
-                    CGI_CLI.uprint(text, color = 'red')
                     CGI_CLI.add_result(text, 'error')
 
                 if SCRIPT_ACTION == 'post':
@@ -3596,7 +3571,7 @@ try:
                                 or check_part in JSON_DATA['admin_active_packages']: pass
                             else:
                                 text = "SMU file %s is not found in (admin) active packages!" % (check_file)
-                                CGI_CLI.add_result(text, 'error', True)
+                                CGI_CLI.add_result(text, 'error')
 
 
             ### def check if tar file is in active packages ###############
@@ -3611,11 +3586,11 @@ try:
 
                 if len(check_files) == 0:
                     text = "Tar file %s not found !" % (target_sw_file)
-                    CGI_CLI.add_result(text, 'error', True)
+                    CGI_CLI.add_result(text, 'error')
 
                 if len(check_files) > 1:
                     text = "Multiple tar files %s found in the same directory !" % (target_sw_file)
-                    CGI_CLI.add_result(text, 'warning', True)
+                    CGI_CLI.add_result(text, 'warning')
 
                 if SCRIPT_ACTION == 'post':
                     ### FIND VERSION 3..4 DIGITS NUMBER DOT OR DOTLESS ########
@@ -3639,8 +3614,8 @@ try:
                         elif force_dotted_version and (force_dotted_version in JSON_DATA['active_packages'] \
                             or force_dotted_version in JSON_DATA['admin_active_packages']): pass
                         else:
-                            text = "Tar file %s is not found in (admin) active packages!" % (check_file)
-                            CGI_CLI.add_result(text, 'error', True)
+                            text = "Tar file %s is not found in (admin) active packages!" % (target_sw_file)
+                            CGI_CLI.add_result(text, 'error')
 
                         ### def installed version check #######################
                         if JSON_DATA['version'] == version \
@@ -3648,7 +3623,7 @@ try:
                             or force_dotted_version and JSON_DATA['version'] == force_dotted_version: pass
                         else:
                             text = "'show version' PROBLEM[%s != %s] " % (JSON_DATA['version'], version)
-                            CGI_CLI.add_result(text, 'error', True)
+                            CGI_CLI.add_result(text, 'error')
 
 
 
@@ -3660,7 +3635,7 @@ try:
 
             if 'ERROR!' in rcmd_outputs_log[0].upper():
                 text = '"ERROR IN LAST 10lines of INSTALL LOG: ERROR!' + rcmd_outputs_log[0].split('ERROR!')[1]
-                CGI_CLI.add_result(text, 'error', True)
+                CGI_CLI.add_result(text, 'error')
 
 
 
