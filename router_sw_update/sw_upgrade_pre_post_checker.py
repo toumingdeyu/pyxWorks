@@ -539,13 +539,18 @@ class CGI_CLI(object):
                                       ommit_timestamp = True)
 
     @staticmethod
-    def add_result(text = None, type = None, printnow = None):
-        if printnow:
+    def add_result(text = None, type = None, print_now = None):
+
             color = None
             if type == 'fatal': color = 'magenta'
             elif type == 'error': color = 'red'
             elif type == 'warning': color = 'orange'
-            CGI_CLI.uprint(text , tag = 'h3', color = color)
+            if printnow:
+                CGI_CLI.uprint(text , tag = 'h3', color = color)
+            else:
+                CGI_CLI.uprint(text , tag = 'h3', color = color, \
+                    no_printall = not CGI_CLI.printall)
+
         if text: CGI_CLI.result_list.append([text, type])
 
     @staticmethod
