@@ -238,6 +238,7 @@ class CGI_CLI(object):
         try: CGI_CLI.sys_stdout_encoding = sys.stdout.encoding
         except: CGI_CLI.sys_stdout_encoding = None
         if not CGI_CLI.sys_stdout_encoding: CGI_CLI.sys_stdout_encoding = 'UTF-8'
+        CGI_CLI.MENU_DISPLAYED = False
         CGI_CLI.JSON_MODE = json_mode
         CGI_CLI.JSON_HEADERS = json_headers
         CGI_CLI.PRINT_JSON_RESULTS = False
@@ -540,16 +541,16 @@ class CGI_CLI(object):
 
     @staticmethod
     def add_result(text = None, type = None, print_now = None):
+        if text: CGI_CLI.result_list.append([text, type])
         color = None
         if type == 'fatal': color = 'magenta'
         elif type == 'error': color = 'red'
         elif type == 'warning': color = 'orange'
-        if printnow:
+        if print_now:
             CGI_CLI.uprint(text , tag = 'h3', color = color)
         else:
             CGI_CLI.uprint(text , tag = 'h3', color = color, \
                 no_printall = not CGI_CLI.printall)
-        if text: CGI_CLI.result_list.append([text, type])
 
     @staticmethod
     def uprint_results(raw_log = None, sort_keys = None,\
@@ -591,7 +592,9 @@ class CGI_CLI(object):
                 if CGI_CLI.JSON_RESULTS.get('result',str()) == 'warnings': res_color = 'orange'
                 if CGI_CLI.JSON_RESULTS.get('result',str()) == 'failure': res_color = 'red'
 
-                CGI_CLI.uprint("RESULT: " + CGI_CLI.JSON_RESULTS.get('result',str()) , tag = 'h1', color = res_color)
+                if not CGI_CLI.MENU_DISPLAYED:
+                    CGI_CLI.uprint("RESULT: " + CGI_CLI.JSON_RESULTS.get('result', str()),\
+                        tag = 'h1', color = res_color)
 
             else:
                 if isinstance(CGI_CLI.JSON_RESULTS, (dict,collections.OrderedDict,list,tuple)):
@@ -600,11 +603,14 @@ class CGI_CLI(object):
                         CGI_CLI.print_chunk('{"errors": "JSON_PROBLEM[' + str(e) + ']"}', printall = True)
 
                 if print_text:
-                    if CGI_CLI.cgi_active: CGI_CLI.uprint('<br/>\n<pre>\nCGI_CLI.JSON_RESULTS = ' + print_text + '\n</pre>\n', raw = True)
+                    if CGI_CLI.cgi_active:
+                        CGI_CLI.uprint('<br/>\n<pre>\nCGI_CLI.JSON_RESULTS = ' + print_text + \
+                            '\n</pre>\n', raw = True)
                     else:
                         print(print_text)
-                        if not ommit_logging: CGI_CLI.logtofile(msg = 'CGI_CLI.JSON_RESULTS = ' + print_text, raw_log = raw_log, \
-                                              ommit_timestamp = True)
+                        if not ommit_logging:
+                            CGI_CLI.logtofile(msg = 'CGI_CLI.JSON_RESULTS = ' + \
+                                print_text, raw_log = raw_log, ommit_timestamp = True)
                 else:
                     print(str(CGI_CLI.JSON_RESULTS))
                     if not ommit_logging: CGI_CLI.logtofile(msg = str(CGI_CLI.JSON_RESULTS), raw_log = raw_log, \
@@ -1803,7 +1809,7 @@ class RCMD(object):
                     if CGI_CLI.cgi_active:
                         CGI_CLI.uprint("<script>console.log('10s...');</script>", \
                             raw = True)
-                        CGI_CLI.logtofile('[+10sec_MARK]\n')
+                        #CGI_CLI.logtofile('[+10sec_MARK]\n')
 
                     ### printall or RCMD.printall
                     if not CGI_CLI.printall and not RCMD.silent_mode:
@@ -2801,6 +2807,7 @@ try:
     if CGI_CLI.cgi_active and len(device_list) == 0 and \
         (not CGI_CLI.submit_form or \
         MULTIPLE_SELFMENUS and CGI_CLI.submit_form in CGI_CLI.self_buttons):
+        CGI_CLI.MENU_DISPLAYED = True
         ### OTHER SUBMIT BUTTONS THAN OK ALLOWS "REMOTE" CGI CONTROL ##########
 
         interface_menu_list = []
