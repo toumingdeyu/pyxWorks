@@ -3940,8 +3940,9 @@ try:
                         elif force_dotted_version and (force_dotted_version in JSON_DATA['active_packages'] \
                             or force_dotted_version in JSON_DATA['admin_active_packages']): pass
                         else:
-                            text = "Tar file %s is not found in (admin) active packages!" % (target_sw_file)
-                            CGI_CLI.add_result(text, 'error')
+                            pass
+                            # text = "Tar file %s is not found in (admin) active packages!" % (target_sw_file)
+                            # CGI_CLI.add_result(text, 'error')
 
                         ### def installed version check #######################
                         if JSON_DATA['version'] == version \
