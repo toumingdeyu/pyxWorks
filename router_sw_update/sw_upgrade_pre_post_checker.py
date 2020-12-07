@@ -3604,8 +3604,9 @@ try:
 
                 if 'No install operation in progress' in rcmd_outputs[0]: pass
                 else:
-                    text = "'show install request' PROBLEM[%s] !" % (rcmd_outputs[0].strip())
-                    CGI_CLI.add_result(text, 'error')
+                    pass
+                    #text = "'show install request' PROBLEM[%s] !" % (rcmd_outputs[0].strip())
+                    #CGI_CLI.add_result(text, 'error')
 
 
                 ### def xr check list #########################################
@@ -3773,16 +3774,18 @@ try:
                             precheck_config, postcheck_config)
                         if all_ok: pass
                         else:
-                            text = "configs difference PROBLEM[%s]" % (diff_result)
-                            CGI_CLI.add_result(text, 'error')
+                            pass
+                            #text = "configs difference PROBLEM[%s]" % (diff_result)
+                            #CGI_CLI.add_result(text, 'error')
 
                     if precheck_admin_config and postcheck_admin_config:
                         diff_result, all_ok = get_difference_string_from_string_or_list( \
                             precheck_admin_config, postcheck_admin_config)
                         if all_ok: pass
                         else:
-                            text = "admin configs difference PROBLEM[%s]" % (diff_result)
-                            CGI_CLI.add_result(text, 'error')
+                            pass
+                            #text = "admin configs difference PROBLEM[%s]" % (diff_result)
+                            #CGI_CLI.add_result(text, 'error')
 
                     # ### FIND LAST PRECHECK???? CONFIG FILE !!! ################
                     # admin_config_files, config_files = [], []
