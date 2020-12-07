@@ -3491,25 +3491,6 @@ try:
                     JSON_DATA['admin_active_packages'] = active_packages
 
 
-                ### def 'show int description | exclude "admin-down"' #########
-                device_cmds = { 'cisco_xr': [ 'show int description | exclude "admin-down"' ] }
-
-                rcmd_outputs = RCMD.run_commands(device_cmds, \
-                    long_lasting_mode = True, \
-                    printall = printall)
-
-                if 'Description' in rcmd_outputs[0]:
-                    for line in rcmd_outputs[0].split('Description')[1].splitlines()[2:-1]:
-                        try: state1 = line.split()[1]
-                        except: state1 = str()
-                        try: state2 = line.split()[2]
-                        except: state2 = str()
-                        if 'UP' in state1.upper() and 'UP' in state2.upper(): pass
-                        elif line.strip():
-                            text = "(CMD:'show int description', PROBLEM: '%s' !)" % (line.strip())
-                            CGI_CLI.add_result(text, 'error')
-
-
                 ### def 'show platform' #########################
                 device_cmds_p = { 'cisco_xr': [ 'show platform' ] }
 
@@ -3733,10 +3714,46 @@ try:
 
 
             ###################################################################
+            ### def PRECHECK commands ########################################
+            ###################################################################
+            if SCRIPT_ACTION == 'pre':
+                if RCMD.router_type == 'cisco_xr':
+
+                    ### def 'show int description | exclude "admin-down"' #########
+                    device_cmds = { 'cisco_xr': [ 'show int description | exclude "admin-down"' ] }
+
+                    rcmd_outputs = RCMD.run_commands(device_cmds, \
+                        long_lasting_mode = True, \
+                        printall = printall)
+
+
+            ###################################################################
             ### def POSTCHECK commands ########################################
             ###################################################################
             if SCRIPT_ACTION == 'post':
                 if RCMD.router_type == 'cisco_xr':
+
+                    ### def 'show int description | exclude "admin-down"' #########
+                    device_cmds = { 'cisco_xr': [ 'show int description | exclude "admin-down"' ] }
+
+                    rcmd_outputs = RCMD.run_commands(device_cmds, \
+                        long_lasting_mode = True, \
+                        printall = printall)
+
+                    ### def POSTCHECK compare configs #########################
+                    postcheck_int = rcmd_outputs_configs[0]
+                    precheck_int = read_section_from_logfile('REMOTE_COMMAND: show int description | exclude "admin-down"', precheck_file)
+
+                    if precheck_config and postcheck_config:
+                        diff_result, all_ok = get_difference_string_from_string_or_list( \
+                            precheck_int.strip(), postcheck_int.strip())
+                        if all_ok: pass
+                        else:
+                            pass
+                            text = "(PROBLEM: pre/post check 'show int' difference:\n'%s')" % (diff_result)
+                            CGI_CLI.add_result(text, 'error')
+
+
 
                     ### def POSTCHECK compare configs #########################
                     postcheck_config = rcmd_outputs_configs[0]
