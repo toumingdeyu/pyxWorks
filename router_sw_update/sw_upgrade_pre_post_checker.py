@@ -239,6 +239,7 @@ class CGI_CLI(object):
         except: CGI_CLI.sys_stdout_encoding = None
         if not CGI_CLI.sys_stdout_encoding: CGI_CLI.sys_stdout_encoding = 'UTF-8'
         CGI_CLI.MENU_DISPLAYED = False
+        CGI_CLI.FAKE_SUCCESS = False
         CGI_CLI.JSON_MODE = json_mode
         CGI_CLI.JSON_HEADERS = json_headers
         CGI_CLI.PRINT_JSON_RESULTS = False
@@ -569,6 +570,9 @@ class CGI_CLI(object):
                 CGI_CLI.JSON_RESULTS['result'] = 'success'
             else: CGI_CLI.JSON_RESULTS['result'] = 'warnings'
         else: CGI_CLI.JSON_RESULTS['result'] = 'failure'
+
+        ### DEBUG FAKE_SUCCESS ###
+        if CGI_CLI.FAKE_SUCCESS: CGI_CLI.JSON_RESULTS['result'] = 'success'
 
         if CGI_CLI.logfilename:
             CGI_CLI.JSON_RESULTS['logfile_link'] = CGI_CLI.make_loglink(CGI_CLI.logfilename)
@@ -3419,6 +3423,9 @@ try:
                     rcmd_outputs2 = RCMD.run_commands(device_cmds2, \
                         autoconfirm_mode = True, \
                         printall = printall)
+
+                    try: JSON_DATA['remove_inactive_id_nr'] = copy.deepcopy(rcmd_outputs2[0].split('Install operation ')[1].split(' started').strip())
+                    except: pass
                     ### INSTEAD OF WAITING RECHECK IS DONE ON THE END ###
 
                 ### admin show install inactive sum ###
@@ -3431,7 +3438,7 @@ try:
                     printall = printall)
 
                 inactive_packages = []
-                if 'No inactive package(s) in software repository' in rcmd_outputs[0]:
+                if 'Inactive Packages: 0' in rcmd_outputs[0]:
                     pass
                 else:
                     if 'Inactive Packages:' in rcmd_outputs[0]:
@@ -3446,6 +3453,9 @@ try:
                     rcmd_outputs2 = RCMD.run_commands(device_cmds2, \
                         autoconfirm_mode = True, \
                         printall = printall)
+
+                    try: JSON_DATA['admin_remove_inactive_id_nr'] = copy.deepcopy(rcmd_outputs2[0].split('Install operation ')[1].split(' started').strip())
+                    except: pass
                     ### INSTEAD OF WAITING RECHECK IS DONE ON THE END ###
 
                 ### def show install active summary #######################
@@ -3479,24 +3489,6 @@ try:
                     for i in range(number_of_active_packages):
                          active_packages.append(rcmd_outputs4[0].split('Active Packages:')[1].splitlines()[i + 1].split()[0].strip())
                     JSON_DATA['admin_active_packages'] = active_packages
-
-
-                ### def 'install verify packages' #########################
-                ### 'install verify packages synchronous' is not on VM ####
-                device_cmds_inst = { 'cisco_xr': [ 'install verify packages' ] }
-
-                rcmd_outputs_inst = RCMD.run_commands(device_cmds_inst, \
-                    long_lasting_mode = True, \
-                    printall = printall)
-
-                try: JSON_DATA['verify_id_nr'] = rcmd_outputs_inst[0].split('Install operation ')[1].split(' started').strip()
-                except: JSON_DATA['verify_id_nr'] = str()
-
-                # if 'Install operation' in rcmd_outputs_inst[0] and 'finished successfully' in rcmd_outputs_inst[0]: pass
-                # #elif 'Install operation' in rcmd_outputs_inst[0] and 'completed verification successfully' in rcmd_outputs_inst[0]: pass
-                # else:
-                    # text = "'install verify packages' PROBLEM[%s] !" % (rcmd_outputs_inst[0])
-                    # CGI_CLI.add_result(text, 'error')
 
 
                 ### def 'show int description | exclude "admin-down"' #########
@@ -3596,19 +3588,6 @@ try:
                     CGI_CLI.add_result(text, 'error')
 
 
-                ### def 'show install request' ################################
-                device_cmds = { 'cisco_xr': [ 'show install request' ] }
-
-                rcmd_outputs = RCMD.run_commands(device_cmds, \
-                    printall = printall)
-
-                if 'No install operation in progress' in rcmd_outputs[0]: pass
-                else:
-                    pass
-                    #text = "'show install request' PROBLEM[%s] !" % (rcmd_outputs[0].strip())
-                    #CGI_CLI.add_result(text, 'error')
-
-
                 ### def xr check list #########################################
                 device_cmds5 = { 'cisco_xr': [
                         'show configuration failed startup',
@@ -3652,7 +3631,7 @@ try:
                     printall = printall)
 
 
-                if not 'XRv 9000' in HW_INFO.get('hw_type',str()):
+                if not 'IOS-XRv 9000' in HW_INFO.get('hw_type',str()):
                     ### def 'show hw-module fpd' ##########################
                     xr_check_cmd_list = { 'cisco_xr': [ 'show hw-module fpd' ] }
                     rcmd_outputs = RCMD.run_commands(xr_check_cmd_list, printall = printall)
@@ -3673,7 +3652,7 @@ try:
 
                 ### def PRECHECK - cards check ################################
                 if SCRIPT_ACTION == 'pre' and \
-                    not 'XRv 9000' in HW_INFO.get('hw_type',str()):
+                    not 'IOS-XRv 9000' in HW_INFO.get('hw_type',str()):
                     ### 'show run fpd auto-upgrade' ###########################
 
                     xr_cmds = {'cisco_xr': [ 'show run fpd auto-upgrade' ]}
@@ -3775,8 +3754,8 @@ try:
                         if all_ok: pass
                         else:
                             pass
-                            #text = "configs difference PROBLEM[%s]" % (diff_result)
-                            #CGI_CLI.add_result(text, 'error')
+                            text = "configs difference PROBLEM[%s]" % (diff_result)
+                            CGI_CLI.add_result(text, 'error')
 
                     if precheck_admin_config and postcheck_admin_config:
                         diff_result, all_ok = get_difference_string_from_string_or_list( \
@@ -3784,8 +3763,8 @@ try:
                         if all_ok: pass
                         else:
                             pass
-                            #text = "admin configs difference PROBLEM[%s]" % (diff_result)
-                            #CGI_CLI.add_result(text, 'error')
+                            text = "admin configs difference PROBLEM[%s]" % (diff_result)
+                            CGI_CLI.add_result(text, 'error')
 
                     # ### FIND LAST PRECHECK???? CONFIG FILE !!! ################
                     # admin_config_files, config_files = [], []
@@ -3841,7 +3820,75 @@ try:
 
             ### def PRE&POST - check actions ##################################
 
-            ### REPEAT 'show install inactive summary' ###
+            ### def 'show install request' ################################
+            device_cmds = { 'cisco_xr': [ 'show install request' ] }
+
+            rcmd_outputs = RCMD.run_commands(device_cmds, \
+                printall = printall)
+
+            if 'No install operation in progress' in rcmd_outputs[0]:
+
+                ### def 'install verify packages' #########################
+                ### 'install verify packages synchronous' is not on VM ####
+                if 'IOS-XRv 9000' in HW_INFO.get('hw_type',str()):
+                    device_cmds_inst = { 'cisco_xr': [ 'install verify packages' ] }
+
+                    rcmd_outputs_inst = RCMD.run_commands(device_cmds_inst, \
+                        long_lasting_mode = True, \
+                        printall = printall)
+
+                    try: JSON_DATA['verify_id_nr'] = rcmd_outputs_inst[0].split('Install operation ')[1].split(' started').strip()
+                    except: pass
+
+                    if JSON_DATA.get('verify_id_nr',str()):
+                        ### wait till no install packages in progress ###
+                        for time in range(10):
+                            device_cmds = { 'cisco_xr': [ 'show install request' ] }
+
+                            rcmd_outputs = RCMD.run_commands(device_cmds, \
+                                printall = printall)
+
+                            if 'No install operation in progress' in rcmd_outputs[0]: break
+                            time.sleep(2)
+                        else:
+                            text = "(CMD:'show install request', PROBLEM:'%s') !" % (rcmd_outputs[0].strip())
+                            CGI_CLI.add_result(text, 'error')
+
+            elif JSON_DATA.get('remove_inactive_id_nr',str()) or JSON_DATA.get('admin_remove_inactive_id_nr',str()) in rcmd_outputs[0]:
+                ### wait till no install packages in progress ###
+                for time in range(10):
+                    device_cmds = { 'cisco_xr': [ 'show install request' ] }
+
+                    rcmd_outputs = RCMD.run_commands(device_cmds, \
+                        printall = printall)
+
+                    if ' %s ' % (JSON_DATA.get('remove_inactive_id_nr',str())) in rcmd_outputs[0] or \
+                    ' %s ' % (JSON_DATA.get('admin_remove_inactive_id_nr',str())) in rcmd_outputs[0]: pass
+
+                    if 'No install operation in progress' in rcmd_outputs[0]: break
+                    time.sleep(2)
+                else:
+                    text = "(CMD:'show install request', PROBLEM:'%s') !" % (rcmd_outputs[0].strip())
+                    CGI_CLI.add_result(text, 'error')
+            else:
+                text = "(CMD:'show install request', PROBLEM:'%s')" % (rcmd_outputs[0].strip())
+                CGI_CLI.add_result(text, 'error')
+
+
+            ### def 'install verify packages synchronous' is not on VM ####
+            if not 'IOS-XRv 9000' in HW_INFO.get('hw_type',str()):
+                device_cmds_inst = { 'cisco_xr': [ 'install verify packages synchronous' ] }
+
+                rcmd_outputs_inst = RCMD.run_commands(device_cmds_inst, \
+                    long_lasting_mode = True, \
+                    printall = printall)
+                if 'Install operation' in rcmd_outputs_inst[0] and 'finished successfully' in rcmd_outputs_inst[0]: pass
+                else:
+                    text = "(CMD:'install verify packages', PROBLEM:'%s')" % (rcmd_outputs_inst[0])
+                    CGI_CLI.add_result(text, 'error')
+
+
+            ### def REPEAT 'show install inactive summary' ###
             device_cmds3 = { 'cisco_xr':[ 'show install inactive summary' ] }
 
             rcmd_outputs3 = RCMD.run_commands(device_cmds3, \
@@ -3859,7 +3906,7 @@ try:
             JSON_DATA['inactive_packages'] = copy.deepcopy(inactive_packages)
 
 
-            ### ADMIN INACTIVE SUMMARY CHECK ###
+            ### def REPEAT 'admin show install inactive summary' ###
             device_cmds3 = { 'cisco_xr':[ 'admin show install inactive summary' ] }
 
             rcmd_outputs3 = RCMD.run_commands(device_cmds3, \
@@ -3867,7 +3914,7 @@ try:
                 printall = printall)
 
             inactive_packages = []
-            if 'No inactive package(s) in software repository' in rcmd_outputs3[0]:
+            if 'Inactive Packages: 0' in rcmd_outputs3[0]:
                 pass
             else:
                 if 'Inactive Packages:' in rcmd_outputs3[0]:
@@ -3923,16 +3970,17 @@ try:
 
                 if SCRIPT_ACTION == 'post':
                     ### FIND VERSION 3..4 DIGITS NUMBER DOT OR DOTLESS ########
-                    try: version = re.findall(r'[0-9]\.[0-9]\.[0-9]\.[0-9]', target_sw_file)[0]
+                    try: version = re.findall(r'[0-9]\.[0-9]\.[0-9]\.[0-9]', target_sw_file)[-1]
                     except:
-                        try: version = re.findall(r'[0-9]\.[0-9]\.[0-9]', target_sw_file)[0]
+                        try: version = re.findall(r'[0-9]\.[0-9]\.[0-9]', target_sw_file)[-1]
                         except:
-                            try: version = re.findall(r'[0-9][0-9][0-9][0-9]', target_sw_file)[0]
+                            try: version = re.findall(r'[0-9][0-9][0-9][0-9]', target_sw_file)[-1]
                             except:
-                                try: version = re.findall(r'[0-9][0-9][0-9][0-9]', target_sw_file)[0]
+                                try: version = re.findall(r'[0-9][0-9][0-9][0-9]', target_sw_file)[-1]
                                 except: version = str()
 
                     if version:
+                        JSON_DATA['version_from_filename'] = str(version)
                         force_dotted_version, undotted_version = None, None
                         if '.' in version: undotted_version = version.replace('.','')
                         else: force_dotted_version = '.'.join(list(version))
@@ -3943,16 +3991,15 @@ try:
                         elif force_dotted_version and (force_dotted_version in JSON_DATA['active_packages'] \
                             or force_dotted_version in JSON_DATA['admin_active_packages']): pass
                         else:
-                            pass
-                            # text = "Tar file %s is not found in (admin) active packages!" % (target_sw_file)
-                            # CGI_CLI.add_result(text, 'error')
+                            text = "(PROBLEM: Tar file %s is not found in (admin) active packages !)" % (target_sw_file)
+                            CGI_CLI.add_result(text, 'error')
 
                         ### def installed version check #######################
                         if JSON_DATA['version'] == version \
                             or undotted_version and JSON_DATA['version'] == undotted_version \
                             or force_dotted_version and JSON_DATA['version'] == force_dotted_version: pass
                         else:
-                            text = "'show version' PROBLEM[%s != %s] " % (JSON_DATA['version'], version)
+                            text = "(PROBLEM: Installed version does not fit with tar file version: '%s' != '%s' !)" % (JSON_DATA['version'], version)
                             CGI_CLI.add_result(text, 'error')
 
 
@@ -3983,6 +4030,9 @@ try:
                 except Exception as e:
                     CGI_CLI.add_result("JSON_PROBLEM[" + str(e) + "]", 'error')
 
+
+            ### DEBUG ##########################################################
+            CGI_CLI.FAKE_SUCCESS = True
 
 except SystemExit: pass
 except:
