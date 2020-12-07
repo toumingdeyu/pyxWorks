@@ -3595,11 +3595,12 @@ try:
                     printall = printall)
 
                 for line in rcmd_outputs[0].splitlines():
-                    if '...' in line and '...OK' in line: pass
-                    else:
-                        text = "(CMD:'clear configuration inconsistency', PROBLEM:'%s')" % (rcmd_outputs[0].strip())
-                        CGI_CLI.add_result(text, 'error')
-                        break
+                    if '...' in line:
+                        if '...OK' in line: pass
+                        else:
+                            text = "(CMD:'clear configuration inconsistency', PROBLEM:'%s')" % (rcmd_outputs[0].strip())
+                            CGI_CLI.add_result(text, 'error')
+                            break
 
 
                 ### def xr check list #########################################
