@@ -3482,17 +3482,21 @@ try:
 
 
                 ### def 'install verify packages' #########################
-                device_cmds_inst = { 'cisco_xr': [ 'install verify packages synchronous' ] }
+                ### 'install verify packages synchronous' is not on VM ####
+                device_cmds_inst = { 'cisco_xr': [ 'install verify packages' ] }
 
                 rcmd_outputs_inst = RCMD.run_commands(device_cmds_inst, \
                     long_lasting_mode = True, \
                     printall = printall)
 
-                if 'Install operation' in rcmd_outputs_inst[0] and 'finished successfully' in rcmd_outputs_inst[0]: pass
-                #elif 'Install operation' in rcmd_outputs_inst[0] and 'completed verification successfully' in rcmd_outputs_inst[0]: pass
-                else:
-                    text = "'install verify packages' PROBLEM[%s] !" % (rcmd_outputs_inst[0])
-                    CGI_CLI.add_result(text, 'error')
+                try: JSON_DATA['verify_id_nr'] = rcmd_outputs_inst[0].split('Install operation ')[1].split(' started').strip()
+                except: JSON_DATA['verify_id_nr'] = str()
+
+                # if 'Install operation' in rcmd_outputs_inst[0] and 'finished successfully' in rcmd_outputs_inst[0]: pass
+                # #elif 'Install operation' in rcmd_outputs_inst[0] and 'completed verification successfully' in rcmd_outputs_inst[0]: pass
+                # else:
+                    # text = "'install verify packages' PROBLEM[%s] !" % (rcmd_outputs_inst[0])
+                    # CGI_CLI.add_result(text, 'error')
 
 
                 ### def 'show int description | exclude "admin-down"' #########
