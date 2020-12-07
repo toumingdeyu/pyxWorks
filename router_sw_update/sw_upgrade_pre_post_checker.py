@@ -3744,7 +3744,7 @@ try:
                     postcheck_int = rcmd_outputs_configs[0]
                     precheck_int = read_section_from_logfile('REMOTE_COMMAND: show int description | exclude "admin-down"', precheck_file)
 
-                    if precheck_config and postcheck_config:
+                    if postcheck_int and postcheck_int:
                         diff_result, all_ok = get_difference_string_from_string_or_list( \
                             precheck_int.strip(), postcheck_int.strip())
                         if all_ok: pass
