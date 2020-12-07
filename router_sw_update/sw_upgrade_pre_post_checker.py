@@ -3750,7 +3750,8 @@ try:
 
                     if precheck_config and postcheck_config:
                         diff_result, all_ok = get_difference_string_from_string_or_list( \
-                            precheck_config, postcheck_config)
+                            precheck_config.strip(), postcheck_config.strip(),
+                            ignore_list = default_ignoreline_list + ['set-overload-bit','fpd auto-upgrade enable','Last configuration change'])
                         if all_ok: pass
                         else:
                             pass
@@ -3759,7 +3760,8 @@ try:
 
                     if precheck_admin_config and postcheck_admin_config:
                         diff_result, all_ok = get_difference_string_from_string_or_list( \
-                            precheck_admin_config, postcheck_admin_config)
+                            precheck_admin_config.strip(), postcheck_admin_config.strip(),
+                            ignore_list = default_ignoreline_list + ['set-overload-bit','fpd auto-upgrade enable','Last configuration change'])
                         if all_ok: pass
                         else:
                             pass
@@ -3829,7 +3831,7 @@ try:
             if 'No install operation in progress' in rcmd_outputs[0]:
 
                 ### def 'install verify packages' #########################
-                ### 'install verify packages synchronous' is not on VM ####
+                ### 'install verify packages synchronous' is not working on VM ####
                 if 'IOS-XRv 9000' in HW_INFO.get('hw_type',str()):
                     device_cmds_inst = { 'cisco_xr': [ 'install verify packages' ] }
 
@@ -3875,7 +3877,7 @@ try:
                 CGI_CLI.add_result(text, 'error')
 
 
-            ### def 'install verify packages synchronous' is not on VM ####
+            ### def 'install verify packages synchronous' is not working on VM ####
             if not 'IOS-XRv 9000' in HW_INFO.get('hw_type',str()):
                 device_cmds_inst = { 'cisco_xr': [ 'install verify packages synchronous' ] }
 
