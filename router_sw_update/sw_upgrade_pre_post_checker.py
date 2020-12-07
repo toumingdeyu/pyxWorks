@@ -3506,7 +3506,7 @@ try:
                         except: state2 = str()
                         if 'UP' in state1.upper() and 'UP' in state2.upper(): pass
                         elif line.strip():
-                            text = "'show int description' PROBLEM[%s] !" % (line.strip())
+                            text = "(CMD:'show int description', PROBLEM: '%s' !)" % (line.strip())
                             CGI_CLI.add_result(text, 'error')
 
 
@@ -3524,7 +3524,7 @@ try:
                         if 'UP' in platform_state or 'OPERATIONAL' in platform_state \
                             or 'IOS XR RUN' in line: pass
                         else:
-                            text = "'show platform' PROBLEM[%s] !" % (line)
+                            text = "(CMD:'show platform', PROBLEM:'%s' !)" % (line)
                             CGI_CLI.add_result(text, 'error')
 
 
@@ -3553,7 +3553,7 @@ try:
                         except: isis_state = str()
                         if 'UP' in isis_state.upper(): pass
                         elif line.strip() and not 'Total adjacency count:' in line:
-                            text = "'show isis adjacency' PROBLEM[%s] !" % (line.strip())
+                            text = "(CMD:'show isis adjacency', PROBLEM:'%s' !)" % (line.strip())
                             CGI_CLI.add_result(text, 'error')
 
 
@@ -3569,10 +3569,10 @@ try:
                         try: alarm_state = line.split()[-1]
                         except: alarm_state = str()
                         if 'ALARM' in isis_state.upper():
-                            text = "'show alarms brief system active' PROBLEM[%s] !" % (line.strip())
+                            text = "(CMD:'show alarms brief system active', PROBLEM:'%s' !)" % (line.strip())
                             CGI_CLI.add_result(text, 'error')
                         elif 'WARNING' in isis_state.upper():
-                            text = "'show alarms brief system active' PROBLEM[%s] !" % (line.strip())
+                            text = "(CMD:'show alarms brief system active', PROBLEM:'%s' !)" % (line.strip())
                             CGI_CLI.add_result(text, 'warning')
 
 
@@ -3584,14 +3584,27 @@ try:
 
                 if 'Summary: gsp is healthy.' in rcmd_outputs[0]: pass
                 else:
-                    text = "'show health gsp' PROBLEM[%s] !" % (rcmd_outputs[0].strip())
+                    text = "(CMD:'show health gsp', PROBLEM:'%s')" % (rcmd_outputs[0].strip())
                     CGI_CLI.add_result(text, 'error')
+
+
+                ### def 'clear configuration inconsistency' #####################################
+                device_cmds = { 'cisco_xr': [ 'clear configuration inconsistency' ] }
+
+                rcmd_outputs = RCMD.run_commands(device_cmds, \
+                    printall = printall)
+
+                for line in rcmd_outputs[0].splitlines():
+                    if '...' in line and '...OK' in line: pass
+                    else:
+                        text = "(CMD:'clear configuration inconsistency', PROBLEM:'%s')" % (rcmd_outputs[0].strip())
+                        CGI_CLI.add_result(text, 'error')
+                        break
 
 
                 ### def xr check list #########################################
                 device_cmds5 = { 'cisco_xr': [
                         'show configuration failed startup',
-                        'clear configuration inconsistency',
                         'show install repository',
                 ] }
 
@@ -3646,7 +3659,7 @@ try:
                     except: pass
 
                     if len(fpd_problems) > 0:
-                        text = "FPDs which are not 'CURRENT': [%s]!" % (','.join(fpd_problems))
+                        text = "(PROBLEM: FPDs which are not 'CURRENT': [%s] !)" % (','.join(fpd_problems))
                         CGI_CLI.add_result(text, 'error')
 
 
@@ -3683,7 +3696,7 @@ try:
                             printall = printall)
 
                         if not 'fpd auto-upgrade enable' in rcmd_outputs5a[0]:
-                            text = "'fpd auto-upgrade enable' not in 'show run fpd auto-upgrade'!"
+                            text = "(PROBLEM: 'fpd auto-upgrade enable' is not in CMD 'show run fpd auto-upgrade' !)"
                             CGI_CLI.add_result(text, 'error')
 
                     ### 'admin show run fpd auto-upgrade' #################
@@ -3714,7 +3727,7 @@ try:
                             printall = printall)
 
                         if not 'fpd auto-upgrade enable' in rcmd_outputs5b[0]:
-                            text = "'fpd auto-upgrade enable' not in 'admin show run fpd auto-upgrade'!"
+                            text = "(PROBLEM: 'fpd auto-upgrade enable' is not in CMD 'admin show run fpd auto-upgrade' !)"
                             CGI_CLI.add_result(text, 'error')
 
 
@@ -3731,20 +3744,20 @@ try:
                     precheck_config = read_section_from_logfile('REMOTE_COMMAND: show running-config', precheck_file)
                     precheck_admin_config = read_section_from_logfile('REMOTE_COMMAND: admin show running-config', precheck_file)
 
-                    if not precheck_config:
-                        text = "precheck config is VOID!"
+                    if not precheck_config.strip():
+                        text = "(PROBLEM: precheck config is VOID !)"
                         CGI_CLI.add_result(text, 'error')
 
-                    if not precheck_admin_config:
-                        text = "precheck admin config is VOID!"
+                    if not precheck_admin_config.strip():
+                        text = "(PROBLEM: precheck admin config is VOID !)"
                         CGI_CLI.add_result(text, 'error')
 
-                    if not postcheck_config:
-                        text = "postcheck config is VOID!"
+                    if not postcheck_config.strip():
+                        text = "(PROBLEM: postcheck config is VOID !)"
                         CGI_CLI.add_result(text, 'error')
 
-                    if not postcheck_admin_config:
-                        text = "postcheck admin config is VOID!"
+                    if not postcheck_admin_config.strip():
+                        text = "(PROBLEM: postcheck admin config is VOID !)"
                         CGI_CLI.add_result(text, 'error')
 
 
@@ -3755,7 +3768,7 @@ try:
                         if all_ok: pass
                         else:
                             pass
-                            text = "configs difference PROBLEM[%s]" % (diff_result)
+                            text = "(PROBLEM: pre/post check configs difference:\n'%s')" % (diff_result)
                             CGI_CLI.add_result(text, 'error')
 
                     if precheck_admin_config and postcheck_admin_config:
@@ -3765,7 +3778,7 @@ try:
                         if all_ok: pass
                         else:
                             pass
-                            text = "admin configs difference PROBLEM[%s]" % (diff_result)
+                            text = "(PROBLEM: pre/post check admin configs difference:\n'%s')" % (diff_result)
                             CGI_CLI.add_result(text, 'error')
 
                     # ### FIND LAST PRECHECK???? CONFIG FILE !!! ################
@@ -3937,7 +3950,7 @@ try:
                 except: pass
 
                 if len(check_files) == 0:
-                    text = "No SMU files found in patch path %s !" % (target_patch_path)
+                    text = "(PROBLEM: pre/post check configs difference:\n'%s')No SMU files found in patch path %s !)" % (target_patch_path)
                     CGI_CLI.add_result(text, 'error')
 
                 if SCRIPT_ACTION == 'post':
@@ -3948,7 +3961,7 @@ try:
                             if check_part in JSON_DATA['active_packages'] \
                                 or check_part in JSON_DATA['admin_active_packages']: pass
                             else:
-                                text = "SMU file %s is not found in (admin) active packages!" % (check_file)
+                                text = "(PROBLEM: pre/post check configs difference:\n'%s')SMU file %s is not found in (admin) active packages !)" % (check_file)
                                 CGI_CLI.add_result(text, 'error')
 
 
@@ -3963,11 +3976,11 @@ try:
                 except: pass
 
                 if len(check_files) == 0:
-                    text = "Tar file %s not found !" % (target_sw_file)
+                    text = "(PROBLEM: Tar file %s not found !)" % (target_sw_file)
                     CGI_CLI.add_result(text, 'error')
 
                 if len(check_files) > 1:
-                    text = "Multiple tar files %s found in the same directory !" % (target_sw_file)
+                    text = "(WARNING: Multiple tar files %s found in the same directory !)" % (target_sw_file)
                     CGI_CLI.add_result(text, 'warning')
 
                 if SCRIPT_ACTION == 'post':
@@ -4013,7 +4026,7 @@ try:
             rcmd_outputs_log = RCMD.run_commands(device_cmds_log, printall = printall)
 
             if 'ERROR!' in rcmd_outputs_log[0].upper():
-                text = '"ERROR IN LAST 10lines of INSTALL LOG: ERROR!' + rcmd_outputs_log[0].split('ERROR!')[1]
+                text = "(PROBLEM: Error in install log: '%s' !)" % (rcmd_outputs_log[0].split('ERROR!')[1])
                 CGI_CLI.add_result(text, 'error')
 
 
@@ -4030,7 +4043,7 @@ try:
                     CGI_CLI.uprint('\nJSON_DATA = ' + print_text + '\n', \
                         color = 'blue', no_printall = not CGI_CLI.printall)
                 except Exception as e:
-                    CGI_CLI.add_result("JSON_PROBLEM[" + str(e) + "]", 'error')
+                    CGI_CLI.add_result("(PROBLEM: Json.dumps - " + str(e) + ")", 'error')
 
 
             ### DEBUG ##########################################################
