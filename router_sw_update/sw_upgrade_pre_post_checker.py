@@ -699,8 +699,14 @@ class CGI_CLI(object):
                     ### WORKARROUND FOR COLORING OF SIMPLE TEXT ###################
                     if color and not (tag or start_tag): tag = 'void';
                     if tag:
+                        if str(tag) == 'fatal':
+                            CGI_CLI.print_chunk('<%s style="color:magenta;">'%(tag),\
+                                raw_log = True, printall = printall_yes)
+                        if str(tag) == 'error':
+                            CGI_CLI.print_chunk('<%s style="color:red;">'%(tag),\
+                                raw_log = True, printall = printall_yes)
                         if str(tag) == 'warning':
-                            CGI_CLI.print_chunk('<%s style="color:red; background-color:yellow;">'%(tag),\
+                            CGI_CLI.print_chunk('<%s style="color:orange;">'%(tag),\
                                 raw_log = True, printall = printall_yes)
                         elif str(tag) == 'debug':
                             CGI_CLI.print_chunk('<%s style="color:dimgray; background-color:lightgray;">'%(tag),\
@@ -735,8 +741,10 @@ class CGI_CLI(object):
                     elif 'YELLOW' in color.upper():  text_color = CGI_CLI.bcolors.YELLOW
                     elif 'ORANGE' in color.upper():  text_color = CGI_CLI.bcolors.YELLOW
 
-                if tag == 'warning': text_color = CGI_CLI.bcolors.YELLOW
-                if tag == 'debug': text_color = CGI_CLI.bcolors.CYAN
+                if tag == 'fatal': text_color = 'FATAL: ' + CGI_CLI.bcolors.YELLOW
+                if tag == 'error': text_color = 'ERROR: ' + CGI_CLI.bcolors.YELLOW
+                if tag == 'warning': text_color = 'WARNING: ' + CGI_CLI.bcolors.YELLOW
+                if tag == 'debug': text_color = 'DEBUG: ' + CGI_CLI.bcolors.CYAN
 
                 CGI_CLI.print_chunk("%s%s%s%s%s" % \
                     (text_color, timestamp_string, print_name, print_text, \
@@ -2725,6 +2733,13 @@ def read_section_from_logfile(section = None, logfile = None, pre_tag = None):
         elif 'REMOTE_COMMAND:' in text:
             try: text = text.split('REMOTE_COMMAND:')[0].strip()
             except: pass
+
+        for splittext in ['FATAL: ', 'ERROR: ', 'WARNING: ', 'DEBUG: ']:
+            for i in range(len(text.split(splittext)) - 1):
+                if splittext in text:
+                    try: r_text = splittext + text.split(splittext)[1].split(CGI_CLI.bcolors.ENDC)[0]
+                    except: r_text = str()
+                    if r_text: text = text.replace(r_text,'')
 
     return text
 
