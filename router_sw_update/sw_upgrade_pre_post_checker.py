@@ -2519,7 +2519,7 @@ def detect_hw(device = None):
 
     cmd = {
               "cisco_ios":['show version'],
-              "cisco_xr":['show version'],
+              "cisco_xr":['show version', 'show instal active summary'],
               "huawei":['display version'],
               "juniper":['show version']
           }
@@ -2540,6 +2540,8 @@ def detect_hw(device = None):
         hw_info['hw_type'] = result.split(') processor')[0].splitlines()[-1].split('(')[0].strip()
         hw_info['hw_brand'] = 'CISCO'
         hw_info['drive_string'] = 'harddisk:'
+        if '-x64-' in results[1]: hw_info['x64'] = True
+        else: hw_info['x64'] = False
 
     elif RCMD.router_type == 'huawei':
         hw_info['sw_version'] = result.split('software, Version')[1].split()[0].strip()
