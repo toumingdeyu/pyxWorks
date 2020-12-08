@@ -741,7 +741,8 @@ class CGI_CLI(object):
                 CGI_CLI.print_chunk("%s%s%s%s%s" % \
                     (text_color, timestamp_string, print_name, print_text, \
                     CGI_CLI.bcolors.ENDC if text_color else str()), \
-                    raw_log = True, printall = printall_yes, no_newlines = no_newlines)
+                    raw_log = True, printall = printall_yes, no_newlines = no_newlines, \
+                    ommit_logging = ommit_logging)
 
             ### PRINT END OF TAGS #################################################
             if CGI_CLI.cgi_active and not raw:
