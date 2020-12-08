@@ -497,10 +497,10 @@ class CGI_CLI(object):
         escaped_text = str()
         if text and not pre_tag:
             escaped_text = str(text.replace('&amp;','&').\
+                replace('<br/>','\n').replace('<br>','\n').\
                 replace('&lt;','<').replace('&gt;','>').\
                 replace('&nbsp;',' ').\
-                replace('&quot;','"').replace('&apos;',"'").\
-                replace('<br/>','\n'))
+                replace('&quot;','"').replace('&apos;',"'"))
         elif text and pre_tag:
             ### OMMIT SPACES,QUOTES AND NEWLINES ##############################
             escaped_text = str(text.replace('&amp;','&').\
@@ -595,10 +595,10 @@ class CGI_CLI(object):
                 elif CGI_CLI.PRINT_JSON_RESULTS: print(print_text)
 
                 ### LOG JSON IN EACH CASE ###
-                if CGI_CLI.cgi_active: CGI_CLI.logtofile('<br/>\n<pre>\n', raw_log = raw_log, ommit_timestamp = True)
+                if CGI_CLI.cgi_active: CGI_CLI.logtofile('<br/>\n<pre>\n', raw_log = True, ommit_timestamp = True)
                 CGI_CLI.logtofile(msg = 'CGI_CLI.JSON_RESULTS = ' + \
-                    print_text, raw_log = raw_log, ommit_timestamp = True)
-                if CGI_CLI.cgi_active: CGI_CLI.logtofile('\n</pre>\n', raw_log = raw_log, ommit_timestamp = True)
+                    print_text, raw_log = True, ommit_timestamp = True)
+                if CGI_CLI.cgi_active: CGI_CLI.logtofile('\n</pre>\n', raw_log = True, ommit_timestamp = True)
 
             ### CLI & CGI MODES ###############################################
             if not CGI_CLI.JSON_MODE:
@@ -1756,8 +1756,9 @@ class RCMD(object):
                     if printall and buff_read and not RCMD.silent_mode:
                         CGI_CLI.uprint('%s' % (buff_read), no_newlines = True, \
                             ommit_logging = True)
-
-                    CGI_CLI.logtofile('%s' % (buff_read), ommit_timestamp = True)
+                    if CGI_CLI.cgi_active:
+                        CGI_CLI.logtofile('%s' % (buff_read), raw_log = True, ommit_timestamp = True)
+                    else: CGI_CLI.logtofile('%s' % (buff_read), ommit_timestamp = True)
 
                 ### IS ACTUAL LAST LINE PROMPT ? IF YES, CONFIRM ##############
                 dialog_list = ['?', '[Y/N]:', '[confirm]', '? [no]:']
@@ -2694,7 +2695,7 @@ def check_data_content(where = None, what_yes_in = None, what_not_in = None, \
 
 ##############################################################################
 
-def read_section_from_logfile(section = None, logfile = None):
+def read_section_from_logfile(section = None, logfile = None, pre_tag = None):
     """text and html logs are supported, logging of timestamps needed"""
     text, whole_file = str(), str()
 
@@ -2717,7 +2718,7 @@ def read_section_from_logfile(section = None, logfile = None):
                 if r_text: text = text.replace(r_text,'')
 
         if '.htmlog' in str(logfile):
-            text = CGI_CLI.html_deescape(text = text, pre_tag = False)
+            text = CGI_CLI.html_deescape(text = text, pre_tag = pre_tag)
 
         ### workarround for text mode log, split section by REMOTE COMMAND ###
         elif 'REMOTE_COMMAND:' in text:
@@ -3754,7 +3755,10 @@ try:
 
                     ### def POSTCHECK compare int #############################
                     postcheck_int = rcmd_outputs_int[0]
-                    precheck_int = read_section_from_logfile('REMOTE_COMMAND: show int description | exclude "admin-down"', CGI_CLI.JSON_RESULTS.get('precheck_logfile',str()))
+                    precheck_int = read_section_from_logfile('REMOTE_COMMAND: show int description | exclude "admin-down"', \
+                        CGI_CLI.JSON_RESULTS.get('precheck_logfile',str()), pre_tag = True)
+
+                    CGI_CLI.uprint('(PRECHECK INTERFACES:\n' + str(precheck_int) + ')', tag= 'debug', no_printall = not CGI_CLI.printall)
 
                     if postcheck_int and postcheck_int:
                         diff_result, all_ok = get_difference_string_from_string_or_list( \
@@ -3771,8 +3775,10 @@ try:
                     postcheck_config = rcmd_outputs_configs[0]
                     postcheck_admin_config = rcmd_outputs_configs[1]
 
-                    precheck_config = read_section_from_logfile('REMOTE_COMMAND: show running-config', CGI_CLI.JSON_RESULTS.get('precheck_logfile',str()))
-                    precheck_admin_config = read_section_from_logfile('REMOTE_COMMAND: admin show running-config', CGI_CLI.JSON_RESULTS.get('precheck_logfile',str()))
+                    precheck_config = read_section_from_logfile('REMOTE_COMMAND: show running-config', \
+                        CGI_CLI.JSON_RESULTS.get('precheck_logfile',str()), pre_tag = True)
+                    precheck_admin_config = read_section_from_logfile('REMOTE_COMMAND: admin show running-config', \
+                        CGI_CLI.JSON_RESULTS.get('precheck_logfile',str()), pre_tag = True)
 
                     if not precheck_config.strip():
                         text = "(PROBLEM: precheck config is VOID !)"
