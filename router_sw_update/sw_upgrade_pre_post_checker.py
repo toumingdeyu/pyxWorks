@@ -2690,12 +2690,6 @@ def check_data_content(where = None, what_yes_in = None, what_not_in = None, \
 ##############################################################################
 
 def read_section_from_logfile(section = None, logfile = None):
-    #@2020-12-03_12:33:47[47.95s]
-    #REMOTE_COMMAND: show running-config
-    #@2020-12-03_12:33:48[48.65s]
-    #REMOTE_COMMAND: admin show running-config
-    ### read_section_from_logfile('REMOTE_COMMAND: admin show running-config', 'a.htmlog')
-
     """text and html logs are supported, logging of timestamps needed"""
     text, whole_file = str(), str()
 
@@ -2703,6 +2697,7 @@ def read_section_from_logfile(section = None, logfile = None):
         with open(logfile, 'r') as file:
             whole_file = file.read()
 
+    ### first try - section split by '@20' timestamp ###
     if whole_file and section:
         try: text = whole_file.split(section)[1].split('@20')[0].strip().\
             replace('<p>','').replace('<pre>','').replace('</p>','').\
@@ -2718,6 +2713,13 @@ def read_section_from_logfile(section = None, logfile = None):
 
         if '.htmlog' in str(logfile):
             text = CGI_CLI.html_deescape(text = text, pre_tag = True)
+
+        ### workarround for text mode log, split section by REMOTE COMMAND ###
+        if 'REMOTE_COMMAND:' in section:
+            text = text.split('REMOTE_COMMAND:')[1].strip()
+        elif 'REMOTE_COMMAND:' in text:
+            text = text.split('REMOTE_COMMAND:')[0].strip()
+
     return text
 
 ##############################################################################
