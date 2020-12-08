@@ -174,7 +174,7 @@ class CGI_CLI(object):
         logfile_name = copy.deepcopy(CGI_CLI.logfilename)
 
         ### PRINT RESULTS #############################################################
-        CGI_CLI.uprint_results()
+        CGI_CLI.print_results()
 
         ### SEND EMAIL WITH LOGFILE ###################################################
         if logfile_name and CGI_CLI.data.get("send_email"):
@@ -243,7 +243,7 @@ class CGI_CLI(object):
         CGI_CLI.JSON_MODE = json_mode
         CGI_CLI.JSON_HEADERS = json_headers
         CGI_CLI.PRINT_JSON_RESULTS = False
-        CGI_CLI.uprint_results_printed = None
+        CGI_CLI.print_results_printed = None
         CGI_CLI.JSON_RESULTS = collections.OrderedDict()
         CGI_CLI.USERNAME, CGI_CLI.PASSWORD = None, None
         CGI_CLI.result_tag = 'h3'
@@ -554,8 +554,7 @@ class CGI_CLI(object):
                 no_printall = not CGI_CLI.printall)
 
     @staticmethod
-    def uprint_results(raw_log = None, sort_keys = None,\
-        ommit_logging = None, printall = None):
+    def print_results(raw_log = None, sort_keys = None):
 
         print_text = None
 
@@ -571,13 +570,37 @@ class CGI_CLI(object):
             else: CGI_CLI.JSON_RESULTS['result'] = 'warnings'
         else: CGI_CLI.JSON_RESULTS['result'] = 'failure'
 
+        if CGI_CLI.JSON_RESULTS.get('precheck_logfile',str()):
+             CGI_CLI.JSON_RESULTS['precheck_link'] = CGI_CLI.make_loglink(CGI_CLI.JSON_RESULTS.get('precheck_logfile',str()))
+
         ### DEBUG FAKE_SUCCESS ###
         if CGI_CLI.FAKE_SUCCESS: CGI_CLI.JSON_RESULTS['result'] = 'success'
 
         if CGI_CLI.logfilename:
             CGI_CLI.JSON_RESULTS['logfile_link'] = CGI_CLI.make_loglink(CGI_CLI.logfilename)
 
-        if not CGI_CLI.uprint_results_printed:
+        if not CGI_CLI.print_results_printed:
+            ### ALL MODES - CGI, JSON, CLI ####################################
+            if isinstance(CGI_CLI.JSON_RESULTS, (dict,collections.OrderedDict,list,tuple)):
+                try: print_text = str(json.dumps(CGI_CLI.JSON_RESULTS, indent = 2, sort_keys = sort_keys))
+                except Exception as e:
+                    CGI_CLI.print_chunk('{"errors": "JSON_PROBLEM[' + str(e) + str(CGI_CLI.JSON_RESULTS) + ']"}', printall = True)
+
+            if print_text:
+                ### PRINT DIFFERENTLY ###
+                if CGI_CLI.cgi_active and CGI_CLI.PRINT_JSON_RESULTS:
+                    CGI_CLI.uprint('<br/>\n<pre>\nCGI_CLI.JSON_RESULTS = ' + print_text + \
+                        '\n</pre>\n', raw = True, ommit_logging = True)
+                elif CGI_CLI.JSON_MODE: print(print_text)
+                elif CGI_CLI.PRINT_JSON_RESULTS: print(print_text)
+
+                ### LOG JSON IN EACH CASE ###
+                if CGI_CLI.cgi_active: CGI_CLI.logtofile('<br/>\n<pre>\n', raw_log = raw_log, ommit_timestamp = True)
+                CGI_CLI.logtofile(msg = 'CGI_CLI.JSON_RESULTS = ' + \
+                    print_text, raw_log = raw_log, ommit_timestamp = True)
+                if CGI_CLI.cgi_active: CGI_CLI.logtofile('\n</pre>\n', raw_log = raw_log, ommit_timestamp = True)
+
+            ### CLI & CGI MODES ###############################################
             if not CGI_CLI.JSON_MODE:
                 if len(CGI_CLI.result_list) > 0:
                     CGI_CLI.uprint('\n\nRESULT SUMMARY:', tag = 'h1')
@@ -600,26 +623,6 @@ class CGI_CLI(object):
                     CGI_CLI.uprint("RESULT: " + CGI_CLI.JSON_RESULTS.get('result', str()),\
                         tag = 'h1', color = res_color)
 
-            else:
-                if isinstance(CGI_CLI.JSON_RESULTS, (dict,collections.OrderedDict,list,tuple)):
-                    try: print_text = str(json.dumps(CGI_CLI.JSON_RESULTS, indent = 2, sort_keys = sort_keys))
-                    except Exception as e:
-                        CGI_CLI.print_chunk('{"errors": "JSON_PROBLEM[' + str(e) + ']"}', printall = True)
-
-                if print_text:
-                    if CGI_CLI.cgi_active:
-                        CGI_CLI.uprint('<br/>\n<pre>\nCGI_CLI.JSON_RESULTS = ' + print_text + \
-                            '\n</pre>\n', raw = True)
-                    else:
-                        print(print_text)
-                        if not ommit_logging:
-                            CGI_CLI.logtofile(msg = 'CGI_CLI.JSON_RESULTS = ' + \
-                                print_text, raw_log = raw_log, ommit_timestamp = True)
-                else:
-                    print(str(CGI_CLI.JSON_RESULTS))
-                    if not ommit_logging: CGI_CLI.logtofile(msg = str(CGI_CLI.JSON_RESULTS), raw_log = raw_log, \
-                                              ommit_timestamp = True)
-
             ### LOGFILE LINK ##############################################
             logfile_name = copy.deepcopy(CGI_CLI.logfilename)
             logfilename_link = CGI_CLI.make_loglink(CGI_CLI.logfilename)
@@ -638,7 +641,7 @@ class CGI_CLI(object):
                     CGI_CLI.uprint(' ==> File %s created.\n\n' % (logfilename_link),printall = True)
             CGI_CLI.set_logfile(logfilename = None)
 
-        CGI_CLI.uprint_results_printed = True
+        CGI_CLI.print_results_printed = True
 
 
     @staticmethod
@@ -1163,13 +1166,13 @@ class CGI_CLI(object):
 
     @staticmethod
     def make_loglink(file = None):
-        logviewer = file
+        logviewer = copy.deepcopy(file)
         if file:
             iptac_server = str(subprocess.check_output('hostname').decode('utf-8')).strip()
             if iptac_server == 'iptac5': urllink = 'https://10.253.58.126/cgi-bin/'
             else: urllink = 'https://%s/cgi-bin/' % (iptac_server)
-            if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, file)
-            else: logviewer = './logviewer.py?logfile=%s' % (file)
+            if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, copy.deepcopy(file))
+            else: logviewer = './logviewer.py?logfile=%s' % (copy.deepcopy(file))
         return logviewer
 
 
@@ -1812,7 +1815,7 @@ class RCMD(object):
                 if not command_counter_100msec % 100:
                     if CGI_CLI.cgi_active:
                         CGI_CLI.uprint("<script>console.log('10s...');</script>", \
-                            raw = True)
+                            raw = True, ommit_logging = True)
                         #CGI_CLI.logtofile('[+10sec_MARK]\n')
 
                     ### printall or RCMD.printall
@@ -2376,7 +2379,7 @@ def generate_logfilename(prefix = None, USERNAME = None, pre_suffix = None, \
 ###############################################################################
 
 def find_last_logfile(prefix = None, USERNAME = None, suffix = None, directory = None, \
-    latest = None , printall = None, action_text = None):
+    latest = None , action_text = None):
     log_file = str()
     if not directory:
         try:    DIR         = os.environ['HOME']
@@ -2403,7 +2406,7 @@ def find_last_logfile(prefix = None, USERNAME = None, suffix = None, directory =
             if filecreation > (os.path.getctime(most_recent_shut)):
                 most_recent_shut = item
         log_file = most_recent_shut
-    if printall and log_file: CGI_CLI.uprint('FOUND LAST %s LOGFILE: %s' % (action_text.upper() if action_text else str(), str(log_file)), color = 'blue')
+    if log_file: CGI_CLI.uprint('FOUND LAST %s LOGFILE: %s' % (action_text.upper() if action_text else str(), str(log_file)), tag = 'debug', no_printall = not CGI_CLI.printall)
     return log_file
 
 
@@ -2694,8 +2697,8 @@ def read_section_from_logfile(section = None, logfile = None):
     text, whole_file = str(), str()
 
     if section and logfile:
-        with open(logfile, 'r') as file:
-            whole_file = file.read()
+        with open(logfile, 'r') as rfile:
+            whole_file = rfile.read()
 
     ### first try - section split by '@20' timestamp ###
     if whole_file and section:
@@ -2712,15 +2715,20 @@ def read_section_from_logfile(section = None, logfile = None):
                 if r_text: text = text.replace(r_text,'')
 
         if '.htmlog' in str(logfile):
-            text = CGI_CLI.html_deescape(text = text, pre_tag = True)
+            text = CGI_CLI.html_deescape(text = text, pre_tag = False)
 
         ### workarround for text mode log, split section by REMOTE COMMAND ###
-        if 'REMOTE_COMMAND:' in section:
-            text = text.split('REMOTE_COMMAND:')[1].strip()
         elif 'REMOTE_COMMAND:' in text:
-            text = text.split('REMOTE_COMMAND:')[0].strip()
+            try: text = text.split('REMOTE_COMMAND:')[0].strip()
+            except: pass
 
     return text
+
+##############################################################################
+# print(read_section_from_logfile('REMOTE_COMMAND: show int description | exclude "admin-down"', \
+    # '/var/www/cgi-bin/logs/PARTR0-2020124-090556-sw_upgrade_pre_post_checker-mkrupa-pre.htmlog'))
+# sys.exit(0)
+
 
 ##############################################################################
 class bcolors:
@@ -3190,7 +3198,7 @@ try:
         html_extention = 'htm' if CGI_CLI.cgi_active else str()
         precheck_file = find_last_logfile(prefix = '_'.join(device_list).upper(), \
             USERNAME = USERNAME, suffix = 'pre.%slog' % (html_extention), directory = None, \
-            latest = None , printall = None, action_text = 'precheck')
+            latest = None , action_text = 'precheck')
         if precheck_file:
             CGI_CLI.JSON_RESULTS['precheck_logfile'] = '%s' % (precheck_file)
         else: exit_due_to_error = True
@@ -3716,12 +3724,12 @@ try:
 
 
             ###################################################################
-            ### def PRECHECK commands ########################################
+            ### def PRECHECK commands #########################################
             ###################################################################
             if SCRIPT_ACTION == 'pre':
                 if RCMD.router_type == 'cisco_xr':
 
-                    ### def 'show int description | exclude "admin-down"' #########
+                    ### def 'show int description | exclude "admin-down"' #####
                     device_cmds = { 'cisco_xr': [ 'show int description | exclude "admin-down"' ] }
 
                     rcmd_outputs = RCMD.run_commands(device_cmds, \
@@ -3738,13 +3746,13 @@ try:
                     ### def 'show int description | exclude "admin-down"' #########
                     device_cmds = { 'cisco_xr': [ 'show int description | exclude "admin-down"' ] }
 
-                    rcmd_outputs = RCMD.run_commands(device_cmds, \
+                    rcmd_outputs_int = RCMD.run_commands(device_cmds, \
                         long_lasting_mode = True, \
                         printall = printall)
 
-                    ### def POSTCHECK compare configs #########################
-                    postcheck_int = rcmd_outputs_configs[0]
-                    precheck_int = read_section_from_logfile('REMOTE_COMMAND: show int description | exclude "admin-down"', precheck_file)
+                    ### def POSTCHECK compare int #############################
+                    postcheck_int = rcmd_outputs_int[0]
+                    precheck_int = read_section_from_logfile('REMOTE_COMMAND: show int description | exclude "admin-down"', CGI_CLI.JSON_RESULTS.get('precheck_logfile',str()))
 
                     if postcheck_int and postcheck_int:
                         diff_result, all_ok = get_difference_string_from_string_or_list( \
@@ -3761,8 +3769,8 @@ try:
                     postcheck_config = rcmd_outputs_configs[0]
                     postcheck_admin_config = rcmd_outputs_configs[1]
 
-                    precheck_config = read_section_from_logfile('REMOTE_COMMAND: show running-config', precheck_file)
-                    precheck_admin_config = read_section_from_logfile('REMOTE_COMMAND: admin show running-config', precheck_file)
+                    precheck_config = read_section_from_logfile('REMOTE_COMMAND: show running-config', CGI_CLI.JSON_RESULTS.get('precheck_logfile',str()))
+                    precheck_admin_config = read_section_from_logfile('REMOTE_COMMAND: admin show running-config', CGI_CLI.JSON_RESULTS.get('precheck_logfile',str()))
 
                     if not precheck_config.strip():
                         text = "(PROBLEM: precheck config is VOID !)"
