@@ -2734,13 +2734,19 @@ def read_section_from_logfile(section = None, logfile = None, pre_tag = None):
             try: text = text.split('REMOTE_COMMAND:')[0].strip()
             except: pass
 
+        ### workarround for CLI color mode ###
+        text = text.replace('\r','')
         for splittext in ['FATAL: ', 'ERROR: ', 'WARNING: ', 'DEBUG: ']:
             for i in range(len(text.split(splittext)) - 1):
+                r_text = str()
+                if splittext in text and '\u001b[0m' in text:
+                    try: r_text = splittext + text.split(splittext)[1].split('\u001b[0m')[0]
+                    except: pass
                 if splittext in text:
-                    try: r_text = splittext + text.split(splittext)[1].split(CGI_CLI.bcolors.ENDC)[0]
-                    except: r_text = str()
-                    if r_text: text = text.replace(r_text,'')
-
+                    try: r_text = splittext + text.split(splittext)[1].splitlines()[0]
+                    except: pass
+                if r_text:
+                    text = text.replace(r_text,'').replace('\n\n','\n')
     return text
 
 ##############################################################################
@@ -3770,9 +3776,9 @@ try:
                         printall = printall)
 
                     ### def POSTCHECK compare int #############################
-                    postcheck_int = rcmd_outputs_int[0]
+                    postcheck_int = rcmd_outputs_int[0].strip()
                     precheck_int = read_section_from_logfile('REMOTE_COMMAND: show int description | exclude "admin-down"', \
-                        CGI_CLI.JSON_RESULTS.get('precheck_logfile',str()), pre_tag = True)
+                        CGI_CLI.JSON_RESULTS.get('precheck_logfile',str()), pre_tag = True).strip()
 
                     CGI_CLI.uprint('(PRECHECK INTERFACES:\n' + str(precheck_int) + ')', tag= 'debug', no_printall = not CGI_CLI.printall)
 
@@ -4002,7 +4008,7 @@ try:
                 except: pass
 
                 if len(check_files) == 0:
-                    text = "(PROBLEM: pre/post check configs difference:\n'%s')No SMU files found in patch path %s !)" % (target_patch_path)
+                    text = "(PROBLEM: No SMU files found in patch path %s !)" % (target_patch_path)
                     CGI_CLI.add_result(text, 'error')
 
                 if SCRIPT_ACTION == 'post':
@@ -4013,7 +4019,7 @@ try:
                             if check_part in JSON_DATA['active_packages'] \
                                 or check_part in JSON_DATA['admin_active_packages']: pass
                             else:
-                                text = "(PROBLEM: pre/post check configs difference:\n'%s')SMU file %s is not found in (admin) active packages !)" % (check_file)
+                                text = "(PROBLEM: SMU file %s is not found in (admin) active packages !)" % (check_file)
                                 CGI_CLI.add_result(text, 'error')
 
 
