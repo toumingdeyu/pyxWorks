@@ -3771,9 +3771,7 @@ try:
                     ### def 'show int description | exclude "admin-down"' #########
                     device_cmds = { 'cisco_xr': [ 'show int description | exclude "admin-down"' ] }
 
-                    rcmd_outputs_int = RCMD.run_commands(device_cmds, \
-                        long_lasting_mode = True, \
-                        printall = printall)
+                    rcmd_outputs_int = RCMD.run_commands(device_cmds, printall = printall)
 
                     ### def POSTCHECK compare int #############################
                     postcheck_int = rcmd_outputs_int[0].strip()
