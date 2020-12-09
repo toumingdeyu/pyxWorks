@@ -3910,7 +3910,7 @@ try:
                         long_lasting_mode = True, \
                         printall = printall)
 
-                    try: JSON_DATA['verify_id_nr'] = rcmd_outputs_inst[0].split('Install operation ')[1].split(' started').strip()
+                    try: JSON_DATA['verify_id_nr'] = rcmd_outputs_inst[0].split('Install operation ')[1].split(' started')[0].strip()
                     except: pass
 
                     if JSON_DATA.get('verify_id_nr',str()):
