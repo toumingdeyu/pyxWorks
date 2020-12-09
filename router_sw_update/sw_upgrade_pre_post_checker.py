@@ -3159,6 +3159,7 @@ try:
         CGI_CLI.formprint(interface_menu_list + [ \
             {'radio':['precheck','postcheck']},'<br/>',\
             {'checkbox':'json_mode'}, '<br/>',\
+            {'checkbox':'json_headers'}, '<br/>',\
             {'checkbox':'print_json_results'}, '<br/>',\
             '<br/><b><u>',{'checkbox':'send_email'},'</u></b><br/>',\
             {'checkbox':'chunked_mode'}, '<br/>',\
