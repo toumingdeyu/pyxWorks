@@ -4105,7 +4105,7 @@ try:
 
 
             ### DEBUG ##########################################################
-            CGI_CLI.FAKE_SUCCESS = True
+            ### CGI_CLI.FAKE_SUCCESS = True
 
 except SystemExit: pass
 except:
