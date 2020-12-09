@@ -3915,7 +3915,7 @@ try:
 
                     if JSON_DATA.get('verify_id_nr',str()):
                         ### wait till no install packages in progress ###
-                        for time in range(10):
+                        for times in range(10):
                             device_cmds = { 'cisco_xr': [ 'show install request' ] }
 
                             rcmd_outputs = RCMD.run_commands(device_cmds, \
@@ -3929,7 +3929,7 @@ try:
 
             elif JSON_DATA.get('remove_inactive_id_nr',str()) or JSON_DATA.get('admin_remove_inactive_id_nr',str()) in rcmd_outputs[0]:
                 ### wait till no install packages in progress ###
-                for time in range(10):
+                for times in range(10):
                     device_cmds = { 'cisco_xr': [ 'show install request' ] }
 
                     rcmd_outputs = RCMD.run_commands(device_cmds, \
