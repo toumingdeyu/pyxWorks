@@ -237,15 +237,15 @@ class CGI_CLI(object):
     @staticmethod
     def init_cgi(chunked = None, css_style = None, newline = None, \
         timestamp = None, disable_page_reload_link = None, no_title = None, \
-        json_mode = None, json_headers = None):
+        json_mode = None, json_headers = None, read_only = None, fake_success = None):
         """
         """
         try: CGI_CLI.sys_stdout_encoding = sys.stdout.encoding
         except: CGI_CLI.sys_stdout_encoding = None
         if not CGI_CLI.sys_stdout_encoding: CGI_CLI.sys_stdout_encoding = 'UTF-8'
         CGI_CLI.MENU_DISPLAYED = False
-        CGI_CLI.FAKE_SUCCESS = False
-        CGI_CLI.READ_ONLY = False
+        CGI_CLI.FAKE_SUCCESS = fake_success
+        CGI_CLI.READ_ONLY = read_only
         CGI_CLI.JSON_MODE = json_mode
         CGI_CLI.JSON_HEADERS = json_headers
         CGI_CLI.PRINT_JSON_RESULTS = False
@@ -3083,7 +3083,8 @@ try:
 
     SCRIPT_ACTION = str()
 
-    USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = None, css_style = CSS_STYLE, json_mode = False)
+    USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = None, css_style = CSS_STYLE, \
+        json_mode = False, read_only = True, fake_success = True)
 
     LCMD.init()
 
@@ -4114,9 +4115,6 @@ try:
                 except Exception as e:
                     CGI_CLI.add_result("(PROBLEM: Json.dumps - " + str(e) + ")", 'error')
 
-
-            ### DEBUG ##########################################################
-            CGI_CLI.FAKE_SUCCESS = True
 
 except SystemExit: pass
 except:
