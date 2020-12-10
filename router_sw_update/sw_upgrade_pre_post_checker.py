@@ -3981,8 +3981,7 @@ try:
             device_cmds3 = { 'cisco_xr':[ 'show install inactive summary' ] }
 
             rcmd_outputs3 = RCMD.run_commands(device_cmds3, \
-                autoconfirm_mode = True, \
-                printall = printall)
+                long_lasting_mode = True, printall = printall)
 
             inactive_packages = []
             if 'No inactive package(s) in software repository' in rcmd_outputs3[0]:
@@ -3999,8 +3998,7 @@ try:
             device_cmds3 = { 'cisco_xr':[ 'admin show install inactive summary' ] }
 
             rcmd_outputs3 = RCMD.run_commands(device_cmds3, \
-                autoconfirm_mode = True, \
-                printall = printall)
+                long_lasting_mode = True, printall = printall)
 
             inactive_packages = []
             if 'Inactive Packages: 0' in rcmd_outputs3[0]:
@@ -4100,7 +4098,7 @@ try:
             rcmd_outputs_log = RCMD.run_commands(device_cmds_log, printall = printall)
 
             if 'ERROR!' in rcmd_outputs_log[0].upper():
-                text = "(PROBLEM: Error in install log: '%s' !)" % (rcmd_outputs_log[0].split('ERROR!')[1])
+                text = "(PROBLEM: Error in end of install log: '%s' !)" % (rcmd_outputs_log[0].split('ERROR!')[1])
                 CGI_CLI.add_result(text, 'error')
 
 
