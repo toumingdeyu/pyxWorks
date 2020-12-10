@@ -3534,9 +3534,9 @@ try:
 
                 active_packages = []
                 if 'Active Packages:' in rcmd_outputs4b[0]:
-                    number_of_active_packages = int(rcmd_outputs4[0].split('Active Packages:')[1].split()[0])
+                    number_of_active_packages = int(rcmd_outputs4b[0].split('Active Packages:')[1].split()[0])
                     for i in range(number_of_active_packages):
-                         active_packages.append(rcmd_outputs4[0].split('Active Packages:')[1].splitlines()[i + 1].split()[0].strip())
+                         active_packages.append(rcmd_outputs4b[0].split('Active Packages:')[1].splitlines()[i + 1].split()[0].strip())
                     JSON_DATA['admin_active_packages'] = active_packages
 
 
