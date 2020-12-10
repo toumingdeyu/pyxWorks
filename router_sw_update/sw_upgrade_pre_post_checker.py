@@ -166,6 +166,11 @@ class CGI_CLI(object):
                             action = "store", dest = 'target_patch_path',
                             default = str(),
                             help = "target patch SMU's path for os upgrade")
+        parser.add_argument("--read_only",
+                            action = "store_true",
+                            default = False,
+                            dest = 'read_only',
+                            help = "no fpd auto-upgrade, no inactive remove packages, no config changes")
         args = parser.parse_args()
         return args
 
@@ -240,6 +245,7 @@ class CGI_CLI(object):
         if not CGI_CLI.sys_stdout_encoding: CGI_CLI.sys_stdout_encoding = 'UTF-8'
         CGI_CLI.MENU_DISPLAYED = False
         CGI_CLI.FAKE_SUCCESS = False
+        CGI_CLI.READ_ONLY = False
         CGI_CLI.JSON_MODE = json_mode
         CGI_CLI.JSON_HEADERS = json_headers
         CGI_CLI.PRINT_JSON_RESULTS = False
@@ -280,6 +286,7 @@ class CGI_CLI(object):
             if value and variable == "json_mode": CGI_CLI.JSON_MODE = value
             if value and variable == "print_json_results": CGI_CLI.PRINT_JSON_RESULTS = value
             if value and variable == "json_headers": CGI_CLI.JSON_HEADERS = value
+            if value and variable == "read_only": CGI_CLI.READ_ONLY = value
             if value and variable == "hash":
                 CGI_CLI.USERNAME, CGI_CLI.PASSWORD = CGI_CLI.get_credentials(CGI_CLI.hash_decrypt(value))
 
@@ -319,6 +326,7 @@ class CGI_CLI(object):
                 if value and variable == "json_mode": CGI_CLI.JSON_MODE = value
                 if value and variable == "print_json_results": CGI_CLI.PRINT_JSON_RESULTS = value
                 if value and variable == "json_headers": CGI_CLI.JSON_HEADERS = value
+                if value and variable == "read_only": CGI_CLI.READ_ONLY = value
                 if value and variable == "hash":
                     CGI_CLI.USERNAME, CGI_CLI.PASSWORD = CGI_CLI.get_credentials(CGI_CLI.hash_decrypt(value))
 
@@ -337,6 +345,7 @@ class CGI_CLI(object):
             if value and variable == "json_mode": CGI_CLI.JSON_MODE = value
             if value and variable == "print_json_results": CGI_CLI.PRINT_JSON_RESULTS = value
             if value and variable == "json_headers": CGI_CLI.JSON_HEADERS = value
+            if value and variable == "read_only": CGI_CLI.READ_ONLY = value
             if value and variable == "hash":
                 CGI_CLI.USERNAME, CGI_CLI.PASSWORD = CGI_CLI.get_credentials(CGI_CLI.hash_decrypt(value))
 
@@ -3160,6 +3169,7 @@ try:
             {'radio':['precheck','postcheck']},'<br/>',\
             {'checkbox':'json_mode'}, '<br/>',\
             {'checkbox':'json_headers'}, '<br/>',\
+            {'checkbox':'read_only'}, '<br/>',\
             {'checkbox':'print_json_results'}, '<br/>',\
             '<br/><b><u>',{'checkbox':'send_email'},'</u></b><br/>',\
             {'checkbox':'chunked_mode'}, '<br/>',\
@@ -3452,17 +3462,18 @@ try:
                             if package_line.strip():
                                 inactive_packages.append(str(package_line.strip()))
 
-                    device_cmds2 = {
-                        'cisco_xr':[ 'install remove inactive all' ],
-                    }
+                    if not CGI_CLI.READ_ONLY:
+                        device_cmds2 = {
+                            'cisco_xr':[ 'install remove inactive all' ],
+                        }
 
-                    rcmd_outputs2 = RCMD.run_commands(device_cmds2, \
-                        autoconfirm_mode = True, \
-                        printall = printall)
+                        rcmd_outputs2 = RCMD.run_commands(device_cmds2, \
+                            autoconfirm_mode = True, \
+                            printall = printall)
 
-                    try: JSON_DATA['remove_inactive_id_nr'] = copy.deepcopy(rcmd_outputs2[0].split('Install operation ')[1].split(' started').strip())
-                    except: pass
-                    ### INSTEAD OF WAITING RECHECK IS DONE ON THE END ###
+                        try: JSON_DATA['remove_inactive_id_nr'] = copy.deepcopy(rcmd_outputs2[0].split('Install operation ')[1].split(' started').strip())
+                        except: pass
+                        ### INSTEAD OF WAITING RECHECK IS DONE ON THE END ###
 
                 ### admin show install inactive sum ###
                 device_cmds = {
@@ -3482,17 +3493,18 @@ try:
                             if package_line.strip():
                                 inactive_packages.append(str(package_line.strip()))
 
-                    device_cmds2 = {
-                        'cisco_xr':[ 'admin install remove inactive all' ],
-                    }
+                    if not CGI_CLI.READ_ONLY:
+                        device_cmds2 = {
+                            'cisco_xr':[ 'admin install remove inactive all' ],
+                        }
 
-                    rcmd_outputs2 = RCMD.run_commands(device_cmds2, \
-                        autoconfirm_mode = True, \
-                        printall = printall)
+                        rcmd_outputs2 = RCMD.run_commands(device_cmds2, \
+                            autoconfirm_mode = True, \
+                            printall = printall)
 
-                    try: JSON_DATA['admin_remove_inactive_id_nr'] = copy.deepcopy(rcmd_outputs2[0].split('Install operation ')[1].split(' started').strip())
-                    except: pass
-                    ### INSTEAD OF WAITING RECHECK IS DONE ON THE END ###
+                        try: JSON_DATA['admin_remove_inactive_id_nr'] = copy.deepcopy(rcmd_outputs2[0].split('Install operation ')[1].split(' started').strip())
+                        except: pass
+                        ### INSTEAD OF WAITING RECHECK IS DONE ON THE END ###
 
                 ### def show install active summary #######################
                 device_cmds4 = {
@@ -3692,7 +3704,7 @@ try:
                         autoconfirm_mode = True, \
                         printall = printall)
 
-                    if not 'fpd auto-upgrade enable' in rcmd_outputs[0]:
+                    if not CGI_CLI.READ_ONLY and not 'fpd auto-upgrade enable' in rcmd_outputs[0]:
 
                         xr_cmds = {'cisco_xr': [
                                 '!',
@@ -3724,7 +3736,7 @@ try:
                         autoconfirm_mode = True, \
                         printall = printall)
 
-                    if not 'fpd auto-upgrade enable' in rcmd_outputs[0]:
+                    if not CGI_CLI.READ_ONLY and not 'fpd auto-upgrade enable' in rcmd_outputs[0]:
                         xr_cmds = {'cisco_xr': [
                                 '!',
                                 'admin',
