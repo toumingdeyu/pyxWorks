@@ -213,13 +213,11 @@ try:
                 print('<html><head></head><body><pre>' + \
                     unix_colors_to_html_colors(html_colorizer(html_escape(logfile_content, pre_tag = True))) \
                     + '</pre></html></body>')
-    except: pass
-
-    if not file_opened:
-        print('<html><head></head><body><pre>' + 'Logfile %s not found.' % \
-            (logfile) + '</pre></html></body>')
+    except Exception as e: 
+        print('<html><head></head><body><pre>' + 'Logfile %s access problem:[%s]' % \
+            (logfile, e) + '</pre></html></body>')
 
 except SystemExit: pass
 except:
     traceback_found = True
-    print(traceback.format_exc())
+    print('<html><head></head><body><pre>' + traceback.format_exc() + '</pre></html></body>')
