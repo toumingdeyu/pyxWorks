@@ -576,7 +576,9 @@ class CGI_CLI(object):
         if len(CGI_CLI.JSON_RESULTS.get('errors',str())) == 0:
             if len(CGI_CLI.JSON_RESULTS.get('warnings',str())) == 0:
                 CGI_CLI.JSON_RESULTS['result'] = 'success'
-            else: CGI_CLI.JSON_RESULTS['result'] = 'warnings'
+            else:
+                #CGI_CLI.JSON_RESULTS['result'] = 'warnings'
+                CGI_CLI.JSON_RESULTS['result'] = 'success'
         else: CGI_CLI.JSON_RESULTS['result'] = 'failure'
 
         if CGI_CLI.JSON_RESULTS.get('precheck_logfile',str()):
