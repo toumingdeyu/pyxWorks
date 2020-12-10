@@ -3199,7 +3199,8 @@ try:
     logfilename = generate_logfilename(
         prefix = '_'.join(device_list).upper(), \
         USERNAME = USERNAME, pre_suffix = '-' + SCRIPT_ACTION, \
-        suffix = '%slog' % (html_extention))
+        suffix = '%slog' % (html_extention),
+        directory = '/var/www/cgi-bin')
     CGI_CLI.JSON_RESULTS['logfile'] = logfilename
     #except: pass
 
