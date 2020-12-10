@@ -3833,7 +3833,7 @@ try:
                     if precheck_config and postcheck_config:
                         diff_result, all_ok = get_difference_string_from_string_or_list( \
                             precheck_config.strip(), postcheck_config.strip(),
-                            ignore_list = default_ignoreline_list + ['set-overload-bit','fpd auto-upgrade enable','Last configuration change'])
+                            ignore_list = default_ignoreline_list + ['set-overload-bit','fpd auto-upgrade enable','Last configuration change','Configuration version ='])
                         if all_ok: pass
                         else:
                             pass
@@ -4116,7 +4116,7 @@ try:
 
 
             ### DEBUG ##########################################################
-            ### CGI_CLI.FAKE_SUCCESS = True
+            CGI_CLI.FAKE_SUCCESS = True
 
 except SystemExit: pass
 except:
