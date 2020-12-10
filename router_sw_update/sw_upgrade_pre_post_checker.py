@@ -3622,7 +3622,7 @@ try:
                 device_cmds = { 'cisco_xr': [ 'clear configuration inconsistency' ] }
 
                 rcmd_outputs = RCMD.run_commands(device_cmds, \
-                    printall = printall)
+                    long_lasting_mode = True, printall = printall)
 
                 for line in rcmd_outputs[0].splitlines():
                     if '...' in line:
@@ -3776,8 +3776,7 @@ try:
                     device_cmds = { 'cisco_xr': [ 'show int description | exclude "admin-down"' ] }
 
                     rcmd_outputs = RCMD.run_commands(device_cmds, \
-                        long_lasting_mode = True, \
-                        printall = printall)
+                        long_lasting_mode = True, printall = printall)
 
 
             ###################################################################
