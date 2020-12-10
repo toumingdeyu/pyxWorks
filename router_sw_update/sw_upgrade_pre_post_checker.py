@@ -3685,8 +3685,12 @@ try:
                     try:
                         for fpd_line in rcmd_outputs[0].split('Running Programd')[1].splitlines():
                             if fpd_line.strip() and not '-----' in fpd_line:
-                                if fpd_line.strip().split()[3] != 'CURRENT':
-                                    fpd_problems.append(fpd_line.strip())
+                                try:
+                                    ### NCS has current in 4th column , XRv in 3rd ###
+                                    if fpd_line.strip().split()[3] == 'CURRENT' \
+                                        or fpd_line.strip().split()[4] == 'CURRENT': pass
+                                    else: fpd_problems.append(fpd_line.strip())
+                                except: pass
                     except: pass
 
                     if len(fpd_problems) > 0:
