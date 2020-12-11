@@ -71,11 +71,11 @@ def unix_colors_to_html_colors(text = None):
         for line in text.splitlines():
             line = line.strip().replace(bcolors.DEFAULT,'').\
                 replace(bcolors.HEADER,'').replace(bcolors.BOLD,'').\
-                replace(bcolors.UNDERLINE,'').replace(bcolors.ENDC,'')
+                replace(bcolors.UNDERLINE,'')
 
             ### ONLY ONE P TAG PER LINE #######################################
             color = 'black'
-            if '\033[' in line:
+            if '\033[9' in line:
                 if bcolors.CYAN in line:
                     color = 'cyan'
                     line = line.replace(bcolors.CYAN,'')
@@ -97,8 +97,9 @@ def unix_colors_to_html_colors(text = None):
                 if bcolors.GREY in line or bcolors.GRAY in line:
                     color = 'gray'
                     line = line.replace(bcolors.GREY,'')
-                color_text += '<p style="color:%s;">%s</p>' % (color,line)
-            else: color_text += line + '\n'
+                color_text += '<p style="color:%s;">' % (color)
+            line = line.replace('\033[0m','</p>')   
+            color_text += line + '\n'               
     return color_text
 
 
