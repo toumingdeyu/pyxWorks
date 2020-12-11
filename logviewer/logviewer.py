@@ -98,8 +98,8 @@ def unix_colors_to_html_colors(text = None):
                     color = 'gray'
                     line = line.replace(bcolors.GREY,'')
                 color_text += '<p style="color:%s;">' % (color)
-            line = line.replace('\033[0m','</p>')   
-            color_text += line + '\n'               
+            line = line.replace('\033[0m','</p>')
+            color_text += line + '\n'
     return color_text
 
 
@@ -155,11 +155,25 @@ def print_logviewer_links(directory = None):
             % (logviewer, logfilename))
 
 
+def make_by_sudo(cmd, USERNAME = None, PASSWORD = None):
+    userswitch = str()
+    os.environ['SSHPASS'] = PASSWORD
+    if USERNAME: userswitch = '-u %s ' % (USERNAME)
+    local_command = 'sshpass -e sudo -H %s %s' % (userswitch, cmd)
+    cmd_output =  subprocess.check_output(local_command, shell = True).strip()
+    os.environ['SSHPASS'] = '-'
+    return cmd_output
+
+
 ###############################################################################
 #
 # def BEGIN MAIN
 #
 ###############################################################################
+
+
+
+
 
 if __name__ != "__main__": sys.exit(0)
 try:
@@ -177,6 +191,7 @@ try:
 
     print("Content-type:text/html")
     print("Status: %s %s\r\n\r\n\r\n" % ('200',""))
+
 
     ### DISPLAY HTML MENU #####################################################
     if not logfile:
