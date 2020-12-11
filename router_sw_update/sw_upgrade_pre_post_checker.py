@@ -479,9 +479,11 @@ class CGI_CLI(object):
 
             ### LOG CLI OR HTML MODE ##########################################
             if msg_to_file:
-                with open(CGI_CLI.logfilename,"a+") as CGI_CLI.fp:
-                    CGI_CLI.fp.write(msg_to_file)
-                    del msg_to_file
+                try:
+                    with open(CGI_CLI.logfilename,"a+") as CGI_CLI.fp:
+                        CGI_CLI.fp.write(msg_to_file)
+                        del msg_to_file
+                except: pass
 
             ### ON END: LOGFILE SET TO VOID, AVOID OF MULTIPLE FOOTERS ########
             if end_log: CGI_CLI.logfilename = None
@@ -1775,7 +1777,7 @@ class RCMD(object):
                 if long_lasting_mode:
                     if printall and buff_read and not RCMD.silent_mode:
                         CGI_CLI.uprint('%s' % (buff_read), no_newlines = True, \
-                            ommit_logging = True)
+                            ommit_logging = True, timestamp = 'no')
                     if CGI_CLI.cgi_active:
                         CGI_CLI.logtofile('%s' % (buff_read), raw_log = True, ommit_timestamp = True)
                     else: CGI_CLI.logtofile('%s' % (buff_read), ommit_timestamp = True)
@@ -2371,16 +2373,21 @@ class LCMD(object):
 ###############################################################################
 
 def generate_logfilename(prefix = None, USERNAME = None, pre_suffix = None, \
-    suffix = None, directory = None):
-    filenamewithpath = None
-    if not directory:
-        try:    DIR         = os.environ['HOME']
-        except: DIR         = str(os.path.dirname(os.path.abspath(__file__)))
-    else: DIR = str(directory)
-    if DIR: LOGDIR      = os.path.join(DIR,'logs')
-    if not os.path.exists(LOGDIR): os.makedirs(LOGDIR)
-    if os.path.exists(LOGDIR):
-        if not prefix: filename_prefix = os.path.join(LOGDIR,'device')
+    suffix = None, directory = None, log_dir = None):
+    """ log_dir - directly log to logging diretcory
+        directory - logs dir is created under directory
+    """
+    filenamewithpath, LOGDIR = None, str()
+    if log_dir: LOGDIR = str(log_dir)
+    elif directory: LOGDIR = os.path.join(str(directory), 'logs')
+    else:
+        try:    LORDIR         = os.path.join(os.environ['HOME'], 'logs')
+        except: LOGDIR         = os.path.join(str(os.path.dirname(os.path.abspath(__file__))), 'logs')
+    ### MAKE LOGDIR IF DOES NOT EXISTS ###
+    if not os.path.exists(LOGDIR): os.makedirs(LOGDIR, mode = 0o666)
+    ### test access and create name ###
+    if os.path.exists(LOGDIR) and os.access(LOGDIR, os.W_OK):
+        if not prefix: filename_prefix = os.path.join(LOGDIR, 'device')
         else: filename_prefix = str(prefix)
         if not suffix: filename_suffix = 'log'
         else: filename_suffix = str(suffix)
@@ -2395,6 +2402,7 @@ def generate_logfilename(prefix = None, USERNAME = None, pre_suffix = None, \
             filename_pre_suffix,
             filename_suffix)
         filenamewithpath = str(os.path.join(LOGDIR,filename))
+    else: CGI_CLI.add_result('(Dir %s not accesible.)' % LOGDIR, 'warning')
     return filenamewithpath
 
 ###############################################################################
@@ -3199,8 +3207,8 @@ try:
     logfilename = generate_logfilename(
         prefix = '_'.join(device_list).upper(), \
         USERNAME = USERNAME, pre_suffix = '-' + SCRIPT_ACTION, \
-        suffix = '%slog' % (html_extention),
-        directory = '/var/www/cgi-bin')
+        log_dir = '/var/PrePost' if not CGI_CLI.cgi_active else None, \
+        suffix = '%slog' % (html_extention))
     CGI_CLI.JSON_RESULTS['logfile'] = logfilename
     #except: pass
 
