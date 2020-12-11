@@ -243,6 +243,7 @@ class CGI_CLI(object):
         try: CGI_CLI.sys_stdout_encoding = sys.stdout.encoding
         except: CGI_CLI.sys_stdout_encoding = None
         if not CGI_CLI.sys_stdout_encoding: CGI_CLI.sys_stdout_encoding = 'UTF-8'
+        CGI_CLI.LOG_APP_SUBDIR = None
         CGI_CLI.MENU_DISPLAYED = False
         CGI_CLI.FAKE_SUCCESS = fake_success
         CGI_CLI.READ_ONLY = read_only
@@ -435,6 +436,24 @@ class CGI_CLI(object):
         CGI_CLI.logfilename = logfilename
         time.sleep(0.1)
         CGI_CLI.logtofile(start_log = True, ommit_timestamp = True)
+
+    @staticmethod
+    def get_logging_directory(mkdir = None):
+        """ log_dir - directly log to logging diretcory
+            directory - logs dir is created under directory
+        """
+        if CGI_CLI.cgi_active:
+            LOGDIR = '/var/www/cgi-bin/logs'
+        else:
+            if CGI_CLI.LOG_APP_SUBDIR: LOGDIR = '/var/PrePost/%s' % (CGI_CLI.get_scriptname())
+            else: LOGDIR = '/var/PrePost'
+
+        ### MAKE LOGDIR IF DOES NOT EXISTS ###
+        if not os.path.exists(LOGDIR) and mkdir: os.makedirs(LOGDIR, mode = 0o666)
+
+        ### TEST ACCESS ###
+        if os.path.exists(LOGDIR) and os.access(LOGDIR, os.W_OK): return LOGDIR
+        else: return str()
 
     @staticmethod
     def logtofile(msg = None, raw_log = None, start_log = None, end_log = None, \
@@ -754,10 +773,10 @@ class CGI_CLI(object):
                     elif 'YELLOW' in color.upper():  text_color = CGI_CLI.bcolors.YELLOW
                     elif 'ORANGE' in color.upper():  text_color = CGI_CLI.bcolors.YELLOW
 
-                if tag == 'fatal': text_color = 'FATAL: ' + CGI_CLI.bcolors.YELLOW
-                if tag == 'error': text_color = 'ERROR: ' + CGI_CLI.bcolors.YELLOW
+                if tag == 'fatal': text_color = 'FATAL: ' + CGI_CLI.bcolors.MAGENTA
+                if tag == 'error': text_color = 'ERROR: ' + CGI_CLI.bcolors.RED
                 if tag == 'warning': text_color = 'WARNING: ' + CGI_CLI.bcolors.YELLOW
-                if tag == 'debug': text_color = 'DEBUG: ' + CGI_CLI.bcolors.CYAN
+                if tag == 'debug': text_color = 'DEBUG: ' + CGI_CLI.bcolors.GREY
 
                 CGI_CLI.print_chunk("%s%s%s%s%s" % \
                     (text_color, timestamp_string, print_name, print_text, \
@@ -2377,14 +2396,9 @@ def generate_logfilename(prefix = None, USERNAME = None, pre_suffix = None, \
     """ log_dir - directly log to logging diretcory
         directory - logs dir is created under directory
     """
-    filenamewithpath, LOGDIR = None, str()
-    if log_dir: LOGDIR = str(log_dir)
-    elif directory: LOGDIR = os.path.join(str(directory), 'logs')
-    else:
-        try:    LORDIR         = os.path.join(os.environ['HOME'], 'logs')
-        except: LOGDIR         = os.path.join(str(os.path.dirname(os.path.abspath(__file__))), 'logs')
-    ### MAKE LOGDIR IF DOES NOT EXISTS ###
-    if not os.path.exists(LOGDIR): os.makedirs(LOGDIR, mode = 0o666)
+    filenamewithpath = None
+    LOGDIR = CGI_CLI.get_logging_directory(mkdir = True)
+
     ### test access and create name ###
     if os.path.exists(LOGDIR) and os.access(LOGDIR, os.W_OK):
         if not prefix: filename_prefix = os.path.join(LOGDIR, 'device')
@@ -2407,14 +2421,14 @@ def generate_logfilename(prefix = None, USERNAME = None, pre_suffix = None, \
 
 ###############################################################################
 
+
+
+###############################################################################
+
 def find_last_logfile(prefix = None, USERNAME = None, suffix = None, directory = None, \
     latest = None , action_text = None):
     log_file = str()
-    if not directory:
-        try:    DIR         = os.environ['HOME']
-        except: DIR         = str(os.path.dirname(os.path.abspath(__file__)))
-    else: DIR = str(directory)
-    if DIR: LOGDIR      = os.path.join(DIR,'logs')
+    LOGDIR = CGI_CLI.get_logging_directory(mkdir = False)
     if not prefix: use_prefix = str()
     else: use_prefix = prefix
     if latest:
@@ -3207,7 +3221,6 @@ try:
     logfilename = generate_logfilename(
         prefix = '_'.join(device_list).upper(), \
         USERNAME = USERNAME, pre_suffix = '-' + SCRIPT_ACTION, \
-        log_dir = '/var/PrePost' if not CGI_CLI.cgi_active else None, \
         suffix = '%slog' % (html_extention))
     CGI_CLI.JSON_RESULTS['logfile'] = logfilename
     #except: pass
