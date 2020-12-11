@@ -40,6 +40,7 @@ class bcolors:
         RED        = '\033[91m'
         FAIL       = '\033[91m'
         GREY       = '\033[90m'
+        GRAY       = '\033[90m'
         ENDC       = '\033[0m'
         BOLD       = '\033[1m'
         UNDERLINE  = '\033[4m'
@@ -93,7 +94,7 @@ def unix_colors_to_html_colors(text = None):
                 if bcolors.RED in line:
                     color = 'red'
                     line = line.replace(bcolors.RED,'')
-                if bcolors.GREY in line:
+                if bcolors.GREY in line or bcolors.GRAY in line:
                     color = 'gray'
                     line = line.replace(bcolors.GREY,'')
                 color_text += '<p style="color:%s;">%s</p>' % (color,line)
@@ -105,10 +106,12 @@ def unix_colors_to_html_colors(text = None):
 def html_colorizer(text = None):
     color_text = text
     ### IF UNIX COLORS OCCURS, FILE IS ALREADY COLORED ########################
-    if text and not '\033[' in text:
+    if text:
         color_text = str()
         for line in text.splitlines():
-            if 'REMOTE_COMMAND:' in line or 'LOCAL_COMMAND:' in line \
+            if '\033[' in line:
+                color_text += '%s' % (line)
+            elif 'REMOTE_COMMAND:' in line or 'LOCAL_COMMAND:' in line \
                 or 'EVAL:' in line or 'EXEC:' in line \
                 or 'CHECKING COMMIT ERRORS.' in line:
                 color_text += '<p style="color:blue;">%s</p>' % (line)
@@ -117,7 +120,7 @@ def html_colorizer(text = None):
             elif 'CONFIGURATION PROBLEM FOUND:' in line \
                 or ' FAILED!' in line:
                 color_text += '<p style="color:red;">%s</p>' % (line)
-            elif 'PROBLEM[' in line:
+            elif 'PROBLEM' in line:
                 color_text += '<p style="color:magenta;">%s</p>' % (line)
             elif '==> ' in line or ' --> ' in line:
                 color_text += '<p style="color:blue;">%s</p>' % (line)
@@ -213,7 +216,7 @@ try:
                 print('<html><head></head><body><pre>' + \
                     unix_colors_to_html_colors(html_colorizer(html_escape(logfile_content, pre_tag = True))) \
                     + '</pre></html></body>')
-    except Exception as e: 
+    except Exception as e:
         print('<html><head></head><body><pre>' + 'Logfile %s access problem:[%s]' % \
             (logfile, e) + '</pre></html></body>')
 
