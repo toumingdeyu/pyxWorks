@@ -624,7 +624,7 @@ class CGI_CLI(object):
         ### DEBUG FAKE_SUCCESS ###
         if CGI_CLI.FAKE_SUCCESS: CGI_CLI.JSON_RESULTS['result'] = 'success'
 
-        if CGI_CLI.errorfilename:
+        if success == False and CGI_CLI.errorfilename:
             CGI_CLI.JSON_RESULTS['error_link'] = CGI_CLI.make_loglink(CGI_CLI.errorfilename)
 
         if CGI_CLI.logfilename:
@@ -683,7 +683,7 @@ class CGI_CLI(object):
                 if CGI_CLI.logfilename:
                     CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
                         % (logfilename_link, logfile_name), raw = True, color = 'blue', printall = True)
-                    CGI_CLI.uprint('<br/>', raw = True)                
+                    CGI_CLI.uprint('<br/>', raw = True)
                 if CGI_CLI.timestamp:
                     CGI_CLI.uprint('END.\n', no_printall = not CGI_CLI.printall, tag = 'debug')
                 if not CGI_CLI.disable_page_reload_link: CGI_CLI.html_selflink()
@@ -3129,7 +3129,7 @@ try:
     SCRIPT_ACTION = str()
 
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = None, css_style = CSS_STYLE, \
-        json_mode = False, read_only = True, fake_success = True)
+        json_mode = False, read_only = False, fake_success = True)
 
     LCMD.init()
 
