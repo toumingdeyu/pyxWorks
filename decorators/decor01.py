@@ -26,16 +26,17 @@ from mako.lookup import TemplateLookup
 
 def makedecor(function_to_decorate):
     def wrapper(*args, **kwargs):
-        print('before')
+        print('BEFORE')
+        print(function_to_decorate.__name__)
         print(args)
         print(kwargs)
         function_to_decorate(*args, **kwargs)
-        print('after')
+        print('AFTER')
     return wrapper
 
 
-def decorated_function():
-    print('decorated function.')
+def decorated_function(*args, **kwargs):
+    print('decorated function execution.')
 
 
 logging.raiseExceptions = False
@@ -46,7 +47,7 @@ try:
 
     decorated_function = makedecor(decorated_function)  
 
-    decorated_function()
+    decorated_function("aaa", a=1, b=3)
 
 
 except SystemExit: pass
