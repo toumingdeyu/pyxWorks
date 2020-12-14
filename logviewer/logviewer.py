@@ -159,7 +159,7 @@ def make_by_sudo(cmd, USERNAME = None, PASSWORD = None):
     userswitch = str()
     os.environ['SSHPASS'] = PASSWORD
     if USERNAME: userswitch = '-u %s ' % (USERNAME)
-    local_command = 'sshpass -e sudo -H %s %s' % (userswitch, cmd)
+    local_command = 'sshpass -e /usr/bin/sudo %s %s' % (userswitch, cmd)
     cmd_output =  subprocess.check_output(local_command, shell = True).strip()
     os.environ['SSHPASS'] = '-'
     return cmd_output
