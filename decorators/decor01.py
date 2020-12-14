@@ -27,16 +27,15 @@ from mako.lookup import TemplateLookup
 def makedecor(function_to_decorate):
     def wrapper(*args, **kwargs):
         print('BEFORE')
-        print(function_to_decorate.__name__)
-        print(args)
-        print(kwargs)
+        print('function_name = ' + function_to_decorate.__name__, args, kwargs)
         function_to_decorate(*args, **kwargs)
         print('AFTER')
     return wrapper
 
 
 def decorated_function(*args, **kwargs):
-    print('decorated function execution.')
+    print('decorated function execution.', args, kwargs)
+    print(kwargs.get('a'))
 
 
 logging.raiseExceptions = False
