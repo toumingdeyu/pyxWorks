@@ -40,6 +40,11 @@ def device_command(self, uinfo, input, cmd, get_platform = True):
                 cmd_data["huawei-vrp"] = cmd
                 cmd_data["junos"] = cmd
             elif isinstance(cmd, (dict,collections.OrderedDict)):
+                ### accept paramiko's device type strings ###
+                if cmd_data.get('cisco_ios'): cmd_data["ios-xe"] = cmd_data.get('cisco_ios')
+                if cmd_data.get('cisco_xr'): cmd_data["ios-xr"] = cmd_data.get('cisco_xr')
+                if cmd_data.get('juniper'): cmd_data["junos"] = cmd_data.get('juniper')
+                if cmd_data.get('huawei'): cmd_data["huawei-vrp"] = cmd_data.get('huawei')
                 cmd_data = cmd
 
             try:
