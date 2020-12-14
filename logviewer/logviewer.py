@@ -216,7 +216,8 @@ try:
             + '</pre></html></body>')
         sys.exit(0)
     elif 'LOG' in str(logfile).upper() or 'HTM' in str(logfile).upper() \
-        or '-PRE' in str(logfile).upper() or '-POST' in str(logfile).upper(): pass
+        or '-PRE' in str(logfile).upper() or '-POST' in str(logfile).upper() \
+        or 'ERR' in str(logfile).upper(): pass
     else:
         print('<html><head></head><body><pre>' + 'Inserted file is not logfile.' \
             + '</pre></html></body>')
