@@ -243,6 +243,7 @@ class CGI_CLI(object):
         try: CGI_CLI.sys_stdout_encoding = sys.stdout.encoding
         except: CGI_CLI.sys_stdout_encoding = None
         if not CGI_CLI.sys_stdout_encoding: CGI_CLI.sys_stdout_encoding = 'UTF-8'
+        CGI_CLI.errorfilename = None
         CGI_CLI.LOG_APP_SUBDIR = None
         CGI_CLI.MENU_DISPLAYED = False
         CGI_CLI.FAKE_SUCCESS = fake_success
@@ -434,8 +435,10 @@ class CGI_CLI(object):
         """
         CGI_CLI.logtofile(end_log = True, ommit_timestamp = True)
         CGI_CLI.logfilename = logfilename
+        if logfilename: CGI_CLI.errorfilename = (CGI_CLI.logfilename).split('.')[0] + '.err'
         time.sleep(0.1)
         CGI_CLI.logtofile(start_log = True, ommit_timestamp = True)
+
 
     @staticmethod
     def get_logging_directory(mkdir = None):
@@ -454,6 +457,16 @@ class CGI_CLI(object):
         ### TEST ACCESS ###
         if os.path.exists(LOGDIR) and os.access(LOGDIR, os.W_OK): return LOGDIR
         else: return str()
+
+
+    @staticmethod
+    def errlogtofile(msg_to_file = None):
+        if msg_to_file:
+            try:
+                with open(CGI_CLI.errorfilename,"a+") as CGI_CLI.fp:
+                    CGI_CLI.fp.write(msg_to_file)
+                    del msg_to_file
+            except: pass
 
     @staticmethod
     def logtofile(msg = None, raw_log = None, start_log = None, end_log = None, \
@@ -586,13 +599,16 @@ class CGI_CLI(object):
     @staticmethod
     def print_results(raw_log = None, sort_keys = None):
 
-        print_text = None
+        print_text, success = None, True
 
         for text, type in CGI_CLI.result_list:
             if type == 'error' or type == 'fatal':
-                CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                #CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                CGI_CLI.JSON_RESULTS['errors'] = 'See error_link file.'
+                success = False
             elif type == 'warning':
-                CGI_CLI.JSON_RESULTS['warnings'] += '[%s] ' % (text)
+                pass
+                #CGI_CLI.JSON_RESULTS['warnings'] += '[%s] ' % (text)
 
         if len(CGI_CLI.JSON_RESULTS.get('errors',str())) == 0:
             if len(CGI_CLI.JSON_RESULTS.get('warnings',str())) == 0:
@@ -607,6 +623,9 @@ class CGI_CLI(object):
 
         ### DEBUG FAKE_SUCCESS ###
         if CGI_CLI.FAKE_SUCCESS: CGI_CLI.JSON_RESULTS['result'] = 'success'
+
+        if CGI_CLI.errorfilename:
+            CGI_CLI.JSON_RESULTS['error_link'] = CGI_CLI.make_loglink(CGI_CLI.errorfilename)
 
         if CGI_CLI.logfilename:
             CGI_CLI.JSON_RESULTS['logfile_link'] = CGI_CLI.make_loglink(CGI_CLI.logfilename)
@@ -633,27 +652,29 @@ class CGI_CLI(object):
                 if CGI_CLI.cgi_active: CGI_CLI.logtofile('\n</pre>\n', raw_log = True, ommit_timestamp = True)
 
             ### CLI & CGI MODES ###############################################
-            if not CGI_CLI.JSON_MODE:
-                if len(CGI_CLI.result_list) > 0:
-                    CGI_CLI.uprint('\n\nRESULT SUMMARY:', tag = 'h1')
+            if len(CGI_CLI.result_list) > 0:
+                if not CGI_CLI.JSON_MODE: CGI_CLI.uprint('\n\nRESULT SUMMARY:', tag = 'h1')
+                CGI_CLI.errlogtofile('RESULT SUMMARY:' + '\n')
 
-                ### text, type ###
-                for text, type in CGI_CLI.result_list:
-                    color = None
-                    if type == 'fatal': color = 'magenta'
-                    elif type == 'error': color = 'red'
-                    elif type == 'warning': color = 'orange'
-                    CGI_CLI.uprint(text , tag = 'h3', color = color)
-                CGI_CLI.uprint('\n')
+            ### text, type ###
+            for text, type in CGI_CLI.result_list:
+                color = None
+                if type == 'fatal': color = 'magenta'
+                elif type == 'error': color = 'red'
+                elif type == 'warning': color = 'orange'
+                if not CGI_CLI.JSON_MODE: CGI_CLI.uprint(text , tag = 'h3', color = color)
+                CGI_CLI.errlogtofile(text + '\n')
+            if not CGI_CLI.JSON_MODE: CGI_CLI.uprint('\n')
 
-                res_color = None
-                if CGI_CLI.JSON_RESULTS.get('result',str()) == 'success': res_color = 'green'
-                if CGI_CLI.JSON_RESULTS.get('result',str()) == 'warnings': res_color = 'orange'
-                if CGI_CLI.JSON_RESULTS.get('result',str()) == 'failure': res_color = 'red'
+            res_color = None
+            if CGI_CLI.JSON_RESULTS.get('result',str()) == 'success': res_color = 'green'
+            if CGI_CLI.JSON_RESULTS.get('result',str()) == 'warnings': res_color = 'orange'
+            if CGI_CLI.JSON_RESULTS.get('result',str()) == 'failure': res_color = 'red'
 
-                if not CGI_CLI.MENU_DISPLAYED:
-                    CGI_CLI.uprint("RESULT: " + CGI_CLI.JSON_RESULTS.get('result', str()),\
-                        tag = 'h1', color = res_color)
+            if not CGI_CLI.MENU_DISPLAYED:
+                if not CGI_CLI.JSON_MODE: CGI_CLI.uprint("RESULT: " + \
+                    CGI_CLI.JSON_RESULTS.get('result', str()), tag = 'h1', color = res_color)
+                CGI_CLI.errlogtofile("\n RESULT: " + CGI_CLI.JSON_RESULTS.get('result') + '\n')
 
             ### LOGFILE LINK ##############################################
             logfile_name = copy.deepcopy(CGI_CLI.logfilename)
@@ -662,7 +683,7 @@ class CGI_CLI(object):
                 if CGI_CLI.logfilename:
                     CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
                         % (logfilename_link, logfile_name), raw = True, color = 'blue', printall = True)
-                    CGI_CLI.uprint('<br/>', raw = True)
+                    CGI_CLI.uprint('<br/>', raw = True)                
                 if CGI_CLI.timestamp:
                     CGI_CLI.uprint('END.\n', no_printall = not CGI_CLI.printall, tag = 'debug')
                 if not CGI_CLI.disable_page_reload_link: CGI_CLI.html_selflink()
