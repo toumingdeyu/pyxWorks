@@ -28,7 +28,8 @@ def makedecor(function_to_decorate):
     def wrapper(*args, **kwargs):
         print('BEFORE')
         print('function_name = ' + function_to_decorate.__name__, args, kwargs)
-        function_to_decorate(*args, **kwargs)
+        ret = function_to_decorate(*args, **kwargs)
+        print(ret)
         print('AFTER')
     return wrapper
 
@@ -36,6 +37,7 @@ def makedecor(function_to_decorate):
 def decorated_function(*args, **kwargs):
     print('decorated function execution.', args, kwargs)
     print(kwargs.get('a'))
+    return 'rrrrrrr'
 
 
 logging.raiseExceptions = False
@@ -46,8 +48,9 @@ try:
 
     decorated_function = makedecor(decorated_function)  
 
-    decorated_function("aaa", a=1, b=3)
-
+    ### decorator does not return any value ###
+    ret = decorated_function("aaa", a=1, b=3)
+    print(ret)
 
 except SystemExit: pass
 except:
