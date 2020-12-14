@@ -31,6 +31,7 @@ def makedecor(function_to_decorate):
         ret = function_to_decorate(*args, **kwargs)
         print(ret)
         print('AFTER')
+        return ret
     return wrapper
 
 
