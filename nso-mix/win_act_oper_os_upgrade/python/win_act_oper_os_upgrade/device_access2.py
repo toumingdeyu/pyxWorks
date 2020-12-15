@@ -7,13 +7,19 @@ import collections
 class RCMD(object):
 
     @staticmethod
-    def connect(uinfo, input, **kwargs):
+    def connect(device = None, **kwargs):
         input_device = str()
-        if input.device: input_device = input.device
-        elif input.ip: input_device = input.ip
-        elif input.device_iap.device: input_device = input.device_iap.device
+        if device: input_device = device
 
-        if input_device:
+        input = kwargs.get('input')
+        uinfo = kwargs.get('uinfo')
+
+        if input:
+            if input.device: input_device = input.device
+            elif input.ip: input_device = input.ip
+            elif input.device_iap.device: input_device = input.device_iap.device
+
+        if input_device and uinfo:
             RCMD.m = ncs.maapi.Maapi()
             RCMD.t = RCMD.m.start_read_trans(usid = uinfo.usid)
             RCMD.root = ncs.maagic.get_root(t)
@@ -34,9 +40,9 @@ class RCMD(object):
                       }
 
                 RCMD.hw_info = {}
-                RCMD.hw_info['device'] = copy.deepcopy(device)
+                RCMD.hw_info['device'] = copy.deepcopy(input_device)
 
-                result = RCMD.run_commands(uinfo, input, cmd)
+                result = RCMD.run_commands(cmd)
 
                 if RCMD.hw_info.get('os_type') == "ios-xe":
                     RCMD.hw_info['sw_version'] = result.split('Software, Version')[1].split()[0].strip()
