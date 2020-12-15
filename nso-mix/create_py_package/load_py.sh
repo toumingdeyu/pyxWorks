@@ -1,8 +1,20 @@
 #!/bin/bash
+#!/bin/bash
 
-./delete_py.sh win_act_oper_os_upgrade
-./unpack_py.sh /home/pnemec/win_act_oper_os_upgrade.tar.gz
-./make_py.sh win_act_oper_os_upgrade
+NCS_PACKAGES_PATH=/var/opt/ncs/packages
+
+if [ -z $1 ]
+then
+  ls $NCS_PACKAGES_PATH
+  echo ...Please insert Python package name as 1st parameter...
+  exit 1
+else
+  PACKAGE_NAME=$1
+fi
+
+./delete_py.sh $PACKAGE_NAME
+./unpack_py.sh /home/pnemec/$PACKAGE_NAME.tar.gz
+./make_py.sh $PACKAGE_NAME
 echo packages reload force | ncs_cli -C
-./tailf_py.sh win_act_oper_os_upgrade
+./tailf_py.sh $PACKAGE_NAME
 
