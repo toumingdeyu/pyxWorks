@@ -13,6 +13,7 @@ class RCMD_class():
     def __init__(self, device = None,**kwargs):
         self.input_device = str()
         self.device, self.os_type = str(), str()
+        self.hw_brand, self.drive_string = str(), str()
         
         if device: self.input_device = device
 
@@ -50,26 +51,26 @@ class RCMD_class():
                 result = self.run_commands(cmd)
 
                 if self.os_type == "ios-xe":
-                    self.sw_version = result.split('Software, Version')[1].split()[0].strip()
-                    self.hw_type = result.split(') processor')[0].splitlines()[-1].split('(')[0].strip()
+                    self.sw_version = str(result.split('Software, Version')[1].split()[0].strip())
+                    self.hw_type = str(result.split(') processor')[0].splitlines()[-1].split('(')[0].strip())
                     self.hw_brand = 'CISCO'
                     self.drive_string = 'bootflash:'
 
                 elif self.os_type == "ios-xr":
-                    self.sw_version = result.split('Software, Version')[1].split()[0].strip()
-                    self.hw_type = result.split(') processor')[0].splitlines()[-1].split('(')[0].strip()
+                    self.sw_version = str(result.split('Software, Version')[1].split()[0].strip())
+                    self.hw_type = str(result.split(') processor')[0].splitlines()[-1].split('(')[0].strip())
                     self.hw_brand = 'CISCO'
                     self.drive_string = 'harddisk:'
 
                 elif self.os_type == "huawei-vrp":
-                    self.sw_version = result.split('software, Version')[1].split()[0].strip()
-                    self.hw_type = result.split(' version information:')[0].splitlines()[-1].strip()
+                    self.sw_version = str(result.split('software, Version')[1].split()[0].strip())
+                    self.hw_type = str(result.split(' version information:')[0].splitlines()[-1].strip())
                     self.hw_brand = 'HUAWEI'
                     self.drive_string= 'cfcard:'
 
                 elif self.os_type == "junos":
-                    self.sw_version = result.split('Junos: ')[1].split()[0].strip()
-                    self.hw_type = result.split('Model: ')[1].split()[0].strip()
+                    self.sw_version = str(result.split('Junos: ')[1].split()[0].strip())
+                    self.hw_type = str(result.split('Model: ')[1].split()[0].strip())
                     self.hw_brand = 'JUNIPER'
                     self.drive_string = 're0:'
 
