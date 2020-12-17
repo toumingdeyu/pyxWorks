@@ -33,7 +33,7 @@ class RCMD_class():
 
             self.hw_info = {}
             if self.dev.platform.name:
-                self.os_type = str(dev.platform.name)
+                self.os_type = str(self.dev.platform.name)
                 if self.dev.platform.name == "ios-xe": self.router_type = 'cisco_ios'
                 elif self.dev.platform.name == "ios-xr": self.router_type = 'cisco_xr'
                 elif self.dev.platform.name == "junos": self.router_type = 'juniper'
