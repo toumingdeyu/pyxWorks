@@ -46,7 +46,7 @@ class RCMD_class():
                           "junos":['show version']
                       }
 
-                self.device = copy.deepcopy(self.input_device)
+                self.device = str(self.input_device)
 
                 result = self.run_commands(cmd)
 
