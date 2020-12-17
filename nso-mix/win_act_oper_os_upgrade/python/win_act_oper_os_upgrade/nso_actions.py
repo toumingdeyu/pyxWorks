@@ -20,73 +20,35 @@ class NsoActionsClass_get_sw_version(Action):
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
         self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
-        output.os_type = 'UNKNOWN'
         output.hw_type = 'UNKNOWN'
         output.sw_version = 'UNKNOWN'
         brand_raw = str()
         type_raw = str()
 
-
-        ### GET SW VERSION ####################################################
-        cmd = {
-                  "ios-xe":['show version'],
-                  "ios-xr":['show version'],
-                  "huawei-vrp":['display version'],
-                  "junos":['show version']
-              }
-
-        result, output.os_type = device_command(self, uinfo, input, cmd)
-
-        if output.os_type == "ios-xe":
-            output.sw_version = result.split('Software, Version')[1].split()[0].strip()
-            output.hw_type = result.split(') processor')[0].splitlines()[-1].split('(')[0].strip()
-            brand_raw = 'CISCO'
-            type_raw = output.hw_type
-            drive_string = 'bootflash:'
-
-        elif output.os_type == "ios-xr":
-            output.sw_version = result.split('Software, Version')[1].split()[0].strip()
-            output.hw_type = result.split(') processor')[0].splitlines()[-1].split('(')[0].strip()
-            brand_raw = 'CISCO'
-            type_raw = output.hw_type
-            drive_string = 'harddisk:'
-
-        elif output.os_type == "huawei-vrp":
-            output.sw_version = result.split('software, Version')[1].split()[0].strip()
-            output.hw_type = result.split(' version information:')[0].splitlines()[-1].strip()
-            brand_raw = 'HUAWEI'
-            type_raw = output.hw_type
-            drive_string = 'cfcard:'
-
-        elif output.os_type == "junos":
-            output.sw_version = result.split('Junos: ')[1].split()[0].strip()
-            output.hw_type = result.split('Model: ')[1].split()[0].strip()
-            brand_raw = 'JUNIPER'
-            type_raw = output.hw_type
-            drive_string = 're0:'
+        RCMD = RCMD_class(uinfo = uinfo, input = input)
 
         ### def LOOK FOR PATCH ####################################################
-        if output.os_type == "ios-xr":
+        if RCMD.os_type == "cisco_xr":
             xe_device_patch_list = [ ]
             xr_device_patch_list = [ 'show install active summary' ]
             huawei_device_patch_list = []
             juniper_device_patch_list = []
 
             patch_device_cmds = {
-                'ios-xe':xe_device_patch_list,
-                'ios-xr':xr_device_patch_list,
-                'junos':juniper_device_patch_list,
-                'huawei-vrp':huawei_device_patch_list
+                'cisco_ios': xe_device_patch_list,
+                'cisco_xr': xr_device_patch_list,
+                'juniper': juniper_device_patch_list,
+                'huawei': huawei_device_patch_list
             }
 
-            patch_device_cmds_result, forget_it = device_command(self, uinfo, input, patch_device_cmds)
+            patch_device_cmds_result = RCMD.run_commands(self, patch_device_cmds, uinfo = uinfo, input = input)
 
-            sw_version = copy.deepcopy(output.sw_version)
+            sw_version = copy.deepcopy(RCMD.hwinfo.get('sw_version',str()))
             sw_patches = []
 
-            if output.os_type == "ios-xe":
+            if RCMD.os_type == "cisco_ios":
                 pass
-            elif output.os_type == "ios-xr":
+            elif RCMD.os_type == "cisco_xr":
                 packages_lines = False
                 for line in patch_device_cmds_result.splitlines()[:-1]:
                     try:
@@ -96,9 +58,9 @@ class NsoActionsClass_get_sw_version(Action):
                              else: sw_patches.append(str(line.strip()))
                     except: pass
 
-            elif output.os_type == "huawei-vrp":
+            elif RCMD.os_type == "huawei":
                 pass
-            elif output.os_type == "junos":
+            elif RCMD.os_type == "juniper":
                 pass
             output.sw_patches = sw_patches
 
@@ -116,16 +78,16 @@ class NsoActionsClass_get_sw_version(Action):
         juniper_device_dir_list = [ 'file list %s%s detail' % (drive_string,dev_dir) ]
 
         dir_device_cmds = {
-            'ios-xe':xe_device_dir_list,
-            'ios-xr':xr_device_dir_list,
-            'junos':juniper_device_dir_list,
-            'huawei-vrp':huawei_device_dir_list
+            'cisco_ios':xe_device_dir_list,
+            'cisco_xr':xr_device_dir_list,
+            'juniper':juniper_device_dir_list,
+            'huawei':huawei_device_dir_list
         }
 
-        dir_device_cmds_result, forget_it = device_command(self, uinfo, input, dir_device_cmds)
+        dir_device_cmds_result = RCMD.run_commands(self, uinfo, input, dir_device_cmds)
         versions = []
 
-        if output.os_type == "ios-xe" or output.os_type == "ios-xr":
+        if RCMD.os_type == "cisco_ios" or RCMD.os_type == "cisco_xr":
             i = 0
             for line in dir_device_cmds_result.splitlines():
                 try:
@@ -138,7 +100,7 @@ class NsoActionsClass_get_sw_version(Action):
                          i += 1
                 except: pass
 
-        elif output.os_type == "huawei-vrp":
+        elif RCMD.os_type == "huawei":
             ### FILES ARE IN CFCARD ROOT !!! ##################################
             i = 0
             for line in dir_device_cmds_result.splitlines()[:-1]:
@@ -160,7 +122,7 @@ class NsoActionsClass_get_sw_version(Action):
                             i += 1
                 except: pass
 
-        elif output.os_type == "junos":
+        elif RCMD.os_type == "juniper":
             ### FILES ARE IN re0:/var/tmp #####################################
             i = 0
             for line in dir_device_cmds_result.splitlines()[:-1]:
@@ -190,15 +152,15 @@ class NsoActionsClass_get_sw_version(Action):
             juniper_device_file_list = [ 'file list %s%s/%s detail' % (drive_string, dev_dir, output.target_sw_versions[i].name) ]
 
             file_device_cmds = {
-                'ios-xe':xe_device_file_list,
-                'ios-xr':xr_device_file_list,
-                'junos':juniper_device_file_list,
-                'huawei-vrp':[]
+                'cisco_ios':xe_device_file_list,
+                'cisco_xr':xr_device_file_list,
+                'juniper':juniper_device_file_list,
+                'huawei':[]
             }
 
-            file_device_cmds_result, forget_it = device_command(self, uinfo, input, file_device_cmds)
+            file_device_cmds_result = RCMD.run_commands(self, uinfo, input, file_device_cmds)
 
-            if output.os_type == "ios-xe" or output.os_type == "ios-xr":
+            if RCMD.os_type == "cisco_ios" or RCMD.os_type == "cisco_xr":
                 files = []
                 for line in file_device_cmds_result.splitlines()[:-1]:
                     try:
@@ -217,27 +179,27 @@ class NsoActionsClass_get_sw_version(Action):
                 if len(files)>0:
                     output.target_sw_versions[i].files = files
 
-            elif output.os_type == "huawei-vrp":
+            elif RCMD.os_type == "huawei":
                 pass
-            elif output.os_type == "junos":
+            elif RCMD.os_type == "juniper":
                 pass
 
             ### GET SMU FILES ON DEVICE VERSION DIRECTORY #########################
-            if output.os_type == "ios-xr":
+            if RCMD.os_type == "cisco_xr":
                 xr_device_patch_file_list = [ 'dir %s%s/%s/SMU' % (drive_string, dev_dir, output.target_sw_versions[i].name) ]
 
                 patch_file_device_cmds = {
-                    'ios-xe':[],
-                    'ios-xr':xr_device_patch_file_list,
-                    'junos':[],
-                    'huawei-vrp':[]
+                    'cisco_ios':[],
+                    'cisco_xr':xr_device_patch_file_list,
+                    'juniper':[],
+                    'huawei':[]
                 }
 
-                patch_file_device_cmds_result, forget_it = device_command(self, uinfo, input, patch_file_device_cmds)
+                patch_file_device_cmds_result = RCMD.run_commands(self, uinfo, input, patch_file_device_cmds)
 
-                if output.os_type == "ios-xe":
+                if RCMD.os_type == "cisco_ios":
                     pass
-                elif output.os_type == "ios-xr":
+                elif RCMD.os_type == "cisco_xr":
                     patch_files = []
                     patch_path = str()
                     for line in patch_file_device_cmds_result.splitlines()[:-1]:
@@ -255,9 +217,9 @@ class NsoActionsClass_get_sw_version(Action):
                         output.target_sw_versions[i].patch_files = patch_files
                         output.target_sw_versions[i].patch_path = patch_path
 
-                elif output.os_type == "huawei-vrp":
+                elif RCMD.os_type == "huawei":
                     pass
-                elif output.os_type == "junos":
+                elif RCMD.os_type == "juniper":
                     pass
 
         self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
@@ -265,9 +227,7 @@ class NsoActionsClass_get_sw_version(Action):
 
         #self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
 
-#    for i in range(len(output.target_sw_versions)):
-#        if len(output.target_sw_versions[i].files) == 0 and len(output.target_sw_versions[key].patch_files) == 0:
-#            del output.target_sw_versions[i]
+        del RCMD
 
 
 
@@ -281,24 +241,24 @@ class NsoActionsClass_os_upgrade_precheck(Action):
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
         self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
-        output.os_type = 'UNKNOWN'
         output.hw_type = 'UNKNOWN'
         inactive_packages = []
         active_packages = []
         asr_admin_string = str()
+        
+        RCMD = RCMD_class(uinfo = uinfo, input = input)
 
-        hw_info = detect_hw(self, uinfo, input)
-        output.os_type, output.hw_type = hw_info.get('os_type',str()), hw_info.get('hw_type',str())
+        output.os_type, output.hw_type = RCMD.os_type, RCMD.hw_type
 
-        if hw_info.get('os_type') == "ios-xr":
+        if hw_info.get('os_type') == "cisco_xr":
             ii = 0
             output.precheck_data.command.create().name = str( '%sshow install inactive sum' % (asr_admin_string) )
 
             device_cmds = {
-                'ios-xr':[ output.precheck_data.command[ii].name ],
+                'cisco_xr':[ output.precheck_data.command[ii].name ],
             }
 
-            device_cmds_result, forget_it = device_command(self, uinfo, input, device_cmds)
+            device_cmds_result = RCMD.run_commands(self, uinfo, input, device_cmds)
             output.precheck_data.command[ii].cmd_output = str('\n'.join(device_cmds_result.splitlines()[:-1]))
 
             inactive_packages = []
@@ -314,10 +274,10 @@ class NsoActionsClass_os_upgrade_precheck(Action):
                 output.precheck_data.command.create().name = str( '%sinstall remove inactive all' % (asr_admin_string) )
 
                 device_cmds2 = {
-                    'ios-xr':[ output.precheck_data.command[ii].name ],
+                    'cisco_xr':[ output.precheck_data.command[ii].name ],
                 }
 
-                device_cmds_result, forget_it = device_command(self, uinfo, input, device_cmds2)
+                device_cmds_result = RCMD.run_commands(self, uinfo, input, device_cmds2)
                 output.precheck_data.command[ii].cmd_output = str('\n'.join(device_cmds_result.splitlines()[:-1]))
 
                 time.sleep(5)
@@ -326,10 +286,10 @@ class NsoActionsClass_os_upgrade_precheck(Action):
                 ii += 1
                 output.precheck_data.command.create().name = str( '%sshow install inactive summary' % (asr_admin_string) )
                 device_cmds = {
-                    'ios-xr':[ output.precheck_data.command[ii].name ],
+                    'cisco_xr':[ output.precheck_data.command[ii].name ],
                 }
 
-                device_cmds_result, output.os_type = device_command(self, uinfo, input, device_cmds)
+                device_cmds_result = RCMD.run_commands(self, uinfo, input, device_cmds)
                 output.precheck_data.command[ii].cmd_output = str('\n'.join(device_cmds_result.splitlines()[:-1]))
 
                 inactive_packages = []
@@ -346,10 +306,10 @@ class NsoActionsClass_os_upgrade_precheck(Action):
             ii += 1
             output.precheck_data.command.create().name = str( '%sshow install active summary' % (asr_admin_string) )
             act_device_cmds = {
-                'ios-xr':[ output.precheck_data.command[ii].name ],
+                'cisco_xr':[ output.precheck_data.command[ii].name ],
             }
 
-            device_cmds_result, forget_it = device_command(self, uinfo, input, act_device_cmds)
+            device_cmds_result = RCMD.run_commands(self, uinfo, input, act_device_cmds)
             output.precheck_data.command[ii].cmd_output = str('\n'.join(device_cmds_result.splitlines()[:-1]))
 
             if 'Active Packages:' in device_cmds_result:
@@ -378,10 +338,10 @@ class NsoActionsClass_os_upgrade_precheck(Action):
                 output.precheck_data.command.create().name = str( check_cmd )
 
                 device_cmds = {
-                    'ios-xr':[ output.precheck_data.command[ii].name ],
+                    'cisco_xr':[ output.precheck_data.command[ii].name ],
                 }
 
-                device_cmds_result, forget_it = device_command(self, uinfo, input, device_cmds)
+                device_cmds_result = RCMD.run_commands(self, uinfo, input, device_cmds)
                 output.precheck_data.command[ii].cmd_output = str('\n'.join(device_cmds_result.splitlines()[:-1]))
 
             ### copy configs ###
@@ -389,22 +349,22 @@ class NsoActionsClass_os_upgrade_precheck(Action):
             date_string = today.strftime("%Y-%m%d-%H:%M")
 
             cp_device_cmds = {
-                'ios-xr':['copy running-config harddisk:%s-config.txt| prompts ENTER' % (str(date_string))],
+                'cisco_xr':['copy running-config harddisk:%s-config.txt| prompts ENTER' % (str(date_string))],
             }
 
-            cp_device_cmds_result, forget_it = device_command(self, uinfo, input, cp_device_cmds)
+            cp_device_cmds_result = RCMD.run_commands(self, uinfo, input, cp_device_cmds)
 
             cp2_device_cmds = {
-                'ios-xr':['admin copy running-config harddisk:admin-%s-config.txt| prompts ENTER' % (str(date_string))],
+                'cisco_xr':['admin copy running-config harddisk:admin-%s-config.txt| prompts ENTER' % (str(date_string))],
             }
 
-            cp2_device_cmds_result, forget_it = device_command(self, uinfo, input, cp2_device_cmds)
+            cp2_device_cmds_result = RCMD.run_commands(self, uinfo, input, cp2_device_cmds)
 
             for command in output.precheck_data.command:
                 if command.name == 'show run fpd auto-upgrade' \
                 and not 'fpd auto-upgrade enable' in command.cmd_output:
 
-                    xr_cmds = {'ios-xr': [
+                    xr_cmds = {'cisco_xr': [
                             'config',
                             '!',
                             'fpd auto-upgrade enable',
@@ -415,13 +375,13 @@ class NsoActionsClass_os_upgrade_precheck(Action):
                             '!'
                     ] }
 
-                    device_cmds_result, forget_it = device_command(self, uinfo, input, xr_cmds)
+                    device_cmds_result = RCMD.run_commands(self, uinfo, input, xr_cmds)
 
             for command in output.precheck_data.command:
                 if command.name == 'admin show run fpd auto-upgrade' \
                 and not 'fpd auto-upgrade enable' in command.cmd_output:
 
-                    xr_cmds = {'ios-xr': [
+                    xr_cmds = {'cisco_xr': [
                             'config',
                             '!',
                             'admin',
@@ -436,10 +396,11 @@ class NsoActionsClass_os_upgrade_precheck(Action):
                             '!'
                     ] }
 
-                    device_cmds_result, forget_it = device_command(self, uinfo, input, xr_cmds)
+                    device_cmds_result = RCMD.run_commands(self, uinfo, input, xr_cmds)
 
         self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
-
+        del RCMD
+        
 
 # --------------------------
 #   OS UPGRADE INSTALL ADD
@@ -450,16 +411,16 @@ class NsoActionsClass_os_upgrade_install_add(Action):
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
         self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
-        output.os_type = 'UNKNOWN'
         output.hw_type = 'UNKNOWN'
         asr_admin_string = str()
+        
+        RCMD = RCMD_class(uinfo = uinfo, input = input)
 
         sw_version_selected_file = str()
         patch_version_selected_files = str()
         file_string_without_path = str()
 
-        hw_info = detect_hw(self, uinfo, input)
-        output.os_type, output.hw_type = hw_info.get('os_type',str()), hw_info.get('hw_type',str())
+        output.os_type, output.hw_type = RCMD.os_type, RCMD.hw_type
 
         sw_version_selected_file = str()
         try:
@@ -480,10 +441,10 @@ class NsoActionsClass_os_upgrade_install_add(Action):
         except: pass
 
         i_device_cmds = {}
-        if output.os_type == "ios-xr":
+        if RCMD.os_type == "cisco_xr":
             if sw_version_selected_file:
                 i_device_cmds = {
-                    'ios-xr':['%sinstall add source %s/ %s' % (asr_admin_string, \
+                    'cisco_xr':['%sinstall add source %s/ %s' % (asr_admin_string, \
                     '/'.join(str(sw_version_selected_file).replace('[','').replace(']','').split()[0].strip().split('/')[:-1]),
                     str(sw_version_selected_file).replace('[','').replace(']','').split()[0].strip().split('/')[-1] )
                     ],
@@ -495,7 +456,7 @@ class NsoActionsClass_os_upgrade_install_add(Action):
                 file_string_without_path = file_string_without_path.strip()
 
                 i_device_cmds = {
-                    'ios-xr':['%sinstall add source %s/ %s' % (asr_admin_string, \
+                    'cisco_xr':['%sinstall add source %s/ %s' % (asr_admin_string, \
                     '/'.join(str(patch_version_selected_files).replace('[','').replace(']','').split()[0].strip().split('/')[:-1]),
                     file_string_without_path )
                     ]
@@ -509,12 +470,12 @@ class NsoActionsClass_os_upgrade_install_add(Action):
                 self.log.info('FILE_TYPES=', file_types)
 
                 patch_file_device_cmds = {
-                    'ios-xe':[],
-                    'ios-xr':['dir %s' % (patch_version_selected_path)],
-                    'junos':[],
-                    'huawei-vrp':[]
+                    'cisco_ios':[],
+                    'cisco_xr':['dir %s' % (patch_version_selected_path)],
+                    'juniper':[],
+                    'huawei':[]
                 }
-                patch_file_device_cmds_result, forget_it = device_command(self, uinfo, input, patch_file_device_cmds)
+                patch_file_device_cmds_result = RCMD.run_commands(self, uinfo, input, patch_file_device_cmds)
 
                 patch_files = []
                 patch_path = str()
@@ -529,13 +490,13 @@ class NsoActionsClass_os_upgrade_install_add(Action):
                     except: pass
                 if len(patch_files)>0:
                     i_device_cmds = {
-                        'ios-xr':['%sinstall add source %s/ %s' % (asr_admin_string, \
+                        'cisco_xr':['%sinstall add source %s/ %s' % (asr_admin_string, \
                         patch_version_selected_path,
                         ' '.join(patch_files) )
                         ]
                 }
 
-            i_device_cmds_result, output.os_type = device_command(self, uinfo, input, i_device_cmds)
+            i_device_cmds_result = RCMD.run_commands(self, uinfo, input, i_device_cmds)
 
             try:
                 output.operation_id = i_device_cmds_result.split(' started')[0].split('Install operation ')[1].split()[0].strip()
@@ -547,6 +508,8 @@ class NsoActionsClass_os_upgrade_install_add(Action):
 
 
         self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
+        del RCMD
+        
 
 # -----------------------------------------
 #   OS UPGRADE INSTALL ADD PROGRESS CHECK
@@ -557,11 +520,12 @@ class NsoActionsClass_os_upgrade_progress_check(Action):
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
         self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
-        output.os_type = 'UNKNOWN'
         output.hw_type = 'UNKNOWN'
         output.completed = 'no'
         output.result = str()
         asr_admin_string = str()
+
+        RCMD = RCMD_class(uinfo = uinfo, input = input)
 
         operation_id = str()
         if input.operation_id:
@@ -573,17 +537,17 @@ class NsoActionsClass_os_upgrade_progress_check(Action):
 
         if operation_id:
             device_cmds = {
-                'ios-xr':['show version'],
+                'cisco_xr':['show version'],
             }
 
-            device_cmds_result, output.os_type = device_command(self, uinfo, input, device_cmds)
+            device_cmds_result = RCMD.run_commands(self, uinfo, input, device_cmds)
 
-            if output.os_type == "ios-xr":
+            if RCMD.os_type == "cisco_xr":
                 asi_device_cmds = {
-                    'ios-xr':['%sshow install log %s' % (asr_admin_string, operation_id)],
+                    'cisco_xr':['%sshow install log %s' % (asr_admin_string, operation_id)],
                 }
 
-                asi_device_cmds_result, output.os_type = device_command(self, uinfo, input, asi_device_cmds)
+                asi_device_cmds_result = RCMD.run_commands(self, uinfo, input, asi_device_cmds)
                 output.install_log = asi_device_cmds_result
 
                 if 'Ending operation %s' % (operation_id) in asi_device_cmds_result:
@@ -600,10 +564,10 @@ class NsoActionsClass_os_upgrade_progress_check(Action):
                 ### FOUND LAST STARTED OPERATION ###
                 output.operation_id = str()
                 device_cmds = {
-                    'ios-xr':['%sshow install log' % (asr_admin_string)],
+                    'cisco_xr':['%sshow install log' % (asr_admin_string)],
                 }
 
-                device_cmds_result, output.os_type = device_command(self, uinfo, input, device_cmds)
+                device_cmds_result = RCMD.run_commands(self, uinfo, input, device_cmds)
                 #output.install_log = device_cmds_result
 
                 for part in device_cmds_result.split('Install operation '):
@@ -637,6 +601,7 @@ class NsoActionsClass_os_upgrade_progress_check(Action):
             output.completed = 'yes'
             output.result = 'failure'
             self.log.info('Operation id not inserted!')
+        del RCMD    
 
 
 # -----------------------------------------
@@ -649,6 +614,8 @@ class NsoActionsClass_os_upgrade_device_ping_check(Action):
     def cb_action(self, uinfo, name, kp, input, output):
         self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
         output.result = 'UNKNOWN'
+
+        RCMD = RCMD_class(uinfo = uinfo, input = input)
 
         device = str()
         try:
@@ -670,6 +637,7 @@ class NsoActionsClass_os_upgrade_device_ping_check(Action):
             if int(ping_response) == 0: output.result = 'success'
             else: output.result = 'failure'
         self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
+        del RCMD
 
 
 
@@ -683,24 +651,25 @@ class NsoActionsClass_os_upgrade_device_get_ip(Action):
     def cb_action(self, uinfo, name, kp, input, output):
         self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
 
+        RCMD = RCMD_class(uinfo = uinfo, input = input)
+
         try: device = str(input.device)
         except: device = str()
 
         if device:
-            hw_info = detect_hw(self, uinfo, input)
-            #output.os_type, output.hw_type = hw_info.get('os_type',str()), hw_info.get('hw_type',str())
 
             cmd = {
-                      "ios-xr":['show running-config interface loopback 0'],
+                      "cisco_xr":['show running-config interface loopback 0'],
                   }
 
-            cmd_result, forget_it = device_command(self, uinfo, input, cmd)
+            cmd_result = RCMD.run_commands(self, uinfo, input, cmd)
 
-            if hw_info.get('os_type') == "ios-xr":
+            if hw_info.get('os_type') == "cisco_xr":
                 try: output.ip_address = cmd_result.split('ipv4 address')[1].split()[0].strip()
                 except: output.ip_address = str()
 
         self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
+        del RCMD
 
 
 
@@ -713,8 +682,9 @@ class NsoActionsClass_os_upgrade_install_prepare(Action):
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
         self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
-        output.os_type = 'UNKNOWN'
         output.hw_type = 'UNKNOWN'
+
+        RCMD = RCMD_class(uinfo = uinfo, input = input)
 
         output.completed = str()
         output.result = str()
@@ -729,20 +699,19 @@ class NsoActionsClass_os_upgrade_install_prepare(Action):
             except: pass
 
         if operation_id:
-            hw_info = detect_hw(self, uinfo, input)
-            output.os_type, output.hw_type = hw_info.get('os_type',str()), hw_info.get('hw_type',str())
+            output.os_type, output.hw_type = RCMD.os_type, RCMD.hw_type
 
             cmd = {
-                      #"ios-xe":['show version'],
-                      "ios-xr":['install prepare id %s' % (operation_id)],
-                      #"huawei-vrp":['display version'],
-                      #"junos":['show version']
+                      #"cisco_ios":['show version'],
+                      "cisco_xr":['install prepare id %s' % (operation_id)],
+                      #"huawei":['display version'],
+                      #"juniper":['show version']
                   }
 
-            cmd_result, forget_it = device_command(self, uinfo, input, cmd)
+            cmd_result = RCMD.run_commands(self, uinfo, input, cmd)
             output.install_log = cmd_result
 
-            if hw_info.get('os_type') == "ios-xr":
+            if hw_info.get('os_type') == "cisco_xr":
                 try: output.operation_id = cmd_result.split(' started')[0].split('Install operation ')[1].split()[0].strip()
                 except: output.operation_id = str()
 
@@ -751,6 +720,7 @@ class NsoActionsClass_os_upgrade_install_prepare(Action):
             output.completed = 'yes'
             output.result = 'failure'
             self.log.info('Operation id not inserted!')
+        del RCMD    
 
 
 # --------------------------
@@ -762,29 +732,29 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
         self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
-        output.os_type = 'UNKNOWN'
         output.hw_type = 'UNKNOWN'
         output.operation_id = str()
         output.last_command = str()
         output.completed = str()
         output.result = 'failure'
         asr_admin_string = str()
+        
+        RCMD = RCMD_class(uinfo = uinfo, input = input)
 
-        hw_info = detect_hw(self, uinfo, input)
-        output.os_type, output.hw_type = hw_info.get('os_type',str()), hw_info.get('hw_type',str())
+        output.os_type, output.hw_type = RCMD.os_type, RCMD.hw_type
 
-        if hw_info.get('os_type') == "ios-xr":
-            cmd = { "ios-xr": [ '%sinstall activate noprompt' % (asr_admin_string) ] }
+        if hw_info.get('os_type') == "cisco_xr":
+            cmd = { "cisco_xr": [ '%sinstall activate noprompt' % (asr_admin_string) ] }
 
-            cmd_result, forget_it = device_command(self, uinfo, input, cmd)
+            cmd_result = RCMD.run_commands(self, uinfo, input, cmd)
             output.install_log = cmd_result
 
             for i in range(20):
                 time.sleep(2)
                 device_cmds = {
-                    'ios-xr':[ '%sshow install log | utility tail count 20' % (asr_admin_string) ]
+                    'cisco_xr':[ '%sshow install log | utility tail count 20' % (asr_admin_string) ]
                 }
-                device_cmds_result, forget_it = device_command(self, uinfo, input, device_cmds)
+                device_cmds_result = RCMD.run_commands(self, uinfo, input, device_cmds)
 
                 find_success = False
                 part_operation_id, part_operation_id_int, last_operation_id_int = str(), 0, 0
@@ -819,8 +789,8 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
 
                 ### EXIT LOOP AFTER END OF OPERATION ##########################
                 time.sleep(2)
-                device_cmds2 = { 'ios-xr': [ 'show install request' ] }
-                device_cmds_result2, forget_it = device_command(self, uinfo, input, device_cmds2)
+                device_cmds2 = { 'cisco_xr': [ 'show install request' ] }
+                device_cmds_result2 = RCMD.run_commands(self, uinfo, input, device_cmds2)
                 if 'No install operation in progress' in device_cmds_result2:
                     break
 
@@ -830,6 +800,7 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
                 output.result = 'failure'
 
         self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
+        del RCMD
 
 
 # --------------------------
@@ -841,21 +812,21 @@ class NsoActionsClass_os_upgrade_remove_inactive(Action):
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
         self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
-        output.os_type = 'UNKNOWN'
         output.hw_type = 'UNKNOWN'
         asr_admin_string = str()
+        
+        RCMD = RCMD_class(uinfo = uinfo, input = input)
 
-        hw_info = detect_hw(self, uinfo, input)
-        output.os_type, output.hw_type = hw_info.get('os_type',str()), hw_info.get('hw_type',str())
+        output.os_type, output.hw_type = RCMD.os_type, RCMD.hw_type
 
         device_cmds = {
-            'ios-xr':['%sinstall remove inactive all' % (asr_admin_string)],
+            'cisco_xr':['%sinstall remove inactive all' % (asr_admin_string)],
         }
 
-        device_cmds_result, forget_it = device_command(self, uinfo, input, device_cmds)
+        device_cmds_result = RCMD.run_commands(self, uinfo, input, device_cmds)
         output.log = device_cmds_result
 
-        if hw_info.get('os_type') == "ios-xr":
+        if hw_info.get('os_type') == "cisco_xr":
 
             for part in device_cmds_result.split('Install operation '):
                 try: part_split_1 = part.split()[1]
@@ -876,6 +847,7 @@ class NsoActionsClass_os_upgrade_remove_inactive(Action):
                                 output.operation_id = part_operation_id
                     except: pass
         self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
+        del RCMD
 
 
 # --------------------------
@@ -887,21 +859,21 @@ class NsoActionsClass_os_upgrade_commit(Action):
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
         self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
-        output.os_type = 'UNKNOWN'
         output.hw_type = 'UNKNOWN'
+        
+        RCMD = RCMD_class(uinfo = uinfo, input = input)
 
         asr_admin_string = str()
 
-        hw_info = detect_hw(self, uinfo, input)
-        output.os_type, output.hw_type = hw_info.get('os_type',str()), hw_info.get('hw_type',str())
+        output.os_type, output.hw_type = RCMD.os_type, RCMD.hw_type
 
-        if hw_info.get('os_type') == "ios-xr":
+        if hw_info.get('os_type') == "cisco_xr":
 
             device_cmds = {
-                'ios-xr':['%sinstall commit' % (asr_admin_string)],
+                'cisco_xr':['%sinstall commit' % (asr_admin_string)],
             }
 
-            device_cmds_result, output.os_type = device_command(self, uinfo, input, device_cmds)
+            device_cmds_result = RCMD.run_commands(self, uinfo, input, device_cmds)
             output.log = device_cmds_result
 
             for part in device_cmds_result.split('Install operation '):
@@ -923,7 +895,8 @@ class NsoActionsClass_os_upgrade_commit(Action):
                                 output.operation_id = part_operation_id
                     except: pass
         self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
-
+        del RCMD
+        
 
 # --------------------------
 #   OS UPGRADE POSTCHECK
@@ -934,9 +907,10 @@ class NsoActionsClass_os_upgrade_postcheck(Action):
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
         self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
-        output.os_type = 'UNKNOWN'
         output.hw_type = 'UNKNOWN'
         output.result = str()
+        
+        RCMD = RCMD_class(uinfo = uinfo, input = input)
 
         asr_admin_string = str()
 
@@ -950,20 +924,18 @@ class NsoActionsClass_os_upgrade_postcheck(Action):
             self.log.info('\nINPUT.PRECHECK_COMMAND = %s ' % (i))
 
         self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
-        return None
 
-        hw_info = detect_hw(self, uinfo, input)
-        output.os_type, output.hw_type = hw_info.get('os_type',str()), hw_info.get('hw_type',str())
+        output.os_type, output.hw_type = RCMD.os_type, RMD.hw_type
 
-        if hw_info.get('os_type') == "ios-xr":
+        if hw_info.get('os_type') == "cisco_xr":
             postcheck_list = []
 
             check_cmd = str( '%sshow install inactive sum' % (asr_admin_string) )
             device_cmds = {
-                'ios-xr':[ check_cmd ],
+                'cisco_xr':[ check_cmd ],
             }
 
-            device_cmds_result, forget_it = device_command(self, uinfo, input, device_cmds)
+            device_cmds_result = RCMD.run_commands(self, uinfo, input, device_cmds)
             postcheck_list.append([str(check_cmd), str('\n'.join(device_cmds_result.splitlines()[:-1]))])
 
             inactive_packages = []
@@ -977,10 +949,10 @@ class NsoActionsClass_os_upgrade_postcheck(Action):
 
                 check_cmd = str( '%sinstall remove inactive all' % (asr_admin_string) )
                 device_cmds2 = {
-                    'ios-xr':[ check_cmd ],
+                    'cisco_xr':[ check_cmd ],
                 }
 
-                device_cmds_result, forget_it = device_command(self, uinfo, input, device_cmds2)
+                device_cmds_result = RCMD.run_commands(self, uinfo, input, device_cmds2)
                 postcheck_list.append([str(check_cmd), str('\n'.join(device_cmds_result.splitlines()[:-1]))])
 
                 time.sleep(5)
@@ -988,10 +960,10 @@ class NsoActionsClass_os_upgrade_postcheck(Action):
                 ### REPEAT INACTIVE CHECK ###
                 check_cmd = str( '%sshow install inactive sum' % (asr_admin_string) )
                 device_cmds = {
-                    'ios-xr':[ check_cmd ],
+                    'cisco_xr':[ check_cmd ],
                 }
 
-                device_cmds_result, output.os_type = device_command(self, uinfo, input, device_cmds)
+                device_cmds_result = RCMD.run_commands(self, uinfo, input, device_cmds)
                 postcheck_list.append([str(check_cmd), str('\n'.join(device_cmds_result.splitlines()[:-1]))])
 
                 inactive_packages = []
@@ -1023,10 +995,10 @@ class NsoActionsClass_os_upgrade_postcheck(Action):
 
             for check_cmd in xr_postcheck_cmd_list:
                 device_cmds = {
-                    'ios-xr':[ check_cmd ],
+                    'cisco_xr':[ check_cmd ],
                 }
 
-                device_cmds_result, forget_it = device_command(self, uinfo, input, device_cmds)
+                device_cmds_result = RCMD.run_commands(self, uinfo, input, device_cmds)
                 postcheck_list.append([check_cmd, str('\n'.join(device_cmds_result.splitlines()[:-1]))])
 
             ### PARSE 'show hw-module fpd' !!! ###
@@ -1048,10 +1020,10 @@ class NsoActionsClass_os_upgrade_postcheck(Action):
             ### TODO: FIND LAST PRECHECK CONFIG FILE !!! ###
             admin_config_files, config_files = [], []
             device_cmds = {
-                'ios-xr':['dir harddisk: | include config.txt'],
+                'cisco_xr':['dir harddisk: | include config.txt'],
             }
 
-            device_cmds_result, forget_it = device_command(self, uinfo, input, device_cmds)
+            device_cmds_result = RCMD.run_commands(self, uinfo, input, device_cmds)
 
             for file_line in device_cmds_result.splitlines()[:-1]:
                 if file_line.strip() and '-config.txt' in file_line and ':' in file_line.split()[-1]:
@@ -1077,16 +1049,16 @@ class NsoActionsClass_os_upgrade_postcheck(Action):
             # date_string = today.strftime("%Y-%m%d-%H:%M")
 
             # cp_device_cmds = {
-                # 'ios-xr':['copy running-config harddisk:%s-postconfig.txt| prompts ENTER' % (str(date_string))],
+                # 'cisco_xr':['copy running-config harddisk:%s-postconfig.txt| prompts ENTER' % (str(date_string))],
             # }
 
-            # cp_device_cmds_result, forget_it = device_command(self, uinfo, input, cp_device_cmds)
+            # cp_device_cmds_result = RCMD.run_commands(self, uinfo, input, cp_device_cmds)
 
             # cp2_device_cmds = {
-                # 'ios-xr':['admin copy running-config harddisk:admin-%s-postconfig.txt| prompts ENTER' % (str(date_string))],
+                # 'cisco_xr':['admin copy running-config harddisk:admin-%s-postconfig.txt| prompts ENTER' % (str(date_string))],
             # }
 
-            # cp2_device_cmds_result, forget_it = device_command(self, uinfo, input, cp2_device_cmds)
+            # cp2_device_cmds_result = RCMD.run_commands(self, uinfo, input, cp2_device_cmds)
 
             ### TODO: DIFF CONFIGS !!! ###
             ### run diff YYYY-MMDD-config-before-upgrade.txt YYYY-MMDD-config-afer-upgrade.txt
@@ -1094,19 +1066,20 @@ class NsoActionsClass_os_upgrade_postcheck(Action):
 
             if last_config_file:
                 cp_device_cmds = {
-                    'ios-xr':['utility head count 1000000 file harddisk:/%s' % (last_config_file)],
+                    'cisco_xr':['utility head count 1000000 file harddisk:/%s' % (last_config_file)],
                 }
 
-                cp_device_cmds_result, forget_it = device_command(self, uinfo, input, cp_device_cmds)
+                cp_device_cmds_result = RCMD.run_commands(self, uinfo, input, cp_device_cmds)
 
             if last_admin_config_file:
                 cp2_device_cmds = {
-                    'ios-xr':['admin utility head count 1000000 file harddisk:/%s' % (last_admin_config_file)],
+                    'cisco_xr':['admin utility head count 1000000 file harddisk:/%s' % (last_admin_config_file)],
                 }
 
-                cp2_device_cmds_result, forget_it = device_command(self, uinfo, input, cp2_device_cmds)
+                cp2_device_cmds_result = RCMD.run_commands(self, uinfo, input, cp2_device_cmds)
 
         self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
+        del RCMD
 
 
 ###############################################################################
@@ -1165,47 +1138,6 @@ def object_dump(self, obj):
         return vars(obj)
     else:
         return {attr: getattr(obj, attr, None) for attr in obj.__slots__}
-
-###############################################################################
-def detect_hw(self, uinfo, input):
-    hw_info = {}
-
-    cmd = {
-              "ios-xe":['show version'],
-              "ios-xr":['show version'],
-              "huawei-vrp":['display version'],
-              "junos":['show version']
-          }
-
-    hw_info['device'] = copy.deepcopy(str(input.device))
-
-    result, hw_info['os_type'] = device_command(self, uinfo, input, cmd)
-
-    if hw_info.get('os_type') == "ios-xe":
-        hw_info['sw_version'] = result.split('Software, Version')[1].split()[0].strip()
-        hw_info['hw_type'] = result.split(') processor')[0].splitlines()[-1].split('(')[0].strip()
-        hw_info['hw_brand'] = 'CISCO'
-        hw_info['drive_string'] = 'bootflash:'
-
-    elif hw_info.get('os_type') == "ios-xr":
-        hw_info['sw_version'] = result.split('Software, Version')[1].split()[0].strip()
-        hw_info['hw_type'] = result.split(') processor')[0].splitlines()[-1].split('(')[0].strip()
-        hw_info['hw_brand'] = 'CISCO'
-        hw_info['drive_string'] = 'harddisk:'
-
-    elif hw_info.get('os_type') == "huawei-vrp":
-        hw_info['sw_version'] = result.split('software, Version')[1].split()[0].strip()
-        hw_info['hw_type'] = result.split(' version information:')[0].splitlines()[-1].strip()
-        hw_info['hw_brand'] = 'HUAWEI'
-        hw_info['drive_string'] = 'cfcard:'
-
-    elif hw_info.get('os_type') == "junos":
-        hw_info['sw_version'] = result.split('Junos: ')[1].split()[0].strip()
-        hw_info['hw_type'] = result.split('Model: ')[1].split()[0].strip()
-        hw_info['hw_brand'] = 'JUNIPER'
-        hw_info['drive_string'] = 're0:'
-
-    return hw_info
 
 ###############################################################################
 
@@ -1282,17 +1214,17 @@ def get_local_subdirectories(brand_raw = None, type_raw = None):
         elif 'MX20' in type_raw.upper():
             type_subdir_on_server = 'MX'
             type_subdir_on_device = '/var/tmp'
-            file_types = ['junos*.img.gz', 'junos*.tgz']
+            file_types = ['juniper*.img.gz', 'juniper*.tgz']
             brand_raw_assumed = 'JUNIPER'
         elif 'MX480' in type_raw.upper():
             type_subdir_on_server = 'MX/MX480'
             type_subdir_on_device = '/var/tmp'
-            file_types = ['junos*.img.gz', 'junos*.tgz']
+            file_types = ['juniper*.img.gz', 'juniper*.tgz']
             brand_raw_assumed = 'JUNIPER'
         elif 'VMX' in type_raw.upper():
             type_subdir_on_server = 'MX/MX480'
             type_subdir_on_device = '/var/tmp'
-            file_types = ['junos*.img.gz', 'junos*.tgz']
+            file_types = ['juniper*.img.gz', 'juniper*.tgz']
             brand_raw_assumed = 'JUNIPER'
         elif 'NE40' in type_raw.upper():
             type_subdir_on_server = 'V8R10'
