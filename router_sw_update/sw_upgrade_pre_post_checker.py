@@ -3128,8 +3128,12 @@ try:
 
     SCRIPT_ACTION = str()
 
+    iptac_server = str(subprocess.check_output('hostname').decode('utf-8')).strip()
+    if iptac_server == 'iptac5': fake_success = True
+    else: fake_success = False
+
     USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = None, css_style = CSS_STYLE, \
-        json_mode = False, read_only = False, fake_success = True)
+        json_mode = False, read_only = False, fake_success = fake_success)
 
     LCMD.init()
 
@@ -3502,7 +3506,8 @@ try:
                 inactive_packages = []
                 if 'No inactive package(s) in software repository' in rcmd_outputs[0]:
                     pass
-                else:
+                elif SCRIPT_ACTION == 'pre':
+                    ### def DO REMOVE INACTIVE ONLY IN PRECHECK ###
                     if 'inactive package(s) found:' in rcmd_outputs[0]:
                         for package_line in rcmd_outputs[0].split('inactive package(s) found:')[1].splitlines()[:-1]:
                             if package_line.strip():
@@ -3533,7 +3538,8 @@ try:
                 inactive_packages = []
                 if 'Inactive Packages: 0' in rcmd_outputs[0]:
                     pass
-                else:
+                elif SCRIPT_ACTION == 'pre':
+                    ### def DO ADMIN REMOVE INACTIVE ONLY IN PRECHECK ###
                     if 'Inactive Packages:' in rcmd_outputs[0]:
                         for package_line in rcmd_outputs[0].split('Inactive Packages:')[1].splitlines()[1:-1]:
                             if package_line.strip():
@@ -4021,38 +4027,40 @@ try:
                     CGI_CLI.add_result(text, 'error')
 
 
-            ### def REPEAT 'show install inactive summary' ###
-            device_cmds3 = { 'cisco_xr':[ 'show install inactive summary' ] }
+            ### def REPEAT PRECHECK 'show install inactive summary' ###
+            if SCRIPT_ACTION == 'pre':
+                device_cmds3 = { 'cisco_xr':[ 'show install inactive summary' ] }
 
-            rcmd_outputs3 = RCMD.run_commands(device_cmds3, \
-                long_lasting_mode = True, printall = printall)
+                rcmd_outputs3 = RCMD.run_commands(device_cmds3, \
+                    long_lasting_mode = True, printall = printall)
 
-            inactive_packages = []
-            if 'No inactive package(s) in software repository' in rcmd_outputs3[0]:
-                pass
-            else:
-                if 'inactive package(s) found:' in rcmd_outputs3[0]:
-                    for package_line in rcmd_outputs3[0].split('inactive package(s) found:')[1].splitlines()[:-1]:
-                        if package_line.strip():
-                            inactive_packages.append(str(package_line.strip()))
-            JSON_DATA['inactive_packages'] = copy.deepcopy(inactive_packages)
+                inactive_packages = []
+                if 'No inactive package(s) in software repository' in rcmd_outputs3[0]:
+                    pass
+                else:
+                    if 'inactive package(s) found:' in rcmd_outputs3[0]:
+                        for package_line in rcmd_outputs3[0].split('inactive package(s) found:')[1].splitlines()[:-1]:
+                            if package_line.strip():
+                                inactive_packages.append(str(package_line.strip()))
+                JSON_DATA['inactive_packages'] = copy.deepcopy(inactive_packages)
 
 
-            ### def REPEAT 'admin show install inactive summary' ###
-            device_cmds3 = { 'cisco_xr':[ 'admin show install inactive summary' ] }
+            ### def REPEAT PRECHECK 'admin show install inactive summary' ###
+            if SCRIPT_ACTION == 'pre':
+                device_cmds3 = { 'cisco_xr':[ 'admin show install inactive summary' ] }
 
-            rcmd_outputs3 = RCMD.run_commands(device_cmds3, \
-                long_lasting_mode = True, printall = printall)
+                rcmd_outputs3 = RCMD.run_commands(device_cmds3, \
+                    long_lasting_mode = True, printall = printall)
 
-            inactive_packages = []
-            if 'Inactive Packages: 0' in rcmd_outputs3[0]:
-                pass
-            else:
-                if 'Inactive Packages:' in rcmd_outputs3[0]:
-                    for package_line in rcmd_outputs3[0].split('Inactive Packages:')[1].splitlines()[1:-1]:
-                        if package_line.strip():
-                            inactive_packages.append(str(package_line.strip()))
-            JSON_DATA['admin_inactive_packages'] = copy.deepcopy(inactive_packages)
+                inactive_packages = []
+                if 'Inactive Packages: 0' in rcmd_outputs3[0]:
+                    pass
+                else:
+                    if 'Inactive Packages:' in rcmd_outputs3[0]:
+                        for package_line in rcmd_outputs3[0].split('Inactive Packages:')[1].splitlines()[1:-1]:
+                            if package_line.strip():
+                                inactive_packages.append(str(package_line.strip()))
+                JSON_DATA['admin_inactive_packages'] = copy.deepcopy(inactive_packages)
 
 
             ### def check if patch smu files are in active packages #######
@@ -4148,8 +4156,8 @@ try:
 
 
             ### def FINAL CHECKS ##############################################
-            check_data_content("JSON_DATA['inactive_packages']", exact_value_yes = '[]', warning = True)
-            check_data_content("JSON_DATA['admin_inactive_packages']", exact_value_yes = '[]',  warning = True)
+            check_data_content("JSON_DATA['inactive_packages']", exact_value_yes = '[]', warning = True, ignore_data_existence = True)
+            check_data_content("JSON_DATA['admin_inactive_packages']", exact_value_yes = '[]',  warning = True, ignore_data_existence = True)
 
 
             ### print JSON_DATA ###############################################
