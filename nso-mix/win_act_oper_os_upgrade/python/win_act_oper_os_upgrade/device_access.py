@@ -10,8 +10,8 @@ class RCMD_class():
         try: self.m.close()
         except: pass
 
-    def __init__(self, device = None,**kwargs):
-        self.input_device = str()
+    def __init__(self, device = None, **kwargs):
+        self.input_device, self.router_type = str(), str()
         self.device, self.os_type = str(), str()
         self.hw_brand, self.drive_string = str(), str()
 
@@ -19,6 +19,7 @@ class RCMD_class():
 
         self.input = kwargs.get('input')
         self.uinfo = kwargs.get('uinfo')
+        self.log_info = kwargs.get('log_info')
 
         if self.input:
             if self.input.device: self.input_device = self.input.device
@@ -33,7 +34,9 @@ class RCMD_class():
 
             self.hw_info = {}
             if self.dev.platform.name:
+                ### NSO OS TYPE ###
                 self.os_type = str(self.dev.platform.name)
+                ### PARAMIKO/NETMIKO OS TYPE ###
                 if self.dev.platform.name == "ios-xe": self.router_type = 'cisco_ios'
                 elif self.dev.platform.name == "ios-xr": self.router_type = 'cisco_xr'
                 elif self.dev.platform.name == "junos": self.router_type = 'juniper'
@@ -153,8 +156,8 @@ class RCMD_class():
                     command_output = self.dev.rpc.jrpc__rpc_request_shell_execute.request_shell_execute.request(command_input)
                     result = command_output.output
 
-            self.log.info('\nREMOTE_COMMAND({}): {}\n{}\n'.format(self.dev.platform.name,str(cmd),result))
+            if self.log_info: self.log_info('\nREMOTE_COMMAND({}): {}\n{}\n'.format(self.dev.platform.name,str(cmd),result))
         except Exception as E:
-            self.log.info("\nEXCEPTION in REMOTE_COMMAND({}):{}\n{}".format(self.dev.platform.name, str(cmd), str(E)))
+            if self.log_info: self.log_info("\nEXCEPTION in REMOTE_COMMAND({}):{}\n{}".format(self.dev.platform.name, str(cmd), str(E)))
         return result
 
