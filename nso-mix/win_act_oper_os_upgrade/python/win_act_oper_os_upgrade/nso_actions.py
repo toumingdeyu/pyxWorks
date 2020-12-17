@@ -72,10 +72,10 @@ class NsoActionsClass_get_sw_version(Action):
         ### BY DEFAULT = '/' ##################################################
         dev_dir = os.path.abspath(os.path.join(os.sep, type_subdir_on_device))
 
-        xe_device_dir_list = [ 'dir %s%s' % (drive_string, dev_dir) ]
-        xr_device_dir_list = [ 'dir %s%s' % (drive_string, dev_dir) ]
-        huawei_device_dir_list = [ 'dir %s%s' % (drive_string, dev_dir) ]
-        juniper_device_dir_list = [ 'file list %s%s detail' % (drive_string,dev_dir) ]
+        xe_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) ]
+        xr_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) ]
+        huawei_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) ]
+        juniper_device_dir_list = [ 'file list %s%s detail' % (RCMD.drive_string,dev_dir) ]
 
         dir_device_cmds = {
             'cisco_ios':xe_device_dir_list,
@@ -95,7 +95,7 @@ class NsoActionsClass_get_sw_version(Action):
                      if str(line.split()[1])[0] == 'd' and int(sub_directory):
                          versions.append(sub_directory)
                          output.target_sw_versions.create().name = str(sub_directory)
-                         output.target_sw_versions[i].path = str('%s%s/%s' % (drive_string, dev_dir, sub_directory))
+                         output.target_sw_versions[i].path = str('%s%s/%s' % (RCMD.drive_string, dev_dir, sub_directory))
                          ### del mylist['key1']
                          i += 1
                 except: pass
@@ -146,10 +146,10 @@ class NsoActionsClass_get_sw_version(Action):
 
         for i in range(len(output.target_sw_versions)):
             ### def GET FILES ON DEVICE VERSION DIRECTORY #########################
-            xe_device_file_list = [ 'dir %s%s/%s' % (drive_string, dev_dir, output.target_sw_versions[i].name) ]
-            xr_device_file_list = [ 'dir %s%s/%s' % (drive_string, dev_dir, output.target_sw_versions[i].name) ]
+            xe_device_file_list = [ 'dir %s%s/%s' % (RCMD.drive_string, dev_dir, output.target_sw_versions[i].name) ]
+            xr_device_file_list = [ 'dir %s%s/%s' % (RCMD.drive_string, dev_dir, output.target_sw_versions[i].name) ]
 
-            juniper_device_file_list = [ 'file list %s%s/%s detail' % (drive_string, dev_dir, output.target_sw_versions[i].name) ]
+            juniper_device_file_list = [ 'file list %s%s/%s detail' % (RCMD.drive_string, dev_dir, output.target_sw_versions[i].name) ]
 
             file_device_cmds = {
                 'cisco_ios':xe_device_file_list,
@@ -174,7 +174,7 @@ class NsoActionsClass_get_sw_version(Action):
                                     if file_type_part.upper() in tar_file.upper(): pass
                                     else: found_in_tar_file = False
                                 if len(file_type_parts) > 0 and found_in_tar_file:
-                                    files.append('%s%s/%s/%s' % (drive_string, dev_dir,output.target_sw_versions[i].name, tar_file))
+                                    files.append('%s%s/%s/%s' % (RCMD.drive_string, dev_dir,output.target_sw_versions[i].name, tar_file))
                     except: pass
                 if len(files)>0:
                     output.target_sw_versions[i].files = files
@@ -186,7 +186,7 @@ class NsoActionsClass_get_sw_version(Action):
 
             ### GET SMU FILES ON DEVICE VERSION DIRECTORY #########################
             if RCMD.os_type == "cisco_xr":
-                xr_device_patch_file_list = [ 'dir %s%s/%s/SMU' % (drive_string, dev_dir, output.target_sw_versions[i].name) ]
+                xr_device_patch_file_list = [ 'dir %s%s/%s/SMU' % (RCMD.drive_string, dev_dir, output.target_sw_versions[i].name) ]
 
                 patch_file_device_cmds = {
                     'cisco_ios':[],
@@ -210,8 +210,8 @@ class NsoActionsClass_get_sw_version(Action):
                                 except: patch_file = str()
                                 if len(patch_file) > 0 and patch_file.upper() in tar_file.upper():
                                     #patch_files.append(tar_file)
-                                    patch_files.append('%s%s/%s/%s/%s' % (drive_string, dev_dir,output.target_sw_versions[i].name,'SMU' , tar_file))
-                                    patch_path = '%s%s/%s/%s' % (drive_string, dev_dir,output.target_sw_versions[i].name,'SMU')
+                                    patch_files.append('%s%s/%s/%s/%s' % (RCMD.drive_string, dev_dir,output.target_sw_versions[i].name,'SMU' , tar_file))
+                                    patch_path = '%s%s/%s/%s' % (RCMD.drive_string, dev_dir,output.target_sw_versions[i].name,'SMU')
                         except: pass
                     if len(patch_files)>0:
                         output.target_sw_versions[i].patch_files = patch_files
@@ -245,7 +245,7 @@ class NsoActionsClass_os_upgrade_precheck(Action):
         inactive_packages = []
         active_packages = []
         asr_admin_string = str()
-        
+
         RCMD = RCMD_class(uinfo = uinfo, input = input)
 
         output.os_type, output.hw_type = RCMD.os_type, RCMD.hw_type
@@ -400,7 +400,7 @@ class NsoActionsClass_os_upgrade_precheck(Action):
 
         self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
         del RCMD
-        
+
 
 # --------------------------
 #   OS UPGRADE INSTALL ADD
@@ -413,7 +413,7 @@ class NsoActionsClass_os_upgrade_install_add(Action):
         self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
         output.hw_type = 'UNKNOWN'
         asr_admin_string = str()
-        
+
         RCMD = RCMD_class(uinfo = uinfo, input = input)
 
         sw_version_selected_file = str()
@@ -509,7 +509,7 @@ class NsoActionsClass_os_upgrade_install_add(Action):
 
         self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
         del RCMD
-        
+
 
 # -----------------------------------------
 #   OS UPGRADE INSTALL ADD PROGRESS CHECK
@@ -601,7 +601,7 @@ class NsoActionsClass_os_upgrade_progress_check(Action):
             output.completed = 'yes'
             output.result = 'failure'
             self.log.info('Operation id not inserted!')
-        del RCMD    
+        del RCMD
 
 
 # -----------------------------------------
@@ -720,7 +720,7 @@ class NsoActionsClass_os_upgrade_install_prepare(Action):
             output.completed = 'yes'
             output.result = 'failure'
             self.log.info('Operation id not inserted!')
-        del RCMD    
+        del RCMD
 
 
 # --------------------------
@@ -738,7 +738,7 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
         output.completed = str()
         output.result = 'failure'
         asr_admin_string = str()
-        
+
         RCMD = RCMD_class(uinfo = uinfo, input = input)
 
         output.os_type, output.hw_type = RCMD.os_type, RCMD.hw_type
@@ -814,7 +814,7 @@ class NsoActionsClass_os_upgrade_remove_inactive(Action):
         self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
         output.hw_type = 'UNKNOWN'
         asr_admin_string = str()
-        
+
         RCMD = RCMD_class(uinfo = uinfo, input = input)
 
         output.os_type, output.hw_type = RCMD.os_type, RCMD.hw_type
@@ -860,7 +860,7 @@ class NsoActionsClass_os_upgrade_commit(Action):
     def cb_action(self, uinfo, name, kp, input, output):
         self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
         output.hw_type = 'UNKNOWN'
-        
+
         RCMD = RCMD_class(uinfo = uinfo, input = input)
 
         asr_admin_string = str()
@@ -896,7 +896,7 @@ class NsoActionsClass_os_upgrade_commit(Action):
                     except: pass
         self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
         del RCMD
-        
+
 
 # --------------------------
 #   OS UPGRADE POSTCHECK
@@ -909,7 +909,7 @@ class NsoActionsClass_os_upgrade_postcheck(Action):
         self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
         output.hw_type = 'UNKNOWN'
         output.result = str()
-        
+
         RCMD = RCMD_class(uinfo = uinfo, input = input)
 
         asr_admin_string = str()
