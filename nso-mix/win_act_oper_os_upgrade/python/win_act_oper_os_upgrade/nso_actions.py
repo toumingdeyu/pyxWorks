@@ -20,12 +20,12 @@ class NsoActionsClass_get_sw_version(Action):
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
         self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
-        output.hw_type = 'UNKNOWN'
-        output.sw_version = 'UNKNOWN'
         brand_raw = str()
-        type_raw = str()
 
         RCMD = RCMD_class(uinfo = uinfo, input = input, log_info = self.log.info)
+        output.hw_type, output.os_type = RCMD.hw_type, RCMD.os_type
+
+        output.sw_version = RCMD.sw_version
 
         ### def LOOK FOR PATCH ####################################################
         if RCMD.router_type == "cisco_xr":
@@ -67,7 +67,7 @@ class NsoActionsClass_get_sw_version(Action):
 
         ### def GET PATHS ON DEVICE ###########################################
         brand_subdir, type_subdir_on_server, type_subdir_on_device, file_types = \
-            get_local_subdirectories(brand_raw = brand_raw, type_raw = type_raw)
+            get_local_subdirectories(brand_raw = brand_raw, type_raw = RCMD.hw_type)
 
         ### BY DEFAULT = '/' ##################################################
         dev_dir = os.path.abspath(os.path.join(os.sep, type_subdir_on_device))
@@ -247,8 +247,7 @@ class NsoActionsClass_os_upgrade_precheck(Action):
         asr_admin_string = str()
 
         RCMD = RCMD_class(uinfo = uinfo, input = input, log_info = self.log.info)
-
-        output.os_type, output.hw_type = RCMD.os_type, RCMD.hw_type
+        output.hw_type, output.os_type = RCMD.hw_type, RCMD.os_type
 
         if RCMD.router_type == "cisco_xr":
             ii = 0
@@ -417,10 +416,10 @@ class NsoActionsClass_os_upgrade_install_add(Action):
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
         self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
-        output.hw_type = 'UNKNOWN'
         asr_admin_string = str()
 
         RCMD = RCMD_class(uinfo = uinfo, input = input, log_info = self.log.info)
+        output.hw_type, output.os_type = RCMD.hw_type, RCMD.os_type
 
         sw_version_selected_file = str()
         patch_version_selected_files = str()
@@ -471,7 +470,7 @@ class NsoActionsClass_os_upgrade_install_add(Action):
 
                 ### def GET PATHS ON DEVICE ###########################################
                 brand_subdir, type_subdir_on_server, type_subdir_on_device, file_types = \
-                get_local_subdirectories(brand_raw = 'CISCO', type_raw = hw_info.get('hw_type',str()) )
+                get_local_subdirectories(brand_raw = 'CISCO', type_raw = RCMD.hw_type )
 
                 self.log.info('FILE_TYPES=', file_types)
 
@@ -526,12 +525,12 @@ class NsoActionsClass_os_upgrade_progress_check(Action):
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
         self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
-        output.hw_type = 'UNKNOWN'
         output.completed = 'no'
         output.result = str()
         asr_admin_string = str()
 
         RCMD = RCMD_class(uinfo = uinfo, input = input, log_info = self.log.info)
+        output.hw_type, output.os_type = RCMD.hw_type, RCMD.os_type
 
         operation_id = str()
         if input.operation_id:
@@ -688,9 +687,9 @@ class NsoActionsClass_os_upgrade_install_prepare(Action):
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
         self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
-        output.hw_type = 'UNKNOWN'
 
         RCMD = RCMD_class(uinfo = uinfo, input = input, log_info = self.log.info)
+        output.hw_type, output.os_type = RCMD.hw_type, RCMD.os_type
 
         output.completed = str()
         output.result = str()
@@ -738,7 +737,6 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
         self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
-        output.hw_type = 'UNKNOWN'
         output.operation_id = str()
         output.last_command = str()
         output.completed = str()
@@ -746,8 +744,7 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
         asr_admin_string = str()
 
         RCMD = RCMD_class(uinfo = uinfo, input = input, log_info = self.log.info)
-
-        output.os_type, output.hw_type = RCMD.os_type, RCMD.hw_type
+        output.hw_type, output.os_type = RCMD.hw_type, RCMD.os_type
 
         if RCMD.router_type == "cisco_xr":
             cmd = { "cisco_xr": [ '%sinstall activate noprompt' % (asr_admin_string) ] }
@@ -821,8 +818,7 @@ class NsoActionsClass_os_upgrade_remove_inactive(Action):
         asr_admin_string = str()
 
         RCMD = RCMD_class(uinfo = uinfo, input = input, log_info = self.log.info)
-
-        output.os_type, output.hw_type = RCMD.os_type, RCMD.hw_type
+        output.hw_type, output.os_type = RCMD.hw_type, RCMD.os_type
 
         device_cmds = {
             'cisco_xr':['%sinstall remove inactive all' % (asr_admin_string)],
@@ -864,9 +860,9 @@ class NsoActionsClass_os_upgrade_commit(Action):
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
         self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
-        output.hw_type = 'UNKNOWN'
 
         RCMD = RCMD_class(uinfo = uinfo, input = input, log_info = self.log.info)
+        output.hw_type, output.os_type = RCMD.hw_type, RCMD.os_type
 
         asr_admin_string = str()
 
@@ -912,10 +908,10 @@ class NsoActionsClass_os_upgrade_postcheck(Action):
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
         self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
-        output.hw_type = 'UNKNOWN'
         output.result = str()
 
         RCMD = RCMD_class(uinfo = uinfo, input = input, log_info = self.log.info)
+        output.hw_type, output.os_type = RCMD.hw_type, RCMD.os_type
 
         asr_admin_string = str()
 
