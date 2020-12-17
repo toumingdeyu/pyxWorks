@@ -9,12 +9,12 @@ class RCMD_class():
     def __del__(self):
         try: self.m.close()
         except: pass
-        
+
     def __init__(self, device = None,**kwargs):
         self.input_device = str()
         self.device, self.os_type = str(), str()
         self.hw_brand, self.drive_string = str(), str()
-        
+
         if device: self.input_device = device
 
         self.input = kwargs.get('input')
@@ -29,7 +29,7 @@ class RCMD_class():
             self.m = ncs.maapi.Maapi()
             self.t = self.m.start_read_trans(usid = self.uinfo.usid)
             self.root = ncs.maagic.get_root(self.t)
-            self.dev = root.ncs__devices.device[self.input_device]
+            self.dev = self.root.ncs__devices.device[self.input_device]
 
             self.hw_info = {}
             if self.dev.platform.name:
