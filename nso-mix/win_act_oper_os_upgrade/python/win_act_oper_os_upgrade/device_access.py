@@ -14,6 +14,7 @@ class RCMD_class():
         self.input_device, self.router_type = str(), str()
         self.device, self.os_type = str(), str()
         self.hw_brand, self.drive_string = str(), str()
+        self.sw_version = str()
 
         if device: self.input_device = device
 

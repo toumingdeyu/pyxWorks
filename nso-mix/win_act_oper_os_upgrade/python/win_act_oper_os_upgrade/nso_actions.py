@@ -43,7 +43,7 @@ class NsoActionsClass_get_sw_version(Action):
 
             patch_device_cmds_result = RCMD.run_commands(patch_device_cmds)
 
-            sw_version = copy.deepcopy(RCMD.hwinfo.get('sw_version',str()))
+            sw_version = str(RCMD.sw_version)
             sw_patches = []
 
             if RCMD.router_type == "cisco_ios":
