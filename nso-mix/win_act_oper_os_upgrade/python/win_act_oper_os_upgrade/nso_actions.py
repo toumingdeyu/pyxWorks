@@ -221,7 +221,8 @@ class NsoActionsClass_get_sw_version(Action):
                     pass
                 elif RCMD.router_type == "juniper":
                     pass
-
+                    
+        self.log.info('\nRCMD: ', nso_object_to_string(self, RCMD))
         self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
         #self.log.info('\nOUTPUT_dump: ', object_dump(self, output))
 
