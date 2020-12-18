@@ -3333,7 +3333,7 @@ try:
 
                 cmd_results = RCMD.run_commands(cmds, printall = printall)
 
-                if cmd_results[0].replace('Active').replace('Committed').splitlines()[2:] == cmd_results[1].replace('Active').replace('Committed').splitlines()[2:]: pass
+                if cmd_results[0].replace('Active','').replace('Committed','').splitlines()[2:] == cmd_results[1].replace('Active','').replace('Committed','').splitlines()[2:]: pass
                 elif CGI_CLI.READ_ONLY:
                     text = "(PROBLEM: 'install commit' needs to be done!)"
                     CGI_CLI.add_result(text, 'error')
@@ -3369,7 +3369,7 @@ try:
 
                 cmd_results = RCMD.run_commands(cmds, printall = printall)
 
-                if cmd_results[0].replace('Active').replace('Committed').splitlines()[2:] == cmd_results[1].replace('Active').replace('Committed').splitlines()[2:]: pass
+                if cmd_results[0].replace('Active','').replace('Committed','').splitlines()[2:] == cmd_results[1].replace('Active','').replace('Committed','').splitlines()[2:]: pass
                 elif CGI_CLI.READ_ONLY:
                     text = "(PROBLEM: 'admin install commit' needs to be done!)"
                     CGI_CLI.add_result(text, 'error')
