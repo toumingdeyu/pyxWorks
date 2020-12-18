@@ -2,6 +2,7 @@
 import ncs
 #from ncs.application import Service
 import collections
+import time, copy
 
 
 class RCMD_class():
@@ -9,6 +10,7 @@ class RCMD_class():
     def __del__(self):
         try: self.m.close()
         except: pass
+        time.sleep(0.3)
 
     def __init__(self, device = None, **kwargs):
         self.input_device, self.router_type = str(), str()
@@ -55,28 +57,41 @@ class RCMD_class():
                 result = self.run_commands(cmd)
 
                 if self.os_type == "ios-xe":
-                    self.sw_version = str(result.split('Software, Version')[1].split()[0].strip())
-                    self.hw_type = str(result.split(') processor')[0].splitlines()[-1].split('(')[0].strip())
+                    try: self.sw_version = str(result.split('Software, Version')[1].split()[0].strip())
+                    except:
+                        try: self.sw_version = str(result.split('Version      :')[1].split()[0].strip())
+                        except: pass
+                    try: self.hw_type = str(result.split(') processor')[0].splitlines()[-1].split('(')[0].strip())
+                    except: pass
                     self.hw_brand = 'CISCO'
                     self.drive_string = 'bootflash:'
 
                 elif self.os_type == "ios-xr":
-                    self.sw_version = str(result.split('Software, Version')[1].split()[0].strip())
-                    self.hw_type = str(result.split(') processor')[0].splitlines()[-1].split('(')[0].strip())
+                    try: self.sw_version = str(result.split('Software, Version')[1].split()[0].strip())
+                    except:
+                        try: self.sw_version = str(result.split('Version      :')[1].split()[0].strip())
+                        except: pass
+                    try: self.hw_type = str(result.split(') processor')[0].splitlines()[-1].split('(')[0].strip())
+                    except: pass
                     self.hw_brand = 'CISCO'
                     self.drive_string = 'harddisk:'
 
                 elif self.os_type == "huawei-vrp":
-                    self.sw_version = str(result.split('software, Version')[1].split()[0].strip())
-                    self.hw_type = str(result.split(' version information:')[0].splitlines()[-1].strip())
+                    try: self.sw_version = str(result.split('software, Version')[1].split()[0].strip())
+                    except: pass
+                    try: self.hw_type = str(result.split(' version information:')[0].splitlines()[-1].strip())
+                    except: pass
                     self.hw_brand = 'HUAWEI'
                     self.drive_string= 'cfcard:'
 
                 elif self.os_type == "junos":
-                    self.sw_version = str(result.split('Junos: ')[1].split()[0].strip())
-                    self.hw_type = str(result.split('Model: ')[1].split()[0].strip())
+                    try: self.sw_version = str(result.split('Junos: ')[1].split()[0].strip())
+                    except: pass
+                    try: self.hw_type = str(result.split('Model: ')[1].split()[0].strip())
+                    except: pass
                     self.hw_brand = 'JUNIPER'
                     self.drive_string = 're0:'
+                time.sleep(0.1)
 
 
     def run_commands(self, cmd, **kwargs):
@@ -160,5 +175,5 @@ class RCMD_class():
             if self.log_info: self.log_info('\nREMOTE_COMMAND({}): {}\n{}\n'.format(self.dev.platform.name,str(cmd),result))
         except Exception as E:
             if self.log_info: self.log_info("\nEXCEPTION in REMOTE_COMMAND({}):{}\n{}".format(self.dev.platform.name, str(cmd), str(E)))
-        return result
+        return copy.deepcopy(result)
 
