@@ -3323,7 +3323,7 @@ try:
             CGI_CLI.uprint(HW_INFO, tag = 'debug', no_printall = not CGI_CLI.printall)
 
             if SCRIPT_ACTION == 'pre':
-                ### def CHECK IF COMMIT IS NEEDED/ WAS FORGOTTEN ##################
+                ### def PRECHECK IF COMMIT IS NEEDED/ WAS FORGOTTEN ############
                 cmds = {
                     'cisco_ios':[],
                     'cisco_xr':['show install committed', 'show install active' ],
@@ -3333,9 +3333,9 @@ try:
 
                 cmd_results = RCMD.run_commands(cmds, printall = printall)
 
-                if cmd_results[0].splitlines()[2:] == cmds_result[1].splitlines()[2:]: pass
+                if cmd_results[0].splitlines()[2:] == cmd_results[1].splitlines()[2:]: pass
                 elif CGI_CLI.READ_ONLY:
-                    text = "(PROBLEM: 'install commit' nedds to be done!)"
+                    text = "(PROBLEM: 'install commit' needs to be done!)"
                     CGI_CLI.add_result(text, 'error')
                 else:
                     cmds = {
@@ -3354,12 +3354,12 @@ try:
                             printall = printall)
 
                         if 'No install operation in progress' in rcmd_outputs[0]: break
-                        time.sleep(2)
+                        time.sleep(3)
                     else:
                         text = "(CMD:'show install request', PROBLEM:'%s') !" % (rcmd_outputs[0].strip())
                         CGI_CLI.add_result(text, 'error')
 
-                ### def CHECK IF ADMIN COMMIT IS NEEDED/ WAS FORGOTTEN ############
+                ### def PRECHECK IF ADMIN COMMIT IS NEEDED/ WAS FORGOTTEN #####
                 cmds = {
                     'cisco_ios':[],
                     'cisco_xr':['admin show install committed', 'admin show install active' ],
@@ -3369,14 +3369,14 @@ try:
 
                 cmd_results = RCMD.run_commands(cmds, printall = printall)
 
-                if cmd_results[0].splitlines()[2:] == cmds_result[1].splitlines()[2:]: pass
+                if cmd_results[0].splitlines()[2:] == cmd_results[1].splitlines()[2:]: pass
                 elif CGI_CLI.READ_ONLY:
-                    text = "(PROBLEM: 'admin install commit' nedds to be done!)"
+                    text = "(PROBLEM: 'admin install commit' needs to be done!)"
                     CGI_CLI.add_result(text, 'error')
                 else:
                     cmds = {
                         'cisco_ios':[],
-                        'cisco_xr':['admin install commit' ],
+                        'cisco_xr':['admin', 'install commit', 'exit'],
                         'juniper':[],
                         'huawei':[]
                     }
@@ -3384,13 +3384,13 @@ try:
                     cmd_results = RCMD.run_commands(cmds, printall = printall)
 
                     for times in range(10):
-                        device_cmds = { 'cisco_xr': [ 'show install request' ] }
+                        device_cmds = { 'cisco_xr': [ 'admin show install request' ] }
 
                         rcmd_outputs = RCMD.run_commands(device_cmds, \
                             printall = printall)
 
                         if 'No install operation in progress' in rcmd_outputs[0]: break
-                        time.sleep(2)
+                        time.sleep(3)
                     else:
                         text = "(CMD:'show install request', PROBLEM:'%s') !" % (rcmd_outputs[0].strip())
                         CGI_CLI.add_result(text, 'error')
@@ -3568,101 +3568,50 @@ try:
             ### CISCO_XR ################################
             elif RCMD.router_type == 'cisco_xr':
 
-                ### def show install inactive sum #########################
-                device_cmds = {
-                    'cisco_xr':[ 'show install inactive sum' ],
-                }
+                ### def (admin) show install inactive sum #########################
+                device_cmds = { 'cisco_xr':[ 'show install inactive sum', 'admin show install inactive sum' ] }
+                rcmd_outputs = RCMD.run_commands(device_cmds, printall = printall)
 
-                rcmd_outputs = RCMD.run_commands(device_cmds, \
-                    autoconfirm_mode = True, \
-                    printall = printall)
+                if 'No inactive package(s) in software repository' in rcmd_outputs[0]: pass
+                elif SCRIPT_ACTION == 'pre' and not CGI_CLI.READ_ONLY:
+                    ### DO REMOVE INACTIVE ONLY IN PRECHECK ###
+                    device_cmds2 = { 'cisco_xr':[ 'install remove inactive all' ] }
+                    rcmd_outputs2 = RCMD.run_commands(device_cmds2, \
+                        autoconfirm_mode = True, printall = printall)
 
-                inactive_packages = []
-                if 'No inactive package(s) in software repository' in rcmd_outputs[0]:
-                    pass
-                elif SCRIPT_ACTION == 'pre':
-                    ### def DO REMOVE INACTIVE ONLY IN PRECHECK ###
-                    if 'inactive package(s) found:' in rcmd_outputs[0]:
-                        for package_line in rcmd_outputs[0].split('inactive package(s) found:')[1].splitlines()[:-1]:
-                            if package_line.strip():
-                                inactive_packages.append(str(package_line.strip()))
+                    try: JSON_DATA['remove_inactive_id_nr'] = copy.deepcopy(rcmd_outputs2[0].split('Install operation ')[1].split(' started').strip())
+                    except: pass
+                    ### INSTEAD OF WAITING RECHECK IS DONE ON THE END ###
 
-                    if not CGI_CLI.READ_ONLY:
-                        device_cmds2 = {
-                            'cisco_xr':[ 'install remove inactive all' ],
-                        }
+                if 'Inactive Packages: 0' in rcmd_outputs[1]: pass
+                elif SCRIPT_ACTION == 'pre' and not CGI_CLI.READ_ONLY:
+                    ### DO ADMIN REMOVE INACTIVE ONLY IN PRECHECK ###
+                    device_cmds2 = { 'cisco_xr':[ 'admin', 'install remove inactive all', 'exit' ] }
+                    rcmd_outputs2 = RCMD.run_commands(device_cmds2, \
+                        autoconfirm_mode = True, printall = printall)
 
-                        rcmd_outputs2 = RCMD.run_commands(device_cmds2, \
-                            autoconfirm_mode = True, \
-                            printall = printall)
+                    try: JSON_DATA['admin_remove_inactive_id_nr'] = copy.deepcopy(rcmd_outputs2[0].split('Install operation ')[1].split(' started').strip())
+                    except: pass
+                    ### INSTEAD OF WAITING RECHECK IS DONE ON THE END ###
 
-                        try: JSON_DATA['remove_inactive_id_nr'] = copy.deepcopy(rcmd_outputs2[0].split('Install operation ')[1].split(' started').strip())
-                        except: pass
-                        ### INSTEAD OF WAITING RECHECK IS DONE ON THE END ###
 
-                ### admin show install inactive sum ###
-                device_cmds = {
-                    'cisco_xr':[ 'admin show install inactive sum' ],
-                }
-
-                rcmd_outputs = RCMD.run_commands(device_cmds, \
-                    autoconfirm_mode = True, \
-                    printall = printall)
-
-                inactive_packages = []
-                if 'Inactive Packages: 0' in rcmd_outputs[0]:
-                    pass
-                elif SCRIPT_ACTION == 'pre':
-                    ### def DO ADMIN REMOVE INACTIVE ONLY IN PRECHECK ###
-                    if 'Inactive Packages:' in rcmd_outputs[0]:
-                        for package_line in rcmd_outputs[0].split('Inactive Packages:')[1].splitlines()[1:-1]:
-                            if package_line.strip():
-                                inactive_packages.append(str(package_line.strip()))
-
-                    if not CGI_CLI.READ_ONLY:
-                        device_cmds2 = {
-                            'cisco_xr':[ 'admin install remove inactive all' ],
-                        }
-
-                        rcmd_outputs2 = RCMD.run_commands(device_cmds2, \
-                            autoconfirm_mode = True, \
-                            printall = printall)
-
-                        try: JSON_DATA['admin_remove_inactive_id_nr'] = copy.deepcopy(rcmd_outputs2[0].split('Install operation ')[1].split(' started').strip())
-                        except: pass
-                        ### INSTEAD OF WAITING RECHECK IS DONE ON THE END ###
-
-                ### def show install active summary #######################
-                device_cmds4 = {
-                    'cisco_xr':[ 'show install active summary' ],
-                }
-
-                rcmd_outputs4 = RCMD.run_commands(device_cmds4, \
-                    autoconfirm_mode = True, \
-                    printall = printall)
+                ### def (admin) show install active summary #######################
+                device_cmds4 = { 'cisco_xr':[ 'show install active summary', 'admin show install active summary' ] }
+                rcmd_outputs4 = RCMD.run_commands(device_cmds4, printall = printall)
 
                 active_packages = []
                 if 'Active Packages:' in rcmd_outputs4[0]:
                     number_of_active_packages = int(rcmd_outputs4[0].split('Active Packages:')[1].split()[0])
                     for i in range(number_of_active_packages):
                          active_packages.append(rcmd_outputs4[0].split('Active Packages:')[1].splitlines()[i + 1].split()[0].strip())
-                    JSON_DATA['active_packages'] = active_packages
-
-                ### admin show install active summary ###
-                device_cmds4b = {
-                    'cisco_xr':[ 'admin show install active summary' ],
-                }
-
-                rcmd_outputs4b = RCMD.run_commands(device_cmds4b, \
-                    autoconfirm_mode = True, \
-                    printall = printall)
+                    JSON_DATA['active_packages'] = copy.deepcopy(active_packages)
 
                 active_packages = []
-                if 'Active Packages:' in rcmd_outputs4b[0]:
-                    number_of_active_packages = int(rcmd_outputs4b[0].split('Active Packages:')[1].split()[0])
+                if 'Active Packages:' in rcmd_outputs4[1]:
+                    number_of_active_packages = int(rcmd_outputs4[1].split('Active Packages:')[1].split()[0])
                     for i in range(number_of_active_packages):
-                         active_packages.append(rcmd_outputs4b[0].split('Active Packages:')[1].splitlines()[i + 1].split()[0].strip())
-                    JSON_DATA['admin_active_packages'] = active_packages
+                         active_packages.append(rcmd_outputs4[1].split('Active Packages:')[1].splitlines()[i + 1].split()[0].strip())
+                    JSON_DATA['admin_active_packages'] = copy.deepcopy(active_packages)
 
 
                 ### def 'show platform' #########################
@@ -4032,62 +3981,6 @@ try:
 
 
             ### def PRE&POST - check actions ##################################
-
-            ### def 'show install request' ################################
-            device_cmds = { 'cisco_xr': [ 'show install request' ] }
-
-            rcmd_outputs = RCMD.run_commands(device_cmds, \
-                printall = printall)
-
-            if 'No install operation in progress' in rcmd_outputs[0]:
-
-                ### def 'install verify packages' #########################
-                ### 'install verify packages synchronous' is not working on VM ####
-                if 'IOS-XRv 9000' in HW_INFO.get('hw_type',str()):
-                    device_cmds_inst = { 'cisco_xr': [ 'install verify packages' ] }
-
-                    rcmd_outputs_inst = RCMD.run_commands(device_cmds_inst, \
-                        long_lasting_mode = True, \
-                        printall = printall)
-
-                    try: JSON_DATA['verify_id_nr'] = rcmd_outputs_inst[0].split('Install operation ')[1].split(' started')[0].strip()
-                    except: pass
-
-                    if JSON_DATA.get('verify_id_nr',str()):
-                        ### wait till no install packages in progress ###
-                        for times in range(10):
-                            device_cmds = { 'cisco_xr': [ 'show install request' ] }
-
-                            rcmd_outputs = RCMD.run_commands(device_cmds, \
-                                printall = printall)
-
-                            if 'No install operation in progress' in rcmd_outputs[0]: break
-                            time.sleep(2)
-                        else:
-                            text = "(CMD:'show install request', PROBLEM:'%s') !" % (rcmd_outputs[0].strip())
-                            CGI_CLI.add_result(text, 'error')
-
-            elif JSON_DATA.get('remove_inactive_id_nr',str()) or JSON_DATA.get('admin_remove_inactive_id_nr',str()) in rcmd_outputs[0]:
-                ### wait till no install packages in progress ###
-                for times in range(10):
-                    device_cmds = { 'cisco_xr': [ 'show install request' ] }
-
-                    rcmd_outputs = RCMD.run_commands(device_cmds, \
-                        printall = printall)
-
-                    if ' %s ' % (JSON_DATA.get('remove_inactive_id_nr',str())) in rcmd_outputs[0] or \
-                    ' %s ' % (JSON_DATA.get('admin_remove_inactive_id_nr',str())) in rcmd_outputs[0]: pass
-
-                    if 'No install operation in progress' in rcmd_outputs[0]: break
-                    time.sleep(2)
-                else:
-                    text = "(CMD:'show install request', PROBLEM:'%s') !" % (rcmd_outputs[0].strip())
-                    CGI_CLI.add_result(text, 'error')
-            else:
-                text = "(CMD:'show install request', PROBLEM:'%s')" % (rcmd_outputs[0].strip())
-                CGI_CLI.add_result(text, 'error')
-
-
             ### def 'install verify packages synchronous' is not working on VM ####
             if not 'IOS-XRv 9000' in HW_INFO.get('hw_type',str()):
                 device_cmds_inst = { 'cisco_xr': [ 'install verify packages synchronous' ] }
@@ -4100,10 +3993,34 @@ try:
                     text = "(CMD:'install verify packages', PROBLEM:'%s')" % (rcmd_outputs_inst[0])
                     CGI_CLI.add_result(text, 'error')
 
+            ### 'install verify packages synchronous' is not working on VM ####
+            elif 'IOS-XRv 9000' in HW_INFO.get('hw_type',str()):
+                device_cmds_inst = { 'cisco_xr': [ 'install verify packages' ] }
+
+                rcmd_outputs_inst = RCMD.run_commands(device_cmds_inst, \
+                    long_lasting_mode = True, \
+                    printall = printall)
+
+                try: JSON_DATA['verify_id_nr'] = rcmd_outputs_inst[0].split('Install operation ')[1].split(' started')[0].strip()
+                except: pass
+
+            ### def WAIT TILL ALL INSTALL ACTIONS ENDS ###
+            for times in range(10):
+                device_cmds = { 'cisco_xr': [ 'show install request', 'admin show install request' ] }
+
+                rcmd_outputs = RCMD.run_commands(device_cmds, \
+                    printall = printall)
+
+                if 'No install operation in progress' in rcmd_outputs[0]: break
+                time.sleep(3)
+            else:
+                text = "(CMD:'show install request', PROBLEM:'%s') !" % (rcmd_outputs[0].strip())
+                CGI_CLI.add_result(text, 'error')
+
 
             ### def REPEAT PRECHECK 'show install inactive summary' ###
             if SCRIPT_ACTION == 'pre':
-                device_cmds3 = { 'cisco_xr':[ 'show install inactive summary' ] }
+                device_cmds3 = { 'cisco_xr':[ 'show install inactive summary', 'admin show install inactive summary' ] }
 
                 rcmd_outputs3 = RCMD.run_commands(device_cmds3, \
                     long_lasting_mode = True, printall = printall)
@@ -4118,26 +4035,18 @@ try:
                                 inactive_packages.append(str(package_line.strip()))
                 JSON_DATA['inactive_packages'] = copy.deepcopy(inactive_packages)
 
-
-            ### def REPEAT PRECHECK 'admin show install inactive summary' ###
-            if SCRIPT_ACTION == 'pre':
-                device_cmds3 = { 'cisco_xr':[ 'admin show install inactive summary' ] }
-
-                rcmd_outputs3 = RCMD.run_commands(device_cmds3, \
-                    long_lasting_mode = True, printall = printall)
-
                 inactive_packages = []
-                if 'Inactive Packages: 0' in rcmd_outputs3[0]:
+                if 'Inactive Packages: 0' in rcmd_outputs3[1]:
                     pass
                 else:
-                    if 'Inactive Packages:' in rcmd_outputs3[0]:
-                        for package_line in rcmd_outputs3[0].split('Inactive Packages:')[1].splitlines()[1:-1]:
+                    if 'Inactive Packages:' in rcmd_outputs3[1]:
+                        for package_line in rcmd_outputs3[1].split('Inactive Packages:')[1].splitlines()[1:-1]:
                             if package_line.strip():
                                 inactive_packages.append(str(package_line.strip()))
                 JSON_DATA['admin_inactive_packages'] = copy.deepcopy(inactive_packages)
 
 
-            ### def check if patch smu files are in active packages #######
+            ### def CHECK IF PATCH SMU FILES ARE IN ACTIVE PACKAGES #######
             if target_patch_path:
                 check_files = []
                 try:
@@ -4218,7 +4127,7 @@ try:
 
 
 
-            ### CHECK INSTALL LOG FOR LAST ERRORS #####################
+            ### def CHECK INSTALL LOG FOR LAST ERRORS #####################
             device_cmds_log = { 'cisco_xr': [ 'show install log | utility tail count 10' ] }
 
             rcmd_outputs_log = RCMD.run_commands(device_cmds_log, printall = printall)
