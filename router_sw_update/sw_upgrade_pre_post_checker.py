@@ -3333,7 +3333,7 @@ try:
 
                 cmd_results = RCMD.run_commands(cmds, printall = printall)
 
-                if cmd_results[0].splitlines()[2:] == cmd_results[1].splitlines()[2:]: pass
+                if cmd_results[0].replace('Active').replace('Committed').splitlines()[2:] == cmd_results[1].replace('Active').replace('Committed').splitlines()[2:]: pass
                 elif CGI_CLI.READ_ONLY:
                     text = "(PROBLEM: 'install commit' needs to be done!)"
                     CGI_CLI.add_result(text, 'error')
@@ -3369,7 +3369,7 @@ try:
 
                 cmd_results = RCMD.run_commands(cmds, printall = printall)
 
-                if cmd_results[0].splitlines()[2:] == cmd_results[1].splitlines()[2:]: pass
+                if cmd_results[0].replace('Active').replace('Committed').splitlines()[2:] == cmd_results[1].replace('Active').replace('Committed').splitlines()[2:]: pass
                 elif CGI_CLI.READ_ONLY:
                     text = "(PROBLEM: 'admin install commit' needs to be done!)"
                     CGI_CLI.add_result(text, 'error')
@@ -3382,6 +3382,7 @@ try:
                     }
 
                     cmd_results = RCMD.run_commands(cmds, printall = printall)
+                    ### OUTPUT:'Install operation 7 (install commit) started by' ###
 
                     for times in range(10):
                         device_cmds = { 'cisco_xr': [ 'admin show install request' ] }
@@ -4011,7 +4012,9 @@ try:
                 rcmd_outputs = RCMD.run_commands(device_cmds, \
                     printall = printall)
 
-                if 'No install operation in progress' in rcmd_outputs[0]: break
+                if 'No install operation in progress' in rcmd_outputs[0] \
+                and 'No install operation in progress' in rcmd_outputs[1]: break
+
                 time.sleep(3)
             else:
                 text = "(CMD:'show install request', PROBLEM:'%s') !" % (rcmd_outputs[0].strip())
@@ -4072,7 +4075,7 @@ try:
                                 CGI_CLI.add_result(text, 'error')
 
 
-            ### def check if tar file is in active packages ###############
+            ### def CHECK IF TAR FILE IS IN ACTIVE PACKAGES ###############
             if target_sw_file:
                 check_files = []
                 try:
