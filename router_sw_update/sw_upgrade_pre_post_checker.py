@@ -3322,9 +3322,83 @@ try:
             HW_INFO = detect_hw(device)
             CGI_CLI.uprint(HW_INFO, tag = 'debug', no_printall = not CGI_CLI.printall)
 
+            if SCRIPT_ACTION == 'pre':
+                ### def CHECK IF COMMIT IS NEEDED/ WAS FORGOTTEN ##################
+                cmds = {
+                    'cisco_ios':[],
+                    'cisco_xr':['show install committed', 'show install active' ],
+                    'juniper':[],
+                    'huawei':[]
+                }
+
+                cmd_results = RCMD.run_commands(cmds, printall = printall)
+
+                if cmd_results[0].splitlines()[2:] == cmds_result[1].splitlines()[2:]: pass
+                elif CGI_CLI.READ_ONLY:
+                    text = "(PROBLEM: 'install commit' nedds to be done!)"
+                    CGI_CLI.add_result(text, 'error')
+                else:
+                    cmds = {
+                        'cisco_ios':[],
+                        'cisco_xr':['install commit' ],
+                        'juniper':[],
+                        'huawei':[]
+                    }
+
+                    cmd_results = RCMD.run_commands(cmds, printall = printall)
+
+                    for times in range(10):
+                        device_cmds = { 'cisco_xr': [ 'show install request' ] }
+
+                        rcmd_outputs = RCMD.run_commands(device_cmds, \
+                            printall = printall)
+
+                        if 'No install operation in progress' in rcmd_outputs[0]: break
+                        time.sleep(2)
+                    else:
+                        text = "(CMD:'show install request', PROBLEM:'%s') !" % (rcmd_outputs[0].strip())
+                        CGI_CLI.add_result(text, 'error')
+
+                ### def CHECK IF ADMIN COMMIT IS NEEDED/ WAS FORGOTTEN ############
+                cmds = {
+                    'cisco_ios':[],
+                    'cisco_xr':['admin show install committed', 'admin show install active' ],
+                    'juniper':[],
+                    'huawei':[]
+                }
+
+                cmd_results = RCMD.run_commands(cmds, printall = printall)
+
+                if cmd_results[0].splitlines()[2:] == cmds_result[1].splitlines()[2:]: pass
+                elif CGI_CLI.READ_ONLY:
+                    text = "(PROBLEM: 'admin install commit' nedds to be done!)"
+                    CGI_CLI.add_result(text, 'error')
+                else:
+                    cmds = {
+                        'cisco_ios':[],
+                        'cisco_xr':['admin install commit' ],
+                        'juniper':[],
+                        'huawei':[]
+                    }
+
+                    cmd_results = RCMD.run_commands(cmds, printall = printall)
+
+                    for times in range(10):
+                        device_cmds = { 'cisco_xr': [ 'show install request' ] }
+
+                        rcmd_outputs = RCMD.run_commands(device_cmds, \
+                            printall = printall)
+
+                        if 'No install operation in progress' in rcmd_outputs[0]: break
+                        time.sleep(2)
+                    else:
+                        text = "(CMD:'show install request', PROBLEM:'%s') !" % (rcmd_outputs[0].strip())
+                        CGI_CLI.add_result(text, 'error')
+
+
+            ### def GET PATHS ON DEVICE ###########################################
             brand_raw = str()
             type_raw = HW_INFO.get('hw_type',str())
-            ### def GET PATHS ON DEVICE ###########################################
             brand_subdir, type_subdir_on_server, type_subdir_on_device, file_types = \
                 get_local_subdirectories(brand_raw = brand_raw, type_raw = type_raw)
 
