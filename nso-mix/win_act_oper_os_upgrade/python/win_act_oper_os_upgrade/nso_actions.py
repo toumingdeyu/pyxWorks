@@ -221,7 +221,7 @@ class NsoActionsClass_get_sw_version(Action):
                     pass
                 elif RCMD.router_type == "juniper":
                     pass
-                    
+
         self.log.info('\nRCMD: ', nso_object_to_string(self, RCMD))
         self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
         #self.log.info('\nOUTPUT_dump: ', object_dump(self, output))
@@ -456,18 +456,32 @@ class NsoActionsClass_os_upgrade_install_add(Action):
                     ],
                 }
             elif patch_version_selected_files:
+                device_cmds = { 'cisco_xr': [ 'show install active summary' ] }
+                patch_device_cmds_result = RCMD.run_commands(device_cmds)
+
+                ### PATCH FILE LIST ###########################################
+                file_without_path = str()
                 file_list = patch_version_selected_files.replace('[','').replace(']','').split()
                 for file in file_list:
-                    file_string_without_path += file.strip().split('/')[-1] + ' '
+                    try: file_without_path = file.strip().split('/')[-1]
+                    except: file_without_path = str()
+                    try: check_CSC_NR = file_without_path.split('.CSC')[1].split('.tar')[0]
+                    except: check_CSC_NR = str()
+                    ### OMMIT INSTALLATION OF INSTALLED PATCH FILES ###
+                    if check_CSC_NR and check_CSC_NR in patch_device_cmds_result: pass
+                    elif file_without_path: file_string_without_path += str(file_without_path) + ' '
                 file_string_without_path = file_string_without_path.strip()
 
-                i_device_cmds = {
-                    'cisco_xr':['%sinstall add source %s/ %s' % (asr_admin_string, \
-                    '/'.join(str(patch_version_selected_files).replace('[','').replace(']','').split()[0].strip().split('/')[:-1]),
-                    file_string_without_path )
-                    ]
-                }
+                if file_string_without_path:
+                    i_device_cmds = {
+                        'cisco_xr':['%sinstall add source %s/ %s' % (asr_admin_string, \
+                        '/'.join(str(patch_version_selected_files).replace('[','').replace(']','').split()[0].strip().split('/')[:-1]),
+                        file_string_without_path )
+                        ]
+                    }
             elif patch_version_selected_path:
+                device_cmds = { 'cisco_xr': [ 'show install active summary' ] }
+                patch_device_cmds_result = RCMD.run_commands(device_cmds)
 
                 ### def GET PATHS ON DEVICE ###########################################
                 brand_subdir, type_subdir_on_server, type_subdir_on_device, file_types = \
@@ -491,8 +505,16 @@ class NsoActionsClass_os_upgrade_install_add(Action):
                         for file_type in file_types:
                             try: patch_file = file_type.split('/')[1].replace('*','')
                             except: patch_file = str()
+
+                            try: file_without_path = tar_file
+                            except: file_without_path = str()
+                            try: check_CSC_NR = file_without_path.split('.CSC')[1].split('.tar')[0]
+                            except: check_CSC_NR = str()
+
                             if len(patch_file) > 0 and patch_file.upper() in tar_file.upper():
-                                patch_files.append('%s' % (tar_file))
+                                ### OMMIT INSTALLATION OF INSTALLED PATCH FILES ###
+                                if check_CSC_NR and check_CSC_NR in patch_device_cmds_result: pass
+                                elif file_without_path: patch_files.append('%s' % (tar_file))
                     except: pass
                 if len(patch_files)>0:
                     i_device_cmds = {
