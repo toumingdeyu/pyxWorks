@@ -84,6 +84,7 @@ class RCMD_class():
                     result = self.run_commands(cmd)
                     if '-x64-' in result: self.x64 = True
                     else: self.x64 = False
+                    if 'IOS-XRv' in self.hw_type or 'NCS' in self.hw_type: self.x64 = True
 
 
                 elif self.os_type == "huawei-vrp":
