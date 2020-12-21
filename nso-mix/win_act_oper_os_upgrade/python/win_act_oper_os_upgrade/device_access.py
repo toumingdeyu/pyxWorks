@@ -82,7 +82,7 @@ class RCMD_class():
                           "junos":[]
                     }
                     result = self.run_commands(cmd)
-                    if '-x64-' in results: self.x64 = True
+                    if '-x64-' in result: self.x64 = True
                     else: self.x64 = False
 
 
