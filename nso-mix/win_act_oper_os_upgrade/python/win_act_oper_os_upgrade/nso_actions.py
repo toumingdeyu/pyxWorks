@@ -244,7 +244,7 @@ class NsoActionsClass_os_upgrade_install_add(Action):
 
         RCMD = RCMD_class(uinfo = uinfo, input = input, log_info = self.log.info)
         output.hw_type, output.os_type = RCMD.hw_type, RCMD.os_type
-        
+
         if not RCMD.x64: asr_admin_string = 'admin '
 
         sw_version_selected_file = str()
@@ -388,13 +388,9 @@ class NsoActionsClass_os_upgrade_progress_check(Action):
             try: operation_id = str(input.operation_id_smu).replace('[','').replace(']','').replace('"','').split(',')[0].strip()
             except: pass
 
+        if not RCMD.x64: asr_admin_string = 'admin '
+
         if operation_id:
-            device_cmds = {
-                'cisco_xr':['show version'],
-            }
-
-            device_cmds_result = RCMD.run_commands(device_cmds)
-
             if RCMD.router_type == "cisco_xr":
                 asi_device_cmds = {
                     'cisco_xr':['%sshow install log %s' % (asr_admin_string, operation_id)],
@@ -421,7 +417,6 @@ class NsoActionsClass_os_upgrade_progress_check(Action):
                 }
 
                 device_cmds_result = RCMD.run_commands(device_cmds)
-                #output.install_log = device_cmds_result
 
                 for part in device_cmds_result.split('Install operation '):
                     try: part_split_1 = part.split()[1]
@@ -609,12 +604,12 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
 
         RCMD = RCMD_class(uinfo = uinfo, input = input, log_info = self.log.info)
         output.hw_type, output.os_type = RCMD.hw_type, RCMD.os_type
-        
+
         if not RCMD.x64: asr_admin_string = 'admin '
 
         if RCMD.router_type == "cisco_xr":
             if operation_id and not RCMD.x64:
-                cmd = { "cisco_xr": [ '%sinstall activate id %s' % (asr_admin_string, operation_id) ] }
+                cmd = { "cisco_xr": [ '%sinstall activate id %s prompt-level none' % (asr_admin_string, operation_id) ] }
             else:
                 cmd = { "cisco_xr": [ '%sinstall activate noprompt' % (asr_admin_string) ] }
 
@@ -689,6 +684,8 @@ class NsoActionsClass_os_upgrade_remove_inactive(Action):
         RCMD = RCMD_class(uinfo = uinfo, input = input, log_info = self.log.info)
         output.hw_type, output.os_type = RCMD.hw_type, RCMD.os_type
 
+        if not RCMD.x64: asr_admin_string = 'admin '
+
         device_cmds = {
             'cisco_xr':['%sinstall remove inactive all' % (asr_admin_string)],
         }
@@ -735,7 +732,7 @@ class NsoActionsClass_os_upgrade_commit(Action):
 
         asr_admin_string = str()
 
-        output.os_type, output.hw_type = RCMD.os_type, RCMD.hw_type
+        if not RCMD.x64: asr_admin_string = 'admin '
 
         if RCMD.router_type == "cisco_xr":
 
