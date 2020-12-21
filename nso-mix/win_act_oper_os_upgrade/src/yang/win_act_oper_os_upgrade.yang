@@ -81,42 +81,6 @@ module win_act_oper_os_upgrade {
     }
 
 
-    tailf:action os_upgrade_precheck {
-      tailf:actionpoint os_upgrade_precheck;
-      input {
-        leaf device {
-          type leafref {
-            path "/ncs:devices/ncs:device/ncs:name";
-          }
-        }
-      }
-      output {
-        leaf os_type {
-          type string;
-        }
-        leaf hw_type {
-          type string;
-        }
-        leaf-list inactive_packages {
-          type string;
-        }
-        leaf-list active_packages {
-          type string;
-        }
-        container precheck_data {
-            description "Precheck commands and outputs";
-            list command {
-              leaf name {
-                type string;
-              }
-              leaf cmd_output {
-                type string;
-              }
-            }
-        }
-      }
-    }
-
     tailf:action os_upgrade_install_add {
       tailf:actionpoint os_upgrade_install_add;
       input {
@@ -277,6 +241,12 @@ module win_act_oper_os_upgrade {
             path "/ncs:devices/ncs:device/ncs:name";
           }
         }
+        leaf operation_id {
+          type string;
+        }
+        leaf operation_id_smu {
+          type string;
+        }
       }
       output {
         leaf os_type {
@@ -354,47 +324,6 @@ module win_act_oper_os_upgrade {
           type string;
         }
         leaf log {
-          type string;
-        }
-      }
-    }
-
-    tailf:action os_upgrade_postcheck {
-      tailf:actionpoint os_upgrade_postcheck;
-      input {
-        leaf device {
-          type leafref {
-            path "/ncs:devices/ncs:device/ncs:name";
-          }
-        }
-        leaf ip {
-            type string;
-        }
-        leaf-list precheck_commands {
-            type string;
-        }
-        container device_iap {
-          leaf device {
-            type leafref {
-              path "/ncs:devices/ncs:device/ncs:name";
-            }
-          }
-        }
-        leaf target_sw_file {
-            type string;
-        }
-        leaf target_patch_path {
-            type string;
-        }
-      }
-      output {
-        leaf os_type {
-          type string;
-        }
-        leaf hw_type {
-          type string;
-        }
-        leaf result {
           type string;
         }
       }

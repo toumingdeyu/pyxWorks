@@ -75,6 +75,16 @@ class RCMD_class():
                     except: pass
                     self.hw_brand = 'CISCO'
                     self.drive_string = 'harddisk:'
+                    cmd = {
+                          "ios-xe":[],
+                          "ios-xr":['show instal active summary'],
+                          "huawei-vrp":[],
+                          "junos":[]
+                    }
+                    result = self.run_commands(cmd)
+                    if '-x64-' in results: self.x64 = True
+                    else: self.x64 = False
+
 
                 elif self.os_type == "huawei-vrp":
                     try: self.sw_version = str(result.split('software, Version')[1].split()[0].strip())
