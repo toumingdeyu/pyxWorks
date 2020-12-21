@@ -639,11 +639,11 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
                         try:
                             if part_operation_id:
                                 if not output.operation_id:
-                                    if part_last_command == '%sinstall activate noprompt' % (asr_admin_string):
+                                    if 'install activate' in part_last_command:
                                         output.operation_id = part_operation_id
                                         output.last_command = part_last_command
                                 elif output.operation_id and int(part_operation_id) >= int(output.operation_id):
-                                    if part_last_command == '%sinstall activate noprompt' % (asr_admin_string):
+                                    if 'install activate' in part_last_command:
                                         output.operation_id = part_operation_id
                                         output.last_command = part_last_command
                         except: pass
