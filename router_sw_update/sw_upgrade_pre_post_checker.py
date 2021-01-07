@@ -3369,32 +3369,33 @@ try:
 
                 cmd_results = RCMD.run_commands(cmds, printall = printall)
 
-                if cmd_results[0].replace('Active','').replace('Committed','').splitlines()[2:] == cmd_results[1].replace('Active','').replace('Committed','').splitlines()[2:]: pass
-                elif CGI_CLI.READ_ONLY:
-                    text = "(PROBLEM: 'admin install commit' needs to be done!)"
-                    CGI_CLI.add_result(text, 'error')
-                else:
-                    cmds = {
-                        'cisco_ios':[],
-                        'cisco_xr':['admin', 'install commit', 'exit'],
-                        'juniper':[],
-                        'huawei':[]
-                    }
-
-                    cmd_results = RCMD.run_commands(cmds, printall = printall)
-                    ### OUTPUT:'Install operation 7 (install commit) started by' ###
-
-                    for times in range(10):
-                        device_cmds = { 'cisco_xr': [ 'admin show install request' ] }
-
-                        rcmd_outputs = RCMD.run_commands(device_cmds, \
-                            printall = printall)
-
-                        if 'No install operation in progress' in rcmd_outputs[0]: break
-                        time.sleep(3)
-                    else:
-                        text = "(CMD:'show install request', PROBLEM:'%s') !" % (rcmd_outputs[0].strip())
+                if RCMD.router_type == "cisco_xr":
+                    if cmd_results[0].replace('Active','').replace('Committed','').splitlines()[2:] == cmd_results[1].replace('Active','').replace('Committed','').splitlines()[2:]: pass
+                    elif CGI_CLI.READ_ONLY:
+                        text = "(PROBLEM: 'admin install commit' needs to be done!)"
                         CGI_CLI.add_result(text, 'error')
+                    else:
+                        cmds = {
+                            'cisco_ios':[],
+                            'cisco_xr':['admin', 'install commit', 'exit'],
+                            'juniper':[],
+                            'huawei':[]
+                        }
+
+                        cmd_results = RCMD.run_commands(cmds, printall = printall)
+                        ### OUTPUT:'Install operation 7 (install commit) started by' ###
+
+                        for times in range(10):
+                            device_cmds = { 'cisco_xr': [ 'admin show install request' ] }
+
+                            rcmd_outputs = RCMD.run_commands(device_cmds, \
+                                printall = printall)
+
+                            if 'No install operation in progress' in rcmd_outputs[0]: break
+                            time.sleep(3)
+                        else:
+                            text = "(CMD:'show install request', PROBLEM:'%s') !" % (rcmd_outputs[0].strip())
+                            CGI_CLI.add_result(text, 'error')
 
 
             ### def GET PATHS ON DEVICE ###########################################
