@@ -2070,11 +2070,11 @@ class RCMD(object):
         device_ip_address = str()
         if not RCMD.vision_api_json_string: RCMD.get_json_from_vision()
         if RCMD.vision_api_json_string and DEVICE_NAME:
-            try:
-                device_ip_address = str(RCMD.vision_api_json_string[0].split(DEVICE_NAME.upper())[1].\
-                    splitlines()[1].\
-                    split('"ip":')[1].replace('"','').replace(',','')).strip()
-            except: pass
+            try: vision_json = json.loads(RCMD.vision_api_json_string)
+            except: vision = {}
+            for router_json in vision_json.get('results',[]):
+                if router_json.get('name',str()).upper() == DEVICE_NAME.upper():
+                    device_ip_address = router_json.get('ip',str())
         return device_ip_address
 
     @staticmethod
