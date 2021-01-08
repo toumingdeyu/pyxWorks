@@ -962,7 +962,7 @@ class RCMD(object):
             RCMD.use_module = use_module
             RCMD.USERNAME = username
             RCMD.PASSWORD = password
-            RCMD.vision_api_json_string = None
+            RCMD.vision_api_json_string = str()
             RCMD.ip_address = None
             RCMD.router_prompt = None
             RCMD.printall = printall
@@ -1699,15 +1699,17 @@ class RCMD(object):
 
     @staticmethod
     def get_json_from_vision(URL = None):
-        global vision_api_json_string
         if RCMD.USERNAME and RCMD.PASSWORD:
             os.environ['CURL_AUTH_STRING'] = '%s:%s' % \
                 (RCMD.USERNAME,RCMD.PASSWORD)
             if URL: url = URL
             else: url = 'https://vision.opentransit.net/onv/api/nodes/'
             local_command = 'curl -u ${CURL_AUTH_STRING} -m 5 %s' % (url)
-            RCMD.vision_api_json_string = LCMD.run_commands(\
-                {'unix':[local_command]}, printall = None, ommit_logging = True)
+            try:
+                result_list = LCMD.run_commands(\
+                    {'unix':[local_command]}, printall = None, ommit_logging = True)
+                RCMD.vision_api_json_string = copy.deepcopy(result_list[0])
+            except: pass
             os.environ['CURL_AUTH_STRING'] = '-'
 
     @staticmethod
@@ -1715,11 +1717,12 @@ class RCMD(object):
         device_ip_address = str()
         if not RCMD.vision_api_json_string: RCMD.get_json_from_vision()
         if RCMD.vision_api_json_string and DEVICE_NAME:
-            try:
-                device_ip_address = str(RCMD.vision_api_json_string[0].split(DEVICE_NAME.upper())[1].\
-                    splitlines()[1].\
-                    split('"ip":')[1].replace('"','').replace(',','')).strip()
-            except: pass
+            try: vision_json = json.loads(RCMD.vision_api_json_string)
+            except: vision_json = {}
+            for router_json in vision_json.get('results',[]):
+                if router_json.get('name',str()).upper() == DEVICE_NAME.upper():
+                    device_ip_address = router_json.get('ip',str())
+        CGI_CLI.uprint('VISION_IP: %s' % (device_ip_address), tag = "debug")
         return device_ip_address
 
     @staticmethod
