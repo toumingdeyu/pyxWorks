@@ -2868,7 +2868,7 @@ warning {
         if device:
             RCMD.connect(device, username = USERNAME, password = PASSWORD, \
                 connection_timeout = 100, disconnect_timeout = 2, \
-                printall = printall, logfilename = logfilename)
+                printall = printall)
 
             if not RCMD.ssh_connection:
                 CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), color = 'red')
