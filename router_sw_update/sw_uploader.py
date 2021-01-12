@@ -4849,7 +4849,10 @@ function validateForm() {
                 RCMD.disconnect()
 
     del sql_inst
-except SystemExit:
+except SystemExit: pass
+except KeyboardInterrupt:
+    result = 'KeyboardInterrupt - terminating the process'
+    CGI_CLI.uprint(result, color = 'magenta')
     pass
 except:
     traceback_found = traceback.format_exc()
