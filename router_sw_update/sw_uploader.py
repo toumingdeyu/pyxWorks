@@ -3857,7 +3857,7 @@ def delete_files(device = None, unique_device_directory_list = None, \
 def terminate_process_term(signalNumber, frame):
     result = 'SIGTERM RECEIVED - terminating the process'
     CGI_CLI.uprint(result, color = 'magenta')
-    CGI_CLI.result_list.append([copy.deepcopy(result), 'magenta'])
+    #CGI_CLI.result_list.append([copy.deepcopy(result), 'magenta'])
     RCMD.disconnect()
     sys.exit(0)
 
@@ -4474,7 +4474,8 @@ function validateForm() {
                     true_file_name = true_local_file_in_sw_release
                     local_oti_checkum_string = LCMD.run_commands({'unix':['md5sum %s' % \
                         (os.path.join(directory,true_file_name))]}, printall = printall)
-                    md5_sum = local_oti_checkum_string[0].split()[0].strip()
+                    try: md5_sum = local_oti_checkum_string[0].split()[0].strip()
+                    except: md5_sum = str()
                     filesize_in_bytes = os.stat(os.path.join(directory,true_file_name)).st_size
                     ### MAKE TRUE AND UNIQUE FILE LIST, SW RELEASE ONLY ###
                     if not [directory,device_directory,true_file_name,md5_sum,filesize_in_bytes] in true_sw_release_files_on_server:
