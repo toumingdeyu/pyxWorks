@@ -19,6 +19,7 @@ class RCMD_class():
         self.sw_version = str()
         self.ip = str()
         self.port = str()
+        self.hw_type = str()
 
         if device: self.input_device = device
 
