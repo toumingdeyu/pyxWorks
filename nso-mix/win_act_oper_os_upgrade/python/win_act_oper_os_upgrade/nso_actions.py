@@ -463,7 +463,7 @@ class NsoActionsClass_os_upgrade_device_ping_check(Action):
         self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
         output.result = 'UNKNOWN'
 
-        ### RCMD = RCMD_class(uinfo = uinfo, input = input, log_info = self.log.info)
+        ### alternative is nso cmd: 'devices device NYKTR0 ping'
 
         device = str()
         try:
@@ -480,14 +480,12 @@ class NsoActionsClass_os_upgrade_device_ping_check(Action):
             if int(ping_response) == 0: output.result = 'success'
             else: output.result = 'failure'
 
-        if ip:
-            if output.result == 'failure' or ip:
-                ping_response = os.system("ping -c 1 " + ip)
-                if int(ping_response) == 0: output.result = 'success'
-                else: output.result = 'failure'
+        if ip and output.result != 'success':
+            ping_response = os.system("ping -c 1 " + ip)
+            if int(ping_response) == 0: output.result = 'success'
+            else: output.result = 'failure'
 
         self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
-        ### del RCMD
 
 
 
