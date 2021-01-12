@@ -485,6 +485,14 @@ class NsoActionsClass_os_upgrade_device_ping_check(Action):
             if int(ping_response) == 0: output.result = 'success'
             else: output.result = 'failure'
 
+        if device and output.result != 'success':
+            RCMD = RCMD_class(uinfo = uinfo, input = input, log_info = self.log.info)
+            if RCMD.ip:
+                ping_response = os.system("ping -c 1 " + RCMD.ip)
+                if int(ping_response) == 0: output.result = 'success'
+                else: output.result = 'failure'
+            del RCMD
+
         self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
 
 

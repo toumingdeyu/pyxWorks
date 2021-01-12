@@ -17,6 +17,8 @@ class RCMD_class():
         self.device, self.os_type = str(), str()
         self.hw_brand, self.drive_string = str(), str()
         self.sw_version = str()
+        self.ip = str()
+        self.port = str()
 
         if device: self.input_device = device
 
@@ -35,8 +37,14 @@ class RCMD_class():
             self.root = ncs.maagic.get_root(self.t)
             self.dev = self.root.ncs__devices.device[self.input_device]
 
-            self.hw_info = {}
             if self.dev.platform.name:
+
+                try: self.ip  = self.root.ncs__devices.device[self.input_device].address
+                except: pass
+
+                try: self.port  = self.root.ncs__devices.device[self.input_device].port
+                except: pass
+
                 ### NSO OS TYPE ###
                 self.os_type = str(self.dev.platform.name)
                 ### PARAMIKO/NETMIKO OS TYPE ###
@@ -103,6 +111,7 @@ class RCMD_class():
                     self.hw_brand = 'JUNIPER'
                     self.drive_string = 're0:'
                 time.sleep(0.1)
+        #if self.log_info: self.log_info('\n__VARS(self):[{}]\n'.format(vars(self)))
 
 
     def run_commands(self, cmd, **kwargs):
