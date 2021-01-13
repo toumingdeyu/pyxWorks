@@ -66,9 +66,9 @@ class RCMD_class():
                 result = self.run_commands(cmd)
 
                 if self.os_type == "ios-xe":
-                    try: self.sw_version = str(result.split('Software, Version')[1].split()[0].strip())
+                    try: self.sw_version = str(result.split('Software, Version')[1].split()[0].split('[')[0].strip())
                     except:
-                        try: self.sw_version = str(result.split('Version      :')[1].split()[0].strip())
+                        try: self.sw_version = str(result.split('Version      :')[1].split()[0].split('[')[0].strip())
                         except: pass
                     try: self.hw_type = str(result.split(') processor')[0].splitlines()[-1].split('(')[0].strip())
                     except: pass
@@ -76,9 +76,9 @@ class RCMD_class():
                     self.drive_string = 'bootflash:'
 
                 elif self.os_type == "ios-xr":
-                    try: self.sw_version = str(result.split('Software, Version')[1].split()[0].strip())
+                    try: self.sw_version = str(result.split('Software, Version')[1].split()[0].split('[')[0].strip())
                     except:
-                        try: self.sw_version = str(result.split('Version      :')[1].split()[0].strip())
+                        try: self.sw_version = str(result.split('Version      :')[1].split()[0].split('[')[0].strip())
                         except: pass
                     try: self.hw_type = str(result.split(') processor')[0].splitlines()[-1].split('(')[0].strip())
                     except: pass
@@ -93,7 +93,9 @@ class RCMD_class():
                     result = self.run_commands(cmd)
                     if '-x64-' in result: self.x64 = True
                     else: self.x64 = False
-                    if 'IOS-XRv' in self.hw_type or 'NCS' in self.hw_type: self.x64 = True
+
+                    if 'IOS-XRv 9000' in self.hw_type or 'NCS' in self.hw_type: self.x64 = True
+                    elif 'IOS XRv Series' in self.hw_type: self.x64 = False
 
 
                 elif self.os_type == "huawei-vrp":

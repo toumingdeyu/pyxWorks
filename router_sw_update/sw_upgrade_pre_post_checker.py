@@ -2,7 +2,7 @@
 
 ###!/usr/bin/python36
 
-import sys, os, io, paramiko, json, copy, html, logging, base64, string
+import sys, os, io, paramiko, json, copy, html, logging, base64, string, signal
 import traceback
 import getopt
 import getpass
@@ -235,11 +235,20 @@ class CGI_CLI(object):
         return username, password
 
     @staticmethod
+    def terminate_process_term(signalNumber, frame):
+        result = 'SIGTERM RECEIVED - terminating the process'
+        CGI_CLI.uprint(result, color = 'magenta')
+        try: RCMD.disconnect()
+        except: pass
+        sys.exit(0)
+
+    @staticmethod
     def init_cgi(chunked = None, css_style = None, newline = None, \
         timestamp = None, disable_page_reload_link = None, no_title = None, \
         json_mode = None, json_headers = None, read_only = None, fake_success = None):
         """
         """
+        CGI_CLI.result_list = []
         try: CGI_CLI.sys_stdout_encoding = sys.stdout.encoding
         except: CGI_CLI.sys_stdout_encoding = None
         if not CGI_CLI.sys_stdout_encoding: CGI_CLI.sys_stdout_encoding = 'UTF-8'
@@ -407,6 +416,7 @@ class CGI_CLI(object):
         CGI_CLI.JSON_RESULTS['errors'] = str()
         CGI_CLI.JSON_RESULTS['warnings'] = str()
         CGI_CLI.JSON_RESULTS['result'] = str()
+        signal.signal(signal.SIGTERM, CGI_CLI.terminate_process_term)
         return CGI_CLI.USERNAME, CGI_CLI.PASSWORD
 
     @staticmethod
@@ -585,7 +595,9 @@ class CGI_CLI(object):
 
     @staticmethod
     def add_result(text = None, type = None, print_now = None):
-        if text: CGI_CLI.result_list.append([text, type])
+        if text:
+            try: CGI_CLI.result_list.append([text, type])
+            except: pass
         color = None
         if type == 'fatal': color = 'magenta'
         elif type == 'error': color = 'red'
@@ -3093,9 +3105,6 @@ def get_difference_string_from_string_or_list(
     return print_string, all_ok
 
 
-
-
-
 ##############################################################################
 #
 # def BEGIN MAIN
@@ -4161,6 +4170,10 @@ try:
 
 
 except SystemExit: pass
+except KeyboardInterrupt:
+    result = 'KeyboardInterrupt - terminating the process'
+    CGI_CLI.uprint(result, color = 'magenta')
+    pass
 except:
     text = traceback.format_exc()
     CGI_CLI.add_result(text, 'fatal')
