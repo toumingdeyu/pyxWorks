@@ -82,6 +82,9 @@ class RCMD_class():
                         except: pass
                     try: self.hw_type = str(result.split(') processor')[0].splitlines()[-1].split('(')[0].strip())
                     except: pass
+                    ### also in show version can be '-x64', 'Workspace    : /auto/srcarchive15/prod/6.6.3/asr9k-x64/ws' ###
+                    if '-x64' in result: self.x64 = True
+                    
                     self.hw_brand = 'CISCO'
                     self.drive_string = 'harddisk:'
                     cmd = {
