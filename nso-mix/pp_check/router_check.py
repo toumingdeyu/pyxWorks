@@ -1153,6 +1153,15 @@ def get_credentials(text = None):
         except: pass
     return username, password
 
+def make_loglink(file = None):
+    logviewer = copy.deepcopy(file)
+    if file:
+        iptac_server = str(subprocess.check_output('hostname').decode('utf-8')).strip()
+        if iptac_server == 'iptac5': urllink = 'https://10.253.58.126/cgi-bin/'
+        else: urllink = 'https://%s/cgi-bin/' % (iptac_server)
+        if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, copy.deepcopy(file))
+        else: logviewer = './logviewer.py?logfile=%s' % (copy.deepcopy(file))
+    return logviewer
 
 ##############################################################################
 #
@@ -1822,13 +1831,15 @@ elif pre_post == "pre" and not args.recheck:
     ifprint('\n ==> PRECHECK COMPLETE !')
 
 if filename and os.path.exists(filename):
+    file_link = make_loglink(filename)
     ifprint(' ==> File %s created.'%(filename))
-    try: send_me_email(subject = filename.replace('\\','/').split('/')[-1], file_name = filename)
+    try: send_me_email(subject = filename.replace('\\','/').split('/')[-1], email_body = file_link)
     except: pass
 
 if logfilename:
+    logfile_link = make_loglink(logfilename)
     ifprint(' ==> LOGFILE GENERATED: %s' % (logfilename))
-    try: send_me_email(subject = logfilename.replace('\\','/').split('/')[-1], file_name = logfilename)
+    try: send_me_email(subject = logfilename.replace('\\','/').split('/')[-1], email_body = logfile_link)
     except: pass
 
 ### JSON MODE PRINT DATA ######################################################
