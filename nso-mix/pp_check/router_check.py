@@ -5,7 +5,8 @@
 # Author: Philippe Marcais (philippe.marcais@orange.com)                      #
 #         Peter Nemec      (peter.nemec@orange.com)                           #
 # Created: 06/01/2015                                                         #
-# Updated: 25/Nov/2020 - --hash cli switch added                              #
+# Updated: 15/Jan/2021 - send links to logfiles                               #
+#          25/Nov/2020 - --hash cli switch added                              #
 #          10/Nov/2020 - --username alternative switch for unification        #
 #          27/Oct/2020 - json mode                                            #
 #          24/Aug/2020 - Custom opposite logic, new cli switch --pluscustom   #
