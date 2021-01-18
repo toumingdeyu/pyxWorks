@@ -541,7 +541,7 @@ class NsoActionsClass_os_upgrade_install_prepare(Action):
 
         RCMD = RCMD_class(uinfo = uinfo, input = input, log_info = self.log.info)
         output.hw_type, output.os_type = RCMD.hw_type, RCMD.os_type
-
+        output.operation_id = str()
         output.completed = str()
         output.result = str()
         asr_admin_string = str()
@@ -571,7 +571,7 @@ class NsoActionsClass_os_upgrade_install_prepare(Action):
 
                 if RCMD.router_type == "cisco_xr":
                     try: output.operation_id = cmd_result.split(' started')[0].split('Install operation ')[1].split()[0].strip()
-                    except: output.operation_id = str()
+                    except: pass
 
                 self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
             else:
@@ -579,10 +579,29 @@ class NsoActionsClass_os_upgrade_install_prepare(Action):
                 output.result = 'failure'
                 self.log.info('Operation id not inserted!')
         else:
-            ### FAKE IAP WORKFLOW in 32BIT ASR9K ###
-            output.completed = 'yes'
-            output.result = 'success'
-            output.operation_id = operation_id
+            if operation_id:
+                output.os_type, output.hw_type = RCMD.os_type, RCMD.hw_type
+
+                cmd = {
+                          #"cisco_ios":['show version'],
+                          "cisco_xr":['admin install activate id %s synchronous test' % (operation_id)],
+                          #"huawei":['display version'],
+                          #"juniper":['show version']
+                      }
+
+                cmd_result = RCMD.run_commands(cmd)
+                output.install_log = cmd_result
+
+                if RCMD.router_type == "cisco_xr":
+                    try: output.operation_id = cmd_result.split('Install operation ')[1].split('completed successfully')[0].split()[0].strip()
+                    except: pass
+
+                self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
+            else:
+                output.completed = 'yes'
+                output.result = 'failure'
+                self.log.info('Operation id not inserted!')
+
         del RCMD
 
 
