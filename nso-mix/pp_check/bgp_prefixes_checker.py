@@ -987,7 +987,7 @@ class CGI_CLI(object):
                 CGI_CLI.uprint('<br/>', raw = True)
             else:
                 CGI_CLI.uprint(' ==> File %s created.\n\n' % (logfilename))
-            CGI_CLI.set_logfile(logfilename = None)
+            CGI_CLI.logtofile(end_log = True, ommit_timestamp = True)
             ### SEND EMAIL WITH LOGFILE ###########################################
             CGI_CLI.send_me_email( \
                 subject = logfilename.replace('\\','/').split('/')[-1] if logfilename else None, \
@@ -2886,7 +2886,7 @@ authentication {
 
 
     ### def HTML MENUS DISPLAYED ONLY IN CGI MODE #############################
-    if CGI_CLI.cgi_active and len(device_list) == 0 and\
+    if CGI_CLI.cgi_active and len(device_list) == 0 and \
         (not CGI_CLI.submit_form or CGI_CLI.submit_form in CGI_CLI.self_buttons):
         ### OTHER SUBMIT BUTTONS THAN OK ALLOWS "REMOTE" CGI CONTROL ##########
 
@@ -2915,10 +2915,6 @@ authentication {
         ### EXIT AFTER MENU PRINTING ######################################
         sys.exit(0)
 
-    CGI_CLI.uprint('PRECHECK[%s], POSTCHECK[%s], RECHECK[%s]' % \
-        (precheck_mode, postcheck_mode, recheck_mode), \
-        tag = 'debug', printall = True)
-
     ### END DUE TO MISSING INPUT DATA #########################################
     exit_due_to_error = None
 
@@ -2938,7 +2934,6 @@ authentication {
 
 
     ### def LOGFILENAME GENERATION, DO LOGGING ONLY WHEN DEVICE LIST EXISTS ###
-    logfilename = None
 
     ### RESULTFILE is separated file with results only ###
     resultfile = CGI_CLI.data.get("append_logfile",str())
@@ -2965,6 +2960,9 @@ authentication {
     log2file(resultfile, '\n%s (v.%s)\n\n' % (SCRIPT_NAME,CGI_CLI.VERSION()))
 
     CGI_CLI.logtofile(CGI_CLI.print_args(ommit_print = True) + '\n\n', ommit_timestamp = True)
+
+    CGI_CLI.uprint('PRECHECK[%s], POSTCHECK[%s], RECHECK[%s]' % \
+        (precheck_mode, postcheck_mode, recheck_mode), tag = 'debug')
 
     ### FIND LAS LOGFILE AND READ JSON DATA ###################################
     last_precheck_file, last_postcheck_file = None, None
@@ -3015,18 +3013,22 @@ authentication {
             timestamp = 'no', no_printall = not CGI_CLI.printall, sort_keys = True)
         CGI_CLI.uprint('\n', no_printall = not CGI_CLI.printall)
 
+        ### RECHECK CASE READ POSTCHECK DATA ###
         if last_postcheck_file:
             CGI_CLI.uprint('POSTCHECK FILE: %s' % (last_postcheck_file), printall = True)
             device_data = read_bgp_data_json_from_logfile(last_postcheck_file, separator ='_bgp_device_data', printall = printall)
             if bool(device_data): CGI_CLI.uprint('POSTCHECK DATA READ OK.', printall = True)
 
 
-    ### IF NO PRECHECK FILE FIX ###
-    if device_data and len(device_data.keys()) == 0:
+    CGI_CLI.uprint('device_data = %s' % (str(device_data)))
+    CGI_CLI.uprint('device_list = %s' % (str(device_list)))
+
+    ### def IF NO PRECHECK FILE FIX ###
+    if device_data.get('device', str()): pass
+    else:
         ### def REMOTE DEVICE OPERATIONS ##########################################
         for device in device_list:
             if device:
-
                 ### DEVICE CONNECT ############################################
                 RCMD.connect(device, username = USERNAME, password = PASSWORD, \
                     printall = printall, \
@@ -3040,6 +3042,8 @@ authentication {
 
                 ### DO NOT GO FURTHER IF NO CONNECTION ############################
                 if not RCMD.ssh_connection: continue
+
+                CGI_CLI.uprint('connected')
 
                 CGI_CLI.logtofile('\nDETECTED DEVICE_TYPE: %s\n\n' % (RCMD.router_type))
 
@@ -3605,22 +3609,6 @@ except SystemExit: pass
 except:
     traceback_found = traceback.format_exc()
     CGI_CLI.uprint(str(traceback_found), tag = 'h3', color = 'magenta')
-
-
-### WRITE FILE LINK AND CLOSE GLOBAL LOGFILE ##################################
-if logfilename:
-    iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None, ommit_logging = True).strip()
-    if iptac_server == 'iptac5': urllink = 'https://10.253.58.126/cgi-bin/'
-    else: urllink = 'https://%s/cgi-bin/' % (iptac_server)
-    if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, logfilename)
-    else: logviewer = './logviewer.py?logfile=%s' % (logfilename)
-    if CGI_CLI.cgi_active:
-        CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
-            % (logviewer, logfilename), raw = True, color = 'blue')
-        CGI_CLI.uprint('<br/>', raw = True)
-    else:
-        CGI_CLI.uprint(' ==> File %s created.\n\n' % (logfilename))
-    CGI_CLI.logtofile(end_log = True, ommit_timestamp = True)
 
 
 if logfilename and CGI_CLI.data.get("send_email"):
