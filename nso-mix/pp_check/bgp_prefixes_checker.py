@@ -2859,6 +2859,12 @@ authentication {
     elif CGI_CLI.data.get("recheck") or CGI_CLI.data.get("radio",str()) == 'recheck':
         recheck_mode = True
 
+    ### FIX IF NO CHOISE WAS DONE ###
+    if precheck_mode or postcheck_mode or recheck_mode: pass
+    elif CGI_CLI.data.get("append_ppfile",str()) and '-post' in CGI_CLI.data.get("append_ppfile",str()):
+        postcheck_mode = True
+    else: precheck_mode = True
+
     CGI_CLI.uprint('PRECHECK[%s], POSTCHECK[%s], RECHECK[%s]' % \
         (precheck_mode, postcheck_mode, recheck_mode), \
         tag = 'debug', printall = True)
