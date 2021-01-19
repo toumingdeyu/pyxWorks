@@ -2961,8 +2961,8 @@ authentication {
 
     CGI_CLI.logtofile(CGI_CLI.print_args(ommit_print = True) + '\n\n', ommit_timestamp = True)
 
-    CGI_CLI.uprint('PRECHECK[%s], POSTCHECK[%s], RECHECK[%s]' % \
-        (precheck_mode, postcheck_mode, recheck_mode), tag = 'debug')
+    #CGI_CLI.uprint('PRECHECK[%s], POSTCHECK[%s], RECHECK[%s]' % \
+    #    (precheck_mode, postcheck_mode, recheck_mode), tag = 'debug')
 
     ### FIND LAS LOGFILE AND READ JSON DATA ###################################
     last_precheck_file, last_postcheck_file = None, None
@@ -3018,10 +3018,6 @@ authentication {
             CGI_CLI.uprint('POSTCHECK FILE: %s' % (last_postcheck_file), printall = True)
             device_data = read_bgp_data_json_from_logfile(last_postcheck_file, separator ='_bgp_device_data', printall = printall)
             if bool(device_data): CGI_CLI.uprint('POSTCHECK DATA READ OK.', printall = True)
-
-
-    CGI_CLI.uprint('device_data = %s' % (str(device_data)))
-    CGI_CLI.uprint('device_list = %s' % (str(device_list)))
 
     ### def IF NO PRECHECK FILE FIX ###
     if device_data.get('device', str()): pass
