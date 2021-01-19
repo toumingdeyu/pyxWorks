@@ -2784,9 +2784,9 @@ def check_bgp_peers_postcheck(bgp_peers_string = None, percentage_tolerance = 3)
 ###############################################################################
 def log2file(filename = None, text = None):
     if text and filename:
-        with open(filename,"a+") as CGI_CLI.fp:
-            CGI_CLI.fp.write(text)
-            CGI_CLI.fp.flush()
+        with open(filename,"a+") as fp:
+            fp.write(text)
+            fp.flush()
 
 ###############################################################################
 #
@@ -2859,9 +2859,9 @@ authentication {
     elif CGI_CLI.data.get("recheck") or CGI_CLI.data.get("radio",str()) == 'recheck':
         recheck_mode = True
 
-    # CGI_CLI.uprint('PRECHECK[%s], POSTCHECK[%s], RECHECK[%s]' % \
-        # (precheck_mode, postcheck_mode, recheck_mode), \
-        # tag = 'debug', printall = True)
+    CGI_CLI.uprint('PRECHECK[%s], POSTCHECK[%s], RECHECK[%s]' % \
+        (precheck_mode, postcheck_mode, recheck_mode), \
+        tag = 'debug', printall = True)
 
     ### TESTSERVER WORKAROUND #################################################
     iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
@@ -2933,7 +2933,10 @@ authentication {
 
     ### def LOGFILENAME GENERATION, DO LOGGING ONLY WHEN DEVICE LIST EXISTS ###
     logfilename = None
+
+    ### RESULTFILE is separated file with results only ###
     resultfile = CGI_CLI.data.get("append_logfile",str())
+
     if CGI_CLI.data.get("append_ppfile",str()):
         logfilename = CGI_CLI.data.get("append_ppfile",str())
     elif not resultfile:
@@ -2965,7 +2968,7 @@ authentication {
         last_precheck_file = CGI_CLI.data.get("precheck_file",str())
         last_postcheck_file = CGI_CLI.data.get("postcheck_file",str())
 
-        if not last_precheck_file and CGI_CLI.data.get("append_ppfile",str()) and 'post' in CGI_CLI.data.get("append_ppfile",str()):
+        if not last_precheck_file and CGI_CLI.data.get("append_ppfile",str()) and '-post' in CGI_CLI.data.get("append_ppfile",str()):
             ### FIND PRECHECK FROM POSTCHECK LIKE IN ROUTER_CHECK #############
             try: LOG_FILE_DIR = CGI_CLI.data.get("append_ppfile",str()).split('/')[0]
             except: LOG_FILE_DIR = ''
