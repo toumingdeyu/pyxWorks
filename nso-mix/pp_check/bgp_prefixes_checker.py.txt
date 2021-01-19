@@ -2865,6 +2865,10 @@ authentication {
         postcheck_mode = True
     else: precheck_mode = True
 
+    CGI_CLI.uprint('PRECHECK[%s], POSTCHECK[%s], RECHECK[%s]' % \
+        (precheck_mode, postcheck_mode, recheck_mode), \
+        tag = 'debug', printall = True)
+
     ### TESTSERVER WORKAROUND #################################################
     iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
 
@@ -2914,10 +2918,6 @@ authentication {
 
         ### EXIT AFTER MENU PRINTING ######################################
         sys.exit(0)
-
-    CGI_CLI.uprint('PRECHECK[%s], POSTCHECK[%s], RECHECK[%s]' % \
-        (precheck_mode, postcheck_mode, recheck_mode), \
-        tag = 'debug', printall = True)
 
     ### END DUE TO MISSING INPUT DATA #########################################
     exit_due_to_error = None
@@ -2976,14 +2976,8 @@ authentication {
 
         if not last_precheck_file and CGI_CLI.data.get("append_ppfile",str()) and '-post' in CGI_CLI.data.get("append_ppfile",str()):
             ### FIND PRECHECK FROM POSTCHECK LIKE IN ROUTER_CHECK #############
-            LOG_FILE_DIR = None
-            pp_file = CGI_CLI.data.get("append_ppfile",str())
-            if pp_file: LOG_FILE_DIR = os.path.dirname(pp_file)
-            ### try to get LOG_FILE_DIR from logfilename FIRST ###
-            if not LOG_FILE_DIR and logfilename: LOG_FILE_DIR = os.path.dirname(logfilename)
-            ### if still not LOG_FILE_DIR, use default '/var/PrePost' ###
-            if not LOG_FILE_DIR: LOG_FILE_DIR = '/var/PrePost'
-
+            try: LOG_FILE_DIR = CGI_CLI.data.get("append_ppfile",str()).split('/')[0]
+            except: LOG_FILE_DIR = ''
             if CGI_CLI.data.get("latest"):
                 list_precheck_files = glob.glob(os.path.join(LOG_FILE_DIR,'_'.join(device_list).upper().replace(':','_').replace('.','_')) + '*' + 'pre')
             else:
