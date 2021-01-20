@@ -3108,7 +3108,7 @@ authentication {
     interface_menu_list = []
     device_data = collections.OrderedDict()
 
-    USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = chunked_mode, css_style = CSS_STYLE)
+    USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = chunked_mode, css_style = CSS_STYLE, no_result_printout = True)
     LCMD.init()
 
     CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
