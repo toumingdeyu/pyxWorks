@@ -2,7 +2,7 @@
 
 ###!/usr/bin/python36
 
-import sys, os, io, paramiko, json, copy, html, logging, base64, string
+import sys, os, io, paramiko, json, copy, html, logging
 import traceback
 import getopt
 import getpass
@@ -24,13 +24,11 @@ from mako.template import Template
 from mako.lookup import TemplateLookup
 import ipaddress
 
-traceback_found = None
-
 
 
 class CGI_CLI(object):
     """
-    class CGI_handle - Simple static class for handling CGI parameters and
+    class CGI_handle - Simple statis class for handling CGI parameters and
                        clean (debug) printing to HTML/CLI
     INTERFACE FUNCTIONS:
     CGI_CLI.init_cgi() - init CGI_CLI class
@@ -85,33 +83,6 @@ class CGI_CLI(object):
             BOLD       = ''
             UNDERLINE  = ''
 
-    class ploglevel:
-            ### PRINT & LOG ALL, BITWISE AND LOGIC IS USED ###
-
-            ### PRINT
-            PRINT_ALL          = 0b1111111100000000
-            PRINT_JSON_RESULTS = 0b1000000000000000
-            PRINT_TEXT_RESULTS = 0b0100000000000000
-            PRINT_NORMAL       = 0b1110000000000000
-            PRINT_DEBUG        = 0b1111111100000000
-
-            ### LOG
-            LOG_ALL            = 0b0000000011111111
-            LOG_JSON_RESULTS   = 0b0000000010000000
-            LOG_TEXT_RESULTS   = 0b0000000001000000
-            LOG_NORMAL         = 0b0000000011100000
-            LOG_DEBUG          = 0b0000000011111111
-
-            ### & MASKS ###
-            MASK_NO_PRINT      = 0b1100000011111111
-            MASK_NO_LOG        = 0b1111111100000000
-            MASK_NOTHING       = 0b0000000000000000
-            MASK_DEFAULT       = 0b1100000011111111
-
-            ALL                = 0b1111111111111111
-            DEFAULT            = 0b1100000111111111
-
-
     @staticmethod
     def cli_parser():
         ######## Parse program arguments ##################################
@@ -132,29 +103,32 @@ class CGI_CLI(object):
         parser.add_argument("--getpass",
                             action = "store_true", dest = 'getpass', default = None,
                             help = "forced to insert router password interactively getpass.getpass()")
-        parser.add_argument("--hash",
-                            action = 'store', dest = "hash", default = str(),
-                            help = "coded hash from iptac1 web")
         parser.add_argument("--device",
                             action = "store", dest = 'device',
                             default = str(),
                             help = "target router to access. For now supports only 1.")
+        parser.add_argument("--precheck",
+                            action = "store_true", dest = 'precheck', default = None,
+                            help = "do monitoring/precheck")
+        parser.add_argument("--postcheck",
+                            action = "store_true", dest = 'postcheck', default = None,
+                            help = "do traffic/postcheck")
+        parser.add_argument("--recheck",
+                            action = "store_true", dest = 'postcheck', default = None,
+                            help = "recheck last or specified diff pre/post files per inserted device")
+        parser.add_argument("--prefile",
+                            action = 'store', dest = "precheck_file", default = str(),
+                            help = "run postcheck against a specific precheck file")
+        parser.add_argument("--postfile",
+                            action = 'store', dest = "postcheck_file", default = str(),
+                            help = "specify your postcheck file")
+        parser.add_argument("--send_email",
+                            action = "store_true", dest = 'send_email', default = None,
+                            help = "send email with test result logs")
         parser.add_argument("--printall",
                             action = "store_true", dest = 'printall',
                             default = None,
                             help = "print all lines, changes will be coloured")
-        parser.add_argument("--timestamps",
-                            action = "store_true", dest = 'timestamp', default = None,
-                            help = "show timestamps")
-        parser.add_argument("--json_headers",
-                            action = "store_true",
-                            default = False,
-                            dest = 'json_headers',
-                            help = "print json headers before data output")
-        parser.add_argument("--all_oti_routers",
-                            action = "store_true", dest = 'all_oti_routers',
-                            default = None,
-                            help = "check all routers")
         parser.add_argument("--append_ppfile",
                             action = "store", dest = 'append_ppfile',
                             default = None,
@@ -163,35 +137,29 @@ class CGI_CLI(object):
                             action = "store", dest = 'append_logfile',
                             default = None,
                             help = "append logfile with specified name")
+        parser.add_argument("--latest",
+                    action = 'store_true', dest = "latest", default = False,
+                    help = "look for really latest pre/postcheck files (also from somebody else),\
+                    otherwise your own last pre/postcheck files will be used by default")
+        parser.add_argument("--timestamps",
+                            action = "store_true", dest = 'timestamp', default = None,
+                            help = "show timestamps")
         parser.add_argument("--json",
-                            action = "store_true",
-                            default = False,
-                            dest = 'json_mode',
-                            help = "json data output only, no other printouts")
+                    action = "store_true",
+                    default = False,
+                    dest = 'json_mode',
+                    help = "json data output only, no other printouts")
         args = parser.parse_args()
         return args
 
     @staticmethod
     def __cleanup__():
-        logfile_name = copy.deepcopy(CGI_CLI.logfilename)
-
-        ### PRINT RESULTS #############################################################
-        CGI_CLI.print_results()
-
-        ### SEND EMAIL WITH LOGFILE ###################################################
-        if logfile_name and CGI_CLI.data.get("send_email"):
-            #USERNAME = 'pnemec'
-            CGI_CLI.send_me_email( \
-                subject = str(logfile_name).replace('\\','/').split('/')[-1] if logfile_name else None, \
-                file_name = str(logfile_name), username = USERNAME)
-
-        ### def SEND EMAIL WITH ERROR/TRACEBACK LOGFILE TO SUPPORT ####################
-        if traceback_found:
-            CGI_CLI.send_me_email( \
-                subject = 'TRACEBACK-' + logfile_name.replace('\\','/').\
-                split('/')[-1] if logfile_name else str(),
-                email_body = str(traceback_found),\
-                file_name = logfile_name, username = 'pnemec')
+        if CGI_CLI.timestamp:
+            CGI_CLI.uprint('END.\n', no_printall = not CGI_CLI.printall, tag = 'debug')
+        if not CGI_CLI.disable_page_reload_link: CGI_CLI.html_selflink()
+        if CGI_CLI.cgi_active:
+            CGI_CLI.print_chunk("</body></html>",
+                ommit_logging = True, printall = True)
 
     @staticmethod
     def register_cleanup_at_exit():
@@ -202,57 +170,14 @@ class CGI_CLI(object):
         import atexit; atexit.register(CGI_CLI.__cleanup__)
 
     @staticmethod
-    def hash_decrypt(text = None, key = None, iv = None):
-        from Crypto.Cipher import AES
-        if not text: return str()
-        if not key:
-            key = base64.b64decode(b'cGFpaVVORE9wYWlpVU5ET3BhaWlVTkRPcGFpaVVORE8=')
-        try:
-            key = str.encode(key)
-        except: pass
-        if not iv: iv = key[:16]
-        assert len(key) == 32
-        assert len(iv) == 16
-        ciphertext = base64.b64decode(text)
-        aes = AES.new(key, AES.MODE_CBC, iv)
-        plain_text = aes.decrypt(ciphertext).decode('utf-8').strip()
-        readable_text = str()
-        for c in plain_text:
-            if c in string.printable: readable_text += c
-        return readable_text
-
-    @staticmethod
-    def get_credentials(text = None):
-        username, password = str(), str()
-        if text:
-            strtext = text[19:]
-            try:
-                username, password = strtext.split('#####')
-            except: pass
-        return username, password
-
-    @staticmethod
     def init_cgi(chunked = None, css_style = None, newline = None, \
-        timestamp = None, disable_page_reload_link = None, no_title = None, \
-        json_mode = None, json_headers = None, read_only = None, \
-        fake_success = None, no_result_printout = None):
+        timestamp = None, disable_page_reload_link = None, no_title = None):
         """
         """
+        CGI_CLI.JSON_MODE = None
         try: CGI_CLI.sys_stdout_encoding = sys.stdout.encoding
         except: CGI_CLI.sys_stdout_encoding = None
         if not CGI_CLI.sys_stdout_encoding: CGI_CLI.sys_stdout_encoding = 'UTF-8'
-        CGI_CLI.PRINT_RESULT = True
-        if no_result_printout: CGI_CLI.PRINT_RESULT = False
-        CGI_CLI.errorfilename = None
-        CGI_CLI.LOG_APP_SUBDIR = None
-        CGI_CLI.MENU_DISPLAYED = False
-        CGI_CLI.FAKE_SUCCESS = fake_success
-        CGI_CLI.READ_ONLY = read_only
-        CGI_CLI.JSON_MODE = json_mode
-        CGI_CLI.JSON_HEADERS = json_headers
-        CGI_CLI.PRINT_JSON_RESULTS = False
-        CGI_CLI.print_results_printed = None
-        CGI_CLI.JSON_RESULTS = collections.OrderedDict()
         CGI_CLI.USERNAME, CGI_CLI.PASSWORD = None, None
         CGI_CLI.result_tag = 'h3'
         CGI_CLI.result_list = []
@@ -286,11 +211,6 @@ class CGI_CLI(object):
             if value and variable == "username": CGI_CLI.USERNAME = value
             if value and variable == "password": CGI_CLI.PASSWORD = value
             if value and variable == "json_mode": CGI_CLI.JSON_MODE = value
-            if value and variable == "print_json_results": CGI_CLI.PRINT_JSON_RESULTS = value
-            if value and variable == "json_headers": CGI_CLI.JSON_HEADERS = value
-            if value and variable == "read_only": CGI_CLI.READ_ONLY = value
-            if value and variable == "hash":
-                CGI_CLI.USERNAME, CGI_CLI.PASSWORD = CGI_CLI.get_credentials(CGI_CLI.hash_decrypt(value))
 
             ### SET CHUNKED MODE BY CGI #######################################
             if variable == "chunked_mode":
@@ -312,6 +232,12 @@ class CGI_CLI(object):
             "Status: %s %s%s" % (CGI_CLI.http_status, CGI_CLI.http_status_text, CGI_CLI.newline)
         CGI_CLI.content_type_line = 'Content-type:text/html; charset=%s%s' % (str(CGI_CLI.sys_stdout_encoding), CGI_CLI.newline)
 
+        ### DECIDE - CLI OR CGI MODE ##########################################
+        CGI_CLI.remote_addr =  dict(os.environ).get('REMOTE_ADDR','')
+        CGI_CLI.http_user_agent = dict(os.environ).get('HTTP_USER_AGENT','')
+        if CGI_CLI.remote_addr and CGI_CLI.http_user_agent:
+            CGI_CLI.cgi_active = True
+
         ### CLI PARSER ########################################################
         CGI_CLI.args = CGI_CLI.cli_parser()
         if not CGI_CLI.cgi_active:
@@ -320,17 +246,13 @@ class CGI_CLI(object):
                 variable = str(key)
                 try: value = cli_data.get(variable)
                 except: value = None
-                if variable and value and \
+                if variable and \
                     not variable in ["username", "password"]:
                     CGI_CLI.data[variable] = value
                 if value and variable == "username": CGI_CLI.USERNAME = value
                 if value and variable == "password": CGI_CLI.PASSWORD = value
                 if value and variable == "json_mode": CGI_CLI.JSON_MODE = value
-                if value and variable == "print_json_results": CGI_CLI.PRINT_JSON_RESULTS = value
-                if value and variable == "json_headers": CGI_CLI.JSON_HEADERS = value
-                if value and variable == "read_only": CGI_CLI.READ_ONLY = value
-                if value and variable == "hash":
-                    CGI_CLI.USERNAME, CGI_CLI.PASSWORD = CGI_CLI.get_credentials(CGI_CLI.hash_decrypt(value))
+
 
         ### CGI_CLI.data PARSER ###############################################
         for key in CGI_CLI.data.keys():
@@ -341,23 +263,12 @@ class CGI_CLI(object):
                 CGI_CLI.printall = False
             elif variable == "printall":
                 CGI_CLI.printall = True
-            if value and variable == "timestamp" and value: CGI_CLI.timestamp = True
+            if value and variable == "timestamp": CGI_CLI.timestamp = True
             if value and variable == "cusername": CGI_CLI.USERNAME = value.decode('base64','strict')
             if value and variable == "cpassword": CGI_CLI.PASSWORD = value.decode('base64','strict')
             if value and variable == "json_mode": CGI_CLI.JSON_MODE = value
-            if value and variable == "print_json_results": CGI_CLI.PRINT_JSON_RESULTS = value
-            if value and variable == "json_headers": CGI_CLI.JSON_HEADERS = value
-            if value and variable == "read_only": CGI_CLI.READ_ONLY = value
-            if value and variable == "hash":
-                CGI_CLI.USERNAME, CGI_CLI.PASSWORD = CGI_CLI.get_credentials(CGI_CLI.hash_decrypt(value))
 
-        ### DECIDE - CLI OR CGI MODE ##########################################
-        CGI_CLI.remote_addr =  dict(os.environ).get('REMOTE_ADDR','')
-        CGI_CLI.http_user_agent = dict(os.environ).get('HTTP_USER_AGENT','')
-        if CGI_CLI.remote_addr and CGI_CLI.http_user_agent and not CGI_CLI.JSON_MODE:
-            CGI_CLI.cgi_active = True
-
-        ### HTML HEADERS ######################################################
+        ### HTML PRINTING START ###############################################
         if CGI_CLI.cgi_active:
             sys.stdout.write("%s%s%s" %
                 (CGI_CLI.chunked_transfer_encoding_line,
@@ -373,15 +284,6 @@ class CGI_CLI(object):
                 title_string, \
                 '<style>%s</style>' % (CGI_CLI.CSS_STYLE) if CGI_CLI.CSS_STYLE else str()),\
                 ommit_logging = True, printall = True)
-        elif CGI_CLI.JSON_MODE and CGI_CLI.JSON_HEADERS:
-            ### JSON HEADERS ##################################################
-            CGI_CLI.content_type_line = 'Content-type:application/vnd.api+json%s' % (CGI_CLI.newline)
-            sys.stdout.write("%s%s%s%s%s" %
-                (CGI_CLI.chunked_transfer_encoding_line,
-                CGI_CLI.content_type_line,
-                CGI_CLI.status_line, CGI_CLI.newline, CGI_CLI.newline))
-            sys.stdout.flush()
-
         ### REGISTER CLEANUP FUNCTION #########################################
         import atexit; atexit.register(CGI_CLI.__cleanup__)
         ### GAIN USERNAME AND PASSWORD FROM ENVIRONMENT BY DEFAULT ############
@@ -393,20 +295,15 @@ class CGI_CLI(object):
             except: CGI_CLI.USERNAME        = str()
         ### GAIN/OVERWRITE USERNAME AND PASSWORD FROM CLI ###
         getpass_done = None
-        if not CGI_CLI.PASSWORD and not CGI_CLI.cgi_active and not CGI_CLI.JSON_MODE:
+        if not CGI_CLI.PASSWORD and not CGI_CLI.cgi_active:
             CGI_CLI.PASSWORD = getpass.getpass("TACACS password: ")
             getpass_done = True
         ### FORCE GAIN/OVERWRITE USERNAME AND PASSWORD FROM CLI GETPASS #######
-        if CGI_CLI.data.get('getpass') and not getpass_done and not CGI_CLI.cgi_active and not CGI_CLI.JSON_MODE:
+        if CGI_CLI.data.get('getpass') and not getpass_done and not CGI_CLI.cgi_active:
             CGI_CLI.PASSWORD = getpass.getpass("TACACS password: ")
         ### WINDOWS DOES NOT SUPPORT LINUX COLORS - SO DISABLE IT #############
         if CGI_CLI.cgi_active or 'WIN32' in sys.platform.upper(): CGI_CLI.bcolors = CGI_CLI.nocolors
         CGI_CLI.cgi_save_files()
-        CGI_CLI.JSON_RESULTS['inputs'] = str(CGI_CLI.print_args(ommit_print = True))
-        CGI_CLI.JSON_RESULTS['logfile'] = str()
-        CGI_CLI.JSON_RESULTS['errors'] = str()
-        CGI_CLI.JSON_RESULTS['warnings'] = str()
-        CGI_CLI.JSON_RESULTS['result'] = str()
         return CGI_CLI.USERNAME, CGI_CLI.PASSWORD
 
     @staticmethod
@@ -424,8 +321,7 @@ class CGI_CLI(object):
                                 with open(use_filename, 'wb') as file:
                                     file.write(CGI_CLI.data.get('file[%s]'%(filename)))
                                     CGI_CLI.uprint('The file "' + use_filename + '" was uploaded.', printall = True)
-                            except Exception as e:
-                                CGI_CLI.add_result('PROBLEM[' + str(e) + ']', 'fatal')
+                            except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']', color = 'magenta', printall = True)
 
     @staticmethod
     def set_logfile(logfilename = None):
@@ -435,38 +331,8 @@ class CGI_CLI(object):
         """
         CGI_CLI.logtofile(end_log = True, ommit_timestamp = True)
         CGI_CLI.logfilename = logfilename
-        if logfilename: CGI_CLI.errorfilename = (CGI_CLI.logfilename).split('.')[0] + '.err'
         time.sleep(0.1)
         CGI_CLI.logtofile(start_log = True, ommit_timestamp = True)
-
-
-    @staticmethod
-    def get_logging_directory(mkdir = None):
-        """ log_dir - directly log to logging diretcory
-            directory - logs dir is created under directory
-        """
-        if CGI_CLI.cgi_active:
-            LOGDIR = '/var/www/cgi-bin/logs'
-        else:
-            if CGI_CLI.LOG_APP_SUBDIR: LOGDIR = '/var/PrePost/%s' % (CGI_CLI.get_scriptname())
-            else: LOGDIR = '/var/PrePost'
-
-        ### MAKE LOGDIR IF DOES NOT EXISTS ###
-        if not os.path.exists(LOGDIR) and mkdir: os.makedirs(LOGDIR, mode = 0o666)
-
-        ### TEST ACCESS ###
-        if os.path.exists(LOGDIR) and os.access(LOGDIR, os.W_OK): return LOGDIR
-        else: return str()
-
-
-    @staticmethod
-    def errlogtofile(msg_to_file = None):
-        if msg_to_file:
-            try:
-                with open(CGI_CLI.errorfilename,"a+") as CGI_CLI.fp:
-                    CGI_CLI.fp.write(msg_to_file)
-                    del msg_to_file
-            except: pass
 
     @staticmethod
     def logtofile(msg = None, raw_log = None, start_log = None, end_log = None, \
@@ -511,11 +377,10 @@ class CGI_CLI(object):
 
             ### LOG CLI OR HTML MODE ##########################################
             if msg_to_file:
-                try:
-                    with open(CGI_CLI.logfilename,"a+") as CGI_CLI.fp:
-                        CGI_CLI.fp.write(msg_to_file)
-                        del msg_to_file
-                except: pass
+                with open(CGI_CLI.logfilename,"a+") as CGI_CLI.fp:
+                    CGI_CLI.fp.write(msg_to_file)
+                    CGI_CLI.fp.flush()
+                    del msg_to_file
 
             ### ON END: LOGFILE SET TO VOID, AVOID OF MULTIPLE FOOTERS ########
             if end_log: CGI_CLI.logfilename = None
@@ -540,10 +405,10 @@ class CGI_CLI(object):
         escaped_text = str()
         if text and not pre_tag:
             escaped_text = str(text.replace('&amp;','&').\
-                replace('<br/>','\n').replace('<br>','\n').\
                 replace('&lt;','<').replace('&gt;','>').\
                 replace('&nbsp;',' ').\
-                replace('&quot;','"').replace('&apos;',"'"))
+                replace('&quot;','"').replace('&apos;',"'").\
+                replace('<br/>','\n'))
         elif text and pre_tag:
             ### OMMIT SPACES,QUOTES AND NEWLINES ##############################
             escaped_text = str(text.replace('&amp;','&').\
@@ -567,14 +432,14 @@ class CGI_CLI(object):
         raw_log = raw logging
         """
         if msg:
-            if printall and not CGI_CLI.JSON_MODE:
+            if printall:
                 ### sys.stdout.write is printing without \n, print adds \n == +1BYTE ##
                 if CGI_CLI.chunked and CGI_CLI.cgi_active:
                     if len(msg)>0:
                         sys.stdout.write("\r\n%X\r\n%s" % (len(msg), msg))
                         sys.stdout.flush()
                 ### CLI MODE ##################################################
-                else:
+                elif not CGI_CLI.JSON_MODE:
                     if no_newlines:
                         sys.stdout.write(msg)
                         sys.stdout.flush()
@@ -582,120 +447,6 @@ class CGI_CLI(object):
                         print(msg)
             if not ommit_logging: CGI_CLI.logtofile(msg = msg, raw_log = raw_log, \
                                       ommit_timestamp = True)
-
-    @staticmethod
-    def add_result(text = None, type = None, print_now = None):
-        if text: CGI_CLI.result_list.append([text, type])
-        color = None
-        if type == 'fatal': color = 'magenta'
-        elif type == 'error': color = 'red'
-        elif type == 'warning': color = 'orange'
-        if print_now:
-            CGI_CLI.uprint(text , tag = 'h3', color = color)
-        else:
-            CGI_CLI.uprint(text , tag = 'h3', color = color, \
-                no_printall = not CGI_CLI.printall)
-
-    @staticmethod
-    def print_results(raw_log = None, sort_keys = None):
-
-        print_text, success = None, True
-
-        for text, type in CGI_CLI.result_list:
-            if type == 'error' or type == 'fatal':
-                #CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
-                CGI_CLI.JSON_RESULTS['errors'] = 'See error_link file.'
-                success = False
-            elif type == 'warning':
-                pass
-                #CGI_CLI.JSON_RESULTS['warnings'] += '[%s] ' % (text)
-
-        if len(CGI_CLI.JSON_RESULTS.get('errors',str())) == 0:
-            if len(CGI_CLI.JSON_RESULTS.get('warnings',str())) == 0:
-                CGI_CLI.JSON_RESULTS['result'] = 'success'
-            else:
-                #CGI_CLI.JSON_RESULTS['result'] = 'warnings'
-                CGI_CLI.JSON_RESULTS['result'] = 'success'
-        else: CGI_CLI.JSON_RESULTS['result'] = 'failure'
-
-        if CGI_CLI.JSON_RESULTS.get('precheck_logfile',str()):
-             CGI_CLI.JSON_RESULTS['precheck_link'] = CGI_CLI.make_loglink(CGI_CLI.JSON_RESULTS.get('precheck_logfile',str()))
-
-        ### DEBUG FAKE_SUCCESS ###
-        if CGI_CLI.FAKE_SUCCESS: CGI_CLI.JSON_RESULTS['result'] = 'success'
-
-        if success == False and CGI_CLI.errorfilename:
-            CGI_CLI.JSON_RESULTS['error_link'] = CGI_CLI.make_loglink(CGI_CLI.errorfilename)
-
-        if CGI_CLI.logfilename:
-            CGI_CLI.JSON_RESULTS['logfile_link'] = CGI_CLI.make_loglink(CGI_CLI.logfilename)
-
-        if not CGI_CLI.print_results_printed:
-            ### ALL MODES - CGI, JSON, CLI ####################################
-            if isinstance(CGI_CLI.JSON_RESULTS, (dict,collections.OrderedDict,list,tuple)):
-                try: print_text = str(json.dumps(CGI_CLI.JSON_RESULTS, indent = 2, sort_keys = sort_keys))
-                except Exception as e:
-                    CGI_CLI.print_chunk('{"errors": "JSON_PROBLEM[' + str(e) + str(CGI_CLI.JSON_RESULTS) + ']"}', printall = True)
-
-            if print_text:
-                ### PRINT DIFFERENTLY ###
-                if CGI_CLI.cgi_active and CGI_CLI.PRINT_JSON_RESULTS:
-                    CGI_CLI.uprint('<br/>\n<pre>\nCGI_CLI.JSON_RESULTS = ' + print_text + \
-                        '\n</pre>\n', raw = True, ommit_logging = True)
-                elif CGI_CLI.JSON_MODE: print(print_text)
-                elif CGI_CLI.PRINT_JSON_RESULTS: print(print_text)
-
-                ### LOG JSON IN EACH CASE ###
-                if CGI_CLI.cgi_active: CGI_CLI.logtofile('<br/>\n<pre>\n', raw_log = True, ommit_timestamp = True)
-                CGI_CLI.logtofile(msg = 'CGI_CLI.JSON_RESULTS = ' + \
-                    print_text, raw_log = True, ommit_timestamp = True)
-                if CGI_CLI.cgi_active: CGI_CLI.logtofile('\n</pre>\n', raw_log = True, ommit_timestamp = True)
-
-            ### CLI & CGI MODES ###############################################
-            if len(CGI_CLI.result_list) > 0:
-                if not CGI_CLI.JSON_MODE: CGI_CLI.uprint('\n\nRESULT SUMMARY:', tag = 'h1')
-                CGI_CLI.errlogtofile('RESULT SUMMARY:' + '\n')
-
-            ### text, type ###
-            for text, type in CGI_CLI.result_list:
-                color = None
-                if type == 'fatal': color = 'magenta'
-                elif type == 'error': color = 'red'
-                elif type == 'warning': color = 'orange'
-                if not CGI_CLI.JSON_MODE: CGI_CLI.uprint(text , tag = 'h3', color = color)
-                CGI_CLI.errlogtofile(text + '\n')
-            if not CGI_CLI.JSON_MODE: CGI_CLI.uprint('\n')
-
-            res_color = None
-            if CGI_CLI.JSON_RESULTS.get('result',str()) == 'success': res_color = 'green'
-            if CGI_CLI.JSON_RESULTS.get('result',str()) == 'warnings': res_color = 'orange'
-            if CGI_CLI.JSON_RESULTS.get('result',str()) == 'failure': res_color = 'red'
-
-            if not CGI_CLI.MENU_DISPLAYED and CGI_CLI.PRINT_RESULT:
-                if not CGI_CLI.JSON_MODE: CGI_CLI.uprint("RESULT: " + \
-                    CGI_CLI.JSON_RESULTS.get('result', str()), tag = 'h1', color = res_color)
-                CGI_CLI.errlogtofile("\n RESULT: " + CGI_CLI.JSON_RESULTS.get('result') + '\n')
-
-            ### LOGFILE LINK ##############################################
-            logfile_name = copy.deepcopy(CGI_CLI.logfilename)
-            logfilename_link = CGI_CLI.make_loglink(CGI_CLI.logfilename)
-            if CGI_CLI.cgi_active:
-                if CGI_CLI.logfilename:
-                    CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
-                        % (logfilename_link, logfile_name), raw = True, color = 'blue', printall = True)
-                    CGI_CLI.uprint('<br/>', raw = True)
-                if CGI_CLI.timestamp:
-                    CGI_CLI.uprint('END.\n', no_printall = not CGI_CLI.printall, tag = 'debug')
-                if not CGI_CLI.disable_page_reload_link: CGI_CLI.html_selflink()
-            elif CGI_CLI.JSON_MODE:
-                pass
-            else:
-                if CGI_CLI.logfilename:
-                    CGI_CLI.uprint(' ==> File %s created.\n\n' % (logfilename_link),printall = True)
-            CGI_CLI.set_logfile(logfilename = None)
-
-        CGI_CLI.print_results_printed = True
-
 
     @staticmethod
     def uprint(text = None, tag = None, tag_id = None, color = None, name = None, jsonprint = None, \
@@ -752,14 +503,8 @@ class CGI_CLI(object):
                     ### WORKARROUND FOR COLORING OF SIMPLE TEXT ###################
                     if color and not (tag or start_tag): tag = 'void';
                     if tag:
-                        if str(tag) == 'fatal':
-                            CGI_CLI.print_chunk('<%s style="color:magenta;">'%(tag),\
-                                raw_log = True, printall = printall_yes)
-                        if str(tag) == 'error':
-                            CGI_CLI.print_chunk('<%s style="color:red;">'%(tag),\
-                                raw_log = True, printall = printall_yes)
                         if str(tag) == 'warning':
-                            CGI_CLI.print_chunk('<%s style="color:orange;">'%(tag),\
+                            CGI_CLI.print_chunk('<%s style="color:red; background-color:yellow;">'%(tag),\
                                 raw_log = True, printall = printall_yes)
                         elif str(tag) == 'debug':
                             CGI_CLI.print_chunk('<%s style="color:dimgray; background-color:lightgray;">'%(tag),\
@@ -794,16 +539,13 @@ class CGI_CLI(object):
                     elif 'YELLOW' in color.upper():  text_color = CGI_CLI.bcolors.YELLOW
                     elif 'ORANGE' in color.upper():  text_color = CGI_CLI.bcolors.YELLOW
 
-                if tag == 'fatal': text_color = 'FATAL: ' + CGI_CLI.bcolors.MAGENTA
-                if tag == 'error': text_color = 'ERROR: ' + CGI_CLI.bcolors.RED
-                if tag == 'warning': text_color = 'WARNING: ' + CGI_CLI.bcolors.YELLOW
-                if tag == 'debug': text_color = 'DEBUG: ' + CGI_CLI.bcolors.GREY
+                if tag == 'warning': text_color = CGI_CLI.bcolors.YELLOW
+                if tag == 'debug': text_color = CGI_CLI.bcolors.CYAN
 
                 CGI_CLI.print_chunk("%s%s%s%s%s" % \
                     (text_color, timestamp_string, print_name, print_text, \
                     CGI_CLI.bcolors.ENDC if text_color else str()), \
-                    raw_log = True, printall = printall_yes, no_newlines = no_newlines, \
-                    ommit_logging = ommit_logging)
+                    raw_log = True, printall = printall_yes, no_newlines = no_newlines)
 
             ### PRINT END OF TAGS #################################################
             if CGI_CLI.cgi_active and not raw:
@@ -969,9 +711,10 @@ class CGI_CLI(object):
             i_pyfile = sys.argv[0]
             try: pyfile = i_pyfile.replace('\\','/').split('/')[-1].strip()
             except: pyfile = i_pyfile.strip()
+            CGI_CLI.print_result_summary()
             if CGI_CLI.cgi_active:
                 CGI_CLI.print_chunk('<p id="scriptend"></p>', raw_log = True, printall = True)
-                CGI_CLI.print_chunk('<br/><a href = "./%s">PAGE RELOAD</a>' % (pyfile), ommit_logging = True, printall = True)
+                CGI_CLI.print_chunk('<br/><a href = "./%s">PAGE RELOAD</a>' % (pyfile), raw_log = True, printall = True)
 
     @staticmethod
     def get_scriptname():
@@ -999,8 +742,8 @@ class CGI_CLI(object):
             (CGI_CLI.USERNAME, 'Yes' if CGI_CLI.PASSWORD else 'No')
         print_string += 'remote_addr[%s], ' % dict(os.environ).get('REMOTE_ADDR','')
         print_string += 'browser[%s]\n' % dict(os.environ).get('HTTP_USER_AGENT','')
-        print_string += 'CGI_CLI.cgi_active[%s], CGI_CLI.JSON_MODE[%s], CGI_CLI.submit_form[%s], CGI_CLI.chunked[%s]\n' % \
-            (str(CGI_CLI.cgi_active), str(CGI_CLI.JSON_MODE), str(CGI_CLI.submit_form), str(CGI_CLI.chunked))
+        print_string += 'CGI_CLI.cgi_active[%s], CGI_CLI.submit_form[%s], CGI_CLI.chunked[%s]\n' % \
+            (str(CGI_CLI.cgi_active), str(CGI_CLI.submit_form), str(CGI_CLI.chunked))
         if CGI_CLI.cgi_active:
             try: print_string += 'CGI_CLI.data[%s] = %s\n' % (str(CGI_CLI.submit_form),str(json.dumps(CGI_CLI.data, indent = 4, sort_keys = True)))
             except: pass
@@ -1193,20 +936,20 @@ class CGI_CLI(object):
         buff_read = str()
         exception_text = None
 
-        # replace_sequence = lambda buffer : str(buffer.\
-            # replace('\x0d','').replace('\x07','').\
-            # replace('\x08','').replace(' \x1b[1D','').replace(u'\u2013','').replace(u'\xa0', '').encode('utf-8'))
+        replace_sequence = lambda buffer : str(buffer.\
+            replace('\x0d','').replace('\x07','').\
+            replace('\x08','').replace(' \x1b[1D','').replace(u'\u2013',''))
 
         ### https://docs.python.org/3/library/codecs.html#standard-encodings ###
         ### http://lwp.interglacial.com/appf_01.htm ###
-        # if buff and not ascii_only:
-            # ###for coding in [CGI_CLI.sys_stdout_encoding, 'utf-8','utf-16', 'cp1252', 'cp1140','cp1250', 'latin_1', 'ascii']:
-            # for coding in ['utf-8', 'ascii']:
-                # exception_text = None
-                # try:
-                    # buff_read = replace_sequence(buff.encode(encoding = coding))
-                    # break
-                # except: exception_text = traceback.format_exc()
+        if buff and not ascii_only:
+            ###for coding in [CGI_CLI.sys_stdout_encoding, 'utf-8','utf-16', 'cp1252', 'cp1140','cp1250', 'latin_1', 'ascii']:
+            for coding in ['utf-8', 'ascii']:
+                exception_text = None
+                try:
+                    buff_read = replace_sequence(buff.encode(encoding = coding))
+                    break
+                except: exception_text = traceback.format_exc()
 
         ### available in PYTHON3 ###
         # if buff and ascii_only or not buff_read:
@@ -1215,32 +958,40 @@ class CGI_CLI(object):
                 # buff_read = replace_sequence(ascii(buff))
             # except: exception_text = traceback.format_exc()
 
-        # if exception_text:
-            # err_chars = str()
-            # for character in replace_sequence(buff):
-                # if ord(character) > 128:
-                    # err_chars += '\\x%x,' % (ord(character))
-                # else: buff_read += character
+        if exception_text:
+            err_chars = str()
+            for character in replace_sequence(buff):
+                if ord(character) > 128:
+                    err_chars += '\\x%x,' % (ord(character))
+                else: buff_read += character
 
-            # if len(err_chars) > 0:
-                # CGI_CLI.uprint("NON STANDARD CHARACTERS (>128) found [%s] in TEXT!" % (err_chars), tag = 'debug', no_printall = not CGI_CLI.printall)
-
-        buff_read = str(repr(buff)[1:-1].replace('\\r','').replace('\\n','\n'))
-    
+            if len(err_chars) > 0:
+                CGI_CLI.uprint("NON STANDARD CHARACTERS (>128) found [%s] in TEXT!" % (err_chars), color = 'orange', no_printall = not CGI_CLI.printall)
         return buff_read
 
     @staticmethod
-    def make_loglink(file = None):
-        logviewer = copy.deepcopy(file)
-        if file:
-            iptac_server = str(subprocess.check_output('hostname').decode('utf-8')).strip()
+    def print_result_summary():
+        if len(CGI_CLI.result_list) > 0: CGI_CLI.uprint('\n\nRESULT SUMMARY:', tag = 'h1')
+        for result, color in CGI_CLI.result_list:
+            CGI_CLI.uprint(result , tag = 'h3', color = color)
+        if CGI_CLI.logfilename:
+            logfilename = CGI_CLI.logfilename
+            iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None, ommit_logging = True).strip()
             if iptac_server == 'iptac5': urllink = 'https://10.253.58.126/cgi-bin/'
             else: urllink = 'https://%s/cgi-bin/' % (iptac_server)
-            if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, copy.deepcopy(file))
-            else: logviewer = './logviewer.py?logfile=%s' % (copy.deepcopy(file))
-        return logviewer
-
-
+            if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, logfilename)
+            else: logviewer = './logviewer.py?logfile=%s' % (logfilename)
+            if CGI_CLI.cgi_active:
+                CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
+                    % (logviewer, logfilename), raw = True, color = 'blue')
+                CGI_CLI.uprint('<br/>', raw = True)
+            else:
+                CGI_CLI.uprint(' ==> File %s created.\n\n' % (logfilename))
+            CGI_CLI.logtofile(end_log = True, ommit_timestamp = True)
+            ### SEND EMAIL WITH LOGFILE ###########################################
+            CGI_CLI.send_me_email( \
+                subject = logfilename.replace('\\','/').split('/')[-1] if logfilename else None, \
+                file_name = logfilename, username = USERNAME)
 
 
 
@@ -1392,15 +1143,13 @@ class RCMD(object):
 
                 if RCMD.ssh_connection:
                     RCMD.router_type, RCMD.router_prompt = RCMD.ssh_raw_detect_router_type(debug = None)
-                    if not RCMD.router_type:
-                        text = 'DEVICE_TYPE NOT DETECTED!'
-                        CGI_CLI.add_result(text, 'fatal')
+                    if not RCMD.router_type: CGI_CLI.uprint('DEVICE_TYPE NOT DETECTED!', color = 'red')
                     elif RCMD.router_type in RCMD.KNOWN_OS_TYPES and not RCMD.silent_mode:
                         CGI_CLI.uprint('DETECTED DEVICE_TYPE: %s' % (RCMD.router_type), \
                             color = 'gray', no_printall = not CGI_CLI.printall)
             except Exception as e:
-                text = str(device) + ' CONNECTION_PROBLEM[' + str(e) + ']'
-                CGI_CLI.add_result(text, 'fatal')
+                #if not RCMD.silent_mode:
+                    CGI_CLI.uprint(str(device) + ' CONNECTION_PROBLEM[' + str(e) + ']', color = 'magenta')
             finally:
                 if disconnect: RCMD.disconnect()
             ### EXIT IF NO CONNECTION ##########################################
@@ -1488,13 +1237,11 @@ class RCMD(object):
                 command_outputs = RCMD.run_commands(RCMD.CMD)
                 ### ===========================================================
             except Exception as e:
-                text = str(device) + ' CONNECTION_PROBLEM[' + str(e) + ']'
-                CGI_CLI.add_result(text, 'fatal')
+                #if not RCMD.silent_mode:
+                    CGI_CLI.uprint('CONNECTION_PROBLEM[' + str(e) + ']', color = 'magenta')
             finally:
                 if disconnect: RCMD.disconnect()
-        else:
-            text = 'DEVICE NOT INSERTED!'
-            CGI_CLI.add_result(text, 'fatal')
+        else: CGI_CLI.uprint('DEVICE NOT INSERTED!', color = 'magenta')
         return command_outputs
 
     @staticmethod
@@ -1723,8 +1470,8 @@ class RCMD(object):
                         or 'ERROR:' in rcmd_output.upper() \
                         or 'SYNTAX ERROR' in rcmd_output.upper():
                         RCMD.config_problem = True
-                        text = '\nCONFIGURATION PROBLEM FOUND: %s' % (rcmd_output)
-                        CGI_CLI.add_result(text, 'warning')
+                        CGI_CLI.uprint('\nCONFIGURATION PROBLEM FOUND:', color = 'red', timestamp = 'no')
+                        CGI_CLI.uprint('%s' % (rcmd_output), color = 'darkorchid', timestamp = 'no')
                 ### COMMIT TEXT ###
                 if not (do_not_final_print or RCMD.do_not_final_print):
                     text_to_commit = str()
@@ -1820,10 +1567,9 @@ class RCMD(object):
                 if long_lasting_mode:
                     if printall and buff_read and not RCMD.silent_mode:
                         CGI_CLI.uprint('%s' % (buff_read), no_newlines = True, \
-                            ommit_logging = True, timestamp = 'no')
-                    if CGI_CLI.cgi_active:
-                        CGI_CLI.logtofile('%s' % (buff_read), raw_log = True, ommit_timestamp = True)
-                    else: CGI_CLI.logtofile('%s' % (buff_read), ommit_timestamp = True)
+                            ommit_logging = True)
+
+                    CGI_CLI.logtofile('%s' % (buff_read), ommit_timestamp = True)
 
                 ### IS ACTUAL LAST LINE PROMPT ? IF YES, CONFIRM ##############
                 dialog_list = ['?', '[Y/N]:', '[confirm]', '? [no]:']
@@ -1837,12 +1583,12 @@ class RCMD(object):
                             elif RCMD.router_type in ["vrp",'huawei']:
                                 chan.send('Y\n')
                             time.sleep(0.2)
-                            CGI_CLI.uprint("AUTOCONFIRMED.", tag = 'debug', no_printall = not CGI_CLI.printall)
+                            CGI_CLI.uprint("AUTOCONFIRMATION INSERTED , EXIT !!", tag = 'warning')
                             break
                         else:
                             ### INTERACTIVE QUESTION --> GO AWAY ##############
                             exit_loop = True
-                            CGI_CLI.uprint("AUTOCONFIRMATION QUESTION.", tag = 'debug', no_printall = not CGI_CLI.printall)
+                            CGI_CLI.uprint("AUTOCONFIRMATION QUESTION, EXIT !!", tag = 'warning')
                             break
 
                 if exit_loop: break
@@ -1872,7 +1618,7 @@ class RCMD(object):
             if not long_lasting_mode:
                 ### COMMAND TIMEOUT EXIT ######################################
                 if command_counter_100msec > RCMD.CMD_TIMEOUT*10:
-                    CGI_CLI.uprint("COMMAND TIMEOUT (%s sec) !!" % (RCMD.CMD_TIMEOUT*10), tag = 'warning', no_printall = not CGI_CLI.printall)
+                    CGI_CLI.uprint("COMMAND TIMEOUT (%s sec) !!" % (RCMD.CMD_TIMEOUT*10), tag = 'warning')
                     exit_loop = True
                     break
 
@@ -1881,8 +1627,8 @@ class RCMD(object):
                 if not command_counter_100msec % 100:
                     if CGI_CLI.cgi_active:
                         CGI_CLI.uprint("<script>console.log('10s...');</script>", \
-                            raw = True, ommit_logging = True)
-                        #CGI_CLI.logtofile('[+10sec_MARK]\n')
+                            raw = True)
+                        CGI_CLI.logtofile('[+10sec_MARK]\n')
 
                     ### printall or RCMD.printall
                     if not CGI_CLI.printall and not RCMD.silent_mode:
@@ -1891,14 +1637,14 @@ class RCMD(object):
 
             ### EXIT SOONER THAN CONNECTION TIMEOUT IF LONG LASTING OR NOT ####
             if command_counter_100msec + 100 > RCMD.CONNECTION_TIMEOUT*10:
-                CGI_CLI.uprint("LONG LASTING COMMAND (%d sec) TIMEOUT!!" % (RCMD.CONNECTION_TIMEOUT*10), tag = 'warning', no_printall = not CGI_CLI.printall)
+                CGI_CLI.uprint("LONG LASTING COMMAND (%d sec) TIMEOUT!!" % (RCMD.CONNECTION_TIMEOUT*10), tag = 'warning')
                 exit_loop = True
                 break
 
             ### IGNORE NEW PROMPT AND GO AWAY #################################
             if ignore_prompt:
                 time.sleep(1)
-                CGI_CLI.uprint("PROMPT IGNORED, EXIT !!", tag = 'debug', no_printall = not CGI_CLI.printall)
+                CGI_CLI.uprint("PROMPT IGNORED, EXIT !!", tag = 'warning')
                 exit_loop = True
                 break
 
@@ -2057,17 +1803,15 @@ class RCMD(object):
 
     @staticmethod
     def get_json_from_vision(URL = None):
+        global vision_api_json_string
         if RCMD.USERNAME and RCMD.PASSWORD:
             os.environ['CURL_AUTH_STRING'] = '%s:%s' % \
                 (RCMD.USERNAME,RCMD.PASSWORD)
             if URL: url = URL
             else: url = 'https://vision.opentransit.net/onv/api/nodes/'
-            local_command = 'curl -u ${CURL_AUTH_STRING} -m 5 %s' % (url)
-            try:
-                result_list = LCMD.run_commands(\
-                    {'unix':[local_command]}, printall = None, ommit_logging = True)
-                RCMD.vision_api_json_string = copy.deepcopy(result_list[0])
-            except: pass
+            local_command = 'curl -u ${CURL_AUTH_STRING} -m 1 %s' % (url)
+            RCMD.vision_api_json_string = LCMD.run_commands(\
+                {'unix':[local_command]}, printall = None, ommit_logging = True)
             os.environ['CURL_AUTH_STRING'] = '-'
 
     @staticmethod
@@ -2075,12 +1819,11 @@ class RCMD(object):
         device_ip_address = str()
         if not RCMD.vision_api_json_string: RCMD.get_json_from_vision()
         if RCMD.vision_api_json_string and DEVICE_NAME:
-            try: vision_json = json.loads(RCMD.vision_api_json_string)
-            except: vision_json = {}
-            for router_json in vision_json.get('results',[]):
-                if router_json.get('name',str()).upper() == DEVICE_NAME.upper():
-                    device_ip_address = router_json.get('ip',str())
-        CGI_CLI.uprint('VISION_IP: %s' % (device_ip_address), tag = "debug")
+            try:
+                device_ip_address = str(RCMD.vision_api_json_string[0].split(DEVICE_NAME.upper())[1].\
+                    splitlines()[1].\
+                    split('"ip":')[1].replace('"','').replace(',','')).strip()
+            except: pass
         return device_ip_address
 
     @staticmethod
@@ -2088,7 +1831,7 @@ class RCMD(object):
         router_os = None
         if host:
             SNMP_COMMUNITY = 'qLqVHPZUNnGB'
-            snmp_req = "snmpget -v1 -c " + SNMP_COMMUNITY + " -t 1 " + host + " sysDescr.0"
+            snmp_req = "snmpget -v1 -c " + SNMP_COMMUNITY + " -t 5 " + host + " sysDescr.0"
             #return_stream = os.popen(snmp_req)
             #retvalue = return_stream.readline()
 
@@ -2411,357 +2154,646 @@ class LCMD(object):
 ###############################################################################
 
 
-class sql_interface():
-    ### import mysql.connector
-    ### MARIADB - By default AUTOCOMMIT is disabled
 
-    def __init__(self, host = None, user = None, password = None, database = None):
-        if int(sys.version_info[0]) == 3 and not 'pymysql.connect' in sys.modules: import pymysql
-        elif int(sys.version_info[0]) == 2 and not 'mysql.connector' in sys.modules: import mysql.connector
-        default_ipxt_data_collector_delete_columns = ['id','last_updated']
-        self.sql_connection = None
-        try:
-            if CGI_CLI.initialized: pass
-            else: CGI_CLI.init_cgi(); CGI_CLI.print_args()
+###############################################################################
+
+def generate_logfilename(prefix = None, USERNAME = None, postfix = None, \
+    suffix = None, directory = None):
+    filenamewithpath = None
+    if not directory:
+        try:    DIR         = os.environ['HOME']
+        except: DIR         = str(os.path.dirname(os.path.abspath(__file__)))
+    else: DIR = str(directory)
+    if DIR: LOGDIR      = os.path.join(DIR,'logs')
+    if not os.path.exists(LOGDIR): os.makedirs(LOGDIR)
+    if os.path.exists(LOGDIR):
+        if not prefix: filename_prefix = os.path.join(LOGDIR,'device')
+        else: filename_prefix = str(prefix)
+
+        if not postfix: filename_postfix = str()
+        else: filename_postfix = '-' + str(postfix)
+
+        if not suffix: filename_suffix = 'log'
+        else: filename_suffix = str(suffix)
+
+        now = datetime.datetime.now()
+        filename = "%s-%.2i%.2i%i-%.2i%.2i%.2i-%s-%s%s.%s" % \
+            (filename_prefix, \
+            now.year,now.month,now.day,now.hour,now.minute,now.second, \
+            sys.argv[0].replace('.py','').replace('./','').\
+            replace(':','_').replace('.','_').replace('\\','/')\
+            .split('/')[-1],
+            USERNAME,
+            filename_postfix,
+            filename_suffix)
+        filenamewithpath = str(os.path.join(LOGDIR,filename))
+        if not filenamewithpath:
+            CGI_CLI.uprint("Last Logfile '%s' not found!" % (str(separator)), color = 'magenta')
+    return filenamewithpath
+
+
+def return_bgp_data_json(sort_keys = None):
+    return json.dumps(bgp_data, indent=2, sort_keys = sort_keys)
+
+
+def read_bgp_data_json_from_logfile(filename = None, separator = None, printall = None, sort_keys = None):
+    bgp_data_loaded, text = None, None
+    with open(filename,"r") as fp:
+        text = fp.read()
+    if text:
+        try: bgp_data_json_text = text.split(str(separator))[1].strip()
+        except:
+            bgp_data_json_text = str()
+            CGI_CLI.uprint("JSON separator '%s' not found in logfile!" % (str(separator)), color = 'magenta')
+
+        if bgp_data_json_text and '<br/>' in bgp_data_json_text:
+            bgp_data_json_text = CGI_CLI.html_deescape(text = bgp_data_json_text)
+
+        ### FILTER OUT = ON START OF JSON #####################################
+        try: bgp_data_json_text = bgp_data_json_text.split('= ')[1]
         except: pass
-        try:
-            if int(sys.version_info[0]) == 3:
-                ### PYMYSQL DISABLE AUTOCOMMIT BY DEFAULT !!!
-                self.sql_connection = pymysql.connect( \
-                    host = host, user = user, password = password, \
-                    database = database, autocommit = True)
+
+        #try: bgp_data_json_text = '{\n' + '{\n'.join(bgp_data_json_text.split('{')[1:])
+        #except: pass
+
+        new_bgp_data_json_text = str()
+        for line in bgp_data_json_text.splitlines():
+            if len(line.strip()) > 0:
+                if line[0] == '}':
+                    new_bgp_data_json_text = new_bgp_data_json_text + '\n}'
+                    break
+                else: new_bgp_data_json_text = new_bgp_data_json_text + '\n' + line
+
+        if new_bgp_data_json_text:
+            try:
+                bgp_data_loaded = json.loads(new_bgp_data_json_text, object_pairs_hook = collections.OrderedDict)
+                if printall: CGI_CLI.uprint("\nLOADED JSON BGP_DATA: ")
+                if printall: CGI_CLI.uprint(json.dumps(bgp_data_loaded, indent=2, sort_keys = sort_keys))
+            except:
+                #traceback_found = traceback.format_exc()
+                #CGI_CLI.uprint(str(traceback_found), color = 'magenta')
+                #CGI_CLI.uprint("\nPROBLEM TO PARSE JSON BGP_DATA: \n%s\n" % (new_bgp_data_json_text), color = 'magenta')
+                CGI_CLI.uprint("\nPROBLEM TO PARSE JSON BGP_DATA FROM FILE %s !\n" % (filename), color = 'magenta')
+    return bgp_data_loaded
+
+###############################################################################
+
+def find_last_precheck_logfile(prefix = None, USERNAME = None, suffix = None, directory = None, \
+    latest = None , printall = None):
+    shut_file = str()
+    if not directory:
+        try:    DIR         = os.environ['HOME']
+        except: DIR         = str(os.path.dirname(os.path.abspath(__file__)))
+    else: DIR = str(directory)
+    if DIR: LOGDIR      = os.path.join(DIR,'logs')
+    if not prefix: use_prefix = str()
+    else: use_prefix = prefix
+    if latest:
+        list_shut_files = glob.glob(os.path.join(LOGDIR, use_prefix.replace(':','_').replace('.','_')) \
+            + '*' + sys.argv[0].replace('.py','').replace('./','').replace(':','_').replace('.','_').replace('\\','/').split('/')[-1] \
+            + '*' + '-' + suffix)
+    else:
+        list_shut_files = glob.glob(os.path.join(LOGDIR, use_prefix.replace(':','_').replace('.','_')) \
+            + '*' + sys.argv[0].replace('.py','').replace('./','').replace(':','_').replace('.','_').replace('\\','/').split('/')[-1] \
+            + '*' + USERNAME + '-' + suffix)
+    if len(list_shut_files) == 0:
+        CGI_CLI.uprint( " ... Can't find any precheck session log file!", color = 'magenta')
+    else:
+        most_recent_shut = list_shut_files[0]
+        for item in list_shut_files:
+            filecreation = os.path.getctime(item)
+            if filecreation > (os.path.getctime(most_recent_shut)):
+                most_recent_shut = item
+        shut_file = most_recent_shut
+    if printall and shut_file: CGI_CLI.uprint('FOUND LAST PRECHECK LOGFILE: %s' % (str(shut_file)), color = 'blue')
+    return shut_file
+
+
+###############################################################################
+
+def parse_cisco_xr_cmd_output0(cmd_output = None):
+    global device_data
+
+    if cmd_output:
+        ### NO VRF ############################################################
+        try: before_vpn_sections = cmd_output.split('VRF: ')[0]
+        except: before_vpn_sections = str()
+
+        try: peer_lines = before_vpn_sections.split('Neighbor ')[1].splitlines()[1:]
+        except: peer_lines = []
+
+        for line, i in zip(peer_lines, range(len(peer_lines))):
+            try: bgp_peer = line.split()[0]
+            except: bgp_peer = str()
+
+            try: received_prefixes = int(line.split()[-1])
+            except: received_prefixes = None
+
+            try: doubledots_in_bgp_peer = len(bgp_peer.split(':'))
+            except: doubledots_in_bgp_peer = 0
+
+            try: AS = int(line.split()[2])
+            except: AS = None
+
+            try: state = line.split()[9] + ' ' + line.split()[10]
+            except:
+                try: state = line.split()[9]
+                except: state = None
+
+            ### IPV6 2lines printout WORKARROUND ###
+            if len(line.split()) == 1 and doubledots_in_bgp_peer >= 3:
+                try: line_plus_one = peer_lines[i + 1]
+                except: line_plus_one = str()
+
+                try: received_prefixes = int(line_plus_one.split()[-1])
+                except: received_prefixes = None
+
+                try: state = line_plus_one.split()[8] + ' ' + line_plus_one.split()[9]
+                except:
+                    try: state = line_plus_one.split()[8]
+                    except: state = None
+
+                    try: AS = int(line_plus_one.split()[1])
+                    except: AS = None
+
+            find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
+            if len(find_ip) == 1:
+                if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                    device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                if isinstance(received_prefixes, int):
+                    device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['Received_prefixes'] = copy.deepcopy(received_prefixes)
+                elif state: device_data['IPV4_bgp_peers'][bgp_peer]['State'] = copy.deepcopy(state)
+
+                if AS: device_data['IPV4_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
+
+            elif ':' in bgp_peer and doubledots_in_bgp_peer >= 3:
+
+                if not bgp_peer in device_data['IPV6_bgp_peers'].keys():
+                    device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                if isinstance(received_prefixes, int):
+                    device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['Received_prefixes'] = copy.deepcopy(received_prefixes)
+                elif state: device_data['IPV6_bgp_peers'][bgp_peer]['State'] = copy.deepcopy(state)
+
+                if AS: device_data['IPV6_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
+
+        ### ALL VRF ###########################################################
+        try: section_list = cmd_output.split('VRF: ')[1:]
+        except: section_list = []
+        for section in section_list:
+            try: vrf_name = section.split()[0]
+            except: vrf_name = str()
+
+            try: peer_lines = section.split('Neighbor ')[1].splitlines()[1:]
+            except: peer_lines = []
+
+            for line, i in zip(peer_lines, range(len(peer_lines))):
+                try: bgp_peer = line.split()[0]
+                except: bgp_peer = str()
+
+                try: doubledots_in_bgp_peer = len(bgp_peer.split(':'))
+                except: doubledots_in_bgp_peer = 0
+
+                try: received_prefixes = int(line.split()[-1])
+                except: received_prefixes = None
+
+                try: AS = int(line.split()[2])
+                except: AS = None
+
+                try: state = line.split()[9] + ' ' + line.split()[10]
+                except:
+                    try: state = line.split()[9]
+                    except: state = None
+
+                ### IPV6 2lines printout WORKARROUND ###
+                if len(line.split()) == 1 and doubledots_in_bgp_peer >= 3:
+                    try: line_plus_one = peer_lines[i + 1]
+                    except: line_plus_one = str()
+
+                    try: received_prefixes = int(line_plus_one.split()[-1])
+                    except: received_prefixes = None
+
+                    try: state = line_plus_one.split()[8] + ' ' + line_plus_one.split()[9]
+                    except:
+                        try: state = line_plus_one.split()[8]
+                        except: state = None
+
+                        try: AS = int(line_plus_one.split()[1])
+                        except: AS = None
+
+                find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
+                if len(find_ip) == 1:
+                    bgp_peer = find_ip[0].strip()
+                    if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                        device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                    if vrf_name:
+                        device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['VRF_NAME'] = copy.deepcopy(vrf_name)
+
+                    if isinstance(received_prefixes, int):
+                        device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['Received_prefixes'] = copy.deepcopy(received_prefixes)
+                    elif state: device_data['IPV4_bgp_peers'][bgp_peer]['State'] = copy.deepcopy(state)
+
+                    if AS: device_data['IPV4_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
+
+                elif ':' in bgp_peer and doubledots_in_bgp_peer >= 3:
+                    if not bgp_peer in device_data['IPV6_bgp_peers'].keys():
+                        device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                    if vrf_name:
+                        device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['VRF_NAME'] = copy.deepcopy(vrf_name)
+
+                    if isinstance(received_prefixes, int):
+                        device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['Received_prefixes'] = copy.deepcopy(received_prefixes)
+                    elif state: device_data['IPV6_bgp_peers'][bgp_peer]['State'] = copy.deepcopy(state)
+
+                    if AS: device_data['IPV6_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
+
+
+
+###############################################################################
+def parse_cisco_xr_cmd_output1(cmd_output = None):
+    global device_data
+
+    if cmd_output:
+        ### NO VRF ############################################################
+        try: before_vpn_sections = cmd_output.split('VRF: ')[0]
+        except: before_vpn_sections = str()
+
+        try: bgp_sections = before_vpn_sections.split('BGP neighbor is ')[1:]
+        except: bgp_sections = []
+
+        for bgp_section in bgp_sections:
+            try: bgp_peer = bgp_section.split()[0].replace(',','')
+            except: bgp_peer = str()
+
+            try: doubledots_in_bgp_peer = len(bgp_peer.split(':'))
+            except: doubledots_in_bgp_peer = 0
+
+            find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
+            if len(find_ip) == 1:
+                if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                    device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(bgp_section.split('accepted prefixes')[0].split()[-1])
+                except: pass
+
+                try: device_data['IPV4_bgp_peers'][bgp_peer]['Denied_prefixes'] = int(bgp_section.split('prefixes denied :')[1].split()[0].replace('.',''))
+                except: pass
+
+                try: device_data['IPV4_bgp_peers'][bgp_peer]['Maximum_prefixes'] = int(bgp_section.split('Maximum prefixes allowed')[1].split()[0].replace('.',''))
+                except: pass
+
+                try:
+                    if not device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)].get('State'):
+                        device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['State'] = str(bgp_section.split('BGP state =')[1].split()[0].replace(',',''))
+                except: pass
+
+                try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['AS'] = int(bgp_section.split('Remote AS ')[1].split()[0].replace(',',''))
+                except: pass
+
+            elif ':' in bgp_peer and doubledots_in_bgp_peer >= 3:
+                if not bgp_peer in device_data['IPV6_bgp_peers'].keys():
+                    device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                try: device_data['IPV6_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(bgp_section.split('accepted prefixes')[0].split()[-1])
+                except: pass
+
+                try: device_data['IPV6_bgp_peers'][bgp_peer]['Denied_prefixes'] = int(bgp_section.split('prefixes denied :')[1].split()[0].replace('.',''))
+                except: pass
+
+                try: device_data['IPV6_bgp_peers'][bgp_peer]['Maximum_prefixes'] = int(bgp_section.split('Maximum prefixes allowed')[1].split()[0].replace('.',''))
+                except: pass
+
+                try:
+                    if not device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)].get('State'):
+                        device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['State'] = str(bgp_section.split('BGP state =')[1].split()[0].replace(',',''))
+                except: pass
+
+                try: device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['AS'] = int(bgp_section.split('Remote AS ')[1].split()[0].replace(',',''))
+                except: pass
+
+        ### ALL VRF ###########################################################
+        try: vpn_sections = cmd_output.split('VRF: ')[1:]
+        except: vpn_sections = []
+        for section in vpn_sections:
+            try: vfr_name = section.split()[0].replace(',','')
+            except: vfr_name = None
+
+            try: bgp_sections = section.split('BGP neighbor is ')[1:]
+            except: bgp_sections = []
+
+            for bgp_section in bgp_sections:
+                try: bgp_peer = bgp_section.split()[0].replace(',','')
+                except: bgp_peer = str()
+
+                try: doubledots_in_bgp_peer = bgp_peer.split(':')
+                except: doubledots_in_bgp_peer = 0
+
+                find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
+                if len(find_ip) == 1 and vfr_name:
+                    if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                        device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                    device_data['IPV4_bgp_peers'][bgp_peer]['VRF_NAME'] = copy.deepcopy(vfr_name)
+
+                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(bgp_section.split('accepted prefixes')[0].split()[-1])
+                    except: pass
+
+                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Denied_prefixes'] = int(bgp_section.split('prefixes denied :')[1].split()[0].replace('.',''))
+                    except: pass
+
+                    try: device_data['IPV4_bgp_peers'][bgp_peer]['Maximum_prefixes'] = int(bgp_section.split('Maximum prefixes allowed')[1].split()[0].replace('.',''))
+                    except: pass
+
+                    try:
+                        if not device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)].get('State'):
+                            device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['State'] = str(bgp_section.split('BGP state =')[1].split()[0].replace(',',''))
+                    except: pass
+
+                    try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['AS'] = int(bgp_section.split('Remote AS ')[1].split()[0].replace(',',''))
+                    except: pass
+
+                elif ':' in bgp_peer and doubledots_in_bgp_peer >= 3:
+                    if not bgp_peer in device_data['IPV6_bgp_peers'].keys():
+                        device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                    device_data['IPV6_bgp_peers'][bgp_peer]['VRF_NAME'] = copy.deepcopy(vfr_name)
+
+                    try: device_data['IPV6_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(bgp_section.split('accepted prefixes')[0].split()[-1])
+                    except: pass
+
+                    try: device_data['IPV6_bgp_peers'][bgp_peer]['Denied_prefixes'] = int(bgp_section.split('prefixes denied :')[1].split()[0].replace('.',''))
+                    except: pass
+
+                    try: device_data['IPV6_bgp_peers'][bgp_peer]['Maximum_prefixes'] = int(bgp_section.split('Maximum prefixes allowed')[1].split()[0].replace('.',''))
+                    except: pass
+
+                    try:
+                        if not device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)].get('State'):
+                            device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['State'] = str(bgp_section.split('BGP state =')[1].split()[0].replace(',',''))
+                    except: pass
+
+                    try: device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['AS'] = int(bgp_section.split('Remote AS ')[1].split()[0].replace(',',''))
+                    except: pass
+
+
+###############################################################################
+
+def parse_huawei_cmd_output1(cmd_output = None):
+    global device_data
+
+    if cmd_output:
+        ### NO VRF ############################################################
+        try: before_vpn_sections = cmd_output.split('-family for VPN instance:')[0]
+        except: before_vpn_sections = str()
+
+        try: bgp_sections = before_vpn_sections.split('BGP Peer is ')[1:]
+        except: bgp_sections = []
+
+        for bgp_section in bgp_sections:
+            try: bgp_peer = bgp_section.split()[0].replace(',','')
+            except: bgp_peer = str()
+
+            try: doubledots_in_bgp_peer = bgp_peer.split(':')
+            except: doubledots_in_bgp_peer = 0
+
+            find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
+            if len(find_ip) == 1:
+                if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                    device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['Advertized_prefixes'] = int(bgp_section.split('Advertised total routes:')[1].split()[0])
+                except: pass
+
+                try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['Received_prefixes'] = int(bgp_section.split('Received total routes:')[1].split()[0])
+                except: pass
+
+                try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['Accepted_prefixes'] = int(bgp_section.split('Received active routes total:')[1].split()[0])
+                except: pass
+
+                try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['Maximum_prefixes'] = int(bgp_section.split('Maximum allowed route limit:')[1].split()[0])
+                except: pass
+
+                try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['State'] = str(bgp_section.split('BGP current state:')[1].split()[0].replace(',',''))
+                except: pass
+
+                try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['AS'] = int(bgp_section.split('remote AS ')[1].split()[0].replace(',',''))
+                except: pass
+
+            elif ':' in bgp_peer and doubledots_in_bgp_peer >= 3:
+                if not bgp_peer in device_data['IPV6_bgp_peers'].keys():
+                    device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                try: device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['Advertized_prefixes'] = int(bgp_section.split('Advertised total routes:')[1].split()[0])
+                except: pass
+
+                try: device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['Received_prefixes'] = int(bgp_section.split('Received total routes:')[1].split()[0])
+                except: pass
+
+                try: device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['Accepted_prefixes'] = int(bgp_section.split('Received active routes total:')[1].split()[0])
+                except: pass
+
+                try: device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['Maximum_prefixes'] = int(bgp_section.split('Maximum allowed route limit:')[1].split()[0])
+                except: pass
+
+                try: device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['State'] = str(bgp_section.split('BGP current state:')[1].split()[0].replace(',',''))
+                except: pass
+
+                try: device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['AS'] = int(bgp_section.split('remote AS ')[1].split()[0].replace(',',''))
+                except: pass
+
+        ### ALL VRF ###########################################################
+        try: vpn_sections = cmd_output.split('-family for VPN instance:')[1:]
+        except: vpn_sections = []
+        for section in vpn_sections:
+            try: vfr_name = section.split()[0].replace(',','')
+            except: vfr_name = None
+
+            try: bgp_sections = section.split('BGP Peer is ')[1:]
+            except: bgp_sections = []
+
+            for bgp_section in bgp_sections:
+                try: bgp_peer = bgp_section.split()[0].replace(',','')
+                except: bgp_peer = str()
+
+                try: doubledots_in_bgp_peer = len(bgp_peer.split(':'))
+                except: doubledots_in_bgp_peer = 0
+
+                find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
+                if len(find_ip) == 1 and vfr_name:
+                    if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                        device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                    device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['VRF_NAME'] = copy.deepcopy(vfr_name)
+
+                    try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['Advertized_prefixes'] = int(bgp_section.split('Advertised total routes:')[1].split()[0])
+                    except: pass
+
+                    try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['Received_prefixes'] = int(bgp_section.split('Received total routes:')[1].split()[0])
+                    except: pass
+
+                    try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['Accepted_prefixes'] = int(bgp_section.split('Received active routes total:')[1].split()[0])
+                    except: pass
+
+                    try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['Maximum_prefixes'] = int(bgp_section.split('Maximum allowed route limit:')[1].split()[0])
+                    except: pass
+
+                    try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['State'] = str(bgp_section.split('BGP current state:')[1].split()[0].replace(',',''))
+                    except: pass
+
+                    try: device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['AS'] = int(bgp_section.split('remote AS ')[1].split()[0].replace(',',''))
+                    except: pass
+
+                elif ':' in bgp_peer and doubledots_in_bgp_peer >= 3:
+                    if not bgp_peer in device_data['IPV6_bgp_peers'].keys():
+                        device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                    device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['VRF_NAME'] = copy.deepcopy(vfr_name)
+
+                    try: device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['Advertized_prefixes'] = int(bgp_section.split('Advertised total routes:')[1].split()[0])
+                    except: pass
+
+                    try: device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['Received_prefixes'] = int(bgp_section.split('Received total routes:')[1].split()[0])
+                    except: pass
+
+                    try: device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['Accepted_prefixes'] = int(bgp_section.split('Received active routes total:')[1].split()[0])
+                    except: pass
+
+                    try: device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['Maximum_prefixes'] = int(bgp_section.split('Maximum allowed route limit:')[1].split()[0])
+                    except: pass
+
+                    try: device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['State'] = str(bgp_section.split('BGP current state:')[1].split()[0].replace(',',''))
+                    except: pass
+
+                    try: device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)]['AS'] = int(bgp_section.split('remote AS ')[1].split()[0].replace(',',''))
+                    except: pass
+
+
+
+
+###############################################################################
+def check_bgp_peers_precheck(bgp_peers_string = None, percentage_tolerance = 3):
+    global error_flag
+    if bgp_peers_string:
+        for bgp_peer in device_data[bgp_peers_string].keys():
+            error_flag = False
+            if device_data[bgp_peers_string][bgp_peer].get('Accepted_prefixes',0) < device_data[bgp_peers_string][bgp_peer].get('Received_prefixes',0):
+                text = 'BGP Peer %s has Accepted_prefixes < Received_prefixes !' % (bgp_peer)
+                CGI_CLI.uprint(text, color = 'orange', printall = True)
+                log2file(resultfile, CGI_CLI.bcolors.YELLOW + text + CGI_CLI.bcolors.ENDC + '\n')
+                error_flag = True
+
+            if device_data[bgp_peers_string][bgp_peer].get('Denied_prefixes',0) > 0:
+                text = 'BGP Peer %s has Denied_prefixes > 0 !' % (bgp_peer)
+                CGI_CLI.uprint(text, color = 'orange', printall = True)
+                log2file(resultfile, CGI_CLI.bcolors.YELLOW + text + CGI_CLI.bcolors.ENDC + '\n')
+                error_flag = True
+
+            if device_data[bgp_peers_string][bgp_peer].get('Maximum_prefixes') \
+                and float(0.9 * device_data[bgp_peers_string][bgp_peer].get('Accepted_prefixes',0)) > float(device_data[bgp_peers_string][bgp_peer].get('Maximum_prefixes',0)):
+                text = 'BGP Peer %s has ratio of Accepted/Advertized prefixes > 90 %% !' % \
+                    (bgp_peer, str(percentage_tolerance),str(precheck_advertized),str(postcheck_advertized))
+                CGI_CLI.uprint(text, color = 'red', printall = True)
+                log2file(resultfile, CGI_CLI.bcolors.RED + text + CGI_CLI.bcolors.ENDC + '\n')
+                error_flag = True
+
+            if device_data[bgp_peers_string][bgp_peer].get('State',''):
+                text = 'BGP Peer %s PRECHECK STATE is %s' % \
+                    (bgp_peer, device_data[bgp_peers_string][bgp_peer].get('State',''))
+                CGI_CLI.uprint(text, printall = True)
+                log2file(resultfile, text + '\n')
+                error_flag = True
+
+            if not error_flag:
+                text = 'BGP Peer %s check - OK.' % (bgp_peer)
+                CGI_CLI.uprint(text, printall = True)
+                log2file(resultfile, text + '\n')
+
+
+def check_bgp_peers_postcheck(bgp_peers_string = None, percentage_tolerance = 3):
+    global error_flag
+    if bgp_peers_string:
+        for bgp_peer in device_data[bgp_peers_string].keys():
+            error_flag = False
+            if device_data[bgp_peers_string][bgp_peer].get('Accepted_prefixes',0) < device_data[bgp_peers_string][bgp_peer].get('Received_prefixes',0):
+                text = 'BGP Peer %s has Accepted_prefixes < Received_prefixes !' % (bgp_peer)
+                CGI_CLI.uprint(text, color = 'orange', printall = True)
+                log2file(resultfile, CGI_CLI.bcolors.YELLOW + text + CGI_CLI.bcolors.ENDC + '\n')
+                error_flag = True
+
+            if device_data[bgp_peers_string][bgp_peer].get('Denied_prefixes',0) > 0:
+                text = 'BGP Peer %s has Denied_prefixes > 0 !' % (bgp_peer)
+                CGI_CLI.uprint(text, color = 'orange', printall = True)
+                log2file(resultfile, CGI_CLI.bcolors.YELLOW + text + CGI_CLI.bcolors.ENDC + '\n')
+                error_flag = True
+
+            if len(bgp_precheck_data[bgp_peers_string].get(bgp_peer,{}).keys()) == 0:
+                text = 'BGP Peer %s is MISSING IN PRECHECK !' % (bgp_peer)
+                CGI_CLI.uprint(text, color = 'red', printall = True)
+                log2file(resultfile, CGI_CLI.bcolors.RED + text + CGI_CLI.bcolors.ENDC + '\n')
+                error_flag = True
             else:
-                self.sql_connection = mysql.connector.connect( \
-                    host = host, user = user, password = password,\
-                    database = database, autocommit = True)
+                if device_data[bgp_peers_string][bgp_peer].get('State','') != bgp_precheck_data[bgp_peers_string][bgp_peer].get('State',''):
+                    text = 'BGP Peer %s POSTCHECK STATE is %s (PRECHECK STATE was %s) !' % \
+                        (bgp_peer, device_data[bgp_peers_string][bgp_peer].get('State',''), \
+                        bgp_precheck_data[bgp_peers_string][bgp_peer].get('State',''))
+                    CGI_CLI.uprint(text, color = 'red', printall = True)
+                    log2file(resultfile, CGI_CLI.bcolors.RED + text + CGI_CLI.bcolors.ENDC + '\n')
+                    error_flag = True
 
-            #CGI_CLI.uprint("SQL connection is open.")
-        except Exception as e: CGI_CLI.uprint(str(e))
+                precheck_advertized, postcheck_advertized = 0, 0
+                if device_data[bgp_peers_string][bgp_peer].get('Advertized_prefixes') > 0:
+                    precheck_advertized = device_data[bgp_peers_string][bgp_peer].get('Advertized_prefixes',0)
 
-    def __del__(self):
-        if self.sql_connection and self.sql_connection.is_connected():
-            self.sql_connection.close()
-            #CGI_CLI.uprint("SQL connection is closed.")
+                if bgp_precheck_data[bgp_peers_string][bgp_peer].get('Advertized_prefixes') > 0:
+                    postcheck_advertized = bgp_precheck_data[bgp_peers_string][bgp_peer].get('Advertized_prefixes',0)
 
-    def sql_is_connected(self):
-        if self.sql_connection:
-            if int(sys.version_info[0]) == 3 and self.sql_connection.open:
-                return True
-            elif int(sys.version_info[0]) == 2 and self.sql_connection.is_connected():
-                return True
-        return None
+                if float(precheck_advertized) < float(postcheck_advertized) * (100 + percentage_tolerance)/100 \
+                    and float(precheck_advertized) > float(postcheck_advertized) * (100 - percentage_tolerance)/100: pass
+                elif precheck_advertized != 0 or postcheck_advertized != 0:
+                    text = 'BGP Peer %s has ratio of Precheck/Postcheck Advertized_prefixes difference > %s %% (PRECHECK: %s, POSTCHECK: %s)!' % \
+                        (bgp_peer, str(percentage_tolerance),str(precheck_advertized),str(postcheck_advertized))
+                    CGI_CLI.uprint(text, color = 'red', printall = True)
+                    log2file(resultfile, CGI_CLI.bcolors.RED + text + CGI_CLI.bcolors.ENDC + '\n')
+                    error_flag = True
 
-    def sql_read_all_table_columns(self, table_name):
-        columns = []
-        if self.sql_is_connected():
-            cursor = self.sql_connection.cursor()
-            try:
-                cursor.execute("select * from INFORMATION_SCHEMA.COLUMNS where TABLE_NAME='%s';"%(table_name))
-                records = cursor.fetchall()
-                ### 4TH COLUMN IS COLUMN NAME
-                ### OUTPUTDATA STRUCTURE IS: '[(SQL_RESULT)]' --> records[0] = UNPACK []
-                for item in records:
-                    try: new_item = item[3].decode('utf-8')
-                    except: new_item = item[3]
-                    columns.append(new_item)
-            except Exception as e: CGI_CLI.uprint(str(e))
-            try: cursor.close()
-            except: pass
-        return columns
+                if device_data[bgp_peers_string][bgp_peer].get('Maximum_prefixes') \
+                    and float(0.9 * device_data[bgp_peers_string][bgp_peer].get('Accepted_prefixes',0)) > float(device_data[bgp_peers_string][bgp_peer].get('Maximum_prefixes',0)):
+                    text = 'BGP Peer %s has ratio of Accepted/Advertized prefixes > 90 %% !' % \
+                        (bgp_peer, str(percentage_tolerance),str(precheck_advertized),str(postcheck_advertized))
+                    CGI_CLI.uprint(text, color = 'red', printall = True)
+                    log2file(resultfile, CGI_CLI.bcolors.RED + text + CGI_CLI.bcolors.ENDC + '\n')
+                    error_flag = True
 
-    def sql_read_sql_command(self, sql_command):
-        '''NOTE: FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE'''
-        lines = []
-        if self.sql_is_connected():
-            cursor = self.sql_connection.cursor()
-            try:
-                cursor.execute(sql_command)
-                records = cursor.fetchall()
-                ### OUTPUTDATA STRUCTURE IS: '[(SQL_LINE1),...]' --> records[0] = UNPACK []
-                ### WORKARROUND FOR BYTEARRAYS WHICH ARE NOT JSONIZABLE
-                for line in records:
-                    columns = []
-                    for item in line:
-                        try: new_item = item.decode('utf-8')
-                        except:
-                           try: new_item = str(item)
-                           except: new_item = item
-                        columns.append(new_item)
-                    lines.append(columns)
-            except Exception as e: CGI_CLI.uprint(str(e))
-            try: cursor.close()
-            except: pass
-            ### FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE
-        return lines
+            if not error_flag:
+                text = 'BGP Peer %s check - OK.' % (bgp_peer)
+                CGI_CLI.uprint(text, printall = True)
+                log2file(resultfile, text + '\n')
 
-    def sql_write_sql_command(self, sql_command):
-        if self.sql_is_connected():
-            if int(sys.version_info[0]) == 3:
-                cursor = self.sql_connection.cursor()
-            elif int(sys.version_info[0]) == 2:
-                cursor = self.sql_connection.cursor(prepared=True)
-            try:
-                cursor.execute(sql_command)
-                ### DO NOT COMMIT IF AUTOCOMMIT IS SET
-                if not self.sql_connection.autocommit: self.sql_connection.commit()
-            except Exception as e: CGI_CLI.uprint(str(e))
-            try: cursor.close()
-            except: pass
-        return None
-
-    def sql_write_table_from_dict(self, table_name, dict_data, update = None):  ###'ipxt_data_collector'
-       if self.sql_is_connected():
-           existing_sql_table_columns = self.sql_read_all_table_columns(table_name)
-           if existing_sql_table_columns:
-               columns_string, values_string = str(), str()
-               ### ASSUMPTION: LIST OF COLUMNS HAS CORRECT ORDER!!!
-               for key in existing_sql_table_columns:
-                   if key in list(dict_data.keys()):
-                        if len(columns_string) > 0: columns_string += ','
-                        if len(values_string) > 0: values_string += ','
-                        ### WRITE KEY/COLUMNS_STRING
-                        columns_string += '`' + key + '`'
-                        ### BE AWARE OF DATA TYPE
-                        if isinstance(dict_data.get(key,""), (list,tuple)):
-                            item_string = str()
-                            for item in dict_data.get(key,""):
-                                ### LIST TO COMMA SEPARATED STRING
-                                if isinstance(item, (six.string_types)):
-                                    if len(item_string) > 0: item_string += ','
-                                    item_string += item
-                                ### DICTIONARY TO COMMA SEPARATED STRING
-                                elif isinstance(item, (dict,collections.OrderedDict)):
-                                    for i in item:
-                                        if len(item_string) > 0: item_string += ','
-                                        item_string += item.get(i,"")
-                            values_string += "'" + item_string + "'"
-                        elif isinstance(dict_data.get(key,""), (six.string_types)):
-                            values_string += "'" + str(dict_data.get(key,"")) + "'"
-                        else:
-                            values_string += "'" + str(dict_data.get(key,"")) + "'"
-               ### FINALIZE SQL_STRING - INSERT
-               if not update:
-                   sql_string = """INSERT INTO `%s` (%s) VALUES (%s);""" \
-                       % (table_name,columns_string,values_string)
-                   if columns_string:
-                       self.sql_write_sql_command("""INSERT INTO `%s`
-                           (%s) VALUES (%s);""" %(table_name,columns_string,values_string))
-               else:
-                   sql_string = """UPDATE `%s` (%s) VALUES (%s);""" \
-                       % (table_name,columns_string,values_string)
-                   if columns_string:
-                       self.sql_write_sql_command("""UPDATE `%s`
-                           (%s) VALUES (%s);""" %(table_name,columns_string,values_string))
-       return None
-
-    def sql_read_table_last_record(self, select_string = None, from_string = None, where_string = None):
-        """NOTE: FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE"""
-        check_data = None
-        if not select_string: select_string = '*'
-        #SELECT vlan_id FROM ipxt_data_collector WHERE id=(SELECT max(id) FROM ipxt_data_collector \
-        #WHERE username='mkrupa' AND device_name='AUVPE3');
-        if self.sql_is_connected():
-            if from_string:
-                if where_string:
-                    sql_string = "SELECT %s FROM %s WHERE id=(SELECT max(id) FROM %s WHERE %s);" \
-                        %(select_string, from_string, from_string, where_string)
-                else:
-                    sql_string = "SELECT %s FROM %s WHERE id=(SELECT max(id) FROM %s);" \
-                        %(select_string, from_string, from_string)
-                check_data = self.sql_read_sql_command(sql_string)
-        return check_data
-
-    def sql_read_last_record_to_dict(table_name = None, from_string = None, \
-        select_string = None, where_string = None, delete_columns = None):
-        """sql_read_last_record_to_dict - MAKE DICTIONARY FROM LAST TABLE RECORD
-           NOTES: -'table_name' is alternative name to 'from_string'
-                  - it always read last record dependent on 'where_string'
-                    which contains(=filters by) username,device_name,vpn_name
-        """
-        dict_data = collections.OrderedDict()
-        table_name_or_from_string = None
-        if not select_string: select_string = '*'
-        if table_name:  table_name_or_from_string = table_name
-        if from_string: table_name_or_from_string = from_string
-        columns_list = sql_inst.sql_read_all_table_columns(table_name_or_from_string)
-        data_list = sql_inst.sql_read_table_last_record( \
-            from_string = table_name_or_from_string, \
-            select_string = select_string, where_string = where_string)
-        if columns_list and data_list:
-            dict_data = collections.OrderedDict(zip(columns_list, data_list[0]))
-        if delete_columns:
-            for column in delete_columns:
-                try:
-                    ### DELETE NOT VALID (AUXILIARY) TABLE COLUMNS
-                    del dict_data[column]
-                except: pass
-        return dict_data
-
-    def sql_read_table_records(self, select_string = None, from_string = None, \
-        where_string = None, order_by = None):
-        """NOTES: - FORMAT OF RETURNED DATA IS [(LINE1),(LINE2)], SO USE DATA[0] TO READ LINE
-                  - order_by - needed to append ASC|DESC on end of string"""
-        check_data = None
-        if not select_string: select_string = '*'
-        #SELECT vlan_id FROM ipxt_data_collector WHERE id=(SELECT max(id) FROM ipxt_data_collector \
-        #WHERE username='mkrupa' AND device_name='AUVPE3');
-        if self.sql_is_connected():
-            if from_string:
-                sql_string = "SELECT %s FROM %s%s%s;" % (select_string, from_string, \
-                    ' WHERE %s' % (where_string) if where_string else str(), \
-                    ' ORDER BY %s' % (order_by) if order_by else str() \
-                    )
-                check_data = self.sql_read_sql_command(sql_string)
-        return check_data
-
-    def sql_read_records_to_dict_list(table_name = None, from_string = None, \
-        select_string = None, where_string = None, order_by = None, \
-        delete_columns = None):
-        """sql_read_last_record_to_dict - MAKE DICTIONARY FROM LAST TABLE RECORD
-           NOTES: -'table_name' is alternative name to 'from_string'
-                  - it always read last record dependent on 'where_string'
-                    which contains(=filters by) username,device_name,vpn_name
-                  - order_by - needed to append ASC|DESC on end of string
-        """
-        dict_data, dict_list = collections.OrderedDict(), []
-        table_name_or_from_string = None
-        if not select_string: select_string = '*'
-        if table_name:  table_name_or_from_string = table_name
-        if from_string: table_name_or_from_string = from_string
-        columns_list = sql_inst.sql_read_all_table_columns(table_name_or_from_string)
-        data_list = sql_inst.sql_read_table_records( \
-            from_string = table_name_or_from_string, \
-            select_string = select_string, where_string = where_string,
-            order_by = order_by)
-        ### COLUMNS ARE IN SELECT STRING IF SELECT STRING EXISTS ##############
-        if select_string != '*':
-            columns_list = [ column.strip() for column in select_string.split(',') ]
-        if columns_list and data_list:
-            for line_list in data_list:
-                dict_data = collections.OrderedDict(zip(columns_list, line_list))
-                dict_list.append(dict_data)
-        if delete_columns:
-            for column in delete_columns:
-                try:
-                    ### DELETE NOT VALID (AUXILIARY) TABLE COLUMNS
-                    del dict_data[column]
-                except: pass
-        return dict_list
+        ### CONDITION IF PRECHECK HAS MORE BGP PEERS LIKE IN POSTCHECK #######
+        for bgp_peer in bgp_precheck_data[bgp_peers_string].keys():
+            if len(device_data[bgp_peers_string].get(bgp_peer,{}).keys()) == 0:
+                text = 'BGP Peer %s is MISSING IN POSTCHECK !' % (bgp_peer)
+                CGI_CLI.uprint(text, color = 'red', printall = True)
+                log2file(resultfile, CGI_CLI.bcolors.RED + text + CGI_CLI.bcolors.ENDC + '\n')
+                error_flag = True
 
 
-
-
-##############################################################################
-
-def display_interface(header_text = None, interface_list = None, color = None):
-    if len(interface_list) > 0: CGI_CLI.uprint(header_text, color = color)
-    for interface in interface_list:
-        isis_interface, description = interface
-        CGI_CLI.uprint('%s  -  %s' %(isis_interface, description), color = color)
-    if len(interface_list) > 0: CGI_CLI.uprint(' ')
-
-    if CGI_CLI.data.get('append_logfile'):
-        with open(CGI_CLI.data.get('append_logfile'),"a+") as fp:
-            text_color = str()
-            if color:
-                if 'RED' in color.upper():       text_color = CGI_CLI.bcolors.RED
-                elif 'MAGENTA' in color.upper(): text_color = CGI_CLI.bcolors.MAGENTA
-                elif 'GREEN' in color.upper():   text_color = CGI_CLI.bcolors.GREEN
-                elif 'BLUE' in color.upper():    text_color = CGI_CLI.bcolors.BLUE
-                elif 'CYAN' in color.upper():    text_color = CGI_CLI.bcolors.CYAN
-                elif 'GREY' in color.upper():    text_color = CGI_CLI.bcolors.GREY
-                elif 'GRAY' in color.upper():    text_color = CGI_CLI.bcolors.GREY
-                elif 'YELLOW' in color.upper():  text_color = CGI_CLI.bcolors.YELLOW
-
-            if len(interface_list) > 0: fp.write(text_color + header_text + CGI_CLI.bcolors.ENDC + '\n')
-            for interface in interface_list:
-                isis_interface, description = interface
-                fp.write('%s%s  -  %s%s\n' %(text_color,isis_interface, description, CGI_CLI.bcolors.ENDC))
-            if len(interface_list) > 0: CGI_CLI.uprint(' ')
-            fp.flush()
-
-##############################################################################
-
+###############################################################################
 def log2file(filename = None, text = None):
     if text and filename:
-        with open(filename,"a+") as CGI_CLI.fp:
-            CGI_CLI.fp.write(text)
-            CGI_CLI.fp.flush()
+        with open(filename,"a+") as fp:
+            fp.write(text)
+            fp.flush()
 
-
-##############################################################################
-#
-# def CONFIG TEMPLATES
-#
-##############################################################################
-
-xr_config_header ='''conf
-!
-router isis PAII
-!
-'''
-
-xr_config_interface_part ='''% for isis_interface, description in isis_interface_fail_list:
- interface ${isis_interface}
-  passive
-  address-family ipv4 unicast
-  !
-  address-family ipv6 unicast
-  !
- !
-!
-% endfor
-'''
-
-xr_config_tail ='''Commit
-!
-Exit
-!
-'''
-
-juniper_config_header ='''configure private
-'''
-
-juniper_config_interface_part ='''% for isis_interface, description in isis_interface_fail_list:
-set protocols isis interface ${isis_interface} level 2 passive
-% endfor
-'''
-
-juniper_config_tail ='''commit
-exit
-'''
-
-
-huawei_config_header ='''#
-sys
-'''
-
-huawei_config_interface_part ='''% for isis_interface, description in isis_interface_fail_list:
-interface ${isis_interface}
- isis enable 5511
- isis ipv6 enable 5511
- isis silent
- isis ipv6 cost 1
- isis cost 1
-#
-% endfor
-'''
-
-huawei_config_tail ='''#
-Commit
-Y
-#
-Exit
-#
-Save
-#
-'''
-
-##############################################################################
+###############################################################################
 #
 # def BEGIN MAIN
 #
-##############################################################################
+###############################################################################
+
 if __name__ != "__main__": sys.exit(0)
 try:
     CSS_STYLE = """
@@ -2773,39 +2805,42 @@ warning {
   color: red;
   background-color: yellow;
 }
+
+pre {
+  color: gray;
+}
+
+authentication {
+  color: #cc0000;
+  font-size: x-large;
+  font-weight: bold;
+}
 """
-
+    ### GLOBAL VARIABLES AND SETTINGS #########################################
+    logging.raiseExceptions = False
     goto_webpage_end_by_javascript = str()
-
+    traceback_found = None
     logfilename = str()
-    logging.raiseExceptions=False
-    USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = True, \
-        css_style = CSS_STYLE, no_result_printout = True)
+    test_mode = None
+    chunked_mode = True
+    OTI_LOCAL_AS = '5511'
+    IMN_LOCAL_AS = '2300'
+    LOCAL_AS_NUMBER = str()
+    interface_menu_list = []
+    device_data = collections.OrderedDict()
 
+    USERNAME, PASSWORD = CGI_CLI.init_cgi(chunked = chunked_mode, css_style = CSS_STYLE)
+    LCMD.init()
 
-    ### def APPEND ISIS OUTPUT TO POSTCHECK LOGFILE IN 1 DEVICE CLI MODE ONLY
-    if CGI_CLI.data.get("append_ppfile",str()):
-        logfilename = CGI_CLI.data.get("append_ppfile",str())
+    CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
+    printall = CGI_CLI.data.get("printall")
 
-        logdata = str()
+    if CGI_CLI.data.get("test-version",str()) == 'test-mode' \
+        or CGI_CLI.data.get("test-version",str()) == 'test mode':
+            test_mode = True
 
-        ### TEST IF LOGFILE IS WRITABLE/APPENDABLE ###
-        if logfilename:
-            try:
-                with open(logfilename,"a+") as file:
-                    logdata = file.read()
-            except: logfilename = str()
-
-        ### TEST IF ISIS IS ALREADY IN LOGFILE ###
-        if logfilename:
-            with open(logfilename,'r') as file:
-                logdata = file.read()
-            if 'REMOTE_COMMAND' in logdata: logfilename = str()
-
-        del logdata
-
-        if logfilename: CGI_CLI.set_logfile(logfilename = logfilename)
-
+    if '_test' in CGI_CLI.get_scriptname():
+        test_mode = True
 
     device_list = []
     devices_string = CGI_CLI.data.get("device",str())
@@ -2814,407 +2849,776 @@ warning {
             device_list = [ dev_mix_case.upper() for dev_mix_case in devices_string.split(',') ]
         else: device_list = [devices_string.upper()]
 
-    CGI_CLI.uprint('Customer ISIS check (v.%s)' % (CGI_CLI.VERSION()), tag = 'h1', color = 'blue')
 
-    log2file(CGI_CLI.data.get('append_logfile'), '\nCustomer ISIS check (v.%s)\n\n' % (CGI_CLI.VERSION()))
+    ### MODE ##################################################################
+    precheck_mode, postcheck_mode, recheck_mode = False, False, False
+    if CGI_CLI.data.get("precheck") or CGI_CLI.data.get("radio",str()) == 'precheck':
+        precheck_mode = True
+    elif CGI_CLI.data.get("postcheck") or CGI_CLI.data.get("radio",str()) == 'postcheck':
+        postcheck_mode = True
+    elif CGI_CLI.data.get("recheck") or CGI_CLI.data.get("radio",str()) == 'recheck':
+        recheck_mode = True
 
-    printall = CGI_CLI.data.get("printall")
-    CGI_CLI.timestamp = CGI_CLI.data.get("timestamps")
-    if printall: CGI_CLI.print_args()
+    ### FIX IF NO CHOISE WAS DONE ###
+    if precheck_mode or postcheck_mode or recheck_mode: pass
+    elif CGI_CLI.data.get("append_ppfile",str()) and '-post' in CGI_CLI.data.get("append_ppfile",str()):
+        postcheck_mode = True
+    else: precheck_mode = True
 
-
-    all_oti_routers_list = []
-    if CGI_CLI.data.get("all_oti_routers"):
-        CGI_CLI.uprint('PID=%s ' % (os.getpid()), color = 'blue')
-
-        ### def SQL INIT ##########################################################
-        sql_inst = sql_interface(host='localhost', user='cfgbuilder', \
-            password='cfgbuildergetdata', database='rtr_configuration')
-
-        ### SQL READ ALL DEVICES IN NETWORK #######################################
-        ### select rtr_name from oti_all_table where network="oti";
-        data = collections.OrderedDict()
-        routers_list = sql_inst.sql_read_table_records( \
-            select_string = 'rtr_name',\
-            from_string = 'oti_all_table',\
-            where_string = 'network="oti"', \
-            order_by = 'rtr_name ASC')
-
-
-        ### DO SORTED DEVICE LIST ################################################
-        if len(routers_list)>0:
-            device_set = set([ router[0].upper() for router in routers_list ])
-            all_oti_routers_list = list(device_set)
-            all_oti_routers_list.sort()
-
-        if printall: CGI_CLI.uprint(all_oti_routers_list , name = 'all_oti_routers')
-
-
-    ### HTML MENU SHOWS ONLY IN CGI MODE ###
-    if CGI_CLI.cgi_active and not CGI_CLI.submit_form:
-        CGI_CLI.formprint([{'text':'device'},'<br/>',{'text':'username'},'<br/>',\
-            {'password':'password'},'<br/>',\
-            {'checkbox':'all_oti_routers'},'<br/>',\
-            {'checkbox':'printall'},'<br/>','<br/>'],\
-            submit_button = 'OK', pyfile = None, tag = None, color = None)
-
+    ### TESTSERVER WORKAROUND #################################################
     iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None).strip()
-    if CGI_CLI.cgi_active and not (USERNAME and PASSWORD):
-        if iptac_server == 'iptac5': USERNAME, PASSWORD = 'iptac', 'paiiUNDO'
+
+    if iptac_server == 'iptac5': urllink = 'https://10.253.58.126/cgi-bin/'
+    else: urllink = 'https://%s/cgi-bin/' % (iptac_server)
 
 
-    device_list += all_oti_routers_list
+    ### START PRINTING AND LOGGING ############################################
+    changelog = 'https://github.com/peteneme/pyxWorks/commits/master/nso-mix/pp_check/bgp_advertized_prefixes_check.py'
 
-    for device in device_list:
+    SCRIPT_NAME = 'BGP prefixes checker'
 
-        ### REMOTE DEVICE OPERATIONS ######################################
-        if device:
-            RCMD.connect(device, username = USERNAME, password = PASSWORD, \
-                connection_timeout = 100, disconnect_timeout = 2, \
+    if CGI_CLI.cgi_active:
+        CGI_CLI.uprint('<h1 style="color:blue;">%s <a href="%s" style="text-decoration: none">(v.%s)</a></h1>' % \
+            (SCRIPT_NAME, changelog, CGI_CLI.VERSION()), raw = True)
+    else: CGI_CLI.uprint('%s (v.%s)' % (SCRIPT_NAME,CGI_CLI.VERSION()), \
+              tag = 'h1', color = 'blue')
+    CGI_CLI.print_args()
+
+
+    ### def HTML MENUS DISPLAYED ONLY IN CGI MODE #############################
+    if CGI_CLI.cgi_active and len(device_list) == 0 and \
+        (not CGI_CLI.submit_form or CGI_CLI.submit_form in CGI_CLI.self_buttons):
+        ### OTHER SUBMIT BUTTONS THAN OK ALLOWS "REMOTE" CGI CONTROL ##########
+
+        if not (USERNAME and PASSWORD):
+            interface_menu_list.append('<br/>')
+            interface_menu_list.append({'text':'device'})
+            interface_menu_list.append('<br/>')
+            interface_menu_list.append('<authentication>')
+            interface_menu_list.append('LDAP authentication (required):')
+            interface_menu_list.append('<br/>')
+            interface_menu_list.append('<br/>')
+            interface_menu_list.append({'text':'username'})
+            interface_menu_list.append('<br/>')
+            interface_menu_list.append({'password':'password'})
+            interface_menu_list.append('<br/>')
+            interface_menu_list.append('</authentication>')
+
+        CGI_CLI.formprint(interface_menu_list + [
+            {'radio':['precheck','postcheck']}, '<br/>',\
+            #{'checkbox':'timestamps'}, '<br/>',\
+            '<br/><b><u>',{'checkbox':'send_email'},'</u></b><br/>',\
+            {'checkbox':'printall'},'<br/>','<br/>'],\
+            submit_button = CGI_CLI.self_buttons[0], \
+            pyfile = None, tag = None, color = None)
+
+        ### EXIT AFTER MENU PRINTING ######################################
+        sys.exit(0)
+
+    ### END DUE TO MISSING INPUT DATA #########################################
+    exit_due_to_error = None
+
+    if len(device_list) == 0:
+        CGI_CLI.uprint('Device(s) NOT INSERTED!', tag = 'h2', color = 'red')
+        exit_due_to_error = True
+
+    if not USERNAME:
+        CGI_CLI.uprint('Username NOT INSERTED!', tag = 'h2', color = 'red')
+        exit_due_to_error = True
+
+    if not PASSWORD:
+        CGI_CLI.uprint('Password NOT INSERTED!', tag = 'h2', color = 'red')
+        exit_due_to_error = True
+
+    if exit_due_to_error: sys.exit(0)
+
+
+    ### def LOGFILENAME GENERATION, DO LOGGING ONLY WHEN DEVICE LIST EXISTS ###
+
+    ### RESULTFILE is separated file with results only ###
+    resultfile = CGI_CLI.data.get("append_logfile",str())
+
+    if CGI_CLI.data.get("append_ppfile",str()):
+        logfilename = CGI_CLI.data.get("append_ppfile",str())
+    elif not resultfile:
+        html_extention = 'htm' if CGI_CLI.cgi_active else str()
+        logfilename = generate_logfilename(
+            prefix = '_'.join(device_list).upper(), \
+            USERNAME = USERNAME, \
+            postfix = 'precheck' if precheck_mode else None,
+            suffix = '%slog' % (html_extention))
+    ### NO WINDOWS LOGGING ####################################################
+    if 'WIN32' in sys.platform.upper(): logfilename = None
+    if logfilename: CGI_CLI.set_logfile(logfilename = logfilename)
+
+    ### START LOGGING #########################################################
+    if CGI_CLI.cgi_active:
+        CGI_CLI.logtofile('<h1 style="color:blue;">%s <a href="%s" style="text-decoration: none">(v.%s)</a></h1>' % \
+            (SCRIPT_NAME, changelog, CGI_CLI.VERSION()), raw_log = True, ommit_timestamp = True)
+    else: CGI_CLI.logtofile('%s (v.%s)' % (SCRIPT_NAME,CGI_CLI.VERSION()), ommit_timestamp = True)
+
+    log2file(resultfile, '\n%s (v.%s)\n\n' % (SCRIPT_NAME,CGI_CLI.VERSION()))
+
+    CGI_CLI.logtofile(CGI_CLI.print_args(ommit_print = True) + '\n\n', ommit_timestamp = True)
+
+    #CGI_CLI.uprint('PRECHECK[%s], POSTCHECK[%s], RECHECK[%s]' % \
+    #    (precheck_mode, postcheck_mode, recheck_mode), tag = 'debug')
+
+    ### FIND LAS LOGFILE AND READ JSON DATA ###################################
+    last_precheck_file, last_postcheck_file = None, None
+    bgp_precheck_data = {}
+    if postcheck_mode or recheck_mode:
+
+        last_precheck_file = CGI_CLI.data.get("precheck_file",str())
+        last_postcheck_file = CGI_CLI.data.get("postcheck_file",str())
+
+        if not last_precheck_file and CGI_CLI.data.get("append_ppfile",str()) and '-post' in CGI_CLI.data.get("append_ppfile",str()):
+            ### FIND PRECHECK FROM POSTCHECK LIKE IN ROUTER_CHECK #############
+            LOG_FILE_DIR = None
+            pp_file = CGI_CLI.data.get("append_ppfile",str())
+            if pp_file: LOG_FILE_DIR = os.path.dirname(pp_file)
+            ### try to get LOG_FILE_DIR from logfilename FIRST ###
+            if not LOG_FILE_DIR and logfilename: LOG_FILE_DIR = os.path.dirname(logfilename)
+            ### if still not LOG_FILE_DIR, use default '/var/PrePost' ###
+            if not LOG_FILE_DIR: LOG_FILE_DIR = '/var/PrePost'
+
+            if CGI_CLI.data.get("latest"):
+                list_precheck_files = glob.glob(os.path.join(LOG_FILE_DIR,'_'.join(device_list).upper().replace(':','_').replace('.','_')) + '*' + 'pre')
+            else:
+                list_precheck_files = glob.glob(os.path.join(LOG_FILE_DIR,'_'.join(device_list).upper().replace(':','_').replace('.','_')) + '*' + USERNAME + '-pre')
+
+            if len(list_precheck_files) == 0:
+                CGI_CLI.uprint("Can't find any PRECHECK file.", color = 'magenta', printall = True)
+                sys.exit()
+            most_recent_precheck = list_precheck_files[0]
+            for item in list_precheck_files:
+                filecreation = os.path.getctime(item)
+                if filecreation > (os.path.getctime(most_recent_precheck)):
+                    most_recent_precheck = item
+            last_precheck_file = most_recent_precheck
+
+        if not last_precheck_file:
+            last_precheck_file = find_last_precheck_logfile( \
+                prefix = '_'.join(device_list).upper(), USERNAME = USERNAME, \
+                suffix = 'precheck.*log', \
                 printall = printall)
 
-            if not RCMD.ssh_connection:
-                CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), color = 'red')
+        if last_precheck_file: CGI_CLI.uprint('PRECHECK FILE: %s' % (last_precheck_file), printall = True)
+        else: sys.exit(0)
+        bgp_precheck_data = read_bgp_data_json_from_logfile(last_precheck_file, separator ='_bgp_device_data', printall = printall)
+        if bool(bgp_precheck_data): CGI_CLI.uprint('PRECHECK DATA READ OK.', printall = True)
+
+        CGI_CLI.uprint('\n', no_printall = not CGI_CLI.printall)
+        CGI_CLI.uprint(bgp_precheck_data, name = '%s_bgp_precheck_data' % ('_'.join(device_list).upper()), jsonprint = True, \
+            timestamp = 'no', no_printall = not CGI_CLI.printall, sort_keys = True)
+        CGI_CLI.uprint('\n', no_printall = not CGI_CLI.printall)
+
+        ### RECHECK CASE READ POSTCHECK DATA ###
+        if last_postcheck_file:
+            CGI_CLI.uprint('POSTCHECK FILE: %s' % (last_postcheck_file), printall = True)
+            device_data = read_bgp_data_json_from_logfile(last_postcheck_file, separator ='_bgp_device_data', printall = printall)
+            if bool(device_data): CGI_CLI.uprint('POSTCHECK DATA READ OK.', printall = True)
+
+    ### def IF NO PRECHECK FILE FIX ###
+    if device_data.get('device', str()): pass
+    else:
+        ### def REMOTE DEVICE OPERATIONS ##########################################
+        for device in device_list:
+            if device:
+                ### DEVICE CONNECT ############################################
+                RCMD.connect(device, username = USERNAME, password = PASSWORD, \
+                    printall = printall, \
+                    connection_timeout = 10000, cmd_timeout = 2200)
+
+                if not RCMD.ssh_connection:
+                    CGI_CLI.uprint('PROBLEM TO CONNECT TO %s DEVICE.' % (device), \
+                        color = 'red')
+                    RCMD.disconnect()
+                    continue
+
+                ### DO NOT GO FURTHER IF NO CONNECTION ############################
+                if not RCMD.ssh_connection: continue
+
+                CGI_CLI.uprint('connected')
+
+                CGI_CLI.logtofile('\nDETECTED DEVICE_TYPE: %s\n\n' % (RCMD.router_type))
+
+                device_data = collections.OrderedDict()
+                device_data['device'] = str(device).upper()
+                device_data['LOCAL_AS_NUMBER'] = str()
+                device_data['IPV4_bgp_peers'] = collections.OrderedDict()
+                device_data['IPV6_bgp_peers'] = collections.OrderedDict()
+
+
+                ### def LOCAL AS NUMBER CMDS ######################################
+                collector_cmds = {
+                    'cisco_ios':['show bgp summary',
+                                 'show bgp vpnv4 unicast summary',
+                                 'show bgp ipv6 unicast summary',
+                                 'show bgp vrf all sum | exc "BGP|ID|stop|Process|Speaker"',
+                                 'show bgp neighbor | include "VRF:|BGP neighbor is|BGP state|prefixes|AS"',
+                                 'show bgp vpnv4 unicast neighbors | include "VRF:|BGP neighbor is|BGP state|prefixes|AS"',
+                                 'show bgp vpnv6 unicast neighbors | include "VRF:|BGP neighbor is|BGP state|prefixes|AS"',
+                                 'show bgp vrf all neighbors detail | include "VRF:|BGP neighbor is|BGP state|prefixes|AS"',
+                                ],
+
+                    'cisco_xr': ['show bgp summary',
+                                 'show bgp vpnv4 unicast summary',
+                                 'show bgp ipv6 unicast summary',
+                                 'show bgp vrf all sum | exc "BGP|ID|stop|Process|Speaker"',
+                                 'show bgp neighbor | include "VRF:|BGP neighbor is|BGP state|prefixes|AS"',
+                                 'show bgp vpnv4 unicast neighbors | include "VRF:|BGP neighbor is|BGP state|prefixes|AS"',
+                                 'show bgp vpnv6 unicast neighbors | include "VRF:|BGP neighbor is|BGP state|prefixes|AS"',
+                                 'show bgp vrf all neighbors detail | include "VRF:|BGP neighbor is|BGP state|prefixes|AS"',
+                                ],
+
+                    'juniper':  ['show bgp neighbor | match "Group:|Peer:" | except "NLRI|Restart"',
+                                 'show bgp summary',
+                                 'show bgp neighbor | match "^Peer:|prefixes:|damping:|Group"',
+                                 'show configuration protocols bgp | display set | match "unicast prefix-limit"',
+                                ],
+
+                    'huawei':   ['display bgp peer',
+                                 'display bgp peer verbose | i (BGP Peer is|route|BGP current state)',
+                                 'display bgp vpnv4 all peer verbose | include (IPv4-family for VPN instance|BGP Peer|BGP current state:|route)',
+                                 'display bgp vpnv6 all peer verbose | include (IPv6-family for VPN instance|BGP Peer|BGP current state:|route)',
+
+                                ]
+                }
+
+                rcmd_outputs = RCMD.run_commands(collector_cmds, \
+                    autoconfirm_mode = True, \
+                    printall = printall)
+
+                ### def FIND LOCAL AS NUMBER ###
+                if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
+                    try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("local AS number")[1].splitlines()[0].strip()
+                    except: pass
+                    if not LOCAL_AS_NUMBER:
+                        try: LOCAL_AS_NUMBER = rcmd_outputs[1].split("local AS number")[1].splitlines()[0].strip()
+                        except: pass
+                    device_data['LOCAL_AS_NUMBER'] = LOCAL_AS_NUMBER
+
+                elif RCMD.router_type == 'juniper':
+                    try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("Local:")[1].splitlines()[0].split('AS')[1].strip()
+                    except: pass
+                    device_data['LOCAL_AS_NUMBER'] = LOCAL_AS_NUMBER
+
+                elif RCMD.router_type == 'huawei':
+                    try: LOCAL_AS_NUMBER = rcmd_outputs[0].split("Local AS number :")[1].splitlines()[0].strip()
+                    except: pass
+                    if not LOCAL_AS_NUMBER:
+                        try: LOCAL_AS_NUMBER = rcmd_outputs[1].split("Local AS number :")[1].splitlines()[0].strip()
+                        except: pass
+                    device_data['LOCAL_AS_NUMBER'] = LOCAL_AS_NUMBER
+
+
+
+                ### def CMD1 - ALL FIND BGP NEIGHBORS ####################################
+                if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
+                    ### COMMAND: 'show bgp summary' ###
+                    parse_cisco_xr_cmd_output0(cmd_output = rcmd_outputs[0])
+
+                    ### COMMAND: 'show bgp vpnv4 unicast summary' ###
+                    parse_cisco_xr_cmd_output0(cmd_output = rcmd_outputs[1])
+
+                    ### COMMAND: 'show bgp ipv6 unicast summary' ###
+                    parse_cisco_xr_cmd_output0(cmd_output = rcmd_outputs[2])
+
+                    ### COMMAND: 'show bgp vrf all sum | exc "BGP|ID|stop|Process|Speaker"' ###
+                    parse_cisco_xr_cmd_output0(cmd_output = rcmd_outputs[3])
+
+                    ### COMMAND: 'show bgp neighbor | include "BGP neighbor is|BGP state|prefixes|AS"' ###
+                    parse_cisco_xr_cmd_output1(cmd_output = rcmd_outputs[4])
+
+                    ### COMMAND: 'show bgp vpnv4 unicast neighbors | include "BGP neighbor is|BGP state|prefixes|AS"' ###
+                    parse_cisco_xr_cmd_output1(cmd_output = rcmd_outputs[5])
+
+                    ### COMMAND: 'show bgp vpnv6 unicast neighbors | include "BGP neighbor is|BGP state|prefixes|AS"' ###
+                    parse_cisco_xr_cmd_output1(cmd_output = rcmd_outputs[6])
+
+                    ### COMMAND: 'show bgp vrf all neighbors detail | include "VRF:|BGP neighbor|BGP state|prefixes"' ###
+                    parse_cisco_xr_cmd_output1(cmd_output = rcmd_outputs[7])
+
+                elif RCMD.router_type == 'juniper':
+                    ### COMMAND: 'show bgp neighbor | match "Group:|Peer:" | except "NLRI|Restart"' ###
+                    try: output_list = rcmd_outputs[2].split('Peer: ')[1:]
+                    except: output_list = []
+                    for section in output_list:
+                        try: bgp_peer = section.split()[0].split('+')[0]
+                        except: bgp_peer = str()
+
+                        try: doubledots_in_bgp_peer = len(bgp_peer.split(':'))
+                        except: doubledots_in_bgp_peer = 0
+
+                        try: AS = int(section.split('AS')[1].split()[0])
+                        except: AS = None
+
+                        if '.' in bgp_peer:
+                            if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                                device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                            if AS: device_data['IPV4_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
+
+                            try: device_data['IPV4_bgp_peers'][bgp_peer]['Group'] = str(section.split('Group:')[1].split()[0])
+                            except: pass
+
+                        elif ':' in bgp_peer and doubledots_in_bgp_peer >= 3:
+                            if not bgp_peer in device_data['IPV6_bgp_peers'].keys():
+                                device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                            if AS: device_data['IPV6_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
+
+                            try: device_data['IPV6_bgp_peers'][bgp_peer]['Group'] = str(section.split('Group:')[1].split()[0])
+                            except: pass
+
+                    ### COMMAND: 'show bgp summary' ###############################
+                    for line in rcmd_outputs[1].splitlines()[1:]:
+                        try: bgp_peer = line.split()[0].split('+')[0]
+                        except: bgp_peer = str()
+
+                        try: doubledots_in_bgp_peer = len(line.split()[0].split(':'))
+                        except: doubledots_in_bgp_peer = 0
+
+                        try: state = str(line.split()[8])
+                        except: state = None
+
+                        try: AS = int(line.split()[1])
+                        except: AS = None
+
+                        find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
+                        if len(find_ip) == 1:
+                            bgp_peer = find_ip[0].strip()
+                            if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                                device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                            if state: device_data['IPV4_bgp_peers'][bgp_peer]['State'] = copy.deepcopy(state)
+
+                            if AS: device_data['IPV4_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
+
+                        elif ':' in bgp_peer and doubledots_in_bgp_peer >= 3:
+                            if not bgp_peer in device_data['IPV6_bgp_peers'].keys():
+                                device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                            if state: device_data['IPV6_bgp_peers'][bgp_peer]['State'] = copy.deepcopy(state)
+
+                            if AS: device_data['IPV6_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
+
+                    ### COMMAND: 'show bgp neighbor | match "^Peer:|prefixes:|damping:"' ###
+                    try: output_list = rcmd_outputs[2].split('Peer: ')[1:]
+                    except: output_list = []
+                    for section in output_list:
+                        try: bgp_peer = section.split()[0].split('+')[0]
+                        except: bgp_peer = str()
+
+                        try: doubledots_in_bgp_peer = len(bgp_peer.split(':'))
+                        except: doubledots_in_bgp_peer = 0
+
+                        try: AS = int(section.split('AS')[1].split()[0])
+                        except: AS = None
+
+                        if '.' in bgp_peer:
+                            if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                                device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                            if AS: device_data['IPV4_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
+
+                            try: device_data['IPV4_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(section.split('Accepted prefixes:')[1].split()[0])
+                            except: pass
+
+                            try: device_data['IPV4_bgp_peers'][bgp_peer]['Received_prefixes'] = int(section.split('Received prefixes:')[1].split()[0])
+                            except: pass
+
+                            try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertized_prefixes'] = int(section.split('Advertised prefixes:')[1].split()[0])
+                            except: pass
+
+                            try: device_data['IPV4_bgp_peers'][bgp_peer]['Group'] = str(section.split('Group:')[1].split()[0])
+                            except: pass
+
+                        elif ':' in bgp_peer and doubledots_in_bgp_peer >= 3:
+                            if not bgp_peer in device_data['IPV6_bgp_peers'].keys():
+                                device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                            if AS: device_data['IPV6_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
+
+                            try: device_data['IPV6_bgp_peers'][bgp_peer]['Accepted_prefixes'] = int(section.split('Accepted prefixes:')[1].split()[0])
+                            except: pass
+
+                            try: device_data['IPV6_bgp_peers'][bgp_peer]['Received_prefixes'] = int(section.split('Received prefixes:')[1].split()[0])
+                            except: pass
+
+                            try: device_data['IPV6_bgp_peers'][bgp_peer]['Advertized_prefixes'] = int(section.split('Advertised prefixes:')[1].split()[0])
+                            except: pass
+
+                            try: device_data['IPV6_bgp_peers'][bgp_peer]['Group'] = str(section.split('Group:')[1].split()[0])
+                            except: pass
+
+                    ### COMMAND: 'show configuration protocols bgp | display set | match "unicast prefix-limit"' ###
+                    for bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                        if device_data['IPV4_bgp_peers'][bgp_peer].get('Group'):
+                            try: device_data['IPV4_bgp_peers'][bgp_peer]['Maximum_prefixes'] = int(rcmd_outputs[3].split('set protocols bgp group %s family inet6 unicast prefix-limit maximum' % \
+                                     (device_data['IPV4_bgp_peers'][bgp_peer].get('Group')))[1].split()[0])
+                            except: pass
+
+                    for bgp_peer in device_data['IPV6_bgp_peers'].keys():
+                        if device_data['IPV6_bgp_peers'][bgp_peer].get('Group'):
+                            try: device_data['IPV6_bgp_peers'][bgp_peer]['Maximum_prefixes'] = int(rcmd_outputs[3].split('set protocols bgp group %s family inet6 unicast prefix-limit maximum' % \
+                                     (device_data['IPV6_bgp_peers'][bgp_peer].get('Group')))[1].split()[0])
+                            except: pass
+
+
+                elif RCMD.router_type == 'huawei':
+                    ### COMMAND: 'display bgp peer' ###
+                    try: output_list = rcmd_outputs[0].split('PrefRcv')[1].splitlines()[1:]
+                    except: output_list = []
+                    for line in output_list:
+                        try: bgp_peer = line.split()[0]
+                        except: bgp_peer = str()
+
+                        try: doubledots_in_bgp_peer = len(bgp_peer.split(':'))
+                        except: doubledots_in_bgp_peer = 0
+
+                        try: received_prefixes = int(line.split()[-1])
+                        except: received_prefixes = None
+
+                        try: state = str(line.split()[7])
+                        except: state = None
+
+                        try: AS = int(line.split()[2])
+                        except: AS = str()
+
+                        find_ip = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', bgp_peer)
+                        if len(find_ip) == 1:
+                            bgp_peer = find_ip[0].strip()
+                            if not bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                                device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                            if isinstance(received_prefixes, int):
+                                device_data['IPV4_bgp_peers'][copy.deepcopy(bgp_peer)]['Received_prefixes'] = copy.deepcopy(received_prefixes)
+
+                            if state:
+                                device_data['IPV4_bgp_peers'][bgp_peer]['State'] = copy.deepcopy(state)
+
+                            if AS: device_data['IPV4_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
+
+                        elif ':' in bgp_peer and doubledots_in_bgp_peer >= 3:
+                            if not bgp_peer in device_data['IPV6_bgp_peers'].keys():
+                                device_data['IPV6_bgp_peers'][copy.deepcopy(bgp_peer)] = collections.OrderedDict()
+
+                            if isinstance(received_prefixes, int):
+                                device_data['IPV6_bgp_peers'][copy.deepcopy(find_ip[0].strip())]['Received_prefixes'] = copy.deepcopy(received_prefixes)
+
+                            if state:
+                                device_data['IPV6_bgp_peers'][bgp_peer]['State'] = copy.deepcopy(state)
+
+                            if AS: device_data['IPV6_bgp_peers'][bgp_peer]['AS'] = copy.deepcopy(AS)
+
+
+                    ### COMMAND: 'display bgp peer verbose | i (BGP Peer is|routes|BGP current state:)' #
+                    parse_huawei_cmd_output1(cmd_output = rcmd_outputs[1])
+
+                    ### COMMAND: 'display bgp vpnv4 all peer verbose | include (IPv4-family for VPN instance|BGP Peer|BGP current state:|route)' ###
+                    parse_huawei_cmd_output1(cmd_output = rcmd_outputs[2])
+
+                    ### COMMAND: 'display bgp vpnv6 all peer verbose | include (IPv6-family for VPN instance|BGP Peer|BGP current state:|route)' ###
+                    parse_huawei_cmd_output1(cmd_output = rcmd_outputs[3])
+
+
+
+                # ### DEF CMD2 - XR IPV4 ADVERTIZED COUNT #######################
+                # collector2_cmds = {
+                    # 'cisco_ios':[
+                                # ],
+
+                    # 'cisco_xr': [
+                                # ],
+
+                    # 'juniper':  [
+                                # ],
+
+                    # 'huawei':   [
+                                # ]
+                # }
+
+                # selected_bgp_peers = []
+
+                # for bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                    # if not device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME'):
+
+                        # selected_bgp_peers.append(copy.deepcopy(bgp_peer))
+
+                        # if LOCAL_AS_NUMBER == OTI_LOCAL_AS:
+                            # collector2_cmds['cisco_xr'].append('show bgp neighbor %s advertised-count' % (bgp_peer))
+
+                        # elif LOCAL_AS_NUMBER == IMN_LOCAL_AS:
+                            # collector2_cmds['cisco_xr'].append('show bgp vpnv4 unicast neighbor %s advertised-count' % (bgp_peer))
+
+                # rcmd2_outputs = RCMD.run_commands(collector2_cmds, \
+                    # autoconfirm_mode = True, \
+                    # printall = printall)
+
+                # if RCMD.router_type == 'cisco_xr':
+                    # for bgp_peer, output_command in zip(selected_bgp_peers, rcmd2_outputs):
+                        # try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(output_command.split('No of prefixes Advertised:')[1].split()[0])
+                        # except: pass
+
+
+                # ### DEF CMD3 - XR IPV6 ADVERTIZED COUNT #######################
+                # collector3_cmds = {
+                    # 'cisco_ios':[
+                                # ],
+
+                    # 'cisco_xr': [
+                                # ],
+
+                    # 'juniper':  [
+                                # ],
+
+                    # 'huawei':   [
+                                # ]
+                # }
+
+                # selected_bgp_peers = []
+
+                # if RCMD.router_type == 'cisco_xr':
+                    # for bgp_peer in device_data['IPV6_bgp_peers'].keys():
+                        # if not device_data['IPV6_bgp_peers'][bgp_peer].get('VRF_NAME'):
+
+                            # selected_bgp_peers.append(copy.deepcopy(bgp_peer))
+
+                            # if LOCAL_AS_NUMBER == OTI_LOCAL_AS:
+                                # collector3_cmds['cisco_xr'].append('show bgp neighbor %s advertised-count' % (bgp_peer))
+                            # elif LOCAL_AS_NUMBER == IMN_LOCAL_AS:
+                                # collector3_cmds['cisco_xr'].append('show bgp vpnv6 unicast neighbor %s advertised-count' % (bgp_peer))
+
+                    # rcmd3_outputs = RCMD.run_commands(collector3_cmds, \
+                        # autoconfirm_mode = True, \
+                        # printall = printall)
+
+                    # for bgp_peer, output_command in zip(selected_bgp_peers, rcmd3_outputs):
+                        # try: device_data['IPV6_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(output_command.split('No of prefixes Advertised:')[1].split()[0])
+                        # except: pass
+
+
+                # ### def CMD5 - XR VRF ADVERTIZED COUNT ###########################
+                # if RCMD.router_type == 'cisco_xr':
+                    # collector5_cmds = {
+                        # 'cisco_ios':[
+                                    # ],
+
+                        # 'cisco_xr': [
+                                    # ],
+
+                        # 'juniper':  [
+                                    # ],
+
+                        # 'huawei':   [
+                                    # ]
+                    # }
+
+                    # selected_bgp_peers = []
+
+                    # for bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                        # if device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()):
+
+                            # selected_bgp_peers.append(copy.deepcopy(bgp_peer))
+
+                            # collector5_cmds['cisco_xr'].append('show bgp vrf %s neighbor %s advertised-count' % \
+                                # (device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()), bgp_peer))
+
+                    # rcmd5_outputs = RCMD.run_commands(collector5_cmds, \
+                        # autoconfirm_mode = True, \
+                        # printall = printall)
+
+                    # for bgp_peer, output_command in zip(selected_bgp_peers,rcmd5_outputs):
+                        # try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(output_command.split('No of prefixes Advertised:')[1].split()[0])
+                        # except: pass
+
+
+
+
+                ### def CMD2 XR GROUP-WRITING ###
+                if RCMD.router_type == 'cisco_xr':
+                    collector2_cmds = {
+                        'cisco_ios':[
+                                    ],
+
+                        'cisco_xr': [
+                                    ],
+
+                        'juniper':  [
+                                    ],
+
+                        'huawei':   [
+                                    ]
+                    }
+
+                    selected_bgp_peers = None
+                    command_string = "!\n"
+
+                    for bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                        if not device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME'):
+
+                            selected_bgp_peers = True
+
+                            if LOCAL_AS_NUMBER == OTI_LOCAL_AS:
+                                command_string += 'show bgp neighbor %s advertised-count\n' % (bgp_peer)
+
+                            elif LOCAL_AS_NUMBER == IMN_LOCAL_AS:
+                                 command_string += 'show bgp vpnv4 unicast neighbor %s advertised-count\n' % (bgp_peer)
+
+                    if selected_bgp_peers:
+                        command_string += "!\n"
+                        collector2_cmds['cisco_xr'].append(command_string)
+
+                        rcmd2_outputs = RCMD.run_commands(collector2_cmds, \
+                            autoconfirm_mode = True, multiline_mode = True,\
+                            long_lasting_mode = True, printall = printall)
+
+
+                        for bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                            if not device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME'):
+                                ### PARSING TRICK -1 last occurance of string ###
+                                try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(rcmd2_outputs[0].split('show bgp neighbor %s' % (bgp_peer))[-1].split('No of prefixes Advertised:')[1].split()[0])
+                                except: pass
+                                try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(rcmd2_outputs[0].split('show bgp vpnv4 unicast neighbor %s' % (bgp_peer))[-1].split('No of prefixes Advertised:')[1].split()[0])
+                                except: pass
+
+
+                ### def CMD3 XR GROUP-WRITING ###
+                if RCMD.router_type == 'cisco_xr':
+                    collector3_cmds = {
+                        'cisco_ios':[
+                                    ],
+
+                        'cisco_xr': [
+                                    ],
+
+                        'juniper':  [
+                                    ],
+
+                        'huawei':   [
+                                    ]
+                    }
+
+                    selected_bgp_peers = None
+                    command_string = "!\n"
+
+                    for bgp_peer in device_data['IPV6_bgp_peers'].keys():
+                        if not device_data['IPV6_bgp_peers'][bgp_peer].get('VRF_NAME'):
+
+                            selected_bgp_peers = True
+
+                            if LOCAL_AS_NUMBER == OTI_LOCAL_AS:
+                                command_string += 'show bgp neighbor %s advertised-count\n' % (bgp_peer)
+
+                            elif LOCAL_AS_NUMBER == IMN_LOCAL_AS:
+                                 command_string += 'show bgp vpnv6 unicast neighbor %s advertised-count\n' % (bgp_peer)
+
+                    if selected_bgp_peers:
+                        command_string += "!\n"
+                        collector3_cmds['cisco_xr'].append(command_string)
+
+                        rcmd3_outputs = RCMD.run_commands(collector3_cmds, \
+                            autoconfirm_mode = True, multiline_mode = True,\
+                            long_lasting_mode = True, printall = printall)
+
+                        for bgp_peer in device_data['IPV6_bgp_peers'].keys():
+                            if not device_data['IPV6_bgp_peers'][bgp_peer].get('VRF_NAME'):
+                                ### PARSING TRICK -1 last occurance of string ###
+                                try: device_data['IPV6_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(rcmd3_outputs[0].split('show bgp neighbor %s' % (bgp_peer))[-1].split('No of prefixes Advertised:')[1].split()[0])
+                                except: pass
+                                try: device_data['IPV6_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(rcmd3_outputs[0].split('show bgp vpnv6 unicast neighbor %s' % (bgp_peer))[-1].split('No of prefixes Advertised:')[1].split()[0])
+                                except: pass
+
+
+                ### def CMD4 XR GROUP-WRITING ###
+                if RCMD.router_type == 'cisco_xr':
+                    collector4_cmds = {
+                        'cisco_ios':[
+                                    ],
+
+                        'cisco_xr': [
+                                    ],
+
+                        'juniper':  [
+                                    ],
+
+                        'huawei':   [
+                                    ]
+                    }
+
+                    selected_bgp_peers = None
+                    command_string = "!\n"
+
+                    for bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                        if device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()):
+
+                            selected_bgp_peers = True
+
+                            command_string += 'show bgp vrf %s neighbor %s advertised-count\n' % \
+                                (device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()), bgp_peer)
+
+                    if selected_bgp_peers:
+                        command_string += "!\n"
+                        collector4_cmds['cisco_xr'].append(command_string)
+
+                        rcmd4_outputs = RCMD.run_commands(collector4_cmds, \
+                            autoconfirm_mode = True, multiline_mode = True,\
+                            long_lasting_mode = True, printall = printall)
+
+                        for bgp_peer in device_data['IPV4_bgp_peers'].keys():
+                            if device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()):
+                                ### PARSING TRICK -1 last occurance of string ###
+                                try: device_data['IPV4_bgp_peers'][bgp_peer]['Advertised_prefixes'] = int(rcmd4_outputs[0].split('show bgp vrf %s neighbor %s' % (device_data['IPV4_bgp_peers'][bgp_peer].get('VRF_NAME', str()),bgp_peer))[-1].split('No of prefixes Advertised:')[1].split()[0])
+                                except: pass
+
+
+                ###################################################################
+                ### LOOP PER INTERFACE - END ######################################
+                ###################################################################
                 RCMD.disconnect()
-                continue
 
-            rcmds_0 = {
-                'cisco_ios':['show bgp summary'],
-                'cisco_xr':["show bgp summary"],
-                'juniper':['show configuration protocols bgp | match local-as'],
-                'huawei':['disp bgp peer']
-            }
 
-            CGI_CLI.uprint('Check Internal AS on %s' % (device), \
-                no_newlines = None if printall else True)
-            rcmds_0_outputs = RCMD.run_commands(rcmds_0, printall = printall)
-            CGI_CLI.uprint('\n')
+            ### PRINT COLLECTED DATA ##########################################
+            CGI_CLI.uprint('\n', no_printall = not CGI_CLI.printall)
+            CGI_CLI.uprint(device_data, name = '%s_bgp_device_data' % (device.upper()), jsonprint = True, \
+                color = 'blue', timestamp = 'no', no_printall = not CGI_CLI.printall, sort_keys = True)
+            CGI_CLI.uprint('\n', no_printall = not CGI_CLI.printall)
 
-            if 'local AS number 2300' in rcmds_0_outputs[0] \
-                or 'local-as 2300' in rcmds_0_outputs[0] \
-                or 'Local AS number : 2300' in rcmds_0_outputs[0]:
-                RCMD.disconnect()
-                CGI_CLI.uprint('This is IMN Router (Internal AS 2300).\n')
-                sys.exit(0)
-            elif 'local AS number 5511' in rcmds_0_outputs[0] \
-                or 'local-as 5511' in rcmds_0_outputs[0] \
-                or 'Local AS number : 5511' in rcmds_0_outputs[0]: pass
+
+            ### def BASIC CHECKS ##############################################
+            if precheck_mode:
+                CGI_CLI.uprint('BGP PRECHECKS:', tag = 'h2', printall = True)
+                check_bgp_peers_precheck(bgp_peers_string = 'IPV4_bgp_peers', percentage_tolerance = 3)
+                check_bgp_peers_precheck(bgp_peers_string = 'IPV6_bgp_peers', percentage_tolerance = 3)
+                CGI_CLI.uprint('BGP PRECHECK DONE.', tag = 'h2', printall = True)
             else:
-                RCMD.disconnect()
-                CGI_CLI.uprint('This is not OTI Router (unknown Internal AS).\n')
-                sys.exit(0)
+                CGI_CLI.uprint('BGP POSTCHECKS:', tag = 'h2', printall = True)
 
-            rcmds_1 = {
-                'cisco_ios':['show interfaces description | i Custom'],
-                'cisco_xr':["show int description | utility egrep 'Custom|Peer|peer|Content'"],
-                'juniper':['show interfaces descriptions | match Custom'],
-                'huawei':['disp interface description | include (Custom|Peer|peer|Content)']
-            }
-
-            CGI_CLI.uprint('Read interfaces on %s' % (device), \
-                no_newlines = None if printall else True)
-            rcmds_1_outputs = RCMD.run_commands(rcmds_1, printall = printall)
-            CGI_CLI.uprint('\n')
-
-            isis_interface_list = []
-
-            if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
-                ### SELECT DOTTED = BE and SUBINTERFACES FROM OUTPUT ###
-                for line in rcmds_1_outputs[0].splitlines():
-                    if line.strip() and 'CUSTOM' in line.upper() and not 'L2VPN' in line.upper():
-                        if line.split()[-1] == 'MET' or line.split()[-1] == 'UTC': continue
-                        if line.split()[0] == 'show': continue
-                        if "XXX.XXX.XXX.XXX" in line.upper(): continue
-                        if line.strip() in RCMD.DEVICE_PROMPTS: continue
-                        if 'TESTING' in line.upper() or 'ETHNOW-TEST' in line.upper(): continue
-                        if 'OLD' in line.upper(): continue
-                        if not 'BE' in line.split()[0].upper() and 'LAG' in line.upper(): continue
-                        if 'ORANGELABS' in line.upper(): continue
-
-                        ### DOTTED INTERFACES FIRST ###
-                        if '.' in line.split()[0]:
-                            if len(isis_interface_list) == 0:
-                                isis_interface_list.append([line.split()[0], ' '.join(line.split()[3:])])
-                            else:
-                                is_in_isis_interface_list = False
-                                for interface in isis_interface_list:
-                                    interface_string, description = interface
-                                    if line.split()[0] in interface_string: is_in_isis_interface_list = True
-                                    else: pass
-                                if not is_in_isis_interface_list:
-                                    isis_interface_list.append([line.split()[0], ' '.join(line.split()[3:])])
-                                    continue
-
-                ### SELECT INTERFACES IF SUBINTERFACES ARE NOT IN LIST ###
-                for line in rcmds_1_outputs[0].splitlines():
-                    if line.strip() and 'CUSTOM' in line.upper() and not 'L2VPN' in line.upper():
-                        if line.split()[-1] == 'MET' or line.split()[-1] == 'UTC': continue
-                        if line.split()[0] == 'show': continue
-                        if "XXX.XXX.XXX.XXX" in line.upper(): continue
-                        if line.strip() in RCMD.DEVICE_PROMPTS: continue
-                        if 'TESTING' in line.upper() or 'ETHNOW-TEST' in line.upper(): continue
-                        if 'OLD' in line.upper(): continue
-                        if not 'BE' in line.split()[0].upper() and 'LAG' in line.upper(): continue
-                        if 'ORANGELABS' in line.upper(): continue
-
-                        ### UNDOTTED INTERFACES LAST ###
-                        if not '.' in line.split()[0]:
-                            if len(isis_interface_list) == 0:
-                                isis_interface_list.append([line.split()[0], ' '.join(line.split()[3:])])
-                            else:
-                                is_in_isis_interface_list = False
-                                for interface in isis_interface_list:
-                                    interface_string, description = interface
-                                    if line.split()[0] in interface_string: is_in_isis_interface_list = True
-                                    else: pass
-                                if not is_in_isis_interface_list:
-                                    isis_interface_list.append([line.split()[0], ' '.join(line.split()[3:])])
-                                    continue
-
-            if RCMD.router_type == 'juniper':
-                ### SELECT BE and SUBINTERFACES FROM OUTPUT ###
-                for line in rcmds_1_outputs[0].splitlines():
-                    if line.strip() and 'CUSTOM' in line.upper() and not 'L2VPN' in line.upper():
-                        if line == '{master}': continue
-                        if "XXX.XXX.XXX.XXX" in line.upper(): continue
-                        if line.strip() and len(line.split())> 0 and line.split()[0] == 'show': continue
-                        if line.strip() in RCMD.DEVICE_PROMPTS: continue
-                        if 'TESTING' in line.upper() or 'ETHNOW-TEST' in line.upper(): continue
-                        if 'OLD' in line.upper() or 'LAG' in line.upper(): continue
-                        if 'ORANGELABS' in line.upper(): continue
-
-                        ### DOTTED INTERFACES FIRST ###
-                        if '.' in line.split()[0]:
-                            if len(isis_interface_list) == 0:
-                                isis_interface_list.append([line.split()[0], ' '.join(line.split()[3:])])
-                            else:
-                                is_in_isis_interface_list = False
-                                for interface in isis_interface_list:
-                                    interface_string, description = interface
-                                    if line.split()[0] in interface_string: is_in_isis_interface_list = True
-                                    else: pass
-                                if not is_in_isis_interface_list:
-                                    isis_interface_list.append([line.split()[0], ' '.join(line.split()[3:])])
-                                    continue
-
-                ### SELECT INTERFACES IF SUBINTERFACES ARE NOT IN LIST ###
-                for line in rcmds_1_outputs[0].splitlines():
-                    if line.strip() and 'CUSTOM' in line.upper() and not 'L2VPN' in line.upper():
-                        if line == '{master}': continue
-                        if "XXX.XXX.XXX.XXX" in line.upper(): continue
-                        if line.strip() and len(line.split())> 0 and line.split()[0] == 'show': continue
-                        if line.strip() in RCMD.DEVICE_PROMPTS: continue
-                        if 'TESTING' in line.upper() or 'ETHNOW-TEST' in line.upper(): continue
-                        if 'OLD' in line.upper() or 'LAG' in line.upper(): continue
-                        if 'ORANGELABS' in line.upper(): continue
-
-                        ### UNDOTTED INTERFACES LAST ###
-                        if not '.' in line.split()[0]:
-                            if len(isis_interface_list) == 0:
-                                isis_interface_list.append([line.split()[0], ' '.join(line.split()[3:])])
-                            else:
-                                is_in_isis_interface_list = False
-                                for interface in isis_interface_list:
-                                    interface_string, description = interface
-                                    if line.split()[0] in interface_string: is_in_isis_interface_list = True
-                                    else: pass
-                                if not is_in_isis_interface_list:
-                                    isis_interface_list.append([line.split()[0], ' '.join(line.split()[3:])])
-                                    continue
-
-            if RCMD.router_type == 'huawei':
-                ### SELECT BE and SUBINTERFACES FROM OUTPUT ###
-                for line in rcmds_1_outputs[0].splitlines():
-                    if line.strip() and 'CUSTOM' in line.upper() and not 'L2VPN' in line.upper():
-                        if line == 'Interface': continue
-                        if "XXX.XXX.XXX.XXX" in line.upper(): continue
-                        if line.strip() and len(line.split())> 0 and line.split()[0] == 'disp': continue
-                        if line.strip() in RCMD.DEVICE_PROMPTS: continue
-                        if 'TESTING' in line.upper() or 'ETHNOW-TEST' in line.upper(): continue
-                        if 'OLD' in line.upper() or 'LAG' in line.upper(): continue
-                        if 'ORANGELABS' in line.upper(): continue
-
-                        ### DOTTED INTERFACES FIRST ###
-                        if '.' in line.split()[0]:
-                            if len(isis_interface_list) == 0:
-                                try:    isis_if = line.split()[0].replace('GE','G').split('(')[0]
-                                except: isis_if = line.split()[0].replace('GE','G')
-                                isis_interface_list.append([isis_if, ' '.join(line.split()[3:])])
-                            else:
-                                is_in_isis_interface_list = False
-                                for interface in isis_interface_list:
-                                    interface_string, description = interface
-                                    if line.split()[0] in interface_string: is_in_isis_interface_list = True
-                                    else: pass
-                                if not is_in_isis_interface_list:
-                                    try:    isis_if = line.split()[0].replace('GE','G').split('(')[0]
-                                    except: isis_if = line.split()[0].replace('GE','G')
-                                    isis_interface_list.append([isis_if, ' '.join(line.split()[3:])])
-                                    continue
-
-                ### SELECT INTERFACES IF SUBINTERFACES ARE NOT IN LIST ###
-                for line in rcmds_1_outputs[0].splitlines():
-                    if line.strip() and 'CUSTOM' in line.upper() and not 'L2VPN' in line.upper():
-                        if line == 'Interface': continue
-                        if "XXX.XXX.XXX.XXX" in line.upper(): continue
-                        if line.strip() and len(line.split())> 0 and line.split()[0] == 'disp': continue
-                        if line.strip() in RCMD.DEVICE_PROMPTS: continue
-                        if 'TESTING' in line.upper() or 'ETHNOW-TEST' in line.upper(): continue
-                        if 'OLD' in line.upper() or 'LAG' in line.upper(): continue
-                        if 'ORANGELABS' in line.upper(): continue
-
-                        ### UNDOTTED INTERFACES LAST ###
-                        if not '.' in line.split()[0]:
-                            if len(isis_interface_list) == 0:
-                                try:    isis_if = line.split()[0].replace('GE','G').split('(')[0]
-                                except: isis_if = line.split()[0].replace('GE','G')
-                                isis_interface_list.append([isis_if, ' '.join(line.split()[3:])])
-                            else:
-                                is_in_isis_interface_list = False
-                                for interface in isis_interface_list:
-                                    interface_string, description = interface
-                                    if line.split()[0] in interface_string: is_in_isis_interface_list = True
-                                    else: pass
-                                if not is_in_isis_interface_list:
-                                    try:    isis_if = line.split()[0].replace('GE','G').split('(')[0]
-                                    except: isis_if = line.split()[0].replace('GE','G')
-                                    isis_interface_list.append([isis_if, ' '.join(line.split()[3:])])
-                                    continue
-
-
-            ### CHECK INTERFACE IF HAS IP ADDRESS ASSINGED ####################
-            rcmds_if_check = {
-                'cisco_ios':[],
-                'cisco_xr':[],
-                'juniper':[],
-                'huawei':[]
-            }
-
-            for isis_interface, description in isis_interface_list:
-                rcmds_if_check['cisco_ios'].append('show run interface %s' % (isis_interface))
-                rcmds_if_check['cisco_xr'].append('show run interface %s' % (isis_interface))
-                rcmds_if_check['huawei'].append('display cu interface %s' % (isis_interface))
-                rcmds_if_check['juniper'].append('show configuration interface %s | display set' % (isis_interface))
-
-            CGI_CLI.uprint('Read interface sh run on %s' % (device), \
-                no_newlines = None if printall else True)
-            rcmds_if_check_outputs = RCMD.run_commands(rcmds_if_check, printall = printall)
-            CGI_CLI.uprint('\n')
-
-            filtered_isis_interface_list = []
-            for interface, rcmd_if_check_output in zip(isis_interface_list,rcmds_if_check_outputs):
-                isis_interface, description = interface
-                find_list = re.findall(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', rcmd_if_check_output.strip())
-                if len(find_list) >= 1:
-                    filtered_isis_interface_list.append([isis_interface, description])
-            del isis_interface_list
-            isis_interface_list = filtered_isis_interface_list
-            if printall: CGI_CLI.uprint(isis_interface_list, name = 'filtered_isis_interface_list')
-
-
-            ### CHECK ISIS PASSIVE ############################################
-            rcmds_2 = {
-                'cisco_ios':[],
-                'cisco_xr':[],
-                'juniper':[],
-                'huawei':[]
-            }
-
-            for isis_interface, description in isis_interface_list:
-                rcmds_2['cisco_ios'].append('show isis interface %s' % (isis_interface))
-                rcmds_2['cisco_xr'].append('show isis interface %s' % (isis_interface))
-                rcmds_2['juniper'].append('show isis interface %s' % (isis_interface))
-                rcmds_2['huawei'].append('disp isis interface %s' % (isis_interface))
-
-            CGI_CLI.uprint('Read interface isis on %s' % (device), \
-                no_newlines = None if printall else True)
-            rcmds_2_outputs = RCMD.run_commands(rcmds_2, printall = printall)
-            CGI_CLI.uprint('\n')
-
-            isis_interface_ok_list, isis_interface_fail_list, isis_interface_warning_list = [], [], []
-
-            if RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'cisco_ios':
-                for interface, rcmd_2_output in zip(isis_interface_list,rcmds_2_outputs):
-                    isis_interface, description = interface
-                    if '(Intf passive in IS-IS cfg)' in rcmd_2_output:
-                        isis_interface_ok_list.append(interface)
-                    elif '% No IS-IS instances are configured to use':
-                        isis_interface_fail_list.append(interface)
-                    else: isis_interface_warning_list.append(interface)
-
-            if RCMD.router_type == 'juniper':
-                for interface, rcmd_2_output in zip(isis_interface_list,rcmds_2_outputs):
-                    isis_interface, description = interface
-                    if 'Level 2 DR' in rcmd_2_output or 'Passive' in rcmd_2_output:
-                        isis_interface_ok_list.append(interface)
-                    else: isis_interface_fail_list.append(interface)
-
-            if RCMD.router_type == 'huawei':
-                for interface, rcmd_2_output in zip(isis_interface_list,rcmds_2_outputs):
-                    if 'Interface information for ISIS' in rcmd_2_output:
-                         isis_interface_ok_list.append(interface)
-                    else: isis_interface_fail_list.append(interface)
-
-            ### PRINTOUTS ###
-            if printall:
-                CGI_CLI.uprint(isis_interface_list, name = True , jsonprint = True)
-                CGI_CLI.uprint(isis_interface_fail_list, name = True , jsonprint = True)
-                CGI_CLI.uprint(isis_interface_warning_list, name = True , jsonprint = True)
-                CGI_CLI.uprint(isis_interface_ok_list, name = True , jsonprint = True)
-
-            if len(isis_interface_fail_list) == 0 and len(isis_interface_warning_list) == 0:
-                CGI_CLI.uprint('%s interface(s) - Customer ISIS OK.' % (device), color = 'green')
-                display_interface(header_text = '%s interface(s) with ISIS OK.' % (device), interface_list = [], color = 'green')
-
-            display_interface(header_text = '%s interface(s) with Customer ISIS WARNING:' % (device), interface_list = isis_interface_warning_list, color = 'yellow')
-            display_interface(header_text = '%s interface(s) with Customer ISIS PROBLEM:' % (device), interface_list = isis_interface_fail_list, color = 'red')
-
-            # if len(isis_interface_warning_list) > 0:
-                # CGI_CLI.add_result('%s interface(s) with Customer ISIS WARNING: [%s]' % (device, ','.join(isis_interface_warning_list)), 'error')
-
-            # if len(isis_interface_fail_list) > 0:
-                # CGI_CLI.add_result('%s interface(s) with Customer ISIS PROBLEM: [%s]' % (device, ','.join(isis_interface_fail_list)), 'error')
-
-            data = {}
-            data['isis_interface_fail_list'] = isis_interface_fail_list
-
-            config_to_apply = str()
-            if RCMD.router_type == 'cisco_xr':
-                mytemplate = Template(xr_config_header,strict_undefined=True)
-                config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
-
-                mytemplate = Template(xr_config_interface_part,strict_undefined=True)
-                config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
-
-                mytemplate = Template(xr_config_tail,strict_undefined=True)
-                config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
-
-            if RCMD.router_type == 'juniper':
-                mytemplate = Template(juniper_config_header,strict_undefined=True)
-                config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
-
-                mytemplate = Template(juniper_config_interface_part,strict_undefined=True)
-                config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
-
-                mytemplate = Template(juniper_config_tail,strict_undefined=True)
-                config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
-
-            if RCMD.router_type == 'huawei':
-                mytemplate = Template(huawei_config_header,strict_undefined=True)
-                config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
-
-                mytemplate = Template(huawei_config_interface_part,strict_undefined=True)
-                config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
-
-                mytemplate = Template(huawei_config_tail,strict_undefined=True)
-                config_to_apply += str(mytemplate.render(**data)).rstrip().replace('\n\n','\n').replace('  ',' ') + '\n'
-
-            if isis_interface_fail_list:
-                CGI_CLI.uprint('\nREPAIR CONFIG:\n\n%s' % (config_to_apply), color = 'blue')
-
-            ### DISCONNECT DEVICE ON END ###
-            RCMD.disconnect()
+                if bool(bgp_precheck_data):
+                    check_bgp_peers_postcheck(bgp_peers_string = 'IPV4_bgp_peers', percentage_tolerance = 3)
+                    check_bgp_peers_postcheck(bgp_peers_string = 'IPV6_bgp_peers', percentage_tolerance = 3)
 
 
 except SystemExit: pass
-except: CGI_CLI.uprint(traceback.format_exc(), tag = 'h3',color = 'magenta')
+except:
+    traceback_found = traceback.format_exc()
+    CGI_CLI.uprint(str(traceback_found), tag = 'h3', color = 'magenta')
+
+
+if logfilename and CGI_CLI.data.get("send_email"):
+    ### SEND EMAIL WITH LOGFILE ###############################################
+    CGI_CLI.send_me_email( \
+        subject = str(logfilename).replace('\\','/').split('/')[-1] if logfilename else None, \
+        file_name = str(logfilename), username = USERNAME)
+
+### def SEND EMAIL WITH ERROR/TRACEBACK LOGFILE TO SUPPORT ####################
+if traceback_found:
+    CGI_CLI.send_me_email( \
+        subject = 'TRACEBACK-' + logfilename.replace('\\','/').\
+        split('/')[-1] if logfilename else str(),
+        email_body = str(traceback_found),\
+        file_name = logfilename, username = 'pnemec')
+
+

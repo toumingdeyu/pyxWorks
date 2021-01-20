@@ -24,11 +24,12 @@ from mako.template import Template
 from mako.lookup import TemplateLookup
 import ipaddress
 
+traceback_found = None
 
 
 class CGI_CLI(object):
     """
-    class CGI_handle - Simple statis class for handling CGI parameters and
+    class CGI_handle - Simple static class for handling CGI parameters and
                        clean (debug) printing to HTML/CLI
     INTERFACE FUNCTIONS:
     CGI_CLI.init_cgi() - init CGI_CLI class
@@ -83,6 +84,33 @@ class CGI_CLI(object):
             BOLD       = ''
             UNDERLINE  = ''
 
+    class ploglevel:
+            ### PRINT & LOG ALL, BITWISE AND LOGIC IS USED ###
+
+            ### PRINT
+            PRINT_ALL          = 0b1111111100000000
+            PRINT_JSON_RESULTS = 0b1000000000000000
+            PRINT_TEXT_RESULTS = 0b0100000000000000
+            PRINT_NORMAL       = 0b1110000000000000
+            PRINT_DEBUG        = 0b1111111100000000
+
+            ### LOG
+            LOG_ALL            = 0b0000000011111111
+            LOG_JSON_RESULTS   = 0b0000000010000000
+            LOG_TEXT_RESULTS   = 0b0000000001000000
+            LOG_NORMAL         = 0b0000000011100000
+            LOG_DEBUG          = 0b0000000011111111
+
+            ### & MASKS ###
+            MASK_NO_PRINT      = 0b1100000011111111
+            MASK_NO_LOG        = 0b1111111100000000
+            MASK_NOTHING       = 0b0000000000000000
+            MASK_DEFAULT       = 0b1100000011111111
+
+            ALL                = 0b1111111111111111
+            DEFAULT            = 0b1100000111111111
+
+
     @staticmethod
     def cli_parser():
         ######## Parse program arguments ##################################
@@ -103,6 +131,9 @@ class CGI_CLI(object):
         parser.add_argument("--getpass",
                             action = "store_true", dest = 'getpass', default = None,
                             help = "forced to insert router password interactively getpass.getpass()")
+        parser.add_argument("--hash",
+                            action = 'store', dest = "hash", default = str(),
+                            help = "coded hash from iptac1 web")
         parser.add_argument("--device",
                             action = "store", dest = 'device',
                             default = str(),
@@ -129,6 +160,11 @@ class CGI_CLI(object):
                             action = "store_true", dest = 'printall',
                             default = None,
                             help = "print all lines, changes will be coloured")
+        parser.add_argument("--json_headers",
+                            action = "store_true",
+                            default = False,
+                            dest = 'json_headers',
+                            help = "print json headers before data output")
         parser.add_argument("--append_ppfile",
                             action = "store", dest = 'append_ppfile',
                             default = None,
@@ -145,21 +181,34 @@ class CGI_CLI(object):
                             action = "store_true", dest = 'timestamp', default = None,
                             help = "show timestamps")
         parser.add_argument("--json",
-                    action = "store_true",
-                    default = False,
-                    dest = 'json_mode',
-                    help = "json data output only, no other printouts")
+                            action = "store_true",
+                            default = False,
+                            dest = 'json_mode',
+                            help = "json data output only, no other printouts")
         args = parser.parse_args()
         return args
 
     @staticmethod
     def __cleanup__():
-        if CGI_CLI.timestamp:
-            CGI_CLI.uprint('END.\n', no_printall = not CGI_CLI.printall, tag = 'debug')
-        if not CGI_CLI.disable_page_reload_link: CGI_CLI.html_selflink()
-        if CGI_CLI.cgi_active:
-            CGI_CLI.print_chunk("</body></html>",
-                ommit_logging = True, printall = True)
+        logfile_name = copy.deepcopy(CGI_CLI.logfilename)
+
+        ### PRINT RESULTS #############################################################
+        CGI_CLI.print_results()
+
+        ### SEND EMAIL WITH LOGFILE ###################################################
+        if logfile_name and CGI_CLI.data.get("send_email"):
+            #USERNAME = 'pnemec'
+            CGI_CLI.send_me_email( \
+                subject = str(logfile_name).replace('\\','/').split('/')[-1] if logfile_name else None, \
+                file_name = str(logfile_name), username = USERNAME)
+
+        ### def SEND EMAIL WITH ERROR/TRACEBACK LOGFILE TO SUPPORT ####################
+        if traceback_found:
+            CGI_CLI.send_me_email( \
+                subject = 'TRACEBACK-' + logfile_name.replace('\\','/').\
+                split('/')[-1] if logfile_name else str(),
+                email_body = str(traceback_found),\
+                file_name = logfile_name, username = 'pnemec')
 
     @staticmethod
     def register_cleanup_at_exit():
@@ -170,14 +219,57 @@ class CGI_CLI(object):
         import atexit; atexit.register(CGI_CLI.__cleanup__)
 
     @staticmethod
+    def hash_decrypt(text = None, key = None, iv = None):
+        from Crypto.Cipher import AES
+        if not text: return str()
+        if not key:
+            key = base64.b64decode(b'cGFpaVVORE9wYWlpVU5ET3BhaWlVTkRPcGFpaVVORE8=')
+        try:
+            key = str.encode(key)
+        except: pass
+        if not iv: iv = key[:16]
+        assert len(key) == 32
+        assert len(iv) == 16
+        ciphertext = base64.b64decode(text)
+        aes = AES.new(key, AES.MODE_CBC, iv)
+        plain_text = aes.decrypt(ciphertext).decode('utf-8').strip()
+        readable_text = str()
+        for c in plain_text:
+            if c in string.printable: readable_text += c
+        return readable_text
+
+    @staticmethod
+    def get_credentials(text = None):
+        username, password = str(), str()
+        if text:
+            strtext = text[19:]
+            try:
+                username, password = strtext.split('#####')
+            except: pass
+        return username, password
+
+    @staticmethod
     def init_cgi(chunked = None, css_style = None, newline = None, \
-        timestamp = None, disable_page_reload_link = None, no_title = None):
+        timestamp = None, disable_page_reload_link = None, no_title = None, \
+        json_mode = None, json_headers = None, read_only = None, \
+        fake_success = None, no_result_printout = None):
         """
         """
-        CGI_CLI.JSON_MODE = None
         try: CGI_CLI.sys_stdout_encoding = sys.stdout.encoding
         except: CGI_CLI.sys_stdout_encoding = None
         if not CGI_CLI.sys_stdout_encoding: CGI_CLI.sys_stdout_encoding = 'UTF-8'
+        CGI_CLI.PRINT_RESULT = True
+        if no_result_printout: CGI_CLI.PRINT_RESULT = False
+        CGI_CLI.errorfilename = None
+        CGI_CLI.LOG_APP_SUBDIR = None
+        CGI_CLI.MENU_DISPLAYED = False
+        CGI_CLI.FAKE_SUCCESS = fake_success
+        CGI_CLI.READ_ONLY = read_only
+        CGI_CLI.JSON_MODE = json_mode
+        CGI_CLI.JSON_HEADERS = json_headers
+        CGI_CLI.PRINT_JSON_RESULTS = False
+        CGI_CLI.print_results_printed = None
+        CGI_CLI.JSON_RESULTS = collections.OrderedDict()
         CGI_CLI.USERNAME, CGI_CLI.PASSWORD = None, None
         CGI_CLI.result_tag = 'h3'
         CGI_CLI.result_list = []
@@ -211,6 +303,11 @@ class CGI_CLI(object):
             if value and variable == "username": CGI_CLI.USERNAME = value
             if value and variable == "password": CGI_CLI.PASSWORD = value
             if value and variable == "json_mode": CGI_CLI.JSON_MODE = value
+            if value and variable == "print_json_results": CGI_CLI.PRINT_JSON_RESULTS = value
+            if value and variable == "json_headers": CGI_CLI.JSON_HEADERS = value
+            if value and variable == "read_only": CGI_CLI.READ_ONLY = value
+            if value and variable == "hash":
+                CGI_CLI.USERNAME, CGI_CLI.PASSWORD = CGI_CLI.get_credentials(CGI_CLI.hash_decrypt(value))
 
             ### SET CHUNKED MODE BY CGI #######################################
             if variable == "chunked_mode":
@@ -232,12 +329,6 @@ class CGI_CLI(object):
             "Status: %s %s%s" % (CGI_CLI.http_status, CGI_CLI.http_status_text, CGI_CLI.newline)
         CGI_CLI.content_type_line = 'Content-type:text/html; charset=%s%s' % (str(CGI_CLI.sys_stdout_encoding), CGI_CLI.newline)
 
-        ### DECIDE - CLI OR CGI MODE ##########################################
-        CGI_CLI.remote_addr =  dict(os.environ).get('REMOTE_ADDR','')
-        CGI_CLI.http_user_agent = dict(os.environ).get('HTTP_USER_AGENT','')
-        if CGI_CLI.remote_addr and CGI_CLI.http_user_agent:
-            CGI_CLI.cgi_active = True
-
         ### CLI PARSER ########################################################
         CGI_CLI.args = CGI_CLI.cli_parser()
         if not CGI_CLI.cgi_active:
@@ -246,13 +337,17 @@ class CGI_CLI(object):
                 variable = str(key)
                 try: value = cli_data.get(variable)
                 except: value = None
-                if variable and \
+                if variable and value and \
                     not variable in ["username", "password"]:
                     CGI_CLI.data[variable] = value
                 if value and variable == "username": CGI_CLI.USERNAME = value
                 if value and variable == "password": CGI_CLI.PASSWORD = value
                 if value and variable == "json_mode": CGI_CLI.JSON_MODE = value
-
+                if value and variable == "print_json_results": CGI_CLI.PRINT_JSON_RESULTS = value
+                if value and variable == "json_headers": CGI_CLI.JSON_HEADERS = value
+                if value and variable == "read_only": CGI_CLI.READ_ONLY = value
+                if value and variable == "hash":
+                    CGI_CLI.USERNAME, CGI_CLI.PASSWORD = CGI_CLI.get_credentials(CGI_CLI.hash_decrypt(value))
 
         ### CGI_CLI.data PARSER ###############################################
         for key in CGI_CLI.data.keys():
@@ -263,12 +358,23 @@ class CGI_CLI(object):
                 CGI_CLI.printall = False
             elif variable == "printall":
                 CGI_CLI.printall = True
-            if value and variable == "timestamp": CGI_CLI.timestamp = True
+            if value and variable == "timestamp" and value: CGI_CLI.timestamp = True
             if value and variable == "cusername": CGI_CLI.USERNAME = value.decode('base64','strict')
             if value and variable == "cpassword": CGI_CLI.PASSWORD = value.decode('base64','strict')
             if value and variable == "json_mode": CGI_CLI.JSON_MODE = value
+            if value and variable == "print_json_results": CGI_CLI.PRINT_JSON_RESULTS = value
+            if value and variable == "json_headers": CGI_CLI.JSON_HEADERS = value
+            if value and variable == "read_only": CGI_CLI.READ_ONLY = value
+            if value and variable == "hash":
+                CGI_CLI.USERNAME, CGI_CLI.PASSWORD = CGI_CLI.get_credentials(CGI_CLI.hash_decrypt(value))
 
-        ### HTML PRINTING START ###############################################
+        ### DECIDE - CLI OR CGI MODE ##########################################
+        CGI_CLI.remote_addr =  dict(os.environ).get('REMOTE_ADDR','')
+        CGI_CLI.http_user_agent = dict(os.environ).get('HTTP_USER_AGENT','')
+        if CGI_CLI.remote_addr and CGI_CLI.http_user_agent and not CGI_CLI.JSON_MODE:
+            CGI_CLI.cgi_active = True
+
+        ### HTML HEADERS ######################################################
         if CGI_CLI.cgi_active:
             sys.stdout.write("%s%s%s" %
                 (CGI_CLI.chunked_transfer_encoding_line,
@@ -284,6 +390,15 @@ class CGI_CLI(object):
                 title_string, \
                 '<style>%s</style>' % (CGI_CLI.CSS_STYLE) if CGI_CLI.CSS_STYLE else str()),\
                 ommit_logging = True, printall = True)
+        elif CGI_CLI.JSON_MODE and CGI_CLI.JSON_HEADERS:
+            ### JSON HEADERS ##################################################
+            CGI_CLI.content_type_line = 'Content-type:application/vnd.api+json%s' % (CGI_CLI.newline)
+            sys.stdout.write("%s%s%s%s%s" %
+                (CGI_CLI.chunked_transfer_encoding_line,
+                CGI_CLI.content_type_line,
+                CGI_CLI.status_line, CGI_CLI.newline, CGI_CLI.newline))
+            sys.stdout.flush()
+
         ### REGISTER CLEANUP FUNCTION #########################################
         import atexit; atexit.register(CGI_CLI.__cleanup__)
         ### GAIN USERNAME AND PASSWORD FROM ENVIRONMENT BY DEFAULT ############
@@ -295,15 +410,20 @@ class CGI_CLI(object):
             except: CGI_CLI.USERNAME        = str()
         ### GAIN/OVERWRITE USERNAME AND PASSWORD FROM CLI ###
         getpass_done = None
-        if not CGI_CLI.PASSWORD and not CGI_CLI.cgi_active:
+        if not CGI_CLI.PASSWORD and not CGI_CLI.cgi_active and not CGI_CLI.JSON_MODE:
             CGI_CLI.PASSWORD = getpass.getpass("TACACS password: ")
             getpass_done = True
         ### FORCE GAIN/OVERWRITE USERNAME AND PASSWORD FROM CLI GETPASS #######
-        if CGI_CLI.data.get('getpass') and not getpass_done and not CGI_CLI.cgi_active:
+        if CGI_CLI.data.get('getpass') and not getpass_done and not CGI_CLI.cgi_active and not CGI_CLI.JSON_MODE:
             CGI_CLI.PASSWORD = getpass.getpass("TACACS password: ")
         ### WINDOWS DOES NOT SUPPORT LINUX COLORS - SO DISABLE IT #############
         if CGI_CLI.cgi_active or 'WIN32' in sys.platform.upper(): CGI_CLI.bcolors = CGI_CLI.nocolors
         CGI_CLI.cgi_save_files()
+        CGI_CLI.JSON_RESULTS['inputs'] = str(CGI_CLI.print_args(ommit_print = True))
+        CGI_CLI.JSON_RESULTS['logfile'] = str()
+        CGI_CLI.JSON_RESULTS['errors'] = str()
+        CGI_CLI.JSON_RESULTS['warnings'] = str()
+        CGI_CLI.JSON_RESULTS['result'] = str()
         return CGI_CLI.USERNAME, CGI_CLI.PASSWORD
 
     @staticmethod
@@ -321,7 +441,8 @@ class CGI_CLI(object):
                                 with open(use_filename, 'wb') as file:
                                     file.write(CGI_CLI.data.get('file[%s]'%(filename)))
                                     CGI_CLI.uprint('The file "' + use_filename + '" was uploaded.', printall = True)
-                            except Exception as e: CGI_CLI.uprint('PROBLEM[' + str(e) + ']', color = 'magenta', printall = True)
+                            except Exception as e:
+                                CGI_CLI.add_result('PROBLEM[' + str(e) + ']', 'fatal')
 
     @staticmethod
     def set_logfile(logfilename = None):
@@ -331,8 +452,38 @@ class CGI_CLI(object):
         """
         CGI_CLI.logtofile(end_log = True, ommit_timestamp = True)
         CGI_CLI.logfilename = logfilename
+        if logfilename: CGI_CLI.errorfilename = (CGI_CLI.logfilename).split('.')[0] + '.err'
         time.sleep(0.1)
         CGI_CLI.logtofile(start_log = True, ommit_timestamp = True)
+
+
+    @staticmethod
+    def get_logging_directory(mkdir = None):
+        """ log_dir - directly log to logging diretcory
+            directory - logs dir is created under directory
+        """
+        if CGI_CLI.cgi_active:
+            LOGDIR = '/var/www/cgi-bin/logs'
+        else:
+            if CGI_CLI.LOG_APP_SUBDIR: LOGDIR = '/var/PrePost/%s' % (CGI_CLI.get_scriptname())
+            else: LOGDIR = '/var/PrePost'
+
+        ### MAKE LOGDIR IF DOES NOT EXISTS ###
+        if not os.path.exists(LOGDIR) and mkdir: os.makedirs(LOGDIR, mode = 0o666)
+
+        ### TEST ACCESS ###
+        if os.path.exists(LOGDIR) and os.access(LOGDIR, os.W_OK): return LOGDIR
+        else: return str()
+
+
+    @staticmethod
+    def errlogtofile(msg_to_file = None):
+        if msg_to_file:
+            try:
+                with open(CGI_CLI.errorfilename,"a+") as CGI_CLI.fp:
+                    CGI_CLI.fp.write(msg_to_file)
+                    del msg_to_file
+            except: pass
 
     @staticmethod
     def logtofile(msg = None, raw_log = None, start_log = None, end_log = None, \
@@ -377,10 +528,11 @@ class CGI_CLI(object):
 
             ### LOG CLI OR HTML MODE ##########################################
             if msg_to_file:
-                with open(CGI_CLI.logfilename,"a+") as CGI_CLI.fp:
-                    CGI_CLI.fp.write(msg_to_file)
-                    CGI_CLI.fp.flush()
-                    del msg_to_file
+                try:
+                    with open(CGI_CLI.logfilename,"a+") as CGI_CLI.fp:
+                        CGI_CLI.fp.write(msg_to_file)
+                        del msg_to_file
+                except: pass
 
             ### ON END: LOGFILE SET TO VOID, AVOID OF MULTIPLE FOOTERS ########
             if end_log: CGI_CLI.logfilename = None
@@ -405,10 +557,10 @@ class CGI_CLI(object):
         escaped_text = str()
         if text and not pre_tag:
             escaped_text = str(text.replace('&amp;','&').\
+                replace('<br/>','\n').replace('<br>','\n').\
                 replace('&lt;','<').replace('&gt;','>').\
                 replace('&nbsp;',' ').\
-                replace('&quot;','"').replace('&apos;',"'").\
-                replace('<br/>','\n'))
+                replace('&quot;','"').replace('&apos;',"'"))
         elif text and pre_tag:
             ### OMMIT SPACES,QUOTES AND NEWLINES ##############################
             escaped_text = str(text.replace('&amp;','&').\
@@ -432,14 +584,14 @@ class CGI_CLI(object):
         raw_log = raw logging
         """
         if msg:
-            if printall:
+            if printall and not CGI_CLI.JSON_MODE:
                 ### sys.stdout.write is printing without \n, print adds \n == +1BYTE ##
                 if CGI_CLI.chunked and CGI_CLI.cgi_active:
                     if len(msg)>0:
                         sys.stdout.write("\r\n%X\r\n%s" % (len(msg), msg))
                         sys.stdout.flush()
                 ### CLI MODE ##################################################
-                elif not CGI_CLI.JSON_MODE:
+                else:
                     if no_newlines:
                         sys.stdout.write(msg)
                         sys.stdout.flush()
@@ -447,6 +599,120 @@ class CGI_CLI(object):
                         print(msg)
             if not ommit_logging: CGI_CLI.logtofile(msg = msg, raw_log = raw_log, \
                                       ommit_timestamp = True)
+
+    @staticmethod
+    def add_result(text = None, type = None, print_now = None):
+        if text: CGI_CLI.result_list.append([text, type])
+        color = None
+        if type == 'fatal': color = 'magenta'
+        elif type == 'error': color = 'red'
+        elif type == 'warning': color = 'orange'
+        if print_now:
+            CGI_CLI.uprint(text , tag = 'h3', color = color)
+        else:
+            CGI_CLI.uprint(text , tag = 'h3', color = color, \
+                no_printall = not CGI_CLI.printall)
+
+    @staticmethod
+    def print_results(raw_log = None, sort_keys = None):
+
+        print_text, success = None, True
+
+        for text, type in CGI_CLI.result_list:
+            if type == 'error' or type == 'fatal':
+                #CGI_CLI.JSON_RESULTS['errors'] += '[%s] ' % (text)
+                CGI_CLI.JSON_RESULTS['errors'] = 'See error_link file.'
+                success = False
+            elif type == 'warning':
+                pass
+                #CGI_CLI.JSON_RESULTS['warnings'] += '[%s] ' % (text)
+
+        if len(CGI_CLI.JSON_RESULTS.get('errors',str())) == 0:
+            if len(CGI_CLI.JSON_RESULTS.get('warnings',str())) == 0:
+                CGI_CLI.JSON_RESULTS['result'] = 'success'
+            else:
+                #CGI_CLI.JSON_RESULTS['result'] = 'warnings'
+                CGI_CLI.JSON_RESULTS['result'] = 'success'
+        else: CGI_CLI.JSON_RESULTS['result'] = 'failure'
+
+        if CGI_CLI.JSON_RESULTS.get('precheck_logfile',str()):
+             CGI_CLI.JSON_RESULTS['precheck_link'] = CGI_CLI.make_loglink(CGI_CLI.JSON_RESULTS.get('precheck_logfile',str()))
+
+        ### DEBUG FAKE_SUCCESS ###
+        if CGI_CLI.FAKE_SUCCESS: CGI_CLI.JSON_RESULTS['result'] = 'success'
+
+        if success == False and CGI_CLI.errorfilename:
+            CGI_CLI.JSON_RESULTS['error_link'] = CGI_CLI.make_loglink(CGI_CLI.errorfilename)
+
+        if CGI_CLI.logfilename:
+            CGI_CLI.JSON_RESULTS['logfile_link'] = CGI_CLI.make_loglink(CGI_CLI.logfilename)
+
+        if not CGI_CLI.print_results_printed:
+            ### ALL MODES - CGI, JSON, CLI ####################################
+            if isinstance(CGI_CLI.JSON_RESULTS, (dict,collections.OrderedDict,list,tuple)):
+                try: print_text = str(json.dumps(CGI_CLI.JSON_RESULTS, indent = 2, sort_keys = sort_keys))
+                except Exception as e:
+                    CGI_CLI.print_chunk('{"errors": "JSON_PROBLEM[' + str(e) + str(CGI_CLI.JSON_RESULTS) + ']"}', printall = True)
+
+            if print_text:
+                ### PRINT DIFFERENTLY ###
+                if CGI_CLI.cgi_active and CGI_CLI.PRINT_JSON_RESULTS:
+                    CGI_CLI.uprint('<br/>\n<pre>\nCGI_CLI.JSON_RESULTS = ' + print_text + \
+                        '\n</pre>\n', raw = True, ommit_logging = True)
+                elif CGI_CLI.JSON_MODE: print(print_text)
+                elif CGI_CLI.PRINT_JSON_RESULTS: print(print_text)
+
+                ### LOG JSON IN EACH CASE ###
+                if CGI_CLI.cgi_active: CGI_CLI.logtofile('<br/>\n<pre>\n', raw_log = True, ommit_timestamp = True)
+                CGI_CLI.logtofile(msg = 'CGI_CLI.JSON_RESULTS = ' + \
+                    print_text, raw_log = True, ommit_timestamp = True)
+                if CGI_CLI.cgi_active: CGI_CLI.logtofile('\n</pre>\n', raw_log = True, ommit_timestamp = True)
+
+            ### CLI & CGI MODES ###############################################
+            if len(CGI_CLI.result_list) > 0:
+                if not CGI_CLI.JSON_MODE: CGI_CLI.uprint('\n\nRESULT SUMMARY:', tag = 'h1')
+                CGI_CLI.errlogtofile('RESULT SUMMARY:' + '\n')
+
+            ### text, type ###
+            for text, type in CGI_CLI.result_list:
+                color = None
+                if type == 'fatal': color = 'magenta'
+                elif type == 'error': color = 'red'
+                elif type == 'warning': color = 'orange'
+                if not CGI_CLI.JSON_MODE: CGI_CLI.uprint(text , tag = 'h3', color = color)
+                CGI_CLI.errlogtofile(text + '\n')
+            if not CGI_CLI.JSON_MODE: CGI_CLI.uprint('\n')
+
+            res_color = None
+            if CGI_CLI.JSON_RESULTS.get('result',str()) == 'success': res_color = 'green'
+            if CGI_CLI.JSON_RESULTS.get('result',str()) == 'warnings': res_color = 'orange'
+            if CGI_CLI.JSON_RESULTS.get('result',str()) == 'failure': res_color = 'red'
+
+            if not CGI_CLI.MENU_DISPLAYED and CGI_CLI.PRINT_RESULT:
+                if not CGI_CLI.JSON_MODE: CGI_CLI.uprint("RESULT: " + \
+                    CGI_CLI.JSON_RESULTS.get('result', str()), tag = 'h1', color = res_color)
+                CGI_CLI.errlogtofile("\n RESULT: " + CGI_CLI.JSON_RESULTS.get('result') + '\n')
+
+            ### LOGFILE LINK ##############################################
+            logfile_name = copy.deepcopy(CGI_CLI.logfilename)
+            logfilename_link = CGI_CLI.make_loglink(CGI_CLI.logfilename)
+            if CGI_CLI.cgi_active:
+                if CGI_CLI.logfilename:
+                    CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
+                        % (logfilename_link, logfile_name), raw = True, color = 'blue', printall = True)
+                    CGI_CLI.uprint('<br/>', raw = True)
+                if CGI_CLI.timestamp:
+                    CGI_CLI.uprint('END.\n', no_printall = not CGI_CLI.printall, tag = 'debug')
+                if not CGI_CLI.disable_page_reload_link: CGI_CLI.html_selflink()
+            elif CGI_CLI.JSON_MODE:
+                pass
+            else:
+                if CGI_CLI.logfilename:
+                    CGI_CLI.uprint(' ==> File %s created.\n\n' % (logfilename_link),printall = True)
+            CGI_CLI.set_logfile(logfilename = None)
+
+        CGI_CLI.print_results_printed = True
+
 
     @staticmethod
     def uprint(text = None, tag = None, tag_id = None, color = None, name = None, jsonprint = None, \
@@ -503,8 +769,14 @@ class CGI_CLI(object):
                     ### WORKARROUND FOR COLORING OF SIMPLE TEXT ###################
                     if color and not (tag or start_tag): tag = 'void';
                     if tag:
+                        if str(tag) == 'fatal':
+                            CGI_CLI.print_chunk('<%s style="color:magenta;">'%(tag),\
+                                raw_log = True, printall = printall_yes)
+                        if str(tag) == 'error':
+                            CGI_CLI.print_chunk('<%s style="color:red;">'%(tag),\
+                                raw_log = True, printall = printall_yes)
                         if str(tag) == 'warning':
-                            CGI_CLI.print_chunk('<%s style="color:red; background-color:yellow;">'%(tag),\
+                            CGI_CLI.print_chunk('<%s style="color:orange;">'%(tag),\
                                 raw_log = True, printall = printall_yes)
                         elif str(tag) == 'debug':
                             CGI_CLI.print_chunk('<%s style="color:dimgray; background-color:lightgray;">'%(tag),\
@@ -539,13 +811,16 @@ class CGI_CLI(object):
                     elif 'YELLOW' in color.upper():  text_color = CGI_CLI.bcolors.YELLOW
                     elif 'ORANGE' in color.upper():  text_color = CGI_CLI.bcolors.YELLOW
 
-                if tag == 'warning': text_color = CGI_CLI.bcolors.YELLOW
-                if tag == 'debug': text_color = CGI_CLI.bcolors.CYAN
+                if tag == 'fatal': text_color = 'FATAL: ' + CGI_CLI.bcolors.MAGENTA
+                if tag == 'error': text_color = 'ERROR: ' + CGI_CLI.bcolors.RED
+                if tag == 'warning': text_color = 'WARNING: ' + CGI_CLI.bcolors.YELLOW
+                if tag == 'debug': text_color = 'DEBUG: ' + CGI_CLI.bcolors.GREY
 
                 CGI_CLI.print_chunk("%s%s%s%s%s" % \
                     (text_color, timestamp_string, print_name, print_text, \
                     CGI_CLI.bcolors.ENDC if text_color else str()), \
-                    raw_log = True, printall = printall_yes, no_newlines = no_newlines)
+                    raw_log = True, printall = printall_yes, no_newlines = no_newlines, \
+                    ommit_logging = ommit_logging)
 
             ### PRINT END OF TAGS #################################################
             if CGI_CLI.cgi_active and not raw:
@@ -711,10 +986,9 @@ class CGI_CLI(object):
             i_pyfile = sys.argv[0]
             try: pyfile = i_pyfile.replace('\\','/').split('/')[-1].strip()
             except: pyfile = i_pyfile.strip()
-            CGI_CLI.print_result_summary()
             if CGI_CLI.cgi_active:
                 CGI_CLI.print_chunk('<p id="scriptend"></p>', raw_log = True, printall = True)
-                CGI_CLI.print_chunk('<br/><a href = "./%s">PAGE RELOAD</a>' % (pyfile), raw_log = True, printall = True)
+                CGI_CLI.print_chunk('<br/><a href = "./%s">PAGE RELOAD</a>' % (pyfile), ommit_logging = True, printall = True)
 
     @staticmethod
     def get_scriptname():
@@ -742,8 +1016,8 @@ class CGI_CLI(object):
             (CGI_CLI.USERNAME, 'Yes' if CGI_CLI.PASSWORD else 'No')
         print_string += 'remote_addr[%s], ' % dict(os.environ).get('REMOTE_ADDR','')
         print_string += 'browser[%s]\n' % dict(os.environ).get('HTTP_USER_AGENT','')
-        print_string += 'CGI_CLI.cgi_active[%s], CGI_CLI.submit_form[%s], CGI_CLI.chunked[%s]\n' % \
-            (str(CGI_CLI.cgi_active), str(CGI_CLI.submit_form), str(CGI_CLI.chunked))
+        print_string += 'CGI_CLI.cgi_active[%s], CGI_CLI.JSON_MODE[%s], CGI_CLI.submit_form[%s], CGI_CLI.chunked[%s]\n' % \
+            (str(CGI_CLI.cgi_active), str(CGI_CLI.JSON_MODE), str(CGI_CLI.submit_form), str(CGI_CLI.chunked))
         if CGI_CLI.cgi_active:
             try: print_string += 'CGI_CLI.data[%s] = %s\n' % (str(CGI_CLI.submit_form),str(json.dumps(CGI_CLI.data, indent = 4, sort_keys = True)))
             except: pass
@@ -936,20 +1210,20 @@ class CGI_CLI(object):
         buff_read = str()
         exception_text = None
 
-        replace_sequence = lambda buffer : str(buffer.\
-            replace('\x0d','').replace('\x07','').\
-            replace('\x08','').replace(' \x1b[1D','').replace(u'\u2013',''))
+        # replace_sequence = lambda buffer : str(buffer.\
+            # replace('\x0d','').replace('\x07','').\
+            # replace('\x08','').replace(' \x1b[1D','').replace(u'\u2013','').replace(u'\xa0', '').encode('utf-8'))
 
         ### https://docs.python.org/3/library/codecs.html#standard-encodings ###
         ### http://lwp.interglacial.com/appf_01.htm ###
-        if buff and not ascii_only:
-            ###for coding in [CGI_CLI.sys_stdout_encoding, 'utf-8','utf-16', 'cp1252', 'cp1140','cp1250', 'latin_1', 'ascii']:
-            for coding in ['utf-8', 'ascii']:
-                exception_text = None
-                try:
-                    buff_read = replace_sequence(buff.encode(encoding = coding))
-                    break
-                except: exception_text = traceback.format_exc()
+        # if buff and not ascii_only:
+            # ###for coding in [CGI_CLI.sys_stdout_encoding, 'utf-8','utf-16', 'cp1252', 'cp1140','cp1250', 'latin_1', 'ascii']:
+            # for coding in ['utf-8', 'ascii']:
+                # exception_text = None
+                # try:
+                    # buff_read = replace_sequence(buff.encode(encoding = coding))
+                    # break
+                # except: exception_text = traceback.format_exc()
 
         ### available in PYTHON3 ###
         # if buff and ascii_only or not buff_read:
@@ -958,40 +1232,32 @@ class CGI_CLI(object):
                 # buff_read = replace_sequence(ascii(buff))
             # except: exception_text = traceback.format_exc()
 
-        if exception_text:
-            err_chars = str()
-            for character in replace_sequence(buff):
-                if ord(character) > 128:
-                    err_chars += '\\x%x,' % (ord(character))
-                else: buff_read += character
+        # if exception_text:
+            # err_chars = str()
+            # for character in replace_sequence(buff):
+                # if ord(character) > 128:
+                    # err_chars += '\\x%x,' % (ord(character))
+                # else: buff_read += character
 
-            if len(err_chars) > 0:
-                CGI_CLI.uprint("NON STANDARD CHARACTERS (>128) found [%s] in TEXT!" % (err_chars), color = 'orange', no_printall = not CGI_CLI.printall)
+            # if len(err_chars) > 0:
+                # CGI_CLI.uprint("NON STANDARD CHARACTERS (>128) found [%s] in TEXT!" % (err_chars), tag = 'debug', no_printall = not CGI_CLI.printall)
+
+        buff_read = str(repr(buff)[1:-1].replace('\\r','').replace('\\n','\n'))
+
         return buff_read
 
     @staticmethod
-    def print_result_summary():
-        if len(CGI_CLI.result_list) > 0: CGI_CLI.uprint('\n\nRESULT SUMMARY:', tag = 'h1')
-        for result, color in CGI_CLI.result_list:
-            CGI_CLI.uprint(result , tag = 'h3', color = color)
-        if CGI_CLI.logfilename:
-            logfilename = CGI_CLI.logfilename
-            iptac_server = LCMD.run_command(cmd_line = 'hostname', printall = None, ommit_logging = True).strip()
+    def make_loglink(file = None):
+        logviewer = copy.deepcopy(file)
+        if file:
+            iptac_server = str(subprocess.check_output('hostname').decode('utf-8')).strip()
             if iptac_server == 'iptac5': urllink = 'https://10.253.58.126/cgi-bin/'
             else: urllink = 'https://%s/cgi-bin/' % (iptac_server)
-            if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, logfilename)
-            else: logviewer = './logviewer.py?logfile=%s' % (logfilename)
-            if CGI_CLI.cgi_active:
-                CGI_CLI.uprint('<p style="color:blue;"> ==> File <a href="%s" target="_blank" style="text-decoration: none">%s</a> created.</p>' \
-                    % (logviewer, logfilename), raw = True, color = 'blue')
-                CGI_CLI.uprint('<br/>', raw = True)
-            else:
-                CGI_CLI.uprint(' ==> File %s created.\n\n' % (logfilename))
-            CGI_CLI.logtofile(end_log = True, ommit_timestamp = True)
-            ### SEND EMAIL WITH LOGFILE ###########################################
-            CGI_CLI.send_me_email( \
-                subject = logfilename.replace('\\','/').split('/')[-1] if logfilename else None, \
-                file_name = logfilename, username = USERNAME)
+            if urllink: logviewer = '%slogviewer.py?logfile=%s' % (urllink, copy.deepcopy(file))
+            else: logviewer = './logviewer.py?logfile=%s' % (copy.deepcopy(file))
+        return logviewer
+
+
 
 
 
@@ -1143,13 +1409,15 @@ class RCMD(object):
 
                 if RCMD.ssh_connection:
                     RCMD.router_type, RCMD.router_prompt = RCMD.ssh_raw_detect_router_type(debug = None)
-                    if not RCMD.router_type: CGI_CLI.uprint('DEVICE_TYPE NOT DETECTED!', color = 'red')
+                    if not RCMD.router_type:
+                        text = 'DEVICE_TYPE NOT DETECTED!'
+                        CGI_CLI.add_result(text, 'fatal')
                     elif RCMD.router_type in RCMD.KNOWN_OS_TYPES and not RCMD.silent_mode:
                         CGI_CLI.uprint('DETECTED DEVICE_TYPE: %s' % (RCMD.router_type), \
                             color = 'gray', no_printall = not CGI_CLI.printall)
             except Exception as e:
-                #if not RCMD.silent_mode:
-                    CGI_CLI.uprint(str(device) + ' CONNECTION_PROBLEM[' + str(e) + ']', color = 'magenta')
+                text = str(device) + ' CONNECTION_PROBLEM[' + str(e) + ']'
+                CGI_CLI.add_result(text, 'fatal')
             finally:
                 if disconnect: RCMD.disconnect()
             ### EXIT IF NO CONNECTION ##########################################
@@ -1237,11 +1505,13 @@ class RCMD(object):
                 command_outputs = RCMD.run_commands(RCMD.CMD)
                 ### ===========================================================
             except Exception as e:
-                #if not RCMD.silent_mode:
-                    CGI_CLI.uprint('CONNECTION_PROBLEM[' + str(e) + ']', color = 'magenta')
+                text = str(device) + ' CONNECTION_PROBLEM[' + str(e) + ']'
+                CGI_CLI.add_result(text, 'fatal')
             finally:
                 if disconnect: RCMD.disconnect()
-        else: CGI_CLI.uprint('DEVICE NOT INSERTED!', color = 'magenta')
+        else:
+            text = 'DEVICE NOT INSERTED!'
+            CGI_CLI.add_result(text, 'fatal')
         return command_outputs
 
     @staticmethod
@@ -1470,8 +1740,8 @@ class RCMD(object):
                         or 'ERROR:' in rcmd_output.upper() \
                         or 'SYNTAX ERROR' in rcmd_output.upper():
                         RCMD.config_problem = True
-                        CGI_CLI.uprint('\nCONFIGURATION PROBLEM FOUND:', color = 'red', timestamp = 'no')
-                        CGI_CLI.uprint('%s' % (rcmd_output), color = 'darkorchid', timestamp = 'no')
+                        text = '\nCONFIGURATION PROBLEM FOUND: %s' % (rcmd_output)
+                        CGI_CLI.add_result(text, 'warning')
                 ### COMMIT TEXT ###
                 if not (do_not_final_print or RCMD.do_not_final_print):
                     text_to_commit = str()
@@ -1567,9 +1837,10 @@ class RCMD(object):
                 if long_lasting_mode:
                     if printall and buff_read and not RCMD.silent_mode:
                         CGI_CLI.uprint('%s' % (buff_read), no_newlines = True, \
-                            ommit_logging = True)
-
-                    CGI_CLI.logtofile('%s' % (buff_read), ommit_timestamp = True)
+                            ommit_logging = True, timestamp = 'no')
+                    if CGI_CLI.cgi_active:
+                        CGI_CLI.logtofile('%s' % (buff_read), raw_log = True, ommit_timestamp = True)
+                    else: CGI_CLI.logtofile('%s' % (buff_read), ommit_timestamp = True)
 
                 ### IS ACTUAL LAST LINE PROMPT ? IF YES, CONFIRM ##############
                 dialog_list = ['?', '[Y/N]:', '[confirm]', '? [no]:']
@@ -1583,12 +1854,12 @@ class RCMD(object):
                             elif RCMD.router_type in ["vrp",'huawei']:
                                 chan.send('Y\n')
                             time.sleep(0.2)
-                            CGI_CLI.uprint("AUTOCONFIRMATION INSERTED , EXIT !!", tag = 'warning')
+                            CGI_CLI.uprint("AUTOCONFIRMED.", tag = 'debug', no_printall = not CGI_CLI.printall)
                             break
                         else:
                             ### INTERACTIVE QUESTION --> GO AWAY ##############
                             exit_loop = True
-                            CGI_CLI.uprint("AUTOCONFIRMATION QUESTION, EXIT !!", tag = 'warning')
+                            CGI_CLI.uprint("AUTOCONFIRMATION QUESTION.", tag = 'debug', no_printall = not CGI_CLI.printall)
                             break
 
                 if exit_loop: break
@@ -1618,7 +1889,7 @@ class RCMD(object):
             if not long_lasting_mode:
                 ### COMMAND TIMEOUT EXIT ######################################
                 if command_counter_100msec > RCMD.CMD_TIMEOUT*10:
-                    CGI_CLI.uprint("COMMAND TIMEOUT (%s sec) !!" % (RCMD.CMD_TIMEOUT*10), tag = 'warning')
+                    CGI_CLI.uprint("COMMAND TIMEOUT (%s sec) !!" % (RCMD.CMD_TIMEOUT*10), tag = 'warning', no_printall = not CGI_CLI.printall)
                     exit_loop = True
                     break
 
@@ -1627,8 +1898,8 @@ class RCMD(object):
                 if not command_counter_100msec % 100:
                     if CGI_CLI.cgi_active:
                         CGI_CLI.uprint("<script>console.log('10s...');</script>", \
-                            raw = True)
-                        CGI_CLI.logtofile('[+10sec_MARK]\n')
+                            raw = True, ommit_logging = True)
+                        #CGI_CLI.logtofile('[+10sec_MARK]\n')
 
                     ### printall or RCMD.printall
                     if not CGI_CLI.printall and not RCMD.silent_mode:
@@ -1637,14 +1908,14 @@ class RCMD(object):
 
             ### EXIT SOONER THAN CONNECTION TIMEOUT IF LONG LASTING OR NOT ####
             if command_counter_100msec + 100 > RCMD.CONNECTION_TIMEOUT*10:
-                CGI_CLI.uprint("LONG LASTING COMMAND (%d sec) TIMEOUT!!" % (RCMD.CONNECTION_TIMEOUT*10), tag = 'warning')
+                CGI_CLI.uprint("LONG LASTING COMMAND (%d sec) TIMEOUT!!" % (RCMD.CONNECTION_TIMEOUT*10), tag = 'warning', no_printall = not CGI_CLI.printall)
                 exit_loop = True
                 break
 
             ### IGNORE NEW PROMPT AND GO AWAY #################################
             if ignore_prompt:
                 time.sleep(1)
-                CGI_CLI.uprint("PROMPT IGNORED, EXIT !!", tag = 'warning')
+                CGI_CLI.uprint("PROMPT IGNORED, EXIT !!", tag = 'debug', no_printall = not CGI_CLI.printall)
                 exit_loop = True
                 break
 
@@ -1803,15 +2074,17 @@ class RCMD(object):
 
     @staticmethod
     def get_json_from_vision(URL = None):
-        global vision_api_json_string
         if RCMD.USERNAME and RCMD.PASSWORD:
             os.environ['CURL_AUTH_STRING'] = '%s:%s' % \
                 (RCMD.USERNAME,RCMD.PASSWORD)
             if URL: url = URL
             else: url = 'https://vision.opentransit.net/onv/api/nodes/'
-            local_command = 'curl -u ${CURL_AUTH_STRING} -m 1 %s' % (url)
-            RCMD.vision_api_json_string = LCMD.run_commands(\
-                {'unix':[local_command]}, printall = None, ommit_logging = True)
+            local_command = 'curl -u ${CURL_AUTH_STRING} -m 5 %s' % (url)
+            try:
+                result_list = LCMD.run_commands(\
+                    {'unix':[local_command]}, printall = None, ommit_logging = True)
+                RCMD.vision_api_json_string = copy.deepcopy(result_list[0])
+            except: pass
             os.environ['CURL_AUTH_STRING'] = '-'
 
     @staticmethod
@@ -1819,11 +2092,12 @@ class RCMD(object):
         device_ip_address = str()
         if not RCMD.vision_api_json_string: RCMD.get_json_from_vision()
         if RCMD.vision_api_json_string and DEVICE_NAME:
-            try:
-                device_ip_address = str(RCMD.vision_api_json_string[0].split(DEVICE_NAME.upper())[1].\
-                    splitlines()[1].\
-                    split('"ip":')[1].replace('"','').replace(',','')).strip()
-            except: pass
+            try: vision_json = json.loads(RCMD.vision_api_json_string)
+            except: vision_json = {}
+            for router_json in vision_json.get('results',[]):
+                if router_json.get('name',str()).upper() == DEVICE_NAME.upper():
+                    device_ip_address = router_json.get('ip',str())
+        CGI_CLI.uprint('VISION_IP: %s' % (device_ip_address), tag = "debug")
         return device_ip_address
 
     @staticmethod
@@ -1831,7 +2105,7 @@ class RCMD(object):
         router_os = None
         if host:
             SNMP_COMMUNITY = 'qLqVHPZUNnGB'
-            snmp_req = "snmpget -v1 -c " + SNMP_COMMUNITY + " -t 5 " + host + " sysDescr.0"
+            snmp_req = "snmpget -v1 -c " + SNMP_COMMUNITY + " -t 1 " + host + " sysDescr.0"
             #return_stream = os.popen(snmp_req)
             #retvalue = return_stream.readline()
 
@@ -2150,6 +2424,7 @@ class LCMD(object):
                                  color = 'magenta')
                 CGI_CLI.logtofile('EXEC_PROBLEM[' + str(e) + ']\n')
         return None
+
 
 ###############################################################################
 
@@ -3609,16 +3884,10 @@ except:
 
 if logfilename and CGI_CLI.data.get("send_email"):
     ### SEND EMAIL WITH LOGFILE ###############################################
+    logfile_link = CGI_CLI.make_loglink(logfilename)
     CGI_CLI.send_me_email( \
         subject = str(logfilename).replace('\\','/').split('/')[-1] if logfilename else None, \
-        file_name = str(logfilename), username = USERNAME)
+        email_body = str(logfile_link), username = USERNAME)
 
-### def SEND EMAIL WITH ERROR/TRACEBACK LOGFILE TO SUPPORT ####################
-if traceback_found:
-    CGI_CLI.send_me_email( \
-        subject = 'TRACEBACK-' + logfilename.replace('\\','/').\
-        split('/')[-1] if logfilename else str(),
-        email_body = str(traceback_found),\
-        file_name = logfilename, username = 'pnemec')
 
 
