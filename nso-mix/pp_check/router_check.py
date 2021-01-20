@@ -939,22 +939,6 @@ def append_variable_to_bashrc(variable_name=None,variable_value=None):
     forget_it = subprocess.check_output('echo export %s=%s >> ~/.bashrc'%(variable_name,variable_value), shell=True)
 
 
-# def send_me_email(subject='testmail', file_name='/dev/null'):
-    # my_account = subprocess.check_output('whoami', shell=True)
-    # my_finger_line = subprocess.check_output('finger | grep "%s"'%(my_account.strip()), shell=True)
-    # try:
-        # my_name = my_finger_line.splitlines()[0].split()[1]
-        # my_surname = my_finger_line.splitlines()[0].split()[2]
-        # if EMAIL_ADDRESS: my_email_address = EMAIL_ADDRESS
-        # else: my_email_address = '%s.%s@orange.com' % (my_name, my_surname)
-        # mail_command = 'echo | mutt -s "%s" -a %s -- %s' % (subject,file_name,my_email_address)
-        # #mail_command = 'uuencode %s %s | mail -s "%s" %s' % (file_name,file_name,subject,my_email_address)
-        # forget_it = subprocess.check_output(mail_command, shell=True)
-        # ifprint(' ==> Email "%s" sent to %s.'%(subject,my_email_address))
-    # except: pass
-
-
-
 def send_me_email(subject = str(), email_body = str(), \
     file_name = None, cc = None, bcc = None, attachments = None):
 
@@ -1017,7 +1001,7 @@ def run_isis_check(append_ppfile = None, append_logfile = None, json_mode = None
     if append_logfile: command_string += ' --append_logfile %s' % (append_logfile)
     if args.printall: command_string += ' --printall'
     command_string += ' --username %s' % (USERNAME)
-    command_string += ' --password %s' % (PASSWORD)
+    command_string += ' --cpassword %s' % (CPASSWORD)
 
     if append_ppfile:
         with open(append_ppfile, "a+") as myfile:
@@ -1833,14 +1817,14 @@ elif pre_post == "pre" and not args.recheck:
 
 if filename and os.path.exists(filename):
     file_link = make_loglink(filename)
-    ifprint(' ==> File %s created.'%(filename))
-    try: send_me_email(subject = filename.replace('\\','/').split('/')[-1], email_body = file_link)
-    except: pass
-
-if logfilename:
-    logfile_link = make_loglink(logfilename)
-    ifprint(' ==> LOGFILE GENERATED: %s' % (logfilename))
-    try: send_me_email(subject = logfilename.replace('\\','/').split('/')[-1], email_body = logfile_link)
+    logfile_link = str()
+    if logfilename:
+        logfile_link = make_loglink(logfilename)
+        ifprint(' ==> LOGFILE GENERATED: %s' % (logfilename))
+    ifprint(' ==> File %s created.' % (filename))
+    try:
+        send_me_email(subject = filename.replace('\\','/').split('/')[-1], \
+            email_body = file_link + '\n\n' + logfile_link + '\n')
     except: pass
 
 ### JSON MODE PRINT DATA ######################################################
