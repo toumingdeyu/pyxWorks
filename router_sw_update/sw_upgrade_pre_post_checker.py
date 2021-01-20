@@ -400,6 +400,10 @@ class CGI_CLI(object):
         if not CGI_CLI.USERNAME:
             try:    CGI_CLI.USERNAME        = os.environ['NEWR_USER']
             except: CGI_CLI.USERNAME        = str()
+        ### IF NEWR_USER IS NOT SET ############
+        if not CGI_CLI.USERNAME:
+            try:    CGI_CLI.USERNAME        = os.environ['LOGNAME']
+            except: CGI_CLI.USERNAME        = str()
         ### GAIN/OVERWRITE USERNAME AND PASSWORD FROM CLI ###
         getpass_done = None
         if not CGI_CLI.PASSWORD and not CGI_CLI.cgi_active and not CGI_CLI.JSON_MODE:
