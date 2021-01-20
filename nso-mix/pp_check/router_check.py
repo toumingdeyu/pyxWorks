@@ -111,6 +111,10 @@ try:    USERNAME        = os.environ['NEWR_USER']
 except: USERNAME        = str()
 try:    EMAIL_ADDRESS   = os.environ['NEWR_EMAIL']
 except: EMAIL_ADDRESS   = str()
+### IF NEWR_USER IS NOT SET ############
+if not USERNAME:
+    try:    USERNAME        = os.environ['LOGNAME']
+    except: USERNAME        = str()
 
 note_ndiff_string  = "ndiff( %s'-' missed, %s'+' added, %s'-\\n%s+' difference, %s' ' equal%s)\n" % \
     (bcolors.RED,bcolors.GREEN,bcolors.RED,bcolors.GREEN,bcolors.GREY,bcolors.ENDC )
