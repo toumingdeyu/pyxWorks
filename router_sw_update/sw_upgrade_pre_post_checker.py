@@ -181,12 +181,15 @@ class CGI_CLI(object):
         ### PRINT RESULTS #############################################################
         CGI_CLI.print_results()
 
+        ### Make loglink ##############################################################
+        log_link = CGI_CLI.make_loglink(logfile_name)
+
         ### SEND EMAIL WITH LOGFILE ###################################################
         if logfile_name and CGI_CLI.data.get("send_email"):
             #USERNAME = 'pnemec'
             CGI_CLI.send_me_email( \
                 subject = str(logfile_name).replace('\\','/').split('/')[-1] if logfile_name else None, \
-                file_name = str(logfile_name), username = USERNAME)
+                email_body = str(log_link), username = USERNAME)
 
         ### def SEND EMAIL WITH ERROR/TRACEBACK LOGFILE TO SUPPORT ####################
         if traceback_found:
