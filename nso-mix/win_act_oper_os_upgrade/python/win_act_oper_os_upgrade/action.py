@@ -1,11 +1,10 @@
 # -*- mode: python; python-indent: 4 -*-
 
 """
-File action.py.
+Do File action.py.
 
 Contains Calbacks and Action registrations.
 """
-
 import ncs
 from ncs.dp import Action
 from .nso_actions import *
@@ -17,21 +16,19 @@ from ncs.application import Service
 # ------------------------
 class ServiceCallbacks(Service):
     """
-    Class ServiceCallbacks.
+    Do ServiceCallbacks.
 
     NSO service callbacks class definition.
     """
-
     # The create() callback is invoked inside NCS FASTMAP and
     # must always exist.
     @Service.create
     def cb_create(self, tctx, root, service, proplist):
         """
-        Service.create.
+        Do Service.create.
 
         Create service in NSO.
         """
-
         self.log.info('Service create(service=', service._path, ')')
 
 
@@ -62,18 +59,16 @@ class ServiceCallbacks(Service):
 # ---------------------------------------------
 class Action(ncs.application.Application):
     """
-    Class Action.
+    Do Action.
 
     Does action definitions.
     """
-
     def setup(self):
         """
-        Class constructor.
+        Do constructor.
 
         Does registration of NSO services.
         """
-
         # The application class sets up logging for us. It is accessible
         # through 'self.log' and is a ncs.log.Log instance.
         self.log.info('Action RUNNING')
@@ -104,11 +99,10 @@ class Action(ncs.application.Application):
 
     def teardown(self):
         """
-        Class destructor.
+        Do destructor.
 
         Does only logging.
         """
-
         # When the application is finished (which would happen if NCS went
         # down, packages were reloaded or some error occurred) this teardown
         # method will be called.

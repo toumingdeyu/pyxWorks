@@ -1,11 +1,10 @@
 # -*- mode: python; python-indent: 4 -*-
 
 """
-File nso_actions.py.
+Do file nso_actions.py.
 
 NSO software upgrade package for CISCO IOS_XR NCS and ASR9K.
 """
-
 import collections
 import os
 import copy
@@ -25,15 +24,14 @@ from .device_access import *
 # --------------------------
 class NsoActionsClass_get_sw_version(Action):
     """
-    Class NsoActionsClass_get_sw_version.
+    Do NsoActionsClass_get_sw_version.
 
     Does get sw version action definition.
     """
-
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
         """
-        Action method get_sw_version.
+        Do get_sw_version.
 
         Returns get sw version on device.
         """
@@ -272,19 +270,17 @@ class NsoActionsClass_get_sw_version(Action):
 # --------------------------
 class NsoActionsClass_os_upgrade_install_add(Action):
     """
-    Class NsoActionsClass_os_upgrade_install_add.
+    Do NsoActionsClass_os_upgrade_install_add.
 
     Does os upgrade install add definition.
     """
-
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
         """
-        Action method os_upgrade_install_add.
+        Do action method os_upgrade_install_add.
 
         Does os upgrade install add.
         """
-
         self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
         asr_admin_string = str()
 
@@ -434,15 +430,14 @@ class NsoActionsClass_os_upgrade_install_add(Action):
 # -----------------------------------------
 class NsoActionsClass_os_upgrade_progress_check(Action):
     """
-    Class NsoActionsClass_os_upgrade_progress_check.
+    Do NsoActionsClass_os_upgrade_progress_check.
 
     Does os upgrade install add progress check definition.
     """
-
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
         """
-        Action method os_upgrade_progress_check.
+        Do action method os_upgrade_progress_check.
 
         Does os upgrade install add progress check.
         """
@@ -544,15 +539,14 @@ class NsoActionsClass_os_upgrade_progress_check(Action):
 # -----------------------------------------
 class NsoActionsClass_os_upgrade_device_ping_check(Action):
     """
-    Class NsoActionsClass_os_upgrade_device_ping_check.
+    Do NsoActionsClass_os_upgrade_device_ping_check.
 
     Does os upgrade install device ping check definition.
     """
-
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
         """
-        Action method os_upgrade_device_ping_check.
+        Do action method os_upgrade_device_ping_check.
 
         Does os upgrade install device ping check.
         """
@@ -608,15 +602,14 @@ class NsoActionsClass_os_upgrade_device_ping_check(Action):
 # -----------------------------------------
 class NsoActionsClass_os_upgrade_device_get_ip(Action):
     """
-    Class NsoActionsClass_os_upgrade_device_get_ip.
+    Do NsoActionsClass_os_upgrade_device_get_ip.
 
     Does os upgrade device get ip definition.
     """
-
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
         """
-        Action method os_upgrade_device_get_ip.
+        Do action method os_upgrade_device_get_ip.
 
         Does os upgrade install device ping check.
         """
@@ -651,15 +644,14 @@ class NsoActionsClass_os_upgrade_device_get_ip(Action):
 # --------------------------
 class NsoActionsClass_os_upgrade_install_prepare(Action):
     """
-    Class NsoActionsClass_os_upgrade_install_prepare.
+    Do NsoActionsClass_os_upgrade_install_prepare.
 
     Does os upgrade install prepare definition.
     """
-
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
         """
-        Action method os_upgrade_install_prepare.
+        Do action method os_upgrade_install_prepare.
 
         Does os upgrade install prepare.
         """
@@ -744,15 +736,14 @@ class NsoActionsClass_os_upgrade_install_prepare(Action):
 # --------------------------
 class NsoActionsClass_os_upgrade_install_activate(Action):
     """
-    Class NsoActionsClass_os_upgrade_install_activate.
+    Do NsoActionsClass_os_upgrade_install_activate.
 
     Does os upgrade install activate definition.
     """
-
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
         """
-        Action method os_upgrade_install_activate.
+        Do action method os_upgrade_install_activate.
 
         Does os upgrade install activate.
         """
@@ -858,15 +849,14 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
 # --------------------------
 class NsoActionsClass_os_upgrade_remove_inactive(Action):
     """
-    Class NsoActionsClass_os_upgrade_remove_inactive.
+    Do NsoActionsClass_os_upgrade_remove_inactive.
 
     Does os upgrade remove inactive definition.
     """
-
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
         """
-        Action method os_upgrade_remove_inactive.
+        Do action method os_upgrade_remove_inactive.
 
         Does os upgrade remove inactive.
         """
@@ -922,15 +912,14 @@ class NsoActionsClass_os_upgrade_remove_inactive(Action):
 # --------------------------
 class NsoActionsClass_os_upgrade_commit(Action):
     """
-    Class NsoActionsClass_os_upgrade_commit.
+    Do NsoActionsClass_os_upgrade_commit.
 
     Does os upgrade commit definition.
     """
-
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
         """
-        Action method os_upgrade_commit.
+        Do action method os_upgrade_commit.
 
         Does os upgrade commit.
         """
@@ -981,7 +970,7 @@ class NsoActionsClass_os_upgrade_commit(Action):
 
 def nso_object_to_string(self, object_instance):
     """
-    Function nso_object_to_string.
+    Do nso_object_to_string.
 
     Does printable representation of object variables.
     """
@@ -1039,7 +1028,7 @@ def nso_object_to_string(self, object_instance):
 
 def object_dump(self, obj):
     """
-    Function object_dump.
+    Do object_dump.
 
     Does simple printouts of object variables.
     """
@@ -1052,7 +1041,7 @@ def object_dump(self, obj):
 
 def get_local_subdirectories(brand_raw=None, type_raw=None):
     """
-    Function get_local_subdirectories.
+    Do get_local_subdirectories.
 
     Returns type_subdir_on_device - For the x2800..c4500 and the Huawei the files just
     go in the top level directory and for Juniper it goes in /var/tmp/.
@@ -1149,14 +1138,3 @@ def get_local_subdirectories(brand_raw=None, type_raw=None):
         else:
             brand_subdir = brand_raw.upper()
     return brand_subdir, type_subdir_on_server, type_subdir_on_device, file_types
-
-
-
-
-
-
-
-
-
-
-
