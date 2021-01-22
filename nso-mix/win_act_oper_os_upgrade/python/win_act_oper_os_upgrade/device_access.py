@@ -1,6 +1,6 @@
 # -*- mode: python; python-indent: 4 -*-
 """
-FILE device access
+FILE device access.
 
 Provides RCMD_class access to NSO devices.
 """
@@ -12,14 +12,16 @@ import ncs
 #from ncs.application import Service
 
 class RCMD_class():
-    """ class RCMD_class - access to device tgrough NED driver of NSO
+    """
+    Class RCMD_class - access to device tgrough NED driver of NSO.
 
     METHODS: run_commands
-    NOTE: (IMPORT AS) from .device_access import *
+    NOTE: (IMPORT AS) 'from .device_access import *'.
     """
 
     def __del__(self):
-        """class destructor
+        """
+        Class destructor.
 
         Just disconnect from device and wait 0.3sec.
         """
@@ -30,7 +32,8 @@ class RCMD_class():
         time.sleep(0.3)
 
     def __init__(self, device=None, **kwargs):
-        """class constructor
+        """
+        Class constructor.
 
         Opens connection to device.
         """
@@ -185,7 +188,8 @@ class RCMD_class():
 
 
     def run_commands(self, cmd, **kwargs):
-        """ method run_commands method
+        """
+        Method run_commands.
 
         Run command od device and return result as a string.
         """

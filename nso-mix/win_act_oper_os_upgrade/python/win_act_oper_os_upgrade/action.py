@@ -1,6 +1,7 @@
 # -*- mode: python; python-indent: 4 -*-
 
-"""File action.py
+"""
+File action.py.
 
 Contains Calbacks and Action registrations.
 """
@@ -15,7 +16,8 @@ from ncs.application import Service
 # SERVICE CALLBACK EXAMPLE
 # ------------------------
 class ServiceCallbacks(Service):
-    """class ServiceCallbacks
+    """
+    Class ServiceCallbacks.
 
     NSO service callbacks class definition.
     """
@@ -24,7 +26,8 @@ class ServiceCallbacks(Service):
     # must always exist.
     @Service.create
     def cb_create(self, tctx, root, service, proplist):
-        """Service.create
+        """
+        Service.create.
 
         Create service in NSO.
         """
@@ -58,13 +61,15 @@ class ServiceCallbacks(Service):
 # COMPONENT THREAD THAT WILL BE STARTED BY NCS.
 # ---------------------------------------------
 class Action(ncs.application.Application):
-    """class Action
+    """
+    Class Action.
 
     Does action definitions.
     """
 
     def setup(self):
-        """class constructor
+        """
+        Class constructor.
 
         Does registration of NSO services.
         """
@@ -98,7 +103,8 @@ class Action(ncs.application.Application):
         # considered done and the application is 'started'.
 
     def teardown(self):
-        """class destructor
+        """
+        Class destructor.
 
         Does only logging.
         """
