@@ -17,6 +17,7 @@ class RCMD_class():
     METHODS: run_commands
     NOTE: (IMPORT AS) 'from .device_access import *'.
     """
+
     def __del__(self):
         """
         Do destructor.

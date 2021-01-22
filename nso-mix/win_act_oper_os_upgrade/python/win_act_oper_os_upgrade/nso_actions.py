@@ -28,6 +28,7 @@ class NsoActionsClass_get_sw_version(Action):
 
     Does get sw version action definition.
     """
+
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
         """
@@ -274,6 +275,7 @@ class NsoActionsClass_os_upgrade_install_add(Action):
 
     Does os upgrade install add definition.
     """
+
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
         """
@@ -434,6 +436,7 @@ class NsoActionsClass_os_upgrade_progress_check(Action):
 
     Does os upgrade install add progress check definition.
     """
+
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
         """
@@ -543,6 +546,7 @@ class NsoActionsClass_os_upgrade_device_ping_check(Action):
 
     Does os upgrade install device ping check definition.
     """
+
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
         """
@@ -606,6 +610,7 @@ class NsoActionsClass_os_upgrade_device_get_ip(Action):
 
     Does os upgrade device get ip definition.
     """
+
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
         """
@@ -648,6 +653,7 @@ class NsoActionsClass_os_upgrade_install_prepare(Action):
 
     Does os upgrade install prepare definition.
     """
+
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
         """
@@ -740,6 +746,7 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
 
     Does os upgrade install activate definition.
     """
+
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
         """
@@ -853,6 +860,7 @@ class NsoActionsClass_os_upgrade_remove_inactive(Action):
 
     Does os upgrade remove inactive definition.
     """
+
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
         """
@@ -916,6 +924,7 @@ class NsoActionsClass_os_upgrade_commit(Action):
 
     Does os upgrade commit definition.
     """
+
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
         """

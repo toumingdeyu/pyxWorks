@@ -20,6 +20,7 @@ class ServiceCallbacks(Service):
 
     NSO service callbacks class definition.
     """
+
     # The create() callback is invoked inside NCS FASTMAP and
     # must always exist.
     @Service.create
@@ -63,6 +64,7 @@ class Action(ncs.application.Application):
 
     Does action definitions.
     """
+
     def setup(self):
         """
         Do constructor.
