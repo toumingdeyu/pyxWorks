@@ -1,12 +1,20 @@
 # -*- mode: python; python-indent: 4 -*-
+
+"""File nso_actions.py
+
+NSO software upgrade package for CISCO IOS_XR NCS and ASR9K.
+"""
+
+import collections
+import os
+import copy
+import time
+import json
+from datetime import date
 import ncs
 from ncs.dp import Action
 from ncs.application import Service
 from .device_access import *
-import collections
-import os, copy, time, json
-from datetime import date
-import json
 
 ### IMPORT: from .nso_actions import *    ###
 
@@ -15,22 +23,29 @@ import json
 #   GET SW VERSION ACTION
 # --------------------------
 class NsoActionsClass_get_sw_version(Action):
-    """Get sw version action definition."""
+    """class NsoActionsClass_get_sw_version
+
+    Does get sw version action definition.
+    """
 
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
+        """action method get_sw_version
+
+        Returns get sw version on device.
+        """
         self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
         brand_raw = str()
 
-        RCMD = RCMD_class(uinfo = uinfo, input = input, log_info = self.log.info)
+        RCMD = RCMD_class(uinfo=uinfo, input=input, log_info=self.log.info)
         output.hw_type, output.os_type = RCMD.hw_type, RCMD.os_type
 
         output.sw_version = RCMD.sw_version
 
         ### def LOOK FOR PATCH ####################################################
         if RCMD.router_type == "cisco_xr":
-            xe_device_patch_list = [ ]
-            xr_device_patch_list = [ 'show install active summary' ]
+            xe_device_patch_list = []
+            xr_device_patch_list = ['show install active summary']
             huawei_device_patch_list = []
             juniper_device_patch_list = []
 
@@ -52,11 +67,15 @@ class NsoActionsClass_get_sw_version(Action):
                 packages_lines = False
                 for line in patch_device_cmds_result.splitlines()[:-1]:
                     try:
-                         if '    Active Packages: ' in line: packages_lines = True
-                         elif packages_lines and len(line) > 0:
-                             if sw_version in line or sw_version.replace('.','') in line: pass
-                             else: sw_patches.append(str(line.strip()))
-                    except: pass
+                        if '    Active Packages: ' in line:
+                            packages_lines = True
+                        elif packages_lines and len(line) > 0:
+                            if sw_version in line or sw_version.replace('.','') in line:
+                                pass
+                            else:
+                                sw_patches.append(str(line.strip()))
+                    except:
+                        pass
 
             elif RCMD.router_type == "huawei":
                 pass
@@ -67,15 +86,15 @@ class NsoActionsClass_get_sw_version(Action):
 
         ### def GET PATHS ON DEVICE ###########################################
         brand_subdir, type_subdir_on_server, type_subdir_on_device, file_types = \
-            get_local_subdirectories(brand_raw = brand_raw, type_raw = RCMD.hw_type)
+            get_local_subdirectories(brand_raw=brand_raw, type_raw=RCMD.hw_type)
 
         ### BY DEFAULT = '/' ##################################################
         dev_dir = os.path.abspath(os.path.join(os.sep, type_subdir_on_device))
 
-        xe_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) ]
-        xr_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) ]
-        huawei_device_dir_list = [ 'dir %s%s' % (RCMD.drive_string, dev_dir) ]
-        juniper_device_dir_list = [ 'file list %s%s detail' % (RCMD.drive_string,dev_dir) ]
+        xe_device_dir_list = ['dir %s%s' % (RCMD.drive_string, dev_dir)]
+        xr_device_dir_list = ['dir %s%s' % (RCMD.drive_string, dev_dir)]
+        huawei_device_dir_list = ['dir %s%s' % (RCMD.drive_string, dev_dir)]
+        juniper_device_dir_list = ['file list %s%s detail' % (RCMD.drive_string,dev_dir)]
 
         dir_device_cmds = {
             'cisco_ios':xe_device_dir_list,
@@ -91,14 +110,16 @@ class NsoActionsClass_get_sw_version(Action):
             i = 0
             for line in dir_device_cmds_result.splitlines():
                 try:
-                     sub_directory = line.split()[-1]
-                     if str(line.split()[1])[0] == 'd' and int(sub_directory):
-                         versions.append(sub_directory)
-                         output.target_sw_versions.create().name = str(sub_directory)
-                         output.target_sw_versions[i].path = str('%s%s/%s' % (RCMD.drive_string, dev_dir, sub_directory))
-                         ### del mylist['key1']
-                         i += 1
-                except: pass
+                    sub_directory = line.split()[-1]
+                    if str(line.split()[1])[0] == 'd' and int(sub_directory):
+                        versions.append(sub_directory)
+                        output.target_sw_versions.create().name = str(sub_directory)
+                        output.target_sw_versions[i].path = str('%s%s/%s' % \
+                            (RCMD.drive_string, dev_dir, sub_directory))
+                        ### del mylist['key1']
+                        i += 1
+                except:
+                    pass
 
         elif RCMD.router_type == "huawei":
             ### FILES ARE IN CFCARD ROOT !!! ##################################
@@ -113,14 +134,17 @@ class NsoActionsClass_get_sw_version(Action):
                             file_type_parts = file_type.split('*')
                         found_in_tar_file = True
                         for file_type_part in file_type_parts:
-                            if file_type_part.upper() in tar_file.upper(): pass
-                            else: found_in_tar_file = False
+                            if file_type_part.upper() in tar_file.upper():
+                                pass
+                            else:
+                                found_in_tar_file = False
                         if len(file_type_parts) > 0 and found_in_tar_file:
                             output.target_sw_versions.create().name = str(tar_file)
                             output.target_sw_versions[i].path = str(dev_dir)
                             output.target_sw_versions[i].files = [tar_file]
                             i += 1
-                except: pass
+                except:
+                    pass
 
         elif RCMD.router_type == "juniper":
             ### FILES ARE IN re0:/var/tmp #####################################
@@ -135,21 +159,24 @@ class NsoActionsClass_get_sw_version(Action):
                             file_type_parts = file_type.split('*')
                         found_in_tar_file = True
                         for file_type_part in file_type_parts:
-                            if file_type_part.upper() in tar_file.upper(): pass
-                            else: found_in_tar_file = False
+                            if file_type_part.upper() in tar_file.upper():
+                                pass
+                            else:
+                                found_in_tar_file = False
                         if len(file_type_parts) > 0 and found_in_tar_file:
                             output.target_sw_versions.create().name = str(tar_file)
                             output.target_sw_versions[i].path = str(dev_dir)
                             output.target_sw_versions[i].files = [tar_file]
                             i += 1
-                except: pass
+                except:
+                    pass
 
         for i in range(len(output.target_sw_versions)):
             ### def GET FILES ON DEVICE VERSION DIRECTORY #########################
-            xe_device_file_list = [ 'dir %s%s/%s' % (RCMD.drive_string, dev_dir, output.target_sw_versions[i].name) ]
-            xr_device_file_list = [ 'dir %s%s/%s' % (RCMD.drive_string, dev_dir, output.target_sw_versions[i].name) ]
+            xe_device_file_list = ['dir %s%s/%s' % (RCMD.drive_string, dev_dir, output.target_sw_versions[i].name)]
+            xr_device_file_list = ['dir %s%s/%s' % (RCMD.drive_string, dev_dir, output.target_sw_versions[i].name)]
 
-            juniper_device_file_list = [ 'file list %s%s/%s detail' % (RCMD.drive_string, dev_dir, output.target_sw_versions[i].name) ]
+            juniper_device_file_list = ['file list %s%s/%s detail' % (RCMD.drive_string, dev_dir, output.target_sw_versions[i].name)]
 
             file_device_cmds = {
                 'cisco_ios':xe_device_file_list,
@@ -166,16 +193,20 @@ class NsoActionsClass_get_sw_version(Action):
                     try:
                         tar_file = line.split()[-1]
                         for file_type in file_types:
-                            if '/' in file_type.upper(): pass
+                            if '/' in file_type.upper():
+                                pass
                             else:
                                 file_type_parts = file_type.split('*')
                                 found_in_tar_file = True
                                 for file_type_part in file_type_parts:
-                                    if file_type_part.upper() in tar_file.upper(): pass
-                                    else: found_in_tar_file = False
+                                    if file_type_part.upper() in tar_file.upper():
+                                        pass
+                                    else:
+                                        found_in_tar_file = False
                                 if len(file_type_parts) > 0 and found_in_tar_file:
                                     files.append('%s%s/%s/%s' % (RCMD.drive_string, dev_dir,output.target_sw_versions[i].name, tar_file))
-                    except: pass
+                    except:
+                        pass
                 if len(files)>0:
                     output.target_sw_versions[i].files = files
 
@@ -186,7 +217,7 @@ class NsoActionsClass_get_sw_version(Action):
 
             ### GET SMU FILES ON DEVICE VERSION DIRECTORY #########################
             if RCMD.router_type == "cisco_xr":
-                xr_device_patch_file_list = [ 'dir %s%s/%s/SMU' % (RCMD.drive_string, dev_dir, output.target_sw_versions[i].name) ]
+                xr_device_patch_file_list = ['dir %s%s/%s/SMU' % (RCMD.drive_string, dev_dir, output.target_sw_versions[i].name)]
 
                 patch_file_device_cmds = {
                     'cisco_ios':[],
@@ -206,8 +237,10 @@ class NsoActionsClass_get_sw_version(Action):
                         try:
                             tar_file = line.split()[-1]
                             for file_type in file_types:
-                                try: patch_file = file_type.split('/')[1].replace('*','')
-                                except: patch_file = str()
+                                try:
+                                    patch_file = file_type.split('/')[1].replace('*','')
+                                except:
+                                    patch_file = str()
                                 if len(patch_file) > 0 and patch_file.upper() in tar_file.upper():
                                     #patch_files.append(tar_file)
                                     patch_files.append('%s%s/%s/%s/%s' % (RCMD.drive_string, dev_dir,output.target_sw_versions[i].name,'SMU' , tar_file))
@@ -235,17 +268,26 @@ class NsoActionsClass_get_sw_version(Action):
 #   OS UPGRADE INSTALL ADD
 # --------------------------
 class NsoActionsClass_os_upgrade_install_add(Action):
-    """Does os upgrade install add definition."""
+    """class NsoActionsClass_os_upgrade_install_add
+
+    Does os upgrade install add definition.
+    """
 
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
+        """action method os_upgrade_install_add
+
+        Does os upgrade install add.
+        """
+
         self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
         asr_admin_string = str()
 
-        RCMD = RCMD_class(uinfo = uinfo, input = input, log_info = self.log.info)
+        RCMD = RCMD_class(uinfo=uinfo, input=input, log_info=self.log.info)
         output.hw_type, output.os_type = RCMD.hw_type, RCMD.os_type
 
-        if not RCMD.x64: asr_admin_string = 'admin '
+        if not RCMD.x64:
+            asr_admin_string = 'admin '
 
         sw_version_selected_file = str()
         patch_version_selected_files = str()
@@ -257,19 +299,22 @@ class NsoActionsClass_os_upgrade_install_add(Action):
         try:
             if input.sw_version_selected_file:
                 sw_version_selected_file = str(input.sw_version_selected_file)
-        except: pass
+        except:
+            pass
 
         patch_version_selected_files = str()
         try:
             if input.patch_version_selected_files:
                 patch_version_selected_files = str(input.patch_version_selected_files)
-        except: pass
+        except:
+            pass
 
         patch_version_selected_path = str()
         try:
             if input.patch_version_selected_path:
                 patch_version_selected_path = str(input.patch_version_selected_path)
-        except: pass
+        except:
+            pass
 
         i_device_cmds = {}
         if RCMD.router_type == "cisco_xr":
@@ -288,13 +333,19 @@ class NsoActionsClass_os_upgrade_install_add(Action):
                 file_without_path = str()
                 file_list = patch_version_selected_files.replace('[','').replace(']','').split()
                 for file in file_list:
-                    try: file_without_path = file.strip().split('/')[-1]
-                    except: file_without_path = str()
-                    try: check_CSC_NR = file_without_path.split('.CSC')[1].split('.tar')[0]
-                    except: check_CSC_NR = str()
+                    try:
+                        file_without_path = file.strip().split('/')[-1]
+                    except:
+                        file_without_path = str()
+                    try:
+                        check_CSC_NR = file_without_path.split('.CSC')[1].split('.tar')[0]
+                    except:
+                        check_CSC_NR = str()
                     ### OMMIT INSTALLATION OF INSTALLED PATCH FILES ###
-                    if check_CSC_NR and check_CSC_NR in patch_device_cmds_result: pass
-                    elif file_without_path: file_string_without_path += str(file_without_path) + ' '
+                    if check_CSC_NR and check_CSC_NR in patch_device_cmds_result:
+                        pass
+                    elif file_without_path:
+                        file_string_without_path += str(file_without_path) + ' '
                 file_string_without_path = file_string_without_path.strip()
 
                 if file_string_without_path:
@@ -305,12 +356,12 @@ class NsoActionsClass_os_upgrade_install_add(Action):
                         ]
                     }
             elif patch_version_selected_path:
-                device_cmds = { 'cisco_xr': [ '%sshow install active summary' % (asr_admin_string)] }
+                device_cmds = {'cisco_xr': ['%sshow install active summary' % (asr_admin_string)]}
                 patch_device_cmds_result = RCMD.run_commands(device_cmds)
 
                 ### def GET PATHS ON DEVICE ###########################################
                 brand_subdir, type_subdir_on_server, type_subdir_on_device, file_types = \
-                get_local_subdirectories(brand_raw = 'CISCO', type_raw = RCMD.hw_type )
+                get_local_subdirectories(brand_raw='CISCO', type_raw=RCMD.hw_type )
 
                 self.log.info('FILE_TYPES=', file_types)
 
@@ -328,19 +379,28 @@ class NsoActionsClass_os_upgrade_install_add(Action):
                     try:
                         tar_file = line.split()[-1]
                         for file_type in file_types:
-                            try: patch_file = file_type.split('/')[1].replace('*','')
-                            except: patch_file = str()
+                            try:
+                                patch_file = file_type.split('/')[1].replace('*','')
+                            except:
+                                patch_file = str()
 
-                            try: file_without_path = tar_file
-                            except: file_without_path = str()
-                            try: check_CSC_NR = file_without_path.split('.CSC')[1].split('.tar')[0]
-                            except: check_CSC_NR = str()
+                            try:
+                                file_without_path = tar_file
+                            except:
+                                file_without_path = str()
+                            try:
+                                check_CSC_NR = file_without_path.split('.CSC')[1].split('.tar')[0]
+                            except:
+                                check_CSC_NR = str()
 
                             if len(patch_file) > 0 and patch_file.upper() in tar_file.upper():
                                 ### OMMIT INSTALLATION OF INSTALLED PATCH FILES ###
-                                if check_CSC_NR and check_CSC_NR in patch_device_cmds_result: pass
-                                elif file_without_path: patch_files.append('%s' % (tar_file))
-                    except: pass
+                                if check_CSC_NR and check_CSC_NR in patch_device_cmds_result:
+                                    pass
+                                elif file_without_path:
+                                    patch_files.append('%s' % (tar_file))
+                    except:
+                        pass
                 if len(patch_files) > 0:
                     i_device_cmds = {
                         'cisco_xr':['%sinstall add source %s/ %s' % (asr_admin_string, \
@@ -368,27 +428,39 @@ class NsoActionsClass_os_upgrade_install_add(Action):
 #   OS UPGRADE INSTALL ADD PROGRESS CHECK
 # -----------------------------------------
 class NsoActionsClass_os_upgrade_progress_check(Action):
-    """Does os upgrade install add progress check definition."""
+    """class NsoActionsClass_os_upgrade_progress_check
+
+    Does os upgrade install add progress check definition.
+    """
 
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
+        """action method os_upgrade_progress_check
+
+        Does os upgrade install add progress check.
+        """
         self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
         output.completed = 'no'
         output.result = str()
         asr_admin_string = str()
 
-        RCMD = RCMD_class(uinfo = uinfo, input = input, log_info = self.log.info)
+        RCMD = RCMD_class(uinfo=uinfo, input=input, log_info=self.log.info)
         output.hw_type, output.os_type = RCMD.hw_type, RCMD.os_type
 
         operation_id = str()
         if input.operation_id:
-            try: operation_id = str(input.operation_id).replace('[','').replace(']','').replace('"','').split(',')[0].strip()
-            except: pass
+            try:
+                operation_id = str(input.operation_id).replace('[','').replace(']','').replace('"','').split(',')[0].strip()
+            except:
+                pass
         elif input.operation_id_smu:
-            try: operation_id = str(input.operation_id_smu).replace('[','').replace(']','').replace('"','').split(',')[0].strip()
-            except: pass
+            try:
+                operation_id = str(input.operation_id_smu).replace('[','').replace(']','').replace('"','').split(',')[0].strip()
+            except:
+                pass
 
-        if not RCMD.x64: asr_admin_string = 'admin '
+        if not RCMD.x64:
+            asr_admin_string = 'admin '
 
         if operation_id:
             if RCMD.router_type == "cisco_xr":
@@ -419,13 +491,19 @@ class NsoActionsClass_os_upgrade_progress_check(Action):
                 device_cmds_result = RCMD.run_commands(device_cmds)
 
                 for part in device_cmds_result.split('Install operation '):
-                    try: part_split_1 = part.split()[1]
-                    except: part_split_1 = str()
+                    try:
+                        part_split_1 = part.split()[1]
+                    except:
+                        part_split_1 = str()
                     if part_split_1 == 'started':
-                        try: part_operation_id = part.split()[0]
-                        except: part_operation_id = str()
-                        try: part_last_command = part.split('started')[1].split(':')[1].splitlines()[1].strip()
-                        except: part_last_command = str()
+                        try:
+                            part_operation_id = part.split()[0]
+                        except:
+                            part_operation_id = str()
+                        try:
+                            part_last_command = part.split('started')[1].split(':')[1].splitlines()[1].strip()
+                        except:
+                            part_last_command = str()
                         try:
                             if part_operation_id and int(part_operation_id) >= int(operation_id):
                                 if not output.operation_id:
@@ -435,14 +513,16 @@ class NsoActionsClass_os_upgrade_progress_check(Action):
                                 elif output.operation_id and int(part_operation_id) >= int(output.operation_id):
                                     output.last_command = part_last_command
                                     output.operation_id = part_operation_id
-                        except: pass
+                        except:
+                            pass
 
                 if not output.operation_id:
                     try:
                         output.operation_id = device_cmds_result.split('Invalid')[-1].split('operation id:')[1].split()[0].strip()
                         output.completed = 'yes'
                         output.result = 'failure'
-                    except: pass
+                    except:
+                        pass
 
             self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
         else:
@@ -456,10 +536,17 @@ class NsoActionsClass_os_upgrade_progress_check(Action):
 #   OS UPGRADE DEVICE PING CHECK
 # -----------------------------------------
 class NsoActionsClass_os_upgrade_device_ping_check(Action):
-    """Does os upgrade install device ping check definition."""
+    """class NsoActionsClass_os_upgrade_device_ping_check
+
+    Does os upgrade install device ping check definition.
+    """
 
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
+        """action method os_upgrade_device_ping_check
+
+        Does os upgrade install device ping check.
+        """
         self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
         output.result = 'UNKNOWN'
 
@@ -467,30 +554,40 @@ class NsoActionsClass_os_upgrade_device_ping_check(Action):
 
         device = str()
         try:
-            if input.device: device = str(input.device)
-        except: pass
+            if input.device:
+                device = str(input.device)
+        except:
+            pass
 
         ip = str()
         try:
-            if input.ip: ip = str(input.ip)
-        except: pass
+            if input.ip:
+                ip = str(input.ip)
+        except:
+            pass
 
         if device:
             ping_response = os.system("ping -c 1 " + device)
-            if int(ping_response) == 0: output.result = 'success'
-            else: output.result = 'failure'
+            if int(ping_response) == 0:
+                output.result = 'success'
+            else:
+                output.result = 'failure'
 
         if ip and output.result != 'success':
             ping_response = os.system("ping -c 1 " + ip)
-            if int(ping_response) == 0: output.result = 'success'
-            else: output.result = 'failure'
+            if int(ping_response) == 0:
+                output.result = 'success'
+            else:
+                output.result = 'failure'
 
         if device and output.result != 'success':
             RCMD = RCMD_class(uinfo = uinfo, input = input, log_info = self.log.info)
             if RCMD.ip:
                 ping_response = os.system("ping -c 1 " + RCMD.ip)
-                if int(ping_response) == 0: output.result = 'success'
-                else: output.result = 'failure'
+                if int(ping_response) == 0:
+                    output.result = 'success'
+                else:
+                    output.result = 'failure'
             del RCMD
 
         self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
@@ -501,13 +598,20 @@ class NsoActionsClass_os_upgrade_device_ping_check(Action):
 #   OS UPGRADE DEVICE GET IP
 # -----------------------------------------
 class NsoActionsClass_os_upgrade_device_get_ip(Action):
-    """Does os upgrade install device ping check definition."""
+    """class NsoActionsClass_os_upgrade_device_get_ip
+
+    Does os upgrade device get ip definition.
+    """
 
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
+        """action method os_upgrade_device_get_ip
+
+        Does os upgrade install device ping check.
+        """
         self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
 
-        RCMD = RCMD_class(uinfo = uinfo, input = input, log_info = self.log.info)
+        RCMD = RCMD_class(uinfo=uinfo, input=input, log_info=self.log.info)
 
         try: device = str(input.device)
         except: device = str()
@@ -521,8 +625,10 @@ class NsoActionsClass_os_upgrade_device_get_ip(Action):
             cmd_result = RCMD.run_commands(cmd)
 
             if RCMD.router_type == "cisco_xr":
-                try: output.ip_address = cmd_result.split('ipv4 address')[1].split()[0].strip()
-                except: output.ip_address = str()
+                try:
+                    output.ip_address = cmd_result.split('ipv4 address')[1].split()[0].strip()
+                except:
+                    output.ip_address = str()
 
         self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
         del RCMD
@@ -533,10 +639,17 @@ class NsoActionsClass_os_upgrade_device_get_ip(Action):
 #   OS UPGRADE INSTALL PREPARE
 # --------------------------
 class NsoActionsClass_os_upgrade_install_prepare(Action):
-    """Does os upgrade install prepare definition."""
+    """class NsoActionsClass_os_upgrade_install_prepare
+
+    Does os upgrade install prepare definition.
+    """
 
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
+        """action method os_upgrade_install_prepare
+
+        Does os upgrade install prepare.
+        """
         self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
 
         RCMD = RCMD_class(uinfo = uinfo, input = input, log_info = self.log.info)
@@ -549,11 +662,15 @@ class NsoActionsClass_os_upgrade_install_prepare(Action):
         operation_id = str()
 
         if input.operation_id:
-            try: operation_id = str(input.operation_id).replace('[','').replace(']','').replace('"','').split(',')[0].strip()
-            except: pass
+            try:
+                operation_id = str(input.operation_id).replace('[','').replace(']','').replace('"','').split(',')[0].strip()
+            except:
+                pass
         elif input.operation_id_smu:
-            try: operation_id = str(input.operation_id_smu).replace('[','').replace(']','').replace('"','').split(',')[0].strip()
-            except: pass
+            try:
+                operation_id = str(input.operation_id_smu).replace('[','').replace(']','').replace('"','').split(',')[0].strip()
+            except:
+                pass
 
         if RCMD.x64:
             if operation_id:
@@ -570,8 +687,10 @@ class NsoActionsClass_os_upgrade_install_prepare(Action):
                 output.install_log = cmd_result
 
                 if RCMD.router_type == "cisco_xr":
-                    try: output.operation_id = cmd_result.split(' started')[0].split('Install operation ')[1].split()[0].strip()
-                    except: pass
+                    try:
+                        output.operation_id = cmd_result.split(' started')[0].split('Install operation ')[1].split()[0].strip()
+                    except:
+                        pass
 
                 self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
             else:
@@ -593,8 +712,10 @@ class NsoActionsClass_os_upgrade_install_prepare(Action):
                 output.install_log = cmd_result
 
                 if RCMD.router_type == "cisco_xr":
-                    try: output.operation_id = cmd_result.split('Install operation ')[1].split('completed successfully')[0].split()[0].strip()
-                    except: pass
+                    try:
+                        output.operation_id = cmd_result.split('Install operation ')[1].split('completed successfully')[0].split()[0].strip()
+                    except:
+                        pass
 
                 self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
             else:
@@ -609,10 +730,17 @@ class NsoActionsClass_os_upgrade_install_prepare(Action):
 #   OS UPGRADE INSTALL ACTIVATE
 # --------------------------
 class NsoActionsClass_os_upgrade_install_activate(Action):
-    """Does os upgrade install activate definition."""
+    """class NsoActionsClass_os_upgrade_install_activate
+
+    Does os upgrade install activate definition.
+    """
 
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
+        """action method os_upgrade_install_activate
+
+        Does os upgrade install activate.
+        """
         self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
         output.operation_id = str()
         output.last_command = str()
@@ -623,22 +751,27 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
         operation_id = str()
 
         if input.operation_id:
-            try: operation_id = str(input.operation_id).replace('[','').replace(']','').replace('"','').split(',')[0].strip()
-            except: pass
+            try:
+                operation_id = str(input.operation_id).replace('[','').replace(']','').replace('"','').split(',')[0].strip()
+            except:
+                pass
         elif input.operation_id_smu:
-            try: operation_id = str(input.operation_id_smu).replace('[','').replace(']','').replace('"','').split(',')[0].strip()
-            except: pass
+            try:
+                operation_id = str(input.operation_id_smu).replace('[','').replace(']','').replace('"','').split(',')[0].strip()
+            except:
+                pass
 
-        RCMD = RCMD_class(uinfo = uinfo, input = input, log_info = self.log.info)
+        RCMD = RCMD_class(uinfo=uinfo, input=input, log_info=self.log.info)
         output.hw_type, output.os_type = RCMD.hw_type, RCMD.os_type
 
-        if not RCMD.x64: asr_admin_string = 'admin '
+        if not RCMD.x64:
+            asr_admin_string = 'admin '
 
         if RCMD.router_type == "cisco_xr":
             if operation_id and not RCMD.x64:
-                cmd = { "cisco_xr": [ '%sinstall activate id %s prompt-level none' % (asr_admin_string, operation_id) ] }
+                cmd = {"cisco_xr": ['%sinstall activate id %s prompt-level none' % (asr_admin_string, operation_id)]}
             else:
-                cmd = { "cisco_xr": [ '%sinstall activate noprompt' % (asr_admin_string) ] }
+                cmd = {"cisco_xr": ['%sinstall activate noprompt' % (asr_admin_string)]}
 
             cmd_result = RCMD.run_commands(cmd)
             output.install_log = cmd_result
@@ -646,23 +779,31 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
             for i in range(20):
                 time.sleep(2)
                 device_cmds = {
-                    'cisco_xr':[ '%sshow install log | utility tail count 20' % (asr_admin_string) ]
+                    'cisco_xr':['%sshow install log | utility tail count 20' % (asr_admin_string)]
                 }
                 device_cmds_result = RCMD.run_commands(device_cmds)
 
                 find_success = False
                 part_operation_id, part_operation_id_int, last_operation_id_int = str(), 0, 0
                 for part in device_cmds_result.split('Install operation '):
-                    try: part_split_1 = part.split()[1]
-                    except: part_split_1 = str()
-                    try: part_operation_id_int = int(part.split()[0])
-                    except: part_operation_id_int = 0
+                    try:
+                        part_split_1 = part.split()[1]
+                    except:
+                        part_split_1 = str()
+                    try:
+                        part_operation_id_int = int(part.split()[0])
+                    except:
+                        part_operation_id_int = 0
                     if part_operation_id_int > 0: last_operation_id_int = part_operation_id_int
                     if part_split_1 == 'started':
-                        try: part_operation_id = part.split()[0]
-                        except: part_operation_id = str()
-                        try: part_last_command = part.split('started')[1].split(':')[1].splitlines()[1].strip()
-                        except: part_last_command = str()
+                        try:
+                            part_operation_id = part.split()[0]
+                        except:
+                            part_operation_id = str()
+                        try:
+                            part_last_command = part.split('started')[1].split(':')[1].splitlines()[1].strip()
+                        except:
+                            part_last_command = str()
                         try:
                             if part_operation_id:
                                 if not output.operation_id:
@@ -673,7 +814,8 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
                                     if 'install activate' in part_last_command:
                                         output.operation_id = part_operation_id
                                         output.last_command = part_last_command
-                        except: pass
+                        except:
+                            pass
                 ### CHECK IF LAST OPERATION ID IS 'install activate noprompt' ###
                 if part_operation_id and last_operation_id_int > 0 and last_operation_id_int == int(part_operation_id):
                     find_success = True
@@ -700,15 +842,22 @@ class NsoActionsClass_os_upgrade_install_activate(Action):
 #   OS UPGRADE REMOVE INACTIVE
 # --------------------------
 class NsoActionsClass_os_upgrade_remove_inactive(Action):
-    """Does os upgrade remove inactive definition."""
+    """class NsoActionsClass_os_upgrade_remove_inactive
+
+    Does os upgrade remove inactive definition.
+    """
 
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
+        """action method os_upgrade_remove_inactive
+
+        Does os upgrade remove inactive.
+        """
         self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
         output.hw_type = 'UNKNOWN'
         asr_admin_string = str()
 
-        RCMD = RCMD_class(uinfo = uinfo, input = input, log_info = self.log.info)
+        RCMD = RCMD_class(uinfo=uinfo, input=input, log_info=self.log.info)
         output.hw_type, output.os_type = RCMD.hw_type, RCMD.os_type
 
         if not RCMD.x64: asr_admin_string = 'admin '
@@ -723,13 +872,19 @@ class NsoActionsClass_os_upgrade_remove_inactive(Action):
         if RCMD.router_type == "cisco_xr":
 
             for part in device_cmds_result.split('Install operation '):
-                try: part_split_1 = part.split()[1]
-                except: part_split_1 = str()
+                try:
+                    part_split_1 = part.split()[1]
+                except:
+                    part_split_1 = str()
                 if part_split_1 == 'started':
-                    try: part_operation_id = part.split()[0]
-                    except: part_operation_id = str()
-                    try: part_last_command = part.split('started')[1].split(':')[1].splitlines()[1].strip()
-                    except: part_last_command = str()
+                    try:
+                        part_operation_id = part.split()[0]
+                    except:
+                        part_operation_id = str()
+                    try:
+                        part_last_command = part.split('started')[1].split(':')[1].splitlines()[1].strip()
+                    except:
+                        part_last_command = str()
                     try:
                         if part_operation_id:
                             if not output.operation_id:
@@ -739,7 +894,8 @@ class NsoActionsClass_os_upgrade_remove_inactive(Action):
                             elif output.operation_id and int(part_operation_id) >= int(output.operation_id):
                                 output.last_command = part_last_command
                                 output.operation_id = part_operation_id
-                    except: pass
+                    except:
+                        pass
         self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
         del RCMD
 
@@ -748,13 +904,20 @@ class NsoActionsClass_os_upgrade_remove_inactive(Action):
 #   OS UPGRADE COMMIT
 # --------------------------
 class NsoActionsClass_os_upgrade_commit(Action):
-    """Does os upgrade commit definition."""
+    """class NsoActionsClass_os_upgrade_commit
+
+    Does os upgrade commit definition.
+    """
 
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
+        """action method os_upgrade_commit
+
+        Does os upgrade commit.
+        """
         self.log.info('\nACTION_NAME: ', name, '\nINPUT: ', nso_object_to_string(self, input))
 
-        RCMD = RCMD_class(uinfo = uinfo, input = input, log_info = self.log.info)
+        RCMD = RCMD_class(uinfo=uinfo, input=input, log_info=self.log.info)
         output.hw_type, output.os_type = RCMD.hw_type, RCMD.os_type
 
         asr_admin_string = str()
@@ -771,8 +934,10 @@ class NsoActionsClass_os_upgrade_commit(Action):
             output.log = device_cmds_result
 
             for part in device_cmds_result.split('Install operation '):
-                try: part_split_1 = part.split()[1]
-                except: part_split_1 = str()
+                try:
+                    part_split_1 = part.split()[1]
+                except:
+                    part_split_1 = str()
                 if part_split_1 == 'started':
                     try: part_operation_id = part.split()[0]
                     except: part_operation_id = str()
@@ -787,7 +952,8 @@ class NsoActionsClass_os_upgrade_commit(Action):
                             elif output.operation_id and int(part_operation_id) >= int(output.operation_id):
                                 output.last_command = part_last_command
                                 output.operation_id = part_operation_id
-                    except: pass
+                    except:
+                        pass
         self.log.info('\nOUTPUT: ', nso_object_to_string(self, output))
         del RCMD
 
@@ -795,11 +961,17 @@ class NsoActionsClass_os_upgrade_commit(Action):
 ###############################################################################
 
 def nso_object_to_string(self, object_instance):
-    """ Printable representation of object variables."""
-    try: return_string = '\n' + str(eval("str(object_instance)")) + ':\n'
-    except: pass
+    """function nso_object_to_string
+
+    Does printable representation of object variables.
+    """
+    try:
+        return_string = '\n' + str(eval("str(object_instance)")) + ':\n'
+    except:
+        pass
     for item in dir(object_instance):
-        if '_' in str(item[0]) and '_' in str(item[-1]): pass
+        if '_' in str(item[0]) and '_' in str(item[-1]):
+            pass
         else:
             # dir_subobjects = None
             # try: dir_subobjects = dir(object_instance.item)
@@ -812,8 +984,10 @@ def nso_object_to_string(self, object_instance):
                         # except: return_string += '\\_____...\n'
             # else:
                 item_type = str(eval("type(object_instance.%s)" % str(item)))
-                try: return_string += "\\____" + str(item) + " [" + str(eval("type(object_instance.%s)" % str(item))) + '] = ' + str(eval("repr(object_instance.%s)" % str(item))) + '\n'
-                except: return_string += '\\____'+ str(item) + ' = ...\n'
+                try:
+                    return_string += "\\____" + str(item) + " [" + str(eval("type(object_instance.%s)" % str(item))) + '] = ' + str(eval("repr(object_instance.%s)" % str(item))) + '\n'
+                except:
+                    return_string += '\\____'+ str(item) + ' = ...\n'
                 ### vars,dir,str,repr ###
                 ### '<class 'ncs.maagic.LeafList'>' 'ncs.maagic.Container', 'ncs.maagic.LeafList', 'ncs.maagic.List' ###
                 if item_type == "<class 'ncs.maagic.LeafList'>":
@@ -844,6 +1018,10 @@ def nso_object_to_string(self, object_instance):
 ###############################################################################
 
 def object_dump(self, obj):
+    """function object_dump
+
+    Does simple printouts of object variables.
+    """
     if hasattr(obj, '__dict__'):
         return vars(obj)
     else:
@@ -851,10 +1029,11 @@ def object_dump(self, obj):
 
 ###############################################################################
 
-def get_local_subdirectories(brand_raw = None, type_raw = None):
-    """
-    type_subdir_on_device - For the x2800..c4500 and the Huawei the files just
-        go in the top level directory and for Juniper it goes in /var/tmp/
+def get_local_subdirectories(brand_raw=None, type_raw=None):
+    """function get_local_subdirectories
+
+    Returns type_subdir_on_device - For the x2800..c4500 and the Huawei the files just
+    go in the top level directory and for Juniper it goes in /var/tmp/
     """
     brand_subdir, type_subdir_on_server, file_types = str(), str(), []
     type_subdir_on_device = str()
@@ -943,8 +1122,10 @@ def get_local_subdirectories(brand_raw = None, type_raw = None):
             brand_raw_assumed = 'HUAWEI'
 
         ### BRAND ASSUMPTION IF NOT INSERTED ###
-        if not brand_raw: brand_subdir = brand_raw_assumed.upper()
-        else: brand_subdir = brand_raw.upper()
+        if not brand_raw:
+            brand_subdir = brand_raw_assumed.upper()
+        else:
+            brand_subdir = brand_raw.upper()
     return brand_subdir, type_subdir_on_server, type_subdir_on_device, file_types
 
 
