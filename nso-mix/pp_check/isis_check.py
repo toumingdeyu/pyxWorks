@@ -2,7 +2,7 @@
 
 ###!/usr/bin/python36
 
-import sys, os, io, paramiko, json, copy, html, logging, base64, string
+import sys, os, io, paramiko, json, copy, html, logging, base64, string, signal
 import traceback
 import getopt
 import getpass
@@ -178,12 +178,15 @@ class CGI_CLI(object):
         ### PRINT RESULTS #############################################################
         CGI_CLI.print_results()
 
+        ### Make loglink ##############################################################
+        log_link = CGI_CLI.make_loglink(logfile_name)
+
         ### SEND EMAIL WITH LOGFILE ###################################################
         if logfile_name and CGI_CLI.data.get("send_email"):
             #USERNAME = 'pnemec'
             CGI_CLI.send_me_email( \
                 subject = str(logfile_name).replace('\\','/').split('/')[-1] if logfile_name else None, \
-                file_name = str(logfile_name), username = USERNAME)
+                email_body = str(log_link), username = USERNAME)
 
         ### def SEND EMAIL WITH ERROR/TRACEBACK LOGFILE TO SUPPORT ####################
         if traceback_found:
@@ -232,12 +235,21 @@ class CGI_CLI(object):
         return username, password
 
     @staticmethod
+    def terminate_process_term(signalNumber, frame):
+        result = 'SIGTERM RECEIVED - terminating the process'
+        CGI_CLI.uprint(result, color = 'magenta')
+        try: RCMD.disconnect()
+        except: pass
+        sys.exit(0)
+
+    @staticmethod
     def init_cgi(chunked = None, css_style = None, newline = None, \
         timestamp = None, disable_page_reload_link = None, no_title = None, \
         json_mode = None, json_headers = None, read_only = None, \
         fake_success = None, no_result_printout = None):
         """
         """
+        CGI_CLI.result_list = []
         try: CGI_CLI.sys_stdout_encoding = sys.stdout.encoding
         except: CGI_CLI.sys_stdout_encoding = None
         if not CGI_CLI.sys_stdout_encoding: CGI_CLI.sys_stdout_encoding = 'UTF-8'
@@ -411,6 +423,7 @@ class CGI_CLI(object):
         CGI_CLI.JSON_RESULTS['errors'] = str()
         CGI_CLI.JSON_RESULTS['warnings'] = str()
         CGI_CLI.JSON_RESULTS['result'] = str()
+        signal.signal(signal.SIGTERM, CGI_CLI.terminate_process_term)
         return CGI_CLI.USERNAME, CGI_CLI.PASSWORD
 
     @staticmethod
@@ -589,7 +602,9 @@ class CGI_CLI(object):
 
     @staticmethod
     def add_result(text = None, type = None, print_now = None):
-        if text: CGI_CLI.result_list.append([text, type])
+        if text:
+            try: CGI_CLI.result_list.append([text, type])
+            except: pass
         color = None
         if type == 'fatal': color = 'magenta'
         elif type == 'error': color = 'red'
