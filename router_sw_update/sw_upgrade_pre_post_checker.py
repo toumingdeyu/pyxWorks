@@ -24,6 +24,8 @@ from mako.template import Template
 from mako.lookup import TemplateLookup
 import ipaddress
 
+traceback_found = None
+
 
 class CGI_CLI(object):
     """
@@ -248,13 +250,16 @@ class CGI_CLI(object):
     @staticmethod
     def init_cgi(chunked = None, css_style = None, newline = None, \
         timestamp = None, disable_page_reload_link = None, no_title = None, \
-        json_mode = None, json_headers = None, read_only = None, fake_success = None):
+        json_mode = None, json_headers = None, read_only = None, \
+        fake_success = None, no_result_printout = None):
         """
         """
         CGI_CLI.result_list = []
         try: CGI_CLI.sys_stdout_encoding = sys.stdout.encoding
         except: CGI_CLI.sys_stdout_encoding = None
         if not CGI_CLI.sys_stdout_encoding: CGI_CLI.sys_stdout_encoding = 'UTF-8'
+        CGI_CLI.PRINT_RESULT = True
+        if no_result_printout: CGI_CLI.PRINT_RESULT = False
         CGI_CLI.errorfilename = None
         CGI_CLI.LOG_APP_SUBDIR = None
         CGI_CLI.MENU_DISPLAYED = False
@@ -690,7 +695,7 @@ class CGI_CLI(object):
             if CGI_CLI.JSON_RESULTS.get('result',str()) == 'warnings': res_color = 'orange'
             if CGI_CLI.JSON_RESULTS.get('result',str()) == 'failure': res_color = 'red'
 
-            if not CGI_CLI.MENU_DISPLAYED:
+            if not CGI_CLI.MENU_DISPLAYED and CGI_CLI.PRINT_RESULT:
                 if not CGI_CLI.JSON_MODE: CGI_CLI.uprint("RESULT: " + \
                     CGI_CLI.JSON_RESULTS.get('result', str()), tag = 'h1', color = res_color)
                 CGI_CLI.errlogtofile("\n RESULT: " + CGI_CLI.JSON_RESULTS.get('result') + '\n')
@@ -1212,20 +1217,20 @@ class CGI_CLI(object):
         buff_read = str()
         exception_text = None
 
-        replace_sequence = lambda buffer : str(buffer.\
-            replace('\x0d','').replace('\x07','').\
-            replace('\x08','').replace(' \x1b[1D','').replace(u'\u2013',''))
+        # replace_sequence = lambda buffer : str(buffer.\
+            # replace('\x0d','').replace('\x07','').\
+            # replace('\x08','').replace(' \x1b[1D','').replace(u'\u2013','').replace(u'\xa0', '').encode('utf-8'))
 
         ### https://docs.python.org/3/library/codecs.html#standard-encodings ###
         ### http://lwp.interglacial.com/appf_01.htm ###
-        if buff and not ascii_only:
-            ###for coding in [CGI_CLI.sys_stdout_encoding, 'utf-8','utf-16', 'cp1252', 'cp1140','cp1250', 'latin_1', 'ascii']:
-            for coding in ['utf-8', 'ascii']:
-                exception_text = None
-                try:
-                    buff_read = replace_sequence(buff.encode(encoding = coding))
-                    break
-                except: exception_text = traceback.format_exc()
+        # if buff and not ascii_only:
+            # ###for coding in [CGI_CLI.sys_stdout_encoding, 'utf-8','utf-16', 'cp1252', 'cp1140','cp1250', 'latin_1', 'ascii']:
+            # for coding in ['utf-8', 'ascii']:
+                # exception_text = None
+                # try:
+                    # buff_read = replace_sequence(buff.encode(encoding = coding))
+                    # break
+                # except: exception_text = traceback.format_exc()
 
         ### available in PYTHON3 ###
         # if buff and ascii_only or not buff_read:
@@ -1234,15 +1239,18 @@ class CGI_CLI(object):
                 # buff_read = replace_sequence(ascii(buff))
             # except: exception_text = traceback.format_exc()
 
-        if exception_text:
-            err_chars = str()
-            for character in replace_sequence(buff):
-                if ord(character) > 128:
-                    err_chars += '\\x%x,' % (ord(character))
-                else: buff_read += character
+        # if exception_text:
+            # err_chars = str()
+            # for character in replace_sequence(buff):
+                # if ord(character) > 128:
+                    # err_chars += '\\x%x,' % (ord(character))
+                # else: buff_read += character
 
-            if len(err_chars) > 0:
-                CGI_CLI.uprint("NON STANDARD CHARACTERS (>128) found [%s] in TEXT!" % (err_chars), color = 'orange', no_printall = not CGI_CLI.printall)
+            # if len(err_chars) > 0:
+                # CGI_CLI.uprint("NON STANDARD CHARACTERS (>128) found [%s] in TEXT!" % (err_chars), tag = 'debug', no_printall = not CGI_CLI.printall)
+
+        buff_read = str(repr(buff)[1:-1].replace('\\r','').replace('\\n','\n'))
+
         return buff_read
 
     @staticmethod
@@ -1500,6 +1508,41 @@ class RCMD(object):
                     RCMD.output, RCMD.forget_it = RCMD.ssh_send_command_and_read_output(RCMD.ssh_connection,RCMD.DEVICE_PROMPTS,RCMD.TERM_LEN_0)
                     RCMD.output2, RCMD.forget_it = RCMD.ssh_send_command_and_read_output(RCMD.ssh_connection,RCMD.DEVICE_PROMPTS,"")
                     RCMD.output += RCMD.output2
+                ### DETECT HW TYPE ############################################
+                RCMD.os_type, RCMD.hw_type, RCMD.x64 = str(), str(), False
+                if RCMD.router_type: RCMD.os_type = RCMD.router_type
+                if RCMD.router_type == "ios-xr" or RCMD.router_type == "cisco_xr":
+                    command_outputs = RCMD.run_commands(['show version', 'show instal active summary'])
+                    try:
+                        RCMD.sw_version = str(result.split('Software, Version')[1]\
+                            .split()[0].split('[')[0].strip())
+                    except:
+                        try:
+                            RCMD.sw_version = str(result.split('Version      :')[1]\
+                                .split()[0].split('[')[0].strip())
+                        except:
+                            pass
+                    try:
+                        RCMD.hw_type = str(result.split(') processor')[0]\
+                            .splitlines()[-1].split('(')[0].strip())
+                    except:
+                        pass
+                    ### also in show version can be '-x64', ###
+                    ### 'Workspace    : /auto/srcarchive15/prod/6.6.3/asr9k-x64/ws' ###
+                    if '-x64' in command_outputs[0]:
+                        RCMD.x64 = True
+                    RCMD.hw_brand = 'CISCO'
+
+                    if '-x64-' in command_outputs[1]:
+                        RCMD.x64 = True
+                    else:
+                        RCMD.x64 = False
+
+                    if 'IOS-XRv 9000' in RCMD.hw_type or 'NCS' in RCMD.hw_type:
+                        RCMD.x64 = True
+                    elif 'IOS XRv Series' in RCMD.hw_type:
+                        RCMD.x64 = False
+
                 ### WORK REMOTE  ==============================================
                 command_outputs = RCMD.run_commands(RCMD.CMD)
                 ### ===========================================================
@@ -1622,12 +1665,17 @@ class RCMD(object):
         autoconfirm_mode - in case of interactivity send 'Y\n' on huawei ,'\n' on cisco
         """
         command_outputs, cmd_list = str(), []
-        if cmd_data and isinstance(cmd_data, (dict,collections.OrderedDict)):
-            if RCMD.router_type=='cisco_ios': cmd_list = cmd_data.get('cisco_ios',[])
-            elif RCMD.router_type=='cisco_xr': cmd_list = cmd_data.get('cisco_xr',[])
-            elif RCMD.router_type=='juniper': cmd_list = cmd_data.get('juniper',[])
-            elif RCMD.router_type=='huawei': cmd_list = cmd_data.get('huawei',[])
-            elif RCMD.router_type=='linux': cmd_list = cmd_data.get('linux',[])
+        if cmd_data and isinstance(cmd_data, (dict, collections.OrderedDict)):
+            if RCMD.router_type == 'cisco_ios' or RCMD.router_type == "ios-xe":
+                cmd_list = cmd_data.get('cisco_ios',[])
+            elif RCMD.router_type == 'cisco_xr' or RCMD.router_type == 'ios-xr':
+                cmd_list = cmd_data.get('cisco_xr',[])
+            elif RCMD.router_type == 'juniper' or RCMD.router_type == 'junos':
+                cmd_list = cmd_data.get('juniper',[])
+            elif RCMD.router_type == 'huawei' or RCMD.router_type == 'huawei-vrp':
+                cmd_list = cmd_data.get('huawei',[])
+            elif RCMD.router_type == 'linux' or RCMD.router_type == 'unix':
+                cmd_list = cmd_data.get('linux',[])
         elif cmd_data and isinstance(cmd_data, (list,tuple)): cmd_list = cmd_data
         elif cmd_data and isinstance(cmd_data, (six.string_types)): cmd_list = [cmd_data]
 
@@ -3795,10 +3843,10 @@ try:
 
                 ### def PRECHECK - cards check ################################
                 if SCRIPT_ACTION == 'pre' and \
-                    not 'IOS-XRv 9000' in HW_INFO.get('hw_type',str()):
+                    not 'IOS-XRv 9000' in RCMD.hw_type and RCMD.x64:
                     ### 'show run fpd auto-upgrade' ###########################
 
-                    xr_cmds = {'cisco_xr': [ 'show run fpd auto-upgrade' ]}
+                    xr_cmds = {'cisco_xr': ['show run fpd auto-upgrade']}
 
                     rcmd_outputs = RCMD.run_commands(xr_cmds, \
                         autoconfirm_mode = True, \
@@ -3807,10 +3855,10 @@ try:
                     if not CGI_CLI.READ_ONLY and not 'fpd auto-upgrade enable' in rcmd_outputs[0]:
 
                         xr_cmds = {'cisco_xr': [
-                                '!',
-                                'fpd auto-upgrade enable',
-                                '!',
-                        ] }
+                            '!',
+                            'fpd auto-upgrade enable',
+                            '!',
+                        ]}
 
                         ### CHECK IF AURO UPGRADE IS ENABLED ###
                         rcmd_outputs = RCMD.run_commands(xr_cmds, conf = True,\
@@ -3818,8 +3866,8 @@ try:
                                 printall = printall)
 
                         device_cmds5a = { 'cisco_xr': [
-                                'show run fpd auto-upgrade',
-                        ] }
+                            'show run fpd auto-upgrade',
+                        ]}
 
                         rcmd_outputs5a = RCMD.run_commands(device_cmds5a, \
                             autoconfirm_mode = True, \
@@ -3829,7 +3877,11 @@ try:
                             text = "(PROBLEM: 'fpd auto-upgrade enable' is not in CMD 'show run fpd auto-upgrade' !)"
                             CGI_CLI.add_result(text, 'error')
 
-                    ### 'admin show run fpd auto-upgrade' #################
+                ### 64bit admin version #######################################
+                if SCRIPT_ACTION == 'pre' and \
+                    not 'IOS-XRv 9000' in RCMD.hw_type and RCMD.x64:
+                    ### 'show run fpd auto-upgrade' ###########################
+
                     xr_cmds = {'cisco_xr': ['admin show run fpd auto-upgrade']}
 
                     rcmd_outputs = RCMD.run_commands(xr_cmds, \
@@ -3837,15 +3889,61 @@ try:
                         printall = printall)
 
                     if not CGI_CLI.READ_ONLY and not 'fpd auto-upgrade enable' in rcmd_outputs[0]:
+
+                        xr_cmds = {'cisco_xr': [
+                            '!',
+                            'admin',
+                            '!',
+                            'config',
+                            '!',
+                            'fpd auto-upgrade enable',
+                            '!',
+                            'commit',
+                            '!',
+                            'exit',
+                            '!',
+                            'exit'
+                        ]}
+
+                        ### CHECK IF AURO UPGRADE IS ENABLED ###
+                        rcmd_outputs = RCMD.run_commands(xr_cmds,\
+                                autoconfirm_mode = True, \
+                                printall = printall)
+
+                        device_cmds5a = { 'cisco_xr': [
+                            'admin show run fpd auto-upgrade',
+                        ]}
+
+                        rcmd_outputs5a = RCMD.run_commands(device_cmds5a, \
+                            autoconfirm_mode = True, \
+                            printall = printall)
+
+                        if not 'fpd auto-upgrade enable' in rcmd_outputs5a[0]:
+                            text = "(PROBLEM: 'fpd auto-upgrade enable' is not in CMD 'show run fpd auto-upgrade' !)"
+                            CGI_CLI.add_result(text, 'error')
+
+                ### 32bit admin version ###################################
+                if SCRIPT_ACTION == 'pre' and \
+                    not 'IOS-XRv 9000' in RCMD.hw_type and not RCMD.x64:
+                    ### 'admin show run fpd auto-upgrade' #################
+                    xr_cmds = {'cisco_xr': ['admin show run fpd auto-upgrade']}
+
+                    rcmd_outputs = RCMD.run_commands(xr_cmds, \
+                        autoconfirm_mode = True, \
+                        printall = printall)
+
+                    if not CGI_CLI.READ_ONLY and not 'fpd auto-upgrade' in rcmd_outputs[0]:
                         xr_cmds = {'cisco_xr': [
                                 '!',
-                                'admin',
+                                'admin config',
                                 '!',
-                                'fpd auto-upgrade enable',
+                                'fpd auto-upgrade',
                                 '!',
+                                'commit',
+                                '!'
                         ] }
 
-                        rcmd_outputs = RCMD.run_commands(xr_cmds, conf = True,\
+                        rcmd_outputs = RCMD.run_commands(xr_cmds, \
                             autoconfirm_mode = True, \
                             printall = printall)
 
@@ -3856,8 +3954,8 @@ try:
                             autoconfirm_mode = True, \
                             printall = printall)
 
-                        if not 'fpd auto-upgrade enable' in rcmd_outputs5b[0]:
-                            text = "(PROBLEM: 'fpd auto-upgrade enable' is not in CMD 'admin show run fpd auto-upgrade' !)"
+                        if not 'fpd auto-upgrade' in rcmd_outputs5b[0]:
+                            text = "(PROBLEM: 'fpd auto-upgrade' is not in CMD 'admin show run fpd auto-upgrade' !)"
                             CGI_CLI.add_result(text, 'error')
 
 
